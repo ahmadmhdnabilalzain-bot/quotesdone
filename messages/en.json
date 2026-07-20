@@ -6,7 +6,9 @@
     "suppliers": "For suppliers",
     "blog": "Blog",
     "login": "Sign in",
-    "getQuotes": "Get quotes"
+    "getQuotes": "Get quotes",
+    "menu": "Menu",
+    "closeMenu": "Close menu"
   },
   "hero": {
     "badge": "The UAE's anonymous quote marketplace",

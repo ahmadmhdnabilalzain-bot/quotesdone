@@ -11,7 +11,7 @@ export function LangSwitch() {
   return (
     <button
       onClick={() => router.replace(pathname, { locale: other })}
-      className="rounded-full border border-white/25 bg-navy-deep/70 px-4 py-1.5 text-[13px] font-semibold text-white hover:bg-white/10"
+      className="whitespace-nowrap rounded-full border border-[var(--line2)] bg-teal-light/[0.04] px-2.5 py-1.5 text-[12px] font-semibold text-white transition-colors duration-200 hover:border-teal hover:bg-teal/[0.09] sm:px-4 sm:text-[13px]"
       aria-label="Language"
     >
       {t('langSwitch')}
