@@ -93,10 +93,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-offse
 button,a{touch-action:manipulation;-webkit-tap-highlight-color:rgba(20,184,166,.18)}
 .tabular{font-variant-numeric:tabular-nums}
 
-/* skip link — direction-safe (left:-9999px creates 9999px of scroll in RTL) */
-.skip{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
-.skip:focus{position:fixed;inset-block-start:0;inset-inline-start:0;z-index:200;width:auto;height:auto;
-  clip:auto;clip-path:none;background:var(--teal);color:#04231F;padding:12px 18px;font-weight:700}
 
 /* ---- shadcn/ui theme tokens (used only by the OS shell, wrapped in .osx) ---- */
 @layer base {

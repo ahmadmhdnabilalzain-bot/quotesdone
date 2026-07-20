@@ -16,7 +16,6 @@ export function SiteHeader() {
   ];
   return (
     <>
-      <a className="skip" href="#main">Skip to main content</a>
       <header className="sticky top-0 z-40 border-b border-transparent bg-navy-deep/[0.74] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-navy-deep/[0.62]">
         <div className="container-x flex h-16 items-center gap-1.5 sm:gap-3 md:gap-6">
           <Link href="/" className="whitespace-nowrap font-head text-[17px] font-bold tracking-tight text-white sm:text-[19px]">
