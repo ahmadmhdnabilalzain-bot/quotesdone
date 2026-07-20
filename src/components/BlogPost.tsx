@@ -44,12 +44,12 @@ export function BlogPost({ slug, locale }: { slug: string; locale: string }) {
           <Link href="/blog/" className="transition-colors hover:text-teal-light">Blog</Link>
         </nav>
 
-        <article className="mx-auto max-w-[780px]">
+        <article className="max-w-[820px]">
           <header className="border-b border-[var(--line)] pb-8">
             {p.category && (
               <p className="text-[13px] font-medium text-teal-light">{p.category}</p>
             )}
-            <h1 className="mt-3 text-balance font-head text-[clamp(28px,4vw,46px)] font-semibold leading-[1.08] tracking-[-0.035em] text-white">
+            <h1 className="mt-3 max-w-[20ch] text-balance font-head text-[clamp(28px,4vw,46px)] font-semibold leading-[1.08] tracking-[-0.035em] text-white">
               {p.title}
             </h1>
             {p.excerpt && (
