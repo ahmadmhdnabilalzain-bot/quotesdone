@@ -1,0 +1,478 @@
+// @ts-nocheck
+'use client';
+import { useEffect, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
+const URL = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
+const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
+const FN = URL + '/functions/v1';
+const SB = createClient(URL, ANON, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'qd-portal-auth' } });
+
+async function call(path, body, token) {
+  const r = await fetch(FN + '/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body) });
+  return r.json();
+}
+const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
+const fileToB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.readAsDataURL(f); });
+const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
+function BillingPanel({ token, lang }) {
+  const [st, setSt] = useState({ loading: true, dues: [], total: 0, err: '' });
+  const [busy, setBusy] = useState(false);
+  const load = async () => {
+    setSt((s) => ({ ...s, loading: true, err: '' }));
+    const j = await call('supplier_pay', { action: 'list' }, token);
+    if (j && j.ok) setSt({ loading: false, dues: j.dues || [], total: Number(j.total_owed || 0), err: '' });
+    else setSt({ loading: false, dues: [], total: 0, err: (j && j.error) || 'load_err' });
+  };
+  useEffect(() => { load(); }, [token]);
+  const pay = async () => {
+    setBusy(true);
+    const j = await call('supplier_pay', { action: 'checkout', return_url: window.location.origin }, token);
+    if (j && j.ok && j.url) { window.location.href = j.url; return; }
+    setBusy(false);
+    setSt((s) => ({ ...s, err: (j && (j.detail || j.error)) || 'checkout_err' }));
+  };
+  if (st.loading) return <Card className="p-5">{t(lang, 'loading_dash')}</Card>;
+  if (st.err) return <Card className="p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'bill_err')}</div><Button className="mt-3" onClick={load}>{t(lang, 'bill_retry')}</Button></Card>;
+  if (!st.dues.length) return <Card className="p-5"><div className={S.h2}>{t(lang, 'bill_title')}</div><div className={S.sub}>{t(lang, 'bill_none')}</div></Card>;
+  return (
+    <Card className="p-5">
+      <div className={S.h2}>{t(lang, 'bill_title')}</div>
+      <div className="flex flex-col gap-2 my-3">
+        {st.dues.map((d) => (
+          <div key={d.id} className="flex justify-between items-center border-b border-border pb-2 text-[13.5px]">
+            <div>
+              <div className="font-semibold">{aed(d.amount)}</div>
+              <div className={S.sub}>{t(lang, 'bill_commission') + ' ' + aed(d.commission) + (d.fine ? ' · ' + t(lang, 'bill_fine') + ' ' + aed(d.fine) : '')}</div>
+            </div>
+            <div className={S.sub}>{d.due_date ? t(lang, 'bill_due') + ' ' + d.due_date : ''}</div>
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-between items-center mt-3 flex-wrap gap-3">
+        <div>
+          <div className={S.sub}>{t(lang, 'bill_total')}</div>
+          <div className="text-[20px] font-extrabold text-foreground">{aed(st.total)}</div>
+        </div>
+        <Button onClick={pay} disabled={busy}>{busy ? t(lang, 'bill_paying') : t(lang, 'bill_pay')}</Button>
+      </div>
+      <div className={cn(S.sub, 'mt-3')}>{t(lang, 'bill_secure')}</div>
+    </Card>
+  );
+}
+
+function ensurePdfjs() { return new Promise((res, rej) => { if (window.pdfjsLib) return res(window.pdfjsLib); const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (_e) {} res(window.pdfjsLib); }; sc.onerror = rej; document.head.appendChild(sc); }); }
+async function fileToImages(file) {
+  const b64 = await fileToB64(file);
+  if (file.type && file.type.startsWith('image/')) return { images: [{ mime: file.type, data: b64 }], b64, mime: file.type };
+  if (file.type === 'application/pdf') {
+    try { const L = await ensurePdfjs(); const raw = atob(b64); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+      const pdf = await L.getDocument({ data: arr }).promise; const out = []; const n = Math.min(pdf.numPages, 6);
+      for (let pnum = 1; pnum <= n; pnum++) { const pg = await pdf.getPage(pnum); const vp = pg.getViewport({ scale: 1.8 }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; out.push({ mime: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.8).split(',')[1] }); }
+      return { images: out, b64, mime: 'application/pdf' };
+    } catch (_e) { return { images: [], b64, mime: 'application/pdf' }; }
+  }
+  return { images: [], b64, mime: file.type || 'application/octet-stream' };
+}
+
+const T = {
+  en: { brand_sub:'Supplier Portal', home:'Home', signout:'Sign out', loading:'Loading…', loading_dash:'Loading your dashboard…',
+    tab_signin:'Sign in', tab_signup:'Create account', welcome_back:'Welcome back', register_title:'Register as a supplier',
+    signup_sub:"Enter your work email and we'll create your account — then you'll register your company and verify your mobile.",
+    signin_sub:'Sign in with the email or mobile you registered with.', work_email:'Work email', email_or_mobile:'Email or mobile',
+    create_my_account:'Create my account', send_code:'Send me a code', sending:'Sending…', code_placeholder:'6-digit code',
+    verify_continue:'Verify & continue', verify_signin:'Verify & sign in', verifying:'Verifying…', use_diff:'Use a different email/number',
+    junk_note:'The code can take a minute — please check your spam/junk folder too.', err_code_send:'Could not send a code.', err_incorrect:'Incorrect code.',
+    signup_email_only:"Please sign up with your work email — you'll register your company and verify your mobile next.",
+    conflict_customer:'This email is registered as a customer. Please use the customer app to sign in.',
+    setup_title:'Set up your supplier account', setup_sub_company:'Register your company, then complete your profile.', setup_sub_profile:'Complete your profile to start receiving RFQs and submitting quotes.',
+    onboard_title:'Register your company', onboard_sub:'Enter your company name and main emirate. Registration is free for the first 1,000 suppliers.', company_name:'Company name', emirate:'Emirate', create_company:'Create company', enter_company:'Enter your company name.', err_generic:'Something went wrong.', something_wrong:'Something went wrong',
+    t_overview:'Overview', t_billing:'Billing', bill_title:'Commission due', bill_none:'You have no outstanding commission. Thank you.', bill_total:'Total outstanding', bill_pay:'Pay now', bill_paying:'Opening secure checkout…', bill_err:'We could not load your balance. Please try again.', bill_commission:'Commission', bill_fine:'Late fee', bill_due:'Due', bill_retry:'Try again', bill_secure:'You will be redirected to Stripe to pay securely. QuotesDone never sees your card details.', t_rfqs:'RFQs', t_documents:'Documents', t_projects:'Projects', t_messages:'Messages', approved:'Approved', pending:'Pending',
+    k_quotes_sent:'Quotes sent', k_reveals:'Reveals', k_hired:'Hired', k_win:'Win ratio', k_rating:'Rating', k_deal_value:'Deal value won',
+    price_pos:'Price positioning', anon_note:'anonymous — never shows competitor prices', not_enough:'not enough data', last12:'Last 12 months', quotes_reveals:'quotes / reveals',
+    pp_fallback:'Once you quote on a few competitive RFQs, you will see how your pricing compares to the market here — without ever revealing anyone else pricing.',
+    pf_company:'Company', pf_emirates:'Emirates you serve', pf_contact:'Contact & owner', contact_name:'Contact name *', mobile:'Mobile *',
+    mobile_verified:'✓ Mobile verified', verify_my_mobile:'Verify my mobile →', sms_code:'6-digit SMS code', verify:'Verify',
+    wa_alerts:'Send me WhatsApp alerts when a matching RFQ comes in.', verify_first:'Please verify your mobile number first.',
+    accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation (PDF/photo) — we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', loading:'Loading…', loading_msgs:'Loading messages…', no_convos_h:'No conversations yet', no_convos_sub:'Once a customer reveals your quote on a project, you can request a direct chat with them here. Our assistant handles most questions instantly.', no_messages:'No messages yet', no_chat:'no chat', back:'← Back', type_message:'Type a message…', send:'Send', no_chat_open:'No chat open yet.', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', could_not_send:'Could not send.', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', no_history:'No history yet.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no. *', authority:'Authority (DED / free zone)', lic_expiry:'Licence expiry', vat_trn:'VAT no. (TRN)', h_egr:'Establishment (EGR)', egr_no:'Economic Register (EGR) no.', egr_cert:'EGR / establishment certificate:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', h_bank:'Bank / payout', bank_name_ph:'Bank name', account_holder:'Account holder name', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).' },
+  ar: { brand_sub:'بوابة المورّدين', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_dash:'جارٍ تحميل لوحتك…',
+    tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', register_title:'سجّل كمورّد',
+    signup_sub:'أدخل بريدك الإلكتروني للعمل وسننشئ حسابك — ثم تسجّل شركتك وتتحقق من رقم جوالك.',
+    signin_sub:'سجّل الدخول بالبريد الإلكتروني أو رقم الجوال المسجّل.', work_email:'البريد الإلكتروني للعمل', email_or_mobile:'البريد الإلكتروني أو الجوال',
+    create_my_account:'إنشاء حسابي', send_code:'أرسل لي رمزًا', sending:'جارٍ الإرسال…', code_placeholder:'رمز من 6 أرقام',
+    verify_continue:'تحقّق وتابع', verify_signin:'تحقّق وسجّل الدخول', verifying:'جارٍ التحقق…', use_diff:'استخدم بريدًا أو رقمًا آخر',
+    junk_note:'قد يستغرق وصول الرمز دقيقة — يُرجى التحقق من مجلد الرسائل غير المرغوب فيها (Spam) أيضًا.', err_code_send:'تعذّر إرسال الرمز.', err_incorrect:'رمز غير صحيح.',
+    signup_email_only:'يُرجى التسجيل ببريدك الإلكتروني للعمل — ستسجّل شركتك وتتحقق من جوالك لاحقًا.',
+    conflict_customer:'هذا البريد مسجّل كعميل. يُرجى استخدام تطبيق العملاء لتسجيل الدخول.',
+    setup_title:'أنشئ حساب المورّد', setup_sub_company:'سجّل شركتك ثم أكمل ملفك.', setup_sub_profile:'أكمل ملفك لبدء استقبال طلبات التسعير وتقديم العروض.',
+    onboard_title:'سجّل شركتك', onboard_sub:'أدخل اسم شركتك وإمارتك الرئيسية. التسجيل مجاني لأول 1000 مورّد.', company_name:'اسم الشركة', emirate:'الإمارة', create_company:'إنشاء الشركة', enter_company:'أدخل اسم شركتك.', err_generic:'حدث خطأ ما.', something_wrong:'حدث خطأ ما',
+    t_overview:'نظرة عامة', t_billing:'الفواتير', bill_title:'العمولة المستحقة', bill_none:'لا توجد عمولة مستحقة عليك. شكرًا لك.', bill_total:'إجمالي المستحق', bill_pay:'ادفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدك. يرجى المحاولة مرة أخرى.', bill_commission:'العمولة', bill_fine:'رسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'حاول مرة أخرى', bill_secure:'سيتم تحويلك إلى Stripe للدفع بأمان. لا تطّلع QuotesDone على بيانات بطاقتك.', t_rfqs:'طلبات التسعير', t_documents:'المستندات', t_projects:'المشاريع', t_messages:'الرسائل', approved:'معتمد', pending:'قيد المراجعة',
+    k_quotes_sent:'العروض المُرسلة', k_reveals:'مرات الكشف', k_hired:'المُتعاقد معه', k_win:'نسبة الفوز', k_rating:'التقييم', k_deal_value:'قيمة الصفقات',
+    price_pos:'الموقع السعري', anon_note:'مجهول — لا يعرض أسعار المنافسين أبدًا', not_enough:'بيانات غير كافية', last12:'آخر 12 شهرًا', quotes_reveals:'عروض / كشوفات',
+    pp_fallback:'بمجرد تقديمك عروضًا على بعض طلبات التسعير التنافسية، سترى هنا كيف تقارن أسعارك بالسوق — دون الكشف عن أسعار أي طرف آخر.',
+    pf_company:'الشركة', pf_emirates:'الإمارات التي تخدمها', pf_contact:'جهة الاتصال والمالك', contact_name:'اسم جهة الاتصال *', mobile:'الجوال *',
+    mobile_verified:'✓ تم التحقق من الجوال', verify_my_mobile:'تحقّق من جوالي ←', sms_code:'رمز الرسالة (6 أرقام)', verify:'تحقّق',
+    wa_alerts:'أرسل لي تنبيهات واتساب عند وصول طلب تسعير مطابق.', verify_first:'يُرجى التحقق من رقم جوالك أولًا.',
+    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' الخاصة بمنصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتك، سيظهر هنا.', request_w:'طلب', you_won:' · فزت بالطلب', concluded:' · مُغلق', quoted:'قدّمت عرضًا: ', close:'إغلاق', quote:'قدّم عرضًا', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفع عرض السعر (PDF/صورة) — سنقرأه:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'أدخل مبلغًا صحيحًا.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ كمسودة — أضف التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضك', line_items:'بند', read_quote_post:'. راجعه وأرسله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'ارفع التجديدات قبل انتهائها — سنذكّرك هنا وسنوقف المطابقة إذا انتهى مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضك ويتعاقد معك، يظهر المشروع هنا.', project_w:'مشروع', loading:'جارٍ التحميل…', loading_msgs:'جارٍ تحميل الرسائل…', no_convos_h:'لا توجد محادثات بعد', no_convos_sub:'بمجرد أن يكشف العميل عن عرضك في مشروع، يمكنك طلب محادثة مباشرة معه هنا. مساعدنا يجيب عن معظم الأسئلة فورًا.', no_messages:'لا رسائل بعد', no_chat:'لا محادثة', back:'→ رجوع', type_message:'اكتب رسالة…', send:'إرسال', no_chat_open:'لا توجد محادثة مفتوحة بعد.', ask_placeholder:'اطرح سؤالًا — يجيب مساعدنا فورًا، أو يفتح محادثة مباشرة عند الحاجة فعلًا.', ask_request:'اسأل / اطلب محادثة', assistant_pre:'المساعد: ', could_not_send:'تعذّر الإرسال.', sent_review:'أُرسل للمراجعة — سنُعلمك إذا فُتحت محادثة.', sent:'أُرسل.', no_history:'لا يوجد سجل بعد.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1000 مورّد.', corrected:' (مُصحّح من رخصتك)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفع رخصتك وسنقرأ الرقم والجهة وتاريخ الانتهاء والرقم الضريبي تلقائيًا.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية *', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما الذي تقدّمه', products_ph:'المنتجات التي توردها (مفصولة بفواصل)', services_ph:'الخدمات التي تقدّمها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', h_bank:'البنك / التحويل', bank_name_ph:'اسم البنك', account_holder:'اسم صاحب الحساب', add_contact_phone:'أضف اسم جهة الاتصال ورقم الهاتف.', add_license:'أضف رقم رخصتك التجارية (أو ارفع الرخصة لتعبئته تلقائيًا).', could_not_save:'تعذّر حفظ ملفك.', save_error:'حدث خطأ أثناء حفظ ملفك. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتك', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).' }
+};
+const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
+function initLang(){ try{ if(typeof window==='undefined') return 'en'; const ls=localStorage.getItem('qd-lang'); if(ls) return ls; const m=document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/); if(m && String(m[1]).startsWith('ar')) return 'ar'; }catch(_e){} return 'en'; }
+const S = {
+  center: 'grid place-items-center min-h-[70vh] p-5',
+  h1: 'text-xl font-extrabold text-foreground',
+  h2: 'text-[15px] font-bold text-foreground',
+  sub: 'text-[13px] leading-relaxed text-muted-foreground',
+  anon: 'ml-1.5 text-[11px] font-semibold text-muted-foreground/80',
+  hint: 'text-xs text-muted-foreground my-2 leading-relaxed',
+  err: 'text-[13px] text-red-300 mt-2',
+  wrap: 'max-w-[1040px] mx-auto p-[22px]',
+  frow: 'flex gap-2.5 flex-wrap mt-2.5',
+  tabsWrap: 'inline-flex flex-wrap gap-1.5 rounded-xl bg-secondary/40 p-1',
+  tab: 'rounded-md px-3.5 py-2 text-[13px] font-semibold text-muted-foreground cursor-pointer border-0 bg-transparent',
+  tabOn: 'bg-primary/15 text-primary',
+  list: 'flex flex-col gap-3',
+  field: 'mt-3 flex h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+  area: 'mt-3 flex w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y',
+  chip: 'rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-[12.5px] font-semibold text-muted-foreground cursor-pointer',
+  chipOn: 'bg-primary/15 border-primary/60 text-primary',
+  fileInput: 'text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80',
+};
+
+export function SupplierPortal() {
+  const [lang, setLang] = useState('en');
+  const [token, setToken] = useState('');
+  const [phase, setPhase] = useState('login');
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    try { setLang(initLang()); } catch (_e) {}
+    try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { setToken(tk); setPhase('app'); } } catch (_e) {}
+    SB.auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); } }).catch(() => {});
+  }, []);
+  const onAuth = (access, refresh) => { try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} } };
+  const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB.auth.signOut().catch(() => {}); } catch (_e) {} };
+  const rtl = lang === 'ar';
+  if (!mounted) return null;
+  return (
+    <div dir={rtl ? 'rtl' : 'ltr'} className="osx min-h-screen bg-background text-foreground" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <header className="sticky top-0 z-10 flex items-center justify-between px-5 py-3.5 bg-card/70 backdrop-blur border-b border-border">
+        <a className="text-base font-extrabold text-foreground no-underline" href="/">QuotesDone <span className="text-primary font-bold">{t(lang, 'brand_sub')}</span></a>
+        <div className="flex gap-2 items-center">
+          <Button variant="outline" size="sm" onClick={() => { try { localStorage.setItem('qd-lang', lang === 'ar' ? 'en' : 'ar'); } catch (_e) {} if (typeof location !== 'undefined') location.reload(); }}>{lang === 'ar' ? 'EN' : 'عربي'}</Button>
+          <Button asChild variant="outline" size="sm"><a href="/">{t(lang, 'home')}</a></Button>
+          {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
+        </div>
+      </header>
+      {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
+        {phase === 'login' && <Login onAuth={onAuth} lang={lang} />}
+        {phase === 'app' && <Dashboard token={token} lang={lang} />}
+      </>)}
+    </div>
+  );
+}
+function Login({ onAuth, lang }) {
+  const [mode, setMode] = useState('signin'); const [step, setStep] = useState('id'); const [id, setId] = useState(''); const [code, setCode] = useState(''); const [ident, setIdent] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+  const isSignup = mode === 'signup';
+  const looksEmail = (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v || '').trim());
+  const send = async () => { const v = id.trim(); if (!v) return; if (isSignup && !looksEmail(v)) { setMsg(t(lang, 'signup_email_only')); return; } setBusy(true); setMsg('');
+    try { const g = await call('role_guard', { user_kind: 'supplier', identifier: v }); if (g && g.conflict === 'customer') { setBusy(false); setMsg(t(lang, 'conflict_customer')); return; } } catch (_e) {}
+    let j; try { j = await call('login_otp', { action: 'send', user_kind: 'supplier', identifier: v, allow_signup: isSignup }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg((j && j.error) || t(lang, 'err_code_send')); };
+  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg((j && j.error) || t(lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
+  const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
+  return (
+    <div className={S.center}><Card className="w-full max-w-[400px] p-5">
+      <div className={cn(S.tabsWrap, 'mb-3.5')}><button className={cn(S.tab, !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
+      <div className={S.h1}>{isSignup ? t(lang, 'register_title') : t(lang, 'welcome_back')}</div>
+      <div className={cn(S.sub, 'mt-1')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
+      {step === 'id' ? (<>
+        <Input className="mt-3" placeholder={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} />
+        <Button className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button>
+      </>) : (<>
+        <Input className="mt-3" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} />
+        <div className={S.hint}>{t(lang, 'junk_note')}</div>
+        <Button className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button>
+        <Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button>
+      </>)}
+      {msg && <div className={S.err}>{msg}</div>}
+    </Card></div>
+  );
+}
+function Dashboard({ token, lang }) {
+  const [ov, setOv] = useState(null); const [tab, setTab] = useState('overview'); const [err, setErr] = useState('');
+  const load = async () => { const j = await call('supplier_portal', { action: 'overview' }, token); if (j && j.ok) setOv(j); else setErr((j && (j.error || j.hint)) || 'load_err'); };
+  useEffect(() => { load(); }, [token]);
+  if (err === 'no_company') return <Onboarding token={token} lang={lang} onDone={() => { setErr(''); load(); }} />;
+  if (err) return <div className={S.center}><Card className="max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{err === 'load_err' ? t(lang, 'err_generic') : err}</div></Card></div>;
+  if (!ov) return <div className={S.center}>{t(lang, 'loading_dash')}</div>;
+  const s = ov.stats || {}; const pp = s.price_positioning || {};
+  const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing') };
+  return (
+    <div className={S.wrap}>
+      <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
+        <div><div className="text-[22px] font-extrabold text-foreground">{ov.supplier.company_name}</div><div className="flex items-center gap-2 mt-1.5 flex-wrap"><Badge variant={ov.supplier.approval_status === 'approved' ? 'ok' : 'warn'} className="capitalize">{ov.supplier.approval_status === 'approved' ? t(lang, 'approved') : t(lang, 'pending')}</Badge>{ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · ' + ov.supplier.license_expiry}</Badge>; })() : null}</div></div>
+        <div className={S.tabsWrap}>{['overview', 'rfqs', 'documents', 'projects', 'messages', 'billing'].map((k) => <button key={k} className={cn(S.tab, tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : TAB[k]}</button>)}</div>
+      </div>
+      {tab === 'billing' && <BillingPanel token={token} lang={lang} />}
+      {tab === 'overview' && <>
+        {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => <div key={i} className={cn('rounded-lg border border-border bg-card px-3.5 py-3 cursor-pointer flex flex-col gap-0.5 border-l-4', a.severity === 'high' ? 'border-l-red-500' : a.severity === 'medium' ? 'border-l-amber-400' : 'border-l-primary')} onClick={() => setTab(a.action === 'documents' ? 'documents' : 'rfqs')}><b className="text-[13.5px] text-foreground">{a.title}</b><span className="text-muted-foreground text-xs">{a.detail}</span></div>)}</div>}
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5 mb-4">
+          <Kpi label={t(lang, 'k_quotes_sent')} v={s.quotes_total ?? 0} />
+          <Kpi label={t(lang, 'k_reveals')} v={s.reveals ?? 0} />
+          <Kpi label={t(lang, 'k_hired')} v={s.hired ?? 0} />
+          <Kpi label={t(lang, 'k_win')} v={s.win_ratio != null ? s.win_ratio + '%' : '—'} />
+          <Kpi label={t(lang, 'k_rating')} v={s.rating != null ? s.rating : '—'} sub={s.rating_percentile != null ? (lang === 'ar' ? ('ضمن أفضل ' + Math.max(1, 100 - s.rating_percentile) + '% بالقطاع') : ('Top ' + Math.max(1, 100 - s.rating_percentile) + '% in sector')) : ''} />
+          <Kpi label={t(lang, 'k_deal_value')} v={aed(s.deal_value_awarded)} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <Card className="p-5">
+            <div className={S.h2}>{t(lang, 'price_pos')} <span className={S.anon}>{t(lang, 'anon_note')}</span></div>
+            <div className="mt-2.5"><Badge variant={/below/.test(pp.band || '') ? 'ok' : /above/.test(pp.band || '') ? 'warn' : 'secondary'} className="capitalize text-sm px-3.5 py-1.5">{pp.band || t(lang, 'not_enough')}</Badge></div>
+            <div className={cn(S.sub, 'mt-2.5')}>{pp.competitive_rfqs ? ((lang === 'ar' ? ('كنت الأقل سعرًا في ' + (pp.times_lowest || 0) + ' من ' + pp.competitive_rfqs + ' طلب تنافسي (' + (pp.lowest_rate || 0) + '%). في المتوسط عرضك ' + (pp.avg_pct_vs_average >= 0 ? '+' : '') + (pp.avg_pct_vs_average ?? 0) + '% مقابل متوسط السوق و' + (pp.avg_pct_above_lowest ?? 0) + '% فوق أدنى عرض.') : ('You were the lowest bid on ' + (pp.times_lowest || 0) + ' of ' + pp.competitive_rfqs + ' competitive RFQs (' + (pp.lowest_rate || 0) + '%). On average your quote is ' + (pp.avg_pct_vs_average >= 0 ? '+' : '') + (pp.avg_pct_vs_average ?? 0) + '% vs the market average and ' + (pp.avg_pct_above_lowest ?? 0) + '% above the lowest quote.'))) : t(lang, 'pp_fallback')}</div>
+          </Card>
+          <Card className="p-5">
+            <div className={S.h2}>{t(lang, 'last12')} <span className={S.anon}>{t(lang, 'quotes_reveals')}</span></div>
+            <Spark hist={s.history_12m} lang={lang} />
+          </Card>
+        </div>
+      </>}
+      {tab === 'rfqs' && <Rfqs token={token} lang={lang} />}
+      {tab === 'documents' && <Documents token={token} lang={lang} />}
+      {tab === 'projects' && <Projects token={token} lang={lang} />}
+      {tab === 'messages' && <Messages token={token} lang={lang} />}
+    </div>
+  );
+}
+function Kpi({ label, v, sub }) { return <Card className="p-3.5"><div className="text-[19px] font-extrabold text-foreground">{v}</div><div className="text-[11.5px] text-muted-foreground mt-1">{label}</div>{sub ? <div className="text-[10.5px] text-primary mt-1 font-semibold">{sub}</div> : null}</Card>; }
+function Spark({ hist, lang }) { if (!hist || !hist.length) return <div className={S.sub}>{t(lang, 'no_history')}</div>; const max = Math.max(1, ...hist.map((h) => Math.max(h.quotes || 0, h.reveals || 0))); return <div className="flex gap-1.5 items-end mt-3.5 h-[70px]">{hist.map((h, i) => <div key={i} className="flex-1 flex flex-col items-center" title={h.month + ': ' + h.quotes + ' quotes / ' + h.reveals + ' reveals'}><div className="flex gap-0.5 items-end h-[50px]"><div className="w-[7px] rounded-t-sm bg-primary" style={{ height: Math.max(2, Math.round((h.quotes / max) * 46)) }} /><div className="w-[7px] rounded-t-sm bg-primary/40" style={{ height: Math.max(2, Math.round((h.reveals / max) * 46)) }} /></div><div className="text-[9px] text-muted-foreground mt-1">{String(h.month).split(' ')[0]}</div></div>)}</div>; }
+function Rfqs({ token, lang }) {
+  const [data, setData] = useState(null); const [open, setOpen] = useState(null);
+  const reload = () => call('supplier_api', { action: 'inbox' }, token).then((j) => setData(j));
+  useEffect(() => { reload(); }, [token]);
+  if (!data) return <Card className="p-5">{t(lang, 'loading_rfqs')}</Card>;
+  if (data.error) return <Card className="p-5">{data.error}</Card>;
+  const list = data.inquiries || [];
+  if (!list.length) return <Card className="p-5"><div className={S.h2}>{t(lang, 'no_rfqs_h')}</div><div className={S.sub}>{t(lang, 'no_rfqs_sub')}</div></Card>;
+  return <div className={S.list}>{list.map((i) => <Card key={i.id} className="p-5">
+    <div className="flex justify-between items-center gap-2.5"><div><b>{i.category || t(lang, 'request_w')}</b> · {i.emirate || ''}{i.you_won ? <span className="text-primary font-bold">{t(lang, 'you_won')}</span> : i.concluded ? <span className="text-muted-foreground">{t(lang, 'concluded')}</span> : ''}</div>{i.quote ? <span className="text-primary font-bold text-[13px]">{t(lang, 'quoted')}{aed(i.quote.quote_amount)}</span> : <Button size="sm" onClick={() => setOpen(open === i.id ? null : i.id)}>{open === i.id ? t(lang, 'close') : t(lang, 'quote')}</Button>}</div>
+    {i.summary && <div className={cn(S.sub, 'mt-1.5')}>{i.summary}</div>}
+    {i.boq && i.boq.boq && <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'boq_prefix')}{i.boq.boq.length} {t(lang, 'boq_items')}{i.boq_confidence ? ' · ' + i.boq_confidence + t(lang, 'confidence') : ''}</div>}
+    {(i.drawing_pages || []).length ? <div className={cn(S.sub, 'mt-1.5')}>{i.drawing_pages.map((u, k) => <a key={k} href={u} target="_blank" rel="noopener" className="text-primary font-semibold mr-2.5">{t(lang, 'drawing_p')}{k + 1}</a>)}</div> : null}
+    {!i.concluded && !i.quote && <div className="mt-1.5"><button className="text-[12px] text-muted-foreground underline underline-offset-2 hover:text-primary" onClick={async () => { const note = window.prompt('What is unclear about this request? (optional) — we will ask the customer to add detail.'); if (note === null) return; const j = await call('rfq_flag', { inquiry_id: i.id, note: note || '' }, token); window.alert(j && j.ok ? 'Thanks — we have asked the customer to add more detail.' : ((j && j.error) || 'Could not send. Please try again.')); }}>Scope unclear? Ask the customer to clarify</button></div>}
+    {open === i.id && !i.concluded && <QuoteForm inquiry={i} token={token} lang={lang} onDone={() => { setOpen(null); reload(); }} />}
+  </Card>)}</div>;
+}
+function QuoteForm({ inquiry, token, onDone, lang }) {
+  const [amount, setAmount] = useState(''); const [lead, setLead] = useState(''); const [notes, setNotes] = useState(''); const [scope, setScope] = useState(''); const [validity, setValidity] = useState(''); const [payment, setPayment] = useState(''); const [warranty, setWarranty] = useState(''); const [items, setItems] = useState([{ description: '', qty: '', unit: '', unit_price: '' }]); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+  const [reading, setReading] = useState(false); const [prop, setProp] = useState(null); const [orig, setOrig] = useState(null);
+  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64 } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + pr.line_items.length + ' ' + t(lang, 'line_items') : '') + t(lang, 'read_quote_post')); } else setMsg((j && j.error) || t(lang, 'could_not_read')); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
+  const submit = async () => { if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; } setBusy(true); setMsg(''); const payload = prop ? { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, conditions: prop.conditions || '', exclusions: prop.exclusions || '', validity: validity || prop.validity || '', payment_terms: payment || prop.payment_terms || '', warranty: warranty || prop.warranty || '', items: prop.line_items || [], masked_terms: prop.masked_terms || null, source: 'upload', original_file_path: orig && orig.path, original_file_name: orig && orig.name } : { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, validity, payment_terms: payment, warranty, items: items.filter((x) => (x.description || '').trim()), source: 'form' }; const j = await call('supplier_api', payload, token); setBusy(false); if (j && j.ok && j.accepted) onDone(); else if (j && j.ok) setMsg(j.message || t(lang, 'draft_saved')); else setMsg((j && j.error) || t(lang, 'could_not_submit')); };
+  return <div className="mt-3 border-t border-border pt-3 flex flex-col gap-2.5">
+    <div className="flex gap-2.5 flex-wrap items-center"><span className={cn(S.sub, 'font-semibold')}>{t(lang, 'upload_quote')}</span><FilePick lang={lang} accept="image/*,application/pdf" onPick={(fl) => fl && onFile(fl)} />{reading && <span className={S.sub}>{t(lang, 'reading')}</span>}</div>
+    <div className="flex gap-2.5"><Input placeholder={t(lang, 'total_aed')} value={amount} onChange={(e) => setAmount(e.target.value)} /><Input placeholder={t(lang, 'lead_time')} value={lead} onChange={(e) => setLead(e.target.value)} /></div>
+    <div className="flex gap-2.5"><Input placeholder={lang === 'ar' ? 'صلاحية العرض (مثلاً 30 يومًا)' : 'Quote validity (e.g. 30 days)'} value={validity} onChange={(e) => setValidity(e.target.value)} /><Input placeholder={lang === 'ar' ? 'شروط الدفع (مثلاً 50% مقدمًا)' : 'Payment terms (e.g. 50% advance)'} value={payment} onChange={(e) => setPayment(e.target.value)} /><Input placeholder={lang === 'ar' ? 'الضمان (مثلاً سنة واحدة)' : 'Warranty (e.g. 1 year)'} value={warranty} onChange={(e) => setWarranty(e.target.value)} /></div>
+    <div className="mt-1">
+      <div className={cn(S.sub, 'mb-1')}>{lang === 'ar' ? 'بنود العرض (الوصف، الكمية، السعر) — يجعل عرضك جاهزًا للإرسال' : 'Quote items (description, qty, price) — makes your quote ready to send'}</div>
+      {items.map((it, ix) => (<div key={ix} className="flex gap-1.5 mb-1.5 items-center">
+        <Input placeholder={lang === 'ar' ? 'الوصف' : 'Description'} value={it.description} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, description: e.target.value } : r))} />
+        <Input style={{ maxWidth: 64 }} placeholder={lang === 'ar' ? 'كمية' : 'Qty'} value={it.qty} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, qty: e.target.value } : r))} />
+        <Input style={{ maxWidth: 72 }} placeholder={lang === 'ar' ? 'وحدة' : 'Unit'} value={it.unit} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit: e.target.value } : r))} />
+        <Input style={{ maxWidth: 96 }} placeholder={lang === 'ar' ? 'سعر الوحدة' : 'Unit price'} value={it.unit_price} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit_price: e.target.value } : r))} />
+        <Button size="sm" variant="outline" onClick={() => setItems(items.length > 1 ? items.filter((_, i) => i !== ix) : [{ description: '', qty: '', unit: '', unit_price: '' }])}>×</Button>
+      </div>))}
+      <Button size="sm" variant="outline" onClick={() => setItems([...items, { description: '', qty: '', unit: '', unit_price: '' }])}>{lang === 'ar' ? '+ إضافة بند' : '+ Add item'}</Button>
+    </div>
+    <textarea className={S.area} placeholder={t(lang, 'scope_work')} value={scope} onChange={(e) => setScope(e.target.value)} rows={2} />
+    <textarea className={S.area} placeholder={t(lang, 'notes_customer')} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+    <div><Button size="sm" disabled={busy || reading} onClick={submit}>{busy ? t(lang, 'submitting') : t(lang, 'submit_quote')}</Button></div>
+    {msg && <div className={cn(S.sub, 'mt-1.5')}>{msg}</div>}
+  </div>;
+}
+function Documents({ token, lang }) {
+  const [data, setData] = useState(null); const [busy, setBusy] = useState('');
+  const load = () => call('supplier_portal', { action: 'documents' }, token).then((j) => setData(j));
+  useEffect(() => { load(); }, [token]);
+  const upload = async (kind, file, expiry) => { setBusy(kind); const b64 = await fileToB64(file); await call('supplier_portal', { action: 'save_documents', items: [{ kind, original_b64: b64, filename: file.name, mime: file.type, expiry }] }, token); setBusy(''); load(); };
+  if (!data) return <Card className="p-5">{t(lang, 'loading_docs')}</Card>;
+  const byKey = Object.fromEntries((data.documents || []).map((d) => [d.key, d]));
+  const order = ['license', 'profile', 'catalogs', 'iso'];
+  return <div className={S.list}>
+    <Card className="p-5"><div className={S.h2}>{t(lang, 'docs_h')}</div><div className={S.sub}>{t(lang, 'docs_sub')}</div></Card>
+    {order.map((k) => byKey[k]).filter(Boolean).map((d) => <DocRow key={d.key} d={d} lang={lang} editable={d.key !== 'license' && d.key !== 'profile'} busy={busy === d.key} onUpload={upload} />)}
+  </div>;
+}
+function DocRow({ d, editable, busy, onUpload, lang }) {
+  const [exp, setExp] = useState(d.expiry || ''); const [file, setFile] = useState(null);
+  const st = d.expiry ? (new Date(d.expiry) < new Date() ? { t: t(lang, 'st_expired'), v: 'destructive' } : ((new Date(d.expiry) - new Date()) / 864e5 <= 30 ? { t: t(lang, 'st_expiring'), v: 'warn' } : { t: t(lang, 'st_valid'), v: 'ok' })) : null;
+  return <Card className="p-5 flex justify-between items-center gap-3 flex-wrap">
+    <div><div><b>{({ license: t(lang, 'h_trade'), profile: t(lang, 'doc_profile'), catalogs: t(lang, 'catalogues'), iso: t(lang, 'doc_iso') })[d.key] || d.label}</b>{st && <Badge variant={st.v} className="ml-2">{st.t}</Badge>}</div><div className={S.sub}>{d.path ? (d.expiry ? t(lang, 'expires_pre') + d.expiry : ((d.count != null ? d.count + ' · ' : '') + t(lang, 'on_file'))) : t(lang, 'not_uploaded')}{d.url ? <> · <a className="text-primary font-semibold" href={d.url} target="_blank" rel="noopener">{t(lang, 'view')}</a></> : null}{Array.isArray(d.urls) ? d.urls.map((u, i) => <span key={i}> · <a className="text-primary font-semibold" href={u} target="_blank" rel="noopener">{t(lang, 'view')} {i + 1}</a></span>) : null}</div></div>
+    {editable && <div className="flex gap-2 items-center flex-wrap"><FilePick lang={lang} onPick={setFile} />{file && <span className={S.sub}>{file.name}</span>}{d.key !== 'catalogs' && <Input type="date" style={{ colorScheme: 'dark' }} className="w-auto" value={exp} onChange={(e) => setExp(e.target.value)} />}<Button size="sm" disabled={busy || !file} onClick={() => onUpload(d.key, file, exp)}>{busy ? t(lang, 'uploading') : t(lang, 'upload')}</Button></div>}
+  </Card>;
+}
+function Projects({ token, lang }) {
+  const [data, setData] = useState(null);
+  useEffect(() => { call('supplier_api', { action: 'projects' }, token).then((j) => setData(j)); }, [token]);
+  if (!data) return <Card className="p-5">{t(lang, 'loading')}</Card>;
+  const list = data.projects || [];
+  if (!list.length) return <Card className="p-5"><div className={S.h2}>{t(lang, 'no_projects_h')}</div><div className={S.sub}>{t(lang, 'no_projects_sub')}</div></Card>;
+  return <div className={S.list}>{list.map((p, i) => <Card key={i} className="p-5 flex justify-between items-center gap-3 flex-wrap"><div><b>{p.category || t(lang, 'project_w')}</b> · {p.emirate || ''}<div className={S.sub}>{p.summary || ''}</div></div><div className="text-right"><b>{aed(p.amount)}</b><div className={S.sub}>{p.revealed_at ? ((lang === 'ar' ? 'كُشف بتاريخ ' : 'Revealed ') + new Date(p.revealed_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : (p.month || '')}</div></div></Card>)}</div>;
+}
+function Onboarding({ token, onDone, lang }) {
+  const [me, setMe] = useState(undefined);
+  const load = () => call('supplier_api', { action: 'me' }, token).then((j) => setMe(j.supplier || null)).catch(() => setMe(null));
+  useEffect(() => { load(); }, []);
+  if (me === undefined) return <div className={S.center}>{t(lang, 'loading')}</div>;
+  return (<div className={S.wrap} style={{ maxWidth: 640 }}>
+    <div className={cn(S.h1, 'mb-1')}>{t(lang, 'setup_title')}</div>
+    <div className={cn(S.sub, 'mb-3.5')}>{me ? t(lang, 'setup_sub_profile') : t(lang, 'setup_sub_company')}</div>
+    {!me ? <NewCompany token={token} onReady={load} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} />}
+  </div>);
+}
+function NewCompany({ token, onReady, lang }) {
+  const [cname, setCname] = useState(''); const [em, setEm] = useState(''); const [cat, setCat] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const create = async () => { if (cname.trim().length < 2) { setMsg(t(lang, 'enter_company')); return; } setBusy(true); setMsg(''); const j = await call('supplier_api', { action: 'create_company', company_name: cname.trim(), emirate: em || null, category: cat.trim() || null, role: 'supplier' }, token); setBusy(false); if (j && j.ok) onReady(); else setMsg((j && j.error) || t(lang, 'err_generic')); };
+  return (<Card className="p-5">
+    <div className={S.h2}>{t(lang, 'onboard_title')}</div>
+    <div className={cn(S.sub, 'mb-2')}>{t(lang, 'onboard_sub')}</div>
+    <Input className="mt-3" placeholder={t(lang, 'company_name')} value={cname} onChange={(e) => setCname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} />
+    <select className={S.field} style={{ colorScheme: 'dark', backgroundColor: 'hsl(205 46% 12%)', color: 'hsl(180 25% 94%)' }} value={em} onChange={(e) => setEm(e.target.value)}><option value="" style={{ backgroundColor: '#0C2330', color: '#EAF4F2' }}>{t(lang, 'emirate')}</option>{EMIRATES.map((x) => <option key={x} value={x} style={{ backgroundColor: '#0C2330', color: '#EAF4F2' }}>{x}</option>)}</select>
+    <Input className="mt-3" list="qd-sup-cats" placeholder="Your trade / category — e.g. Electrical, AC, Cleaning (type your own if not listed)" value={cat} onChange={(e) => setCat(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} />
+    <datalist id="qd-sup-cats">{['Electrical','AC / HVAC','AC Duct Cleaning','Plumbing','Cleaning','Painting','Fit-out / Interior Design','Joinery & Kitchens','Flooring','Tiling & Marble','False Ceiling','Aluminium & Glass','Facilities Management','CCTV & Security','Smart Home','Solar','Signage','Movers','Pest Control','Handyman','Landscaping & Gardening','Curtains & Blinds','Waterproofing','Swimming Pools','Fire & Safety','MEP','Steel & Fabrication','Carpentry','Other'].map((x) => <option key={x} value={x} />)}</datalist>
+    <div className={cn(S.sub, 'mt-0.5 mb-2')} style={{ fontSize: 12 }}>Every trade is welcome — if yours isn’t listed, just type it in.</div>
+    <Button className="w-full mt-3" disabled={busy} onClick={create}>{busy ? t(lang, 'sending') : t(lang, 'create_company')}</Button>
+    {msg && <div className={S.err}>{msg}</div>}
+  </Card>);
+}
+function signUpload(file, token) {
+  return (async () => {
+    try {
+      const su = await call('sign_upload', { bucket: 'supplier-docs', file_name: file.name }, token);
+      if (!su || !su.ok || !su.path || !su.token) return null;
+      const { error } = await SB.storage.from(su.bucket).uploadToSignedUrl(su.path, su.token, file);
+      return error ? null : su.path;
+    } catch (_e) { return null; }
+  })();
+}
+function FilePick({ lang, accept, multiple, onPick, label }) {
+  return <label className="inline-flex items-center gap-2 cursor-pointer rounded-md border border-border bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"><input type="file" accept={accept} multiple={multiple ? true : undefined} className="hidden" onChange={(e) => { const fs = e.target.files; if (!fs || !fs.length) return; onPick(multiple ? Array.from(fs) : fs[0]); e.target.value = ''; }} />📎 {label || t(lang, 'attach_file')}</label>;
+}
+function ProfileForm({ token, me, onSaved, lang }) {
+  const [f, setF] = useState({
+    contact_name: me.contact_name || '', signatory_name: me.signatory_name || '', owner_dob: me.owner_dob || '', phone: me.phone || '',
+    products: me.products || '', services: me.services || '', description: me.description || '',
+    trade_license_no: me.trade_license_no || '', license_authority: me.license_authority || '', license_expiry: me.license_expiry || '',
+    trn: me.trn || '', egr_number: me.egr_number || '', founded_year: me.founded_year || '', company_type: me.company_type || '', company_size: me.company_size || '',
+    bank_name: me.bank_name || '', bank_account_name: me.bank_account_name || '',
+  });
+  const [emirates, setEmirates] = useState(me.service_emirates || []); const [terms, setTerms] = useState(!!me.accepted_terms_at); const [wa, setWa] = useState(!!me.wa_optin);
+  const [profileFile, setProfileFile] = useState(null); const [catalogFiles, setCatalogFiles] = useState([]); const [egrFile, setEgrFile] = useState(null);
+  const [phoneVerified, setPhoneVerified] = useState(false); const [smsSent, setSmsSent] = useState(false); const [smsCode, setSmsCode] = useState(''); const [vbusy, setVbusy] = useState(false);
+  useEffect(() => { call('kyc', { action: 'state' }, token).then((k) => { if (k && k.phone_verified) setPhoneVerified(true); }); }, []);
+  const sendSms = async () => { if (!f.phone) { setMsg(t(lang, 'verify_first')); return; } setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone: f.phone }, token); setVbusy(false); if (j && j.ok) setSmsSent(true); else setMsg((j && j.error) || t(lang, 'could_not_sms')); };
+  const verifySms = async () => { setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone: f.phone, code: smsCode }, token); setVbusy(false); if (j && j.ok) setPhoneVerified(true); else setMsg((j && j.error) || t(lang, 'wrong_code')); };
+  const [uploading, setUploading] = useState(false); const [licNote, setLicNote] = useState(me.license_doc_path ? t(lang, 'lic_on_file') : '');
+  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const set = (k, v) => setF((o) => ({ ...o, [k]: v }));
+  const upLicense = async (file) => { if (!file) return; setUploading(true); setLicNote(''); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'process_docs', license: { original_b64: b64, file_b64: b64, images, filename: file.name, mime } }, token); const ex = (j && j.extracted && j.extracted.license) || null; if (ex) { setF((o) => ({ ...o, trade_license_no: ex.license_number || o.trade_license_no, license_authority: ex.authority || o.license_authority, license_expiry: ex.expiry || o.license_expiry, trn: ex.trn || o.trn })); setLicNote(t(lang, 'read_lic') + (ex.license_number ? ' — ' + ex.license_number : '') + (ex.expiry ? t(lang, 'expires_comma') + ex.expiry : '') + '.'); } else setLicNote(t(lang, 'lic_uploaded')); } catch (_e) { setLicNote(t(lang, 'lic_uploaded_noread')); } setUploading(false); };
+  const toggleEm = (e) => setEmirates((a) => a.includes(e) ? a.filter((x) => x !== e) : [...a, e]);
+  const save = async () => {
+    if (!f.contact_name || !f.phone) { setMsg(t(lang, 'add_contact_phone')); return; }
+    if (!f.trade_license_no) { setMsg(t(lang, 'add_license')); return; }
+    if (!profileFile && !me.company_profile_doc_path) { setMsg(t(lang, 'add_profile')); return; }
+    if (!phoneVerified) { setMsg(t(lang, 'verify_first')); return; }
+    if (!terms) { setMsg(t(lang, 'must_accept')); return; }
+    setBusy(true); setMsg('');
+    try {
+      if (profileFile || catalogFiles.length) {
+        const prof = profileFile ? { original_b64: await fileToB64(profileFile), filename: profileFile.name, mime: profileFile.type } : undefined;
+        const cats = []; for (const cf of catalogFiles.slice(0, 5)) cats.push({ original_b64: await fileToB64(cf), filename: cf.name, mime: cf.type });
+        await call('supplier_api', { action: 'process_docs', company_profile: prof, catalogs: cats }, token);
+      }
+      let egr_doc_path = null, egr_doc_name = null;
+      if (egrFile) { egr_doc_path = await signUpload(egrFile, token); egr_doc_name = egrFile.name; }
+      const payload = { action: 'save_profile', service_emirates: emirates, accept_terms: true, terms_version: 'v2' };
+      const strk = ['contact_name', 'signatory_name', 'phone', 'products', 'services', 'description', 'trade_license_no', 'license_authority', 'license_expiry', 'trn', 'egr_number', 'company_type', 'company_size', 'bank_name', 'bank_account_name'];
+      for (const k of strk) if (String(f[k] || '').trim()) payload[k] = f[k];
+      if (String(f.founded_year || '').trim()) payload.founded_year = Number(f.founded_year);
+      if (egr_doc_path) { payload.egr_doc_path = egr_doc_path; payload.egr_doc_name = egr_doc_name; }
+      const j = await call('supplier_api', payload, token);
+      if (!(j && j.ok)) { setBusy(false); setMsg((j && j.error) || t(lang, 'could_not_save')); return; }
+      try { await call('kyc', { action: 'accept_terms' }, token); } catch (_e) {}
+      try { const sess = await SB.auth.getSession(); const em = sess.data.session && sess.data.session.user && sess.data.session.user.email; if (em) await call('wa_optin_set', { email: em, user_kind: 'supplier', wa_optin: wa }, token); } catch (_e) {}
+      setBusy(false); onSaved();
+    } catch (_e) { setBusy(false); setMsg(t(lang, 'save_error')); }
+  };
+  const DateField = ({ label, k }) => (<div style={{ flex: 1, minWidth: 150 }}><div className={S.sub} style={{ fontSize: 11 }}>{label}</div><Input type="date" style={{ colorScheme: 'dark' }} value={f[k] || ''} onChange={(e) => set(k, e.target.value)} /></div>);
+  return (<Card className="p-5">
+    <div className={S.h2}>{t(lang, 'pf_company')}</div>
+    <div className={cn(S.sub, 'mb-2')}>{t(lang, 'registering_pre')}<b>{me.company_name}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</div>
+    <div className={cn(S.sub, 'font-semibold mt-1.5')}>{t(lang, 'pf_emirates')}</div>
+    <div className="flex gap-2 flex-wrap mt-2">{EMIRATES.map((e) => <button key={e} className={cn(S.chip, emirates.includes(e) && S.chipOn)} onClick={() => toggleEm(e)}>{e}</button>)}</div>
+
+    <div className={cn(S.h2, 'mt-4')}>{t(lang, 'pf_contact')}</div>
+    <div className={S.frow}><Input placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /><Input placeholder={t(lang, 'mobile')} value={f.phone} onChange={(e) => set('phone', e.target.value)} /></div>
+    {phoneVerified ? <div className={cn(S.sub, 'font-semibold')} style={{ color: 'hsl(var(--primary))' }}>{t(lang, 'mobile_verified')}</div> : (!smsSent ? <Button variant="link" className="px-0 h-auto mt-1.5" disabled={vbusy} onClick={sendSms}>{vbusy ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button> : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input placeholder={t(lang, 'sms_code')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /><Button size="sm" disabled={vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div></>)}
+    <div className={S.frow}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></div>
+    <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" checked={wa} onChange={(e) => setWa(e.target.checked)} /> {t(lang, 'wa_alerts')}</label>
+
+    <div className={cn(S.h2, 'mt-4')}>{t(lang, 'h_trade')}</div>
+    <div className={cn(S.sub, 'mb-1.5')}>{t(lang, 'trade_sub')}</div>
+    <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><FilePick lang={lang} accept="image/*,application/pdf" onPick={(fl) => fl && upLicense(fl)} />{uploading && <span className={S.sub}>{t(lang, 'reading_lic')}</span>}</div>
+    {licNote && <div className={cn(S.sub, 'font-semibold')} style={{ color: 'hsl(var(--primary))' }}>{licNote}</div>}
+    <div className={S.frow}><Input placeholder={t(lang, 'lic_no')} value={f.trade_license_no} onChange={(e) => set('trade_license_no', e.target.value)} /><Input placeholder={t(lang, 'authority')} value={f.license_authority} onChange={(e) => set('license_authority', e.target.value)} /></div>
+
+
+    <div className={cn(S.h2, 'mt-4')}>{t(lang, 'h_egr')}</div>
+    <div className={S.frow}><Input placeholder={t(lang, 'egr_no')} value={f.egr_number} onChange={(e) => set('egr_number', e.target.value)} /></div>
+    <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'egr_cert')}</span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" onPick={setEgrFile} />{egrFile && <span className={S.sub}>{egrFile.name}</span>}</div>
+
+    <div className={cn(S.h2, 'mt-4')}>{t(lang, 'h_offer')}</div>
+    <Input className="mt-3" placeholder={t(lang, 'products_ph')} value={f.products} onChange={(e) => set('products', e.target.value)} />
+    <Input className="mt-3" placeholder={t(lang, 'services_ph')} value={f.services} onChange={(e) => set('services', e.target.value)} />
+    <textarea className={S.area} rows={3} placeholder={t(lang, 'desc_ph')} value={f.description} onChange={(e) => set('description', e.target.value)} />
+    <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'company_profile_pdf')}</span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" onPick={setProfileFile} />{profileFile && <span className={S.sub}>{profileFile.name}</span>}</div>
+    <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'catalogs_ph')}</span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" multiple onPick={(a) => setCatalogFiles((a || []).slice(0, 5))} />{catalogFiles.length ? <span className={S.sub}>{catalogFiles.length} {t(lang, 'selected')}</span> : null}</div>
+
+
+    <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/supplier-agreement" target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
+    <Button className="w-full mt-3" disabled={busy || uploading} onClick={save}>{busy ? t(lang, 'submitting') : t(lang, 'submit_approval')}</Button>
+    {msg && <div className={S.err}>{msg}</div>}
+  </Card>);
+}
+
+function Messages({ token, lang }) {
+  const [threads, setThreads] = useState(null); const [open, setOpen] = useState(null);
+  useEffect(() => { call('messages_api', { action: 'threads' }, token).then((j) => setThreads(j.threads || [])); }, []);
+  if (!threads) return <Card className="p-5">{t(lang, 'loading_msgs')}</Card>;
+  if (open) return <Thread token={token} th={open} lang={lang} onBack={() => { setOpen(null); call('messages_api', { action: 'threads' }, token).then((j) => setThreads(j.threads || [])); }} />;
+  if (!threads.length) return <Card className="p-5"><div className={S.h2}>{t(lang, 'no_convos_h')}</div><div className={S.sub}>{t(lang, 'no_convos_sub')}</div></Card>;
+  return <div className={S.list}>{threads.map((it) => <Card key={it.inquiry_id + ':' + it.supplier_id} className="p-5 flex justify-between items-center cursor-pointer gap-3" onClick={() => setOpen(it)}>
+    <div><b>{it.counterpart}</b> · {it.subject}<div className={S.sub}>{it.last || t(lang, 'no_messages')}</div></div>
+    <div className="text-right">{it.unread ? <span className="inline-block rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-[11px] font-bold">{it.unread}</span> : null}<div className={cn(S.sub, 'capitalize')}>{it.chat_status === 'none' ? t(lang, 'no_chat') : it.chat_status}</div></div>
+  </Card>)}</div>;
+}
+function Thread({ token, th, onBack, lang }) {
+  const [data, setData] = useState(null); const [text, setText] = useState(''); const [q, setQ] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const load = () => call('messages_api', { action: 'thread', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id }, token).then(setData);
+  useEffect(() => { load(); }, []);
+  const send = async () => { if (!text.trim()) return; setBusy(true); setMsg(''); const j = await call('messages_api', { action: 'send', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id, body: text.trim() }, token); setBusy(false); if (j && j.ok) { setText(''); load(); } else setMsg((j && j.warning) || (j && j.error) || t(lang, 'could_not_send')); };
+  const requestChat = async () => { if (!q.trim()) return; setBusy(true); setMsg(''); const j = await call('messages_api', { action: 'request_chat', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id, question: q.trim() }, token); setBusy(false); if (j && j.answered) setMsg(t(lang, 'assistant_pre') + j.answer); else if (j && j.requested) setMsg(j.note || t(lang, 'sent_review')); else setMsg((j && (j.note || j.error)) || t(lang, 'sent')); setQ(''); };
+  if (!data) return <Card className="p-5">{t(lang, 'loading')}</Card>;
+  return <Card className="p-5">
+    <div className="flex justify-between items-center gap-2.5"><div className={S.h2}>{data.counterpart || th.counterpart}</div><Button variant="link" className="px-0 h-auto" onClick={onBack}>{t(lang, 'back')}</Button></div>
+    {data.warning && <div className="rounded-md border border-amber-400/30 bg-amber-400/10 text-amber-300 px-3 py-2 text-[11.5px] mb-2.5">{data.warning}</div>}
+    {data.chat_status === 'open' ? (<>
+      <div className="flex flex-col gap-2 my-2.5 max-h-[420px] overflow-y-auto">{(data.messages || []).map((m) => <div key={m.id} className={cn('max-w-[76%] px-3 py-2 rounded-xl text-[13.5px] leading-snug', m.sender === data.role ? 'self-end bg-primary/80 text-primary-foreground rounded-br-sm' : 'self-start bg-white/8 text-foreground rounded-bl-sm')}>{m.body}</div>)}</div>
+      <div className={S.frow}><Input placeholder={t(lang, 'type_message')} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /><Button size="sm" disabled={busy} onClick={send}>{t(lang, 'send')}</Button></div>
+    </>) : (<>
+      <div className={cn(S.sub, 'mb-2')}>{data.note || t(lang, 'no_chat_open')}</div>
+      <textarea className={S.area} rows={2} placeholder={t(lang, 'ask_placeholder')} value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="mt-2.5"><Button size="sm" disabled={busy} onClick={requestChat}>{t(lang, 'ask_request')}</Button></div>
+    </>)}
+    {msg && <div className={cn(S.sub, 'mt-2')} style={{ whiteSpace: 'pre-wrap' }}>{msg}</div>}
+  </Card>;
+}

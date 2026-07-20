@@ -1,0 +1,662 @@
+'use client';
+import * as React from 'react';
+import { supa, osApi, osOps, osReportBody, SUPA_URL } from '@/lib/osClient';
+import { cn } from '@/lib/utils';
+function ReportViewer({ id }: { id: number }) {
+  const [st, setSt] = React.useState<'idle' | 'load' | 'done' | 'err'>('load');
+  const [rep, setRep] = React.useState<any>(null);
+  const [err, setErr] = React.useState('');
+  React.useEffect(() => {
+    let alive = true; setRep(null); setErr(''); setSt('load');
+    osReportBody(id).then((r) => { if (!alive) return; if (r && r.found && r.report) { setRep(r.report); setSt('done'); } else { setErr((r && r.note) || 'No stored report body for this row.'); setSt('err'); } }).catch((e: any) => { if (alive) { setErr(e?.message || 'Failed to load report'); setSt('err'); } });
+    return () => { alive = false; };
+  }, [id]);
+  const printIt = () => {
+    if (!rep) return;
+    const esc = (x: any) => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const w = window.open('', '_blank'); if (!w) return;
+    w.document.write('<html><head><title>' + esc(rep.title || 'Report') + '</title><style>body{font:14px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:32px;color:#111;max-width:820px;margin:auto}h1{font-size:19px;margin:0 0 16px}pre{white-space:pre-wrap;word-wrap:break-word;font:inherit}</style></head><body><h1>' + esc(rep.title || 'Report') + '</h1><pre>' + esc(rep.body || '') + '</pre></body></html>');
+    w.document.close(); w.focus(); setTimeout(() => { try { w.print(); } catch (_e) {} }, 300);
+  };
+  return (<div className='mt-4'>
+    {st === 'done' && rep ? <button onClick={printIt} className='inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 mb-2'>Print / Save as PDF</button> : null}
+    {st === 'load' ? <div className='text-sm text-muted-foreground'>Loading report…</div> : null}
+    {st === 'err' ? <div className='text-sm text-amber-400'>{err}</div> : null}
+    {st === 'done' && rep ? <div className='space-y-3'>
+      <div className='text-base font-semibold'>{rep.title}</div>
+      {rep.kpis && typeof rep.kpis === 'object' && !Array.isArray(rep.kpis) ? <div className='grid grid-cols-2 gap-2 sm:grid-cols-3'>{Object.entries(rep.kpis).map(([k, v]: any) => (<div key={k} className='rounded-md border border-border/50 bg-card/40 px-3 py-2'><div className='text-[11px] uppercase tracking-wide text-muted-foreground'>{titleCaseSafe(k)}</div><div className='text-sm font-medium break-words'>{fmt(v)}</div></div>))}</div> : null}
+      <pre className='whitespace-pre-wrap break-words rounded-md border border-border/50 bg-background/60 p-3 text-[13px] leading-relaxed'>{rep.body}</pre>
+    </div> : null}
+  </div>);
+}
+function titleCaseSafe(k: string) { return String(k).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines } from 'lucide-react';
+
+type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
+const MODULES: Mod[] = [
+  { id: 'console', label: 'Command Console', icon: MessageSquare, kind: 'console' },
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard, kind: 'overview' },
+  { id: 'escalations', label: 'Escalations', icon: AlertTriangle, kind: 'escalations' },
+  { id: 'rfqs', label: 'RFQs & Procurement', icon: ArrowLeftRight, ws: 'ws.marketplace' },
+  { id: 'suppliers', label: 'Suppliers', icon: Hammer, ws: 'ws.suppliers' },
+  { id: 'customers', label: 'Customers', icon: Users, ws: 'ws.customers' },
+  { id: 'finance', label: 'Finance', icon: DollarSign, ws: 'ws.finance' },
+  { id: 'agents', label: 'Smart Engine', icon: Sparkles, ws: 'ws.agents' },
+  { id: 'knowledge', label: 'Knowledge', icon: BookOpen, kind: 'knowledge' },
+  { id: 'intake_audio', label: 'Intake Audio', icon: AudioLines, kind: 'intake_audio' },
+  { id: 'operations', label: 'Operations', icon: Settings2, ws: 'ws.operations' },
+  { id: 'governance', label: 'Governance', icon: Scale, ws: 'ws.governance' },
+  { id: 'ea', label: 'Assistant', icon: Calendar, ws: 'ws.ea' },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3, ws: 'ws.analytics' },
+  { id: 'marketing', label: 'Marketing', icon: Megaphone, ws: 'ws.marketing' },
+  { id: 'strategy', label: 'Strategy', icon: Compass, ws: 'ws.strategy' },
+  { id: 'documents', label: 'Documents', icon: FileText, ws: 'ws.documents' },
+  { id: 'company', label: 'Company', icon: Building2, ws: 'ws.company' },
+  { id: 'reports', label: 'Reports', icon: FileBarChart, ws: 'ws.reports' },
+  { id: 'fraud', label: 'Fraud', icon: ShieldAlert, ws: 'ws.fraud' },
+  { id: 'refunds', label: 'Refunds', icon: RotateCcw, ws: 'ws.refunds' },
+  { id: 'audit', label: 'Audit log', icon: ScrollText, kind: 'audit' },
+];
+const PIPELINE = [ ['sent','New'], ['matched','Matched'], ['quoted','Quoted'], ['revealed','Revealed'], ['completed','Won'] ];
+
+function fmt(v: any): string {
+  if (v == null || v === '') return '—';
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'number') return Number.isFinite(v) ? v.toLocaleString() : '—';
+  if (typeof v === 'string') {
+    const tv = v.trim();
+    if ((tv.charAt(0) === '{' && tv.charAt(tv.length - 1) === '}') || (tv.charAt(0) === '[' && tv.charAt(tv.length - 1) === ']')) { try { const pj = JSON.parse(tv); if (pj && typeof pj === 'object') return fmt(pj); } catch (_e) {} }
+    if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(v)) { const dt = new Date(v); if (!isNaN(dt.getTime())) return dt.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) { const dt = new Date(v + 'T00:00:00'); if (!isNaN(dt.getTime())) return dt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
+    return v.length > 160 ? v.slice(0, 160) + '…' : v;
+  }
+  if (Array.isArray(v)) { if (!v.length) return '—'; if (typeof v[0] !== 'object') return v.map((x) => fmt(x)).join(', '); return v.length + (v.length === 1 ? ' item' : ' items'); }
+  if (typeof v === 'object') { const parts = Object.entries(v).filter(([, x]) => x != null && x !== '').slice(0, 4).map(([k, x]) => titleCase(k) + ': ' + (x && typeof x === 'object' ? '…' : String(x))); return parts.length ? parts.join('  ·  ') : '—'; }
+  return String(v);
+}
+function ReadableObject({ data }: { data: any }): any {
+  if (data == null) return <div className='text-sm text-muted-foreground'>—</div>;
+  if (typeof data !== 'object') return <div className='whitespace-pre-wrap break-words text-sm leading-relaxed'>{String(data)}</div>;
+  if (Array.isArray(data)) {
+    if (!data.length) return <div className='text-sm text-muted-foreground'>Nothing here yet.</div>;
+    if (typeof data[0] !== 'object') return <div className='text-sm'>{data.map((x: any) => fmt(x)).join(', ')}</div>;
+    return <div className='space-y-3'>{data.map((x: any, i: number) => (<div key={i} className='rounded-md border border-border/40 p-3'><ReadableObject data={x} /></div>))}</div>;
+  }
+  const entries = Object.entries(data);
+  if (!entries.length) return <div className='text-sm text-muted-foreground'>Nothing here yet.</div>;
+  return (<div className='space-y-2'>{entries.map(([k, v]) => {
+    const isArrObj = Array.isArray(v) && (v as any[]).length && typeof (v as any[])[0] === 'object';
+    const isObj = v && typeof v === 'object' && !Array.isArray(v);
+    return (<div key={k} className='border-b border-border/40 py-2 last:border-0'>
+      <div className='text-[11px] uppercase tracking-wide text-muted-foreground'>{titleCase(k)}</div>
+      {isObj || isArrObj ? <div className='mt-1 pl-3 border-l border-border/40'><ReadableObject data={v} /></div>
+        : <div className='mt-0.5 text-sm break-words whitespace-pre-wrap'>{fmt(v)}</div>}
+    </div>);
+  })}</div>);
+}
+function titleCase(s: string) { return String(s).replace(/[_\.]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
+
+export default function OsxShell() {
+  const [ready, setReady] = React.useState(false);
+  const [email, setEmail] = React.useState('');
+  const [cur, setCur] = React.useState('console');
+  const [tabs, setTabs] = React.useState<string[]>(['console']);
+  const [paletteOpen, setPaletteOpen] = React.useState(false);
+  const [live, setLive] = React.useState(0);
+
+  React.useEffect(() => {
+    let sub: any;
+    supa.auth.getSession().then(({ data }) => { setEmail(data.session?.user?.email || ''); setReady(true); });
+    sub = supa.auth.onAuthStateChange((_e, s) => setEmail(s?.user?.email || '')).data.subscription;
+    const onKey = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPaletteOpen((o) => !o); } };
+    window.addEventListener('keydown', onKey);
+    return () => { try { sub?.unsubscribe(); } catch (_e) {} window.removeEventListener('keydown', onKey); };
+  }, []);
+
+  // Supabase Realtime: live activity indicator
+  React.useEffect(() => {
+    if (!email) return;
+    const ch = supa.channel('osx-live')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'inquiries' }, () => setLive((n) => n + 1))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => setLive((n) => n + 1))
+      .subscribe();
+    return () => { try { supa.removeChannel(ch); } catch (_e) {} };
+  }, [email]);
+
+  if (!ready) return <div className='osx dark min-h-screen grid place-items-center text-muted-foreground'>Loading…</div>;
+  if (!email) return <LoginCard onDone={(e) => setEmail(e)} />;
+
+  const go = (id: string) => { setTabs((t) => t.includes(id) ? t : [...t, id]); setCur(id); };
+  const closeTab = (id: string) => { setTabs((t) => { const nt = t.filter((x) => x !== id); if (!nt.length) return ['console']; if (id === cur) setCur(nt[nt.length - 1]); return nt; }); };
+  return (
+    <div className='osx dark min-h-screen flex text-foreground'>
+      <aside className='w-60 shrink-0 border-r border-border bg-card/40 hidden md:flex md:flex-col'>
+        <div className='h-14 flex items-center gap-2 px-4 border-b border-border'>
+          <div className='h-7 w-7 rounded-lg bg-primary text-primary-foreground grid place-items-center font-extrabold'>Q</div>
+          <div className='font-bold'>QuotesDone <span className='text-muted-foreground font-normal text-xs'>OS</span></div>
+        </div>
+        <nav className='flex-1 overflow-auto p-2 space-y-0.5'>
+          {MODULES.map((m) => { const I = m.icon; return (
+            <button key={m.id} onClick={() => go(m.id)} className={cn('w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors', m.id === cur ? 'bg-primary/15 text-primary' : 'text-foreground/80 hover:bg-white/5')}>
+              <I className='h-4 w-4' /><span>{m.label}</span>
+            </button>
+          ); })}
+        </nav>
+        <div className='p-2 border-t border-border'>
+          <button onClick={async () => { try { await supa.auth.signOut(); } catch (_e) {} setEmail(''); }} className='w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-foreground/70 hover:bg-white/5'><LogOut className='h-4 w-4' />Sign out</button>
+        </div>
+      </aside>
+
+      <div className='flex-1 min-w-0 flex flex-col'>
+        <header className='h-14 shrink-0 border-b border-border flex items-center gap-3 px-4'>
+          <PipelineTracker onNav={go} />
+          <button onClick={() => setPaletteOpen(true)} className='ml-auto flex items-center gap-2 rounded-md border border-border px-3 h-9 text-sm text-muted-foreground hover:bg-white/5'>
+            <Search className='h-4 w-4' /><span className='hidden sm:inline'>Search or run a command</span><kbd className='hidden sm:inline text-[10px] bg-white/10 rounded px-1.5 py-0.5'>⌘K</kbd>
+          </button>
+          <AgentStatus onOpen={() => go('agents')} />
+          <NotificationsBell pulse={live} onNav={go} />
+          <div className='flex items-center gap-1.5 text-xs text-muted-foreground' title='Live activity'><Circle className={cn('h-2.5 w-2.5', live ? 'fill-emerald-400 text-emerald-400' : 'fill-muted text-muted')} />{live > 0 ? live + ' live' : 'idle'}</div>
+        </header>
+        <div className='h-10 shrink-0 border-b border-border flex items-stretch gap-1 px-2 overflow-x-auto'>
+          {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; const I = m.icon; return (
+            <div key={id} onClick={() => setCur(id)} className={cn('group flex items-center gap-1.5 px-3 text-xs cursor-pointer border-b-2', id === cur ? 'border-primary text-primary bg-white/5' : 'border-transparent text-muted-foreground hover:text-foreground')}>
+              <I className='h-3.5 w-3.5' /><span>{m.label}</span>
+              {tabs.length > 1 ? <button onClick={(e) => { e.stopPropagation(); closeTab(id); }} className='opacity-40 group-hover:opacity-100 hover:text-foreground ml-0.5 text-sm leading-none'>×</button> : null}
+            </div>
+          ); })}
+        </div>
+        <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
+          {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
+            <div key={id} className={id === cur ? '' : 'hidden'}>
+              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
+            </div>
+          ); })}
+        </main>
+      </div>
+
+      <CommandDialog open={paletteOpen} onOpenChange={setPaletteOpen}>
+        <CommandInput placeholder='Jump to a module, or type: status, RFQ #302…' />
+        <CommandList>
+          <CommandEmpty>No matches.</CommandEmpty>
+          <CommandGroup heading='Modules'>
+            {MODULES.map((m) => (<CommandItem key={m.id} onSelect={() => { setCur(m.id); setPaletteOpen(false); }}><m.icon className='h-4 w-4' />{m.label}</CommandItem>))}
+          </CommandGroup>
+          <CommandGroup heading='Actions'>
+            <CommandItem onSelect={() => { setCur('console'); setPaletteOpen(false); }}><MessageSquare className='h-4 w-4' />Ask the Secretary for status</CommandItem>
+            <CommandItem onSelect={() => { setCur('agents'); setPaletteOpen(false); }}><Sparkles className='h-4 w-4' />Show matching / agent activity</CommandItem>
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
+    </div>
+  );
+}
+
+function LoginCard({ onDone }: { onDone: (e: string) => void }) {
+  const [em, setEm] = React.useState(''); const [code, setCode] = React.useState(''); const [sent, setSent] = React.useState(false); const [busy, setBusy] = React.useState(false); const [err, setErr] = React.useState('');
+  const send = async () => { setBusy(true); setErr(''); const { error } = await supa.auth.signInWithOtp({ email: em.trim().toLowerCase(), options: { shouldCreateUser: false } }); setBusy(false); if (error) setErr(error.message); else setSent(true); };
+  const verify = async () => { setBusy(true); setErr(''); const { data, error } = await supa.auth.verifyOtp({ email: em.trim().toLowerCase(), token: code.trim(), type: 'email' }); setBusy(false); if (error) setErr(error.message); else onDone(data.user?.email || em); };
+  return (
+    <div className='osx dark min-h-screen grid place-items-center p-4'>
+      <Card className='w-full max-w-sm p-6'>
+        <div className='flex items-center gap-2 mb-4'><div className='h-8 w-8 rounded-lg bg-primary text-primary-foreground grid place-items-center font-extrabold'>Q</div><div className='font-bold text-lg'>QuotesDone OS</div></div>
+        <p className='text-sm text-muted-foreground mb-4'>Admin sign-in. We email you a one-time code.</p>
+        {!sent ? (<>
+          <Input placeholder='you@quotesdone.com' value={em} onChange={(e) => setEm(e.target.value)} />
+          <Button className='w-full mt-3' disabled={busy || !em} onClick={send}>{busy ? 'Sending…' : 'Send code'}</Button>
+        </>) : (<>
+          <Input placeholder='6-digit code' value={code} onChange={(e) => setCode(e.target.value)} />
+          <Button className='w-full mt-3' disabled={busy || !code} onClick={verify}>{busy ? 'Verifying…' : 'Verify & enter'}</Button>
+          <button className='text-xs text-muted-foreground mt-3 underline' onClick={() => setSent(false)}>Use a different email</button>
+        </>)}
+        {err ? <div className='text-sm text-destructive mt-3'>{err}</div> : null}
+      </Card>
+    </div>
+  );
+}
+
+const INTAKE_SAMPLE = {
+  url: 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/demo-assets/intake-sample.mp3',
+  file: 'Recording (2).m4a',
+  channel: 'Customer intake — voice note',
+  duration: 19.8,
+  lang: 'ar',
+  transcript_ar: 'أوكي، أنا محتاج أسوّي صوفة تكون تفصيل. الصوفة تكون معمولة من الأكريليك وفيها فرش بعد. تقدر تسويها؟',
+  transcript_en: 'Okay, I need a custom-made sofa. The sofa should be made of acrylic and it has upholstery too. Can you make it?',
+  brief: {
+    category: 'custom-furniture',
+    trades: ['custom-furniture', 'acrylic', 'upholstery'],
+    urgency: 'normal',
+    status: 'ready',
+    readiness: 68,
+    summary: 'Custom-made acrylic sofa with upholstered seating',
+    scope: 'Design and fabricate one bespoke sofa with an acrylic (plexiglass) frame and upholstered cushions.',
+    quantity: '1 sofa',
+    emirate: '',
+    timeline: '',
+    budget: '',
+    details: { item: 'sofa', material: 'acrylic', upholstery: true, custom_made: true },
+    missing: ['emirate', 'dimensions', 'fabric / colour', 'budget', 'timeline'],
+    provenance: { item: 'stated', material: 'stated', upholstery: 'stated', custom_made: 'stated' },
+  },
+};
+
+function IntakeAudio() {
+  const S = INTAKE_SAMPLE;
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const peaksRef = React.useRef<number[] | null>(null);
+  const [playing, setPlaying] = React.useState(false);
+  const [cur, setCur] = React.useState(0);
+  const [dur, setDur] = React.useState(S.duration || 0);
+  const [wfErr, setWfErr] = React.useState('');
+  const [copied, setCopied] = React.useState(false);
+  const draw = React.useCallback(() => {
+    const cv = canvasRef.current; if (!cv) return; const ctx = cv.getContext('2d'); if (!ctx) return;
+    const w = cv.width, h = cv.height; ctx.clearRect(0, 0, w, h);
+    const css = getComputedStyle(document.documentElement);
+    const prim = 'hsl(' + ((css.getPropertyValue('--primary') || '173 80% 40%').trim()) + ')';
+    const mut = 'hsl(' + ((css.getPropertyValue('--muted-foreground') || '215 16% 47%').trim()) + ')';
+    const peaks = peaksRef.current; const ratio = dur > 0 ? cur / dur : 0;
+    if (!peaks) { ctx.fillStyle = mut; ctx.globalAlpha = 0.3; ctx.fillRect(0, h / 2 - 1, w, 2); ctx.globalAlpha = 1; return; }
+    const n = peaks.length; const bw = w / n;
+    for (let i = 0; i < n; i++) { const p = Math.max(0.03, peaks[i]); const bh = p * (h * 0.9); const x = i * bw; const y = (h - bh) / 2; ctx.fillStyle = (i / n) <= ratio ? prim : mut; ctx.globalAlpha = (i / n) <= ratio ? 1 : 0.35; ctx.fillRect(x, y, Math.max(1, bw * 0.6), bh); }
+    ctx.globalAlpha = 1;
+  }, [cur, dur]);
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await fetch(S.url); const ab = await resp.arrayBuffer();
+        const AC: any = (window as any).AudioContext || (window as any).webkitAudioContext; const acx = new AC();
+        const buf = await acx.decodeAudioData(ab.slice(0));
+        const ch = buf.getChannelData(0); const N = 120; const block = Math.floor(ch.length / N) || 1; const peaks: number[] = []; let max = 0.0001;
+        for (let i = 0; i < N; i++) { let s = 0; for (let j = 0; j < block; j++) { const v = ch[i * block + j] || 0; s += v * v; } const rms = Math.sqrt(s / block); peaks.push(rms); if (rms > max) max = rms; }
+        const norm = peaks.map((p) => p / max);
+        if (!cancelled) { peaksRef.current = norm; setDur(buf.duration || S.duration); draw(); }
+        try { acx.close(); } catch (_e) { /* */ }
+      } catch (_e) { if (!cancelled) setWfErr('waveform_unavailable'); }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+  React.useEffect(() => { draw(); }, [cur, dur, draw]);
+  const toggle = () => { const a = audioRef.current; if (!a) return; if (a.paused) { a.play(); setPlaying(true); } else { a.pause(); setPlaying(false); } };
+  const onSeek = (e: any) => { const cv = canvasRef.current, a = audioRef.current; if (!cv || !a || !dur) return; const rect = cv.getBoundingClientRect(); const r = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)); a.currentTime = r * dur; setCur(r * dur); };
+  const mmss = (t: number) => { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+  const copyJson = async () => { try { await navigator.clipboard.writeText(JSON.stringify(S.brief, null, 2)); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch (_e) { /* */ } };
+  return (<div className='space-y-4'>
+    <div className='flex items-center justify-between flex-wrap gap-2'>
+      <div><div className='text-lg font-semibold'>Intake Audio Inspector</div><div className='text-xs text-muted-foreground'>Voice intake — waveform, transcript and the structured brief the engine extracted.</div></div>
+      <span className='text-[11px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground'>Demo sample</span>
+    </div>
+    <Card className='p-4'>
+      <div className='flex items-center justify-between flex-wrap gap-2 mb-3'>
+        <div className='text-sm font-medium flex items-center gap-2'><AudioLines className='h-4 w-4 text-primary' />{S.file}</div>
+        <div className='flex items-center gap-2 text-xs text-muted-foreground'><span>{S.channel}</span><span className='px-1.5 py-0.5 rounded bg-secondary uppercase'>{S.lang}</span></div>
+      </div>
+      <div className='flex items-center gap-3'>
+        <Button size='sm' variant='secondary' onClick={toggle} className='shrink-0'>{playing ? 'Pause' : 'Play'}</Button>
+        <canvas ref={canvasRef} width={900} height={72} onClick={onSeek} className='w-full h-[72px] rounded-md bg-secondary/40 cursor-pointer' />
+      </div>
+      <div className='flex justify-between text-[11px] text-muted-foreground mt-1'><span>{mmss(cur)}</span>{wfErr ? <span>Waveform unavailable — playback still works</span> : <span />}<span>{mmss(dur)}</span></div>
+      <audio ref={audioRef} src={S.url} preload='metadata' onTimeUpdate={(e: any) => setCur(e.target.currentTime)} onEnded={() => setPlaying(false)} onLoadedMetadata={(e: any) => setDur(e.target.duration || S.duration)} className='hidden' />
+    </Card>
+    <div className='grid md:grid-cols-2 gap-4'>
+      <Card className='p-4'>
+        <div className='text-sm font-semibold mb-2'>Transcript</div>
+        <div dir='rtl' className='text-sm leading-7 mb-3'>{S.transcript_ar}</div>
+        <div className='text-xs text-muted-foreground leading-6 border-t border-border pt-2'>{S.transcript_en}</div>
+      </Card>
+      <Card className='p-4'>
+        <div className='flex items-center justify-between mb-2'><div className='text-sm font-semibold'>Extracted brief (JSON)</div><Button size='sm' variant='ghost' className='h-7 text-xs' onClick={copyJson}>{copied ? 'Copied' : 'Copy'}</Button></div>
+        <pre className='text-[11px] leading-5 overflow-auto max-h-72 bg-secondary/40 rounded-md p-3'>{JSON.stringify(S.brief, null, 2)}</pre>
+      </Card>
+    </div>
+    <Card className='p-4'>
+      <div className='text-sm font-semibold mb-2'>Summary</div>
+      <div className='grid sm:grid-cols-2 gap-x-6 gap-y-1 text-sm'>
+        <div className='flex justify-between border-b border-border/60 py-1'><span className='text-muted-foreground'>Category</span><span className='capitalize'>{S.brief.category}</span></div>
+        <div className='flex justify-between border-b border-border/60 py-1'><span className='text-muted-foreground'>Trades</span><span>{S.brief.trades.join(', ')}</span></div>
+        <div className='flex justify-between border-b border-border/60 py-1'><span className='text-muted-foreground'>Urgency</span><span className='capitalize'>{S.brief.urgency}</span></div>
+        <div className='flex justify-between border-b border-border/60 py-1'><span className='text-muted-foreground'>Readiness</span><span>{S.brief.readiness}%</span></div>
+        <div className='flex justify-between border-b border-border/60 py-1 sm:col-span-2'><span className='text-muted-foreground'>Still missing</span><span className='text-right'>{S.brief.missing.join(', ')}</span></div>
+      </div>
+    </Card>
+  </div>);
+}
+
+function AuditLog() {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState('');
+  React.useEffect(() => { osOps('audit_log', { limit: 200 }).then(setD).catch((e) => setErr(e.message)); }, []);
+  if (err) return <Card className='p-6 text-sm text-destructive'>Could not load audit log: {err}</Card>;
+  if (!d) return <div className='text-muted-foreground text-sm'>Loading audit log…</div>;
+  const rows = d.rows || [];
+  return (
+    <div className='space-y-5'>
+      <div className='flex items-center gap-2'><ScrollText className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Audit log</h1></div>
+      <Card className='overflow-hidden'>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Recent actions<Badge variant='secondary'>{rows.length}</Badge></div>
+        <div className='overflow-auto max-h-[620px]'>
+          <table className='w-full text-sm'>
+            <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'><th className='px-4 py-2 font-medium'>When</th><th className='px-4 py-2 font-medium'>Actor</th><th className='px-4 py-2 font-medium'>Action</th><th className='px-4 py-2 font-medium'>Entity</th><th className='px-4 py-2 font-medium'>Detail</th></tr></thead>
+            <tbody>{rows.map((r: any, i: number) => (<tr key={i} className='border-b border-border/40'><td className='px-4 py-2 whitespace-nowrap text-xs text-muted-foreground'>{r.at ? new Date(r.at).toLocaleString() : ''}</td><td className='px-4 py-2'>{r.actor}</td><td className='px-4 py-2'>{r.action}</td><td className='px-4 py-2 text-xs'>{r.entity}{r.entity_id ? ' #' + r.entity_id : ''}</td><td className='px-4 py-2 text-xs text-muted-foreground max-w-md truncate'>{fmt(r.detail)}</td></tr>))}</tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function Knowledge() {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState('');
+  const load = React.useCallback(() => { setD(null); osApi('ws.knowledge').then(setD).catch((e) => setErr(e.message)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const fill = async (cat: string, label: string) => { setBusy(cat); setErr(''); try { const { data: { session } } = await supa.auth.getSession(); const r = await fetch(SUPA_URL + '/functions/v1/kb_fill_gap', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || '') }, body: JSON.stringify({ category: cat, label }) }); const jd = await r.json().catch(() => ({})); if (!r.ok || jd?.error) throw new Error(jd?.error || ('HTTP ' + r.status)); load(); } catch (e: any) { setErr('Fill failed: ' + (e?.message || '')); } setBusy(''); };
+  const genReport = async () => { setBusy('__report'); setErr(''); try { const { data: { session } } = await supa.auth.getSession(); const r = await fetch(SUPA_URL + '/functions/v1/agent_learnings_report', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || '') }, body: JSON.stringify({}) }); const jd = await r.json().catch(() => ({})); if (!r.ok || jd?.error || !jd?.url) throw new Error(jd?.error || ('HTTP ' + r.status)); window.open(jd.url, '_blank'); } catch (e: any) { setErr('Report failed: ' + (e?.message || '')); } setBusy(''); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load knowledge: {err}</Card>;
+  if (!d) return <div className='text-muted-foreground text-sm'>Loading knowledge…</div>;
+  const ck = d.coverage_kpis || {}; const rows = d.coverage || [];
+  return (
+    <div className='space-y-5'>
+      <div className='flex items-center gap-2'><BookOpen className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Knowledge coverage</h1><Button className='h-8 text-xs ml-auto' variant='outline' disabled={busy === '__report'} onClick={genReport}>{busy === '__report' ? 'Generating…' : 'Weekly learnings PDF'}</Button></div>
+      {err ? <div className='text-xs text-destructive'>{err}</div> : null}
+      <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>
+        <Card className='p-4'><div className='text-xs text-muted-foreground'>Covered</div><div className='text-2xl font-bold mt-1 text-emerald-300'>{fmt(ck.covered ?? 0)}</div></Card>
+        <Card className='p-4'><div className='text-xs text-muted-foreground'>Thin</div><div className='text-2xl font-bold mt-1 text-amber-300'>{fmt(ck.thin ?? 0)}</div></Card>
+        <Card className='p-4'><div className='text-xs text-muted-foreground'>Gaps</div><div className='text-2xl font-bold mt-1 text-red-300'>{fmt(ck.gaps ?? 0)}</div></Card>
+        <Card className='p-4'><div className='text-xs text-muted-foreground'>Service categories</div><div className='text-2xl font-bold mt-1'>{fmt(ck.total ?? 0)}</div></Card>
+      </div>
+      <Card className='overflow-hidden'>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Coverage by category<Badge variant='secondary'>{rows.length}</Badge></div>
+        <div className='overflow-auto max-h-[560px]'>
+          <table className='w-full text-sm'>
+            <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'><th className='px-4 py-2 font-medium'>Category</th><th className='px-4 py-2 font-medium'>Chunks</th><th className='px-4 py-2 font-medium'>Status</th><th className='px-4 py-2 font-medium'></th></tr></thead>
+            <tbody>{rows.map((r: any) => (
+              <tr key={r.category} className='border-b border-border/40'>
+                <td className='px-4 py-2.5'>{r.label || titleCase(r.category)}</td>
+                <td className='px-4 py-2.5'>{fmt(r.chunks)}</td>
+                <td className='px-4 py-2.5'><Badge variant={r.status === 'covered' ? 'outline' : 'secondary'}>{r.status}</Badge></td>
+                <td className='px-4 py-2.5 text-right'>{r.status !== 'covered' ? <Button className='h-7 text-xs' disabled={busy === r.category} onClick={() => fill(r.category, r.label || r.category)}>{busy === r.category ? 'Generating…' : 'Fill gap'}</Button> : null}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </Card>
+      <div className='text-xs text-muted-foreground'>The curator generates UAE-specific trade knowledge (scope, regulations, pricing, red flags) and ingests it; embeddings compute automatically within a minute.</div>
+    </div>
+  );
+}
+
+function NotificationsBell({ pulse, onNav }: { pulse: number; onNav: (id: string) => void }) {
+  const [items, setItems] = React.useState<any[]>([]); const [open, setOpen] = React.useState(false);
+  React.useEffect(() => { let alive = true; osApi('ws.exec').then((d: any) => { if (alive) setItems(((d && d.notifications) || []).slice(0, 30)); }).catch(() => {}); return () => { alive = false; }; }, [pulse]);
+  const routeFor = (t: string) => { const s = String(t); return /finance|payment|invoice/.test(s) ? 'finance' : /uptime|site|governance|security/.test(s) ? 'governance' : /ops|error|operation/.test(s) ? 'operations' : 'escalations'; };
+  const count = items.length;
+  return (
+    <>
+      <button onClick={() => setOpen(true)} title='Notifications' className='relative flex items-center justify-center h-9 w-9 rounded-md border border-border hover:bg-white/5'>
+        <Bell className='h-4 w-4' />
+        {count ? <span className='absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center'>{count > 99 ? '99+' : count}</span> : null}
+      </button>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent className='osx dark w-full sm:max-w-md overflow-y-auto'>
+          <SheetHeader><SheetTitle>Notifications</SheetTitle><SheetDescription>Recent founder alerts & reminders</SheetDescription></SheetHeader>
+          <div className='mt-4 divide-y divide-border'>
+            {items.length ? items.map((n: any, i: number) => (
+              <button key={i} onClick={() => { setOpen(false); onNav(routeFor(n.type)); }} className='w-full text-left py-3 hover:bg-white/5 transition-colors flex items-start gap-3'>
+                <span className='mt-1 h-2 w-2 rounded-full bg-primary shrink-0'></span>
+                <div className='min-w-0'><div className='text-sm font-medium'>{n.subject || titleCase(String(n.type || 'notification'))}</div><div className='text-xs text-muted-foreground'>{titleCase(String(n.type || ''))} · {new Date(n.created_at).toLocaleString()}</div></div>
+              </button>
+            )) : <div className='py-6 text-sm text-muted-foreground'>No notifications right now.</div>}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}
+
+function AgentStatus({ onOpen }: { onOpen: () => void }) {
+  const [k, setK] = React.useState<any>(null);
+  React.useEffect(() => {
+    let alive = true;
+    const load = () => osApi('ws.agents').then((d: any) => { if (alive) setK((d && d.kpis) || null); }).catch(() => {});
+    load(); const t = setInterval(load, 60000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
+  if (!k) return null;
+  return (
+    <button onClick={onOpen} title='Open Smart Engine' className='hidden md:flex items-center gap-2 rounded-md border border-border px-3 h-9 text-xs hover:bg-white/5'>
+      <span className='relative flex h-2 w-2'><span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-60'></span><span className='relative inline-flex rounded-full h-2 w-2 bg-primary'></span></span>
+      <span className='font-semibold'>{fmt(k.agents ?? 0)}</span><span className='text-muted-foreground'>agents</span>
+      <span className='text-muted-foreground'>·</span>
+      <span className='font-semibold'>{fmt(k.runs_24h ?? 0)}</span><span className='text-muted-foreground'>runs/24h</span>
+    </button>
+  );
+}
+
+function PipelineTracker({ onNav }: { onNav: (id: string) => void }) {
+  const [counts, setCounts] = React.useState<Record<string, number>>({});
+  React.useEffect(() => { osApi('dashboard').then((d: any) => { const p = d?.pipeline || d?.stages || d?.command?.pipeline || {}; setCounts(p || {}); }).catch(() => {}); }, []);
+  return (
+    <div className='hidden lg:flex items-center'>
+      {PIPELINE.map(([key, label], i) => (
+        <div key={key} className='flex items-center'>
+          <button onClick={() => onNav('rfqs')} title={'View ' + label + ' RFQs'} className='flex items-center gap-1.5 rounded-md px-2.5 py-1 bg-white/5 text-xs hover:bg-white/10 transition-colors'>
+            <span className='text-muted-foreground'>{label}</span>
+            <span className='font-semibold text-foreground'>{counts[key] ?? 0}</span>
+          </button>
+          {i < PIPELINE.length - 1 ? <span className='mx-1 text-muted-foreground/50'>›</span> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Console() {
+  const [msgs, setMsgs] = React.useState<{ role: string; content: string }[]>([]);
+  const [text, setText] = React.useState(''); const [atts, setAtts] = React.useState<{ name: string; text: string }[]>([]); const [busy, setBusy] = React.useState(false); const [confirm, setConfirm] = React.useState<{ token: string; reply: string } | null>(null);
+  const endRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, busy]);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const onFile = async (f: File) => { const rd = new FileReader(); rd.onload = async () => { try { const d = await osApi('extract_doc', { filename: f.name, mime: f.type, b64: String(rd.result || '') }); if (d?.ok && d.text) setAtts((a) => [...a, { name: f.name, text: d.text }]); } catch (_e) {} }; rd.readAsDataURL(f); };
+  const send = async () => {
+    const t = text.trim(); const a = atts.slice(); if (!t && !a.length) return; setText(''); setAtts([]); setConfirm(null);
+    const shown = t + (a.length ? '  [' + a.map((x) => x.name).join(', ') + ']' : '');
+    setMsgs((m) => [...m, { role: 'user', content: shown }]); setBusy(true);
+    try {
+      const hist = [...msgs].slice(-8);
+      const d = await osApi('secretary_chat', { message: t || 'Please handle the attached document.', history: hist, attachments: a });
+      setMsgs((m) => [...m, { role: 'assistant', content: d?.reply || 'Done.' }]);
+      if (d?.needs_confirmation && d?.confirm_token) setConfirm({ token: d.confirm_token, reply: d.reply || '' });
+    } catch (e: any) { setMsgs((m) => [...m, { role: 'assistant', content: 'Error: ' + (e?.message || 'could not reach the Secretary') }]); }
+    setBusy(false);
+  };
+  const decide = async (decision: string) => { if (!confirm) return; const tok = confirm.token; setConfirm(null); setBusy(true); try { const d = await osApi('secretary_chat', { confirm_token: tok, decision }); setMsgs((m) => [...m, { role: 'assistant', content: d?.reply || (decision === 'confirm' ? 'Done.' : 'Cancelled.') }]); } catch (_e) { setMsgs((m) => [...m, { role: 'assistant', content: 'Could not complete that.' }]); } setBusy(false); };
+  return (
+    <Card className='flex flex-col h-[calc(100vh-140px)]'>
+      <div className='px-5 py-3 border-b border-border flex items-center gap-2'><div className='h-8 w-8 rounded-lg bg-primary text-primary-foreground grid place-items-center font-bold'>✦</div><div><div className='font-semibold text-sm'>Command Console</div><div className='text-xs text-muted-foreground'>Instruct the Secretary — it acts across the team.</div></div></div>
+      <div className='flex-1 overflow-auto p-4 space-y-3'>
+        {!msgs.length ? <div className='text-sm text-muted-foreground'>Ask for a status, approve a supplier, draft content, log a finance entry, or attach an invoice and tell me what to do with it.</div> : null}
+        {msgs.map((m, i) => (<div key={i} className={cn('max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm whitespace-pre-wrap', m.role === 'user' ? 'ml-auto bg-primary text-primary-foreground' : 'bg-white/5')}>{m.content}</div>))}
+        {busy ? <div className='text-sm text-muted-foreground'>…</div> : null}
+        {confirm ? <div className='flex gap-2'><Button size='sm' onClick={() => decide('confirm')}>Confirm</Button><Button size='sm' variant='outline' onClick={() => decide('cancel')}>Cancel</Button></div> : null}
+        <div ref={endRef} />
+      </div>
+      {atts.length ? <div className='px-4 flex flex-wrap gap-1.5'>{atts.map((a, i) => (<Badge key={i} variant='secondary' className='cursor-pointer' onClick={() => setAtts((x) => x.filter((_, j) => j !== i))}>📄 {a.name} ✕</Badge>))}</div> : null}
+      <div className='p-3 border-t border-border flex items-end gap-2'>
+        <input ref={fileRef} type='file' accept='image/*,application/pdf' className='hidden' onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.currentTarget.value = ''; }} />
+        <Button variant='outline' size='icon' onClick={() => fileRef.current?.click()}><Paperclip className='h-4 w-4' /></Button>
+        <textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }} rows={2} placeholder='Type an instruction… (⌘+Enter to send)' className='flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' />
+        <Button onClick={send} disabled={busy}><Send className='h-4 w-4' /></Button>
+      </div>
+    </Card>
+  );
+}
+
+function Overview({ onNav }: { onNav: (id: string) => void }) {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState('');
+  React.useEffect(() => { osApi('ws.exec').then(setD).catch((e) => setErr(e.message)); }, []);
+  if (err) return <Card className='p-6 text-sm text-destructive'>Could not load: {err}</Card>;
+  if (!d) return <div className='text-muted-foreground text-sm'>Loading overview…</div>;
+  const kpis: [string, any][] = [];
+  const walk = (o: any, pre = '') => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (typeof v === 'number' || typeof v === 'string') { if (kpis.length < 8 && /rev|count|total|rate|open|pending|active|won|quote|inquir|supplier|customer/i.test(k)) kpis.push([titleCase(pre + k), v]); } else if (v && typeof v === 'object' && !Array.isArray(v) && pre === '') walk(v, ''); } };
+  walk(d?.command || d || {});
+  const health = (d && d.command && d.command.health) || {}; const band = String(health.band || 'unknown'); const bandColor = /crit|down|bad|fail/.test(band) ? 'border-red-500/40 text-red-300' : /attention|warn|risk/.test(band) ? 'border-amber-500/40 text-amber-300' : /ok|good|healthy|strong/.test(band) ? 'border-emerald-500/40 text-emerald-300' : 'border-border text-muted-foreground';
+  return (
+    <div className='space-y-5'>
+      <Card className={cn('p-4 flex items-center justify-between gap-4 border', bandColor)}>
+        <div><div className='text-[11px] uppercase tracking-wide opacity-70'>Business health</div><div className='text-2xl font-bold mt-0.5'>{health.index ?? '—'}<span className='text-sm font-normal opacity-70'> / 100 · {titleCase(band)}</span></div></div>
+        <div className='text-xs opacity-80 max-w-md text-right'>{health.note || 'Live signals across revenue, uptime, disputes and activity.'}</div>
+      </Card>
+      <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>
+        {kpis.length ? kpis.map(([k, v]) => { const kl = k.toLowerCase(); const tgt = /supplier/.test(kl) ? 'suppliers' : /customer/.test(kl) ? 'customers' : /rfq|quote/.test(kl) ? 'rfqs' : /rev|fee|cash|expense|invoice|outstanding/.test(kl) ? 'finance' : null; return (<Card key={k} onClick={tgt ? () => onNav(tgt) : undefined} className={cn('p-4', tgt && 'cursor-pointer hover:border-primary/60 transition-colors')}><div className='text-xs text-muted-foreground'>{k}</div><div className='text-2xl font-bold mt-1'>{fmt(v)}</div></Card>); }) : <Card className='p-4 col-span-full text-sm text-muted-foreground'>No metrics available yet.</Card>}
+      </div>
+      <Card className='p-4'><div className='text-sm font-semibold mb-2'>Live snapshot</div><div className='text-xs text-muted-foreground'>Metrics refresh automatically from the marketplace. Use the modules on the left for detail.</div></Card>
+    </div>
+  );
+}
+
+function Escalations({ onNav }: { onNav: (id: string) => void }) {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [sel, setSel] = React.useState<any>(null); const [draft, setDraft] = React.useState(''); const [busy, setBusy] = React.useState(false); const [msg, setMsg] = React.useState('');
+  const load = React.useCallback(() => { setD(null); Promise.all([osApi('inbox').catch(() => null), osApi('ws.exec').catch(() => null)]).then(([inbox, exec]) => setD({ inbox, attention: (exec && exec.command && exec.command.attention) || [] })).catch((e) => setErr(e.message)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const openItem = (it: any) => { setSel(it); setDraft(it.draft || ''); setMsg(''); };
+  const send = async () => { if (!sel) return; setBusy(true); setMsg(''); try { await osApi('inbox_send', { id: sel.id, body: draft }); setSel(null); load(); } catch (e: any) { setMsg('Could not send: ' + (e?.message || 'error')); } setBusy(false); };
+  if (err) return <Card className='p-6 text-sm text-destructive'>Could not load escalations: {err}</Card>;
+  if (!d) return <div className='text-muted-foreground text-sm'>Loading escalations…</div>;
+  const kpis = (d.inbox && d.inbox.kpis) || {}; const rows = (d.inbox && d.inbox.rows) || []; const attention = d.attention || [];
+  return (
+    <div className='space-y-5'>
+      <div className='flex items-center gap-2'><AlertTriangle className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Escalations</h1></div>
+      <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>
+        <Card className='p-4'><div className='text-xs text-muted-foreground'>Needs Review</div><div className='text-2xl font-bold mt-1'>{fmt(kpis.needs_review ?? 0)}</div></Card>
+        <Card className='p-4'><div className='text-xs text-muted-foreground'>Untriaged</div><div className='text-2xl font-bold mt-1'>{fmt(kpis.untriaged ?? 0)}</div></Card>
+        <Card className='p-4'><div className='text-xs text-muted-foreground'>Replied (7d)</div><div className='text-2xl font-bold mt-1'>{fmt(kpis.replied_7d ?? 0)}</div></Card>
+        <Card className='p-4'><div className='text-xs text-muted-foreground'>Agent Holds</div><div className='text-2xl font-bold mt-1'>{fmt(attention.length)}</div></Card>
+      </div>
+      <Card className='overflow-hidden'>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Inbox — awaiting your reply<Badge variant='secondary'>{rows.length}</Badge></div>
+        {rows.length ? <div className='divide-y divide-border'>{rows.map((it: any) => (
+          <button key={it.id} onClick={() => openItem(it)} className='w-full text-left px-4 py-3 hover:bg-white/5 transition-colors'>
+            <div className='flex items-center justify-between gap-3'>
+              <div className='min-w-0'><div className='text-sm font-medium truncate'>{it.subject || '(no subject)'}</div><div className='text-xs text-muted-foreground truncate'>{it.from_email} · {it.summary || ''}</div></div>
+              {it.draft ? <Badge variant='secondary'>Draft ready</Badge> : <Badge variant='outline'>New</Badge>}
+            </div>
+          </button>
+        ))}</div> : <div className='px-4 py-6 text-sm text-muted-foreground'>Nothing awaiting a reply right now.</div>}
+      </Card>
+      {attention.length ? <Card className='overflow-hidden'>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Agent decisions held for review<Badge variant='secondary'>{attention.length}</Badge></div>
+        <div className='divide-y divide-border'>{attention.map((a: any) => (
+          <button key={a.id} onClick={() => onNav('agents')} title='Review in Smart Engine' className='w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-white/5 transition-colors'>
+            <div className='min-w-0'><div className='text-sm truncate'>{titleCase(String(a.kind || 'decision'))} · <span className='text-muted-foreground'>{a.actor}</span></div><div className='text-xs text-muted-foreground'>{a.decision} → {a.route_to}</div></div>
+            <Badge variant='outline'>held</Badge>
+          </button>
+        ))}</div>
+      </Card> : null}
+      <Sheet open={!!sel} onOpenChange={(o) => { if (!o) setSel(null); }}>
+        <SheetContent className='osx dark w-full sm:max-w-lg overflow-y-auto'>
+          <SheetHeader><SheetTitle>{sel?.subject || 'Message'}</SheetTitle><SheetDescription>{sel?.from_email}</SheetDescription></SheetHeader>
+          <div className='mt-4 space-y-4'>
+            <div><div className='text-xs font-semibold text-muted-foreground mb-1'>Their message</div><div className='text-sm whitespace-pre-wrap rounded-md border border-border p-3 bg-white/5'>{sel?.body}</div></div>
+            <div><div className='text-xs font-semibold text-muted-foreground mb-1'>Your reply (Smart Engine draft — edit before sending)</div><textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={8} className='w-full resize-none rounded-md border border-border bg-transparent p-3 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' /></div>
+            {msg ? <div className='text-xs text-destructive'>{msg}</div> : null}
+            <div className='flex gap-2'>
+              <Button onClick={send} disabled={busy || !draft.trim()}><Send className='h-4 w-4 mr-1' />{busy ? 'Sending…' : 'Send reply'}</Button>
+              <Button variant='outline' onClick={() => setSel(null)}>Cancel</Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
+
+function Workspace({ mod }: { mod: Mod }) {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [row, setRow] = React.useState<any>(null); const [rowTitle, setRowTitle] = React.useState(''); const [detail, setDetail] = React.useState<any>(null); const [dbusy, setDbusy] = React.useState(false); const [edit, setEdit] = React.useState<any>(null); const [editType, setEditType] = React.useState(''); const [ebusy, setEbusy] = React.useState(false); const [emsg, setEmsg] = React.useState(''); const [glOpen, setGlOpen] = React.useState(false); const [glLines, setGlLines] = React.useState<any[]>([{ account: '', debit: '', credit: '', memo: '' }, { account: '', debit: '', credit: '', memo: '' }]); const [glMemo, setGlMemo] = React.useState(''); const [glDate, setGlDate] = React.useState(''); const [glMsg, setGlMsg] = React.useState(''); const [glBusy, setGlBusy] = React.useState(false); const [invOpen, setInvOpen] = React.useState(false); const [invBusy, setInvBusy] = React.useState(false); const [invMsg, setInvMsg] = React.useState('');
+  const reload = React.useCallback(() => { setD(null); setErr(''); osApi(mod.ws as string, mod.ws === 'ws.suppliers' ? { params: {} } : {}).then(setD).catch((e) => setErr(e.message)); }, [mod.ws]);
+  React.useEffect(() => { reload(); }, [reload]);
+  const decide = async (action: string, params: Record<string, any>) => { setDbusy(true); try { await osOps(action, params); setRow(null); setDetail(null); reload(); } catch (e: any) { setDetail({ error: e?.message || 'failed' }); } setDbusy(false); };
+  const decideApi = async (action: string, params: Record<string, any>) => { setDbusy(true); try { await osApi(action, params); setRow(null); setDetail(null); reload(); } catch (e: any) { setDetail({ error: e?.message || 'failed' }); } setDbusy(false); };
+  const editableType = (): string | null => { const r: any = row; if (!r) return null; if (r.agent && (r.recommendation !== undefined || r.escalation_reason !== undefined)) return 'agent_issue'; if (mod.id === 'reports') { if (r.body !== undefined) return 'board_report'; if (r.officer !== undefined) return 'exec_report'; if (r.summary !== undefined) return 'finance_report'; } if (r.severity !== undefined && r.subject !== undefined) return 'security_event'; return null; };
+  const openEdit = async (type: string) => { setEbusy(true); setEmsg(''); try { const dd = await osOps('content_get', { type, id: (row as any).id }); setEditType(type); setEdit(dd); } catch (e: any) { setEmsg('Load failed: ' + (e?.message || '')); } setEbusy(false); };
+  const saveEdit = async () => { if (!edit) return; setEbusy(true); setEmsg(''); try { const vals: any = { ...edit }; delete vals.id; await osOps('content_save', { type: editType, id: edit.id, values: vals }); setEdit(null); setRow(null); reload(); } catch (e: any) { setEmsg('Save failed: ' + (e?.message || '')); } setEbusy(false); };
+  const glTotals = () => glLines.reduce((a: any, l: any) => ({ dr: a.dr + (Number(l.debit) || 0), cr: a.cr + (Number(l.credit) || 0) }), { dr: 0, cr: 0 });
+  const postGl = async () => { const lines = glLines.map((l: any) => ({ account: String(l.account || '').trim(), debit: Number(l.debit) || 0, credit: Number(l.credit) || 0, memo: l.memo || undefined })).filter((l: any) => l.account && (l.debit || l.credit)); const t = lines.reduce((a: any, l: any) => ({ dr: a.dr + l.debit, cr: a.cr + l.credit }), { dr: 0, cr: 0 }); if (lines.length < 2) { setGlMsg('Need at least two lines.'); return; } if (Math.round((t.dr - t.cr) * 100) !== 0) { setGlMsg('Out of balance: debits ' + t.dr + ' vs credits ' + t.cr); return; } setGlBusy(true); setGlMsg(''); try { await osOps('gl_post', { memo: glMemo || 'OS entry', date: glDate || undefined, lines }); setGlOpen(false); setGlLines([{ account: '', debit: '', credit: '', memo: '' }, { account: '', debit: '', credit: '', memo: '' }]); setGlMemo(''); setGlDate(''); reload(); } catch (e: any) { setGlMsg('Post failed: ' + (e?.message || '')); } setGlBusy(false); };
+  const onInvFile = async (f: File) => { setInvBusy(true); setInvMsg('Uploading & reading…'); try { const b64: string = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result || '')); rd.onerror = rej; rd.readAsDataURL(f); }); const { data: { session } } = await supa.auth.getSession(); const r = await fetch(SUPA_URL + '/functions/v1/finance_doc', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || '') }, body: JSON.stringify({ filename: f.name, mime: f.type, b64 }) }); const jd = await r.json().catch(() => ({})); if (!r.ok || jd?.error) throw new Error(jd?.error || ('HTTP ' + r.status)); if (jd.logged && jd.logged.ok) { setInvMsg('Logged: ' + (jd.parsed?.vendor || '') + ' — ' + (jd.parsed?.currency || 'AED') + ' ' + (jd.parsed?.amount || '') + '. Original stored & queued for Dropbox backup.'); reload(); } else if (jd.parsed) { setInvMsg('Stored & extracted, but auto-posting was skipped because the amount was unclear. What I read: ' + Object.entries(jd.parsed || {}).filter(([, x]: any) => x != null && x !== '' && typeof x !== 'object').map(([k, x]: any) => String(k).replace(/_/g, ' ') + ': ' + String(x)).join(', ')); } else { setInvMsg('Stored the original (' + (jd.extracted_chars || 0) + ' chars extracted); could not auto-parse a finance entry.'); } } catch (e: any) { setInvMsg('Failed: ' + (e?.message || '')); } setInvBusy(false); };
+  if (err) return <Card className='p-6 text-sm text-destructive'>Could not load {mod.label}: {err}</Card>;
+  if (!d) return <div className='text-muted-foreground text-sm'>Loading {mod.label}…</div>;
+  const tables: [string, any[]][] = [];
+  const scalars: [string, any][] = [];
+  const scan = (o: any) => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (Array.isArray(v)) { if (v.length && typeof v[0] === 'object') tables.push([k, v as any[]]); } else if (v && typeof v === 'object') { scan(v); } else if (typeof v === 'number' || typeof v === 'string') scalars.push([k, v]); } };
+  scan(d);
+  return (
+    <div className='space-y-5'>
+      <div className='flex items-center gap-2'><mod.icon className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>{mod.label}</h1>{mod.id === 'finance' ? <div className='ml-auto flex gap-2'><Button className='h-8 text-xs' variant='outline' onClick={() => { setInvOpen(true); setInvMsg(''); }}>Log invoice (PDF)</Button><Button className='h-8 text-xs' onClick={() => { setGlOpen(true); setGlMsg(''); }}>New journal entry</Button></div> : null}</div>
+      {scalars.length ? <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>{scalars.slice(0, 8).map(([k, v]) => (<Card key={k} className='p-4'><div className='text-xs text-muted-foreground'>{titleCase(k)}</div><div className='text-xl font-bold mt-1'>{fmt(v)}</div></Card>))}</div> : null}
+      {tables.map(([name, rows]) => { const isUuidV = (x: any) => typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x); const cols = (Object.keys(rows[0]).filter((k) => !((k === 'id' || k === 'uuid' || /_id$/.test(k)) && isUuidV((rows[0] as any)[k]))).slice(0, 6)); return (
+        <Card key={name} className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>{titleCase(name)}<Badge variant='secondary'>{rows.length}</Badge></div>
+          <div className='overflow-auto max-h-[420px]'>
+            <table className='w-full text-sm'>
+              <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'>{cols.map((c) => (<th key={c} className='px-4 py-2 font-medium'>{titleCase(c)}</th>))}</tr></thead>
+              <tbody>{rows.slice(0, 200).map((r, i) => (<tr key={i} onClick={() => { setRow(r); setRowTitle(titleCase(name)); }} className='border-b border-border/50 hover:bg-white/5 cursor-pointer'>{cols.map((c) => (<td key={c} className='px-4 py-2.5'>{fmt((r as any)[c])}</td>))}</tr>))}</tbody>
+            </table>
+          </div>
+        </Card>
+      ); })}
+      {!tables.length && !scalars.length ? <Card className='p-4'><ReadableObject data={d} /></Card> : null}
+
+      <Sheet open={invOpen} onOpenChange={setInvOpen}>
+        <SheetContent side='right' className='osx dark w-full sm:max-w-md overflow-y-auto'>
+          <SheetHeader><SheetTitle>Log invoice from PDF</SheetTitle><SheetDescription>The original is stored, Smart Engine-extracted, posted to finance, and queued for Dropbox backup.</SheetDescription></SheetHeader>
+          <div className='mt-4 space-y-3'>
+            <input type='file' accept='.pdf,.png,.jpg,.jpeg,application/pdf,image/*' disabled={invBusy} onChange={(e) => { const f = e.target.files?.[0]; if (f) onInvFile(f); }} className='block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground file:px-3 file:py-1.5 file:text-xs' />
+            {invBusy ? <div className='text-xs text-muted-foreground'>Working…</div> : null}
+            {invMsg ? <div className='text-xs text-foreground/80 whitespace-pre-wrap'>{invMsg}</div> : null}
+          </div>
+        </SheetContent>
+      </Sheet>
+      <Sheet open={glOpen} onOpenChange={setGlOpen}>
+        <SheetContent side='right' className='osx dark w-full sm:max-w-lg overflow-y-auto'>
+          <SheetHeader><SheetTitle>New journal entry</SheetTitle><SheetDescription>Double-entry — debits must equal credits.</SheetDescription></SheetHeader>
+          <div className='mt-4 space-y-3'>
+            <div className='flex gap-2'><input type='date' value={glDate} onChange={(e) => setGlDate(e.target.value)} className='rounded-md border border-border bg-transparent p-2 text-sm' /><input placeholder='Memo' value={glMemo} onChange={(e) => setGlMemo(e.target.value)} className='flex-1 rounded-md border border-border bg-transparent p-2 text-sm' /></div>
+            <div className='space-y-2'>{glLines.map((l: any, i: number) => (<div key={i} className='flex gap-2'><input placeholder='Account code' value={l.account} onChange={(e) => { const n = glLines.slice(); n[i] = { ...n[i], account: e.target.value }; setGlLines(n); }} className='flex-1 rounded-md border border-border bg-transparent p-2 text-sm' /><input placeholder='Debit' inputMode='decimal' value={l.debit} onChange={(e) => { const n = glLines.slice(); n[i] = { ...n[i], debit: e.target.value }; setGlLines(n); }} className='w-24 rounded-md border border-border bg-transparent p-2 text-sm' /><input placeholder='Credit' inputMode='decimal' value={l.credit} onChange={(e) => { const n = glLines.slice(); n[i] = { ...n[i], credit: e.target.value }; setGlLines(n); }} className='w-24 rounded-md border border-border bg-transparent p-2 text-sm' /></div>))}</div>
+            <div className='flex items-center justify-between text-xs text-muted-foreground'><button onClick={() => setGlLines([...glLines, { account: '', debit: '', credit: '', memo: '' }])} className='hover:text-foreground'>+ Add line</button><span>Debits {glTotals().dr.toFixed(2)} · Credits {glTotals().cr.toFixed(2)}</span></div>
+            {glMsg ? <div className='text-xs text-destructive'>{glMsg}</div> : null}
+            <div className='flex gap-2'><Button className='h-8 text-xs' disabled={glBusy} onClick={postGl}>{glBusy ? 'Posting…' : 'Post entry'}</Button><Button className='h-8 text-xs' variant='outline' onClick={() => setGlOpen(false)}>Cancel</Button></div>
+          </div>
+        </SheetContent>
+      </Sheet>
+      <Sheet open={!!row} onOpenChange={(o) => { if (!o) { setRow(null); setDetail(null); setEdit(null); } }}>
+        <SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto'>
+          <SheetHeader><SheetTitle>{rowTitle} detail</SheetTitle><SheetDescription>{row && (row.id ? 'ID ' + row.id : row.company_name || row.email || '')}</SheetDescription></SheetHeader>
+          {row ? <div className='mt-3 flex flex-wrap gap-2'>
+            {(() => { const ent = mod.id === 'suppliers' ? 'ws.supplier' : mod.id === 'customers' ? 'ws.customer' : mod.id === 'rfqs' ? 'ws.rfq' : null; const idv = (row as any).id ?? (row as any).rfq_id ?? (row as any).inquiry_id; return ent && idv != null ? <Button className='h-8 text-xs' disabled={dbusy} onClick={async () => { setDbusy(true); setDetail(null); try { const dd = await osApi(ent, { id: idv }); setDetail(dd); } catch (e: any) { setDetail({ error: e?.message || 'could not load' }); } setDbusy(false); }}>{dbusy ? 'Loading…' : 'Open full profile'}</Button> : null; })()}
+            {(() => { const r: any = row; const btn = (label: string, action: string, params: any) => <Button key={label} className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decide(action, params)}>{label}</Button>; const btnApi = (label: string, action: string, params: any) => <Button key={label} className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decideApi(action, params)}>{label}</Button>; const out: any[] = [];
+              if (mod.id === 'suppliers') { out.push(btn('Approve','supplier_decide',{id:r.id,op:'approve'}), btn('Reject','supplier_decide',{id:r.id,op:'reject',note:'Rejected from OS'}), btn(r.banned?'Unban':'Ban','supplier_decide',{id:r.id,op:r.banned?'unban':'ban'})); }
+              else if (mod.id === 'customers') { out.push(btn(r.banned?'Unban':'Ban','customer_decide',{id:r.id,op:r.banned?'unban':'ban'})); }
+              else if (mod.id === 'rfqs') { out.push(btn('Mark won','rfq_outcome',{inquiry:r.id,outcome:'won'}), btn('Mark lost','rfq_outcome',{inquiry:r.id,outcome:'lost'})); }
+              else if (mod.id === 'fraud') { if (r.subject_type && r.subject_id != null) { out.push(btnApi('Dismiss','fraud_resolve',{subject_type:r.subject_type,subject_id:String(r.subject_id),op:'dismiss'}), btnApi('Ban','fraud_resolve',{subject_type:r.subject_type,subject_id:String(r.subject_id),op:'ban'})); } else if (r.kind && r.subject_id != null && r.reason !== undefined) { out.push(btnApi('Unban','fraud_resolve',{subject_type:r.kind,subject_id:String(r.subject_id),op:'unban'})); } }
+              else if (mod.id === 'refunds') { const tid = r.transaction_id ?? r.id; if (tid != null && r.refund_status !== undefined) { out.push(btnApi('Approve refund','refund_resolve',{transaction_id:String(tid),op:'approve'}), btnApi('Reject refund','refund_resolve',{transaction_id:String(tid),op:'reject'})); } }
+              if (r && r.agent && (r.status === 'pending' || r.status === 'needs_review')) { out.push(btn('Approve','action_decide',{id:r.id,op:'approve'}), btn('Reject','action_decide',{id:r.id,op:'reject'})); }
+              return out;
+            })()}
+            {editableType() ? <Button className='h-8 text-xs' variant='outline' disabled={ebusy} onClick={() => openEdit(editableType()!)}>Edit</Button> : null}
+            <Button className='h-8 text-xs' variant='outline' onClick={() => { try { navigator.clipboard?.writeText(JSON.stringify(row, null, 2)); } catch (_e) {} }}>Copy details</Button>
+          </div> : null}
+          {row && (row as any).report_type && (row as any).id ? <ReportViewer id={Number((row as any).id)} /> : null}
+          {row ? <details className='mt-3' open={!((row as any).report_type)}><summary className='cursor-pointer text-xs text-muted-foreground select-none'>{(row as any).report_type ? 'Show raw fields' : 'Details'}</summary><div className='mt-2 space-y-2'>{Object.entries(row).filter(([k]) => k !== 'body').map(([k, v]) => (<div key={k} className='flex gap-3 text-sm border-b border-border/40 py-1.5'><div className='w-40 shrink-0 text-muted-foreground'>{titleCase(k)}</div><div className='min-w-0 break-words'>{fmt(v)}</div></div>))}</div></details> : null}
+          {detail ? <div className='mt-4 rounded-md border border-border p-3'><div className='text-xs font-semibold text-muted-foreground mb-2'>Full profile</div><div className='max-h-80 overflow-auto'><ReadableObject data={detail} /></div></div> : null}
+          {edit ? <div className='mt-4 rounded-md border border-border p-3 space-y-3'><div className='text-xs font-semibold text-muted-foreground'>Edit content</div>{Object.keys(edit).filter((k) => k !== 'id').map((k) => (<div key={k}><div className='text-[11px] text-muted-foreground mb-1'>{titleCase(k)}</div><textarea value={edit[k] ?? ''} onChange={(e) => setEdit({ ...edit, [k]: e.target.value })} rows={String(edit[k] || '').length > 80 ? 5 : 2} className='w-full resize-none rounded-md border border-border bg-transparent p-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' /></div>))}{emsg ? <div className='text-xs text-destructive'>{emsg}</div> : null}<div className='flex gap-2'><Button className='h-8 text-xs' disabled={ebusy} onClick={saveEdit}>{ebusy ? 'Saving…' : 'Save'}</Button><Button className='h-8 text-xs' variant='outline' onClick={() => setEdit(null)}>Cancel</Button></div></div> : null}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}

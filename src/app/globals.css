@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ══════════════════════════════════════════════════════════════════════
+   QuotesDone — "THE BLIND MATCH"
+   Two ownable primitives, everything derives from them:
+     1. THE REDACTION BAR — identity as a withheld mark, never a name.
+     2. THE NODE FIELD    — suppliers as anonymous points of light.
+   Lighting: one key light from the engine. Raised surfaces take a 1px top
+   highlight; shadows are navy-tinted, never black (black kills depth on navy).
+   ══════════════════════════════════════════════════════════════════════ */
+:root{
+  --navy:#0C2330; --navy-deep:#06121B; --navy-hi:#173A4B;
+  --bg:#0C2330; --bg-deep:#06121B; --surf:#123041;
+  --teal:#14B8A6; --teal-light:#6EE7D4; --teal-deep:#0B8276;
+  --gold:#E3C065; --gold-light:#F6DD8C;
+  --paper:#EAF4F2; --muted:#9DB2B2; --faint:#7C97A3;
+  --line:rgba(110,231,212,.10); --line2:rgba(110,231,212,.19);
+  --redact:#14303E;
+  --key:inset 0 1px 0 rgba(110,231,212,.10);
+  --lift:0 40px 100px -55px rgba(0,12,20,.95);
+  --e:cubic-bezier(.16,1,.3,1);
+}
+html{color-scheme:dark;scroll-behavior:smooth;-webkit-text-size-adjust:100%;
+  background:linear-gradient(178deg,var(--navy-hi) 0%,var(--navy) 34%,var(--navy-deep) 100%) fixed,var(--navy-deep)}
+html,body{padding:0;margin:0}
+body{background:transparent;color:var(--paper);min-height:100dvh;-webkit-font-smoothing:antialiased}
+
+/* every in-page anchor must clear the sticky header */
+[id]{scroll-margin-top:88px}
+
+/* THE NODE FIELD — fixed behind everything. Falloff is drawn into the canvas. */
+#qd-field{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.62}
+@media(max-width:1040px){#qd-field{opacity:.38}}
+
+/* logical properties => RTL works automatically, no duplicate CSS */
+.container-x{max-width:1200px;margin-inline:auto;padding-inline:24px}
+@media(min-width:1024px){.container-x{padding-inline:40px}}
+
+h1,h2,h3,h4{text-wrap:balance}
+p{text-wrap:pretty}
+::selection{background:rgba(20,184,166,.26);color:#fff}
+
+/* ── THE REDACTION BAR ────────────────────────────────────────────────
+   A grey rounded rect with a shimmer is the universal "still loading"
+   idiom. Redaction is hard-edged, opaque and hatched — a mark that
+   WITHHOLDS, not one that is pending. */
+.redact{position:relative;display:inline-block;border-radius:1px;background:var(--redact);
+  background-image:repeating-linear-gradient(115deg,rgba(110,231,212,.10) 0 2px,transparent 2px 6px);
+  box-shadow:inset 0 0 0 1px rgba(110,231,212,.13);vertical-align:middle}
+.redact-bar{height:14px;width:120px}
+.redact-sq{height:34px;width:34px;border-radius:2px}
+
+/* ── surfaces ─────────────────────────────────────────────────────── */
+.surface{background:linear-gradient(170deg,rgba(18,48,65,.62),rgba(10,27,38,.62));
+  border:1px solid var(--line);box-shadow:var(--key)}
+.surface-hover{transition:border-color .22s var(--e),transform .22s var(--e)}
+.surface-hover:hover{border-color:var(--line2);transform:translateY(-3px)}
+
+/* ── the key light sweeps the primary action ──────────────────────── */
+.btn-key{position:relative;overflow:hidden;isolation:isolate}
+.btn-key::after{content:'';position:absolute;inset:0;transform:translateX(-120%);
+  background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.42) 50%,transparent 65%)}
+.btn-key:hover::after{transform:translateX(120%);transition:transform .75s var(--e)}
+[dir="rtl"] .btn-key::after{transform:translateX(120%)}
+[dir="rtl"] .btn-key:hover::after{transform:translateX(-120%)}
+
+/* ── reveal ───────────────────────────────────────────────────────────
+   CSS-only, scroll-driven. No JS, no IntersectionObserver, no class
+   toggling — so there is no code path in which content can fail to appear.
+   Browsers without scroll-driven animations (Safari, Firefox today) simply
+   render the content, which is the correct fallback. `both` holds the end
+   keyframe for anything already past the range at load, so above-the-fold
+   content is never stuck in the start state. */
+@keyframes qd-reveal{
+  from{opacity:0;transform:translateY(22px) scale(.99);filter:blur(5px)}
+  to  {opacity:1;transform:none;filter:none}
+}
+@supports (animation-timeline: view()){
+  @media (prefers-reduced-motion: no-preference){
+    .reveal{
+      animation:qd-reveal 1ms linear both;
+      animation-timeline:view();
+      animation-range:entry 0% cover 26%;
+    }
+  }
+}
+
+/* ── focus, tap, notch ────────────────────────────────────────────── */
+a:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:6px}
+button,a{touch-action:manipulation;-webkit-tap-highlight-color:rgba(20,184,166,.18)}
+.tabular{font-variant-numeric:tabular-nums}
+
+/* skip link — direction-safe (left:-9999px creates 9999px of scroll in RTL) */
+.skip{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.skip:focus{position:fixed;inset-block-start:0;inset-inline-start:0;z-index:200;width:auto;height:auto;
+  clip:auto;clip-path:none;background:var(--teal);color:#04231F;padding:12px 18px;font-weight:700}
+
+/* ---- shadcn/ui theme tokens (used only by the OS shell, wrapped in .osx) ---- */
+@layer base {
+  :root {
+    --background: 205 52% 11%;
+    --foreground: 180 25% 94%;
+    --card: 204 44% 14%;
+    --card-foreground: 180 25% 94%;
+    --popover: 205 46% 12%;
+    --popover-foreground: 180 25% 94%;
+    --primary: 172 79% 40%;
+    --primary-foreground: 205 52% 9%;
+    --secondary: 200 34% 20%;
+    --secondary-foreground: 180 25% 94%;
+    --muted-foreground: 185 12% 66%;
+    --accent: 43 68% 64%;
+    --accent-foreground: 205 52% 11%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 200 26% 22%;
+    --input: 200 26% 24%;
+    --ring: 172 79% 45%;
+    --radius: 0.65rem;
+  }
+}
+.osx { background: transparent; color: hsl(var(--foreground)); }
+.osx * { border-color: hsl(var(--border)); }
+.osx ::-webkit-scrollbar { width: 10px; height: 10px; }
+.osx ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 8px; }
+
+/* ══════════════════════════════════════════════════════════════════
+   ARABIC TYPOGRAPHY LAYER
+   Tailwind utilities are direction-agnostic, so every tracking-*,
+   uppercase and tight leading-* on a shared component also lands on
+   Arabic. In Arabic all three are wrong:
+     · letter-spacing severs letter-joining (the script is cursive)
+     · uppercase is a no-op that leaves the tracking damage behind
+     · Latin leading crowds Arabic ascenders/descenders
+   Selector specificity (0,1,1)+ beats Tailwind's (0,1,0), so no
+   !important is needed. English is completely untouched.
+   ══════════════════════════════════════════════════════════════════ */
+html[dir="rtl"] :is(h1,h2,h3,h4,h5,h6,p,a,span,div,li,button,label,strong,em,dt,dd,td,th,small,figcaption,blockquote){
+  letter-spacing:0;
+}
+html[dir="rtl"] .uppercase,html[dir="rtl"] [class*="uppercase"]{ text-transform:none; }
+html[dir="rtl"] :is(h1,h2,h3,h4){ line-height:1.45; }
+html[dir="rtl"] p{ line-height:1.9; }
+/* Arabic has no serif/sans axis — hierarchy comes from weight, so give
+   headings real weight separation instead of a second family. */
+html[dir="rtl"] :is(h1,h2,h3){ font-weight:800; }
+/* Latin runs inside Arabic (brand name, AED figures, licence no.)
+   must not be re-ordered by the bidi algorithm. */
+[dir="rtl"] .ltr{ direction:ltr; unicode-bidi:isolate; }
+[dir="rtl"] .tabular{ font-variant-numeric:tabular-nums; direction:ltr; unicode-bidi:isolate; }
+/* gradient-clipped text renders poorly across joined Arabic glyphs */
+[dir="rtl"] .bg-clip-text{
+  background:none !important; -webkit-text-fill-color:currentColor; color:#F6DD8C;
+}
+
+/* Doc pages (FAQ / legal / services / marketing) inject their own <style>
+   via dangerouslySetInnerHTML with .mk/.lg-scoped selectors at (0,2,0),
+   which outranks the rules above and re-applies Latin tracking to Arabic.
+   Arabic letter-joining is a correctness requirement, not a preference,
+   so these are !important and scoped strictly to [dir=rtl]. English is
+   never matched by any of it. */
+html[dir="rtl"] body *{ letter-spacing:0 !important; }
+html[dir="rtl"] body *{ text-transform:none !important; }
+html[dir="rtl"] :is(h1,h2,h3,h4){ line-height:1.45 !important; }
+html[dir="rtl"] :is(p,li){ line-height:1.9 !important; }

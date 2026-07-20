@@ -1,0 +1,145 @@
+{
+  "nav": {
+    "how": "How it works",
+    "why": "Why anonymous",
+    "categories": "Categories",
+    "suppliers": "For suppliers",
+    "blog": "Blog",
+    "login": "Sign in",
+    "getQuotes": "Get quotes"
+  },
+  "hero": {
+    "badge": "The UAE's anonymous quote marketplace",
+    "titleA": "Get real quotes.",
+    "titleB": "Stay",
+    "titleEm": "completely anonymous.",
+    "subtitle": "Post your job once. We match you with vetted UAE suppliers who compete with anonymous quotes. Compare price, rating and track record, then reveal only the one you choose.",
+    "ctaPrimary": "Get quotes",
+    "ctaSupplier": "Join as a supplier",
+    "stat1n": "20,400+",
+    "stat1l": "vetted suppliers",
+    "stat2n": "7",
+    "stat2l": "emirates",
+    "stat3n": "30+",
+    "stat3l": "specialities",
+    "stat4n": "3%",
+    "stat4l": "only when you choose"
+  },
+  "how": {
+    "eyebrow": "How it works",
+    "title": "Three steps to the right supplier",
+    "sub": "No calls, no chasing. The platform does the work and keeps you anonymous until you decide.",
+    "steps": [
+      {
+        "n": "01",
+        "title": "Describe your job",
+        "body": "Tell the Smart Engine what you need — text, voice or a photo — and it asks the right questions."
+      },
+      {
+        "n": "02",
+        "title": "Get matched quotes",
+        "body": "Vetted suppliers compete with anonymous quotes. Compare price, rating and track record side by side."
+      },
+      {
+        "n": "03",
+        "title": "Reveal & start",
+        "body": "Pay just 3% on the one you choose. Their details are revealed; the rest stay hidden."
+      }
+    ]
+  },
+  "why": {
+    "eyebrow": "Why anonymous",
+    "title": "Built to protect you",
+    "sub": "Privacy isn't a luxury — it's what gets you a fair price and zero hassle.",
+    "items": [
+      {
+        "title": "Your identity stays private",
+        "body": "Suppliers quote without knowing who you are. No cold calls, no inbox flooding."
+      },
+      {
+        "title": "Fair, competitive pricing",
+        "body": "Because suppliers compete without seeing each other, you see real market prices."
+      },
+      {
+        "title": "Vetted suppliers only",
+        "body": "Every supplier holds a valid UAE trade licence, verified before they quote."
+      },
+      {
+        "title": "You're in control",
+        "body": "Compare at your pace and reveal only when ready. Choose one, or none."
+      }
+    ]
+  },
+  "cats": {
+    "eyebrow": "Categories",
+    "title": "Every speciality in one platform",
+    "sub": "From fit-out to CCTV to landscaping — 30+ categories of vetted suppliers.",
+    "items": [
+      {
+        "title": "Fit-out & décor",
+        "tags": "Finishing · Joinery"
+      },
+      {
+        "title": "Electrical & mechanical",
+        "tags": "Wiring · HVAC"
+      },
+      {
+        "title": "Flooring & tiling",
+        "tags": "SPC · Marble"
+      },
+      {
+        "title": "CCTV & security",
+        "tags": "Cameras · Access"
+      },
+      {
+        "title": "Glass & aluminium",
+        "tags": "Façades · Canopies"
+      },
+      {
+        "title": "Landscaping",
+        "tags": "Gardens · Pools"
+      },
+      {
+        "title": "Signage & printing",
+        "tags": "3D · Lightbox"
+      },
+      {
+        "title": "Building materials",
+        "tags": "Steel · MDF · Acrylic"
+      }
+    ]
+  },
+  "cta": {
+    "eyebrow": "Start now",
+    "title": "Your next quote is minutes away",
+    "sub": "Post your job free and watch vetted suppliers compete for it. You only pay 3% when you reveal the one you choose.",
+    "supplier": "Become a supplier"
+  },
+  "footer": {
+    "tagline": "The UAE's anonymous quote marketplace. Post once, compare vetted suppliers, and reveal only the one you choose.",
+    "company": "Company",
+    "about": "About",
+    "contact": "Contact",
+    "faq": "FAQ",
+    "services": "Services",
+    "legal": "Legal",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "cookies": "Cookie Policy",
+    "refunds": "Refunds & Cancellation",
+    "more": "More",
+    "supplier": "Supplier Agreement",
+    "aup": "Acceptable Use",
+    "disclaimer": "Disclaimer",
+    "complaints": "Complaints",
+    "rights": "All rights reserved."
+  },
+  "langSwitch": "العربية",
+  "cookie": {
+    "title": "We use cookies",
+    "text": "We use essential cookies to run QuotesDone, plus optional analytics cookies to improve it. You can accept or decline the optional ones.",
+    "accept": "Accept all",
+    "decline": "Essential only",
+    "policy": "Cookie Policy"
+  }
+}
