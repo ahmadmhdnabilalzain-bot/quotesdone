@@ -143,5 +143,12 @@
     "accept": "Accept all",
     "decline": "Essential only",
     "policy": "Cookie Policy"
+  },
+  "meta": {
+    "siteTitle": "QuotesDone — Anonymous quotes from vetted UAE suppliers",
+    "siteDesc": "Post your job once and get anonymous, comparable quotes from vetted UAE suppliers. Compare price, rating and track record, then reveal only the supplier you choose."
+  },
+  "blog": {
+    "onlyEnglish": "This article is currently available in English only."
   }
 }

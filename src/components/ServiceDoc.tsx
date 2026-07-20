@@ -3,6 +3,7 @@ import { SERVICES_CSS } from '@/content/servicesCss';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { notFound } from 'next/navigation';
+import { buildMeta, textFromHtml } from '@/lib/seo';
 
 type Loc = { en_the: string; en: string; ar_the: string; ar: string };
 const EM: Record<string, Loc> = {
@@ -41,7 +42,10 @@ export function svcParams(): string[] {
 export function svcMeta(slug: string, locale: string) {
   const { service, loc } = parse(slug); const d = S[service];
   if (!d) return { title: 'QuotesDone' };
-  return { title: sub(((d as any)[locale] || d.en).title, loc, locale) };
+  const c = (d as any)[locale] || d.en;
+  const title = sub(c.title, loc, locale);
+  const body = textFromHtml(sub(c.html, loc, locale)).replace(title, '').trim();
+  return buildMeta({ locale, path: '/services/' + slug, title, description: body });
 }
 export function ServiceDoc({ slug, locale }: { slug: string; locale: string }) {
   const { service, loc } = parse(slug); const d = S[service];

@@ -6,8 +6,8 @@ import { BlogPost, blogSlugs, blogMeta } from '@/components/BlogPost';
 // English path.
 export function generateStaticParams() { return blogSlugs().map((slug) => ({ slug })); }
 
-export function generateMetadata({ params: { slug } }: { params: { locale: string; slug: string } }) {
-  return blogMeta(slug);
+export function generateMetadata({ params: { locale, slug } }: { params: { locale: string; slug: string } }) {
+  return blogMeta(slug, locale);
 }
 export default function Page({ params: { locale, slug } }: { params: { locale: string; slug: string } }) {
   setRequestLocale(locale);

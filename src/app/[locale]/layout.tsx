@@ -18,8 +18,10 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
+// Per-page generateMetadata supplies title/description/canonical/hreflang.
+// Only the template lives here so pages never inherit an English title in Arabic.
 export const metadata: Metadata = {
-  title: 'QuotesDone — Anonymous quotes from vetted UAE suppliers'
+  title: { default: 'QuotesDone', template: '%s' }
 };
 
 export default async function LocaleLayout(

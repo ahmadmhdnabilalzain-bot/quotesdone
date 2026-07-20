@@ -2,7 +2,9 @@ import posts from '@/content/blog.json';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { Link } from '@/i18n/routing';
+import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { buildMeta, textFromHtml } from '@/lib/seo';
 
 type Post = {
   slug: string; title: string; excerpt: string | null; meta_desc: string | null;
@@ -13,13 +15,19 @@ const P = posts as unknown as Record<string, Post>;
 
 export function blogSlugs(): string[] { return Object.keys(P); }
 
-export function blogMeta(slug: string) {
+export function blogMeta(slug: string, locale = 'en') {
   const p = P[slug];
   if (!p) return { title: 'QuotesDone' };
-  return {
+  return buildMeta({
+    locale,
+    path: '/blog/' + slug,
     title: `${p.title} — QuotesDone`,
-    description: p.meta_desc || p.excerpt || undefined,
-  };
+    description: p.meta_desc || p.excerpt || textFromHtml(p.body_html),
+    type: 'article',
+    publishedTime: p.published_at,
+    // posts exist in English only — do not advertise an Arabic alternate
+    bilingual: false,
+  });
 }
 
 const fmt = (iso: string | null, locale: string) => {
@@ -30,7 +38,8 @@ const fmt = (iso: string | null, locale: string) => {
   } catch { return null; }
 };
 
-export function BlogPost({ slug, locale }: { slug: string; locale: string }) {
+export async function BlogPost({ slug, locale }: { slug: string; locale: string }) {
+  const tb = await getTranslations({ locale, namespace: 'blog' });
   const p = P[slug];
   if (!p) return notFound();
   const date = fmt(p.published_at, locale);
@@ -49,18 +58,31 @@ export function BlogPost({ slug, locale }: { slug: string; locale: string }) {
             {p.category && (
               <p className="text-[13px] font-medium text-teal-light">{p.category}</p>
             )}
-            <h1 className="mt-3 max-w-[20ch] text-balance font-head text-[clamp(28px,4vw,46px)] font-semibold leading-[1.08] tracking-[-0.035em] text-white">
+            <h1 lang="en" dir="ltr" className="mt-3 max-w-[20ch] text-balance font-head text-[clamp(28px,4vw,46px)] font-semibold leading-[1.08] tracking-[-0.035em] text-white">
               {p.title}
             </h1>
             {p.excerpt && (
-              <p className="mt-5 max-w-[62ch] text-pretty text-[17px] leading-relaxed text-muted">{p.excerpt}</p>
+              <p lang="en" dir="ltr" className="mt-5 max-w-[62ch] text-pretty text-[17px] leading-relaxed text-muted">{p.excerpt}</p>
             )}
             <p className="mt-6 font-mono text-[11px] text-faint">
               {p.author}{p.author && date ? ' · ' : ''}{date}
             </p>
           </header>
 
-          <div className="qd-prose mt-10" dangerouslySetInnerHTML={{ __html: p.body_html }} />
+          {locale !== 'en' && (
+            <p className="mt-8 rounded-xl border border-[var(--line2)] bg-teal-light/[0.05] px-4 py-3 text-[14px] text-muted">
+              {tb('onlyEnglish')}
+            </p>
+          )}
+
+          {/* content is English regardless of the page locale — declare it so
+              screen readers and translation tools handle it correctly */}
+          <div
+            lang="en"
+            dir="ltr"
+            className="qd-prose mt-10"
+            dangerouslySetInnerHTML={{ __html: p.body_html }}
+          />
 
           <aside className="surface mt-14 rounded-[22px] p-8 text-center">
             <h2 className="text-balance font-head text-[22px] font-semibold tracking-[-0.02em] text-white">
