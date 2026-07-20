@@ -1,12 +1,11 @@
 import services from '@/content/services.json';
 import legal from '@/content/legal.json';
 import marketing from '@/content/marketing.json';
+import blog from '@/content/blog.json';
 
 export const dynamic = 'force-dynamic';
 
 const BASE = 'https://quotesdone.com';
-const SB = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
 const EM = ['abu-dhabi', 'ajman', 'dubai', 'fujairah', 'ras-al-khaimah', 'sharjah', 'umm-al-quwain'];
 
 export async function GET() {
@@ -22,11 +21,13 @@ export async function GET() {
     push('/services/' + slug, 0.7);
     for (const e of EM) push('/services/' + slug + '-in-' + e, 0.6);
   }
-  try {
-    const r = await fetch(`${SB}/rest/v1/blog_posts?select=slug&published=eq.true&order=published_at.desc&limit=500`, { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } });
-    const posts = await r.json();
-    if (Array.isArray(posts)) for (const p of posts) if (p?.slug) rows.push(`<url><loc>${BASE}/blog/${p.slug}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`);
-  } catch (_e) { /* blog optional */ }
+  // Blog posts come from the same baked content file the /blog/[slug] route
+  // uses. This previously fetched Supabase at request time and swallowed any
+  // error in a catch — the anon role lacked SELECT on blog_posts, so all 32
+  // posts were silently absent from the sitemap.
+  for (const slug of Object.keys(blog as Record<string, unknown>)) {
+    rows.push(`<url><loc>${BASE}/blog/${slug}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`);
+  }
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</urlset>`;
   return new Response(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600, s-maxage=3600' } });
 }
