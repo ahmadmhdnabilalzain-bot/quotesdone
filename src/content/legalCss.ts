@@ -63,4 +63,32 @@ export const LEGAL_CSS = `.legalx{--bg:#06121B;--panel:rgba(110,231,212,.035);--
 .legalx.legalx code,.legalx.legalx kbd,.legalx.legalx .mono,.legalx.legalx .tabular{font-family:var(--font-mono),ui-monospace,monospace}
 .legalx.legalx ::selection{background:rgba(20,184,166,.3);color:#fff}
 .legalx.legalx :focus-visible{outline:2px solid #6EE7D4;outline-offset:3px;border-radius:6px}
+
+/* ── ONE CONTAINER, EVERYWHERE ─────────────────────────────────────────
+   Every page previously used its own width (1100 / 1120 / 900 / 880) and
+   gutter (20 / 24), so content never lined up with the header or footer.
+   These now match .container-x exactly. */
+.legalx.legalx .wrap, .legalx.legalx .fwrap, .legalx.legalx .docwrap{
+  max-width:1200px; margin-inline:auto;
+  padding-inline:24px; padding-left:24px; padding-right:24px;
+  box-sizing:border-box;
+}
+@media(min-width:1024px){
+  .legalx.legalx .wrap, .legalx.legalx .fwrap, .legalx.legalx .docwrap{padding-inline:40px;padding-left:40px;padding-right:40px}
+}
+/* the container widened, so cap the prose itself at a readable measure */
+.legalx.legalx .body p, .legalx.legalx .body li, .legalx.legalx .lead, .legalx.legalx .qa p{max-width:78ch}
+.legalx.legalx .hero .lead, .legalx.legalx .hero p{max-width:66ch}
+
+/* Content surfaces sit ON the node field; at low opacity the moving dots
+   read through dense text. Give reading surfaces a calm, opaque ground. */
+.legalx.legalx .doc, .legalx.legalx .qa, .legalx.legalx .step, .legalx.legalx .card, .legalx.legalx .panel, .legalx.legalx .tile{
+  background:rgba(9,26,36,.86);
+  backdrop-filter:saturate(115%) blur(2px);
+}
+.legalx.legalx .doc{padding:38px 40px}
+@media(max-width:640px){
+  .legalx.legalx .doc{padding:22px 18px;border-radius:16px}
+  .legalx.legalx .wrap, .legalx.legalx .fwrap, .legalx.legalx .docwrap{padding-inline:18px;padding-left:18px;padding-right:18px}
+}
 `;

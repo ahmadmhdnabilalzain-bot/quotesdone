@@ -72,4 +72,32 @@ export const SERVICES_CSS = `:root{--bg:#06121B;--bg2:#0C2330;--panel:rgba(110,2
 .mk.mk code,.mk.mk kbd,.mk.mk .mono,.mk.mk .tabular{font-family:var(--font-mono),ui-monospace,monospace}
 .mk.mk ::selection{background:rgba(20,184,166,.3);color:#fff}
 .mk.mk :focus-visible{outline:2px solid #6EE7D4;outline-offset:3px;border-radius:6px}
+
+/* ── ONE CONTAINER, EVERYWHERE ─────────────────────────────────────────
+   Every page previously used its own width (1100 / 1120 / 900 / 880) and
+   gutter (20 / 24), so content never lined up with the header or footer.
+   These now match .container-x exactly. */
+.mk.mk .wrap, .mk.mk .fwrap, .mk.mk .docwrap{
+  max-width:1200px; margin-inline:auto;
+  padding-inline:24px; padding-left:24px; padding-right:24px;
+  box-sizing:border-box;
+}
+@media(min-width:1024px){
+  .mk.mk .wrap, .mk.mk .fwrap, .mk.mk .docwrap{padding-inline:40px;padding-left:40px;padding-right:40px}
+}
+/* the container widened, so cap the prose itself at a readable measure */
+.mk.mk .body p, .mk.mk .body li, .mk.mk .lead, .mk.mk .qa p{max-width:78ch}
+.mk.mk .hero .lead, .mk.mk .hero p{max-width:66ch}
+
+/* Content surfaces sit ON the node field; at low opacity the moving dots
+   read through dense text. Give reading surfaces a calm, opaque ground. */
+.mk.mk .doc, .mk.mk .qa, .mk.mk .step, .mk.mk .card, .mk.mk .panel, .mk.mk .tile{
+  background:rgba(9,26,36,.86);
+  backdrop-filter:saturate(115%) blur(2px);
+}
+.mk.mk .doc{padding:38px 40px}
+@media(max-width:640px){
+  .mk.mk .doc{padding:22px 18px;border-radius:16px}
+  .mk.mk .wrap, .mk.mk .fwrap, .mk.mk .docwrap{padding-inline:18px;padding-left:18px;padding-right:18px}
+}
 `;
