@@ -17,5 +17,6 @@
     "paths": { "@/*": ["./src/*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "//exclude": "supabase/ holds Deno edge functions. They use jsr: imports and the Deno global, which do not exist under Node, so Next's type-check must not walk them. They are checked separately with `deno check`.",
+  "exclude": ["node_modules", "supabase"]
 }
