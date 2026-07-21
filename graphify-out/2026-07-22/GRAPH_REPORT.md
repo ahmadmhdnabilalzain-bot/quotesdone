@@ -1,16 +1,16 @@
 # Graph Report - quotesdone  (2026-07-22)
 
 ## Corpus Check
-- 290 files · ~332,586 words
+- 290 files · ~332,366 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2052 nodes · 2542 edges · 245 communities (136 shown, 109 thin omitted)
+- 2052 nodes · 2542 edges · 246 communities (137 shown, 109 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9c30ac2a`
+- Built from commit: `3b8ec270`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -249,6 +249,7 @@
 - extraction-spec.md
 - @radix-ui/react-separator
 - README.md
+- badge.tsx
 
 ## God Nodes (most connected - your core abstractions)
 1. `cn()` - 57 edges
@@ -277,7 +278,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (245 total, 109 thin omitted)
+## Communities (246 total, 109 thin omitted)
 
 ### Community 0 - "CustomerPortal.tsx"
 Cohesion: 0.09
@@ -356,8 +357,8 @@ Cohesion: 0.19
 Nodes (13): generateMetadata(), generateStaticParams(), arLinks(), BASE, Doc, EM, Loc, parse() (+5 more)
 
 ### Community 19 - "utils.ts"
-Cohesion: 0.11
-Nodes (13): Badge(), BadgeProps, badgeVariants, Button, ButtonProps, buttonVariants, Card, CardContent (+5 more)
+Cohesion: 0.12
+Nodes (10): Button, ButtonProps, buttonVariants, Card, CardContent, CardHeader, CardTitle, Input (+2 more)
 
 ### Community 20 - "auth_api/index.ts"
 Cohesion: 0.15
@@ -779,6 +780,10 @@ Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify refer
 Cohesion: 0.50
 Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
+### Community 245 - "badge.tsx"
+Cohesion: 0.67
+Nodes (3): Badge(), BadgeProps, badgeVariants
+
 ## Knowledge Gaps
 - **595 isolated node(s):** `withNextIntl`, `nextConfig`, `name`, `version`, `private` (+590 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -787,7 +792,7 @@ Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphif
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `cn()` connect `cn` to `CustomerPortal.tsx`, `OsxShell.tsx`, `utils.ts`, `dialog.tsx`?**
+- **Why does `cn()` connect `cn` to `CustomerPortal.tsx`, `OsxShell.tsx`, `dialog.tsx`, `utils.ts`, `badge.tsx`?**
   _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **Why does `dependencies` connect `dependencies` to `OsxShell.tsx`, `cmdk`, `next-intl`, `@radix-ui/react-dialog`, `@radix-ui/react-tabs`, `@radix-ui/react-tooltip`, `react-dom`, `wavesurfer.js`, `@radix-ui/react-separator`, `package.json`?**
   _High betweenness centrality (0.004) - this node is a cross-community bridge._

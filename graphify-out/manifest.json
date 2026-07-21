@@ -459,16 +459,6 @@
     "ast_hash": "7cea0ed9dda23412a4840295221aac20",
     "semantic_hash": "7cea0ed9dda23412a4840295221aac20"
   },
-  "supabase/functions/app-ar/index.ts": {
-    "mtime": 1784656201.679022,
-    "ast_hash": "fcafbb558e2bbdc9c7b816f774db7503",
-    "semantic_hash": "fcafbb558e2bbdc9c7b816f774db7503"
-  },
-  "supabase/functions/app/index.ts": {
-    "mtime": 1784656201.679022,
-    "ast_hash": "845158b947f5d3e4958cdebbb324c26c",
-    "semantic_hash": "845158b947f5d3e4958cdebbb324c26c"
-  },
   "supabase/functions/archive_rfq/index.ts": {
     "mtime": 1784656201.6806645,
     "ast_hash": "b89e4c10b4730ca523902c79a9e7e010",
@@ -585,19 +575,14 @@
     "semantic_hash": "458c11dbb2a507d3b323ba4b950b322c"
   },
   "supabase/functions/customer_api/index.ts": {
-    "mtime": 1784665921.5675223,
-    "ast_hash": "53e10f1712885f82aa538a447bc9ddfc",
+    "mtime": 1784667318.3736892,
+    "ast_hash": "cc8dcfe1ccb938f96cfe4b075492fc45",
     "semantic_hash": ""
   },
   "supabase/functions/customer_portal/index.ts": {
     "mtime": 1784656201.7012703,
     "ast_hash": "6f2709c06c857303ce93119d009cb22d",
     "semantic_hash": "6f2709c06c857303ce93119d009cb22d"
-  },
-  "supabase/functions/customer_profile/index.ts": {
-    "mtime": 1784656201.7022703,
-    "ast_hash": "2c9e60a5e7eaa93ebc68e620e7966dfc",
-    "semantic_hash": "2c9e60a5e7eaa93ebc68e620e7966dfc"
   },
   "supabase/functions/deploy_next_preview/index.ts": {
     "mtime": 1784656201.7032712,
@@ -623,11 +608,6 @@
     "mtime": 1784656201.7072706,
     "ast_hash": "09c1b7b42a0a0739d84772033857a337",
     "semantic_hash": "09c1b7b42a0a0739d84772033857a337"
-  },
-  "supabase/functions/dispute_api/index.ts": {
-    "mtime": 1784656201.7082713,
-    "ast_hash": "d065d66b75f66021be5893d244fa0bf3",
-    "semantic_hash": "d065d66b75f66021be5893d244fa0bf3"
   },
   "supabase/functions/doc_extract/index.ts": {
     "mtime": 1784656201.7092712,
@@ -1445,8 +1425,8 @@
     "semantic_hash": ""
   },
   "docs/CUSTOMER_PORTAL.md": {
-    "mtime": 1784666802.1379087,
-    "ast_hash": "6b801b9c2fe7d1e243d74c26f2a64019",
+    "mtime": 1784667512.3011281,
+    "ast_hash": "a354adc6674f6ba36210e6d61ac1d2bd",
     "semantic_hash": ""
   }
 }

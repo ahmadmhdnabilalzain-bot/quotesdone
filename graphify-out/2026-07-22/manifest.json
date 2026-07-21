@@ -585,9 +585,9 @@
     "semantic_hash": "458c11dbb2a507d3b323ba4b950b322c"
   },
   "supabase/functions/customer_api/index.ts": {
-    "mtime": 1784656201.7000835,
-    "ast_hash": "8b163dc974f593d4632dbb660c427975",
-    "semantic_hash": "8b163dc974f593d4632dbb660c427975"
+    "mtime": 1784665921.5675223,
+    "ast_hash": "53e10f1712885f82aa538a447bc9ddfc",
+    "semantic_hash": ""
   },
   "supabase/functions/customer_portal/index.ts": {
     "mtime": 1784656201.7012703,
@@ -1445,8 +1445,8 @@
     "semantic_hash": ""
   },
   "docs/CUSTOMER_PORTAL.md": {
-    "mtime": 1784665243.225558,
-    "ast_hash": "4c8599cbb926602abc976c3164a892cb",
+    "mtime": 1784666802.1379087,
+    "ast_hash": "6b801b9c2fe7d1e243d74c26f2a64019",
     "semantic_hash": ""
   }
 }

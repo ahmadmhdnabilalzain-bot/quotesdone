@@ -1325,8 +1325,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_locale_me_page",
-      "community": 188,
-      "community_name": "customer/page.tsx",
+      "community": 0,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "me/page.tsx"
     },
     {
@@ -1336,8 +1336,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "src_app_locale_me_page_metadata",
-      "community": 188,
-      "community_name": "customer/page.tsx",
+      "community": 0,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "metadata"
     },
     {
@@ -1347,8 +1347,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_app_locale_me_page_mepage",
-      "community": 188,
-      "community_name": "customer/page.tsx",
+      "community": 0,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "mepage()"
     },
     {
@@ -1358,8 +1358,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_locale_os_page",
-      "community": 2,
-      "community_name": "OsxShell.tsx",
+      "community": 188,
+      "community_name": "customer/page.tsx",
       "norm_label": "os/page.tsx"
     },
     {
@@ -1369,8 +1369,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_app_locale_os_page_metadata",
-      "community": 2,
-      "community_name": "OsxShell.tsx",
+      "community": 188,
+      "community_name": "customer/page.tsx",
       "norm_label": "metadata"
     },
     {
@@ -1380,8 +1380,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_app_locale_os_page_ospage",
-      "community": 2,
-      "community_name": "OsxShell.tsx",
+      "community": 188,
+      "community_name": "customer/page.tsx",
       "norm_label": "ospage()"
     },
     {
@@ -2546,8 +2546,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_me_customerportal_initlang",
-      "community": 188,
-      "community_name": "customer/page.tsx",
+      "community": 0,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "initlang()"
     },
     {
@@ -2788,8 +2788,8 @@
       "source_location": "L278",
       "_origin": "ast",
       "id": "src_components_me_customerportal_customerportal",
-      "community": 188,
-      "community_name": "customer/page.tsx",
+      "community": 0,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "customerportal()"
     },
     {
@@ -3811,8 +3811,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_card",
-      "community": 19,
-      "community_name": "utils.ts",
+      "community": 171,
+      "community_name": "customer_profile/index.ts",
       "norm_label": "card.tsx"
     },
     {
@@ -3822,8 +3822,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_components_ui_card_card",
-      "community": 19,
-      "community_name": "utils.ts",
+      "community": 171,
+      "community_name": "customer_profile/index.ts",
       "norm_label": "card"
     },
     {
@@ -3833,8 +3833,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_ui_card_cardheader",
-      "community": 19,
-      "community_name": "utils.ts",
+      "community": 171,
+      "community_name": "customer_profile/index.ts",
       "norm_label": "cardheader"
     },
     {
@@ -3844,8 +3844,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_components_ui_card_cardtitle",
-      "community": 19,
-      "community_name": "utils.ts",
+      "community": 171,
+      "community_name": "customer_profile/index.ts",
       "norm_label": "cardtitle"
     },
     {
@@ -3855,8 +3855,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_components_ui_card_cardcontent",
-      "community": 19,
-      "community_name": "utils.ts",
+      "community": 171,
+      "community_name": "customer_profile/index.ts",
       "norm_label": "cardcontent"
     },
     {
@@ -3954,8 +3954,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_dialog",
-      "community": 231,
-      "community_name": "dialog.tsx",
+      "community": 19,
+      "community_name": "utils.ts",
       "norm_label": "dialog.tsx"
     },
     {
@@ -3965,8 +3965,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_ui_dialog_dialogoverlay",
-      "community": 231,
-      "community_name": "dialog.tsx",
+      "community": 19,
+      "community_name": "utils.ts",
       "norm_label": "dialogoverlay"
     },
     {
@@ -3976,8 +3976,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_ui_dialog_dialogcontent",
-      "community": 231,
-      "community_name": "dialog.tsx",
+      "community": 19,
+      "community_name": "utils.ts",
       "norm_label": "dialogcontent"
     },
     {
@@ -3987,8 +3987,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_ui_dialog_dialogheader",
-      "community": 231,
-      "community_name": "dialog.tsx",
+      "community": 19,
+      "community_name": "utils.ts",
       "norm_label": "dialogheader()"
     },
     {
@@ -3998,8 +3998,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_ui_dialog_dialogtitle",
-      "community": 231,
-      "community_name": "dialog.tsx",
+      "community": 19,
+      "community_name": "utils.ts",
       "norm_label": "dialogtitle"
     },
     {
@@ -4009,8 +4009,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_ui_dialog_dialogdescription",
-      "community": 231,
-      "community_name": "dialog.tsx",
+      "community": 19,
+      "community_name": "utils.ts",
       "norm_label": "dialogdescription"
     },
     {
@@ -4086,8 +4086,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_sheet",
-      "community": 2,
-      "community_name": "OsxShell.tsx",
+      "community": 83,
+      "community_name": "dispute_api/index.ts",
       "norm_label": "sheet.tsx"
     },
     {
@@ -4097,8 +4097,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_components_ui_sheet_sheetoverlay",
-      "community": 2,
-      "community_name": "OsxShell.tsx",
+      "community": 83,
+      "community_name": "dispute_api/index.ts",
       "norm_label": "sheetoverlay"
     },
     {
@@ -4108,8 +4108,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_components_ui_sheet_sheetvariants",
-      "community": 2,
-      "community_name": "OsxShell.tsx",
+      "community": 83,
+      "community_name": "dispute_api/index.ts",
       "norm_label": "sheetvariants"
     },
     {
@@ -4119,8 +4119,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_components_ui_sheet_sheetcontentprops",
-      "community": 2,
-      "community_name": "OsxShell.tsx",
+      "community": 83,
+      "community_name": "dispute_api/index.ts",
       "norm_label": "sheetcontentprops"
     },
     {
@@ -4130,8 +4130,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_components_ui_sheet_sheetcontent",
-      "community": 2,
-      "community_name": "OsxShell.tsx",
+      "community": 83,
+      "community_name": "dispute_api/index.ts",
       "norm_label": "sheetcontent"
     },
     {
@@ -4141,8 +4141,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_components_ui_sheet_sheetheader",
-      "community": 2,
-      "community_name": "OsxShell.tsx",
+      "community": 83,
+      "community_name": "dispute_api/index.ts",
       "norm_label": "sheetheader()"
     },
     {
@@ -4152,8 +4152,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_ui_sheet_sheettitle",
-      "community": 2,
-      "community_name": "OsxShell.tsx",
+      "community": 83,
+      "community_name": "dispute_api/index.ts",
       "norm_label": "sheettitle"
     },
     {
@@ -4163,8 +4163,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_components_ui_sheet_sheetdescription",
-      "community": 2,
-      "community_name": "OsxShell.tsx",
+      "community": 83,
+      "community_name": "dispute_api/index.ts",
       "norm_label": "sheetdescription"
     },
     {
@@ -5948,50 +5948,6 @@
       "community": 94,
       "community_name": "apify_scrape/index.ts",
       "norm_label": "mapitem()"
-    },
-    {
-      "label": "app-ar/index.ts",
-      "file_type": "code",
-      "source_file": "supabase/functions/app-ar/index.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "supabase_functions_app_ar_index",
-      "community": 209,
-      "community_name": "app-ar/index.ts",
-      "norm_label": "app-ar/index.ts"
-    },
-    {
-      "label": "admin",
-      "file_type": "code",
-      "source_file": "supabase/functions/app-ar/index.ts",
-      "source_location": "L2",
-      "_origin": "ast",
-      "id": "supabase_functions_app_ar_index_admin",
-      "community": 209,
-      "community_name": "app-ar/index.ts",
-      "norm_label": "admin"
-    },
-    {
-      "label": "app/index.ts",
-      "file_type": "code",
-      "source_file": "supabase/functions/app/index.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "supabase_functions_app_index",
-      "community": 210,
-      "community_name": "app/index.ts",
-      "norm_label": "app/index.ts"
-    },
-    {
-      "label": "admin",
-      "file_type": "code",
-      "source_file": "supabase/functions/app/index.ts",
-      "source_location": "L2",
-      "_origin": "ast",
-      "id": "supabase_functions_app_index_admin",
-      "community": 210,
-      "community_name": "app/index.ts",
-      "norm_label": "admin"
     },
     {
       "label": "archive_rfq/index.ts",
@@ -8590,50 +8546,6 @@
       "norm_label": "admin"
     },
     {
-      "label": "customer_profile/index.ts",
-      "file_type": "code",
-      "source_file": "supabase/functions/customer_profile/index.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "supabase_functions_customer_profile_index",
-      "community": 171,
-      "community_name": "customer_profile/index.ts",
-      "norm_label": "customer_profile/index.ts"
-    },
-    {
-      "label": "admin",
-      "file_type": "code",
-      "source_file": "supabase/functions/customer_profile/index.ts",
-      "source_location": "L2",
-      "_origin": "ast",
-      "id": "supabase_functions_customer_profile_index_admin",
-      "community": 171,
-      "community_name": "customer_profile/index.ts",
-      "norm_label": "admin"
-    },
-    {
-      "label": "CORS",
-      "file_type": "code",
-      "source_file": "supabase/functions/customer_profile/index.ts",
-      "source_location": "L3",
-      "_origin": "ast",
-      "id": "supabase_functions_customer_profile_index_cors",
-      "community": 171,
-      "community_name": "customer_profile/index.ts",
-      "norm_label": "cors"
-    },
-    {
-      "label": "J()",
-      "file_type": "code",
-      "source_file": "supabase/functions/customer_profile/index.ts",
-      "source_location": "L4",
-      "_origin": "ast",
-      "id": "supabase_functions_customer_profile_index_j",
-      "community": 171,
-      "community_name": "customer_profile/index.ts",
-      "norm_label": "j()"
-    },
-    {
       "label": "deploy_next_preview/index.ts",
       "file_type": "code",
       "source_file": "supabase/functions/deploy_next_preview/index.ts",
@@ -8885,94 +8797,6 @@
       "community": 82,
       "community_name": "dispatch_inquiry/index.ts",
       "norm_label": "escalate()"
-    },
-    {
-      "label": "dispute_api/index.ts",
-      "file_type": "code",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "supabase_functions_dispute_api_index",
-      "community": 83,
-      "community_name": "dispute_api/index.ts",
-      "norm_label": "dispute_api/index.ts"
-    },
-    {
-      "label": "admin",
-      "file_type": "code",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L4",
-      "_origin": "ast",
-      "id": "supabase_functions_dispute_api_index_admin",
-      "community": 83,
-      "community_name": "dispute_api/index.ts",
-      "norm_label": "admin"
-    },
-    {
-      "label": "CORS",
-      "file_type": "code",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L5",
-      "_origin": "ast",
-      "id": "supabase_functions_dispute_api_index_cors",
-      "community": 83,
-      "community_name": "dispute_api/index.ts",
-      "norm_label": "cors"
-    },
-    {
-      "label": "J()",
-      "file_type": "code",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L6",
-      "_origin": "ast",
-      "id": "supabase_functions_dispute_api_index_j",
-      "community": 83,
-      "community_name": "dispute_api/index.ts",
-      "norm_label": "j()"
-    },
-    {
-      "label": "clip()",
-      "file_type": "code",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L7",
-      "_origin": "ast",
-      "id": "supabase_functions_dispute_api_index_clip",
-      "community": 83,
-      "community_name": "dispute_api/index.ts",
-      "norm_label": "clip()"
-    },
-    {
-      "label": "sec()",
-      "file_type": "code",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L8",
-      "_origin": "ast",
-      "id": "supabase_functions_dispute_api_index_sec",
-      "community": 83,
-      "community_name": "dispute_api/index.ts",
-      "norm_label": "sec()"
-    },
-    {
-      "label": "notify()",
-      "file_type": "code",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L10",
-      "_origin": "ast",
-      "id": "supabase_functions_dispute_api_index_notify",
-      "community": 83,
-      "community_name": "dispute_api/index.ts",
-      "norm_label": "notify()"
-    },
-    {
-      "label": "mkLog()",
-      "file_type": "code",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L14",
-      "_origin": "ast",
-      "id": "supabase_functions_dispute_api_index_mklog",
-      "community": 83,
-      "community_name": "dispute_api/index.ts",
-      "norm_label": "mklog()"
     },
     {
       "label": "doc_extract/index.ts",
@@ -22318,21 +22142,21 @@
       "norm_label": "customer portal \u2014 complete reference"
     },
     {
-      "label": "0. TL;DR architecture",
+      "label": "0. Architecture at a glance",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L13",
+      "source_location": "L14",
       "_origin": "ast",
-      "id": "docs_customer_portal_0_tl_dr_architecture",
+      "id": "docs_customer_portal_0_architecture_at_a_glance",
       "community": 138,
       "community_name": "card.tsx",
-      "norm_label": "0. tl;dr architecture"
+      "norm_label": "0. architecture at a glance"
     },
     {
       "label": "1. Routes",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L46",
+      "source_location": "L45",
       "_origin": "ast",
       "id": "docs_customer_portal_1_routes",
       "community": 138,
@@ -22343,7 +22167,7 @@
       "label": "2. Frontend \u2014 `src/components/me/CustomerPortal.tsx`",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L59",
+      "source_location": "L55",
       "_origin": "ast",
       "id": "docs_customer_portal_2_frontend_src_components_me_customerportal_tsx",
       "community": 138,
@@ -22351,43 +22175,32 @@
       "norm_label": "2. frontend \u2014 `src/components/me/customerportal.tsx`"
     },
     {
-      "label": "2.1 Module-level utilities (top of file)",
+      "label": "Module utilities",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L65",
+      "source_location": "L62",
       "_origin": "ast",
-      "id": "docs_customer_portal_2_1_module_level_utilities_top_of_file",
+      "id": "docs_customer_portal_module_utilities",
       "community": 138,
       "community_name": "card.tsx",
-      "norm_label": "2.1 module-level utilities (top of file)"
+      "norm_label": "module utilities"
     },
     {
-      "label": "2.2 Shared UI atoms",
+      "label": "Component tree (every function is reachable from here)",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L79",
+      "source_location": "L69",
       "_origin": "ast",
-      "id": "docs_customer_portal_2_2_shared_ui_atoms",
+      "id": "docs_customer_portal_component_tree_every_function_is_reachable_from_here",
       "community": 138,
       "community_name": "card.tsx",
-      "norm_label": "2.2 shared ui atoms"
-    },
-    {
-      "label": "2.3 Component tree",
-      "file_type": "document",
-      "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L85",
-      "_origin": "ast",
-      "id": "docs_customer_portal_2_3_component_tree",
-      "community": 138,
-      "community_name": "card.tsx",
-      "norm_label": "2.3 component tree"
+      "norm_label": "component tree (every function is reachable from here)"
     },
     {
       "label": "3. Backends and every action",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L115",
+      "source_location": "L91",
       "_origin": "ast",
       "id": "docs_customer_portal_3_backends_and_every_action",
       "community": 138,
@@ -22395,32 +22208,10 @@
       "norm_label": "3. backends and every action"
     },
     {
-      "label": "`customer_api` (v33, 64,290 bytes \u2014 repo == deployed, byte-verified)",
-      "file_type": "document",
-      "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L120",
-      "_origin": "ast",
-      "id": "docs_customer_portal_customer_api_v33_64_290_bytes_repo_deployed_byte_verified",
-      "community": 138,
-      "community_name": "card.tsx",
-      "norm_label": "`customer_api` (v33, 64,290 bytes \u2014 repo == deployed, byte-verified)"
-    },
-    {
-      "label": "Other functions (all `verify_jwt=false`)",
-      "file_type": "document",
-      "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L146",
-      "_origin": "ast",
-      "id": "docs_customer_portal_other_functions_all_verify_jwt_false",
-      "community": 138,
-      "community_name": "card.tsx",
-      "norm_label": "other functions (all `verify_jwt=false`)"
-    },
-    {
       "label": "4. Database",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L164",
+      "source_location": "L120",
       "_origin": "ast",
       "id": "docs_customer_portal_4_database",
       "community": 138,
@@ -22428,54 +22219,43 @@
       "norm_label": "4. database"
     },
     {
-      "label": "Functions",
+      "label": "Functions (working days are UAE: Fri IS a working day; weekend = Sat + Sun)",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L166",
+      "source_location": "L122",
       "_origin": "ast",
-      "id": "docs_customer_portal_functions",
+      "id": "docs_customer_portal_functions_working_days_are_uae_fri_is_a_working_day_weekend_sat_sun",
       "community": 138,
       "community_name": "card.tsx",
-      "norm_label": "functions"
+      "norm_label": "functions (working days are uae: fri is a working day; weekend = sat + sun)"
     },
     {
-      "label": "Tables (this chapter)",
+      "label": "Tables",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L179",
+      "source_location": "L131",
       "_origin": "ast",
-      "id": "docs_customer_portal_tables_this_chapter",
+      "id": "docs_customer_portal_tables",
       "community": 138,
       "community_name": "card.tsx",
-      "norm_label": "tables (this chapter)"
+      "norm_label": "tables"
     },
     {
-      "label": "5. The unresponsive-supplier escalation (the flow to read in full)",
+      "label": "5. The unresponsive-supplier escalation",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L195",
+      "source_location": "L141",
       "_origin": "ast",
-      "id": "docs_customer_portal_5_the_unresponsive_supplier_escalation_the_flow_to_read_in_full",
+      "id": "docs_customer_portal_5_the_unresponsive_supplier_escalation",
       "community": 138,
       "community_name": "card.tsx",
-      "norm_label": "5. the unresponsive-supplier escalation (the flow to read in full)"
-    },
-    {
-      "label": "Why the deadline is extended (bug fixed 21 Jul)",
-      "file_type": "document",
-      "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L219",
-      "_origin": "ast",
-      "id": "docs_customer_portal_why_the_deadline_is_extended_bug_fixed_21_jul",
-      "community": 138,
-      "community_name": "card.tsx",
-      "norm_label": "why the deadline is extended (bug fixed 21 jul)"
+      "norm_label": "5. the unresponsive-supplier escalation"
     },
     {
       "label": "6. Money",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L229",
+      "source_location": "L170",
       "_origin": "ast",
       "id": "docs_customer_portal_6_money",
       "community": 138,
@@ -22483,32 +22263,32 @@
       "norm_label": "6. money"
     },
     {
-      "label": "7. Audit result (22 Jul)",
+      "label": "7. What the cleanup did (22 Jul)",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L246",
+      "source_location": "L185",
       "_origin": "ast",
-      "id": "docs_customer_portal_7_audit_result_22_jul",
+      "id": "docs_customer_portal_7_what_the_cleanup_did_22_jul",
       "community": 138,
       "community_name": "card.tsx",
-      "norm_label": "7. audit result (22 jul)"
+      "norm_label": "7. what the cleanup did (22 jul)"
     },
     {
-      "label": "8. Remaining duplication \u2014 an approval-gated plan (NOT yet executed)",
+      "label": "8. Remaining (cosmetic, no bug, no duplication)",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L272",
+      "source_location": "L214",
       "_origin": "ast",
-      "id": "docs_customer_portal_8_remaining_duplication_an_approval_gated_plan_not_yet_executed",
+      "id": "docs_customer_portal_8_remaining_cosmetic_no_bug_no_duplication",
       "community": 138,
       "community_name": "card.tsx",
-      "norm_label": "8. remaining duplication \u2014 an approval-gated plan (not yet executed)"
+      "norm_label": "8. remaining (cosmetic, no bug, no duplication)"
     },
     {
       "label": "9. How to verify this chapter is still true",
       "file_type": "document",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L309",
+      "source_location": "L229",
       "_origin": "ast",
       "id": "docs_customer_portal_9_how_to_verify_this_chapter_is_still_true",
       "community": 138,
@@ -33340,28 +33120,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/app-ar/index.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_app_ar_index",
-      "target": "supabase_functions_app_ar_index_admin",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/app/index.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_app_index",
-      "target": "supabase_functions_app_index_admin",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "supabase/functions/archive_rfq/index.ts",
       "source_location": "L8",
       "weight": 1.0,
@@ -36296,39 +36054,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/customer_profile/index.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_customer_profile_index",
-      "target": "supabase_functions_customer_profile_index_admin",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/customer_profile/index.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_customer_profile_index",
-      "target": "supabase_functions_customer_profile_index_cors",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/customer_profile/index.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_customer_profile_index",
-      "target": "supabase_functions_customer_profile_index_j",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "supabase/functions/deploy_next_preview/index.ts",
       "source_location": "L2",
       "weight": 1.0,
@@ -36534,83 +36259,6 @@
       "_origin": "ast",
       "source": "supabase_functions_dispatch_inquiry_index_escalate",
       "target": "supabase_functions_dispatch_inquiry_index_sec",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_dispute_api_index",
-      "target": "supabase_functions_dispute_api_index_admin",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_dispute_api_index",
-      "target": "supabase_functions_dispute_api_index_clip",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_dispute_api_index",
-      "target": "supabase_functions_dispute_api_index_cors",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_dispute_api_index",
-      "target": "supabase_functions_dispute_api_index_j",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L14",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_dispute_api_index",
-      "target": "supabase_functions_dispute_api_index_mklog",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L10",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_dispute_api_index",
-      "target": "supabase_functions_dispute_api_index_notify",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/dispute_api/index.ts",
-      "source_location": "L8",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_dispute_api_index",
-      "target": "supabase_functions_dispute_api_index_sec",
       "confidence_score": 1.0
     },
     {
@@ -51102,18 +50750,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_customer_portal_complete_reference",
-      "target": "docs_customer_portal_0_tl_dr_architecture",
+      "target": "docs_customer_portal_0_architecture_at_a_glance",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L46",
+      "source_location": "L45",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_customer_portal_complete_reference",
@@ -51124,7 +50772,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L59",
+      "source_location": "L55",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_customer_portal_complete_reference",
@@ -51135,7 +50783,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L115",
+      "source_location": "L91",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_customer_portal_complete_reference",
@@ -51146,7 +50794,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L164",
+      "source_location": "L120",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_customer_portal_complete_reference",
@@ -51157,18 +50805,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L195",
+      "source_location": "L141",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_customer_portal_complete_reference",
-      "target": "docs_customer_portal_5_the_unresponsive_supplier_escalation_the_flow_to_read_in_full",
+      "target": "docs_customer_portal_5_the_unresponsive_supplier_escalation",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L229",
+      "source_location": "L170",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_customer_portal_complete_reference",
@@ -51179,29 +50827,29 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L246",
+      "source_location": "L185",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_customer_portal_complete_reference",
-      "target": "docs_customer_portal_7_audit_result_22_jul",
+      "target": "docs_customer_portal_7_what_the_cleanup_did_22_jul",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L272",
+      "source_location": "L214",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_customer_portal_complete_reference",
-      "target": "docs_customer_portal_8_remaining_duplication_an_approval_gated_plan_not_yet_executed",
+      "target": "docs_customer_portal_8_remaining_cosmetic_no_bug_no_duplication",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L309",
+      "source_location": "L229",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_customer_portal_complete_reference",
@@ -51212,88 +50860,44 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L65",
+      "source_location": "L69",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_2_frontend_src_components_me_customerportal_tsx",
-      "target": "docs_customer_portal_2_1_module_level_utilities_top_of_file",
+      "target": "docs_customer_portal_component_tree_every_function_is_reachable_from_here",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L79",
+      "source_location": "L62",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_2_frontend_src_components_me_customerportal_tsx",
-      "target": "docs_customer_portal_2_2_shared_ui_atoms",
+      "target": "docs_customer_portal_module_utilities",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L85",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_customer_portal_2_frontend_src_components_me_customerportal_tsx",
-      "target": "docs_customer_portal_2_3_component_tree",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L120",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_customer_portal_3_backends_and_every_action",
-      "target": "docs_customer_portal_customer_api_v33_64_290_bytes_repo_deployed_byte_verified",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L146",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_customer_portal_3_backends_and_every_action",
-      "target": "docs_customer_portal_other_functions_all_verify_jwt_false",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L166",
+      "source_location": "L122",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_4_database",
-      "target": "docs_customer_portal_functions",
+      "target": "docs_customer_portal_functions_working_days_are_uae_fri_is_a_working_day_weekend_sat_sun",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L179",
+      "source_location": "L131",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_customer_portal_4_database",
-      "target": "docs_customer_portal_tables_this_chapter",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/CUSTOMER_PORTAL.md",
-      "source_location": "L219",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_customer_portal_5_the_unresponsive_supplier_escalation_the_flow_to_read_in_full",
-      "target": "docs_customer_portal_why_the_deadline_is_extended_bug_fixed_21_jul",
+      "target": "docs_customer_portal_tables",
       "confidence_score": 1.0
     },
     {
@@ -51375,5 +50979,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "3b8ec270b581ca94d935bfd0230852613ebd003c"
+  "built_at_commit": "cc2d6176f3f6950d294b5770250772a8493c1606"
 }

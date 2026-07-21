@@ -1,16 +1,16 @@
 # Graph Report - quotesdone  (2026-07-22)
 
 ## Corpus Check
-- 290 files · ~332,366 words
+- 286 files · ~329,534 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2052 nodes · 2542 edges · 246 communities (137 shown, 109 thin omitted)
+- 2032 nodes · 2526 edges · 243 communities (137 shown, 106 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `3b8ec270`
+- Built from commit: `cc2d6176`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -223,8 +223,6 @@
 - wavesurfer.js
 - about/index.ts
 - admin/index.ts
-- app-ar/index.ts
-- app/index.ts
 - crm/index.ts
 - home-ar/index.ts
 - home/index.ts
@@ -236,7 +234,6 @@
 - voice_otp/index.ts
 - tailwind.config.ts
 - graphify reference: query, path, explain
-- dialog.tsx
 - graphify reference: add a URL and watch a folder
 - graphify reference: commit hook and native CLAUDE.md integration
 - graphify reference: incremental update and cluster-only
@@ -278,19 +275,19 @@
 ## Import Cycles
 - None detected.
 
-## Communities (246 total, 109 thin omitted)
+## Communities (243 total, 106 thin omitted)
 
 ### Community 0 - "CustomerPortal.tsx"
-Cohesion: 0.09
-Nodes (45): Account(), aed(), Authed(), backArrow(), blobToWavB64(), call(), Comparison(), Contact() (+37 more)
+Cohesion: 0.08
+Nodes (48): metadata, Account(), aed(), Authed(), backArrow(), blobToWavB64(), call(), Comparison() (+40 more)
 
 ### Community 1 - "pdf_native/index.ts"
 Cohesion: 0.10
 Nodes (46): admin, authed(), BANDTXT, bidi, bidiRuns(), blockBadge(), blockKV(), blockTable() (+38 more)
 
 ### Community 2 - "OsxShell.tsx"
-Cohesion: 0.08
-Nodes (43): react, react, metadata, metadata, AgentStatus(), AuditLog(), Console(), Escalations() (+35 more)
+Cohesion: 0.11
+Nodes (35): react, react, metadata, AgentStatus(), AuditLog(), Console(), Escalations(), fmt() (+27 more)
 
 ### Community 3 - "cn"
 Cohesion: 0.13
@@ -358,7 +355,7 @@ Nodes (13): generateMetadata(), generateStaticParams(), arLinks(), BASE, Doc, EM
 
 ### Community 19 - "utils.ts"
 Cohesion: 0.12
-Nodes (10): Button, ButtonProps, buttonVariants, Card, CardContent, CardHeader, CardTitle, Input (+2 more)
+Nodes (11): Button, ButtonProps, buttonVariants, DialogContent, DialogDescription, DialogHeader(), DialogOverlay, DialogTitle (+3 more)
 
 ### Community 20 - "auth_api/index.ts"
 Cohesion: 0.15
@@ -588,6 +585,10 @@ Nodes (9): admin, attach(), b64(), callModel(), clip(), mimeOf(), MODELS, parseJ
 Cohesion: 0.29
 Nodes (4): admin, escalate(), sec(), T0
 
+### Community 83 - "dispute_api/index.ts"
+Cohesion: 0.25
+Nodes (7): SheetContent, SheetContentProps, SheetDescription, SheetHeader(), SheetOverlay, SheetTitle, sheetVariants
+
 ### Community 84 - "exec_agents/index.ts"
 Cohesion: 0.36
 Nodes (6): admin, llm(), OFFICERS, parseJson(), runOfficer(), sec()
@@ -721,8 +722,8 @@ Cohesion: 0.40
 Nodes (3): admin, toHex(), verifySig()
 
 ### Community 138 - "card.tsx"
-Cohesion: 0.10
-Nodes (19): 0. TL;DR architecture, 1. Routes, 2.1 Module-level utilities (top of file), 2.2 Shared UI atoms, 2.3 Component tree, 2. Frontend — `src/components/me/CustomerPortal.tsx`, 3. Backends and every action, 4. Database (+11 more)
+Cohesion: 0.12
+Nodes (15): 0. Architecture at a glance, 1. Routes, 2. Frontend — `src/components/me/CustomerPortal.tsx`, 3. Backends and every action, 4. Database, 5. The unresponsive-supplier escalation, 6. Money, 7. What the cleanup did (22 Jul) (+7 more)
 
 ### Community 147 - "doc_review_api/index.ts"
 Cohesion: 0.40
@@ -748,13 +749,13 @@ Nodes (4): admin, WHY: this wrote attacker-controllable text into app_secrets.vo
 Cohesion: 0.24
 Nodes (6): admin, callModel(), clip(), MODELS, parseJson(), strArr()
 
+### Community 171 - "customer_profile/index.ts"
+Cohesion: 0.40
+Nodes (4): Card, CardContent, CardHeader, CardTitle
+
 ### Community 187 - "graphify reference: extra exports and benchmark"
 Cohesion: 0.22
 Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
-
-### Community 188 - "customer/page.tsx"
-Cohesion: 0.40
-Nodes (3): metadata, CustomerPortal(), initLang()
 
 ### Community 201 - "Edge functions — deploying and keeping them in git"
 Cohesion: 0.25
@@ -763,10 +764,6 @@ Nodes (7): Edge functions — deploying and keeping them in git, One-time setup 
 ### Community 230 - "graphify reference: query, path, explain"
 Cohesion: 0.33
 Nodes (5): For /graphify explain, For /graphify path, graphify reference: query, path, explain, Step 0 — Constrained query expansion (REQUIRED before traversal), Step 1 — Traversal
-
-### Community 231 - "dialog.tsx"
-Cohesion: 0.33
-Nodes (5): DialogContent, DialogDescription, DialogHeader(), DialogOverlay, DialogTitle
 
 ### Community 232 - "graphify reference: add a URL and watch a folder"
 Cohesion: 0.50
@@ -785,24 +782,24 @@ Cohesion: 0.67
 Nodes (3): Badge(), BadgeProps, badgeVariants
 
 ## Knowledge Gaps
-- **595 isolated node(s):** `withNextIntl`, `nextConfig`, `name`, `version`, `private` (+590 more)
+- **587 isolated node(s):** `withNextIntl`, `nextConfig`, `name`, `version`, `private` (+582 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **109 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **106 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `cn()` connect `cn` to `CustomerPortal.tsx`, `OsxShell.tsx`, `dialog.tsx`, `utils.ts`, `badge.tsx`?**
-  _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **Why does `dependencies` connect `dependencies` to `OsxShell.tsx`, `cmdk`, `next-intl`, `@radix-ui/react-dialog`, `@radix-ui/react-tabs`, `@radix-ui/react-tooltip`, `react-dom`, `wavesurfer.js`, `@radix-ui/react-separator`, `package.json`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
+  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+- **Why does `cn()` connect `cn` to `CustomerPortal.tsx`, `OsxShell.tsx`, `customer_profile/index.ts`, `utils.ts`, `dispute_api/index.ts`, `badge.tsx`?**
+  _High betweenness centrality (0.007) - this node is a cross-community bridge._
 - **Why does `react` connect `OsxShell.tsx` to `dependencies`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
+  _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **What connects `withNextIntl`, `nextConfig`, `name` to the rest of the system?**
-  _595 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _587 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `CustomerPortal.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.08843537414965986 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07756813417190776 - nodes in this community are weakly interconnected._
 - **Should `pdf_native/index.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.1036734693877551 - nodes in this community are weakly interconnected._
 - **Should `OsxShell.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.0815686274509804 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.1141025641025641 - nodes in this community are weakly interconnected._

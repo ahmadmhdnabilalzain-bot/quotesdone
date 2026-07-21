@@ -271,8 +271,6 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
 
     if (action === 'me') return J({ customer: cust });
-    if (action === 'specs') { const { data } = await admin.from('category_specs').select('category,label,fields').order('label'); return J({ specs: data || [] }); }
-    if (action === 'detect') { const d = detect(body.text || ''); let fields = null, label = null; if (d.category) { const { data: sp } = await admin.from('category_specs').select('label,fields').eq('category', d.category).maybeSingle(); fields = sp?.fields || null; label = sp?.label || d.category; } return J({ ...d, label, fields }); }
 
     if (action === 'analyze_drawing') {
       let images: any[] = Array.isArray(body.images) ? body.images.slice(0, 10) : [];
@@ -299,24 +297,6 @@ Deno.serve(async (req) => {
         if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted }, 200);
         return J({ ok: true, boq: jd.boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted });
       } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [] }, 200); }
-    }
-
-    if (action === 'analyze_quotation') {
-      const images: any[] = Array.isArray(body.images) ? body.images.slice(0, 10) : [];
-      const name = String(body.file_name || body.drawing_file_name || 'quotation').slice(0, 180);
-      const mime = String(body.mime || 'application/octet-stream');
-      const path = body.original_b64 ? await storeOriginal(cust.id, name, mime, String(body.original_b64)) : null;
-      if (!images.length) return J({ ok: true, scope: null, drawing_file_path: path, drawing_file_name: name, note: 'no_readable_pages' });
-      const secret = await getSecret('inbound_secret');
-      try {
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images, inquiry: { category: body.category || '', summary: body.hint || '' } }) });
-        const jd = await r.json();
-        if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name }, 200);
-        const p = jd.proposal || {};
-        const items = (Array.isArray(p.line_items) ? p.line_items : []).map((li: any) => ({ section: '', description: String(li?.description || ''), qty: (li?.qty === null || li?.qty === undefined) ? null : String(li.qty), unit: '', basis: '', confidence: 'medium' })).filter((x: any) => x.description);
-        const scope = { source: 'quotation', summary: String(p.description_anonymized || p.scope || ''), boq: items, scope_text: String(p.scope || ''), conditions: String(p.conditions || ''), exclusions: String(p.exclusions || ''), assumptions: [], confidence: ['low','medium','high'].includes(p.confidence) ? p.confidence : 'medium' };
-        return J({ ok: true, scope, drawing_file_path: path, drawing_file_name: name });
-      } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name }, 200); }
     }
 
     if (action === 'create_inquiry') {
@@ -549,16 +529,6 @@ Deno.serve(async (req) => {
       if (!tx) return J({ error: 'Reveal this supplier first.' }, 403);
       await admin.from('inquiries').update({ status: 'completed', hired_supplier_id: q.supplier_id, completed_at: new Date().toISOString(), outcome: 'hired' }).eq('id', inq.id);
       await notifyLosers(String(inq.id), inq.summary ?? null, Number(q.supplier_id));
-      return J({ ok: true });
-    }
-
-    if (action === 'close_inquiry') {
-      const iid = String(body.inquiry_id || '');
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id,status,summary').eq('id', iid).maybeSingle();
-      if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
-      const hiredElsewhere = body.outcome === 'hired';
-      await admin.from('inquiries').update({ status: 'closed', completed_at: new Date().toISOString(), outcome: hiredElsewhere ? 'hired_elsewhere' : 'not_hired' }).eq('id', inq.id);
-      if (hiredElsewhere) await notifyLosers(String(inq.id), inq.summary ?? null, null);
       return J({ ok: true });
     }
 
