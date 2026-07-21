@@ -258,55 +258,92 @@ customer. QuotesDone never holds supplier bank details.
 
 ---
 
-## 7. Built-but-unwired functions (kept, flagged — not deleted)
+## 7. Registration, documents & verification
 
-These are live in production, coherent, and working, but have **zero callers** today.
-They were **kept** (deleting a working feature is a founder call, #112) and are listed
-here so nothing is invisible:
+### Fields — what is needed vs optional
+**Required to submit for approval** (enforced in `ProfileForm.save` + `supplier_api.save_profile`):
+- Contact name and a **mobile that has been SMS-verified** (`kyc.verify_sms`).
+- Trade licence number.
+- A company profile document on file.
+- Accepting the supplier terms.
 
-1. **`quote_review_api`** (124 lines) — a complete *interactive quote-detailing agent*:
-   the supplier answers a reviewer until every line has brand/model/spec/price, then a
-   sha256-hashed committed record is frozen. The portal instead shipped the lighter
-   `submit_quote` `dry_run`/QuoteCheck preflight. Decide: wire it or retire it.
-2. **`catalogue_ingest`** (53 lines) — turns an uploaded catalogue into
-   `capability_summary`, the column matching scores on. **`process_docs` never calls it**
-   — catalogues are stored but never become matching fuel (a *missing wire*, #113).
-3. **`doc_review_api`** (38 lines) — admin queue to approve AI-classified inbound
-   documents and attach them to a profile. Unwired admin capability.
-4. **`supplier_me`** (42 lines) — returns the supplier's twin / reputation / exposure.
-   Candidate backend for a future "your reputation" view.
+**Optional** (they only widen reach / ranking): signatory name, products, services,
+description, emirates served, licence authority / expiry / TRN, EGR number, company type
+/ size, founded year, bank name / account, WhatsApp opt-in — and **every non-licence
+document** (insurance, ISO, manufacturer authorisation, EGR card, catalogues). Only the
+**trade licence** is a hard requirement, and it must stay valid to keep matching.
 
-**Two dead-but-harmless actions** remain in live functions and are scheduled for
-removal on the next deploy of each (not stripped now — redeploying a revenue function
-solely to delete unreachable code is poor risk/reward, #114): `supplier_api.dashboard`,
-`supplier_portal.notifications`.
+### One home per document — the Profile ↔ Documents de-duplication
+`ProfileForm` is reused for two jobs: first-time **registration** (Onboarding) and an
+established supplier **editing** their profile (the Profile tab). It now takes a `mode` prop:
+- **register** — shows the document uploads (trade licence, company profile, catalogues),
+  because a brand-new supplier has no Documents tab yet and must provide them to be approved.
+- **edit** — hides those uploads and points the supplier to the **Documents tab**, the single
+  home for every document file. The Profile tab keeps only *data* fields (contact, licence
+  number / authority, products / services / description, emirates).
+
+Before this, licence + company profile + catalogues appeared in **both** tabs — the same file
+asked for twice. (EGR had already been de-duplicated to Documents-only; its leftover
+`egrFile → signUpload → sign_upload` upload handler was dead code and was removed.)
+
+### How the agent reads an attached PDF / photo
+- **Trade licence** — `ProfileForm.upLicense` renders the file to page images client-side
+  (`fileToImages`, up to 6 PDF pages) → `supplier_api.process_docs` → **`license_extract`**
+  (vision OCR) → returns licence number, authority, city, expiry, emirate, TRN and the legal
+  company name. The form auto-fills those fields; if the licence's legal name differs from what
+  was typed, the company name is corrected and the change is flagged to the supplier.
+- **Company profile** — same path in `profile` mode → `license_extract` returns a capability
+  summary + products / services / emirates, which seed `capability_summary` (matching fuel)
+  where the supplier left them blank.
+- **Quotations** — `extract_quote` → **`quote_extract`** reads the quote and anonymises it
+  (ADR-010 masking) so the supplier's identity cannot leak to the customer.
+
+### How verification works
+1. **Email** — proven by the OTP sign-in (`login_otp`); a customer email is blocked from
+   registering as a supplier (`role_guard`).
+2. **Mobile** — `kyc.send_sms` → `kyc.verify_sms`; **required** before a profile can be submitted.
+3. **Terms** — `kyc.accept_terms` + `save_profile` records `accepted_terms_at`, the version, and
+   the originating **IP** (evidence for the collections / legal path).
+4. **Admin approval** — `approval_status` goes `pending → approved` (automatic if
+   `auto_approve_suppliers` is set, otherwise a human reviews, assisted by the `supplier_review`
+   AI check). `submit_quote` is gated on `approved`.
 
 ---
 
 ## 8. What the cleanup did (22 Jul)
 
-**Deleted 2 genuinely-dead functions** (production + repo; recoverable from git):
-- `quote_ai` — the paste-text quote path; its portal UI was removed in the rebuild and
-  the shipped path is `quote_extract` (file/image). Redundant sibling.
-- `reembed_suppliers` — a completed one-shot embedding backfill, superseded by the live
-  `embed_leads` daily cron.
+**Deleted 7 dead functions** (production + repo; recoverable from git). Each was proven
+dead across all five invocation vectors — frontend, other edge functions, SQL functions,
+cron jobs, database-webhook triggers — before removal:
 
-**Reconciled 2 stale repo mirrors — prod → repo, no production change:**
-- `supplier_portal` — repo held the pre-v5 238-line copy; production runs **v5** (264
-  lines, expiry-aware eligibility). Repo updated to match live.
-- `route_inquiry` — repo held the pre-v9 143-line copy; production runs **v9** (229
-  lines, structured capability matching). Repo updated to match live.
+| Function | Why it was useless |
+|---|---|
+| `quote_ai` | Paste-text quote path; its portal UI was removed in the rebuild. Superseded by `quote_extract`. |
+| `reembed_suppliers` | Completed one-shot embedding backfill. Superseded by the live `embed_leads` daily cron. |
+| `quote_review_api` | Alternative interactive quote-detailing flow; its 3 tables held **0 rows** and no SQL function referenced them. The shipped path is `submit_quote` + the dry-run QuoteCheck. Old version. |
+| `catalogue_ingest` | A 5th writer of `capability_summary`; that column is already filled by `profile_ai`, `enrich_capability`, `admin_detail` and `match_eval`, and this one was never called. Redundant. |
+| `doc_review_api` | Orphaned admin doc-approver; `doc_extract` never fed its queue and nothing invoked it. |
+| `supplier_me` | Superseded by `supplier_portal.overview`. The twin/reputation tables it read stay (the OS uses them via `fn_ws_supplier_360`); the dead supplier-facing reader does not. |
+| `sign_upload` | Signed-upload helper whose only caller was the dead EGR path; 0 SQL/cron references. |
 
-Both drifts were completed, deployed work that the earlier git re-sync (#94) never
-mirrored back. This is why the repo must be byte-verified against production, not
-trusted — and why a full 189-function audit is now open (#115).
+**Frontend dead code removed** (`SupplierPortal.tsx`): the `egrFile → signUpload → sign_upload`
+chain (`setEgrFile` was never called, so it could never fire) and a duplicate `loading` key in
+the bilingual dictionary. **Document uploads de-duplicated** between the Profile and Documents
+tabs (§7).
 
-**Kept + flagged** 4 unwired functions (§7, #112) and the `catalogue_ingest` wire (#113);
-**documented** 2 dead actions for the next deploy (#114).
+**Reconciled 2 stale repo mirrors — prod → repo, no production change:** `supplier_portal`
+(repo was pre-v5 238 lines; prod is **v5** 264, expiry-aware eligibility) and `route_inquiry`
+(repo was pre-v9 143; prod is **v9** 229, structured capability matching). Both were deployed
+work the earlier git re-sync (#94) never mirrored back — which is why the repo must be
+byte-verified against production, not trusted (full 184-function audit open, #115).
 
-**Verified:** repo == production for the entire supplier surface — every function in
-§3/§4 byte-identical, function count **189 repo == 189 prod** (191 − 2 deleted). No
-supplier rows orphaned in the `pages` table. `verify_jwt = false` preserved everywhere.
+**Two dead-but-harmless actions** left for the next deploy of their function (#114):
+`supplier_api.dashboard` (superseded by `supplier_portal.overview`) and
+`supplier_portal.notifications` (no caller).
+
+**Verified:** repo == production for the entire supplier surface — every function in §3/§4
+byte-identical; the supplier frontend compiles clean; function count **184 repo == 184 prod**
+(191 − 7 deleted). `verify_jwt = false` preserved everywhere; 0 ERROR security advisories.
 
 ---
 
