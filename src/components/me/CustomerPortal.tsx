@@ -87,6 +87,8 @@ Object.assign(T.en, {
   step_sent:'Sent', step_quotes:'Quotes in', step_revealed:'Revealed', step_hired:'Hired',
   line_items:'Line items', trades_l:'Trades', drawing_l:'Drawing', combined_project:'Combined project',
   sep_requests:'{n} separate requests to specialist suppliers', guidance_only:'Guidance only — the final decision is yours.',
+  shortlisted_badge:'Shortlisted', show_all_quotes:'Show all {n} quotes', show_less:'Show fewer',
+  shortlist_note:'Our expert reviewed all {n} quotes and shortlisted {k}. You can still open and reveal any of the others.',
 });
 Object.assign(T.ar, {
   nav_overview:'نظرة عامة', nav_requests:'الطلبات', nav_messages:'الرسائل', nav_account:'الحساب',
@@ -117,6 +119,8 @@ Object.assign(T.ar, {
   step_sent:'أُرسل', step_quotes:'وردت العروض', step_revealed:'تم الكشف', step_hired:'تم التعاقد',
   line_items:'عدد البنود', trades_l:'التخصصات', drawing_l:'الرسم', combined_project:'مشروع متعدد التخصصات',
   sep_requests:'{n} طلبات منفصلة لموردين متخصصين', guidance_only:'إرشادي فقط — القرار النهائي لك.',
+  shortlisted_badge:'ضمن القائمة المختصرة', show_all_quotes:'عرض كل العروض ({n})', show_less:'عرض أقل',
+  shortlist_note:'راجع خبيرنا جميع العروض ({n}) واختار {k} منها. ولا يزال بإمكانك فتح وكشف أي عرض آخر.',
 });
 const tf = (lang, k, vars) => { let s = t(lang, k); if (vars) for (const kk of Object.keys(vars)) s = s.split('{' + kk + '}').join(String(vars[kk])); return s; };
 
@@ -638,6 +642,7 @@ function RequestDetail({ inq, token, lang, onBack, onChange }) {
   const [eBudget, setEBudget] = useState(inq.budget || '');
   const [eEmirate, setEEmirate] = useState(inq.emirate || '');
   const [saving, setSaving] = useState(false); const [canceling, setCanceling] = useState(false); const [err, setErr] = useState('');
+  const [showAll, setShowAll] = useState(false);
   const quotes = (inq.quotes || []).slice().sort((a, b) => (a.price || 0) - (b.price || 0));
   const concluded = ['completed', 'closed', 'cancelled'].includes(String(inq.status));
   const anyRevealed = quotes.some((q) => q.revealed);
@@ -654,6 +659,18 @@ function RequestDetail({ inq, token, lang, onBack, onChange }) {
     return m; }, [quotes]);
   const bestId = quotes.length ? quotes.slice().sort((a, b) => (vmap[b.id] || 0) - (vmap[a.id] || 0))[0].id : null;
   const cheapestId = quotes.length ? quotes[0].id : null;
+
+  // The agent evaluates every quote and shortlists three. Lead with those three,
+  // keep the rest one click away — the customer can still reveal any of them.
+  const cmp = useComparison(inq.id, token, lang, quotes.length >= 2);
+  const shortlist = new Set((Array.isArray(cmp.analysis?.quotes) ? cmp.analysis.quotes : []).map((q) => q.label));
+  const isShort = (q) => shortlist.has(q.label);
+  const ordered = shortlist.size
+    ? [...quotes.filter(isShort), ...quotes.filter((q) => !isShort(q))]
+    : quotes;
+  const LEAD = shortlist.size || Math.min(5, quotes.length);
+  const collapsible = quotes.length > LEAD + 1;
+  const visible = (collapsible && !showAll) ? ordered.slice(0, LEAD) : ordered;
 
   const doCancel = async () => {
     if (canceling) return;
@@ -718,12 +735,17 @@ function RequestDetail({ inq, token, lang, onBack, onChange }) {
 
     <SupplierBrief inq={inq} lang={lang} />
 
-    {quotes.length >= 2 && <Section i={4} title={t(lang, 'quotes_in')}><Comparison inqId={inq.id} token={token} lang={lang} /></Section>}
+    {quotes.length >= 2 && <Section i={4} title={t(lang, 'quotes_in')}><Comparison a={cmp.analysis} busy={cmp.busy} note={cmp.note} lang={lang} /></Section>}
 
-    <Section i={5} title={`${t(lang, 'quotes_in')} (${quotes.length})`}>
+    <Section i={5} title={`${t(lang, 'quotes_in')} (${quotes.length})`}
+      sub={shortlist.size && collapsible ? tf(lang, 'shortlist_note', { n: quotes.length, k: shortlist.size }) : undefined}>
       {quotes.length ? (<div className="flex flex-col gap-3">
-        {quotes.map((q, i) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange}
-          vscore={vmap[q.id]} best={q.id === bestId} cheapest={q.id === cheapestId} hired={inq.hired_supplier_id} i={i} />)}
+        {visible.map((q, i) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange}
+          vscore={vmap[q.id]} best={q.id === bestId} cheapest={q.id === cheapestId} shortlisted={isShort(q)}
+          hired={inq.hired_supplier_id} i={i} />)}
+        {collapsible ? (<Button variant="outline" className="qd-noprint mt-1 w-full" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
+          {showAll ? t(lang, 'show_less') : tf(lang, 'show_all_quotes', { n: quotes.length })}
+        </Button>) : null}
       </div>) : <Empty icon="◷" title={t(lang, 'no_quotes_yet')}
         sub={lang === 'ar'
           ? 'طابقناك مع مورّدين مناسبين وسننبهك فور وصول أول عرض.'
@@ -801,17 +823,24 @@ function SupplierBrief({ inq, lang }) {
   </Section>);
 }
 
+/* One fetch, shared by the report and the quote list — so the list can lead with
+   the same three the agent shortlisted instead of dumping N undifferentiated cards. */
+function useComparison(inqId, token, lang, enabled) {
+  const [a, setA] = useState(null); const [busy, setBusy] = useState(!!enabled); const [note, setNote] = useState('');
+  useEffect(() => { if (!enabled) { setBusy(false); return; } let on = true; setBusy(true);
+    call('quote_compare', { inquiry_id: inqId, lang }, token)
+      .then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) setA(j.analysis); else setNote((j && (j.note || j.error)) || ''); })
+      .catch(() => { if (on) setBusy(false); });
+    return () => { on = false; }; }, [inqId, lang, enabled]);
+  return { analysis: a, busy, note };
+}
+
 /* ── Comparison (AI report) ────────────────────────────────────────────────
    quote_compare returns JSON, not a PDF — there is no comparison PDF endpoint.
    The data is inherently tabular (N suppliers x ~11 attributes), so it renders
    as a real side-by-side table and the PDF is produced by printing that table. */
-function Comparison({ inqId, token, lang }) {
-  const [a, setA] = useState(null); const [busy, setBusy] = useState(true); const [note, setNote] = useState('');
+function Comparison({ a, busy, note, lang }) {
   const ref = useRef(null);
-  useEffect(() => { let on = true; setBusy(true);
-    call('quote_compare', { inquiry_id: inqId, lang }, token).then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) setA(j.analysis); else setNote((j && (j.note || j.error)) || ''); })
-      .catch(() => { if (on) setBusy(false); });
-    return () => { on = false; }; }, [inqId, lang]);
   const arr = (x) => Array.isArray(x) ? x : [];
 
   if (busy) return (<div className="surface rounded-xl border-primary/25 p-4">
@@ -942,7 +971,7 @@ function ValueRing({ score }) {
     <text x="19" y="22.5" textAnchor="middle" className="tabular" fill="hsl(var(--foreground))" fontSize="11" fontWeight="700">{pct}</text>
   </svg>);
 }
-function QuoteCard({ q, token, concluded, onChange, vscore, best, cheapest, lang, hired, i = 0 }) {
+function QuoteCard({ q, token, concluded, onChange, vscore, best, cheapest, shortlisted, lang, hired, i = 0 }) {
   const [state, setState] = useState(q.revealed ? 'revealed' : 'idle');
   const [contact, setContact] = useState(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const reveal = async () => {
@@ -969,6 +998,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, cheapest, lang
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="font-head text-[14.5px] font-bold text-foreground">{q.label}</span>
+          {shortlisted ? <Pill tone="gold">{t(lang, 'shortlisted_badge')}</Pill> : null}
           {best ? <Pill tone="teal">{t(lang, 'best_value')}</Pill> : null}
           {cheapest && !best ? <Pill tone="muted">{t(lang, 'lowest_price')}</Pill> : null}
           {q.verified ? <Pill tone="teal">✓</Pill> : null}
