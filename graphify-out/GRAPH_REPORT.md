@@ -1,16 +1,16 @@
-# Graph Report - quotesdone  (2026-07-21)
+# Graph Report - quotesdone  (2026-07-22)
 
 ## Corpus Check
-- 290 files · ~330,282 words
+- 290 files · ~332,586 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2036 nodes · 2528 edges · 245 communities (136 shown, 109 thin omitted)
+- 2052 nodes · 2542 edges · 245 communities (136 shown, 109 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d2de5363`
+- Built from commit: `9c30ac2a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -345,7 +345,7 @@ Nodes (17): autoprefixer, devDependencies, autoprefixer, postcss, tailwindcss, t
 
 ### Community 16 - "dependencies"
 Cohesion: 0.12
-Nodes (17): class-variance-authority, clsx, lucide-react, next, dependencies, class-variance-authority, clsx, lucide-react (+9 more)
+Nodes (17): class-variance-authority, lucide-react, next, dependencies, class-variance-authority, lucide-react, next, @radix-ui/react-scroll-area (+9 more)
 
 ### Community 17 - "buildMeta"
 Cohesion: 0.22
@@ -356,8 +356,8 @@ Cohesion: 0.19
 Nodes (13): generateMetadata(), generateStaticParams(), arLinks(), BASE, Doc, EM, Loc, parse() (+5 more)
 
 ### Community 19 - "utils.ts"
-Cohesion: 0.14
-Nodes (9): Badge(), BadgeProps, badgeVariants, Button, ButtonProps, buttonVariants, Input, ScrollArea (+1 more)
+Cohesion: 0.11
+Nodes (13): Badge(), BadgeProps, badgeVariants, Button, ButtonProps, buttonVariants, Card, CardContent (+5 more)
 
 ### Community 20 - "auth_api/index.ts"
 Cohesion: 0.15
@@ -720,8 +720,8 @@ Cohesion: 0.40
 Nodes (3): admin, toHex(), verifySig()
 
 ### Community 138 - "card.tsx"
-Cohesion: 0.40
-Nodes (4): Card, CardContent, CardHeader, CardTitle
+Cohesion: 0.10
+Nodes (19): 0. TL;DR architecture, 1. Routes, 2.1 Module-level utilities (top of file), 2.2 Shared UI atoms, 2.3 Component tree, 2. Frontend — `src/components/me/CustomerPortal.tsx`, 3. Backends and every action, 4. Database (+11 more)
 
 ### Community 147 - "doc_review_api/index.ts"
 Cohesion: 0.40
@@ -752,8 +752,8 @@ Cohesion: 0.22
 Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
 
 ### Community 188 - "customer/page.tsx"
-Cohesion: 0.25
-Nodes (4): metadata, metadata, CustomerPortal(), initLang()
+Cohesion: 0.40
+Nodes (3): metadata, CustomerPortal(), initLang()
 
 ### Community 201 - "Edge functions — deploying and keeping them in git"
 Cohesion: 0.25
@@ -780,23 +780,23 @@ Cohesion: 0.50
 Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
 ## Knowledge Gaps
-- **582 isolated node(s):** `withNextIntl`, `nextConfig`, `name`, `version`, `private` (+577 more)
+- **595 isolated node(s):** `withNextIntl`, `nextConfig`, `name`, `version`, `private` (+590 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **109 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `cn()` connect `cn` to `CustomerPortal.tsx`, `OsxShell.tsx`, `dialog.tsx`, `card.tsx`, `utils.ts`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `dependencies` connect `dependencies` to `OsxShell.tsx`, `cmdk`, `next-intl`, `@radix-ui/react-dialog`, `@radix-ui/react-tabs`, `@radix-ui/react-tooltip`, `react-dom`, `wavesurfer.js`, `@radix-ui/react-separator`, `package.json`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `react` connect `OsxShell.tsx` to `dependencies`?**
+- **Why does `cn()` connect `cn` to `CustomerPortal.tsx`, `OsxShell.tsx`, `utils.ts`, `dialog.tsx`?**
   _High betweenness centrality (0.006) - this node is a cross-community bridge._
+- **Why does `dependencies` connect `dependencies` to `OsxShell.tsx`, `cmdk`, `next-intl`, `@radix-ui/react-dialog`, `@radix-ui/react-tabs`, `@radix-ui/react-tooltip`, `react-dom`, `wavesurfer.js`, `@radix-ui/react-separator`, `package.json`?**
+  _High betweenness centrality (0.004) - this node is a cross-community bridge._
+- **Why does `react` connect `OsxShell.tsx` to `dependencies`?**
+  _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **What connects `withNextIntl`, `nextConfig`, `name` to the rest of the system?**
-  _582 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _595 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `CustomerPortal.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.08571428571428572 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08843537414965986 - nodes in this community are weakly interconnected._
 - **Should `pdf_native/index.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.1036734693877551 - nodes in this community are weakly interconnected._
 - **Should `OsxShell.tsx` be split into smaller, more focused modules?**
