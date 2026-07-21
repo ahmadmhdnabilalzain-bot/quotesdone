@@ -176,6 +176,13 @@ original 3-wd window.
 | Late fee on recovery | 9% **per annum** (Fed. Decree-Law 50/2022) | `src/content/legal.json` |
 | Admin/collection fee | **AED 250 per claim** | `src/content/legal.json` |
 | Refund processing deduction | 3% | Refund policy |
+| Refund payout time (after approval) | 7–14 working days | Refund policy §6 |
+
+Two clocks, do not conflate them: **3 working days** is the window for the supplier
+to respond / the customer to become eligible; **7–14 working days** is how long the
+payout itself takes after approval. Working days are **Sat + Sun excluded** (Friday
+IS a working day) everywhere — code and legal text now agree (the refund policy and
+complaints page previously carried the pre-2022 "Fri + Sat" weekend; corrected).
 
 Legal text served to users comes from **`src/content/legal.json`** via
 `src/components/LegalDoc.tsx` — NOT the Supabase `pages` table.
