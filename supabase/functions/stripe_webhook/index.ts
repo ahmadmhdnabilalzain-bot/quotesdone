@@ -82,6 +82,36 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
 
+        // ---- SUPPLIER REGISTRATION FEE (added 21 Jul 2026) --------------------------------
+        // This is the ONLY place leads.registration_status is set to 'paid'.
+        // supplier_api.pay_registration previously wrote it directly, with no payment taken and
+        // no Stripe involved, so any supplier with a valid JWT could clear their own AED 1,000
+        // fee with a single POST. That endpoint now only creates a Checkout Session; settlement
+        // happens here on a signature-verified event, exactly as it does for supplier_dues.
+        if (String(md.kind || '') === 'supplier_registration') {
+          const supId = Number(md.supplier_id || 0);
+          const payRef = String(s.payment_intent || s.id);
+          const paidAmount = Number(s.amount_total ? s.amount_total / 100 : 0);
+          if (!supId) { await logRun('error', { kind: 'supplier_registration', amount_total: s.amount_total, session: String(s.id || '') }, 'SUPPLIER PAID BUT NOTHING RECORDED - a supplier_registration checkout session completed with no metadata.supplier_id, so no lead could be marked registered. The money is with Stripe but the supplier still shows the fee as outstanding. Reconcile manually against session ' + String(s.id || '')); return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }); }
+
+          // Only settle a lead that is genuinely still unpaid. This makes duplicate deliveries a
+          // no-op, and stops a repeat webhook silently pushing the expiry out by another year.
+          const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+          const { data: settled, error: rErr } = await admin.from('leads')
+            .update({ registration_status: 'paid', registration_fee_due: 0, registration_paid_at: new Date().toISOString(), registration_expires_at: new Date(Date.now() + YEAR_MS).toISOString() })
+            .eq('id', supId).neq('registration_status', 'paid').select('id,email,company_name');
+
+          if (rErr) { await logRun('error', { kind: 'supplier_registration', supplier_id: supId, amount: paidAmount }, 'SUPPLIER PAID BUT NOT RECORDED - failed to mark registration paid (' + rErr.message + '). Payment ref ' + payRef + '. The supplier has been charged and still shows as unregistered, so they may be blocked from quoting until this is reconciled by hand.'); return new Response('registration update failed: ' + rErr.message, { status: 500 }); }
+
+          const n = (settled || []).length;
+          if (n === 0) { await logRun('ok', { kind: 'supplier_registration', duplicate: true, supplier_id: supId }, 'Duplicate Stripe delivery for supplier registration ignored - that supplier was already marked paid.'); }
+          else {
+            try { const sup = (settled || [])[0]; if (sup?.email && /@/.test(sup.email)) await admin.from('notifications').insert([{ type: 'registration_paid', to_email: sup.email, to_role: 'supplier', lead_id: supId, subject: 'Registration confirmed - thank you', body: 'We have received your registration payment of AED ' + paidAmount.toFixed(2) + '. Your QuotesDone supplier account is registered for the next 12 months.' }]); } catch (_e) { /* */ }
+            await logRun('ok', { kind: 'supplier_registration', supplier_id: supId, amount: paidAmount }, 'Supplier ' + supId + ' paid the registration fee of AED ' + paidAmount.toFixed(2) + ' via Stripe (ref ' + payRef + ').');
+          }
+          return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+
         // ---- CUSTOMER REVEAL FEE (existing behaviour) ---------------------------------------
         const qid = String(md.quote_id || '');
         if (qid) {

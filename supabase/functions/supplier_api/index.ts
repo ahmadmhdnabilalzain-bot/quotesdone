@@ -89,7 +89,15 @@ Deno.serve(async (req) => {
       if (Array.isArray(prof.images)) profImgs.push(...prof.images);
       const cats = Array.isArray(body.catalogs) ? body.catalogs.slice(0, 5) : []; const catPaths: string[] = [];
       for (const c of cats) { if (c?.path) { catPaths.push(String(c.path)); } else if (c?.original_b64) { try { const u8 = b64ToBytes(String(c.original_b64)); const fn = String(c.filename || 'catalog').replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 120); const p = `catalogs/${sup.id}/${Date.now()}_${fn}`; await admin.storage.from('supplier-docs').upload(p, u8, { contentType: c.mime || 'application/octet-stream', upsert: true }); catPaths.push(p); } catch (_e) { /* */ } } if (Array.isArray(c?.images)) profImgs.push(...c.images); }
-      if (catPaths.length) upd.catalog_doc_paths = catPaths;
+      // Append, never replace. Assigning catPaths wholesale wiped every catalogue the supplier
+      // had already uploaded the moment they added one more - silent data loss, no warning, no
+      // undo. supplier_portal.save_documents already appends; this is the registration path
+      // catching up to it. Same 20-file ceiling so the two paths agree.
+      if (catPaths.length) {
+        const { data: curCat } = await admin.from('leads').select('catalog_doc_paths').eq('id', sup.id).maybeSingle();
+        const existingCat: string[] = Array.isArray(curCat?.catalog_doc_paths) ? (curCat!.catalog_doc_paths as string[]) : [];
+        upd.catalog_doc_paths = [...existingCat, ...catPaths.filter((p) => !existingCat.includes(p))].slice(0, 20);
+      }
       if (profImgs.length) {
         try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'profile', images: profImgs.slice(0, 10) }) }); const jd = await r.json();
           if (jd?.ok && jd.profile) { const pf = jd.profile;
@@ -123,7 +131,49 @@ Deno.serve(async (req) => {
       const { data: me } = await admin.from('leads').select('approval_status').eq('id', sup.id).maybeSingle();
       return J({ ok: true, approval_status: me?.approval_status || 'pending', review: review ? { severity: review.severity, summary: review.summary, issues: review.issues } : null });
     }
-    if (action === 'pay_registration') { const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (!sup) return J({ error: 'claim your company first' }, 400); await admin.from('leads').update({ registration_status: 'paid', registration_fee_due: 0, registration_paid_at: new Date().toISOString(), registration_expires_at: new Date(Date.now() + YEAR_MS).toISOString() }).eq('id', sup.id); return J({ ok: true }); }
+    // Registration fee - creates a Stripe Checkout Session and nothing else.
+    //
+    // This endpoint previously wrote registration_status:'paid' and registration_fee_due:0
+    // directly, with no payment taken, no Stripe call and no webhook. Any supplier holding a
+    // valid JWT could clear their own AED 1,000 fee with a single POST. It is dormant today
+    // only because every supplier is inside the free tier; it would have become a live revenue
+    // hole the day the 1,000th supplier registered.
+    //
+    // supplier_pay already carried the correct discipline for supplier_dues - "this endpoint
+    // only CREATES a Checkout Session, it never marks anything paid". Registration was the one
+    // money path that never got it. registration_status is now written solely by stripe_webhook
+    // on a signature-verified checkout.session.completed event.
+    if (action === 'pay_registration') {
+      const { data: sup } = await admin.from('leads').select('id,company_name,email,registration_status,registration_fee_due').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first' }, 400);
+      const status = String(sup.registration_status || '');
+      if (status === 'paid') return J({ ok: true, already_paid: true });
+      if (status === 'free') return J({ ok: true, free_tier: true, message: 'Your registration is free - you are within the first 1,000 suppliers.' });
+      const fee = Number(sup.registration_fee_due || 0);
+      if (!(fee > 0)) return J({ ok: true, nothing_to_pay: true });
+      const sk = await secretVal('stripe_secret_key');
+      if (!sk) return J({ error: 'stripe_not_configured' }, 503);
+      const base = String(body.return_url || 'https://quotesdone.com').replace(/\/+$/, '');
+      const form = new URLSearchParams();
+      form.set('mode', 'payment');
+      form.set('success_url', base + '/portal?registration_paid={CHECKOUT_SESSION_ID}');
+      form.set('cancel_url', base + '/portal');
+      form.set('client_reference_id', 'registration:' + sup.id);
+      if (sup.email && /@/.test(String(sup.email))) form.set('customer_email', String(sup.email));
+      form.set('line_items[0][quantity]', '1');
+      form.set('line_items[0][price_data][currency]', 'aed');
+      form.set('line_items[0][price_data][unit_amount]', String(Math.round(fee * 100)));
+      form.set('line_items[0][price_data][product_data][name]', 'QuotesDone supplier registration');
+      form.set('line_items[0][price_data][product_data][description]', 'One year of supplier registration on QuotesDone');
+      form.set('metadata[kind]', 'supplier_registration');
+      form.set('metadata[supplier_id]', String(sup.id));
+      form.set('payment_intent_data[metadata][kind]', 'supplier_registration');
+      form.set('payment_intent_data[metadata][supplier_id]', String(sup.id));
+      const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+      const sj = await r.json();
+      if (!r.ok) return J({ error: 'stripe_error', detail: String(sj?.error?.message || '').slice(0, 300) }, 502);
+      return J({ ok: true, url: sj.url, amount: fee, currency: 'AED' });
+    }
     if (action === 'dashboard') {
       const { data: sup } = await admin.from('leads').select('id,approval_status,app_rating,app_reviews,rating,rating_maps,reviews,reviews_maps').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first' }, 400);
@@ -196,6 +246,26 @@ Deno.serve(async (req) => {
       const pricedItems = items.filter((it: any) => (numOrNull(it.unit_price) || 0) > 0 || (numOrNull(it.amount) || 0) > 0).length;
       const formComplete = det.source === 'form' && pricedItems >= 1 && !!det.validity && !!det.warranty && !!det.lead_time;
       const accept = submittable || formComplete || !requireStructured;
+
+      // Preflight (dry_run). Lets the portal confirm what is missing WHILE the supplier is still
+      // editing, instead of accepting the quote and emailing them about the gaps afterwards.
+      //
+      // It runs the real scorer and the real accept rule, then stops: no status change, no
+      // customer notification, nothing reaches anyone. fn_quote_coach is deliberately NOT called
+      // here because it queues a coaching email, which must not fire while someone is mid-edit.
+      // fn_quote_structured_score is STABLE and already returns the `missing` codes, so the
+      // preflight needs nothing else.
+      //
+      // accept_via is returned explicitly and matters: today every real quote passes through
+      // `form_complete` at a score of 65 while the structured scorer says submittable=false.
+      // Reporting only "this will send" would hide that it goes out without per-item pricing or
+      // brand/model, which is exactly the gap the customer comparison depends on.
+      if (body.dry_run === true) {
+        return J({ ok: true, dry_run: true, quote_id: q!.id, submittable, would_accept: accept,
+          accept_via: submittable ? 'structured_score' : (formComplete ? 'form_complete' : (!requireStructured ? 'structured_not_required' : null)),
+          require_structured: requireStructured, priced_items: pricedItems, total_items: items.length, score });
+      }
+
       if (accept) {
         try { await admin.from('quotes').update({ status: 'submitted' }).eq('id', q!.id); } catch (_e) { /* */ }
         await admin.from('inquiries').update({ status: 'quoted' }).eq('id', body.inquiry_id).in('status', ['sent', 'quoted']);
