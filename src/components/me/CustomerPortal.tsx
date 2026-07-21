@@ -1,11 +1,9 @@
 // @ts-nocheck
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 const URL = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
@@ -58,56 +56,215 @@ const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
 const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
 const fileB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(String(rd.result).split(',')[1] || ''); rd.readAsDataURL(f); });
-function ensurePdfjs() { return new Promise((res, rej) => { if (window.pdfjsLib) return res(window.pdfjsLib); const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (_e) {} res(window.pdfjsLib); }; sc.onerror = rej; document.head.appendChild(sc); }); }
+
+// ── Additional copy for the rebuilt portal. Original keys above are untouched. ──
+Object.assign(T.en, {
+  nav_overview:'Overview', nav_requests:'Requests', nav_messages:'Messages', nav_account:'Account',
+  greet_morning:'Good morning', greet_afternoon:'Good afternoon', greet_evening:'Good evening',
+  member_since:'Member since', your_account:'Your account', account_sub:'Your profile, verification status and activity on QuotesDone.',
+  activity_12m:'Requests over the last 12 months', no_activity:'No activity yet — your first request will appear here.',
+  recent_requests:'Recent requests', view_all:'View all', back:'Back', back_to_requests:'Back to requests',
+  overview_sub:'Everything happening across your requests, at a glance.',
+  requests_sub:'Every request you have posted, and the quotes they attracted.',
+  detail_title:'Request detail', what_suppliers_see:'What suppliers see', what_suppliers_see_sub:'This is the anonymised brief sent to matched suppliers. Your name and contact details are never included.',
+  print_brief:'Save as PDF', request_ref:'Reference', posted_on:'Posted', budget_l:'Budget', emirate_l:'Emirate', category_l:'Category', scope_l:'Scope',
+  quotes_in:'Quotes received', no_quotes_yet:'No quotes yet', awaiting:'Awaiting supplier quotes',
+  edit_window_open:'Editable for {n} more minutes', edit_window_closed:'The 1-hour edit window has closed',
+  edit_request:'Edit request', cancel_request:'Cancel request', cancelling:'Cancelling…', save_changes:'Save changes', cancel_edit:'Cancel edit',
+  confirm_cancel:'Cancel this request? Suppliers will stop quoting.',
+  supplier_profile:'Supplier profile', past_projects:'Recent projects', reveal_first:'Reveal this supplier to see their full profile.',
+  view_profile:'View full profile', years_active:'Years active', jobs_won:'Jobs won', win_rate:'Win rate', based_in:'Based in',
+  verification:'Verification', email_v:'Email', mobile_v:'Mobile', terms_v:'Terms accepted', complete_l:'Complete', pending_l:'Pending',
+  profile_details:'Profile details', name_l:'Name', email_l:'Email', mobile_l:'Mobile', joined_l:'Joined',
+  total_requests:'Total requests', total_quotes:'Quotes received', total_hired:'Suppliers hired', total_spend:'Total spend',
+  value_score:'Value', best_value:'Best value', lowest_price:'Lowest price', fastest:'Fastest',
+  reveal_cta:'Reveal & contact', reveal_fee_note:'Reveal fee {fee} — refundable if the supplier does not respond within 3 working days.',
+  please_wait:'Please wait…', loading_contact:'Loading contact…', hired_badge:'Hired for this project',
+  i_hired:'I hired this supplier', request_refund:'Request refund', rate_supplier:'Rate this supplier', rated_l:'Rated',
+  download_quotation:'Download their quotation', view_quote_pdf:'View quote (PDF)', preparing:'Preparing…', pdf_failed:'Could not open the PDF',
+  empty_requests_title:'No requests yet', empty_requests_sub:'Describe your job in text, voice, a photo or a drawing. We match you with suitable suppliers and keep your identity private until you choose to reveal one.',
+  empty_msgs_title:'No messages', empty_msgs_sub:'Messages with suppliers appear here once a conversation starts.',
+  step_sent:'Sent', step_quotes:'Quotes in', step_revealed:'Revealed', step_hired:'Hired',
+  line_items:'Line items', trades_l:'Trades', drawing_l:'Drawing', combined_project:'Combined project',
+  sep_requests:'{n} separate requests to specialist suppliers', guidance_only:'Guidance only — the final decision is yours.',
+});
+Object.assign(T.ar, {
+  nav_overview:'نظرة عامة', nav_requests:'الطلبات', nav_messages:'الرسائل', nav_account:'الحساب',
+  greet_morning:'صباح الخير', greet_afternoon:'مساء الخير', greet_evening:'مساء الخير',
+  member_since:'عضو منذ', your_account:'حسابك', account_sub:'ملفك الشخصي وحالة التحقق ونشاطك على QuotesDone.',
+  activity_12m:'الطلبات خلال آخر 12 شهرًا', no_activity:'لا يوجد نشاط بعد — سيظهر طلبك الأول هنا.',
+  recent_requests:'أحدث الطلبات', view_all:'عرض الكل', back:'رجوع', back_to_requests:'العودة إلى الطلبات',
+  overview_sub:'كل ما يجري في طلباتك في لمحة واحدة.',
+  requests_sub:'كل طلب نشرته، والعروض التي وردت عليه.',
+  detail_title:'تفاصيل الطلب', what_suppliers_see:'ما يراه المورّدون', what_suppliers_see_sub:'هذا هو الملخّص المجهول المُرسل للمورّدين المطابَقين. لا يتم أبدًا تضمين اسمك أو بيانات تواصلك.',
+  print_brief:'حفظ كملف PDF', request_ref:'المرجع', posted_on:'نُشر في', budget_l:'الميزانية', emirate_l:'الإمارة', category_l:'الفئة', scope_l:'النطاق',
+  quotes_in:'العروض المستلمة', no_quotes_yet:'لا توجد عروض بعد', awaiting:'بانتظار عروض المورّدين',
+  edit_window_open:'قابل للتعديل لمدة {n} دقيقة إضافية', edit_window_closed:'انتهت مهلة التعديل (ساعة واحدة)',
+  edit_request:'تعديل الطلب', cancel_request:'إلغاء الطلب', cancelling:'جارٍ الإلغاء…', save_changes:'حفظ التغييرات', cancel_edit:'إلغاء التعديل',
+  confirm_cancel:'إلغاء هذا الطلب؟ سيتوقف المورّدون عن تقديم العروض.',
+  supplier_profile:'ملف المورّد', past_projects:'أحدث المشاريع', reveal_first:'اكشف هذا المورّد لعرض ملفه الكامل.',
+  view_profile:'عرض الملف الكامل', years_active:'سنوات النشاط', jobs_won:'المشاريع المُنجزة', win_rate:'نسبة الفوز', based_in:'المقر',
+  verification:'التحقق', email_v:'البريد الإلكتروني', mobile_v:'الجوال', terms_v:'الموافقة على الشروط', complete_l:'مكتمل', pending_l:'قيد الانتظار',
+  profile_details:'بيانات الملف الشخصي', name_l:'الاسم', email_l:'البريد الإلكتروني', mobile_l:'الجوال', joined_l:'تاريخ الانضمام',
+  total_requests:'إجمالي الطلبات', total_quotes:'العروض المستلمة', total_hired:'المورّدون المتعاقد معهم', total_spend:'إجمالي الإنفاق',
+  value_score:'القيمة', best_value:'أفضل قيمة', lowest_price:'أقل سعر', fastest:'الأسرع',
+  reveal_cta:'اكشف وتواصل', reveal_fee_note:'رسوم الكشف {fee} — قابلة للاسترداد إذا لم يرد المورّد خلال 3 أيام عمل.',
+  please_wait:'يُرجى الانتظار…', loading_contact:'جارٍ تحميل بيانات التواصل…', hired_badge:'المورّد المتعاقد معه لهذا المشروع',
+  i_hired:'تعاقدت مع هذا المورّد', request_refund:'طلب استرداد', rate_supplier:'قيّم هذا المورّد', rated_l:'تم التقييم',
+  download_quotation:'تحميل عرض السعر الخاص بهم', view_quote_pdf:'عرض السعر (PDF)', preparing:'جارٍ التحضير…', pdf_failed:'تعذّر فتح الملف',
+  empty_requests_title:'لا توجد طلبات بعد', empty_requests_sub:'صِف عملك نصًا أو صوتًا أو بصورة أو برسم. نطابقك مع مورّدين مناسبين ونُبقي هويتك خاصة حتى تختار كشف أحدهم.',
+  empty_msgs_title:'لا توجد رسائل', empty_msgs_sub:'تظهر المحادثات مع المورّدين هنا بمجرد بدء أي محادثة.',
+  step_sent:'أُرسل', step_quotes:'وردت العروض', step_revealed:'تم الكشف', step_hired:'تم التعاقد',
+  line_items:'عدد البنود', trades_l:'التخصصات', drawing_l:'الرسم', combined_project:'مشروع متعدد التخصصات',
+  sep_requests:'{n} طلبات منفصلة لموردين متخصصين', guidance_only:'إرشادي فقط — القرار النهائي لك.',
+});
+const tf = (lang, k, vars) => { let s = t(lang, k); if (vars) for (const kk of Object.keys(vars)) s = s.split('{' + kk + '}').join(String(vars[kk])); return s; };
+
+function ensurePdfjs() { return new Promise((res, rej) => { if (window.pdfjsLib) return res(window.pdfjsLib); const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (_e) {} res(window.pdfjsLib); }; sc.onerror = rej; document.head.appendChild(sc); });
+}
 async function fileToImages(file) {
-  const b64 = await fileB64(file);
-  if (file.type && file.type.startsWith('image/')) return { images: [{ mime: file.type, data: b64 }], b64, mime: file.type };
-  if (file.type === 'application/pdf') {
-    try { const L = await ensurePdfjs(); const raw = atob(b64); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-      const pdf = await L.getDocument({ data: arr }).promise; const out = []; const n = Math.min(pdf.numPages, 6);
-      for (let pnum = 1; pnum <= n; pnum++) { const pg = await pdf.getPage(pnum); const vp = pg.getViewport({ scale: 1.8 }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; out.push({ mime: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.8).split(',')[1] }); }
-      return { images: out, b64, mime: 'application/pdf' };
-    } catch (_e) { return { images: [], b64, mime: 'application/pdf' }; }
+  const b64 = await fileB64(file); const mime = file.type || 'application/octet-stream';
+  if (/^image\//.test(mime)) return { images: [{ mime, b64 }], b64, mime };
+  if (/pdf/i.test(mime) || /\.pdf$/i.test(file.name)) {
+    try {
+      const pdfjs = await ensurePdfjs(); const buf = await file.arrayBuffer();
+      const doc = await pdfjs.getDocument({ data: buf }).promise; const out = [];
+      const n = Math.min(doc.numPages, 8);
+      for (let i = 1; i <= n; i++) {
+        const page = await doc.getPage(i); const vp = page.getViewport({ scale: 1.7 });
+        const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
+        await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+        out.push({ mime: 'image/jpeg', b64: cv.toDataURL('image/jpeg', 0.82).split(',')[1] });
+      }
+      return { images: out, b64, mime };
+    } catch (_e) { return { images: [], b64, mime }; }
   }
-  return { images: [], b64, mime: file.type || 'application/octet-stream' };
+  return { images: [], b64, mime };
 }
 function encodeWav(samples, rate) {
-  const buffer = new ArrayBuffer(44 + samples.length * 2); const view = new DataView(buffer);
-  const ws = (o, str) => { for (let i = 0; i < str.length; i++) view.setUint8(o + i, str.charCodeAt(i)); };
-  ws(0, 'RIFF'); view.setUint32(4, 36 + samples.length * 2, true); ws(8, 'WAVE'); ws(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); ws(36, 'data'); view.setUint32(40, samples.length * 2, true);
-  let o = 44; for (let i = 0; i < samples.length; i++) { const x = Math.max(-1, Math.min(1, samples[i])); view.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7FFF, true); o += 2; }
-  return buffer;
-}
-async function blobToWavB64(blob) {
-  const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC();
-  const buf = await ac.decodeAudioData(await blob.arrayBuffer());
-  const rate = 16000; const off = new OfflineAudioContext(1, Math.ceil(buf.duration * rate), rate);
-  const src = off.createBufferSource(); src.buffer = buf; src.connect(off.destination); src.start();
-  const rendered = await off.startRendering(); const pcm = rendered.getChannelData(0);
-  const wav = encodeWav(pcm, rate); const bytes = new Uint8Array(wav); let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
+  const buf = new ArrayBuffer(44 + samples.length * 2); const view = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); view.setUint32(4, 36 + samples.length * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+  view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true); w(36, 'data'); view.setUint32(40, samples.length * 2, true);
+  let o = 44; for (let i = 0; i < samples.length; i++, o += 2) { const s = Math.max(-1, Math.min(1, samples[i])); view.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true); }
+  return new Blob([view], { type: 'audio/wav' });
 }
 
+/* ── Design primitives ─────────────────────────────────────────────────────── */
 const S = {
   center: 'grid place-items-center min-h-[70vh] p-5',
-  h1: 'text-xl font-extrabold text-foreground',
-  h2: 'text-[15px] font-bold text-foreground',
+  h1: 'font-head text-[19px] font-bold tracking-[-.02em] text-foreground',
+  h2: 'font-head text-[15px] font-bold tracking-[-.01em] text-foreground',
   sub: 'text-[13px] leading-relaxed text-muted-foreground',
   hint: 'text-xs text-muted-foreground my-2 leading-relaxed',
   err: 'text-[13px] text-red-300 mt-2',
   note: 'rounded-lg border border-primary/35 bg-primary/10 text-primary px-3.5 py-2.5 mb-3.5 text-[13px] font-semibold',
-  wrap: 'max-w-[1040px] mx-auto p-[22px]',
+  wrap: 'mx-auto w-full max-w-[1120px] px-4 sm:px-6 pt-7 pb-28',
   frow: 'flex gap-2.5 flex-wrap mt-2.5',
   tabsWrap: 'inline-flex flex-wrap gap-1.5 rounded-xl bg-secondary/40 p-1',
-  tab: 'rounded-md px-3.5 py-2 text-[13px] font-semibold text-muted-foreground cursor-pointer border-0 bg-transparent',
-  tabOn: 'bg-primary/15 text-primary',
+  tab: 'rounded-md px-3.5 py-2 text-[13px] font-semibold text-foreground/85 hover:text-foreground cursor-pointer border-0 bg-transparent transition-colors',
+  tabOn: 'bg-primary/15 text-[#6EE7D4]',
   list: 'flex flex-col gap-3',
   field: 'mt-3 flex h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
   area: 'mt-3 flex w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y',
   fileInput: 'text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80',
 };
 
+/* Motion: one shared stylesheet, injected once. Every animation degrades to a
+   plain crossfade under prefers-reduced-motion, and nothing is *hidden* by
+   default — content renders even if the animation never fires (headless, hidden
+   tabs, JS off after hydration). */
+const MOTION_CSS = `
+.qd-rise{animation:qdRise .58s cubic-bezier(.16,1,.3,1) both}
+.qd-fade{animation:qdFade .45s cubic-bezier(.16,1,.3,1) both}
+@keyframes qdRise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes qdFade{from{opacity:0}to{opacity:1}}
+.qd-lift{transition:transform .26s cubic-bezier(.16,1,.3,1),border-color .26s cubic-bezier(.16,1,.3,1),box-shadow .26s cubic-bezier(.16,1,.3,1)}
+.qd-lift:hover{transform:translate3d(0,-2px,0);border-color:rgba(20,184,166,.34);box-shadow:0 18px 44px -28px rgba(0,12,20,.9)}
+.qd-bar{transform-origin:bottom;animation:qdBar .7s cubic-bezier(.16,1,.3,1) both}
+@keyframes qdBar{from{transform:scaleY(.02);opacity:.35}to{transform:scaleY(1);opacity:1}}
+.qd-shimmer{background:linear-gradient(90deg,rgba(110,231,212,.06),rgba(110,231,212,.16),rgba(110,231,212,.06));background-size:200% 100%;animation:qdShim 1.5s linear infinite}
+@keyframes qdShim{from{background-position:200% 0}to{background-position:-200% 0}}
+.qd-ring{stroke-dasharray:var(--c);stroke-dashoffset:var(--c);animation:qdRing 1.1s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes qdRing{to{stroke-dashoffset:var(--o)}}
+@media (prefers-reduced-motion: reduce){
+  .qd-rise,.qd-fade,.qd-bar,.qd-ring{animation:qdFade .01s linear both}
+  .qd-lift{transition:border-color .01s linear}
+  .qd-lift:hover{transform:none}
+  .qd-shimmer{animation:none}
+}
+@media print{
+  .qd-noprint{display:none !important}
+  .qd-print{position:static !important;inset:auto !important;background:#fff !important;color:#111 !important;padding:0 !important}
+  .qd-print *{color:#111 !important;border-color:#ccc !important;background:transparent !important}
+}
+`;
+function Motion() { return <style dangerouslySetInnerHTML={{ __html: MOTION_CSS }} />; }
+const rise = (i = 0) => ({ animationDelay: (i * 55) + 'ms' });
+const backArrow = (lang) => (lang === 'ar' ? '→' : '←');
+
+/* Small shared UI atoms */
+function Section({ title, sub, right, children, i = 0 }) {
+  return (<section className="qd-rise" style={rise(i)}>
+    <div className="flex items-end justify-between gap-3 flex-wrap mb-2.5">
+      <div><h2 className={S.h2}>{title}</h2>{sub ? <p className={cn(S.sub, 'mt-0.5')}>{sub}</p> : null}</div>
+      {right}
+    </div>
+    {children}
+  </section>);
+}
+function Stat({ label, value, hint, i = 0 }) {
+  return (<div className="surface qd-lift qd-rise rounded-xl p-3.5" style={rise(i)}>
+    <div className="font-head tabular text-[21px] font-bold leading-none text-foreground">{value}</div>
+    <div className="mt-1.5 text-[11.5px] font-medium text-muted-foreground">{label}</div>
+    {hint ? <div className="mt-0.5 text-[10.5px] text-muted-foreground">{hint}</div> : null}
+  </div>);
+}
+function Kpi({ label, v }) { return <Stat label={label} value={v} />; }
+function Pill({ children, tone = 'muted' }) {
+  const tones = { muted:'bg-secondary/50 text-muted-foreground border-border', teal:'bg-primary/12 text-primary border-primary/30', gold:'bg-accent/12 text-accent border-accent/30', red:'bg-red-500/10 text-red-300 border-red-500/30' };
+  return <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold', tones[tone])}>{children}</span>;
+}
+function Empty({ title, sub, action, icon = '◇' }) {
+  return (<div className="surface qd-rise rounded-xl px-5 py-10 text-center">
+    <div aria-hidden className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-full border border-primary/25 bg-primary/8 text-[17px] text-primary">{icon}</div>
+    <div className={S.h2}>{title}</div>
+    <p className={cn(S.sub, 'mx-auto mt-1.5 max-w-[46ch]')}>{sub}</p>
+    {action ? <div className="mt-4">{action}</div> : null}
+  </div>);
+}
+function Skeleton({ rows = 3 }) {
+  return (<div className="flex flex-col gap-3" aria-hidden>
+    {Array.from({ length: rows }).map((_, i) => <div key={i} className="qd-shimmer h-[86px] rounded-xl border border-border/60" />)}
+  </div>);
+}
+function Steps({ idx, lang }) {
+  const steps = [t(lang,'step_sent'), t(lang,'step_quotes'), t(lang,'step_revealed'), t(lang,'step_hired')];
+  return (<ol className="flex items-center gap-1.5 flex-wrap text-[11px]" aria-label="Progress">
+    {steps.map((s, si) => (<li key={s} className={cn('flex items-center gap-1', si <= idx ? 'text-primary font-semibold' : 'text-muted-foreground')}>
+      {si > 0 ? <span aria-hidden className="text-muted-foreground/80">›</span> : null}
+      <span aria-hidden className={cn('inline-block h-1.5 w-1.5 rounded-full', si <= idx ? 'bg-primary' : 'bg-muted-foreground/35')} />
+      {s}{si === idx ? <span className="sr-only"> (current)</span> : null}
+    </li>))}
+  </ol>);
+}
+const fmtDate = (d, lang, withTime) => { try { return new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day:'numeric', month:'short', year:'numeric', ...(withTime ? { hour:'2-digit', minute:'2-digit' } : {}) }); } catch (_e) { return ''; } };
+const refOf = (id) => 'QD-' + String(id || '').slice(0, 8).toUpperCase();
+/* The DB is the authority on the edit window: fn_edit_inquiry allows edits for
+   exactly 1 hour after created_at, and only while the request is still open.
+   The API's `editable` flag uses a 24h window, which disagrees with the server
+   and produces an Edit button that always fails — so compute it from created_at. */
+const EDIT_WINDOW_MS = 60 * 60 * 1000;
+function editState(inq) {
+  const open = !['revealed','completed','cancelled','closed'].includes(String(inq.status));
+  const ms = EDIT_WINDOW_MS - (Date.now() - new Date(inq.created_at).getTime());
+  return { canEdit: open && ms > 0, minutesLeft: Math.max(0, Math.ceil(ms / 60000)) };
+}
+
+
+/* ── Shell ─────────────────────────────────────────────────────────────────── */
 export function CustomerPortal() {
   const [lang, setLangState] = useState('en');
   const [token, setToken] = useState('');
@@ -124,21 +281,25 @@ export function CustomerPortal() {
   const doSignOut = () => { try { localStorage.removeItem('qd-cust-token'); localStorage.removeItem('qd-cust-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB.auth.signOut().catch(() => {}); } catch (_e) {} };
   const rtl = lang === 'ar';
   if (!mounted) return null;
-  return (<div dir={rtl ? 'rtl' : 'ltr'} className="osx min-h-screen bg-background text-foreground" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-    <header className="sticky top-0 z-10 flex items-center justify-between px-5 py-3.5 bg-card/70 backdrop-blur border-b border-border">
-      <a className="text-base font-extrabold text-foreground no-underline" href="/">QuotesDone <span className="text-primary font-bold">{t(lang, 'brand_sub')}</span></a>
-      <div className="flex gap-2 items-center">
-        <Button asChild variant="outline" size="sm"><a href="/">{t(lang, 'home')}</a></Button>
-        <Button variant="outline" size="sm" onClick={() => setLang(rtl ? 'en' : 'ar')}>{rtl ? 'EN' : 'عربي'}</Button>
-        {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
+  return (<div dir={rtl ? 'rtl' : 'ltr'} className="osx min-h-screen bg-background text-foreground font-body">
+    <Motion />
+    <header className="qd-noprint sticky top-0 z-30 border-b border-border/70 bg-background/78 backdrop-blur-xl">
+      <div className="mx-auto flex h-[60px] w-full max-w-[1120px] items-center justify-between gap-3 px-4 sm:px-6">
+        <a className="group flex items-baseline gap-2 no-underline" href="/">
+          <span className="font-head text-[16px] font-bold tracking-[-.02em] text-foreground">QuotesDone</span>
+          <span className="text-[12px] font-semibold text-primary">{t(lang, 'brand_sub')}</span>
+        </a>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex"><a href="/">{t(lang, 'home')}</a></Button>
+          <Button variant="outline" size="sm" onClick={() => setLang(rtl ? 'en' : 'ar')} aria-label={rtl ? 'Switch to English' : 'التبديل إلى العربية'}>{rtl ? 'EN' : 'عربي'}</Button>
+          {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
+        </div>
       </div>
     </header>
-    {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
-      {phase === 'login' && <Login onAuth={onAuth} lang={lang} />}
-      {phase === 'app' && <Authed token={token} lang={lang} onSignOut={doSignOut} />}
-    </>)}
+    {phase === 'login' ? <Login onAuth={onAuth} lang={lang} /> : <Authed token={token} lang={lang} onSignOut={doSignOut} />}
   </div>);
 }
+
 function Login({ onAuth, lang }) {
   const [mode, setMode] = useState('signin'); const [step, setStep] = useState('id'); const [id, setId] = useState(''); const [code, setCode] = useState(''); const [ident, setIdent] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const isSignup = mode === 'signup';
@@ -148,34 +309,50 @@ function Login({ onAuth, lang }) {
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'customer', identifier: v, allow_signup: isSignup }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg((j && j.error) || t(lang, 'err_code_send')); };
   const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg((j && j.error) || t(lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
   const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
-  return (<div className={S.center}><Card className="w-full max-w-[400px] p-5">
-    <div className={cn(S.tabsWrap, 'mb-3.5')}><button className={cn(S.tab, !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
-    <div className={S.h1}>{isSignup ? t(lang, 'create_account_title') : t(lang, 'welcome_back')}</div>
-    <div className={cn(S.sub, 'mt-1')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
-    {step === 'id' ? (<><Input className="mt-3" placeholder={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /><Button className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button></>)
-      : (<><Input className="mt-3" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /><div className={S.hint}>{t(lang, 'junk_note')}</div><Button className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button><Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button></>)}
-    {msg && <div className={S.err}>{msg}</div>}
-  </Card></div>);
+  return (<main id="main" className={S.center}>
+    <div className="w-full max-w-[420px] qd-rise">
+      <div className="surface rounded-2xl p-6">
+        <div className={cn(S.tabsWrap, 'mb-4')} role="tablist">
+          <button role="tab" aria-selected={!isSignup} className={cn(S.tab, !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button>
+          <button role="tab" aria-selected={isSignup} className={cn(S.tab, isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button>
+        </div>
+        <h1 className={S.h1}>{isSignup ? t(lang, 'create_account_title') : t(lang, 'welcome_back')}</h1>
+        <p className={cn(S.sub, 'mt-1.5')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</p>
+        {step === 'id' ? (<>
+          <Input className="mt-4" inputMode="email" autoComplete="email" placeholder={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} />
+          <Button className="btn-key mt-3 w-full" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button>
+        </>) : (<>
+          <Input className="mt-4 tabular tracking-[.3em] text-center" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} />
+          <p className={S.hint}>{t(lang, 'junk_note')}</p>
+          <Button className="btn-key w-full" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button>
+          <Button variant="link" className="mt-2 h-auto px-0" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button>
+        </>)}
+        {msg && <div className={S.err} role="alert">{msg}</div>}
+      </div>
+    </div>
+  </main>);
 }
+
 function Authed({ token, lang, onSignOut }) {
   const [k, setK] = useState(null); const [err, setErr] = useState('');
   const load = () => { setErr(''); call('kyc', { action: 'state' }, token).then((j) => { if (j && j.error === 'unauthorized') setErr('unauth'); else setK(j || {}); }).catch(() => setErr('net')); };
   useEffect(() => { load(); }, [token]);
-  if (err === 'unauth') return <div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'session_expired')}</div><Button className="w-full mt-3" onClick={onSignOut}>{t(lang, 'tab_signin')}</Button></Card></div>;
-  if (err) return <div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'load_failed')}</div><Button className="w-full mt-3" onClick={load}>{t(lang, 'retry')}</Button></Card></div>;
-  if (!k) return <div className={S.center}>{t(lang, 'loading')}</div>;
+  if (err === 'unauth') return <main id="main" className={S.center}><div className="surface w-full max-w-[400px] rounded-2xl p-6 qd-rise"><p className={S.sub}>{t(lang, 'session_expired')}</p><Button className="mt-3 w-full" onClick={onSignOut}>{t(lang, 'tab_signin')}</Button></div></main>;
+  if (err) return <main id="main" className={S.center}><div className="surface w-full max-w-[400px] rounded-2xl p-6 qd-rise"><p className={S.sub}>{t(lang, 'load_failed')}</p><Button className="mt-3 w-full" onClick={load}>{t(lang, 'retry')}</Button></div></main>;
+  if (!k) return <main id="main" className={cn(S.wrap)}><Skeleton rows={4} /></main>;
   const complete = k.full_name && k.phone_verified && k.email_verified && k.terms_signed;
-  if (!complete) return <ProfileGate token={token} lang={lang} onDone={load} />;
-  return <Dashboard token={token} lang={lang} />;
+  if (!complete) return <ProfileGate token={token} lang={lang} onDone={load} kyc={k} />;
+  return <Portal token={token} lang={lang} kyc={k} />;
 }
-function ProfileGate({ token, lang, onDone }) {
+
+function ProfileGate({ token, lang, onDone, kyc }) {
   const [st, setSt] = useState(null);
   const [full_name, setFullName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
   const [emCode, setEmCode] = useState(''); const [smsCode, setSmsCode] = useState(''); const [sentSms, setSentSms] = useState(false); const [sentEmail, setSentEmail] = useState(false);
   const [terms, setTerms] = useState(false); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { load(); }, []);
-  if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
+  if (!st) return <main id="main" className={S.center}><Skeleton rows={2} /></main>;
   const saveProfile = async () => { setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob }, token); setBusy(''); if (j && j.ok) load(); else setMsg((j && j.error) || t(lang, 'load_failed')); };
   const sendSms = async () => { if (!phone) { setMsg(t(lang, 'enter_mobile_first')); return; } setBusy('sms'); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone }, token); setBusy(''); if (j && j.ok) setSentSms(true); else setMsg((j && j.error) || t(lang, 'err_code_send')); };
   const verifySms = async () => { setBusy('vsms'); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone, code: smsCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg((j && j.error) || t(lang, 'err_incorrect')); };
@@ -183,153 +360,486 @@ function ProfileGate({ token, lang, onDone }) {
   const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg((j && j.error) || t(lang, 'err_incorrect')); };
   const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms' }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg((j && j.error) || t(lang, 'load_failed')); };
   const profileDone = st.full_name && st.phone && st.dob;
-  return (<div className={S.center}><Card className="w-full max-w-[440px] p-5">
-    <div className={S.h1}>{t(lang, 'gate_title')}</div>
-    <div className={S.sub}>{t(lang, 'gate_sub')}</div>
-    <Input className="mt-3" placeholder={t(lang, 'full_name')} value={full_name} onChange={(e) => setFullName(e.target.value)} />
-    <Input className="mt-3" placeholder={t(lang, 'mobile_ph')} value={phone} onChange={(e) => setPhone(e.target.value)} />
-    <div className={cn(S.sub, 'mt-3 mb-1')}>{t(lang, 'dob_label')}</div>
-    <Input type="date" className="mt-0" style={{ colorScheme: 'dark' }} value={dob} onChange={(e) => setDob(e.target.value)} />
-    {!profileDone && <Button className="w-full mt-3" disabled={busy === 'save'} onClick={saveProfile}>{busy === 'save' ? t(lang, 'saving') : t(lang, 'save_details')}</Button>}
-    {profileDone && <>
-      <div className={cn(S.h2, 'mt-4')}>{t(lang, 'verify_mobile')} {st.phone_verified ? <span className="text-primary text-[12px] font-bold ml-1.5">{t(lang, 'verified')}</span> : null}</div>
-      {!st.phone_verified && (!sentSms ? <Button size="sm" className="mt-3" disabled={busy === 'sms'} onClick={sendSms}>{busy === 'sms' ? t(lang, 'sending') : t(lang, 'send_sms')}</Button>
-        : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /><Button size="sm" disabled={busy === 'vsms'} onClick={verifySms}>{t(lang, 'verify')}</Button></div></>)}
-      <div className={cn(S.h2, 'mt-4')}>{t(lang, 'verify_email_h')} {st.email_verified ? <span className="text-primary text-[12px] font-bold ml-1.5">{t(lang, 'verified')}</span> : null}</div>
-      {!st.email_verified && (!sentEmail ? <Button size="sm" className="mt-3" disabled={busy === 'em'} onClick={sendEmailCode}>{busy === 'em' ? t(lang, 'sending') : t(lang, 'send_email_code')}</Button>
-        : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input placeholder={t(lang, 'code_placeholder')} value={emCode} onChange={(e) => setEmCode(e.target.value)} /><Button size="sm" disabled={busy === 'vem'} onClick={verifyEmail}>{t(lang, 'verify')}</Button></div></>)}
-      {st.phone_verified && st.email_verified && <>
-        <label className="flex gap-2 items-center mt-4 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/terms" target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
-        <Button className="w-full mt-3" disabled={busy === 'terms'} onClick={acceptTerms}>{busy === 'terms' ? t(lang, 'finishing') : t(lang, 'finish_continue')}</Button>
-      </>}
-    </>}
-    {msg && <div className={S.err}>{msg}</div>}
-  </Card></div>);
+  const done = [!!profileDone, !!st.phone_verified, !!st.email_verified, !!st.terms_signed].filter(Boolean).length;
+  return (<main id="main" className={S.center}>
+    <div className="w-full max-w-[460px] qd-rise">
+      <div className="surface rounded-2xl p-6">
+        <h1 className={S.h1}>{t(lang, 'gate_title')}</h1>
+        <p className={cn(S.sub, 'mt-1.5')}>{t(lang, 'gate_sub')}</p>
+        <div className="mt-4 flex items-center gap-1.5" aria-label={`Step ${done + 1} of 4`}>
+          {[0,1,2,3].map((i) => <span key={i} className={cn('h-1 flex-1 rounded-full transition-colors duration-500', i < done ? 'bg-primary' : 'bg-secondary')} />)}
+        </div>
+        <Input className="mt-4" autoComplete="name" placeholder={t(lang, 'full_name')} value={full_name} onChange={(e) => setFullName(e.target.value)} />
+        <Input className="mt-3" inputMode="tel" autoComplete="tel" placeholder={t(lang, 'mobile_ph')} value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <label className={cn(S.sub, 'mt-3 mb-1 block')} htmlFor="qd-dob">{t(lang, 'dob_label')}</label>
+        <Input id="qd-dob" type="date" style={{ colorScheme: 'dark' }} value={dob} onChange={(e) => setDob(e.target.value)} />
+        {!profileDone && <Button className="btn-key mt-3 w-full" disabled={busy === 'save'} onClick={saveProfile}>{busy === 'save' ? t(lang, 'saving') : t(lang, 'save_details')}</Button>}
+        {profileDone && <>
+          <h2 className={cn(S.h2, 'mt-5')}>{t(lang, 'verify_mobile')} {st.phone_verified ? <Pill tone="teal">{t(lang, 'verified')}</Pill> : null}</h2>
+          {!st.phone_verified && (!sentSms ? <Button size="sm" className="mt-2.5" disabled={busy === 'sms'} onClick={sendSms}>{busy === 'sms' ? t(lang, 'sending') : t(lang, 'send_sms')}</Button>
+            : <><p className={S.hint}>{t(lang, 'junk_note')}</p><div className={S.frow}><Input className="tabular" inputMode="numeric" maxLength={6} placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /><Button size="sm" disabled={busy === 'vsms'} onClick={verifySms}>{t(lang, 'verify')}</Button></div></>)}
+          <h2 className={cn(S.h2, 'mt-5')}>{t(lang, 'verify_email_h')} {st.email_verified ? <Pill tone="teal">{t(lang, 'verified')}</Pill> : null}</h2>
+          {!st.email_verified && (!sentEmail ? <Button size="sm" className="mt-2.5" disabled={busy === 'em'} onClick={sendEmailCode}>{busy === 'em' ? t(lang, 'sending') : t(lang, 'send_email_code')}</Button>
+            : <><p className={S.hint}>{t(lang, 'junk_note')}</p><div className={S.frow}><Input className="tabular" inputMode="numeric" maxLength={6} placeholder={t(lang, 'code_placeholder')} value={emCode} onChange={(e) => setEmCode(e.target.value)} /><Button size="sm" disabled={busy === 'vem'} onClick={verifyEmail}>{t(lang, 'verify')}</Button></div></>)}
+          {st.phone_verified && st.email_verified && <>
+            <label className="mt-5 flex items-center gap-2 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/terms" target="_blank" rel="noopener" className="font-semibold text-primary underline underline-offset-2">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
+            <Button className="btn-key mt-3 w-full" disabled={busy === 'terms'} onClick={acceptTerms}>{busy === 'terms' ? t(lang, 'finishing') : t(lang, 'finish_continue')}</Button>
+          </>}
+        </>}
+        {msg && <div className={S.err} role="alert">{msg}</div>}
+      </div>
+    </div>
+  </main>);
 }
-function Dashboard({ token, lang }) {
-  const [ov, setOv] = useState(null); const [data, setData] = useState(null); const [err, setErr] = useState(''); const [note, setNote] = useState(''); const [showNew, setShowNew] = useState(false); const [view, setView] = useState('home');
-  const loadInq = () => call('customer_api', { action: 'my_inquiries' }, token).then((j) => setData(j));
-  const loadOv = () => call('customer_portal', { action: 'overview', lang }, token).then((j) => { if (j && j.ok) setOv(j); else setErr((j && (j.error || j.hint)) || ''); });
-  const refresh = () => { loadInq(); loadOv(); };
+
+/* ── Portal (tabbed) ───────────────────────────────────────────────────────── */
+function Portal({ token, lang, kyc }) {
+  const [view, setView] = useState('overview');
+  const [detail, setDetail] = useState(null);
+  const [ov, setOv] = useState(null); const [data, setData] = useState(null); const [me, setMe] = useState(null);
+  const [note, setNote] = useState(''); const [showNew, setShowNew] = useState(false); const [loading, setLoading] = useState(true);
+  const loadInq = () => call('customer_api', { action: 'my_inquiries' }, token).then((j) => setData(j)).catch(() => {});
+  const loadOv  = () => call('customer_portal', { action: 'overview', lang }, token).then((j) => { if (j && j.ok) setOv(j); }).catch(() => {});
+  const loadMe  = () => call('customer_api', { action: 'me' }, token).then((j) => setMe((j && j.customer) || null)).catch(() => {});
+  const refresh = () => { loadInq(); loadOv(); loadMe(); };
   useEffect(() => {
-    loadOv();
-    loadInq();
+    Promise.allSettled([loadOv(), loadInq(), loadMe()]).then(() => setLoading(false));
     const sid = new URLSearchParams(location.search).get('session_id');
     if (sid) { call('stripe_confirm', { session_id: sid }, token).then((j) => { history.replaceState({}, '', location.pathname); if (j && j.ok) { setNote(t(lang, 'payment_confirmed')); loadInq(); } }); }
   }, [token]);
-  if (!ov && !data) return <div className={S.center}>{t(lang, 'loading_requests')}</div>;
-  if (view === 'messages') return (<div className={S.wrap}><div className="flex justify-between items-center flex-wrap gap-3 mb-4"><div className="text-[22px] font-extrabold text-foreground">{t(lang, 'messages')}</div><Button size="sm" variant="secondary" onClick={() => setView('home')}>{t(lang, 'back_requests')}</Button></div><Messages token={token} /></div>);
-  const s = (ov && ov.stats) || {}; const inqs = (data && data.inquiries) || [];
-  return (<div className={S.wrap}>
-    <div className="flex justify-between items-center flex-wrap gap-3 mb-4"><div className="text-[22px] font-extrabold text-foreground">{(ov && ov.customer && ov.customer.name) || t(lang, 'my_requests')}</div><div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => setView('messages')}>{t(lang, 'messages')}</Button><Button size="sm" onClick={() => setShowNew((v) => !v)}>{showNew ? t(lang, 'close') : t(lang, 'new_request')}</Button></div></div>
-    {note && <div className={S.note}>{note}</div>}
-    {showNew && <NewRequest token={token} onDone={() => { setShowNew(false); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => setShowNew(false)} />}
-    {ov && !!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => <div key={i} className={cn('rounded-lg border border-border bg-card px-3.5 py-3 flex flex-col gap-0.5 border-l-4', a.severity === 'high' ? 'border-l-red-500' : a.severity === 'medium' ? 'border-l-amber-400' : 'border-l-primary')}><b className="text-[13.5px] text-foreground">{a.title}</b><span className="text-muted-foreground text-xs">{a.detail}</span></div>)}</div>}
-    {ov && <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5 mb-4">
-      <Kpi label={t(lang, 'k_requests')} v={s.inquiries_total ?? 0} /><Kpi label={t(lang, 'k_open')} v={s.open_inquiries ?? 0} /><Kpi label={t(lang, 'k_quotes')} v={s.quotes_received ?? 0} />
-      <Kpi label={t(lang, 'k_avg')} v={s.avg_quotes_per_inquiry ?? 0} /><Kpi label={t(lang, 'k_hired')} v={s.deals ?? 0} /><Kpi label={t(lang, 'k_spend')} v={aed(s.total_spend)} />
+
+  const inqs = (data && data.inquiries) || [];
+  const stats = (ov && ov.stats) || {};
+  const flat = useMemo(() => { const out = []; for (const i of inqs) { out.push(i); if (Array.isArray(i.children)) for (const c of i.children) out.push(c); } return out; }, [inqs]);
+  const current = detail ? flat.find((x) => x.id === detail) : null;
+
+  const NAV = [
+    ['overview', t(lang, 'nav_overview')],
+    ['requests', t(lang, 'nav_requests')],
+    ['messages', t(lang, 'nav_messages')],
+    ['account',  t(lang, 'nav_account')],
+  ];
+  const go = (v) => { setDetail(null); setView(v); setShowNew(false); };
+
+  return (<main id="main" className={S.wrap}>
+    <nav className="qd-noprint mb-5 flex items-center justify-between gap-3 flex-wrap" aria-label="Portal sections">
+      <div className={S.tabsWrap} role="tablist">
+        {NAV.map(([k, label]) => (
+          <button key={k} role="tab" aria-selected={view === k} className={cn(S.tab, view === k && S.tabOn)} onClick={() => go(k)}>{label}</button>
+        ))}
+      </div>
+      <Button size="sm" className="btn-key" onClick={() => { setView('requests'); setDetail(null); setShowNew((v) => !v); }}>
+        {showNew ? t(lang, 'close') : t(lang, 'new_request')}
+      </Button>
+    </nav>
+
+    {note && <div className={cn(S.note, 'qd-rise')} role="status">{note}</div>}
+    {showNew && <div className="mb-5 qd-rise"><NewRequest token={token} lang={lang} onDone={() => { setShowNew(false); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => setShowNew(false)} /></div>}
+
+    {loading ? <Skeleton rows={4} /> : (<>
+      {view === 'overview' && <Overview lang={lang} me={me} kyc={kyc} stats={stats} alerts={(ov && ov.alerts) || []} inqs={inqs} onOpen={(id) => { setView('requests'); setDetail(id); }} onNew={() => { setView('requests'); setShowNew(true); }} />}
+      {view === 'requests' && (current
+        ? <RequestDetail inq={current} token={token} lang={lang} onBack={() => setDetail(null)} onChange={refresh} />
+        : <RequestList inqs={inqs} lang={lang} onOpen={setDetail} onNew={() => setShowNew(true)} />)}
+      {view === 'messages' && <Messages token={token} lang={lang} />}
+      {view === 'account' && <Account me={me} kyc={kyc} stats={stats} lang={lang} />}
+    </>)}
+  </main>);
+}
+
+/* ── Overview ──────────────────────────────────────────────────────────────── */
+function Overview({ lang, me, kyc, stats, alerts, inqs, onOpen, onNew }) {
+  const h = new Date().getHours();
+  const greet = h < 12 ? t(lang,'greet_morning') : h < 18 ? t(lang,'greet_afternoon') : t(lang,'greet_evening');
+  const name = (kyc && kyc.full_name) || (me && me.full_name) || '';
+  const first = String(name).trim().split(/\s+/)[0] || '';
+  const joined = me && me.created_at ? fmtDate(me.created_at, lang) : null;
+  const hist = Array.isArray(stats.history_12m) ? stats.history_12m : [];
+  const peak = Math.max(1, ...hist.map((m) => Number(m.inquiries) || 0));
+  const recent = inqs.slice(0, 3);
+  return (<div className="flex flex-col gap-7">
+    <header className="qd-rise">
+      <h1 className="font-head text-[25px] font-bold tracking-[-.025em] text-foreground text-balance">{greet}{first ? ', ' + first : ''}</h1>
+      <p className={cn(S.sub, 'mt-1')}>{t(lang, 'overview_sub')}{joined ? ' · ' + t(lang,'member_since') + ' ' + joined : ''}</p>
+    </header>
+
+    {!!alerts.length && <div className="flex flex-col gap-2 qd-rise" style={rise(1)}>
+      {alerts.map((a, i) => (<div key={i} className={cn('surface rounded-xl px-4 py-3', a.severity === 'high' ? 'border-red-500/35' : a.severity === 'medium' ? 'border-accent/35' : 'border-primary/30')}>
+        <div className="flex items-center gap-2"><Pill tone={a.severity === 'high' ? 'red' : a.severity === 'medium' ? 'gold' : 'teal'}>!</Pill><b className="text-[13.5px] text-foreground">{a.title}</b></div>
+        {a.detail ? <p className={cn(S.sub, 'mt-1')}>{a.detail}</p> : null}
+      </div>))}
     </div>}
-    <div className={cn(S.h2, 'mt-[18px] mb-1')}>{t(lang, 'your_requests')}</div>
-    {!inqs.length ? <Card className="p-5"><div className={S.sub}>{t(lang, 'no_requests')}<button className="text-primary font-semibold" onClick={() => setShowNew(true)}>{t(lang, 'post_first')}</button>{t(lang, 'describe_job')}</div></Card>
-      : <div className={S.list}>{inqs.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} />)}</div>}
+
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+      <Stat i={0} label={t(lang, 'k_requests')} value={stats.inquiries_total ?? 0} />
+      <Stat i={1} label={t(lang, 'k_open')}     value={stats.open_inquiries ?? 0} />
+      <Stat i={2} label={t(lang, 'k_quotes')}   value={stats.quotes_received ?? 0} />
+      <Stat i={3} label={t(lang, 'k_avg')}      value={stats.avg_quotes_per_inquiry ?? 0} />
+      <Stat i={4} label={t(lang, 'k_hired')}    value={stats.deals ?? 0} />
+      <Stat i={5} label={t(lang, 'k_spend')}    value={aed(stats.total_spend)} />
+    </div>
+
+    <Section i={2} title={t(lang, 'activity_12m')}>
+      <div className="surface rounded-xl p-4">
+        {hist.length ? (<>
+          <div className="flex h-[110px] items-end gap-[3px]" role="img" aria-label={t(lang, 'activity_12m')}>
+            {hist.map((m, i) => { const v = Number(m.inquiries) || 0; return (
+              <div key={i} className="group relative flex flex-1 flex-col items-center justify-end" title={`${m.month}: ${v}`}>
+                <div className="qd-bar w-full rounded-t-[3px] bg-primary/35 group-hover:bg-primary/60 transition-colors"
+                     style={{ height: Math.max(3, (v / peak) * 92) + 'px', animationDelay: (i * 38) + 'ms' }} />
+              </div>); })}
+          </div>
+          <div className="mt-2 flex gap-[3px]">
+            {hist.map((m, i) => <div key={i} className="flex-1 text-center text-[9.5px] text-muted-foreground">{String(m.month).split(' ')[0]}</div>)}
+          </div>
+        </>) : <p className={S.sub}>{t(lang, 'no_activity')}</p>}
+      </div>
+    </Section>
+
+    <Section i={3} title={t(lang, 'recent_requests')}>
+      {recent.length
+        ? <div className={S.list}>{recent.map((i, ix) => <RequestRow key={i.id} inq={i} lang={lang} onOpen={onOpen} i={ix} />)}</div>
+        : <Empty title={t(lang, 'empty_requests_title')} sub={t(lang, 'empty_requests_sub')} action={<Button className="btn-key" onClick={onNew}>{t(lang, 'new_request')}</Button>} />}
+    </Section>
   </div>);
 }
-function InquiryCard({ inq, token, onChange, lang }) {
-  if (inq.is_combined && Array.isArray(inq.children)) { return (<Card className="p-4 mb-3.5 border-primary/30"><div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">{lang === 'ar' ? 'مشروع متعدد التخصصات' : 'Combined project'}</span><span className={S.sub}>{lang === 'ar' ? (inq.children.length + ' طلب منفصل لموردين متخصصين') : (inq.children.length + ' separate requests to specialist suppliers')}</span></div>{inq.summary ? <div className={cn(S.sub, 'mb-2')}>{inq.summary}</div> : null}<div className="space-y-2.5">{inq.children.map((c) => <InquiryCard key={c.id} inq={c} token={token} onChange={onChange} lang={lang} />)}</div></Card>); }
-  const [open, setOpen] = useState(false);
-  const [canceling, setCanceling] = useState(false);
+
+/* ── Account ───────────────────────────────────────────────────────────────── */
+function Account({ me, kyc, stats, lang }) {
+  const rows = [
+    [t(lang,'name_l'),   (kyc && kyc.full_name) || (me && me.full_name) || '—'],
+    [t(lang,'email_l'),  (me && me.email) || (kyc && kyc.email) || '—'],
+    [t(lang,'mobile_l'), (kyc && kyc.phone) || (me && me.phone) || '—'],
+    [t(lang,'joined_l'), me && me.created_at ? fmtDate(me.created_at, lang) : '—'],
+  ];
+  const checks = [
+    [t(lang,'email_v'),  !!(kyc && kyc.email_verified)],
+    [t(lang,'mobile_v'), !!(kyc && kyc.phone_verified)],
+    [t(lang,'terms_v'),  !!(kyc && kyc.terms_signed)],
+  ];
+  return (<div className="flex flex-col gap-7">
+    <header className="qd-rise">
+      <h1 className="font-head text-[25px] font-bold tracking-[-.025em] text-foreground">{t(lang, 'your_account')}</h1>
+      <p className={cn(S.sub, 'mt-1')}>{t(lang, 'account_sub')}</p>
+    </header>
+    <div className="grid gap-4 md:grid-cols-2">
+      <Section i={1} title={t(lang, 'profile_details')}>
+        <dl className="surface rounded-xl p-4">
+          {rows.map(([k, v], i) => (<div key={k} className={cn('flex items-baseline justify-between gap-4 py-2', i < rows.length - 1 && 'border-b border-border/50')}>
+            <dt className="text-[12.5px] text-muted-foreground">{k}</dt>
+            <dd className="text-[13.5px] font-medium text-foreground text-right break-all">{v}</dd>
+          </div>))}
+        </dl>
+      </Section>
+      <Section i={2} title={t(lang, 'verification')}>
+        <ul className="surface rounded-xl p-4">
+          {checks.map(([k, ok], i) => (<li key={k} className={cn('flex items-center justify-between gap-4 py-2', i < checks.length - 1 && 'border-b border-border/50')}>
+            <span className="text-[12.5px] text-muted-foreground">{k}</span>
+            <Pill tone={ok ? 'teal' : 'muted'}>{ok ? t(lang, 'complete_l') : t(lang, 'pending_l')}</Pill>
+          </li>))}
+        </ul>
+      </Section>
+    </div>
+    <Section i={3} title={t(lang, 'total_requests')}>
+      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+        <Stat i={0} label={t(lang, 'total_requests')} value={stats.inquiries_total ?? 0} />
+        <Stat i={1} label={t(lang, 'total_quotes')}   value={stats.quotes_received ?? 0} />
+        <Stat i={2} label={t(lang, 'total_hired')}    value={stats.deals ?? 0} />
+        <Stat i={3} label={t(lang, 'total_spend')}    value={aed(stats.total_spend)} />
+      </div>
+    </Section>
+  </div>);
+}
+
+
+/* ── Requests: list ────────────────────────────────────────────────────────── */
+function statusTone(s) { return ({ sent:'teal', revealed:'gold', completed:'teal', closed:'muted', cancelled:'red', split:'teal' })[String(s)] || 'muted'; }
+const STATUS_AR = { sent:'أُرسل', revealed:'تم الكشف', completed:'مكتمل', closed:'مُغلق', cancelled:'مُلغى', split:'مُقسّم' };
+function statusLabel(s, lang) { const k = String(s || ''); return lang === 'ar' ? (STATUS_AR[k] || k) : k; }
+function stepIndex(inq, quotes, anyRevealed) {
+  return (inq.status === 'completed' || inq.hired_supplier_id) ? 3 : (anyRevealed ? 2 : (quotes.length ? 1 : 0));
+}
+function RequestRow({ inq, lang, onOpen, i = 0 }) {
+  const quotes = inq.quotes || [];
+  const anyRevealed = quotes.some((q) => q.revealed);
+  const prices = quotes.map((q) => Number(q.price) || 0).filter(Boolean);
+  const lo = prices.length ? Math.min(...prices) : null;
+  const { canEdit, minutesLeft } = editState(inq);
+  return (
+    <button type="button" onClick={() => onOpen(inq.id)}
+      className="surface qd-lift qd-rise w-full rounded-xl p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      style={rise(i)} aria-label={`${inq.category || 'Request'} — ${quotes.length} quotes`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-head text-[14.5px] font-bold capitalize text-foreground">{inq.category || 'Request'}</span>
+            {inq.emirate ? <span className="text-[12px] text-muted-foreground">{inq.emirate}</span> : null}
+            <Pill tone={statusTone(inq.status)}>{statusLabel(inq.status, lang)}</Pill>
+            {canEdit ? <Pill tone="gold">{tf(lang, 'edit_window_open', { n: minutesLeft })}</Pill> : null}
+          </div>
+          {inq.summary ? <p className={cn(S.sub, 'mt-1 line-clamp-2')}>{inq.summary}</p> : null}
+          <div className="mt-2"><Steps idx={stepIndex(inq, quotes, anyRevealed)} lang={lang} /></div>
+        </div>
+        <div className="shrink-0 text-right">
+          <div className="font-head tabular text-[16px] font-bold text-foreground">{quotes.length}</div>
+          <div className="text-[10.5px] text-muted-foreground">{t(lang, 'quotes_in')}</div>
+          {lo ? <div className="tabular mt-1 text-[11.5px] text-primary">{aed(lo)}+</div> : null}
+        </div>
+      </div>
+    </button>
+  );
+}
+function RequestList({ inqs, lang, onOpen, onNew }) {
+  if (!inqs.length) return (<div className="flex flex-col gap-5">
+    <header className="qd-rise"><h1 className="font-head text-[25px] font-bold tracking-[-.025em] text-foreground">{t(lang, 'my_requests')}</h1><p className={cn(S.sub, 'mt-1')}>{t(lang, 'requests_sub')}</p></header>
+    <Empty title={t(lang, 'empty_requests_title')} sub={t(lang, 'empty_requests_sub')} action={<Button className="btn-key" onClick={onNew}>{t(lang, 'new_request')}</Button>} />
+  </div>);
+  return (<div className="flex flex-col gap-5">
+    <header className="qd-rise"><h1 className="font-head text-[25px] font-bold tracking-[-.025em] text-foreground">{t(lang, 'my_requests')}</h1><p className={cn(S.sub, 'mt-1')}>{t(lang, 'requests_sub')}</p></header>
+    <div className={S.list}>
+      {inqs.map((inq, i) => inq.is_combined && Array.isArray(inq.children) ? (
+        <div key={inq.id} className="surface qd-rise rounded-xl p-4" style={rise(i)}>
+          <div className="mb-2 flex items-center gap-2 flex-wrap">
+            <Pill tone="teal">{t(lang, 'combined_project')}</Pill>
+            <span className={S.sub}>{tf(lang, 'sep_requests', { n: inq.children.length })}</span>
+          </div>
+          {inq.summary ? <p className={cn(S.sub, 'mb-3')}>{inq.summary}</p> : null}
+          <div className="flex flex-col gap-2.5">{inq.children.map((c, ci) => <RequestRow key={c.id} inq={c} lang={lang} onOpen={onOpen} i={ci} />)}</div>
+        </div>
+      ) : <RequestRow key={inq.id} inq={inq} lang={lang} onOpen={onOpen} i={i} />)}
+    </div>
+  </div>);
+}
+
+/* ── Requests: detail ──────────────────────────────────────────────────────── */
+function RequestDetail({ inq, token, lang, onBack, onChange }) {
   const [editing, setEditing] = useState(false);
   const [eSummary, setESummary] = useState(inq.summary || '');
   const [eBudget, setEBudget] = useState(inq.budget || '');
   const [eEmirate, setEEmirate] = useState(inq.emirate || '');
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState('');
+  const [saving, setSaving] = useState(false); const [canceling, setCanceling] = useState(false); const [err, setErr] = useState('');
   const quotes = (inq.quotes || []).slice().sort((a, b) => (a.price || 0) - (b.price || 0));
   const concluded = ['completed', 'closed', 'cancelled'].includes(String(inq.status));
-  const anyRevealed = quotes.some((qq) => qq.revealed);
-  const vmap = (() => { const m = {}; if (!quotes.length) return m; const ps = quotes.map((q) => Number(q.price) || 0).filter((p) => p > 0); const minP = ps.length ? Math.min(...ps) : 0, maxP = ps.length ? Math.max(...ps) : 0; for (const q of quotes) { const p = Number(q.price) || 0; const priceScore = (!p || maxP === minP) ? 70 : Math.round(100 - ((p - minP) / (maxP - minP)) * 55); const ratingScore = q.rating != null ? Math.round((Number(q.rating) / 5) * 100) : 60; const compScore = Math.min(100, 50 + (q.scope ? 20 : 0) + (q.warranty ? 10 : 0) + (q.lead_time ? 10 : 0) + (q.verified ? 10 : 0)); m[q.id] = Math.round(priceScore * 0.5 + ratingScore * 0.3 + compScore * 0.2); } return m; })();
+  const anyRevealed = quotes.some((q) => q.revealed);
+  const { canEdit, minutesLeft } = editState(inq);
+
+  const vmap = useMemo(() => { const m = {}; if (!quotes.length) return m;
+    const ps = quotes.map((q) => Number(q.price) || 0).filter((p) => p > 0);
+    const minP = ps.length ? Math.min(...ps) : 0, maxP = ps.length ? Math.max(...ps) : 0;
+    for (const q of quotes) { const p = Number(q.price) || 0;
+      const priceScore = (!p || maxP === minP) ? 70 : Math.round(100 - ((p - minP) / (maxP - minP)) * 55);
+      const ratingScore = q.rating != null ? Math.round((Number(q.rating) / 5) * 100) : 60;
+      const compScore = Math.min(100, 50 + (q.scope ? 20 : 0) + (q.warranty ? 10 : 0) + (q.lead_time ? 10 : 0) + (q.verified ? 10 : 0));
+      m[q.id] = Math.round(priceScore * 0.5 + ratingScore * 0.3 + compScore * 0.2); }
+    return m; }, [quotes]);
   const bestId = quotes.length ? quotes.slice().sort((a, b) => (vmap[b.id] || 0) - (vmap[a.id] || 0))[0].id : null;
-  const stepIdx = (inq.status === 'completed' || inq.hired_supplier_id) ? 3 : (anyRevealed ? 2 : (quotes.length ? 1 : 0));
-  const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!confirm('Cancel this request? Suppliers will stop quoting.')) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr((j && (j.message || j.error)) || 'Could not cancel. Please try again.'); setCanceling(false); } } catch (_e) { setErr('Could not cancel. Please check your connection and try again.'); setCanceling(false); } };
-  const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr((j && (j.message || j.error)) || 'Could not save changes.'); } } catch (_e) { setErr('Could not save changes. Please try again.'); } setSaving(false); };
-  return (<Card className="p-5">
-    <div className="flex justify-between items-center gap-2.5 cursor-pointer" onClick={() => setOpen(!open)}>
-      <div><b className="capitalize">{inq.category || 'Request'}</b> - {inq.emirate || ''}{inq.boq && inq.boq.boq ? ' - BOQ ' + inq.boq.boq.length + ' items' : ''}
-        <div className={S.sub}>{quotes.length} quote{quotes.length === 1 ? '' : 's'} - <span className="capitalize">{inq.status}</span>{inq.editable ? ' - editable ' + inq.edit_minutes_left + 'm' : ''}</div></div>
-      <div className="text-right"><span className="text-primary font-semibold">{open ? (lang === 'ar' ? 'إخفاء التفاصيل' : 'Hide details') : (quotes.length ? (lang === 'ar' ? 'العروض والتفاصيل' : 'Open project') : (lang === 'ar' ? 'عرض التفاصيل' : 'Open project'))}</span></div>
+  const cheapestId = quotes.length ? quotes[0].id : null;
+
+  const doCancel = async () => {
+    if (canceling) return;
+    if (!confirm(t(lang, 'confirm_cancel'))) return;
+    setCanceling(true); setErr('');
+    try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token);
+      if (j && j.ok) { onChange(); onBack(); } else { setErr((j && (j.message || j.error)) || 'Could not cancel. Please try again.'); setCanceling(false); } }
+    catch (_e) { setErr('Could not cancel. Please check your connection and try again.'); setCanceling(false); }
+  };
+  const saveEdit = async () => {
+    setSaving(true); setErr('');
+    try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token);
+      if (j && j.ok) { setEditing(false); onChange(); } else { setErr((j && (j.message || j.error)) || 'Could not save changes.'); } }
+    catch (_e) { setErr('Could not save changes. Please try again.'); }
+    setSaving(false);
+  };
+
+  return (<div className="flex flex-col gap-6">
+    <div className="qd-noprint qd-rise">
+      <Button variant="ghost" size="sm" onClick={onBack} className="-ms-2">{backArrow(lang)} {t(lang, 'back_to_requests')}</Button>
     </div>
-    {inq.summary && !editing && <div className={cn(S.sub, 'mt-1.5')}>{inq.summary}</div>}
-    {editing && <div className="mt-2">
-      <textarea className={S.area} rows={3} value={eSummary} onChange={(e) => setESummary(e.target.value)} placeholder="Describe your request" />
-      <div className={S.frow}>
-        <select className={S.field} style={{ colorScheme: 'dark', backgroundColor: 'hsl(205 46% 12%)', color: 'hsl(180 25% 94%)' }} value={eEmirate} onChange={(e) => setEEmirate(e.target.value)}><option value="" style={{ backgroundColor: '#0C2330', color: '#EAF4F2' }}>Emirate (optional)</option>{EMIRATES.map((em) => <option key={em} value={em} style={{ backgroundColor: '#0C2330', color: '#EAF4F2' }}>{em}</option>)}</select>
-        <Input placeholder="Budget (optional)" value={eBudget} onChange={(e) => setEBudget(e.target.value)} />
+
+    <header className="qd-rise" style={rise(1)}>
+      <div className="flex flex-wrap items-center gap-2">
+        <h1 className="font-head text-[24px] font-bold capitalize tracking-[-.025em] text-foreground">{inq.category || 'Request'}</h1>
+        <Pill tone={statusTone(inq.status)}>{statusLabel(inq.status, lang)}</Pill>
+        <span className="tabular text-[11.5px] text-muted-foreground">{t(lang, 'request_ref')} {refOf(inq.id)}</span>
       </div>
-      <div className="flex gap-2.5 flex-wrap items-center mt-2.5">
-        <Button disabled={saving} onClick={(e) => { e.stopPropagation(); saveEdit(); }}>{saving ? 'Saving...' : 'Save changes'}</Button>
-        <Button variant="link" className="px-0 h-auto" onClick={(e) => { e.stopPropagation(); setEditing(false); setErr(''); }}>Cancel edit</Button>
+      {inq.summary && !editing ? <p className={cn(S.sub, 'mt-2 max-w-[70ch]')}>{inq.summary}</p> : null}
+      <div className="mt-3"><Steps idx={stepIndex(inq, quotes, anyRevealed)} lang={lang} /></div>
+    </header>
+
+    {/* Edit / cancel — mirrors the server rules exactly (1h window, open status only) */}
+    {!concluded && !anyRevealed && (
+      <div className="qd-noprint qd-rise" style={rise(2)}>
+        {editing ? (<div className="surface rounded-xl p-4">
+          <textarea className={S.area} rows={3} value={eSummary} onChange={(e) => setESummary(e.target.value)} aria-label={t(lang, 'edit_request')} />
+          <div className={S.frow}>
+            <select className={S.field} style={{ colorScheme:'dark', backgroundColor:'hsl(205 46% 12%)', color:'hsl(180 25% 94%)' }} value={eEmirate} onChange={(e) => setEEmirate(e.target.value)} aria-label={t(lang, 'emirate_l')}>
+              <option value="" style={{ backgroundColor:'#0C2330', color:'#EAF4F2' }}>{t(lang, 'emirate_l')}</option>
+              {EMIRATES.map((em) => <option key={em} value={em} style={{ backgroundColor:'#0C2330', color:'#EAF4F2' }}>{em}</option>)}
+            </select>
+            <Input placeholder={t(lang, 'budget_l')} value={eBudget} onChange={(e) => setEBudget(e.target.value)} />
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2.5">
+            <Button disabled={saving} onClick={saveEdit}>{saving ? t(lang, 'saving') : t(lang, 'save_changes')}</Button>
+            <Button variant="link" className="h-auto px-0" onClick={() => { setEditing(false); setErr(''); }}>{t(lang, 'cancel_edit')}</Button>
+          </div>
+        </div>) : (<div className="flex flex-wrap items-center gap-3">
+          {canEdit
+            ? <Button variant="outline" size="sm" onClick={() => { setESummary(inq.summary || ''); setEBudget(inq.budget || ''); setEEmirate(inq.emirate || ''); setEditing(true); }}>
+                {t(lang, 'edit_request')} <span className="ml-1.5 text-[11px] text-muted-foreground">· {tf(lang, 'edit_window_open', { n: minutesLeft })}</span>
+              </Button>
+            : <span className={S.sub}>{t(lang, 'edit_window_closed')}</span>}
+          <Button variant="ghost" size="sm" className="text-red-300 hover:text-red-200" disabled={canceling} onClick={doCancel}>
+            {canceling ? t(lang, 'cancelling') : t(lang, 'cancel_request')}
+          </Button>
+        </div>)}
+        {err && <div className={S.err} role="alert">{err}</div>}
       </div>
-    </div>}
-    {!concluded && !anyRevealed && !editing && <div className="flex gap-2.5 flex-wrap items-center mt-2">
-      {inq.editable && <Button variant="link" className="px-0 h-auto" onClick={(e) => { e.stopPropagation(); setESummary(inq.summary || ''); setEBudget(inq.budget || ''); setEEmirate(inq.emirate || ''); setEditing(true); }}>Edit request</Button>}
-      <Button variant="link" className="px-0 h-auto text-red-400" disabled={canceling} onClick={doCancel}>{canceling ? 'Cancelling...' : 'Cancel request'}</Button>
-    </div>}
-    {err && <div className={S.err}>{err}</div>}
-    <div className="flex items-center gap-1.5 mt-2 text-[11px]">{(lang === 'ar' ? ['أُرسل', 'وردت العروض', 'تم الكشف', 'تم التعاقد'] : ['Sent', 'Quotes in', 'Revealed', 'Hired']).map((s, si) => (<span key={s} className={cn('flex items-center gap-1', si <= stepIdx ? 'text-primary font-semibold' : 'text-muted-foreground/70')}>{si > 0 ? <span className="text-muted-foreground/40">›</span> : null}<span className={cn('inline-block w-1.5 h-1.5 rounded-full', si <= stepIdx ? 'bg-primary' : 'bg-muted-foreground/40')} />{s}</span>))}</div>
-    {open && <div className="mt-3 border-t border-border pt-3 flex flex-col gap-3">
-      <Timeline inq={inq} quotes={quotes} anyRevealed={anyRevealed} lang={lang} />
-      <DetailFacts inq={inq} lang={lang} />
-      {quotes.length >= 2 && <Comparison inqId={inq.id} token={token} lang={lang} />}
-      {quotes.length > 0
-        ? <div className="flex flex-col gap-2.5"><div className={cn(S.sub, 'font-semibold text-foreground')}>{lang === 'ar' ? ('العروض المستلمة (' + quotes.length + ')') : ('Quotes received (' + quotes.length + ')')}</div>{quotes.map((q) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange} vscore={vmap[q.id]} best={q.id === bestId} hired={inq.hired_supplier_id} />)}</div>
-        : <div className="rounded-lg border border-border bg-secondary/30 p-4 text-center"><div className={S.sub}>{lang === 'ar' ? 'بانتظار عروض الموردين — طابقناك مع موردين مناسبين وسننبهك فور وصول أول عرض.' : 'Waiting for supplier quotes — we matched you with suitable suppliers and will alert you the moment the first quote lands.'}</div></div>}
-    </div>}
-  </Card>);
+    )}
+
+    <SupplierBrief inq={inq} lang={lang} />
+
+    {quotes.length >= 2 && <Section i={4} title={t(lang, 'quotes_in')}><Comparison inqId={inq.id} token={token} lang={lang} /></Section>}
+
+    <Section i={5} title={`${t(lang, 'quotes_in')} (${quotes.length})`}>
+      {quotes.length ? (<div className="flex flex-col gap-3">
+        {quotes.map((q, i) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange}
+          vscore={vmap[q.id]} best={q.id === bestId} cheapest={q.id === cheapestId} hired={inq.hired_supplier_id} i={i} />)}
+      </div>) : <Empty icon="◷" title={t(lang, 'no_quotes_yet')}
+        sub={lang === 'ar'
+          ? 'طابقناك مع مورّدين مناسبين وسننبهك فور وصول أول عرض.'
+          : 'We matched you with suitable suppliers and will alert you the moment the first quote lands.'} />}
+    </Section>
+  </div>);
 }
 
-function QuotePdfLink({ q, token, lang }) {
-  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
-  const open = async (e) => { e.stopPropagation(); setBusy(true); setMsg(''); const j = await call('customer_api', { action: 'quote_pdf', quote_id: q.id, lang }, token); setBusy(false); if (j && j.ok && j.url) { window.open(j.url, '_blank', 'noopener'); } else setMsg((j && (j.detail || j.error)) || (lang === 'ar' ? 'تعذّر فتح الملف' : 'Could not open the PDF')); };
-  return (<><button className="text-primary font-semibold text-[12.5px]" disabled={busy} onClick={open}>{busy ? (lang === 'ar' ? 'جارٍ التحضير…' : 'Preparing…') : (lang === 'ar' ? '📄 عرض السعر (PDF)' : '📄 View quote (PDF)')}</button>{msg ? <span className={cn(S.sub, 'ml-2 text-red-400')}>{msg}</span> : null}</>);
+/* What suppliers see — the anonymised brief, printable to PDF.
+   Rendered from the same fields the dispatcher sends out, so the customer can
+   verify exactly what left the building and that no contact detail went with it. */
+function SupplierBrief({ inq, lang }) {
+  const [open, setOpen] = useState(false);
+  const spec = inq.spec && typeof inq.spec === 'object' ? inq.spec : null;
+  const boq = inq.boq && Array.isArray(inq.boq.boq) ? inq.boq.boq : null;
+  const facts = [];
+  if (inq.category) facts.push([t(lang,'category_l'), String(inq.category)]);
+  if (inq.emirate)  facts.push([t(lang,'emirate_l'),  String(inq.emirate)]);
+  if (inq.budget)   facts.push([t(lang,'budget_l'),   String(inq.budget)]);
+  if (Array.isArray(inq.trades) && inq.trades.length) facts.push([t(lang,'trades_l'), inq.trades.join(', ')]);
+  if (inq.created_at) facts.push([t(lang,'posted_on'), fmtDate(inq.created_at, lang, true)]);
+  if (spec) for (const k of Object.keys(spec)) { const v = spec[k]; if (v && typeof v === 'string' && k !== 'plausibility' && k !== 'provenance') facts.push([k.replace(/_/g, ' '), v]); }
+  return (<Section i={3} title={t(lang, 'what_suppliers_see')} sub={t(lang, 'what_suppliers_see_sub')}
+    right={<div className="qd-noprint flex gap-2">
+      <Button variant="ghost" size="sm" onClick={() => setOpen((v) => !v)} aria-expanded={open}>{open ? t(lang, 'close') : t(lang, 'view_all')}</Button>
+      {open ? <Button variant="outline" size="sm" onClick={() => window.print()}>{t(lang, 'print_brief')}</Button> : null}
+    </div>}>
+    <div className="surface rounded-xl p-4 qd-print">
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-3">
+        <div>
+          <div className="font-head text-[13.5px] font-bold text-foreground">QuotesDone · {t(lang, 'request_ref')} {refOf(inq.id)}</div>
+          <div className={cn(S.sub, 'mt-0.5')}>{inq.summary || ''}</div>
+        </div>
+        <Pill tone="teal">{lang === 'ar' ? 'مجهول الهوية' : 'Anonymised'}</Pill>
+      </div>
+      {open ? (<div className="qd-fade">
+        <dl className="mt-3 grid gap-x-5 gap-y-1.5 sm:grid-cols-2">
+          {facts.slice(0, 16).map(([k, v], i) => (<div key={i} className="flex items-baseline justify-between gap-3 border-b border-border/35 py-1">
+            <dt className="text-[12px] capitalize text-muted-foreground">{k}</dt>
+            <dd className="text-[12.5px] text-foreground text-right">{v}</dd>
+          </div>))}
+        </dl>
+        {boq ? (<div className="mt-4">
+          <div className={cn(S.h2, 'mb-1.5')}>{t(lang, 'line_items')} ({boq.length})</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12.5px]">
+              <thead><tr className="border-b border-border/60 text-left text-muted-foreground">
+                <th scope="col" className="py-1.5 pr-3 font-medium">#</th>
+                <th scope="col" className="py-1.5 pr-3 font-medium">{lang === 'ar' ? 'الوصف' : 'Description'}</th>
+                <th scope="col" className="py-1.5 pr-3 font-medium">{lang === 'ar' ? 'الكمية' : 'Qty'}</th>
+                <th scope="col" className="py-1.5 font-medium">{lang === 'ar' ? 'الوحدة' : 'Unit'}</th>
+              </tr></thead>
+              <tbody>{boq.slice(0, 40).map((b, i) => (<tr key={i} className="border-b border-border/30">
+                <td className="tabular py-1.5 pr-3 text-muted-foreground">{i + 1}</td>
+                <td className="py-1.5 pr-3 text-foreground">{String(b.description || b.desc || '')}</td>
+                <td className="tabular py-1.5 pr-3 text-foreground">{b.qty == null ? '' : String(b.qty)}</td>
+                <td className="py-1.5 text-muted-foreground">{String(b.unit || '')}</td>
+              </tr>))}</tbody>
+            </table>
+          </div>
+        </div>) : null}
+        {inq.drawing_file_url ? (<div className="qd-noprint mt-3">
+          <a href={inq.drawing_file_url} target="_blank" rel="noopener" className="text-[12.5px] font-semibold text-primary underline underline-offset-2">
+            {t(lang, 'drawing_l')}{inq.drawing_file_name ? ' — ' + inq.drawing_file_name : ''}
+          </a>
+        </div>) : null}
+        <p className={cn(S.sub, 'mt-4 border-t border-border/50 pt-2.5 text-[11.5px]')}>
+          {lang === 'ar'
+            ? 'لا يتضمّن هذا الملخّص اسمك أو بريدك أو رقم هاتفك. تُكشف بياناتك فقط عندما تختار كشف مورّد.'
+            : 'This brief carries no name, email or phone number. Your details are released only when you choose to reveal a supplier.'}
+        </p>
+      </div>) : null}
+    </div>
+  </Section>);
 }
-function Timeline({ inq, quotes, anyRevealed, lang }) {
-  const steps = lang === 'ar' ? ['أُرسل', 'وردت العروض', 'تم الكشف', 'مكتمل'] : ['Sent', 'Quotes in', 'Revealed', 'Completed'];
-  const idx = (inq.status === 'completed' || inq.hired_supplier_id) ? 3 : (anyRevealed ? 2 : (quotes.length ? 1 : 0));
-  const fmt = (d) => { try { return new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (_e) { return ''; } };
-  return (<div className="rounded-lg border border-border bg-secondary/20 p-3">
-    {inq.created_at ? <div className={cn(S.sub, 'mb-2')}>{(lang === 'ar' ? 'أُنشئ في ' : 'Created ') + fmt(inq.created_at)}</div> : null}
-    <div className="flex items-center gap-1.5 flex-wrap text-[11px]">{steps.map((sname, si) => (<span key={sname} className={cn('flex items-center gap-1', si <= idx ? 'text-primary font-semibold' : 'text-muted-foreground/60')}>{si > 0 ? <span className="text-muted-foreground/40">›</span> : null}<span className={cn('inline-block w-2 h-2 rounded-full', si <= idx ? 'bg-primary' : 'bg-muted-foreground/30')} />{sname}</span>))}</div>
-  </div>);
-}
-function DetailFacts({ inq, lang }) {
-  const rows = [];
-  if (inq.budget) rows.push([lang === 'ar' ? 'الميزانية' : 'Budget', String(inq.budget)]);
-  if (Array.isArray(inq.trades) && inq.trades.length) rows.push([lang === 'ar' ? 'التخصصات' : 'Trades', inq.trades.join(', ')]);
-  if (inq.boq && inq.boq.boq && inq.boq.boq.length) rows.push([lang === 'ar' ? 'عدد البنود' : 'Line items', String(inq.boq.boq.length)]);
-  const sp = inq.spec && typeof inq.spec === 'object' ? inq.spec : null;
-  if (sp) for (const k of Object.keys(sp)) { const v = sp[k]; if (v && typeof v === 'string' && k !== 'plausibility' && k !== 'provenance') rows.push([k.replace(/_/g, ' '), v]); }
-  if (!rows.length) return null;
-  return (<div className="rounded-lg border border-border bg-secondary/20 p-3"><div className={cn(S.sub, 'font-semibold mb-1.5 text-foreground')}>{lang === 'ar' ? 'تفاصيل الطلب' : 'Request details'}</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">{rows.slice(0, 14).map((r, i) => (<div key={i} className={S.sub}><span className="capitalize text-muted-foreground">{r[0]}: </span><span className="text-foreground">{r[1]}</span></div>))}</div></div>);
-}
+
+/* ── Comparison (AI report) ────────────────────────────────────────────────── */
 function Comparison({ inqId, token, lang }) {
   const [a, setA] = useState(null); const [busy, setBusy] = useState(true); const [note, setNote] = useState('');
-  useEffect(() => { let on = true; setBusy(true); call('quote_compare', { inquiry_id: inqId, lang }, token).then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) setA(j.analysis); else setNote((j && (j.note || j.error)) || ''); }).catch(() => { if (on) { setBusy(false); } }); return () => { on = false; }; }, [inqId, lang]);
+  useEffect(() => { let on = true; setBusy(true);
+    call('quote_compare', { inquiry_id: inqId, lang }, token).then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) setA(j.analysis); else setNote((j && (j.note || j.error)) || ''); })
+      .catch(() => { if (on) setBusy(false); });
+    return () => { on = false; }; }, [inqId, lang]);
   const arr = (x) => Array.isArray(x) ? x : [];
-  if (busy) return (<div className="rounded-lg border border-primary/30 bg-primary/5 p-3.5"><div className={cn(S.sub, 'text-primary')}>{lang === 'ar' ? 'يُعدّ خبيرنا تقرير المقارنة…' : 'Our expert is preparing your comparison report…'}</div></div>);
-  if (!a) return note ? (<div className="rounded-lg border border-border bg-secondary/20 p-3"><div className={S.sub}>{note}</div></div>) : null;
-  return (<div className="rounded-lg border border-primary/30 bg-primary/5 p-3.5">
-    <div className={cn(S.sub, 'font-bold text-primary mb-1')}>{(lang === 'ar' ? 'تقرير المقارنة من الخبير' : 'Expert comparison report') + (a.trade ? ' · ' + a.trade : '')}</div>
-    {a.bottom_line ? <div className={cn(S.sub, 'text-foreground font-semibold mb-1.5')}>{a.bottom_line}</div> : null}
-    {a.overview ? <div className={cn(S.sub, 'mb-2')}>{a.overview}</div> : null}
-    {arr(a.top3).length ? <div className="mb-2"><div className={cn(S.sub, 'font-semibold text-foreground')}>{lang === 'ar' ? 'أفضل الخيارات' : 'Top picks'}</div>{arr(a.top3).map((r, i) => (<div key={i} className={cn(S.sub, 'mt-0.5')}><span className="text-primary font-semibold">#{r.rank} {r.label}</span> — {r.why}{r.tradeoff ? (' ' + (lang === 'ar' ? '(الاعتبار: ' : '(catch: ') + r.tradeoff + ')') : ''}</div>))}</div> : null}
-    {arr(a.quotes).map((q, i) => (<div key={i} className="mt-2 border-t border-border/60 pt-2"><div className={cn(S.sub, 'font-semibold text-foreground')}>{q.label}{q.price != null ? (' — ' + aed(q.price)) : ''}</div>{q.getting ? <div className={S.sub}>{q.getting}</div> : null}{arr(q.missing_from_request).length ? <div className={S.sub} style={{ color: 'hsl(43 68% 64%)' }}>{(lang === 'ar' ? 'ناقص مما طلبت: ' : 'Missing from your request: ') + arr(q.missing_from_request).join('; ')}</div> : null}{arr(q.spec_deviation).length ? <div className={S.sub} style={{ color: 'hsl(43 68% 64%)' }}>{(lang === 'ar' ? 'اختلاف عن المواصفات: ' : 'Spec differences: ') + arr(q.spec_deviation).join('; ')}</div> : null}{arr(q.flags).length ? <div className={cn(S.sub, 'text-red-400')}>{arr(q.flags).join('; ')}</div> : null}</div>))}
-    {arr(a.watch_outs).length ? <div className={cn(S.sub, 'text-red-400 mt-2')}>{(lang === 'ar' ? 'انتبه: ' : 'Watch out: ') + arr(a.watch_outs).join(' · ')}</div> : null}
-    {a.advice ? <div className={cn(S.sub, 'mt-2 text-foreground')}>{a.advice}</div> : null}
-    <div className={cn(S.sub, 'mt-2 text-muted-foreground/70 text-[11px]')}>{lang === 'ar' ? 'إرشادي فقط — القرار النهائي لك.' : 'Guidance only — the final decision is yours.'}</div>
+  if (busy) return (<div className="surface rounded-xl border-primary/25 p-4"><div className="flex items-center gap-2"><span className="qd-shimmer inline-block h-2 w-2 rounded-full bg-primary/60" /><span className={cn(S.sub, 'text-primary')}>{lang === 'ar' ? 'يُعدّ خبيرنا تقرير المقارنة…' : 'Our expert is preparing your comparison report…'}</span></div></div>);
+  if (!a) return note ? (<div className="surface rounded-xl p-4"><p className={S.sub}>{note}</p></div>) : null;
+  return (<div className="surface qd-fade rounded-xl border-primary/25 p-4">
+    <div className="mb-1.5 flex items-center gap-2"><Pill tone="teal">AI</Pill><b className="text-[13px] text-primary">{(lang === 'ar' ? 'تقرير المقارنة من الخبير' : 'Expert comparison report') + (a.trade ? ' · ' + a.trade : '')}</b></div>
+    {a.bottom_line ? <p className="text-[13.5px] font-semibold text-foreground">{a.bottom_line}</p> : null}
+    {a.overview ? <p className={cn(S.sub, 'mt-1.5')}>{a.overview}</p> : null}
+    {arr(a.top3).length ? (<div className="mt-3">
+      <div className={cn(S.h2, 'mb-1')}>{lang === 'ar' ? 'أفضل الخيارات' : 'Top picks'}</div>
+      {arr(a.top3).map((r, i) => (<p key={i} className={cn(S.sub, 'mt-0.5')}>
+        <span className="font-semibold text-primary">#{r.rank} {r.label}</span> — {r.why}{r.tradeoff ? ' ' + (lang === 'ar' ? '(الاعتبار: ' : '(catch: ') + r.tradeoff + ')' : ''}
+      </p>))}
+    </div>) : null}
+    {arr(a.quotes).map((q, i) => (<div key={i} className="mt-2.5 border-t border-border/50 pt-2.5">
+      <div className={cn(S.sub, 'font-semibold text-foreground')}>{q.label}{q.price != null ? ' — ' + aed(q.price) : ''}</div>
+      {q.getting ? <p className={S.sub}>{q.getting}</p> : null}
+      {arr(q.missing_from_request).length ? <p className="text-[12.5px] text-accent">{(lang === 'ar' ? 'ناقص مما طلبت: ' : 'Missing from your request: ') + arr(q.missing_from_request).join('; ')}</p> : null}
+      {arr(q.spec_deviation).length ? <p className="text-[12.5px] text-accent">{(lang === 'ar' ? 'اختلاف عن المواصفات: ' : 'Spec differences: ') + arr(q.spec_deviation).join('; ')}</p> : null}
+      {arr(q.flags).length ? <p className="text-[12.5px] text-red-300">{arr(q.flags).join('; ')}</p> : null}
+    </div>))}
+    {arr(a.watch_outs).length ? <p className="mt-2.5 text-[12.5px] text-red-300">{(lang === 'ar' ? 'انتبه: ' : 'Watch out: ') + arr(a.watch_outs).join(' · ')}</p> : null}
+    {a.advice ? <p className={cn(S.sub, 'mt-2.5 text-foreground')}>{a.advice}</p> : null}
+    <p className="mt-2.5 text-[11px] text-muted-foreground">{t(lang, 'guidance_only')}</p>
   </div>);
 }
-function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired }) {
-  const [state, setState] = useState(q.revealed ? 'revealed' : 'idle'); const [contact, setContact] = useState(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+
+
+/* ── Quote card ────────────────────────────────────────────────────────────── */
+function QuotePdfLink({ q, token, lang }) {
+  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const open = async (e) => { e.stopPropagation(); setBusy(true); setMsg('');
+    const j = await call('customer_api', { action: 'quote_pdf', quote_id: q.id, lang }, token);
+    setBusy(false);
+    if (j && j.ok && j.url) window.open(j.url, '_blank', 'noopener'); else setMsg((j && (j.detail || j.error)) || t(lang, 'pdf_failed')); };
+  return (<>
+    <button type="button" className="inline-flex min-h-[40px] items-center text-[12.5px] font-semibold text-primary underline underline-offset-2 disabled:opacity-60" disabled={busy} onClick={open}>
+      {busy ? t(lang, 'preparing') : t(lang, 'view_quote_pdf')}
+    </button>
+    {msg ? <span className="ml-2 text-[12px] text-red-300">{msg}</span> : null}
+  </>);
+}
+function ValueRing({ score }) {
+  const R = 15, C = 2 * Math.PI * R, pct = Math.max(0, Math.min(100, Number(score) || 0));
+  return (<svg width="38" height="38" viewBox="0 0 38 38" aria-hidden className="shrink-0">
+    <circle cx="19" cy="19" r={R} fill="none" stroke="hsl(var(--secondary))" strokeWidth="3" />
+    <circle cx="19" cy="19" r={R} fill="none" stroke="hsl(var(--primary))" strokeWidth="3" strokeLinecap="round"
+      transform="rotate(-90 19 19)" className="qd-ring" style={{ '--c': C, '--o': C - (C * pct) / 100 }} />
+    <text x="19" y="22.5" textAnchor="middle" className="tabular" fill="hsl(var(--foreground))" fontSize="11" fontWeight="700">{pct}</text>
+  </svg>);
+}
+function QuoteCard({ q, token, concluded, onChange, vscore, best, cheapest, lang, hired, i = 0 }) {
+  const [state, setState] = useState(q.revealed ? 'revealed' : 'idle');
+  const [contact, setContact] = useState(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const reveal = async () => {
     setBusy(true); setMsg('');
     const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token);
@@ -343,49 +853,225 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired })
   };
   const showContactData = async () => { const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token); if (r.supplier) setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); };
   useEffect(() => { if (state === 'revealed' && !contact) showContactData(); }, [state]);
-  return (<div className="rounded-xl border border-border bg-white/[0.02] p-3">
-    <div className="flex justify-between items-center"><div><b>{q.label}</b>{best ? <span className="ml-1.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold px-1.5 py-0.5 align-middle">Best value</span> : ''}{q.verified ? <span className="text-primary text-[11px] font-bold"> ✓ verified</span> : ''}{q.rating != null ? <span className="text-accent text-[12px] font-semibold"> ★ {q.rating} ({q.rating_count})</span> : ''}</div><div className="text-right"><div className="text-[17px] font-extrabold text-foreground">{aed(q.price)}</div>{vscore != null ? <div className="text-[10px] text-muted-foreground" title="Guide only — blends price, rating and quote completeness. Not advice; use your own judgement.">Value {vscore}/100</div> : null}</div></div>
-    <div className="text-muted-foreground text-[11.5px] mt-0.5">{q.lead_time ? 'Lead time: ' + q.lead_time + ' · ' : ''}{q.warranty ? 'Warranty: ' + q.warranty + ' · ' : ''}{q.payment_terms ? 'Terms: ' + q.payment_terms : ''}{q.win_rate != null ? ' · win ' + Math.round(q.win_rate) + '%' : ''}</div>
-    {q.scope && <div className={cn(S.sub, 'mt-1')}>{q.scope}</div>}
-    <div className="mt-1.5"><QuotePdfLink q={q} token={token} lang={lang} /></div>
-    {state === 'revealed' ? (contact ? <Contact c={contact} q={q} token={token} onChange={onChange} lang={lang} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} /> : <div className={S.sub}>Loading contact…</div>)
-      : (<div className="flex justify-between items-center gap-2.5 mt-2.5 flex-wrap">
-          <div className={S.sub}>Reveal fee {aed(q.reveal_fee)} — refundable if the supplier doesn't respond in 3 working days.</div>
-          <Button size="sm" disabled={busy || concluded} onClick={reveal}>{busy ? 'Please wait…' : 'Reveal & contact'}</Button>
+  const meta = [
+    q.lead_time ? [lang === 'ar' ? 'مدة التنفيذ' : 'Lead time', q.lead_time] : null,
+    q.warranty ? [lang === 'ar' ? 'الضمان' : 'Warranty', q.warranty] : null,
+    q.payment_terms ? [lang === 'ar' ? 'الدفع' : 'Terms', q.payment_terms] : null,
+    q.validity ? [lang === 'ar' ? 'الصلاحية' : 'Valid', q.validity] : null,
+  ].filter(Boolean);
+  return (<article className="surface qd-lift qd-rise rounded-xl p-4" style={rise(i)}>
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="font-head text-[14.5px] font-bold text-foreground">{q.label}</span>
+          {best ? <Pill tone="teal">{t(lang, 'best_value')}</Pill> : null}
+          {cheapest && !best ? <Pill tone="muted">{t(lang, 'lowest_price')}</Pill> : null}
+          {q.verified ? <Pill tone="teal">✓</Pill> : null}
+          {q.expired ? <Pill tone="red">{lang === 'ar' ? 'منتهٍ' : 'Expired'}</Pill> : null}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11.5px] text-muted-foreground">
+          {q.rating != null ? <span className="text-accent">★ <span className="tabular">{q.rating}</span> ({q.rating_count})</span> : null}
+          {q.emirate ? <span>{q.emirate}</span> : null}
+          {q.years_active != null ? <span>{q.years_active}y</span> : null}
+          {q.win_rate != null ? <span>{lang === 'ar' ? 'الفوز' : 'win'} {Math.round(q.win_rate)}%</span> : null}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        <div className="text-right">
+          <div className="font-head tabular text-[18px] font-bold leading-none text-foreground">{aed(q.price)}</div>
+          {vscore != null ? <div className="mt-1 text-[10px] text-muted-foreground">{t(lang, 'value_score')}</div> : null}
+        </div>
+        {vscore != null ? <ValueRing score={vscore} /> : null}
+      </div>
+    </div>
+
+    {meta.length ? (<dl className="mt-2.5 grid gap-x-4 gap-y-1 sm:grid-cols-2">
+      {meta.map(([k, v]) => (<div key={k} className="flex items-baseline gap-1.5 text-[12px]">
+        <dt className="text-muted-foreground">{k}:</dt><dd className="text-foreground">{v}</dd>
+      </div>))}
+    </dl>) : null}
+    {q.scope ? <p className={cn(S.sub, 'mt-2')}>{q.scope}</p> : null}
+    <div className="mt-2.5"><QuotePdfLink q={q} token={token} lang={lang} /></div>
+
+    {state === 'revealed'
+      ? (contact ? <Contact c={contact} q={q} token={token} onChange={onChange} lang={lang} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} />
+                 : <p className={cn(S.sub, 'mt-2.5')}>{t(lang, 'loading_contact')}</p>)
+      : (<div className="qd-noprint mt-3 flex flex-wrap items-center justify-between gap-2.5 border-t border-border/50 pt-3">
+          <p className="max-w-[46ch] text-[12px] text-muted-foreground">{tf(lang, 'reveal_fee_note', { fee: aed(q.reveal_fee) })}</p>
+          <Button size="sm" className="btn-key" disabled={busy || concluded} onClick={reveal}>{busy ? t(lang, 'please_wait') : t(lang, 'reveal_cta')}</Button>
         </div>)}
-    {msg && <div className={S.err}>{msg}</div>}
-  </div>);
+    {msg && <div className={S.err} role="alert">{msg}</div>}
+  </article>);
 }
 
+/* Revealed supplier: contact details + full profile drill-down (supplier_history) */
 function Contact({ c, q, token, onChange, lang, won }) {
   const s = c.supplier || {};
   const [rating, setRating] = useState(0); const [rated, setRated] = useState(!!(q && q.rated)); const [done, setDone] = useState('');
-  const rate = async (n) => { setRating(n); const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating: n }, token); if (j && j.ok) { setRated(true); setDone('Thanks for rating.'); } else setDone((j && j.error) || 'Could not save rating.'); };
-  const refund = async () => { if (!confirm('Request a refund of the reveal fee? This is only valid within 3 working days if the supplier did not respond.')) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token); setDone(j && j.ok ? 'Refund requested — we will review it.' : ((j && j.error) || 'Could not request refund.')); };
-  const hire = async () => { if (!confirm('Mark this supplier as hired for this project?')) return; const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token); if (j && j.ok) { setDone('Marked as hired.'); onChange && onChange(); } else setDone((j && j.error) || 'Could not update.'); };
-  return (<div className="mt-2.5 rounded-lg border border-primary/30 bg-primary/10 p-3">
-    <div className="font-bold">{s.company_name || 'Supplier'}</div>
-    {q && q.revealed_at ? <div className={cn(S.sub, 'mt-0.5')}>{(lang === 'ar' ? 'كُشف بتاريخ ' : 'Revealed on ') + new Date(q.revealed_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div> : null}
-    {won ? <div className="text-primary text-[12px] font-bold mt-0.5">🏆 {lang === 'ar' ? 'المورّد المتعاقد معه لهذا المشروع' : 'Hired supplier for this project'}</div> : null}
-    <div className={cn(S.sub, 'mt-0.5')}>{(lang === 'ar' ? 'دفعت ' : 'You paid ') + aed(q.reveal_fee) + (lang === 'ar' ? ' لكشف هذا المورّد' : ' to reveal this supplier')}</div>
-    <div className="flex gap-3.5 flex-wrap mt-1.5">
-      {s.phone && <a href={'tel:' + s.phone} className="text-primary font-semibold">📞 {s.phone}</a>}
-      {s.whatsapp && <a href={'https://wa.me/' + String(s.whatsapp).replace(/[^0-9]/g, '')} target="_blank" rel="noopener" className="text-primary font-semibold">WhatsApp</a>}
-      {s.email && <a href={'mailto:' + s.email} className="text-primary font-semibold">✉ {s.email}</a>}
-      {s.website && <a href={/^https?:/.test(s.website) ? s.website : 'https://' + s.website} target="_blank" rel="noopener" className="text-primary font-semibold">Website</a>}
+  const [prof, setProf] = useState(null); const [profOpen, setProfOpen] = useState(false); const [profBusy, setProfBusy] = useState(false);
+  const rate = async (n) => { setRating(n); const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating: n }, token); if (j && j.ok) { setRated(true); setDone(lang === 'ar' ? 'شكرًا لتقييمك.' : 'Thanks for rating.'); } else setDone((j && j.error) || 'Could not save rating.'); };
+  const refund = async () => { if (!confirm(lang === 'ar' ? 'طلب استرداد رسوم الكشف؟ صالح فقط خلال 3 أيام عمل إذا لم يرد المورّد.' : 'Request a refund of the reveal fee? This is only valid within 3 working days if the supplier did not respond.')) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token); setDone(j && j.ok ? (lang === 'ar' ? 'تم استلام طلب الاسترداد — سنراجعه.' : 'Refund requested — we will review it.') : ((j && j.error) || 'Could not request refund.')); };
+  const hire = async () => { if (!confirm(lang === 'ar' ? 'تعليم هذا المورّد كمتعاقد معه لهذا المشروع؟' : 'Mark this supplier as hired for this project?')) return; const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token); if (j && j.ok) { setDone(lang === 'ar' ? 'تم التعليم كمتعاقد.' : 'Marked as hired.'); onChange && onChange(); } else setDone((j && j.error) || 'Could not update.'); };
+  const loadProfile = async () => {
+    if (prof) { setProfOpen((v) => !v); return; }
+    setProfBusy(true);
+    const j = await call('customer_api', { action: 'supplier_history', quote_id: q.id }, token);
+    setProfBusy(false);
+    if (j && j.ok) { setProf(j); setProfOpen(true); } else setDone((j && j.error) || t(lang, 'reveal_first'));
+  };
+  const sup = prof && prof.supplier ? prof.supplier : null;
+  const rd = sup && sup.rating_display ? sup.rating_display : null;
+  return (<div className="mt-3 rounded-xl border border-primary/30 bg-primary/8 p-4">
+    <div className="flex flex-wrap items-center gap-2">
+      <b className="font-head text-[14px] text-foreground">{s.company_name || 'Supplier'}</b>
+      {won ? <Pill tone="gold">★ {t(lang, 'hired_badge')}</Pill> : null}
     </div>
-    {c.file_url && <div className="mt-1.5"><a href={c.file_url} target="_blank" rel="noopener" className="text-primary font-semibold">Download their quotation{c.file_name ? ' (' + c.file_name + ')' : ''}</a></div>}
-    <div className="flex gap-4 items-center mt-2.5 flex-wrap">
-      {!rated ? <span className="cursor-pointer text-lg tracking-widest text-muted-foreground/50" title="Rate this supplier">{[1, 2, 3, 4, 5].map((n) => <span key={n} onClick={() => rate(n)} className={cn('cursor-pointer', n <= rating && 'text-amber-400')}>★</span>)}</span> : <span className={S.sub}>★ Rated</span>}
-      <Button variant="link" className="px-0 h-auto" onClick={hire}>I hired this supplier</Button>
-      <Button variant="link" className="px-0 h-auto" onClick={refund}>Request refund</Button>
+    {q && q.revealed_at ? <p className={cn(S.sub, 'mt-0.5')}>{(lang === 'ar' ? 'كُشف بتاريخ ' : 'Revealed on ') + fmtDate(q.revealed_at, lang)}</p> : null}
+    <p className={cn(S.sub, 'mt-0.5')}>{(lang === 'ar' ? 'دفعت ' : 'You paid ') + aed(q.reveal_fee) + (lang === 'ar' ? ' لكشف هذا المورّد' : ' to reveal this supplier')}</p>
+
+    <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
+      {s.phone && <a href={'tel:' + s.phone} className="text-[13px] font-semibold text-primary underline underline-offset-2">☎ {s.phone}</a>}
+      {s.whatsapp && <a href={'https://wa.me/' + String(s.whatsapp).replace(/[^0-9]/g, '')} target="_blank" rel="noopener" className="text-[13px] font-semibold text-primary underline underline-offset-2">WhatsApp</a>}
+      {s.email && <a href={'mailto:' + s.email} className="text-[13px] font-semibold text-primary underline underline-offset-2 break-all">✉ {s.email}</a>}
+      {s.website && <a href={/^https?:/.test(s.website) ? s.website : 'https://' + s.website} target="_blank" rel="noopener" className="text-[13px] font-semibold text-primary underline underline-offset-2">{lang === 'ar' ? 'الموقع' : 'Website'}</a>}
     </div>
-    {done && <div className={cn(S.sub, 'mt-1.5 text-primary')}>{done}</div>}
+    {c.file_url && <div className="mt-2"><a href={c.file_url} target="_blank" rel="noopener" className="text-[12.5px] font-semibold text-primary underline underline-offset-2">{t(lang, 'download_quotation')}{c.file_name ? ' (' + c.file_name + ')' : ''}</a></div>}
+
+    <div className="qd-noprint mt-3 border-t border-primary/20 pt-3">
+      <Button variant="ghost" size="sm" className="-ms-2" disabled={profBusy} onClick={loadProfile} aria-expanded={profOpen}>
+        {profBusy ? t(lang, 'preparing') : (profOpen ? t(lang, 'close') : t(lang, 'view_profile'))}
+      </Button>
+      {profOpen && sup ? (<div className="qd-fade mt-2 rounded-lg border border-border/60 bg-background/40 p-3.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <b className="font-head text-[13.5px] text-foreground">{sup.company_name}</b>
+          {rd && rd.value != null ? <span className="text-[12px] text-accent">★ <span className="tabular">{rd.value}</span> ({rd.count}) · {rd.source}</span> : null}
+        </div>
+        {sup.capability_summary || sup.description ? <p className={cn(S.sub, 'mt-1.5')}>{sup.capability_summary || sup.description}</p> : null}
+        <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {sup.emirate ? <div><div className="text-[10.5px] text-muted-foreground">{t(lang,'based_in')}</div><div className="text-[12.5px] text-foreground">{sup.emirate}</div></div> : null}
+          {sup.founded_year ? <div><div className="text-[10.5px] text-muted-foreground">{t(lang,'years_active')}</div><div className="tabular text-[12.5px] text-foreground">{Math.max(0, new Date().getFullYear() - Number(sup.founded_year))}</div></div> : null}
+          {sup.company_type ? <div><div className="text-[10.5px] text-muted-foreground">{lang === 'ar' ? 'النوع' : 'Type'}</div><div className="text-[12.5px] text-foreground">{sup.company_type}</div></div> : null}
+          <div><div className="text-[10.5px] text-muted-foreground">{t(lang,'past_projects')}</div><div className="tabular text-[12.5px] text-foreground">{prof.projects_count ?? 0}</div></div>
+        </div>
+        {Array.isArray(prof.projects) && prof.projects.length ? (<div className="mt-3">
+          <div className={cn(S.h2, 'mb-1')}>{t(lang, 'past_projects')}</div>
+          <ul className="flex flex-col gap-1">
+            {prof.projects.slice(0, 8).map((p, i) => (<li key={i} className="flex items-baseline justify-between gap-3 border-b border-border/30 py-1 text-[12px]">
+              <span className="capitalize text-foreground">{p.category || '—'}{p.emirate ? ' · ' + p.emirate : ''}</span>
+              <span className="tabular text-muted-foreground">{p.month || ''} · {p.value_band || ''}</span>
+            </li>))}
+          </ul>
+        </div>) : null}
+      </div>) : null}
+    </div>
+
+    <div className="qd-noprint mt-3 flex flex-wrap items-center gap-4 border-t border-primary/20 pt-3">
+      {!rated ? (<span className="flex items-center gap-1" role="group" aria-label={t(lang, 'rate_supplier')}>
+        <span className="text-[12px] text-muted-foreground">{t(lang, 'rate_supplier')}</span>
+        {[1,2,3,4,5].map((n) => (<button key={n} type="button" onClick={() => rate(n)} aria-label={`${n}`}
+          className={cn('text-[17px] leading-none transition-colors', n <= rating ? 'text-accent' : 'text-muted-foreground/45 hover:text-accent/70')}>★</button>))}
+      </span>) : <Pill tone="gold">★ {t(lang, 'rated_l')}</Pill>}
+      <Button variant="link" className="h-auto px-0" onClick={hire}>{t(lang, 'i_hired')}</Button>
+      <Button variant="link" className="h-auto px-0 text-muted-foreground" onClick={refund}>{t(lang, 'request_refund')}</Button>
+    </div>
+    {done && <p className={cn(S.sub, 'mt-2 text-primary')} role="status">{done}</p>}
   </div>);
 }
 
-function NewRequest({ token, onDone, onCancel }) {
-  const GREETING = { role: 'assistant', text: "Hi — I\'m your QuotesDone intake assistant. Tell me what you need done and which emirate it\'s in, and I\'ll ask a couple of quick questions so suppliers can quote accurately. You can type, attach a drawing / photo / your own quotation, or tap the mic. Your identity stays hidden until you choose to reveal a supplier." };
+
+/* ── Messages ──────────────────────────────────────────────────────────────
+   Chat is gated: a customer asks a question, the assistant answers instantly,
+   and a direct supplier chat opens only when it genuinely needs to. Preserved
+   exactly — only the presentation changed. */
+function Messages({ token, lang }) {
+  const [threads, setThreads] = useState(null); const [open, setOpen] = useState(null);
+  const reload = () => call('messages_api', { action: 'threads' }, token).then((j) => setThreads((j && j.threads) || [])).catch(() => setThreads([]));
+  useEffect(() => { reload(); }, []);
+  if (open) return <Thread token={token} th={open} lang={lang} onBack={() => { setOpen(null); reload(); }} />;
+  return (<div className="flex flex-col gap-5">
+    <header className="qd-rise">
+      <h1 className="font-head text-[25px] font-bold tracking-[-.025em] text-foreground">{t(lang, 'messages')}</h1>
+    </header>
+    {!threads ? <Skeleton rows={3} />
+      : !threads.length
+        ? <Empty icon="✉" title={lang === 'ar' ? 'لا توجد محادثات بعد' : 'No conversations yet'}
+            sub={lang === 'ar'
+              ? 'بعد كشف مورّد، يمكنك طرح أسئلتك هنا. يجيب مساعدنا على معظم الأمور فورًا ويفتح محادثة مباشرة عند الحاجة فقط.'
+              : 'After you reveal a supplier, you can ask them questions here. Our assistant answers most things instantly and opens a direct chat only when needed.'} />
+        : <div className={S.list}>{threads.map((th, i) => (
+            <button key={th.inquiry_id + ':' + th.supplier_id} type="button" onClick={() => setOpen(th)} style={rise(i)}
+              className="surface qd-lift qd-rise w-full rounded-xl p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <b className="font-head text-[13.5px] text-foreground">{th.counterpart}</b>
+                    {th.subject ? <span className="text-[12px] text-muted-foreground">{th.subject}</span> : null}
+                  </div>
+                  <p className={cn(S.sub, 'mt-1 line-clamp-1')}>{th.last || (lang === 'ar' ? 'لا توجد رسائل بعد' : 'No messages yet')}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  {th.unread ? <Pill tone="teal">{th.unread}</Pill> : null}
+                  <div className="mt-1 text-[10.5px] capitalize text-muted-foreground">{th.chat_status === 'none' ? (lang === 'ar' ? 'لا توجد محادثة' : 'no chat') : th.chat_status}</div>
+                </div>
+              </div>
+            </button>))}
+          </div>}
+  </div>);
+}
+function Thread({ token, th, onBack, lang }) {
+  const [data, setData] = useState(null); const [text, setText] = useState(''); const [q, setQ] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const load = () => call('messages_api', { action: 'thread', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id }, token).then(setData).catch(() => {});
+  useEffect(() => { load(); }, []);
+  const send = async () => { if (!text.trim()) return; setBusy(true); setMsg(''); const j = await call('messages_api', { action: 'send', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id, body: text.trim() }, token); setBusy(false); if (j && j.ok) { setText(''); load(); } else setMsg((j && j.warning) || (j && j.error) || 'Could not send.'); };
+  const requestChat = async () => { if (!q.trim()) return; setBusy(true); setMsg(''); const j = await call('messages_api', { action: 'request_chat', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id, question: q.trim() }, token); setBusy(false); if (j && j.answered) setMsg('Assistant: ' + j.answer); else if (j && j.requested) setMsg(j.note || 'Sent for review — you will be notified if a chat opens.'); else setMsg((j && (j.note || j.error)) || 'Sent.'); setQ(''); };
+  if (!data) return <div className="flex flex-col gap-4"><div className="qd-rise"><Button variant="ghost" size="sm" className="-ms-2" onClick={onBack}>{backArrow(lang)} {t(lang, 'back')}</Button></div><Skeleton rows={2} /></div>;
+  return (<div className="flex flex-col gap-4">
+    <div className="qd-rise"><Button variant="ghost" size="sm" className="-ms-2" onClick={onBack}>{backArrow(lang)} {t(lang, 'back')}</Button></div>
+    <div className="surface qd-rise rounded-xl p-5">
+      <h1 className={S.h2}>{data.counterpart || th.counterpart}</h1>
+      {data.warning && <div className="mt-2.5 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 text-[11.5px] text-accent">{data.warning}</div>}
+      {data.chat_status === 'open' ? (<>
+        <div className="my-3 flex max-h-[420px] flex-col gap-2 overflow-y-auto">
+          {(data.messages || []).map((m, i) => (
+            <div key={m.id} style={rise(Math.min(i, 8))}
+              className={cn('qd-fade max-w-[76%] rounded-xl px-3 py-2 text-[13.5px] leading-snug',
+                m.sender === data.role ? 'self-end rounded-br-sm bg-primary text-primary-foreground' : 'self-start rounded-bl-sm border border-border bg-secondary/55 text-foreground')}>{m.body}</div>))}
+        </div>
+        <div className="flex gap-2">
+          <Input placeholder={lang === 'ar' ? 'اكتب رسالة…' : 'Type a message…'} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} />
+          <Button size="sm" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (lang === 'ar' ? 'إرسال' : 'Send')}</Button>
+        </div>
+      </>) : (<>
+        <p className={cn(S.sub, 'mt-2')}>{data.note || (lang === 'ar' ? 'لا توجد محادثة مفتوحة بعد.' : 'No chat open yet.')}</p>
+        <textarea className={S.area} rows={2} value={q} onChange={(e) => setQ(e.target.value)}
+          aria-label={lang === 'ar' ? 'اسأل المورّد' : 'Ask the supplier a question'}
+          placeholder={lang === 'ar'
+            ? 'اسأل المورّد سؤالًا — يجيب مساعدنا فورًا، ويفتح محادثة مباشرة عند الحاجة.'
+            : 'Ask the supplier a question — our assistant answers instantly, or opens a direct chat if needed.'} />
+        <div className="mt-2.5"><Button size="sm" disabled={busy} onClick={requestChat}>{lang === 'ar' ? 'اسأل / اطلب محادثة' : 'Ask / request a chat'}</Button></div>
+      </>)}
+      {msg && <p className={cn(S.sub, 'mt-2.5 whitespace-pre-wrap text-foreground')} role="status">{msg}</p>}
+    </div>
+  </div>);
+}
+
+
+async function blobToWavB64(blob) {
+  const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC();
+  const buf = await ac.decodeAudioData(await blob.arrayBuffer());
+  const rate = 16000; const off = new OfflineAudioContext(1, Math.ceil(buf.duration * rate), rate);
+  const src = off.createBufferSource(); src.buffer = buf; src.connect(off.destination); src.start();
+  const rendered = await off.startRendering(); const pcm = rendered.getChannelData(0);
+  const wav = encodeWav(pcm, rate); const bytes = new Uint8Array(await wav.arrayBuffer()); let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+/* ── New request: conversational intake ────────────────────────────────────── */
+function NewRequest({ token, onDone, onCancel, lang }) {
+  const GREETING = { role: 'assistant', text: lang === 'ar'
+    ? 'مرحبًا — أنا مساعد الطلبات في QuotesDone. أخبرني بما تحتاجه وفي أي إمارة، وسأطرح سؤالين سريعين حتى يتمكن المورّدون من التسعير بدقة. يمكنك الكتابة أو إرفاق رسم أو صورة أو عرض سعر، أو الضغط على الميكروفون. تبقى هويتك مخفية حتى تختار كشف مورّد.'
+    : "Hi — I'm your QuotesDone intake assistant. Tell me what you need done and which emirate it's in, and I'll ask a couple of quick questions so suppliers can quote accurately. You can type, attach a drawing / photo / your own quotation, or tap the mic. Your identity stays hidden until you choose to reveal a supplier." };
   const [messages, setMessages] = useState([GREETING]);
   const [input, setInput] = useState('');
   const [intakeId, setIntakeId] = useState(null);
@@ -410,7 +1096,7 @@ function NewRequest({ token, onDone, onCancel }) {
     if (r.assistant_message) push({ role: 'assistant', text: r.assistant_message });
     if (r.status === 'ready') { setBrief(r.brief || null); setReady(true); } else { setReady(false); }
   };
-  const send = async () => { const t = input.trim(); if (!t) return; push({ role: 'user', text: t }); setInput(''); await runIntake(t); };
+  const send = async () => { const v = input.trim(); if (!v) return; push({ role: 'user', text: v }); setInput(''); await runIntake(v); };
   const onKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
   const onFile = async (file) => {
     if (!file) return; setMsg(''); setAnalyzing(true);
@@ -440,78 +1126,71 @@ function NewRequest({ token, onDone, onCancel }) {
     else setMsg((r && (r.message || r.error)) || 'Could not send your request.');
   };
   const trades = (brief && Array.isArray(brief.trades)) ? brief.trades : [];
-  return (<Card className="p-0 mb-3.5 flex flex-col" style={{ height: 'min(72vh, 640px)' }}>
-    <div className="flex justify-between items-center gap-2.5 px-5 py-3 border-b border-border">
-      <div className={S.h2}>New request</div>
-      <Button variant="link" className="px-0 h-auto" onClick={onCancel}>Cancel</Button>
+  return (<div className="surface flex flex-col overflow-hidden rounded-2xl" style={{ height: 'min(72vh, 640px)' }}>
+    <div className="flex items-center justify-between gap-2.5 border-b border-border/70 px-5 py-3">
+      <div className="flex items-center gap-2">
+        <span aria-hidden className="grid h-6 w-6 place-items-center rounded-full bg-primary/12 text-[11px] font-bold text-primary">AI</span>
+        <h2 className={S.h2}>{t(lang, 'new_request').replace('+ ', '')}</h2>
+      </div>
+      <Button variant="link" className="h-auto px-0" onClick={onCancel}>{t(lang, 'close')}</Button>
     </div>
-    <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
+    <div className="flex-1 space-y-2.5 overflow-y-auto px-4 py-3.5">
       {messages.map((m, i) => (
         m.chip !== undefined
-          ? <div key={i} className="flex justify-end"><div className="rounded-2xl bg-primary/15 border border-primary/30 text-foreground px-3 py-2 text-[13px]">📎 {m.chip}</div></div>
-          : <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-              <div className={cn('rounded-2xl px-3.5 py-2 text-[13.5px] leading-relaxed max-w-[85%] whitespace-pre-wrap', m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary/60 text-foreground border border-border')}>{m.text}</div>
+          ? <div key={i} className="flex justify-end qd-fade"><div className="rounded-2xl border border-primary/30 bg-primary/12 px-3 py-2 text-[13px] text-foreground">◫ {m.chip}</div></div>
+          : <div key={i} className={cn('flex qd-fade', m.role === 'user' ? 'justify-end' : 'justify-start')}>
+              <div className={cn('max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[13.5px] leading-relaxed',
+                m.role === 'user' ? 'bg-primary text-primary-foreground' : 'border border-border bg-secondary/55 text-foreground')}>{m.text}</div>
             </div>
       ))}
-      {(thinking || analyzing) && <div className="flex justify-start"><div className="rounded-2xl px-3.5 py-2 text-[13px] bg-secondary/60 text-muted-foreground border border-border">{analyzing ? 'Reading your file…' : 'Typing…'}</div></div>}
+      {(thinking || analyzing) && (<div className="flex justify-start">
+        <div className="flex items-center gap-1.5 rounded-2xl border border-border bg-secondary/55 px-3.5 py-2.5">
+          {[0,1,2].map((d) => <span key={d} className="qd-shimmer inline-block h-1.5 w-1.5 rounded-full bg-primary/70" style={{ animationDelay: (d * 160) + 'ms' }} />)}
+          <span className="ml-1 text-[12.5px] text-muted-foreground">{analyzing ? (lang === 'ar' ? 'أقرأ ملفك…' : 'Reading your file…') : (lang === 'ar' ? 'يكتب…' : 'Typing…')}</span>
+        </div>
+      </div>)}
       {ready && brief && (
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3.5">
-          <div className={cn(S.sub, 'font-bold capitalize text-foreground')}>{brief.category || 'Request'}{brief.emirate ? ' — ' + brief.emirate : ''}</div>
-          <div className={cn(S.sub, 'mt-1')}>{brief.summary || ''}</div>
-          {brief.scope ? <div className={cn(S.sub, 'mt-1')}>Scope: {brief.scope}</div> : null}
-          {brief.timeline ? <div className={cn(S.sub, 'mt-1')}>Timeline: {brief.timeline}</div> : null}
-          {brief.budget ? <div className={cn(S.sub, 'mt-1')}>Budget: {brief.budget}</div> : null}
-          {trades.length > 1 ? (<div className="mt-2.5 rounded-lg border border-primary/30 bg-primary/5 p-3"><div className={cn(S.sub, 'font-semibold text-primary')}>This project spans several trades: {trades.join(', ')}.</div><div className={cn(S.sub, 'mt-0.5 mb-2')}>How would you like to source it?</div><label className="flex items-start gap-2 cursor-pointer rounded-md p-2 hover:bg-secondary/50"><input type="radio" name="combine" className="mt-1" checked={combineMode === 'multi'} onChange={() => setCombineMode('multi')} /><span className={S.sub}><span className="font-semibold text-foreground">Separate specialists (recommended)</span> — a separate request goes to specialists in each trade, so you get the sharpest price on every part.</span></label><label className="flex items-start gap-2 cursor-pointer rounded-md p-2 hover:bg-secondary/50"><input type="radio" name="combine" className="mt-1" checked={combineMode === 'turnkey'} onChange={() => setCombineMode('turnkey')} /><span className={S.sub}><span className="font-semibold text-foreground">One turnkey company</span> — a single fit-out / decoration company handles the whole project end to end.</span></label></div>) : null}
-          {brief.plausibility && brief.plausibility.note ? <div className={cn(S.sub, 'mt-1')} style={{ color: 'hsl(43 68% 64%)' }}>Note: {brief.plausibility.note}</div> : null}
-          <Button className="w-full mt-3" disabled={busy} onClick={submit}>{busy ? 'Sending…' : 'Send to suppliers'}</Button>
-          <div className={cn(S.sub, 'text-center mt-1.5')}>or keep typing below to add more detail</div>
+        <div className="qd-rise rounded-xl border border-primary/30 bg-primary/6 p-4">
+          <div className="flex items-center gap-2"><Pill tone="teal">{lang === 'ar' ? 'جاهز' : 'Ready'}</Pill>
+            <b className="font-head text-[13.5px] capitalize text-foreground">{brief.category || 'Request'}{brief.emirate ? ' — ' + brief.emirate : ''}</b></div>
+          <p className={cn(S.sub, 'mt-1.5')}>{brief.summary || ''}</p>
+          <dl className="mt-2 grid gap-x-4 gap-y-0.5 sm:grid-cols-2">
+            {brief.scope ? <div className="text-[12.5px]"><dt className="inline text-muted-foreground">{t(lang,'scope_l')}: </dt><dd className="inline text-foreground">{brief.scope}</dd></div> : null}
+            {brief.timeline ? <div className="text-[12.5px]"><dt className="inline text-muted-foreground">{lang === 'ar' ? 'المدة' : 'Timeline'}: </dt><dd className="inline text-foreground">{brief.timeline}</dd></div> : null}
+            {brief.budget ? <div className="text-[12.5px]"><dt className="inline text-muted-foreground">{t(lang,'budget_l')}: </dt><dd className="inline text-foreground">{brief.budget}</dd></div> : null}
+            {brief.quantity ? <div className="text-[12.5px]"><dt className="inline text-muted-foreground">{lang === 'ar' ? 'الكمية' : 'Quantity'}: </dt><dd className="inline text-foreground">{brief.quantity}</dd></div> : null}
+          </dl>
+          {trades.length > 1 ? (<fieldset className="mt-3 rounded-lg border border-primary/25 bg-primary/5 p-3">
+            <legend className="px-1 text-[12.5px] font-semibold text-primary">{lang === 'ar' ? ('يشمل هذا المشروع عدة تخصصات: ' + trades.join('، ')) : ('This project spans several trades: ' + trades.join(', '))}</legend>
+            <p className={cn(S.sub, 'mb-1.5')}>{lang === 'ar' ? 'كيف تود توريده؟' : 'How would you like to source it?'}</p>
+            <label className="flex cursor-pointer items-start gap-2 rounded-md p-2 hover:bg-secondary/40"><input type="radio" name="combine" className="mt-1" checked={combineMode === 'multi'} onChange={() => setCombineMode('multi')} />
+              <span className={S.sub}><span className="font-semibold text-foreground">{lang === 'ar' ? 'متخصصون منفصلون (موصى به)' : 'Separate specialists (recommended)'}</span> — {lang === 'ar' ? 'يُرسل طلب منفصل لمتخصصي كل تخصص، فتحصل على أفضل سعر لكل جزء.' : 'a separate request goes to specialists in each trade, so you get the sharpest price on every part.'}</span></label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-md p-2 hover:bg-secondary/40"><input type="radio" name="combine" className="mt-1" checked={combineMode === 'turnkey'} onChange={() => setCombineMode('turnkey')} />
+              <span className={S.sub}><span className="font-semibold text-foreground">{lang === 'ar' ? 'شركة واحدة تسليم مفتاح' : 'One turnkey company'}</span> — {lang === 'ar' ? 'شركة تجهيز/ديكور واحدة تتولى المشروع بالكامل.' : 'a single fit-out / decoration company handles the whole project end to end.'}</span></label>
+          </fieldset>) : null}
+          {brief.plausibility && brief.plausibility.note ? <p className="mt-1.5 text-[12.5px] text-accent">{(lang === 'ar' ? 'ملاحظة: ' : 'Note: ') + brief.plausibility.note}</p> : null}
+          <Button className="btn-key mt-3 w-full" disabled={busy} onClick={submit}>{busy ? t(lang, 'sending') : (lang === 'ar' ? 'إرسال إلى المورّدين' : 'Send to suppliers')}</Button>
+          <p className={cn(S.sub, 'mt-1.5 text-center')}>{lang === 'ar' ? 'أو تابع الكتابة أدناه لإضافة تفاصيل' : 'or keep typing below to add more detail'}</p>
         </div>
       )}
       <div ref={endRef} />
     </div>
-    <div className="border-t border-border px-3 py-2.5">
-      {msg && <div className={cn(S.err, 'mb-1.5')}>{msg}</div>}
+    <div className="border-t border-border/70 px-3 py-2.5">
+      {msg && <div className={cn(S.err, 'mb-1.5')} role="alert">{msg}</div>}
       <div className="flex items-end gap-2">
         <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => onFile(e.target.files[0])} />
-        <button type="button" title="Attach a drawing, photo or quotation" className="text-primary text-xl px-1 leading-none disabled:opacity-40" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}>📎</button>
-        <button type="button" title="Speak your request" className={cn('text-xl px-1 leading-none', rec ? 'text-red-400' : 'text-primary')} onClick={rec ? stopRec : startRec}>{voxBusy ? '…' : (rec ? '⏺' : '🎙')}</button>
-        <textarea className="flex-1 resize-none rounded-xl bg-secondary/40 border border-border px-3 py-2 text-[13.5px] outline-none focus:border-primary/60" rows={1} placeholder={rec ? 'Listening… tap the mic to stop' : 'Message the assistant…'} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} />
-        <Button disabled={thinking || analyzing || !input.trim()} onClick={send}>Send</Button>
+        <button type="button" aria-label={lang === 'ar' ? 'إرفاق ملف' : 'Attach a drawing, photo or quotation'} title={lang === 'ar' ? 'إرفاق ملف' : 'Attach a drawing, photo or quotation'}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-primary transition-colors hover:bg-primary/10 disabled:opacity-40"
+          disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}>◫</button>
+        <button type="button" aria-label={lang === 'ar' ? 'التسجيل الصوتي' : 'Speak your request'} aria-pressed={rec} title={lang === 'ar' ? 'التسجيل الصوتي' : 'Speak your request'}
+          className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors hover:bg-primary/10', rec ? 'text-red-400' : 'text-primary')}
+          onClick={rec ? stopRec : startRec}>{voxBusy ? '…' : (rec ? '◉' : '◎')}</button>
+        <textarea className="flex-1 resize-none rounded-xl border border-border bg-secondary/40 px-3 py-2 text-[13.5px] text-foreground outline-none focus:border-primary/60"
+          rows={1} aria-label={lang === 'ar' ? 'رسالة إلى المساعد' : 'Message the assistant'}
+          placeholder={rec ? (lang === 'ar' ? 'أستمع… اضغط الميكروفون للإيقاف' : 'Listening… tap the mic to stop') : (lang === 'ar' ? 'راسل المساعد…' : 'Message the assistant…')}
+          value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} />
+        <Button className="shrink-0" disabled={thinking || analyzing || !input.trim()} onClick={send}>{lang === 'ar' ? 'إرسال' : 'Send'}</Button>
       </div>
     </div>
-  </Card>);
+  </div>);
 }
-function Messages({ token }) {
-  const [threads, setThreads] = useState(null); const [open, setOpen] = useState(null);
-  const reload = () => call('messages_api', { action: 'threads' }, token).then((j) => setThreads(j.threads || []));
-  useEffect(() => { reload(); }, []);
-  if (!threads) return <Card className="p-5">Loading messages…</Card>;
-  if (open) return <Thread token={token} th={open} onBack={() => { setOpen(null); reload(); }} />;
-  if (!threads.length) return <Card className="p-5"><div className={S.h2}>No conversations yet</div><div className={S.sub}>After you reveal a supplier, you can ask them questions here. Our assistant answers most things instantly and opens a direct chat only when needed.</div></Card>;
-  return <div className={S.list}>{threads.map((t) => <Card key={t.inquiry_id + ':' + t.supplier_id} className="p-5 flex justify-between items-center cursor-pointer gap-3" onClick={() => setOpen(t)}>
-    <div><b>{t.counterpart}</b> · {t.subject}<div className={S.sub}>{t.last || 'No messages yet'}</div></div>
-    <div className="text-right">{t.unread ? <span className="inline-block rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-[11px] font-bold">{t.unread}</span> : null}<div className={cn(S.sub, 'capitalize')}>{t.chat_status === 'none' ? 'no chat' : t.chat_status}</div></div>
-  </Card>)}</div>;
-}
-function Thread({ token, th, onBack }) {
-  const [data, setData] = useState(null); const [text, setText] = useState(''); const [q, setQ] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
-  const load = () => call('messages_api', { action: 'thread', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id }, token).then(setData);
-  useEffect(() => { load(); }, []);
-  const send = async () => { if (!text.trim()) return; setBusy(true); setMsg(''); const j = await call('messages_api', { action: 'send', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id, body: text.trim() }, token); setBusy(false); if (j && j.ok) { setText(''); load(); } else setMsg((j && j.warning) || (j && j.error) || 'Could not send.'); };
-  const requestChat = async () => { if (!q.trim()) return; setBusy(true); setMsg(''); const j = await call('messages_api', { action: 'request_chat', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id, question: q.trim() }, token); setBusy(false); if (j && j.answered) setMsg('Assistant: ' + j.answer); else if (j && j.requested) setMsg(j.note || 'Sent for review — you will be notified if a chat opens.'); else setMsg((j && (j.note || j.error)) || 'Sent.'); setQ(''); };
-  if (!data) return <Card className="p-5">Loading…</Card>;
-  return <Card className="p-5">
-    <div className="flex justify-between items-center gap-2.5"><div className={S.h2}>{data.counterpart || th.counterpart}</div><Button variant="link" className="px-0 h-auto" onClick={onBack}>← Back</Button></div>
-    {data.warning && <div className="rounded-md border border-amber-400/30 bg-amber-400/10 text-amber-300 px-3 py-2 text-[11.5px] mb-2.5">{data.warning}</div>}
-    {data.chat_status === 'open' ? (<>
-      <div className="flex flex-col gap-2 my-2.5 max-h-[420px] overflow-y-auto">{(data.messages || []).map((m) => <div key={m.id} className={cn('max-w-[76%] px-3 py-2 rounded-xl text-[13.5px] leading-snug', m.sender === data.role ? 'self-end bg-primary/80 text-primary-foreground rounded-br-sm' : 'self-start bg-white/8 text-foreground rounded-bl-sm')}>{m.body}</div>)}</div>
-      <div className={S.frow}><Input placeholder="Type a message…" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /><Button size="sm" disabled={busy} onClick={send}>Send</Button></div>
-    </>) : (<>
-      <div className={cn(S.sub, 'mb-2')}>{data.note || 'No chat open yet.'}</div>
-      <textarea className={S.area} rows={2} placeholder="Ask the supplier a question — our assistant answers instantly, or opens a direct chat if needed." value={q} onChange={(e) => setQ(e.target.value)} />
-      <div className="mt-2.5"><Button size="sm" disabled={busy} onClick={requestChat}>Ask / request a chat</Button></div>
-    </>)}
-    {msg && <div className={cn(S.sub, 'mt-2')} style={{ whiteSpace: 'pre-wrap' }}>{msg}</div>}
-  </Card>;
-}
-function Kpi({ label, v }) { return <Card className="p-3.5"><div className="text-[19px] font-extrabold text-foreground">{v}</div><div className="text-[11.5px] text-muted-foreground mt-1">{label}</div></Card>; }
