@@ -580,8 +580,12 @@ function Documents({ token, lang }) {
   };
   if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading_docs')}</Card>;
   // Order comes from the server (DOC_ORDER) so adding a document type needs no change here.
-  const docs = data.documents || [];
-  const sum = data.summary || {};
+  const allDocs = data.documents || [];
+  // Count only what is actually shown. The server still returns iban/vat, and counting them would
+  // report "2/9 on file" against a list of seven — a completeness bar that can never fill.
+  const shownKeys = new Set(DOC_GROUPS.flatMap((g) => g.keys));
+  const docs = allDocs.filter((d) => shownKeys.has(d.key));
+  const sum = { on_file: docs.filter((d) => d.status !== 'missing').length, total: docs.length };
   const attention = docs.filter((d) => d.status === 'expired' || d.status === 'expiring');
   const missingReq = docs.filter((d) => d.required && d.status === 'missing');
   return <div className={S.list}>
@@ -590,8 +594,8 @@ function Documents({ token, lang }) {
         <div>
           <div className={S.h2}>{t(lang, 'docs_h')}</div>
           <div className={cn(S.sub, 'mt-1')}>{lang === 'ar'
-            ? 'تُستخدم هذه المستندات للتحقق من حسابك. الرخصة التجارية والتأمين مطلوبان لاستمرار استقبال الطلبات.'
-            : 'These verify your account. Your trade licence and insurance must stay valid to keep receiving customer requests.'}</div>
+            ? 'رخصتك التجارية وحدها هي المطلوبة، ويجب أن تبقى سارية لاستمرار استقبال الطلبات. كل ما عدا ذلك اختياري.'
+            : 'Only your trade licence is required, and it must stay valid to keep receiving requests. Everything else is optional.'}</div>
         </div>
         <div className="text-right shrink-0">
           <div className="text-[22px] font-extrabold text-foreground leading-none">{sum.on_file ?? 0}<span className="text-muted-foreground text-[15px]">/{sum.total ?? docs.length}</span></div>
@@ -611,9 +615,41 @@ function Documents({ token, lang }) {
       </div>}
       {err && <div className={cn(S.err, 'mt-3')}>{err}</div>}
     </Card>
-    {docs.map((d) => <DocRow key={d.key} d={d} lang={lang} busy={busy === d.key} onUpload={upload} />)}
+    {DOC_GROUPS.map((g) => {
+      const rows = g.keys.map((k) => docs.find((d) => d.key === k)).filter(Boolean);
+      if (!rows.length) return null;
+      return <div key={g.id} className={S.section}>
+        <div className="px-1 pt-2 pb-1">
+          <div className="text-[12px] font-bold tracking-[.04em] uppercase text-muted-foreground/90">{g.title(lang)}</div>
+          {g.note && <div className={cn(S.sub, 'mt-1')}>{g.note(lang)}</div>}
+        </div>
+        <div className={S.list}>
+          {rows.map((d) => <DocRow key={d.key} d={d} lang={lang} busy={busy === d.key} onUpload={upload} />)}
+        </div>
+      </div>;
+    })}
   </div>;
 }
+// Grouped by what each document actually gates, because eight identical "Not uploaded" badges in one
+// list reads as eight blockers. Only the first group can stop a supplier being verified; the second is
+// framed by what it UNLOCKS rather than as an unmet requirement.
+//
+// IBAN and VAT are deliberately absent. Money moves both directions through Stripe — customers pay us,
+// and a supplier settling a due pays us the same way — so we never hold a supplier's bank details.
+// Their TRN is already read off the trade licence automatically, so the VAT certificate was asking for
+// something we had. The backend still supports both types; this removes the ask, not the capability.
+const DOC_GROUPS = [
+  { id: 'required', keys: ['license', 'profile', 'catalogs'],
+    title: (l) => (l === 'ar' ? 'مطلوب للتحقق' : 'Required to get verified'),
+    note: (l) => (l === 'ar'
+      ? 'رخصتك التجارية وملفك التعريفي. نقرأ منهما ما تقوم به لنعرف أي الطلبات نرسلها إليك.'
+      : 'Your trade licence and company profile. We read these to work out what work to send you.') },
+  { id: 'optional', keys: ['insurance', 'iso', 'manufacturer', 'egr'],
+    title: (l) => (l === 'ar' ? 'اختياري — للحصول على مطابقات أكثر' : 'Optional — get matched to more work'),
+    note: (l) => (l === 'ar'
+      ? 'لا شيء من هذه مطلوب للتحقق. كل مستند تضيفه يفتح لك طلبات إضافية — بعض العملاء يشترطون التأمين، وخطاب الوكالة يتيح لنا مطابقتك عندما يطلب العميل علامة تجارية بعينها.'
+      : 'None of these are needed to be verified. Each one you add opens up more requests — some customers require insurance, and a dealer letter lets us match you when a customer names a brand you carry.') },
+];
 // Every document type is editable here. The trade licence and company profile used to be
 // deliberately read-only (editable={d.key !== 'license' && d.key !== 'profile'}), and the only
 // licence upload in the product lived in ProfileForm, which renders solely while the account has
@@ -807,9 +843,10 @@ function ProfileForm({ token, me, onSaved, lang }) {
     <div className={S.frow}><Input placeholder={t(lang, 'lic_no')} value={f.trade_license_no} onChange={(e) => set('trade_license_no', e.target.value)} /><Input placeholder={t(lang, 'authority')} value={f.license_authority} onChange={(e) => set('license_authority', e.target.value)} /></div>
 
 
-    <div className={cn(S.h2, 'mt-4')}>{t(lang, 'h_egr')}</div>
-    <div className={S.frow}><Input placeholder={t(lang, 'egr_no')} value={f.egr_number} onChange={(e) => set('egr_number', e.target.value)} /></div>
-    <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'egr_cert')}</span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" onPick={setEgrFile} />{egrFile && <span className={S.sub}>{egrFile.name}</span>}</div>
+    {/* The establishment card lived here AND in the Documents tab — the same attachment asked for
+        twice. It is optional and never gates verification, so it has no place in the registration
+        form. Documents is now the single home for it. The egr_number field and its upload handler
+        remain in this component and still submit if populated; only the duplicated prompt is gone. */}
 
     <div className={cn(S.h2, 'mt-4')}>{t(lang, 'h_offer')}</div>
     <Input className="mt-3" placeholder={t(lang, 'products_ph')} value={f.products} onChange={(e) => set('products', e.target.value)} />
