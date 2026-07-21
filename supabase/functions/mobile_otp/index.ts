@@ -1,0 +1,80 @@
+// mobile_otp v3 - customer mobile verification via Twilio VERIFY API (API-key auth).
+// Uses the credentials that are actually provisioned: twilio_verify_service_sid + twilio_api_key_sid/_secret
+// (account uses API keys + a Verify service, not legacy auth_token+from). Twilio manages the OTP code itself.
+// Actions: 'status' (reports sms_enabled + phone), 'send', 'verify', 'diag' (read-only credential check).
+// Authed via the customer's Supabase JWT. verify_jwt=false (validates JWT internally).
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
+const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
+async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined)||undefined; }
+function normPhone(p: string){ let s = String(p||'').trim().replace(/[^0-9+]/g,''); if(!s) return ''; if(s.startsWith('00')) s='+'+s.slice(2); if(!s.startsWith('+')){ if(s.startsWith('0')) s='+971'+s.slice(1); else if(s.startsWith('971')) s='+'+s; else s='+'+s; } return s; }
+
+async function verifyCreds(){ return { svc: await sec('twilio_verify_service_sid'), ks: await sec('twilio_api_key_sid'), kk: await sec('twilio_api_key_secret') }; }
+function basic(ks: string, kk: string){ return 'Basic ' + btoa(ks + ':' + kk); }
+
+async function verifySend(svc: string, ks: string, kk: string, to: string, channel: string){
+  const form = new URLSearchParams({ To: to, Channel: channel });
+  const r = await fetch(`https://verify.twilio.com/v2/Services/${svc}/Verifications`, { method:'POST', headers:{ 'Authorization': basic(ks,kk), 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() });
+  const jd = await r.json().catch(()=>({})); return { ok: r.ok, status: r.status, vstatus: jd?.status || null, error: r.ok ? null : (jd?.message || ('http '+r.status)), code: jd?.code || null };
+}
+async function verifyCheck(svc: string, ks: string, kk: string, to: string, code: string){
+  const form = new URLSearchParams({ To: to, Code: code });
+  const r = await fetch(`https://verify.twilio.com/v2/Services/${svc}/VerificationCheck`, { method:'POST', headers:{ 'Authorization': basic(ks,kk), 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() });
+  const jd = await r.json().catch(()=>({})); return { ok: r.ok, status: r.status, vstatus: jd?.status || null, error: r.ok ? null : (jd?.message || ('http '+r.status)) };
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
+  try {
+    const body = await req.json().catch(() => ({})); const action = String(body.action || '');
+    const { svc, ks, kk } = await verifyCreds();
+    const smsEnabled = !!(svc && ks && kk);
+
+    // read-only credential + service reachability check (no SMS sent). Secret-gated to avoid abuse.
+    if (action === 'diag') {
+      if (body.__secret !== (await sec('inbound_secret'))) return J({ error:'forbidden' }, 403);
+      if (!smsEnabled) return J({ ok:false, sms_enabled:false, missing:{ verify_service_sid:!svc, api_key_sid:!ks, api_key_secret:!kk } });
+      const r = await fetch(`https://verify.twilio.com/v2/Services/${svc}`, { headers:{ 'Authorization': basic(ks!,kk!) } });
+      const jd = await r.json().catch(()=>({}));
+      return J({ ok:r.ok, sms_enabled:true, http:r.status, service_name: jd?.friendly_name || null, auth_ok: r.ok, error: r.ok?null:(jd?.message||('http '+r.status)) });
+    }
+
+    const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+    const { data: { user } } = await admin.auth.getUser(jwt);
+    if (!user || !user.email) return J({ error: 'Not signed in' }, 401);
+    const email = user.email.toLowerCase();
+    let { data: cust } = await admin.from('customers').select('id,phone,phone_verified').eq('email', email).maybeSingle();
+    if (!cust) { const ins = await admin.from('customers').insert({ email }).select('id,phone,phone_verified').maybeSingle(); cust = ins.data; }
+
+    if (action === 'status') return J({ ok: true, sms_enabled: smsEnabled, phone: cust!.phone || null, phone_verified: !!cust!.phone_verified });
+
+    if (action === 'send') {
+      if (!smsEnabled) return J({ ok: false, error: 'sms_not_configured' }, 200);
+      const phone = normPhone(String(body.phone || ''));
+      if (!phone || phone.replace(/\D/g,'').length < 9) return J({ ok: false, error: 'bad_phone' }, 200);
+      // rate-limit: max 5 sends / 10 min / customer (ledger row, no code stored - Twilio Verify holds the code)
+      const tenMinAgo = new Date(Date.now() - 600e3).toISOString();
+      const { count } = await admin.from('customer_phone_otps').select('id', { count: 'exact', head: true }).eq('customer_id', cust!.id).gte('created_at', tenMinAgo);
+      if ((count || 0) >= 5) return J({ ok: false, error: 'too_many_requests' }, 200);
+      const res = await verifySend(svc!, ks!, kk!, phone, 'sms');
+      if (!res.ok) return J({ ok:false, error:'send_failed', detail: res.error, code: res.code }, 200);
+      await admin.from('customer_phone_otps').insert({ customer_id: cust!.id, phone, code_hash: 'twilio_verify', expires_at: new Date(Date.now() + 600e3).toISOString() });
+      return J({ ok: true, status: res.vstatus });
+    }
+
+    if (action === 'verify') {
+      if (!smsEnabled) return J({ ok: false, error: 'sms_not_configured' }, 200);
+      const phone = normPhone(String(body.phone || '')); const code = String(body.code || '').trim();
+      if (!phone || !/^[0-9]{4,8}$/.test(code)) return J({ ok: false, error: 'bad_input' }, 200);
+      const res = await verifyCheck(svc!, ks!, kk!, phone, code);
+      if (!res.ok) return J({ ok:false, error:'verify_failed', detail: res.error }, 200);
+      if (res.vstatus !== 'approved') return J({ ok: false, error: 'wrong_code', status: res.vstatus }, 200);
+      await admin.from('customer_phone_otps').update({ consumed: true }).eq('customer_id', cust!.id).eq('phone', phone).eq('consumed', false);
+      await admin.from('customers').update({ phone, phone_verified: true }).eq('id', cust!.id);
+      return J({ ok: true, phone, phone_verified: true });
+    }
+
+    return J({ error: 'unknown action' }, 400);
+  } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
+});

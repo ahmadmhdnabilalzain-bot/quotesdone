@@ -1,0 +1,58 @@
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const T0 = Date.now();
+async function logRun(status: string, counts: Record<string, unknown>, note: string) {
+  try {
+    await admin.from('agent_runs').insert({ agent: 'gen_category_knowledge', status, counts,
+      note: String(note || '').slice(0, 500),
+      started_at: new Date(T0).toISOString(), finished_at: new Date().toISOString() });
+  } catch (_e) { /* never let logging break the function */ }
+}
+let LLM_CALLS=0, LLM_FAILS=0, SHORT_OUTPUTS=0, INSERT_FAILS=0; let LAST_ERR='';
+const MODELS=['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
+const TOPIC='Field expertise — UAE codes, standards & specs';
+async function sec(k:string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
+async function llm(key:string, sys:string, user:string){ LLM_CALLS++; let failed=false; try{ const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({models:MODELS,max_tokens:700,temperature:0.3,messages:[{role:'system',content:sys},{role:'user',content:user}]})}); if(!r.ok){ failed=true; LAST_ERR='openrouter HTTP '+r.status; } const j=await r.json(); const c=j?.choices?.[0]?.message?.content||''; if(!c && !failed){ failed=true; LAST_ERR='openrouter returned no content'; } if(failed) LLM_FAILS++; return c; }catch(_e){ if(!failed) LLM_FAILS++; LAST_ERR='openrouter call threw: '+String(_e); return ''; } }
+
+Deno.serve(async (req)=>{
+ try{
+  let b:any={}; try{ b=await req.json(); }catch(_){}
+  if(b.__secret!==(await sec('inbound_secret'))) { await logRun('error',{generated:0},'call rejected: wrong or missing inbound secret; no category knowledge generated'); return new Response(JSON.stringify({error:'forbidden'}),{status:403,headers:{'Content-Type':'application/json'}}); }
+  const ork=await sec('openrouter_api_key'); if(!ork) { await logRun('error',{generated:0},'openrouter_api_key missing from app_secrets: no category knowledge generated this run, category agent field knowledge is stale'); return new Response(JSON.stringify({error:'no key'}),{status:200,headers:{'Content-Type':'application/json'}}); }
+  const limit=Math.max(1,Math.min(24,Number(b.limit)||8));
+  const force=b.force===true;
+  // categories that already have a field-knowledge row
+  const { data: have } = await admin.from('agent_knowledge').select('agent_key').like('agent_key','cat:%').eq('topic',TOPIC);
+  const haveSet=new Set((have||[]).map((r:any)=>r.agent_key));
+  const { data: cats } = await admin.from('category_agents').select('slug,name').eq('active',true);
+  let pool=(cats||[]).filter((c:any)=> force || !haveSet.has('cat:'+c.slug));
+  pool=pool.slice(0,limit);
+  const results = await Promise.all(pool.map(async (c:any)=>{
+    const sys='You are compiling the FIELD KNOWLEDGE BASE for an AI sales specialist agent that owns the "'+c.name+'" trade category on QuotesDone, a UAE B2B sourcing marketplace (focus Dubai). This text is injected directly into the agent\'s brain so it can talk to UAE customers and suppliers as a genuine expert in '+c.name+' and qualify jobs precisely. Write a dense, ACCURATE domain brief of 230-340 words covering, specifically for '+c.name+' in the UAE: (1) GOVERNING AUTHORITY & APPROVALS — the actual UAE regulator(s)/permits/NOC steps that apply to THIS trade (examples of the kind of bodies, only where they truly apply: Dubai Civil Defence (DCD) and the UAE Fire and Life Safety Code of Practice for fire/life-safety; SIRA — Security Industry Regulatory Agency — and Dubai Police for CCTV/security; DEWA for electrical connection and Shams Dubai net-metering for solar; Dubai Municipality; Trakhees for ports/free-zone areas; ESMA/Emirates Conformity; RTA; Dubai Development Authority). (2) STANDARDS — the technical standards that genuinely apply (e.g. NFPA, IEC, EN, BS, ISO, ASHRAE, ASTM, DEWA regulations) — give specific numbers ONLY when you are confident they are correct; otherwise name the standard without a number. (3) SCOPE & SPECS — the core components, materials, equipment, ratings/capacities and technical terms that buyers and suppliers actually discuss. (4) PRICE DRIVERS. (5) COMPLIANCE PITFALLS / RED FLAGS and the sharp qualifying questions the agent should ask a customer. Be concrete and UAE-specific. HARD RULE: never invent code numbers, authority names, retention periods or figures — if unsure of an exact number, refer to the requirement by name without a number rather than guessing. Output ONLY the knowledge-brief text, no preamble or headings list.';
+    const user='Trade category: '+c.name+' (slug: '+c.slug+'). Market: United Arab Emirates (focus Dubai). Write its expert field knowledge base now.';
+    const text=(await llm(ork,sys,user)).trim();
+    if(text && text.length>120){
+      await admin.from('agent_knowledge').delete().eq('agent_key','cat:'+c.slug).eq('topic',TOPIC);
+      const ins=await admin.from('agent_knowledge').insert({agent_key:'cat:'+c.slug,topic:TOPIC,content:text.slice(0,4000),priority:8});
+      if(ins && (ins as any).error){ INSERT_FAILS++; LAST_ERR='agent_knowledge insert failed for cat:'+c.slug+': '+((ins as any).error?.message||''); }
+      return 1;
+    }
+    SHORT_OUTPUTS++;
+    return 0;
+  }));
+  const done=results.reduce((a:number,x:number)=>a+x,0);
+  const { data: nowHave } = await admin.from('agent_knowledge').select('agent_key').like('agent_key','cat:%').eq('topic',TOPIC);
+  const total=(cats||[]).length; const covered=(nowHave||[]).length;
+  const attempted=pool.length;
+  let note:string;
+  if(attempted===0){ note='no categories were due for field knowledge this run; nothing generated and nothing failed'; }
+  else if(done===0){ note='NO category knowledge generated this run despite '+attempted+' categories attempted — the model call failed or returned unusable output every time; category agent field knowledge is stale and those agents will talk to UAE customers without trade expertise'; }
+  else if(done<attempted){ note='partial run: generated field knowledge for '+done+' of '+attempted+' categories; '+(attempted-done)+' produced nothing usable from the model and remain without trade expertise'; }
+  else { note='generated field knowledge for all '+done+' attempted categories; '+(total-covered)+' categories still uncovered overall'; }
+  if(INSERT_FAILS>0) note+=' | '+INSERT_FAILS+' knowledge row(s) failed to save, so that content was generated but lost';
+  if(LAST_ERR) note+=' | last error: '+LAST_ERR;
+  const bad = INSERT_FAILS>0 || (attempted>0 && done===0);
+  await logRun(bad?'error':'ok',{generated:done,attempted,covered,total,remaining:total-covered,llm_calls:LLM_CALLS,llm_failures:LLM_FAILS,unusable_outputs:SHORT_OUTPUTS,insert_failures:INSERT_FAILS},note);
+  return new Response(JSON.stringify({ok:true,generated:done,covered,total,remaining:total-covered}),{headers:{'Content-Type':'application/json'}});
+ }catch(e){ await logRun('error',{generated:0,llm_calls:LLM_CALLS,llm_failures:LLM_FAILS},'gen_category_knowledge crashed before completing; no category knowledge generated this run: '+String(e)); throw e; }
+});

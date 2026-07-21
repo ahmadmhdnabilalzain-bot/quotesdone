@@ -1,0 +1,72 @@
+// designer v2 — the Designer agent's image engine. Generates on-brand images via OpenAI gpt-image-1,
+// hosts them publicly (brand bucket), returns a URL usable in Meta ads, Postiz, or the blog.
+// Auth: __secret == inbound_secret. Secret needed to generate: openai_api_key.
+// Actions: 'status' (readiness), 'generate' (default).
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const SUPA = Deno.env.get('SUPABASE_URL')!;
+const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+async function sec(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+
+const SIZE: Record<string, string> = {
+  square: '1024x1024', instagram: '1024x1024', facebook_feed: '1024x1024', social: '1024x1024',
+  portrait: '1024x1536', story: '1024x1536', reel: '1024x1536', instagram_story: '1024x1536',
+  landscape: '1536x1024', blog: '1536x1024', linkedin: '1536x1024', ad: '1024x1024',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' } });
+  const body = await req.json().catch(() => ({} as any));
+  if (body.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+
+  const key = await sec('openai_api_key');
+  const fallback = await sec('default_post_image');
+  const action = String(body.action || 'generate');
+
+  // Readiness probe for the Agents console / callers.
+  if (action === 'status') {
+    return J({ ok: true, ready: !!key, model: 'gpt-image-1', sizes: Object.keys(SIZE), has_fallback: !!fallback,
+      message: key ? 'Designer ready.' : 'Set app_secrets.openai_api_key to enable image generation.' });
+  }
+  if (action !== 'generate') return J({ error: 'unknown_action' }, 400);
+
+  const brief = String(body.prompt || body.brief || '').trim();
+  if (!brief) return J({ error: 'empty_prompt' }, 400);
+  const purpose = String(body.purpose || 'social');
+  const size = SIZE[String(body.size || purpose).toLowerCase()] || '1024x1024';
+  const started = new Date().toISOString();
+
+  // No key: don't fail hard — tell the caller it's not configured and offer the brand fallback image.
+  if (!key) {
+    await admin.from('agent_runs').insert({ agent: 'designer', started_at: started, finished_at: new Date().toISOString(), status: 'skipped', note: 'openai_api_key not set' }).catch(() => null);
+    return J({ ok: false, ready: false, error: 'openai_not_configured', need: ['openai_api_key'], fallback_url: fallback || null, message: 'Image generation is not active yet — add the openai_api_key secret. A brand fallback image is available.' }, 200);
+  }
+
+  try {
+    let brain = ''; try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: 'designer', p_max_chars: 3000 }); brain = data ? String(data) : ''; } catch (_e) {}
+    const brandLine = 'Brand: QuotesDone, a modern UAE B2B marketplace. Visual style: clean, professional, trustworthy, tech-forward; teal/deep-green brand accent (#0E7C73) with crisp white space; UAE business context (offices, trades, SMEs) where relevant. Avoid clutter and stocky clichés. If the brief asks for a headline area, leave clean negative space for text to be added later — do not render long paragraphs of text.';
+    const prompt = brandLine + (brain ? ('\n' + brain.slice(0, 1500)) : '') + '\n\nDesign request: ' + brief;
+
+    const r = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-image-1', prompt: prompt.slice(0, 3800), size, n: 1 }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { await admin.from('agent_runs').insert({ agent: 'designer', started_at: started, finished_at: new Date().toISOString(), status: 'error', note: JSON.stringify(j).slice(0, 250) }); return J({ ok: false, error: j?.error?.message || 'image_generation_failed', status: r.status }, 200); }
+    const b64 = j?.data?.[0]?.b64_json;
+    if (!b64) return J({ ok: false, error: 'no_image_returned' }, 200);
+
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const path = 'designer/' + Date.now() + '-' + purpose.replace(/[^a-z0-9]+/gi, '-').slice(0, 24) + '.png';
+    const up = await admin.storage.from('brand').upload(path, bytes, { contentType: 'image/png', upsert: true });
+    if (up.error) return J({ ok: false, error: up.error.message }, 200);
+    const url = SUPA + '/storage/v1/object/public/brand/' + path;
+
+    await admin.from('content_drafts').insert({ channel: 'image', title: ('Design: ' + brief).slice(0, 200), body: url, status: 'ready', source: 'agent:designer' }).catch(() => null);
+    await admin.from('agent_runs').insert({ agent: 'designer', started_at: started, finished_at: new Date().toISOString(), status: 'ok', counts: { size, purpose } });
+    return J({ ok: true, url, size, purpose });
+  } catch (e) {
+    await admin.from('agent_runs').insert({ agent: 'designer', started_at: started, finished_at: new Date().toISOString(), status: 'error', note: String(e).slice(0, 200) });
+    return J({ error: String((e as Error)?.message || e) }, 200);
+  }
+});
