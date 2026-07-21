@@ -197,13 +197,33 @@ const MOTION_CSS = `
 }
 @media print{
   .qd-noprint{display:none !important}
-  .qd-print{position:static !important;inset:auto !important;background:#fff !important;color:#111 !important;padding:0 !important}
-  .qd-print *{color:#111 !important;border-color:#ccc !important;background:transparent !important}
+  /* Print only the section the user asked for: hide everything, re-show the target subtree. */
+  body.qd-print-scope *{visibility:hidden !important}
+  body.qd-print-scope .qd-print-target,body.qd-print-scope .qd-print-target *{visibility:visible !important}
+  body.qd-print-scope .qd-print-target{position:absolute !important;left:0;top:0;width:100%;padding:0 !important}
+  .qd-print-target,.qd-print-target *{color:#111 !important;background:transparent !important;border-color:#bbb !important;box-shadow:none !important}
+  .qd-print-target table{border-collapse:collapse;width:100%}
+  .qd-print-target th,.qd-print-target td{border:1px solid #bbb !important;padding:6px 8px !important;vertical-align:top}
+  .qd-print-target thead{display:table-header-group}
+  .qd-print-target tr,.qd-print-target li{break-inside:avoid;page-break-inside:avoid}
+  .qd-print-target .qd-scroll{overflow:visible !important}
+  .qd-print-target .qd-minw{min-width:0 !important}
 }
 `;
 function Motion() { return <style dangerouslySetInnerHTML={{ __html: MOTION_CSS }} />; }
 const rise = (i = 0) => ({ animationDelay: (i * 55) + 'ms' });
 const backArrow = (lang) => (lang === 'ar' ? '→' : '←');
+/* Print a single section. Marks the target, prints, then always cleans up —
+   including if the user cancels the print dialog. */
+function printSection(el) {
+  if (!el) { window.print(); return; }
+  const done = () => { el.classList.remove('qd-print-target'); document.body.classList.remove('qd-print-scope'); window.removeEventListener('afterprint', done); };
+  el.classList.add('qd-print-target');
+  document.body.classList.add('qd-print-scope');
+  window.addEventListener('afterprint', done);
+  setTimeout(() => { try { window.print(); } catch (_e) { done(); } }, 30);
+  setTimeout(done, 60000); // belt and braces if afterprint never fires
+}
 
 /* Small shared UI atoms */
 function Section({ title, sub, right, children, i = 0 }) {
@@ -717,6 +737,7 @@ function RequestDetail({ inq, token, lang, onBack, onChange }) {
    verify exactly what left the building and that no contact detail went with it. */
 function SupplierBrief({ inq, lang }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef(null);
   const spec = inq.spec && typeof inq.spec === 'object' ? inq.spec : null;
   const boq = inq.boq && Array.isArray(inq.boq.boq) ? inq.boq.boq : null;
   const facts = [];
@@ -729,9 +750,9 @@ function SupplierBrief({ inq, lang }) {
   return (<Section i={3} title={t(lang, 'what_suppliers_see')} sub={t(lang, 'what_suppliers_see_sub')}
     right={<div className="qd-noprint flex gap-2">
       <Button variant="ghost" size="sm" onClick={() => setOpen((v) => !v)} aria-expanded={open}>{open ? t(lang, 'close') : t(lang, 'view_all')}</Button>
-      {open ? <Button variant="outline" size="sm" onClick={() => window.print()}>{t(lang, 'print_brief')}</Button> : null}
+      {open ? <Button variant="outline" size="sm" onClick={() => printSection(ref.current)}>{t(lang, 'print_brief')}</Button> : null}
     </div>}>
-    <div className="surface rounded-xl p-4 qd-print">
+    <div ref={ref} className="surface rounded-xl p-4">
       <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div>
           <div className="font-head text-[13.5px] font-bold text-foreground">QuotesDone · {t(lang, 'request_ref')} {refOf(inq.id)}</div>
@@ -780,39 +801,123 @@ function SupplierBrief({ inq, lang }) {
   </Section>);
 }
 
-/* ── Comparison (AI report) ────────────────────────────────────────────────── */
+/* ── Comparison (AI report) ────────────────────────────────────────────────
+   quote_compare returns JSON, not a PDF — there is no comparison PDF endpoint.
+   The data is inherently tabular (N suppliers x ~11 attributes), so it renders
+   as a real side-by-side table and the PDF is produced by printing that table. */
 function Comparison({ inqId, token, lang }) {
   const [a, setA] = useState(null); const [busy, setBusy] = useState(true); const [note, setNote] = useState('');
+  const ref = useRef(null);
   useEffect(() => { let on = true; setBusy(true);
     call('quote_compare', { inquiry_id: inqId, lang }, token).then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) setA(j.analysis); else setNote((j && (j.note || j.error)) || ''); })
       .catch(() => { if (on) setBusy(false); });
     return () => { on = false; }; }, [inqId, lang]);
   const arr = (x) => Array.isArray(x) ? x : [];
-  if (busy) return (<div className="surface rounded-xl border-primary/25 p-4"><div className="flex items-center gap-2"><span className="qd-shimmer inline-block h-2 w-2 rounded-full bg-primary/60" /><span className={cn(S.sub, 'text-primary')}>{lang === 'ar' ? 'يُعدّ خبيرنا تقرير المقارنة…' : 'Our expert is preparing your comparison report…'}</span></div></div>);
+
+  if (busy) return (<div className="surface rounded-xl border-primary/25 p-4">
+    <div className="flex items-center gap-2"><span className="qd-shimmer inline-block h-2 w-2 rounded-full bg-primary/60" />
+      <span className={cn(S.sub, 'text-primary')}>{lang === 'ar' ? 'يُعدّ خبيرنا تقرير المقارنة…' : 'Our expert is preparing your comparison report…'}</span></div>
+  </div>);
   if (!a) return note ? (<div className="surface rounded-xl p-4"><p className={S.sub}>{note}</p></div>) : null;
-  return (<div className="surface qd-fade rounded-xl border-primary/25 p-4">
-    <div className="mb-1.5 flex items-center gap-2"><Pill tone="teal">AI</Pill><b className="text-[13px] text-primary">{(lang === 'ar' ? 'تقرير المقارنة من الخبير' : 'Expert comparison report') + (a.trade ? ' · ' + a.trade : '')}</b></div>
-    {a.bottom_line ? <p className="text-[13.5px] font-semibold text-foreground">{a.bottom_line}</p> : null}
+
+  const qs = arr(a.quotes);
+  const L = (en, ar) => (lang === 'ar' ? ar : en);
+  const listCell = (items, tone) => { const xs = arr(items).filter(Boolean);
+    if (!xs.length) return <span className="text-muted-foreground">—</span>;
+    return (<ul className="m-0 list-none space-y-1 p-0">{xs.map((x, k) => (
+      <li key={k} className={cn('flex gap-1.5', tone === 'warn' && 'text-accent', tone === 'bad' && 'text-red-300')}>
+        <span aria-hidden className="mt-[2px] shrink-0 opacity-60">{tone === 'good' ? '+' : tone === 'bad' ? '!' : '·'}</span>
+        <span>{x}</span></li>))}</ul>); };
+  const ROWS = [
+    { k:'price',        label:L('Price','السعر'),                       cell:(q)=> q.price!=null ? <b className="tabular text-foreground">{aed(q.price)}</b> : <span className="text-muted-foreground">—</span> },
+    { k:'lead_time',    label:L('Lead time','مدة التنفيذ'),             cell:(q)=> q.lead_time || <span className="text-muted-foreground">—</span> },
+    { k:'warranty',     label:L('Warranty','الضمان'),                   cell:(q)=> q.warranty || <span className="text-muted-foreground">—</span> },
+    { k:'payment',      label:L('Payment terms','شروط الدفع'),          cell:(q)=> q.payment_terms || <span className="text-muted-foreground">—</span> },
+    { k:'validity',     label:L('Valid for','مدة الصلاحية'),            cell:(q)=> q.validity || <span className="text-muted-foreground">—</span> },
+    { k:'getting',      label:L('What you get','ما ستحصل عليه'),        cell:(q)=> q.getting || <span className="text-muted-foreground">—</span> },
+    { k:'includes',     label:L('Included','مشمول'),                    cell:(q)=> listCell(q.includes,'good') },
+    { k:'excludes',     label:L('Not included','غير مشمول'),            cell:(q)=> listCell(q.excludes,'warn') },
+    { k:'missing',      label:L('Missing from your request','ناقص مما طلبت'), cell:(q)=> listCell(q.missing_from_request,'warn') },
+    { k:'deviation',    label:L('Differs from your spec','اختلاف عن مواصفاتك'), cell:(q)=> listCell(q.spec_deviation,'warn') },
+    { k:'flags',        label:L('Watch out','تنبيهات'),                 cell:(q)=> listCell(q.flags,'bad') },
+  ].filter((r) => qs.some((q) => { const v=q[r.k==='payment'?'payment_terms':r.k==='missing'?'missing_from_request':r.k==='deviation'?'spec_deviation':r.k];
+    return Array.isArray(v) ? v.length : (v!=null && v!==''); }) || r.k==='price');
+
+  return (<div ref={ref} className="surface qd-fade rounded-xl border-primary/25 p-4">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0">
+        <div className="mb-1 flex flex-wrap items-center gap-2">
+          <Pill tone="teal">AI</Pill>
+          <b className="font-head text-[13.5px] text-primary">{L('Expert comparison report','تقرير المقارنة من الخبير')}{a.trade ? ' · ' + a.trade : ''}</b>
+        </div>
+        {(a.considered || a.total_quotes) ? (<p className="text-[11.5px] text-muted-foreground">
+          {L(`Evaluated ${a.considered ?? a.total_quotes} quote${(a.considered ?? a.total_quotes)===1?'':'s'} · shortlisted the strongest ${a.shortlisted ?? qs.length}`,
+             `تم تقييم ${a.considered ?? a.total_quotes} عرضًا · واختيار أقوى ${a.shortlisted ?? qs.length}`)}
+        </p>) : null}
+      </div>
+      <Button variant="outline" size="sm" className="qd-noprint shrink-0" onClick={() => printSection(ref.current)}>
+        {t(lang, 'print_brief')}
+      </Button>
+    </div>
+
+    {a.bottom_line ? <p className="mt-2.5 text-[13.5px] font-semibold text-foreground">{a.bottom_line}</p> : null}
     {a.overview ? <p className={cn(S.sub, 'mt-1.5')}>{a.overview}</p> : null}
-    {arr(a.top3).length ? (<div className="mt-3">
-      <div className={cn(S.h2, 'mb-1')}>{lang === 'ar' ? 'أفضل الخيارات' : 'Top picks'}</div>
-      {arr(a.top3).map((r, i) => (<p key={i} className={cn(S.sub, 'mt-0.5')}>
-        <span className="font-semibold text-primary">#{r.rank} {r.label}</span> — {r.why}{r.tradeoff ? ' ' + (lang === 'ar' ? '(الاعتبار: ' : '(catch: ') + r.tradeoff + ')' : ''}
-      </p>))}
+    {a.shortlist_reason ? <p className={cn(S.sub, 'mt-1.5 text-[12px] italic')}>{a.shortlist_reason}</p> : null}
+
+    {arr(a.top3).length ? (<ol className="mt-3.5 grid gap-2 sm:grid-cols-3">
+      {arr(a.top3).map((r, i) => (
+        <li key={i} className={cn('rounded-lg border p-3', i === 0 ? 'border-primary/40 bg-primary/8' : 'border-border bg-background/30')}>
+          <div className="flex items-center gap-1.5">
+            <span className={cn('grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-bold', i === 0 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground')}>{r.rank ?? i + 1}</span>
+            <b className="text-[13px] text-foreground">{r.label}</b>
+          </div>
+          {r.why ? <p className={cn(S.sub, 'mt-1')}>{r.why}</p> : null}
+          {r.tradeoff ? <p className="mt-1 text-[12px] text-accent">{L('Catch: ','الاعتبار: ') + r.tradeoff}</p> : null}
+        </li>))}
+    </ol>) : null}
+
+    {qs.length ? (<div className="mt-4">
+      <div className="qd-scroll -mx-1 overflow-x-auto px-1">
+        <table className="qd-minw w-full min-w-[620px] border-collapse text-[12.5px]">
+          <caption className="sr-only">{L('Side-by-side comparison of the shortlisted quotes','مقارنة جنبًا إلى جنب للعروض المختارة')}</caption>
+          <thead>
+            <tr>
+              <th scope="col" className="w-[132px] border-b border-border/70 py-2 pe-3 text-start text-[11.5px] font-medium text-muted-foreground">
+                {L('Compare','المقارنة')}
+              </th>
+              {qs.map((q) => { const best = a.best_value_label && q.label === a.best_value_label; const cheap = a.cheapest_label && q.label === a.cheapest_label;
+                return (<th key={q.label} scope="col" className="border-b border-border/70 px-3 py-2 text-start align-bottom">
+                  <div className="font-head text-[13px] font-bold text-foreground">{q.label}</div>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {best ? <Pill tone="teal">{t(lang,'best_value')}</Pill> : null}
+                    {cheap && !best ? <Pill tone="muted">{t(lang,'lowest_price')}</Pill> : null}
+                  </div>
+                </th>); })}
+            </tr>
+          </thead>
+          <tbody>
+            {ROWS.map((r, ri) => (
+              <tr key={r.k} className={cn(ri % 2 ? 'bg-background/20' : '')}>
+                <th scope="row" className="border-b border-border/40 py-2 pe-3 text-start align-top text-[11.5px] font-medium text-muted-foreground">{r.label}</th>
+                {qs.map((q) => <td key={q.label + r.k} className="border-b border-border/40 px-3 py-2 align-top text-foreground">{r.cell(q)}</td>)}
+              </tr>))}
+          </tbody>
+        </table>
+      </div>
+      {a.best_value_reason ? <p className={cn(S.sub, 'mt-2')}><b className="text-foreground">{L('Why that pick: ','سبب الاختيار: ')}</b>{a.best_value_reason}</p> : null}
     </div>) : null}
-    {arr(a.quotes).map((q, i) => (<div key={i} className="mt-2.5 border-t border-border/50 pt-2.5">
-      <div className={cn(S.sub, 'font-semibold text-foreground')}>{q.label}{q.price != null ? ' — ' + aed(q.price) : ''}</div>
-      {q.getting ? <p className={S.sub}>{q.getting}</p> : null}
-      {arr(q.missing_from_request).length ? <p className="text-[12.5px] text-accent">{(lang === 'ar' ? 'ناقص مما طلبت: ' : 'Missing from your request: ') + arr(q.missing_from_request).join('; ')}</p> : null}
-      {arr(q.spec_deviation).length ? <p className="text-[12.5px] text-accent">{(lang === 'ar' ? 'اختلاف عن المواصفات: ' : 'Spec differences: ') + arr(q.spec_deviation).join('; ')}</p> : null}
-      {arr(q.flags).length ? <p className="text-[12.5px] text-red-300">{arr(q.flags).join('; ')}</p> : null}
-    </div>))}
-    {arr(a.watch_outs).length ? <p className="mt-2.5 text-[12.5px] text-red-300">{(lang === 'ar' ? 'انتبه: ' : 'Watch out: ') + arr(a.watch_outs).join(' · ')}</p> : null}
-    {a.advice ? <p className={cn(S.sub, 'mt-2.5 text-foreground')}>{a.advice}</p> : null}
-    <p className="mt-2.5 text-[11px] text-muted-foreground">{t(lang, 'guidance_only')}</p>
+
+    {arr(a.watch_outs).length ? (<div className="mt-3.5 rounded-lg border border-red-500/30 bg-red-500/8 p-3">
+      <b className="text-[12.5px] text-red-300">{L('Watch out','انتبه')}</b>
+      <ul className="mt-1 space-y-0.5">{arr(a.watch_outs).map((w, i) => <li key={i} className="text-[12.5px] text-red-200">· {w}</li>)}</ul>
+    </div>) : null}
+
+    {a.advice ? <p className={cn(S.sub, 'mt-3 text-foreground')}>{a.advice}</p> : null}
+    <p className="mt-3 border-t border-border/50 pt-2.5 text-[11px] leading-relaxed text-muted-foreground">
+      {a.disclaimer || t(lang, 'guidance_only')}
+    </p>
   </div>);
 }
-
 
 /* ── Quote card ────────────────────────────────────────────────────────────── */
 function QuotePdfLink({ q, token, lang }) {
