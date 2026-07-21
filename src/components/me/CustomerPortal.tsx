@@ -199,36 +199,23 @@ const MOTION_CSS = `
   .qd-lift:hover{transform:none}
   .qd-shimmer{animation:none}
 }
+/* Both Save-as-PDF buttons now render server-side through pdf_native, on QuotesDone
+   letterhead. What is left here is plain Ctrl+P courtesy: drop the chrome and make
+   the document legible on paper. */
 @media print{
   .qd-noprint{display:none !important}
-  /* Print only the section the user asked for: hide everything, re-show the target subtree. */
-  body.qd-print-scope *{visibility:hidden !important}
-  body.qd-print-scope .qd-print-target,body.qd-print-scope .qd-print-target *{visibility:visible !important}
-  body.qd-print-scope .qd-print-target{position:absolute !important;left:0;top:0;width:100%;padding:0 !important}
-  .qd-print-target,.qd-print-target *{color:#111 !important;background:transparent !important;border-color:#bbb !important;box-shadow:none !important}
-  .qd-print-target table{border-collapse:collapse;width:100%}
-  .qd-print-target th,.qd-print-target td{border:1px solid #bbb !important;padding:6px 8px !important;vertical-align:top}
-  .qd-print-target thead{display:table-header-group}
-  .qd-print-target tr,.qd-print-target li{break-inside:avoid;page-break-inside:avoid}
-  .qd-print-target .qd-scroll{overflow:visible !important}
-  .qd-print-target .qd-minw{min-width:0 !important}
+  .qd-print,.qd-print *{color:#111 !important;background:transparent !important;border-color:#bbb !important;box-shadow:none !important}
+  .qd-print table{border-collapse:collapse;width:100%}
+  .qd-print th,.qd-print td{border:1px solid #bbb !important;padding:6px 8px !important;vertical-align:top}
+  .qd-print thead{display:table-header-group}
+  .qd-print tr,.qd-print li{break-inside:avoid;page-break-inside:avoid}
+  .qd-print .qd-scroll{overflow:visible !important}
+  .qd-print .qd-minw{min-width:0 !important}
 }
 `;
 function Motion() { return <style dangerouslySetInnerHTML={{ __html: MOTION_CSS }} />; }
 const rise = (i = 0) => ({ animationDelay: (i * 55) + 'ms' });
 const backArrow = (lang) => (lang === 'ar' ? '→' : '←');
-/* Print a single section. Marks the target, prints, then always cleans up —
-   including if the user cancels the print dialog. */
-function printSection(el) {
-  if (!el) { window.print(); return; }
-  const done = () => { el.classList.remove('qd-print-target'); document.body.classList.remove('qd-print-scope'); window.removeEventListener('afterprint', done); };
-  el.classList.add('qd-print-target');
-  document.body.classList.add('qd-print-scope');
-  window.addEventListener('afterprint', done);
-  setTimeout(() => { try { window.print(); } catch (_e) { done(); } }, 30);
-  setTimeout(done, 60000); // belt and braces if afterprint never fires
-}
-
 /* Small shared UI atoms */
 function Section({ title, sub, right, children, i = 0 }) {
   return (<section className="qd-rise" style={rise(i)}>
@@ -733,7 +720,7 @@ function RequestDetail({ inq, token, lang, onBack, onChange }) {
       </div>
     )}
 
-    <SupplierBrief inq={inq} lang={lang} />
+    <SupplierBrief inq={inq} lang={lang} token={token} />
 
     {quotes.length >= 2 && <Section i={4} title={t(lang, 'quotes_in')}><Comparison a={cmp.analysis} busy={cmp.busy} note={cmp.note} lang={lang} inqId={inq.id} token={token} /></Section>}
 
@@ -772,9 +759,24 @@ function waitingSub(inq, lang) {
 /* What suppliers see — the anonymised brief, printable to PDF.
    Rendered from the same fields the dispatcher sends out, so the customer can
    verify exactly what left the building and that no contact detail went with it. */
-function SupplierBrief({ inq, lang }) {
+function SupplierBrief({ inq, lang, token }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  // Save as PDF goes through customer_api.brief_pdf -> pdf_native, so the download
+  // carries the QuotesDone header band, logo, letterhead and footer exactly like a
+  // quotation. It is not a browser print of this panel.
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfMsg, setPdfMsg] = useState('');
+  const savePdf = async () => {
+    if (pdfBusy) return;
+    setPdfBusy(true); setPdfMsg('');
+    try {
+      const j = await call('customer_api', { action: 'brief_pdf', inquiry_id: inq.id, lang }, token);
+      if (j && j.ok && j.url) window.open(j.url, '_blank', 'noopener');
+      else setPdfMsg((j && (j.detail || j.error)) || t(lang, 'pdf_failed'));
+    } catch (_e) { setPdfMsg(t(lang, 'pdf_failed')); }
+    setPdfBusy(false);
+  };
   const spec = inq.spec && typeof inq.spec === 'object' ? inq.spec : null;
   const boq = inq.boq && Array.isArray(inq.boq.boq) ? inq.boq.boq : null;
   const facts = [];
@@ -787,7 +789,8 @@ function SupplierBrief({ inq, lang }) {
   return (<Section i={3} title={t(lang, 'what_suppliers_see')} sub={t(lang, 'what_suppliers_see_sub')}
     right={<div className="qd-noprint flex gap-2">
       <Button variant="ghost" size="sm" onClick={() => setOpen((v) => !v)} aria-expanded={open}>{open ? t(lang, 'close') : t(lang, 'view_all')}</Button>
-      {open ? <Button variant="outline" size="sm" onClick={() => printSection(ref.current)}>{t(lang, 'print_brief')}</Button> : null}
+      {open ? <Button variant="outline" size="sm" disabled={pdfBusy} onClick={savePdf}>{pdfBusy ? t(lang, 'preparing') : t(lang, 'print_brief')}</Button> : null}
+      {pdfMsg ? <span className="text-[12px] text-red-300">{pdfMsg}</span> : null}
     </div>}>
     <div ref={ref} className="surface rounded-xl p-4">
       <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-3">
