@@ -17,3 +17,6 @@ supabase/.temp/
 # graphify: generated locally, cheap to rebuild
 graphify-out/cost.json
 graphify-out/cache/
+
+# transient commit-message scratch
+COMMIT_MSG.tmp
