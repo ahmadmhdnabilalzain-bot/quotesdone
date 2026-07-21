@@ -10,3 +10,10 @@ build/
 
 # edge function rollback snapshots (local only)
 .edge-backups/
+
+# Supabase CLI local state
+supabase/.temp/
+
+# graphify: generated locally, cheap to rebuild
+graphify-out/cost.json
+graphify-out/cache/
