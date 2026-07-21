@@ -500,7 +500,7 @@ Deno.serve(async (req) => {
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
     }
 
-    if (action === 'reveal' || action === 'reveal_quote') {
+    if (action === 'reveal') {
       const cfg = await getCfg(); const qid = String(body.quote_id || '');
       const { data: q } = await admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount,original_file_path,original_file_name').eq('id', qid).maybeSingle();
       if (!q) return J({ error: 'Quote not found' }, 404);
@@ -509,22 +509,6 @@ Deno.serve(async (req) => {
       const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
       if (existing) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
       return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), currency: 'AED' });
-    }
-
-    if (action === 'confirm_reveal') {
-      const cfg = await getCfg(); const qid = String(body.quote_id || ''); const paymentRef = String(body.payment_ref || ('STUB-' + Date.now()));
-      const { data: q } = await admin.from('quotes').select('*').eq('id', qid).maybeSingle(); if (!q) return J({ error: 'Quote not found' }, 404);
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id,summary').eq('id', q.inquiry_id).maybeSingle();
-      if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
-      const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle();
-      const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
-      if (!existing) {
-        const fee = revealFee(Number(q.quote_amount), cfg); const { data: dl } = await admin.rpc('add_working_days', { start_ts: new Date().toISOString(), n: cfg.refund_window_working_days });
-        await admin.from('quotes').update({ status: 'revealed' }).eq('id', qid); await admin.from('inquiries').update({ status: 'revealed' }).eq('id', inq.id);
-        const { error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: inq.id, supplier_id: q.supplier_id, customer_id: cust.id, quote_amount: q.quote_amount, reveal_fee: fee, app_fee: fee, customer_price: q.quote_amount, paid_by: 'customer', payment_ref: paymentRef, fee_status: 'paid', refund_deadline: dl, revealed_at: new Date().toISOString() });
-        if (e2) return J({ error: e2.message }, 500);
-        if (sup?.email && /@/.test(sup.email)) await queueNotifications([{ type: 'quote_accepted', to_email: sup.email, to_role: 'supplier', lead_id: q.supplier_id, inquiry_id: inq.id, quote_id: qid, subject: 'A customer revealed your quote on QuotesDone', body: 'A customer paid to reveal your contact for: ' + (inq.summary || '') + '. Please respond promptly — if you do not respond within 3 working days the customer may be refunded.' }]); }
-      return J({ ok: true, supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null });
     }
 
     if (action === 'request_refund') {
@@ -607,7 +591,6 @@ Deno.serve(async (req) => {
       return J({ ok: true, supplier: sup ? { ...sup, rating_display: ratingOf(sup) } : null, projects, projects_count: projects.length, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null });
     }
 
-    if (action === 'save_me') { const upd: Record<string, unknown> = {}; if (body.full_name) upd.full_name = String(body.full_name).slice(0, 120); if (body.phone) upd.phone = String(body.phone).slice(0, 40); if (Object.keys(upd).length) await admin.from('customers').update(upd).eq('id', cust.id); return J({ ok: true }); }
 
     return J({ error: 'Unknown action' }, 400);
   } catch (e) {
