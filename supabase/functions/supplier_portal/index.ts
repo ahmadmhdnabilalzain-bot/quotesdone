@@ -1,4 +1,4 @@
-// supplier_portal — advanced supplier dashboard API. Supplier-authed (own leads row via claimed_by).
+// supplier_portal v5 — advanced supplier dashboard API. Supplier-authed (own leads row via claimed_by).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
@@ -185,13 +185,14 @@ Deno.serve(async (req) => {
     // advisory dressed up as a rule, and nothing that genuinely gates matching is omitted,
     // because a supplier acting on this will conclude they have done everything needed.
     //
-    // Deliberately NOT listed as blocking: document expiry. fn_supplier_expiries raises
-    // alerts saying "upload a renewed copy to stay eligible", but match_suppliers_kw has no
-    // expiry clause at all - an expired licence does not currently affect matching. Claiming
-    // otherwise here would repeat that false promise.
+    // On document expiry: match_suppliers_kw itself has no expiry clause, so reading only that
+    // function suggests expiry is irrelevant. It is not. fn_reconcile_doc_blocks runs daily and
+    // sets matching_blocked with matching_block_reason when a trade licence or insurance lapses,
+    // and match_suppliers_kw does exclude matching_blocked. Expiry therefore genuinely stops
+    // matching - one indirection away - which is why it is reported as blocking below.
     if (action === 'eligibility') {
       const { data: l } = await admin.from('leads')
-        .select('id,company_name,sector,categories,products,services,capability_summary,emirate,service_emirates,permanently_closed,banned,matching_blocked,registration_submitted_at,source,approval_status,license_doc_path,phone,email')
+        .select('id,company_name,sector,categories,products,services,capability_summary,emirate,service_emirates,permanently_closed,banned,matching_blocked,matching_block_reason,license_expiry,insurance_expiry,registration_submitted_at,source,approval_status,license_doc_path,phone,email')
         .eq('id', sup.id).maybeSingle();
       const r = (l || {}) as Record<string, any>;
       const has = (v: unknown) => !!(v != null && String(v).trim() !== '');
@@ -199,7 +200,25 @@ Deno.serve(async (req) => {
       const blocking: any[] = [];
       if (r.permanently_closed === true) blocking.push({ code:'permanently_closed', title:'Your listing is marked permanently closed', detail:'We will not send you requests while this is set. Contact us if this is wrong.', fix:'contact' });
       if (r.banned === true) blocking.push({ code:'banned', title:'Your account is suspended', detail:'Suspended accounts are excluded from all matching. Contact us to resolve it.', fix:'contact' });
-      if (r.matching_blocked === true) blocking.push({ code:'matching_blocked', title:'Matching is switched off for your account', detail:'This is set manually by our team. Contact us to have it reviewed.', fix:'contact' });
+      if (r.matching_blocked === true) {
+        // The reason matters. fn_reconcile_doc_blocks suspends automatically on an expired trade
+        // licence or insurance and restores automatically on renewal, so telling that supplier the
+        // block was "set manually by our team" would send them to support for something they can
+        // fix themselves in two minutes - and would be false.
+        const reason = String(r.matching_block_reason || '');
+        if (reason === 'licence_expired') {
+          blocking.push({ code:'licence_expired', title:'Your account is paused - trade licence expired',
+            detail:'Your trade licence expired on ' + (r.license_expiry || 'an earlier date') + '. Upload a valid copy and your account is restored automatically, usually within a day. There is no fee.',
+            fix:'documents' });
+        } else if (reason === 'insurance_expired') {
+          blocking.push({ code:'insurance_expired', title:'Your account is paused - insurance expired',
+            detail:'Your insurance certificate expired on ' + (r.insurance_expiry || 'an earlier date') + '. Upload a valid copy and your account is restored automatically. There is no fee.',
+            fix:'documents' });
+        } else {
+          blocking.push({ code:'matching_blocked', title:'Matching is switched off for your account',
+            detail:'This was set by our team rather than automatically. Contact us to have it reviewed.', fix:'contact' });
+        }
+      }
       const registered = !!r.registration_submitted_at || r.source === 'self_registered' || String(r.approval_status || '') === 'approved';
       if (!registered) blocking.push({ code:'not_registered', title:'Your registration is not submitted', detail:'Only registered suppliers receive requests. Complete your company profile to submit it.', fix:'profile' });
 
@@ -218,6 +237,13 @@ Deno.serve(async (req) => {
         improving.push({ code:'no_emirate', title:'Set the emirates you serve', detail:'Suppliers in the customer’s emirate are ranked above everyone else, so this is the single strongest ranking signal.', fix:'profile' });
       }
       if (!has(r.license_doc_path)) improving.push({ code:'no_licence', title:'Upload your trade licence', detail:'Required before your account can be approved.', fix:'documents' });
+      // Warn while it is still fixable, not after the account has already been paused.
+      for (const [col, label] of [['license_expiry','trade licence'], ['insurance_expiry','insurance certificate']] as [string,string][]) {
+        const v = r[col]; if (!v) continue;
+        const days = Math.round((new Date(v).getTime() - Date.now()) / 864e5);
+        if (days >= 0 && days <= 30) improving.push({ code: 'expiring_' + col, title: 'Your ' + label + ' expires in ' + days + ' day' + (days === 1 ? '' : 's'),
+          detail: 'Once it expires your account is paused automatically and you stop receiving requests. Upload a renewed copy now to avoid that.', fix:'documents' });
+      }
       if (!has(r.phone)) improving.push({ code:'no_phone', title:'Add a contact number', detail:'Customers cannot reach you after a reveal without one.', fix:'profile' });
 
       // Reach so far, measured rather than asserted.

@@ -1,9 +1,18 @@
 // route_inquiry - HYBRID RETRIEVAL (vector gte-small + keyword) narrows the whole supplier base to the most
 // relevant approved candidates, then an LLM adjudicates who can GENUINELY quote the exact job. Safe
 // fallback to a plain approved-pull if retrieval fails.
-// COST: Sonnet 5 first (Opus 4.8 only as fallback) + prompt caching on the system prompt. Routing is a
-// classification task — Sonnet performs identically, so this is pure saving with no quality change.
+// COST: Sonnet 5 first (Opus 4.8 only as fallback) + prompt caching on the system prompt.
 // Completeness gate: an essentially-empty brief is not dispatched to suppliers (returns needs_detail).
+//
+// v9 STRUCTURED CAPABILITY MATCHING (decision_policy.use_capability_matching):
+//   OFF (default) - behaviour is byte-for-byte the legacy path below. Nothing changes.
+//   ON            - the inquiry is normalised into the controlled vocabulary (inquiry_parse), then
+//                   fn_match_capability applies HARD GATES (trade intersection, role capability,
+//                   declared exclusions, mandatory authority approvals, value band, supplier-confirmed
+//                   scope) and a structured score. Only candidates at or above match_relevance_floor
+//                   reach the LLM adjudicator, which still has the final say.
+//   Zero gated candidates is a GENUINE coverage gap and is reported as such - we do NOT silently fall
+//   back to keyword retrieval, because that is exactly how irrelevant inquiries reach suppliers.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
@@ -17,6 +26,9 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const MODELS = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8'];
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+async function policyRaw(k: string){ const { data } = await admin.from('decision_policy').select('value').eq('key', k).maybeSingle(); return (data as any)?.value; }
+async function policyBool(k: string){ const v = await policyRaw(k); return v === true || String(v) === 'true'; }
+async function policyNum(k: string, dflt: number){ const n = Number(await policyRaw(k)); return Number.isFinite(n) ? n : dflt; }
 function parseJson(t: string){ let s=String(t||'').trim(); const f=s.match(/```(?:json)?\s*([\s\S]*?)```/i); if(f) s=f[1].trim(); try { return JSON.parse(s); } catch { const m = s.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch { /* */ } } return null; } }
 function clip(s: unknown, n: number){ return String(s == null ? '' : s).slice(0, n); }
 
@@ -65,10 +77,48 @@ async function retrieve(jobText: string, inq: any, emirate: string, diag: any = 
   return order;
 }
 
+// v9: structured capability retrieval. Returns null when the feature is off or unusable, so the
+// caller falls through to the untouched legacy path.
+async function capabilityRetrieve(inquiryId: string, secret: string, diag: any): Promise<any[] | null> {
+  try {
+    let { data: reqRow } = await admin.from('inquiry_requirement').select('*').eq('inquiry_id', inquiryId).maybeSingle();
+    if (!reqRow) {
+      try {
+        await fetch('https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/inquiry_parse', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ __secret: secret, inquiry_id: inquiryId }) });
+        ({ data: reqRow } = await admin.from('inquiry_requirement').select('*').eq('inquiry_id', inquiryId).maybeSingle());
+      } catch (e) { diag.cap_parse_error = clip((e as Error)?.message || e, 160); }
+    }
+    if (!reqRow || !Array.isArray(reqRow.trades_required) || !reqRow.trades_required.length) {
+      diag.cap_no_requirement = 1; return null;
+    }
+    diag.cap_trades = reqRow.trades_required.join('+');
+    diag.cap_need = reqRow.role_required || 'executes';
+    const { data: rows, error } = await admin.rpc('fn_match_capability', {
+      p_trades: reqRow.trades_required,
+      p_need: reqRow.role_required || 'executes',
+      p_products: reqRow.products_norm || [],
+      p_brands: reqRow.brands_specified || [],
+      p_project_type: reqRow.project_type,
+      p_value: reqRow.value_band,
+      p_emirate: reqRow.emirate,
+      p_limit: 12,
+    });
+    if (error) { diag.cap_rpc_error = clip(error.message, 160); return null; }
+    const floor = await policyNum('match_relevance_floor', 35);
+    const all = rows || [];
+    const kept = all.filter((r: any) => Number(r.score) >= floor);
+    diag.cap_gated = all.length; diag.cap_above_floor = kept.length; diag.cap_floor = floor;
+    return kept;
+  } catch (e) { diag.cap_exception = clip((e as Error)?.message || e, 160); return null; }
+}
+
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) { await logRun('error', { forbidden: 1, fits: 0 }, 'route_inquiry rejected a caller with a missing/wrong inbound secret (403). No routing was performed — if this came from dispatch_inquiry, that RFQ silently produced zero supplier fits and will be miscounted as a supply coverage gap.'); return J({ error:'forbidden' }, 403); }
+    const inbound = await sec('inbound_secret');
+    if (body.__secret !== inbound) { await logRun('error', { forbidden: 1, fits: 0 }, 'route_inquiry rejected a caller with a missing/wrong inbound secret (403). No routing was performed — if this came from dispatch_inquiry, that RFQ silently produced zero supplier fits and will be miscounted as a supply coverage gap.'); return J({ error:'forbidden' }, 403); }
     const key = await sec('openrouter_api_key'); if (!key) { await logRun('error', { fits: 0, ai_key_present: 0 }, 'route_inquiry aborted: the openrouter_api_key secret is missing, so the adjudicator could not run at all. This RFQ produced no supplier fits because of a configuration failure, not because no supplier exists — every inquiry routed while this persists will be miscounted as a coverage gap.'); return J({ error:'no ai key' }, 500); }
 
     let inq = body.inquiry || {};
@@ -92,32 +142,67 @@ Deno.serve(async (req) => {
 
     let pool: any[] = []; let retrieval = 'hybrid';
     const diag: any = {};
-    const ids = await retrieve(jobText, inq, emirate, diag);
-    if (ids.length) {
-      const { data: rows, error: rowsErr } = await admin.from('leads').select(SUP_COLS).in('id', ids.slice(0, 80));
-      if (rowsErr) diag.leads_fetch_error = clip(rowsErr.message, 160);
-      const byId = new Map((rows || []).map((r: any) => [Number(r.id), r]));
-      for (const id of ids) { const c = byId.get(id); if (c && usable(c)) pool.push(c); if (pool.length >= 60) break; }
-      const { data: appr, error: apprErr } = await approvedFilter(admin.from('leads').select('id').in('id', ids.slice(0, 80)));
-      if (apprErr) diag.approval_filter_error = clip(apprErr.message, 160);
-      const okIds = new Set((appr || []).map((r: any) => Number(r.id)));
-      pool = pool.filter((c) => okIds.has(Number(c.id)));
+    let capScores: Record<number, any> = {};
+
+    // ---------- v9: structured capability path (opt-in) ----------
+    const useCap = await policyBool('use_capability_matching');
+    diag.use_capability_matching = useCap ? 1 : 0;
+    let capRows: any[] | null = null;
+    if (useCap && body.inquiry_id) {
+      capRows = await capabilityRetrieve(String(body.inquiry_id), String(inbound), diag);
     }
-    if (pool.length < 8) {
-      retrieval = pool.length ? 'hybrid+fallback' : 'fallback';
-      const q = approvedFilter(admin.from('leads').select(SUP_COLS)).limit(60);
-      const { data: cands, error: candsErr } = await q;
-      if (candsErr) diag.fallback_query_error = clip(candsErr.message, 160);
-      let extra = (cands || []).filter(usable);
-      if (emirate) { const inEm = extra.filter((c:any)=> (Array.isArray(c.service_emirates) && c.service_emirates.some((e:string)=> String(e).toLowerCase()===emirate.toLowerCase())) || String(c.emirate||'').toLowerCase()===emirate.toLowerCase()); if (inEm.length >= 3) extra = inEm; }
-      const have = new Set(pool.map((c) => Number(c.id)));
-      for (const c of extra) { if (!have.has(Number(c.id))) { pool.push(c); have.add(Number(c.id)); } }
+
+    if (useCap && capRows) {
+      retrieval = 'capability_gated';
+      const ids = capRows.map((r: any) => Number(r.id ?? r.supplier_id)).filter(Boolean);
+      for (const r of capRows) capScores[Number(r.id ?? r.supplier_id)] = r;
+      if (ids.length) {
+        const { data: rows, error: rowsErr } = await admin.from('leads').select(SUP_COLS).in('id', ids);
+        if (rowsErr) diag.leads_fetch_error = clip(rowsErr.message, 160);
+        const byId = new Map((rows || []).map((r: any) => [Number(r.id), r]));
+        for (const id of ids) { const c = byId.get(id); if (c) pool.push(c); }
+      }
+      // Zero gated candidates is a GENUINE coverage gap. Falling back to keyword retrieval here would
+      // reintroduce exactly the irrelevant-inquiry problem the gates exist to prevent.
+      if (!pool.length) {
+        await logRun('ok', { fits: 0, evaluated: 0, zero_fits_genuine: 1, retrieval, ...diag },
+          'RFQ produced no supplier fits under structured capability matching: no supplier has a CONFIRMED capability record that passes the hard gates (trade, role, exclusions, authority, value band) for this job. This is a real coverage gap, not a retrieval failure - no supplier was contacted, which is the correct outcome.');
+        return J({ ok: true, job_type: null, fits: [], note: 'no_capability_match', retrieval, gated: diag.cap_gated ?? 0 });
+      }
+    } else {
+      // ---------- legacy path, untouched ----------
+      const ids = await retrieve(jobText, inq, emirate, diag);
+      if (ids.length) {
+        const { data: rows, error: rowsErr } = await admin.from('leads').select(SUP_COLS).in('id', ids.slice(0, 80));
+        if (rowsErr) diag.leads_fetch_error = clip(rowsErr.message, 160);
+        const byId = new Map((rows || []).map((r: any) => [Number(r.id), r]));
+        for (const id of ids) { const c = byId.get(id); if (c && usable(c)) pool.push(c); if (pool.length >= 60) break; }
+        const { data: appr, error: apprErr } = await approvedFilter(admin.from('leads').select('id').in('id', ids.slice(0, 80)));
+        if (apprErr) diag.approval_filter_error = clip(apprErr.message, 160);
+        const okIds = new Set((appr || []).map((r: any) => Number(r.id)));
+        pool = pool.filter((c) => okIds.has(Number(c.id)));
+      }
+      if (pool.length < 8) {
+        retrieval = pool.length ? 'hybrid+fallback' : 'fallback';
+        const q = approvedFilter(admin.from('leads').select(SUP_COLS)).limit(60);
+        const { data: cands, error: candsErr } = await q;
+        if (candsErr) diag.fallback_query_error = clip(candsErr.message, 160);
+        let extra = (cands || []).filter(usable);
+        if (emirate) { const inEm = extra.filter((c:any)=> (Array.isArray(c.service_emirates) && c.service_emirates.some((e:string)=> String(e).toLowerCase()===emirate.toLowerCase())) || String(c.emirate||'').toLowerCase()===emirate.toLowerCase()); if (inEm.length >= 3) extra = inEm; }
+        const have = new Set(pool.map((c) => Number(c.id)));
+        for (const c of extra) { if (!have.has(Number(c.id))) { pool.push(c); have.add(Number(c.id)); } }
+      }
     }
+
     pool = pool.slice(0, 40);
     const retrievalBroke = !!(diag.vector_rpc_error || diag.vector_exception || diag.kw_rpc_error || diag.kw_exception || diag.leads_fetch_error || diag.approval_filter_error || diag.fallback_query_error);
-    if (!pool.length) { await logRun(retrievalBroke ? 'error' : 'ok', { fits: 0, evaluated: 0, candidates_retrieved: ids.length, zero_fits_genuine: retrievalBroke ? 0 : 1, retrieval, ...diag }, retrievalBroke ? ('RFQ produced no supplier fits because supplier retrieval itself failed (' + clip(diag.fallback_query_error || diag.approval_filter_error || diag.leads_fetch_error || diag.kw_rpc_error || diag.kw_exception || diag.vector_rpc_error || diag.vector_exception, 140) + '), not because no supplier exists — dispatch_inquiry will record this as a supply coverage gap and the customer will be told nobody serves them, which is false.') : 'RFQ produced no supplier fits and this is genuine: retrieval and the approved-supplier fallback both ran cleanly and the approved supplier base contains nobody usable for this job. This is a real supply coverage gap.'); return J({ ok:true, job_type:null, fits:[], note:'no_registered_suppliers', retrieval }); }
+    if (!pool.length) { await logRun(retrievalBroke ? 'error' : 'ok', { fits: 0, evaluated: 0, zero_fits_genuine: retrievalBroke ? 0 : 1, retrieval, ...diag }, retrievalBroke ? ('RFQ produced no supplier fits because supplier retrieval itself failed (' + clip(diag.fallback_query_error || diag.approval_filter_error || diag.leads_fetch_error || diag.kw_rpc_error || diag.kw_exception || diag.vector_rpc_error || diag.vector_exception, 140) + '), not because no supplier exists — dispatch_inquiry will record this as a supply coverage gap and the customer will be told nobody serves them, which is false.') : 'RFQ produced no supplier fits and this is genuine: retrieval and the approved-supplier fallback both ran cleanly and the approved supplier base contains nobody usable for this job. This is a real supply coverage gap.'); return J({ ok:true, job_type:null, fits:[], note:'no_registered_suppliers', retrieval }); }
 
-    const list = pool.map((c:any)=> `#${c.id} — ${clip(c.company_name,80)} [sector: ${clip(c.sector||'-',40)}]\n  Capability: ${clip(c.capability_summary || '', 600)}\n  Products: ${clip(c.products||'', 400)}\n  Services: ${clip(c.services||'', 300)}`).join('\n\n');
+    const list = pool.map((c:any)=> {
+      const cs = capScores[Number(c.id)];
+      const capLine = cs ? `\n  [structured gate PASSED — score ${cs.score}: ${clip(cs.why, 200)}]` : '';
+      return `#${c.id} — ${clip(c.company_name,80)} [sector: ${clip(c.sector||'-',40)}]${capLine}\n  Capability: ${clip(c.capability_summary || '', 600)}\n  Products: ${clip(c.products||'', 400)}\n  Services: ${clip(c.services||'', 300)}`;
+    }).join('\n\n');
     const user = `JOB:\n${jobText}\n\nCANDIDATE SUPPLIERS (route only to those who can truly quote this job):\n${list}`;
 
     let ai:any = null;
@@ -129,12 +214,13 @@ Deno.serve(async (req) => {
     const byId = new Map(pool.map((c:any)=>[Number(c.id), c]));
     const matches = Array.isArray(ai.matches) ? ai.matches : [];
     const fits = matches.filter((m:any)=> String(m.verdict)==='fit' && byId.has(Number(m.id)))
-      .map((m:any)=>({ id: Number(m.id), company_name: byId.get(Number(m.id)).company_name, reason: clip(m.reason,300) }));
+      .map((m:any)=>({ id: Number(m.id), company_name: byId.get(Number(m.id)).company_name, reason: clip(m.reason,300),
+                       score: capScores[Number(m.id)]?.score ?? null }));
     const verdictsSeen = matches.filter((m:any)=> byId.has(Number(m.id))).length;
     const zeroFitsGenuine = fits.length > 0 ? null : (verdictsSeen > 0 ? 1 : 0);
-    await logRun((fits.length === 0 && zeroFitsGenuine === 0) ? 'error' : 'ok', { fits: fits.length, evaluated: pool.length, verdicts_returned: verdictsSeen, candidates_retrieved: ids.length, zero_fits_genuine: zeroFitsGenuine, ai_attempts: aiAttempts, ai_ok: 1, retrieval, retrieval_degraded: retrievalBroke ? 1 : 0, ...diag },
+    await logRun((fits.length === 0 && zeroFitsGenuine === 0) ? 'error' : 'ok', { fits: fits.length, evaluated: pool.length, verdicts_returned: verdictsSeen, zero_fits_genuine: zeroFitsGenuine, ai_attempts: aiAttempts, ai_ok: 1, retrieval, retrieval_degraded: retrievalBroke ? 1 : 0, ...diag },
       fits.length > 0
-        ? ('RFQ routed successfully to ' + fits.length + ' supplier fit(s) out of ' + pool.length + ' candidates adjudicated.' + (retrievalBroke ? ' NOTE: part of supplier retrieval errored, so the candidate pool was narrower than it should have been and a better-matching supplier may have been excluded.' : ''))
+        ? ('RFQ routed successfully to ' + fits.length + ' supplier fit(s) out of ' + pool.length + ' candidates adjudicated via ' + retrieval + '.' + (retrievalBroke ? ' NOTE: part of supplier retrieval errored, so the candidate pool was narrower than it should have been and a better-matching supplier may have been excluded.' : ''))
         : (zeroFitsGenuine === 1
             ? ('RFQ produced no supplier fits and this IS genuine: the adjudicator returned explicit verdicts on ' + verdictsSeen + ' of ' + pool.length + ' candidates and judged none capable of quoting this job. A real supply coverage gap.' + (retrievalBroke ? ' Caveat: retrieval partially errored, so the pool judged may have been incomplete.' : ''))
             : ('RFQ produced no supplier fits because the adjudicator returned NO usable verdicts for the ' + pool.length + ' candidates (malformed matches array), not because no supplier exists — this will be miscounted downstream as a supply coverage gap and the customer will be wrongly told nobody serves them.')));
