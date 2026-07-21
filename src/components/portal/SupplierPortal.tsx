@@ -210,16 +210,25 @@ function Dashboard({ token, lang }) {
   if (err) return <div className={S.center}><Card className="max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{err === 'load_err' ? t(lang, 'err_generic') : err}</div></Card></div>;
   if (!ov) return <div className={S.center}>{t(lang, 'loading_dash')}</div>;
   const s = ov.stats || {}; const pp = s.price_positioning || {};
-  const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing') };
+  const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing'), profile: lang === 'ar' ? 'الملف' : 'Profile' };
+  // 'profile' is new. ProfileForm previously rendered only from Onboarding, which shows solely
+  // while supplier_portal returns no_company — so the moment a supplier registered, every field
+  // in it became permanently unreachable: contact name, phone, products, services, description,
+  // TRN, EGR, licence number and authority. They could not correct a typo in their own company
+  // details, and since matching scores on products/services/categories, they could not improve
+  // their own discoverability either.
+  const TABS = ['overview', 'rfqs', 'documents', 'profile', 'projects', 'messages', 'billing'];
   return (
     <div className={S.wrap}>
       <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
         <div><div className="text-[22px] font-extrabold text-foreground">{ov.supplier.company_name}</div><div className="flex items-center gap-2 mt-1.5 flex-wrap"><Badge variant={ov.supplier.approval_status === 'approved' ? 'ok' : 'warn'} className="capitalize">{ov.supplier.approval_status === 'approved' ? t(lang, 'approved') : t(lang, 'pending')}</Badge>{ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · ' + ov.supplier.license_expiry}</Badge>; })() : null}</div></div>
-        <div className={S.tabsWrap}>{['overview', 'rfqs', 'documents', 'projects', 'messages', 'billing'].map((k) => <button key={k} className={cn(S.tab, tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : TAB[k]}</button>)}</div>
+        <div className={S.tabsWrap}>{TABS.map((k) => <button key={k} className={cn(S.tab, tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : TAB[k]}</button>)}</div>
       </div>
       {tab === 'billing' && <BillingPanel token={token} lang={lang} />}
+      {tab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
       {tab === 'overview' && <>
         {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => <div key={i} className={cn('rounded-lg border border-border bg-card px-3.5 py-3 cursor-pointer flex flex-col gap-0.5 border-l-4', a.severity === 'high' ? 'border-l-red-500' : a.severity === 'medium' ? 'border-l-amber-400' : 'border-l-primary')} onClick={() => setTab(a.action === 'documents' ? 'documents' : 'rfqs')}><b className="text-[13.5px] text-foreground">{a.title}</b><span className="text-muted-foreground text-xs">{a.detail}</span></div>)}</div>}
+        <EligibilityPanel token={token} lang={lang} goProfile={() => setTab('profile')} goDocs={() => setTab('documents')} />
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5 mb-4">
           <Kpi label={t(lang, 'k_quotes_sent')} v={s.quotes_total ?? 0} />
           <Kpi label={t(lang, 'k_reveals')} v={s.reveals ?? 0} />
@@ -245,6 +254,65 @@ function Dashboard({ token, lang }) {
       {tab === 'projects' && <Projects token={token} lang={lang} />}
       {tab === 'messages' && <Messages token={token} lang={lang} />}
     </div>
+  );
+}
+// "Why am I not getting matched?"
+//
+// Across 20,465 supplier records exactly one is currently eligible, and inquiry_matches has never
+// had a row — so the single most useful thing this dashboard can tell a supplier is what is
+// actually standing between them and a request. Every item comes from the server, which evaluates
+// the real clauses in match_suppliers_kw rather than a guess at them, and separates what BLOCKS
+// matching from what only IMPROVES ranking. Conflating those would be worse than silence: a
+// supplier who fixes five cosmetic things and still gets nothing stops trusting the product.
+function EligibilityPanel({ token, lang, goProfile, goDocs }) {
+  const [e, setE] = useState(null);
+  const ar = lang === 'ar';
+  useEffect(() => { call('supplier_portal', { action: 'eligibility' }, token).then((j) => { if (j && j.ok) setE(j); }); }, [token]);
+  if (!e) return null;
+  const blocking = e.blocking || []; const improving = e.improving || [];
+  const go = (fix) => { if (fix === 'documents') goDocs(); else if (fix === 'profile') goProfile(); };
+  const Row = ({ it, tone }) => (
+    <li className="flex items-start gap-2.5">
+      <span className={cn('mt-[7px] h-1.5 w-1.5 rounded-full shrink-0', tone === 'block' ? 'bg-red-500' : 'bg-primary')} />
+      <div className="flex-1">
+        <div className="text-[13.5px] font-semibold text-foreground">{it.title}</div>
+        <div className={S.sub}>{it.detail}</div>
+        {(it.fix === 'profile' || it.fix === 'documents') && (
+          <button className="mt-1 text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" onClick={() => go(it.fix)}>
+            {it.fix === 'documents' ? (ar ? 'إلى المستندات ←' : 'Go to Documents →') : (ar ? 'إلى الملف ←' : 'Go to Profile →')}
+          </button>
+        )}
+      </div>
+    </li>
+  );
+  return (
+    <Card className="p-5 mb-4">
+      <div className="flex justify-between items-start gap-3 flex-wrap">
+        <div>
+          <div className={S.h2}>{ar ? 'وصولك إلى الطلبات' : 'Your reach'}</div>
+          <div className={cn(S.sub, 'mt-1 max-w-[62ch]')}>{e.note}</div>
+        </div>
+        <Badge variant={e.eligible ? 'ok' : 'destructive'} className="shrink-0">
+          {e.eligible ? (ar ? 'مؤهّل للمطابقة' : 'Eligible for matching') : (ar ? 'غير مؤهّل حاليًا' : 'Not currently eligible')}
+        </Badge>
+      </div>
+      <div className="flex gap-5 mt-3 flex-wrap">
+        <div><div className="text-[19px] font-extrabold text-foreground leading-none">{e.reach?.matched_requests ?? 0}</div><div className={S.sub}>{ar ? 'طلبات مطابقة' : 'requests matched'}</div></div>
+        <div><div className="text-[19px] font-extrabold text-foreground leading-none">{e.reach?.quotes_sent ?? 0}</div><div className={S.sub}>{ar ? 'عروض مُرسلة' : 'quotes sent'}</div></div>
+        <div><div className="text-[19px] font-extrabold text-foreground leading-none">{e.reach?.shortlist_size ?? 8}</div><div className={S.sub}>{ar ? 'حجم القائمة المختصرة' : 'shortlist size'}</div></div>
+      </div>
+      {!!blocking.length && <div className="mt-4">
+        <div className="text-[12.5px] font-bold text-red-400">{ar ? 'يمنع وصول الطلبات إليك' : 'Stopping requests reaching you'}</div>
+        <ul className="mt-2 flex flex-col gap-2.5">{blocking.map((it, i) => <Row key={i} it={it} tone="block" />)}</ul>
+      </div>}
+      {!!improving.length && <div className="mt-4">
+        <div className="text-[12.5px] font-bold text-muted-foreground">{ar ? 'يرفع ترتيبك' : 'Improves your ranking'}</div>
+        <ul className="mt-2 flex flex-col gap-2.5">{improving.slice(0, 6).map((it, i) => <Row key={i} it={it} tone="improve" />)}</ul>
+      </div>}
+      {!blocking.length && !improving.length && <div className={cn(S.sub, 'mt-3')}>
+        {ar ? 'ملفك مكتمل. ستصلك الطلبات المطابقة فور ورودها.' : 'Your profile is complete. Matching requests will reach you as they come in.'}
+      </div>}
+    </Card>
   );
 }
 function Kpi({ label, v, sub }) { return <Card className="p-3.5"><div className="text-[19px] font-extrabold text-foreground">{v}</div><div className="text-[11.5px] text-muted-foreground mt-1">{label}</div>{sub ? <div className="text-[10.5px] text-primary mt-1 font-semibold">{sub}</div> : null}</Card>; }
@@ -296,21 +364,110 @@ function Documents({ token, lang }) {
   const [data, setData] = useState(null); const [busy, setBusy] = useState('');
   const load = () => call('supplier_portal', { action: 'documents' }, token).then((j) => setData(j));
   useEffect(() => { load(); }, [token]);
-  const upload = async (kind, file, expiry) => { setBusy(kind); const b64 = await fileToB64(file); await call('supplier_portal', { action: 'save_documents', items: [{ kind, original_b64: b64, filename: file.name, mime: file.type, expiry }] }, token); setBusy(''); load(); };
+  const [err, setErr] = useState('');
+  // The server reports per-file failures now. Previously a failed storage write was swallowed and
+  // the kind still came back as saved, so a supplier could be told their licence was on file when
+  // nothing had been written. Surface it instead of reloading over the top of it.
+  const upload = async (kind, file, expiry) => {
+    setBusy(kind); setErr('');
+    const b64 = await fileToB64(file);
+    const j = await call('supplier_portal', { action: 'save_documents', items: [{ kind, original_b64: b64, filename: file.name, mime: file.type, expiry }] }, token);
+    setBusy('');
+    const failed = (j && j.failed) || [];
+    if (failed.length) setErr((lang === 'ar' ? 'تعذّر رفع الملف: ' : 'Upload failed: ') + failed.map((f) => f.reason).join('; '));
+    else if (j && j.error) setErr(String(j.error));
+    load();
+  };
   if (!data) return <Card className="p-5">{t(lang, 'loading_docs')}</Card>;
-  const byKey = Object.fromEntries((data.documents || []).map((d) => [d.key, d]));
-  const order = ['license', 'profile', 'catalogs', 'iso'];
+  // Order comes from the server (DOC_ORDER) so adding a document type needs no change here.
+  const docs = data.documents || [];
+  const sum = data.summary || {};
+  const attention = docs.filter((d) => d.status === 'expired' || d.status === 'expiring');
+  const missingReq = docs.filter((d) => d.required && d.status === 'missing');
   return <div className={S.list}>
-    <Card className="p-5"><div className={S.h2}>{t(lang, 'docs_h')}</div><div className={S.sub}>{t(lang, 'docs_sub')}</div></Card>
-    {order.map((k) => byKey[k]).filter(Boolean).map((d) => <DocRow key={d.key} d={d} lang={lang} editable={d.key !== 'license' && d.key !== 'profile'} busy={busy === d.key} onUpload={upload} />)}
+    <Card className="p-5">
+      <div className="flex justify-between items-start gap-3 flex-wrap">
+        <div>
+          <div className={S.h2}>{t(lang, 'docs_h')}</div>
+          <div className={cn(S.sub, 'mt-1')}>{lang === 'ar'
+            ? 'تُستخدم هذه المستندات للتحقق من حسابك. الرخصة التجارية والتأمين مطلوبان لاستمرار استقبال الطلبات.'
+            : 'These verify your account. Your trade licence and insurance must stay valid to keep receiving customer requests.'}</div>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="text-[22px] font-extrabold text-foreground leading-none">{sum.on_file ?? 0}<span className="text-muted-foreground text-[15px]">/{sum.total ?? docs.length}</span></div>
+          <div className={S.sub}>{lang === 'ar' ? 'على الملف' : 'on file'}</div>
+        </div>
+      </div>
+      {/* Completeness bar — one glance at how far off "complete" they are. */}
+      <div className="mt-3 h-2 rounded-full bg-secondary/60 overflow-hidden" role="progressbar"
+           aria-valuenow={sum.on_file ?? 0} aria-valuemin={0} aria-valuemax={sum.total ?? docs.length}
+           aria-label={lang === 'ar' ? 'اكتمال المستندات' : 'Document completeness'}>
+        <div className="h-full bg-primary transition-[width] duration-700 motion-reduce:transition-none"
+             style={{ width: (sum.total ? Math.round(100 * (sum.on_file || 0) / sum.total) : 0) + '%' }} />
+      </div>
+      {(!!missingReq.length || !!attention.length) && <div className="flex gap-2 flex-wrap mt-3">
+        {!!missingReq.length && <Badge variant="destructive">{missingReq.length} {lang === 'ar' ? 'مطلوب ومفقود' : (missingReq.length === 1 ? 'required document missing' : 'required documents missing')}</Badge>}
+        {!!attention.length && <Badge variant="warn">{attention.length} {lang === 'ar' ? 'بحاجة إلى انتباه' : 'needs attention'}</Badge>}
+      </div>}
+      {err && <div className={cn(S.err, 'mt-3')}>{err}</div>}
+    </Card>
+    {docs.map((d) => <DocRow key={d.key} d={d} lang={lang} busy={busy === d.key} onUpload={upload} />)}
   </div>;
 }
-function DocRow({ d, editable, busy, onUpload, lang }) {
+// Every document type is editable here. The trade licence and company profile used to be
+// deliberately read-only (editable={d.key !== 'license' && d.key !== 'profile'}), and the only
+// licence upload in the product lived in ProfileForm, which renders solely while the account has
+// no company yet. An established supplier whose licence expired therefore had nowhere to replace
+// it — while receiving alerts telling them to do exactly that. Now that expiry suspends matching,
+// that dead end would have been an account they could not reopen.
+function DocRow({ d, busy, onUpload, lang }) {
   const [exp, setExp] = useState(d.expiry || ''); const [file, setFile] = useState(null);
-  const st = d.expiry ? (new Date(d.expiry) < new Date() ? { t: t(lang, 'st_expired'), v: 'destructive' } : ((new Date(d.expiry) - new Date()) / 864e5 <= 30 ? { t: t(lang, 'st_expiring'), v: 'warn' } : { t: t(lang, 'st_valid'), v: 'ok' })) : null;
-  return <Card className="p-5 flex justify-between items-center gap-3 flex-wrap">
-    <div><div><b>{({ license: t(lang, 'h_trade'), profile: t(lang, 'doc_profile'), catalogs: t(lang, 'catalogues'), iso: t(lang, 'doc_iso') })[d.key] || d.label}</b>{st && <Badge variant={st.v} className="ml-2">{st.t}</Badge>}</div><div className={S.sub}>{d.path ? (d.expiry ? t(lang, 'expires_pre') + d.expiry : ((d.count != null ? d.count + ' · ' : '') + t(lang, 'on_file'))) : t(lang, 'not_uploaded')}{d.url ? <> · <a className="text-primary font-semibold" href={d.url} target="_blank" rel="noopener">{t(lang, 'view')}</a></> : null}{Array.isArray(d.urls) ? d.urls.map((u, i) => <span key={i}> · <a className="text-primary font-semibold" href={u} target="_blank" rel="noopener">{t(lang, 'view')} {i + 1}</a></span>) : null}</div></div>
-    {editable && <div className="flex gap-2 items-center flex-wrap"><FilePick lang={lang} onPick={setFile} />{file && <span className={S.sub}>{file.name}</span>}{d.key !== 'catalogs' && <Input type="date" style={{ colorScheme: 'dark' }} className="w-auto" value={exp} onChange={(e) => setExp(e.target.value)} />}<Button size="sm" disabled={busy || !file} onClick={() => onUpload(d.key, file, exp)}>{busy ? t(lang, 'uploading') : t(lang, 'upload')}</Button></div>}
+  const ar = lang === 'ar';
+  const label = ({ license: t(lang, 'h_trade'), profile: t(lang, 'doc_profile'), catalogs: t(lang, 'catalogues'), iso: t(lang, 'doc_iso') })[d.key] || d.label;
+  // Status is computed server-side so the badge, the alerts and the suspension job cannot disagree.
+  const ST = {
+    expired:  { t: ar ? 'منتهية' : 'Expired',      v: 'destructive' },
+    expiring: { t: ar ? 'تنتهي قريبًا' : 'Expiring soon', v: 'warn' },
+    valid:    { t: ar ? 'سارية' : 'Valid',          v: 'ok' },
+    on_file:  { t: ar ? 'على الملف' : 'On file',    v: 'secondary' },
+    missing:  { t: ar ? 'مفقود' : 'Not uploaded',   v: d.required ? 'destructive' : 'secondary' },
+  };
+  const st = ST[d.status] || null;
+  const isCat = d.key === 'catalogs';
+  const items = Array.isArray(d.items) ? d.items : [];
+  return <Card className="p-5">
+    <div className="flex justify-between items-start gap-3 flex-wrap">
+      <div className="min-w-[240px] flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <b className="text-foreground">{label}</b>
+          {d.required && <Badge variant="secondary">{ar ? 'مطلوب' : 'Required'}</Badge>}
+          {st && <Badge variant={st.v}>{st.t}</Badge>}
+        </div>
+        <div className={cn(S.sub, 'mt-1')}>{d.hint}</div>
+        {/* What is actually on file, by name, so they can tell whether the right file went up. */}
+        {!isCat && d.path && <div className={cn(S.sub, 'mt-1.5')}>
+          <span className="text-foreground/80">{d.name || (ar ? 'ملف' : 'File')}</span>
+          {d.expiry ? <> · {ar ? 'تنتهي ' : 'expires '}{d.expiry}</> : null}
+          {d.url ? <> · <a className="text-primary font-semibold underline-offset-2 hover:underline" href={d.url} target="_blank" rel="noopener">{t(lang, 'view')}</a></> : null}
+        </div>}
+        {isCat && (items.length
+          ? <ul className="mt-1.5 flex flex-col gap-1">{items.map((c, i) => <li key={i} className={S.sub}>
+              <span className="text-foreground/80">{c.name}</span>
+              {c.url ? <> · <a className="text-primary font-semibold underline-offset-2 hover:underline" href={c.url} target="_blank" rel="noopener">{t(lang, 'view')}</a></> : null}
+            </li>)}</ul>
+          : <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>)}
+        {!isCat && !d.path && <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>}
+      </div>
+      <div className="flex gap-2 items-center flex-wrap shrink-0">
+        <FilePick lang={lang} onPick={setFile} />
+        {file && <span className={cn(S.sub, 'max-w-[180px] truncate')}>{file.name}</span>}
+        {d.has_expiry && <Input type="date" style={{ colorScheme: 'dark' }} className="w-auto" value={exp}
+          onChange={(e) => setExp(e.target.value)} aria-label={(ar ? 'تاريخ انتهاء ' : 'Expiry date for ') + label} />}
+        <Button size="sm" disabled={busy || !file} onClick={() => onUpload(d.key, file, exp)}>
+          {busy ? t(lang, 'uploading') : (d.path && !isCat ? (ar ? 'استبدال' : 'Replace') : t(lang, 'upload'))}
+        </Button>
+      </div>
+    </div>
   </Card>;
 }
 function Projects({ token, lang }) {
@@ -320,6 +477,25 @@ function Projects({ token, lang }) {
   const list = data.projects || [];
   if (!list.length) return <Card className="p-5"><div className={S.h2}>{t(lang, 'no_projects_h')}</div><div className={S.sub}>{t(lang, 'no_projects_sub')}</div></Card>;
   return <div className={S.list}>{list.map((p, i) => <Card key={i} className="p-5 flex justify-between items-center gap-3 flex-wrap"><div><b>{p.category || t(lang, 'project_w')}</b> · {p.emirate || ''}<div className={S.sub}>{p.summary || ''}</div></div><div className="text-right"><b>{aed(p.amount)}</b><div className={S.sub}>{p.revealed_at ? ((lang === 'ar' ? 'كُشف بتاريخ ' : 'Revealed ') + new Date(p.revealed_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : (p.month || '')}</div></div></Card>)}</div>;
+}
+// Profile tab for an established supplier. Reuses ProfileForm rather than duplicating it, so the
+// same validation, terms handling and save_profile call apply whether the supplier is registering
+// for the first time or correcting a detail two years later.
+function ProfilePanel({ token, lang, onSaved }) {
+  const [me, setMe] = useState(undefined);
+  const load = () => call('supplier_api', { action: 'me' }, token).then((j) => setMe(j.supplier || null)).catch(() => setMe(null));
+  useEffect(() => { load(); }, [token]);
+  if (me === undefined) return <Card className="p-5">{t(lang, 'loading')}</Card>;
+  if (!me) return <Card className="p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div></Card>;
+  return <div className={S.list}>
+    <Card className="p-5">
+      <div className={S.h2}>{lang === 'ar' ? 'ملف الشركة' : 'Company profile'}</div>
+      <div className={cn(S.sub, 'mt-1')}>{lang === 'ar'
+        ? 'ما تكتبه هنا يحدّد الطلبات التي تصلك. تُطابَق الطلبات على القطاع والمنتجات والخدمات والفئات — كلما كانت أدق، زادت مطابقتك.'
+        : 'What you write here decides which requests reach you. Requests are matched on your sector, products, services and categories — the more specific these are, the more you match.'}</div>
+    </Card>
+    <ProfileForm token={token} me={me} onSaved={() => { load(); if (onSaved) onSaved(); }} lang={lang} />
+  </div>;
 }
 function Onboarding({ token, onDone, lang }) {
   const [me, setMe] = useState(undefined);
