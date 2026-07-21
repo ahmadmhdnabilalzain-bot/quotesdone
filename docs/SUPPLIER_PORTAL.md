@@ -122,8 +122,6 @@ re-checked server-side on every action.
 | `submit_quote` | **live** | Score (`fn_quote_structured_score`) + accept rule; **`dry_run`** preflight is non-mutating; coaching via `fn_quote_coach`. |
 | `pay_registration` | **present, dormant** | Creates a Stripe Checkout Session for the AED 1,000 yearly fee. **Only** creates a session — `stripe_webhook` marks paid. Dormant while every supplier is free-tier; not yet surfaced in the portal UI. |
 | `search` / `claim` | **backend-ready, not surfaced** | Search the scraped `leads` and claim an existing listing. No portal UI yet. **Needed for supplier activation (#51):** without it, `create_company` makes a *duplicate* lead for a company already scraped. |
-| `dashboard` | **dead** | Superseded by `supplier_portal.overview` (which returns strictly more). Unreachable; scheduled for removal on next deploy (#114). |
-
 **The `dry_run` preflight** is the one subtlety worth knowing: `submit_quote` with
 `dry_run:true` runs the *real* scorer and the *real* accept rule, then restores the
 quote's prior status so nothing reaches the customer and no coaching email fires. It
@@ -139,8 +137,6 @@ so the portal can tell the supplier *why* a quote would send — because passing
 | `documents` | **live** | Document centre over `DOC_KINDS` (8 types) + catalogues; server-computed status (missing / on_file / valid / expiring / expired). |
 | `save_documents` | **live** | Upload documents; catalogues **append** (20-file ceiling); **per-file failures are returned** (a swallowed storage error once reported a licence as "on file" when nothing was written). |
 | `eligibility` | **live** | "Why am I not matched" — mirrors the real clauses in `match_suppliers_kw`, separating what **blocks** matching from what only **improves** ranking. |
-| `notifications` | **dead** | Notification feed; no caller anywhere. Harmless; scheduled for removal on next deploy (#114). |
-
 **v5 is the deployed version and it matters** (tasks #68/#69/#71). Earlier code told a
 supplier that document expiry does *not* affect matching — technically true of
 `match_suppliers_kw` in isolation, but **false in effect**: `fn_reconcile_doc_blocks`
@@ -208,7 +204,7 @@ functions, or crons invoke them. **All byte-verified == prod. Do not delete.**
 - **`inquiries`**, **`inquiry_matches`** (the shortlist), **`quotes`** (+ `submittable`, `structured`, `source`), **`quote_items`**.
 - **`quote_reviews` / `quote_review_messages` / `quote_committed_items`** — used only by `quote_review_api` (see §7).
 - **`supplier_twin` / `supplier_reputation`** — read only by `supplier_me` (see §7).
-- **`notifications`**, **`doc_reviews`** (queue for `doc_review_api`).
+- **`notifications`**, **`doc_reviews`** (inbound-document queue, read by the OS console).
 - **`pricing_config`** (`supplier_free_count` = 1000, `supplier_reg_fee`, `auto_approve_suppliers`), **`decision_policy`** (`use_capability_matching`, `match_relevance_floor`).
 
 ### Key functions
@@ -337,9 +333,11 @@ tabs (§7).
 work the earlier git re-sync (#94) never mirrored back — which is why the repo must be
 byte-verified against production, not trusted (full 184-function audit open, #115).
 
-**Two dead-but-harmless actions** left for the next deploy of their function (#114):
-`supplier_api.dashboard` (superseded by `supplier_portal.overview`) and
-`supplier_portal.notifications` (no caller).
+**Also stripped the last 2 dead actions** — `supplier_api.dashboard` (+ its sole helper
+`ratingOf`) and `supplier_portal.notifications` — then redeployed both via the file-based CLI,
+byte-verified repo == prod with `verify_jwt = false` preserved. `search`/`claim` (the
+claim-a-scraped-listing backend, needed for supplier activation #51) and `pay_registration`
+(the registration-fee path) were **kept** — needed capabilities, not dead code.
 
 **Verified:** repo == production for the entire supplier surface — every function in §3/§4
 byte-identical; the supplier frontend compiles clean; function count **184 repo == 184 prod**
