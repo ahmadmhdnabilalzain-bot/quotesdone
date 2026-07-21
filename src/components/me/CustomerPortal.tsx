@@ -1215,8 +1215,8 @@ function Contact({ c, q, token, onChange, lang, won }) {
         // accept it — before that fix the window always closed before call_due was reached.
         <>
           <span className="text-[12.5px] text-accent">
-            {lang === 'ar' ? 'نحن نتابع المورّد هاتفيًا الآن — سنعود إليك بشأن الاسترداد.'
-                           : 'We are following up with the supplier by phone — we will come back to you on the refund.'}
+            {lang === 'ar' ? 'لم يستجب المورّد ونحن نتابعه هاتفيًا. يمكنك طلب الاسترداد الآن.'
+                           : 'The supplier has not responded and we are following up by phone. You can request your refund now.'}
           </span>
           <Button variant="link" className="h-auto px-0 text-primary" onClick={refund}>{t(lang, 'request_refund')}</Button>
         </>
