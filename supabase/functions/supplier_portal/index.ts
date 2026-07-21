@@ -76,12 +76,6 @@ Deno.serve(async (req) => {
       return J({ ok:true, supplier:{ id:sup.id, company_name:sup.company_name, approval_status:sup.approval_status, registration_status:sup.registration_status, license_expiry: sup.license_expiry || null, name_corrected: !!sup.name_corrected_from }, stats, active_matches: activeMatches || 0, alerts, alerts_count: alerts.length });
     }
 
-    if (action === 'notifications') {
-      const alerts = await buildAlerts();
-      const { data: feed } = await admin.from('notifications').select('id,type,subject,body,created_at,inquiry_id').or(`to_email.eq.${email},and(to_role.eq.supplier,lead_id.eq.${sup.id})`).order('created_at',{ ascending:false }).limit(40);
-      return J({ ok:true, alerts, alerts_count: alerts.length, feed: feed || [] });
-    }
-
     if (action === 'documents') {
       // Column list is derived from DOC_KINDS so adding a document type here needs no edit below.
       const cols = new Set<string>(['catalog_doc_paths']);

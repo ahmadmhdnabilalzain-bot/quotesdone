@@ -21,7 +21,6 @@ const CONCLUDED = ['completed','closed','cancelled'];
 function clientIp(req: Request): string { return (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || ''; }
 const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ? null : String(v).slice(0, n);
 const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n !== 0 ? n : (isFinite(n) && String(v).trim() !== '' ? n : null); };
-function ratingOf(l: Record<string, any>) { if (!l) return { value: null, count: 0, source: 'Google' }; const appN = Number(l.app_reviews || 0); if (appN > 0) return { value: l.app_rating != null ? Number(l.app_rating) : null, count: appN, source: 'QuotesDone' }; const g = l.rating ?? l.rating_maps; const gn = l.reviews ?? l.reviews_maps; return { value: g != null ? Number(g) : null, count: gn != null ? Number(gn) : 0, source: 'Google' }; }
 async function secretVal(key: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return data?.value || null; }
 function b64ToBytes(b64:string){ const bin=atob(String(b64).replace(/^data:[^;]+;base64,/,'')); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
 async function signedRedacted(path: string){ try { const { data } = await admin.storage.from('drawing-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
@@ -173,12 +172,6 @@ Deno.serve(async (req) => {
       const sj = await r.json();
       if (!r.ok) return J({ error: 'stripe_error', detail: String(sj?.error?.message || '').slice(0, 300) }, 502);
       return J({ ok: true, url: sj.url, amount: fee, currency: 'AED' });
-    }
-    if (action === 'dashboard') {
-      const { data: sup } = await admin.from('leads').select('id,approval_status,app_rating,app_reviews,rating,rating_maps,reviews,reviews_maps').eq('claimed_by', email).maybeSingle();
-      if (!sup) return J({ error: 'claim your company first' }, 400);
-      const [recv, q, t] = await Promise.all([ admin.from('inquiry_matches').select('id', { count: 'exact', head: true }).eq('supplier_id', sup.id), admin.from('quotes').select('id', { count: 'exact', head: true }).eq('supplier_id', sup.id), admin.from('transactions').select('id', { count: 'exact', head: true }).eq('supplier_id', sup.id) ]);
-      return J({ active: recv.count || 0, quoted: q.count || 0, won: t.count || 0, approval_status: sup.approval_status, rating: ratingOf(sup) });
     }
     if (action === 'inbox') {
       const { data: sup } = await admin.from('leads').select('id,approval_status').eq('claimed_by', email).maybeSingle(); if (!sup) return J({ error: 'claim your company first' }, 400);
