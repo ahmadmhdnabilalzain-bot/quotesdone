@@ -237,6 +237,10 @@ function Dashboard({ token, lang }) {
           <Kpi label={t(lang, 'k_rating')} v={s.rating != null ? s.rating : '—'} sub={s.rating_percentile != null ? (lang === 'ar' ? ('ضمن أفضل ' + Math.max(1, 100 - s.rating_percentile) + '% بالقطاع') : ('Top ' + Math.max(1, 100 - s.rating_percentile) + '% in sector')) : ''} />
           <Kpi label={t(lang, 'k_deal_value')} v={aed(s.deal_value_awarded)} />
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-3.5">
+          <Funnel s={s} matched={ov.active_matches} lang={lang} />
+          <Earnings s={s} lang={lang} />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           <Card className="p-5">
             <div className={S.h2}>{t(lang, 'price_pos')} <span className={S.anon}>{t(lang, 'anon_note')}</span></div>
@@ -316,6 +320,83 @@ function EligibilityPanel({ token, lang, goProfile, goDocs }) {
   );
 }
 function Kpi({ label, v, sub }) { return <Card className="p-3.5"><div className="text-[19px] font-extrabold text-foreground">{v}</div><div className="text-[11.5px] text-muted-foreground mt-1">{label}</div>{sub ? <div className="text-[10.5px] text-primary mt-1 font-semibold">{sub}</div> : null}</Card>; }
+// Conversion funnel: matched -> quoted -> revealed -> won.
+//
+// fn_supplier_stats has always returned every number here — quotes_total, reveals, hired,
+// lost_to_others, reveal_ratio, win_ratio, response_rate, avg_lead_time_days, active_rfqs — and
+// the portal rendered none of them beyond four flat counters. Counters tell a supplier what
+// happened; the funnel tells them WHERE they lose, which is the only version they can act on.
+// Bars are drawn relative to the widest stage so a low-volume account still reads clearly.
+function Funnel({ s, matched, lang }) {
+  const ar = lang === 'ar';
+  const stages = [
+    { k: 'matched',  label: ar ? 'طلبات وصلتك'  : 'Requests matched', v: matched || 0 },
+    { k: 'quoted',   label: ar ? 'قدّمت عرضًا'   : 'You quoted',       v: s.quotes_total || 0 },
+    { k: 'revealed', label: ar ? 'كشف العميل'    : 'Customer revealed', v: s.reveals || 0 },
+    { k: 'won',      label: ar ? 'فزت بالمشروع'  : 'You won',          v: s.hired || 0 },
+  ];
+  const max = Math.max(1, ...stages.map((x) => x.v));
+  // Step conversion, so a supplier can see which single transition is costing them.
+  const conv = (i) => { if (i === 0) return null; const prev = stages[i - 1].v; if (!prev) return null; return Math.round(100 * stages[i].v / prev); };
+  const anyData = stages.some((x) => x.v > 0);
+  return (
+    <Card className="p-5">
+      <div className={S.h2}>{ar ? 'مسار التحويل' : 'Your funnel'}</div>
+      {!anyData
+        ? <div className={cn(S.sub, 'mt-2.5')}>{ar
+            ? 'لا توجد بيانات بعد. سيظهر هذا المسار بمجرد وصول أول طلب مطابق إليك.'
+            : 'Nothing to show yet. This fills in as soon as the first matching request reaches you.'}</div>
+        : <div className="mt-3 flex flex-col gap-2.5">
+            {stages.map((st, i) => { const c = conv(i); return (
+              <div key={st.k}>
+                <div className="flex justify-between items-baseline gap-2">
+                  <span className="text-[13px] text-foreground">{st.label}</span>
+                  <span className="text-[13px] font-bold text-foreground tabular-nums">{st.v}{c != null && <span className="text-muted-foreground font-semibold ml-1.5 text-[11.5px]">{c}%</span>}</span>
+                </div>
+                <div className="mt-1 h-2 rounded-full bg-secondary/50 overflow-hidden">
+                  <div className="h-full rounded-full bg-primary transition-[width] duration-700 motion-reduce:transition-none"
+                       style={{ width: Math.max(2, Math.round(100 * st.v / max)) + '%', opacity: 1 - i * 0.18 }} />
+                </div>
+              </div>
+            ); })}
+          </div>}
+      {/* Numbers the platform already had and never showed. Only rendered when real. */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 pt-3.5 border-t border-border">
+        {s.response_rate != null && <Stat label={ar ? 'معدل الاستجابة' : 'Response rate'} v={s.response_rate + '%'} />}
+        {s.reveal_ratio != null && <Stat label={ar ? 'نسبة الكشف' : 'Reveal rate'} v={s.reveal_ratio + '%'} />}
+        {s.avg_lead_time_days != null && <Stat label={ar ? 'متوسط مدة التنفيذ' : 'Avg lead time'} v={s.avg_lead_time_days + (ar ? ' يوم' : ' days')} />}
+        {!!s.lost_to_others && <Stat label={ar ? 'خسرتها لمنافس' : 'Lost to others'} v={s.lost_to_others} />}
+        {!!s.active_rfqs && <Stat label={ar ? 'طلبات مفتوحة' : 'Still open'} v={s.active_rfqs} />}
+        {!!s.pending_reviews && <Stat label={ar ? 'تقييمات معلّقة' : 'Reviews pending'} v={s.pending_reviews} />}
+      </div>
+    </Card>
+  );
+}
+function Stat({ label, v }) { return <div className="flex justify-between items-baseline gap-2"><span className={S.sub}>{label}</span><span className="text-[13px] font-bold text-foreground tabular-nums">{v}</span></div>; }
+// Value won over time. deal_value_awarded and history_12m were both already computed.
+function Earnings({ s, lang }) {
+  const ar = lang === 'ar';
+  const hist = Array.isArray(s.history_12m) ? s.history_12m : [];
+  const active = hist.filter((h) => (h.quotes || 0) + (h.reveals || 0) > 0).length;
+  return (
+    <Card className="p-5">
+      <div className={S.h2}>{ar ? 'قيمة الأعمال' : 'Business value'}</div>
+      <div className="flex gap-6 mt-3 flex-wrap">
+        <div>
+          <div className="text-[22px] font-extrabold text-foreground leading-none">{aed(s.deal_value_awarded)}</div>
+          <div className={S.sub}>{ar ? 'إجمالي قيمة ما فزت به' : 'total value awarded to you'}</div>
+        </div>
+        <div>
+          <div className="text-[22px] font-extrabold text-foreground leading-none">{active}<span className="text-muted-foreground text-[15px]">/12</span></div>
+          <div className={S.sub}>{ar ? 'أشهر بها نشاط' : 'months with activity'}</div>
+        </div>
+      </div>
+      <div className={cn(S.sub, 'mt-3')}>{ar
+        ? 'تُحتسب هذه القيمة من العروض التي كشفها العملاء فعليًا، لا من العروض المُرسلة.'
+        : 'Counted from quotes customers actually revealed, not from quotes sent.'}</div>
+    </Card>
+  );
+}
 function Spark({ hist, lang }) { if (!hist || !hist.length) return <div className={S.sub}>{t(lang, 'no_history')}</div>; const max = Math.max(1, ...hist.map((h) => Math.max(h.quotes || 0, h.reveals || 0))); return <div className="flex gap-1.5 items-end mt-3.5 h-[70px]">{hist.map((h, i) => <div key={i} className="flex-1 flex flex-col items-center" title={h.month + ': ' + h.quotes + ' quotes / ' + h.reveals + ' reveals'}><div className="flex gap-0.5 items-end h-[50px]"><div className="w-[7px] rounded-t-sm bg-primary" style={{ height: Math.max(2, Math.round((h.quotes / max) * 46)) }} /><div className="w-[7px] rounded-t-sm bg-primary/40" style={{ height: Math.max(2, Math.round((h.reveals / max) * 46)) }} /></div><div className="text-[9px] text-muted-foreground mt-1">{String(h.month).split(' ')[0]}</div></div>)}</div>; }
 function Rfqs({ token, lang }) {
   const [data, setData] = useState(null); const [open, setOpen] = useState(null);
@@ -338,7 +419,33 @@ function QuoteForm({ inquiry, token, onDone, lang }) {
   const [amount, setAmount] = useState(''); const [lead, setLead] = useState(''); const [notes, setNotes] = useState(''); const [scope, setScope] = useState(''); const [validity, setValidity] = useState(''); const [payment, setPayment] = useState(''); const [warranty, setWarranty] = useState(''); const [items, setItems] = useState([{ description: '', qty: '', unit: '', unit_price: '' }]); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const [reading, setReading] = useState(false); const [prop, setProp] = useState(null); const [orig, setOrig] = useState(null);
   const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64 } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + pr.line_items.length + ' ' + t(lang, 'line_items') : '') + t(lang, 'read_quote_post')); } else setMsg((j && j.error) || t(lang, 'could_not_read')); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
-  const submit = async () => { if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; } setBusy(true); setMsg(''); const payload = prop ? { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, conditions: prop.conditions || '', exclusions: prop.exclusions || '', validity: validity || prop.validity || '', payment_terms: payment || prop.payment_terms || '', warranty: warranty || prop.warranty || '', items: prop.line_items || [], masked_terms: prop.masked_terms || null, source: 'upload', original_file_path: orig && orig.path, original_file_name: orig && orig.name } : { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, validity, payment_terms: payment, warranty, items: items.filter((x) => (x.description || '').trim()), source: 'form' }; const j = await call('supplier_api', payload, token); setBusy(false); if (j && j.ok && j.accepted) onDone(); else if (j && j.ok) setMsg(j.message || t(lang, 'draft_saved')); else setMsg((j && j.error) || t(lang, 'could_not_submit')); };
+  const [chk, setChk] = useState(null); const [checking, setChecking] = useState(false);
+  const buildPayload = () => prop ? { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, conditions: prop.conditions || '', exclusions: prop.exclusions || '', validity: validity || prop.validity || '', payment_terms: payment || prop.payment_terms || '', warranty: warranty || prop.warranty || '', items: prop.line_items || [], masked_terms: prop.masked_terms || null, source: 'upload', original_file_path: orig && orig.path, original_file_name: orig && orig.name } : { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, validity, payment_terms: payment, warranty, items: items.filter((x) => (x.description || '').trim()), source: 'form' };
+  // Preflight. submit_quote accepts dry_run: it runs the REAL scorer and the REAL accept rule,
+  // then stops — no status change, no customer notification, and deliberately no coaching email,
+  // because fn_quote_coach queues mail that must not fire while someone is mid-edit.
+  //
+  // This is the gap the product had. Feedback only ever arrived AFTER a quote was accepted, by
+  // email, hours later. And "accepted" was never the whole story: every quote on the platform
+  // today passes through the form_complete branch at a score of 65 while the structured scorer
+  // says submittable=false — so they reach customers without per-item pricing or brand/model,
+  // which is exactly what the comparison depends on. accept_via makes that visible here instead.
+  const check = async () => {
+    if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
+    setChecking(true); setMsg(''); setChk(null);
+    const j = await call('supplier_api', { ...buildPayload(), dry_run: true }, token);
+    setChecking(false);
+    if (j && j.ok) setChk(j); else setMsg((j && j.error) || t(lang, 'could_not_submit'));
+  };
+  const submit = async () => {
+    if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
+    setBusy(true); setMsg('');
+    const j = await call('supplier_api', buildPayload(), token);
+    setBusy(false);
+    if (j && j.ok && j.accepted) onDone();
+    else if (j && j.ok) setMsg(j.message || t(lang, 'draft_saved'));
+    else setMsg((j && j.error) || t(lang, 'could_not_submit'));
+  };
   return <div className="mt-3 border-t border-border pt-3 flex flex-col gap-2.5">
     <div className="flex gap-2.5 flex-wrap items-center"><span className={cn(S.sub, 'font-semibold')}>{t(lang, 'upload_quote')}</span><FilePick lang={lang} accept="image/*,application/pdf" onPick={(fl) => fl && onFile(fl)} />{reading && <span className={S.sub}>{t(lang, 'reading')}</span>}</div>
     <div className="flex gap-2.5"><Input placeholder={t(lang, 'total_aed')} value={amount} onChange={(e) => setAmount(e.target.value)} /><Input placeholder={t(lang, 'lead_time')} value={lead} onChange={(e) => setLead(e.target.value)} /></div>
@@ -356,9 +463,80 @@ function QuoteForm({ inquiry, token, onDone, lang }) {
     </div>
     <textarea className={S.area} placeholder={t(lang, 'scope_work')} value={scope} onChange={(e) => setScope(e.target.value)} rows={2} />
     <textarea className={S.area} placeholder={t(lang, 'notes_customer')} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
-    <div><Button size="sm" disabled={busy || reading} onClick={submit}>{busy ? t(lang, 'submitting') : t(lang, 'submit_quote')}</Button></div>
+    {chk && <QuoteCheck chk={chk} lang={lang} />}
+    <div className="flex gap-2 items-center flex-wrap">
+      <Button size="sm" variant="secondary" disabled={checking || busy || reading} onClick={check}>
+        {checking ? (lang === 'ar' ? 'جارٍ الفحص…' : 'Checking…') : (lang === 'ar' ? 'افحص قبل الإرسال' : 'Check before sending')}
+      </Button>
+      <Button size="sm" disabled={busy || reading} onClick={submit}>{busy ? t(lang, 'submitting') : t(lang, 'submit_quote')}</Button>
+    </div>
     {msg && <div className={cn(S.sub, 'mt-1.5')}>{msg}</div>}
   </div>;
+}
+// Result of the dry_run preflight.
+//
+// Two things are shown that the product never surfaced before sending:
+//   1. the structured score against the 70 pass mark, and
+//   2. WHY the quote would be accepted — because passing via `form_complete` at 65 is not the
+//      same as passing the quality bar, and telling a supplier only "this will send" hides that
+//      their quote reaches the customer without per-item pricing or brand/model.
+// Missing codes come straight from fn_quote_structured_score, so this panel and the email a
+// supplier might receive later cannot disagree with each other.
+function QuoteCheck({ chk, lang }) {
+  const ar = lang === 'ar';
+  const sc = chk.score || {}; const pts = sc.score ?? 0; const pass = 70;
+  const LABEL = {
+    line_items: ar ? 'بنود العرض' : 'Itemised lines',
+    unit_prices_on_all_items: ar ? 'سعر الوحدة لكل بند' : 'A unit price on every line',
+    brand_model_per_item: ar ? 'الماركة والموديل لكل بند' : 'Brand and model on every line',
+    specifications: ar ? 'المواصفات' : 'Specifications',
+    labour_or_installation: ar ? 'العمالة أو التركيب' : 'Labour or installation',
+    warranty: ar ? 'الضمان' : 'Warranty',
+    lead_time: ar ? 'مدة التنفيذ' : 'Lead time',
+    payment_terms: ar ? 'شروط الدفع' : 'Payment terms',
+    exclusions: ar ? 'الاستثناءات' : 'Exclusions',
+    validity: ar ? 'مدة صلاحية العرض' : 'Quote validity',
+  };
+  const missing = Array.isArray(sc.missing) ? sc.missing : [];
+  const viaForm = chk.accept_via === 'form_complete' && !chk.submittable;
+  return (
+    <Card className="p-4 mt-1">
+      <div className="flex justify-between items-baseline gap-3 flex-wrap">
+        <div className="text-[13.5px] font-bold text-foreground">{ar ? 'جاهزية العرض' : 'Quote readiness'}</div>
+        <div className="text-[13px] font-bold tabular-nums text-foreground">{pts}<span className="text-muted-foreground font-semibold">/100</span></div>
+      </div>
+      <div className="mt-1.5 h-2 rounded-full bg-secondary/50 overflow-hidden relative">
+        <div className={cn('h-full rounded-full transition-[width] duration-700 motion-reduce:transition-none', pts >= pass ? 'bg-primary' : 'bg-amber-400')}
+             style={{ width: Math.max(2, Math.min(100, pts)) + '%' }} />
+        {/* the 70 pass mark, shown so the number has meaning */}
+        <div className="absolute top-0 bottom-0 w-px bg-foreground/40" style={{ left: pass + '%' }} aria-hidden="true" />
+      </div>
+      <div className={cn(S.sub, 'mt-1.5')}>{ar ? 'علامة النجاح 70' : 'Pass mark is 70'}</div>
+
+      {chk.would_accept
+        ? <div className="mt-2.5">
+            <Badge variant={chk.submittable ? 'ok' : 'warn'}>{ar ? 'سيُرسل إلى العميل' : 'This will be sent to the customer'}</Badge>
+            {viaForm && <div className={cn(S.sub, 'mt-1.5')}>{ar
+              ? 'سيُقبل لأن الحقول الأساسية مكتملة، لكنه لم يبلغ علامة الجودة. إضافة ما يلي تجعل عرضك أسهل للمقارنة وأقوى أمام العميل.'
+              : 'It is accepted because the essential fields are filled, but it has not reached the quality mark. Adding the items below makes your quote easier to compare and stronger against competing bids.'}</div>}
+          </div>
+        : <div className="mt-2.5">
+            <Badge variant="destructive">{ar ? 'سيُحفظ كمسودة' : 'This will be saved as a draft'}</Badge>
+            <div className={cn(S.sub, 'mt-1.5')}>{ar ? 'لن يصل العميل حتى تُكمل ما يلي.' : 'It will not reach the customer until the items below are added.'}</div>
+          </div>}
+
+      {!!missing.length && <ul className="mt-2.5 flex flex-col gap-1">
+        {missing.map((m, i) => <li key={i} className="flex items-start gap-2">
+          <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+          <span className="text-[13px] text-foreground">{LABEL[m] || m}</span>
+        </li>)}
+      </ul>}
+      {!missing.length && <div className={cn(S.sub, 'mt-2.5')}>{ar ? 'لا ينقص شيء. عرض مكتمل.' : 'Nothing missing — this is a complete quote.'}</div>}
+      {chk.total_items != null && <div className={cn(S.sub, 'mt-2.5 pt-2.5 border-t border-border')}>
+        {ar ? `${chk.priced_items} من ${chk.total_items} بند مُسعّر` : `${chk.priced_items} of ${chk.total_items} line items priced`}
+      </div>}
+    </Card>
+  );
 }
 function Documents({ token, lang }) {
   const [data, setData] = useState(null); const [busy, setBusy] = useState('');
