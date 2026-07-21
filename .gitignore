@@ -7,3 +7,6 @@ build/
 .env*.local
 *.tsbuildinfo
 .DS_Store
+
+# edge function rollback snapshots (local only)
+.edge-backups/
