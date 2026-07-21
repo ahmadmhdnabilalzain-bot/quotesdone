@@ -735,7 +735,7 @@ function RequestDetail({ inq, token, lang, onBack, onChange }) {
 
     <SupplierBrief inq={inq} lang={lang} />
 
-    {quotes.length >= 2 && <Section i={4} title={t(lang, 'quotes_in')}><Comparison a={cmp.analysis} busy={cmp.busy} note={cmp.note} lang={lang} /></Section>}
+    {quotes.length >= 2 && <Section i={4} title={t(lang, 'quotes_in')}><Comparison a={cmp.analysis} busy={cmp.busy} note={cmp.note} lang={lang} inqId={inq.id} token={token} /></Section>}
 
     <Section i={5} title={`${t(lang, 'quotes_in')} (${quotes.length})`}
       sub={shortlist.size && collapsible ? tf(lang, 'shortlist_note', { n: quotes.length, k: shortlist.size }) : undefined}>
@@ -746,12 +746,27 @@ function RequestDetail({ inq, token, lang, onBack, onChange }) {
         {collapsible ? (<Button variant="outline" className="qd-noprint mt-1 w-full" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
           {showAll ? t(lang, 'show_less') : tf(lang, 'show_all_quotes', { n: quotes.length })}
         </Button>) : null}
-      </div>) : <Empty icon="◷" title={t(lang, 'no_quotes_yet')}
-        sub={lang === 'ar'
-          ? 'طابقناك مع مورّدين مناسبين وسننبهك فور وصول أول عرض.'
-          : 'We matched you with suitable suppliers and will alert you the moment the first quote lands.'} />}
+      </div>) : <Empty icon="◷" title={t(lang, 'no_quotes_yet')} sub={waitingSub(inq, lang)} />}
     </Section>
   </div>);
+}
+
+/* Honest empty state. my_inquiries returns matched_suppliers — the number of
+   suppliers this request was actually dispatched to. Telling someone "we matched
+   you with suitable suppliers" when that number is 0 is a lie they wait on, so
+   the copy branches on the real figure. Older rows omit the field; those keep the
+   neutral wording rather than claiming a count we cannot prove. */
+function waitingSub(inq, lang) {
+  const n = inq && inq.matched_suppliers;
+  if (n === 0) return lang === 'ar'
+    ? 'لم يُطابَق بعد أي مورّد نشط في هذه الفئة والإمارة. تم تنبيه فريقنا وسنعلمك فور توفّر مورّد مناسب.'
+    : 'No active supplier in this category and emirate has been matched yet. Our team has been alerted and we will let you know as soon as one is available.';
+  if (typeof n === 'number' && n > 0) return lang === 'ar'
+    ? `طابقناك مع ${n} مورّدًا مناسبًا وسننبهك فور وصول أول عرض.`
+    : `We matched you with ${n} suitable supplier${n === 1 ? '' : 's'} and will alert you the moment the first quote lands.`;
+  return lang === 'ar'
+    ? 'سننبهك فور وصول أول عرض.'
+    : 'We will alert you the moment the first quote lands.';
 }
 
 /* What suppliers see — the anonymised brief, printable to PDF.
@@ -836,12 +851,26 @@ function useComparison(inqId, token, lang, enabled) {
 }
 
 /* ── Comparison (AI report) ────────────────────────────────────────────────
-   quote_compare returns JSON, not a PDF — there is no comparison PDF endpoint.
-   The data is inherently tabular (N suppliers x ~11 attributes), so it renders
-   as a real side-by-side table and the PDF is produced by printing that table. */
-function Comparison({ a, busy, note, lang }) {
+   The data is inherently tabular (N suppliers x ~11 attributes), so on screen it
+   renders as a real side-by-side table. "Save as PDF" does NOT print the page —
+   it calls customer_api.compare_pdf, which builds the report through pdf_native,
+   so the download carries the same letterhead, header band, gold rule and footer
+   as a QuotesDone quotation. */
+function Comparison({ a, busy, note, lang, inqId, token }) {
   const ref = useRef(null);
   const arr = (x) => Array.isArray(x) ? x : [];
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfMsg, setPdfMsg] = useState('');
+  const savePdf = async () => {
+    if (pdfBusy) return;
+    setPdfBusy(true); setPdfMsg('');
+    try {
+      const j = await call('customer_api', { action: 'compare_pdf', inquiry_id: inqId, lang }, token);
+      if (j && j.ok && j.url) window.open(j.url, '_blank', 'noopener');
+      else setPdfMsg((j && (j.detail || j.error)) || t(lang, 'pdf_failed'));
+    } catch (_e) { setPdfMsg(t(lang, 'pdf_failed')); }
+    setPdfBusy(false);
+  };
 
   if (busy) return (<div className="surface rounded-xl border-primary/25 p-4">
     <div className="flex items-center gap-2"><span className="qd-shimmer inline-block h-2 w-2 rounded-full bg-primary/60" />
@@ -884,9 +913,12 @@ function Comparison({ a, busy, note, lang }) {
              `تم تقييم ${a.considered ?? a.total_quotes} عرضًا · واختيار أقوى ${a.shortlisted ?? qs.length}`)}
         </p>) : null}
       </div>
-      <Button variant="outline" size="sm" className="qd-noprint shrink-0" onClick={() => printSection(ref.current)}>
-        {t(lang, 'print_brief')}
-      </Button>
+      <div className="qd-noprint shrink-0">
+        <Button variant="outline" size="sm" disabled={pdfBusy} onClick={savePdf}>
+          {pdfBusy ? t(lang, 'preparing') : t(lang, 'print_brief')}
+        </Button>
+        {pdfMsg ? <p className="mt-1 text-[12px] text-red-300">{pdfMsg}</p> : null}
+      </div>
     </div>
 
     {a.bottom_line ? <p className="mt-2.5 text-[13.5px] font-semibold text-foreground">{a.bottom_line}</p> : null}
