@@ -936,6 +936,22 @@ function Comparison({ a, busy, note, lang }) {
       {a.best_value_reason ? <p className={cn(S.sub, 'mt-2')}><b className="text-foreground">{L('Why that pick: ','سبب الاختيار: ')}</b>{a.best_value_reason}</p> : null}
     </div>) : null}
 
+    {arr(a.line_findings).length ? (<div className="mt-4">
+      <div className="mb-1.5 flex items-baseline gap-2">
+        <h3 className={S.h2}>{L('Line by line','بندًا بندًا')}</h3>
+        {a.itemised_quotes ? <span className="text-[11.5px] text-muted-foreground">
+          {L(`${a.itemised_quotes} of ${qs.length} quotes are itemised`, `${a.itemised_quotes} من ${qs.length} عروض مُفصّلة ببنود`)}
+        </span> : null}
+      </div>
+      <dl className="rounded-lg border border-border/60 bg-background/25 p-3">
+        {arr(a.line_findings).map((f, i) => (
+          <div key={i} className={cn('py-1.5', i < arr(a.line_findings).length - 1 && 'border-b border-border/35')}>
+            <dt className="text-[12.5px] font-semibold text-foreground">{f.item}</dt>
+            <dd className={cn(S.sub, 'mt-0.5')}>{f.finding}</dd>
+          </div>))}
+      </dl>
+    </div>) : null}
+
     {arr(a.watch_outs).length ? (<div className="mt-3.5 rounded-lg border border-red-500/30 bg-red-500/8 p-3">
       <b className="text-[12.5px] text-red-300">{L('Watch out','انتبه')}</b>
       <ul className="mt-1 space-y-0.5">{arr(a.watch_outs).map((w, i) => <li key={i} className="text-[12.5px] text-red-200">· {w}</li>)}</ul>
