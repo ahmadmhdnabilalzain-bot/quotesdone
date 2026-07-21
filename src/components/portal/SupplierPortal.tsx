@@ -37,11 +37,11 @@ function BillingPanel({ token, lang }) {
     setBusy(false);
     setSt((s) => ({ ...s, err: (j && (j.detail || j.error)) || 'checkout_err' }));
   };
-  if (st.loading) return <Card className="p-5">{t(lang, 'loading_dash')}</Card>;
-  if (st.err) return <Card className="p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'bill_err')}</div><Button className="mt-3" onClick={load}>{t(lang, 'bill_retry')}</Button></Card>;
-  if (!st.dues.length) return <Card className="p-5"><div className={S.h2}>{t(lang, 'bill_title')}</div><div className={S.sub}>{t(lang, 'bill_none')}</div></Card>;
+  if (st.loading) return <Card className="qd-panel p-5">{t(lang, 'loading_dash')}</Card>;
+  if (st.err) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'bill_err')}</div><Button className="mt-3" onClick={load}>{t(lang, 'bill_retry')}</Button></Card>;
+  if (!st.dues.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'bill_title')}</div><div className={S.sub}>{t(lang, 'bill_none')}</div></Card>;
   return (
-    <Card className="p-5">
+    <Card className="qd-panel p-5">
       <div className={S.h2}>{t(lang, 'bill_title')}</div>
       <div className="flex flex-col gap-2 my-3">
         {st.dues.map((d) => (
@@ -122,20 +122,26 @@ const T = {
 };
 const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 function initLang(){ try{ if(typeof window==='undefined') return 'en'; const ls=localStorage.getItem('qd-lang'); if(ls) return ls; const m=document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/); if(m && String(m[1]).startsWith('ar')) return 'ar'; }catch(_e){} return 'en'; }
+// Typography and chrome carry the platform's voice: display weights are optically
+// tightened, body copy keeps a readable measure, and the tab bar is an inset well
+// with a RAISED active pill rather than a tinted one — so the current tab reads as
+// nearer to the viewer, which is how the rest of the product signals state.
 const S = {
   center: 'grid place-items-center min-h-[70vh] p-5',
-  h1: 'text-xl font-extrabold text-foreground',
-  h2: 'text-[15px] font-bold text-foreground',
-  sub: 'text-[13px] leading-relaxed text-muted-foreground',
+  h1: 'text-[22px] font-extrabold tracking-[-.03em] text-white',
+  h2: 'text-[15.5px] font-bold tracking-[-.018em] text-white',
+  sub: 'text-[13px] leading-[1.65] text-muted-foreground max-w-[68ch]',
   anon: 'ml-1.5 text-[11px] font-semibold text-muted-foreground/80',
-  hint: 'text-xs text-muted-foreground my-2 leading-relaxed',
+  hint: 'text-xs text-muted-foreground my-2 leading-relaxed max-w-[68ch]',
   err: 'text-[13px] text-red-300 mt-2',
-  wrap: 'max-w-[1040px] mx-auto p-[22px]',
+  wrap: 'max-w-[1040px] mx-auto px-[22px] py-7',
   frow: 'flex gap-2.5 flex-wrap mt-2.5',
-  tabsWrap: 'inline-flex flex-wrap gap-1.5 rounded-xl bg-secondary/40 p-1',
-  tab: 'rounded-md px-3.5 py-2 text-[13px] font-semibold text-muted-foreground cursor-pointer border-0 bg-transparent',
-  tabOn: 'bg-primary/15 text-primary',
+  tabsWrap: 'qd-tabs inline-flex flex-wrap gap-1 p-1.5',
+  tab: 'qd-tab px-3.5 py-2 text-[13px] font-semibold text-muted-foreground cursor-pointer border-0 bg-transparent',
+  tabOn: 'qd-tab-on',
   list: 'flex flex-col gap-3',
+  section: 'qd-section',
+  figure: 'qd-figure',
   field: 'mt-3 flex h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
   area: 'mt-3 flex w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y',
   chip: 'rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-[12.5px] font-semibold text-muted-foreground cursor-pointer',
@@ -185,7 +191,7 @@ function Login({ onAuth, lang }) {
   const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg((j && j.error) || t(lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
   const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
   return (
-    <div className={S.center}><Card className="w-full max-w-[400px] p-5">
+    <div className={S.center}><Card className="qd-panel w-full max-w-[400px] p-5">
       <div className={cn(S.tabsWrap, 'mb-3.5')}><button className={cn(S.tab, !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
       <div className={S.h1}>{isSignup ? t(lang, 'register_title') : t(lang, 'welcome_back')}</div>
       <div className={cn(S.sub, 'mt-1')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
@@ -207,7 +213,7 @@ function Dashboard({ token, lang }) {
   const load = async () => { const j = await call('supplier_portal', { action: 'overview' }, token); if (j && j.ok) setOv(j); else setErr((j && (j.error || j.hint)) || 'load_err'); };
   useEffect(() => { load(); }, [token]);
   if (err === 'no_company') return <Onboarding token={token} lang={lang} onDone={() => { setErr(''); load(); }} />;
-  if (err) return <div className={S.center}><Card className="max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{err === 'load_err' ? t(lang, 'err_generic') : err}</div></Card></div>;
+  if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{err === 'load_err' ? t(lang, 'err_generic') : err}</div></Card></div>;
   if (!ov) return <div className={S.center}>{t(lang, 'loading_dash')}</div>;
   const s = ov.stats || {}; const pp = s.price_positioning || {};
   const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing'), profile: lang === 'ar' ? 'الملف' : 'Profile' };
@@ -227,7 +233,9 @@ function Dashboard({ token, lang }) {
       {tab === 'billing' && <BillingPanel token={token} lang={lang} />}
       {tab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
       {tab === 'overview' && <>
-        {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => <div key={i} className={cn('rounded-lg border border-border bg-card px-3.5 py-3 cursor-pointer flex flex-col gap-0.5 border-l-4', a.severity === 'high' ? 'border-l-red-500' : a.severity === 'medium' ? 'border-l-amber-400' : 'border-l-primary')} onClick={() => setTab(a.action === 'documents' ? 'documents' : 'rfqs')}><b className="text-[13.5px] text-foreground">{a.title}</b><span className="text-muted-foreground text-xs">{a.detail}</span></div>)}</div>}
+        {/* Severity reads as a leading indicator dot rather than a thick side-stripe, and these are
+            real buttons — they were clickable divs, so keyboard users could not reach them at all. */}
+        {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => <button key={i} type="button" className="qd-panel qd-panel-hover w-full text-start px-4 py-3.5 cursor-pointer flex items-start gap-3" onClick={() => setTab(a.action === 'documents' ? 'documents' : 'rfqs')}><span aria-hidden className={cn('mt-[7px] h-2 w-2 rounded-full shrink-0', a.severity === 'high' ? 'bg-red-400' : a.severity === 'medium' ? 'bg-amber-300' : 'bg-primary')} /><span className="flex flex-col gap-0.5 min-w-0"><b className="text-[13.5px] text-white">{a.title}</b><span className="text-muted-foreground text-xs leading-[1.6]">{a.detail}</span></span></button>)}</div>}
         <EligibilityPanel token={token} lang={lang} goProfile={() => setTab('profile')} goDocs={() => setTab('documents')} />
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5 mb-4">
           <Kpi label={t(lang, 'k_quotes_sent')} v={s.quotes_total ?? 0} />
@@ -242,12 +250,24 @@ function Dashboard({ token, lang }) {
           <Earnings s={s} lang={lang} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-          <Card className="p-5">
+          <Card className="qd-panel p-5">
             <div className={S.h2}>{t(lang, 'price_pos')} <span className={S.anon}>{t(lang, 'anon_note')}</span></div>
             <div className="mt-2.5"><Badge variant={/below/.test(pp.band || '') ? 'ok' : /above/.test(pp.band || '') ? 'warn' : 'secondary'} className="capitalize text-sm px-3.5 py-1.5">{pp.band || t(lang, 'not_enough')}</Badge></div>
+            {/* The promise "we never show competitor prices" is stated everywhere and shown nowhere.
+                The redaction bar is the brand's own primitive for a withheld value, so here it makes
+                the guarantee visible: those prices exist, we hold them, and you cannot see them. */}
+            {pp.competitive_rfqs ? (
+              <div className="mt-3.5 flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-semibold text-muted-foreground/80">{lang === 'ar' ? 'أسعار المنافسين' : 'Competitor quotes'}</span>
+                <span aria-hidden className="redact redact-bar" style={{ width: 52 }} />
+                <span aria-hidden className="redact redact-bar" style={{ width: 36 }} />
+                <span aria-hidden className="redact redact-bar" style={{ width: 44 }} />
+                <span className="sr-only">{lang === 'ar' ? 'أسعار المنافسين محجوبة دائمًا' : 'Competitor prices are always withheld'}</span>
+              </div>
+            ) : null}
             <div className={cn(S.sub, 'mt-2.5')}>{pp.competitive_rfqs ? ((lang === 'ar' ? ('كنت الأقل سعرًا في ' + (pp.times_lowest || 0) + ' من ' + pp.competitive_rfqs + ' طلب تنافسي (' + (pp.lowest_rate || 0) + '%). في المتوسط عرضك ' + (pp.avg_pct_vs_average >= 0 ? '+' : '') + (pp.avg_pct_vs_average ?? 0) + '% مقابل متوسط السوق و' + (pp.avg_pct_above_lowest ?? 0) + '% فوق أدنى عرض.') : ('You were the lowest bid on ' + (pp.times_lowest || 0) + ' of ' + pp.competitive_rfqs + ' competitive RFQs (' + (pp.lowest_rate || 0) + '%). On average your quote is ' + (pp.avg_pct_vs_average >= 0 ? '+' : '') + (pp.avg_pct_vs_average ?? 0) + '% vs the market average and ' + (pp.avg_pct_above_lowest ?? 0) + '% above the lowest quote.'))) : t(lang, 'pp_fallback')}</div>
           </Card>
-          <Card className="p-5">
+          <Card className="qd-panel p-5">
             <div className={S.h2}>{t(lang, 'last12')} <span className={S.anon}>{t(lang, 'quotes_reveals')}</span></div>
             <Spark hist={s.history_12m} lang={lang} />
           </Card>
@@ -290,7 +310,7 @@ function EligibilityPanel({ token, lang, goProfile, goDocs }) {
     </li>
   );
   return (
-    <Card className="p-5 mb-4">
+    <Card className="qd-panel p-5 mb-4">
       <div className="flex justify-between items-start gap-3 flex-wrap">
         <div>
           <div className={S.h2}>{ar ? 'وصولك إلى الطلبات' : 'Your reach'}</div>
@@ -319,7 +339,9 @@ function EligibilityPanel({ token, lang, goProfile, goDocs }) {
     </Card>
   );
 }
-function Kpi({ label, v, sub }) { return <Card className="p-3.5"><div className="text-[19px] font-extrabold text-foreground">{v}</div><div className="text-[11.5px] text-muted-foreground mt-1">{label}</div>{sub ? <div className="text-[10.5px] text-primary mt-1 font-semibold">{sub}</div> : null}</Card>; }
+// Label above figure, not below: the eye lands on the number, and the label is
+// already read by then. Figures are tabular so a row of KPIs aligns on the digit.
+function Kpi({ label, v, sub }) { return <Card className="qd-panel qd-panel-hover p-3.5"><div className="text-[11px] font-semibold text-muted-foreground/90">{label}</div><div className={cn(S.figure, 'text-[23px] font-extrabold mt-1.5')}>{v}</div>{sub ? <div className="text-[10.5px] text-primary mt-1.5 font-semibold">{sub}</div> : null}</Card>; }
 // Conversion funnel: matched -> quoted -> revealed -> won.
 //
 // fn_supplier_stats has always returned every number here — quotes_total, reveals, hired,
@@ -340,7 +362,7 @@ function Funnel({ s, matched, lang }) {
   const conv = (i) => { if (i === 0) return null; const prev = stages[i - 1].v; if (!prev) return null; return Math.round(100 * stages[i].v / prev); };
   const anyData = stages.some((x) => x.v > 0);
   return (
-    <Card className="p-5">
+    <Card className="qd-panel p-5">
       <div className={S.h2}>{ar ? 'مسار التحويل' : 'Your funnel'}</div>
       {!anyData
         ? <div className={cn(S.sub, 'mt-2.5')}>{ar
@@ -379,7 +401,7 @@ function Earnings({ s, lang }) {
   const hist = Array.isArray(s.history_12m) ? s.history_12m : [];
   const active = hist.filter((h) => (h.quotes || 0) + (h.reveals || 0) > 0).length;
   return (
-    <Card className="p-5">
+    <Card className="qd-panel p-5">
       <div className={S.h2}>{ar ? 'قيمة الأعمال' : 'Business value'}</div>
       <div className="flex gap-6 mt-3 flex-wrap">
         <div>
@@ -402,10 +424,10 @@ function Rfqs({ token, lang }) {
   const [data, setData] = useState(null); const [open, setOpen] = useState(null);
   const reload = () => call('supplier_api', { action: 'inbox' }, token).then((j) => setData(j));
   useEffect(() => { reload(); }, [token]);
-  if (!data) return <Card className="p-5">{t(lang, 'loading_rfqs')}</Card>;
-  if (data.error) return <Card className="p-5">{data.error}</Card>;
+  if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading_rfqs')}</Card>;
+  if (data.error) return <Card className="qd-panel p-5">{data.error}</Card>;
   const list = data.inquiries || [];
-  if (!list.length) return <Card className="p-5"><div className={S.h2}>{t(lang, 'no_rfqs_h')}</div><div className={S.sub}>{t(lang, 'no_rfqs_sub')}</div></Card>;
+  if (!list.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'no_rfqs_h')}</div><div className={S.sub}>{t(lang, 'no_rfqs_sub')}</div></Card>;
   return <div className={S.list}>{list.map((i) => <Card key={i.id} className="p-5">
     <div className="flex justify-between items-center gap-2.5"><div><b>{i.category || t(lang, 'request_w')}</b> · {i.emirate || ''}{i.you_won ? <span className="text-primary font-bold">{t(lang, 'you_won')}</span> : i.concluded ? <span className="text-muted-foreground">{t(lang, 'concluded')}</span> : ''}</div>{i.quote ? <span className="text-primary font-bold text-[13px]">{t(lang, 'quoted')}{aed(i.quote.quote_amount)}</span> : <Button size="sm" onClick={() => setOpen(open === i.id ? null : i.id)}>{open === i.id ? t(lang, 'close') : t(lang, 'quote')}</Button>}</div>
     {i.summary && <div className={cn(S.sub, 'mt-1.5')}>{i.summary}</div>}
@@ -500,7 +522,7 @@ function QuoteCheck({ chk, lang }) {
   const missing = Array.isArray(sc.missing) ? sc.missing : [];
   const viaForm = chk.accept_via === 'form_complete' && !chk.submittable;
   return (
-    <Card className="p-4 mt-1">
+    <Card className="qd-panel p-4 mt-1">
       <div className="flex justify-between items-baseline gap-3 flex-wrap">
         <div className="text-[13.5px] font-bold text-foreground">{ar ? 'جاهزية العرض' : 'Quote readiness'}</div>
         <div className="text-[13px] font-bold tabular-nums text-foreground">{pts}<span className="text-muted-foreground font-semibold">/100</span></div>
@@ -556,14 +578,14 @@ function Documents({ token, lang }) {
     else if (j && j.error) setErr(String(j.error));
     load();
   };
-  if (!data) return <Card className="p-5">{t(lang, 'loading_docs')}</Card>;
+  if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading_docs')}</Card>;
   // Order comes from the server (DOC_ORDER) so adding a document type needs no change here.
   const docs = data.documents || [];
   const sum = data.summary || {};
   const attention = docs.filter((d) => d.status === 'expired' || d.status === 'expiring');
   const missingReq = docs.filter((d) => d.required && d.status === 'missing');
   return <div className={S.list}>
-    <Card className="p-5">
+    <Card className="qd-panel p-5">
       <div className="flex justify-between items-start gap-3 flex-wrap">
         <div>
           <div className={S.h2}>{t(lang, 'docs_h')}</div>
@@ -618,7 +640,7 @@ function DocRow({ d, busy, onUpload, lang }) {
   const st = ST[d.status] || null;
   const isCat = d.key === 'catalogs';
   const items = Array.isArray(d.items) ? d.items : [];
-  return <Card className="p-5">
+  return <Card className="qd-panel p-5">
     <div className="flex justify-between items-start gap-3 flex-wrap">
       <div className="min-w-[240px] flex-1">
         <div className="flex items-center gap-2 flex-wrap">
@@ -656,9 +678,9 @@ function DocRow({ d, busy, onUpload, lang }) {
 function Projects({ token, lang }) {
   const [data, setData] = useState(null);
   useEffect(() => { call('supplier_api', { action: 'projects' }, token).then((j) => setData(j)); }, [token]);
-  if (!data) return <Card className="p-5">{t(lang, 'loading')}</Card>;
+  if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading')}</Card>;
   const list = data.projects || [];
-  if (!list.length) return <Card className="p-5"><div className={S.h2}>{t(lang, 'no_projects_h')}</div><div className={S.sub}>{t(lang, 'no_projects_sub')}</div></Card>;
+  if (!list.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'no_projects_h')}</div><div className={S.sub}>{t(lang, 'no_projects_sub')}</div></Card>;
   return <div className={S.list}>{list.map((p, i) => <Card key={i} className="p-5 flex justify-between items-center gap-3 flex-wrap"><div><b>{p.category || t(lang, 'project_w')}</b> · {p.emirate || ''}<div className={S.sub}>{p.summary || ''}</div></div><div className="text-right"><b>{aed(p.amount)}</b><div className={S.sub}>{p.revealed_at ? ((lang === 'ar' ? 'كُشف بتاريخ ' : 'Revealed ') + new Date(p.revealed_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : (p.month || '')}</div></div></Card>)}</div>;
 }
 // Profile tab for an established supplier. Reuses ProfileForm rather than duplicating it, so the
@@ -668,10 +690,10 @@ function ProfilePanel({ token, lang, onSaved }) {
   const [me, setMe] = useState(undefined);
   const load = () => call('supplier_api', { action: 'me' }, token).then((j) => setMe(j.supplier || null)).catch(() => setMe(null));
   useEffect(() => { load(); }, [token]);
-  if (me === undefined) return <Card className="p-5">{t(lang, 'loading')}</Card>;
-  if (!me) return <Card className="p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div></Card>;
+  if (me === undefined) return <Card className="qd-panel p-5">{t(lang, 'loading')}</Card>;
+  if (!me) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div></Card>;
   return <div className={S.list}>
-    <Card className="p-5">
+    <Card className="qd-panel p-5">
       <div className={S.h2}>{lang === 'ar' ? 'ملف الشركة' : 'Company profile'}</div>
       <div className={cn(S.sub, 'mt-1')}>{lang === 'ar'
         ? 'ما تكتبه هنا يحدّد الطلبات التي تصلك. تُطابَق الطلبات على القطاع والمنتجات والخدمات والفئات — كلما كانت أدق، زادت مطابقتك.'
@@ -694,7 +716,7 @@ function Onboarding({ token, onDone, lang }) {
 function NewCompany({ token, onReady, lang }) {
   const [cname, setCname] = useState(''); const [em, setEm] = useState(''); const [cat, setCat] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const create = async () => { if (cname.trim().length < 2) { setMsg(t(lang, 'enter_company')); return; } setBusy(true); setMsg(''); const j = await call('supplier_api', { action: 'create_company', company_name: cname.trim(), emirate: em || null, category: cat.trim() || null, role: 'supplier' }, token); setBusy(false); if (j && j.ok) onReady(); else setMsg((j && j.error) || t(lang, 'err_generic')); };
-  return (<Card className="p-5">
+  return (<Card className="qd-panel p-5">
     <div className={S.h2}>{t(lang, 'onboard_title')}</div>
     <div className={cn(S.sub, 'mb-2')}>{t(lang, 'onboard_sub')}</div>
     <Input className="mt-3" placeholder={t(lang, 'company_name')} value={cname} onChange={(e) => setCname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} />
@@ -766,7 +788,7 @@ function ProfileForm({ token, me, onSaved, lang }) {
     } catch (_e) { setBusy(false); setMsg(t(lang, 'save_error')); }
   };
   const DateField = ({ label, k }) => (<div style={{ flex: 1, minWidth: 150 }}><div className={S.sub} style={{ fontSize: 11 }}>{label}</div><Input type="date" style={{ colorScheme: 'dark' }} value={f[k] || ''} onChange={(e) => set(k, e.target.value)} /></div>);
-  return (<Card className="p-5">
+  return (<Card className="qd-panel p-5">
     <div className={S.h2}>{t(lang, 'pf_company')}</div>
     <div className={cn(S.sub, 'mb-2')}>{t(lang, 'registering_pre')}<b>{me.company_name}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</div>
     <div className={cn(S.sub, 'font-semibold mt-1.5')}>{t(lang, 'pf_emirates')}</div>
@@ -806,9 +828,9 @@ function ProfileForm({ token, me, onSaved, lang }) {
 function Messages({ token, lang }) {
   const [threads, setThreads] = useState(null); const [open, setOpen] = useState(null);
   useEffect(() => { call('messages_api', { action: 'threads' }, token).then((j) => setThreads(j.threads || [])); }, []);
-  if (!threads) return <Card className="p-5">{t(lang, 'loading_msgs')}</Card>;
+  if (!threads) return <Card className="qd-panel p-5">{t(lang, 'loading_msgs')}</Card>;
   if (open) return <Thread token={token} th={open} lang={lang} onBack={() => { setOpen(null); call('messages_api', { action: 'threads' }, token).then((j) => setThreads(j.threads || [])); }} />;
-  if (!threads.length) return <Card className="p-5"><div className={S.h2}>{t(lang, 'no_convos_h')}</div><div className={S.sub}>{t(lang, 'no_convos_sub')}</div></Card>;
+  if (!threads.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'no_convos_h')}</div><div className={S.sub}>{t(lang, 'no_convos_sub')}</div></Card>;
   return <div className={S.list}>{threads.map((it) => <Card key={it.inquiry_id + ':' + it.supplier_id} className="p-5 flex justify-between items-center cursor-pointer gap-3" onClick={() => setOpen(it)}>
     <div><b>{it.counterpart}</b> · {it.subject}<div className={S.sub}>{it.last || t(lang, 'no_messages')}</div></div>
     <div className="text-right">{it.unread ? <span className="inline-block rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-[11px] font-bold">{it.unread}</span> : null}<div className={cn(S.sub, 'capitalize')}>{it.chat_status === 'none' ? t(lang, 'no_chat') : it.chat_status}</div></div>
@@ -820,8 +842,8 @@ function Thread({ token, th, onBack, lang }) {
   useEffect(() => { load(); }, []);
   const send = async () => { if (!text.trim()) return; setBusy(true); setMsg(''); const j = await call('messages_api', { action: 'send', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id, body: text.trim() }, token); setBusy(false); if (j && j.ok) { setText(''); load(); } else setMsg((j && j.warning) || (j && j.error) || t(lang, 'could_not_send')); };
   const requestChat = async () => { if (!q.trim()) return; setBusy(true); setMsg(''); const j = await call('messages_api', { action: 'request_chat', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id, question: q.trim() }, token); setBusy(false); if (j && j.answered) setMsg(t(lang, 'assistant_pre') + j.answer); else if (j && j.requested) setMsg(j.note || t(lang, 'sent_review')); else setMsg((j && (j.note || j.error)) || t(lang, 'sent')); setQ(''); };
-  if (!data) return <Card className="p-5">{t(lang, 'loading')}</Card>;
-  return <Card className="p-5">
+  if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading')}</Card>;
+  return <Card className="qd-panel p-5">
     <div className="flex justify-between items-center gap-2.5"><div className={S.h2}>{data.counterpart || th.counterpart}</div><Button variant="link" className="px-0 h-auto" onClick={onBack}>{t(lang, 'back')}</Button></div>
     {data.warning && <div className="rounded-md border border-amber-400/30 bg-amber-400/10 text-amber-300 px-3 py-2 text-[11.5px] mb-2.5">{data.warning}</div>}
     {data.chat_status === 'open' ? (<>

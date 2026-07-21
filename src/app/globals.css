@@ -153,6 +153,53 @@ button,a{touch-action:manipulation;-webkit-tap-highlight-color:rgba(20,184,166,.
 .osx ::-webkit-scrollbar { width: 10px; height: 10px; }
 .osx ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 8px; }
 
+/* ── PORTAL MATERIAL ───────────────────────────────────────────────────
+   The portal already inherited the brand PALETTE (--primary is the brand
+   teal), but not the brand MATERIAL. A flat card on a lit navy field reads
+   as a form, not as a surface. These classes carry the same lighting model
+   as the marketing surfaces: one key light from above, a 1px top highlight
+   on anything raised, and navy-tinted shadow — black shadow kills depth on
+   navy, which is why --lift is tinted. */
+.qd-panel{
+  position:relative;
+  background:linear-gradient(170deg,rgba(18,48,65,.72),rgba(10,27,38,.72));
+  border:1px solid var(--line);
+  border-radius:14px;
+  box-shadow:var(--key),0 24px 60px -40px rgba(0,12,20,.9);
+  backdrop-filter:blur(6px);
+}
+/* the key-light highlight is a hairline, not a border: it must fade at the
+   corners the way a real specular does, so it is drawn rather than stroked */
+.qd-panel::before{
+  content:'';position:absolute;inset-inline:14px;top:0;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(110,231,212,.30),transparent);
+}
+.qd-panel-hover{transition:border-color .22s var(--e),transform .22s var(--e),box-shadow .22s var(--e)}
+@media (hover:hover){
+  .qd-panel-hover:hover{border-color:var(--line2);transform:translateY(-2px);
+    box-shadow:var(--key),0 34px 76px -44px rgba(0,12,20,.95)}
+}
+@media (prefers-reduced-motion:reduce){
+  .qd-panel-hover{transition:none}
+  .qd-panel-hover:hover{transform:none}
+}
+
+/* KPI numerals: tabular so columns of figures align, and optically tightened
+   at display size the way the marketing headlines are */
+.qd-figure{font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1.02;color:#fff}
+
+/* Segmented tab bar — an inset well with a raised active pill, so the
+   selected tab reads as nearer to the viewer rather than merely tinted. */
+.qd-tabs{background:rgba(6,18,27,.55);border:1px solid var(--line);border-radius:12px;
+  box-shadow:inset 0 1px 3px rgba(0,12,20,.55)}
+.qd-tab{border-radius:9px;transition:color .18s var(--e),background .18s var(--e)}
+.qd-tab:hover{color:var(--paper)}
+.qd-tab-on{background:linear-gradient(180deg,rgba(20,184,166,.24),rgba(20,184,166,.13));
+  color:var(--teal-light);box-shadow:inset 0 1px 0 rgba(110,231,212,.26),0 6px 16px -10px rgba(0,12,20,.9)}
+
+/* Section rhythm: the portal was uniformly spaced, which flattens hierarchy. */
+.qd-section + .qd-section{margin-top:26px}
+
 /* ══════════════════════════════════════════════════════════════════
    ARABIC TYPOGRAPHY LAYER
    Tailwind utilities are direction-agnostic, so every tracking-*,
