@@ -229,6 +229,12 @@ Deno.serve(async (req) => {
       const isUpload = body.source === 'upload';
       const items = Array.isArray(body.items) ? body.items : [];
       const det = { inquiry_id: body.inquiry_id, supplier_id: sup.id, quote_amount: amt, notes: clip(body.notes, 1000), lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: clip(body.scope, 2000), conditions: clip(body.conditions, 2000), exclusions: clip(body.exclusions, 2000), source: isUpload ? 'upload' : 'form', anonymized: isUpload, original_file_path: body.original_file_path || null, original_file_name: body.original_file_name || null, masked_terms: Array.isArray(body.masked_terms) ? body.masked_terms : null, structured: items.length > 0 };
+      // Capture the status BEFORE the upsert. quotes.status defaults to 'submitted', so a row
+      // created by a dry_run preflight would land live and be visible to the customer even though
+      // the preflight is supposed to change nothing. Caught by a demo-data walkthrough on
+      // 21 Jul 2026: three dry_run calls produced a quote sitting in 'submitted'.
+      const { data: priorQ } = await admin.from('quotes').select('status').eq('inquiry_id', body.inquiry_id).eq('supplier_id', sup.id).maybeSingle();
+      const priorStatus = priorQ?.status || null;
       const { data: q, error } = await admin.from('quotes').upsert(det, { onConflict: 'inquiry_id,supplier_id' }).select('id,quote_amount,status').maybeSingle();
       if (error) return J({ error: error.message }, 500);
       if (items.length) {
@@ -250,9 +256,10 @@ Deno.serve(async (req) => {
       // Preflight (dry_run). Lets the portal confirm what is missing WHILE the supplier is still
       // editing, instead of accepting the quote and emailing them about the gaps afterwards.
       //
-      // It runs the real scorer and the real accept rule, then stops: no status change, no
-      // customer notification, nothing reaches anyone. fn_quote_coach is deliberately NOT called
-      // here because it queues a coaching email, which must not fire while someone is mid-edit.
+      // It runs the real scorer and the real accept rule, then stops: the quote's status is put
+      // back as it was, no customer notification fires, and nothing reaches anyone.
+      // fn_quote_coach is deliberately NOT called here because it queues a coaching email, which
+      // must not fire while someone is mid-edit.
       // fn_quote_structured_score is STABLE and already returns the `missing` codes, so the
       // preflight needs nothing else.
       //
@@ -261,7 +268,13 @@ Deno.serve(async (req) => {
       // Reporting only "this will send" would hide that it goes out without per-item pricing or
       // brand/model, which is exactly the gap the customer comparison depends on.
       if (body.dry_run === true) {
+        // Put the status back exactly as it was. A brand-new row would otherwise sit in the
+        // 'submitted' column default and be shown to the customer; an existing submitted quote
+        // must not be demoted just because the supplier re-checked it. This is what makes the
+        // preflight genuinely non-mutating from the customer's point of view.
+        try { await admin.from('quotes').update({ status: priorStatus || 'draft' }).eq('id', q!.id); } catch (_e) { /* */ }
         return J({ ok: true, dry_run: true, quote_id: q!.id, submittable, would_accept: accept,
+          status_after: priorStatus || 'draft',
           accept_via: submittable ? 'structured_score' : (formComplete ? 'form_complete' : (!requireStructured ? 'structured_not_required' : null)),
           require_structured: requireStructured, priced_items: pricedItems, total_items: items.length, score });
       }

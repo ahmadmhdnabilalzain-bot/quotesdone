@@ -598,6 +598,11 @@ function Documents({ token, lang }) {
 // no company yet. An established supplier whose licence expired therefore had nowhere to replace
 // it — while receiving alerts telling them to do exactly that. Now that expiry suspends matching,
 // that dead end would have been an account they could not reopen.
+// Storage paths are prefixed with an epoch stamp to keep uploads unique, so the filename the
+// server falls back to reads as "1784642799037_catalogue-vrf-2026.pdf". Only license, egr and
+// iban have a dedicated name column; everything else shows the path tail. Strip the stamp for
+// display so the supplier sees the name they actually uploaded.
+const cleanName = (n) => String(n || '').replace(/^\d{10,}_/, '');
 function DocRow({ d, busy, onUpload, lang }) {
   const [exp, setExp] = useState(d.expiry || ''); const [file, setFile] = useState(null);
   const ar = lang === 'ar';
@@ -624,13 +629,13 @@ function DocRow({ d, busy, onUpload, lang }) {
         <div className={cn(S.sub, 'mt-1')}>{d.hint}</div>
         {/* What is actually on file, by name, so they can tell whether the right file went up. */}
         {!isCat && d.path && <div className={cn(S.sub, 'mt-1.5')}>
-          <span className="text-foreground/80">{d.name || (ar ? 'ملف' : 'File')}</span>
+          <span className="text-foreground/80">{cleanName(d.name) || (ar ? 'ملف' : 'File')}</span>
           {d.expiry ? <> · {ar ? 'تنتهي ' : 'expires '}{d.expiry}</> : null}
           {d.url ? <> · <a className="text-primary font-semibold underline-offset-2 hover:underline" href={d.url} target="_blank" rel="noopener">{t(lang, 'view')}</a></> : null}
         </div>}
         {isCat && (items.length
           ? <ul className="mt-1.5 flex flex-col gap-1">{items.map((c, i) => <li key={i} className={S.sub}>
-              <span className="text-foreground/80">{c.name}</span>
+              <span className="text-foreground/80">{cleanName(c.name)}</span>
               {c.url ? <> · <a className="text-primary font-semibold underline-offset-2 hover:underline" href={c.url} target="_blank" rel="noopener">{t(lang, 'view')}</a></> : null}
             </li>)}</ul>
           : <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>)}
