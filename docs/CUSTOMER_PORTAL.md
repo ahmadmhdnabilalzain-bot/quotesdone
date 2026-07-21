@@ -256,11 +256,16 @@ was re-applied here.
 - Removed the duplicate `/customer` route; it is now a redirect to `/me`.
 - `esbuild` parses; production build Ready.
 
-**Backend — verified, with documented residue.**
-- `customer_api` repo is byte-identical to deployed v33.
-- 3 actions (`save_me`, `confirm_reveal`, `reveal_quote`) are dead everywhere.
-- 4 actions (`analyze_quotation`, `close_inquiry`, `detect`, `specs`) are used only
-  by the retired `app`/`app-ar` pages.
+**Backend — cleaned and deployed.**
+- `customer_api` deployed **v34**, byte-verified identical to the repo (pulled the
+  deployed source back and diffed all 61,699 bytes), `verify_jwt=false` preserved.
+- Removed 3 dead-everywhere actions. One of them, `confirm_reveal`, was not just
+  dead: it inserted a paid transaction with a stub payment ref and no money taken,
+  reachable by any authenticated customer — an authenticated reveal-payment bypass,
+  now closed. `reveal_quote` (dead alias) and `save_me` (superseded by
+  `kyc.save_customer`) also removed.
+- 4 actions (`analyze_quotation`, `close_inquiry`, `detect`, `specs`) remain, used
+  only by the retired `app`/`app-ar` pages; they come out with those functions (§8).
 
 ---
 
@@ -277,10 +282,10 @@ here for one explicit go-ahead, to be done one at a time with a snapshot first.
    reach it. Plan: pull `app`, `app-ar`, `customer_profile`, `dispute_api` into git
    (so they are recoverable), then delete the four functions and the `app*` pages.
 
-2. **Then strip the 7 unused `customer_api` actions** (`save_me`, `confirm_reveal`,
-   `reveal_quote` — dead now; `analyze_quotation`, `close_inquiry`, `detect`,
-   `specs` — dead once the legacy app is gone) in a single careful `customer_api`
-   redeploy (preserving `verify_jwt=false`).
+2. **Strip the remaining 4 legacy `customer_api` actions** (`analyze_quotation`,
+   `close_inquiry`, `detect`, `specs`) in the same `customer_api` redeploy that
+   follows the legacy-app deletion. (The 3 dead-everywhere actions were already
+   removed and deployed as v34.)
 
 3. **`dispute_api` is also broken**, independently of being legacy: it gates
    `can_request` on `refund_status='window_open'`, a value no reveal path ever sets,

@@ -20,9 +20,9 @@
     "semantic_hash": "3cf36e94213e85dc306ec5f3f3760ecc"
   },
   "next.config.mjs": {
-    "mtime": 1784656201.6046815,
-    "ast_hash": "dad4404b99b829a8f57213d98f90c2cf",
-    "semantic_hash": "dad4404b99b829a8f57213d98f90c2cf"
+    "mtime": 1784665023.9492962,
+    "ast_hash": "0f2c5077dd0f8971dc98faa9c37d39c4",
+    "semantic_hash": ""
   },
   "package.json": {
     "mtime": 1784656201.6046815,
@@ -93,11 +93,6 @@
     "mtime": 1784656201.6161015,
     "ast_hash": "8de441cd1c33f33d33eb4ef964a2e83e",
     "semantic_hash": "8de441cd1c33f33d33eb4ef964a2e83e"
-  },
-  "src/app/[locale]/customer/page.tsx": {
-    "mtime": 1784656201.6161015,
-    "ast_hash": "37923c75c1267ee1183fbc9b7014755d",
-    "semantic_hash": "37923c75c1267ee1183fbc9b7014755d"
   },
   "src/app/[locale]/disclaimer/page.tsx": {
     "mtime": 1784656201.6174314,
@@ -270,8 +265,8 @@
     "semantic_hash": "5477d709bbf8fcfcee5c55a65ce7a7e7"
   },
   "src/components/me/CustomerPortal.tsx": {
-    "mtime": 1784663246.5289812,
-    "ast_hash": "c9871f25576db43087dad9cb757ed858",
+    "mtime": 1784664938.1342816,
+    "ast_hash": "30f11604a1c7408ddee2dcc829af13ac",
     "semantic_hash": ""
   },
   "src/components/osx/OsxShell.tsx": {
@@ -335,9 +330,9 @@
     "semantic_hash": "686d65630326efdae9d07cffd0e85c14"
   },
   "src/content/legal.json": {
-    "mtime": 1784656201.6539721,
-    "ast_hash": "4b6877b085f8c7bfcd2dd5572b2dec15",
-    "semantic_hash": "4b6877b085f8c7bfcd2dd5572b2dec15"
+    "mtime": 1784663901.4942338,
+    "ast_hash": "7623832c577a3144d952b86608599f83",
+    "semantic_hash": ""
   },
   "src/content/legalCss.ts": {
     "mtime": 1784656201.6539721,
@@ -390,9 +385,9 @@
     "semantic_hash": "bcbf9dcf76d1e7c51108b2572c119f6f"
   },
   "src/middleware.ts": {
-    "mtime": 1784656201.6641693,
-    "ast_hash": "e7110e5953a10349240d0ce05633fa75",
-    "semantic_hash": "e7110e5953a10349240d0ce05633fa75"
+    "mtime": 1784665056.5215478,
+    "ast_hash": "d44acb07f3b2e999bb42b5601c4fc0d4",
+    "semantic_hash": ""
   },
   "supabase/functions/about/index.ts": {
     "mtime": 1784656201.666223,
@@ -1447,6 +1442,11 @@
   "supabase/README.md": {
     "mtime": 1784656201.6652157,
     "ast_hash": "b7372e09e62872bbd27d82c9dcb7e7e6",
+    "semantic_hash": ""
+  },
+  "docs/CUSTOMER_PORTAL.md": {
+    "mtime": 1784665243.225558,
+    "ast_hash": "4c8599cbb926602abc976c3164a892cb",
     "semantic_hash": ""
   }
 }

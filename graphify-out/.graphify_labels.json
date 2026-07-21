@@ -243,5 +243,6 @@
   "241": "extraction-spec.md",
   "242": "@radix-ui/react-separator",
   "243": "README.md",
-  "244": "qd-pull-functions.ps1"
+  "244": "qd-pull-functions.ps1",
+  "245": "badge.tsx"
 }
