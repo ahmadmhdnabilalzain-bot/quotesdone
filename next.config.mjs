@@ -22,6 +22,12 @@ const nextConfig = {
       { source: '/app/:path*', destination: '/me', permanent: false },
       { source: '/ar/app', destination: '/ar/me', permanent: false },
       { source: '/ar/app/:path*', destination: '/ar/me', permanent: false },
+      // /customer was a second route rendering the identical CustomerPortal — a
+      // pure duplicate. The route file is gone; /me is the single canonical URL.
+      { source: '/customer', destination: '/me', permanent: false },
+      { source: '/customer/:path*', destination: '/me', permanent: false },
+      { source: '/ar/customer', destination: '/ar/me', permanent: false },
+      { source: '/ar/customer/:path*', destination: '/ar/me', permanent: false },
       { source: '/suppliers', destination: '/portal', permanent: false },
       { source: '/suppliers/:path*', destination: '/portal', permanent: false },
       { source: '/os2', destination: '/os', permanent: false },

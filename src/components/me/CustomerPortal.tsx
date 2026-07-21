@@ -233,7 +233,6 @@ function Stat({ label, value, hint, i = 0 }) {
     {hint ? <div className="mt-0.5 text-[10.5px] text-muted-foreground">{hint}</div> : null}
   </div>);
 }
-function Kpi({ label, v }) { return <Stat label={label} value={v} />; }
 function Pill({ children, tone = 'muted' }) {
   const tones = { muted:'bg-secondary/50 text-muted-foreground border-border', teal:'bg-primary/12 text-primary border-primary/30', gold:'bg-accent/12 text-accent border-accent/30', red:'bg-red-500/10 text-red-300 border-red-500/30' };
   return <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold', tones[tone])}>{children}</span>;
@@ -1096,12 +1095,12 @@ function Contact({ c, q, token, onChange, lang, won }) {
   const [rating, setRating] = useState(0); const [rated, setRated] = useState(!!(q && q.rated)); const [done, setDone] = useState('');
   const [prof, setProf] = useState(null); const [profOpen, setProfOpen] = useState(false); const [profBusy, setProfBusy] = useState(false);
   const rate = async (n) => { setRating(n); const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating: n }, token); if (j && j.ok) { setRated(true); setDone(lang === 'ar' ? 'شكرًا لتقييمك.' : 'Thanks for rating.'); } else setDone((j && j.error) || 'Could not save rating.'); };
-  const refund = async () => { if (!confirm(lang === 'ar' ? 'طلب استرداد رسوم الكشف؟ صالح فقط خلال 3 أيام عمل إذا لم يرد المورّد.' : 'Request a refund of the reveal fee? We will review it. Notifying the supplier first keeps your refund window open while we chase them.')) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token); setDone(j && j.ok ? (lang === 'ar' ? 'تم استلام طلب الاسترداد — سنراجعه.' : 'Refund requested — we will review it.') : ((j && j.error) || 'Could not request refund.')); };
+  const refund = async () => { if (!confirm(lang === 'ar' ? 'طلب استرداد رسوم الكشف؟ سنراجع طلبك. تنبيه المورّد أولًا يُبقي نافذة الاسترداد مفتوحة بينما نتابعه.' : 'Request a refund of the reveal fee? We will review it. Notifying the supplier first keeps your refund window open while we chase them.')) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token); setDone(j && j.ok ? (lang === 'ar' ? 'تم استلام طلب الاسترداد — سنراجعه.' : 'Refund requested — we will review it.') : ((j && j.error) || 'Could not request refund.')); };
 
   // ── Unresponsive-supplier escalation ────────────────────────────────────
-  // Every date and gate is computed server-side (fn_refund_state) and expressed in UAE working
-  // days. Nothing here recomputes a deadline: one implementation of "3 working days" only, so the
-  // button, the email and the refund decision can never disagree about when the clock ran out.
+  // Every date and gate is computed server-side (fn_refund_state) in UAE working days. This
+  // component only renders what the server returns and never recomputes a deadline itself, so the
+  // button, the escalation email and the server's refund decision always agree about the clock.
   const [esc, setEsc] = useState(null); const [escBusy, setEscBusy] = useState(false);
   const loadEsc = async () => {
     // customer_api does not return transaction_id on a quote, so refund_flow resolves it from
