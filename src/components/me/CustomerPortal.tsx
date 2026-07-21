@@ -1097,6 +1097,34 @@ function Contact({ c, q, token, onChange, lang, won }) {
   const [prof, setProf] = useState(null); const [profOpen, setProfOpen] = useState(false); const [profBusy, setProfBusy] = useState(false);
   const rate = async (n) => { setRating(n); const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating: n }, token); if (j && j.ok) { setRated(true); setDone(lang === 'ar' ? 'شكرًا لتقييمك.' : 'Thanks for rating.'); } else setDone((j && j.error) || 'Could not save rating.'); };
   const refund = async () => { if (!confirm(lang === 'ar' ? 'طلب استرداد رسوم الكشف؟ صالح فقط خلال 3 أيام عمل إذا لم يرد المورّد.' : 'Request a refund of the reveal fee? This is only valid within 3 working days if the supplier did not respond.')) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token); setDone(j && j.ok ? (lang === 'ar' ? 'تم استلام طلب الاسترداد — سنراجعه.' : 'Refund requested — we will review it.') : ((j && j.error) || 'Could not request refund.')); };
+
+  // ── Unresponsive-supplier escalation ────────────────────────────────────
+  // Every date and gate is computed server-side (fn_refund_state) and expressed in UAE working
+  // days. Nothing here recomputes a deadline: one implementation of "3 working days" only, so the
+  // button, the email and the refund decision can never disagree about when the clock ran out.
+  const [esc, setEsc] = useState(null); const [escBusy, setEscBusy] = useState(false);
+  const loadEsc = async () => {
+    // customer_api does not return transaction_id on a quote, so refund_flow resolves it from
+    // the quote id server-side (with the same ownership check).
+    if (!q || !q.id || !q.revealed) return;
+    const j = await call('refund_flow', { action: 'state', quote_id: q.id }, token);
+    if (j && j.ok) setEsc(j);
+  };
+  useEffect(() => { loadEsc(); }, [q && q.id, q && q.revealed]);
+  const notifySupplier = async () => {
+    if (!confirm(lang === 'ar'
+      ? 'سنرسل تنبيهًا رسميًا للمورّد، ونضعك ونضع فريق QuotesDone في نسخة من نفس الرسالة. متابعة؟'
+      : 'We will send the supplier a formal notice, with you and the QuotesDone team copied on the same email. Continue?')) return;
+    setEscBusy(true);
+    const j = await call('refund_flow', { action: 'notify', quote_id: q.id }, token);
+    setEscBusy(false);
+    if (j && j.ok) { setEsc(j.state ? { ok: true, ...j.state } : null); await loadEsc();
+      setDone(lang === 'ar' ? 'تم إرسال التنبيه — أنت والمورّد وفريقنا على نفس الرسالة.'
+                            : 'Notice sent — you, the supplier and our team are on the same email.'); }
+    else setDone((j && (j.error === 'not_available'
+      ? (lang === 'ar' ? 'لم يحن وقت التنبيه بعد.' : 'It is not time to notify them yet.')
+      : j.error)) || 'Could not send the notice.');
+  };
   const hire = async () => { if (!confirm(lang === 'ar' ? 'تعليم هذا المورّد كمتعاقد معه لهذا المشروع؟' : 'Mark this supplier as hired for this project?')) return; const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token); if (j && j.ok) { setDone(lang === 'ar' ? 'تم التعليم كمتعاقد.' : 'Marked as hired.'); onChange && onChange(); } else setDone((j && j.error) || 'Could not update.'); };
   const loadProfile = async () => {
     if (prof) { setProfOpen((v) => !v); return; }
@@ -1158,7 +1186,34 @@ function Contact({ c, q, token, onChange, lang, won }) {
           className={cn('text-[17px] leading-none transition-colors', n <= rating ? 'text-accent' : 'text-muted-foreground/45 hover:text-accent/70')}>★</button>))}
       </span>) : <Pill tone="gold">★ {t(lang, 'rated_l')}</Pill>}
       <Button variant="link" className="h-auto px-0" onClick={hire}>{t(lang, 'i_hired')}</Button>
-      <Button variant="link" className="h-auto px-0 text-muted-foreground" onClick={refund}>{t(lang, 'request_refund')}</Button>
+      {/* The escalation replaces the bare "Request refund" link, which promised a rule the server
+          would not honour. The customer now sees exactly where they are and what happens next.
+          Falls back to the old link only if the state could not be loaded, so this can never
+          leave someone with no way to raise a problem. */}
+      {esc && esc.state === 'waiting' ? (
+        <span className="text-[12.5px] text-muted-foreground">
+          {(lang === 'ar' ? 'لم يرد المورّد؟ يمكنك تنبيهه رسميًا اعتبارًا من ' : "No reply yet? You can formally notify them from ")
+            + fmtDate(esc.notify_available_at, lang)}
+        </span>
+      ) : esc && esc.state === 'notify_available' ? (
+        <Button variant="link" className="h-auto px-0 text-primary" disabled={escBusy} onClick={notifySupplier}>
+          {escBusy ? (lang === 'ar' ? 'جارٍ الإرسال…' : 'Sending…')
+                   : (lang === 'ar' ? 'تنبيه المورّد' : 'Notify supplier')}
+        </Button>
+      ) : esc && esc.state === 'notified_waiting' ? (
+        <span className="text-[12.5px] text-muted-foreground">
+          {(lang === 'ar' ? 'تم تنبيه المورّد. إذا لم يرد بحلول ' : 'Supplier notified. If they have not replied by ')
+            + fmtDate(esc.founder_call_due_at, lang)
+            + (lang === 'ar' ? '، سنتصل به مباشرة.' : ', we will call them directly.')}
+        </span>
+      ) : esc && esc.state === 'call_due' ? (
+        <span className="text-[12.5px] text-accent">
+          {lang === 'ar' ? 'نحن نتابع المورّد هاتفيًا الآن — سنعود إليك بشأن الاسترداد.'
+                         : 'We are following up with the supplier by phone — we will come back to you on the refund.'}
+        </span>
+      ) : esc && esc.state === 'supplier_responded' ? null : (
+        <Button variant="link" className="h-auto px-0 text-muted-foreground" onClick={refund}>{t(lang, 'request_refund')}</Button>
+      )}
     </div>
     {done && <p className={cn(S.sub, 'mt-2 text-primary')} role="status">{done}</p>}
   </div>);
