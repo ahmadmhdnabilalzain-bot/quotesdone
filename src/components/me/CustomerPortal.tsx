@@ -1096,7 +1096,7 @@ function Contact({ c, q, token, onChange, lang, won }) {
   const [rating, setRating] = useState(0); const [rated, setRated] = useState(!!(q && q.rated)); const [done, setDone] = useState('');
   const [prof, setProf] = useState(null); const [profOpen, setProfOpen] = useState(false); const [profBusy, setProfBusy] = useState(false);
   const rate = async (n) => { setRating(n); const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating: n }, token); if (j && j.ok) { setRated(true); setDone(lang === 'ar' ? 'شكرًا لتقييمك.' : 'Thanks for rating.'); } else setDone((j && j.error) || 'Could not save rating.'); };
-  const refund = async () => { if (!confirm(lang === 'ar' ? 'طلب استرداد رسوم الكشف؟ صالح فقط خلال 3 أيام عمل إذا لم يرد المورّد.' : 'Request a refund of the reveal fee? This is only valid within 3 working days if the supplier did not respond.')) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token); setDone(j && j.ok ? (lang === 'ar' ? 'تم استلام طلب الاسترداد — سنراجعه.' : 'Refund requested — we will review it.') : ((j && j.error) || 'Could not request refund.')); };
+  const refund = async () => { if (!confirm(lang === 'ar' ? 'طلب استرداد رسوم الكشف؟ صالح فقط خلال 3 أيام عمل إذا لم يرد المورّد.' : 'Request a refund of the reveal fee? We will review it. Notifying the supplier first keeps your refund window open while we chase them.')) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token); setDone(j && j.ok ? (lang === 'ar' ? 'تم استلام طلب الاسترداد — سنراجعه.' : 'Refund requested — we will review it.') : ((j && j.error) || 'Could not request refund.')); };
 
   // ── Unresponsive-supplier escalation ────────────────────────────────────
   // Every date and gate is computed server-side (fn_refund_state) and expressed in UAE working
@@ -1207,10 +1207,19 @@ function Contact({ c, q, token, onChange, lang, won }) {
             + (lang === 'ar' ? '، سنتصل به مباشرة.' : ', we will call them directly.')}
         </span>
       ) : esc && esc.state === 'call_due' ? (
-        <span className="text-[12.5px] text-accent">
-          {lang === 'ar' ? 'نحن نتابع المورّد هاتفيًا الآن — سنعود إليك بشأن الاسترداد.'
-                         : 'We are following up with the supplier by phone — we will come back to you on the refund.'}
-        </span>
+        // The full ladder has elapsed with no supplier reply, so this is the moment the customer
+        // is entitled to their money back. The request action MUST be reachable here: it is the
+        // only thing that sets refund_status='requested' and puts the claim in the founder's
+        // approval queue (refunds_api). Without it the ladder dead-ends and no claim is ever
+        // raised. fn_notify_supplier extends refund_deadline past this point so the server will
+        // accept it — before that fix the window always closed before call_due was reached.
+        <>
+          <span className="text-[12.5px] text-accent">
+            {lang === 'ar' ? 'نحن نتابع المورّد هاتفيًا الآن — سنعود إليك بشأن الاسترداد.'
+                           : 'We are following up with the supplier by phone — we will come back to you on the refund.'}
+          </span>
+          <Button variant="link" className="h-auto px-0 text-primary" onClick={refund}>{t(lang, 'request_refund')}</Button>
+        </>
       ) : esc && esc.state === 'supplier_responded' ? null : (
         <Button variant="link" className="h-auto px-0 text-muted-foreground" onClick={refund}>{t(lang, 'request_refund')}</Button>
       )}
