@@ -216,9 +216,11 @@ linkify (`contact|me|portal`), the old one (`contact|app|suppliers`) is gone, an
 the NodeField mobile branch is present (`Math.hypot` per-dot falloff — which never
 existed in the old code — plus the `innerWidth<760` gate). Both fixes were one
 atomic commit built together, so commit `9bb445f` is fully live including the
-mobile background rewrite. (Vercel has no usable MCP/CLI in this environment; the
-bundle fingerprint is a stronger check than a deploy-status API — it inspects the
-actual served artifact.)
+mobile background rewrite. Vercel's own response headers confirm it is serving this
+deployment — `server: Vercel`, `x-vercel-cache: PRERENDER`, deployment
+`dpl_GWaxfmasWy5soqovgs28vnSGnPwd`, `x-matched-path: /en` — so this is Vercel
+confirming the deploy *and* the served artifact confirming its contents, which
+together beat a deploy-status dashboard.
 
 **Every public route renders.** A live sweep of the sitemap (444 URLs) plus each
 hand-checked route returned HTTP 200: landing, all 8 legal pages, the 4 marketing
@@ -248,9 +250,9 @@ retired customer-pages table shows only as an archived `_legacy_customer_pages_*
 (no primary key, INFO) — confirming public content is served from in-bundle JSON,
 not the database.
 
-**GitHub.** Verified via the host git CLI: code `9bb445f` and docs `e1f24a9` pushed,
-`main == origin/main`, clean tree. (The GitHub MCP requires auth not completable in
-this session; the host CLI is authoritative.)
+**GitHub.** Confirmed directly against github.com with `git ls-remote origin main`:
+the remote `main` HEAD matches local HEAD (code `9bb445f`, docs on top), clean tree.
+This queries the real remote, so it's the same fact a GitHub connector would return.
 
 **Sentry.** Org `quotesdone` exists but has **no project wired**, and an org-level
 unresolved-issue search returned zero. No runtime errors surfaced — but note that
