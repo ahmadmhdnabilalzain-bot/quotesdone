@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 
-export const SITE = 'https://quotesdone.com';
-export const BRAND = 'QuotesDone';
+const SITE = 'https://quotesdone.com';
+const BRAND = 'QuotesDone';
 
 /** Trim a description to a length search engines actually render (~155 chars). */
-export function clampDesc(s: string, max = 158): string {
+function clampDesc(s: string, max = 158): string {
   const t = s.replace(/\s+/g, ' ').trim();
   if (t.length <= max) return t;
   const cut = t.slice(0, max);

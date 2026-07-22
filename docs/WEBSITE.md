@@ -189,19 +189,28 @@ the retired paths). `site_assistant` was redeployed and re-verified prod == repo
 
 ## 10. Audit findings
 
-The public site was rebuilt clean in the design-system chapter and holds up:
+Beyond smell-level checks (no `console.log`/`TODO`/commented code, no dead
+components, no orphan content blobs), a static dead-code scan was run over the
+43-file website surface — unused imports, unused exports, unused i18n namespaces:
 
+- **Unused imports:** none across all 43 files.
+- **i18n namespaces:** all 11 referenced (via root `useTranslations()` + dotted
+  keys like `t('footer.tagline')`).
+- **Unused exports — 5 found and removed.** `redirect` and `getPathname` were
+  destructured and exported from `src/i18n/routing.ts` but used nowhere in the repo
+  (only `Link`, `usePathname`, `useRouter` are); and `SITE`, `BRAND`, `clampDesc`
+  in `src/lib/seo.ts` were `export`ed though used only internally by `buildMeta`.
+  Removed the two dead navigation bindings and dropped the three needless `export`
+  keywords. Re-scan: **0 unused exports**; both files still compile.
 - **EN/AR parity:** all 8 legal docs and all marketing pages present in both locales.
-- **No dead code:** zero `console.log`, `TODO`, `FIXME`, or commented-out blocks.
-- **No dead components:** every `src/components/*.tsx` is imported and used.
-- **No orphan content:** every JSON/CSS content blob is imported.
 - **SEO centralized:** `buildMeta`/`textFromHtml` live once in `seo.ts`, shared by
   all renderers — not duplicated.
 - **All links resolve:** every header, footer, nav, and CTA target maps to a real
   route (or an intentional `next.config` redirect).
 
-Nothing dead or duplicated remained to delete — the only fixes needed were the
-two above.
+Correction to the first pass: it reported the site as having nothing to delete.
+That was a smell-test, not a proof. The dead-code scan found five unused exports —
+now removed — and that was the only dead code on the surface.
 
 ---
 
