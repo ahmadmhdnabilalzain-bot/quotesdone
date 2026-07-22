@@ -180,9 +180,9 @@ original 3-wd window.
 
 Two clocks, do not conflate them: **3 working days** is the window for the supplier
 to respond / the customer to become eligible; **7–14 working days** is how long the
-payout itself takes after approval. Working days are **Sat + Sun excluded** (Friday
-IS a working day) everywhere — code and legal text now agree (the refund policy and
-complaints page previously carried the pre-2022 "Fri + Sat" weekend; corrected).
+payout itself takes after approval. Code and legal text now agree on the working-day
+definition (§4) — the refund policy and complaints page previously carried the pre-2022
+"Fri + Sat" weekend; corrected.
 
 Legal text served to users comes from **`src/content/legal.json`** via
 `src/components/LegalDoc.tsx` — NOT the Supabase `pages` table.

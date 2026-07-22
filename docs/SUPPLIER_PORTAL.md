@@ -32,7 +32,6 @@ Browser (Next.js on Vercel)                 Supabase (edge functions + Postgres)
                                               kyc                (mobile/email verify, terms)
                                               messages_api       (customer ↔ supplier chat)
                                               rfq_flag           (ask customer to clarify)
-                                              sign_upload        (signed storage upload)
                                               wa_optin_set       (WhatsApp opt-in)
                                                      │  invokes server-side ▼
                                               quote_extract  license_extract  profile_ai
@@ -76,7 +75,7 @@ session mirrors it under `storageKey: 'qd-portal-auth'`.
 ### Module utilities
 `call(path, body, token)` (the single fetch wrapper), `aed`, `EMIRATES`, `t`/`initLang`
 (i18n), file/PDF helpers (`fileToB64`, `ensurePdfjs`, `fileToImages` — renders up to 6
-PDF pages to JPEG client-side), `signUpload` (signed storage upload), and the `S`
+PDF pages to JPEG client-side), and the `S`
 style map.
 
 ### Component tree (every function is reachable from here)
@@ -169,7 +168,6 @@ prolonged non-payment.
 
 ### Helper functions (byte-verified == prod)
 - **`rfq_flag`** — "scope unclear?" → asks the customer to add detail to an RFQ.
-- **`sign_upload`** — issues a signed upload URL for the `supplier-docs` bucket (used for the EGR certificate).
 - **`wa_optin_set`** — sets the supplier's WhatsApp-alert opt-in.
 
 ### Shared functions (verified == prod in the customer chapter; unchanged)
@@ -186,11 +184,11 @@ functions, or crons invoke them. **All byte-verified == prod. Do not delete.**
 
 | Function | Reached by | Role |
 |---|---|---|
-| `quote_extract` | `supplier_api.extract_quote`, `quote_review_api` | Vision-reads an uploaded quotation, anonymises it (ADR-010 masking — supplier identity cannot leak to the customer). |
+| `quote_extract` | `supplier_api.extract_quote` | Vision-reads an uploaded quotation, anonymises it (ADR-010 masking — supplier identity cannot leak to the customer). |
 | `supplier_review` | `supplier_api.save_profile` | AI review of a submitted profile (severity + issues). |
 | `supplier_ack` | `fn_customer_success`, `fn_refund_state`, `qd_recompute_response`, `qd_reveal_nudges` | Supplier acknowledgement / response tracking. |
 | `quote_quality` | `fn_ai_trainer`, `fn_eval_snapshot`, `fn_exception_alerts`, `fn_health_index`, `fn_twin` | Quote scoring for the autonomy engine. |
-| `quote_review` | `quote_review_api`, `fn_ai_trainer` | The quote-detailing agent. |
+| `quote_review` | `fn_ai_trainer` | The quote-detailing agent. |
 | `doc_extract` | cron `doc_process` (every 5 min) | Processes the inbound-document queue. |
 | `doc_reminder` | cron `doc_reminders_daily` (`run_doc_reminders`) | Document-expiry reminder emails. |
 | `route_inquiry` **v9** | `dispatch_inquiry` / matching pipeline | The **matcher**: builds each RFQ's supplier shortlist → `inquiry_matches`. v9 adds an opt-in structured-capability path (`decision_policy.use_capability_matching`): `inquiry_parse` → `fn_match_capability` hard gates → structured score → LLM adjudicator. Default is the untouched legacy keyword path. |
@@ -202,8 +200,8 @@ functions, or crons invoke them. **All byte-verified == prod. Do not delete.**
 ### Key tables
 - **`leads`** — the supplier record. `claimed_by`, `approval_status`, `registration_status`, `registration_fee_due`, `license_expiry`, `insurance_expiry`, `matching_blocked`, `matching_block_reason`, `permanently_closed`, `banned`, `capability_summary`, `sector`/`categories`/`products`/`services`, `service_emirates`, the `*_doc_path` columns + `catalog_doc_paths`, `accepted_terms_at`/`_version`/`_ip`.
 - **`inquiries`**, **`inquiry_matches`** (the shortlist), **`quotes`** (+ `submittable`, `structured`, `source`), **`quote_items`**.
-- **`quote_reviews` / `quote_review_messages` / `quote_committed_items`** — used only by `quote_review_api` (see §7).
-- **`supplier_twin` / `supplier_reputation`** — read only by `supplier_me` (see §7).
+- **`quote_reviews` / `quote_review_messages` / `quote_committed_items`** — now **orphaned** (0 rows, 0 references): their only reader `quote_review_api` was removed (§8). Droppable.
+- **`supplier_twin` / `supplier_reputation`** — read by the **OS** (`admin_insights`, `copilot`, `os_api` / `fn_ws_supplier_360`), not the removed `supplier_me` (§8). Kept.
 - **`notifications`**, **`doc_reviews`** (inbound-document queue, read by the OS console).
 - **`pricing_config`** (`supplier_free_count` = 1000, `supplier_reg_fee`, `auto_approve_suppliers`), **`decision_policy`** (`use_capability_matching`, `match_relevance_floor`).
 
@@ -237,10 +235,9 @@ after that AED 1,000/year (`supplier_reg_fee`), paid via `supplier_api.pay_regis
 dormant. Approval is manual unless `auto_approve_suppliers` is set; `submit_quote` is
 gated on `approval_status = 'approved'` ("within 3 working days").
 
-**Documents & matching.** Only the **trade licence** is required, and it must stay
-valid. An expired licence or insurance pauses matching automatically (via
-`fn_reconcile_doc_blocks` → `matching_blocked`) and restores automatically on renewal,
-with **no fee**. Everything else is optional and only widens reach.
+**Documents & matching.** Only the **trade licence** is required. An expired licence
+or insurance auto-pauses matching and auto-restores on renewal with **no fee** — the
+`fn_reconcile_doc_blocks` indirection (§5). Everything else is optional and only widens reach.
 
 **Quotes & anonymity.** A quote is read from an upload (`extract_quote` → `quote_extract`,
 OCR + anonymise) or entered as line items. `submit_quote` scores it, runs the `dry_run`
@@ -266,8 +263,7 @@ customer. QuotesDone never holds supplier bank details.
 **Optional** (they only widen reach / ranking): signatory name, products, services,
 description, emirates served, licence authority / expiry / TRN, EGR number, company type
 / size, founded year, bank name / account, WhatsApp opt-in — and **every non-licence
-document** (insurance, ISO, manufacturer authorisation, EGR card, catalogues). Only the
-**trade licence** is a hard requirement, and it must stay valid to keep matching.
+document** (insurance, ISO, manufacturer authorisation, EGR card, catalogues).
 
 ### One home per document — the Profile ↔ Documents de-duplication
 `ProfileForm` is reused for two jobs: first-time **registration** (Onboarding) and an
