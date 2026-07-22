@@ -26,7 +26,7 @@ function render(text: string) {
   let h = esc(text);
   h = h.replace(/(https?:\/\/[^\s<]+)/g, (m) => `<bdi><a href="${m}" target="_blank" rel="noopener noreferrer" style="color:#14B8A6;font-weight:600">${m}</a></bdi>`);
   h = h.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, (m) => `<bdi><a href="mailto:${m}" style="color:#14B8A6;font-weight:600">${m}</a></bdi>`);
-  h = h.replace(/(^|[\s(])(\/(?:contact|app|suppliers|faq|services|blog|about)\/?)/g, (_m, p, path) => `${p}<bdi><a href="${path}" style="color:#14B8A6;font-weight:600">${path}</a></bdi>`);
+  h = h.replace(/(^|[\s(])(\/(?:contact|me|portal|faq|services|blog|about)\/?)/g, (_m, p, path) => `${p}<bdi><a href="${path}" style="color:#14B8A6;font-weight:600">${path}</a></bdi>`);
   h = h.replace(/(\+?\d[\d\s\-()]{6,}\d)/g, (m) => `<bdi>${m}</bdi>`);
   return h.replace(/\n/g, '<br>');
 }

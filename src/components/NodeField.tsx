@@ -4,15 +4,21 @@ import { useEffect, useRef } from 'react';
 /**
  * THE NODE FIELD — the signature background primitive.
  * Suppliers as anonymous points of light: the engine does not list them,
- * it illuminates them. Purely decorative, aria-hidden, and fully gated on
+ * it illuminates them. Purely decorative, aria-hidden, fully gated on
  * prefers-reduced-motion.
  *
  * Perf notes (learned the hard way):
- *  · the falloff is drawn INTO the canvas, never as a CSS mask — a mask on a
- *    fixed full-viewport layer forces a composited surface to re-blend every
- *    frame and can stall the parser.
  *  · DPR pinned to 1: this is decoration, retina is indistinguishable here.
- *  · ~30fps: a slowly drifting field does not need 60.
+ *  · Desktop ~30fps with a constellation + a radial falloff painted INTO the
+ *    canvas — a CSS mask on a fixed full-viewport layer re-blends every frame,
+ *    so the falloff is a single destination-in composite instead.
+ *  · MOBILE is a different budget. That per-frame destination-in fillRect reads
+ *    back and re-blends the WHOLE surface every frame, and the O(n²) constellation
+ *    stroke adds hundreds of path ops — together they make phones stutter. On
+ *    phones we drop BOTH: no lines, no composite. The same radial falloff is baked
+ *    into each dot's alpha (O(n), not O(pixels)), the loop runs at ~24fps, there is
+ *    no pointer-parallax (phones have no hover), and resize ignores height-only
+ *    changes so the address bar collapsing mid-scroll can't re-init the canvas.
  */
 export function NodeField() {
   const ref = useRef<HTMLCanvasElement | null>(null);
@@ -24,16 +30,18 @@ export function NodeField() {
     if (!ctx) return;
 
     const rtl = document.documentElement.dir === 'rtl';
-    let W = 0, H = 0, live = true, last = 0, raf = 0;
+    const mob = window.innerWidth < 760;
+    const minDelta = mob ? 42 : 32;            // ~24fps on phones, ~30fps on desktop
+    let W = 0, H = 0, live = true, last = 0, raf = 0, lastW = 0;
     let mx = 0, my = 0, tmx = 0, tmy = 0, sk = 0;
-    const N = window.innerWidth < 760 ? 40 : 130;
+    const N = mob ? 40 : 130;
     type Node = { x: number; y: number; z: number; vx: number; vy: number };
     let nodes: Node[] = [];
     let fade: CanvasGradient | null = null, fw = 0, fh = 0;
 
     const size = () => {
       W = c.clientWidth; H = c.clientHeight;
-      c.width = W; c.height = H; fade = null;
+      c.width = W; c.height = H; fade = null; lastW = window.innerWidth;
     };
     const make = () => {
       nodes = Array.from({ length: N }, () => ({
@@ -44,7 +52,10 @@ export function NodeField() {
     };
     size(); make();
 
-    const onResize = () => size();
+    // On phones the address bar collapsing during scroll fires resize with only a
+    // height change; re-initialising the canvas mid-scroll is a visible stutter.
+    // Re-size only when the WIDTH actually changes (orientation / a real resize).
+    const onResize = () => { if (!mob || window.innerWidth !== lastW) size(); };
     const onScroll = () => { sk = Math.min(1, window.scrollY / (window.innerHeight * 0.9)); };
     let queued = false;
     const onMove = (e: PointerEvent) => {
@@ -55,31 +66,22 @@ export function NodeField() {
     };
     addEventListener('resize', onResize, { passive: true });
     addEventListener('scroll', onScroll, { passive: true });
-    addEventListener('pointermove', onMove, { passive: true });
+    if (!mob) addEventListener('pointermove', onMove, { passive: true });
     const onVis = () => { live = !document.hidden; };
     document.addEventListener('visibilitychange', onVis);
 
     const frame = (ts: number) => {
       raf = requestAnimationFrame(frame);
       if (!live) return;
-      if (ts - last < 32) return;
+      if (ts - last < minDelta) return;
       last = ts;
 
-      mx += (tmx - mx) * 0.045; my += (tmy - my) * 0.045;
+      if (!mob) { mx += (tmx - mx) * 0.045; my += (tmy - my) * 0.045; }
       ctx.clearRect(0, 0, W, H);
-
-      if (!fade || fw !== W || fh !== H) {
-        const gx = rtl ? W * 0.24 : W * 0.76;
-        const g = ctx.createRadialGradient(gx, H * 0.14, 0, gx, H * 0.14, Math.max(W, H) * 1.05);
-        g.addColorStop(0, 'rgba(255,255,255,1)');
-        g.addColorStop(0.34, 'rgba(255,255,255,.72)');
-        g.addColorStop(0.62, 'rgba(255,255,255,.24)');
-        g.addColorStop(0.84, 'rgba(255,255,255,0)');
-        fade = g; fw = W; fh = H;
-      }
 
       const cx = rtl ? W * 0.42 : W * 0.58, cy = H * 0.48;
       const dim = 1 - sk * 0.82;
+      const gx = rtl ? W * 0.24 : W * 0.76, gy = H * 0.14;   // the light source
       const pts: { x: number; y: number; r: number; z: number }[] = [];
       for (const n of nodes) {
         n.x += n.vx; n.y += n.vy;
@@ -91,6 +93,29 @@ export function NodeField() {
           y: cy + n.y * H * 0.64 + my * 44 * par - sk * 130 * par,
           r: par * 3.1 + 1.35, z: n.z,
         });
+      }
+
+      // ── Mobile: dots only, falloff baked per-dot. No lines, no composite. ──
+      if (mob) {
+        const R = Math.max(W, H) * 1.05 * 0.84;   // 0 alpha at the gradient's .84 stop
+        for (const q of pts) {
+          const d = Math.hypot(q.x - gx, q.y - gy) / R;
+          if (d >= 1) continue;                    // outside the light — skip entirely
+          const fo = (1 - d) * (1 - d);            // soft, matches the radial curve
+          ctx.fillStyle = `rgba(150,201,214,${((0.2 + (1.15 - q.z) * 0.55) * dim * fo).toFixed(3)})`;
+          ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 6.283); ctx.fill();
+        }
+        return;
+      }
+
+      // ── Desktop: constellation + dots + one composite falloff. ──
+      if (!fade || fw !== W || fh !== H) {
+        const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, Math.max(W, H) * 1.05);
+        g.addColorStop(0, 'rgba(255,255,255,1)');
+        g.addColorStop(0.34, 'rgba(255,255,255,.72)');
+        g.addColorStop(0.62, 'rgba(255,255,255,.24)');
+        g.addColorStop(0.84, 'rgba(255,255,255,0)');
+        fade = g; fw = W; fh = H;
       }
 
       // constellation: what makes it read as a connected field, not dust
@@ -128,7 +153,7 @@ export function NodeField() {
       cancelAnimationFrame(raf);
       removeEventListener('resize', onResize);
       removeEventListener('scroll', onScroll);
-      removeEventListener('pointermove', onMove);
+      if (!mob) removeEventListener('pointermove', onMove);
       document.removeEventListener('visibilitychange', onVis);
     };
   }, []);
