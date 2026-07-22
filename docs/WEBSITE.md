@@ -212,8 +212,21 @@ components, no orphan content blobs), a static dead-code scan was run over the
   route (or an intentional `next.config` redirect).
 
 Correction to the first pass: it reported the site as having nothing to delete.
-That was a smell-test, not a proof. The dead-code scan found five unused exports —
-now removed — and that was the only dead code on the surface.
+That was a smell-test, not a proof — deeper scans found real waste, all now removed:
+
+- **5 unused JS exports** — `routing.ts` `redirect`/`getPathname`; `seo.ts` `SITE`/`BRAND`/`clampDesc`.
+- **~43KB of exact CSS duplication** — the same 14,417-char stylesheet was stored 4× (`servicesCss.ts`
+  plus marketingCss `contact`/`services`/`blog`); collapsed to one shared `SERVICES_CSS`.
+- **~412 dead CSS selectors (~30KB)** — every content blob shipped the whole design-system
+  vocabulary while each page used only a subset. Each blob was trimmed to the union of selectors
+  its pages' content actually uses (legal 130→50, services 191→73, about 196→92, faq 144→34) with a
+  Node + linkedom faithful DOM reconstruction + css-tree surgery that drops **only** selectors matching
+  nothing in the real content; `:root`/global/unscoped rules are kept. Verified live with computed-style
+  checks (legal, services, faq) and an original-vs-trimmed rule diff — headings, cards, the FAQ search
+  pill and its 150 accordion items all render identically. No visual regression.
+
+Net: **~73KB of duplicated/dead CSS and 5 dead exports removed**, with proven-zero unused imports,
+exports, locals, i18n namespaces, and dead components remaining.
 
 ---
 
