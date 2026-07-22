@@ -1,64 +1,73 @@
 {
   "communities": {
     "0": [
-      "src_app_locale_customer_page",
-      "src_app_locale_customer_page_customerpage",
-      "src_app_locale_customer_page_metadata",
-      "src_app_locale_me_page",
-      "src_app_locale_me_page_mepage",
-      "src_app_locale_me_page_metadata",
-      "src_components_me_customerportal",
-      "src_components_me_customerportal_account",
-      "src_components_me_customerportal_aed",
-      "src_components_me_customerportal_authed",
-      "src_components_me_customerportal_backarrow",
-      "src_components_me_customerportal_blobtowavb64",
-      "src_components_me_customerportal_call",
-      "src_components_me_customerportal_comparison",
-      "src_components_me_customerportal_contact",
-      "src_components_me_customerportal_customerportal",
-      "src_components_me_customerportal_editstate",
-      "src_components_me_customerportal_emirates",
-      "src_components_me_customerportal_empty",
-      "src_components_me_customerportal_encodewav",
-      "src_components_me_customerportal_ensurepdfjs",
-      "src_components_me_customerportal_fileb64",
-      "src_components_me_customerportal_filetoimages",
-      "src_components_me_customerportal_fmtdate",
-      "src_components_me_customerportal_initlang",
-      "src_components_me_customerportal_kpi",
-      "src_components_me_customerportal_login",
-      "src_components_me_customerportal_messages",
-      "src_components_me_customerportal_motion",
-      "src_components_me_customerportal_newrequest",
-      "src_components_me_customerportal_overview",
-      "src_components_me_customerportal_pill",
-      "src_components_me_customerportal_portal",
-      "src_components_me_customerportal_profilegate",
-      "src_components_me_customerportal_quotecard",
-      "src_components_me_customerportal_quotepdflink",
-      "src_components_me_customerportal_refof",
-      "src_components_me_customerportal_requestdetail",
-      "src_components_me_customerportal_requestlist",
-      "src_components_me_customerportal_requestrow",
-      "src_components_me_customerportal_rise",
-      "src_components_me_customerportal_s",
-      "src_components_me_customerportal_sb",
-      "src_components_me_customerportal_section",
-      "src_components_me_customerportal_skeleton",
-      "src_components_me_customerportal_stat",
-      "src_components_me_customerportal_status_ar",
-      "src_components_me_customerportal_statuslabel",
-      "src_components_me_customerportal_statustone",
-      "src_components_me_customerportal_stepindex",
-      "src_components_me_customerportal_steps",
-      "src_components_me_customerportal_supplierbrief",
-      "src_components_me_customerportal_t",
-      "src_components_me_customerportal_tf",
-      "src_components_me_customerportal_thread",
-      "src_components_me_customerportal_usecomparison",
-      "src_components_me_customerportal_valuering",
-      "src_components_me_customerportal_waitingsub"
+      "package_dependencies_react",
+      "react",
+      "src_app_locale_console_page",
+      "src_app_locale_console_page_consolepage",
+      "src_app_locale_console_page_metadata",
+      "src_app_locale_os_page",
+      "src_app_locale_os_page_metadata",
+      "src_app_locale_os_page_ospage",
+      "src_components_osx_osxshell",
+      "src_components_osx_osxshell_agentstatus",
+      "src_components_osx_osxshell_auditlog",
+      "src_components_osx_osxshell_console",
+      "src_components_osx_osxshell_escalations",
+      "src_components_osx_osxshell_fmt",
+      "src_components_osx_osxshell_intake_sample",
+      "src_components_osx_osxshell_intakeaudio",
+      "src_components_osx_osxshell_knowledge",
+      "src_components_osx_osxshell_logincard",
+      "src_components_osx_osxshell_mod",
+      "src_components_osx_osxshell_modules",
+      "src_components_osx_osxshell_notificationsbell",
+      "src_components_osx_osxshell_osxshell",
+      "src_components_osx_osxshell_overview",
+      "src_components_osx_osxshell_pipeline",
+      "src_components_osx_osxshell_pipelinetracker",
+      "src_components_osx_osxshell_readableobject",
+      "src_components_osx_osxshell_reportviewer",
+      "src_components_osx_osxshell_titlecase",
+      "src_components_osx_osxshell_titlecasesafe",
+      "src_components_osx_osxshell_workspace",
+      "src_components_ui_card",
+      "src_components_ui_card_card",
+      "src_components_ui_card_cardcontent",
+      "src_components_ui_card_cardheader",
+      "src_components_ui_card_cardtitle",
+      "src_components_ui_command",
+      "src_components_ui_command_command",
+      "src_components_ui_command_commanddialog",
+      "src_components_ui_command_commandempty",
+      "src_components_ui_command_commandgroup",
+      "src_components_ui_command_commandinput",
+      "src_components_ui_command_commanditem",
+      "src_components_ui_command_commandlist",
+      "src_components_ui_dialog",
+      "src_components_ui_dialog_dialogcontent",
+      "src_components_ui_dialog_dialogdescription",
+      "src_components_ui_dialog_dialogheader",
+      "src_components_ui_dialog_dialogoverlay",
+      "src_components_ui_dialog_dialogtitle",
+      "src_components_ui_scroll_area",
+      "src_components_ui_scroll_area_scrollarea",
+      "src_components_ui_separator",
+      "src_components_ui_separator_separator",
+      "src_components_ui_sheet",
+      "src_components_ui_sheet_sheetcontent",
+      "src_components_ui_sheet_sheetcontentprops",
+      "src_components_ui_sheet_sheetdescription",
+      "src_components_ui_sheet_sheetheader",
+      "src_components_ui_sheet_sheetoverlay",
+      "src_components_ui_sheet_sheettitle",
+      "src_components_ui_sheet_sheetvariants",
+      "src_lib_osclient",
+      "src_lib_osclient_osapi",
+      "src_lib_osclient_osops",
+      "src_lib_osclient_osreportbody",
+      "src_lib_osclient_supa",
+      "src_lib_utils"
     ],
     "1": [
       "supabase_functions_pdf_native_index",
@@ -113,45 +122,51 @@
       "supabase_functions_pdf_native_index_wrap"
     ],
     "2": [
-      "package_dependencies_react",
-      "react",
-      "src_components_osx_osxshell",
-      "src_components_osx_osxshell_agentstatus",
-      "src_components_osx_osxshell_auditlog",
-      "src_components_osx_osxshell_console",
-      "src_components_osx_osxshell_escalations",
-      "src_components_osx_osxshell_fmt",
-      "src_components_osx_osxshell_intake_sample",
-      "src_components_osx_osxshell_intakeaudio",
-      "src_components_osx_osxshell_knowledge",
-      "src_components_osx_osxshell_logincard",
-      "src_components_osx_osxshell_mod",
-      "src_components_osx_osxshell_modules",
-      "src_components_osx_osxshell_notificationsbell",
-      "src_components_osx_osxshell_osxshell",
-      "src_components_osx_osxshell_overview",
-      "src_components_osx_osxshell_pipeline",
-      "src_components_osx_osxshell_pipelinetracker",
-      "src_components_osx_osxshell_readableobject",
-      "src_components_osx_osxshell_reportviewer",
-      "src_components_osx_osxshell_titlecase",
-      "src_components_osx_osxshell_titlecasesafe",
-      "src_components_osx_osxshell_workspace",
-      "src_components_ui_command",
-      "src_components_ui_command_command",
-      "src_components_ui_command_commanddialog",
-      "src_components_ui_command_commandempty",
-      "src_components_ui_command_commandgroup",
-      "src_components_ui_command_commandinput",
-      "src_components_ui_command_commanditem",
-      "src_components_ui_command_commandlist",
-      "src_lib_osclient",
-      "src_lib_osclient_osapi",
-      "src_lib_osclient_osops",
-      "src_lib_osclient_osreportbody",
-      "src_lib_osclient_supa"
+      "src_components_me_customerportal",
+      "src_components_me_customerportal_authed",
+      "src_components_me_customerportal_backarrow",
+      "src_components_me_customerportal_blobtowavb64",
+      "src_components_me_customerportal_call",
+      "src_components_me_customerportal_editstate",
+      "src_components_me_customerportal_emirates",
+      "src_components_me_customerportal_encodewav",
+      "src_components_me_customerportal_ensurepdfjs",
+      "src_components_me_customerportal_fileb64",
+      "src_components_me_customerportal_filetoimages",
+      "src_components_me_customerportal_login",
+      "src_components_me_customerportal_messages",
+      "src_components_me_customerportal_motion",
+      "src_components_me_customerportal_newrequest",
+      "src_components_me_customerportal_portal",
+      "src_components_me_customerportal_profilegate",
+      "src_components_me_customerportal_quotecard",
+      "src_components_me_customerportal_quotepdflink",
+      "src_components_me_customerportal_refof",
+      "src_components_me_customerportal_requestdetail",
+      "src_components_me_customerportal_requestlist",
+      "src_components_me_customerportal_requestrow",
+      "src_components_me_customerportal_rise",
+      "src_components_me_customerportal_s",
+      "src_components_me_customerportal_sb",
+      "src_components_me_customerportal_section",
+      "src_components_me_customerportal_skeleton",
+      "src_components_me_customerportal_stat",
+      "src_components_me_customerportal_status_ar",
+      "src_components_me_customerportal_statuslabel",
+      "src_components_me_customerportal_statustone",
+      "src_components_me_customerportal_stepindex",
+      "src_components_me_customerportal_supplierbrief",
+      "src_components_me_customerportal_t",
+      "src_components_me_customerportal_tf",
+      "src_components_me_customerportal_thread",
+      "src_components_me_customerportal_usecomparison",
+      "src_components_me_customerportal_valuering",
+      "src_components_me_customerportal_waitingsub"
     ],
     "3": [
+      "src_components_me_customerportal_empty",
+      "src_components_me_customerportal_pill",
+      "src_components_me_customerportal_steps",
       "src_components_portal_supplierportal",
       "src_components_portal_supplierportal_aed",
       "src_components_portal_supplierportal_billingpanel",
@@ -182,11 +197,12 @@
       "src_components_portal_supplierportal_rfqs",
       "src_components_portal_supplierportal_s",
       "src_components_portal_supplierportal_sb",
-      "src_components_portal_supplierportal_signupload",
       "src_components_portal_supplierportal_spark",
       "src_components_portal_supplierportal_stat",
       "src_components_portal_supplierportal_t",
       "src_components_portal_supplierportal_thread",
+      "src_components_ui_input",
+      "src_components_ui_input_input",
       "src_lib_utils_cn"
     ],
     "4": [
@@ -560,25 +576,6 @@
       "src_content_servicescss"
     ],
     "19": [
-      "src_components_ui_badge",
-      "src_components_ui_badge_badge",
-      "src_components_ui_badge_badgeprops",
-      "src_components_ui_badge_badgevariants",
-      "src_components_ui_dialog",
-      "src_components_ui_dialog_dialogcontent",
-      "src_components_ui_dialog_dialogdescription",
-      "src_components_ui_dialog_dialogheader",
-      "src_components_ui_dialog_dialogoverlay",
-      "src_components_ui_dialog_dialogtitle",
-      "src_components_ui_input",
-      "src_components_ui_input_input",
-      "src_components_ui_scroll_area",
-      "src_components_ui_scroll_area_scrollarea",
-      "src_components_ui_separator",
-      "src_components_ui_separator_separator",
-      "src_lib_utils"
-    ],
-    "20": [
       "supabase_functions_auth_api_index",
       "supabase_functions_auth_api_index_admin",
       "supabase_functions_auth_api_index_agefrom",
@@ -597,7 +594,7 @@
       "supabase_functions_auth_api_index_uidbyemail",
       "supabase_functions_auth_api_index_wrap"
     ],
-    "21": [
+    "20": [
       "supabase_functions_inquiry_intake_index",
       "supabase_functions_inquiry_intake_index_admin",
       "supabase_functions_inquiry_intake_index_cors",
@@ -616,26 +613,26 @@
       "supabase_functions_inquiry_intake_index_sec",
       "supabase_functions_inquiry_intake_index_t0"
     ],
-    "22": [
-      "supabase_functions_supplier_api_index",
-      "supabase_functions_supplier_api_index_admin",
-      "supabase_functions_supplier_api_index_aireview",
-      "supabase_functions_supplier_api_index_aisummarize",
-      "supabase_functions_supplier_api_index_b64tobytes",
-      "supabase_functions_supplier_api_index_clientip",
-      "supabase_functions_supplier_api_index_clip",
-      "supabase_functions_supplier_api_index_concluded",
-      "supabase_functions_supplier_api_index_cors",
-      "supabase_functions_supplier_api_index_j",
-      "supabase_functions_supplier_api_index_notify",
-      "supabase_functions_supplier_api_index_numornull",
-      "supabase_functions_supplier_api_index_profile_cols",
-      "supabase_functions_supplier_api_index_ratingof",
-      "supabase_functions_supplier_api_index_secretval",
-      "supabase_functions_supplier_api_index_setregistration",
-      "supabase_functions_supplier_api_index_signedredacted"
+    "21": [
+      "supabase_functions_route_inquiry_index",
+      "supabase_functions_route_inquiry_index_admin",
+      "supabase_functions_route_inquiry_index_approvedfilter",
+      "supabase_functions_route_inquiry_index_capabilityretrieve",
+      "supabase_functions_route_inquiry_index_clip",
+      "supabase_functions_route_inquiry_index_embed",
+      "supabase_functions_route_inquiry_index_j",
+      "supabase_functions_route_inquiry_index_logrun",
+      "supabase_functions_route_inquiry_index_models",
+      "supabase_functions_route_inquiry_index_parsejson",
+      "supabase_functions_route_inquiry_index_policybool",
+      "supabase_functions_route_inquiry_index_policynum",
+      "supabase_functions_route_inquiry_index_policyraw",
+      "supabase_functions_route_inquiry_index_retrieve",
+      "supabase_functions_route_inquiry_index_sec",
+      "supabase_functions_route_inquiry_index_t0",
+      "supabase_functions_route_inquiry_index_usable"
     ],
-    "23": [
+    "22": [
       "supabase_functions_agent_brain_index",
       "supabase_functions_agent_brain_index_admin",
       "supabase_functions_agent_brain_index_cntt",
@@ -653,7 +650,7 @@
       "supabase_functions_agent_brain_index_splitactions",
       "supabase_functions_agent_brain_index_valid_agents"
     ],
-    "24": [
+    "23": [
       "supabase_functions_secretary_index",
       "supabase_functions_secretary_index_admin",
       "supabase_functions_secretary_index_agent_names",
@@ -670,6 +667,24 @@
       "supabase_functions_secretary_index_snapshot",
       "supabase_functions_secretary_index_splitactions",
       "supabase_functions_secretary_index_valid_agents"
+    ],
+    "24": [
+      "supabase_functions_supplier_api_index",
+      "supabase_functions_supplier_api_index_admin",
+      "supabase_functions_supplier_api_index_aireview",
+      "supabase_functions_supplier_api_index_aisummarize",
+      "supabase_functions_supplier_api_index_b64tobytes",
+      "supabase_functions_supplier_api_index_clientip",
+      "supabase_functions_supplier_api_index_clip",
+      "supabase_functions_supplier_api_index_concluded",
+      "supabase_functions_supplier_api_index_cors",
+      "supabase_functions_supplier_api_index_j",
+      "supabase_functions_supplier_api_index_notify",
+      "supabase_functions_supplier_api_index_numornull",
+      "supabase_functions_supplier_api_index_profile_cols",
+      "supabase_functions_supplier_api_index_secretval",
+      "supabase_functions_supplier_api_index_setregistration",
+      "supabase_functions_supplier_api_index_signedredacted"
     ],
     "25": [
       "src_app_locale_about_page",
@@ -723,6 +738,23 @@
       "supabase_functions_agent_autogen_index_tokens"
     ],
     "28": [
+      "supabase_functions_capability_agent_index",
+      "supabase_functions_capability_agent_index_admin",
+      "supabase_functions_capability_agent_index_attach",
+      "supabase_functions_capability_agent_index_b64",
+      "supabase_functions_capability_agent_index_callmodel",
+      "supabase_functions_capability_agent_index_clip",
+      "supabase_functions_capability_agent_index_conf",
+      "supabase_functions_capability_agent_index_j",
+      "supabase_functions_capability_agent_index_mimeof",
+      "supabase_functions_capability_agent_index_models",
+      "supabase_functions_capability_agent_index_num",
+      "supabase_functions_capability_agent_index_parsejson",
+      "supabase_functions_capability_agent_index_sec",
+      "supabase_functions_capability_agent_index_strarr",
+      "supabase_functions_capability_agent_index_vocabulary"
+    ],
+    "29": [
       "supabase_functions_compliance_archive_index",
       "supabase_functions_compliance_archive_index_admin",
       "supabase_functions_compliance_archive_index_apiarg",
@@ -739,7 +771,7 @@
       "supabase_functions_compliance_archive_index_sec",
       "supabase_functions_compliance_archive_index_sha256hex"
     ],
-    "29": [
+    "30": [
       "supabase_functions_dropbox_backup_index",
       "supabase_functions_dropbox_backup_index_accesstoken",
       "supabase_functions_dropbox_backup_index_admin",
@@ -756,7 +788,7 @@
       "supabase_functions_dropbox_backup_index_uploadsession",
       "supabase_functions_dropbox_backup_index_uploadsingle"
     ],
-    "30": [
+    "31": [
       "supabase_functions_send_outbox_index",
       "supabase_functions_send_outbox_index_admin",
       "supabase_functions_send_outbox_index_esc",
@@ -772,7 +804,7 @@
       "supabase_functions_send_outbox_index_tmplrow",
       "supabase_functions_send_outbox_index_unsubtok"
     ],
-    "31": [
+    "32": [
       "supabase_functions_send_whatsapp_index",
       "supabase_functions_send_whatsapp_index_admin",
       "supabase_functions_send_whatsapp_index_j",
@@ -788,7 +820,7 @@
       "supabase_functions_send_whatsapp_index_wasendbody",
       "supabase_functions_send_whatsapp_index_wasendtemplate"
     ],
-    "32": [
+    "33": [
       "src_components_langswitch",
       "src_components_langswitch_langswitch",
       "src_components_mobilenav",
@@ -803,7 +835,7 @@
       "src_middleware_config",
       "src_middleware_rationale_6"
     ],
-    "33": [
+    "34": [
       "supabase_functions_kyc_index",
       "supabase_functions_kyc_index_admin",
       "supabase_functions_kyc_index_agefrom",
@@ -818,7 +850,7 @@
       "supabase_functions_kyc_index_twilioauth",
       "supabase_functions_kyc_index_wrapcode"
     ],
-    "34": [
+    "35": [
       "supabase_functions_messages_api_index",
       "supabase_functions_messages_api_index_admin",
       "supabase_functions_messages_api_index_clip",
@@ -832,21 +864,6 @@
       "supabase_functions_messages_api_index_resolvecat",
       "supabase_functions_messages_api_index_revealed",
       "supabase_functions_messages_api_index_sec"
-    ],
-    "35": [
-      "supabase_functions_route_inquiry_index",
-      "supabase_functions_route_inquiry_index_admin",
-      "supabase_functions_route_inquiry_index_approvedfilter",
-      "supabase_functions_route_inquiry_index_clip",
-      "supabase_functions_route_inquiry_index_embed",
-      "supabase_functions_route_inquiry_index_j",
-      "supabase_functions_route_inquiry_index_logrun",
-      "supabase_functions_route_inquiry_index_models",
-      "supabase_functions_route_inquiry_index_parsejson",
-      "supabase_functions_route_inquiry_index_retrieve",
-      "supabase_functions_route_inquiry_index_sec",
-      "supabase_functions_route_inquiry_index_t0",
-      "supabase_functions_route_inquiry_index_usable"
     ],
     "36": [
       "supabase_functions_wa_inbound_index",
@@ -976,33 +993,6 @@
       "supabase_functions_os_pages_index_translatehtml"
     ],
     "45": [
-      "supabase_functions_quote_review_api_index",
-      "supabase_functions_quote_review_api_index_admin",
-      "supabase_functions_quote_review_api_index_b64tobytes",
-      "supabase_functions_quote_review_api_index_clip",
-      "supabase_functions_quote_review_api_index_concluded",
-      "supabase_functions_quote_review_api_index_cors",
-      "supabase_functions_quote_review_api_index_j",
-      "supabase_functions_quote_review_api_index_loadthread",
-      "supabase_functions_quote_review_api_index_runagent",
-      "supabase_functions_quote_review_api_index_saveitems",
-      "supabase_functions_quote_review_api_index_sec",
-      "supabase_functions_quote_review_api_index_sha256"
-    ],
-    "46": [
-      "docref_adr_0010",
-      "supabase_functions_quote_ai_index",
-      "supabase_functions_quote_ai_index_admin",
-      "supabase_functions_quote_ai_index_cors",
-      "supabase_functions_quote_ai_index_fallback_models",
-      "supabase_functions_quote_ai_index_j",
-      "supabase_functions_quote_ai_index_logrun",
-      "supabase_functions_quote_ai_index_parsejson",
-      "supabase_functions_quote_ai_index_scrub",
-      "supabase_functions_quote_ai_index_sec",
-      "supabase_functions_quote_ai_index_t0"
-    ],
-    "47": [
       "supabase_functions_doc_render_index",
       "supabase_functions_doc_render_index_admin",
       "supabase_functions_doc_render_index_authed",
@@ -1015,7 +1005,20 @@
       "supabase_functions_doc_render_index_stripfences",
       "supabase_functions_doc_render_index_wrap"
     ],
-    "48": [
+    "46": [
+      "supabase_functions_inquiry_parse_index",
+      "supabase_functions_inquiry_parse_index_admin",
+      "supabase_functions_inquiry_parse_index_callmodel",
+      "supabase_functions_inquiry_parse_index_clip",
+      "supabase_functions_inquiry_parse_index_j",
+      "supabase_functions_inquiry_parse_index_models",
+      "supabase_functions_inquiry_parse_index_needfor",
+      "supabase_functions_inquiry_parse_index_numornull",
+      "supabase_functions_inquiry_parse_index_parsejson",
+      "supabase_functions_inquiry_parse_index_sec",
+      "supabase_functions_inquiry_parse_index_strarr"
+    ],
+    "47": [
       "supabase_functions_license_extract_index",
       "supabase_functions_license_extract_index_admin",
       "supabase_functions_license_extract_index_buildcontent",
@@ -1028,7 +1031,7 @@
       "supabase_functions_license_extract_index_parsejson",
       "supabase_functions_license_extract_index_sec"
     ],
-    "49": [
+    "48": [
       "supabase_functions_match_index",
       "supabase_functions_match_index_admin",
       "supabase_functions_match_index_cors",
@@ -1041,7 +1044,7 @@
       "supabase_functions_match_index_scrubtext",
       "supabase_functions_match_index_t0"
     ],
-    "50": [
+    "49": [
       "supabase_functions_profile_ai_index",
       "supabase_functions_profile_ai_index_admin",
       "supabase_functions_profile_ai_index_callclaude",
@@ -1054,7 +1057,7 @@
       "supabase_functions_profile_ai_index_normemirates",
       "supabase_functions_profile_ai_index_parsejson"
     ],
-    "51": [
+    "50": [
       "supabase_functions_quote_compare_index",
       "supabase_functions_quote_compare_index_admin",
       "supabase_functions_quote_compare_index_cors",
@@ -1067,7 +1070,7 @@
       "supabase_functions_quote_compare_index_supplierlabel",
       "supabase_functions_quote_compare_index_t0"
     ],
-    "52": [
+    "51": [
       "supabase_functions_copilot_index",
       "supabase_functions_copilot_index_admin",
       "supabase_functions_copilot_index_cors",
@@ -1079,7 +1082,7 @@
       "supabase_functions_copilot_index_snapshot",
       "supabase_functions_copilot_index_tocats"
     ],
-    "53": [
+    "52": [
       "supabase_functions_enrich_capability_index",
       "supabase_functions_enrich_capability_index_admin",
       "supabase_functions_enrich_capability_index_enrichone",
@@ -1091,7 +1094,7 @@
       "supabase_functions_enrich_capability_index_sec",
       "supabase_functions_enrich_capability_index_t0"
     ],
-    "54": [
+    "53": [
       "supabase_functions_make_pdf_index",
       "supabase_functions_make_pdf_index_admin",
       "supabase_functions_make_pdf_index_authed",
@@ -1103,7 +1106,7 @@
       "supabase_functions_make_pdf_index_letterheadfragment",
       "supabase_functions_make_pdf_index_sec"
     ],
-    "55": [
+    "54": [
       "supabase_functions_mobile_otp_index",
       "supabase_functions_mobile_otp_index_admin",
       "supabase_functions_mobile_otp_index_basic",
@@ -1115,7 +1118,7 @@
       "supabase_functions_mobile_otp_index_verifycreds",
       "supabase_functions_mobile_otp_index_verifysend"
     ],
-    "56": [
+    "55": [
       "supabase_functions_money_tests_index",
       "supabase_functions_money_tests_index_admin",
       "supabase_functions_money_tests_index_fn",
@@ -1127,7 +1130,7 @@
       "supabase_functions_money_tests_index_sec",
       "supabase_functions_money_tests_index_t0"
     ],
-    "57": [
+    "56": [
       "supabase_functions_orchestrate_index",
       "supabase_functions_orchestrate_index_admin",
       "supabase_functions_orchestrate_index_authed",
@@ -1139,7 +1142,7 @@
       "supabase_functions_orchestrate_index_roster",
       "supabase_functions_orchestrate_index_sec"
     ],
-    "58": [
+    "57": [
       "supabase_functions_quote_extract_index",
       "supabase_functions_quote_extract_index_admin",
       "supabase_functions_quote_extract_index_dataurl",
@@ -1151,7 +1154,7 @@
       "supabase_functions_quote_extract_index_sec",
       "supabase_functions_quote_extract_index_t0"
     ],
-    "59": [
+    "58": [
       "supabase_functions_refunds_api_index",
       "supabase_functions_refunds_api_index_admin",
       "supabase_functions_refunds_api_index_authed",
@@ -1163,7 +1166,7 @@
       "supabase_functions_refunds_api_index_sec",
       "supabase_functions_refunds_api_index_t0"
     ],
-    "60": [
+    "59": [
       "supabase_functions_site_assistant_index",
       "supabase_functions_site_assistant_index_admin",
       "supabase_functions_site_assistant_index_audiencefrompath",
@@ -1175,7 +1178,7 @@
       "supabase_functions_site_assistant_index_sec",
       "supabase_functions_site_assistant_index_tok"
     ],
-    "61": [
+    "60": [
       "package",
       "package_name",
       "package_private",
@@ -1186,7 +1189,7 @@
       "package_scripts_typecheck",
       "package_version"
     ],
-    "62": [
+    "61": [
       "supabase_functions_archive_rfq_index",
       "supabase_functions_archive_rfq_index_admin",
       "supabase_functions_archive_rfq_index_aisummary",
@@ -1197,7 +1200,7 @@
       "supabase_functions_archive_rfq_index_sha256",
       "supabase_functions_archive_rfq_index_t0"
     ],
-    "63": [
+    "62": [
       "supabase_functions_assets_ingest_index",
       "supabase_functions_assets_ingest_index_admin",
       "supabase_functions_assets_ingest_index_dbxdownload",
@@ -1208,7 +1211,7 @@
       "supabase_functions_assets_ingest_index_sec",
       "supabase_functions_assets_ingest_index_text_ext"
     ],
-    "64": [
+    "63": [
       "supabase_functions_drawing_boq_index",
       "supabase_functions_drawing_boq_index_admin",
       "supabase_functions_drawing_boq_index_cors",
@@ -1219,7 +1222,7 @@
       "supabase_functions_drawing_boq_index_scrub",
       "supabase_functions_drawing_boq_index_sec"
     ],
-    "65": [
+    "64": [
       "supabase_functions_drawing_redact_index",
       "supabase_functions_drawing_redact_index_admin",
       "supabase_functions_drawing_redact_index_b64tobytes",
@@ -1230,7 +1233,7 @@
       "supabase_functions_drawing_redact_index_sec",
       "supabase_functions_drawing_redact_index_stripb64"
     ],
-    "66": [
+    "65": [
       "supabase_functions_dropbox_sync_index",
       "supabase_functions_dropbox_sync_index_accesstoken",
       "supabase_functions_dropbox_sync_index_admin",
@@ -1241,7 +1244,7 @@
       "supabase_functions_dropbox_sync_index_sec",
       "supabase_functions_dropbox_sync_index_t0"
     ],
-    "67": [
+    "66": [
       "supabase_functions_inbound_email_index",
       "supabase_functions_inbound_email_index_admin",
       "supabase_functions_inbound_email_index_cors",
@@ -1252,7 +1255,7 @@
       "supabase_functions_inbound_email_index_j",
       "supabase_functions_inbound_email_index_kw"
     ],
-    "68": [
+    "67": [
       "supabase_functions_kb_ingest_index",
       "supabase_functions_kb_ingest_index_admin",
       "supabase_functions_kb_ingest_index_chunktext",
@@ -1263,7 +1266,7 @@
       "supabase_functions_kb_ingest_index_sec",
       "supabase_functions_kb_ingest_index_t0"
     ],
-    "69": [
+    "68": [
       "supabase_functions_os_ops_index",
       "supabase_functions_os_ops_index_admin",
       "supabase_functions_os_ops_index_content",
@@ -1274,7 +1277,7 @@
       "supabase_functions_os_ops_index_readonly",
       "supabase_functions_os_ops_index_sec"
     ],
-    "70": [
+    "69": [
       "supabase_functions_project_consultant_index",
       "supabase_functions_project_consultant_index_admin",
       "supabase_functions_project_consultant_index_categorylist",
@@ -1285,7 +1288,7 @@
       "supabase_functions_project_consultant_index_parsejson",
       "supabase_functions_project_consultant_index_sec"
     ],
-    "71": [
+    "70": [
       "supabase_functions_resend_webhook_index",
       "supabase_functions_resend_webhook_index_admin",
       "supabase_functions_resend_webhook_index_emailsof",
@@ -1296,7 +1299,7 @@
       "supabase_functions_resend_webhook_index_timingsafeeq",
       "supabase_functions_resend_webhook_index_verifysvix"
     ],
-    "72": [
+    "71": [
       "supabase_functions_reveal_invoice_index",
       "supabase_functions_reveal_invoice_index_admin",
       "supabase_functions_reveal_invoice_index_cors",
@@ -1307,7 +1310,7 @@
       "supabase_functions_reveal_invoice_index_secret",
       "supabase_functions_reveal_invoice_index_signeddoc"
     ],
-    "73": [
+    "72": [
       "supabase_functions_role_guard_index",
       "supabase_functions_role_guard_index_admin",
       "supabase_functions_role_guard_index_cors",
@@ -1318,7 +1321,7 @@
       "supabase_functions_role_guard_index_t0",
       "supabase_functions_role_guard_index_toe164"
     ],
-    "74": [
+    "73": [
       "supabase_functions_send_sms_index",
       "supabase_functions_send_sms_index_admin",
       "supabase_functions_send_sms_index_j",
@@ -1329,7 +1332,7 @@
       "supabase_functions_send_sms_index_t0",
       "supabase_functions_send_sms_index_twiliosend"
     ],
-    "75": [
+    "74": [
       "supabase_functions_supplier_portal_index",
       "supabase_functions_supplier_portal_index_admin",
       "supabase_functions_supplier_portal_index_b64tobytes",
@@ -1340,7 +1343,7 @@
       "supabase_functions_supplier_portal_index_j",
       "supabase_functions_supplier_portal_index_sign"
     ],
-    "76": [
+    "75": [
       "supabase_functions_yello_scrape_index",
       "supabase_functions_yello_scrape_index_admin",
       "supabase_functions_yello_scrape_index_auth",
@@ -1351,7 +1354,7 @@
       "supabase_functions_yello_scrape_index_parseprofile",
       "supabase_functions_yello_scrape_index_sectorfor"
     ],
-    "77": [
+    "76": [
       "src_app_locale_portal_page",
       "src_app_locale_portal_page_metadata",
       "src_app_locale_portal_page_portalpage",
@@ -1361,17 +1364,7 @@
       "src_components_portal_supplierportal_initlang",
       "src_components_portal_supplierportal_supplierportal"
     ],
-    "78": [
-      "src_components_ui_sheet",
-      "src_components_ui_sheet_sheetcontent",
-      "src_components_ui_sheet_sheetcontentprops",
-      "src_components_ui_sheet_sheetdescription",
-      "src_components_ui_sheet_sheetheader",
-      "src_components_ui_sheet_sheetoverlay",
-      "src_components_ui_sheet_sheettitle",
-      "src_components_ui_sheet_sheetvariants"
-    ],
-    "79": [
+    "77": [
       "supabase_functions_admin_detail_index",
       "supabase_functions_admin_detail_index_admin",
       "supabase_functions_admin_detail_index_cors",
@@ -1381,7 +1374,7 @@
       "supabase_functions_admin_detail_index_signdoc",
       "supabase_functions_admin_detail_index_signdrawing"
     ],
-    "80": [
+    "78": [
       "supabase_functions_agent_learnings_report_index",
       "supabase_functions_agent_learnings_report_index_admin",
       "supabase_functions_agent_learnings_report_index_esc",
@@ -1391,7 +1384,7 @@
       "supabase_functions_agent_learnings_report_index_sec",
       "supabase_functions_agent_learnings_report_index_t0"
     ],
-    "81": [
+    "79": [
       "supabase_functions_cad_convert_index",
       "supabase_functions_cad_convert_index_admin",
       "supabase_functions_cad_convert_index_cors",
@@ -1401,7 +1394,7 @@
       "supabase_functions_cad_convert_index_sleep",
       "supabase_functions_cad_convert_index_tob64"
     ],
-    "82": [
+    "80": [
       "supabase_functions_dispatch_inquiry_index",
       "supabase_functions_dispatch_inquiry_index_admin",
       "supabase_functions_dispatch_inquiry_index_escalate",
@@ -1411,17 +1404,7 @@
       "supabase_functions_dispatch_inquiry_index_sec",
       "supabase_functions_dispatch_inquiry_index_t0"
     ],
-    "83": [
-      "supabase_functions_dispute_api_index",
-      "supabase_functions_dispute_api_index_admin",
-      "supabase_functions_dispute_api_index_clip",
-      "supabase_functions_dispute_api_index_cors",
-      "supabase_functions_dispute_api_index_j",
-      "supabase_functions_dispute_api_index_mklog",
-      "supabase_functions_dispute_api_index_notify",
-      "supabase_functions_dispute_api_index_sec"
-    ],
-    "84": [
+    "81": [
       "supabase_functions_exec_agents_index",
       "supabase_functions_exec_agents_index_admin",
       "supabase_functions_exec_agents_index_j",
@@ -1431,7 +1414,7 @@
       "supabase_functions_exec_agents_index_runofficer",
       "supabase_functions_exec_agents_index_sec"
     ],
-    "85": [
+    "82": [
       "supabase_functions_legal_index",
       "supabase_functions_legal_index_dochtml",
       "supabase_functions_legal_index_labelfor",
@@ -1441,7 +1424,7 @@
       "supabase_functions_legal_index_sb",
       "supabase_functions_legal_index_shell"
     ],
-    "86": [
+    "83": [
       "supabase_functions_legal_review_index",
       "supabase_functions_legal_review_index_admin",
       "supabase_functions_legal_review_index_j",
@@ -1451,7 +1434,7 @@
       "supabase_functions_legal_review_index_parsejson",
       "supabase_functions_legal_review_index_sec"
     ],
-    "87": [
+    "84": [
       "supabase_functions_match_eval_index",
       "supabase_functions_match_eval_index_admin",
       "supabase_functions_match_eval_index_cases",
@@ -1461,7 +1444,7 @@
       "supabase_functions_match_eval_index_sec",
       "supabase_functions_match_eval_index_t0"
     ],
-    "88": [
+    "85": [
       "supabase_functions_os_api_index",
       "supabase_functions_os_api_index_admin",
       "supabase_functions_os_api_index_esc",
@@ -1471,7 +1454,7 @@
       "supabase_functions_os_api_index_sec",
       "supabase_functions_os_api_index_ws"
     ],
-    "89": [
+    "86": [
       "supabase_functions_prompt_gate_index",
       "supabase_functions_prompt_gate_index_admin",
       "supabase_functions_prompt_gate_index_annotate",
@@ -1481,7 +1464,7 @@
       "supabase_functions_prompt_gate_index_scoreversion",
       "supabase_functions_prompt_gate_index_sec"
     ],
-    "90": [
+    "87": [
       "supabase_functions_quote_review_index",
       "supabase_functions_quote_review_index_admin",
       "supabase_functions_quote_review_index_j",
@@ -1491,7 +1474,7 @@
       "supabase_functions_quote_review_index_round2",
       "supabase_functions_quote_review_index_sec"
     ],
-    "91": [
+    "88": [
       "supabase_functions_supplier_pay_index",
       "supabase_functions_supplier_pay_index_admin",
       "supabase_functions_supplier_pay_index_cors",
@@ -1501,7 +1484,7 @@
       "supabase_functions_supplier_pay_index_secret",
       "supabase_functions_supplier_pay_index_t0"
     ],
-    "92": [
+    "89": [
       "scripts_edge_functions",
       "scripts_edge_functions_cmd_deploy",
       "scripts_edge_functions_cmd_diff",
@@ -1510,7 +1493,7 @@
       "scripts_edge_functions_sh__entry",
       "scripts_edge_functions_wants_no_jwt"
     ],
-    "93": [
+    "90": [
       "supabase_functions_admin_insights_index",
       "supabase_functions_admin_insights_index_admin",
       "supabase_functions_admin_insights_index_cors",
@@ -1519,7 +1502,7 @@
       "supabase_functions_admin_insights_index_mfaok",
       "supabase_functions_admin_insights_index_sec"
     ],
-    "94": [
+    "91": [
       "supabase_functions_apify_scrape_index",
       "supabase_functions_apify_scrape_index_admin",
       "supabase_functions_apify_scrape_index_dom",
@@ -1528,7 +1511,7 @@
       "supabase_functions_apify_scrape_index_mapitem",
       "supabase_functions_apify_scrape_index_sec"
     ],
-    "95": [
+    "92": [
       "supabase_functions_category_provision_index",
       "supabase_functions_category_provision_index_admin",
       "supabase_functions_category_provision_index_j",
@@ -1537,7 +1520,7 @@
       "supabase_functions_category_provision_index_sec",
       "supabase_functions_category_provision_index_slugify"
     ],
-    "96": [
+    "93": [
       "supabase_functions_category_reqs_index",
       "supabase_functions_category_reqs_index_admin",
       "supabase_functions_category_reqs_index_genone",
@@ -1546,7 +1529,7 @@
       "supabase_functions_category_reqs_index_parsejson",
       "supabase_functions_category_reqs_index_sec"
     ],
-    "97": [
+    "94": [
       "supabase_functions_cost_snapshot_index",
       "supabase_functions_cost_snapshot_index_admin",
       "supabase_functions_cost_snapshot_index_cnt",
@@ -1555,7 +1538,7 @@
       "supabase_functions_cost_snapshot_index_rev",
       "supabase_functions_cost_snapshot_index_sec"
     ],
-    "98": [
+    "95": [
       "supabase_functions_doc_extract_index",
       "supabase_functions_doc_extract_index_cors",
       "supabase_functions_doc_extract_index_index_kinds",
@@ -1564,7 +1547,7 @@
       "supabase_functions_doc_extract_index_logrun",
       "supabase_functions_doc_extract_index_logthrottled"
     ],
-    "99": [
+    "96": [
       "supabase_functions_dr_drill_index",
       "supabase_functions_dr_drill_index_admin",
       "supabase_functions_dr_drill_index_cors",
@@ -1573,7 +1556,7 @@
       "supabase_functions_dr_drill_index_t0",
       "supabase_functions_dr_drill_index_tables"
     ],
-    "100": [
+    "97": [
       "supabase_functions_email_cron_index",
       "supabase_functions_email_cron_index_admin",
       "supabase_functions_email_cron_index_j",
@@ -1582,7 +1565,7 @@
       "supabase_functions_email_cron_index_sec",
       "supabase_functions_email_cron_index_t0"
     ],
-    "101": [
+    "98": [
       "supabase_functions_gen_category_knowledge_index",
       "supabase_functions_gen_category_knowledge_index_admin",
       "supabase_functions_gen_category_knowledge_index_llm",
@@ -1591,7 +1574,7 @@
       "supabase_functions_gen_category_knowledge_index_sec",
       "supabase_functions_gen_category_knowledge_index_t0"
     ],
-    "102": [
+    "99": [
       "supabase_functions_gen_category_personas_index",
       "supabase_functions_gen_category_personas_index_admin",
       "supabase_functions_gen_category_personas_index_llm",
@@ -1600,7 +1583,7 @@
       "supabase_functions_gen_category_personas_index_sec",
       "supabase_functions_gen_category_personas_index_t0"
     ],
-    "103": [
+    "100": [
       "supabase_functions_kb_embed_index",
       "supabase_functions_kb_embed_index_admin",
       "supabase_functions_kb_embed_index_j",
@@ -1609,7 +1592,7 @@
       "supabase_functions_kb_embed_index_sec",
       "supabase_functions_kb_embed_index_t0"
     ],
-    "104": [
+    "101": [
       "supabase_functions_kb_fill_gap_index",
       "supabase_functions_kb_fill_gap_index_admin",
       "supabase_functions_kb_fill_gap_index_genonce",
@@ -1618,7 +1601,7 @@
       "supabase_functions_kb_fill_gap_index_parsesections",
       "supabase_functions_kb_fill_gap_index_sec"
     ],
-    "105": [
+    "102": [
       "supabase_functions_meta_sync_index",
       "supabase_functions_meta_sync_index_admin",
       "supabase_functions_meta_sync_index_j",
@@ -1627,7 +1610,7 @@
       "supabase_functions_meta_sync_index_sec",
       "supabase_functions_meta_sync_index_t0"
     ],
-    "106": [
+    "103": [
       "supabase_functions_postiz_publish_index",
       "supabase_functions_postiz_publish_index_admin",
       "supabase_functions_postiz_publish_index_base",
@@ -1636,7 +1619,7 @@
       "supabase_functions_postiz_publish_index_sec",
       "supabase_functions_postiz_publish_index_type_map"
     ],
-    "107": [
+    "104": [
       "supabase_functions_quote_pdf_index",
       "supabase_functions_quote_pdf_index_admin",
       "supabase_functions_quote_pdf_index_cors",
@@ -1645,16 +1628,7 @@
       "supabase_functions_quote_pdf_index_money",
       "supabase_functions_quote_pdf_index_sec"
     ],
-    "108": [
-      "supabase_functions_sign_upload_index",
-      "supabase_functions_sign_upload_index_admin",
-      "supabase_functions_sign_upload_index_buckets",
-      "supabase_functions_sign_upload_index_cors",
-      "supabase_functions_sign_upload_index_j",
-      "supabase_functions_sign_upload_index_prefix",
-      "supabase_functions_sign_upload_index_safename"
-    ],
-    "109": [
+    "105": [
       "supabase_functions_stripe_checkout_index",
       "supabase_functions_stripe_checkout_index_admin",
       "supabase_functions_stripe_checkout_index_cors",
@@ -1663,7 +1637,7 @@
       "supabase_functions_stripe_checkout_index_revealfee",
       "supabase_functions_stripe_checkout_index_secret"
     ],
-    "110": [
+    "106": [
       "supabase_functions_stripe_confirm_index",
       "supabase_functions_stripe_confirm_index_admin",
       "supabase_functions_stripe_confirm_index_cors",
@@ -1672,7 +1646,7 @@
       "supabase_functions_stripe_confirm_index_secret",
       "supabase_functions_stripe_confirm_index_signedfile"
     ],
-    "111": [
+    "107": [
       "supabase_functions_wa_templates_watch_index",
       "supabase_functions_wa_templates_watch_index_j",
       "supabase_functions_wa_templates_watch_index_logrun",
@@ -1681,7 +1655,15 @@
       "supabase_functions_wa_templates_watch_index_sec",
       "supabase_functions_wa_templates_watch_index_t0"
     ],
-    "112": [
+    "108": [
+      "src_components_me_customerportal_account",
+      "src_components_me_customerportal_aed",
+      "src_components_me_customerportal_comparison",
+      "src_components_me_customerportal_contact",
+      "src_components_me_customerportal_fmtdate",
+      "src_components_me_customerportal_overview"
+    ],
+    "109": [
       "supabase_functions_alert_founder_index",
       "supabase_functions_alert_founder_index_actionable",
       "supabase_functions_alert_founder_index_admin",
@@ -1689,7 +1671,7 @@
       "supabase_functions_alert_founder_index_sec",
       "supabase_functions_alert_founder_index_wrapinternal"
     ],
-    "113": [
+    "110": [
       "supabase_functions_backup_index",
       "supabase_functions_backup_index_admin",
       "supabase_functions_backup_index_dumptable",
@@ -1697,7 +1679,7 @@
       "supabase_functions_backup_index_listbucket",
       "supabase_functions_backup_index_sec"
     ],
-    "114": [
+    "111": [
       "supabase_functions_blog_weekly_index",
       "supabase_functions_blog_weekly_index_admin",
       "supabase_functions_blog_weekly_index_j",
@@ -1705,15 +1687,7 @@
       "supabase_functions_blog_weekly_index_sec",
       "supabase_functions_blog_weekly_index_slugify"
     ],
-    "115": [
-      "supabase_functions_catalogue_ingest_index",
-      "supabase_functions_catalogue_ingest_index_admin",
-      "supabase_functions_catalogue_ingest_index_callmodel",
-      "supabase_functions_catalogue_ingest_index_j",
-      "supabase_functions_catalogue_ingest_index_parsejson",
-      "supabase_functions_catalogue_ingest_index_sec"
-    ],
-    "116": [
+    "112": [
       "supabase_functions_claim_lookup_index",
       "supabase_functions_claim_lookup_index_admin",
       "supabase_functions_claim_lookup_index_cors",
@@ -1721,7 +1695,7 @@
       "supabase_functions_claim_lookup_index_logrun",
       "supabase_functions_claim_lookup_index_t0"
     ],
-    "117": [
+    "113": [
       "supabase_functions_contact_submit_index",
       "supabase_functions_contact_submit_index_admin",
       "supabase_functions_contact_submit_index_cors",
@@ -1729,7 +1703,7 @@
       "supabase_functions_contact_submit_index_j",
       "supabase_functions_contact_submit_index_sec"
     ],
-    "118": [
+    "114": [
       "supabase_functions_doc_reminder_index",
       "supabase_functions_doc_reminder_index_admin",
       "supabase_functions_doc_reminder_index_filled",
@@ -1737,7 +1711,7 @@
       "supabase_functions_doc_reminder_index_parsedate",
       "supabase_functions_doc_reminder_index_sec"
     ],
-    "119": [
+    "115": [
       "supabase_functions_ea_meeting_summary_index",
       "supabase_functions_ea_meeting_summary_index_admin",
       "supabase_functions_ea_meeting_summary_index_j",
@@ -1745,7 +1719,7 @@
       "supabase_functions_ea_meeting_summary_index_parsejson",
       "supabase_functions_ea_meeting_summary_index_sec"
     ],
-    "120": [
+    "116": [
       "supabase_functions_embed_leads_index",
       "supabase_functions_embed_leads_index_admin",
       "supabase_functions_embed_leads_index_j",
@@ -1753,7 +1727,7 @@
       "supabase_functions_embed_leads_index_sec",
       "supabase_functions_embed_leads_index_t0"
     ],
-    "121": [
+    "117": [
       "supabase_functions_exec_board_index",
       "supabase_functions_exec_board_index_admin",
       "supabase_functions_exec_board_index_cors",
@@ -1761,7 +1735,7 @@
       "supabase_functions_exec_board_index_j",
       "supabase_functions_exec_board_index_sec"
     ],
-    "122": [
+    "118": [
       "supabase_functions_extract_text_index",
       "supabase_functions_extract_text_index_admin",
       "supabase_functions_extract_text_index_authed",
@@ -1769,7 +1743,7 @@
       "supabase_functions_extract_text_index_j",
       "supabase_functions_extract_text_index_sec"
     ],
-    "123": [
+    "119": [
       "supabase_functions_kb_autofill_gaps_index",
       "supabase_functions_kb_autofill_gaps_index_admin",
       "supabase_functions_kb_autofill_gaps_index_j",
@@ -1777,7 +1751,7 @@
       "supabase_functions_kb_autofill_gaps_index_sec",
       "supabase_functions_kb_autofill_gaps_index_t0"
     ],
-    "124": [
+    "120": [
       "supabase_functions_legal_draft_index",
       "supabase_functions_legal_draft_index_doc_titles",
       "supabase_functions_legal_draft_index_fallback_models",
@@ -1785,7 +1759,7 @@
       "supabase_functions_legal_draft_index_sb",
       "supabase_functions_legal_draft_index_sec"
     ],
-    "125": [
+    "121": [
       "supabase_functions_make_xlsx_index",
       "supabase_functions_make_xlsx_index_admin",
       "supabase_functions_make_xlsx_index_authed",
@@ -1793,7 +1767,7 @@
       "supabase_functions_make_xlsx_index_j",
       "supabase_functions_make_xlsx_index_sec"
     ],
-    "126": [
+    "122": [
       "supabase_functions_ops_live_index",
       "supabase_functions_ops_live_index_admin",
       "supabase_functions_ops_live_index_cors",
@@ -1801,7 +1775,7 @@
       "supabase_functions_ops_live_index_j",
       "supabase_functions_ops_live_index_sec"
     ],
-    "127": [
+    "123": [
       "supabase_functions_pdpl_erase_index",
       "supabase_functions_pdpl_erase_index_admin",
       "supabase_functions_pdpl_erase_index_cors",
@@ -1809,7 +1783,7 @@
       "supabase_functions_pdpl_erase_index_rm",
       "supabase_functions_pdpl_erase_index_sec"
     ],
-    "128": [
+    "124": [
       "supabase_functions_qa_api_index",
       "supabase_functions_qa_api_index_admin",
       "supabase_functions_qa_api_index_cors",
@@ -1817,7 +1791,7 @@
       "supabase_functions_qa_api_index_notify",
       "supabase_functions_qa_api_index_stripcontact"
     ],
-    "129": [
+    "125": [
       "supabase_functions_qa_suite_index",
       "supabase_functions_qa_suite_index_anonprobe",
       "supabase_functions_qa_suite_index_json",
@@ -1825,7 +1799,7 @@
       "supabase_functions_qa_suite_index_secret",
       "supabase_functions_qa_suite_index_t0"
     ],
-    "130": [
+    "126": [
       "supabase_functions_reflect_index",
       "supabase_functions_reflect_index_admin",
       "supabase_functions_reflect_index_agents",
@@ -1833,7 +1807,7 @@
       "supabase_functions_reflect_index_runmap",
       "supabase_functions_reflect_index_sec"
     ],
-    "131": [
+    "127": [
       "supabase_functions_retention_purge_index",
       "supabase_functions_retention_purge_index_admin",
       "supabase_functions_retention_purge_index_j",
@@ -1841,7 +1815,7 @@
       "supabase_functions_retention_purge_index_sec",
       "supabase_functions_retention_purge_index_t0"
     ],
-    "132": [
+    "128": [
       "supabase_functions_seo_gen_index",
       "supabase_functions_seo_gen_index_admin",
       "supabase_functions_seo_gen_index_genone",
@@ -1849,7 +1823,7 @@
       "supabase_functions_seo_gen_index_parsejson",
       "supabase_functions_seo_gen_index_sec"
     ],
-    "133": [
+    "129": [
       "supabase_functions_social_stage_index",
       "supabase_functions_social_stage_index_json",
       "supabase_functions_social_stage_index_logrun",
@@ -1857,7 +1831,7 @@
       "supabase_functions_social_stage_index_secret",
       "supabase_functions_social_stage_index_t0"
     ],
-    "134": [
+    "130": [
       "supabase_functions_stripe_setup_index",
       "supabase_functions_stripe_setup_index_admin",
       "supabase_functions_stripe_setup_index_cors",
@@ -1865,7 +1839,7 @@
       "supabase_functions_stripe_setup_index_put",
       "supabase_functions_stripe_setup_index_sec"
     ],
-    "135": [
+    "131": [
       "supabase_functions_stripe_webhook_index",
       "supabase_functions_stripe_webhook_index_admin",
       "supabase_functions_stripe_webhook_index_mklog",
@@ -1873,7 +1847,7 @@
       "supabase_functions_stripe_webhook_index_tohex",
       "supabase_functions_stripe_webhook_index_verifysig"
     ],
-    "136": [
+    "132": [
       "supabase_functions_translate_page_index",
       "supabase_functions_translate_page_index_admin",
       "supabase_functions_translate_page_index_chunk",
@@ -1881,7 +1855,7 @@
       "supabase_functions_translate_page_index_llm",
       "supabase_functions_translate_page_index_sec"
     ],
-    "137": [
+    "133": [
       "supabase_functions_uptime_check_index",
       "supabase_functions_uptime_check_index_admin",
       "supabase_functions_uptime_check_index_checks",
@@ -1889,508 +1863,487 @@
       "supabase_functions_uptime_check_index_sec",
       "supabase_functions_uptime_check_index_setsec"
     ],
-    "138": [
-      "src_components_ui_card",
-      "src_components_ui_card_card",
-      "src_components_ui_card_cardcontent",
-      "src_components_ui_card_cardheader",
-      "src_components_ui_card_cardtitle"
+    "134": [
+      "src_app_locale_me_page",
+      "src_app_locale_me_page_mepage",
+      "src_app_locale_me_page_metadata",
+      "src_components_me_customerportal_customerportal",
+      "src_components_me_customerportal_initlang"
     ],
-    "139": [
+    "135": [
       "supabase_functions_admin_provision_index",
       "supabase_functions_admin_provision_index_admin",
       "supabase_functions_admin_provision_index_j",
       "supabase_functions_admin_provision_index_sec",
       "supabase_functions_admin_provision_index_uidbyemail"
     ],
-    "140": [
+    "136": [
       "supabase_functions_ai_health_index",
       "supabase_functions_ai_health_index_admin",
       "supabase_functions_ai_health_index_j",
       "supabase_functions_ai_health_index_sec",
       "supabase_functions_ai_health_index_setsec"
     ],
-    "141": [
+    "137": [
       "supabase_functions_asset_delete_index",
       "supabase_functions_asset_delete_index_admin",
       "supabase_functions_asset_delete_index_allow",
       "supabase_functions_asset_delete_index_j",
       "supabase_functions_asset_delete_index_sec"
     ],
-    "142": [
+    "138": [
       "supabase_functions_asset_put_index",
       "supabase_functions_asset_put_index_admin",
       "supabase_functions_asset_put_index_allow",
       "supabase_functions_asset_put_index_j",
       "supabase_functions_asset_put_index_sec"
     ],
-    "143": [
+    "139": [
       "supabase_functions_asset_store_index",
       "supabase_functions_asset_store_index_admin",
       "supabase_functions_asset_store_index_b64tobytes",
       "supabase_functions_asset_store_index_j",
       "supabase_functions_asset_store_index_sec"
     ],
-    "144": [
+    "140": [
       "supabase_functions_attach_photos_index",
       "supabase_functions_attach_photos_index_admin",
       "supabase_functions_attach_photos_index_cors",
       "supabase_functions_attach_photos_index_j",
       "supabase_functions_attach_photos_index_sec"
     ],
-    "145": [
+    "141": [
       "supabase_functions_deploy_next_preview_index",
       "supabase_functions_deploy_next_preview_index_admin",
       "supabase_functions_deploy_next_preview_index_j",
       "supabase_functions_deploy_next_preview_index_sec",
       "supabase_functions_deploy_next_preview_index_sha1hex"
     ],
-    "146": [
+    "142": [
       "supabase_functions_designer_index",
       "supabase_functions_designer_index_admin",
       "supabase_functions_designer_index_j",
       "supabase_functions_designer_index_sec",
       "supabase_functions_designer_index_size"
     ],
-    "147": [
-      "supabase_functions_doc_review_api_index",
-      "supabase_functions_doc_review_api_index_admin",
-      "supabase_functions_doc_review_api_index_cors",
-      "supabase_functions_doc_review_api_index_doc_col",
-      "supabase_functions_doc_review_api_index_j"
-    ],
-    "148": [
+    "143": [
       "supabase_functions_email_triage_index",
       "supabase_functions_email_triage_index_admin",
       "supabase_functions_email_triage_index_j",
       "supabase_functions_email_triage_index_llm",
       "supabase_functions_email_triage_index_sec"
     ],
-    "149": [
+    "144": [
       "supabase_functions_export_leads_csv_index",
       "supabase_functions_export_leads_csv_index_admin",
       "supabase_functions_export_leads_csv_index_cols",
       "supabase_functions_export_leads_csv_index_csvcell",
       "supabase_functions_export_leads_csv_index_sec"
     ],
-    "150": [
+    "145": [
       "supabase_functions_finance_doc_index",
       "supabase_functions_finance_doc_index_admin",
       "supabase_functions_finance_doc_index_isadmin",
       "supabase_functions_finance_doc_index_j",
       "supabase_functions_finance_doc_index_sec"
     ],
-    "151": [
+    "146": [
       "supabase_functions_kb_ingest_text_index",
       "supabase_functions_kb_ingest_text_index_admin",
       "supabase_functions_kb_ingest_text_index_chunktext",
       "supabase_functions_kb_ingest_text_index_j",
       "supabase_functions_kb_ingest_text_index_sec"
     ],
-    "152": [
+    "147": [
       "supabase_functions_kb_retrieve_index",
       "supabase_functions_kb_retrieve_index_admin",
       "supabase_functions_kb_retrieve_index_cors",
       "supabase_functions_kb_retrieve_index_j",
       "supabase_functions_kb_retrieve_index_sec"
     ],
-    "153": [
+    "148": [
       "supabase_functions_licence_reminder_index",
       "supabase_functions_licence_reminder_index_admin",
       "supabase_functions_licence_reminder_index_j",
       "supabase_functions_licence_reminder_index_parsedate",
       "supabase_functions_licence_reminder_index_sec"
     ],
-    "154": [
+    "149": [
       "supabase_functions_pdpl_request_index",
       "supabase_functions_pdpl_request_index_admin",
       "supabase_functions_pdpl_request_index_cors",
       "supabase_functions_pdpl_request_index_j",
       "supabase_functions_pdpl_request_index_sec"
     ],
-    "155": [
+    "150": [
       "supabase_functions_pending_digest_index",
       "supabase_functions_pending_digest_index_admin",
       "supabase_functions_pending_digest_index_dt",
       "supabase_functions_pending_digest_index_j",
       "supabase_functions_pending_digest_index_sec"
     ],
-    "156": [
+    "151": [
       "supabase_functions_project_api_index",
       "supabase_functions_project_api_index_admin",
       "supabase_functions_project_api_index_cors",
       "supabase_functions_project_api_index_customer",
       "supabase_functions_project_api_index_j"
     ],
-    "157": [
+    "152": [
       "supabase_functions_prompt_improve_index",
       "supabase_functions_prompt_improve_index_admin",
       "supabase_functions_prompt_improve_index_j",
       "supabase_functions_prompt_improve_index_models",
       "supabase_functions_prompt_improve_index_sec"
     ],
-    "158": [
+    "153": [
       "supabase_functions_rate_dims_index",
       "supabase_functions_rate_dims_index_admin",
       "supabase_functions_rate_dims_index_cors",
       "supabase_functions_rate_dims_index_dims",
       "supabase_functions_rate_dims_index_j"
     ],
-    "159": [
+    "154": [
       "supabase_functions_report_body_index",
       "supabase_functions_report_body_index_admin",
       "supabase_functions_report_body_index_cors",
       "supabase_functions_report_body_index_j",
       "supabase_functions_report_body_index_sec"
     ],
-    "160": [
+    "155": [
       "supabase_functions_rfq_flag_index",
       "supabase_functions_rfq_flag_index_admin",
       "supabase_functions_rfq_flag_index_cors",
       "supabase_functions_rfq_flag_index_j",
       "supabase_functions_rfq_flag_index_sec"
     ],
-    "161": [
-      "supabase_functions_supplier_me_index",
-      "supabase_functions_supplier_me_index_admin",
-      "supabase_functions_supplier_me_index_cors",
-      "supabase_functions_supplier_me_index_j",
-      "supabase_functions_supplier_me_index_supplier"
-    ],
-    "162": [
+    "156": [
       "supabase_functions_supplier_review_index",
       "supabase_functions_supplier_review_index_admin",
       "supabase_functions_supplier_review_index_cors",
       "supabase_functions_supplier_review_index_j",
       "supabase_functions_supplier_review_index_parsejson"
     ],
-    "163": [
+    "157": [
       "supabase_functions_support_ai_index",
       "supabase_functions_support_ai_index_admin",
       "supabase_functions_support_ai_index_cors",
       "supabase_functions_support_ai_index_fallback_models",
       "supabase_functions_support_ai_index_j"
     ],
-    "164": [
+    "158": [
       "supabase_functions_transcribe_index",
       "supabase_functions_transcribe_index_admin",
       "supabase_functions_transcribe_index_cors",
       "supabase_functions_transcribe_index_j",
       "supabase_functions_transcribe_index_sec"
     ],
-    "165": [
+    "159": [
       "supabase_functions_unsubscribe_index",
       "supabase_functions_unsubscribe_index_admin",
       "supabase_functions_unsubscribe_index_page",
       "supabase_functions_unsubscribe_index_sec",
       "supabase_functions_unsubscribe_index_tok"
     ],
-    "166": [
+    "160": [
       "supabase_functions_voice_otp_capture_index",
       "supabase_functions_voice_otp_capture_index_admin",
       "supabase_functions_voice_otp_capture_index_rationale_3",
       "supabase_functions_voice_otp_capture_index_t0",
       "supabase_functions_voice_otp_capture_index_xml"
     ],
-    "167": [
+    "161": [
       "supabase_functions_vt_scan_index",
       "supabase_functions_vt_scan_index_admin",
       "supabase_functions_vt_scan_index_j",
       "supabase_functions_vt_scan_index_sec",
       "supabase_functions_vt_scan_index_sha256hex"
     ],
-    "168": [
+    "162": [
+      "src_components_ui_badge",
+      "src_components_ui_badge_badge",
+      "src_components_ui_badge_badgeprops",
+      "src_components_ui_badge_badgevariants"
+    ],
+    "163": [
       "src_components_ui_button",
       "src_components_ui_button_button",
       "src_components_ui_button_buttonprops",
       "src_components_ui_button_buttonvariants"
     ],
-    "169": [
+    "164": [
       "supabase_functions_asset_upload_index",
       "supabase_functions_asset_upload_index_admin",
       "supabase_functions_asset_upload_index_b64",
       "supabase_functions_asset_upload_index_j"
     ],
-    "170": [
+    "165": [
       "supabase_functions_customer_portal_index",
       "supabase_functions_customer_portal_index_admin",
       "supabase_functions_customer_portal_index_cors",
       "supabase_functions_customer_portal_index_j"
     ],
-    "171": [
-      "supabase_functions_customer_profile_index",
-      "supabase_functions_customer_profile_index_admin",
-      "supabase_functions_customer_profile_index_cors",
-      "supabase_functions_customer_profile_index_j"
-    ],
-    "172": [
+    "166": [
       "supabase_functions_dir_ingest_index",
       "supabase_functions_dir_ingest_index_admin",
       "supabase_functions_dir_ingest_index_auth",
       "supabase_functions_dir_ingest_index_j"
     ],
-    "173": [
+    "167": [
       "supabase_functions_export_all_knowledge_index",
       "supabase_functions_export_all_knowledge_index_admin",
       "supabase_functions_export_all_knowledge_index_fixed",
       "supabase_functions_export_all_knowledge_index_sec"
     ],
-    "174": [
+    "168": [
       "supabase_functions_faq_index",
       "supabase_functions_faq_index_admin",
       "supabase_functions_faq_index_esc",
       "supabase_functions_faq_index_order"
     ],
-    "175": [
+    "169": [
       "supabase_functions_inquiry_dedup_check_index",
       "supabase_functions_inquiry_dedup_check_index_admin",
       "supabase_functions_inquiry_dedup_check_index_cors",
       "supabase_functions_inquiry_dedup_check_index_j"
     ],
-    "176": [
+    "170": [
       "supabase_functions_kb_import_index",
       "supabase_functions_kb_import_index_admin",
       "supabase_functions_kb_import_index_j",
       "supabase_functions_kb_import_index_sec"
     ],
-    "177": [
+    "171": [
       "supabase_functions_kb_search_index",
       "supabase_functions_kb_search_index_admin",
       "supabase_functions_kb_search_index_j",
       "supabase_functions_kb_search_index_sec"
     ],
-    "178": [
+    "172": [
       "supabase_functions_meta_ads_index",
       "supabase_functions_meta_ads_index_admin",
       "supabase_functions_meta_ads_index_j",
       "supabase_functions_meta_ads_index_sec"
     ],
-    "179": [
+    "173": [
       "supabase_functions_qa_mint_index",
       "supabase_functions_qa_mint_index_admin",
       "supabase_functions_qa_mint_index_j",
       "supabase_functions_qa_mint_index_sec"
     ],
-    "180": [
+    "174": [
       "supabase_functions_quote_quality_index",
       "supabase_functions_quote_quality_index_admin",
       "supabase_functions_quote_quality_index_cors",
       "supabase_functions_quote_quality_index_j"
     ],
-    "181": [
+    "175": [
+      "supabase_functions_refund_flow_index",
+      "supabase_functions_refund_flow_index_admin",
+      "supabase_functions_refund_flow_index_cors",
+      "supabase_functions_refund_flow_index_j"
+    ],
+    "176": [
       "supabase_functions_reg_fetch_index",
       "supabase_functions_reg_fetch_index_admin",
       "supabase_functions_reg_fetch_index_j",
       "supabase_functions_reg_fetch_index_sec"
     ],
-    "182": [
+    "177": [
       "supabase_functions_sup_dob_index",
       "supabase_functions_sup_dob_index_admin",
       "supabase_functions_sup_dob_index_cors",
       "supabase_functions_sup_dob_index_j"
     ],
-    "183": [
+    "178": [
       "supabase_functions_translate_html_index",
       "supabase_functions_translate_html_index_admin",
       "supabase_functions_translate_html_index_j",
       "supabase_functions_translate_html_index_sec"
     ],
-    "184": [
+    "179": [
       "supabase_functions_vercel_status_index",
       "supabase_functions_vercel_status_index_admin",
       "supabase_functions_vercel_status_index_j",
       "supabase_functions_vercel_status_index_sec"
     ],
-    "185": [
+    "180": [
       "supabase_functions_wa_optin_set_index",
       "supabase_functions_wa_optin_set_index_admin",
       "supabase_functions_wa_optin_set_index_cors",
       "supabase_functions_wa_optin_set_index_j"
     ],
-    "186": [
+    "181": [
+      "supabase_functions_wa_template_setup_index",
+      "supabase_functions_wa_template_setup_index_admin",
+      "supabase_functions_wa_template_setup_index_j",
+      "supabase_functions_wa_template_setup_index_sec"
+    ],
+    "182": [
       "next_config",
       "next_config_nextconfig",
       "next_config_withnextintl"
     ],
-    "187": [
-      "src_app_locale_console_page",
-      "src_app_locale_console_page_consolepage",
-      "src_app_locale_console_page_metadata"
-    ],
-    "188": [
-      "src_app_locale_os_page",
-      "src_app_locale_os_page_metadata",
-      "src_app_locale_os_page_ospage"
-    ],
-    "189": [
+    "183": [
       "src_app_sitemap_xml_route",
       "src_app_sitemap_xml_route_em",
       "src_app_sitemap_xml_route_get"
     ],
-    "190": [
+    "184": [
       "supabase_functions_email_fix_index",
       "supabase_functions_email_fix_index_admin",
       "supabase_functions_email_fix_index_j"
     ],
-    "191": [
+    "185": [
       "supabase_functions_export_cat_knowledge_index",
       "supabase_functions_export_cat_knowledge_index_admin",
       "supabase_functions_export_cat_knowledge_index_sec"
     ],
-    "192": [
+    "186": [
       "supabase_functions_i18n_get_index",
       "supabase_functions_i18n_get_index_admin",
       "supabase_functions_i18n_get_index_sec"
     ],
-    "193": [
+    "187": [
       "supabase_functions_legal_ingest_index",
       "supabase_functions_legal_ingest_index_admin",
       "supabase_functions_legal_ingest_index_sec"
     ],
-    "194": [
+    "188": [
       "supabase_functions_public_stats_index",
       "supabase_functions_public_stats_index_cors",
       "supabase_functions_public_stats_index_count"
     ],
-    "195": [
+    "189": [
       "supabase_functions_put_src_index",
       "supabase_functions_put_src_index_admin",
       "supabase_functions_put_src_index_sec"
     ],
-    "196": [
+    "190": [
       "supabase_functions_supplier_ack_index",
       "supabase_functions_supplier_ack_index_admin",
       "supabase_functions_supplier_ack_index_page"
     ],
-    "197": [
-      "cmdk",
-      "package_dependencies_cmdk"
-    ],
-    "198": [
-      "next_env_d",
-      "next_env_d_rationale_4"
-    ],
-    "199": [
-      "next_intl",
-      "package_dependencies_next_intl"
-    ],
-    "200": [
-      "package_dependencies_radix_ui_react_dialog",
-      "radix_ui_react_dialog"
-    ],
-    "201": [
+    "191": [
       "clsx",
       "package_dependencies_clsx"
     ],
-    "202": [
+    "192": [
+      "cmdk",
+      "package_dependencies_cmdk"
+    ],
+    "193": [
+      "next_env_d",
+      "next_env_d_rationale_4"
+    ],
+    "194": [
+      "next_intl",
+      "package_dependencies_next_intl"
+    ],
+    "195": [
+      "package_dependencies_radix_ui_react_dialog",
+      "radix_ui_react_dialog"
+    ],
+    "196": [
       "package_dependencies_radix_ui_react_tabs",
       "radix_ui_react_tabs"
     ],
-    "203": [
+    "197": [
       "package_dependencies_radix_ui_react_tooltip",
       "radix_ui_react_tooltip"
     ],
-    "204": [
+    "198": [
       "package_dependencies_react_dom",
       "react_dom"
     ],
-    "205": [
+    "199": [
       "package_dependencies_wavesurfer_js",
       "wavesurfer_js"
     ],
-    "206": [
+    "200": [
       "src_app_robots_txt_route",
       "src_app_robots_txt_route_get"
     ],
-    "207": [
+    "201": [
       "supabase_functions_about_index",
       "supabase_functions_about_index_admin"
     ],
-    "208": [
+    "202": [
       "supabase_functions_admin_index",
       "supabase_functions_admin_index_admin"
     ],
-    "209": [
-      "supabase_functions_app_ar_index",
-      "supabase_functions_app_ar_index_admin"
-    ],
-    "210": [
-      "supabase_functions_app_index",
-      "supabase_functions_app_index_admin"
-    ],
-    "211": [
+    "203": [
       "supabase_functions_crm_index",
       "supabase_functions_crm_index_admin"
     ],
-    "212": [
+    "204": [
       "supabase_functions_home_ar_index",
       "supabase_functions_home_ar_index_admin"
     ],
-    "213": [
+    "205": [
       "supabase_functions_home_index",
       "supabase_functions_home_index_admin"
     ],
-    "214": [
+    "206": [
       "supabase_functions_os2_index",
       "supabase_functions_os2_index_admin"
     ],
-    "215": [
+    "207": [
       "supabase_functions_os3_index",
       "supabase_functions_os3_index_admin"
     ],
-    "216": [
+    "208": [
       "supabase_functions_page_store_index",
       "supabase_functions_page_store_index_admin"
     ],
-    "217": [
+    "209": [
       "supabase_functions_portal_index",
       "supabase_functions_portal_index_admin"
     ],
-    "218": [
-      "supabase_functions_reembed_suppliers_index",
-      "supabase_functions_reembed_suppliers_index_sb"
-    ],
-    "219": [
+    "210": [
       "supabase_functions_voice_otp_index",
       "supabase_functions_voice_otp_index_rationale_3"
     ],
-    "220": [
+    "211": [
       "tailwind_config",
       "tailwind_config_config"
     ],
-    "221": [
+    "212": [
       "postcss_config"
     ],
-    "222": [
+    "213": [
       "scripts_qd_commit_backend"
     ],
-    "223": [
+    "214": [
       "scripts_qd_env_check"
     ],
-    "224": [
+    "215": [
+      "scripts_qd_pull_functions"
+    ],
+    "216": [
       "scripts_qd_sb_check"
     ],
-    "225": [
+    "217": [
       "supabase_functions_dev_login_index"
     ],
-    "226": [
+    "218": [
       "supabase_functions_qa_login_index"
     ],
-    "227": [
+    "219": [
       "supabase_functions_seed_asset_index"
     ],
-    "228": [
+    "220": [
       "supabase_functions_src_io_index"
     ],
-    "229": [
+    "221": [
       "supabase_functions_stripe_setup_page_index"
     ]
   },
   "cohesion": {
-    "0": 0.07017543859649122,
+    "0": 0.05698778833107191,
     "1": 0.1036734693877551,
-    "2": 0.12912912912912913,
-    "3": 0.13015873015873017,
+    "2": 0.10512820512820513,
+    "3": 0.11025641025641025,
     "4": 0.1354723707664884,
     "5": 0.12183908045977011,
     "6": 0.12183908045977011,
@@ -2406,21 +2359,21 @@
     "16": 0.11764705882352941,
     "17": 0.22058823529411764,
     "18": 0.19117647058823528,
-    "19": 0.125,
-    "20": 0.14705882352941177,
-    "21": 0.125,
-    "22": 0.1323529411764706,
+    "19": 0.14705882352941177,
+    "20": 0.125,
+    "21": 0.16176470588235295,
+    "22": 0.16666666666666666,
     "23": 0.16666666666666666,
-    "24": 0.16666666666666666,
+    "24": 0.14166666666666666,
     "25": 0.21904761904761905,
     "26": 0.14285714285714285,
     "27": 0.17142857142857143,
-    "28": 0.19047619047619047,
-    "29": 0.22857142857142856,
-    "30": 0.1978021978021978,
-    "31": 0.15384615384615385,
-    "32": 0.23076923076923078,
-    "33": 0.1794871794871795,
+    "28": 0.18095238095238095,
+    "29": 0.19047619047619047,
+    "30": 0.22857142857142856,
+    "31": 0.1978021978021978,
+    "32": 0.15384615384615385,
+    "33": 0.23076923076923078,
     "34": 0.1794871794871795,
     "35": 0.1794871794871795,
     "36": 0.21794871794871795,
@@ -2432,110 +2385,110 @@
     "42": 0.19696969696969696,
     "43": 0.19696969696969696,
     "44": 0.25757575757575757,
-    "45": 0.18181818181818182,
-    "46": 0.18181818181818182,
-    "47": 0.21818181818181817,
-    "48": 0.2,
-    "49": 0.2727272727272727,
-    "50": 0.21818181818181817,
-    "51": 0.18181818181818182,
+    "45": 0.21818181818181817,
+    "46": 0.23636363636363636,
+    "47": 0.2,
+    "48": 0.2727272727272727,
+    "49": 0.21818181818181817,
+    "50": 0.18181818181818182,
+    "51": 0.26666666666666666,
     "52": 0.26666666666666666,
-    "53": 0.26666666666666666,
-    "54": 0.24444444444444444,
-    "55": 0.26666666666666666,
-    "56": 0.2,
-    "57": 0.24444444444444444,
-    "58": 0.2,
-    "59": 0.24444444444444444,
-    "60": 0.2,
+    "53": 0.24444444444444444,
+    "54": 0.26666666666666666,
+    "55": 0.2,
+    "56": 0.24444444444444444,
+    "57": 0.2,
+    "58": 0.24444444444444444,
+    "59": 0.2,
+    "60": 0.2222222222222222,
     "61": 0.2222222222222222,
-    "62": 0.2222222222222222,
-    "63": 0.25,
-    "64": 0.2222222222222222,
-    "65": 0.25,
-    "66": 0.2777777777777778,
-    "67": 0.2222222222222222,
-    "68": 0.3333333333333333,
+    "62": 0.25,
+    "63": 0.2222222222222222,
+    "64": 0.25,
+    "65": 0.2777777777777778,
+    "66": 0.2222222222222222,
+    "67": 0.3333333333333333,
+    "68": 0.25,
     "69": 0.25,
     "70": 0.25,
-    "71": 0.25,
+    "71": 0.2222222222222222,
     "72": 0.2222222222222222,
-    "73": 0.2222222222222222,
-    "74": 0.25,
+    "73": 0.25,
+    "74": 0.2222222222222222,
     "75": 0.2222222222222222,
-    "76": 0.2222222222222222,
+    "76": 0.25,
     "77": 0.25,
     "78": 0.25,
     "79": 0.25,
-    "80": 0.25,
-    "81": 0.25,
+    "80": 0.2857142857142857,
+    "81": 0.35714285714285715,
     "82": 0.2857142857142857,
     "83": 0.25,
-    "84": 0.35714285714285715,
-    "85": 0.2857142857142857,
-    "86": 0.25,
+    "84": 0.25,
+    "85": 0.25,
+    "86": 0.32142857142857145,
     "87": 0.25,
     "88": 0.25,
-    "89": 0.32142857142857145,
-    "90": 0.25,
-    "91": 0.25,
-    "92": 0.6190476190476191,
-    "93": 0.2857142857142857,
-    "94": 0.38095238095238093,
+    "89": 0.6190476190476191,
+    "90": 0.2857142857142857,
+    "91": 0.38095238095238093,
+    "92": 0.3333333333333333,
+    "93": 0.42857142857142855,
+    "94": 0.2857142857142857,
     "95": 0.3333333333333333,
-    "96": 0.42857142857142855,
-    "97": 0.2857142857142857,
-    "98": 0.3333333333333333,
+    "96": 0.2857142857142857,
+    "97": 0.3333333333333333,
+    "98": 0.2857142857142857,
     "99": 0.2857142857142857,
     "100": 0.3333333333333333,
-    "101": 0.2857142857142857,
+    "101": 0.3333333333333333,
     "102": 0.2857142857142857,
     "103": 0.3333333333333333,
-    "104": 0.3333333333333333,
+    "104": 0.2857142857142857,
     "105": 0.2857142857142857,
-    "106": 0.3333333333333333,
-    "107": 0.2857142857142857,
-    "108": 0.2857142857142857,
-    "109": 0.2857142857142857,
-    "110": 0.2857142857142857,
-    "111": 0.3333333333333333,
+    "106": 0.2857142857142857,
+    "107": 0.3333333333333333,
+    "108": 0.4666666666666667,
+    "109": 0.3333333333333333,
+    "110": 0.3333333333333333,
+    "111": 0.4,
     "112": 0.3333333333333333,
     "113": 0.3333333333333333,
-    "114": 0.4,
-    "115": 0.4,
+    "114": 0.3333333333333333,
+    "115": 0.3333333333333333,
     "116": 0.3333333333333333,
-    "117": 0.3333333333333333,
-    "118": 0.3333333333333333,
+    "117": 0.4,
+    "118": 0.4,
     "119": 0.3333333333333333,
     "120": 0.3333333333333333,
     "121": 0.4,
     "122": 0.4,
     "123": 0.3333333333333333,
     "124": 0.3333333333333333,
-    "125": 0.4,
-    "126": 0.4,
+    "125": 0.4666666666666667,
+    "126": 0.3333333333333333,
     "127": 0.3333333333333333,
-    "128": 0.3333333333333333,
-    "129": 0.4666666666666667,
+    "128": 0.4,
+    "129": 0.5333333333333333,
     "130": 0.3333333333333333,
-    "131": 0.3333333333333333,
-    "132": 0.4,
-    "133": 0.5333333333333333,
-    "134": 0.3333333333333333,
+    "131": 0.4,
+    "132": 0.3333333333333333,
+    "133": 0.3333333333333333,
+    "134": 0.4,
     "135": 0.4,
-    "136": 0.3333333333333333,
-    "137": 0.3333333333333333,
+    "136": 0.4,
+    "137": 0.4,
     "138": 0.4,
     "139": 0.4,
     "140": 0.4,
     "141": 0.4,
     "142": 0.4,
-    "143": 0.4,
+    "143": 0.5,
     "144": 0.4,
     "145": 0.4,
     "146": 0.4,
     "147": 0.4,
-    "148": 0.5,
+    "148": 0.4,
     "149": 0.4,
     "150": 0.4,
     "151": 0.4,
@@ -2549,12 +2502,12 @@
     "159": 0.4,
     "160": 0.4,
     "161": 0.4,
-    "162": 0.4,
-    "163": 0.4,
-    "164": 0.4,
-    "165": 0.4,
-    "166": 0.4,
-    "167": 0.4,
+    "162": 0.6666666666666666,
+    "163": 0.5,
+    "164": 0.5,
+    "165": 0.5,
+    "166": 0.5,
+    "167": 0.5,
     "168": 0.5,
     "169": 0.5,
     "170": 0.5,
@@ -2569,21 +2522,21 @@
     "179": 0.5,
     "180": 0.5,
     "181": 0.5,
-    "182": 0.5,
-    "183": 0.5,
-    "184": 0.5,
-    "185": 0.5,
+    "182": 0.6666666666666666,
+    "183": 0.6666666666666666,
+    "184": 0.6666666666666666,
+    "185": 0.6666666666666666,
     "186": 0.6666666666666666,
     "187": 0.6666666666666666,
     "188": 0.6666666666666666,
     "189": 0.6666666666666666,
     "190": 0.6666666666666666,
-    "191": 0.6666666666666666,
-    "192": 0.6666666666666666,
-    "193": 0.6666666666666666,
-    "194": 0.6666666666666666,
-    "195": 0.6666666666666666,
-    "196": 0.6666666666666666,
+    "191": 1.0,
+    "192": 1.0,
+    "193": 1.0,
+    "194": 1.0,
+    "195": 1.0,
+    "196": 1.0,
     "197": 1.0,
     "198": 1.0,
     "199": 1.0,
@@ -2608,15 +2561,7 @@
     "218": 1.0,
     "219": 1.0,
     "220": 1.0,
-    "221": 1.0,
-    "222": 1.0,
-    "223": 1.0,
-    "224": 1.0,
-    "225": 1.0,
-    "226": 1.0,
-    "227": 1.0,
-    "228": 1.0,
-    "229": 1.0
+    "221": 1.0
   },
   "gods": [
     {
@@ -2628,11 +2573,6 @@
       "id": "src_components_legaldoc_metafor",
       "label": "metaFor()",
       "degree": 19
-    },
-    {
-      "id": "src_components_portal_supplierportal_call",
-      "label": "call()",
-      "degree": 16
     },
     {
       "id": "src_lib_seo_buildmeta",
@@ -2651,6 +2591,11 @@
     },
     {
       "id": "src_components_me_customerportal_call",
+      "label": "call()",
+      "degree": 15
+    },
+    {
+      "id": "src_components_portal_supplierportal_call",
       "label": "call()",
       "degree": 15
     },
@@ -2683,85 +2628,52 @@
       "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
     },
     {
-      "source": "NewRequest()",
-      "target": "b64()",
-      "source_files": [
-        "src/components/me/CustomerPortal.tsx",
-        "supabase/functions/asset_upload/index.ts"
-      ],
-      "confidence": "INFERRED",
-      "relation": "indirect_call",
-      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
-    },
-    {
-      "source": "Workspace()",
-      "target": "b64()",
+      "source": "IntakeAudio()",
+      "target": "react",
       "source_files": [
         "src/components/osx/OsxShell.tsx",
-        "supabase/functions/asset_upload/index.ts"
+        "package.json"
       ],
-      "confidence": "INFERRED",
-      "relation": "indirect_call",
-      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "connects across different repos/directories; peripheral node `IntakeAudio()` unexpectedly reaches hub `react`"
     },
     {
-      "source": "QuoteForm()",
-      "target": "b64()",
+      "source": "LoginCard()",
+      "target": "react",
       "source_files": [
-        "src/components/portal/SupplierPortal.tsx",
-        "supabase/functions/asset_upload/index.ts"
+        "src/components/osx/OsxShell.tsx",
+        "package.json"
       ],
-      "confidence": "INFERRED",
-      "relation": "indirect_call",
-      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "connects across different repos/directories; peripheral node `LoginCard()` unexpectedly reaches hub `react`"
     },
     {
-      "source": "Documents()",
-      "target": "b64()",
+      "source": "NodeField()",
+      "target": "H()",
       "source_files": [
-        "src/components/portal/SupplierPortal.tsx",
-        "supabase/functions/asset_upload/index.ts"
+        "src/components/NodeField.tsx",
+        "supabase/functions/dropbox_oauth/index.ts"
       ],
       "confidence": "INFERRED",
       "relation": "indirect_call",
-      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories"
+    },
+    {
+      "source": "AgentStatus()",
+      "target": "react",
+      "source_files": [
+        "src/components/osx/OsxShell.tsx",
+        "package.json"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "connects across different repos/directories"
     }
   ],
-  "questions": [
-    {
-      "type": "bridge_node",
-      "question": "Why does `dependencies` connect `Community 16` to `Community 2`, `Community 197`, `Community 199`, `Community 200`, `Community 201`, `Community 202`, `Community 203`, `Community 204`, `Community 205`, `Community 61`?",
-      "why": "High betweenness centrality (0.008) - this node is a cross-community bridge."
-    },
-    {
-      "type": "bridge_node",
-      "question": "Why does `cn()` connect `Community 3` to `Community 0`, `Community 2`, `Community 168`, `Community 138`, `Community 78`, `Community 19`?",
-      "why": "High betweenness centrality (0.007) - this node is a cross-community bridge."
-    },
-    {
-      "type": "bridge_node",
-      "question": "Why does `react` connect `Community 2` to `Community 16`?",
-      "why": "High betweenness centrality (0.007) - this node is a cross-community bridge."
-    },
-    {
-      "type": "isolated_nodes",
-      "question": "What connects `withNextIntl`, `nextConfig`, `name` to the rest of the system?",
-      "why": "524 weakly-connected nodes found - possible documentation gaps or missing edges."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `Community 0` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.07017543859649122 - nodes in this community are weakly interconnected."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `Community 1` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.1036734693877551 - nodes in this community are weakly interconnected."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `Community 2` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.12912912912912913 - nodes in this community are weakly interconnected."
-    }
-  ]
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
 }

@@ -146,7 +146,6 @@
   "144": "attach_photos/index.ts",
   "145": "deploy_next_preview/index.ts",
   "146": "designer/index.ts",
-  "147": "doc_review_api/index.ts",
   "148": "email_triage/index.ts",
   "149": "export_leads_csv/index.ts",
   "150": "finance_doc/index.ts",
@@ -160,7 +159,6 @@
   "158": "rate_dims/index.ts",
   "159": "report_body/index.ts",
   "160": "rfq_flag/index.ts",
-  "161": "supplier_me/index.ts",
   "162": "supplier_review/index.ts",
   "163": "support_ai/index.ts",
   "164": "transcribe/index.ts",
@@ -208,8 +206,6 @@
   "206": "robots.txt/route.ts",
   "207": "about/index.ts",
   "208": "admin/index.ts",
-  "209": "app-ar/index.ts",
-  "210": "app/index.ts",
   "211": "crm/index.ts",
   "212": "home-ar/index.ts",
   "213": "home/index.ts",
@@ -217,7 +213,6 @@
   "215": "os3/index.ts",
   "216": "page_store/index.ts",
   "217": "portal/index.ts",
-  "218": "reembed_suppliers/index.ts",
   "219": "voice_otp/index.ts",
   "220": "tailwind.config.ts",
   "221": "postcss.config.mjs",
@@ -230,7 +225,6 @@
   "228": "src_io/index.ts",
   "229": "stripe_setup_page/index.ts",
   "230": "graphify reference: query, path, explain",
-  "231": "dialog.tsx",
   "232": "graphify reference: add a URL and watch a folder",
   "233": "graphify reference: commit hook and native CLAUDE.md integration",
   "234": "graphify reference: incremental update and cluster-only",
@@ -243,6 +237,5 @@
   "241": "extraction-spec.md",
   "242": "@radix-ui/react-separator",
   "243": "README.md",
-  "244": "qd-pull-functions.ps1",
-  "245": "badge.tsx"
+  "244": "qd-pull-functions.ps1"
 }

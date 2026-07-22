@@ -22,7 +22,7 @@
   "next.config.mjs": {
     "mtime": 1784665023.9492962,
     "ast_hash": "0f2c5077dd0f8971dc98faa9c37d39c4",
-    "semantic_hash": ""
+    "semantic_hash": "0f2c5077dd0f8971dc98faa9c37d39c4"
   },
   "package.json": {
     "mtime": 1784656201.6046815,
@@ -267,7 +267,7 @@
   "src/components/me/CustomerPortal.tsx": {
     "mtime": 1784664938.1342816,
     "ast_hash": "30f11604a1c7408ddee2dcc829af13ac",
-    "semantic_hash": ""
+    "semantic_hash": "30f11604a1c7408ddee2dcc829af13ac"
   },
   "src/components/osx/OsxShell.tsx": {
     "mtime": 1784656201.6438575,
@@ -275,9 +275,9 @@
     "semantic_hash": "7cadb7c93b755d99a219af0a193090cf"
   },
   "src/components/portal/SupplierPortal.tsx": {
-    "mtime": 1784659688.446809,
-    "ast_hash": "4b598291d2dd7f219b9641301dca2d68",
-    "semantic_hash": "4b598291d2dd7f219b9641301dca2d68"
+    "mtime": 1784672319.2420738,
+    "ast_hash": "21dd4ce3c85b7c48fb9783fc9682a181",
+    "semantic_hash": "21dd4ce3c85b7c48fb9783fc9682a181"
   },
   "src/components/ui/badge.tsx": {
     "mtime": 1784656201.6453426,
@@ -330,9 +330,9 @@
     "semantic_hash": "686d65630326efdae9d07cffd0e85c14"
   },
   "src/content/legal.json": {
-    "mtime": 1784663901.4942338,
-    "ast_hash": "7623832c577a3144d952b86608599f83",
-    "semantic_hash": ""
+    "mtime": 1784668508.444322,
+    "ast_hash": "960e9d54da2bc988e8ef96f82ff18d9a",
+    "semantic_hash": "960e9d54da2bc988e8ef96f82ff18d9a"
   },
   "src/content/legalCss.ts": {
     "mtime": 1784656201.6539721,
@@ -387,7 +387,7 @@
   "src/middleware.ts": {
     "mtime": 1784665056.5215478,
     "ast_hash": "d44acb07f3b2e999bb42b5601c4fc0d4",
-    "semantic_hash": ""
+    "semantic_hash": "d44acb07f3b2e999bb42b5601c4fc0d4"
   },
   "supabase/functions/about/index.ts": {
     "mtime": 1784656201.666223,
@@ -514,11 +514,6 @@
     "ast_hash": "abd992ab48b79e8cb0ae698193545f59",
     "semantic_hash": "abd992ab48b79e8cb0ae698193545f59"
   },
-  "supabase/functions/catalogue_ingest/index.ts": {
-    "mtime": 1784656201.6891696,
-    "ast_hash": "78130e7a9ec5740c6b48485d957c3dd5",
-    "semantic_hash": "78130e7a9ec5740c6b48485d957c3dd5"
-  },
   "supabase/functions/category_provision/index.ts": {
     "mtime": 1784656201.690433,
     "ast_hash": "a27d4c8b7b80c3dd78b94cc5b6e4d7a8",
@@ -577,7 +572,7 @@
   "supabase/functions/customer_api/index.ts": {
     "mtime": 1784667318.3736892,
     "ast_hash": "cc8dcfe1ccb938f96cfe4b075492fc45",
-    "semantic_hash": ""
+    "semantic_hash": "cc8dcfe1ccb938f96cfe4b075492fc45"
   },
   "supabase/functions/customer_portal/index.ts": {
     "mtime": 1784656201.7012703,
@@ -623,11 +618,6 @@
     "mtime": 1784656201.711396,
     "ast_hash": "8a7476ff87ada074321d76af1a68e100",
     "semantic_hash": "8a7476ff87ada074321d76af1a68e100"
-  },
-  "supabase/functions/doc_review_api/index.ts": {
-    "mtime": 1784656201.7123938,
-    "ast_hash": "354247812c012f1feec818072078f57b",
-    "semantic_hash": "354247812c012f1feec818072078f57b"
   },
   "supabase/functions/dr_drill/index.ts": {
     "mtime": 1784656201.7133965,
@@ -1034,11 +1024,6 @@
     "ast_hash": "4c01f79cda638bd7c511f61aa5f4e90a",
     "semantic_hash": "4c01f79cda638bd7c511f61aa5f4e90a"
   },
-  "supabase/functions/quote_ai/index.ts": {
-    "mtime": 1784656201.7799306,
-    "ast_hash": "be121a6d942f067c6afa72317e4a2f2c",
-    "semantic_hash": "be121a6d942f067c6afa72317e4a2f2c"
-  },
   "supabase/functions/quote_compare/index.ts": {
     "mtime": 1784656201.7811718,
     "ast_hash": "156086d5acb0824f747e4282348d81c7",
@@ -1064,20 +1049,10 @@
     "ast_hash": "c55750f8db950c3517f596f87622b22a",
     "semantic_hash": "c55750f8db950c3517f596f87622b22a"
   },
-  "supabase/functions/quote_review_api/index.ts": {
-    "mtime": 1784656201.7851946,
-    "ast_hash": "7043695646ac8396da97f9f922bb3a54",
-    "semantic_hash": "7043695646ac8396da97f9f922bb3a54"
-  },
   "supabase/functions/rate_dims/index.ts": {
     "mtime": 1784656201.7861955,
     "ast_hash": "e2c57e2c1b718f38ae4238870578a615",
     "semantic_hash": "e2c57e2c1b718f38ae4238870578a615"
-  },
-  "supabase/functions/reembed_suppliers/index.ts": {
-    "mtime": 1784661943.855115,
-    "ast_hash": "eeb23338360dcdfcd7710607b53faa86",
-    "semantic_hash": "eeb23338360dcdfcd7710607b53faa86"
   },
   "supabase/functions/reflect/index.ts": {
     "mtime": 1784656201.7871969,
@@ -1130,9 +1105,9 @@
     "semantic_hash": "267e2f9634e0f8de80f15920b4b41f75"
   },
   "supabase/functions/route_inquiry/index.ts": {
-    "mtime": 1784656201.7963786,
-    "ast_hash": "e76dce1d0760eb41597de549abc7e788",
-    "semantic_hash": "e76dce1d0760eb41597de549abc7e788"
+    "mtime": 1784670228.3317938,
+    "ast_hash": "1b3b2caca8df9b9cc37ce05ac33f0e00",
+    "semantic_hash": "1b3b2caca8df9b9cc37ce05ac33f0e00"
   },
   "supabase/functions/secretary/index.ts": {
     "mtime": 1784656201.7973793,
@@ -1168,11 +1143,6 @@
     "mtime": 1784656201.801715,
     "ast_hash": "6398e11b744a5f7b350da03d06ef5576",
     "semantic_hash": "6398e11b744a5f7b350da03d06ef5576"
-  },
-  "supabase/functions/sign_upload/index.ts": {
-    "mtime": 1784656201.8027146,
-    "ast_hash": "402c98d7127a25d7be47450019a6c843",
-    "semantic_hash": "402c98d7127a25d7be47450019a6c843"
   },
   "supabase/functions/site_assistant/index.ts": {
     "mtime": 1784656201.8037145,
@@ -1230,14 +1200,9 @@
     "semantic_hash": "7617e5a9f36cdf2558aa4ad690915004"
   },
   "supabase/functions/supplier_api/index.ts": {
-    "mtime": 1784656201.8124447,
-    "ast_hash": "f1398e3625f6d0fefcfc47b5dc70d599",
-    "semantic_hash": "f1398e3625f6d0fefcfc47b5dc70d599"
-  },
-  "supabase/functions/supplier_me/index.ts": {
-    "mtime": 1784656201.8134513,
-    "ast_hash": "dfccc347e9c75e9eb77c73b53090569c",
-    "semantic_hash": "dfccc347e9c75e9eb77c73b53090569c"
+    "mtime": 1784672840.0405195,
+    "ast_hash": "e778da61bb22ff96e4f736a7a931f42e",
+    "semantic_hash": "e778da61bb22ff96e4f736a7a931f42e"
   },
   "supabase/functions/supplier_pay/index.ts": {
     "mtime": 1784656201.8144505,
@@ -1245,9 +1210,9 @@
     "semantic_hash": "5ec7dff6a000d98c53b2ffe8d6551505"
   },
   "supabase/functions/supplier_portal/index.ts": {
-    "mtime": 1784656201.8154562,
-    "ast_hash": "7f93c1853342271036dae45eb619dbad",
-    "semantic_hash": "7f93c1853342271036dae45eb619dbad"
+    "mtime": 1784672842.481206,
+    "ast_hash": "126f14433e6d148ad1209c14abf73a83",
+    "semantic_hash": "126f14433e6d148ad1209c14abf73a83"
   },
   "supabase/functions/supplier_review/index.ts": {
     "mtime": 1784656201.8154562,
@@ -1337,27 +1302,27 @@
   "scripts/qd-pull-functions.ps1": {
     "mtime": 1784661599.7769973,
     "ast_hash": "95f039b841976b5f5b11e16bedbcf203",
-    "semantic_hash": ""
+    "semantic_hash": "95f039b841976b5f5b11e16bedbcf203"
   },
   "supabase/functions/capability_agent/index.ts": {
     "mtime": 1784662209.1169753,
     "ast_hash": "d0afa35f5b16209027abd0b8a83af370",
-    "semantic_hash": ""
+    "semantic_hash": "d0afa35f5b16209027abd0b8a83af370"
   },
   "supabase/functions/inquiry_parse/index.ts": {
     "mtime": 1784662129.3295138,
     "ast_hash": "4346b1d8efe2eb2f6ee02b9c10666f79",
-    "semantic_hash": ""
+    "semantic_hash": "4346b1d8efe2eb2f6ee02b9c10666f79"
   },
   "supabase/functions/refund_flow/index.ts": {
     "mtime": 1784662082.046493,
     "ast_hash": "4e9a36e945091d19ac4a272d3021afd0",
-    "semantic_hash": ""
+    "semantic_hash": "4e9a36e945091d19ac4a272d3021afd0"
   },
   "supabase/functions/wa_template_setup/index.ts": {
     "mtime": 1784662030.1942203,
     "ast_hash": "8e387713c002eb2d18fb129dbf237db9",
-    "semantic_hash": ""
+    "semantic_hash": "8e387713c002eb2d18fb129dbf237db9"
   },
   ".claude/CLAUDE.md": {
     "mtime": 1784660876.210378,
@@ -1425,8 +1390,13 @@
     "semantic_hash": ""
   },
   "docs/CUSTOMER_PORTAL.md": {
-    "mtime": 1784667512.3011281,
-    "ast_hash": "a354adc6674f6ba36210e6d61ac1d2bd",
+    "mtime": 1784668539.2733376,
+    "ast_hash": "87a84467630b1b258f519e652bc6718f",
+    "semantic_hash": ""
+  },
+  "docs/SUPPLIER_PORTAL.md": {
+    "mtime": 1784673022.7587314,
+    "ast_hash": "ad3c97d4a757b8dfe013ec0961030a34",
     "semantic_hash": ""
   }
 }
