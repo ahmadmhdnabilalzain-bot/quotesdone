@@ -202,6 +202,9 @@ components, no orphan content blobs), a static dead-code scan was run over the
   in `src/lib/seo.ts` were `export`ed though used only internally by `buildMeta`.
   Removed the two dead navigation bindings and dropped the three needless `export`
   keywords. Re-scan: **0 unused exports**; both files still compile.
+- **Unused locals/parameters:** the TypeScript compiler (`--noUnusedLocals
+  --noUnusedParameters`) reports **zero** across the entire repo, and the project
+  typechecks with no errors.
 - **EN/AR parity:** all 8 legal docs and all marketing pages present in both locales.
 - **SEO centralized:** `buildMeta`/`textFromHtml` live once in `seo.ts`, shared by
   all renderers — not duplicated.
