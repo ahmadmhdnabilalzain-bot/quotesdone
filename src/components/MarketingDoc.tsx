@@ -1,5 +1,6 @@
 import mk from '@/content/marketing.json';
 import css from '@/content/marketingCss.json';
+import { SERVICES_CSS } from '@/content/servicesCss';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { notFound } from 'next/navigation';
@@ -21,7 +22,7 @@ export function MarketingDoc({ slug, locale }: { slug: string; locale: string })
   return (
     <>
       <SiteHeader />
-      <style dangerouslySetInnerHTML={{ __html: CSS[slug] || '' }} />
+      <style dangerouslySetInnerHTML={{ __html: CSS[slug] || SERVICES_CSS }} />
       <main id="main" className="mk" dir={locale === 'ar' ? 'rtl' : 'ltr'} dangerouslySetInnerHTML={{ __html: d.html }} />
       <SiteFooter />
     </>
