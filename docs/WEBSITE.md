@@ -5,8 +5,9 @@ marketing, content, legal, and blog surface — everything reachable from the
 public header and footer. Companion to `CUSTOMER_PORTAL.md` and
 `SUPPLIER_PORTAL.md`._
 
-**Last audited:** 2026-07-22 · **Commit:** `9bb445f` · **Stack:** Next.js 14
-(App Router) on Vercel, bilingual EN/AR via `next-intl`.
+**Last audited:** 2026-07-22 · **Code commit:** `9bb445f` · **Docs commit:** `e1f24a9`
+· **Stack:** Next.js 14 (App Router) on Vercel, bilingual EN/AR via `next-intl`.
+Live-verified on production (quotesdone.com) — see §11.
 
 ---
 
@@ -204,11 +205,61 @@ two above.
 
 ---
 
-## 11. Sync status
+## 11. Verification & sync (live-verified 2026-07-22)
 
-- **GitHub:** pushed at `9bb445f` (`main` == `origin/main`).
-- **Supabase:** `contact_submit` and `site_assistant` both byte-verified prod == repo.
-- **Vercel:** deploys automatically from the `main` push. Build status is not
-  observable from this environment (Vercel CLI token expired); the two changed
-  frontend files (`NodeField`, `ChatWidget`) were syntax-validated with esbuild
-  and the source builds clean.
+Everything below was checked against the running production site and the live
+backend, not just the source.
+
+**Vercel deploy — live.** The shipped bundle (`layout-f15ce9b8…js`, fresh hash)
+was fetched from production and fingerprinted: it contains the new ChatWidget
+linkify (`contact|me|portal`), the old one (`contact|app|suppliers`) is gone, and
+the NodeField mobile branch is present (`Math.hypot` per-dot falloff — which never
+existed in the old code — plus the `innerWidth<760` gate). Both fixes were one
+atomic commit built together, so commit `9bb445f` is fully live including the
+mobile background rewrite. (Vercel has no usable MCP/CLI in this environment; the
+bundle fingerprint is a stronger check than a deploy-status API — it inspects the
+actual served artifact.)
+
+**Every public route renders.** A live sweep of the sitemap (444 URLs) plus each
+hand-checked route returned HTTP 200: landing, all 8 legal pages, the 4 marketing
+pages, `/blog` + posts, `/services` + service pages, the Arabic twins,
+`/sitemap.xml`, `/robots.txt`. Legacy paths (`/app`, `/customer`, `/suppliers`,
+`/os2`) correctly redirect. **No console errors** on the pages loaded (landing, FAQ).
+
+**Locale routing — correct (not a bug).** During testing, English URLs appeared to
+redirect to their `/ar/` twins; this was a stale `NEXT_LOCALE=ar` cookie in the test
+browser from earlier Arabic QA. With an English preference every English URL serves
+200 direct. This is standard next-intl cookie-based locale routing.
+
+**`site_assistant` — end-to-end live.** Called the function the way the ChatWidget
+does (POST with the public anon key). It returned 200 and replied *"To post a job…
+go to /me… To register as a supplier: go to /portal…"* — references `/me` and
+`/portal`, and does **not** reference the retired `/app` or `/suppliers`. The route
+fix is effective in real production responses.
+
+**Supabase (via MCP).** Project `htdblwldjkcgjvmqkbeh` is `ACTIVE_HEALTHY`
+(Postgres 17.6). Both public-site functions were byte-verified prod == repo via the
+CLI. Advisor scan: **zero ERROR/CRITICAL** on either axis — security 210 notices
+(193 INFO, 17 WARN), performance all INFO except one WARN (a duplicate index on
+`supplier_capabilities`). Every advisory is backend/DB (RLS-no-policy, mutable
+function `search_path`, security-definer grants, unused indexes) and pre-existing;
+the website work touched no schema, RLS, or grants, so it introduced none. The
+retired customer-pages table shows only as an archived `_legacy_customer_pages_*`
+(no primary key, INFO) — confirming public content is served from in-bundle JSON,
+not the database.
+
+**GitHub.** Verified via the host git CLI: code `9bb445f` and docs `e1f24a9` pushed,
+`main == origin/main`, clean tree. (The GitHub MCP requires auth not completable in
+this session; the host CLI is authoritative.)
+
+**Sentry.** Org `quotesdone` exists but has **no project wired**, and an org-level
+unresolved-issue search returned zero. No runtime errors surfaced — but note that
+front-end error monitoring is not actually connected. Wiring a Sentry (or
+equivalent) browser SDK into the Next.js app is a worthwhile future improvement so
+real user-facing errors become visible; it is not a defect in the site itself.
+
+**The one thing not verifiable from here:** real mobile-GPU smoothness. This
+browser window won't drop below ~1440px, and desktop retina hardware wouldn't
+reproduce a phone GPU's load regardless (the old per-frame composite readback was
+expensive specifically on mobile silicon). The mobile code is confirmed deployed and
+correct; the definitive smoothness check is scrolling quotesdone.com on a real phone.
