@@ -3,6 +3,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 function b64ToBytes(b64:string){ const bin=atob(String(b64).replace(/^data:[^;]+;base64,/,'')); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
 async function sign(bucket:string, path:string|null){ if(!path) return null; try{ const { data } = await admin.storage.from(bucket).createSignedUrl(path, 3600); return data?.signedUrl || null; }catch{ return null; } }
 // Every document a supplier can hold, in the order the portal shows them.
@@ -130,6 +131,8 @@ Deno.serve(async (req) => {
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const saved: string[] = [];
       const failed: { kind: string; reason: string }[] = [];
+      const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'inbound_secret').maybeSingle();
+      const INBOUND_SECRET = (_isec?.value as string) || '';
       let catAppend: string[] = [];
       for (const it of items) {
         const kindStr = String(it.kind || '');
@@ -161,7 +164,29 @@ Deno.serve(async (req) => {
             if (kind.nameCol) upd[kind.nameCol] = String(it.filename || clean).slice(0, 200);
           } catch (e) { failed.push({ kind: kindStr, reason: String((e as Error)?.message || e).slice(0, 200) }); continue; }
         }
-        if (kind.expCol && it.expiry) upd[kind.expCol] = String(it.expiry).slice(0, 10);
+        // #86: read the trade-licence expiry (and licence no / authority) SERVER-SIDE from the
+        // uploaded document, so the expiry gate can't be bypassed with a self-typed date. The typed
+        // value is used only as a fallback when extraction fails or the document has no clear date.
+        let licExpiryFromDoc = false;
+        if (kindStr === 'license' && it.original_b64 && INBOUND_SECRET) {
+          try {
+            const isImg = /^image\//.test(String(it.mime || ''));
+            const payload: Record<string, unknown> = isImg
+              ? { __secret: INBOUND_SECRET, mode: 'license', images: [{ b64: String(it.original_b64), mime: it.mime }] }
+              : { __secret: INBOUND_SECRET, mode: 'license', file_b64: String(it.original_b64), mime: it.mime, filename: it.filename };
+            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const jd = await r.json();
+            if (jd?.ok && jd.doc) {
+              const d = jd.doc;
+              if (d.expiry_date) { upd.license_expiry = d.expiry_date; licExpiryFromDoc = true; }
+              if (d.license_number) upd.trade_license_no = d.license_number;
+              if (d.license_authority) upd.license_authority = d.license_authority;
+              if (d.city) upd.license_city = d.city;
+              upd.doc_extracted_at = new Date().toISOString();
+            }
+          } catch (_e) { /* fall back to the typed value below */ }
+        }
+        if (kind.expCol && it.expiry && !licExpiryFromDoc) upd[kind.expCol] = String(it.expiry).slice(0, 10);
         saved.push(kindStr);
       }
       if (catAppend.length) {
@@ -231,6 +256,21 @@ Deno.serve(async (req) => {
         improving.push({ code:'no_emirate', title:'Set the emirates you serve', detail:'Suppliers in the customer’s emirate are ranked above everyone else, so this is the single strongest ranking signal.', fix:'profile' });
       }
       if (!has(r.license_doc_path)) improving.push({ code:'no_licence', title:'Upload your trade licence', detail:'Required before your account can be approved.', fix:'documents' });
+      // #86: surface the capability agent's scope questions so the supplier can confirm or correct what
+      // we understood they do. Precise scope = only relevant inquiries, which is what keeps suppliers here.
+      try {
+        const { data: cc } = await admin.from('supplier_capability_confirmation')
+          .select('proposed').eq('supplier_id', sup.id).is('confirmed_at', null)
+          .order('created_at', { ascending: false }).limit(1).maybeSingle();
+        const pr = (cc?.proposed || {}) as Record<string, any>;
+        const qs = Array.isArray(pr.confirm_questions) ? pr.confirm_questions.filter(Boolean).map((q: unknown) => String(q)) : [];
+        if (pr.confirm_summary || qs.length) {
+          improving.push({ code:'confirm_scope', title:'Confirm what your company does',
+            detail: (pr.confirm_summary ? String(pr.confirm_summary) + ' ' : '') +
+                    (qs.length ? 'Please confirm or correct this, and it helps us to know: ' + qs.join('  ') : 'Please confirm or correct this so we only send you relevant requests.'),
+            fix:'profile', questions: qs });
+        }
+      } catch (_e) { /* non-blocking */ }
       // Warn while it is still fixable, not after the account has already been paused.
       for (const [col, label] of [['license_expiry','trade licence'], ['insurance_expiry','insurance certificate']] as [string,string][]) {
         const v = r[col]; if (!v) continue;
