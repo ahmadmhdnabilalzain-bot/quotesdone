@@ -1,8 +1,24 @@
 import { setRequestLocale } from 'next-intl/server';
 import { ServiceDoc, svcParams, svcMeta } from '@/components/ServiceDoc';
 export function generateStaticParams() { return svcParams().map((slug) => ({ slug })); }
-export function generateMetadata({ params: { locale, slug } }: { params: { locale: string; slug: string } }) { return svcMeta(slug, locale); }
-export default function Page({ params: { locale, slug } }: { params: { locale: string; slug: string } }) {
+export async function generateMetadata(props: { params: Promise<{ locale: string; slug: string }> }) {
+  const params = await props.params;
+
+  const {
+    locale,
+    slug
+  } = params;
+
+  return svcMeta(slug, locale);
+}
+export default async function Page(props: { params: Promise<{ locale: string; slug: string }> }) {
+  const params = await props.params;
+
+  const {
+    locale,
+    slug
+  } = params;
+
   setRequestLocale(locale);
   return <ServiceDoc slug={slug} locale={locale} />;
 }

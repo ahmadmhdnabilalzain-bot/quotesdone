@@ -6,10 +6,24 @@ import { BlogPost, blogSlugs, blogMeta } from '@/components/BlogPost';
 // English path.
 export function generateStaticParams() { return blogSlugs().map((slug) => ({ slug })); }
 
-export function generateMetadata({ params: { locale, slug } }: { params: { locale: string; slug: string } }) {
+export async function generateMetadata(props: { params: Promise<{ locale: string; slug: string }> }) {
+  const params = await props.params;
+
+  const {
+    locale,
+    slug
+  } = params;
+
   return blogMeta(slug, locale);
 }
-export default function Page({ params: { locale, slug } }: { params: { locale: string; slug: string } }) {
+export default async function Page(props: { params: Promise<{ locale: string; slug: string }> }) {
+  const params = await props.params;
+
+  const {
+    locale,
+    slug
+  } = params;
+
   setRequestLocale(locale);
   return <BlogPost slug={slug} locale={locale} />;
 }
