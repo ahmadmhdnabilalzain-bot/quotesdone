@@ -2,7 +2,7 @@
 // SAFETY: only ever creates PAUSED objects. It NEVER activates a campaign or spends budget.
 // Activation stays a human action in Meta Ads Manager. Auth: __secret == inbound_secret.
 // Secrets (founder adds later): meta_ad_account_id (digits only), meta_access_token (ads_management),
-//   optional meta_page_id (for building the ad creative), optional meta_api_version.
+//   optional meta_api_version.
 // Actions:
 //   test          -> read the ad account (verifies token + account)
 //   quick_campaign-> create a PAUSED campaign + PAUSED ad set (traffic to the site, geo UAE)

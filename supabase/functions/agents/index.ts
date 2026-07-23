@@ -142,7 +142,7 @@ async function bdOutreach(){
     const fill = (s: string) => String(s || '').replace(/\{\{COMPANY\}\}/g, l.company_name || 'there').replace(/\{\{TRADE\}\}/g, trade).replace(/\{\{EMIRATE\}\}/g, l.emirate || 'the UAE').replace(/\{\{LINK\}\}/g, link);
     const subject = fill(tplSub).slice(0, 160);
     let bodyTxt = fill(tplBody).slice(0, 2000);
-    if (!/quotesdone\.com\/suppliers/.test(bodyTxt)) bodyTxt += '\n\nRegister at quotesdone.com/suppliers';
+    if (!/quotesdone\.com\/portal/.test(bodyTxt)) bodyTxt += '\n\nRegister at quotesdone.com/portal';
     await admin.from('outreach').insert({ lead_id: l.id, source: 'database', email: l.email, company: l.company_name, category: trade, emirate: l.emirate, channel: 'email', status: 'queued', subject, body: bodyTxt });
     taken.add(l.id); made++; (counts.planned as number)++;
   }
@@ -152,7 +152,7 @@ async function bdOutreach(){
 
 async function itHealth(){
   const counts: Record<string, number> = { checks: 0, up: 0, down: 0, alerts: 0 };
-  const targets: [string, string][] = [['home', 'https://quotesdone.com/'], ['app', 'https://quotesdone.com/app'], ['portal', 'https://quotesdone.com/suppliers/'], ['admin', 'https://quotesdone.com/admin']];
+  const targets: [string, string][] = [['home', 'https://quotesdone.com/'], ['app', 'https://quotesdone.com/me'], ['portal', 'https://quotesdone.com/portal'], ['admin', 'https://quotesdone.com/os']];
   for (const [name, url] of targets) {
     counts.checks++; const t0 = Date.now(); let ok = false, code = 0, detail = '';
     try { const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 15000); const r = await fetch(url, { method: 'GET', redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': UA } }); clearTimeout(tm); code = r.status; ok = r.ok; try { await r.body?.cancel(); } catch (_e) {} } catch (e) { detail = String((e as Error)?.message || e); }

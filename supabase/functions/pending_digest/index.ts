@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     const items = pending.slice(0, 40).map((l:any,i:number)=> `${i+1}. ${l.company_name||'(no name)'}${l.emirate?(' — '+l.emirate):''}${l.sector?(' · '+l.sector):''}${l.trade_license_no?(' · licence '+l.trade_license_no):''}${l.registration_submitted_at?(' · submitted '+dt(l.registration_submitted_at)):''}${l.ai_review_notes?('\n     AI: '+String(l.ai_review_notes).slice(0,160)):''}`).join('\n');
     const extra = pending.length > 40 ? `\n\n…and ${pending.length-40} more.` : '';
     const subject = `${pending.length} supplier${pending.length===1?'':'s'} awaiting approval — QuotesDone`;
-    const bodyText = `Good morning. You have ${pending.length} supplier${pending.length===1?'':'s'} pending review on QuotesDone:\n\n${items}${extra}\n\nReview, approve or reject them in the CRM:\nhttps://quotesdone.com/crm\n\n(You can approve several at once with the bulk action bar.)`;
+    const bodyText = `Good morning. You have ${pending.length} supplier${pending.length===1?'':'s'} pending review on QuotesDone:\n\n${items}${extra}\n\nReview, approve or reject them in the OS console:\nhttps://quotesdone.com/os\n\n(You can approve several at once with the bulk action bar.)`;
     const notifs = adminEmails.map((to)=>({ type: 'pending_digest', to_email: to, to_role: 'admin', subject, body: bodyText }));
     const { error } = await admin.from('notifications').insert(notifs);
     if (error) return J({ ok:false, error: error.message }, 500);

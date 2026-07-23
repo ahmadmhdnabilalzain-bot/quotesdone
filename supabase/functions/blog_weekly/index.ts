@@ -1,7 +1,7 @@
 // blog_weekly v1 — autonomous weekly SEO blog engine.
 // Generates one SEO-optimized post from the marketing brain, avoids duplicate topics,
 // publishes to blog_posts (or drafts if publish:false), logs, and files a review task.
-// Auth: __secret == inbound_secret. Body: { publish?:bool=true, topic?:string }
+// Auth: __secret == inbound_secret. Body: { publish?:bool=true }
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });

@@ -129,15 +129,6 @@
 - **Depends on:** `_shared/llm.ts`; `app_secrets.inbound_secret` + openrouter_api_key; RPCs fn_strategy_metrics, fn_ops_metrics, fn_quality_metrics, fn_data_metrics, fn_voice_metrics; tables exec_reports, agent_runs.
 - **Notes:** clean. competitive officer reuses fn_strategy_metrics and self-notes it needs an external data connector.
 
-### exec_board
-- **Purpose:** Admin read API for the Executive Intelligence reports powering the /crm Board tab.
-- **Invocation:** authenticated HTTP (admin) or `__secret`.
-- **Auth gate:** `isAdmin()` — `__secret === inbound_secret` OR admin JWT (email in admin_emails).
-- **Input:** `{ action:'latest'|'history', officer? }`.
-- **Output:** history → `{ok, reports}` for one officer; latest → `{ok, reports (newest per officer, ordered), quote_quality:{avg_completeness, low_quality, total_scored}}`.
-- **Logic:** latest picks the newest exec_reports row per officer, orders by the fixed officer list, and computes headline quote-quality from quotes.quality.score.
-- **Depends on:** `app_secrets` (inbound_secret, admin_emails); tables exec_reports, quotes.
-- **Notes:** clean. Read-only companion to exec_agents.
 
 ### reflect
 - **Purpose:** Weekly self-improvement — each role agent reviews its own recent approved/rejected decisions and run outcomes and stores at most two durable "reflection" lessons in memory.
@@ -263,15 +254,6 @@
 - **Depends on:** Table: qd_deploy_src, os_audit_log, app_secrets. Edge functions: translate_html, deploy_next_preview (both called with `__secret` = inbound_secret). External: OpenRouter chat/completions. Secrets: os_bypass_key, admin_emails, openrouter_api_key, inbound_secret.
 - **Notes:** clean.
 
-### ops_live
-- **Purpose:** Returns the live operations dashboard payload for the /crm Ops tab.
-- **Invocation:** Authenticated HTTP (POST) from CRM UI; also callable internally with `__secret`. CORS-enabled.
-- **Auth gate:** `body.__secret === app_secrets.inbound_secret` OR `Authorization: Bearer <jwt>` resolving (via `admin.auth.getUser`) to an email in `app_secrets.admin_emails` (default `management@quotesdone.com`); else 403.
-- **Input:** JSON body (optional `__secret`); no other params used.
-- **Output:** JSON `{ ok, dashboard }` (whatever RPC `fn_ops_dashboard` returns) or `{ error }`.
-- **Logic:** Handles OPTIONS. Parses body, runs `isAdmin`. Calls RPC `fn_ops_dashboard` and returns its data; 500 on RPC error.
-- **Depends on:** RPC fn_ops_dashboard; table app_secrets. Secrets: inbound_secret, admin_emails.
-- **Notes:** Thin wrapper — all logic lives in the SQL RPC.
 
 ### ai_health
 - **Purpose:** Lightweight AI-provider liveness monitor — pings OpenRouter's free `/key` endpoint (no tokens spent) and pages the operator only on the transition into an outage.
@@ -1447,4 +1429,4 @@ All schedules are **UTC** (Dubai = UTC+4). Only crons that drive an edge functio
 - **`WEBSITE.md`** — public website functions (home, faq, contact_submit, site_assistant, etc.).
 - **`OS_AUDIT.md`** — production-readiness audit of this OS (scores + findings + remediation log).
 
-*End of OS backend reference — 122 edge functions across 9 domains.*
+*End of OS backend reference — 120 edge functions across 9 domains.*
