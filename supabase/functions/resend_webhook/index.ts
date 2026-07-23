@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       const reason = isComplaint ? 'spam_complaint' : ('hard_bounce' + (bounceType ? ':' + bounceType : ''));
       for (const e of emails) {
         try { await admin.from('email_suppressions').upsert({ email: e, reason, source: 'resend_webhook' }, { onConflict: 'email' }); suppressed++; } catch (_e) {}
-        try { await admin.from('leads').update({ invite_status: 'bounced' }).eq('email', e).is('invite_status', null); } catch (_e) {}
+        try { await admin.from('leads').update({ invite_status: 'bounced' }).eq('email', e).or('invite_status.is.null,invite_status.eq.queued,invite_status.eq.sent'); } catch (_e) {}
       }
       try { await admin.from('error_events').insert({ source: 'resend_webhook', kind: reason, severity: 'low', detail: { emails, type } }); } catch (_e) {}
     }
