@@ -141,7 +141,7 @@ const ROLE_AGENTS: { name: string; duty: string }[] = [
   { name: 'Document Controller', duty: 'supplier trade-licence expiry tracking' },
   { name: 'Onboarding Officer', duty: 'new supplier KYC review + approvals' },
   { name: 'Follow-up / SLA', duty: 'chases stalled inquiries, reveals and quotes' },
-  { name: 'Collections', duty: '2% supplier commission dues, reminders, penalties' },
+  { name: 'Collections', duty: 'non-response charges (refunded reveal fee, owed by the supplier) + 9% p.a. late interest + AED 250 admin fee, reminders and demand letters — QuotesDone charges no supplier commission' },
   { name: 'BD / Outreach', duty: 'invites new supplier companies (planning mode)' },
   { name: 'Daily Brief', duty: 'emails your 08:30 Dubai morning snapshot' },
 ];

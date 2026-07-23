@@ -140,15 +140,6 @@
 - **Depends on:** `app_secrets` (inbound_secret, openrouter_api_key); OpenRouter; tables agent_actions, agent_runs, agent_memory.
 - **Notes:** clean. Self-contained LLM helper (not _shared). No leading banner comment.
 
-### secretary
-- **Purpose:** The Secretary / chief-of-staff chat agent — the single agent the founder talks to; reads a cross-agent live snapshot and can dispatch handoffs, trigger jobs, send emails, and generate documents/PDFs/Excels.
-- **Invocation:** authenticated HTTP (admin console).
-- **Auth gate:** admin JWT only (email in admin_emails). Special action `log_denied` logs blocked non-admins; non-admin otherwise 403.
-- **Input:** `{ action:'chat'|'history'|'log_denied'|'audit_login', message?, attachment_text?, attachment_name? }`.
-- **Output:** chat → `{reply}` (with action notes appended); history → `{messages}`; log_denied/audit_login → `{ok}`.
-- **Logic:** `snapshot()` aggregates pending agent_actions, recent runs, overdue commissions, and ~10 counts. Builds a chief-of-staff persona with `@@ACTIONS@@` contract supporting handoffs, run, emails, documents, pdfs, excels; calls LLM (Opus-first, inline helper, max 1800) with knowledge + snapshot + optional attachment text. Parses the actions block: handoffs → agent_actions; run → fires `agents` for SAFE_JOBS jobs (background); emails → notifications; documents → `doc_render`; pdfs → `doc_render` then `make_pdf`; excels → `make_xlsx`. Persists both chat turns, stores instruction memory on trigger words, background `learn()`. `logSec` records admin_login/admin_denied security_events and alerts owner on blocked attempts.
-- **Depends on:** `app_secrets` (inbound_secret, openrouter_api_key, admin_emails); OpenRouter (Opus 4.8 + Sonnet 5); edge functions `agents`, `doc_render`, `make_pdf`, `make_xlsx`; tables agent_chats, agent_actions, agent_runs, supplier_dues, leads, inquiries, quotes, customers, content_drafts, security_events, notifications, agent_memory, agent_knowledge.
-- **Notes:** clean. Uses inline LLM helpers, not _shared. This is the `@@ACTIONS@@`-string version of the Secretary; `secretary_act` is the newer tool-calling version.
 
 ### secretary_act
 - **Purpose:** Secretary v2 — the same chief-of-staff but driven by a real OpenRouter tool-calling loop; low-risk tools run immediately, high-stakes tools pause for a one-line founder confirm.
@@ -870,15 +861,6 @@
 - **Depends on:** Tables `app_secrets`, `collections_config`, `supplier_dues`, `leads`, `notifications`, `doc_backups`, `agent_actions`; RPC `fn_dues_to_escalate`; edge function `make_pdf`; storage `supplier-docs`; secrets `inbound_secret`, `admin_emails`.
 - **Notes:** clean. UAE-law-specific (Fed. Decree-Law 50/2022 interest cap, Art. 293 moral damages). Explicit "not legal advice" framing; oversight approval required before issue.
 
-### legal_draft
-- **Purpose:** AI-drafts a formal UAE legal document (letter of demand, legal notice, final warning, or draft statement of claim) to a defaulting supplier, rendered as a branded PDF.
-- **Invocation:** Internal call (`__secret`).
-- **Auth gate:** `b.__secret === app_secrets.inbound_secret` (403 otherwise).
-- **Input:** `{ __secret, doc_type, pay_days, supplier_id?, company?, breach?, notes?, ... }` plus optional override facts (`commission_principal`, `accrued_charges`, `total_claimed`, `quote_id`, `emirate`, `trade_license_no`, `contact_disclosure_incidents`).
-- **Output:** `{ ok, doc_type, title, company, total_claimed, pdf_url, pdf_path, html_path, path, text }`. Side effects: writes an `agent_runs` row; PDF to `finance-reports/legal`; HTML fallback copy to `finance-reports`.
-- **Logic:** If `supplier_id`, gathers facts from `leads`, open `supplier_dues` (sums principal/charges/quote value into line items), and counts `chat_violations` (contact-disclosure incidents). Merges any override facts. Calls OpenRouter (`llm` with fallback models `anthropic/claude-sonnet-5` then `anthropic/claude-opus-4.8`) using a detailed UAE in-house-counsel system prompt (cites Electronic Transactions Law 46/2021, 2% commission / 14-day term, 1%/month late charge, AED 250 admin fee under 50/2022, Civil Law 5/1985, AED 10,000 circumvention sum). Converts returned text to HTML, renders a branded PDF via `make_pdf` (options letterhead/sign/stamp), stores an HTML fallback, logs the run.
-- **Depends on:** Tables `app_secrets`, `leads`, `supplier_dues`, `chat_violations`, `agent_runs`; storage `finance-reports`; edge function `make_pdf`; secrets `inbound_secret`, `openrouter_api_key`; external OpenRouter API.
-- **Notes:** clean. Note: cites a 2% commission / 12% p.a. model, whereas collections_legal uses a no-commission / 9% p.a. model — two distinct legal-drafting paths in the codebase.
 
 ### legal_ingest
 - **Purpose:** Bulk upsert of legal documents (terms/policies) into the `legal_documents` table.
@@ -1429,4 +1411,4 @@ All schedules are **UTC** (Dubai = UTC+4). Only crons that drive an edge functio
 - **`WEBSITE.md`** — public website functions (home, faq, contact_submit, site_assistant, etc.).
 - **`OS_AUDIT.md`** — production-readiness audit of this OS (scores + findings + remediation log).
 
-*End of OS backend reference — 120 edge functions across 9 domains.*
+*End of OS backend reference — 118 edge functions across 9 domains.*
