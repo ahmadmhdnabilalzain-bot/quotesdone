@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA = Deno.env.get('SUPABASE_URL')!;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
@@ -6,8 +7,8 @@ const J = (o:unknown,s=200)=> new Response(JSON.stringify(o),{status:s,headers:{
 async function sec(k:string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 async function cntT(t:string, mod?:(q:any)=>any){ let q=admin.from(t).select('id',{count:'exact',head:true}); if(mod) q=mod(q); const {count}=await q; return count||0; }
 // Agent reasoning on Opus 4.8 (strongest), with Sonnet 5 as automatic fallback. Iterated per-model for robustness against intermittent empty completions.
-async function llm(sys:string, msgs:{role:string;content:string}[], max=1600){ const key=await sec('openrouter_api_key'); if(!key) return null; const MODELS=['anthropic/claude-opus-4.8','anthropic/claude-sonnet-5']; for(const model of MODELS){ for(let at=0; at<2; at++){ try{ const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,max_tokens:max,messages:[{role:'system',content:sys},...msgs]})}); const j=await r.json(); const c=j?.choices?.[0]?.message?.content; if(c) return c; }catch(_e){} } } return null; }
-async function llmFast(sys:string, user:string){ const key=await sec('openrouter_api_key'); if(!key) return ''; const MODELS=['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8']; try{ const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({models:MODELS,max_tokens:160,temperature:0,messages:[{role:'system',content:sys},{role:'user',content:user}]})}); const j=await r.json(); return j?.choices?.[0]?.message?.content||''; }catch(_e){ return ''; } }
+const llm = makeLlm(SONNET_FIRST, { max: 1600 }); // shared OpenRouter client (Sonnet-first + 25s timeout)
+async function llmFast(sys:string, user:string){ const key=await sec('openrouter_api_key'); if(!key) return ''; const MODELS=['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8']; try{ const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({models:MODELS,max_tokens:160,temperature:0,messages:[{role:'system',content:sys},{role:'user',content:user}]}),signal:AbortSignal.timeout(20000)/* H9 (OS audit) */}); const j=await r.json(); return j?.choices?.[0]?.message?.content||''; }catch(_e){ return ''; } }
 
 // AUTO-LEARN: after a chat, capture at most one durable new fact into the agent's memory (runs in background, no user-facing latency)
 async function learn(key:string, name:string, userMsg:string, assistantMsg:string){

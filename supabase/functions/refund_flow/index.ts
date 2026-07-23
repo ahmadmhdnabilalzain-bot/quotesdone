@@ -8,8 +8,10 @@
 // and every byte would have to be redeployed to add two endpoints. Auth is replicated exactly
 // (Bearer JWT -> auth.getUser -> customers row), so it behaves identically to customer_api.
 //
-// All timing lives in Postgres (fn_refund_state / fn_notify_supplier / fn_add_working_days). This
-// function does not compute a single date - one implementation of "3 working days" only.
+// All timing lives in Postgres (fn_refund_state / fn_notify_supplier / fn_add_working_days). Those
+// resolve every working-day count through the single fn_is_working_day rule (Asia/Dubai, honours
+// public_holidays), so this function computes no dates itself and the whole ladder shares one
+// implementation of "working days".
 //
 // v2: accepts quote_id as well as transaction_id. customer_api.my_inquiries resolves the
 //     transaction internally but does NOT expose transaction_id on the quote it returns, so the

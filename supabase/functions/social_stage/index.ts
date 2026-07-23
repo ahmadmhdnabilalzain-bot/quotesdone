@@ -59,10 +59,14 @@ Deno.serve(async (req) => {
     for (const row of rows) {
       const content = (row.body && row.body.trim()) ? row.body : (row.title || "");
       if (!content) { emptyDrafts.push(row.id); continue; }
+      // H13 (OS audit): postiz_publish authenticates on __secret==inbound_secret and reads {action,text,type,image[]}.
+      // social_stage previously sent x-internal-key + {content,mode,image_url}, so every call 403'd (and past that,
+      // text was empty) — the whole social pipeline was silently dead. Aligned to postiz_publish's real contract.
+      const inbound = await secret("inbound_secret");
       const pr = await fetch(`${SB_URL}/functions/v1/postiz_publish`, {
         method: "POST",
-        headers: { "x-internal-key": guard, "Content-Type": "application/json" },
-        body: JSON.stringify({ content, channels: ["instagram", "linkedin", "x", "facebook"], mode: "draft", image_url: img || undefined, source: "marketing_agent" }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ __secret: inbound, action: "post", text: content, channels: ["instagram", "linkedin", "x", "facebook"], type: "draft", image: img ? [{ path: img }] : [], source: "marketing_agent" }),
       });
       const pj = await pr.json();
       const ok = pr.status >= 200 && pr.status < 300 && pj?.ok;

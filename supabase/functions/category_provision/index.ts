@@ -4,21 +4,13 @@
 // the AI-generated quoting knowledge + regulation mapping are staged PENDING for founder
 // approval (hybrid: live intake, gated knowledge). Idempotent per slug.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 
-async function llm(sys: string, user: string, max = 1600): Promise<string> {
-  const key = await sec('openrouter_api_key'); if (!key) return '';
-  const MODELS = ['anthropic/claude-opus-4.8','anthropic/claude-sonnet-5'];
-  for (const model of MODELS) {
-    try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: max, temperature: 0, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }) });
-      const j = await r.json(); const c = j?.choices?.[0]?.message?.content; if (c) return c;
-    } catch (_e) { /* next model */ }
-  }
-  return '';
-}
+const _llm = makeLlm(SONNET_FIRST, { max: 1600, temperature: 0 });
+const llm = async (sys: string, user: string, max?: number): Promise<string> => (await _llm(sys, user, max)) ?? ''; // shared client, Sonnet-first + 25s timeout
 function parseJson(s: string): any { try { const m = s.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; } catch (_e) { return null; } }
 function slugify(s: string){ return String(s||'').toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').replace(/-{2,}/g,'-').slice(0,40); }
 

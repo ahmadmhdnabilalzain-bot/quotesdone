@@ -1,6 +1,7 @@
 // dropbox_backup v4 — organized Dropbox backup tree under '/QuotesDone Backup'. 'storage' rows are downloaded from
 // Supabase Storage; 'generated' rows are rendered to branded PDF via make_pdf first (customer/supplier details,
-// inquiry summary, quote comparison). Read-only on our storage; only uploads to Dropbox, never deletes. inbound_secret gated.
+// inquiry summary, quote comparison). Read-only on our storage; only uploads to Dropbox. Exception: op:pdpl_erase deletes the
+// files queued in pdpl_erase_files for an approved PDPL erasure request (Dropbox delete_v2 + storage remove). inbound_secret gated.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
@@ -111,6 +112,29 @@ Deno.serve(async (req) => {
       await uploadSingle(token, dest, new TextEncoder().encode('quotesdone dropbox backup selftest').buffer as ArrayBuffer);
       const del = await fetch('https://api.dropboxapi.com/2/files/delete_v2', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/json' }, body: JSON.stringify({ path: dest }) });
       return J({ ok:true, uploaded:dest, deleted_probe: del.ok });
+    }
+
+    if (body.op === 'pdpl_erase'){
+      const reqId = String(body.request_id||'');
+      if (!reqId) return J({ ok:false, error:'request_id required' }, 400);
+      const token = await accessToken();
+      const { data: files } = await admin.from('pdpl_erase_files').select('*').eq('request_id', reqId).eq('status','pending').order('id',{ ascending:true }).limit(Math.min(Number(body.limit)||200, 500));
+      let dbx=0, stg=0, failed=0; const results:any[]=[];
+      for (const f of (files||[])){
+        let ok=true, err='';
+        if (f.dropbox_path){
+          if (!token){ ok=false; err='no_dropbox_auth'; }
+          else { const dr = await fetch('https://api.dropboxapi.com/2/files/delete_v2', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/json' }, body: JSON.stringify({ path: f.dropbox_path }) });
+            if (dr.ok) dbx++; else { const t = await dr.text(); if (t.includes('not_found')||t.includes('path_lookup')) dbx++; else { ok=false; err='dbx:'+dr.status; } } }
+        }
+        if (f.bucket && f.storage_path){ const { error: se } = await admin.storage.from(f.bucket).remove([f.storage_path]); if (se){ ok=false; err=(err?err+';':'')+'stg:'+se.message; } else stg++; }
+        await admin.from('pdpl_erase_files').update({ status: ok?'erased':'error', error: ok?null:err.slice(0,300), erased_at: ok? new Date().toISOString(): null }).eq('id', f.id);
+        if (!ok) failed++;
+        results.push({ id:f.id, ok, err: ok?undefined:err });
+      }
+      try { await admin.from('security_events').insert({ kind:'pdpl_file_erasure', severity:'high', source:'dropbox_backup', subject: reqId, detail:{ request_id:reqId, dropbox_deleted:dbx, storage_deleted:stg, failed, processed:(files||[]).length } }); } catch(_e){ /* audit best-effort */ }
+      await logRun(failed>0?'error':'ok', { pdpl_erase:reqId, dbx, stg, failed }, failed>0 ? ('PDPL file erasure for request '+reqId+' left '+failed+' file(s) undeleted; personal documents may remain in Dropbox/storage — inspect pdpl_erase_files.') : ('PDPL file erasure for request '+reqId+': '+dbx+' Dropbox + '+stg+' storage object(s) removed.'));
+      return J({ ok: failed===0, request_id:reqId, processed:(files||[]).length, dropbox_deleted:dbx, storage_deleted:stg, failed, results });
     }
 
     const limit = Math.min(Number(body.limit)||8, 25);

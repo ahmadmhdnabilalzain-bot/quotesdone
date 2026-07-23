@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const sb=createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const BASE=Deno.env.get('SUPABASE_URL')!+'/functions/v1';
-const FALLBACK_MODELS=['anthropic/claude-opus-4.8','anthropic/claude-sonnet-5'];
+const FALLBACK_MODELS=['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8']; // Sonnet-first for cost (fleet policy)
 async function sec(k:string){ const {data}=await sb.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value||''; }
 async function llm(key:string, system:string, user:string){
   const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({models:FALLBACK_MODELS,max_tokens:4000,messages:[{role:'system',content:system},{role:'user',content:user}]})});

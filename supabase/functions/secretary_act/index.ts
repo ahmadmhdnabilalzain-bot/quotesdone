@@ -73,7 +73,7 @@ async function tool_run_maintenance(target: string) {
   }
   return { error: 'unknown target' };
 }
-async function llm(sys: string, user: string, max = 700) { const key = await sec('openrouter_api_key'); if (!key) return null; for (const model of ['anthropic/claude-opus-4.8', 'anthropic/claude-sonnet-5', 'openai/gpt-4o']) { try { const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: max, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }) }); const j = await r.json(); const c = j?.choices?.[0]?.message?.content; if (c) return c; } catch (_e) {} } return null; }
+async function llm(sys: string, user: string, max = 700) { const key = await sec('openrouter_api_key'); if (!key) return null; for (const model of ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8', 'openai/gpt-4o']) { try { const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: max, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }), signal: AbortSignal.timeout(25000) /* H9 (OS audit) */ }); const j = await r.json(); const c = j?.choices?.[0]?.message?.content; if (c) return c; } catch (_e) {} } return null; }
 async function tool_draft_content(channel: string, topic: string, notes: string) {
   let brain = ''; try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: 'marketing', p_max_chars: 6000 }); brain = data ? String(data) : ''; } catch (_e) {}
   const out = await llm('You write concise, on-brand content for QuotesDone, a UAE B2B anonymous quotation marketplace. Practical, trustworthy, pro-SME. No invented statistics. Follow the brand voice, content pillars, caption/hashtag formula and platform specs in the knowledge below.\n\n' + brain, 'Channel: ' + channel + '\nTopic: ' + topic + (notes ? ('\nNotes: ' + notes) : '') + '\nWrite the ' + channel + ' content now.', 900) || 'Draft unavailable (AI not reachable).';
@@ -165,9 +165,9 @@ Rules:
 
 async function orChat(messages: any[]) {
   const key = await sec('openrouter_api_key'); if (!key) return { error: 'no ai key' };
-  for (const model of ['anthropic/claude-opus-4.8', 'anthropic/claude-sonnet-5', 'openai/gpt-4o']) {
+  for (const model of ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8', 'openai/gpt-4o']) {
     try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 1200, temperature: 0.2, tools: TOOLS, messages }) });
+      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 1200, temperature: 0.2, tools: TOOLS, messages }), signal: AbortSignal.timeout(30000) /* H9 (OS audit): abort a hung upstream so the founder's console does not hang */ });
       const j = await r.json(); const m = j?.choices?.[0]?.message; if (m) return { message: m };
     } catch (_e) {}
   }

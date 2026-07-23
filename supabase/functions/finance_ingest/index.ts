@@ -34,12 +34,19 @@ async function doLog(entry: any) {
     let nd: string;
     if (entry?.next_due && /^\d{4}-\d{2}-\d{2}/.test(String(entry.next_due))) nd = String(entry.next_due).slice(0, 10);
     else nd = ymd(addCycle(new Date(), entry?.cycle || 'monthly'));
-    const { data, error } = await admin.from('expenses').insert({ vendor, category, description: note || vendor, amount, currency, cadence: String(entry?.cycle || 'monthly').toLowerCase(), expense_date: ymd(new Date()), next_due: nd, active: true, source, note }).select('id').maybeSingle();
+    // H8 (OS audit): don't create a duplicate active subscription for the same vendor+amount+cadence on a re-ingest.
+    const cad = String(entry?.cycle || 'monthly').toLowerCase();
+    const { data: dupSub } = await admin.from('expenses').select('id').eq('active', true).eq('vendor', vendor).eq('amount', amount).eq('cadence', cad).limit(1).maybeSingle();
+    if (dupSub?.id) return { ok: true, deduped: true, logged: 'subscription', id: dupSub.id, next_due: nd, amount, currency, vendor };
+    const { data, error } = await admin.from('expenses').insert({ vendor, category, description: note || vendor, amount, currency, cadence: cad, expense_date: ymd(new Date()), next_due: nd, active: true, source, note }).select('id').maybeSingle();
     if (error) return { error: error.message };
     return { ok: true, logged: 'subscription', id: data?.id, next_due: nd, amount, currency, vendor };
   }
   const signed = kind === 'income' ? -Math.abs(amount) : Math.abs(amount);
-  const { data, error } = await admin.from('expense_entries').insert({ vendor, category, amount: signed, currency, charged_on: ymd(new Date()), note: (kind === 'income' ? '[INCOME] ' : '') + note, source, doc_path: entry?.doc_path || null, doc_name: entry?.doc_name || null, doc_content_type: entry?.doc_content_type || null }).select('id').maybeSingle();
+  // H8 (OS audit): a re-uploaded invoice (same doc_path) must not create a duplicate expense/income row.
+  const dPath = entry?.doc_path || null;
+  if (dPath) { const { data: dup } = await admin.from('expense_entries').select('id').eq('doc_path', dPath).limit(1).maybeSingle(); if (dup?.id) return { ok: true, deduped: true, logged: kind, id: dup.id, amount, currency, vendor }; }
+  const { data, error } = await admin.from('expense_entries').insert({ vendor, category, amount: signed, currency, charged_on: ymd(new Date()), note: (kind === 'income' ? '[INCOME] ' : '') + note, source, doc_path: dPath, doc_name: entry?.doc_name || null, doc_content_type: entry?.doc_content_type || null }).select('id').maybeSingle();
   if (error) return { error: error.message };
   return { ok: true, logged: kind, id: data?.id, amount, currency, vendor };
 }

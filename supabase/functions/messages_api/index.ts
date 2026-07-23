@@ -3,16 +3,16 @@
 // Borderline (a long number that might be a quantity) => message held + owner review, NO auto-ban.
 // v4: llm() iterates single model (OpenRouter 'models' plural param was rejected).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 const clip = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
 const WARNING = 'Keep everything inside QuotesDone. Do NOT share phone numbers, emails, links, WhatsApp/social handles, or try to move the deal off-platform. Sharing contact details breaches the Terms you accepted at sign-up and triggers an immediate account ban and a AED 10,000 penalty.';
-const FALLBACK_MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 async function ownerEmail(){ const v = await sec('admin_emails'); return String(v || 'management@quotesdone.com').split(',')[0].trim(); }
 async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await admin.from('notifications').insert(rows); } catch (_e) {} }
-async function llm(sys: string, user: string, max = 700){ const key = await sec('openrouter_api_key'); if (!key) return null; for (const model of FALLBACK_MODELS) { try { const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: max, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }) }); if (!r.ok) continue; const j = await r.json(); const c = j?.choices?.[0]?.message?.content; if (c) return c; } catch (_e) { /* next model */ } } return null; }
+const llm = makeLlm(SONNET_FIRST, { max: 700 }); // shared OpenRouter client (Sonnet-first ladder + 25s timeout)
 
 // Hardened detector: normalises Arabic-Indic digits, spelled-out numbers, 'at'/'dot' obfuscation and spaced digits.
 function detectContact(raw: string){

@@ -129,6 +129,7 @@
       "src_components_me_customerportal_call",
       "src_components_me_customerportal_editstate",
       "src_components_me_customerportal_emirates",
+      "src_components_me_customerportal_empty",
       "src_components_me_customerportal_encodewav",
       "src_components_me_customerportal_ensurepdfjs",
       "src_components_me_customerportal_fileb64",
@@ -137,6 +138,7 @@
       "src_components_me_customerportal_messages",
       "src_components_me_customerportal_motion",
       "src_components_me_customerportal_newrequest",
+      "src_components_me_customerportal_pill",
       "src_components_me_customerportal_portal",
       "src_components_me_customerportal_profilegate",
       "src_components_me_customerportal_quotecard",
@@ -155,6 +157,7 @@
       "src_components_me_customerportal_statuslabel",
       "src_components_me_customerportal_statustone",
       "src_components_me_customerportal_stepindex",
+      "src_components_me_customerportal_steps",
       "src_components_me_customerportal_supplierbrief",
       "src_components_me_customerportal_t",
       "src_components_me_customerportal_tf",
@@ -164,9 +167,6 @@
       "src_components_me_customerportal_waitingsub"
     ],
     "3": [
-      "src_components_me_customerportal_empty",
-      "src_components_me_customerportal_pill",
-      "src_components_me_customerportal_steps",
       "src_components_portal_supplierportal",
       "src_components_portal_supplierportal_aed",
       "src_components_portal_supplierportal_billingpanel",
@@ -2342,8 +2342,8 @@
   "cohesion": {
     "0": 0.05698778833107191,
     "1": 0.1036734693877551,
-    "2": 0.10512820512820513,
-    "3": 0.11025641025641025,
+    "2": 0.09413067552602436,
+    "3": 0.12462462462462462,
     "4": 0.1354723707664884,
     "5": 0.12183908045977011,
     "6": 0.12183908045977011,
@@ -2672,8 +2672,41 @@
       "why": "connects across different repos/directories"
     }
   ],
-  "tokens": {
-    "input": 0,
-    "output": 0
-  }
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `NodeField()` connect `layout.tsx` to `pdf_native/index.ts`?",
+      "why": "High betweenness centrality (0.008) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `cn()` connect `cn` to `OsxShell.tsx`, `badge.tsx`, `CustomerPortal.tsx`, `button.tsx`, `aed`?",
+      "why": "High betweenness centrality (0.008) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `dependencies` connect `dependencies` to `cmdk`, `OsxShell.tsx`, `next-intl`, `@radix-ui/react-dialog`, `@radix-ui/react-tabs`, `@radix-ui/react-tooltip`, `react-dom`, `wavesurfer.js`, `package.json`, `clsx`?",
+      "why": "High betweenness centrality (0.008) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `withNextIntl`, `nextConfig`, `name` to the rest of the system?",
+      "why": "505 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `OsxShell.tsx` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.05698778833107191 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `pdf_native/index.ts` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.1036734693877551 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `CustomerPortal.tsx` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.09413067552602436 - nodes in this community are weakly interconnected."
+    }
+  ]
 }

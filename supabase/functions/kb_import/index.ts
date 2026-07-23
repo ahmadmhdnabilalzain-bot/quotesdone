@@ -24,14 +24,21 @@ Deno.serve(async (req) => {
       let rows: any[]; try { rows = JSON.parse(await blob.text()); } catch (e) { return J({ error: 'bad json: ' + String(e) }, 400); }
       if (!Array.isArray(rows)) return J({ error: 'not an array' }, 400);
       const today = new Date().toISOString().slice(0, 10);
-      await admin.from('kb_chunks').delete().eq('source_kind', 'library');
+      // H14 (OS audit): never delete the live library before the new set is proven. Stage under
+      // 'library_staging', and only if EVERY batch inserts do we swap (delete old + promote staging).
+      // A mid-import failure now leaves the live 'library' corpus intact instead of wiping it.
+      await admin.from('kb_chunks').delete().eq('source_kind', 'library_staging'); // clear any prior aborted stage
       let n = 0;
       for (let i = 0; i < rows.length; i += 200) {
-        const batch = rows.slice(i, i + 200).map((r: any) => ({ source_kind: 'library', source_id: String(r.category || 'library'), category: String(r.category || 'general'), title: String(r.title || '').slice(0, 300), content: String(r.content || ''), citation: String(r.citation || ''), effective_date: today }));
+        const batch = rows.slice(i, i + 200).map((r: any) => ({ source_kind: 'library_staging', source_id: String(r.category || 'library'), category: String(r.category || 'general'), title: String(r.title || '').slice(0, 300), content: String(r.content || ''), citation: String(r.citation || ''), effective_date: today }));
         const { error: ie } = await admin.from('kb_chunks').insert(batch);
-        if (ie) return J({ error: 'insert failed at ' + i + ': ' + ie.message, inserted: n }, 500);
+        if (ie) { try { await admin.from('kb_chunks').delete().eq('source_kind', 'library_staging'); } catch (_e) { /* best effort */ } return J({ error: 'insert failed at ' + i + ': ' + ie.message + ' — live library left intact', inserted: 0 }, 500); }
         n += batch.length;
       }
+      // swap: remove the old live set, then promote staging -> library
+      await admin.from('kb_chunks').delete().eq('source_kind', 'library');
+      const { error: se } = await admin.from('kb_chunks').update({ source_kind: 'library' }).eq('source_kind', 'library_staging');
+      if (se) return J({ error: 'promote failed: ' + se.message + ' — new chunks are under source_kind=library_staging', inserted: n }, 500);
       return J({ ok: true, inserted: n });
     }
     return J({ error: 'unknown op' }, 400);

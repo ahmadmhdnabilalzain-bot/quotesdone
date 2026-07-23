@@ -1,20 +1,12 @@
 // prompt_gate — benchmark-scores prompt versions and decides auto-promote vs escalate.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 
-async function llm(sys: string, user: string, max = 1200): Promise<string> {
-  const key = await sec('openrouter_api_key'); if (!key) return '';
-  const MODELS = ['anthropic/claude-opus-4.8','anthropic/claude-sonnet-5'];
-  for (const model of MODELS) {
-    try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: max, temperature: 0, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }) });
-      const j = await r.json(); const c = j?.choices?.[0]?.message?.content; if (c) return c;
-    } catch (_e) { /* next model */ }
-  }
-  return '';
-}
+const _llm = makeLlm(SONNET_FIRST, { max: 1200, temperature: 0 });
+const llm = async (sys: string, user: string, max?: number): Promise<string> => (await _llm(sys, user, max)) ?? ''; // shared client, Sonnet-first + 25s timeout
 
 async function contentOf(key: string, version?: number | null): Promise<{ version: number | null; content: string }> {
   if (version == null) { const { data: p } = await admin.from('prompts').select('active_version').eq('key', key).maybeSingle(); version = (p as any)?.active_version ?? null; }

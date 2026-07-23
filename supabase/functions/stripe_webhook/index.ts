@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
             if (q) {
               const { data: inq } = await admin.from('inquiries').select('customer_id,summary').eq('id', q.inquiry_id).maybeSingle();
               const { data: cfg } = await admin.from('pricing_config').select('refund_window_working_days').eq('id', 1).maybeSingle();
-              const { data: dl } = await admin.rpc('add_working_days', { start_ts: new Date().toISOString(), n: cfg?.refund_window_working_days ?? 3 });
+              const { data: dl } = await admin.rpc('fn_add_working_days', { p_from: new Date().toISOString(), p_days: cfg?.refund_window_working_days ?? 3 });
               const fee = Number(md.reveal_fee || (s.amount_total ? s.amount_total / 100 : 0));
               const amount = Number(md.quote_amount || q.quote_amount);
               const payRef = String(s.payment_intent || s.id);

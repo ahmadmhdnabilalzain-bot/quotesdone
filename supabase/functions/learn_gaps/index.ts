@@ -14,7 +14,7 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 let PARSE_FAILS = 0, SAVE_FAILS = 0, LLM_CALLS = 0; let LAST_ERR = '';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...CORS, 'Content-Type': 'application/json' } });
-const MODELS = ['anthropic/claude-opus-4.8', 'anthropic/claude-sonnet-5'];
+const MODELS = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8']; // Sonnet-first for cost (fleet policy)
 const CLOSED = ['completed', 'accepted', 'closed', 'cancelled'];
 
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
@@ -54,14 +54,23 @@ Deno.serve(async (req) => {
     const floor = new Date(Date.now() - 45 * 864e5).toISOString();
 
     const { data: inqs } = await admin.from('inquiries').select('id,category,summary,spec,status,created_at').not('status', 'in', '(' + CLOSED.join(',') + ')').lt('created_at', olderThan).gte('created_at', floor).not('category', 'is', null).limit(1500);
+    // H15 (OS audit): was 2 count queries PER inquiry (~3,000 sequential round-trips at the 1,500 cap).
+    // Replace with a few chunked bulk lookups of which inquiries have >=1 match / >=1 quote, then filter in memory.
+    const ids = (inqs || []).map((i: any) => i.id);
+    const hasMatch = new Set<any>(); const hasQuote = new Set<any>();
+    for (let i = 0; i < ids.length; i += 200) {
+      const chunk = ids.slice(i, i + 200);
+      const [{ data: mr }, { data: qr }] = await Promise.all([
+        admin.from('inquiry_matches').select('inquiry_id').in('inquiry_id', chunk),
+        admin.from('quotes').select('inquiry_id').in('inquiry_id', chunk),
+      ]);
+      for (const r of (mr || [])) hasMatch.add(r.inquiry_id);
+      for (const r of (qr || [])) hasQuote.add(r.inquiry_id);
+    }
     const byCat: Record<string, string[]> = {};
     for (const inq of (inqs || [])) {
       const cat = String(inq.category || '').trim(); if (!cat) continue;
-      const [{ count: mn }, { count: qn }] = await Promise.all([
-        admin.from('inquiry_matches').select('id', { count: 'exact', head: true }).eq('inquiry_id', inq.id),
-        admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', inq.id),
-      ]);
-      if ((mn || 0) < 1 || (qn || 0) > 0) continue;
+      if (!hasMatch.has(inq.id) || hasQuote.has(inq.id)) continue;
       const brief = String(inq.summary || '') + (inq.spec ? (' | specs: ' + JSON.stringify(inq.spec)) : '');
       (byCat[cat] = byCat[cat] || []).push(brief.slice(0, 600));
     }

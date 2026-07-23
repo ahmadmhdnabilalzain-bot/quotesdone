@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
         const casePath = await renderPdf(caseHtml(row, amt, C), 'Case File '+ref, 'casefile_'+row.due_id);
         await admin.from('supplier_dues').update({ status:'legal', legal_stage:'legal', legal_escalated_at:new Date().toISOString(),
           interest_amount:interest, admin_fee, total_claim:total, demand_letter_path:demandPath, case_file_path:casePath, evidence_terms_path: row.signed_terms_path||null,
-          fine_pct: Number(C.interest_pa)*100, fine_amount: interest }).eq('id', row.due_id);
+          fine_pct: Number(C.interest_pa)*100, fine_amount: 0 /* C1 fix (OS audit): interest lives only in interest_amount. supplier_pay.owed() and fn_gl_sync_business sum interest_amount + fine_amount, so mirroring interest here double-billed the supplier and double-credited the GL. */ }).eq('id', row.due_id);
         // keep the account held
         await admin.from('leads').update({ matching_blocked:true, matching_block_reason:'Unpaid non-response charge — in legal collections' }).eq('id', row.supplier_id);
         // back up both PDFs to the supplier's Dropbox Legal folder

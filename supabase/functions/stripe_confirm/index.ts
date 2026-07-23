@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     if (existing) { await logRun('ok', { quote_id: qid, already_revealed: true }, 'already recorded (likely by stripe_webhook)'); return J({ ok: true, already_revealed: true, supplier: await supSel(), original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
     if (s.payment_status !== 'paid') { await logRun('ok', { quote_id: qid, payment_status: String(s.payment_status || '') }, 'session not paid yet - returned pending'); return J({ ok: false, pending: true }); }
     const { data: cfg } = await admin.from('pricing_config').select('refund_window_working_days').eq('id', 1).maybeSingle();
-    const { data: dl } = await admin.rpc('add_working_days', { start_ts: new Date().toISOString(), n: cfg?.refund_window_working_days ?? 3 });
+    const { data: dl } = await admin.rpc('fn_add_working_days', { p_from: new Date().toISOString(), p_days: cfg?.refund_window_working_days ?? 3 });
     const fee = Number(md.reveal_fee || (s.amount_total ? s.amount_total / 100 : 0));
     const amount = Number(md.quote_amount || q.quote_amount);
     const payRef = String(s.payment_intent || s.id);

@@ -1,15 +1,16 @@
-# Graph Report - .  (2026-07-22)
+# Graph Report - quotesdone  (2026-07-22)
 
 ## Corpus Check
-- cluster-only mode — file stats not available
+- 275 files · ~325,918 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1894 nodes · 2409 edges · 222 communities (125 shown, 97 thin omitted)
+- 2017 nodes · 2538 edges · 229 communities (131 shown, 98 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8125b6d5`
+- Built from commit: `9385cbc8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -104,9 +105,7 @@
 - quote_review/index.ts
 - supplier_pay/index.ts
 - edge-functions.sh
-- admin_insights/index.ts
 - apify_scrape/index.ts
-- category_provision/index.ts
 - category_reqs/index.ts
 - cost_snapshot/index.ts
 - doc_extract/index.ts
@@ -149,7 +148,6 @@
 - translate_page/index.ts
 - uptime_check/index.ts
 - me/page.tsx
-- admin_provision/index.ts
 - ai_health/index.ts
 - asset_delete/index.ts
 - asset_put/index.ts
@@ -215,16 +213,25 @@
 - react-dom
 - wavesurfer.js
 - about/index.ts
-- admin/index.ts
-- crm/index.ts
 - home-ar/index.ts
 - home/index.ts
-- os2/index.ts
-- os3/index.ts
 - page_store/index.ts
 - portal/index.ts
 - voice_otp/index.ts
 - tailwind.config.ts
+- QuotesDone — Public Website
+- graphify reference: extra exports and benchmark
+- Edge functions — deploying and keeping them in git
+- graphify reference: query, path, explain
+- graphify reference: add a URL and watch a folder
+- graphify reference: commit hook and native CLAUDE.md integration
+- graphify reference: incremental update and cluster-only
+- graphify reference: GitHub clone and cross-repo merge
+- graphify reference: transcribe video and audio
+- CLAUDE.md
+- .claude/CLAUDE.md
+- extraction-spec.md
+- README.md
 
 ## God Nodes (most connected - your core abstractions)
 1. `cn()` - 57 edges
@@ -253,26 +260,26 @@
 ## Import Cycles
 - None detected.
 
-## Communities (222 total, 97 thin omitted)
+## Communities (229 total, 98 thin omitted)
 
 ### Community 0 - "OsxShell.tsx"
-Cohesion: 0.06
-Nodes (54): react, react, metadata, metadata, AgentStatus(), AuditLog(), Console(), Escalations() (+46 more)
+Cohesion: 0.08
+Nodes (43): react, react, metadata, metadata, AgentStatus(), AuditLog(), Console(), Escalations() (+35 more)
 
 ### Community 1 - "pdf_native/index.ts"
 Cohesion: 0.10
 Nodes (46): admin, authed(), BANDTXT, bidi, bidiRuns(), blockBadge(), blockKV(), blockTable() (+38 more)
 
 ### Community 2 - "CustomerPortal.tsx"
-Cohesion: 0.09
-Nodes (39): Authed(), backArrow(), blobToWavB64(), call(), editState(), EMIRATES, Empty(), encodeWav() (+31 more)
+Cohesion: 0.10
+Nodes (42): Account(), aed(), Authed(), backArrow(), blobToWavB64(), call(), Comparison(), Contact() (+34 more)
 
 ### Community 3 - "cn"
 Cohesion: 0.12
-Nodes (32): aed(), BillingPanel(), call(), cleanName(), Dashboard(), DOC_GROUPS, DocRow(), Documents() (+24 more)
+Nodes (34): Empty(), Pill(), Steps(), aed(), BillingPanel(), call(), cleanName(), Dashboard() (+26 more)
 
 ### Community 4 - "agents/index.ts"
-Cohesion: 0.14
+Cohesion: 0.13
 Nodes (32): admin, assetInfo(), assetSignature(), bdOutreach(), bookkeeping(), callFn(), categorySales(), cfo() (+24 more)
 
 ### Community 5 - "LegalDoc.tsx"
@@ -280,8 +287,8 @@ Cohesion: 0.12
 Nodes (12): generateMetadata(), generateMetadata(), generateMetadata(), generateMetadata(), generateMetadata(), generateMetadata(), generateMetadata(), generateMetadata() (+4 more)
 
 ### Community 6 - "secretary_act/index.ts"
-Cohesion: 0.12
-Nodes (27): admin, callFn(), cnt(), CORS, dayAgo(), HIGH, isHigh(), llm() (+19 more)
+Cohesion: 0.07
+Nodes (39): addr(), admin, attachmentBytes(), b64ToBytes(), bytesToB64(), extractDoc(), fetchInboundAttachmentBytes(), pickBody() (+31 more)
 
 ### Community 7 - "customer_api/index.ts"
 Cohesion: 0.11
@@ -303,17 +310,13 @@ Nodes (16): admin, blogHub(), blogPost(), contactPage(), COSTMAP, coverSVG(), EM
 Cohesion: 0.14
 Nodes (10): generateMetadata(), Categories(), Item, toTags(), CtaBand(), Hero(), HowItWorks(), Step (+2 more)
 
-### Community 12 - "crm_api/index.ts"
-Cohesion: 0.12
-Nodes (6): admin, CORS, sec(), tw(), verifyCheck(), verifyStart()
-
 ### Community 13 - "login_otp/index.ts"
 Cohesion: 0.13
 Nodes (9): admin, CORS, ensureUser(), mintSession(), NOTE: limit(1) + [0], NOT maybeSingle(). A user who clicks "resend", sec(), sendEmail(), twilioAuth() (+1 more)
 
 ### Community 14 - "resend_inbound/index.ts"
-Cohesion: 0.13
-Nodes (12): addr(), admin, attachmentBytes(), b64ToBytes(), bytesToB64(), extractDoc(), fetchInboundAttachmentBytes(), pickBody() (+4 more)
+Cohesion: 0.06
+Nodes (30): §1. Always-on operating disciplines, §2. Building software, §3. Frontend & visual craft, §4. Writing, docs & explaining, §5. Capabilities index (invoke on demand), §A. Conflicts resolved (the filtered decisions), Authoring tools/skills/MCP (tool-design, mcp-builder, skill-creator, writing-skills, eval-harness, evaluation), Code review (requesting-code-review, receiving-code-review, gsd-code-review, babysit) (+22 more)
 
 ### Community 15 - "devDependencies"
 Cohesion: 0.12
@@ -328,7 +331,7 @@ Cohesion: 0.22
 Nodes (9): generateMetadata(), generateMetadata(), ContactInner(), FaqInner(), SiteFooter(), SOCIALS, buildMeta(), clampDesc() (+1 more)
 
 ### Community 18 - "ServiceDoc.tsx"
-Cohesion: 0.19
+Cohesion: 0.21
 Nodes (13): generateMetadata(), generateStaticParams(), arLinks(), BASE, Doc, EM, Loc, parse() (+5 more)
 
 ### Community 19 - "auth_api/index.ts"
@@ -344,8 +347,8 @@ Cohesion: 0.16
 Nodes (10): admin, capabilityRetrieve(), clip(), embed(), MODELS, policyBool(), policyNum(), policyRaw() (+2 more)
 
 ### Community 22 - "agent_brain/index.ts"
-Cohesion: 0.17
-Nodes (11): admin, cntT(), context(), CORS, learn(), llm(), llmFast(), NAMES (+3 more)
+Cohesion: 0.16
+Nodes (11): admin, cntT(), context(), CORS, learn(), llm, llmFast(), NAMES (+3 more)
 
 ### Community 23 - "secretary/index.ts"
 Cohesion: 0.17
@@ -356,12 +359,12 @@ Cohesion: 0.14
 Nodes (7): admin, aiReview(), aiSummarize(), CONCLUDED, cors, PROFILE_COLS, secretVal()
 
 ### Community 25 - "MarketingDoc.tsx"
-Cohesion: 0.22
+Cohesion: 0.20
 Nodes (8): generateMetadata(), generateMetadata(), generateMetadata(), CSS, Doc, M, MarketingDoc(), mkMeta()
 
 ### Community 26 - "agent_act/index.ts"
-Cohesion: 0.14
-Nodes (8): admin, ALLOWED, CORS, KMAP, llm(), PERSONAS, SAFE_DELETE, sec()
+Cohesion: 0.13
+Nodes (7): admin, ALLOWED, CORS, KMAP, llm, PERSONAS, SAFE_DELETE
 
 ### Community 27 - "agent_autogen/index.ts"
 Cohesion: 0.17
@@ -389,7 +392,7 @@ Nodes (5): admin, logRun(), logThrottled(), NOTE: the row is deliberately left '
 
 ### Community 33 - "SiteHeader.tsx"
 Cohesion: 0.23
-Nodes (7): LangSwitch(), Item, MobileNav(), { Link, redirect, usePathname, useRouter, getPathname }, routing, config, NOTE: individual blog posts (/blog/:slug) are now native pages, so they
+Nodes (7): LangSwitch(), Item, MobileNav(), { Link, usePathname, useRouter }, routing, config, NOTE: individual blog posts (/blog/:slug) are now native pages, so they
 
 ### Community 34 - "kyc/index.ts"
 Cohesion: 0.18
@@ -397,7 +400,7 @@ Nodes (5): admin, CORS, sec(), sendEmail(), twilioAuth()
 
 ### Community 35 - "messages_api/index.ts"
 Cohesion: 0.18
-Nodes (6): admin, CORS, FALLBACK_MODELS, llm(), ownerEmail(), sec()
+Nodes (5): admin, CORS, llm, ownerEmail(), sec()
 
 ### Community 36 - "wa_inbound/index.ts"
 Cohesion: 0.22
@@ -407,17 +410,13 @@ Nodes (8): admin, llm(), retrieveFaq(), sec(), sendWa(), tok(), verifyProvenance
 Cohesion: 0.26
 Nodes (9): generateMetadata(), generateStaticParams(), blogMeta(), BlogPost(), blogSlugs(), fmt(), P, Post (+1 more)
 
-### Community 38 - "admin_api/index.ts"
-Cohesion: 0.23
-Nodes (8): admin, AGENTS, buildContext(), cntT(), CORS, dstr(), llm(), sec()
-
 ### Community 39 - "collections_legal/index.ts"
 Cohesion: 0.30
 Nodes (9): admin, caseHtml(), demandHtml(), esc(), fmtD(), money(), REF(), renderPdf() (+1 more)
 
 ### Community 40 - "crm_pipeline/index.ts"
-Cohesion: 0.17
-Nodes (4): admin, ATYPES, CORS, ENTITIES
+Cohesion: 0.40
+Nodes (3): metadata, CustomerPortal(), initLang()
 
 ### Community 41 - "finance_ingest/index.ts"
 Cohesion: 0.29
@@ -460,8 +459,8 @@ Cohesion: 0.18
 Nodes (4): admin, CORS, FALLBACK_MODELS, T0
 
 ### Community 51 - "copilot/index.ts"
-Cohesion: 0.27
-Nodes (8): admin, CORS, identify(), llm(), ROLE_GUIDE, sec(), snapshot(), toCats()
+Cohesion: 0.24
+Nodes (8): admin, CORS, identify(), llm, ROLE_GUIDE, sec(), snapshot(), toCats()
 
 ### Community 52 - "enrich_capability/index.ts"
 Cohesion: 0.27
@@ -528,8 +527,8 @@ Cohesion: 0.25
 Nodes (6): admin, CONTENT, dbxToken(), EDITABLE, READONLY, sec()
 
 ### Community 69 - "project_consultant/index.ts"
-Cohesion: 0.25
-Nodes (4): admin, CORS, llm(), sec()
+Cohesion: 0.22
+Nodes (3): admin, CORS, llm
 
 ### Community 70 - "resend_webhook/index.ts"
 Cohesion: 0.25
@@ -551,13 +550,17 @@ Nodes (4): admin, cors, DOC_KINDS, DOC_ORDER
 Cohesion: 0.25
 Nodes (4): metadata, metadata, initLang(), SupplierPortal()
 
+### Community 77 - "admin_detail/index.ts"
+Cohesion: 0.67
+Nodes (3): Badge(), BadgeProps, badgeVariants
+
 ### Community 80 - "dispatch_inquiry/index.ts"
 Cohesion: 0.29
 Nodes (4): admin, escalate(), sec(), T0
 
 ### Community 81 - "exec_agents/index.ts"
-Cohesion: 0.36
-Nodes (6): admin, llm(), OFFICERS, parseJson(), runOfficer(), sec()
+Cohesion: 0.32
+Nodes (5): admin, llm, OFFICERS, parseJson(), runOfficer()
 
 ### Community 82 - "legal/index.ts"
 Cohesion: 0.29
@@ -571,10 +574,6 @@ Nodes (4): admin, CASES, FIX, T0
 Cohesion: 0.25
 Nodes (3): admin, OSAPI_MUTATIONS, WS
 
-### Community 86 - "prompt_gate/index.ts"
-Cohesion: 0.32
-Nodes (4): admin, llm(), scoreVersion(), sec()
-
 ### Community 88 - "supplier_pay/index.ts"
 Cohesion: 0.25
 Nodes (3): admin, CORS, T0
@@ -587,13 +586,9 @@ Nodes (6): cmd_deploy(), cmd_diff(), cmd_pull(), need_token(), edge-functions.sh
 Cohesion: 0.38
 Nodes (4): admin, dom(), firstArr(), mapItem()
 
-### Community 92 - "category_provision/index.ts"
-Cohesion: 0.33
-Nodes (3): admin, llm(), sec()
-
 ### Community 93 - "category_reqs/index.ts"
-Cohesion: 0.43
-Nodes (5): admin, genOne(), llm(), parseJson(), sec()
+Cohesion: 0.38
+Nodes (4): admin, genOne(), llm, parseJson()
 
 ### Community 95 - "doc_extract/index.ts"
 Cohesion: 0.33
@@ -632,8 +627,8 @@ Cohesion: 0.33
 Nodes (4): logRun(), logThrottled(), sb, T0
 
 ### Community 108 - "aed"
-Cohesion: 0.47
-Nodes (6): Account(), aed(), Comparison(), Contact(), fmtDate(), Overview()
+Cohesion: 0.07
+Nodes (26): For /graphify add and --watch, For /graphify query, For the commit hook and native CLAUDE.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+18 more)
 
 ### Community 111 - "blog_weekly/index.ts"
 Cohesion: 0.40
@@ -684,12 +679,12 @@ Cohesion: 0.40
 Nodes (3): admin, toHex(), verifySig()
 
 ### Community 134 - "me/page.tsx"
-Cohesion: 0.40
-Nodes (3): metadata, CustomerPortal(), initLang()
+Cohesion: 0.08
+Nodes (25): 0. Architecture at a glance, 1. Routes, 2. Frontend — `src/components/portal/SupplierPortal.tsx`, 3. Backends and every action, 4. Backend constellation this surface depends on, 5. Database, 6. Business rules, 7. Registration, documents & verification (+17 more)
 
 ### Community 143 - "email_triage/index.ts"
-Cohesion: 0.50
-Nodes (3): admin, llm(), sec()
+Cohesion: 0.19
+Nodes (9): admin, llm, _admin, LlmDefaults, makeLlm(), Msg, OPUS_FIRST, sec() (+1 more)
 
 ### Community 153 - "rate_dims/index.ts"
 Cohesion: 0.40
@@ -704,32 +699,64 @@ Cohesion: 0.40
 Nodes (4): admin, WHY: this wrote attacker-controllable text into app_secrets.voice_otp_last, gate, T0, XML
 
 ### Community 162 - "badge.tsx"
-Cohesion: 0.67
-Nodes (3): Badge(), BadgeProps, badgeVariants
+Cohesion: 0.08
+Nodes (23): AI reliability & governance, C1. Supplier dues double-charge interest (latent today; 0 dues rows), C2. PDPL right-to-erasure is materially incomplete, Coverage & limits (honesty), 🔴 Critical — fix before the relevant flow is exercised, Data pipelines & alerting, Dead-code sweep — functions (22 Jul 2026), Deferred — need a focused / supervised pass (not auto-applied) (+15 more)
 
 ### Community 163 - "button.tsx"
+Cohesion: 0.09
+Nodes (15): Button, ButtonProps, buttonVariants, Card, CardContent, CardHeader, CardTitle, DialogContent (+7 more)
+
+### Community 191 - "clsx"
+Cohesion: 0.12
+Nodes (15): 0. Architecture at a glance, 1. Routes, 2. Frontend — `src/components/me/CustomerPortal.tsx`, 3. Backends and every action, 4. Database, 5. The unresponsive-supplier escalation, 6. Money, 7. What the cleanup did (22 Jul) (+7 more)
+
+### Community 222 - "QuotesDone — Public Website"
+Cohesion: 0.15
+Nodes (12): 10. Audit findings, 11. Verification & sync (live-verified 2026-07-22), 1. What the public website is, 2. Route map, 3. The content model, 4. Shared chrome, 5. Landing sections, 6. Content renderers (+4 more)
+
+### Community 224 - "graphify reference: extra exports and benchmark"
+Cohesion: 0.22
+Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
+
+### Community 225 - "Edge functions — deploying and keeping them in git"
+Cohesion: 0.25
+Nodes (7): Edge functions — deploying and keeping them in git, One-time setup (~60 seconds), Safety built into the script, The one trap that will bite you, The problem this solves, Then, What is staged and waiting
+
+### Community 226 - "graphify reference: query, path, explain"
+Cohesion: 0.33
+Nodes (5): For /graphify explain, For /graphify path, graphify reference: query, path, explain, Step 0 — Constrained query expansion (REQUIRED before traversal), Step 1 — Traversal
+
+### Community 228 - "graphify reference: add a URL and watch a folder"
 Cohesion: 0.50
-Nodes (3): Button, ButtonProps, buttonVariants
+Nodes (3): For /graphify add, For --watch, graphify reference: add a URL and watch a folder
+
+### Community 229 - "graphify reference: commit hook and native CLAUDE.md integration"
+Cohesion: 0.50
+Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify reference: commit hook and native CLAUDE.md integration
+
+### Community 230 - "graphify reference: incremental update and cluster-only"
+Cohesion: 0.50
+Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
 ## Knowledge Gaps
-- **505 isolated node(s):** `withNextIntl`, `nextConfig`, `name`, `version`, `private` (+500 more)
+- **637 isolated node(s):** `withNextIntl`, `nextConfig`, `name`, `version`, `private` (+632 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **97 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **98 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `NodeField()` connect `layout.tsx` to `pdf_native/index.ts`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `cn()` connect `cn` to `OsxShell.tsx`, `badge.tsx`, `CustomerPortal.tsx`, `button.tsx`, `aed`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `dependencies` connect `dependencies` to `cmdk`, `OsxShell.tsx`, `next-intl`, `@radix-ui/react-dialog`, `@radix-ui/react-tabs`, `@radix-ui/react-tooltip`, `react-dom`, `wavesurfer.js`, `package.json`, `clsx`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
+- **Why does `dependencies` connect `dependencies` to `cmdk`, `OsxShell.tsx`, `next-intl`, `@radix-ui/react-dialog`, `@radix-ui/react-tabs`, `@radix-ui/react-tooltip`, `react-dom`, `wavesurfer.js`, `prompt_gate/index.ts`, `package.json`?**
+  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+- **Why does `cn()` connect `cn` to `OsxShell.tsx`, `CustomerPortal.tsx`, `button.tsx`, `admin_detail/index.ts`?**
+  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+- **Why does `react` connect `OsxShell.tsx` to `dependencies`?**
+  _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **What connects `withNextIntl`, `nextConfig`, `name` to the rest of the system?**
-  _505 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _637 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `OsxShell.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.05698778833107191 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0815686274509804 - nodes in this community are weakly interconnected._
 - **Should `pdf_native/index.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.1036734693877551 - nodes in this community are weakly interconnected._
 - **Should `CustomerPortal.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.09413067552602436 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09758454106280193 - nodes in this community are weakly interconnected._

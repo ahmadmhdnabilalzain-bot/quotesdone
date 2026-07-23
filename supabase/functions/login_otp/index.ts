@@ -10,9 +10,22 @@ function code6() { return String(Math.floor(100000 + Math.random() * 900000)); }
 // capped, so verify is limited per issued code AND per caller.
 const EMAIL_VERIFY_MAX_ATTEMPTS = 5;
 const EMAIL_VERIFY_PER_IP_HOUR = 30;
-async function sha256Hex(s: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+// Sign-in codes are stored as HMAC-SHA256(code, server key), never a bare hash. A 6-digit code
+// has only 10^6 possibilities, so an unsalted SHA-256 of the code is reversible from a single
+// table leak by precomputing all a million hashes. The HMAC key (app_secrets.otp_hmac_key) makes
+// a leaked token_hash useless without the key; we fail closed if the key is missing rather than
+// silently fall back to a weak hash.
+let _otpKey: string | null = null;
+async function otpKey(): Promise<string> {
+  if (_otpKey) return _otpKey;
+  const k = await sec('otp_hmac_key');
+  if (!k) throw new Error('otp_hmac_key_missing');
+  _otpKey = k; return k;
+}
+async function otpHash(code: string): Promise<string> {
+  const ck = await crypto.subtle.importKey('raw', new TextEncoder().encode(await otpKey()), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = await crypto.subtle.sign('HMAC', ck, new TextEncoder().encode(code));
+  return Array.from(new Uint8Array(mac)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 async function twilioAuth() { const sid = await sec('twilio_api_key_sid'); const secret = await sec('twilio_api_key_secret'); const va = await sec('twilio_verify_service_sid'); if (!sid || !secret || !va) return null; return { hdr: 'Basic ' + btoa(sid + ':' + secret), va }; }
 async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; try { const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, subject, html }) }); return r.ok; } catch { return false; } }
@@ -58,7 +71,7 @@ Deno.serve(async (req) => {
         const { count } = await admin.from('email_verifications').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since);
         if ((count || 0) >= 8) return J({ error: 'Too many code requests. Please try again later.' }, 429);
         const c = code6();
-        await admin.from('email_verifications').insert({ email, token_hash: await sha256Hex(c), purpose: 'login', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+        await admin.from('email_verifications').insert({ email, token_hash: await otpHash(c), purpose: 'login', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
         await sendEmail(email, 'Your QuotesDone sign-in code', wrapCode(c));
         return J({ ok: true, channel: 'email', identifier: email });
       }
@@ -116,7 +129,7 @@ Deno.serve(async (req) => {
           await admin.from('email_verifications').update({ used_at: new Date().toISOString() }).eq('id', row.id);
           return J({ error: 'Too many incorrect attempts. Please request a new code.' }, 429);
         }
-        const givenHash = await sha256Hex(code);
+        const givenHash = await otpHash(code);
         // row.token is only set for codes issued before hashing shipped
         const match = row.token_hash ? (givenHash === row.token_hash) : (!!row.token && code === row.token);
         if (!match) {

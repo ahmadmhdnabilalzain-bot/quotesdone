@@ -18,7 +18,12 @@ function revealFee(amount:number,cfg:any,at=new Date()){ if(!amount||amount<=0) 
 async function restGet(path:string){ const r=await fetch(`${BASE}/rest/v1/${path}`,{headers:{apikey:ANON,Authorization:'Bearer '+ANON}}); let b:any=null; try{b=await r.json();}catch(_e){} return {status:r.status, body:b}; }
 async function rpc(name:string,body:any){ const r=await fetch(`${BASE}/rest/v1/rpc/${name}`,{method:'POST',headers:{apikey:ANON,Authorization:'Bearer '+ANON,'Content-Type':'application/json'},body:JSON.stringify(body)}); let b:any=null; try{b=await r.json();}catch(_e){} return {status:r.status, body:b}; }
 async function fn(slug:string,body:any,auth:string|null){ const h:any={'Content-Type':'application/json'}; if(auth) h['Authorization']='Bearer '+auth; const r=await fetch(`${BASE}/functions/v1/${slug}`,{method:'POST',headers:h,body:JSON.stringify(body)}); let b:any=null; try{b=await r.json();}catch(_e){} return {status:r.status, body:b}; }
-Deno.serve(async ()=>{
+Deno.serve(async (req)=>{
+  // H4: self-authenticate on inbound_secret. Previously unauthenticated + verify_jwt=true meant any holder of
+  // the public anon key could trigger the probe suite and read which tables are exposed. The daily cron now
+  // sends __secret; verify_jwt stays true as defence-in-depth.
+  const body = await req.json().catch(()=>({} as any));
+  if (body.__secret !== (await sec('inbound_secret'))) return J({ error:'forbidden' }, 403);
   const results:{name:string,pass:boolean,detail?:string}[]=[];
   const T=(name:string,pass:boolean,detail='')=>results.push({name,pass,detail:pass?undefined:detail});
   let cfgErrMsg='';

@@ -1,5 +1,6 @@
 // agents - scheduled autonomous ops workers. Risky actions queued into agent_actions for approval; safe work auto.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -14,7 +15,7 @@ async function queue(row: Record<string, unknown>) { try { await admin.from('age
 async function sha256(s: string){ const data = new TextEncoder().encode(s); const h = await crypto.subtle.digest('SHA-256', data); return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 40); }
 const dayAgo = (d: number) => new Date(Date.now() - d * 864e5).toISOString();
 // Background AI helpers on Opus 4.8 first, Sonnet 5 fallback, iterating models individually for resilience.
-async function llm(sys: string, user: string, max = 400){ const key = await sec('openrouter_api_key'); if (!key) return null; const MODELS=['anthropic/claude-opus-4.8','anthropic/claude-sonnet-5']; for(const model of MODELS){ for(let at=0; at<2; at++){ try { const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: max, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }) }); const j = await r.json(); const c = j?.choices?.[0]?.message?.content; if (c) return c; } catch (_e) {} } } return null; }
+const llm = makeLlm(SONNET_FIRST, { max: 400 }); // shared OpenRouter client (Sonnet-first ladder + 25s timeout)
 async function cnt(t: string, mod?: (q: any) => any){ let q = admin.from(t).select('id', { count: 'exact', head: true }); if (mod) q = mod(q); const { count } = await q; return count || 0; }
 
 async function onboarding() {

@@ -1,19 +1,12 @@
 // exec_agents — Executive Intelligence layer. Each officer reads live metrics and writes a
 // prioritized action plan into exec_reports. Secret-gated (cron/internal). Action: run {officer} | run_all.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 function parseJson(s: string): any { if (!s) return null; const m = s.match(/\{[\s\S]*\}/); if (!m) return null; try { return JSON.parse(m[0]); } catch { return null; } }
-async function llm(sys: string, user: string, max = 1600): Promise<string | null> {
-  const key = await sec('openrouter_api_key'); if (!key) return null;
-  const MODELS = ['anthropic/claude-opus-4.8', 'anthropic/claude-sonnet-5'];
-  for (const model of MODELS) { for (let at = 0; at < 2; at++) { try {
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: max, temperature: 0.25, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }) });
-    const j = await r.json(); const c = j?.choices?.[0]?.message?.content; if (c) return c;
-  } catch (_e) {} } }
-  return null;
-}
+const llm = makeLlm(SONNET_FIRST, { max: 1600, temperature: 0.25 }); // shared OpenRouter client (Sonnet-first + 25s timeout)
 
 const OFFICERS: Record<string, { name: string; rpc: string; brief: string }> = {
   strategy: { name: 'AI Strategy Officer', rpc: 'fn_strategy_metrics', brief: 'You continuously IMPROVE the business (not run it). From the metrics identify: categories with high demand but too few suppliers; coverage gaps (categories without engineered requirements, playbooks or mapped regulations); funnel leaks (abandoned RFQs, low response rate, slow first quote). Output a prioritized action plan the founder can approve.' },

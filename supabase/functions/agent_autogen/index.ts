@@ -29,7 +29,7 @@ function summarize(results: any[], considered: number) {
 }
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...CORS, 'Content-Type': 'application/json' } });
-const MODELS = ['anthropic/claude-opus-4.8', 'anthropic/claude-sonnet-5'];
+const MODELS = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8']; // Sonnet-first for cost (fleet policy)
 
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 function slugify(s: string) { return String(s || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40); }
