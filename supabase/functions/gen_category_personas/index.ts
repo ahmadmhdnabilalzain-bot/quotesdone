@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -10,9 +11,9 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 }
 let LLM_CALLS=0, LLM_FAILS=0, SHORT_OUTPUTS=0, UPDATE_FAILS=0; let LAST_ERR='';
 // Anthropic-only per standard: Sonnet 5 primary, Opus 4.8 fallback.
-const MODELS=['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
+const llmShared = makeLlm(SONNET_FIRST, { max: 420, temperature: 0.4 });
 async function sec(k:string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
-async function llm(key:string, sys:string, user:string){ LLM_CALLS++; let failed=false; try{ const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({models:MODELS,max_tokens:420,temperature:0.4,messages:[{role:'system',content:sys},{role:'user',content:user}]})}); if(!r.ok){ failed=true; LAST_ERR='openrouter HTTP '+r.status; } const j=await r.json(); const c=j?.choices?.[0]?.message?.content||''; if(!c && !failed){ failed=true; LAST_ERR='openrouter returned no content'; } if(failed) LLM_FAILS++; return c; }catch(_e){ if(!failed) LLM_FAILS++; LAST_ERR='openrouter call threw: '+String(_e); return ''; } }
+async function llm(_key:string, sys:string, user:string){ LLM_CALLS++; const c=await llmShared(sys,user); if(!c){ LLM_FAILS++; LAST_ERR='openrouter call failed or returned no content'; return ''; } return c; }
 
 Deno.serve(async (req)=>{
  try{

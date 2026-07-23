@@ -3,22 +3,21 @@
 // publishes to blog_posts (or drafts if publish:false), logs, and files a review task.
 // Auth: __secret == inbound_secret. Body: { publish?:bool=true }
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const llm = makeLlm(SONNET_FIRST, { max: 3500, temperature: 0.6 });
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 async function sec(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 const slugify = (t: string) => t.toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 70);
 
 async function llmJSON(sys: string, user: string): Promise<any | null> {
-  const key = await sec('openrouter_api_key'); if (!key) return null;
-  for (const model of ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8']) {
-    try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 3500, temperature: 0.6, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }) });
-      const j = await r.json(); let c = j?.choices?.[0]?.message?.content; if (!c) continue;
-      c = String(c).replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
-      const a = c.indexOf('{'); const b = c.lastIndexOf('}'); if (a >= 0 && b > a) c = c.slice(a, b + 1);
-      return JSON.parse(c);
-    } catch (_e) {}
-  }
+  let c = await llm(sys, user);
+  if (!c) return null;
+  try {
+    c = String(c).replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+    const a = c.indexOf('{'); const b = c.lastIndexOf('}'); if (a >= 0 && b > a) c = c.slice(a, b + 1);
+    return JSON.parse(c);
+  } catch (_e) {}
   return null;
 }
 

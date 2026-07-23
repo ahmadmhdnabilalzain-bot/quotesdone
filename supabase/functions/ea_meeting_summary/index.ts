@@ -2,10 +2,11 @@
 // summary + decisions + action items, stores it in ea_meetings, and creates tracked tasks (crm_tasks) for the
 // action items. Internal use; drafts/records only — never sends anything externally.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const llm = makeLlm(SONNET_FIRST, { max: 1600, temperature: 0.2 });
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
-const MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
 function parseJson(t:string){ let s=String(t||'').trim(); const f=s.match(/```(?:json)?\s*([\s\S]*?)```/i); if(f)s=f[1]; try{return JSON.parse(s);}catch{} const m=s.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return null; }
 Deno.serve(async (req) => {
   try {
@@ -20,9 +21,7 @@ Deno.serve(async (req) => {
     const usr = 'MEETING: '+title+'\nATTENDEES: '+attendees.join(', ')+'\n\nTRANSCRIPT/NOTES:\n"""\n'+text+'\n"""';
     const key = await sec('openrouter_api_key'); if (!key) return J({ error:'ai_unavailable' });
     let parsed:any=null; let used='';
-    for (const model of MODELS) {
-      try { const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method:'POST', headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'}, body: JSON.stringify({ model, max_tokens:1600, temperature:0.2, messages:[{role:'system',content:sys},{role:'user',content:usr}] }) }); const jd=await r.json(); const c=jd?.choices?.[0]?.message?.content||''; const p=parseJson(c); if(p){parsed=p;used=model;break;} } catch(_e){}
-    }
+    { const c=(await llm(sys, usr, 1600))||''; const p=parseJson(c); if(p){parsed=p;used=SONNET_FIRST[0];} }
     if (!parsed) return J({ error:'llm_failed' });
     const { data: mrow } = await admin.from('ea_meetings').insert({ title, meeting_at: body.meeting_at || new Date().toISOString(), attendees, summary: parsed.summary, decisions: parsed.decisions||[], action_items: parsed.action_items||[], source:'ea_meeting_summary' }).select('id').single();
     let tasks = 0;

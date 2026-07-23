@@ -2,6 +2,7 @@
 // and per category asks an expert estimator which quote-critical attributes are commonly missing, then
 // merges new fields into that category's intake checklist. Weekly cron + callable ({job:'run'}).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -14,16 +15,16 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 let PARSE_FAILS = 0, SAVE_FAILS = 0, LLM_CALLS = 0; let LAST_ERR = '';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...CORS, 'Content-Type': 'application/json' } });
-const MODELS = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8']; // Sonnet-first for cost (fleet policy)
+const llmShared = makeLlm(SONNET_FIRST, { max: 1400, temperature: 0.2 }); // Sonnet-first for cost (fleet policy)
 const CLOSED = ['completed', 'accepted', 'closed', 'cancelled'];
 
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 function parseJson(txt: string) { try { return JSON.parse(txt); } catch { /* */ } const m = txt.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch { /* */ } } return null; }
-async function llm(key: string, sys: string, user: string, max = 1400) {
+async function llm(_key: string, sys: string, user: string, max = 1400) {
   LLM_CALLS++;
-  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ models: MODELS, max_tokens: max, temperature: 0.2, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }) });
-  const d = await r.json(); if (!r.ok) { LAST_ERR = 'openrouter HTTP ' + r.status + ': ' + String(d?.error?.message || ''); throw new Error(d?.error?.message || 'openrouter error'); }
-  return d?.choices?.[0]?.message?.content || '';
+  const c = await llmShared(sys, user, max);
+  if (c === null) { LAST_ERR = 'openrouter call failed or returned no content'; throw new Error('openrouter error'); }
+  return c;
 }
 
 const SYS = `You are a senior UAE estimator improving a quotation platform's intake. You are shown a set of customer briefs in ONE category that were sent to matched suppliers but received ZERO quotes — a strong signal the brief was missing something suppliers need to price without contacting the customer. You are also shown the category's CURRENT intake checklist.

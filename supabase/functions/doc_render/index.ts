@@ -1,7 +1,9 @@
 // doc_render v9 - branded document generator. Opus writes ONLY the body (in the requested language); this wraps it in
 // letterhead HTML (kept for on-screen view) AND renders a native branded PDF via pdf_native (pdf-lib, no CloudConvert).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { makeLlm, OPUS_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const llm = makeLlm(OPUS_FIRST, { max: 9000, temperature: 0.3 });
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const ASSET = URL_ + '/storage/v1/object/public/brand';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
@@ -41,12 +43,8 @@ Deno.serve(async (req) => {
     const langDirective = lang==='ar' ? '\n\nLANGUAGE: Write the ENTIRE document body in formal Modern Standard Arabic (العربية الفصحى). Keep numbers, currency codes (AED) and proper names as-is.' : (lang==='bi' ? '\n\nLANGUAGE: Produce the document BILINGUALLY. For every section, write the English version first, then immediately its Modern Standard Arabic translation as a separate paragraph/heading. Keep numbers and AED as-is.' : '');
     const user = `DOCUMENT TITLE: ${title}\n\nLAYOUT / CONTENT INSTRUCTIONS:\n${layout}${langDirective}\n\nDATA TO USE${data?':\n'+data:' : (none provided — use [placeholders] where needed)'}`;
     let frag=''; let lastErr='';
-    for (const model of ['anthropic/claude-opus-4.8','anthropic/claude-sonnet-5']){
-      try{
-        const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method:'POST', headers:{ 'Authorization':'Bearer '+key, 'Content-Type':'application/json' }, body: JSON.stringify({ model, max_tokens: 9000, temperature: 0.3, messages:[{ role:'system', content: SYS },{ role:'user', content: user }] }) });
-        const jd = await r.json(); const c = jd?.choices?.[0]?.message?.content; if(c){ frag = stripFences(c); if(frag.length>40) break; } else lastErr='empty:'+model;
-      }catch(e){ lastErr='exc:'+model+':'+String((e as Error)?.message||e).slice(0,80); }
-    }
+    const c = await llm(SYS, user, 9000);
+    if(c){ frag = stripFences(c); } else lastErr='empty';
     if(frag.length<40) return J({ error:'render_failed', detail:lastErr }, 502);
     frag = frag.replace(/<!doctype[\s\S]*?>/gi,'').replace(/<\/?(html|head|body)[^>]*>/gi,'').replace(/<style[\s\S]*?<\/style>/gi,'').trim();
     const rtl = lang==='ar' || (lang!=='bi' && dir(frag)==='rtl');

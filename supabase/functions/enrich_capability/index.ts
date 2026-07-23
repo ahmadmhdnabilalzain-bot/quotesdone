@@ -3,7 +3,9 @@
 // adjudicator (route_inquiry) reads to judge who can genuinely quote a job. Never invents scope it
 // cannot infer; thin inputs -> conservative summary + low_confidence flag. Single (lead_id) or batch.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const _llm = makeLlm(SONNET_FIRST, { max: 700, temperature: 0 });
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
   try {
@@ -19,15 +21,7 @@ function parseJson(s: string){ try { const m=String(s||'').match(/\{[\s\S]*\}/);
 
 async function llm(sys: string, user: string, max = 700): Promise<string> {
   const key = await sec('openrouter_api_key'); if (!key) { LLM_STATE.keyMissing = true; return ''; }
-  const MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
-  for (const model of MODELS) {
-    try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method:'POST', headers:{ 'Authorization':'Bearer '+key, 'Content-Type':'application/json' }, body: JSON.stringify({ model, max_tokens: max, temperature: 0, messages:[{role:'system',content:sys},{role:'user',content:user}] }) });
-      const j = await r.json(); const c = j?.choices?.[0]?.message?.content; if (c) return c;
-      if (LLM_STATE.failures.length < 10) LLM_STATE.failures.push(model+':http'+String(r.status)+':'+String(j?.error?.message || 'no content'));
-    } catch (_e) { if (LLM_STATE.failures.length < 10) LLM_STATE.failures.push(model+':'+String((_e as Error)?.message || _e)); /* next */ }
-  }
-  return '';
+  return (await _llm(sys, user, max)) || '';
 }
 
 const SYS = `You write a concise, FACTUAL capability profile for a UAE B2B supplier/contractor, used by an AI to decide which customer jobs this supplier can genuinely quote. Base it ONLY on the supplier's own profile data given. Do NOT invent trades, brands, certifications or scale that are not supported by the input. If the input is thin, write a short conservative summary and set low_confidence true. Capture: the exact products/materials they supply and/or services they perform, the trades they cover, typical project types/sectors, and any clear specialisation. 60-140 words, plain declarative sentences (no marketing fluff, no first person). Output ONLY minified JSON: {"capability_summary": string, "low_confidence": boolean}.`;

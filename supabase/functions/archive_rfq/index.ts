@@ -3,9 +3,11 @@
 // supplier responses, quotations, comparison, decision history, audit logs, and an AI summary.
 // Stored to backups/archives/RFQ-<id>/; searchable metadata in public.rfq_archives. Secret-gated.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const URL = Deno.env.get('SUPABASE_URL')!;
 const KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const admin = createClient(URL, KEY);
+const llm = makeLlm(SONNET_FIRST, { max: 900, temperature: 0 });
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
   try {
@@ -18,16 +20,14 @@ const cors = { 'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':
 const j = (o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:cors});
 async function sha256(t:string){ const b=new TextEncoder().encode(t); const h=await crypto.subtle.digest('SHA-256',b); return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
 
-async function aiSummary(apiKey:string, pkg:any):Promise<any>{
-  const models=['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
+async function aiSummary(pkg:any):Promise<any>{
   const sys='You write concise project post-mortems for a UAE procurement marketplace. Return STRICT JSON only: '+
     '{summary:string (6-10 lines: customer, category, budget, winning supplier, savings if any, timeline, disputes), '+
     'lessons:[string] (2-5 concrete, reusable institutional lessons for matching/qualification/recommendation)}. Base only on data. Never invent.';
   const brief=JSON.stringify({rfq:pkg['01_RFQ'],customer:pkg['02_Customer'],suppliers:pkg['03_Suppliers'],quotations:pkg['04_Quotations'],comparison:pkg['05_Comparison'],invoices:pkg['09_Invoices']}).slice(0,12000);
-  for(const model of models){ try{
-    const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},body:JSON.stringify({model,temperature:0,max_tokens:900,messages:[{role:'system',content:sys},{role:'user',content:brief}]})});
-    if(!r.ok) continue; const d=await r.json(); let t=d?.choices?.[0]?.message?.content||''; t=t.replace(/^```(json)?/i,'').replace(/```$/,'').trim(); const m=t.match(/\{[\s\S]*\}/); if(m) return JSON.parse(m[0]);
-  }catch(_e){} }
+  try{
+    let t=(await llm(sys,brief,900))||''; t=t.replace(/^```(json)?/i,'').replace(/```$/,'').trim(); const m=t.match(/\{[\s\S]*\}/); if(m) return JSON.parse(m[0]);
+  }catch(_e){}
   return { summary:'(AI summary unavailable)', lessons:[] };
 }
 
@@ -128,7 +128,7 @@ Deno.serve(async (req)=>{
       '12_Final_Report': null };
 
     if(!apiKey) warn.push('No openrouter_api_key is configured, so the AI post-mortem summary and lessons-learned for RFQ '+rid+' were not generated and the archive was stored with a placeholder summary. ');
-    const ai=await aiSummary(apiKey, pkg);
+    const ai=await aiSummary(pkg);
     if(apiKey && ai && ai.summary==='(AI summary unavailable)') warn.push('Every OpenRouter model failed, so the AI post-mortem summary and lessons-learned for RFQ '+rid+' were not generated and the archive was stored with a placeholder summary. ');
     pkg['12_Final_Report']=ai;
 
