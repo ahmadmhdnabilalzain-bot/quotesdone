@@ -2,7 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
-const CLAUDE_MODEL = 'anthropic/claude-sonnet-4.6';
+const CLAUDE_MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
 
 const SYS = `You are a data-quality reviewer for QuotesDone, a UAE supplier marketplace. A supplier has just submitted their registration. Your job is to catch obvious mistakes BEFORE a human admin reviews it, so the admin's job is easy.
 
@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${keyRow.value}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://quotesdone.com', 'X-Title': 'QuotesDone' },
-      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 800, temperature: 0.1, messages: [{ role: 'system', content: SYS }, { role: 'user', content: userMsg }] }),
+      body: JSON.stringify({ models: CLAUDE_MODELS, max_tokens: 800, temperature: 0.1, messages: [{ role: 'system', content: SYS }, { role: 'user', content: userMsg }] }),
     });
     const d = await r.json();
     if (!r.ok) return J({ ok: true, severity: 'clean', issues: [], summary: 'AI review failed; manual check advised.', fallback: true });
