@@ -130,7 +130,9 @@ Deno.serve(async (req) => {
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
       const htmlBody = tmpl({ body: n.body || '', logo, name: sigName, title: sigTitle, channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
       try {
-        const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to: [n.to_email], reply_to: reply, subject: n.subject || 'QuotesDone', html: htmlBody }) });
+        const mail: Record<string, unknown> = { from, to: [n.to_email], reply_to: reply, subject: n.subject || 'QuotesDone', html: htmlBody };
+        if (unsub) mail.headers = { 'List-Unsubscribe': `<${unsub}>, <mailto:${reply}?subject=unsubscribe>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
+        const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(mail) });
         if (r.ok) { await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', n.id); sent++; }
         else { const t = await r.text(); lastErr = String(t).slice(0, 200); await failNote(n, t); console.error('resend fail', n.id, t); }
       } catch (e) { lastErr = String((e as Error)?.message || e).slice(0, 200); await failNote(n, String((e as Error)?.message || e)); console.error(e); }
