@@ -8,12 +8,24 @@ import { Categories } from '@/components/Categories';
 import { CtaBand } from '@/components/CtaBand';
 import { SiteFooter } from '@/components/SiteFooter';
 
-export async function generateMetadata({ params: { locale } }: { params: { locale: string } }) {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
+
+  const {
+    locale
+  } = params;
+
   const t = await getTranslations({ locale, namespace: 'meta' });
   return buildMeta({ locale, path: '/', title: t('siteTitle'), description: t('siteDesc') });
 }
 
-export default function HomePage({ params: { locale } }: { params: { locale: string } }) {
+export default async function HomePage(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
+
+  const {
+    locale
+  } = params;
+
   setRequestLocale(locale);
   return (
     <>
