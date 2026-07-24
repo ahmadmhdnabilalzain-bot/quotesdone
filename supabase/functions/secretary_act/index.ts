@@ -3,6 +3,9 @@
 // v3 (agent network): + query_platform (department dashboards) + ask_agent (delegate to a specialist).
 // v4 (org foundation): + objective (turn a founder OUTCOME into a routed, tracked plan across departments
 //     via intent_router, read its status, and see the whole-company scorecard). Auth: __secret OR admin JWT.
+// v5 (marketing): post_content now PUBLISHES to social via the Postiz connector (linkedin/instagram/x/
+//     facebook) — still a high-stakes tool that pauses for a founder confirm; default type=draft (stages
+//     in Postiz), or schedule/now on request. This is how the founder acts on publishing from the OS.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
@@ -31,7 +34,7 @@ const TOOLS = [
   { type: 'function', function: { name: 'draft_content', description: 'Generate and SAVE a content draft (not published). channel one of email|whatsapp|social|seo.', parameters: { type: 'object', properties: { channel: { type: 'string' }, topic: { type: 'string' }, notes: { type: 'string' } }, required: ['channel', 'topic'] } } },
   { type: 'function', function: { name: 'add_task', description: 'Add a task to the founder task list.', parameters: { type: 'object', properties: { title: { type: 'string' }, detail: { type: 'string' } }, required: ['title'] } } },
   { type: 'function', function: { name: 'send_email', description: 'Queue an email to one or more recipients. to is an array of addresses.', parameters: { type: 'object', properties: { to: { type: 'array', items: { type: 'string' } }, subject: { type: 'string' }, body: { type: 'string' } }, required: ['to', 'subject', 'body'] } } },
-  { type: 'function', function: { name: 'post_content', description: 'PUBLISH content to a channel now. channel email|whatsapp|social. Provide text OR draft_id.', parameters: { type: 'object', properties: { channel: { type: 'string' }, text: { type: 'string' }, draft_id: { type: 'string' }, to: { type: 'array', items: { type: 'string' } } }, required: ['channel'] } } },
+  { type: 'function', function: { name: 'post_content', description: 'PUBLISH content. channel: email|whatsapp|social|linkedin|instagram|x|facebook. Provide text OR draft_id. For social, it goes to Postiz; type is draft (default, lands in Postiz to schedule), schedule (give when, ISO), or now. Instagram needs an image (a default is attached).', parameters: { type: 'object', properties: { channel: { type: 'string' }, text: { type: 'string' }, draft_id: { type: 'string' }, to: { type: 'array', items: { type: 'string' } }, type: { type: 'string', enum: ['draft', 'schedule', 'now'] }, when: { type: 'string' } }, required: ['channel'] } } },
   { type: 'function', function: { name: 'log_finance', description: 'Record a finance entry (invoice/receipt/subscription). kind one of expense|income|subscription. amount in AED. For subscription give next_due (YYYY-MM-DD) and cycle (monthly|annual).', parameters: { type: 'object', properties: { kind: { type: 'string', enum: ['expense', 'income', 'subscription'] }, vendor: { type: 'string' }, description: { type: 'string' }, amount: { type: 'number' }, currency: { type: 'string' }, category: { type: 'string' }, next_due: { type: 'string' }, cycle: { type: 'string' } }, required: ['kind', 'amount'] } } },
   { type: 'function', function: { name: 'issue_refund', description: 'Record a reveal-fee refund for a transaction (fires the 3% supplier non-response charge).', parameters: { type: 'object', properties: { transaction_id: { type: 'string' }, reason: { type: 'string' } }, required: ['transaction_id'] } } },
   { type: 'function', function: { name: 'supplier_decision', description: 'Approve, reject, ban or unban a supplier. action one of approve|reject|ban|unban.', parameters: { type: 'object', properties: { supplier_id: { type: 'string' }, action: { type: 'string', enum: ['approve', 'reject', 'ban', 'unban'] }, reason: { type: 'string' } }, required: ['supplier_id', 'action'] } } },
@@ -104,6 +107,17 @@ async function tool_post_content(a: any) {
   if (!text) return { error: 'nothing to post' };
   const channel = String(a.channel || '');
   if (channel === 'email' || channel === 'whatsapp') { const to = Array.isArray(a.to) ? a.to : []; if (!to.length) return { error: 'need recipients for ' + channel }; await tool_send_email(to, a.subject || 'QuotesDone', text); if (a.draft_id) await admin.from('content_drafts').update({ status: 'posted' }).eq('id', a.draft_id); return { posted: channel, recipients: to.length }; }
+  // Social publishing via the platform's Postiz connector. Default type='draft' (lands in Postiz for
+  // final scheduling — safest); the founder can say 'now' or 'schedule' (with when) to go further.
+  const social = ['social', 'linkedin', 'instagram', 'x', 'twitter', 'facebook'];
+  if (social.includes(channel)) {
+    const chans = channel === 'social' ? ['linkedin', 'x', 'facebook', 'instagram'] : [channel === 'twitter' ? 'x' : channel];
+    const img = await sec('default_post_image');
+    const type = ['now', 'schedule', 'draft'].includes(String(a.type)) ? String(a.type) : 'draft';
+    const r = await callFn('postiz_publish', { action: 'post', text, title: a.subject || a.title, channels: chans, type, when: a.when, image: img ? [{ path: img }] : [] });
+    if (a.draft_id && (r as any)?.ok) await admin.from('content_drafts').update({ status: type === 'now' ? 'posted' : 'staged' }).eq('id', a.draft_id);
+    return r;
+  }
   return { pending_channel: channel, note: channel + ' is not connected yet (needs its posting token). Saved as a draft.' };
 }
 async function tool_issue_refund(transaction_id: string, reason: string) { const { data: tx } = await admin.from('transactions').select('id,refund_status').eq('id', transaction_id).maybeSingle(); if (!tx) return { error: 'transaction_not_found' }; await admin.from('transactions').update({ refund_status: 'refunded', refund_note: String(reason || '').slice(0, 500), refund_resolved_at: new Date().toISOString() }).eq('id', transaction_id); const { data: due } = await admin.from('supplier_dues').select('amount_due,status').eq('transaction_id', transaction_id).order('created_at', { ascending: false }).maybeSingle(); return { refunded: transaction_id, supplier_charge: due || null }; }
@@ -143,7 +157,7 @@ function describe(name: string, a: any) {
   if (name === 'issue_refund') return 'Refund reveal fee for transaction ' + a.transaction_id + ' (this also charges the supplier the 3% non-response fee).';
   if (name === 'supplier_decision') return a.action + ' supplier #' + a.supplier_id + (a.reason ? (' — ' + a.reason) : '');
   if (name === 'delete_files') return 'Delete files from ' + a.bucket + (a.prefix ? (' under "' + a.prefix + '/"') : (' (' + ((a.paths || []).length) + ' file(s))'));
-  if (name === 'post_content') return 'Publish to ' + a.channel + (Array.isArray(a.to) ? (' — ' + a.to.length + ' recipient(s)') : '');
+  if (name === 'post_content') { const social = ['social', 'linkedin', 'instagram', 'x', 'twitter', 'facebook'].includes(String(a.channel)); if (social) { const t = ['now', 'schedule', 'draft'].includes(String(a.type)) ? a.type : 'draft'; return 'Publish to ' + a.channel + ' via Postiz (' + t + (a.when ? (', ' + a.when) : '') + (t === 'draft' ? ' — stages in Postiz, not live' : '') + ')'; } return 'Publish to ' + a.channel + (Array.isArray(a.to) ? (' — ' + a.to.length + ' recipient(s)') : ''); }
   if (name === 'send_email') return 'Send email "' + (a.subject || '') + '" to ' + ((a.to || []).length) + ' recipient(s)';
   return name;
 }
