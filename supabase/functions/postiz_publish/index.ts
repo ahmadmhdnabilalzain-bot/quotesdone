@@ -1,18 +1,35 @@
-// postiz_publish v1 — the platform's own Postiz connector so agents publish to social autonomously.
+// postiz_publish v2 — the platform's own Postiz connector so agents publish to social autonomously.
 // Keys stay server-side (app_secrets). Auth: __secret == inbound_secret.
 // Actions:
-//   test  -> GET /public/v1/integrations (read-only; verifies key + lists channels)
-//   post  -> body {channels:[names], text, title?, type?:'now'|'schedule'|'draft', when?:ISO, image?:[{id,path}]}
+//   test    -> GET /integrations (read-only; verifies key + lists channels)
+//   upload  -> body {url}: fetch an image URL and upload it to Postiz's media store; returns {id, path}
+//              (Postiz requires post images to be uploads.postiz.com objects, not arbitrary URLs).
+//   post    -> body {channels:[names], text, title?, type?:'now'|'schedule'|'draft', when?:ISO,
+//              image?:[{id,path}], image_url?:string}. If image_url is given (any public URL) it is
+//              uploaded to Postiz first and attached automatically.
+//   delete  -> body {id|ids[]}
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 async function sec(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 
-// which social channels need media (won't accept text-only)
 const NEEDS_MEDIA = new Set(['instagram']);
-const TYPE_MAP: Record<string, string> = { x: 'x', twitter: 'x', linkedin: 'linkedin', facebook: 'facebook', instagram: 'instagram' };
-
 async function base(): Promise<string> { return (await sec('postiz_api_url')) || 'https://api.postiz.com/public/v1'; }
+
+// Upload an image (by URL) to Postiz; returns the Postiz media object {id, path, ...} or null.
+async function uploadToPostiz(key: string, B: string, url: string): Promise<any> {
+  try {
+    const ir = await fetch(url); if (!ir.ok) return null;
+    const blob = await ir.blob();
+    const fd = new FormData();
+    fd.append('file', blob, (url.split('/').pop() || 'image.png').split('?')[0]);
+    const r = await fetch(B + '/upload', { method: 'POST', headers: { 'Authorization': key }, body: fd });
+    const txt = await r.text(); let j: any; try { j = JSON.parse(txt); } catch (_e) { j = { raw: txt }; }
+    if (!r.ok) return { error: j?.message || j?.error || txt, status: r.status };
+    const obj = Array.isArray(j) ? j[0] : (j?.output || j?.data || j);
+    return obj;
+  } catch (e) { return { error: String((e as Error)?.message || e) }; }
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' } });
@@ -34,14 +51,25 @@ Deno.serve(async (req) => {
       return J({ ok: r.ok, status: r.status, integrations: list });
     }
 
+    if (action === 'upload') {
+      if (!body.url) return J({ error: 'url required' }, 400);
+      const obj = await uploadToPostiz(key, B, String(body.url));
+      if (!obj || obj.error) return J({ ok: false, error: obj?.error || 'upload_failed', raw: obj }, 200);
+      return J({ ok: true, image: { id: obj.id, path: obj.path || obj.url }, raw: obj });
+    }
+
     if (action === 'post') {
       const text = String(body.text || '').trim();
       if (!text) return J({ error: 'empty_content' }, 400);
       const type = ['now', 'schedule', 'draft'].includes(String(body.type)) ? String(body.type) : 'now';
       const date = body.when ? new Date(body.when).toISOString() : new Date(Date.now() + 60000).toISOString();
-      const image = Array.isArray(body.image) ? body.image : [];
+      // Resolve the image: an already-Postiz image passes through; a plain image_url is uploaded first.
+      let image: any[] = Array.isArray(body.image) ? body.image : [];
+      if ((!image.length) && body.image_url) {
+        const obj = await uploadToPostiz(key, B, String(body.image_url));
+        if (obj && !obj.error && obj.id) image = [{ id: obj.id, path: obj.path || obj.url }];
+      }
       const wanted = (Array.isArray(body.channels) ? body.channels : []).map((c: any) => String(c).toLowerCase());
-      // resolve channels against the LIVE integration list so __type matches the real identifier
       const ir = await fetch(B + '/integrations', { headers: { 'Authorization': key } });
       const integ = await ir.json().catch(() => []);
       const live = Array.isArray(integ) ? integ.filter((x: any) => !x.disabled) : [];
@@ -63,10 +91,10 @@ Deno.serve(async (req) => {
       const payload = { type, date, shortLink: false, tags: [], posts };
       const r = await fetch(B + '/posts', { method: 'POST', headers: H, body: JSON.stringify(payload) });
       const txt = await r.text(); let j: any; try { j = JSON.parse(txt); } catch (_e) { j = { raw: txt }; }
-      await admin.from('agent_runs').insert({ agent: 'postiz_publish', started_at: started, finished_at: new Date().toISOString(), status: r.ok ? 'ok' : 'error', counts: { channels: posts.length, skipped: skipped.length, type }, note: r.ok ? null : String(txt).slice(0, 200) });
+      await admin.from('agent_runs').insert({ agent: 'postiz_publish', started_at: started, finished_at: new Date().toISOString(), status: r.ok ? 'ok' : 'error', counts: { channels: posts.length, skipped: skipped.length, type, image: image.length }, note: r.ok ? null : String(txt).slice(0, 200) });
       if (!r.ok) return J({ ok: false, status: r.status, error: j?.message || j?.error || txt, skipped }, 200);
       const postId = j?.[0]?.postId || j?.postId || j?.id || (Array.isArray(j) ? j[0]?.id : null);
-      return J({ ok: true, type, published_to: posts.length, post_id: postId, skipped, result: j });
+      return J({ ok: true, type, published_to: posts.length, post_id: postId, skipped, image: image.length, result: j });
     }
 
     if (action === 'delete') {

@@ -46,10 +46,10 @@ Deno.serve(async (req) => {
     }
 
     const img = await secret("default_post_image");
-    const r = await fetch(`${SB_URL}/rest/v1/content_drafts?channel=eq.social&staged_at=is.null&select=id,title,body&order=created_at.asc&limit=10`, {
+    const r = await fetch(`${SB_URL}/rest/v1/content_drafts?channel=eq.social&staged_at=is.null&select=id,title,body,image_url&order=created_at.asc&limit=10`, {
       headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
     });
-    const rows: Array<{ id: number; title: string; body: string }> = await r.json();
+    const rows: Array<{ id: number; title: string; body: string; image_url?: string }> = await r.json();
     if (!Array.isArray(rows)) { await logThrottled("drafts_query_failed", 60, "error", { stage: "select", http: r.status }, "Could not read pending social drafts (HTTP " + String(r.status) + "): " + JSON.stringify(rows).slice(0, 200) + "; this failure looks identical to having no drafts, so the marketing pipeline silently stages nothing indefinitely"); }
     if (!rows.length) return json({ ok: true, staged: 0, message: "no pending social drafts" });
 
@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
       const pr = await fetch(`${SB_URL}/functions/v1/postiz_publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ __secret: inbound, action: "post", text: content, channels: ["instagram", "linkedin", "x", "facebook"], type: "draft", image: img ? [{ path: img }] : [], source: "marketing_agent" }),
+        body: JSON.stringify({ __secret: inbound, action: "post", text: content, channels: ["instagram", "linkedin", "x", "facebook"], type: "draft", image_url: (row.image_url || img) || undefined, source: "marketing_agent" }),
       });
       const pj = await pr.json();
       const ok = pr.status >= 200 && pr.status < 300 && pj?.ok;
