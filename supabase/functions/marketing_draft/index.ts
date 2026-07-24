@@ -33,10 +33,22 @@ Deno.serve(async (req) => {
     }
     if (!title) title = 'Draft marketing content for QuotesDone';
 
-    // Brand voice / company context for the marketing agent.
+    // Brand voice / company context (always-on distilled knowledge).
     let brain = ''; try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: 'marketing', p_max_chars: 6000 }); brain = data ? String(data) : ''; } catch (_e) {}
 
-    const sys = 'You write concise, on-brand marketing content for QuotesDone, a UAE B2B anonymous quotation marketplace (buyers post RFQs; verified suppliers quote; buyer reveals a supplier for a fee). Practical, trustworthy, pro-SME, UAE-aware. NEVER invent statistics, prices, or client names. Choose the single most appropriate channel for the task from: social, seo, email, blog, whatsapp. Return STRICT minified JSON only: {"channel":"...","title":"...","body":"...","card_headline":"...","card_eyebrow":"..."}. body is the finished content ready for review (not a description). card_headline is a punchy on-image headline of AT MOST 8 words (no hashtags, no emoji); card_eyebrow is a 2-3 word label (e.g. "How it works", "For suppliers").' + (brain ? ('\n\n' + brain) : '');
+    // Retrieved depth: pull the most relevant chunks from the queryable UAE marketing library for THIS task
+    // (regulation/PDPL, SEO, paid media, WhatsApp/lifecycle, influencer, B2B, analytics...). On-demand, not always-on.
+    let libref = '';
+    try {
+      const q = (title + ' ' + detail + ' ' + objectiveText).slice(0, 300);
+      const { data: hits } = await admin.rpc('fn_marketing_library_search', { p_query: q, p_limit: 3 });
+      if (Array.isArray(hits) && hits.length) {
+        libref = '\n\nUAE MARKETING REFERENCE (retrieved for this task — apply what is relevant; never quote verbatim; treat legal/regulated/paid-media specifics as verify-before-acting):\n'
+          + hits.map((h: any) => ('• [' + String(h.title).slice(0, 80) + '] ' + String(h.content).replace(/\s+/g, ' ').slice(0, 650))).join('\n');
+      }
+    } catch (_e) { /* generation proceeds on the always-on knowledge alone */ }
+
+    const sys = 'You write concise, on-brand marketing content for QuotesDone, a UAE B2B anonymous quotation marketplace (buyers post RFQs; verified suppliers quote; buyer reveals a supplier for a fee). Practical, trustworthy, pro-SME, UAE-aware. NEVER invent statistics, prices, or client names. Choose the single most appropriate channel for the task from: social, seo, email, blog, whatsapp. Return STRICT minified JSON only: {"channel":"...","title":"...","body":"...","card_headline":"...","card_eyebrow":"..."}. body is the finished content ready for review (not a description). card_headline is a punchy on-image headline of AT MOST 8 words (no hashtags, no emoji); card_eyebrow is a 2-3 word label (e.g. "How it works", "For suppliers").' + (brain ? ('\n\n' + brain) : '') + libref;
     const user = 'MARKETING TASK: ' + title + (detail ? ('\n' + detail) : '') + (objectiveText ? ('\nParent objective: ' + objectiveText) : '') + '\n\nWrite the content now and return the JSON.';
     const raw = (await llm(sys, user, 1100) || '').trim();
     if (!raw) return J({ error: 'marketing_llm_unavailable' }, 502);
