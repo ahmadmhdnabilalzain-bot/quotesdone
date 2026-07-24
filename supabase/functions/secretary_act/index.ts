@@ -1,9 +1,8 @@
-// secretary_act v3 — the Secretary acts on the founder's instructions via a real action toolkit.
-// Tool-calling loop (OpenRouter). Low-risk tools run immediately; high-stakes tools pause for a one-line confirm.
-// Accepts document attachments (already text-extracted by the caller) and folds them into the founder's message.
-// v3 (Phase A, agent network): + query_platform (fn_query_platform — read-only window onto every department dashboard)
-//                              + ask_agent (synchronous delegation to any specialist via agent_brain __secret path).
-// Auth: __secret == inbound_secret (server/testing) OR admin-email JWT.
+// secretary_act v4 — the Chief of Staff. Acts on the founder's instructions via a real toolkit.
+// Tool-calling loop (OpenRouter). Low-risk tools run immediately; high-stakes tools pause for a confirm.
+// v3 (agent network): + query_platform (department dashboards) + ask_agent (delegate to a specialist).
+// v4 (org foundation): + objective (turn a founder OUTCOME into a routed, tracked plan across departments
+//     via intent_router, read its status, and see the whole-company scorecard). Auth: __secret OR admin JWT.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
@@ -20,21 +19,21 @@ async function whoami(req: Request, body: any): Promise<string | null> {
 async function callFn(name: string, payload: Record<string, unknown>) { try { const sk = await sec('inbound_secret'); const r = await fetch(FN + '/' + name, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: sk, ...payload }) }); return await r.json(); } catch (e) { return { error: String((e as Error)?.message || e) }; } }
 const dayAgo = (d: number) => new Date(Date.now() - d * 864e5).toISOString();
 
-// ---------- TOOLKIT ----------
 const HIGH = new Set(['issue_refund', 'supplier_decision', 'delete_files', 'post_content']);
 const TOOLS = [
   { type: 'function', function: { name: 'get_status', description: 'Business snapshot: what needs attention (pending suppliers, refund requests, stuck queues, 24h activity, revenue, active alerts).', parameters: { type: 'object', properties: {} } } },
-  { type: 'function', function: { name: 'query_platform', description: 'THE live window onto every department dashboard of the company — use this FIRST for ANY question about company state: knowledge coverage/gaps, agents health, finance, funnel, analytics, customers, suppliers, operations, refunds, governance, fraud, marketing, strategy, documents, reports, exec. topic is one of: topics|knowledge|agents|agent_ops|ai|analytics|company|customers|documents|ea|exec|finance|fraud|governance|marketing|marketplace|operations|refunds|reports|strategy|suppliers|supplier_360|customer_360|rfq_360|funnel. args is optional: {"id":"<uuid or number>"} for the 360 topics, {"days":30} for funnel, {"agent":"<key>"} for agent_ops. Call topic=topics to list all. NEVER answer "I do not know" about company state without querying this first.', parameters: { type: 'object', properties: { topic: { type: 'string' }, args: { type: 'object' } }, required: ['topic'] } } },
-  { type: 'function', function: { name: 'ask_agent', description: 'Consult a specialist teammate and get their expert answer NOW (synchronous). agent is one of: legal|collections|cfo|bookkeeper|security|it|onboarding|docs|followup|bd|marketing|brief, or cat:<slug> for a category sales desk. Use whenever a question belongs to a department specialist (legal wording, finance judgement, security assessment, marketing plan, category expertise) — you coordinate the team, you do not have to know everything yourself.', parameters: { type: 'object', properties: { agent: { type: 'string' }, question: { type: 'string' } }, required: ['agent', 'question'] } } },
-  { type: 'function', function: { name: 'team_roster', description: 'The QuotesDone team: the AI staff of specialist agents (finance, legal, marketing, security, IT, onboarding, collections, BD, document control, etc.) plus per-category sales desks, and the human founder. Use for any question about staff/agents/headcount/who handles a topic.', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'objective', description: 'THE way to act on a founder business OUTCOME. op=set: turn a stated goal (e.g. \'improve SEO\', \'reduce AI cost\', \'grow HVAC supply\', \'fix the supplier portal\') into a routed, tracked plan — the org decomposes it into department tasks, each at the control tier its authority allows (autonomous work starts; gated work waits for the founder). op=status: report progress on an objective (give objective_id) or list open objectives. op=scorecard: the whole-company view — every department, its open work and escalations. Use op=set whenever the founder expresses a goal rather than a single command.', parameters: { type: 'object', properties: { op: { type: 'string', enum: ['set', 'status', 'scorecard'] }, objective: { type: 'string' }, objective_id: { type: 'number' } }, required: ['op'] } } },
+  { type: 'function', function: { name: 'query_platform', description: 'THE live window onto every department dashboard — use FIRST for ANY question about company state: knowledge, agents, finance, funnel, analytics, customers, suppliers, operations, refunds, governance, fraud, marketing, strategy, documents, reports, exec. topic one of: topics|knowledge|agents|agent_ops|ai|analytics|company|customers|documents|ea|exec|finance|fraud|governance|marketing|marketplace|operations|refunds|reports|strategy|suppliers|supplier_360|customer_360|rfq_360|funnel. args optional: {"id":".."} for 360s, {"days":30} for funnel. NEVER answer "I do not know" about company state without querying this first.', parameters: { type: 'object', properties: { topic: { type: 'string' }, args: { type: 'object' } }, required: ['topic'] } } },
+  { type: 'function', function: { name: 'ask_agent', description: 'Consult a specialist teammate and get their expert answer NOW (synchronous). agent one of: legal|collections|cfo|bookkeeper|security|it|onboarding|docs|followup|bd|marketing|brief, or cat:<slug>. Delegate domain questions to the right department instead of guessing.', parameters: { type: 'object', properties: { agent: { type: 'string' }, question: { type: 'string' } }, required: ['agent', 'question'] } } },
+  { type: 'function', function: { name: 'team_roster', description: 'The QuotesDone team: the AI departments/agents plus the founder. Use for any question about staff/agents/headcount/who handles a topic.', parameters: { type: 'object', properties: {} } } },
   { type: 'function', function: { name: 'lookup', description: 'Find records. entity one of supplier|customer|inquiry|transaction; query is a name/email/id/keyword.', parameters: { type: 'object', properties: { entity: { type: 'string', enum: ['supplier', 'customer', 'inquiry', 'transaction'] }, query: { type: 'string' } }, required: ['entity', 'query'] } } },
-  { type: 'function', function: { name: 'run_maintenance', description: 'Fix/refresh operations. target one of: health, smoke, security, it_health, clear_test_queue (cancel stuck test/dead-address emails+SMS), recompute_response.', parameters: { type: 'object', properties: { target: { type: 'string', enum: ['health', 'smoke', 'security', 'it_health', 'clear_test_queue', 'recompute_response'] } }, required: ['target'] } } },
+  { type: 'function', function: { name: 'run_maintenance', description: 'Fix/refresh operations. target one of: health, smoke, security, it_health, clear_test_queue, recompute_response.', parameters: { type: 'object', properties: { target: { type: 'string', enum: ['health', 'smoke', 'security', 'it_health', 'clear_test_queue', 'recompute_response'] } }, required: ['target'] } } },
   { type: 'function', function: { name: 'draft_content', description: 'Generate and SAVE a content draft (not published). channel one of email|whatsapp|social|seo.', parameters: { type: 'object', properties: { channel: { type: 'string' }, topic: { type: 'string' }, notes: { type: 'string' } }, required: ['channel', 'topic'] } } },
   { type: 'function', function: { name: 'add_task', description: 'Add a task to the founder task list.', parameters: { type: 'object', properties: { title: { type: 'string' }, detail: { type: 'string' } }, required: ['title'] } } },
-  { type: 'function', function: { name: 'send_email', description: 'Queue an email to one or more recipients (goes out via the mailer). to is an array of addresses.', parameters: { type: 'object', properties: { to: { type: 'array', items: { type: 'string' } }, subject: { type: 'string' }, body: { type: 'string' } }, required: ['to', 'subject', 'body'] } } },
+  { type: 'function', function: { name: 'send_email', description: 'Queue an email to one or more recipients. to is an array of addresses.', parameters: { type: 'object', properties: { to: { type: 'array', items: { type: 'string' } }, subject: { type: 'string' }, body: { type: 'string' } }, required: ['to', 'subject', 'body'] } } },
   { type: 'function', function: { name: 'post_content', description: 'PUBLISH content to a channel now. channel email|whatsapp|social. Provide text OR draft_id.', parameters: { type: 'object', properties: { channel: { type: 'string' }, text: { type: 'string' }, draft_id: { type: 'string' }, to: { type: 'array', items: { type: 'string' } } }, required: ['channel'] } } },
-  { type: 'function', function: { name: 'log_finance', description: 'Record a finance entry the founder gives you or that you read from an attached invoice/receipt/subscription. kind one of expense|income|subscription. amount in AED. For subscription also give next_due (YYYY-MM-DD) and cycle (monthly|annual).', parameters: { type: 'object', properties: { kind: { type: 'string', enum: ['expense', 'income', 'subscription'] }, vendor: { type: 'string' }, description: { type: 'string' }, amount: { type: 'number' }, currency: { type: 'string' }, category: { type: 'string' }, next_due: { type: 'string' }, cycle: { type: 'string' } }, required: ['kind', 'amount'] } } },
-  { type: 'function', function: { name: 'issue_refund', description: 'Record a reveal-fee refund for a transaction (fires the 3% supplier non-response charge). Money settlement is done in your processor.', parameters: { type: 'object', properties: { transaction_id: { type: 'string' }, reason: { type: 'string' } }, required: ['transaction_id'] } } },
+  { type: 'function', function: { name: 'log_finance', description: 'Record a finance entry (invoice/receipt/subscription). kind one of expense|income|subscription. amount in AED. For subscription give next_due (YYYY-MM-DD) and cycle (monthly|annual).', parameters: { type: 'object', properties: { kind: { type: 'string', enum: ['expense', 'income', 'subscription'] }, vendor: { type: 'string' }, description: { type: 'string' }, amount: { type: 'number' }, currency: { type: 'string' }, category: { type: 'string' }, next_due: { type: 'string' }, cycle: { type: 'string' } }, required: ['kind', 'amount'] } } },
+  { type: 'function', function: { name: 'issue_refund', description: 'Record a reveal-fee refund for a transaction (fires the 3% supplier non-response charge).', parameters: { type: 'object', properties: { transaction_id: { type: 'string' }, reason: { type: 'string' } }, required: ['transaction_id'] } } },
   { type: 'function', function: { name: 'supplier_decision', description: 'Approve, reject, ban or unban a supplier. action one of approve|reject|ban|unban.', parameters: { type: 'object', properties: { supplier_id: { type: 'string' }, action: { type: 'string', enum: ['approve', 'reject', 'ban', 'unban'] }, reason: { type: 'string' } }, required: ['supplier_id', 'action'] } } },
   { type: 'function', function: { name: 'delete_files', description: 'Delete files from a storage bucket. bucket + paths[] (or a prefix).', parameters: { type: 'object', properties: { bucket: { type: 'string' }, paths: { type: 'array', items: { type: 'string' } }, prefix: { type: 'string' } }, required: ['bucket'] } } },
 ];
@@ -56,22 +55,21 @@ async function tool_get_status() {
   const revenue = Math.round((paid || []).reduce((a, t) => a + (Number(t.reveal_fee) || 0), 0));
   return { pending_suppliers, refunds_requested, stuck_test_emails: held_emails, stuck_test_sms: queued_sms, inquiries_24h: inq24, quotes_24h: q24, reveals_24h: rev24, open_tasks, revenue_collected_aed: revenue };
 }
-async function tool_query_platform(topic: string, args: any) {
-  const { data, error } = await admin.rpc('fn_query_platform', { p_topic: String(topic || ''), p_args: (args && typeof args === 'object') ? args : {} });
-  if (error) return { error: error.message };
-  return data ?? {};
+async function tool_objective(op: string, a: any) {
+  if (op === 'scorecard') { const { data } = await admin.rpc('fn_org_scorecard'); return { departments: data ?? [] }; }
+  if (op === 'set') { const objective = String(a.objective || '').trim(); if (!objective) return { error: 'need an objective' }; return await callFn('intent_router', { objective }); }
+  if (op === 'status') {
+    if (a.objective_id) return await callFn('intent_router', { action: 'status', objective_id: Number(a.objective_id) });
+    const { data } = await admin.from('org_objectives').select('id,objective,status,created_at').in('status', ['open', 'in_progress', 'blocked']).order('id', { ascending: false }).limit(15);
+    return { open_objectives: data ?? [] };
+  }
+  return { error: 'unknown op' };
 }
+async function tool_query_platform(topic: string, args: any) { const { data, error } = await admin.rpc('fn_query_platform', { p_topic: String(topic || ''), p_args: (args && typeof args === 'object') ? args : {} }); if (error) return { error: error.message }; return data ?? {}; }
 async function tool_ask_agent(agent: string, question: string) {
-  const a = String(agent || '').toLowerCase().trim();
-  const q = String(question || '').trim().slice(0, 2000);
-  if (!a || !q) return { error: 'need agent and question' };
-  try {
-    const sk = await sec('inbound_secret');
-    const r = await fetch(FN + '/agent_brain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: sk, agent: a, message: q }), signal: AbortSignal.timeout(45000) });
-    const j = await r.json().catch(() => ({} as any));
-    if (j?.reply) return { agent: a, reply: String(j.reply).slice(0, 4000) };
-    return { error: j?.error || 'no_reply', agent: a };
-  } catch (e) { return { error: String((e as Error)?.message || e), agent: a }; }
+  const ag = String(agent || '').toLowerCase().trim(); const q = String(question || '').trim().slice(0, 2000);
+  if (!ag || !q) return { error: 'need agent and question' };
+  try { const sk = await sec('inbound_secret'); const r = await fetch(FN + '/agent_brain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: sk, agent: ag, message: q }), signal: AbortSignal.timeout(45000) }); const j = await r.json().catch(() => ({} as any)); if (j?.reply) return { agent: ag, reply: String(j.reply).slice(0, 4000) }; return { error: j?.error || 'no_reply', agent: ag }; } catch (e) { return { error: String((e as Error)?.message || e), agent: ag }; }
 }
 async function tool_lookup(entity: string, query: string) {
   const q = String(query || '').replace(/[%,()*]/g, ' ').trim().slice(0, 80);
@@ -87,17 +85,13 @@ async function tool_run_maintenance(target: string) {
   if (target === 'security') { await admin.rpc('fn_security_scan'); const { data } = await admin.from('agent_runs').select('counts').eq('agent', 'security').order('id', { ascending: false }).limit(1); return (data && data[0]?.counts) || { ran: 'security' }; }
   if (target === 'it_health') return await admin.rpc('run_agent', { p_job: 'it_health' }).then((r) => r.data).catch(() => ({ ran: 'it_health' }));
   if (target === 'recompute_response') { await admin.rpc('qd_recompute_response').catch(() => null); return { ran: 'recompute_response' }; }
-  if (target === 'clear_test_queue') {
-    const { data, error } = await admin.from('notifications').update({ status: 'cancelled' }).in('status', ['held', 'queued']).or('to_email.ilike.%.test,to_email.ilike.%@quotesdone.test,to_email.is.null').select('id');
-    if (error) return { error: error.message };
-    return { cancelled: (data || []).length };
-  }
+  if (target === 'clear_test_queue') { const { data, error } = await admin.from('notifications').update({ status: 'cancelled' }).in('status', ['held', 'queued']).or('to_email.ilike.%.test,to_email.ilike.%@quotesdone.test,to_email.is.null').select('id'); if (error) return { error: error.message }; return { cancelled: (data || []).length }; }
   return { error: 'unknown target' };
 }
-async function llm(sys: string, user: string, max = 700) { const key = await sec('openrouter_api_key'); if (!key) return null; for (const model of ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8', 'openai/gpt-4o']) { try { const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: max, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }), signal: AbortSignal.timeout(25000) /* H9 (OS audit) */ }); const j = await r.json(); const c = j?.choices?.[0]?.message?.content; if (c) return c; } catch (_e) {} } return null; }
+async function llm(sys: string, user: string, max = 700) { const key = await sec('openrouter_api_key'); if (!key) return null; for (const model of ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8', 'openai/gpt-4o']) { try { const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: max, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }), signal: AbortSignal.timeout(25000) }); const j = await r.json(); const c = j?.choices?.[0]?.message?.content; if (c) return c; } catch (_e) {} } return null; }
 async function tool_draft_content(channel: string, topic: string, notes: string) {
   let brain = ''; try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: 'marketing', p_max_chars: 6000 }); brain = data ? String(data) : ''; } catch (_e) {}
-  const out = await llm('You write concise, on-brand content for QuotesDone, a UAE B2B anonymous quotation marketplace. Practical, trustworthy, pro-SME. No invented statistics. Follow the brand voice, content pillars, caption/hashtag formula and platform specs in the knowledge below.\n\n' + brain, 'Channel: ' + channel + '\nTopic: ' + topic + (notes ? ('\nNotes: ' + notes) : '') + '\nWrite the ' + channel + ' content now.', 900) || 'Draft unavailable (AI not reachable).';
+  const out = await llm('You write concise, on-brand content for QuotesDone, a UAE B2B anonymous quotation marketplace. Practical, trustworthy, pro-SME. No invented statistics.\n\n' + brain, 'Channel: ' + channel + '\nTopic: ' + topic + (notes ? ('\nNotes: ' + notes) : '') + '\nWrite the ' + channel + ' content now.', 900) || 'Draft unavailable (AI not reachable).';
   const { data } = await admin.from('content_drafts').insert({ channel: String(channel).slice(0, 20), title: String(topic).slice(0, 200), body: out.slice(0, 4000), status: 'draft', source: 'secretary' }).select('id').maybeSingle();
   return { draft_id: data?.id || null, preview: out.slice(0, 500) };
 }
@@ -110,7 +104,7 @@ async function tool_post_content(a: any) {
   if (!text) return { error: 'nothing to post' };
   const channel = String(a.channel || '');
   if (channel === 'email' || channel === 'whatsapp') { const to = Array.isArray(a.to) ? a.to : []; if (!to.length) return { error: 'need recipients for ' + channel }; await tool_send_email(to, a.subject || 'QuotesDone', text); if (a.draft_id) await admin.from('content_drafts').update({ status: 'posted' }).eq('id', a.draft_id); return { posted: channel, recipients: to.length }; }
-  return { pending_channel: channel, note: channel + ' is not connected yet (needs its posting token). The content is saved as a draft; it will publish once the ' + channel + ' connector is added.' };
+  return { pending_channel: channel, note: channel + ' is not connected yet (needs its posting token). Saved as a draft.' };
 }
 async function tool_issue_refund(transaction_id: string, reason: string) { const { data: tx } = await admin.from('transactions').select('id,refund_status').eq('id', transaction_id).maybeSingle(); if (!tx) return { error: 'transaction_not_found' }; await admin.from('transactions').update({ refund_status: 'refunded', refund_note: String(reason || '').slice(0, 500), refund_resolved_at: new Date().toISOString() }).eq('id', transaction_id); const { data: due } = await admin.from('supplier_dues').select('amount_due,status').eq('transaction_id', transaction_id).order('created_at', { ascending: false }).maybeSingle(); return { refunded: transaction_id, supplier_charge: due || null }; }
 async function tool_supplier_decision(supplier_id: string, action: string, reason: string) {
@@ -127,6 +121,7 @@ async function tool_delete_files(bucket: string, paths: string[], prefix: string
 async function runTool(name: string, a: any) {
   try {
     if (name === 'get_status') return await tool_get_status();
+    if (name === 'objective') return await tool_objective(a.op, a);
     if (name === 'query_platform') return await tool_query_platform(a.topic, a.args);
     if (name === 'ask_agent') return await tool_ask_agent(a.agent, a.question);
     if (name === 'team_roster') return await tool_team_roster();
@@ -154,18 +149,18 @@ function describe(name: string, a: any) {
 }
 
 const ROLE_AGENTS: { name: string; duty: string }[] = [
-  { name: 'Secretary (me)', duty: 'chief of staff — coordinates the team and acts on your instructions' },
+  { name: 'Secretary (me)', duty: 'chief of staff — turns your objectives into department-routed plans, coordinates the team, tracks work to done' },
   { name: 'CFO', duty: 'weekly finance report, burn vs revenue, break-even' },
   { name: 'Bookkeeper', duty: 'expenses, receipts, ledger' },
   { name: 'Legal Counsel (UAE)', duty: 'drafts UAE-compliant letters, notices, T&C clauses' },
   { name: 'Marketing', duty: 'social posts, SEO/blog, campaigns, ad plans' },
   { name: 'Security Engineer', duty: 'file scanning, contact-leak + intrusion monitoring' },
-  { name: 'IT / Uptime', duty: 'hourly site health checks, incident detection' },
+  { name: 'IT / Uptime', duty: 'hourly site health checks, incident detection, safe code changes' },
   { name: 'Document Controller', duty: 'supplier trade-licence expiry tracking' },
   { name: 'Onboarding Officer', duty: 'new supplier KYC review + approvals' },
   { name: 'Follow-up / SLA', duty: 'chases stalled inquiries, reveals and quotes' },
-  { name: 'Collections', duty: 'non-response charges (refunded reveal fee, owed by the supplier) + 9% p.a. late interest + AED 250 admin fee, reminders and demand letters — QuotesDone charges no supplier commission' },
-  { name: 'BD / Outreach', duty: 'invites new supplier companies (planning mode)' },
+  { name: 'Collections', duty: 'non-response charges + 9% p.a. late interest + AED 250 admin fee, reminders and demand letters — no supplier commission' },
+  { name: 'BD / Outreach', duty: 'invites new supplier companies' },
   { name: 'Daily Brief', duty: 'emails your 08:30 Dubai morning snapshot' },
 ];
 async function teamRoster() {
@@ -175,26 +170,22 @@ async function teamRoster() {
 }
 async function tool_team_roster() { return await teamRoster(); }
 
-const SYS = `You are the Secretary — the founder's chief of staff for QuotesDone, a UAE B2B anonymous quotation marketplace. QuotesDone is an AI-native company: it is founded and owned by Ahmad (the CEO you report to); day-to-day operations run on DEPARTMENTS of AI employees that YOU coordinate — Finance (CFO, Bookkeeper, Collections), Legal & Compliance, Marketing, Security, IT, Supplier Success (Onboarding, Document Controller, BD), Customer Success (Follow-up), Knowledge Management, and per-category sales desks. When someone asks about "our team", "staff", "agents", "headcount" or "who handles X", they mean this AI organization plus the founder — you know it well (see YOUR TEAM below, and call team_roster for detail). You are capable and decisive, not just a reporter: when the founder gives an instruction, USE YOUR TOOLS to actually do it, then report crisply what you did in 1-4 sentences.
+const SYS = `You are the Secretary — the founder's Chief of Staff for QuotesDone, a UAE B2B anonymous quotation marketplace run as an AI-native company of DEPARTMENTS (Finance, Legal & Compliance, Marketing, Security, IT & Engineering, Supplier Success, Customer Success, Knowledge, Analytics, Procurement) that YOU coordinate. QuotesDone is owned by Ahmad (the CEO you report to). You are capable and decisive: when the founder gives an instruction, USE YOUR TOOLS to do it, then report crisply in 1-4 sentences.
 
 Rules:
-- Act. Do not merely describe what could be done — call the tools and get it done.
-- You have a live window onto EVERY department dashboard: query_platform. For ANY question about company state — knowledge coverage or gaps, agent health, finance, funnel, analytics, suppliers, customers, operations, refunds, governance — call query_platform FIRST (topic=topics lists everything available). You are never allowed to answer "I don't know" or "I cannot provide that" about company state without having queried it.
-- You can consult any specialist teammate synchronously with ask_agent (legal, cfo, marketing, security, it, collections, onboarding, docs, followup, bd, bookkeeper, or cat:<slug> desks). Delegate domain questions to the right department instead of guessing — then relay their answer with your own judgement on top.
-- Chain tools when needed (e.g. query the platform, then look something up, then act on it).
-- If the founder attaches a document (invoice, receipt, subscription, contract), READ the attached text, extract the key details, and act on it (e.g. log_finance for an invoice/subscription), then summarise what you recorded.
-- For any question about the team, staff, agents, headcount or who owns a topic, use YOUR TEAM below (or call team_roster) — NEVER say we have "no staff".
-- High-stakes actions (refunds/money, sending to many people, publishing publicly, deleting data, banning/approving suppliers) will be paused by the system for a one-line confirmation from the founder — that is expected; still call the tool, do not refuse.
-- Be concise and practical. Money is in AED. If a channel isn't connected yet, say so plainly.
-- Never invent operational data; if a tool returns nothing, say so.`;
+- When the founder expresses a business OUTCOME or GOAL ("improve SEO", "reduce our AI cost", "grow HVAC supply", "fix the supplier portal", "get us more customers"), use the objective tool with op=set. The org will decompose it into department tasks at the right authority tier — autonomous work starts immediately, gated work waits for the founder. Then report the plan: what's already moving vs what needs the founder's approval. Use op=status to track an objective and op=scorecard for the whole-company view.
+- For a single concrete command, just do it with the specific tool.
+- You have a live window onto EVERY department: query_platform. For ANY question about company state, call it FIRST (topic=topics lists everything). Never answer "I don't know" about company state without querying.
+- Consult any specialist synchronously with ask_agent. Delegate domain questions to the owning department, then relay their answer with your own judgement.
+- If the founder attaches a document, READ it and act (e.g. log_finance for an invoice), then summarise what you recorded.
+- For team/staff/headcount questions use team_roster — NEVER say we have "no staff".
+- High-stakes actions (refunds/money, sending to many, publishing publicly, deleting data, banning/approving suppliers) will pause for a one-line founder confirmation — expected; still call the tool.
+- Concise and practical. Money in AED. If a channel isn't connected yet, say so plainly. Never invent operational data.`;
 
 async function orChat(messages: any[]) {
   const key = await sec('openrouter_api_key'); if (!key) return { error: 'no ai key' };
   for (const model of ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8', 'openai/gpt-4o']) {
-    try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 1200, temperature: 0.2, tools: TOOLS, messages }), signal: AbortSignal.timeout(30000) /* H9 (OS audit): abort a hung upstream so the founder's console does not hang */ });
-      const j = await r.json(); const m = j?.choices?.[0]?.message; if (m) return { message: m };
-    } catch (_e) {}
+    try { const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 1200, temperature: 0.2, tools: TOOLS, messages }), signal: AbortSignal.timeout(30000) }); const j = await r.json(); const m = j?.choices?.[0]?.message; if (m) return { message: m }; } catch (_e) {}
   }
   return { error: 'ai_unreachable' };
 }
@@ -205,7 +196,6 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as any));
     const actor = await whoami(req, body); if (!actor) return J({ error: 'forbidden' }, 403);
 
-    // ---- CONFIRM PATH ----
     if (body.confirm_token) {
       const { data: p } = await admin.from('agent_pending_actions').select('*').eq('token', body.confirm_token).maybeSingle();
       if (!p || p.status !== 'pending') return J({ error: 'nothing_to_confirm' });
@@ -223,7 +213,7 @@ Deno.serve(async (req) => {
     const userContent = message + (attachBlock ? ('\n\n' + attachBlock) : '');
     const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
     let brain = ''; try { const { data: bc } = await admin.rpc('fn_agent_context', { p_agent_key: 'secretary', p_max_chars: 8000 }); brain = bc ? String(bc) : ''; } catch (_e) {}
-    let teamBlock = ''; try { const roster = await teamRoster(); teamBlock = 'YOUR TEAM (the AI staff you coordinate, plus the founder):\n- Founder: ' + roster.founder + '\n- Role agents (' + roster.role_agents.length + '): ' + roster.role_agents.map((r) => r.name + ' — ' + r.duty).join('; ') + '\n- Category sales desks: ' + roster.category_sales_desks.count + ' live (e.g. ' + roster.category_sales_desks.examples.slice(0, 10).join(', ') + ')\n- Headcount: ' + roster.total_ai_agents + ' AI specialist agents + 1 human founder (you).'; } catch (_e) {}
+    let teamBlock = ''; try { const roster = await teamRoster(); teamBlock = 'YOUR TEAM (the AI departments you coordinate, plus the founder):\n- Founder: ' + roster.founder + '\n- Role agents (' + roster.role_agents.length + '): ' + roster.role_agents.map((r) => r.name + ' — ' + r.duty).join('; ') + '\n- Category sales desks: ' + roster.category_sales_desks.count + ' live\n- Headcount: ' + roster.total_ai_agents + ' AI specialist agents + 1 human founder (you).'; } catch (_e) {}
     const messages: any[] = [{ role: 'system', content: SYS + (teamBlock ? ('\n\n' + teamBlock) : '') + (brain ? ('\n\n' + brain) : '') }, ...history, { role: 'user', content: userContent }];
     const did: any[] = []; const pending: any[] = [];
 
@@ -231,14 +221,11 @@ Deno.serve(async (req) => {
       const resp = await orChat(messages); if ((resp as any).error) return J({ error: (resp as any).error }, 502);
       const m = (resp as any).message; messages.push(m);
       const calls = m.tool_calls || [];
-      if (!calls.length) {
-        await admin.from('agent_command_log').insert({ agent: 'secretary', actor, command: message, did });
-        return J({ ok: true, reply: m.content || 'Done.', did });
-      }
+      if (!calls.length) { await admin.from('agent_command_log').insert({ agent: 'secretary', actor, command: message, did }); return J({ ok: true, reply: m.content || 'Done.', did }); }
       for (const c of calls) {
         let args: any = {}; try { args = JSON.parse(c.function.arguments || '{}'); } catch (_e) {}
         if (isHigh(c.function.name, args)) { pending.push({ tool: c.function.name, args }); messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify({ status: 'awaiting_founder_confirmation', note: 'queued; will run once the founder confirms' }) }); }
-        else { const out = await runTool(c.function.name, args); did.push({ tool: c.function.name, result: out }); const lim = (c.function.name === 'query_platform' || c.function.name === 'ask_agent') ? 9000 : 4000; messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(out).slice(0, lim) }); }
+        else { const out = await runTool(c.function.name, args); did.push({ tool: c.function.name, result: out }); const lim = (c.function.name === 'query_platform' || c.function.name === 'ask_agent' || c.function.name === 'objective') ? 9000 : 4000; messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(out).slice(0, lim) }); }
       }
       if (pending.length) {
         const summary = pending.map((p) => describe(p.tool, p.args)).join(' AND ');
