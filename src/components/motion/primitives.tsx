@@ -133,7 +133,7 @@ export function TiltCard({
   const glowBg = useTransform(
     [glowX, glowY],
     ([x, y]: string[]) =>
-      `radial-gradient(340px circle at ${x} ${y}, rgba(110,231,212,.16), transparent 60%)`,
+      `radial-gradient(380px circle at ${x} ${y}, rgba(110,231,212,.24), transparent 60%)`,
   );
 
   function onMove(e: React.PointerEvent<HTMLDivElement>) {
@@ -217,6 +217,68 @@ export function SpringHover({
   );
 }
 
+/* ── Spotlight: a radial glow that tracks the cursor across a section ─────── */
+export function Spotlight({
+  children,
+  className,
+  size = 520,
+  style,
+}: {
+  children: ReactNode;
+  className?: string;
+  size?: number;
+  style?: CSSProperties;
+}) {
+  const reduce = useReducedMotion();
+  const ref = useRef<HTMLDivElement | null>(null);
+  const mx = useMotionValue(-1);
+  const my = useMotionValue(-1);
+  const sx = useSpring(mx, { stiffness: 220, damping: 30, mass: 0.5 });
+  const sy = useSpring(my, { stiffness: 220, damping: 30, mass: 0.5 });
+  const bg = useTransform([sx, sy], ([x, y]: number[]) =>
+    x < 0
+      ? 'radial-gradient(0px circle at 50% 50%, transparent, transparent)'
+      : `radial-gradient(${size}px circle at ${x}px ${y}px, rgba(110,231,212,.12), transparent 68%)`,
+  );
+
+  function onMove(e: React.PointerEvent<HTMLDivElement>) {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    mx.set(e.clientX - r.left);
+    my.set(e.clientY - r.top);
+  }
+  function onLeave() {
+    mx.set(-1);
+    my.set(-1);
+  }
+
+  if (reduce) {
+    return (
+      <div className={className} style={style}>
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={ref}
+      onPointerMove={onMove}
+      onPointerLeave={onLeave}
+      className={className}
+      style={{ position: 'relative', ...style }}
+    >
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{ background: bg }}
+      />
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
+}
+
 /* ── ScrollProgress: a hairline neon bar tracking page scroll ─────────────── */
 export function ScrollProgress() {
   const reduce = useReducedMotion();
@@ -226,8 +288,8 @@ export function ScrollProgress() {
   return (
     <motion.div
       aria-hidden
-      className="absolute inset-x-0 bottom-0 z-50 h-px origin-left bg-gradient-to-r from-teal via-teal-light to-gold"
-      style={{ scaleX, boxShadow: '0 0 12px rgba(110,231,212,.55)' }}
+      className="absolute inset-x-0 bottom-[-1px] z-50 h-0.5 origin-left bg-gradient-to-r from-teal via-teal-light to-gold"
+      style={{ scaleX, boxShadow: '0 0 16px rgba(110,231,212,.7)' }}
     />
   );
 }

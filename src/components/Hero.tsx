@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { Reveal, Stagger, StaggerItem, TiltCard, SpringHover } from '@/components/motion/primitives';
+import { Reveal, Stagger, StaggerItem, TiltCard, SpringHover, Spotlight } from '@/components/motion/primitives';
 
 function Stat({ n, l }: { n: string; l: string }) {
   return (
@@ -15,8 +15,10 @@ function Stat({ n, l }: { n: string; l: string }) {
 function EnginePanel({ labels }: { labels: { brief: string; steps: string[]; hidden: string } }) {
   return (
     <div className="glass depth relative overflow-hidden rounded-[22px]">
+      {/* a soft light sweep travels down the instrument — reads as "processing" */}
+      <span className="qd-scan" aria-hidden />
       <div className="flex items-center gap-2.5 border-b border-[var(--line)] bg-teal-light/[0.03] px-5 py-3.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-teal shadow-[0_0_0_3px_rgba(20,184,166,.18)]" />
+        <span className="qd-pulse h-1.5 w-1.5 rounded-full bg-teal" />
         <span className="font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-faint">
           Smart Engine live
         </span>
@@ -66,61 +68,65 @@ function EnginePanel({ labels }: { labels: { brief: string; steps: string[]; hid
 export function Hero() {
   const t = useTranslations('hero');
   return (
-    <section className="bloom container-x pb-[72px] pt-14 md:pb-[104px] md:pt-20">
-      <div className="grid items-center gap-14 lg:grid-cols-[1.06fr_.94fr]">
-        <Stagger>
-          <StaggerItem>
-            <span className="inline-flex items-center gap-2.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-teal-light">
-              <span className="h-1.5 w-1.5 rounded-full bg-teal shadow-[0_0_0_0_rgba(20,184,166,.6)]" />
-              {t('badge')}
-            </span>
-          </StaggerItem>
-          <StaggerItem>
-            <h1 className="crisp mt-6 max-w-[16ch] font-head text-[clamp(38px,5.2vw,62px)] font-semibold leading-[1.04] tracking-[-0.04em] text-white">
-              <span className="text-teal-light">{t('titleA')}</span> {t('titleB')}{' '}
-              <em className="not-italic text-white">{t('titleEm')}</em>
-            </h1>
-          </StaggerItem>
-          <StaggerItem>
-            <p className="mt-6 max-w-[52ch] text-[clamp(16px,1.5vw,18px)] leading-relaxed text-muted">
-              {t('subtitle')}
-            </p>
-          </StaggerItem>
-          <StaggerItem>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <SpringHover className="rounded-full">
-                <Link
-                  href="/me"
-                  className="btn-key rounded-full bg-teal px-7 py-4 text-[15.5px] font-bold text-[#04231F] shadow-[0_14px_38px_-14px_rgba(20,184,166,.7)] transition-colors duration-200 hover:bg-[#1ED0BC]"
-                >
-                  {t('ctaPrimary')}
-                </Link>
-              </SpringHover>
-              <SpringHover className="rounded-full">
-                <Link
-                  href="/portal"
-                  className="rounded-full border border-[var(--line2)] bg-teal-light/[0.03] px-7 py-4 text-[15.5px] font-semibold text-paper transition-colors duration-200 hover:border-teal hover:bg-teal/[0.07] hover:text-white"
-                >
-                  {t('ctaSupplier')}
-                </Link>
-              </SpringHover>
-            </div>
-          </StaggerItem>
-          <Stagger className="mt-12 grid max-w-xl grid-cols-2 gap-8 sm:grid-cols-4">
-            <Stat n={t('stat1n')} l={t('stat1l')} />
-            <Stat n={t('stat2n')} l={t('stat2l')} />
-            <Stat n={t('stat3n')} l={t('stat3l')} />
-            <Stat n={t('stat4n')} l={t('stat4l')} />
+    <Spotlight className="bloom">
+      <section className="container-x pb-[72px] pt-14 md:pb-[104px] md:pt-20">
+        <div className="grid items-center gap-14 lg:grid-cols-[1.06fr_.94fr]">
+          <Stagger>
+            <StaggerItem>
+              <span className="inline-flex items-center gap-2.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-teal-light">
+                <span className="qd-pulse h-1.5 w-1.5 rounded-full bg-teal" />
+                {t('badge')}
+              </span>
+            </StaggerItem>
+            <StaggerItem>
+              <h1 className="crisp mt-6 max-w-[16ch] font-head text-[clamp(38px,5.2vw,62px)] font-semibold leading-[1.04] tracking-[-0.04em] text-white">
+                <span className="text-teal-light">{t('titleA')}</span> {t('titleB')}{' '}
+                <em className="not-italic text-white">{t('titleEm')}</em>
+              </h1>
+            </StaggerItem>
+            <StaggerItem>
+              <p className="mt-6 max-w-[52ch] text-[clamp(16px,1.5vw,18px)] leading-relaxed text-muted">
+                {t('subtitle')}
+              </p>
+            </StaggerItem>
+            <StaggerItem>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <SpringHover className="rounded-full">
+                  <Link
+                    href="/me"
+                    className="btn-key rounded-full bg-teal px-7 py-4 text-[15.5px] font-bold text-[#04231F] shadow-[0_14px_38px_-14px_rgba(20,184,166,.7)] transition-colors duration-200 hover:bg-[#1ED0BC]"
+                  >
+                    {t('ctaPrimary')}
+                  </Link>
+                </SpringHover>
+                <SpringHover className="rounded-full">
+                  <Link
+                    href="/portal"
+                    className="rounded-full border border-[var(--line2)] bg-teal-light/[0.03] px-7 py-4 text-[15.5px] font-semibold text-paper transition-colors duration-200 hover:border-teal hover:bg-teal/[0.07] hover:text-white"
+                  >
+                    {t('ctaSupplier')}
+                  </Link>
+                </SpringHover>
+              </div>
+            </StaggerItem>
+            <Stagger className="mt-12 grid max-w-xl grid-cols-2 gap-8 sm:grid-cols-4">
+              <Stat n={t('stat1n')} l={t('stat1l')} />
+              <Stat n={t('stat2n')} l={t('stat2l')} />
+              <Stat n={t('stat3n')} l={t('stat3l')} />
+              <Stat n={t('stat4n')} l={t('stat4l')} />
+            </Stagger>
           </Stagger>
-        </Stagger>
-        <Reveal delay={0.15} y={34}>
-          <TiltCard className="relative rounded-[22px]" max={7}>
-            <EnginePanel
-              labels={{ brief: 'Brief', steps: ['Structuring', 'Matching', 'Anonymising'], hidden: 'hidden' }}
-            />
-          </TiltCard>
-        </Reveal>
-      </div>
-    </section>
+          <Reveal delay={0.15} y={34}>
+            <div className="qd-float">
+              <TiltCard className="relative rounded-[22px]" max={9}>
+                <EnginePanel
+                  labels={{ brief: 'Brief', steps: ['Structuring', 'Matching', 'Anonymising'], hidden: 'hidden' }}
+                />
+              </TiltCard>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+    </Spotlight>
   );
 }

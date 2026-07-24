@@ -50,6 +50,7 @@ export default async function LocaleLayout(props: { children: React.ReactNode; p
           style={{ ['--font-head' as string]: headVar, ['--font-body' as string]: bodyVar,
                    ['--font-mono' as string]: 'var(--font-mono-latin)' } as React.CSSProperties}>
       <body className="font-sans">
+        <div className="aurora" aria-hidden />
         <NodeField />
         <NextIntlClientProvider messages={messages}>{children}<CookieConsent /><ChatWidget /></NextIntlClientProvider>
       </body>

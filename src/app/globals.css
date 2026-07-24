@@ -107,18 +107,65 @@ p{text-wrap:pretty}
 /* Ambient section bloom — a wide, low-opacity teal halo behind a hero band. */
 .bloom{position:relative;isolation:isolate}
 .bloom::before{
-  content:'';position:absolute;z-index:-1;inset:auto;left:50%;top:0;translate:-50% -40%;
-  width:min(900px,120%);height:520px;pointer-events:none;
-  background:radial-gradient(closest-side,rgba(20,184,166,.14),transparent 72%);
-  filter:blur(8px);
+  content:'';position:absolute;z-index:-1;inset:auto;left:50%;top:0;translate:-50% -38%;
+  width:min(1040px,130%);height:600px;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(20,184,166,.22),transparent 72%);
+  filter:blur(10px);
 }
 
 /* Sharpen display type — optical rendering for razor-sharp headlines. */
 .crisp{text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale}
 
+/* ══════════════════════════════════════════════════════════════════════
+   LIVING MOTION — always-on, ambient. This is what makes the page feel
+   alive at rest: a slow brand-colored aurora drifts behind everything, the
+   engine instrument breathes and scans, raised surfaces float. All of it is
+   GPU-cheap (transform/opacity only) and fully disabled for reduced-motion.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* AURORA — a slow drift of teal/gold light behind the whole document. */
+.aurora{
+  position:fixed;inset:-25% -12% auto -12%;height:135vh;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(38% 44% at 20% 26%,rgba(20,184,166,.22),transparent 60%),
+    radial-gradient(34% 40% at 84% 18%,rgba(227,192,101,.13),transparent 62%),
+    radial-gradient(46% 52% at 66% 84%,rgba(11,130,118,.20),transparent 64%);
+  filter:blur(34px);
+  animation:qd-aurora 24s var(--e) infinite alternate;
+  will-change:transform,opacity;
+}
+@keyframes qd-aurora{
+  0%  {transform:translate3d(-3%,-2%,0) scale(1.05) rotate(0deg);  opacity:.72}
+  50% {transform:translate3d(5%, 3%,0)  scale(1.16) rotate(4deg);  opacity:1}
+  100%{transform:translate3d(-2%,4%,0)  scale(1.08) rotate(-3deg); opacity:.8}
+}
+@media(max-width:1040px){.aurora{opacity:.62;filter:blur(26px)}}
+
+/* FLOAT — a gentle vertical drift for raised instruments/cards. */
+@keyframes qd-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-11px)}}
+.qd-float{animation:qd-float 7.5s var(--e) infinite;will-change:transform}
+
+/* PULSE — a live-status halo that ripples outward. */
+@keyframes qd-pulse{
+  0%  {box-shadow:0 0 0 0 rgba(20,184,166,.55)}
+  70% {box-shadow:0 0 0 9px rgba(20,184,166,0)}
+  100%{box-shadow:0 0 0 0 rgba(20,184,166,0)}
+}
+.qd-pulse{animation:qd-pulse 2.4s ease-out infinite}
+
+/* SCAN — a soft light sweep down the engine instrument, reading as "working". */
+@keyframes qd-scan{0%{transform:translateY(-120%)}100%{transform:translateY(820%)}}
+.qd-scan{position:absolute;inset-inline:0;top:0;height:14%;pointer-events:none;z-index:20;
+  background:linear-gradient(180deg,transparent,rgba(110,231,212,.10),transparent);
+  animation:qd-scan 5.5s var(--e) infinite;will-change:transform}
+
+/* SHIMMER — a slow sheen that travels across a headline gradient. */
+@keyframes qd-shimmer{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+
 @media (prefers-reduced-motion:reduce){
   .neon-edge::before{transition:none}
+  .aurora,.qd-float,.qd-pulse,.qd-scan{animation:none}
 }
 
 /* ── the key light sweeps the primary action ──────────────────────── */
