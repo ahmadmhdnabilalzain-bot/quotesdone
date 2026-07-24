@@ -49,6 +49,10 @@ async function planDept(deptKey: string) {
   // Capabilities the department can actually execute.
   const { data: caps } = await admin.from('org_action_executor').select('action_class,note,advisory_safe').eq('department', deptKey).eq('active', true);
   const capList = (caps || []).map((c: any) => c.action_class + (c.note ? (' — ' + c.note) : '')).join('; ') || '(no wired executors yet — use action_class "analysis" to prepare a deliverable)';
+  // The department head plans WITH its management discipline (_global) + its own domain expertise
+  // (the lead agent's knowledge): reversibility, ruthless prioritization, and role-specific know-how.
+  let expertise = '';
+  try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: d.lead_agent || null, p_max_chars: 5000 }); expertise = data ? String(data).slice(0, 4500) : ''; } catch (_e) { /* optional */ }
 
   const recentTxt = (recent || []).map((r: any) => '- [' + r.status + '] ' + (r.title || '') + (r.result ? (' → ' + (typeof r.result === 'string' ? r.result : JSON.stringify(r.result)).slice(0, 200)) : '')).join('\n') || '(no recent work)';
   const memTxt = (mem || []).map((m: any) => '- ' + (m.content || '').slice(0, 200)).join('\n') || '(no notes)';
@@ -60,7 +64,8 @@ async function planDept(deptKey: string) {
     + 'You run a CONTINUOUS LOOP as an autonomous expert: review what you recently did and whether it worked, look at your live numbers, and decide the highest-leverage NEXT actions that move your north star toward the vision. You never wait for instructions. '
     + 'Propose only real, concrete, doable actions — no vague goals. For each, pick an action_class from YOUR CAPABILITIES: ' + capList + '. If none fits, use "analysis" to prepare a research/analysis deliverable. '
     + 'Set needs_founder=true ONLY when the action spends money or publishes public content; otherwise it runs autonomously. '
-    + 'Do NOT duplicate anything already open. Return STRICT minified JSON only: {"plan_rationale":"<2-3 sentences: what you learned from recent outcomes and why these are the next best moves>","tasks":[{"title":"<short>","detail":"<exactly what to do and the outcome you expect>","action_class":"<one of the above>","needs_founder":false}]}. At most ' + MAX_NEW + ' tasks; fewer if that is genuinely the right call.';
+    + 'Do NOT duplicate anything already open. Return STRICT minified JSON only: {"plan_rationale":"<2-3 sentences: what you learned from recent outcomes and why these are the next best moves>","tasks":[{"title":"<short>","detail":"<exactly what to do and the outcome you expect>","action_class":"<one of the above>","needs_founder":false}]}. At most ' + MAX_NEW + ' tasks; fewer if that is genuinely the right call.'
+    + (expertise ? ('\n\nHOW YOU THINK (management discipline + your domain expertise — plan by this):\n' + expertise) : '');
   const user = 'RECENT WORK & OUTCOMES:\n' + recentTxt + '\n\nLEARNED NOTES:\n' + memTxt + '\n\nLIVE NUMBERS:\n' + (kpi || '(no KPI feed)') + '\n\nALREADY OPEN (do not duplicate):\n' + openTxt + '\n\nDecide your next moves and return the JSON.';
 
   const raw = (await llm(sys, user, 1200) || '').trim();
