@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { supa, osApi, osOps, osReportBody, osSettings, SUPA_URL } from '@/lib/osClient';
+import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, SUPA_URL } from '@/lib/osClient';
 import { cn } from '@/lib/utils';
 function ReportViewer({ id }: { id: number }) {
   const [st, setSt] = React.useState<'idle' | 'load' | 'done' | 'err'>('load');
@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow } from 'lucide-react';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -63,6 +63,7 @@ const MODULES: Mod[] = [
   { id: 'refunds', label: 'Refunds', icon: RotateCcw, ws: 'ws.refunds' },
   { id: 'audit', label: 'Audit log', icon: ScrollText, kind: 'audit' },
   { id: 'settings', label: 'Settings', icon: SlidersHorizontal, kind: 'settings' },
+  { id: 'automation', label: 'Automation', icon: Workflow, kind: 'automation' },
 ];
 const PIPELINE = [ ['sent','New'], ['matched','Matched'], ['quoted','Quoted'], ['revealed','Revealed'], ['completed','Won'] ];
 
@@ -175,7 +176,7 @@ export default function OsxShell() {
         <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
             <div key={id} className={id === cur ? '' : 'hidden'}>
-              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
+              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
             </div>
           ); })}
         </main>
@@ -285,6 +286,71 @@ function SettingsPanel() {
           <div className='px-4 py-3 border-b border-border text-sm font-semibold'>{g}</div>
           <div className='px-4'>
             {d.filter((s) => s.grp === g).map((s) => (<SettingRow key={s.key} s={s} onSaved={onSaved} />))}
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function fmtCron(s: string): string {
+  const map: any = { '* * * * *': 'every minute', '*/2 * * * *': 'every 2 min', '*/5 * * * *': 'every 5 min', '*/10 * * * *': 'every 10 min', '*/15 * * * *': 'every 15 min', '*/20 * * * *': 'every 20 min', '*/30 * * * *': 'every 30 min', '0 * * * *': 'hourly' };
+  return map[s] || s;
+}
+
+function JobRow({ j, onChanged }: { j: any; onChanged: () => void }) {
+  const [sched, setSched] = React.useState<string>(String(j.schedule || ''));
+  const [busy, setBusy] = React.useState('');
+  const [msg, setMsg] = React.useState('');
+  const [err, setErr] = React.useState('');
+  React.useEffect(() => { setSched(String(j.schedule || '')); }, [j.schedule]);
+  const schedDirty = String(j.schedule || '') !== sched;
+  const act = async (fn: () => Promise<any>, tag: string) => { setBusy(tag); setErr(''); setMsg(''); try { const r: any = await fn(); if (r && r.ok === false) setErr(r.error || 'Failed'); else { setMsg('Done'); setTimeout(() => setMsg(''), 1200); onChanged(); } } catch (e: any) { setErr(e?.message || 'Failed'); } setBusy(''); };
+  const toggle = () => act(() => osAutomation('set_active', { jobid: j.jobid, active: !j.active }), 'toggle');
+  const runNow = () => { if (typeof window !== 'undefined' && !window.confirm('Run “' + j.human_name + '” right now? This executes the job immediately.')) return; act(() => osAutomation('run', { jobid: j.jobid }), 'run'); };
+  const saveSched = () => act(() => osAutomation('reschedule', { jobid: j.jobid, schedule: sched }), 'sched');
+  const stColor = j.last_status === 'succeeded' ? 'text-emerald-400' : j.last_status === 'failed' ? 'text-destructive' : 'text-muted-foreground';
+  return (
+    <div className='py-2.5 border-b border-border/40 last:border-0 flex flex-col md:flex-row md:items-center gap-3'>
+      <div className='md:w-72 shrink-0'>
+        <div className='text-sm font-medium flex items-center gap-2'>{j.human_name}{!j.active ? <Badge variant='secondary' className='text-[10px]'>paused</Badge> : null}</div>
+        <div className='text-[10px] text-muted-foreground/60 font-mono'>{j.jobname}</div>
+      </div>
+      <div className='flex items-center gap-2'>
+        <Input value={sched} onChange={(e) => setSched(e.target.value)} className='h-7 w-36 text-xs font-mono' />
+        {schedDirty ? <Button className='h-7 text-xs' disabled={busy === 'sched'} onClick={saveSched}>Set</Button> : <span className='text-[11px] text-muted-foreground w-20'>{fmtCron(j.schedule)}</span>}
+      </div>
+      <div className={cn('text-xs flex items-center gap-1.5 md:w-52 min-w-0', stColor)}>
+        <Circle className='h-2 w-2 fill-current shrink-0' /><span className='truncate'>{j.last_status || 'no runs'}{j.last_start ? ' · ' + new Date(j.last_start).toLocaleString() : ''}</span>
+      </div>
+      <div className='flex items-center gap-2 md:ml-auto'>
+        <Button variant='outline' className='h-7 text-xs' disabled={busy === 'run'} onClick={runNow}>{busy === 'run' ? 'Running…' : 'Run now'}</Button>
+        <button type='button' onClick={toggle} disabled={busy === 'toggle'} className={cn('inline-flex h-6 items-center rounded-full px-0.5 w-11 transition-colors', j.active ? 'bg-primary' : 'bg-muted')}><span className={cn('h-5 w-5 rounded-full bg-white shadow transition-transform', j.active ? 'translate-x-5' : 'translate-x-0')} /></button>
+      </div>
+      {(msg || err) ? <div className={cn('text-xs md:w-full', err ? 'text-destructive' : 'text-emerald-400')}>{err || msg}</div> : null}
+    </div>
+  );
+}
+
+function AutomationPanel() {
+  const [d, setD] = React.useState<any[] | null>(null);
+  const [err, setErr] = React.useState('');
+  const load = React.useCallback(() => { setErr(''); osAutomation('list').then((r: any) => setD(r?.jobs || [])).catch((e: any) => setErr(e.message)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load automation: {err}</Card>;
+  if (!d) return <div className='text-muted-foreground text-sm'>Loading automation…</div>;
+  const groups: string[] = [];
+  d.forEach((j) => { if (!groups.includes(j.category)) groups.push(j.category); });
+  groups.sort();
+  const active = d.filter((j) => j.active).length;
+  return (
+    <div className='space-y-5'>
+      <div className='flex flex-wrap items-center gap-2'><Workflow className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Automation</h1><span className='text-xs text-muted-foreground md:ml-2'>{active} of {d.length} scheduled jobs running. Pause, re-time, or run any job. Every change is audit-logged.</span></div>
+      {groups.map((g) => (
+        <Card key={g} className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>{g}<Badge variant='secondary'>{d.filter((j) => j.category === g).length}</Badge></div>
+          <div className='px-4'>
+            {d.filter((j) => j.category === g).map((j) => (<JobRow key={j.jobid} j={j} onChanged={load} />))}
           </div>
         </Card>
       ))}
