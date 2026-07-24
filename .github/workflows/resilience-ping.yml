@@ -1,0 +1,27 @@
+name: External resilience watchdog
+
+# Pings the resilience_ping edge function from OUTSIDE Supabase every 15 minutes.
+# This is the one resilience check that cannot live inside the database: an in-cluster
+# watchdog is itself a pg_cron job, so it cannot detect a TOTAL pg_cron outage. GitHub's
+# scheduler is independent of both Supabase and Vercel, so it survives that failure mode.
+# The edge function does all the work (detect + page the founder over HTTP); this job only
+# has to hit the URL, so no secrets are needed here.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping resilience watchdog
+        run: |
+          set -euo pipefail
+          resp="$(curl -sS -m 30 -X POST \
+            https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/resilience_ping \
+            -H 'Content-Type: application/json' -d '{}')"
+          echo "resilience_ping -> $resp"
+          echo "$resp" | grep -q '"ok":true' || { echo "::error::resilience_ping unreachable or errored"; exit 1; }
