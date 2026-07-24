@@ -45,18 +45,23 @@ function buildSvg(headline: string, eyebrow: string): string {
   const blockH = lines.length * lh;
   let y = Math.round((H - blockH) / 2) + fs; // baseline of first line, vertically centred
   const tspans = lines.map((ln) => { const t = `<tspan x="${PAD}" y="${y}">${esc(ln)}</tspan>`; y += lh; return t; }).join('');
-  const eb = eyebrow ? `<text x="${PAD}" y="200" font-family="Poppins" font-weight="700" font-size="30" letter-spacing="4" fill="#5EA0FF">${esc(eyebrow.toUpperCase().slice(0, 40))}</text>` : '';
+  const eb = eyebrow ? `<text x="${PAD}" y="252" font-family="Poppins" font-weight="700" font-size="30" letter-spacing="4" fill="#5EEAD4">${esc(eyebrow.toUpperCase().slice(0, 40))}</text>` : '';
+  // Official QuotesDone brand system (from the brand kit): navy bg gradient, teal + gold, teal-ring/gold-check mark.
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#0B1F3A"/><stop offset="1" stop-color="#12294D"/>
-  </linearGradient></defs>
+  <defs>
+    <linearGradient id="bg" x1="0.12" y1="0" x2="0.88" y2="1"><stop offset="0" stop-color="#173A4B"/><stop offset="0.55" stop-color="#0C2330"/><stop offset="1" stop-color="#06121B"/></linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6EE7D4"/><stop offset="0.55" stop-color="#16B8A6"/><stop offset="1" stop-color="#0B8276"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#F6DD8C"/><stop offset="0.5" stop-color="#E3C065"/><stop offset="1" stop-color="#BD8E36"/></linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16B8A6"/><stop offset="1" stop-color="#E3C065"/></linearGradient>
+  </defs>
   <rect width="${W}" height="${H}" fill="url(#bg)"/>
-  <rect x="0" y="0" width="14" height="${H}" fill="#2563EB"/>
+  <rect x="0" y="0" width="14" height="${H}" fill="url(#accent)"/>
+  <g transform="translate(52,40) scale(0.36)"><g transform="translate(-256,-250)"><circle cx="400" cy="398" r="92" fill="none" stroke="url(#teal)" stroke-width="50"/><path d="M434 470 L486 524 L582 408" fill="none" stroke="url(#gold)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/></g></g>
   ${eb}
   <text font-family="Poppins" font-weight="700" font-size="${fs}" fill="#FFFFFF">${tspans}</text>
-  <line x1="${PAD}" y1="${H - 150}" x2="${W - PAD}" y2="${H - 150}" stroke="#2A3F63" stroke-width="2"/>
+  <line x1="${PAD}" y1="${H - 150}" x2="${W - PAD}" y2="${H - 150}" stroke="#234A5C" stroke-width="2"/>
   <text x="${PAD}" y="${H - 96}" font-family="Poppins" font-weight="700" font-size="34" fill="#FFFFFF">QuotesDone</text>
-  <text x="${W - PAD}" y="${H - 96}" text-anchor="end" font-family="Poppins" font-weight="400" font-size="28" fill="#9DB2D4">quotesdone.com</text>
+  <text x="${W - PAD}" y="${H - 96}" text-anchor="end" font-family="Poppins" font-weight="400" font-size="28" fill="#8FB0C0">quotesdone.com</text>
 </svg>`;
 }
 
