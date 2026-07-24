@@ -1,0 +1,226 @@
+[
+ {
+  "key": "confidence_min",
+  "value": 0.6,
+  "updated_at": "2026-07-06T10:19:40.939005+00:00",
+  "description": "Below this model/router confidence (0-1), ask a clarifying question or escalate instead of acting."
+ },
+ {
+  "key": "financial_review_aed",
+  "value": 10000,
+  "updated_at": "2026-07-06T10:19:40.939005+00:00",
+  "description": "Any single money-affecting action at/above this AED value requires human review."
+ },
+ {
+  "key": "auto_action_max_aed",
+  "value": 0,
+  "updated_at": "2026-07-06T10:19:40.939005+00:00",
+  "description": "Maximum AED an agent may move/commit autonomously. 0 = agents never move money without a human."
+ },
+ {
+  "key": "fraud_score_max",
+  "value": 0.7,
+  "updated_at": "2026-07-06T10:19:40.939005+00:00",
+  "description": "Fraud score (0-1) at/above which the item is held for human review."
+ },
+ {
+  "key": "legal_triggers",
+  "value": [
+   "contract change",
+   "liability",
+   "indemnity",
+   "termination",
+   "dispute",
+   "refund dispute",
+   "regulatory complaint",
+   "data subject request",
+   "subpoena",
+   "chargeback"
+  ],
+  "updated_at": "2026-07-06T10:19:40.939005+00:00",
+  "description": "Phrases/topics that must route to Legal, never auto-answered."
+ },
+ {
+  "key": "sensitive_categories",
+  "value": [
+   "fire",
+   "security",
+   "electrical",
+   "structural",
+   "gas",
+   "lifts",
+   "medical"
+  ],
+  "updated_at": "2026-07-06T10:19:40.939005+00:00",
+  "description": "Categories where safety/liability is high; low-confidence outputs must be reviewed."
+ },
+ {
+  "key": "review_owner",
+  "value": "Secretary",
+  "updated_at": "2026-07-06T10:19:40.939005+00:00",
+  "description": "Default human/orchestrator that receives escalations."
+ },
+ {
+  "key": "prompt_sensitive_pattern",
+  "value": "legal|finance|complian|security|quote_review",
+  "updated_at": "2026-07-09T12:11:53.164182+00:00",
+  "description": "Prompt keys matching this regex always require founder approval; others may auto-promote when they beat the benchmark."
+ },
+ {
+  "key": "score_w_product",
+  "value": 40,
+  "updated_at": "2026-07-21T16:20:00.376673+00:00",
+  "description": "Points: supplier lists the specific product/material the customer asked for."
+ },
+ {
+  "key": "score_w_brand",
+  "value": 20,
+  "updated_at": "2026-07-21T16:20:00.376673+00:00",
+  "description": "Points: supplier carries/is authorised for the brand the customer named."
+ },
+ {
+  "key": "score_w_project_type",
+  "value": 15,
+  "updated_at": "2026-07-21T16:20:00.376673+00:00",
+  "description": "Points: supplier has done this project type (office fit-out, villa, retail, industrial)."
+ },
+ {
+  "key": "score_w_track_record",
+  "value": 15,
+  "updated_at": "2026-07-21T16:20:00.376673+00:00",
+  "description": "Points: response + quote reliability from supplier_perf."
+ },
+ {
+  "key": "score_w_size_fit",
+  "value": 10,
+  "updated_at": "2026-07-21T16:20:00.376673+00:00",
+  "description": "Points: job value sits inside the supplier's normal project range."
+ },
+ {
+  "key": "match_relevance_floor",
+  "value": 35,
+  "updated_at": "2026-07-21T16:20:00.376673+00:00",
+  "description": "Minimum score to dispatch. Below this we do NOT contact the supplier even on an LLM fit verdict — protects suppliers from marginal inquiries."
+ },
+ {
+  "key": "match_max_fanout",
+  "value": 5,
+  "updated_at": "2026-07-21T16:20:00.376673+00:00",
+  "description": "Max suppliers contacted for a single-trade inquiry."
+ },
+ {
+  "key": "match_max_fanout_per_trade",
+  "value": 3,
+  "updated_at": "2026-07-21T16:20:00.376673+00:00",
+  "description": "Max suppliers per trade when a multi-trade job is SPLIT, so a split job does not contact more suppliers overall than a combined one."
+ },
+ {
+  "key": "use_capability_matching",
+  "value": true,
+  "updated_at": "2026-07-21T16:44:52.431598+00:00",
+  "description": "Master switch for structured capability matching in route_inquiry. false = legacy vector/keyword retrieval. Flip to true to enable; flip back to roll back instantly."
+ },
+ {
+  "key": "refund_notify_after_working_days",
+  "value": 1,
+  "updated_at": "2026-07-21T18:37:02.788703+00:00",
+  "description": "Working days after the reveal is paid before the customer may press \"Notify supplier\". Working days, so a Friday-evening reveal does not expose the button mid-weekend."
+ },
+ {
+  "key": "refund_call_after_working_days",
+  "value": 3,
+  "updated_at": "2026-07-21T18:37:02.788703+00:00",
+  "description": "Working days after the tri-party notice before the founder calls the supplier and a refund may be approved."
+ },
+ {
+  "key": "refund_reveal_fee_pct",
+  "value": 3,
+  "updated_at": "2026-07-21T18:37:02.788703+00:00",
+  "description": "Percent of quote value recovered from an unresponsive supplier - equals the reveal fee the customer paid."
+ },
+ {
+  "key": "founder_review_gates",
+  "value": [
+   "marketing_post",
+   "boost_budget",
+   "refund_outside_policy",
+   "money_move_above_limit",
+   "legal_action",
+   "strategy_change",
+   "partnership",
+   "security_incident_executive"
+  ],
+  "updated_at": "2026-07-24T06:07:12.947846+00:00",
+  "description": "The ONLY work that requires founder review (chairman doctrine 2026-07-24). Everything else the departments ship automatically within the constitutional gates. Note: \"refund\" narrowed to refund_outside_policy — within-window refunds are routine."
+ },
+ {
+  "key": "refund_late_fee_annual_pct",
+  "value": 9,
+  "updated_at": "2026-07-21T18:51:39.052067+00:00",
+  "description": "Late-payment interest, PER ANNUM. Supplier Agreement clause: \"late-payment interest at the maximum rate permitted under UAE law (currently up to 9% per annum under Federal Decree-Law...)\". Founder said 9% monthly verbally; the signed agreement says per annum and frames 9% as the legal maximum, so the document governs. Changing this to a monthly basis requires amending the Supplier Agreement first."
+ },
+ {
+  "key": "refund_admin_fee_aed",
+  "value": 250,
+  "updated_at": "2026-07-21T18:50:02.760504+00:00",
+  "description": "Flat admin fee on a refund claim, AED. Founder set 250. WARNING: no admin fee appears anywhere in the Supplier Agreement or Customer Terms as at 2026-07-21. Until it is written into the Supplier Agreement it is not contractually recoverable and a supplier could refuse it. Set to 250 as instructed; the terms need updating to match."
+ },
+ {
+  "key": "refund_claim_after_call_working_days",
+  "value": 3,
+  "updated_at": "2026-07-21T19:46:34.65104+00:00",
+  "description": null
+ },
+ {
+  "key": "alert_digest_types",
+  "value": [
+   "health_alert",
+   "smoke_alert",
+   "exception_alert",
+   "ops_alert",
+   "supply_health",
+   "agent_silence",
+   "uptime_alert",
+   "rfq_sla_breach",
+   "ai_quality_alert",
+   "doc_expiry",
+   "expense_logged",
+   "agent_created",
+   "policy_inconsistency"
+  ],
+  "updated_at": "2026-07-24T01:22:41.793153+00:00",
+  "description": "Routine ops-alert notification types folded into the daily brief instead of emailed individually (parked status=digest by trg_notifications_digest). Money/security/legal/critical/founder_alert are hard-excluded regardless."
+ },
+ {
+  "key": "action_autonomy",
+  "value": {
+   "hot_lead": "ack",
+   "incident": "ack",
+   "legal_flag": "founder",
+   "sla_review": "ack",
+   "supply_gap": "ack",
+   "coverage_gap": "ack",
+   "strategy_rec": "ack",
+   "exec_briefing": "ack",
+   "finance_alert": "ack",
+   "sla_no_supply": "ack",
+   "supplier_risk": "ack",
+   "supply_health": "ack",
+   "ai_improvement": "ack",
+   "content_review": "founder",
+   "security_alert": "ack",
+   "prompt_approval": "founder",
+   "ai_quality_alert": "ack",
+   "approve_supplier": "founder",
+   "licence_expiring": "ack",
+   "compliance_update": "ack",
+   "security_incident": "founder",
+   "ops_recommendation": "ack",
+   "customer_escalation": "founder",
+   "invite_campaign_week": "ack",
+   "marketing_recommendation": "ack"
+  },
+  "updated_at": "2026-07-24T01:22:41.793153+00:00",
+  "description": "Per-kind autonomy for the Chief-of-Staff sweep: ack=auto-clear into the daily brief, founder=keep in the queue for a decision. Chairman doctrine 2026-07-24: finance anomalies, supplier-performance risk and the weekly invite ramp are department-owned (handled, then reported in the brief). Money/refund-outside-policy/delete/supplier-approval remain hard-railed in fn_autonomy_class. Kept founder: legal_flag, security_incident, customer_escalation (beyond-policy), content_review (final posts), prompt_approval, approve_supplier."
+ }
+]
