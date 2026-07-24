@@ -28,6 +28,16 @@ Deno.serve(async (req) => {
     }
     tree.push({ path: 'ai-organization/EXPORTED_AT.txt', mode: '100644', type: 'blob', content: String((exp as any).exported_at || new Date().toISOString()) });
 
+    // Full DB schema mirror — keeps GitHub in sync with the live Supabase schema
+    // (tables, functions, views, triggers, indexes, RLS, policies, cron; secret VALUES
+    // and row data excluded). Best-effort: if it fails, still sync the org-as-code files.
+    try {
+      const { data: schema } = await admin.rpc('fn_schema_export');
+      if (schema && typeof schema === 'string' && schema.length > 100) {
+        tree.push({ path: 'supabase/schema/full_schema.sql', mode: '100644', type: 'blob', content: schema });
+      }
+    } catch (_e) { /* schema export is best-effort */ }
+
     const ref = await fetch(api + '/git/ref/heads/' + branch, { headers: H }).then(r => r.json());
     const headSha = ref?.object?.sha; if (!headSha) return J({ error: 'ref lookup failed: ' + JSON.stringify(ref).slice(0, 200) }, 500);
     const headCommit = await fetch(api + '/git/commits/' + headSha, { headers: H }).then(r => r.json());
