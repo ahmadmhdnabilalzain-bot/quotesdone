@@ -1478,5 +1478,61 @@
  {
   "name": "org_export_and_nightly_github_sync",
   "version": "20260724142835"
+ },
+ {
+  "name": "ws_agents_honest_count",
+  "version": "20260724143508"
+ },
+ {
+  "name": "policy_lint_covers_kb_chunks",
+  "version": "20260724144208"
+ },
+ {
+  "name": "qa_helpers_quote_score_and_outbound_lint",
+  "version": "20260724151238"
+ },
+ {
+  "name": "category_aware_quote_gate",
+  "version": "20260724153309"
+ },
+ {
+  "name": "deepen_intake_checklists_technical_trades",
+  "version": "20260724153607"
+ },
+ {
+  "name": "pure_category_scorer_for_qa",
+  "version": "20260724153713"
+ },
+ {
+  "name": "universal_category_quote_gate_all_trades",
+  "version": "20260724154839"
+ },
+ {
+  "name": "deepen_remaining_thin_intake_checklists",
+  "version": "20260724155618"
+ },
+ {
+  "name": "comparison_agent_expert_knowledge_and_supplier_coaching",
+  "version": "20260724160651"
+ },
+ {
+  "name": "fix_quote_quality_trigger_use_real_scorers",
+  "version": "20260724161459"
+ },
+ {
+  "name": "fix_quote_quality_trigger_array_append",
+  "version": "20260724161548"
+ },
+ {
+  "name": "cto_audit_hardening_wave1",
+  "version": "20260724163122"
+ },
+ {
+  "name": "cto_audit_stripe_event_seen_fn",
+  "version": "20260724163144"
+ },
+ {
+  "name": "fn_schema_export",
+  "version": "20260724165215"
  }
 ]
