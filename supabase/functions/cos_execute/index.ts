@@ -1,8 +1,11 @@
-// cos_execute (v2) — the Chief of Staff's EXECUTION ENGINE. Runs hourly. Turns the objective/task
-// ledger from a plan into work actually getting done: it picks up each ready task, dispatches it to the
-// owning department's specialist (agent_brain — which reasons + produces the deliverable within its
-// delegated authority), records the deliverable to the ledger + organizational memory, advances the
-// task by its authority tier, and rolls each objective up to done.
+// cos_execute (v3) — the Chief of Staff's EXECUTION ENGINE. Runs hourly. Turns the objective/task
+// ledger from a plan into work actually getting done. For each ready task:
+//   - if its action_class is wired to a real executor (org_action_executor registry), it RUNS that
+//     executor (real side effect, within the executor's own guards) and records mode:'executed';
+//   - otherwise it dispatches to the owning department's specialist (agent_brain), which reasons +
+//     produces the deliverable within its delegated authority (mode:'prepared'/'delivered').
+// Either way it records to the ledger + organizational memory, advances the task by its authority tier,
+// and rolls each objective up to done.
 //
 // SAFETY (Tier-0 discipline, permanent gates) — the tier IS the gate:
 //   - Only works tasks the permission model already cleared: status='assigned' (advisory/supervised/
@@ -83,6 +86,9 @@ Deno.serve(async (req) => {
 
     const { data: depts } = await admin.from('org_departments').select('dept_key,name,brain_agent,lead_agent');
     const deptMap = new Map((depts || []).map((d: any) => [d.dept_key, d]));
+    // Action-executor registry: action_classes wired to a REAL side-effect executor.
+    const { data: execs } = await admin.from('org_action_executor').select('action_class,kind,target,params,active').eq('active', true);
+    const execMap = new Map((execs || []).map((e: any) => [e.action_class, e]));
 
     // Ready set: freshly assigned + any in_progress a prior run may have left orphaned (stale).
     const staleCut = new Date(Date.now() - STALE_MIN * 60000).toISOString();
@@ -102,6 +108,33 @@ Deno.serve(async (req) => {
       const dept: any = deptMap.get(t.dept_key) || { name: t.dept_key, brain_agent: null, lead_agent: null };
       const attempts = (t.attempts || 0) + 1;
       await admin.from('org_tasks').update({ status: 'in_progress', attempts, last_run_at: nowIso(), updated_at: nowIso() }).eq('id', t.id);
+
+      // EXECUTOR PATH — if this action_class is wired to a real executor, run it (real side effect)
+      // instead of only preparing a deliverable. advisory tasks never execute (advice only).
+      const ex: any = execMap.get(t.action_class);
+      if (ex && t.tier !== 'advisory') {
+        let execResult: any;
+        try {
+          if (ex.kind === 'rpc') { const { data, error } = await admin.rpc(ex.target, ex.params || {}); execResult = error ? { error: error.message } : data; }
+          else { const r = await fetch(FN + '/' + ex.target, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), objective_id: t.objective_id, task_id: t.id, ...(ex.params || {}) }), signal: AbortSignal.timeout(50000) }); execResult = await r.json().catch(() => ({ error: 'bad_json' })); }
+        } catch (e) { execResult = { error: String((e as Error)?.message || e) }; }
+        const okExec = execResult && !execResult.error;
+        const oneLine = (okExec ? String(execResult.note || JSON.stringify(execResult)) : 'executor error: ' + String(execResult?.error || 'unknown')).slice(0, 300);
+        const newStatus = okExec ? 'done' : (attempts >= MAX_ATTEMPTS ? 'escalated' : 'in_progress');
+        if (newStatus === 'done') done++; else if (newStatus === 'escalated') escalated++; else working++;
+        const review_pending = newStatus === 'done' && t.tier === 'supervised';
+        await admin.from('org_tasks').update({ status: newStatus, decided_by: 'cos', updated_at: nowIso(),
+          result: { mode: 'executed', executor: ex.target, executed: execResult, summary: oneLine, review_pending, at: nowIso() } }).eq('id', t.id);
+        try { await admin.from('org_memory').insert({ scope: t.dept_key, kind: 'action', content: (t.title + ' — ' + oneLine).slice(0, 500), source: 'cos' }); } catch (_e) {}
+        if (newStatus === 'escalated') {
+          try { await admin.from('agent_actions').insert({ agent: t.dept_key, kind: 'objective_step', status: 'pending', risk: 'low',
+            title: ('Objective step needs you — ' + t.title).slice(0, 200),
+            recommendation: ('Automated executor for ' + t.action_class + ' failed after ' + attempts + ' tries: ' + oneLine).slice(0, 400),
+            detail: { objective_id: t.objective_id, task_id: t.id, dept: t.dept_key, action_class: t.action_class, tier: t.tier } }); } catch (_e) {}
+        }
+        summary.push({ task_id: t.id, dept: t.dept_key, tier: t.tier, status: newStatus, mode: 'executed', summary: oneLine });
+        continue; // executed — skip the advisory deliverable path
+      }
 
       const { data: obj } = await admin.from('org_objectives').select('objective').eq('id', t.objective_id).maybeSingle();
       const deliverable = (await dispatch(dept.name, dept.brain_agent || dept.lead_agent, obj?.objective || '', t)).trim();
