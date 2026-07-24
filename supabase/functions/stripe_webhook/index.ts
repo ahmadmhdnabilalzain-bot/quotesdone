@@ -44,6 +44,13 @@ Deno.serve(async (req) => {
   if (!whsec) { await logRun('error', {}, 'not_configured: stripe_webhook_secret missing'); return new Response('not_configured', { status: 400 }); }
   if (!(await verifySig(sig, raw, whsec))) { await logRun('error', {}, 'bad_signature (rejected before parsing)'); return new Response('bad signature', { status: 400 }); }
   let event: any; try { event = JSON.parse(raw); } catch { await logRun('error', {}, 'bad_json from Stripe'); return new Response('bad json', { status: 400 }); }
+  // Ledger (Finding 7): record every signature-verified delivery for audit + reconciliation and
+  // count retries. Best-effort and non-blocking — correctness is still enforced by the conditional
+  // updates below, so a ledger failure can never drop a payment.
+  try {
+    const evId = String(event?.id || '');
+    if (evId) await admin.rpc('fn_stripe_event_seen', { p_event_id: evId, p_type: String(event?.type || ''), p_status: String(event?.data?.object?.payment_status || '') });
+  } catch (_e) { /* ledger is best-effort */ }
   try {
     if (event.type === 'checkout.session.completed') {
       const s = event.data?.object || {};
