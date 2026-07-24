@@ -1,16 +1,51 @@
 [
  {
-  "note": "Tier 0: agent proposes, founder promotes",
-  "dept_key": "it",
-  "max_tier": "gated",
-  "action_class": "code_deploy",
+  "note": "never acts on the business directly",
+  "dept_key": "analytics",
+  "max_tier": "advisory",
+  "action_class": "recommend",
   "threshold_aed": null
  },
  {
-  "note": "rotate/reconnect integrations with approval",
-  "dept_key": "it",
+  "note": "reveal/quote follow-ups",
+  "dept_key": "customer_success",
+  "max_tier": "autonomous",
+  "action_class": "nudge",
+  "threshold_aed": null
+ },
+ {
+  "note": "doctrine 2026-07-24: within-policy refunds are routine work; flow enforces windows/notice; outside-policy stays founder",
+  "dept_key": "customer_success",
+  "max_tier": "autonomous",
+  "action_class": "refund_within_window",
+  "threshold_aed": null
+ },
+ {
+  "note": "resolve customer issues whenever published policy allows; never ask the founder how to answer a customer",
+  "dept_key": "customer_success",
+  "max_tier": "autonomous",
+  "action_class": "resolve_within_policy",
+  "threshold_aed": null
+ },
+ {
+  "note": "route/track objectives across departments",
+  "dept_key": "exec",
+  "max_tier": "autonomous",
+  "action_class": "coordinate",
+  "threshold_aed": null
+ },
+ {
+  "note": "destructive ops always gated, any dept",
+  "dept_key": "exec",
   "max_tier": "gated",
-  "action_class": "secret_change",
+  "action_class": "data_delete",
+  "threshold_aed": null
+ },
+ {
+  "note": "translate company objectives into departmental initiatives and track execution; escalate only strategic decisions",
+  "dept_key": "exec",
+  "max_tier": "autonomous",
+  "action_class": "initiative_create",
   "threshold_aed": null
  },
  {
@@ -35,10 +70,80 @@
   "threshold_aed": 10000
  },
  {
-  "note": "reveal/quote follow-ups",
-  "dept_key": "customer_success",
+  "note": "Tier 0: agent proposes, founder promotes",
+  "dept_key": "it",
+  "max_tier": "gated",
+  "action_class": "code_deploy",
+  "threshold_aed": null
+ },
+ {
+  "note": "doctrine 2026-07-24: attempt fix first, escalate only when auto-recovery impossible; deploy-shaped self-heal via safety pipeline",
+  "dept_key": "it",
   "max_tier": "autonomous",
-  "action_class": "nudge",
+  "action_class": "code_selfheal",
+  "threshold_aed": null
+ },
+ {
+  "note": "detect -> investigate -> fix -> verify -> document root cause; notify founder only when recovery fails or a protected area needs approval",
+  "dept_key": "it",
+  "max_tier": "autonomous",
+  "action_class": "incident_fix",
+  "threshold_aed": null
+ },
+ {
+  "note": "rotate/reconnect integrations with approval",
+  "dept_key": "it",
+  "max_tier": "gated",
+  "action_class": "secret_change",
+  "threshold_aed": null
+ },
+ {
+  "note": "live intake-form changes via prompt_gate",
+  "dept_key": "knowledge",
+  "max_tier": "gated",
+  "action_class": "intake_change",
+  "threshold_aed": null
+ },
+ {
+  "note": "detect gaps from recurring questions/eval failures, acquire from approved sources, validate, distribute",
+  "dept_key": "knowledge",
+  "max_tier": "autonomous",
+  "action_class": "knowledge_acquire",
+  "threshold_aed": null
+ },
+ {
+  "note": "doctrine 2026-07-24: acquire/fill/distribute knowledge from approved sources without waiting",
+  "dept_key": "knowledge",
+  "max_tier": "autonomous",
+  "action_class": "knowledge_fill",
+  "threshold_aed": null
+ },
+ {
+  "note": "demand letters, PDPL erase — approval",
+  "dept_key": "legal",
+  "max_tier": "gated",
+  "action_class": "legal_action",
+  "threshold_aed": null
+ },
+ {
+  "note": "always needs_licensed_review",
+  "dept_key": "legal",
+  "max_tier": "advisory",
+  "action_class": "legal_review",
+  "threshold_aed": null
+ },
+ {
+  "note": "campaigns created paused; activation gated",
+  "dept_key": "marketing",
+  "max_tier": "gated",
+  "action_class": "ad_spend",
+  "threshold_aed": null
+ },
+ {
+  "note": "plan calendars, draft posts, improve SEO without asking; final social posts + paid budgets stay gated",
+  "dept_key": "marketing",
+  "max_tier": "autonomous",
+  "action_class": "content_calendar",
   "threshold_aed": null
  },
  {
@@ -56,17 +161,10 @@
   "threshold_aed": null
  },
  {
-  "note": "campaigns created paused; activation gated",
-  "dept_key": "marketing",
-  "max_tier": "gated",
-  "action_class": "ad_spend",
-  "threshold_aed": null
- },
- {
-  "note": null,
-  "dept_key": "supplier_success",
-  "max_tier": "gated",
-  "action_class": "supplier_ban",
+  "note": "policy-capped fanout/relevance",
+  "dept_key": "procurement",
+  "max_tier": "autonomous",
+  "action_class": "match_inquiry",
   "threshold_aed": null
  },
  {
@@ -77,76 +175,6 @@
   "threshold_aed": null
  },
  {
-  "note": "live intake-form changes via prompt_gate",
-  "dept_key": "knowledge",
-  "max_tier": "gated",
-  "action_class": "intake_change",
-  "threshold_aed": null
- },
- {
-  "note": "policy-capped fanout/relevance",
-  "dept_key": "procurement",
-  "max_tier": "autonomous",
-  "action_class": "match_inquiry",
-  "threshold_aed": null
- },
- {
-  "note": "never acts on the business directly",
-  "dept_key": "analytics",
-  "max_tier": "advisory",
-  "action_class": "recommend",
-  "threshold_aed": null
- },
- {
-  "note": "always needs_licensed_review",
-  "dept_key": "legal",
-  "max_tier": "advisory",
-  "action_class": "legal_review",
-  "threshold_aed": null
- },
- {
-  "note": "demand letters, PDPL erase — approval",
-  "dept_key": "legal",
-  "max_tier": "gated",
-  "action_class": "legal_action",
-  "threshold_aed": null
- },
- {
-  "note": "route/track objectives across departments",
-  "dept_key": "exec",
-  "max_tier": "autonomous",
-  "action_class": "coordinate",
-  "threshold_aed": null
- },
- {
-  "note": "destructive ops always gated, any dept",
-  "dept_key": "exec",
-  "max_tier": "gated",
-  "action_class": "data_delete",
-  "threshold_aed": null
- },
- {
-  "note": "doctrine 2026-07-24: within-policy refunds are routine work; flow enforces windows/notice; outside-policy stays founder",
-  "dept_key": "customer_success",
-  "max_tier": "autonomous",
-  "action_class": "refund_within_window",
-  "threshold_aed": null
- },
- {
-  "note": "doctrine 2026-07-24: attempt fix first, escalate only when auto-recovery impossible; deploy-shaped self-heal via safety pipeline",
-  "dept_key": "it",
-  "max_tier": "autonomous",
-  "action_class": "code_selfheal",
-  "threshold_aed": null
- },
- {
-  "note": "doctrine 2026-07-24: acquire/fill/distribute knowledge from approved sources without waiting",
-  "dept_key": "knowledge",
-  "max_tier": "autonomous",
-  "action_class": "knowledge_fill",
-  "threshold_aed": null
- },
- {
   "note": "doctrine 2026-07-24: licence-OCR-clean suppliers auto-approve; anything flagged stays founder",
   "dept_key": "supplier_success",
   "max_tier": "autonomous",
@@ -154,17 +182,10 @@
   "threshold_aed": null
  },
  {
-  "note": "plan calendars, draft posts, improve SEO without asking; final social posts + paid budgets stay gated",
-  "dept_key": "marketing",
-  "max_tier": "autonomous",
-  "action_class": "content_calendar",
-  "threshold_aed": null
- },
- {
-  "note": "resolve customer issues whenever published policy allows; never ask the founder how to answer a customer",
-  "dept_key": "customer_success",
-  "max_tier": "autonomous",
-  "action_class": "resolve_within_policy",
+  "note": null,
+  "dept_key": "supplier_success",
+  "max_tier": "gated",
+  "action_class": "supplier_ban",
   "threshold_aed": null
  },
  {
@@ -172,27 +193,6 @@
   "dept_key": "supplier_success",
   "max_tier": "autonomous",
   "action_class": "supplier_coaching",
-  "threshold_aed": null
- },
- {
-  "note": "detect -> investigate -> fix -> verify -> document root cause; notify founder only when recovery fails or a protected area needs approval",
-  "dept_key": "it",
-  "max_tier": "autonomous",
-  "action_class": "incident_fix",
-  "threshold_aed": null
- },
- {
-  "note": "detect gaps from recurring questions/eval failures, acquire from approved sources, validate, distribute",
-  "dept_key": "knowledge",
-  "max_tier": "autonomous",
-  "action_class": "knowledge_acquire",
-  "threshold_aed": null
- },
- {
-  "note": "translate company objectives into departmental initiatives and track execution; escalate only strategic decisions",
-  "dept_key": "exec",
-  "max_tier": "autonomous",
-  "action_class": "initiative_create",
   "threshold_aed": null
  }
 ]

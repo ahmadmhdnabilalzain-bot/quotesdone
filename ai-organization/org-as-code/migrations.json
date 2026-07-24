@@ -32,14 +32,6 @@
   "version": "20260607093842"
  },
  {
-  "name": "matcher_uses_service_emirates",
-  "version": "20260608194324"
- },
- {
-  "name": "approval_timestamps",
-  "version": "20260625211810"
- },
- {
   "name": "match_suppliers_kw_rpc",
   "version": "20260607094054"
  },
@@ -76,8 +68,8 @@
   "version": "20260608191638"
  },
  {
-  "name": "agent_chats",
-  "version": "20260623185003"
+  "name": "matcher_uses_service_emirates",
+  "version": "20260608194324"
  },
  {
   "name": "clean_shared_emails",
@@ -152,10 +144,6 @@
   "version": "20260618155243"
  },
  {
-  "name": "feature_flags_and_experiments",
-  "version": "20260706120703"
- },
- {
   "name": "inquiry_budget_scope_and_turnkey_matching",
   "version": "20260619123959"
  },
@@ -192,10 +180,6 @@
   "version": "20260619154458"
  },
  {
-  "name": "agent_knowledge_and_memory",
-  "version": "20260623214903"
- },
- {
   "name": "workflow_completion_expiry_noquotes",
   "version": "20260620114145"
  },
@@ -222,6 +206,10 @@
  {
   "name": "email_suppressions",
   "version": "20260621103926"
+ },
+ {
+  "name": "agent_chats",
+  "version": "20260623185003"
  },
  {
   "name": "marketing_and_category_agents",
@@ -276,8 +264,8 @@
   "version": "20260623204811"
  },
  {
-  "name": "operational_simulator",
-  "version": "20260706120801"
+  "name": "agent_knowledge_and_memory",
+  "version": "20260623214903"
  },
  {
   "name": "hardening_phase1_schema",
@@ -320,8 +308,8 @@
   "version": "20260625205239"
  },
  {
-  "name": "ai_governance_gate_and_twins",
-  "version": "20260706120859"
+  "name": "approval_timestamps",
+  "version": "20260625211810"
  },
  {
   "name": "agent_action_log",
@@ -350,10 +338,6 @@
  {
   "name": "cleanup_test_data_and_vestigial_table",
   "version": "20260626204501"
- },
- {
-  "name": "create_crm_tasks",
-  "version": "20260703135324"
  },
  {
   "name": "dedupe_leads_by_email",
@@ -396,10 +380,6 @@
   "version": "20260629214950"
  },
  {
-  "name": "unified_decision_engine",
-  "version": "20260706115523"
- },
- {
   "name": "matching_feedback_and_wa_flush",
   "version": "20260629215302"
  },
@@ -424,8 +404,8 @@
   "version": "20260701135157"
  },
  {
-  "name": "rbac_abac_policy_v2",
-  "version": "20260706115642"
+  "name": "create_crm_tasks",
+  "version": "20260703135324"
  },
  {
   "name": "crm_odoo_pipeline_layer",
@@ -450,10 +430,6 @@
  {
   "name": "knowledge_graph",
   "version": "20260706003605"
- },
- {
-  "name": "monthly_quarterly_reports",
-  "version": "20260706115731"
  },
  {
   "name": "procurement_projects",
@@ -490,10 +466,6 @@
  {
   "name": "quotes_quality_gate_column",
   "version": "20260706020857"
- },
- {
-  "name": "grounding_enforcement",
-  "version": "20260706115822"
  },
  {
   "name": "quote_gate_trigger_v2",
@@ -548,14 +520,6 @@
   "version": "20260706104613"
  },
  {
-  "name": "prompt_registry_and_rules_engine",
-  "version": "20260706120612"
- },
- {
-  "name": "blog_posts_public_read_published_only",
-  "version": "20260720195446"
- },
- {
   "name": "rfq_archive_lifecycle",
   "version": "20260706105057"
  },
@@ -586,6 +550,38 @@
  {
   "name": "supplier_capability_model",
   "version": "20260706115422"
+ },
+ {
+  "name": "unified_decision_engine",
+  "version": "20260706115523"
+ },
+ {
+  "name": "rbac_abac_policy_v2",
+  "version": "20260706115642"
+ },
+ {
+  "name": "monthly_quarterly_reports",
+  "version": "20260706115731"
+ },
+ {
+  "name": "grounding_enforcement",
+  "version": "20260706115822"
+ },
+ {
+  "name": "prompt_registry_and_rules_engine",
+  "version": "20260706120612"
+ },
+ {
+  "name": "feature_flags_and_experiments",
+  "version": "20260706120703"
+ },
+ {
+  "name": "operational_simulator",
+  "version": "20260706120801"
+ },
+ {
+  "name": "ai_governance_gate_and_twins",
+  "version": "20260706120859"
  },
  {
   "name": "agent_action_governance_gate",
@@ -620,10 +616,6 @@
   "version": "20260708100550"
  },
  {
-  "name": "phase_b_autonomy_policy_classifier",
-  "version": "20260724012241"
- },
- {
   "name": "erp_po_procure_to_pay",
   "version": "20260708100931"
  },
@@ -650,10 +642,6 @@
  {
   "name": "erp_fixed_assets",
   "version": "20260708101529"
- },
- {
-  "name": "phase_b_digest_trigger_and_brief",
-  "version": "20260724012451"
  },
  {
   "name": "erp_budgeting",
@@ -686,10 +674,6 @@
  {
   "name": "erp_ws_ai_agents_ops",
   "version": "20260708113638"
- },
- {
-  "name": "layer2_resilience_watch",
-  "version": "20260724014043"
  },
  {
   "name": "erp_ws_rfq_360",
@@ -770,10 +754,6 @@
  {
   "name": "ws_finance_add_ai_block",
   "version": "20260709083600"
- },
- {
-  "name": "canon_eval_scoreboard",
-  "version": "20260724072752"
  },
  {
   "name": "marketing_kpis_and_demand",
@@ -896,10 +876,6 @@
   "version": "20260709101415"
  },
  {
-  "name": "governance_kpis_and_ws",
-  "version": "20260709110719"
- },
- {
   "name": "document_controller_inventory_kpis",
   "version": "20260709102030"
  },
@@ -948,6 +924,10 @@
   "version": "20260709110630"
  },
  {
+  "name": "governance_kpis_and_ws",
+  "version": "20260709110719"
+ },
+ {
   "name": "governance_stamp_trigger_and_backfill",
   "version": "20260709111338"
  },
@@ -966,10 +946,6 @@
  {
   "name": "prompt_eval_harness",
   "version": "20260709121153"
- },
- {
-  "name": "collections_legal_escalation",
-  "version": "20260710165420"
  },
  {
   "name": "fn_ws_ai_add_prompt_reviews",
@@ -996,8 +972,8 @@
   "version": "20260710160952"
  },
  {
-  "name": "knowledge_quality_views",
-  "version": "20260710213155"
+  "name": "collections_legal_escalation",
+  "version": "20260710165420"
  },
  {
   "name": "security_audit_trail",
@@ -1028,8 +1004,8 @@
   "version": "20260710204843"
  },
  {
-  "name": "finance_subscription_reminders",
-  "version": "20260713112611"
+  "name": "knowledge_quality_views",
+  "version": "20260710213155"
  },
  {
   "name": "marketplace_intelligence_views",
@@ -1060,10 +1036,6 @@
   "version": "20260710223509"
  },
  {
-  "name": "revoke_execute_on_trigger_functions_from_public_roles",
-  "version": "20260711191945"
- },
- {
   "name": "memory_promotion_queue",
   "version": "20260710223624"
  },
@@ -1086,6 +1058,10 @@
  {
   "name": "fn_ws_refunds_add_txid",
   "version": "20260711172717"
+ },
+ {
+  "name": "revoke_execute_on_trigger_functions_from_public_roles",
+  "version": "20260711191945"
  },
  {
   "name": "drop_duplicate_index_inquiry_matches",
@@ -1154,6 +1130,10 @@
  {
   "name": "create_inquiry_intake",
   "version": "20260713083547"
+ },
+ {
+  "name": "finance_subscription_reminders",
+  "version": "20260713112611"
  },
  {
   "name": "notifications_html_column",
@@ -1242,6 +1222,10 @@
  {
   "name": "drift_gate_scope_defaults_to_postgres_20260719",
   "version": "20260719172417"
+ },
+ {
+  "name": "blog_posts_public_read_published_only",
+  "version": "20260720195446"
  },
  {
   "name": "harden_email_otp_hash_and_attempt_cap",
@@ -1384,6 +1368,18 @@
   "version": "20260724003746"
  },
  {
+  "name": "phase_b_autonomy_policy_classifier",
+  "version": "20260724012241"
+ },
+ {
+  "name": "phase_b_digest_trigger_and_brief",
+  "version": "20260724012451"
+ },
+ {
+  "name": "layer2_resilience_watch",
+  "version": "20260724014043"
+ },
+ {
   "name": "layer2_cron_liveness_rpc",
   "version": "20260724014606"
  },
@@ -1452,6 +1448,10 @@
   "version": "20260724062250"
  },
  {
+  "name": "canon_eval_scoreboard",
+  "version": "20260724072752"
+ },
+ {
   "name": "fn_smoke_returns_jsonb",
   "version": "20260724075640"
  },
@@ -1474,5 +1474,9 @@
  {
   "name": "chairman_doctrine_default_to_action",
   "version": "20260724090758"
+ },
+ {
+  "name": "org_export_and_nightly_github_sync",
+  "version": "20260724142835"
  }
 ]

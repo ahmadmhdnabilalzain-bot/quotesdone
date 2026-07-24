@@ -1,6 +1,30 @@
 [
  {
   "kind": "brain",
+  "role": "Head of Analytics & Intelligence — metric definitions, experiments, cited insights (advisory only)",
+  "active": true,
+  "agent_key": "analytics",
+  "created_at": "2026-07-24T08:30:59.129818+00:00",
+  "department": "analytics"
+ },
+ {
+  "kind": "brain",
+  "role": "Business development — supplier acquisition",
+  "active": true,
+  "agent_key": "bd",
+  "created_at": "2026-07-24T05:37:09.357897+00:00",
+  "department": "supplier_success"
+ },
+ {
+  "kind": "brain",
+  "role": "Bookkeeper — receipts, ledger entries",
+  "active": true,
+  "agent_key": "bookkeeper",
+  "created_at": "2026-07-24T05:37:09.357897+00:00",
+  "department": "finance"
+ },
+ {
+  "kind": "brain",
   "role": "Chief of Staff — runs the company against objectives",
   "active": true,
   "agent_key": "brief",
@@ -17,67 +41,11 @@
  },
  {
   "kind": "brain",
-  "role": "Bookkeeper — receipts, ledger entries",
-  "active": true,
-  "agent_key": "bookkeeper",
-  "created_at": "2026-07-24T05:37:09.357897+00:00",
-  "department": "finance"
- },
- {
-  "kind": "brain",
   "role": "Collections — dues and recovery",
   "active": true,
   "agent_key": "collections",
   "created_at": "2026-07-24T05:37:09.357897+00:00",
   "department": "finance"
- },
- {
-  "kind": "brain",
-  "role": "IT/SRE — platform uptime and safe change",
-  "active": true,
-  "agent_key": "it",
-  "created_at": "2026-07-24T05:37:09.357897+00:00",
-  "department": "it"
- },
- {
-  "kind": "brain",
-  "role": "Security engineer — appsec, secrets, threats",
-  "active": true,
-  "agent_key": "security",
-  "created_at": "2026-07-24T05:37:09.357897+00:00",
-  "department": "it"
- },
- {
-  "kind": "brain",
-  "role": "Supplier onboarding / KYC",
-  "active": true,
-  "agent_key": "onboarding",
-  "created_at": "2026-07-24T05:37:09.357897+00:00",
-  "department": "supplier_success"
- },
- {
-  "kind": "brain",
-  "role": "Business development — supplier acquisition",
-  "active": true,
-  "agent_key": "bd",
-  "created_at": "2026-07-24T05:37:09.357897+00:00",
-  "department": "supplier_success"
- },
- {
-  "kind": "brain",
-  "role": "Follow-up / SLA / customer journey",
-  "active": true,
-  "agent_key": "followup",
-  "created_at": "2026-07-24T05:37:09.357897+00:00",
-  "department": "customer_success"
- },
- {
-  "kind": "brain",
-  "role": "Marketing lead — demand, content, brand",
-  "active": true,
-  "agent_key": "marketing",
-  "created_at": "2026-07-24T05:37:09.357897+00:00",
-  "department": "marketing"
  },
  {
   "kind": "brain",
@@ -89,6 +57,22 @@
  },
  {
   "kind": "brain",
+  "role": "Follow-up / SLA / customer journey",
+  "active": true,
+  "agent_key": "followup",
+  "created_at": "2026-07-24T05:37:09.357897+00:00",
+  "department": "customer_success"
+ },
+ {
+  "kind": "brain",
+  "role": "IT/SRE — platform uptime and safe change",
+  "active": true,
+  "agent_key": "it",
+  "created_at": "2026-07-24T05:37:09.357897+00:00",
+  "department": "it"
+ },
+ {
+  "kind": "brain",
   "role": "Legal & compliance",
   "active": true,
   "agent_key": "legal",
@@ -97,11 +81,19 @@
  },
  {
   "kind": "brain",
-  "role": "Head of Analytics & Intelligence — metric definitions, experiments, cited insights (advisory only)",
+  "role": "Marketing lead — demand, content, brand",
   "active": true,
-  "agent_key": "analytics",
-  "created_at": "2026-07-24T08:30:59.129818+00:00",
-  "department": "analytics"
+  "agent_key": "marketing",
+  "created_at": "2026-07-24T05:37:09.357897+00:00",
+  "department": "marketing"
+ },
+ {
+  "kind": "brain",
+  "role": "Supplier onboarding / KYC",
+  "active": true,
+  "agent_key": "onboarding",
+  "created_at": "2026-07-24T05:37:09.357897+00:00",
+  "department": "supplier_success"
  },
  {
   "kind": "brain",
@@ -110,5 +102,13 @@
   "agent_key": "procurement",
   "created_at": "2026-07-24T08:30:59.129818+00:00",
   "department": "procurement"
+ },
+ {
+  "kind": "brain",
+  "role": "Security engineer — appsec, secrets, threats",
+  "active": true,
+  "agent_key": "security",
+  "created_at": "2026-07-24T05:37:09.357897+00:00",
+  "department": "it"
  }
 ]

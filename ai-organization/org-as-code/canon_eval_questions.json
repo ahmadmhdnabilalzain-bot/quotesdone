@@ -315,6 +315,15 @@
   "reference": "The founder; refunds require founder approval."
  },
  {
+  "id": 36,
+  "layer": "company",
+  "active": true,
+  "category": "refunds",
+  "question": "What does QuotesDone recover from an unreachable supplier?",
+  "agent_key": null,
+  "reference": "The refunded reveal fee is recovered from the unreachable supplier, plus late-payment interest per the signed Supplier Agreement (9% per annum, simple, capped at principal). The AED 250 admin fee is founder-set but NOT yet in the signed terms, so it is currently excluded from demands until the agreement is amended. The supplier is blocked from matching until the due is paid."
+ },
+ {
   "id": 37,
   "layer": "company",
   "active": true,
@@ -889,14 +898,5 @@
   "question": "Where do you record something you learned this week so the organization keeps it?",
   "agent_key": null,
   "reference": "As an org_memory row (kind=lesson, scoped to the department) or a closed-case lesson - never only in your own transient reasoning. Personal agent_memory is scratch and is lint-filtered; only promoted lessons become permanent Layer 4 knowledge."
- },
- {
-  "id": 36,
-  "layer": "company",
-  "active": true,
-  "category": "refunds",
-  "question": "What does QuotesDone recover from an unreachable supplier?",
-  "agent_key": null,
-  "reference": "The refunded reveal fee is recovered from the unreachable supplier, plus late-payment interest per the signed Supplier Agreement (9% per annum, simple, capped at principal). The AED 250 admin fee is founder-set but NOT yet in the signed terms, so it is currently excluded from demands until the agreement is amended. The supplier is blocked from matching until the due is paid."
  }
 ]

@@ -22,6 +22,17 @@
   "brain_agent": "it"
  },
  {
+  "name": "Procurement (Marketplace Core)",
+  "sort": 30,
+  "active": true,
+  "charter": "Run intake->match->quote->reveal at high match & quote quality.",
+  "dept_key": "procurement",
+  "health_fn": "fn_ws_marketplace",
+  "lead_agent": "procurement",
+  "north_star": "quotes per RFQ / time-to-first-quote",
+  "brain_agent": "procurement"
+ },
+ {
   "name": "Supplier Success",
   "sort": 40,
   "active": true,
@@ -77,17 +88,6 @@
   "brain_agent": "docs"
  },
  {
-  "name": "Legal & Compliance",
-  "sort": 100,
-  "active": true,
-  "charter": "Keep the company compliant and defensible; never auto-decide legal judgment.",
-  "dept_key": "legal",
-  "health_fn": "fn_ws_governance",
-  "lead_agent": "legal",
-  "north_star": "PDPL SLA / open legal risk",
-  "brain_agent": "legal"
- },
- {
   "name": "Analytics & Intelligence",
   "sort": 90,
   "active": true,
@@ -99,14 +99,14 @@
   "brain_agent": "analytics"
  },
  {
-  "name": "Procurement (Marketplace Core)",
-  "sort": 30,
+  "name": "Legal & Compliance",
+  "sort": 100,
   "active": true,
-  "charter": "Run intake->match->quote->reveal at high match & quote quality.",
-  "dept_key": "procurement",
-  "health_fn": "fn_ws_marketplace",
-  "lead_agent": "procurement",
-  "north_star": "quotes per RFQ / time-to-first-quote",
-  "brain_agent": "procurement"
+  "charter": "Keep the company compliant and defensible; never auto-decide legal judgment.",
+  "dept_key": "legal",
+  "health_fn": "fn_ws_governance",
+  "lead_agent": "legal",
+  "north_star": "PDPL SLA / open legal risk",
+  "brain_agent": "legal"
  }
 ]
