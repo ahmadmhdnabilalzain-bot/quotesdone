@@ -76,13 +76,21 @@ async function context(key:string){
 Deno.serve(async (req)=>{
   if(req.method==='OPTIONS') return new Response(null,{headers:CORS});
   try{
-    const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');
-    const { data:{ user } } = await admin.auth.getUser(jwt);
-    if(!user||!user.email) return J({error:'unauthorized'},401);
-    const email=user.email.toLowerCase();
-    const al=await sec('admin_emails'); const admins=String(al||'management@quotesdone.com').toLowerCase().split(',').map(s=>s.trim());
-    if(!admins.includes(email)) return J({error:'forbidden'},403);
     const body=await req.json().catch(()=>({}));
+    // Auth: internal __secret path (agent-to-agent collaboration, e.g. secretary ask_agent) OR admin JWT.
+    // Fail-closed: if inbound_secret is missing/empty the internal path can never authenticate.
+    let email='';
+    const internalSecret=await sec('inbound_secret');
+    if(body.__secret && internalSecret && body.__secret===internalSecret){
+      email='internal@quotesdone.com';
+    } else {
+      const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');
+      const { data:{ user } } = await admin.auth.getUser(jwt);
+      if(!user||!user.email) return J({error:'unauthorized'},401);
+      email=user.email.toLowerCase();
+      const al=await sec('admin_emails'); const admins=String(al||'management@quotesdone.com').toLowerCase().split(',').map(s=>s.trim());
+      if(!admins.includes(email)) return J({error:'forbidden'},403);
+    }
     const key=String(body.agent||''); const msg=String(body.message||'').trim();
     const m=await meta(key); if(!m) return J({error:'unknown agent'},400);
     if(!msg) return J({error:'message required'},400);

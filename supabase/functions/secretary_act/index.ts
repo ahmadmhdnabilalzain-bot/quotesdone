@@ -1,6 +1,8 @@
-// secretary_act v2 — the Secretary acts on the founder's instructions via a real action toolkit.
+// secretary_act v3 — the Secretary acts on the founder's instructions via a real action toolkit.
 // Tool-calling loop (OpenRouter). Low-risk tools run immediately; high-stakes tools pause for a one-line confirm.
 // Accepts document attachments (already text-extracted by the caller) and folds them into the founder's message.
+// v3 (Phase A, agent network): + query_platform (fn_query_platform — read-only window onto every department dashboard)
+//                              + ask_agent (synchronous delegation to any specialist via agent_brain __secret path).
 // Auth: __secret == inbound_secret (server/testing) OR admin-email JWT.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -22,6 +24,8 @@ const dayAgo = (d: number) => new Date(Date.now() - d * 864e5).toISOString();
 const HIGH = new Set(['issue_refund', 'supplier_decision', 'delete_files', 'post_content']);
 const TOOLS = [
   { type: 'function', function: { name: 'get_status', description: 'Business snapshot: what needs attention (pending suppliers, refund requests, stuck queues, 24h activity, revenue, active alerts).', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'query_platform', description: 'THE live window onto every department dashboard of the company — use this FIRST for ANY question about company state: knowledge coverage/gaps, agents health, finance, funnel, analytics, customers, suppliers, operations, refunds, governance, fraud, marketing, strategy, documents, reports, exec. topic is one of: topics|knowledge|agents|agent_ops|ai|analytics|company|customers|documents|ea|exec|finance|fraud|governance|marketing|marketplace|operations|refunds|reports|strategy|suppliers|supplier_360|customer_360|rfq_360|funnel. args is optional: {"id":"<uuid or number>"} for the 360 topics, {"days":30} for funnel, {"agent":"<key>"} for agent_ops. Call topic=topics to list all. NEVER answer "I do not know" about company state without querying this first.', parameters: { type: 'object', properties: { topic: { type: 'string' }, args: { type: 'object' } }, required: ['topic'] } } },
+  { type: 'function', function: { name: 'ask_agent', description: 'Consult a specialist teammate and get their expert answer NOW (synchronous). agent is one of: legal|collections|cfo|bookkeeper|security|it|onboarding|docs|followup|bd|marketing|brief, or cat:<slug> for a category sales desk. Use whenever a question belongs to a department specialist (legal wording, finance judgement, security assessment, marketing plan, category expertise) — you coordinate the team, you do not have to know everything yourself.', parameters: { type: 'object', properties: { agent: { type: 'string' }, question: { type: 'string' } }, required: ['agent', 'question'] } } },
   { type: 'function', function: { name: 'team_roster', description: 'The QuotesDone team: the AI staff of specialist agents (finance, legal, marketing, security, IT, onboarding, collections, BD, document control, etc.) plus per-category sales desks, and the human founder. Use for any question about staff/agents/headcount/who handles a topic.', parameters: { type: 'object', properties: {} } } },
   { type: 'function', function: { name: 'lookup', description: 'Find records. entity one of supplier|customer|inquiry|transaction; query is a name/email/id/keyword.', parameters: { type: 'object', properties: { entity: { type: 'string', enum: ['supplier', 'customer', 'inquiry', 'transaction'] }, query: { type: 'string' } }, required: ['entity', 'query'] } } },
   { type: 'function', function: { name: 'run_maintenance', description: 'Fix/refresh operations. target one of: health, smoke, security, it_health, clear_test_queue (cancel stuck test/dead-address emails+SMS), recompute_response.', parameters: { type: 'object', properties: { target: { type: 'string', enum: ['health', 'smoke', 'security', 'it_health', 'clear_test_queue', 'recompute_response'] } }, required: ['target'] } } },
@@ -51,6 +55,23 @@ async function tool_get_status() {
   const { data: paid } = await admin.from('transactions').select('reveal_fee').eq('fee_status', 'paid');
   const revenue = Math.round((paid || []).reduce((a, t) => a + (Number(t.reveal_fee) || 0), 0));
   return { pending_suppliers, refunds_requested, stuck_test_emails: held_emails, stuck_test_sms: queued_sms, inquiries_24h: inq24, quotes_24h: q24, reveals_24h: rev24, open_tasks, revenue_collected_aed: revenue };
+}
+async function tool_query_platform(topic: string, args: any) {
+  const { data, error } = await admin.rpc('fn_query_platform', { p_topic: String(topic || ''), p_args: (args && typeof args === 'object') ? args : {} });
+  if (error) return { error: error.message };
+  return data ?? {};
+}
+async function tool_ask_agent(agent: string, question: string) {
+  const a = String(agent || '').toLowerCase().trim();
+  const q = String(question || '').trim().slice(0, 2000);
+  if (!a || !q) return { error: 'need agent and question' };
+  try {
+    const sk = await sec('inbound_secret');
+    const r = await fetch(FN + '/agent_brain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: sk, agent: a, message: q }), signal: AbortSignal.timeout(45000) });
+    const j = await r.json().catch(() => ({} as any));
+    if (j?.reply) return { agent: a, reply: String(j.reply).slice(0, 4000) };
+    return { error: j?.error || 'no_reply', agent: a };
+  } catch (e) { return { error: String((e as Error)?.message || e), agent: a }; }
 }
 async function tool_lookup(entity: string, query: string) {
   const q = String(query || '').replace(/[%,()*]/g, ' ').trim().slice(0, 80);
@@ -106,6 +127,8 @@ async function tool_delete_files(bucket: string, paths: string[], prefix: string
 async function runTool(name: string, a: any) {
   try {
     if (name === 'get_status') return await tool_get_status();
+    if (name === 'query_platform') return await tool_query_platform(a.topic, a.args);
+    if (name === 'ask_agent') return await tool_ask_agent(a.agent, a.question);
     if (name === 'team_roster') return await tool_team_roster();
     if (name === 'lookup') return await tool_lookup(a.entity, a.query);
     if (name === 'run_maintenance') return await tool_run_maintenance(a.target);
@@ -152,11 +175,13 @@ async function teamRoster() {
 }
 async function tool_team_roster() { return await teamRoster(); }
 
-const SYS = `You are the Secretary — the founder's chief of staff for QuotesDone, a UAE B2B anonymous quotation marketplace. QuotesDone is founded and owned by Ahmad (the founder you report to); day-to-day operations run on an AI STAFF of specialist agents that YOU coordinate. When someone asks about "our team", "staff", "agents", "headcount" or "who handles X", they mean this AI agent team plus the founder — you know it well (see YOUR TEAM below, and call team_roster for detail). You are capable and decisive, not just a reporter: when the founder gives an instruction, USE YOUR TOOLS to actually do it, then report crisply what you did in 1-4 sentences.
+const SYS = `You are the Secretary — the founder's chief of staff for QuotesDone, a UAE B2B anonymous quotation marketplace. QuotesDone is an AI-native company: it is founded and owned by Ahmad (the CEO you report to); day-to-day operations run on DEPARTMENTS of AI employees that YOU coordinate — Finance (CFO, Bookkeeper, Collections), Legal & Compliance, Marketing, Security, IT, Supplier Success (Onboarding, Document Controller, BD), Customer Success (Follow-up), Knowledge Management, and per-category sales desks. When someone asks about "our team", "staff", "agents", "headcount" or "who handles X", they mean this AI organization plus the founder — you know it well (see YOUR TEAM below, and call team_roster for detail). You are capable and decisive, not just a reporter: when the founder gives an instruction, USE YOUR TOOLS to actually do it, then report crisply what you did in 1-4 sentences.
 
 Rules:
 - Act. Do not merely describe what could be done — call the tools and get it done.
-- Chain tools when needed (e.g. look something up, then act on it).
+- You have a live window onto EVERY department dashboard: query_platform. For ANY question about company state — knowledge coverage or gaps, agent health, finance, funnel, analytics, suppliers, customers, operations, refunds, governance — call query_platform FIRST (topic=topics lists everything available). You are never allowed to answer "I don't know" or "I cannot provide that" about company state without having queried it.
+- You can consult any specialist teammate synchronously with ask_agent (legal, cfo, marketing, security, it, collections, onboarding, docs, followup, bd, bookkeeper, or cat:<slug> desks). Delegate domain questions to the right department instead of guessing — then relay their answer with your own judgement on top.
+- Chain tools when needed (e.g. query the platform, then look something up, then act on it).
 - If the founder attaches a document (invoice, receipt, subscription, contract), READ the attached text, extract the key details, and act on it (e.g. log_finance for an invoice/subscription), then summarise what you recorded.
 - For any question about the team, staff, agents, headcount or who owns a topic, use YOUR TEAM below (or call team_roster) — NEVER say we have "no staff".
 - High-stakes actions (refunds/money, sending to many people, publishing publicly, deleting data, banning/approving suppliers) will be paused by the system for a one-line confirmation from the founder — that is expected; still call the tool, do not refuse.
@@ -213,7 +238,7 @@ Deno.serve(async (req) => {
       for (const c of calls) {
         let args: any = {}; try { args = JSON.parse(c.function.arguments || '{}'); } catch (_e) {}
         if (isHigh(c.function.name, args)) { pending.push({ tool: c.function.name, args }); messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify({ status: 'awaiting_founder_confirmation', note: 'queued; will run once the founder confirms' }) }); }
-        else { const out = await runTool(c.function.name, args); did.push({ tool: c.function.name, result: out }); messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(out).slice(0, 4000) }); }
+        else { const out = await runTool(c.function.name, args); did.push({ tool: c.function.name, result: out }); const lim = (c.function.name === 'query_platform' || c.function.name === 'ask_agent') ? 9000 : 4000; messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(out).slice(0, lim) }); }
       }
       if (pending.length) {
         const summary = pending.map((p) => describe(p.tool, p.args)).join(' AND ');
