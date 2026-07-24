@@ -1,4 +1,4 @@
-// cos_execute (v3) — the Chief of Staff's EXECUTION ENGINE. Runs hourly. Turns the objective/task
+// cos_execute (v4) — the Chief of Staff's EXECUTION ENGINE. Runs hourly. Turns the objective/task
 // ledger from a plan into work actually getting done. For each ready task:
 //   - if its action_class is wired to a real executor (org_action_executor registry), it RUNS that
 //     executor (real side effect, within the executor's own guards) and records mode:'executed';
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     const { data: depts } = await admin.from('org_departments').select('dept_key,name,brain_agent,lead_agent');
     const deptMap = new Map((depts || []).map((d: any) => [d.dept_key, d]));
     // Action-executor registry: action_classes wired to a REAL side-effect executor.
-    const { data: execs } = await admin.from('org_action_executor').select('action_class,kind,target,params,active').eq('active', true);
+    const { data: execs } = await admin.from('org_action_executor').select('action_class,kind,target,params,active,advisory_safe').eq('active', true);
     const execMap = new Map((execs || []).map((e: any) => [e.action_class, e]));
 
     // Ready set: freshly assigned + any in_progress a prior run may have left orphaned (stale).
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
       // EXECUTOR PATH — if this action_class is wired to a real executor, run it (real side effect)
       // instead of only preparing a deliverable. advisory tasks never execute (advice only).
       const ex: any = execMap.get(t.action_class);
-      if (ex && t.tier !== 'advisory') {
+      if (ex && (t.tier !== 'advisory' || ex.advisory_safe)) {
         let execResult: any;
         try {
           if (ex.kind === 'rpc') { const { data, error } = await admin.rpc(ex.target, ex.params || {}); execResult = error ? { error: error.message } : data; }
