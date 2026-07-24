@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { supa, osApi, osOps, osReportBody, SUPA_URL } from '@/lib/osClient';
+import { supa, osApi, osOps, osReportBody, osSettings, SUPA_URL } from '@/lib/osClient';
 import { cn } from '@/lib/utils';
 function ReportViewer({ id }: { id: number }) {
   const [st, setSt] = React.useState<'idle' | 'load' | 'done' | 'err'>('load');
@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal } from 'lucide-react';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -62,6 +62,7 @@ const MODULES: Mod[] = [
   { id: 'fraud', label: 'Fraud', icon: ShieldAlert, ws: 'ws.fraud' },
   { id: 'refunds', label: 'Refunds', icon: RotateCcw, ws: 'ws.refunds' },
   { id: 'audit', label: 'Audit log', icon: ScrollText, kind: 'audit' },
+  { id: 'settings', label: 'Settings', icon: SlidersHorizontal, kind: 'settings' },
 ];
 const PIPELINE = [ ['sent','New'], ['matched','Matched'], ['quoted','Quoted'], ['revealed','Revealed'], ['completed','Won'] ];
 
@@ -174,7 +175,7 @@ export default function OsxShell() {
         <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
             <div key={id} className={id === cur ? '' : 'hidden'}>
-              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
+              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
             </div>
           ); })}
         </main>
@@ -193,6 +194,100 @@ export default function OsxShell() {
           </CommandGroup>
         </CommandList>
       </CommandDialog>
+    </div>
+  );
+}
+
+function prettyErr(r: any): string {
+  const e = r?.error || 'invalid';
+  const map: any = { must_be_a_number: 'Must be a number', must_be_a_whole_number: 'Must be a whole number', below_minimum: 'Below the minimum (' + r?.min + ')', above_maximum: 'Above the maximum (' + r?.max + ')', must_be_true_or_false: 'Must be on or off', not_an_email: 'Not a valid email address', too_long: 'Too long (max ' + r?.maxlen + ' characters)', key_not_editable: 'This setting is locked and cannot be changed here', no_history_to_revert: 'No previous value to revert to' };
+  return map[e] || e;
+}
+
+function SettingRow({ s, onSaved }: { s: any; onSaved: (key: string, val: string) => void }) {
+  const [val, setVal] = React.useState<string>(String(s.value ?? ''));
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const [hist, setHist] = React.useState<any[] | null>(null);
+  React.useEffect(() => { setVal(String(s.value ?? '')); }, [s.value]);
+  const dirty = String(s.value ?? '') !== val;
+  const save = async (confirm?: boolean) => {
+    setBusy(true); setErr(''); setMsg('');
+    try {
+      const r: any = await osSettings('set', { key: s.key, value: val, confirm: !!confirm });
+      if (r && r.needs_confirm) {
+        setBusy(false);
+        if (typeof window !== 'undefined' && window.confirm('“' + (r.label || s.label) + '” is a sensitive switch. Apply it now?')) { await save(true); }
+        return;
+      }
+      if (r && r.ok === false) { setErr(prettyErr(r)); setBusy(false); return; }
+      onSaved(s.key, r?.new ?? val); setMsg('Saved'); setTimeout(() => setMsg(''), 1500);
+    } catch (e: any) { setErr(e?.message || 'Failed'); }
+    setBusy(false);
+  };
+  const revert = async () => {
+    setBusy(true); setErr(''); setMsg('');
+    try { const r: any = await osSettings('revert', { key: s.key }); if (r && r.ok === false) { setErr(prettyErr(r)); } else { onSaved(s.key, r?.new ?? val); setVal(String(r?.new ?? val)); setMsg('Reverted'); setTimeout(() => setMsg(''), 1500); } }
+    catch (e: any) { setErr(e?.message || 'Failed'); }
+    setBusy(false);
+  };
+  const loadHist = async () => { try { const r: any = await osSettings('history', { key: s.key }); setHist(r?.history || []); } catch (_e) { setHist([]); } };
+  const isBool = s.type === 'bool';
+  const isBig = s.type === 'textarea' || s.type === 'html';
+  return (
+    <div className='py-3 border-b border-border/40 last:border-0'>
+      <div className='flex flex-col md:flex-row items-start gap-4'>
+        <div className='w-full md:w-64 shrink-0'>
+          <div className='text-sm font-medium flex items-center gap-1.5'>{s.label}{s.dangerous ? <span title='Sensitive switch' className='text-amber-400'>●</span> : null}</div>
+          {s.help ? <div className='text-xs text-muted-foreground mt-0.5'>{s.help}</div> : null}
+          <div className='text-[10px] text-muted-foreground/60 mt-0.5 font-mono'>{s.key}</div>
+        </div>
+        <div className='flex-1 min-w-0 w-full'>
+          {isBool ? (
+            <button type='button' onClick={() => setVal(val === 'true' ? 'false' : 'true')} className={cn('inline-flex h-6 items-center rounded-full px-0.5 w-11 transition-colors', val === 'true' ? 'bg-primary' : 'bg-muted')}><span className={cn('h-5 w-5 rounded-full bg-white shadow transition-transform', val === 'true' ? 'translate-x-5' : 'translate-x-0')} /></button>
+          ) : isBig ? (
+            <textarea value={val} onChange={(e) => setVal(e.target.value)} rows={s.type === 'html' ? 8 : 4} className='w-full rounded-md border border-border bg-background/60 p-2 text-sm font-mono' />
+          ) : (
+            <Input value={val} onChange={(e) => setVal(e.target.value)} type={s.type === 'money' || s.type === 'int' || s.type === 'number' ? 'number' : 'text'} className='max-w-md' />
+          )}
+          <div className='flex items-center gap-3 mt-2'>
+            <Button className='h-7 text-xs' disabled={busy || !dirty} onClick={() => save(false)}>{busy ? 'Saving…' : 'Save'}</Button>
+            {dirty ? <button type='button' className='text-xs text-muted-foreground underline' onClick={() => setVal(String(s.value ?? ''))}>Cancel</button> : null}
+            <button type='button' className='text-xs text-muted-foreground underline ml-auto' onClick={() => { if (hist === null) loadHist(); else setHist(null); }}>{hist === null ? 'History' : 'Hide'}</button>
+            <button type='button' className='text-xs text-muted-foreground underline' onClick={revert} disabled={busy}>Revert</button>
+          </div>
+          {msg ? <div className='text-xs text-emerald-400 mt-1'>{msg}</div> : null}
+          {err ? <div className='text-xs text-destructive mt-1'>{err}</div> : null}
+          {hist && hist.length ? <div className='mt-2 text-xs text-muted-foreground space-y-1'>{hist.map((h: any, i: number) => (<div key={i} className='flex flex-wrap gap-2'><span className='opacity-60'>{h.at ? new Date(h.at).toLocaleString() : ''}</span><span>{h.actor}</span><span className='opacity-80'>“{h.old}” → “{h.new}”</span></div>))}</div> : null}
+          {hist && !hist.length ? <div className='mt-2 text-xs text-muted-foreground'>No changes recorded yet.</div> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SettingsPanel() {
+  const [d, setD] = React.useState<any[] | null>(null);
+  const [err, setErr] = React.useState('');
+  const load = React.useCallback(() => { setD(null); setErr(''); osSettings('list').then((r: any) => setD(r?.settings || [])).catch((e: any) => setErr(e.message)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const onSaved = (key: string, val: string) => { setD((prev) => (prev ? prev.map((x) => (x.key === key ? { ...x, value: val } : x)) : prev)); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load settings: {err}</Card>;
+  if (!d) return <div className='text-muted-foreground text-sm'>Loading settings…</div>;
+  const groups: string[] = [];
+  d.forEach((s) => { if (!groups.includes(s.grp)) groups.push(s.grp); });
+  return (
+    <div className='space-y-5'>
+      <div className='flex flex-wrap items-center gap-2'><SlidersHorizontal className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Settings</h1><span className='text-xs text-muted-foreground md:ml-2'>Business configuration. API keys and secrets are managed separately and never appear here. Every change is audit-logged and reversible.</span></div>
+      {groups.map((g) => (
+        <Card key={g} className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>{g}</div>
+          <div className='px-4'>
+            {d.filter((s) => s.grp === g).map((s) => (<SettingRow key={s.key} s={s} onSaved={onSaved} />))}
+          </div>
+        </Card>
+      ))}
     </div>
   );
 }
