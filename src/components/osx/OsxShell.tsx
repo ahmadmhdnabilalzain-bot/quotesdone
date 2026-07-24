@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, SUPA_URL } from '@/lib/osClient';
+import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, SUPA_URL } from '@/lib/osClient';
 import { cn } from '@/lib/utils';
 function ReportViewer({ id }: { id: number }) {
   const [st, setSt] = React.useState<'idle' | 'load' | 'done' | 'err'>('load');
@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks } from 'lucide-react';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -64,6 +64,7 @@ const MODULES: Mod[] = [
   { id: 'audit', label: 'Audit log', icon: ScrollText, kind: 'audit' },
   { id: 'settings', label: 'Settings', icon: SlidersHorizontal, kind: 'settings' },
   { id: 'automation', label: 'Automation', icon: Workflow, kind: 'automation' },
+  { id: 'catalog', label: 'Categories', icon: ListChecks, kind: 'catalog' },
 ];
 const PIPELINE = [ ['sent','New'], ['matched','Matched'], ['quoted','Quoted'], ['revealed','Revealed'], ['completed','Won'] ];
 
@@ -176,7 +177,7 @@ export default function OsxShell() {
         <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
             <div key={id} className={id === cur ? '' : 'hidden'}>
-              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
+              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
             </div>
           ); })}
         </main>
@@ -354,6 +355,97 @@ function AutomationPanel() {
           </div>
         </Card>
       ))}
+    </div>
+  );
+}
+
+function catSlug(s: string): string { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40); }
+
+function CatalogPanel() {
+  const [cats, setCats] = React.useState<any[] | null>(null);
+  const [q, setQ] = React.useState('');
+  const [sel, setSel] = React.useState<string>('');
+  const [label, setLabel] = React.useState('');
+  const [grp, setGrp] = React.useState('');
+  const [fields, setFields] = React.useState<any[]>([]);
+  const [specs, setSpecs] = React.useState<any[]>([]);
+  const [sample, setSample] = React.useState('');
+  const [test, setTest] = React.useState<any>(null);
+  const [busy, setBusy] = React.useState('');
+  const [msg, setMsg] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const loadCats = React.useCallback(() => { osCatalog('list').then((r: any) => setCats(r?.categories || [])).catch((e: any) => setErr(e.message)); }, []);
+  React.useEffect(() => { loadCats(); }, [loadCats]);
+  const open = async (c: string) => { setSel(c); setErr(''); setMsg(''); setTest(null); setSample(''); try { const d: any = await osCatalog('get', { category: c }); setLabel(d?.label || c); setGrp(d?.spec_group || ''); setFields(Array.isArray(d?.fields) ? d.fields.map((f: any) => ({ ...f })) : []); setSpecs(Array.isArray(d?.specs) ? d.specs.map((s: any) => ({ ...s })) : []); } catch (e: any) { setErr(e.message); } };
+  const saveFields = async () => { setBusy('fields'); setErr(''); setMsg(''); try { const clean = fields.map((f) => ({ key: f.key || catSlug(f.question), type: f.type || 'text', options: Array.isArray(f.options) ? f.options : [], question: f.question || '', required: !!f.required })); const r: any = await osCatalog('save_fields', { category: sel, fields: clean }); if (r && r.ok === false) setErr(r.error); else { setMsg('Questions saved'); setTimeout(() => setMsg(''), 1500); loadCats(); } } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const saveSpec = async (s: any, i: number) => { setBusy('spec' + i); setErr(''); try { const r: any = await osCatalog('spec_upsert', { id: s.id || null, spec_group: grp, aspect: s.aspect || catSlug(s.label), label: s.label, match_regex: s.match_regex, mandatory: !!s.mandatory, note: s.note || '' }); if (r && r.ok === false) setErr(r.error); else { setMsg('Check saved'); setTimeout(() => setMsg(''), 1200); const d: any = await osCatalog('get', { category: sel }); setSpecs(Array.isArray(d?.specs) ? d.specs.map((x: any) => ({ ...x })) : []); loadCats(); } } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const delSpec = async (s: any) => { if (!s.id) { setSpecs((arr) => arr.filter((x) => x !== s)); return; } if (typeof window !== 'undefined' && !window.confirm('Delete this gate check?')) return; setBusy('del' + s.id); try { await osCatalog('spec_delete', { id: s.id }); setSpecs((arr) => arr.filter((x) => x.id !== s.id)); loadCats(); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const runTest = async () => { setBusy('test'); setErr(''); try { const r: any = await osCatalog('test_gate', { category: sel, sample }); setTest(r); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const filtered = (cats || []).filter((c) => !q || (c.label + ' ' + c.category).toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-center gap-2'><ListChecks className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Categories</h1><span className='text-xs text-muted-foreground md:ml-2'>Edit the questions customers answer and the checks a supplier quote must pass. Test the gate live — no code needed. Changes are audit-logged.</span></div>
+      <div className='grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4'>
+        <Card className='overflow-hidden'>
+          <div className='p-2 border-b border-border'><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder='Search categories…' className='h-8 text-sm' /></div>
+          <div className='overflow-auto max-h-[640px]'>
+            {!cats ? <div className='p-3 text-sm text-muted-foreground'>Loading…</div> : filtered.map((c) => (
+              <button key={c.category} type='button' onClick={() => open(c.category)} className={cn('w-full text-left px-3 py-2 border-b border-border/40 hover:bg-white/5', sel === c.category ? 'bg-primary/10' : '')}>
+                <div className='text-sm font-medium'>{c.label}</div>
+                <div className='text-[11px] text-muted-foreground'>{c.n_fields} questions · {c.n_specs} gate checks</div>
+              </button>
+            ))}
+          </div>
+        </Card>
+        <div className='min-w-0 space-y-4'>
+          {!sel ? <Card className='p-6 text-sm text-muted-foreground'>Select a category to edit its intake questions and quote-gate checks.</Card> : (<>
+            {(msg || err) ? <div className={cn('text-xs', err ? 'text-destructive' : 'text-emerald-400')}>{err || msg}</div> : null}
+            <Card className='overflow-hidden'>
+              <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between gap-2'><span>Intake questions — {label}</span><Button className='h-7 text-xs' disabled={busy === 'fields'} onClick={saveFields}>{busy === 'fields' ? 'Saving…' : 'Save questions'}</Button></div>
+              <div className='p-3 space-y-2'>
+                {fields.map((f, i) => (
+                  <div key={i} className='flex flex-wrap items-center gap-2 border-b border-border/40 pb-2'>
+                    <Input value={f.question || ''} onChange={(e) => setFields((a) => a.map((x, j) => j === i ? { ...x, question: e.target.value } : x))} placeholder='Question' className='h-8 text-sm flex-1 min-w-[220px]' />
+                    <select value={f.type || 'text'} onChange={(e) => setFields((a) => a.map((x, j) => j === i ? { ...x, type: e.target.value } : x))} className='h-8 rounded-md border border-border bg-background text-xs px-2'>
+                      <option value='text'>text</option><option value='select'>select</option><option value='multiselect'>multiselect</option><option value='number'>number</option>
+                    </select>
+                    <label className='text-xs flex items-center gap-1'><input type='checkbox' checked={!!f.required} onChange={(e) => setFields((a) => a.map((x, j) => j === i ? { ...x, required: e.target.checked } : x))} />required</label>
+                    <button type='button' className='text-xs text-destructive underline' onClick={() => setFields((a) => a.filter((_, j) => j !== i))}>remove</button>
+                    {(f.type === 'select' || f.type === 'multiselect') ? <Input value={(Array.isArray(f.options) ? f.options.join(', ') : '')} onChange={(e) => setFields((a) => a.map((x, j) => j === i ? { ...x, options: e.target.value.split(',').map((o: string) => o.trim()).filter(Boolean) } : x))} placeholder='Options, comma-separated' className='h-8 text-xs w-full' /> : null}
+                  </div>
+                ))}
+                <button type='button' className='text-xs text-primary underline' onClick={() => setFields((a) => [...a, { key: '', type: 'text', options: [], question: '', required: false }])}>+ Add question</button>
+              </div>
+            </Card>
+            <Card className='overflow-hidden'>
+              <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Quote-gate checks <span className='text-xs text-muted-foreground font-normal'>· group: {grp}</span></div>
+              <div className='p-3 space-y-2'>
+                {specs.map((s, i) => (
+                  <div key={s.id || ('new' + i)} className='flex flex-wrap items-center gap-2 border-b border-border/40 pb-2'>
+                    <Input value={s.label || ''} onChange={(e) => setSpecs((a) => a.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} placeholder='What to check (e.g. Camera resolution)' className='h-8 text-sm flex-1 min-w-[200px]' />
+                    <Input value={s.match_regex || ''} onChange={(e) => setSpecs((a) => a.map((x, j) => j === i ? { ...x, match_regex: e.target.value } : x))} placeholder='pattern (regex)' className='h-8 text-xs font-mono flex-1 min-w-[200px]' />
+                    <label className='text-xs flex items-center gap-1'><input type='checkbox' checked={!!s.mandatory} onChange={(e) => setSpecs((a) => a.map((x, j) => j === i ? { ...x, mandatory: e.target.checked } : x))} />must-have</label>
+                    <Button className='h-7 text-xs' disabled={busy === 'spec' + i} onClick={() => saveSpec(s, i)}>Save</Button>
+                    <button type='button' className='text-xs text-destructive underline' onClick={() => delSpec(s)}>delete</button>
+                  </div>
+                ))}
+                <button type='button' className='text-xs text-primary underline' onClick={() => setSpecs((a) => [...a, { id: null, label: '', match_regex: '', mandatory: false, aspect: '' }])}>+ Add check</button>
+              </div>
+            </Card>
+            <Card className='overflow-hidden'>
+              <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Test the gate</div>
+              <div className='p-3 space-y-2'>
+                <textarea value={sample} onChange={(e) => setSample(e.target.value)} rows={4} placeholder='Paste a sample supplier quote here to see which checks it passes…' className='w-full rounded-md border border-border bg-background/60 p-2 text-sm' />
+                <Button className='h-7 text-xs' disabled={busy === 'test' || !sample} onClick={runTest}>{busy === 'test' ? 'Testing…' : 'Test against this category'}</Button>
+                {test ? <div className='mt-1 space-y-1'>
+                  <div className={cn('text-sm font-medium', test.passes ? 'text-emerald-400' : 'text-amber-400')}>{test.passes ? 'Passes the mandatory checks' : 'Would be blocked — missing must-haves'} · {test.matched_count}/{test.total} checks matched</div>
+                  {(test.aspects || []).map((a: any, i: number) => (<div key={i} className='text-xs flex items-center gap-2'><span className={a.matched ? 'text-emerald-400' : 'text-muted-foreground'}>{a.matched ? '✓' : '✗'}</span><span>{a.label}</span>{a.mandatory ? <Badge variant='secondary' className='text-[9px]'>must</Badge> : null}</div>))}
+                </div> : null}
+              </div>
+            </Card>
+          </>)}
+        </div>
+      </div>
     </div>
   );
 }
