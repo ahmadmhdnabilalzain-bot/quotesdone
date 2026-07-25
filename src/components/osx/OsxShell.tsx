@@ -124,7 +124,7 @@ function bringToTop(list: WinState[], id: string, patch: Partial<WinState> = {})
 // Shared module renderer — used by both the tabbed main area and floating windows.
 function renderModule(id: string, go: (id: string) => void): React.ReactNode {
   const m = MODULES.find((x) => x.id === id) || MODULES[0];
-  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : <Workspace mod={m} />;
+  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : <Workspace mod={m} />;
 }
 
 function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, onSnap }: { win: WinState; onFocus: () => void; onClose: () => void; onMin: () => void; onMax: () => void; onMove: (x: number, y: number) => void; onSize: (w: number, h: number) => void; onSnap: (s: 'l' | 'r' | null) => void }) {
@@ -1504,6 +1504,95 @@ function AgentsApp() {
   </div>);
 }
 
+// ── Finance — NetSuite-style portfolio ────────────────────────────────
+function MiniLine({ data }: { data: { label: string; v: number }[] }) {
+  const vals = data.map((p) => p.v); const min = Math.min(0, ...vals), max = Math.max(0, ...vals); const range = (max - min) || 1;
+  const w = 600, h = 80, pad = 8; const n = data.length || 1;
+  const x = (i: number) => pad + (i * (w - 2 * pad)) / Math.max(1, n - 1);
+  const y = (v: number) => h - pad - ((v - min) / range) * (h - 2 * pad);
+  const line = data.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
+  const zeroY = y(0);
+  return (<svg viewBox={`0 0 ${w} ${h}`} className='w-full' style={{ height: 80 }} preserveAspectRatio='none'>
+    <line x1={pad} y1={zeroY} x2={w - pad} y2={zeroY} stroke='hsl(var(--border))' strokeWidth='1' vectorEffect='non-scaling-stroke' strokeDasharray='3 3' />
+    <path d={line} fill='none' stroke={CHART_COLORS[0]} strokeWidth='2' vectorEffect='non-scaling-stroke' />
+  </svg>);
+}
+const aed = (v: any) => { const n = Number(v); if (!isFinite(n)) return '—'; return (n < 0 ? '-' : '') + 'AED ' + Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 }); };
+function FinanceApp() {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const [glOpen, setGlOpen] = React.useState(false); const [glLines, setGlLines] = React.useState<any[]>([{ account: '', debit: '', credit: '', memo: '' }, { account: '', debit: '', credit: '', memo: '' }]); const [glMemo, setGlMemo] = React.useState(''); const [glDate, setGlDate] = React.useState(''); const [glMsg, setGlMsg] = React.useState(''); const [glBusy, setGlBusy] = React.useState(false);
+  const [invOpen, setInvOpen] = React.useState(false); const [invBusy, setInvBusy] = React.useState(false); const [invMsg, setInvMsg] = React.useState('');
+  const load = React.useCallback(() => { setBusy(true); setErr(''); osApi('ws.finance').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const glTotals = () => glLines.reduce((a: any, l: any) => ({ dr: a.dr + (Number(l.debit) || 0), cr: a.cr + (Number(l.credit) || 0) }), { dr: 0, cr: 0 });
+  const postGl = async () => { const lines = glLines.map((l: any) => ({ account: String(l.account || '').trim(), debit: Number(l.debit) || 0, credit: Number(l.credit) || 0, memo: l.memo || undefined })).filter((l: any) => l.account && (l.debit || l.credit)); const t = lines.reduce((a: any, l: any) => ({ dr: a.dr + l.debit, cr: a.cr + l.credit }), { dr: 0, cr: 0 }); if (lines.length < 2) { setGlMsg('Need at least two lines.'); return; } if (Math.round((t.dr - t.cr) * 100) !== 0) { setGlMsg('Out of balance: debits ' + t.dr + ' vs credits ' + t.cr); return; } setGlBusy(true); setGlMsg(''); try { await osOps('gl_post', { memo: glMemo || 'OS entry', date: glDate || undefined, lines }); setGlOpen(false); setGlLines([{ account: '', debit: '', credit: '', memo: '' }, { account: '', debit: '', credit: '', memo: '' }]); setGlMemo(''); setGlDate(''); load(); } catch (e: any) { setGlMsg('Post failed: ' + (e?.message || '')); } setGlBusy(false); };
+  const onInvFile = async (f: File) => { setInvBusy(true); setInvMsg('Uploading & reading…'); try { const b64: string = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result || '')); rd.onerror = rej; rd.readAsDataURL(f); }); const { data: { session } } = await supa.auth.getSession(); const r = await fetch(SUPA_URL + '/functions/v1/finance_doc', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || '') }, body: JSON.stringify({ filename: f.name, mime: f.type, b64 }) }); const jd = await r.json().catch(() => ({})); if (!r.ok || jd?.error) throw new Error(jd?.error || ('HTTP ' + r.status)); if (jd.logged && jd.logged.ok) { setInvMsg('Logged: ' + (jd.parsed?.vendor || '') + ' — ' + (jd.parsed?.currency || 'AED') + ' ' + (jd.parsed?.amount || '') + '.'); load(); } else { setInvMsg('Stored the original; auto-posting skipped (amount unclear).'); } } catch (e: any) { setInvMsg('Failed: ' + (e?.message || '')); } setInvBusy(false); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load finance: {err}</Card>;
+  const k = (d?.ai?.kpis) || {}; const pnl = (d?.pnl) || {}; const accounts = (d?.cash?.accounts) || []; const cashflow = (d?.cashflow) || []; const exp = (d?.expense_breakdown) || []; const trend = (d?.ai?.trend) || []; const horizons = (d?.ai?.forecast?.horizons) || [];
+  const kv = (label: string, val: any, tone?: string) => (<div className='flex justify-between text-sm py-1.5 border-b border-border/40 last:border-0'><span className='text-muted-foreground'>{label}</span><span className={cn('font-medium tabular-nums', tone)}>{val}</span></div>);
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-center gap-2'>
+        <DollarSign className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Finance</h1>
+        <Badge className={cn('border-0', (d?.ai?.health ?? 0) >= 60 ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600')}>Health {Math.round(Number(d?.ai?.health || 0))}/100</Badge>
+        <div className='ml-auto flex gap-2'>
+          <Button className='h-8 text-xs' variant='outline' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
+          <Button className='h-8 text-xs' variant='outline' onClick={() => { setInvOpen(true); setInvMsg(''); }}>Log invoice (PDF)</Button>
+          <Button className='h-8 text-xs' onClick={() => { setGlOpen(true); setGlMsg(''); }}>New journal entry</Button>
+        </div>
+      </div>
+
+      {!d ? <div className='grid grid-cols-2 md:grid-cols-6 gap-3'>{Array.from({ length: 6 }).map((_, i) => <div key={i} className='h-20 rounded-lg bg-foreground/5 animate-pulse' />)}</div> : <>
+        <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>
+          <StatTile label='Cash position' value={aed(k.cash)} />
+          <StatTile label='Net income (total)' value={aed(pnl.net_income)} />
+          <StatTile label='Revenue (total)' value={aed(k.revenue_total)} />
+          <StatTile label='Expenses (total)' value={aed(k.expense_total)} />
+          <StatTile label='Monthly burn' value={aed(k.monthly_burn)} />
+          <StatTile label='Runway' value={k.runway_months == null ? '—' : k.runway_months + ' mo'} />
+        </div>
+
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+          <Card className='overflow-hidden'>
+            <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Cash trend — last 14 days</div>
+            <div className='p-4'>{trend.length ? <><MiniLine data={trend.map((p: any) => ({ label: p.d, v: Number(p.cash) }))} /><div className='flex justify-between text-[10px] text-muted-foreground mt-1'><span>{trend[0]?.d}</span><span>{trend[trend.length - 1]?.d}</span></div></> : <div className='text-xs text-muted-foreground'>No trend yet.</div>}</div>
+          </Card>
+          <Card className='overflow-hidden'>
+            <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Cash forecast</div>
+            <div className='p-4 grid grid-cols-3 gap-2'>{horizons.length ? horizons.map((h: any) => (<div key={h.days} className='rounded-md border border-border p-2.5'><div className='text-[11px] text-muted-foreground'>{h.days} days</div><div className={cn('text-base font-bold mt-0.5 tabular-nums', Number(h.projected_cash) < 0 ? 'text-amber-600' : '')}>{aed(h.projected_cash)}</div></div>)) : <div className='text-xs text-muted-foreground col-span-3'>No forecast.</div>}</div>
+          </Card>
+        </div>
+
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+          <Card className='overflow-hidden'>
+            <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Chart of accounts</div>
+            <div className='p-4'>{accounts.map((a: any) => kv(a.code + ' · ' + a.name, aed(a.balance), Number(a.balance) < 0 ? 'text-amber-600' : undefined))}</div>
+          </Card>
+          <Card className='overflow-hidden'>
+            <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Expense breakdown</div>
+            <div className='p-4'>{exp.length ? <HBars rows={exp.map((e: any) => ({ label: e.name, n: Number(e.amount) }))} /> : <div className='text-xs text-muted-foreground'>No expenses recorded.</div>}</div>
+          </Card>
+        </div>
+
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Monthly cash flow</div>
+          <div className='overflow-auto'><table className='w-full text-sm'><thead><tr className='text-left text-xs text-muted-foreground border-b border-border'><th className='px-4 py-2 font-medium'>Month</th><th className='px-4 py-2 font-medium text-right'>Inflow</th><th className='px-4 py-2 font-medium text-right'>Outflow</th><th className='px-4 py-2 font-medium text-right'>Net</th></tr></thead>
+            <tbody>{cashflow.map((c: any) => (<tr key={c.month} className='border-b border-border/40'><td className='px-4 py-2'>{c.month}</td><td className='px-4 py-2 text-right tabular-nums text-emerald-600'>{aed(c.inflow)}</td><td className='px-4 py-2 text-right tabular-nums'>{aed(c.outflow)}</td><td className={cn('px-4 py-2 text-right tabular-nums font-medium', Number(c.net) < 0 ? 'text-amber-600' : 'text-emerald-600')}>{aed(c.net)}</td></tr>))}</tbody></table></div>
+        </Card>
+      </>}
+
+      <Sheet open={invOpen} onOpenChange={setInvOpen}><SheetContent side='right' className='w-full sm:max-w-md overflow-y-auto'><SheetHeader><SheetTitle>Log invoice from PDF</SheetTitle><SheetDescription>Stored, extracted, and posted to finance.</SheetDescription></SheetHeader><div className='mt-4 space-y-3'><input type='file' accept='.pdf,.png,.jpg,.jpeg,application/pdf,image/*' disabled={invBusy} onChange={(e) => { const f = e.target.files?.[0]; if (f) onInvFile(f); }} className='block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground file:px-3 file:py-1.5 file:text-xs' />{invMsg ? <div className='text-xs text-foreground/80 whitespace-pre-wrap'>{invMsg}</div> : null}</div></SheetContent></Sheet>
+      <Sheet open={glOpen} onOpenChange={setGlOpen}><SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto'><SheetHeader><SheetTitle>New journal entry</SheetTitle><SheetDescription>Double-entry — debits must equal credits.</SheetDescription></SheetHeader><div className='mt-4 space-y-3'>
+        <div className='flex gap-2'><input type='date' value={glDate} onChange={(e) => setGlDate(e.target.value)} className='rounded-md border border-border bg-transparent p-2 text-sm' /><input placeholder='Memo' value={glMemo} onChange={(e) => setGlMemo(e.target.value)} className='flex-1 rounded-md border border-border bg-transparent p-2 text-sm' /></div>
+        <div className='space-y-2'>{glLines.map((l: any, i: number) => (<div key={i} className='flex gap-2'><input placeholder='Account code' value={l.account} onChange={(e) => { const n = glLines.slice(); n[i] = { ...n[i], account: e.target.value }; setGlLines(n); }} className='flex-1 rounded-md border border-border bg-transparent p-2 text-sm' /><input placeholder='Debit' inputMode='decimal' value={l.debit} onChange={(e) => { const n = glLines.slice(); n[i] = { ...n[i], debit: e.target.value }; setGlLines(n); }} className='w-24 rounded-md border border-border bg-transparent p-2 text-sm' /><input placeholder='Credit' inputMode='decimal' value={l.credit} onChange={(e) => { const n = glLines.slice(); n[i] = { ...n[i], credit: e.target.value }; setGlLines(n); }} className='w-24 rounded-md border border-border bg-transparent p-2 text-sm' /></div>))}</div>
+        <div className='flex items-center justify-between text-xs text-muted-foreground'><button onClick={() => setGlLines([...glLines, { account: '', debit: '', credit: '', memo: '' }])} className='hover:text-foreground'>+ Add line</button><span>Debits {glTotals().dr.toFixed(2)} · Credits {glTotals().cr.toFixed(2)}</span></div>
+        {glMsg ? <div className='text-xs text-destructive'>{glMsg}</div> : null}
+        <div className='flex gap-2'><Button className='h-8 text-xs' disabled={glBusy} onClick={postGl}>{glBusy ? 'Posting…' : 'Post entry'}</Button><Button className='h-8 text-xs' variant='outline' onClick={() => setGlOpen(false)}>Cancel</Button></div>
+      </div></SheetContent></Sheet>
+    </div>
+  );
+}
+
 function Workspace({ mod }: { mod: Mod }) {
   const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [row, setRow] = React.useState<any>(null); const [rowTitle, setRowTitle] = React.useState(''); const [detail, setDetail] = React.useState<any>(null); const [dbusy, setDbusy] = React.useState(false); const [edit, setEdit] = React.useState<any>(null); const [editType, setEditType] = React.useState(''); const [ebusy, setEbusy] = React.useState(false); const [emsg, setEmsg] = React.useState(''); const [glOpen, setGlOpen] = React.useState(false); const [glLines, setGlLines] = React.useState<any[]>([{ account: '', debit: '', credit: '', memo: '' }, { account: '', debit: '', credit: '', memo: '' }]); const [glMemo, setGlMemo] = React.useState(''); const [glDate, setGlDate] = React.useState(''); const [glMsg, setGlMsg] = React.useState(''); const [glBusy, setGlBusy] = React.useState(false); const [invOpen, setInvOpen] = React.useState(false); const [invBusy, setInvBusy] = React.useState(false); const [invMsg, setInvMsg] = React.useState('');
   const reload = React.useCallback(() => { setD(null); setErr(''); osApi(mod.ws as string, mod.ws === 'ws.suppliers' ? { params: {} } : {}).then(setD).catch((e) => setErr(e.message)); }, [mod.ws]);
@@ -1517,7 +1606,7 @@ function Workspace({ mod }: { mod: Mod }) {
   const postGl = async () => { const lines = glLines.map((l: any) => ({ account: String(l.account || '').trim(), debit: Number(l.debit) || 0, credit: Number(l.credit) || 0, memo: l.memo || undefined })).filter((l: any) => l.account && (l.debit || l.credit)); const t = lines.reduce((a: any, l: any) => ({ dr: a.dr + l.debit, cr: a.cr + l.credit }), { dr: 0, cr: 0 }); if (lines.length < 2) { setGlMsg('Need at least two lines.'); return; } if (Math.round((t.dr - t.cr) * 100) !== 0) { setGlMsg('Out of balance: debits ' + t.dr + ' vs credits ' + t.cr); return; } setGlBusy(true); setGlMsg(''); try { await osOps('gl_post', { memo: glMemo || 'OS entry', date: glDate || undefined, lines }); setGlOpen(false); setGlLines([{ account: '', debit: '', credit: '', memo: '' }, { account: '', debit: '', credit: '', memo: '' }]); setGlMemo(''); setGlDate(''); reload(); } catch (e: any) { setGlMsg('Post failed: ' + (e?.message || '')); } setGlBusy(false); };
   const onInvFile = async (f: File) => { setInvBusy(true); setInvMsg('Uploading & reading…'); try { const b64: string = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result || '')); rd.onerror = rej; rd.readAsDataURL(f); }); const { data: { session } } = await supa.auth.getSession(); const r = await fetch(SUPA_URL + '/functions/v1/finance_doc', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || '') }, body: JSON.stringify({ filename: f.name, mime: f.type, b64 }) }); const jd = await r.json().catch(() => ({})); if (!r.ok || jd?.error) throw new Error(jd?.error || ('HTTP ' + r.status)); if (jd.logged && jd.logged.ok) { setInvMsg('Logged: ' + (jd.parsed?.vendor || '') + ' — ' + (jd.parsed?.currency || 'AED') + ' ' + (jd.parsed?.amount || '') + '. Original stored & queued for Dropbox backup.'); reload(); } else if (jd.parsed) { setInvMsg('Stored & extracted, but auto-posting was skipped because the amount was unclear. What I read: ' + Object.entries(jd.parsed || {}).filter(([, x]: any) => x != null && x !== '' && typeof x !== 'object').map(([k, x]: any) => String(k).replace(/_/g, ' ') + ': ' + String(x)).join(', ')); } else { setInvMsg('Stored the original (' + (jd.extracted_chars || 0) + ' chars extracted); could not auto-parse a finance entry.'); } } catch (e: any) { setInvMsg('Failed: ' + (e?.message || '')); } setInvBusy(false); };
   if (err) return <Card className='p-6 text-sm text-destructive'>Could not load {mod.label}: {err}</Card>;
-  if (!d) return <div className='text-muted-foreground text-sm'>Loading {mod.label}…</div>;
+  if (!d) return (<div className='space-y-4'><div className='flex items-center gap-2'><mod.icon className='h-5 w-5 text-primary/40' /><div className='h-6 w-40 bg-foreground/5 rounded animate-pulse' /></div><div className='grid grid-cols-2 md:grid-cols-4 gap-3'>{Array.from({ length: 4 }).map((_, i) => <div key={i} className='h-20 rounded-lg bg-foreground/5 animate-pulse' />)}</div><div className='h-64 rounded-lg bg-foreground/5 animate-pulse' /></div>);
   const tables: [string, any[]][] = [];
   const scalars: [string, any][] = [];
   const scan = (o: any) => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (Array.isArray(v)) { if (v.length && typeof v[0] === 'object') tables.push([k, v as any[]]); } else if (v && typeof v === 'object') { scan(v); } else if (typeof v === 'number' || typeof v === 'string') scalars.push([k, v]); } };
