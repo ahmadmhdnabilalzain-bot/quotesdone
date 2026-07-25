@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, osPages, osHealth, SUPA_URL } from '@/lib/osClient';
+import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, osPages, osHealth, osIncidents, SUPA_URL } from '@/lib/osClient';
 import { cn } from '@/lib/utils';
 function ReportViewer({ id }: { id: number }) {
   const [st, setSt] = React.useState<'idle' | 'load' | 'done' | 'err'>('load');
@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy } from 'lucide-react';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -67,6 +67,7 @@ const MODULES: Mod[] = [
   { id: 'catalog', label: 'Categories', icon: ListChecks, kind: 'catalog' },
   { id: 'content', label: 'Content', icon: Newspaper, kind: 'content' },
   { id: 'health', label: 'System Health', icon: Activity, kind: 'health' },
+  { id: 'support', label: 'Support', icon: LifeBuoy, kind: 'support' },
 ];
 const PIPELINE = [ ['sent','New'], ['matched','Matched'], ['quoted','Quoted'], ['revealed','Revealed'], ['completed','Won'] ];
 
@@ -179,7 +180,7 @@ export default function OsxShell() {
         <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
             <div key={id} className={id === cur ? '' : 'hidden'}>
-              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
+              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
             </div>
           ); })}
         </main>
@@ -572,6 +573,75 @@ function HealthPanel() {
         </Card>
       </div>
       <div className='text-[11px] text-muted-foreground'>Snapshot at {h.generated_at ? new Date(h.generated_at).toLocaleString() : ''}. Read-only.</div>
+    </div>
+  );
+}
+
+function SupportPanel() {
+  const [tab, setTab] = React.useState<'help' | 'incidents' | 'runbooks'>('help');
+  const [incidents, setIncidents] = React.useState<any[] | null>(null);
+  const [runbooks, setRunbooks] = React.useState<any[] | null>(null);
+  const [openRb, setOpenRb] = React.useState<string>('');
+  const [form, setForm] = React.useState<any>({ title: '', kind: 'bug', severity: 'medium', description: '' });
+  const [busy, setBusy] = React.useState('');
+  const [msg, setMsg] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const loadInc = React.useCallback(() => { osIncidents('list').then((r: any) => setIncidents(r?.incidents || [])).catch((e: any) => setErr(e.message)); }, []);
+  const loadRb = React.useCallback(() => { osIncidents('runbooks').then((r: any) => setRunbooks(r?.runbooks || [])).catch((e: any) => setErr(e.message)); }, []);
+  React.useEffect(() => { loadInc(); loadRb(); }, [loadInc, loadRb]);
+  const submit = async () => { if (!form.title.trim()) { setErr('Please add a short title'); return; } setBusy('open'); setErr(''); setMsg(''); try { const r: any = await osIncidents('open', form); if (r && r.ok === false) setErr(r.error); else { setMsg('Reported — the founder has been notified. Reference #' + (r?.id || '')); setForm({ title: '', kind: 'bug', severity: 'medium', description: '' }); loadInc(); setTab('incidents'); } } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const resolve = async (id: number) => { const res = typeof window !== 'undefined' ? window.prompt('Resolution note (optional):', '') : ''; if (res === null) return; setBusy('res' + id); try { await osIncidents('resolve', { id, resolution: res || '' }); loadInc(); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const openInc = (incidents || []).filter((x) => x.status === 'open').length;
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-center gap-2'><LifeBuoy className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Support</h1><span className='text-xs text-muted-foreground md:ml-2'>Report a problem, track incidents, and follow a runbook when something goes wrong.</span></div>
+      <div className='flex items-center gap-1'>
+        {(['help', 'incidents', 'runbooks'] as const).map((t) => (<button key={t} type='button' onClick={() => setTab(t)} className={cn('h-8 px-3 text-xs rounded-md', tab === t ? 'bg-primary text-primary-foreground' : 'bg-muted')}>{t === 'help' ? 'Get help' : t === 'incidents' ? ('Incidents' + (openInc ? ' (' + openInc + ')' : '')) : 'Runbooks'}</button>))}
+      </div>
+      {(msg || err) ? <div className={cn('text-xs', err ? 'text-destructive' : 'text-emerald-400')}>{err || msg}</div> : null}
+      {tab === 'help' ? (
+        <Card className='p-4 space-y-3 max-w-2xl'>
+          <div className='text-sm text-muted-foreground'>Describe what went wrong. This opens an incident and notifies the founder right away. For common problems, check Runbooks first — many can be fixed from the OS without help.</div>
+          <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder='Short title (e.g. Checkout not working)' className='text-sm' />
+          <div className='flex flex-wrap gap-2'>
+            <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })} className='h-9 rounded-md border border-border bg-background text-xs px-2'><option value='bug'>Something is broken</option><option value='payment'>Payment / money</option><option value='data'>Data looks wrong</option><option value='access'>Access / login</option><option value='other'>Other</option></select>
+            <select value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })} className='h-9 rounded-md border border-border bg-background text-xs px-2'><option value='low'>Low</option><option value='medium'>Medium</option><option value='high'>High / urgent</option></select>
+          </div>
+          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={5} placeholder='What happened? Include any reference numbers, names, or error messages you saw.' className='w-full rounded-md border border-border bg-background/60 p-2 text-sm' />
+          <Button className='h-9 text-sm' disabled={busy === 'open'} onClick={submit}>{busy === 'open' ? 'Reporting…' : 'Report & notify founder'}</Button>
+        </Card>
+      ) : null}
+      {tab === 'incidents' ? (
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Incidents</div>
+          <div className='overflow-auto max-h-[560px]'>
+            {!incidents ? <div className='p-3 text-sm text-muted-foreground'>Loading…</div> : incidents.length === 0 ? <div className='p-4 text-sm text-muted-foreground'>No incidents. Everything is running smoothly.</div> : incidents.map((x: any) => (
+              <div key={x.id} className='px-4 py-3 border-b border-border/40'>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <Badge variant='secondary' className={cn('text-[10px]', x.severity === 'high' ? 'bg-destructive/20 text-destructive' : '')}>{x.severity}</Badge>
+                  <span className='text-sm font-medium'>#{x.id} {x.title}</span>
+                  <Badge variant='secondary' className={cn('text-[10px] ml-1', x.status === 'open' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400')}>{x.status}</Badge>
+                  {x.status === 'open' ? <button type='button' className='text-xs text-primary underline ml-auto' disabled={busy === 'res' + x.id} onClick={() => resolve(x.id)}>Mark resolved</button> : null}
+                </div>
+                {x.description ? <div className='text-xs text-muted-foreground mt-1'>{x.description}</div> : null}
+                <div className='text-[10px] text-muted-foreground/60 mt-1'>{x.kind} · by {x.opened_by} · {x.opened_at ? new Date(x.opened_at).toLocaleString() : ''}{x.resolution ? ' · resolved: ' + x.resolution : ''}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : null}
+      {tab === 'runbooks' ? (
+        <div className='space-y-2'>
+          {!runbooks ? <div className='text-sm text-muted-foreground'>Loading…</div> : runbooks.map((r: any) => (
+            <Card key={r.slug} className='overflow-hidden'>
+              <button type='button' className='w-full text-left px-4 py-3 flex items-center gap-2' onClick={() => setOpenRb(openRb === r.slug ? '' : r.slug)}>
+                <Badge variant='secondary' className='text-[10px]'>{r.category}</Badge><span className='text-sm font-medium'>{r.title}</span><span className='ml-auto text-muted-foreground text-xs'>{openRb === r.slug ? '−' : '+'}</span>
+              </button>
+              {openRb === r.slug ? <div className='px-4 pb-3 space-y-2'><div className='text-xs text-muted-foreground'><span className='font-medium text-foreground'>When: </span>{r.when_to_use}</div><div className='text-sm whitespace-pre-line'>{r.steps}</div></div> : null}
+            </Card>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
