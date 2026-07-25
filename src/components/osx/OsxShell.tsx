@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight } from 'lucide-react';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -181,7 +181,7 @@ export default function OsxShell() {
         <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
             <div key={id} className={id === cur ? '' : 'hidden'}>
-              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
+              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
             </div>
           ); })}
         </main>
@@ -529,7 +529,7 @@ function ContentPanel() {
   );
 }
 
-function HealthPanel() {
+function HealthPanel({ onNav }: { onNav: (id: string) => void }) {
   const [h, setH] = React.useState<any>(null);
   const [rec, setRec] = React.useState<any>(null);
   const [err, setErr] = React.useState('');
@@ -539,7 +539,7 @@ function HealthPanel() {
   if (err && !h) return <Card className='p-6 text-sm text-destructive'>Could not load system health: {err}</Card>;
   if (!h) return <div className='text-muted-foreground text-sm'>Loading system health…</div>;
   const ok = h.overall === 'healthy';
-  const kv = (label: string, val: any) => (<div className='flex justify-between text-sm py-1 border-b border-border/30'><span className='text-muted-foreground'>{label}</span><span className='font-medium'>{val}</span></div>);
+  const kv = (label: string, val: any, nav?: string) => (<div onClick={nav ? () => onNav(nav) : undefined} className={cn('flex justify-between text-sm py-1 border-b border-border/30', nav && 'cursor-pointer hover:text-primary')}><span className='text-muted-foreground'>{label}</span><span className='font-medium inline-flex items-center gap-1'>{val}{nav ? <ArrowUpRight className='h-3 w-3 opacity-50' /> : null}</span></div>);
   return (
     <div className='space-y-4'>
       <div className='flex flex-wrap items-center gap-2'><Activity className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>System Health</h1>
@@ -550,11 +550,11 @@ function HealthPanel() {
         <Card className='overflow-hidden'>
           <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Operations</div>
           <div className='p-4'>
-            {kv('Failing scheduled jobs (24h)', (h.failing_crons || []).length)}
-            {kv('Agent errors (24h)', h.agent_errors_24h)}
+            {kv('Failing scheduled jobs (24h)', (h.failing_crons || []).length, 'automation')}
+            {kv('Agent errors (24h)', h.agent_errors_24h, 'agents')}
             {kv('Health-check failures (24h)', h.health_check_fails_24h)}
             {kv('AI health failures', h.ai_health_fails)}
-            {(h.failing_crons || []).length ? <div className='mt-3 space-y-1'>{(h.failing_crons || []).map((c: any, i: number) => (<div key={i} className='text-xs text-destructive'>{c.job}: {c.message || c.status}</div>))}</div> : null}
+            {(h.failing_crons || []).length ? <div className='mt-3 space-y-1'>{(h.failing_crons || []).map((c: any, i: number) => (<button key={i} onClick={() => onNav('automation')} title='Manage in Automation' className='block w-full text-left text-xs text-destructive hover:underline'>{c.job}: {c.message || c.status}</button>))}</div> : null}
             {(h.top_error_agents || []).length ? <div className='mt-3'><div className='text-xs text-muted-foreground mb-1'>Top error sources (24h)</div>{(h.top_error_agents || []).map((a: any, i: number) => (<div key={i} className='text-xs flex justify-between'><span>{a.agent}</span><span className='text-muted-foreground'>{a.errors}</span></div>))}</div> : null}
           </div>
         </Card>
@@ -564,7 +564,7 @@ function HealthPanel() {
             {rec ? (<>
               {kv('Reveal transactions', rec.transactions_total)}
               {kv('Revenue — reveal fees (AED)', rec.revenue_reveal_fees_aed)}
-              {kv('Refunds pending', rec.refunds_pending)}
+              {kv('Refunds pending', rec.refunds_pending, 'refunds')}
               {kv('Refunds resolved', rec.refunds_resolved)}
               {kv('Stripe events recorded', rec.stripe_events_total)}
               {kv('Stripe paid checkouts', rec.stripe_paid_checkouts)}
@@ -959,14 +959,23 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
   const health = (d && d.command && d.command.health) || {}; const band = String(health.band || 'unknown'); const bandColor = /crit|down|bad|fail/.test(band) ? 'border-red-500/40 text-red-300' : /attention|warn|risk/.test(band) ? 'border-amber-500/40 text-amber-300' : /ok|good|healthy|strong/.test(band) ? 'border-emerald-500/40 text-emerald-300' : 'border-border text-muted-foreground';
   return (
     <div className='space-y-5'>
-      <Card className={cn('p-4 flex items-center justify-between gap-4 border', bandColor)}>
+      <Card onClick={() => onNav('health')} className={cn('p-4 flex items-center justify-between gap-4 border cursor-pointer hover:brightness-105 transition-all', bandColor)}>
         <div><div className='text-[11px] uppercase tracking-wide opacity-70'>Business health</div><div className='text-2xl font-bold mt-0.5'>{health.index ?? '—'}<span className='text-sm font-normal opacity-70'> / 100 · {titleCase(band)}</span></div></div>
-        <div className='text-xs opacity-80 max-w-md text-right'>{health.note || 'Live signals across revenue, uptime, disputes and activity.'}</div>
+        <div className='flex items-center gap-2 max-w-md'><div className='text-xs opacity-80 text-right'>{health.note || 'Live signals across revenue, uptime, disputes and activity.'}</div><ArrowUpRight className='h-4 w-4 shrink-0 opacity-60' /></div>
       </Card>
       <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>
-        {kpis.length ? kpis.map(([k, v]) => { const kl = k.toLowerCase(); const tgt = /supplier/.test(kl) ? 'suppliers' : /customer/.test(kl) ? 'customers' : /rfq|quote/.test(kl) ? 'rfqs' : /rev|fee|cash|expense|invoice|outstanding/.test(kl) ? 'finance' : null; return (<Card key={k} onClick={tgt ? () => onNav(tgt) : undefined} className={cn('p-4', tgt && 'cursor-pointer hover:border-primary/60 transition-colors')}><div className='text-xs text-muted-foreground'>{k}</div><div className='text-2xl font-bold mt-1'>{fmt(v)}</div></Card>); }) : <Card className='p-4 col-span-full text-sm text-muted-foreground'>No metrics available yet.</Card>}
+        {kpis.length ? kpis.map(([k, v]) => { const kl = k.toLowerCase(); const tgt = /supplier/.test(kl) ? 'suppliers' : /customer/.test(kl) ? 'customers' : /rfq|quote/.test(kl) ? 'rfqs' : /rev|fee|cash|expense|invoice|outstanding/.test(kl) ? 'finance' : 'analytics'; return (<Card key={k} onClick={tgt ? () => onNav(tgt) : undefined} className={cn('p-4', tgt && 'cursor-pointer hover:border-primary/60 transition-colors')}><div className='text-xs text-muted-foreground'>{k}</div><div className='text-2xl font-bold mt-1'>{fmt(v)}</div></Card>); }) : <Card className='p-4 col-span-full text-sm text-muted-foreground'>No metrics available yet.</Card>}
       </div>
-      <Card className='p-4'><div className='text-sm font-semibold mb-2'>Live snapshot</div><div className='text-xs text-muted-foreground'>Metrics refresh automatically from the marketplace. Use the modules on the left for detail.</div></Card>
+      <Card className='p-4'>
+        <div className='text-sm font-semibold mb-3'>Quick access</div>
+        <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2'>
+          {([['rfqs','RFQs & Procurement',ArrowLeftRight],['suppliers','Suppliers',Hammer],['customers','Customers',Users],['finance','Finance',DollarSign],['escalations','Escalations',AlertTriangle],['reports','Reports',FileBarChart],['documents','Documents',FileText],['health','System Health',Activity]] as [string,string,any][]).map(([id,label,Ic]) => (
+            <button key={id} onClick={() => onNav(id)} className='flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2.5 text-sm text-left hover:border-primary/60 hover:bg-foreground/5 transition-colors'>
+              <Ic className='h-4 w-4 text-primary shrink-0' /><span className='truncate'>{label}</span>
+            </button>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
@@ -1030,6 +1039,8 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
 // ── Zoho/Odoo-style navigable record drawer ─────────────────────────────
 const REL_ENTITY: Record<string, string> = { quotes: 'quote', quote: 'quote', inquiries: 'rfq', rfqs: 'rfq', inquiry: 'rfq', customers: 'customer', customer: 'customer', suppliers: 'supplier', supplier: 'supplier', leads: 'supplier', tasks: 'task', task: 'task', agent_actions: 'agent_action', agent_action: 'agent_action' };
 const WS_ENTITY: Record<string, string> = { supplier: 'ws.supplier', customer: 'ws.customer', rfq: 'ws.rfq' };
+// Scalar foreign-key fields → the entity they point at (Zoho-style click-through on any *_id field).
+const FK_ENTITY: Record<string, string> = { supplier_id: 'supplier', lead_id: 'supplier', supplier: 'supplier', customer_id: 'customer', customer: 'customer', buyer_id: 'customer', inquiry_id: 'rfq', rfq_id: 'rfq', inquiry: 'rfq', quote_id: 'quote', quote: 'quote', agent_action_id: 'agent_action', task_id: 'task' };
 function singularWord(s: string) { return String(s).replace(/ies$/i, 'y').replace(/s$/i, ''); }
 
 function RecordDrawer({ frame0, actions, extra, reportId, onClose }: { frame0: any; actions?: any; extra?: any; reportId?: number; onClose: () => void }) {
@@ -1060,6 +1071,7 @@ function RecordDrawer({ frame0, actions, extra, reportId, onClose }: { frame0: a
   }, [top.entity, top.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const openDoc = async (doc: any) => { const dkey = doc.path || doc.url || doc.name || ''; setBusyDoc(dkey); try { let url = doc.url; if (!url && doc.path) { const r: any = await osApi('file', { bucket: doc.bucket || 'supplier-docs', path: doc.path }); url = r && r.url; } if (url && typeof window !== 'undefined') window.open(url, '_blank', 'noopener'); } catch (_e) { } setBusyDoc(''); };
   const openRelated = (k: string, r: any) => { const ent = REL_ENTITY[String(k).toLowerCase()]; const id = r.id ?? r.rfq_id ?? r.inquiry_id ?? r.quote_id ?? r.supplier_id ?? r.customer_id; setStack((s) => [...s, { entity: ent, id: ent ? id : undefined, title: singularWord(titleCase(k)) + (id != null ? ' #' + id : ''), row: r }]); };
+  const openRef = (ent: string, id: any) => { if (!ent || id == null || id === '') return; setStack((s) => [...s, { entity: ent, id, title: singularWord(titleCase(ent)) + ' #' + id }]); };
   const rec = data && typeof data === 'object' && data.record !== undefined && data.record ? data.record : data;
   const scal: [string, any][] = []; const arrs: [string, any[]][] = [];
   const collect = (o: any) => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (Array.isArray(v)) { if (v.length && typeof v[0] === 'object') arrs.push([k, v as any[]]); } else if (v && typeof v === 'object') { collect(v); } else scal.push([k, v]); } };
@@ -1080,7 +1092,7 @@ function RecordDrawer({ frame0, actions, extra, reportId, onClose }: { frame0: a
             <div className='p-2'>{fs.map((f: any, i: number) => (<div key={i} className='flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-foreground/5'><FileText className='h-4 w-4 text-muted-foreground shrink-0' /><span className='text-sm min-w-0 truncate'>{f.type || f.name}</span><Button className='h-7 text-xs ml-auto' variant='outline' disabled={busyDoc === (f.path || f.url || f.name)} onClick={() => openDoc(f)}>{busyDoc === (f.path || f.url || f.name) ? 'Opening…' : 'Open'}</Button></div>))}</div>
           </Card>))}</div> : null}
         {loading ? <div className='mt-4 text-sm text-muted-foreground'>Loading record…</div> : null}
-        {scal.length ? <Card className='mt-4 overflow-hidden'><div className='px-4 py-2.5 border-b border-border text-sm font-semibold'>Details</div><div className='p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6'>{scal.filter(([k]) => k !== 'body').map(([k, v], i) => (<div key={k + i} className='flex flex-col py-1.5 border-b border-border/40 min-w-0'><span className='text-[11px] text-muted-foreground'>{titleCase(k)}</span><span className='text-sm break-words'>{fmt(v)}</span></div>))}</div></Card> : null}
+        {scal.length ? <Card className='mt-4 overflow-hidden'><div className='px-4 py-2.5 border-b border-border text-sm font-semibold'>Details</div><div className='p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6'>{scal.filter(([k]) => k !== 'body').map(([k, v], i) => { const fk = FK_ENTITY[String(k).toLowerCase()]; const linkable = !!fk && v != null && v !== '' && (typeof v === 'number' || typeof v === 'string') && !(fk === top.entity && String(v) === String(top.id)); return (<div key={k + i} className='flex flex-col py-1.5 border-b border-border/40 min-w-0'><span className='text-[11px] text-muted-foreground'>{titleCase(k)}</span>{linkable ? <button type='button' onClick={() => openRef(fk, v)} className='text-sm break-words text-primary hover:underline text-left inline-flex items-center gap-1'>{fmt(v)}<ArrowUpRight className='h-3 w-3 opacity-60' /></button> : <span className='text-sm break-words'>{fmt(v)}</span>}</div>); })}</div></Card> : null}
         {arrs.map(([k, rows], ai) => { const cols = Object.keys(rows[0]).filter((c) => !/^(id|uuid)$/i.test(c) && typeof (rows[0] as any)[c] !== 'object').slice(0, 4); return (
           <Card key={k + ai} className='mt-4 overflow-hidden'>
             <div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center justify-between'>{titleCase(k)}<Badge variant='secondary'>{rows.length}</Badge></div>
