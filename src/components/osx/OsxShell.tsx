@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight, Minus, Maximize2, Minimize2, ExternalLink, SquareStack, X } from 'lucide-react';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -109,6 +109,77 @@ function ReadableObject({ data }: { data: any }): any {
 function titleCase(s: string) { return String(s).replace(/[_\.]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
 function deEnt(s: any) { return String(s == null ? '' : s).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'"); }
 
+// ── Window Manager — hybrid workspace: pop any module/record into a floating, draggable/resizable window ──
+type WinSpec = { id: string; title: string; icon?: any; render: () => React.ReactNode };
+type WinState = WinSpec & { x: number; y: number; w: number; h: number; z: number; min: boolean; max: boolean; snap?: 'l' | 'r' | null };
+const WinCtx = React.createContext<{ open: (s: WinSpec) => void } | null>(null);
+function useWindows() { return React.useContext(WinCtx); }
+// Keep floating-window z-indexes in a compact low range (31..~45) so they never cover the Ctrl+K palette (z-50).
+function bringToTop(list: WinState[], id: string, patch: Partial<WinState> = {}): WinState[] {
+  const others = list.filter((x) => x.id !== id).sort((a, b) => a.z - b.z).map((x, i) => ({ ...x, z: 31 + i }));
+  const tgt = list.find((x) => x.id === id); if (!tgt) return list;
+  return [...others, { ...tgt, ...patch, z: 31 + others.length }];
+}
+
+// Shared module renderer — used by both the tabbed main area and floating windows.
+function renderModule(id: string, go: (id: string) => void): React.ReactNode {
+  const m = MODULES.find((x) => x.id === id) || MODULES[0];
+  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />;
+}
+
+function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, onSnap }: { win: WinState; onFocus: () => void; onClose: () => void; onMin: () => void; onMax: () => void; onMove: (x: number, y: number) => void; onSize: (w: number, h: number) => void; onSnap: (s: 'l' | 'r' | null) => void }) {
+  const Icon = win.icon;
+  const startDrag = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    onFocus(); const sx = e.clientX, sy = e.clientY, ox = win.x, oy = win.y; let snapped: 'l' | 'r' | null = null;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const mv = (ev: PointerEvent) => { const nx = ox + ev.clientX - sx, ny = oy + ev.clientY - sy; snapped = ev.clientX < 12 ? 'l' : ev.clientX > vw - 12 ? 'r' : (ev.clientY < 8 ? null : null); onMove(Math.max(-40, nx), Math.max(52, Math.min(vh - 40, ny))); };
+    const up = () => { document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); if (snapped) onSnap(snapped); };
+    document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
+  };
+  const startResize = (e: React.PointerEvent) => {
+    e.stopPropagation(); onFocus(); const sx = e.clientX, sy = e.clientY, ow = win.w, oh = win.h;
+    const mv = (ev: PointerEvent) => onSize(Math.max(340, ow + ev.clientX - sx), Math.max(220, oh + ev.clientY - sy));
+    const up = () => { document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); };
+    document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
+  };
+  if (win.min) return null;
+  const style: React.CSSProperties = win.max ? { left: 0, top: 48, width: '100%', height: 'calc(100% - 48px)' }
+    : win.snap === 'l' ? { left: 0, top: 48, width: '50%', height: 'calc(100% - 48px)' }
+    : win.snap === 'r' ? { right: 0, top: 48, width: '50%', height: 'calc(100% - 48px)' }
+    : { left: win.x, top: win.y, width: win.w, height: win.h };
+  return (
+    <div className='fixed rounded-xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150' style={{ ...style, zIndex: win.z }} onMouseDown={onFocus}>
+      <div className='h-9 shrink-0 flex items-center gap-2 px-3 border-b border-border bg-foreground/[0.03] cursor-move select-none' onPointerDown={startDrag} onDoubleClick={onMax}>
+        {Icon ? <Icon className='h-3.5 w-3.5 text-primary shrink-0' /> : null}
+        <span className='text-xs font-medium truncate'>{win.title}</span>
+        <div className='ml-auto flex items-center gap-0.5'>
+          <button title='Minimize' onClick={onMin} className='h-6 w-6 grid place-items-center rounded hover:bg-foreground/10 text-muted-foreground'><Minus className='h-3.5 w-3.5' /></button>
+          <button title={win.max ? 'Restore' : 'Maximize'} onClick={onMax} className='h-6 w-6 grid place-items-center rounded hover:bg-foreground/10 text-muted-foreground'>{win.max ? <Minimize2 className='h-3 w-3' /> : <Maximize2 className='h-3 w-3' />}</button>
+          <button title='Close' onClick={onClose} className='h-6 w-6 grid place-items-center rounded hover:bg-destructive/15 hover:text-destructive text-muted-foreground'><X className='h-3.5 w-3.5' /></button>
+        </div>
+      </div>
+      <div className='flex-1 min-h-0 overflow-auto p-4'>{win.render()}</div>
+      {!win.max && !win.snap ? <div onPointerDown={startResize} className='absolute bottom-0 right-0 h-4 w-4 cursor-se-resize opacity-40 hover:opacity-80' style={{ background: 'linear-gradient(135deg, transparent 50%, hsl(var(--muted-foreground)) 50%, hsl(var(--muted-foreground)) 60%, transparent 60%, transparent 70%, hsl(var(--muted-foreground)) 70%, hsl(var(--muted-foreground)) 80%, transparent 80%)' }} /> : null}
+    </div>
+  );
+}
+
+function WindowLayer({ wins, focus, close, min, max, move, size, snap }: { wins: WinState[]; focus: (id: string) => void; close: (id: string) => void; min: (id: string) => void; max: (id: string) => void; move: (id: string, x: number, y: number) => void; size: (id: string, w: number, h: number) => void; snap: (id: string, s: 'l' | 'r' | null) => void }) {
+  if (!wins.length) return null;
+  return (<>
+    {wins.map((w) => <FloatingWindow key={w.id} win={w} onFocus={() => focus(w.id)} onClose={() => close(w.id)} onMin={() => min(w.id)} onMax={() => max(w.id)} onMove={(x, y) => move(w.id, x, y)} onSize={(ww, hh) => size(w.id, ww, hh)} onSnap={(s) => snap(w.id, s)} />)}
+    <div className='fixed bottom-0 left-0 right-0 h-9 z-[60] flex items-center gap-1 px-2 border-t border-border bg-card/95 backdrop-blur overflow-x-auto'>
+      <SquareStack className='h-3.5 w-3.5 text-muted-foreground shrink-0' />
+      {wins.map((w) => { const Ic = w.icon; return (
+        <button key={w.id} onClick={() => (w.min ? min(w.id) : focus(w.id))} className={cn('flex items-center gap-1.5 h-6 px-2.5 rounded text-xs shrink-0 transition-colors', w.min ? 'bg-foreground/5 text-muted-foreground hover:bg-foreground/10' : 'bg-primary/15 text-primary')}>
+          {Ic ? <Ic className='h-3 w-3' /> : null}<span className='max-w-[140px] truncate'>{w.title}</span>
+          <span onClick={(e) => { e.stopPropagation(); close(w.id); }} className='opacity-50 hover:opacity-100 ml-0.5'>×</span>
+        </button>); })}
+    </div>
+  </>);
+}
+
 export default function OsxShell() {
   const [ready, setReady] = React.useState(false);
   const [email, setEmail] = React.useState('');
@@ -116,6 +187,17 @@ export default function OsxShell() {
   const [tabs, setTabs] = React.useState<string[]>(['console']);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [live, setLive] = React.useState(0);
+  const [wins, setWins] = React.useState<WinState[]>([]);
+  const openWindow = React.useCallback((s: WinSpec) => {
+    setWins((w) => { const ex = w.find((x) => x.id === s.id); if (ex) return bringToTop(w, s.id, { min: false }); const n = w.length; const withNew = [...w, { ...s, x: 90 + (n % 6) * 30, y: 96 + (n % 6) * 30, w: 760, h: 500, z: 0, min: false, max: false, snap: null }]; return bringToTop(withNew, s.id); });
+  }, []);
+  const focusWin = React.useCallback((id: string) => setWins((w) => bringToTop(w, id, { min: false })), []);
+  const closeWin = React.useCallback((id: string) => setWins((w) => w.filter((x) => x.id !== id)), []);
+  const minWin = React.useCallback((id: string) => setWins((w) => w.map((x) => x.id === id ? { ...x, min: !x.min } : x)), []);
+  const maxWin = React.useCallback((id: string) => setWins((w) => { const t = w.find((x) => x.id === id); return bringToTop(w, id, { max: !t?.max, snap: null }); }), []);
+  const moveWin = React.useCallback((id: string, x: number, y: number) => setWins((w) => w.map((k) => k.id === id ? { ...k, x, y, snap: null, max: false } : k)), []);
+  const sizeWin = React.useCallback((id: string, ww: number, hh: number) => setWins((w) => w.map((k) => k.id === id ? { ...k, w: ww, h: hh } : k)), []);
+  const snapWin = React.useCallback((id: string, s: 'l' | 'r' | null) => setWins((w) => bringToTop(w, id, { snap: s, max: false })), []);
 
   React.useEffect(() => {
     let sub: any;
@@ -141,7 +223,9 @@ export default function OsxShell() {
 
   const go = (id: string) => { setTabs((t) => t.includes(id) ? t : [...t, id]); setCur(id); };
   const closeTab = (id: string) => { setTabs((t) => { const nt = t.filter((x) => x !== id); if (!nt.length) return ['console']; if (id === cur) setCur(nt[nt.length - 1]); return nt; }); };
+  const popOut = (id: string) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; openWindow({ id: 'mod:' + id, title: m.label, icon: m.icon, render: () => renderModule(id, go) }); };
   return (
+    <WinCtx.Provider value={{ open: openWindow }}>
     <div className='osx dark min-h-screen flex text-foreground'>
       <aside className='w-60 shrink-0 border-r border-border bg-card/40 hidden md:flex md:flex-col'>
         <div className='h-14 flex items-center gap-2 px-4 border-b border-border'>
@@ -172,8 +256,9 @@ export default function OsxShell() {
         </header>
         <div className='h-10 shrink-0 border-b border-border flex items-stretch gap-1 px-2 overflow-x-auto'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; const I = m.icon; return (
-            <div key={id} onClick={() => setCur(id)} className={cn('group flex items-center gap-1.5 px-3 text-xs cursor-pointer border-b-2', id === cur ? 'border-primary text-primary bg-foreground/5' : 'border-transparent text-muted-foreground hover:text-foreground')}>
+            <div key={id} onClick={() => setCur(id)} title='Double-click title or use ⧉ to pop out to a floating window' className={cn('group flex items-center gap-1.5 px-3 text-xs cursor-pointer border-b-2', id === cur ? 'border-primary text-primary bg-foreground/5' : 'border-transparent text-muted-foreground hover:text-foreground')}>
               <I className='h-3.5 w-3.5' /><span>{m.label}</span>
+              <button title='Pop out to floating window' onClick={(e) => { e.stopPropagation(); popOut(id); }} className='opacity-0 group-hover:opacity-70 hover:!opacity-100 ml-0.5'><ExternalLink className='h-3 w-3' /></button>
               {tabs.length > 1 ? <button onClick={(e) => { e.stopPropagation(); closeTab(id); }} className='opacity-40 group-hover:opacity-100 hover:text-foreground ml-0.5 text-sm leading-none'>×</button> : null}
             </div>
           ); })}
@@ -181,7 +266,7 @@ export default function OsxShell() {
         <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
             <div key={id} className={id === cur ? '' : 'hidden'}>
-              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
+              {renderModule(id, go)}
             </div>
           ); })}
         </main>
@@ -200,7 +285,9 @@ export default function OsxShell() {
           </CommandGroup>
         </CommandList>
       </CommandDialog>
+      <WindowLayer wins={wins} focus={focusWin} close={closeWin} min={minWin} max={maxWin} move={moveWin} size={sizeWin} snap={snapWin} />
     </div>
+    </WinCtx.Provider>
   );
 }
 
