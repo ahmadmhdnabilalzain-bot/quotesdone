@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, osPages, SUPA_URL } from '@/lib/osClient';
+import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, osPages, osHealth, SUPA_URL } from '@/lib/osClient';
 import { cn } from '@/lib/utils';
 function ReportViewer({ id }: { id: number }) {
   const [st, setSt] = React.useState<'idle' | 'load' | 'done' | 'err'>('load');
@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity } from 'lucide-react';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -66,6 +66,7 @@ const MODULES: Mod[] = [
   { id: 'automation', label: 'Automation', icon: Workflow, kind: 'automation' },
   { id: 'catalog', label: 'Categories', icon: ListChecks, kind: 'catalog' },
   { id: 'content', label: 'Content', icon: Newspaper, kind: 'content' },
+  { id: 'health', label: 'System Health', icon: Activity, kind: 'health' },
 ];
 const PIPELINE = [ ['sent','New'], ['matched','Matched'], ['quoted','Quoted'], ['revealed','Revealed'], ['completed','Won'] ];
 
@@ -178,7 +179,7 @@ export default function OsxShell() {
         <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
             <div key={id} className={id === cur ? '' : 'hidden'}>
-              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
+              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
             </div>
           ); })}
         </main>
@@ -522,6 +523,55 @@ function ContentPanel() {
           ))}
         </div>
       </Card>
+    </div>
+  );
+}
+
+function HealthPanel() {
+  const [h, setH] = React.useState<any>(null);
+  const [rec, setRec] = React.useState<any>(null);
+  const [err, setErr] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const load = React.useCallback(() => { setBusy(true); setErr(''); Promise.all([osHealth('health'), osHealth('reconcile')]).then(([a, b]: any) => { setH(a); setRec(b); }).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  if (err && !h) return <Card className='p-6 text-sm text-destructive'>Could not load system health: {err}</Card>;
+  if (!h) return <div className='text-muted-foreground text-sm'>Loading system health…</div>;
+  const ok = h.overall === 'healthy';
+  const kv = (label: string, val: any) => (<div className='flex justify-between text-sm py-1 border-b border-border/30'><span className='text-muted-foreground'>{label}</span><span className='font-medium'>{val}</span></div>);
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-center gap-2'><Activity className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>System Health</h1>
+        <Badge className={cn('ml-1', ok ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400')}>{ok ? 'All healthy' : 'Needs attention'}</Badge>
+        <Button variant='outline' className='h-8 text-xs ml-auto' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
+      </div>
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Operations</div>
+          <div className='p-4'>
+            {kv('Failing scheduled jobs (24h)', (h.failing_crons || []).length)}
+            {kv('Agent errors (24h)', h.agent_errors_24h)}
+            {kv('Health-check failures (24h)', h.health_check_fails_24h)}
+            {kv('AI health failures', h.ai_health_fails)}
+            {(h.failing_crons || []).length ? <div className='mt-3 space-y-1'>{(h.failing_crons || []).map((c: any, i: number) => (<div key={i} className='text-xs text-destructive'>{c.job}: {c.message || c.status}</div>))}</div> : null}
+            {(h.top_error_agents || []).length ? <div className='mt-3'><div className='text-xs text-muted-foreground mb-1'>Top error sources (24h)</div>{(h.top_error_agents || []).map((a: any, i: number) => (<div key={i} className='text-xs flex justify-between'><span>{a.agent}</span><span className='text-muted-foreground'>{a.errors}</span></div>))}</div> : null}
+          </div>
+        </Card>
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Money reconciliation</div>
+          <div className='p-4'>
+            {rec ? (<>
+              {kv('Reveal transactions', rec.transactions_total)}
+              {kv('Revenue — reveal fees (AED)', rec.revenue_reveal_fees_aed)}
+              {kv('Refunds pending', rec.refunds_pending)}
+              {kv('Refunds resolved', rec.refunds_resolved)}
+              {kv('Stripe events recorded', rec.stripe_events_total)}
+              {kv('Stripe paid checkouts', rec.stripe_paid_checkouts)}
+              {kv('Ledger balanced', rec.gl_balanced === null ? 'n/a' : (rec.gl_balanced ? 'Yes' : 'NO — review'))}
+            </>) : <div className='text-sm text-muted-foreground'>Loading…</div>}
+          </div>
+        </Card>
+      </div>
+      <div className='text-[11px] text-muted-foreground'>Snapshot at {h.generated_at ? new Date(h.generated_at).toLocaleString() : ''}. Read-only.</div>
     </div>
   );
 }

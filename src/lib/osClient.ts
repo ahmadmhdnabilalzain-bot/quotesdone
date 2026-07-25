@@ -110,3 +110,18 @@ export async function osPages(action: string, body: Record<string, any> = {}) {
   if (j.error) throw new Error(j.error);
   return j.data;
 }
+export async function osHealth(action: string, body: Record<string, any> = {}) {
+  const { data: { session } } = await supa.auth.getSession();
+  const token = session?.access_token;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 25000);
+  let r: Response;
+  try {
+    r = await fetch(SUPA_URL + '/functions/v1/os_health', { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify({ action, ...body }) });
+  } catch (e: any) { throw new Error(e?.name === 'AbortError' ? 'Request timed out — please retry' : (e?.message || 'Network error')); } finally { clearTimeout(timer); }
+  const j = await r.json().catch(() => ({} as any));
+  if (r.status === 401) throw new Error('Session expired');
+  if (r.status === 403) throw new Error('Not authorized (admin only)');
+  if (j.error) throw new Error(j.error);
+  return j.data;
+}
