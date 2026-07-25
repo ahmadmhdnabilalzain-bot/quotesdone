@@ -1222,6 +1222,44 @@ const WS_ENTITY: Record<string, string> = { supplier: 'ws.supplier', customer: '
 const FK_ENTITY: Record<string, string> = { supplier_id: 'supplier', lead_id: 'supplier', supplier: 'supplier', customer_id: 'customer', customer: 'customer', buyer_id: 'customer', inquiry_id: 'rfq', rfq_id: 'rfq', inquiry: 'rfq', quote_id: 'quote', quote: 'quote', agent_action_id: 'agent_action', task_id: 'task' };
 function singularWord(s: string) { return String(s).replace(/ies$/i, 'y').replace(/s$/i, ''); }
 
+// Odoo-style "chatter": activity timeline + comments + AI ask, on real events.
+function ActivityPanel({ entity, id }: { entity: string; id: any }) {
+  const [items, setItems] = React.useState<any[] | null>(null);
+  const [body, setBody] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const [ai, setAi] = React.useState(''); const [aiBusy, setAiBusy] = React.useState(false); const [aiOut, setAiOut] = React.useState('');
+  const load = React.useCallback(() => { osApi('activity', { entity, id }).then((d: any) => setItems(Array.isArray(d) ? d : [])).catch(() => setItems([])); }, [entity, id]);
+  React.useEffect(() => { load(); }, [load]);
+  const addComment = async () => { const t = body.trim(); if (!t) return; setBusy(true); try { await osApi('comment_add', { entity, id, body: t }); setBody(''); load(); } catch (_e) { } setBusy(false); };
+  const askAI = async () => { const q = ai.trim(); if (!q) return; setAiBusy(true); setAiOut(''); try { const d: any = await osApi('secretary_chat', { message: q + ' (regarding ' + entity + ' #' + id + ')' }); setAiOut(d?.reply || 'No response.'); } catch (e: any) { setAiOut('Error: ' + (e?.message || 'could not reach the assistant')); } setAiBusy(false); };
+  const iconFor = (k: string) => k === 'comment' ? MessageSquare : k === 'agent' ? Sparkles : k === 'audit' ? ScrollText : Circle;
+  return (
+    <Card className='mt-4 overflow-hidden'>
+      <div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center gap-2'><Activity className='h-4 w-4 text-primary' />Activity</div>
+      <div className='p-4 space-y-4'>
+        <div className='flex gap-2'>
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addComment(); }} rows={2} placeholder='Add a note… (⌘+Enter to post)' className='flex-1 resize-none rounded-md border border-border bg-transparent p-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' />
+          <Button className='h-8 text-xs self-end' disabled={busy || !body.trim()} onClick={addComment}>{busy ? '…' : 'Post'}</Button>
+        </div>
+        <div className='rounded-md border border-primary/30 bg-primary/[0.04] p-2'>
+          <div className='flex items-center gap-2'><Sparkles className='h-4 w-4 text-primary shrink-0' /><input value={ai} onChange={(e) => setAi(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') askAI(); }} placeholder='Ask AI about this record…' className='flex-1 bg-transparent text-sm outline-none' /><Button className='h-8 text-xs' variant='outline' disabled={aiBusy || !ai.trim()} onClick={askAI}>{aiBusy ? '…' : 'Ask'}</Button></div>
+          {aiOut ? <div className='text-xs whitespace-pre-wrap mt-2 border-t border-border/50 pt-2'>{aiOut}</div> : null}
+        </div>
+        {items === null ? <div className='text-xs text-muted-foreground'>Loading activity…</div> : !items.length ? <div className='text-xs text-muted-foreground'>No activity recorded yet.</div> : (
+          <div>{items.map((it: any, i: number) => { const I = iconFor(it.kind); return (
+            <div key={i} className='flex gap-3 pb-3 last:pb-0'>
+              <div className='flex flex-col items-center'><div className={cn('h-6 w-6 rounded-full grid place-items-center shrink-0', it.kind === 'comment' ? 'bg-primary/15 text-primary' : it.kind === 'agent' ? 'bg-violet-500/15 text-violet-600' : it.kind === 'milestone' ? 'bg-emerald-500/15 text-emerald-600' : 'bg-foreground/5 text-muted-foreground')}><I className='h-3 w-3' /></div>{i < items.length - 1 ? <div className='w-px flex-1 bg-border my-1' /> : null}</div>
+              <div className='min-w-0 flex-1 -mt-0.5'>
+                <div className='text-sm flex items-center gap-1.5 flex-wrap'><span className='font-medium capitalize'>{titleCase(String(it.title || it.kind))}</span>{it.status ? <Badge variant='outline' className='text-[10px]'>{it.status}</Badge> : null}</div>
+                {it.body ? <div className='text-sm text-foreground/80 mt-0.5 whitespace-pre-wrap'>{it.body}</div> : null}
+                <div className='text-[11px] text-muted-foreground mt-0.5'>{it.actor || 'system'} · {fmt(it.at)}</div>
+              </div>
+            </div>); })}</div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 function RecordDrawer({ frame0, actions, extra, reportId, onClose }: { frame0: any; actions?: any; extra?: any; reportId?: number; onClose: () => void }) {
   const [stack, setStack] = React.useState<any[]>([frame0]);
   const key0 = (frame0 && (String(frame0.entity) + ':' + String(frame0.id) + ':' + String(frame0.row && frame0.row.id))) || '';
@@ -1282,6 +1320,7 @@ function RecordDrawer({ frame0, actions, extra, reportId, onClose }: { frame0: a
               <tbody>{rows.slice(0, 100).map((r: any, i: number) => (<tr key={i} onClick={() => openRelated(k, r)} className='border-b border-border/40 hover:bg-foreground/5 cursor-pointer'>{cols.map((c) => <td key={c} className='px-3 py-2'>{fmt(r[c])}</td>)}</tr>))}</tbody></table></div>
           </Card>); })}
         {stack.length === 1 && extra ? <div className='mt-4'>{extra}</div> : null}
+        {top.entity && top.id != null && top.id !== '' ? <ActivityPanel entity={top.entity} id={top.id} /> : null}
         {!loading && !scalShow.length && !arrs.length && !Object.keys(grpFiles).length ? <div className='mt-4 text-sm text-muted-foreground'>No further detail available.</div> : null}
       </SheetContent>
     </Sheet>
