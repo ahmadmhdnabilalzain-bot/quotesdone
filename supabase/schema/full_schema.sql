@@ -59,7 +59,7 @@ CREATE SEQUENCE IF NOT EXISTS public.simulations_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supply_health_snapshots_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 
--- ===== TABLES (214) =====\nCREATE TABLE IF NOT EXISTS public.admin_mfa_sessions (
+-- ===== TABLES (216) =====\nCREATE TABLE IF NOT EXISTS public.admin_mfa_sessions (
   session_id text NOT NULL,
   email text,
   verified_at timestamp with time zone DEFAULT now(),
@@ -578,6 +578,13 @@ CREATE TABLE IF NOT EXISTS public.cron_job_seen (
   first_seen timestamp with time zone DEFAULT now() NOT NULL,
   last_seen timestamp with time zone DEFAULT now() NOT NULL,
   last_success timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.cron_registry (
+  jobname text NOT NULL,
+  human_name text NOT NULL,
+  category text DEFAULT 'Operations'::text NOT NULL,
+  purpose text DEFAULT ''::text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.customer_kpi_snapshots (
@@ -1836,6 +1843,17 @@ CREATE TABLE IF NOT EXISTS public.os_audit_log (
   err text
 );
 
+CREATE TABLE IF NOT EXISTS public.os_settings_meta (
+  key text NOT NULL,
+  grp text NOT NULL,
+  type text NOT NULL,
+  label text NOT NULL,
+  help text,
+  validation jsonb DEFAULT '{}'::jsonb NOT NULL,
+  dangerous boolean DEFAULT false NOT NULL,
+  sort integer DEFAULT 100 NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.outreach (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   lead_id bigint,
@@ -2749,6 +2767,7 @@ ALTER TABLE public.crm_notes ADD CONSTRAINT crm_notes_pkey PRIMARY KEY (id);
 ALTER TABLE public.crm_stages ADD CONSTRAINT crm_stages_pkey PRIMARY KEY (key);
 ALTER TABLE public.crm_tasks ADD CONSTRAINT crm_tasks_pkey PRIMARY KEY (id);
 ALTER TABLE public.cron_job_seen ADD CONSTRAINT cron_job_seen_pkey PRIMARY KEY (jobid);
+ALTER TABLE public.cron_registry ADD CONSTRAINT cron_registry_pkey PRIMARY KEY (jobname);
 ALTER TABLE public.customer_kpi_snapshots ADD CONSTRAINT customer_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.customer_phone_otps ADD CONSTRAINT customer_phone_otps_pkey PRIMARY KEY (id);
 ALTER TABLE public.customers ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
@@ -2846,6 +2865,7 @@ ALTER TABLE public.org_onboarding ADD CONSTRAINT org_onboarding_pkey PRIMARY KEY
 ALTER TABLE public.org_reset_backup_20260724 ADD CONSTRAINT org_reset_backup_20260724_pkey PRIMARY KEY (_pk);
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_pkey PRIMARY KEY (id);
 ALTER TABLE public.os_audit_log ADD CONSTRAINT os_audit_log_pkey PRIMARY KEY (id);
+ALTER TABLE public.os_settings_meta ADD CONSTRAINT os_settings_meta_pkey PRIMARY KEY (key);
 ALTER TABLE public.outreach ADD CONSTRAINT outreach_pkey PRIMARY KEY (id);
 ALTER TABLE public.pages ADD CONSTRAINT pages_pkey PRIMARY KEY (slug);
 ALTER TABLE public.pdpl_erase_files ADD CONSTRAINT pdpl_erase_files_pkey PRIMARY KEY (id);
@@ -2961,108 +2981,109 @@ ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_laye
 ALTER TABLE public.company_vision ADD CONSTRAINT company_vision_singleton CHECK ((id = 1));
 ALTER TABLE public.crm_stages ADD CONSTRAINT crm_stages_probability_check CHECK (((probability >= 0) AND (probability <= 100)));
 ALTER TABLE public.customers ADD CONSTRAINT customers_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_status_check CHECK ((status = ANY (ARRAY['active'::text, 'fully_depreciated'::text, 'disposed'::text])));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_cost_check CHECK ((cost >= (0)::numeric));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_useful_life_months_check CHECK ((useful_life_months > 0));
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_status_check CHECK ((status = ANY (ARRAY['active'::text, 'fully_depreciated'::text, 'disposed'::text])));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_method_check CHECK ((method = 'straight_line'::text));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_normal_balance_check CHECK ((normal_balance = ANY (ARRAY['D'::bpchar, 'C'::bpchar])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_type_check CHECK ((type = ANY (ARRAY['asset'::text, 'liability'::text, 'equity'::text, 'revenue'::text, 'expense'::text])));
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'posted'::text, 'void'::text])));
-ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_debit_check CHECK ((debit >= (0)::numeric));
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_credit_check CHECK ((credit >= (0)::numeric));
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_line_one_side CHECK (((debit = (0)::numeric) <> (credit = (0)::numeric)));
+ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_debit_check CHECK ((debit >= (0)::numeric));
 ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_move_type_check CHECK ((move_type = ANY (ARRAY['in'::text, 'out'::text, 'adjust'::text])));
 ALTER TABLE public.leads ADD CONSTRAINT leads_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_impact_check CHECK ((impact = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
-ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_status_check CHECK ((status = ANY (ARRAY['open'::text, 'reviewed'::text, 'actioned'::text, 'dismissed'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_kind_check CHECK ((kind = ANY (ARRAY['competitor'::text, 'trend'::text, 'expansion'::text, 'regulatory'::text, 'other'::text])));
+ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_status_check CHECK ((status = ANY (ARRAY['open'::text, 'reviewed'::text, 'actioned'::text, 'dismissed'::text])));
 ALTER TABLE public.messages ADD CONSTRAINT messages_sender_check CHECK ((sender = ANY (ARRAY['customer'::text, 'supplier'::text])));
 ALTER TABLE public.org_action_executor ADD CONSTRAINT org_action_executor_kind_check CHECK ((kind = ANY (ARRAY['rpc'::text, 'edge'::text])));
 ALTER TABLE public.org_authority ADD CONSTRAINT org_authority_max_tier_check CHECK ((max_tier = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
 ALTER TABLE public.org_objectives ADD CONSTRAINT org_objectives_status_check CHECK ((status = ANY (ARRAY['open'::text, 'in_progress'::text, 'blocked'::text, 'done'::text, 'cancelled'::text])));
 ALTER TABLE public.org_onboarding ADD CONSTRAINT org_onboarding_status_check CHECK ((status = ANY (ARRAY['onboarding'::text, 'probation'::text, 'certified'::text, 'recert_due'::text])));
-ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_tier_check CHECK ((tier = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'assigned'::text, 'in_progress'::text, 'blocked'::text, 'done'::text, 'failed'::text, 'escalated'::text])));
+ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_tier_check CHECK ((tier = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
+ALTER TABLE public.os_settings_meta ADD CONSTRAINT os_settings_meta_type_check CHECK ((type = ANY (ARRAY['money'::text, 'int'::text, 'number'::text, 'bool'::text, 'text'::text, 'textarea'::text, 'html'::text, 'email'::text, 'phone'::text, 'csv'::text])));
 ALTER TABLE public.pdpl_requests ADD CONSTRAINT pdpl_requests_kind_check CHECK ((kind = ANY (ARRAY['export'::text, 'delete'::text])));
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_qty_check CHECK ((qty > (0)::numeric));
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'approved'::text, 'partial'::text, 'received'::text, 'billed'::text, 'closed'::text, 'cancelled'::text])));
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_singleton CHECK ((id = 1));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_quote_amount_check CHECK ((quote_amount > (0)::numeric));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_communication_check CHECK (((r_communication >= 1) AND (r_communication <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_quality_check CHECK (((r_quality >= 1) AND (r_quality <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_communication_check CHECK (((r_communication >= 1) AND (r_communication <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_compliance_check CHECK (((r_compliance >= 1) AND (r_compliance <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_punctuality_check CHECK (((r_punctuality >= 1) AND (r_punctuality <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_after_sales_check CHECK (((r_after_sales >= 1) AND (r_after_sales <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_documentation_check CHECK (((r_documentation >= 1) AND (r_documentation <= 5)));
-ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_likelihood_check CHECK (((likelihood >= 1) AND (likelihood <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_punctuality_check CHECK (((r_punctuality >= 1) AND (r_punctuality <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_compliance_check CHECK (((r_compliance >= 1) AND (r_compliance <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_status_check CHECK ((status = ANY (ARRAY['open'::text, 'mitigating'::text, 'accepted'::text, 'closed'::text])));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_impact_check CHECK (((impact >= 1) AND (impact <= 5)));
-ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
+ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_likelihood_check CHECK (((likelihood >= 1) AND (likelihood <= 5)));
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_pay_journal_id_fkey FOREIGN KEY (pay_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
+ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES budgets(id) ON DELETE CASCADE;
 ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.customer_phone_otps ADD CONSTRAINT customer_phone_otps_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE;
 ALTER TABLE public.doc_reviews ADD CONSTRAINT doc_reviews_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.experiment_assignments ADD CONSTRAINT experiment_assignments_experiment_fkey FOREIGN KEY (experiment) REFERENCES experiments(key);
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_asset_account_fkey FOREIGN KEY (asset_account) REFERENCES gl_accounts(code);
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_expense_account_fkey FOREIGN KEY (expense_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_accum_account_fkey FOREIGN KEY (accum_account) REFERENCES gl_accounts(code);
-ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_asset_id_fkey FOREIGN KEY (asset_id) REFERENCES fa_assets(id) ON DELETE CASCADE;
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_expense_account_fkey FOREIGN KEY (expense_account) REFERENCES gl_accounts(code);
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_asset_account_fkey FOREIGN KEY (asset_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
+ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_asset_id_fkey FOREIGN KEY (asset_id) REFERENCES fa_assets(id) ON DELETE CASCADE;
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_parent_code_fkey FOREIGN KEY (parent_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_expense_map ADD CONSTRAINT gl_expense_map_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_reverses_fkey FOREIGN KEY (reverses) REFERENCES gl_journal(id);
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_journal_id_fkey FOREIGN KEY (journal_id) REFERENCES gl_journal(id) ON DELETE CASCADE;
 ALTER TABLE public.inbound_messages ADD CONSTRAINT inbound_messages_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
-ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;
-ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_parent_inquiry_id_fkey FOREIGN KEY (parent_inquiry_id) REFERENCES inquiries(id);
-ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_hired_supplier_id_fkey FOREIGN KEY (hired_supplier_id) REFERENCES leads(id);
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
-ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_hired_supplier_id_fkey FOREIGN KEY (hired_supplier_id) REFERENCES leads(id);
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_parent_inquiry_id_fkey FOREIGN KEY (parent_inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
+ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.inquiry_requirement ADD CONSTRAINT inquiry_requirement_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
-ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_inventory_account_fkey FOREIGN KEY (inventory_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_cogs_account_fkey FOREIGN KEY (cogs_account) REFERENCES gl_accounts(code);
-ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
+ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_inventory_account_fkey FOREIGN KEY (inventory_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
+ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.mdm_cities ADD CONSTRAINT mdm_cities_emirate_code_fkey FOREIGN KEY (emirate_code) REFERENCES mdm_emirates(code);
 ALTER TABLE public.messages ADD CONSTRAINT messages_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.messages ADD CONSTRAINT messages_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.messages ADD CONSTRAINT messages_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.org_agents ADD CONSTRAINT org_agents_department_fkey FOREIGN KEY (department) REFERENCES org_departments(dept_key);
 ALTER TABLE public.org_authority ADD CONSTRAINT org_authority_dept_key_fkey FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key) ON DELETE CASCADE;
-ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_dept_key_fkey FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key);
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_objective_id_fkey FOREIGN KEY (objective_id) REFERENCES org_objectives(id) ON DELETE CASCADE;
+ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_dept_key_fkey FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key);
 ALTER TABLE public.pdpl_erase_files ADD CONSTRAINT pdpl_erase_files_request_id_fkey FOREIGN KEY (request_id) REFERENCES pdpl_requests(id) ON DELETE CASCADE;
-ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
-ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id) ON DELETE CASCADE;
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
+ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id) ON DELETE CASCADE;
+ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
 ALTER TABLE public.projects ADD CONSTRAINT projects_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE;
 ALTER TABLE public.prompt_versions ADD CONSTRAINT prompt_versions_prompt_key_fkey FOREIGN KEY (prompt_key) REFERENCES prompts(key);
+ALTER TABLE public.questions ADD CONSTRAINT questions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.questions ADD CONSTRAINT questions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.questions ADD CONSTRAINT questions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
-ALTER TABLE public.questions ADD CONSTRAINT questions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_committed_items ADD CONSTRAINT quote_committed_items_review_id_fkey FOREIGN KEY (review_id) REFERENCES quote_reviews(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_review_messages ADD CONSTRAINT quote_review_messages_review_id_fkey FOREIGN KEY (review_id) REFERENCES quote_reviews(id) ON DELETE CASCADE;
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.regulations ADD CONSTRAINT regulations_supersedes_id_fkey FOREIGN KEY (supersedes_id) REFERENCES regulations(id);
 ALTER TABLE public.reveal_invoices ADD CONSTRAINT reveal_invoices_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE;
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
 ALTER TABLE public.role_permissions ADD CONSTRAINT role_permissions_role_fkey FOREIGN KEY (role) REFERENCES roles(name);
 ALTER TABLE public.supplier_capabilities ADD CONSTRAINT supplier_capabilities_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_role_fkey FOREIGN KEY (role) REFERENCES roles(name);
 
 -- ===== INDEXES =====
@@ -10198,6 +10219,216 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_os_automation_list()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select coalesce(jsonb_agg(x order by x->>'category', x->>'human_name'), '[]'::jsonb) from (
+    select jsonb_build_object(
+      'jobid', j.jobid, 'jobname', j.jobname,
+      'human_name', coalesce(r.human_name, initcap(replace(replace(j.jobname,'_',' '),'-',' '))),
+      'category', coalesce(r.category,'Operations'), 'purpose', coalesce(r.purpose,''),
+      'schedule', j.schedule, 'active', j.active,
+      'last_status', lr.status, 'last_start', lr.start_time, 'last_end', lr.end_time,
+      'last_message', left(coalesce(lr.return_message,''), 240)
+    ) as x
+    from cron.job j
+    left join public.cron_registry r on r.jobname = j.jobname
+    left join lateral (
+      select status, start_time, end_time, return_message
+      from cron.job_run_details d where d.jobid = j.jobid
+      order by d.start_time desc nulls last limit 1
+    ) lr on true
+  ) q;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_automation_reschedule(p_jobid bigint, p_schedule text, p_actor text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE nm text; oldsched text;
+BEGIN
+  SELECT jobname, schedule INTO nm, oldsched FROM cron.job WHERE jobid = p_jobid;
+  IF nm IS NULL THEN RETURN jsonb_build_object('ok',false,'error','job_not_found'); END IF;
+  IF coalesce(array_length(regexp_split_to_array(btrim(p_schedule), '\s+'),1),0) <> 5 THEN
+    RETURN jsonb_build_object('ok',false,'error','schedule_must_have_5_fields'); END IF;
+  BEGIN PERFORM cron.alter_job(job_id := p_jobid, schedule := p_schedule);
+  EXCEPTION WHEN others THEN RETURN jsonb_build_object('ok',false,'error',SQLERRM); END;
+  INSERT INTO public.os_audit_log(actor,action,entity,entity_id,detail,ok)
+  VALUES (coalesce(p_actor,'os'),'automation_reschedule','cron_job',p_jobid::text,jsonb_build_object('jobname',nm,'old',oldsched,'new',p_schedule),true);
+  RETURN jsonb_build_object('ok',true,'schedule',p_schedule);
+END $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_automation_run(p_jobid bigint, p_actor text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE cmd text; nm text; ok boolean := true; msg text := '';
+BEGIN
+  SELECT command, jobname INTO cmd, nm FROM cron.job WHERE jobid = p_jobid;
+  IF cmd IS NULL THEN RETURN jsonb_build_object('ok',false,'error','job_not_found'); END IF;
+  BEGIN EXECUTE cmd; EXCEPTION WHEN others THEN ok := false; msg := SQLERRM; END;
+  INSERT INTO public.os_audit_log(actor,action,entity,entity_id,detail,ok)
+  VALUES (coalesce(p_actor,'os'),'automation_run','cron_job',p_jobid::text,jsonb_build_object('jobname',nm,'error',msg),ok);
+  RETURN jsonb_build_object('ok',ok,'error',nullif(msg,''));
+END $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_automation_set_active(p_jobid bigint, p_active boolean, p_actor text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE nm text;
+BEGIN
+  SELECT jobname INTO nm FROM cron.job WHERE jobid = p_jobid;
+  IF nm IS NULL THEN RETURN jsonb_build_object('ok',false,'error','job_not_found'); END IF;
+  PERFORM cron.alter_job(job_id := p_jobid, active := p_active);
+  INSERT INTO public.os_audit_log(actor,action,entity,entity_id,detail,ok)
+  VALUES (coalesce(p_actor,'os'),'automation_active','cron_job',p_jobid::text,jsonb_build_object('jobname',nm,'active',p_active),true);
+  RETURN jsonb_build_object('ok',true,'active',p_active);
+END $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_catalog_get(p_category text)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select jsonb_build_object(
+    'category', cs.category,
+    'label', coalesce(cs.label, cs.category),
+    'fields', coalesce(cs.fields, '[]'::jsonb),
+    'spec_group', g.grp,
+    'specs', (select coalesce(jsonb_agg(jsonb_build_object(
+        'id', q.id, 'aspect', q.aspect, 'label', q.label, 'match_regex', q.match_regex,
+        'mandatory', q.mandatory, 'note', coalesce(q.note,'')) order by q.mandatory desc, q.aspect), '[]'::jsonb)
+      from public.category_quote_specs q where q.spec_group = g.grp)
+  )
+  from public.category_specs cs, lateral (select public.fn_quote_spec_group(cs.category) as grp) g
+  where cs.category = p_category;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_catalog_list()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'category', cs.category,
+    'label', coalesce(cs.label, cs.category),
+    'n_fields', coalesce(jsonb_array_length(cs.fields), 0),
+    'spec_group', public.fn_quote_spec_group(cs.category),
+    'n_specs', (select count(*) from public.category_quote_specs q where q.spec_group = public.fn_quote_spec_group(cs.category))
+  ) order by cs.category), '[]'::jsonb)
+  from public.category_specs cs;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_catalog_save_fields(p_category text, p_fields jsonb, p_actor text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE oldf jsonb;
+BEGIN
+  IF jsonb_typeof(p_fields) <> 'array' THEN RETURN jsonb_build_object('ok',false,'error','fields_must_be_a_list'); END IF;
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(p_fields) e
+             WHERE jsonb_typeof(e) <> 'object' OR coalesce(e->>'question','')='' OR coalesce(e->>'key','')='') THEN
+    RETURN jsonb_build_object('ok',false,'error','each_question_needs_a_key_and_question_text'); END IF;
+  SELECT fields INTO oldf FROM public.category_specs WHERE category = p_category;
+  IF NOT FOUND THEN RETURN jsonb_build_object('ok',false,'error','category_not_found'); END IF;
+  UPDATE public.category_specs SET fields = p_fields, updated_at = now() WHERE category = p_category;
+  INSERT INTO public.os_audit_log(actor,action,entity,entity_id,detail,ok)
+  VALUES (coalesce(p_actor,'os'),'catalog_save_fields','category',p_category,
+          jsonb_build_object('n_fields', jsonb_array_length(p_fields)), true);
+  RETURN jsonb_build_object('ok',true,'n_fields', jsonb_array_length(p_fields));
+END $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_catalog_spec_delete(p_id bigint, p_actor text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE g text; a text;
+BEGIN
+  SELECT spec_group, aspect INTO g, a FROM public.category_quote_specs WHERE id=p_id;
+  IF NOT FOUND THEN RETURN jsonb_build_object('ok',false,'error','spec_not_found'); END IF;
+  DELETE FROM public.category_quote_specs WHERE id=p_id;
+  INSERT INTO public.os_audit_log(actor,action,entity,entity_id,detail,ok)
+  VALUES (coalesce(p_actor,'os'),'catalog_spec_delete','quote_spec',p_id::text,jsonb_build_object('spec_group',g,'aspect',a), true);
+  RETURN jsonb_build_object('ok',true);
+END $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_catalog_spec_upsert(p_id bigint, p_spec_group text, p_aspect text, p_label text, p_regex text, p_mandatory boolean, p_note text, p_actor text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE newid bigint;
+BEGIN
+  IF coalesce(p_spec_group,'')='' OR coalesce(p_aspect,'')='' OR coalesce(p_label,'')='' OR coalesce(p_regex,'')='' THEN
+    RETURN jsonb_build_object('ok',false,'error','group_aspect_label_and_pattern_required'); END IF;
+  BEGIN PERFORM regexp_match('validation probe', p_regex);
+  EXCEPTION WHEN others THEN RETURN jsonb_build_object('ok',false,'error','invalid_pattern: '||SQLERRM); END;
+  IF p_id IS NOT NULL AND p_id > 0 THEN
+    UPDATE public.category_quote_specs SET spec_group=p_spec_group, aspect=p_aspect, label=p_label, match_regex=p_regex, mandatory=coalesce(p_mandatory,false), note=nullif(p_note,'')
+      WHERE id=p_id RETURNING id INTO newid;
+    IF newid IS NULL THEN RETURN jsonb_build_object('ok',false,'error','spec_not_found'); END IF;
+  ELSE
+    INSERT INTO public.category_quote_specs(spec_group,aspect,label,match_regex,mandatory,note)
+      VALUES (p_spec_group,p_aspect,p_label,p_regex,coalesce(p_mandatory,false),nullif(p_note,'')) RETURNING id INTO newid;
+  END IF;
+  INSERT INTO public.os_audit_log(actor,action,entity,entity_id,detail,ok)
+  VALUES (coalesce(p_actor,'os'),'catalog_spec_upsert','quote_spec',newid::text,
+          jsonb_build_object('spec_group',p_spec_group,'aspect',p_aspect,'mandatory',coalesce(p_mandatory,false)), true);
+  RETURN jsonb_build_object('ok',true,'id',newid);
+END $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_catalog_test_gate(p_category text, p_sample text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE grp text; res jsonb;
+BEGIN
+  grp := public.fn_quote_spec_group(p_category);
+  WITH asp AS (
+    SELECT q.aspect, q.label, q.mandatory,
+           (CASE WHEN coalesce(p_sample,'') = '' THEN false ELSE p_sample ~* q.match_regex END) AS matched
+    FROM public.category_quote_specs q WHERE q.spec_group = grp
+  )
+  SELECT jsonb_build_object(
+    'category', p_category, 'spec_group', grp,
+    'aspects', coalesce((select jsonb_agg(jsonb_build_object('aspect',aspect,'label',label,'mandatory',mandatory,'matched',matched) order by mandatory desc, aspect) from asp),'[]'::jsonb),
+    'total', (select count(*) from asp),
+    'matched_count', (select count(*) from asp where matched),
+    'mandatory_missing', coalesce((select jsonb_agg(label order by label) from asp where mandatory and not matched),'[]'::jsonb),
+    'passes', (select coalesce(bool_and(matched),true) from asp where mandatory)
+  ) INTO res;
+  RETURN res;
+END $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_os_command()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -10282,6 +10513,35 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_os_health()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE res jsonb;
+BEGIN
+  SELECT jsonb_build_object(
+    'generated_at', now(),
+    'failing_crons', coalesce((
+      SELECT jsonb_agg(jsonb_build_object('job', j.jobname, 'status', lr.status, 'when', lr.end_time, 'message', left(coalesce(lr.return_message,''),160)) ORDER BY lr.end_time DESC)
+      FROM cron.job j
+      JOIN LATERAL (SELECT status, end_time, return_message FROM cron.job_run_details d WHERE d.jobid=j.jobid ORDER BY d.start_time DESC LIMIT 1) lr ON true
+      WHERE lr.status = 'failed' AND lr.end_time > now() - interval '24 hours'
+    ), '[]'::jsonb),
+    'agent_errors_24h', (SELECT count(*) FROM public.agent_runs WHERE status='error' AND started_at > now() - interval '24 hours'),
+    'top_error_agents', coalesce((SELECT jsonb_agg(x) FROM (SELECT jsonb_build_object('agent',agent,'errors',count(*)) x FROM public.agent_runs WHERE status='error' AND started_at > now()-interval '24 hours' GROUP BY agent ORDER BY count(*) DESC LIMIT 6) q),'[]'::jsonb),
+    'health_check_fails_24h', (SELECT count(*) FROM public.health_checks WHERE ok=false AND created_at > now()-interval '24 hours'),
+    'ai_health_fails', coalesce((SELECT value FROM public.app_secrets WHERE key='ai_health_fails'),'0'),
+    'payments_7d_count', (SELECT count(*) FROM public.transactions WHERE revealed_at > now()-interval '7 days'),
+    'payments_7d_revenue_aed', coalesce((SELECT round(sum(reveal_fee)::numeric,2) FROM public.transactions WHERE revealed_at > now()-interval '7 days'),0)
+  ) INTO res;
+  res := res || jsonb_build_object('overall',
+    CASE WHEN jsonb_array_length(res->'failing_crons') > 0 OR (res->>'agent_errors_24h')::int > 25 THEN 'attention' ELSE 'healthy' END);
+  RETURN res;
+END $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_os_list(p_entity text, p_params jsonb DEFAULT '{}'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -10361,6 +10621,31 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_os_reconcile()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE res jsonb; gl_diff numeric;
+BEGIN
+  BEGIN SELECT coalesce(sum(debit),0) - coalesce(sum(credit),0) INTO gl_diff FROM public.gl_journal_lines;
+  EXCEPTION WHEN others THEN gl_diff := NULL; END;
+  SELECT jsonb_build_object(
+    'generated_at', now(),
+    'transactions_total', (SELECT count(*) FROM public.transactions),
+    'revenue_reveal_fees_aed', coalesce((SELECT round(sum(reveal_fee)::numeric,2) FROM public.transactions),0),
+    'refunds_pending', (SELECT count(*) FROM public.transactions WHERE refund_status='requested'),
+    'refunds_resolved', (SELECT count(*) FROM public.transactions WHERE refund_status IS NOT NULL AND refund_status <> 'requested'),
+    'stripe_events_total', (SELECT count(*) FROM public.stripe_events),
+    'stripe_paid_checkouts', (SELECT count(*) FROM public.stripe_events WHERE type='checkout.session.completed' AND payment_status='paid'),
+    'gl_debits_minus_credits', CASE WHEN gl_diff IS NULL THEN NULL ELSE round(gl_diff,2) END,
+    'gl_balanced', CASE WHEN gl_diff IS NULL THEN NULL ELSE (abs(gl_diff) < 0.01) END
+  ) INTO res;
+  RETURN res;
+END $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_os_record(p_entity text, p_id text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -10396,6 +10681,109 @@ AS $function$
         select id,full_name,email from customers where p_q<>'' and (full_name ilike '%'||p_q||'%' or email ilike '%'||p_q||'%') limit 6) c),'[]'::jsonb)
   );
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_settings_history(p_key text)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'at', at, 'actor', actor, 'action', action,
+    'old', detail->>'old', 'new', detail->>'new') order by at desc), '[]'::jsonb)
+  from public.os_audit_log
+  where entity='setting' and entity_id=p_key and action in ('settings_set','settings_revert')
+  limit 50;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_settings_list()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select coalesce(jsonb_agg(x order by x->>'grp', (x->>'sort')::int, x->>'label'), '[]'::jsonb)
+  from (
+    select jsonb_build_object(
+      'key', m.key, 'grp', m.grp, 'type', m.type, 'label', m.label,
+      'help', coalesce(m.help,''), 'validation', m.validation, 'dangerous', m.dangerous,
+      'sort', m.sort, 'value', coalesce(s.value,'')
+    ) as x
+    from public.os_settings_meta m
+    left join public.app_secrets s on s.key = m.key
+  ) q;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_settings_revert(p_key text, p_actor text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE prev text; oldv text;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.os_settings_meta WHERE key=p_key) THEN
+    RETURN jsonb_build_object('ok',false,'error','key_not_editable'); END IF;
+  SELECT detail->>'old' INTO prev FROM public.os_audit_log
+    WHERE entity='setting' AND entity_id=p_key AND action IN ('settings_set','settings_revert')
+    ORDER BY at DESC LIMIT 1;
+  IF prev IS NULL THEN RETURN jsonb_build_object('ok',false,'error','no_history_to_revert'); END IF;
+  SELECT value INTO oldv FROM public.app_secrets WHERE key=p_key;
+  INSERT INTO public.app_secrets(key,value) VALUES (p_key, prev)
+    ON CONFLICT (key) DO UPDATE SET value = excluded.value;
+  INSERT INTO public.os_audit_log(actor, action, entity, entity_id, detail, ok)
+  VALUES (coalesce(p_actor,'os'), 'settings_revert', 'setting', p_key,
+          jsonb_build_object('old', coalesce(oldv,''), 'new', prev), true);
+  RETURN jsonb_build_object('ok',true,'key',p_key,'old',coalesce(oldv,''),'new',prev);
+END $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_os_settings_set(p_key text, p_value text, p_actor text, p_confirm boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE m public.os_settings_meta; v text := coalesce(p_value,''); n numeric; oldv text; mn numeric; mx numeric; ml int;
+BEGIN
+  SELECT * INTO m FROM public.os_settings_meta WHERE key = p_key;
+  IF NOT FOUND THEN RETURN jsonb_build_object('ok',false,'error','key_not_editable'); END IF;
+  IF m.dangerous AND NOT p_confirm THEN RETURN jsonb_build_object('ok',false,'needs_confirm',true,'label',m.label); END IF;
+
+  mn := nullif(m.validation->>'min','')::numeric;
+  mx := nullif(m.validation->>'max','')::numeric;
+  ml := nullif(m.validation->>'maxlen','')::int;
+
+  IF m.type IN ('money','number','int') THEN
+    BEGIN n := v::numeric; EXCEPTION WHEN others THEN RETURN jsonb_build_object('ok',false,'error','must_be_a_number'); END;
+    IF m.type='int' AND n <> trunc(n) THEN RETURN jsonb_build_object('ok',false,'error','must_be_a_whole_number'); END IF;
+    IF mn IS NOT NULL AND n < mn THEN RETURN jsonb_build_object('ok',false,'error','below_minimum','min',mn); END IF;
+    IF mx IS NOT NULL AND n > mx THEN RETURN jsonb_build_object('ok',false,'error','above_maximum','max',mx); END IF;
+    v := n::text;
+  ELSIF m.type='bool' THEN
+    v := lower(v);
+    IF v IN ('true','1','yes','on') THEN v:='true'; ELSIF v IN ('false','0','no','off','') THEN v:='false';
+    ELSE RETURN jsonb_build_object('ok',false,'error','must_be_true_or_false'); END IF;
+  ELSIF m.type='email' THEN
+    IF v <> '' AND position('@' in v) = 0 THEN RETURN jsonb_build_object('ok',false,'error','not_an_email'); END IF;
+    IF ml IS NOT NULL AND length(v) > ml THEN RETURN jsonb_build_object('ok',false,'error','too_long','maxlen',ml); END IF;
+  ELSE
+    IF ml IS NOT NULL AND length(v) > ml THEN RETURN jsonb_build_object('ok',false,'error','too_long','maxlen',ml); END IF;
+  END IF;
+
+  SELECT value INTO oldv FROM public.app_secrets WHERE key = p_key;
+  INSERT INTO public.app_secrets(key,value) VALUES (p_key, v)
+    ON CONFLICT (key) DO UPDATE SET value = excluded.value;
+
+  INSERT INTO public.os_audit_log(actor, action, entity, entity_id, detail, ok)
+  VALUES (coalesce(p_actor,'os'), 'settings_set', 'setting', p_key,
+          jsonb_build_object('old', coalesce(oldv,''), 'new', v, 'label', m.label), true);
+
+  RETURN jsonb_build_object('ok',true,'key',p_key,'old',coalesce(oldv,''),'new',v);
+END $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_page_high_agent_action()
@@ -14589,45 +14977,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.match_suppliers_kw(p_keywords text[] DEFAULT '{}'::text[], p_category text DEFAULT NULL::text, p_emirate text DEFAULT NULL::text, p_role text DEFAULT NULL::text, p_min_rating numeric DEFAULT NULL::numeric, p_limit integer DEFAULT 8)
- RETURNS TABLE(id bigint, company_name text, emirate text, business_role text, products text, services text, phone text, email text, whatsapp text, website text, rating numeric, reviews integer, capability_summary text, match_score integer, in_emirate boolean)
- LANGUAGE sql
- STABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  with base as (
-    select l.id, l.company_name, l.emirate, l.business_role, l.products, l.services,
-           l.phone, l.email, l.whatsapp, l.website, l.rating, l.reviews, l.capability_summary,
-           (
-             (select count(*) from unnest(p_keywords) k
-                where l.products ilike '%'||k||'%' or l.capability_summary ilike '%'||k||'%'
-                   or l.categories ilike '%'||k||'%' or l.company_name ilike '%'||k||'%')::int
-             + case when p_category is not null and l.sector = p_category then 2 else 0 end
-           ) as match_score,
-           coalesce(
-             p_emirate is not null and (
-               l.emirate ilike p_emirate
-               or exists (select 1 from unnest(coalesce(l.service_emirates, '{}')) se where se ilike p_emirate)
-             ), false) as in_emirate
-    from public.leads l
-    where coalesce(l.permanently_closed, false) = false
-      and (p_role is null or l.business_role = p_role)
-      and (p_min_rating is null or l.rating >= p_min_rating)
-      and (
-        (p_category is not null and l.sector = p_category)
-        or exists (select 1 from unnest(p_keywords) k
-                     where l.products ilike '%'||k||'%' or l.capability_summary ilike '%'||k||'%'
-                        or l.categories ilike '%'||k||'%' or l.company_name ilike '%'||k||'%')
-      )
-  )
-  select id, company_name, emirate, business_role, products, services, phone, email, whatsapp,
-         website, rating, reviews, capability_summary, match_score, in_emirate
-  from base
-  order by in_emirate desc, match_score desc, rating desc nulls last, reviews desc nulls last
-  limit coalesce(p_limit, 8);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.match_suppliers_kw(p_keywords text[] DEFAULT '{}'::text[], p_category text DEFAULT NULL::text, p_emirate text DEFAULT NULL::text, p_role text DEFAULT NULL::text, p_min_rating numeric DEFAULT NULL::numeric, p_limit integer DEFAULT 8, p_multi boolean DEFAULT false)
  RETURNS TABLE(id bigint, company_name text, emirate text, business_role text, products text, services text, phone text, email text, whatsapp text, website text, rating numeric, reviews integer, capability_summary text, match_score integer, in_emirate boolean)
  LANGUAGE sql
@@ -14679,6 +15028,45 @@ AS $function$
   where cat_match or strong_hits > 0 or turnkey_match
   order by in_emirate desc, match_score desc, rating desc nulls last, reviews desc nulls last
   limit coalesce(p_limit,8);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.match_suppliers_kw(p_keywords text[] DEFAULT '{}'::text[], p_category text DEFAULT NULL::text, p_emirate text DEFAULT NULL::text, p_role text DEFAULT NULL::text, p_min_rating numeric DEFAULT NULL::numeric, p_limit integer DEFAULT 8)
+ RETURNS TABLE(id bigint, company_name text, emirate text, business_role text, products text, services text, phone text, email text, whatsapp text, website text, rating numeric, reviews integer, capability_summary text, match_score integer, in_emirate boolean)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with base as (
+    select l.id, l.company_name, l.emirate, l.business_role, l.products, l.services,
+           l.phone, l.email, l.whatsapp, l.website, l.rating, l.reviews, l.capability_summary,
+           (
+             (select count(*) from unnest(p_keywords) k
+                where l.products ilike '%'||k||'%' or l.capability_summary ilike '%'||k||'%'
+                   or l.categories ilike '%'||k||'%' or l.company_name ilike '%'||k||'%')::int
+             + case when p_category is not null and l.sector = p_category then 2 else 0 end
+           ) as match_score,
+           coalesce(
+             p_emirate is not null and (
+               l.emirate ilike p_emirate
+               or exists (select 1 from unnest(coalesce(l.service_emirates, '{}')) se where se ilike p_emirate)
+             ), false) as in_emirate
+    from public.leads l
+    where coalesce(l.permanently_closed, false) = false
+      and (p_role is null or l.business_role = p_role)
+      and (p_min_rating is null or l.rating >= p_min_rating)
+      and (
+        (p_category is not null and l.sector = p_category)
+        or exists (select 1 from unnest(p_keywords) k
+                     where l.products ilike '%'||k||'%' or l.capability_summary ilike '%'||k||'%'
+                        or l.categories ilike '%'||k||'%' or l.company_name ilike '%'||k||'%')
+      )
+  )
+  select id, company_name, emirate, business_role, products, services, phone, email, whatsapp,
+         website, rating, reviews, capability_summary, match_score, in_emirate
+  from base
+  order by in_emirate desc, match_score desc, rating desc nulls last, reviews desc nulls last
+  limit coalesce(p_limit, 8);
 $function$
 
 
@@ -16130,6 +16518,7 @@ ALTER TABLE public.crm_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_stages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cron_job_seen ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cron_registry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_phone_otps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
@@ -16227,6 +16616,7 @@ ALTER TABLE public.org_onboarding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.org_reset_backup_20260724 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.org_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.os_audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.os_settings_meta ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.outreach ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pdpl_erase_files ENABLE ROW LEVEL SECURITY;

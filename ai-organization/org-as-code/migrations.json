@@ -1534,5 +1534,25 @@
  {
   "name": "fn_schema_export",
   "version": "20260724165215"
+ },
+ {
+  "name": "phase1_os_settings_meta",
+  "version": "20260724171750"
+ },
+ {
+  "name": "phase1_os_settings_fns",
+  "version": "20260724171826"
+ },
+ {
+  "name": "phase2_automation_backend",
+  "version": "20260724173529"
+ },
+ {
+  "name": "phase3_catalog_backend",
+  "version": "20260724215953"
+ },
+ {
+  "name": "phase4_health_reconcile",
+  "version": "20260725003301"
  }
 ]

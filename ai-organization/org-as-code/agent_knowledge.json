@@ -72,7 +72,7 @@
  {
   "layer": "state",
   "topic": "company:self_knowledge",
-  "content": "COMPANY SELF-KNOWLEDGE (authoritative org facts — you may answer any question about the company from this):\nVision: Become the smartest marketplace engine in the world.\nTotals: 10 departments, 14 brain agents, 45 category sales agents, 5 wired tools, 0 open objectives, 0 open tasks.\nDepartments (lead · brain agents · north star):\n- Analytics & Intelligence [analytics]: lead analytics, 1 agent(s) (analytics), north star: insight-to-action latency\n- Customer Success [customer_success]: lead followup, 1 agent(s) (followup), north star: reveal conversion / time-to-first-quote\n- Executive Office (Chief of Staff) [exec]: lead brief, 1 agent(s) (brief), north star: objectives completed without founder touch\n- Finance [finance]: lead cfo, 3 agent(s) (bookkeeper, cfo, collections), north star: cash position / collection rate\n- IT & Engineering [it]: lead it, 2 agent(s) (it, security), north star: uptime x change-safety\n- Knowledge Management [knowledge]: lead docs, 1 agent(s) (docs), north star: coverage % / gap-close time\n- Legal & Compliance [legal]: lead legal, 1 agent(s) (legal), north star: PDPL SLA / open legal risk\n- Marketing [marketing]: lead marketing, 1 agent(s) (marketing), north star: cost per qualified inquiry\n- Procurement (Marketplace Core) [procurement]: lead procurement, 46 agent(s) (procurement), north star: quotes per RFQ / time-to-first-quote\n- Supplier Success [supplier_success]: lead onboarding, 2 agent(s) (bd, onboarding), north star: activated suppliers per week\n",
+  "content": "COMPANY SELF-KNOWLEDGE (authoritative org facts — you may answer any question about the company from this):\nVision: Become the smartest marketplace engine in the world.\nTotals: 10 departments, 14 brain agents, 45 category sales agents, 5 wired tools, 0 open objectives, 10 open tasks.\nDepartments (lead · brain agents · north star):\n- Analytics & Intelligence [analytics]: lead analytics, 1 agent(s) (analytics), north star: insight-to-action latency\n- Customer Success [customer_success]: lead followup, 1 agent(s) (followup), north star: reveal conversion / time-to-first-quote\n- Executive Office (Chief of Staff) [exec]: lead brief, 1 agent(s) (brief), north star: objectives completed without founder touch\n- Finance [finance]: lead cfo, 3 agent(s) (bookkeeper, cfo, collections), north star: cash position / collection rate\n- IT & Engineering [it]: lead it, 2 agent(s) (it, security), north star: uptime x change-safety\n- Knowledge Management [knowledge]: lead docs, 1 agent(s) (docs), north star: coverage % / gap-close time\n- Legal & Compliance [legal]: lead legal, 1 agent(s) (legal), north star: PDPL SLA / open legal risk\n- Marketing [marketing]: lead marketing, 1 agent(s) (marketing), north star: cost per qualified inquiry\n- Procurement (Marketplace Core) [procurement]: lead procurement, 46 agent(s) (procurement), north star: quotes per RFQ / time-to-first-quote\n- Supplier Success [supplier_success]: lead onboarding, 2 agent(s) (bd, onboarding), north star: activated suppliers per week\n",
   "priority": 95,
   "agent_key": "_global"
  },
@@ -303,6 +303,13 @@
  {
   "layer": "experience",
   "topic": "Closed-case lesson (RFQ-06245f8a-5a44-45f9-b9ea-1927f4df7a25)",
+  "content": "Rejected or unverified suppliers (BlueBay approval_status: rejected, verified: false) should be blocked from submitting quotes on live RFQs, or at minimum flagged prominently to the customer before comparison; allowing their quote into the comparison table creates false competition and potential compliance risk.",
+  "priority": 60,
+  "agent_key": "_global"
+ },
+ {
+  "layer": "experience",
+  "topic": "Closed-case lesson (RFQ-06245f8a-5a44-45f9-b9ea-1927f4df7a25)",
   "content": "Enforce mandatory-field completeness as a hard gate before a quote reaches the customer: both submissions lacked trade licence reference, BOQ, payment terms, validity, and exclusions — the minimum set needed for a defensible award decision. A submission scoring below a defined threshold (e.g., fewer than 8 of 11 mandatory fields) should be auto-held and the supplier prompted to resubmit before the quote is surfaced.",
   "priority": 60,
   "agent_key": "_global"
@@ -318,13 +325,6 @@
   "layer": "experience",
   "topic": "Closed-case lesson (RFQ-06245f8a-5a44-45f9-b9ea-1927f4df7a25)",
   "content": "For turnkey fit-out RFQs, require an itemised BOQ as a structured form field rather than a free-text or file upload — both suppliers omitted it entirely, making cost comparison and scope alignment impossible and increasing dispute risk post-award.",
-  "priority": 60,
-  "agent_key": "_global"
- },
- {
-  "layer": "experience",
-  "topic": "Closed-case lesson (RFQ-06245f8a-5a44-45f9-b9ea-1927f4df7a25)",
-  "content": "Rejected or unverified suppliers (BlueBay approval_status: rejected, verified: false) should be blocked from submitting quotes on live RFQs, or at minimum flagged prominently to the customer before comparison; allowing their quote into the comparison table creates false competition and potential compliance risk.",
   "priority": 60,
   "agent_key": "_global"
  },
