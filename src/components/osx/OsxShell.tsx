@@ -107,6 +107,7 @@ function ReadableObject({ data }: { data: any }): any {
   })}</div>);
 }
 function titleCase(s: string) { return String(s).replace(/[_\.]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
+function deEnt(s: any) { return String(s == null ? '' : s).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'"); }
 
 export default function OsxShell() {
   const [ready, setReady] = React.useState(false);
@@ -505,7 +506,7 @@ function ContentPanel() {
         <div className='overflow-auto max-h-[360px]'>
           {!pages ? <div className='p-3 text-sm text-muted-foreground'>Loading…</div> : pages.length === 0 ? <div className='p-3 text-sm text-muted-foreground'>No editable pages.</div> : pages.map((p: any, i: number) => (
             <div key={i} className='flex items-center gap-2 px-4 py-2 border-b border-border/40'>
-              <div className='flex-1 min-w-0'><div className='text-sm font-medium truncate'>{p.title}</div><div className='text-[11px] text-muted-foreground'>{p.source} · {p.slug}{p.has_ar ? ' · EN+AR' : ' · EN only'}</div></div>
+              <div className='flex-1 min-w-0'><div className='text-sm font-medium truncate'>{deEnt(p.title)}</div><div className='text-[11px] text-muted-foreground'>{p.source} · {p.slug}{p.has_ar ? ' · EN+AR' : ' · EN only'}</div></div>
               <Button variant='outline' className='h-7 text-xs' onClick={() => openPage(p.source, p.slug, 'en')}>Edit</Button>
             </div>
           ))}
@@ -518,7 +519,7 @@ function ContentPanel() {
         <div className='overflow-auto max-h-[360px]'>
           {!services ? <div className='p-3 text-sm text-muted-foreground'>Loading…</div> : services.length === 0 ? <div className='p-3 text-sm text-muted-foreground'>No service pages yet.</div> : services.map((s: any, i: number) => (
             <div key={i} className='flex items-center gap-2 px-4 py-2 border-b border-border/40'>
-              <div className='flex-1 min-w-0'><div className='text-sm font-medium truncate'>{s.title}</div><div className='text-[11px] text-muted-foreground'>{s.slug}{s.has_ar ? ' · EN+AR' : ' · EN only'}</div></div>
+              <div className='flex-1 min-w-0'><div className='text-sm font-medium truncate'>{deEnt(s.title)}</div><div className='text-[11px] text-muted-foreground'>{s.slug}{s.has_ar ? ' · EN+AR' : ' · EN only'}</div></div>
               <button type='button' className='text-xs text-destructive underline' disabled={busy === 'del' + s.slug} onClick={() => delService(s.slug)}>delete</button>
             </div>
           ))}
@@ -1026,6 +1027,73 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
   );
 }
 
+// ── Zoho/Odoo-style navigable record drawer ─────────────────────────────
+const REL_ENTITY: Record<string, string> = { quotes: 'quote', quote: 'quote', inquiries: 'rfq', rfqs: 'rfq', inquiry: 'rfq', customers: 'customer', customer: 'customer', suppliers: 'supplier', supplier: 'supplier', leads: 'supplier', tasks: 'task', task: 'task', agent_actions: 'agent_action', agent_action: 'agent_action' };
+const WS_ENTITY: Record<string, string> = { supplier: 'ws.supplier', customer: 'ws.customer', rfq: 'ws.rfq' };
+function singularWord(s: string) { return String(s).replace(/ies$/i, 'y').replace(/s$/i, ''); }
+
+function RecordDrawer({ frame0, actions, extra, reportId, onClose }: { frame0: any; actions?: any; extra?: any; reportId?: number; onClose: () => void }) {
+  const [stack, setStack] = React.useState<any[]>([frame0]);
+  const key0 = (frame0 && (String(frame0.entity) + ':' + String(frame0.id) + ':' + String(frame0.row && frame0.row.id))) || '';
+  React.useEffect(() => { setStack([frame0]); }, [key0]); // eslint-disable-line react-hooks/exhaustive-deps
+  const top = stack[stack.length - 1];
+  const [data, setData] = React.useState<any>(null);
+  const [files, setFiles] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [busyDoc, setBusyDoc] = React.useState('');
+  React.useEffect(() => {
+    let alive = true; setData(top.row || null); setFiles([]);
+    const ent = top.entity, id = top.id;
+    if (!ent || id == null) { setLoading(false); return; }
+    setLoading(true);
+    (async () => {
+      const ws = WS_ENTITY[ent];
+      const pP = ws ? osApi(ws, { id }).catch(() => null) : osApi('record', { entity: ent, id }).then((r: any) => (r && r.record !== undefined ? r.record : r)).catch(() => null);
+      const fP = (ent === 'supplier' || ent === 'customer' || ent === 'rfq') ? osApi('files', { entity: ent, id }).catch(() => [] as any) : Promise.resolve([] as any);
+      const [pd, fd] = await Promise.all([pP, fP]);
+      if (!alive) return;
+      setData(pd || top.row || null);
+      setFiles(Array.isArray(fd) ? fd : (fd && Array.isArray(fd.data) ? fd.data : []));
+      setLoading(false);
+    })();
+    return () => { alive = false; };
+  }, [top.entity, top.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const openDoc = async (doc: any) => { const dkey = doc.path || doc.url || doc.name || ''; setBusyDoc(dkey); try { let url = doc.url; if (!url && doc.path) { const r: any = await osApi('file', { bucket: doc.bucket || 'supplier-docs', path: doc.path }); url = r && r.url; } if (url && typeof window !== 'undefined') window.open(url, '_blank', 'noopener'); } catch (_e) { } setBusyDoc(''); };
+  const openRelated = (k: string, r: any) => { const ent = REL_ENTITY[String(k).toLowerCase()]; const id = r.id ?? r.rfq_id ?? r.inquiry_id ?? r.quote_id ?? r.supplier_id ?? r.customer_id; setStack((s) => [...s, { entity: ent, id: ent ? id : undefined, title: singularWord(titleCase(k)) + (id != null ? ' #' + id : ''), row: r }]); };
+  const rec = data && typeof data === 'object' && data.record !== undefined && data.record ? data.record : data;
+  const scal: [string, any][] = []; const arrs: [string, any[]][] = [];
+  const collect = (o: any) => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (Array.isArray(v)) { if (v.length && typeof v[0] === 'object') arrs.push([k, v as any[]]); } else if (v && typeof v === 'object') { collect(v); } else scal.push([k, v]); } };
+  collect(rec);
+  const grpFiles: Record<string, any[]> = {}; (files || []).forEach((f: any) => { const g = (f && f.group) || 'Documents'; (grpFiles[g] = grpFiles[g] || []).push(f); });
+  return (
+    <Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent side='right' className='w-full sm:max-w-2xl overflow-y-auto'>
+        <SheetHeader>
+          {stack.length > 1 ? <div className='flex items-center gap-1.5 text-xs text-muted-foreground mb-1 flex-wrap'>{stack.map((f, i) => (<React.Fragment key={i}>{i > 0 ? <span>/</span> : null}<button type='button' className={cn(i === stack.length - 1 ? 'text-foreground font-medium' : 'hover:text-foreground underline')} onClick={() => setStack((s) => s.slice(0, i + 1))}>{f.title}</button></React.Fragment>))}</div> : null}
+          <SheetTitle>{top.title}</SheetTitle>
+          <SheetDescription>{(rec && (rec.company_name || rec.email || rec.summary || (rec.id != null ? 'ID ' + rec.id : ''))) || ''}</SheetDescription>
+        </SheetHeader>
+        {stack.length === 1 && actions ? <div className='mt-3 flex flex-wrap gap-2'>{actions}</div> : null}
+        {stack.length === 1 && reportId ? <ReportViewer id={reportId} /> : null}
+        {Object.keys(grpFiles).length ? <div className='mt-4 space-y-3'>{Object.entries(grpFiles).map(([g, fs]) => (
+          <Card key={g} className='overflow-hidden'><div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center gap-2'><FileText className='h-4 w-4 text-primary' />{g}<Badge variant='secondary' className='ml-auto'>{fs.length}</Badge></div>
+            <div className='p-2'>{fs.map((f: any, i: number) => (<div key={i} className='flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-foreground/5'><FileText className='h-4 w-4 text-muted-foreground shrink-0' /><span className='text-sm min-w-0 truncate'>{f.type || f.name}</span><Button className='h-7 text-xs ml-auto' variant='outline' disabled={busyDoc === (f.path || f.url || f.name)} onClick={() => openDoc(f)}>{busyDoc === (f.path || f.url || f.name) ? 'Opening…' : 'Open'}</Button></div>))}</div>
+          </Card>))}</div> : null}
+        {loading ? <div className='mt-4 text-sm text-muted-foreground'>Loading record…</div> : null}
+        {scal.length ? <Card className='mt-4 overflow-hidden'><div className='px-4 py-2.5 border-b border-border text-sm font-semibold'>Details</div><div className='p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6'>{scal.filter(([k]) => k !== 'body').map(([k, v], i) => (<div key={k + i} className='flex flex-col py-1.5 border-b border-border/40 min-w-0'><span className='text-[11px] text-muted-foreground'>{titleCase(k)}</span><span className='text-sm break-words'>{fmt(v)}</span></div>))}</div></Card> : null}
+        {arrs.map(([k, rows], ai) => { const cols = Object.keys(rows[0]).filter((c) => !/^(id|uuid)$/i.test(c) && typeof (rows[0] as any)[c] !== 'object').slice(0, 4); return (
+          <Card key={k + ai} className='mt-4 overflow-hidden'>
+            <div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center justify-between'>{titleCase(k)}<Badge variant='secondary'>{rows.length}</Badge></div>
+            <div className='overflow-auto max-h-72'><table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border'>{cols.map((c) => <th key={c} className='px-3 py-1.5 font-medium'>{titleCase(c)}</th>)}</tr></thead>
+              <tbody>{rows.slice(0, 100).map((r: any, i: number) => (<tr key={i} onClick={() => openRelated(k, r)} className='border-b border-border/40 hover:bg-foreground/5 cursor-pointer'>{cols.map((c) => <td key={c} className='px-3 py-2'>{fmt(r[c])}</td>)}</tr>))}</tbody></table></div>
+          </Card>); })}
+        {stack.length === 1 && extra ? <div className='mt-4'>{extra}</div> : null}
+        {!loading && !scal.length && !arrs.length && !Object.keys(grpFiles).length ? <div className='mt-4 text-sm text-muted-foreground'>No further detail available.</div> : null}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function Workspace({ mod }: { mod: Mod }) {
   const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [row, setRow] = React.useState<any>(null); const [rowTitle, setRowTitle] = React.useState(''); const [detail, setDetail] = React.useState<any>(null); const [dbusy, setDbusy] = React.useState(false); const [edit, setEdit] = React.useState<any>(null); const [editType, setEditType] = React.useState(''); const [ebusy, setEbusy] = React.useState(false); const [emsg, setEmsg] = React.useState(''); const [glOpen, setGlOpen] = React.useState(false); const [glLines, setGlLines] = React.useState<any[]>([{ account: '', debit: '', credit: '', memo: '' }, { account: '', debit: '', credit: '', memo: '' }]); const [glMemo, setGlMemo] = React.useState(''); const [glDate, setGlDate] = React.useState(''); const [glMsg, setGlMsg] = React.useState(''); const [glBusy, setGlBusy] = React.useState(false); const [invOpen, setInvOpen] = React.useState(false); const [invBusy, setInvBusy] = React.useState(false); const [invMsg, setInvMsg] = React.useState('');
   const reload = React.useCallback(() => { setD(null); setErr(''); osApi(mod.ws as string, mod.ws === 'ws.suppliers' ? { params: {} } : {}).then(setD).catch((e) => setErr(e.message)); }, [mod.ws]);
@@ -1083,29 +1151,22 @@ function Workspace({ mod }: { mod: Mod }) {
           </div>
         </SheetContent>
       </Sheet>
-      <Sheet open={!!row} onOpenChange={(o) => { if (!o) { setRow(null); setDetail(null); setEdit(null); } }}>
-        <SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto'>
-          <SheetHeader><SheetTitle>{rowTitle} detail</SheetTitle><SheetDescription>{row && (row.id ? 'ID ' + row.id : row.company_name || row.email || '')}</SheetDescription></SheetHeader>
-          {row ? <div className='mt-3 flex flex-wrap gap-2'>
-            {(() => { const ent = mod.id === 'suppliers' ? 'ws.supplier' : mod.id === 'customers' ? 'ws.customer' : mod.id === 'rfqs' ? 'ws.rfq' : null; const idv = (row as any).id ?? (row as any).rfq_id ?? (row as any).inquiry_id; return ent && idv != null ? <Button className='h-8 text-xs' disabled={dbusy} onClick={async () => { setDbusy(true); setDetail(null); try { const dd = await osApi(ent, { id: idv }); setDetail(dd); } catch (e: any) { setDetail({ error: e?.message || 'could not load' }); } setDbusy(false); }}>{dbusy ? 'Loading…' : 'Open full profile'}</Button> : null; })()}
-            {(() => { const r: any = row; const btn = (label: string, action: string, params: any) => <Button key={label} className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decide(action, params)}>{label}</Button>; const btnApi = (label: string, action: string, params: any) => <Button key={label} className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decideApi(action, params)}>{label}</Button>; const out: any[] = [];
-              if (mod.id === 'suppliers') { out.push(btn('Approve','supplier_decide',{id:r.id,op:'approve'}), btn('Reject','supplier_decide',{id:r.id,op:'reject',note:'Rejected from OS'}), btn(r.banned?'Unban':'Ban','supplier_decide',{id:r.id,op:r.banned?'unban':'ban'})); }
-              else if (mod.id === 'customers') { out.push(btn(r.banned?'Unban':'Ban','customer_decide',{id:r.id,op:r.banned?'unban':'ban'})); }
-              else if (mod.id === 'rfqs') { out.push(btn('Mark won','rfq_outcome',{inquiry:r.id,outcome:'won'}), btn('Mark lost','rfq_outcome',{inquiry:r.id,outcome:'lost'})); }
-              else if (mod.id === 'fraud') { if (r.subject_type && r.subject_id != null) { out.push(btnApi('Dismiss','fraud_resolve',{subject_type:r.subject_type,subject_id:String(r.subject_id),op:'dismiss'}), btnApi('Ban','fraud_resolve',{subject_type:r.subject_type,subject_id:String(r.subject_id),op:'ban'})); } else if (r.kind && r.subject_id != null && r.reason !== undefined) { out.push(btnApi('Unban','fraud_resolve',{subject_type:r.kind,subject_id:String(r.subject_id),op:'unban'})); } }
-              else if (mod.id === 'refunds') { const tid = r.transaction_id ?? r.id; if (tid != null && r.refund_status !== undefined) { out.push(btnApi('Approve refund','refund_resolve',{transaction_id:String(tid),op:'approve'}), btnApi('Reject refund','refund_resolve',{transaction_id:String(tid),op:'reject'})); } }
-              if (r && r.agent && (r.status === 'pending' || r.status === 'needs_review')) { out.push(btn('Approve','action_decide',{id:r.id,op:'approve'}), btn('Reject','action_decide',{id:r.id,op:'reject'})); }
-              return out;
-            })()}
-            {editableType() ? <Button className='h-8 text-xs' variant='outline' disabled={ebusy} onClick={() => openEdit(editableType()!)}>Edit</Button> : null}
-            <Button className='h-8 text-xs' variant='outline' onClick={() => { try { navigator.clipboard?.writeText(JSON.stringify(row, null, 2)); } catch (_e) {} }}>Copy details</Button>
-          </div> : null}
-          {row && (row as any).report_type && (row as any).id ? <ReportViewer id={Number((row as any).id)} /> : null}
-          {row ? <details className='mt-3' open={!((row as any).report_type)}><summary className='cursor-pointer text-xs text-muted-foreground select-none'>{(row as any).report_type ? 'Show raw fields' : 'Details'}</summary><div className='mt-2 space-y-2'>{Object.entries(row).filter(([k]) => k !== 'body').map(([k, v]) => (<div key={k} className='flex gap-3 text-sm border-b border-border/40 py-1.5'><div className='w-40 shrink-0 text-muted-foreground'>{titleCase(k)}</div><div className='min-w-0 break-words'>{fmt(v)}</div></div>))}</div></details> : null}
-          {detail ? <div className='mt-4 rounded-md border border-border p-3'><div className='text-xs font-semibold text-muted-foreground mb-2'>Full profile</div><div className='max-h-80 overflow-auto'><ReadableObject data={detail} /></div></div> : null}
-          {edit ? <div className='mt-4 rounded-md border border-border p-3 space-y-3'><div className='text-xs font-semibold text-muted-foreground'>Edit content</div>{Object.keys(edit).filter((k) => k !== 'id').map((k) => (<div key={k}><div className='text-[11px] text-muted-foreground mb-1'>{titleCase(k)}</div><textarea value={edit[k] ?? ''} onChange={(e) => setEdit({ ...edit, [k]: e.target.value })} rows={String(edit[k] || '').length > 80 ? 5 : 2} className='w-full resize-none rounded-md border border-border bg-transparent p-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' /></div>))}{emsg ? <div className='text-xs text-destructive'>{emsg}</div> : null}<div className='flex gap-2'><Button className='h-8 text-xs' disabled={ebusy} onClick={saveEdit}>{ebusy ? 'Saving…' : 'Save'}</Button><Button className='h-8 text-xs' variant='outline' onClick={() => setEdit(null)}>Cancel</Button></div></div> : null}
-        </SheetContent>
-      </Sheet>
+      {row ? (() => {
+        const ent = mod.id === 'suppliers' ? 'supplier' : mod.id === 'customers' ? 'customer' : mod.id === 'rfqs' ? 'rfq' : undefined;
+        const idv = (row as any).id ?? (row as any).rfq_id ?? (row as any).inquiry_id;
+        const acts = (() => { const r: any = row; const btn = (label: string, action: string, params: any) => <Button key={label} className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decide(action, params)}>{label}</Button>; const btnApi = (label: string, action: string, params: any) => <Button key={label} className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decideApi(action, params)}>{label}</Button>; const out: any[] = [];
+          if (mod.id === 'suppliers') { out.push(btn('Approve','supplier_decide',{id:r.id,op:'approve'}), btn('Reject','supplier_decide',{id:r.id,op:'reject',note:'Rejected from OS'}), btn(r.banned?'Unban':'Ban','supplier_decide',{id:r.id,op:r.banned?'unban':'ban'})); }
+          else if (mod.id === 'customers') { out.push(btn(r.banned?'Unban':'Ban','customer_decide',{id:r.id,op:r.banned?'unban':'ban'})); }
+          else if (mod.id === 'rfqs') { out.push(btn('Mark won','rfq_outcome',{inquiry:r.id,outcome:'won'}), btn('Mark lost','rfq_outcome',{inquiry:r.id,outcome:'lost'})); }
+          else if (mod.id === 'fraud') { if (r.subject_type && r.subject_id != null) { out.push(btnApi('Dismiss','fraud_resolve',{subject_type:r.subject_type,subject_id:String(r.subject_id),op:'dismiss'}), btnApi('Ban','fraud_resolve',{subject_type:r.subject_type,subject_id:String(r.subject_id),op:'ban'})); } else if (r.kind && r.subject_id != null && r.reason !== undefined) { out.push(btnApi('Unban','fraud_resolve',{subject_type:r.kind,subject_id:String(r.subject_id),op:'unban'})); } }
+          else if (mod.id === 'refunds') { const tid = r.transaction_id ?? r.id; if (tid != null && r.refund_status !== undefined) { out.push(btnApi('Approve refund','refund_resolve',{transaction_id:String(tid),op:'approve'}), btnApi('Reject refund','refund_resolve',{transaction_id:String(tid),op:'reject'})); } }
+          if (r && r.agent && (r.status === 'pending' || r.status === 'needs_review')) { out.push(btn('Approve','action_decide',{id:r.id,op:'approve'}), btn('Reject','action_decide',{id:r.id,op:'reject'})); }
+          return out;
+        })();
+        const actions = <>{acts}{editableType() ? <Button className='h-8 text-xs' variant='outline' disabled={ebusy} onClick={() => openEdit(editableType()!)}>Edit</Button> : null}<Button className='h-8 text-xs' variant='outline' onClick={() => { try { navigator.clipboard?.writeText(JSON.stringify(row, null, 2)); } catch (_e) {} }}>Copy details</Button></>;
+        const extra = edit ? <div className='rounded-md border border-border p-3 space-y-3'><div className='text-xs font-semibold text-muted-foreground'>Edit content</div>{Object.keys(edit).filter((k) => k !== 'id').map((k) => (<div key={k}><div className='text-[11px] text-muted-foreground mb-1'>{titleCase(k)}</div><textarea value={edit[k] ?? ''} onChange={(e) => setEdit({ ...edit, [k]: e.target.value })} rows={String(edit[k] || '').length > 80 ? 5 : 2} className='w-full resize-none rounded-md border border-border bg-transparent p-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' /></div>))}{emsg ? <div className='text-xs text-destructive'>{emsg}</div> : null}<div className='flex gap-2'><Button className='h-8 text-xs' disabled={ebusy} onClick={saveEdit}>{ebusy ? 'Saving…' : 'Save'}</Button><Button className='h-8 text-xs' variant='outline' onClick={() => setEdit(null)}>Cancel</Button></div></div> : null;
+        return <RecordDrawer frame0={{ entity: ent, id: idv, title: rowTitle + (idv != null ? ' #' + idv : ''), row }} actions={actions} extra={extra} reportId={(row as any).report_type && (row as any).id ? Number((row as any).id) : undefined} onClose={() => { setRow(null); setDetail(null); setEdit(null); }} />;
+      })() : null}
     </div>
   );
 }
