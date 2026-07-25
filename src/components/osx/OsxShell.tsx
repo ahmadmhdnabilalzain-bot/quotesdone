@@ -1076,6 +1076,9 @@ function RecordDrawer({ frame0, actions, extra, reportId, onClose }: { frame0: a
   const scal: [string, any][] = []; const arrs: [string, any[]][] = [];
   const collect = (o: any) => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (Array.isArray(v)) { if (v.length && typeof v[0] === 'object') arrs.push([k, v as any[]]); } else if (v && typeof v === 'object') { collect(v); } else scal.push([k, v]); } };
   collect(rec);
+  // Zoho/Odoo-style: show only populated, meaningful fields — hide nulls, internal/vector/token columns, and huge blobs.
+  const HIDE_KEY = /(^|_)(embedding|embedding_gte|body|claim_token|token|place_id|maps_url|emirates_id|owner_dob|password|secret|ip)$|embedding|_token$|_ip$/i;
+  const scalShow = scal.filter(([k, v]) => v != null && v !== '' && !HIDE_KEY.test(String(k)) && !(typeof v === 'string' && v.length > 400) && !(typeof v === 'string' && /^\[\s*-?\d/.test(v.trim())));
   const grpFiles: Record<string, any[]> = {}; (files || []).forEach((f: any) => { const g = (f && f.group) || 'Documents'; (grpFiles[g] = grpFiles[g] || []).push(f); });
   return (
     <Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -1092,7 +1095,7 @@ function RecordDrawer({ frame0, actions, extra, reportId, onClose }: { frame0: a
             <div className='p-2'>{fs.map((f: any, i: number) => (<div key={i} className='flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-foreground/5'><FileText className='h-4 w-4 text-muted-foreground shrink-0' /><span className='text-sm min-w-0 truncate'>{f.type || f.name}</span><Button className='h-7 text-xs ml-auto' variant='outline' disabled={busyDoc === (f.path || f.url || f.name)} onClick={() => openDoc(f)}>{busyDoc === (f.path || f.url || f.name) ? 'Opening…' : 'Open'}</Button></div>))}</div>
           </Card>))}</div> : null}
         {loading ? <div className='mt-4 text-sm text-muted-foreground'>Loading record…</div> : null}
-        {scal.length ? <Card className='mt-4 overflow-hidden'><div className='px-4 py-2.5 border-b border-border text-sm font-semibold'>Details</div><div className='p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6'>{scal.filter(([k]) => k !== 'body').map(([k, v], i) => { const fk = FK_ENTITY[String(k).toLowerCase()]; const linkable = !!fk && v != null && v !== '' && (typeof v === 'number' || typeof v === 'string') && !(fk === top.entity && String(v) === String(top.id)); return (<div key={k + i} className='flex flex-col py-1.5 border-b border-border/40 min-w-0'><span className='text-[11px] text-muted-foreground'>{titleCase(k)}</span>{linkable ? <button type='button' onClick={() => openRef(fk, v)} className='text-sm break-words text-primary hover:underline text-left inline-flex items-center gap-1'>{fmt(v)}<ArrowUpRight className='h-3 w-3 opacity-60' /></button> : <span className='text-sm break-words'>{fmt(v)}</span>}</div>); })}</div></Card> : null}
+        {scalShow.length ? <Card className='mt-4 overflow-hidden'><div className='px-4 py-2.5 border-b border-border text-sm font-semibold'>Details</div><div className='p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6'>{scalShow.map(([k, v], i) => { const fk = FK_ENTITY[String(k).toLowerCase()]; const linkable = !!fk && v != null && v !== '' && (typeof v === 'number' || typeof v === 'string') && !(fk === top.entity && String(v) === String(top.id)); return (<div key={k + i} className='flex flex-col py-1.5 border-b border-border/40 min-w-0'><span className='text-[11px] text-muted-foreground'>{titleCase(k)}</span>{linkable ? <button type='button' onClick={() => openRef(fk, v)} className='text-sm break-words text-primary hover:underline text-left inline-flex items-center gap-1'>{fmt(v)}<ArrowUpRight className='h-3 w-3 opacity-60' /></button> : <span className='text-sm break-words'>{fmt(v)}</span>}</div>); })}</div></Card> : null}
         {arrs.map(([k, rows], ai) => { const cols = Object.keys(rows[0]).filter((c) => !/^(id|uuid)$/i.test(c) && typeof (rows[0] as any)[c] !== 'object').slice(0, 4); return (
           <Card key={k + ai} className='mt-4 overflow-hidden'>
             <div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center justify-between'>{titleCase(k)}<Badge variant='secondary'>{rows.length}</Badge></div>
@@ -1100,7 +1103,7 @@ function RecordDrawer({ frame0, actions, extra, reportId, onClose }: { frame0: a
               <tbody>{rows.slice(0, 100).map((r: any, i: number) => (<tr key={i} onClick={() => openRelated(k, r)} className='border-b border-border/40 hover:bg-foreground/5 cursor-pointer'>{cols.map((c) => <td key={c} className='px-3 py-2'>{fmt(r[c])}</td>)}</tr>))}</tbody></table></div>
           </Card>); })}
         {stack.length === 1 && extra ? <div className='mt-4'>{extra}</div> : null}
-        {!loading && !scal.length && !arrs.length && !Object.keys(grpFiles).length ? <div className='mt-4 text-sm text-muted-foreground'>No further detail available.</div> : null}
+        {!loading && !scalShow.length && !arrs.length && !Object.keys(grpFiles).length ? <div className='mt-4 text-sm text-muted-foreground'>No further detail available.</div> : null}
       </SheetContent>
     </Sheet>
   );
