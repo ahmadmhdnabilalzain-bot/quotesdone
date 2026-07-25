@@ -149,21 +149,21 @@ export default function OsxShell() {
         </div>
         <nav className='flex-1 overflow-auto p-2 space-y-0.5'>
           {MODULES.map((m) => { const I = m.icon; return (
-            <button key={m.id} onClick={() => go(m.id)} className={cn('w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors', m.id === cur ? 'bg-primary/15 text-primary' : 'text-foreground/80 hover:bg-white/5')}>
+            <button key={m.id} onClick={() => go(m.id)} className={cn('w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors', m.id === cur ? 'bg-primary/15 text-primary' : 'text-foreground/80 hover:bg-foreground/5')}>
               <I className='h-4 w-4' /><span>{m.label}</span>
             </button>
           ); })}
         </nav>
         <div className='p-2 border-t border-border'>
-          <button onClick={async () => { try { await supa.auth.signOut(); } catch (_e) {} setEmail(''); }} className='w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-foreground/70 hover:bg-white/5'><LogOut className='h-4 w-4' />Sign out</button>
+          <button onClick={async () => { try { await supa.auth.signOut(); } catch (_e) {} setEmail(''); }} className='w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-foreground/70 hover:bg-foreground/5'><LogOut className='h-4 w-4' />Sign out</button>
         </div>
       </aside>
 
       <div className='flex-1 min-w-0 flex flex-col'>
         <header className='h-14 shrink-0 border-b border-border flex items-center gap-3 px-4'>
           <PipelineTracker onNav={go} />
-          <button onClick={() => setPaletteOpen(true)} className='ml-auto flex items-center gap-2 rounded-md border border-border px-3 h-9 text-sm text-muted-foreground hover:bg-white/5'>
-            <Search className='h-4 w-4' /><span className='hidden sm:inline'>Search or run a command</span><kbd className='hidden sm:inline text-[10px] bg-white/10 rounded px-1.5 py-0.5'>⌘K</kbd>
+          <button onClick={() => setPaletteOpen(true)} className='ml-auto flex items-center gap-2 rounded-md border border-border px-3 h-9 text-sm text-muted-foreground hover:bg-foreground/5'>
+            <Search className='h-4 w-4' /><span className='hidden sm:inline'>Search or run a command</span><kbd className='hidden sm:inline text-[10px] bg-foreground/10 rounded px-1.5 py-0.5'>⌘K</kbd>
           </button>
           <AgentStatus onOpen={() => go('agents')} />
           <NotificationsBell pulse={live} onNav={go} />
@@ -171,7 +171,7 @@ export default function OsxShell() {
         </header>
         <div className='h-10 shrink-0 border-b border-border flex items-stretch gap-1 px-2 overflow-x-auto'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; const I = m.icon; return (
-            <div key={id} onClick={() => setCur(id)} className={cn('group flex items-center gap-1.5 px-3 text-xs cursor-pointer border-b-2', id === cur ? 'border-primary text-primary bg-white/5' : 'border-transparent text-muted-foreground hover:text-foreground')}>
+            <div key={id} onClick={() => setCur(id)} className={cn('group flex items-center gap-1.5 px-3 text-xs cursor-pointer border-b-2', id === cur ? 'border-primary text-primary bg-foreground/5' : 'border-transparent text-muted-foreground hover:text-foreground')}>
               <I className='h-3.5 w-3.5' /><span>{m.label}</span>
               {tabs.length > 1 ? <button onClick={(e) => { e.stopPropagation(); closeTab(id); }} className='opacity-40 group-hover:opacity-100 hover:text-foreground ml-0.5 text-sm leading-none'>×</button> : null}
             </div>
@@ -393,7 +393,7 @@ function CatalogPanel() {
           <div className='p-2 border-b border-border'><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder='Search categories…' className='h-8 text-sm' /></div>
           <div className='overflow-auto max-h-[640px]'>
             {!cats ? <div className='p-3 text-sm text-muted-foreground'>Loading…</div> : filtered.map((c) => (
-              <button key={c.category} type='button' onClick={() => open(c.category)} className={cn('w-full text-left px-3 py-2 border-b border-border/40 hover:bg-white/5', sel === c.category ? 'bg-primary/10' : '')}>
+              <button key={c.category} type='button' onClick={() => open(c.category)} className={cn('w-full text-left px-3 py-2 border-b border-border/40 hover:bg-foreground/5', sel === c.category ? 'bg-primary/10' : '')}>
                 <div className='text-sm font-medium'>{c.label}</div>
                 <div className='text-[11px] text-muted-foreground'>{c.n_fields} questions · {c.n_specs} gate checks</div>
               </button>
@@ -848,7 +848,7 @@ function NotificationsBell({ pulse, onNav }: { pulse: number; onNav: (id: string
   const count = items.length;
   return (
     <>
-      <button onClick={() => setOpen(true)} title='Notifications' className='relative flex items-center justify-center h-9 w-9 rounded-md border border-border hover:bg-white/5'>
+      <button onClick={() => setOpen(true)} title='Notifications' className='relative flex items-center justify-center h-9 w-9 rounded-md border border-border hover:bg-foreground/5'>
         <Bell className='h-4 w-4' />
         {count ? <span className='absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center'>{count > 99 ? '99+' : count}</span> : null}
       </button>
@@ -857,7 +857,7 @@ function NotificationsBell({ pulse, onNav }: { pulse: number; onNav: (id: string
           <SheetHeader><SheetTitle>Notifications</SheetTitle><SheetDescription>Recent founder alerts & reminders</SheetDescription></SheetHeader>
           <div className='mt-4 divide-y divide-border'>
             {items.length ? items.map((n: any, i: number) => (
-              <button key={i} onClick={() => { setOpen(false); onNav(routeFor(n.type)); }} className='w-full text-left py-3 hover:bg-white/5 transition-colors flex items-start gap-3'>
+              <button key={i} onClick={() => { setOpen(false); onNav(routeFor(n.type)); }} className='w-full text-left py-3 hover:bg-foreground/5 transition-colors flex items-start gap-3'>
                 <span className='mt-1 h-2 w-2 rounded-full bg-primary shrink-0'></span>
                 <div className='min-w-0'><div className='text-sm font-medium'>{n.subject || titleCase(String(n.type || 'notification'))}</div><div className='text-xs text-muted-foreground'>{titleCase(String(n.type || ''))} · {new Date(n.created_at).toLocaleString()}</div></div>
               </button>
@@ -879,7 +879,7 @@ function AgentStatus({ onOpen }: { onOpen: () => void }) {
   }, []);
   if (!k) return null;
   return (
-    <button onClick={onOpen} title='Open Smart Engine' className='hidden md:flex items-center gap-2 rounded-md border border-border px-3 h-9 text-xs hover:bg-white/5'>
+    <button onClick={onOpen} title='Open Smart Engine' className='hidden md:flex items-center gap-2 rounded-md border border-border px-3 h-9 text-xs hover:bg-foreground/5'>
       <span className='relative flex h-2 w-2'><span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-60'></span><span className='relative inline-flex rounded-full h-2 w-2 bg-primary'></span></span>
       <span className='font-semibold'>{fmt(k.agents ?? 0)}</span><span className='text-muted-foreground'>agents</span>
       <span className='text-muted-foreground'>·</span>
@@ -895,7 +895,7 @@ function PipelineTracker({ onNav }: { onNav: (id: string) => void }) {
     <div className='hidden lg:flex items-center'>
       {PIPELINE.map(([key, label], i) => (
         <div key={key} className='flex items-center'>
-          <button onClick={() => onNav('rfqs')} title={'View ' + label + ' RFQs'} className='flex items-center gap-1.5 rounded-md px-2.5 py-1 bg-white/5 text-xs hover:bg-white/10 transition-colors'>
+          <button onClick={() => onNav('rfqs')} title={'View ' + label + ' RFQs'} className='flex items-center gap-1.5 rounded-md px-2.5 py-1 bg-foreground/5 text-xs hover:bg-foreground/10 transition-colors'>
             <span className='text-muted-foreground'>{label}</span>
             <span className='font-semibold text-foreground'>{counts[key] ?? 0}</span>
           </button>
@@ -931,7 +931,7 @@ function Console() {
       <div className='px-5 py-3 border-b border-border flex items-center gap-2'><div className='h-8 w-8 rounded-lg bg-primary text-primary-foreground grid place-items-center font-bold'>✦</div><div><div className='font-semibold text-sm'>Command Console</div><div className='text-xs text-muted-foreground'>Instruct the Secretary — it acts across the team.</div></div></div>
       <div className='flex-1 overflow-auto p-4 space-y-3'>
         {!msgs.length ? <div className='text-sm text-muted-foreground'>Ask for a status, approve a supplier, draft content, log a finance entry, or attach an invoice and tell me what to do with it.</div> : null}
-        {msgs.map((m, i) => (<div key={i} className={cn('max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm whitespace-pre-wrap', m.role === 'user' ? 'ml-auto bg-primary text-primary-foreground' : 'bg-white/5')}>{m.content}</div>))}
+        {msgs.map((m, i) => (<div key={i} className={cn('max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm whitespace-pre-wrap', m.role === 'user' ? 'ml-auto bg-primary text-primary-foreground' : 'bg-foreground/5')}>{m.content}</div>))}
         {busy ? <div className='text-sm text-muted-foreground'>…</div> : null}
         {confirm ? <div className='flex gap-2'><Button size='sm' onClick={() => decide('confirm')}>Confirm</Button><Button size='sm' variant='outline' onClick={() => decide('cancel')}>Cancel</Button></div> : null}
         <div ref={endRef} />
@@ -991,7 +991,7 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
       <Card className='overflow-hidden'>
         <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Inbox — awaiting your reply<Badge variant='secondary'>{rows.length}</Badge></div>
         {rows.length ? <div className='divide-y divide-border'>{rows.map((it: any) => (
-          <button key={it.id} onClick={() => openItem(it)} className='w-full text-left px-4 py-3 hover:bg-white/5 transition-colors'>
+          <button key={it.id} onClick={() => openItem(it)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors'>
             <div className='flex items-center justify-between gap-3'>
               <div className='min-w-0'><div className='text-sm font-medium truncate'>{it.subject || '(no subject)'}</div><div className='text-xs text-muted-foreground truncate'>{it.from_email} · {it.summary || ''}</div></div>
               {it.draft ? <Badge variant='secondary'>Draft ready</Badge> : <Badge variant='outline'>New</Badge>}
@@ -1002,7 +1002,7 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
       {attention.length ? <Card className='overflow-hidden'>
         <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Agent decisions held for review<Badge variant='secondary'>{attention.length}</Badge></div>
         <div className='divide-y divide-border'>{attention.map((a: any) => (
-          <button key={a.id} onClick={() => onNav('agents')} title='Review in Smart Engine' className='w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-white/5 transition-colors'>
+          <button key={a.id} onClick={() => onNav('agents')} title='Review in Smart Engine' className='w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-foreground/5 transition-colors'>
             <div className='min-w-0'><div className='text-sm truncate'>{titleCase(String(a.kind || 'decision'))} · <span className='text-muted-foreground'>{a.actor}</span></div><div className='text-xs text-muted-foreground'>{a.decision} → {a.route_to}</div></div>
             <Badge variant='outline'>held</Badge>
           </button>
@@ -1012,7 +1012,7 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
         <SheetContent className='osx dark w-full sm:max-w-lg overflow-y-auto'>
           <SheetHeader><SheetTitle>{sel?.subject || 'Message'}</SheetTitle><SheetDescription>{sel?.from_email}</SheetDescription></SheetHeader>
           <div className='mt-4 space-y-4'>
-            <div><div className='text-xs font-semibold text-muted-foreground mb-1'>Their message</div><div className='text-sm whitespace-pre-wrap rounded-md border border-border p-3 bg-white/5'>{sel?.body}</div></div>
+            <div><div className='text-xs font-semibold text-muted-foreground mb-1'>Their message</div><div className='text-sm whitespace-pre-wrap rounded-md border border-border p-3 bg-foreground/5'>{sel?.body}</div></div>
             <div><div className='text-xs font-semibold text-muted-foreground mb-1'>Your reply (Smart Engine draft — edit before sending)</div><textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={8} className='w-full resize-none rounded-md border border-border bg-transparent p-3 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' /></div>
             {msg ? <div className='text-xs text-destructive'>{msg}</div> : null}
             <div className='flex gap-2'>
@@ -1054,7 +1054,7 @@ function Workspace({ mod }: { mod: Mod }) {
           <div className='overflow-auto max-h-[420px]'>
             <table className='w-full text-sm'>
               <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'>{cols.map((c) => (<th key={c} className='px-4 py-2 font-medium'>{titleCase(c)}</th>))}</tr></thead>
-              <tbody>{rows.slice(0, 200).map((r, i) => (<tr key={i} onClick={() => { setRow(r); setRowTitle(titleCase(name)); }} className='border-b border-border/50 hover:bg-white/5 cursor-pointer'>{cols.map((c) => (<td key={c} className='px-4 py-2.5'>{fmt((r as any)[c])}</td>))}</tr>))}</tbody>
+              <tbody>{rows.slice(0, 200).map((r, i) => (<tr key={i} onClick={() => { setRow(r); setRowTitle(titleCase(name)); }} className='border-b border-border/50 hover:bg-foreground/5 cursor-pointer'>{cols.map((c) => (<td key={c} className='px-4 py-2.5'>{fmt((r as any)[c])}</td>))}</tr>))}</tbody>
             </table>
           </div>
         </Card>

@@ -153,6 +153,38 @@ button,a{touch-action:manipulation;-webkit-tap-highlight-color:rgba(20,184,166,.
 .osx ::-webkit-scrollbar { width: 10px; height: 10px; }
 .osx ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 8px; }
 
+/* ══ OS CONSOLE — light modern-SaaS theme (scoped to .osx ONLY; the public
+   marketing site never uses these tokens and is completely untouched) ══ */
+.osx{
+  --background: 220 24% 97%;
+  --foreground: 222 44% 13%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 44% 13%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 44% 13%;
+  --primary: 173 80% 33%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 16% 95%;
+  --secondary-foreground: 222 34% 22%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 220 16% 95%;
+  --accent-foreground: 222 34% 22%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 16% 90%;
+  --input: 220 16% 88%;
+  --ring: 173 80% 40%;
+  --radius: 0.7rem;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+.osx ::-webkit-scrollbar-thumb{ background: rgba(15,23,42,.18); border-radius: 8px; }
+.osx ::selection{ background: hsl(173 80% 33% / .18); color: inherit; }
+/* Give raised surfaces (shadcn Card = rounded + border + bg-card) a soft, modern
+   shadow so the console reads as layered panels, not flat boxes. */
+.osx .rounded-lg.border,
+.osx .rounded-xl.border{ box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06); }
+
 /* ── PORTAL MATERIAL ───────────────────────────────────────────────────
    The portal already inherited the brand PALETTE (--primary is the brand
    teal), but not the brand MATERIAL. A flat card on a lit navy field reads
