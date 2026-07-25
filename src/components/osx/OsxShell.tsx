@@ -124,7 +124,7 @@ function bringToTop(list: WinState[], id: string, patch: Partial<WinState> = {})
 // Shared module renderer — used by both the tabbed main area and floating windows.
 function renderModule(id: string, go: (id: string) => void): React.ReactNode {
   const m = MODULES.find((x) => x.id === id) || MODULES[0];
-  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : <Workspace mod={m} />;
+  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : <Workspace mod={m} />;
 }
 
 function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, onSnap }: { win: WinState; onFocus: () => void; onClose: () => void; onMin: () => void; onMax: () => void; onMove: (x: number, y: number) => void; onSize: (w: number, h: number) => void; onSnap: (s: 'l' | 'r' | null) => void }) {
@@ -1415,6 +1415,93 @@ function SuppliersApp() {
         onClose={() => setRow(null)} /> : null}
     </div>
   );
+}
+
+// ── Generic board primitives (shared by RFQs / Customers / Smart Engine) ──
+function KanbanBoard({ stages, colors, onCard, renderCard }: { stages: any[]; colors?: Record<string, string>; onCard: (c: any) => void; renderCard: (c: any) => React.ReactNode }) {
+  return (<div className='flex gap-3 overflow-x-auto pb-2'>{(stages || []).map((st: any) => (
+    <div key={st.key} className='w-72 shrink-0 flex flex-col rounded-lg bg-foreground/[0.03] border border-border' style={colors?.[st.key] ? { borderTop: '3px solid ' + colors[st.key] } : undefined}>
+      <div className='px-3 py-2 border-b border-border flex items-center justify-between'><span className='text-sm font-semibold'>{st.label}</span><Badge variant='secondary'>{Number(st.count || 0).toLocaleString()}</Badge></div>
+      <div className='flex-1 overflow-y-auto p-2 space-y-2 max-h-[62vh] min-h-[120px]'>
+        {(st.cards || []).map((c: any, i: number) => (<button key={c.id ?? i} onClick={() => onCard(c)} className='w-full text-left bg-card rounded-lg border border-border p-3 hover:shadow-md hover:border-primary/40 transition-all'>{renderCard(c)}</button>))}
+        {Number(st.count || 0) > (st.cards || []).length ? <div className='text-[11px] text-muted-foreground text-center py-1'>+{(Number(st.count) - (st.cards || []).length).toLocaleString()} more</div> : null}
+        {!(st.cards || []).length ? <div className='text-[11px] text-muted-foreground text-center py-6'>Empty</div> : null}
+      </div>
+    </div>))}</div>);
+}
+function RichList({ rows, columns, onRow, footer }: { rows: any[]; columns: { key: string; label: string; render: (r: any) => React.ReactNode }[]; onRow: (r: any) => void; footer?: React.ReactNode }) {
+  if (!rows.length) return <Card className='p-8 text-center text-sm text-muted-foreground'>Nothing to show yet.</Card>;
+  return (<Card className='overflow-hidden'><div className='overflow-auto max-h-[70vh]'><table className='w-full text-sm'>
+    <thead><tr className='text-left text-xs text-muted-foreground border-b border-border sticky top-0 bg-card z-10'>{columns.map((c) => (<th key={c.key} className='px-3 py-2.5 font-medium'>{c.label}</th>))}</tr></thead>
+    <tbody>{rows.map((r, i) => (<tr key={r.id ?? i} onClick={() => onRow(r)} className='border-b border-border/50 hover:bg-foreground/5 cursor-pointer'>{columns.map((c) => (<td key={c.key} className='px-3 py-2.5'>{c.render(r)}</td>))}</tr>))}</tbody>
+  </table></div>{footer}</Card>);
+}
+function BoardHeader({ icon: Icon, title, total, sub, view, setView, q, setQ, onSearch, right }: any) {
+  return (<div className='flex flex-wrap items-center gap-2'>
+    <Icon className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>{title}</h1>
+    <Badge variant='secondary'>{Number(total || 0).toLocaleString()}</Badge>{sub ? <span className='text-[11px] text-muted-foreground'>{sub}</span> : null}
+    <div className='flex items-center gap-2 ml-auto'>
+      {onSearch ? <div className='relative'><Search className='h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none' /><Input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') onSearch(); }} placeholder='Search…' className='h-9 w-56 pl-8' /></div> : null}
+      {view ? <div className='inline-flex rounded-md border border-border overflow-hidden'><button title='Board' onClick={() => setView('kanban')} className={cn('h-9 px-2.5 grid place-items-center', view === 'kanban' ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}><LayoutDashboard className='h-4 w-4' /></button><button title='List' onClick={() => setView('list')} className={cn('h-9 px-2.5 grid place-items-center border-l border-border', view === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}><ListChecks className='h-4 w-4' /></button></div> : null}
+      {right}
+    </div>
+  </div>);
+}
+
+const RFQ_COLOR: Record<string, string> = { new: '#64748b', matched: '#3b82f6', quoted: '#f59e0b', revealed: '#8b5cf6', won: '#10b981' };
+function RfqApp() {
+  const [view, setView] = React.useState<'kanban' | 'list'>('kanban'); const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [q, setQ] = React.useState(''); const [row, setRow] = React.useState<any>(null);
+  const load = React.useCallback((s: string) => { osApi('rfq_board', { search: s, limit: 80 }).then(setD).catch((e: any) => setErr(e.message)); }, []);
+  React.useEffect(() => { load(''); }, [load]);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load RFQs: {err}</Card>;
+  const card = (c: any) => (<><div className='text-sm font-semibold capitalize'>{c.category}</div>{c.summary ? <div className='text-xs text-muted-foreground line-clamp-2 mt-0.5'>{c.summary}</div> : null}<div className='flex items-center justify-between mt-2'><span className='text-[11px] text-muted-foreground'>{c.emirate}</span>{c.value ? <span className='text-xs font-medium'>AED {Number(c.value).toLocaleString()}</span> : c.budget ? <span className='text-[11px] text-muted-foreground'>{c.budget}</span> : null}</div></>);
+  const columns = [{ key: 'category', label: 'Category', render: (r: any) => <span className='font-medium capitalize'>{r.category}</span> }, { key: 'summary', label: 'Summary', render: (r: any) => <span className='text-muted-foreground line-clamp-1'>{r.summary || '—'}</span> }, { key: 'emirate', label: 'Emirate', render: (r: any) => r.emirate }, { key: 'value', label: 'Value', render: (r: any) => r.value ? 'AED ' + Number(r.value).toLocaleString() : (r.budget || '—') }, { key: 'stage', label: 'Stage', render: (r: any) => <span className='capitalize'>{r.stage}</span> }];
+  return (<div className='space-y-4'>
+    <BoardHeader icon={ArrowLeftRight} title='RFQs & Procurement' total={d?.total} view={view} setView={setView} q={q} setQ={setQ} onSearch={() => load(q)} />
+    {!d ? <div className='text-sm text-muted-foreground'>Loading…</div> : d.total === 0 ? (
+      <Card className='p-6'><div className='text-center mb-4'><ArrowLeftRight className='h-8 w-8 text-muted-foreground/40 mx-auto mb-2' /><div className='text-sm font-medium'>No client requests yet</div><div className='text-xs text-muted-foreground mt-1'>The pipeline fills as buyers post RFQs — suppliers are being onboarded first. The stages below are ready.</div></div><KanbanBoard stages={d.stages || []} colors={RFQ_COLOR} onCard={() => { }} renderCard={() => null} /></Card>
+    ) : view === 'kanban' ? <KanbanBoard stages={d.stages || []} colors={RFQ_COLOR} onCard={setRow} renderCard={card} /> : <RichList rows={d.rows || []} columns={columns} onRow={setRow} />}
+    {row ? <RecordDrawer frame0={{ entity: 'rfq', id: row.id, title: 'RFQ #' + row.id, row }} onClose={() => setRow(null)} /> : null}
+  </div>);
+}
+
+const CUST_COLOR: Record<string, string> = { new: '#64748b', verified: '#10b981', banned: '#ef4444' };
+function CustomersApp() {
+  const [view, setView] = React.useState<'kanban' | 'list'>('list'); const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [q, setQ] = React.useState(''); const [row, setRow] = React.useState<any>(null);
+  const load = React.useCallback((s: string) => { osApi('customers_board', { search: s, limit: 80 }).then(setD).catch((e: any) => setErr(e.message)); }, []);
+  React.useEffect(() => { load(''); }, [load]);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load customers: {err}</Card>;
+  const card = (c: any) => (<><div className='text-sm font-semibold'>{c.full_name}</div><div className='text-xs text-muted-foreground truncate'>{c.email || c.phone || '—'}</div><div className='flex gap-1 mt-2'>{c.email_verified ? <Badge className='bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15 border-0 text-[10px]'>Verified</Badge> : null}{c.banned ? <Badge variant='destructive' className='text-[10px]'>Banned</Badge> : null}</div></>);
+  const columns = [{ key: 'full_name', label: 'Name', render: (r: any) => <span className='font-medium'>{r.full_name}</span> }, { key: 'email', label: 'Email', render: (r: any) => <span className='text-muted-foreground'>{r.email || '—'}</span> }, { key: 'phone', label: 'Phone', render: (r: any) => r.phone || '—' }, { key: 'email_verified', label: 'Verified', render: (r: any) => r.email_verified ? 'Yes' : 'No' }, { key: 'stage', label: 'Stage', render: (r: any) => <span className='capitalize'>{r.stage}</span> }];
+  return (<div className='space-y-4'>
+    <BoardHeader icon={Users} title='Customers' total={d?.total} view={view} setView={setView} q={q} setQ={setQ} onSearch={() => load(q)} />
+    {!d ? <div className='text-sm text-muted-foreground'>Loading…</div> : d.total === 0 ? (
+      <Card className='p-8 text-center'><Users className='h-8 w-8 text-muted-foreground/40 mx-auto mb-2' /><div className='text-sm font-medium'>No customers yet</div><div className='text-xs text-muted-foreground mt-1'>Buyers appear here once they sign up and post requests.</div></Card>
+    ) : view === 'kanban' ? <KanbanBoard stages={d.stages || []} colors={CUST_COLOR} onCard={setRow} renderCard={card} /> : <RichList rows={d.rows || []} columns={columns} onRow={setRow} />}
+    {row ? <RecordDrawer frame0={{ entity: 'customer', id: row.id, title: 'Customer ' + row.id, row }} onClose={() => setRow(null)} /> : null}
+  </div>);
+}
+
+function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
+  const [ops, setOps] = React.useState<any>(null);
+  React.useEffect(() => { osApi('ws.agent', { key: agent.agent_key }).then(setOps).catch(() => setOps({})); }, [agent.agent_key]);
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
+    <SheetHeader><SheetTitle className='capitalize'>{titleCase(String(agent.agent_key))}</SheetTitle><SheetDescription>{agent.role || agent.department}</SheetDescription></SheetHeader>
+    <div className='mt-3 grid grid-cols-3 gap-2'><StatTile label='Runs 24h' value={agent.runs24} /><StatTile label='Failures 24h' value={agent.fails24} /><StatTile label='Last status' value={agent.last_status || '—'} /></div>
+    {ops === null ? <div className='mt-4 text-sm text-muted-foreground'>Loading agent operations…</div> : <Card className='mt-4 p-4'><ReadableObject data={ops || {}} /></Card>}
+  </SheetContent></Sheet>);
+}
+function AgentsApp() {
+  const [view, setView] = React.useState<'kanban' | 'list'>('kanban'); const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [sel, setSel] = React.useState<any>(null);
+  React.useEffect(() => { osApi('agents_board').then(setD).catch((e: any) => setErr(e.message)); }, []);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Smart Engine: {err}</Card>;
+  const card = (c: any) => (<><div className='flex items-center gap-1.5'><span className={cn('h-2 w-2 rounded-full', c.active ? 'bg-emerald-500' : 'bg-muted')} /><span className='text-sm font-semibold capitalize'>{titleCase(String(c.agent_key))}</span></div>{c.role ? <div className='text-xs text-muted-foreground line-clamp-2 mt-0.5'>{c.role}</div> : null}<div className='flex items-center gap-2 mt-2 flex-wrap'><span className='text-[11px] text-muted-foreground'>{c.runs24} runs/24h</span>{c.last_status ? <Badge variant='outline' className='text-[10px]'>{c.last_status}</Badge> : null}{c.fails24 > 0 ? <Badge variant='destructive' className='text-[10px]'>{c.fails24} failed</Badge> : null}</div></>);
+  const columns = [{ key: 'agent_key', label: 'Agent', render: (r: any) => <span className='font-medium capitalize'>{titleCase(String(r.agent_key))}</span> }, { key: 'department', label: 'Dept', render: (r: any) => <span className='capitalize'>{r.department}</span> }, { key: 'role', label: 'Role', render: (r: any) => <span className='text-muted-foreground line-clamp-1'>{r.role || '—'}</span> }, { key: 'runs24', label: 'Runs 24h', render: (r: any) => r.runs24 }, { key: 'last_status', label: 'Last', render: (r: any) => r.last_status || '—' }];
+  return (<div className='space-y-4'>
+    <BoardHeader icon={Sparkles} title='Smart Engine' total={d?.total} sub={d ? (Number(d.runs24 || 0).toLocaleString() + ' runs/24h') : ''} view={view} setView={setView} />
+    {!d ? <div className='text-sm text-muted-foreground'>Loading agents…</div> : view === 'kanban' ? <KanbanBoard stages={d.departments || []} onCard={setSel} renderCard={card} /> : <RichList rows={d.rows || []} columns={columns} onRow={setSel} />}
+    {sel ? <AgentDrawer agent={sel} onClose={() => setSel(null)} /> : null}
+  </div>);
 }
 
 function Workspace({ mod }: { mod: Mod }) {
