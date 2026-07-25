@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, SUPA_URL } from '@/lib/osClient';
+import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, osPages, SUPA_URL } from '@/lib/osClient';
 import { cn } from '@/lib/utils';
 function ReportViewer({ id }: { id: number }) {
   const [st, setSt] = React.useState<'idle' | 'load' | 'done' | 'err'>('load');
@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper } from 'lucide-react';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -65,6 +65,7 @@ const MODULES: Mod[] = [
   { id: 'settings', label: 'Settings', icon: SlidersHorizontal, kind: 'settings' },
   { id: 'automation', label: 'Automation', icon: Workflow, kind: 'automation' },
   { id: 'catalog', label: 'Categories', icon: ListChecks, kind: 'catalog' },
+  { id: 'content', label: 'Content', icon: Newspaper, kind: 'content' },
 ];
 const PIPELINE = [ ['sent','New'], ['matched','Matched'], ['quoted','Quoted'], ['revealed','Revealed'], ['completed','Won'] ];
 
@@ -177,7 +178,7 @@ export default function OsxShell() {
         <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
             <div key={id} className={id === cur ? '' : 'hidden'}>
-              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
+              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
             </div>
           ); })}
         </main>
@@ -446,6 +447,81 @@ function CatalogPanel() {
           </>)}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ContentPanel() {
+  const [pages, setPages] = React.useState<any[] | null>(null);
+  const [services, setServices] = React.useState<any[] | null>(null);
+  const [doc, setDoc] = React.useState<any>(null);
+  const [locale, setLocale] = React.useState<'en' | 'ar'>('en');
+  const [busy, setBusy] = React.useState('');
+  const [msg, setMsg] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const [newSvc, setNewSvc] = React.useState('');
+  const load = React.useCallback(() => { osPages('pages_list').then((r: any) => setPages(r?.rows || [])).catch((e: any) => setErr(e.message)); osPages('service_list').then((r: any) => setServices(r?.rows || [])).catch(() => { }); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const openPage = async (source: string, slug: string, loc: 'en' | 'ar') => { setBusy('open'); setErr(''); setMsg(''); try { const d: any = await osPages('page_get', { source, slug, locale: loc }); setDoc({ source, slug, title: d?.title || '', html: d?.html || '' }); setLocale(loc); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const savePage = async () => { if (!doc) return; setBusy('save'); setErr(''); try { await osPages('page_save', { source: doc.source, slug: doc.slug, locale, title: doc.title, html: doc.html }); setMsg('Saved as draft — click Publish to go live'); setTimeout(() => setMsg(''), 2500); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const translate = async () => { if (!doc) return; setBusy('tr'); setErr(''); try { await osPages('translate', { source: doc.source, slug: doc.slug }); setMsg('Arabic regenerated from English — open the AR tab to review'); setTimeout(() => setMsg(''), 3000); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const genService = async () => { if (!newSvc.trim()) return; setBusy('gen'); setErr(''); try { const r: any = await osPages('service_generate', { name: newSvc.trim() }); setMsg(r?.note || 'Queued — it will appear shortly'); setNewSvc(''); setTimeout(load, 5000); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const delService = async (slug: string) => { if (typeof window !== 'undefined' && !window.confirm('Delete service page "' + slug + '"?')) return; setBusy('del' + slug); try { await osPages('service_delete', { slug }); load(); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const publish = async () => { if (typeof window !== 'undefined' && !window.confirm('Publish all saved content changes to the LIVE site now?')) return; setBusy('pub'); setErr(''); try { await osPages('publish'); setMsg('Publishing to the live site — this can take a minute'); setTimeout(() => setMsg(''), 4000); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  if (doc) {
+    return (
+      <div className='space-y-4'>
+        <div className='flex flex-wrap items-center gap-2'>
+          <button type='button' className='text-xs text-primary underline' onClick={() => setDoc(null)}>← Back</button>
+          <Newspaper className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>{doc.source} · {doc.slug}</h1>
+          <div className='ml-auto flex items-center gap-1'>
+            <button type='button' onClick={() => openPage(doc.source, doc.slug, 'en')} className={cn('h-7 px-3 text-xs rounded-md', locale === 'en' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>EN</button>
+            <button type='button' onClick={() => openPage(doc.source, doc.slug, 'ar')} className={cn('h-7 px-3 text-xs rounded-md', locale === 'ar' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>AR</button>
+          </div>
+        </div>
+        {(msg || err) ? <div className={cn('text-xs', err ? 'text-destructive' : 'text-emerald-400')}>{err || msg}</div> : null}
+        <Card className='p-3 space-y-2'>
+          <Input value={doc.title} onChange={(e) => setDoc({ ...doc, title: e.target.value })} placeholder='Page title' className='text-sm' />
+          <textarea value={doc.html} onChange={(e) => setDoc({ ...doc, html: e.target.value })} rows={20} dir={locale === 'ar' ? 'rtl' : 'ltr'} className='w-full rounded-md border border-border bg-background/60 p-2 text-sm font-mono' />
+          <div className='flex items-center gap-2'>
+            <Button className='h-8 text-xs' disabled={busy === 'save'} onClick={savePage}>{busy === 'save' ? 'Saving…' : 'Save draft'}</Button>
+            {locale === 'en' ? <Button variant='outline' className='h-8 text-xs' disabled={busy === 'tr'} onClick={translate}>{busy === 'tr' ? 'Translating…' : 'Regenerate Arabic'}</Button> : null}
+            <Button variant='outline' className='h-8 text-xs ml-auto' disabled={busy === 'pub'} onClick={publish}>{busy === 'pub' ? 'Publishing…' : 'Publish to live site'}</Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-center gap-2'><Newspaper className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Content</h1><span className='text-xs text-muted-foreground md:ml-2'>Edit site pages and service landing pages, then publish to the live site. Changes are audit-logged.</span>
+        <Button className='h-8 text-xs ml-auto' disabled={busy === 'pub'} onClick={publish}>{busy === 'pub' ? 'Publishing…' : 'Publish to live site'}</Button>
+      </div>
+      {(msg || err) ? <div className={cn('text-xs', err ? 'text-destructive' : 'text-emerald-400')}>{err || msg}</div> : null}
+      <Card className='overflow-hidden'>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Site pages</div>
+        <div className='overflow-auto max-h-[360px]'>
+          {!pages ? <div className='p-3 text-sm text-muted-foreground'>Loading…</div> : pages.length === 0 ? <div className='p-3 text-sm text-muted-foreground'>No editable pages.</div> : pages.map((p: any, i: number) => (
+            <div key={i} className='flex items-center gap-2 px-4 py-2 border-b border-border/40'>
+              <div className='flex-1 min-w-0'><div className='text-sm font-medium truncate'>{p.title}</div><div className='text-[11px] text-muted-foreground'>{p.source} · {p.slug}{p.has_ar ? ' · EN+AR' : ' · EN only'}</div></div>
+              <Button variant='outline' className='h-7 text-xs' onClick={() => openPage(p.source, p.slug, 'en')}>Edit</Button>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card className='overflow-hidden'>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex flex-wrap items-center gap-2'>Service pages
+          <div className='ml-auto flex items-center gap-2'><Input value={newSvc} onChange={(e) => setNewSvc(e.target.value)} placeholder='New service name…' className='h-7 w-48 text-xs' /><Button className='h-7 text-xs' disabled={busy === 'gen' || !newSvc.trim()} onClick={genService}>{busy === 'gen' ? 'Generating…' : 'Generate'}</Button></div>
+        </div>
+        <div className='overflow-auto max-h-[360px]'>
+          {!services ? <div className='p-3 text-sm text-muted-foreground'>Loading…</div> : services.length === 0 ? <div className='p-3 text-sm text-muted-foreground'>No service pages yet.</div> : services.map((s: any, i: number) => (
+            <div key={i} className='flex items-center gap-2 px-4 py-2 border-b border-border/40'>
+              <div className='flex-1 min-w-0'><div className='text-sm font-medium truncate'>{s.title}</div><div className='text-[11px] text-muted-foreground'>{s.slug}{s.has_ar ? ' · EN+AR' : ' · EN only'}</div></div>
+              <button type='button' className='text-xs text-destructive underline' disabled={busy === 'del' + s.slug} onClick={() => delService(s.slug)}>delete</button>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
