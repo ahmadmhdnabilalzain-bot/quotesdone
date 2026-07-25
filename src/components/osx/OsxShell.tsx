@@ -1049,6 +1049,11 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
       </div>
 
       <Card className='overflow-hidden'>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Busiest agents — last 24h{H.runs_failed_24h ? <span className='text-[11px] font-normal text-amber-600'>{H.runs_failed_24h} failed run{H.runs_failed_24h === 1 ? '' : 's'}</span> : <span className='text-[11px] font-normal text-muted-foreground'>{H.runs_24h || 0} runs across {H.agents_active_24h || 0} agents</span>}</div>
+        <div className='p-4'><HBars rows={(v.agents_24h || []).slice(0, 8)} onBar={() => onNav('agents')} /></div>
+      </Card>
+
+      <Card className='overflow-hidden'>
         <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Marketplace pipeline<span className='text-[11px] font-normal text-muted-foreground'>RFQ → won</span></div>
         <div className='p-4'>{pipelineLive ? <Funnel rows={pipeline} onStage={() => onNav('rfqs')} /> : <div className='text-sm text-muted-foreground'>No client requests yet — this pipeline fills once buyers start posting RFQs. Suppliers are being onboarded first.</div>}</div>
       </Card>
