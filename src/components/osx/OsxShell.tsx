@@ -948,28 +948,115 @@ function Console() {
   );
 }
 
+// ── Lightweight SVG charts (dependency-free) ──────────────────────────
+const CHART_COLORS = ['hsl(173 80% 36%)', 'hsl(210 90% 56%)', 'hsl(38 92% 50%)', 'hsl(261 60% 58%)', 'hsl(340 72% 55%)', 'hsl(150 55% 42%)', 'hsl(200 80% 45%)', 'hsl(20 85% 55%)', 'hsl(280 55% 55%)'];
+function HBars({ rows, onBar }: { rows: { label: string; n: number }[]; onBar?: (r: any) => void }) {
+  const max = Math.max(1, ...rows.map((r) => r.n));
+  if (!rows.length) return <div className='text-xs text-muted-foreground'>No data yet.</div>;
+  return (<div className='space-y-2.5'>{rows.map((r, i) => (
+    <div key={i} onClick={onBar ? () => onBar(r) : undefined} className={cn('group', onBar && 'cursor-pointer')}>
+      <div className='flex items-center justify-between text-xs mb-1'><span className='truncate capitalize text-foreground/80'>{r.label}</span><span className='tabular-nums text-muted-foreground ml-2'>{r.n.toLocaleString()}</span></div>
+      <div className='h-2.5 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full transition-all group-hover:brightness-110' style={{ width: Math.max(2, (r.n / max) * 100) + '%', background: CHART_COLORS[i % CHART_COLORS.length] }} /></div>
+    </div>))}</div>);
+}
+function Funnel({ rows, onStage }: { rows: { stage: string; n: number }[]; onStage?: (r: any) => void }) {
+  const max = Math.max(1, ...rows.map((r) => r.n));
+  return (<div className='space-y-1.5'>{rows.map((r, i) => { const w = Math.max(4, (r.n / max) * 100); const prev = i > 0 ? rows[i - 1].n : r.n; const conv = prev > 0 ? Math.round((r.n / prev) * 100) : 0; return (
+    <div key={i} onClick={onStage ? () => onStage(r) : undefined} className={cn('flex items-center gap-3', onStage && 'cursor-pointer')}>
+      <div className='w-20 sm:w-24 shrink-0 text-xs text-foreground/80 text-right'>{r.stage}</div>
+      <div className='flex-1 h-7 rounded-md bg-foreground/[0.06] overflow-hidden'>
+        <div className='h-full rounded-md flex items-center px-2 text-[11px] font-semibold text-white transition-all min-w-[2.5rem]' style={{ width: w + '%', background: CHART_COLORS[0], opacity: 1 - i * 0.09 }}>{r.n.toLocaleString()}</div>
+      </div>
+      <div className='w-9 shrink-0 text-[11px] text-muted-foreground text-right tabular-nums'>{i > 0 ? conv + '%' : ''}</div>
+    </div>); })}</div>);
+}
+function AreaSpark({ data, height = 72 }: { data: { d: string; n: number }[]; height?: number }) {
+  const w = 600, h = height, pad = 8; const max = Math.max(1, ...data.map((p) => p.n)); const n = data.length || 1;
+  const x = (i: number) => pad + (i * (w - 2 * pad)) / Math.max(1, n - 1);
+  const y = (v: number) => h - pad - (v / max) * (h - 2 * pad);
+  const line = data.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.n).toFixed(1)}`).join(' ');
+  const area = `${line} L${x(n - 1).toFixed(1)},${h - pad} L${x(0).toFixed(1)},${h - pad} Z`;
+  const peak = data.reduce((a, p, i) => (p.n > data[a].n ? i : a), 0);
+  return (<div>
+    <svg viewBox={`0 0 ${w} ${h}`} className='w-full' style={{ height }} preserveAspectRatio='none'>
+      <defs><linearGradient id='ag' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stopColor={CHART_COLORS[0]} stopOpacity='0.35' /><stop offset='100%' stopColor={CHART_COLORS[0]} stopOpacity='0' /></linearGradient></defs>
+      <path d={area} fill='url(#ag)' />
+      <path d={line} fill='none' stroke={CHART_COLORS[0]} strokeWidth='2' vectorEffect='non-scaling-stroke' />
+    </svg>
+    <div className='flex justify-between text-[10px] text-muted-foreground mt-1'>{data.filter((_, i) => i % Math.ceil(n / 5) === 0 || i === n - 1).map((p, i) => <span key={i}>{p.d}</span>)}</div>
+    {data[peak] && data[peak].n > 0 ? <div className='text-[11px] text-muted-foreground mt-1'>Peak: <span className='text-foreground font-medium'>{data[peak].n}</span> on {data[peak].d}</div> : null}
+  </div>);
+}
+function StatTile({ label, value, hint, onClick }: { label: string; value: any; hint?: string; onClick?: () => void }) {
+  return (<Card onClick={onClick} className={cn('p-4', onClick && 'cursor-pointer hover:border-primary/60 transition-colors')}>
+    <div className='text-xs text-muted-foreground flex items-center gap-1'>{label}{onClick ? <ArrowUpRight className='h-3 w-3 opacity-40' /> : null}</div>
+    <div className='text-2xl font-bold mt-1 tabular-nums'>{fmt(value)}</div>
+    {hint ? <div className='text-[11px] text-muted-foreground mt-0.5'>{hint}</div> : null}
+  </Card>);
+}
+
 function Overview({ onNav }: { onNav: (id: string) => void }) {
-  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState('');
-  React.useEffect(() => { osApi('ws.exec').then(setD).catch((e) => setErr(e.message)); }, []);
-  if (err) return <Card className='p-6 text-sm text-destructive'>Could not load: {err}</Card>;
-  if (!d) return <div className='text-muted-foreground text-sm'>Loading overview…</div>;
-  const kpis: [string, any][] = [];
-  const walk = (o: any, pre = '') => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (typeof v === 'number' || typeof v === 'string') { if (kpis.length < 8 && /rev|count|total|rate|open|pending|active|won|quote|inquir|supplier|customer/i.test(k)) kpis.push([titleCase(pre + k), v]); } else if (v && typeof v === 'object' && !Array.isArray(v) && pre === '') walk(v, ''); } };
-  walk(d?.command || d || {});
-  const health = (d && d.command && d.command.health) || {}; const band = String(health.band || 'unknown'); const bandColor = /crit|down|bad|fail/.test(band) ? 'border-red-500/40 text-red-300' : /attention|warn|risk/.test(band) ? 'border-amber-500/40 text-amber-300' : /ok|good|healthy|strong/.test(band) ? 'border-emerald-500/40 text-emerald-300' : 'border-border text-muted-foreground';
+  const [v, setV] = React.useState<any>(null); const [health, setHealth] = React.useState<any>({}); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const load = React.useCallback(() => { setBusy(true); setErr(''); Promise.all([osApi('viz'), osApi('ws.exec').catch(() => null)]).then(([viz, exec]: any) => { setV(viz); setHealth((exec && exec.command && exec.command.health) || {}); }).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  if (err && !v) return <Card className='p-6 text-sm text-destructive'>Could not load command center: {err}</Card>;
+  if (!v) return <div className='text-muted-foreground text-sm'>Loading command center…</div>;
+  const H = v.headline || {}; const band = String(health.band || 'unknown');
+  const bandColor = /crit|down|bad|fail/.test(band) ? 'border-red-500/40 text-red-600' : /attention|warn|risk|watch/.test(band) ? 'border-amber-500/40 text-amber-600' : /ok|good|healthy|strong/.test(band) ? 'border-emerald-500/40 text-emerald-600' : 'border-border text-muted-foreground';
+  const pipeline = (v.pipeline || []) as { stage: string; n: number }[]; const pipelineLive = pipeline.some((p) => p.n > 0);
   return (
     <div className='space-y-5'>
-      <Card onClick={() => onNav('health')} className={cn('p-4 flex items-center justify-between gap-4 border cursor-pointer hover:brightness-105 transition-all', bandColor)}>
+      <div className='flex items-center gap-2'>
+        <LayoutDashboard className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Command Center</h1>
+        <span className='text-xs text-muted-foreground ml-1'>Live business picture</span>
+        <Button variant='outline' className='h-8 text-xs ml-auto' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
+      </div>
+
+      <Card onClick={() => onNav('health')} className={cn('p-4 flex items-center justify-between gap-4 border cursor-pointer hover:brightness-[1.02] transition-all', bandColor)}>
         <div><div className='text-[11px] uppercase tracking-wide opacity-70'>Business health</div><div className='text-2xl font-bold mt-0.5'>{health.index ?? '—'}<span className='text-sm font-normal opacity-70'> / 100 · {titleCase(band)}</span></div></div>
         <div className='flex items-center gap-2 max-w-md'><div className='text-xs opacity-80 text-right'>{health.note || 'Live signals across revenue, uptime, disputes and activity.'}</div><ArrowUpRight className='h-4 w-4 shrink-0 opacity-60' /></div>
       </Card>
-      <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>
-        {kpis.length ? kpis.map(([k, v]) => { const kl = k.toLowerCase(); const tgt = /supplier/.test(kl) ? 'suppliers' : /customer/.test(kl) ? 'customers' : /rfq|quote/.test(kl) ? 'rfqs' : /rev|fee|cash|expense|invoice|outstanding/.test(kl) ? 'finance' : 'analytics'; return (<Card key={k} onClick={tgt ? () => onNav(tgt) : undefined} className={cn('p-4', tgt && 'cursor-pointer hover:border-primary/60 transition-colors')}><div className='text-xs text-muted-foreground'>{k}</div><div className='text-2xl font-bold mt-1'>{fmt(v)}</div></Card>); }) : <Card className='p-4 col-span-full text-sm text-muted-foreground'>No metrics available yet.</Card>}
+
+      <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>
+        <StatTile label='Suppliers sourced' value={H.suppliers_total} onClick={() => onNav('suppliers')} />
+        <StatTile label='Invited' value={H.invited_total} hint='invite campaign' onClick={() => onNav('suppliers')} />
+        <StatTile label='Registered' value={H.registered_total} onClick={() => onNav('suppliers')} />
+        <StatTile label='Verified' value={H.verified_total} onClick={() => onNav('suppliers')} />
+        <StatTile label='Agents active (24h)' value={H.agents_active_24h} onClick={() => onNav('agents')} />
+        <StatTile label='Agent runs (24h)' value={H.runs_24h} onClick={() => onNav('agents')} />
       </div>
+
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Supplier onboarding funnel<span className='text-[11px] font-normal text-muted-foreground'>sourced → approved</span></div>
+          <div className='p-4'><Funnel rows={v.funnel || []} onStage={() => onNav('suppliers')} /></div>
+        </Card>
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Supplier invites — last 14 days</div>
+          <div className='p-4'><AreaSpark data={v.invites_14d || []} /><div className='text-[11px] text-muted-foreground mt-2'>Campaign is currently <span className='font-medium text-amber-600'>paused</span>. {H.invited_total || 0} suppliers invited in total.</div></div>
+        </Card>
+      </div>
+
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Suppliers by sector</div>
+          <div className='p-4'><HBars rows={(v.by_sector || []).slice(0, 8)} onBar={() => onNav('suppliers')} /></div>
+        </Card>
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Suppliers by emirate</div>
+          <div className='p-4'><HBars rows={(v.by_emirate || []).slice(0, 8)} onBar={() => onNav('suppliers')} /></div>
+        </Card>
+      </div>
+
+      <Card className='overflow-hidden'>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Marketplace pipeline<span className='text-[11px] font-normal text-muted-foreground'>RFQ → won</span></div>
+        <div className='p-4'>{pipelineLive ? <Funnel rows={pipeline} onStage={() => onNav('rfqs')} /> : <div className='text-sm text-muted-foreground'>No client requests yet — this pipeline fills once buyers start posting RFQs. Suppliers are being onboarded first.</div>}</div>
+      </Card>
+
       <Card className='p-4'>
         <div className='text-sm font-semibold mb-3'>Quick access</div>
         <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2'>
-          {([['rfqs','RFQs & Procurement',ArrowLeftRight],['suppliers','Suppliers',Hammer],['customers','Customers',Users],['finance','Finance',DollarSign],['escalations','Escalations',AlertTriangle],['reports','Reports',FileBarChart],['documents','Documents',FileText],['health','System Health',Activity]] as [string,string,any][]).map(([id,label,Ic]) => (
+          {([['rfqs', 'RFQs & Procurement', ArrowLeftRight], ['suppliers', 'Suppliers', Hammer], ['customers', 'Customers', Users], ['finance', 'Finance', DollarSign], ['escalations', 'Escalations', AlertTriangle], ['reports', 'Reports', FileBarChart], ['documents', 'Documents', FileText], ['health', 'System Health', Activity]] as [string, string, any][]).map(([id, label, Ic]) => (
             <button key={id} onClick={() => onNav(id)} className='flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2.5 text-sm text-left hover:border-primary/60 hover:bg-foreground/5 transition-colors'>
               <Ic className='h-4 w-4 text-primary shrink-0' /><span className='truncate'>{label}</span>
             </button>
