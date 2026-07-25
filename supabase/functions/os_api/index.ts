@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
     if (action === 'ping') return J({ ok: true, user: email });
     if (action === 'dashboard') { const { data, error } = await admin.rpc('fn_os_command'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
     if (action === 'viz') { const { data, error } = await admin.rpc('fn_os_dashboard_viz'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
+    if (action === 'suppliers_board') { const { data, error } = await admin.rpc('fn_suppliers_board', { p_search: String(body?.search || ''), p_sector: String(body?.sector || ''), p_limit: Number(body?.limit || 60), p_offset: Number(body?.offset || 0) }); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
     if (action === 'nav') { const { data, error } = await admin.rpc('fn_os_nav'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
     if (action === 'ws.suppliers') { const { data, error } = await admin.rpc('fn_ws_suppliers', { p: body?.params || {} }); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
     if (action === 'ws.supplier') { const { data, error } = await admin.rpc('fn_ws_supplier_360', { p_id: Number(body?.id) }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }

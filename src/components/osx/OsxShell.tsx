@@ -124,7 +124,7 @@ function bringToTop(list: WinState[], id: string, patch: Partial<WinState> = {})
 // Shared module renderer — used by both the tabbed main area and floating windows.
 function renderModule(id: string, go: (id: string) => void): React.ReactNode {
   const m = MODULES.find((x) => x.id === id) || MODULES[0];
-  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />;
+  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : <Workspace mod={m} />;
 }
 
 function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, onSnap }: { win: WinState; onFocus: () => void; onClose: () => void; onMin: () => void; onMax: () => void; onMove: (x: number, y: number) => void; onSize: (w: number, h: number) => void; onSnap: (s: 'l' | 'r' | null) => void }) {
@@ -1285,6 +1285,96 @@ function RecordDrawer({ frame0, actions, extra, reportId, onClose }: { frame0: a
         {!loading && !scalShow.length && !arrs.length && !Object.keys(grpFiles).length ? <div className='mt-4 text-sm text-muted-foreground'>No further detail available.</div> : null}
       </SheetContent>
     </Sheet>
+  );
+}
+
+// ── Suppliers flagship: Odoo-style list + kanban board ────────────────
+const SECTOR_PALETTE = ['#0d9488', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#10b981', '#0ea5e9', '#f97316', '#a855f7', '#14b8a6', '#e11d48', '#6366f1'];
+function sectorColor(s: string) { const str = String(s || ''); let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0; return SECTOR_PALETTE[h % SECTOR_PALETTE.length]; }
+function Stars({ v }: { v: any }) { const r = Number(v) || 0; if (!r) return <span className='text-[11px] text-muted-foreground'>No rating</span>; const full = Math.round(r); return (<span className='inline-flex items-center gap-0.5 text-amber-500 text-xs' title={r.toFixed(1)}>{Array.from({ length: 5 }).map((_, i) => <span key={i} className={i < full ? '' : 'opacity-25'}>★</span>)}<span className='text-[11px] text-muted-foreground ml-1'>{r.toFixed(1)}</span></span>); }
+function SectorPill({ s }: { s: string }) { const c = sectorColor(s); return (<span className='inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full capitalize' style={{ background: c + '22', color: c }}><span className='h-1.5 w-1.5 rounded-full' style={{ background: c }} />{s}</span>); }
+function StatusChips({ c }: { c: any }) { return (<>{c.approved ? <Badge className='bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15 border-0 text-[10px]'>Approved</Badge> : null}{c.verified ? <Badge className='bg-blue-500/15 text-blue-600 hover:bg-blue-500/15 border-0 text-[10px]'>Verified</Badge> : null}{c.banned ? <Badge variant='destructive' className='text-[10px]'>Banned</Badge> : null}</>); }
+const STAGE_COLOR: Record<string, string> = { sourced: '#64748b', contacted: '#3b82f6', invited: '#f59e0b', registered: '#8b5cf6', verified: '#14b8a6', approved: '#10b981' };
+function initials(s: string) { const w = String(s || '?').replace(/[^A-Za-z؀-ۿ ]/g, '').trim().split(/\s+/); return ((w[0]?.[0] || '') + (w[1]?.[0] || '')).toUpperCase() || '#'; }
+
+function SuppliersApp() {
+  const [view, setView] = React.useState<'kanban' | 'list'>('kanban');
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const [q, setQ] = React.useState(''); const [sector, setSector] = React.useState('');
+  const [row, setRow] = React.useState<any>(null); const [dbusy, setDbusy] = React.useState(false);
+  const load = React.useCallback((search: string, sec: string) => { setBusy(true); setErr(''); osApi('suppliers_board', { search, sector: sec, limit: 80 }).then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load('', ''); }, [load]);
+  const doSearch = () => load(q, sector);
+  const pickSector = (s: string) => { const ns = sector === s ? '' : s; setSector(ns); load(q, ns); };
+  const decide = async (id: any, op: string) => { setDbusy(true); try { await osOps('supplier_decide', { id, op, note: op === 'reject' ? 'Rejected from OS' : undefined }); setRow(null); load(q, sector); } catch (_e) { } setDbusy(false); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load suppliers: {err}</Card>;
+  const stages = (d?.stages || []) as any[]; const rows = (d?.rows || []) as any[]; const sectors = (d?.sectors || []) as any[];
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-center gap-2'>
+        <Hammer className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Suppliers</h1>
+        <Badge variant='secondary'>{(d?.total ?? 0).toLocaleString()}</Badge>
+        {busy ? <span className='text-[11px] text-muted-foreground'>updating…</span> : null}
+        <div className='flex items-center gap-2 ml-auto'>
+          <div className='relative'>
+            <Search className='h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none' />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') doSearch(); }} placeholder='Search company, sector, emirate…' className='h-9 w-64 pl-8' />
+          </div>
+          <div className='inline-flex rounded-md border border-border overflow-hidden'>
+            <button title='Kanban board' onClick={() => setView('kanban')} className={cn('h-9 px-2.5 grid place-items-center', view === 'kanban' ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}><LayoutDashboard className='h-4 w-4' /></button>
+            <button title='List' onClick={() => setView('list')} className={cn('h-9 px-2.5 grid place-items-center border-l border-border', view === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}><ListChecks className='h-4 w-4' /></button>
+          </div>
+        </div>
+      </div>
+      {sectors.length ? <div className='flex flex-wrap gap-1.5'>{sectors.map((s: any) => (<button key={s.label} onClick={() => pickSector(s.label)} className={cn('text-[11px] px-2 py-1 rounded-full border transition-colors capitalize', sector === s.label ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-foreground/5')}>{s.label} <span className='opacity-60'>{s.n}</span></button>))}</div> : null}
+
+      {!d ? <div className='grid grid-cols-2 md:grid-cols-6 gap-3'>{Array.from({ length: 6 }).map((_, i) => <div key={i} className='h-48 rounded-lg bg-foreground/5 animate-pulse' />)}</div> : view === 'kanban' ? (
+        <div className='flex gap-3 overflow-x-auto pb-2'>
+          {stages.map((st: any) => (
+            <div key={st.key} className='w-72 shrink-0 flex flex-col rounded-lg bg-foreground/[0.03] border border-border' style={{ borderTop: `3px solid ${STAGE_COLOR[st.key]}` }}>
+              <div className='px-3 py-2 border-b border-border flex items-center justify-between'><span className='text-sm font-semibold'>{st.label}</span><Badge variant='secondary'>{st.count.toLocaleString()}</Badge></div>
+              <div className='flex-1 overflow-y-auto p-2 space-y-2 max-h-[62vh] min-h-[120px]'>
+                {(st.cards || []).map((c: any) => (
+                  <button key={c.id} onClick={() => setRow(c)} className='w-full text-left bg-card rounded-lg border border-border p-3 hover:shadow-md hover:border-primary/40 transition-all'>
+                    <div className='text-sm font-semibold leading-snug line-clamp-2'>{c.company_name}</div>
+                    <div className='flex items-center gap-1.5 mt-1.5 flex-wrap'><SectorPill s={c.sector} /><span className='text-[11px] text-muted-foreground'>{c.emirate}</span></div>
+                    <div className='flex items-center justify-between mt-2 gap-2'><Stars v={c.rating} /><div className='flex gap-1 flex-wrap justify-end'><StatusChips c={c} /></div></div>
+                  </button>
+                ))}
+                {st.count > (st.cards?.length || 0) ? <div className='text-[11px] text-muted-foreground text-center py-1'>+{(st.count - (st.cards?.length || 0)).toLocaleString()} more</div> : null}
+                {!st.cards?.length ? <div className='text-[11px] text-muted-foreground text-center py-6'>Empty</div> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <Card className='overflow-hidden'>
+          <div className='overflow-auto max-h-[70vh]'>
+            <table className='w-full text-sm'>
+              <thead><tr className='text-left text-xs text-muted-foreground border-b border-border sticky top-0 bg-card z-10'><th className='px-4 py-2.5 font-medium'>Company</th><th className='px-3 py-2.5 font-medium'>Sector</th><th className='px-3 py-2.5 font-medium'>Emirate</th><th className='px-3 py-2.5 font-medium'>Rating</th><th className='px-3 py-2.5 font-medium'>Stage</th><th className='px-3 py-2.5 font-medium'>Status</th></tr></thead>
+              <tbody>{rows.map((c: any) => (
+                <tr key={c.id} onClick={() => setRow(c)} className='border-b border-border/50 hover:bg-foreground/5 cursor-pointer'>
+                  <td className='px-4 py-2.5'><div className='flex items-center gap-2.5'><div className='h-7 w-7 shrink-0 rounded-full grid place-items-center text-[10px] font-bold text-white' style={{ background: sectorColor(c.sector) }}>{initials(c.company_name)}</div><span className='font-medium line-clamp-1'>{c.company_name}</span></div></td>
+                  <td className='px-3 py-2.5'><SectorPill s={c.sector} /></td>
+                  <td className='px-3 py-2.5 text-muted-foreground whitespace-nowrap'>{c.emirate}</td>
+                  <td className='px-3 py-2.5 whitespace-nowrap'><Stars v={c.rating} /></td>
+                  <td className='px-3 py-2.5'><span className='inline-flex items-center gap-1.5 text-xs capitalize whitespace-nowrap'><span className='h-2 w-2 rounded-full' style={{ background: STAGE_COLOR[c.stage] }} />{c.stage}</span></td>
+                  <td className='px-3 py-2.5'><div className='flex gap-1 flex-wrap'><StatusChips c={c} /></div></td>
+                </tr>))}</tbody>
+            </table>
+          </div>
+          {rows.length >= 80 ? <div className='px-4 py-2 text-[11px] text-muted-foreground border-t border-border'>Showing the most recent 80 of {(d?.total ?? 0).toLocaleString()} — search or pick a sector to narrow.</div> : null}
+        </Card>
+      )}
+
+      {row ? <RecordDrawer frame0={{ entity: 'supplier', id: row.id, title: 'Supplier #' + row.id, row }}
+        actions={<>
+          <Button className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decide(row.id, 'approve')}>Approve</Button>
+          <Button className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decide(row.id, 'reject')}>Reject</Button>
+          <Button className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decide(row.id, row.banned ? 'unban' : 'ban')}>{row.banned ? 'Unban' : 'Ban'}</Button>
+        </>}
+        onClose={() => setRow(null)} /> : null}
+    </div>
   );
 }
 
