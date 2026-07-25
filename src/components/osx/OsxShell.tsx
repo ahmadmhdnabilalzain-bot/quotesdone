@@ -1609,12 +1609,22 @@ function Workspace({ mod }: { mod: Mod }) {
   if (!d) return (<div className='space-y-4'><div className='flex items-center gap-2'><mod.icon className='h-5 w-5 text-primary/40' /><div className='h-6 w-40 bg-foreground/5 rounded animate-pulse' /></div><div className='grid grid-cols-2 md:grid-cols-4 gap-3'>{Array.from({ length: 4 }).map((_, i) => <div key={i} className='h-20 rounded-lg bg-foreground/5 animate-pulse' />)}</div><div className='h-64 rounded-lg bg-foreground/5 animate-pulse' /></div>);
   const tables: [string, any[]][] = [];
   const scalars: [string, any][] = [];
-  const scan = (o: any) => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (Array.isArray(v)) { if (v.length && typeof v[0] === 'object') tables.push([k, v as any[]]); } else if (v && typeof v === 'object') { scan(v); } else if (typeof v === 'number' || typeof v === 'string') scalars.push([k, v]); } };
+  const charts: [string, { label: string; n: number }[]][] = [];
+  const isCountArr = (rows: any[]): { label: string; n: number }[] | null => {
+    if (!rows.length || rows.length > 24) return null;
+    const keys = Object.keys(rows[0]); if (keys.length > 3) return null;
+    const labelK = keys.find((kk) => /^(key|label|name|category|kind|sector|emirate|month|department|stage|title)$/i.test(kk));
+    const numK = keys.find((kk) => /^(count|n|amount|value|total|balance|runs|c|score)$/i.test(kk));
+    if (!labelK || !numK || !rows.every((r) => typeof r[numK] === 'number')) return null;
+    return rows.map((r) => ({ label: String(r[labelK]), n: Number(r[numK]) }));
+  };
+  const scan = (o: any) => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (Array.isArray(v)) { if (v.length && typeof v[0] === 'object') { const ch = isCountArr(v as any[]); if (ch) charts.push([k, ch]); else tables.push([k, v as any[]]); } } else if (v && typeof v === 'object') { scan(v); } else if (typeof v === 'number' || typeof v === 'string') scalars.push([k, v]); } };
   scan(d);
   return (
     <div className='space-y-5'>
       <div className='flex items-center gap-2'><mod.icon className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>{mod.label}</h1>{mod.id === 'finance' ? <div className='ml-auto flex gap-2'><Button className='h-8 text-xs' variant='outline' onClick={() => { setInvOpen(true); setInvMsg(''); }}>Log invoice (PDF)</Button><Button className='h-8 text-xs' onClick={() => { setGlOpen(true); setGlMsg(''); }}>New journal entry</Button></div> : null}</div>
-      {scalars.length ? <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>{scalars.slice(0, 8).map(([k, v]) => (<Card key={k} className='p-4'><div className='text-xs text-muted-foreground'>{titleCase(k)}</div><div className='text-xl font-bold mt-1'>{fmt(v)}</div></Card>))}</div> : null}
+      {scalars.length ? <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>{scalars.slice(0, 12).map(([k, v]) => (<Card key={k} className='p-4'><div className='text-xs text-muted-foreground'>{titleCase(k)}</div><div className='text-xl font-bold mt-1 tabular-nums'>{fmt(v)}</div></Card>))}</div> : null}
+      {charts.length ? <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>{charts.map(([name, rows]) => (<Card key={name} className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>{titleCase(name)}</div><div className='p-4'><HBars rows={rows.slice(0, 10)} /></div></Card>))}</div> : null}
       {tables.map(([name, rows]) => { const isUuidV = (x: any) => typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x); const cols = (Object.keys(rows[0]).filter((k) => !((k === 'id' || k === 'uuid' || /_id$/.test(k)) && isUuidV((rows[0] as any)[k]))).slice(0, 6)); return (
         <Card key={name} className='overflow-hidden'>
           <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>{titleCase(name)}<Badge variant='secondary'>{rows.length}</Badge></div>
@@ -1626,7 +1636,7 @@ function Workspace({ mod }: { mod: Mod }) {
           </div>
         </Card>
       ); })}
-      {!tables.length && !scalars.length ? <Card className='p-4'><ReadableObject data={d} /></Card> : null}
+      {!tables.length && !scalars.length && !charts.length ? <Card className='p-4'><ReadableObject data={d} /></Card> : null}
 
       <Sheet open={invOpen} onOpenChange={setInvOpen}>
         <SheetContent side='right' className='osx dark w-full sm:max-w-md overflow-y-auto'>
