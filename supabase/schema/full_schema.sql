@@ -5881,6 +5881,35 @@ exception when others then
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agents_board()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare out jsonb;
+begin
+  with runs as (
+    select agent, count(*) filter (where started_at > now() - interval '24 hours') as runs24,
+           count(*) filter (where started_at > now() - interval '24 hours' and status in ('error','failed')) as fails24,
+           max(started_at) as last_run, (array_agg(status order by started_at desc))[1] as last_status
+    from agent_runs group by agent
+  ), base as (
+    select a.agent_key, coalesce(nullif(trim(a.department),''),'General') as department, a.role, a.kind, coalesce(a.active,true) as active,
+      coalesce(r.runs24,0) as runs24, coalesce(r.fails24,0) as fails24, r.last_run, r.last_status
+    from org_agents a left join runs r on r.agent = a.agent_key
+  ), dc as (select department, count(*) c, sum(runs24) rs from base group by department)
+  select jsonb_build_object(
+    'total',(select count(*) from base),
+    'runs24',(select coalesce(sum(runs24),0) from base),
+    'departments',(select coalesce(jsonb_agg(jsonb_build_object('key',d.department,'label',d.department,'count',d.c,'runs',d.rs,
+        'cards',(select jsonb_agg(jsonb_build_object('id',b.agent_key,'agent_key',b.agent_key,'role',b.role,'kind',b.kind,'active',b.active,'runs24',b.runs24,'fails24',b.fails24,'last_status',b.last_status,'last_run',b.last_run) order by b.runs24 desc, b.agent_key) from base b where b.department=d.department))
+        order by d.rs desc nulls last, d.department),'[]'::jsonb) from dc d),
+    'rows',(select coalesce(jsonb_agg(jsonb_build_object('id',b.agent_key,'agent_key',b.agent_key,'department',b.department,'role',b.role,'kind',b.kind,'active',b.active,'runs24',b.runs24,'fails24',b.fails24,'last_status',b.last_status,'last_run',b.last_run) order by b.runs24 desc, b.agent_key),'[]'::jsonb) from base b)
+  ) into out; return out;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ai_gate(p_answer text, p_sources jsonb DEFAULT '[]'::jsonb, p_confidence numeric DEFAULT NULL::numeric, p_action text DEFAULT 'run_agent_action'::text, p_actor text DEFAULT 'agent'::text, p_attrs jsonb DEFAULT '{}'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -7060,6 +7089,34 @@ begin
   end loop;
 
   return jsonb_build_object('ran_at',now(),'kpis',v_kpis,'checkins_queued',n_checkin,'reengage_queued',n_reengage,'escalations',n_esc);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customers_board(p_search text DEFAULT ''::text, p_limit integer DEFAULT 80, p_offset integer DEFAULT 0)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare out jsonb;
+begin
+  with base as (
+    select c.id::text as id, coalesce(nullif(trim(c.full_name),''),'(unnamed)') as full_name, c.email, c.phone,
+      coalesce(c.email_verified,false) as email_verified, coalesce(c.phone_verified,false) as phone_verified, c.banned, c.created_at,
+      case when c.banned then 'banned' when coalesce(c.email_verified,false) or coalesce(c.phone_verified,false) then 'verified' else 'new' end as stage
+    from customers c
+    where coalesce(p_search,'')='' or c.full_name ilike '%'||p_search||'%' or c.email ilike '%'||p_search||'%' or c.phone ilike '%'||p_search||'%'
+  ), ranked as (select *, row_number() over (partition by stage order by created_at desc) rn from base),
+  sc as (select stage, count(*) c from base group by stage)
+  select jsonb_build_object(
+    'total',(select count(*) from base),
+    'stages',(select jsonb_agg(jsonb_build_object('key',s.key,'label',s.label,'count',coalesce((select c from sc where sc.stage=s.key),0),
+      'cards',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'full_name',r.full_name,'email',r.email,'phone',r.phone,'email_verified',r.email_verified,'banned',r.banned) order by r.rn) from ranked r where r.stage=s.key and r.rn<=12),'[]'::jsonb))
+      order by s.ord)
+      from (values ('new','New',1),('verified','Verified',2),('banned','Banned',3)) s(key,label,ord)),
+    'rows',(select coalesce(jsonb_agg(jsonb_build_object('id',b.id,'full_name',b.full_name,'email',b.email,'phone',b.phone,'email_verified',b.email_verified,'phone_verified',b.phone_verified,'banned',b.banned,'stage',b.stage,'created_at',b.created_at) order by b.created_at desc),'[]'::jsonb)
+             from (select * from base order by created_at desc limit greatest(1,least(p_limit,200)) offset greatest(0,p_offset)) b)
+  ) into out; return out;
 end $function$
 
 
@@ -10943,6 +11000,51 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_os_selftest()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+AS $function$
+declare tests text[] := array[
+  'select public.fn_os_command()',
+  'select public.fn_os_nav()',
+  'select public.fn_os_dashboard_viz()',
+  'select public.fn_os_search(''glass'')',
+  'select public.fn_inbox_list()',
+  'select public.fn_ws_exec()','select public.fn_ws_marketplace()','select public.fn_ws_customers()',
+  'select public.fn_ws_operations()','select public.fn_ws_ai()','select public.fn_ws_knowledge()',
+  'select public.fn_ws_documents()','select public.fn_ws_analytics()','select public.fn_ws_company()',
+  'select public.fn_ws_finance()','select public.fn_ws_agents()','select public.fn_ws_marketing()',
+  'select public.fn_ws_ea()','select public.fn_ws_reports()','select public.fn_ws_strategy()',
+  'select public.fn_ws_governance()','select public.fn_ws_fraud()','select public.fn_ws_refunds()',
+  'select public.fn_ws_suppliers(''{}''::jsonb)',
+  'select public.fn_ws_supplier_360(30305)',
+  'select public.fn_ws_agent_ops(''security'')',
+  'select public.fn_suppliers_board('''','''',5,0)',
+  'select public.fn_rfq_board('''',5,0)',
+  'select public.fn_customers_board('''',5,0)',
+  'select public.fn_agents_board()',
+  'select public.fn_os_record(''supplier'',''30305'')',
+  'select public.fn_entity_files(''supplier'',''30372'')',
+  'select public.fn_entity_activity(''supplier'',''4299'')',
+  'select public.fn_os_health()',
+  'select public.fn_os_reconcile()',
+  'select public.fn_os_settings_list()',
+  'select public.fn_os_automation_list()',
+  'select public.fn_os_catalog_list()',
+  'select public.fn_os_incident_list('''')',
+  'select public.fn_os_runbooks()'
+];
+r jsonb := '[]'::jsonb; t text; ec text;
+begin
+  foreach t in array tests loop
+    begin execute t; ec := null;
+    exception when others then ec := SQLERRM; end;
+    r := r || jsonb_build_object('test', split_part(split_part(t,'public.',2),'(',1), 'ok', ec is null, 'err', ec);
+  end loop;
+  return r;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_os_settings_history(p_key text)
  RETURNS jsonb
  LANGUAGE sql
@@ -12672,6 +12774,38 @@ AS $function$
       from review_queue r where r.kind='boost_budget' and r.status='pending'), '[]'::jsonb)
   );
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_rfq_board(p_search text DEFAULT ''::text, p_limit integer DEFAULT 80, p_offset integer DEFAULT 0)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare out jsonb;
+begin
+  with base as (
+    select i.id, coalesce(nullif(trim(i.category),''),'general') as category,
+      coalesce(nullif(trim(i.emirate),''),'—') as emirate,
+      left(coalesce(nullif(trim(i.summary),''), i.raw_input, ''),140) as summary,
+      i.expected_value as value, nullif(btrim(i.budget),'') as budget, i.urgency, i.status, i.outcome, i.created_at,
+      case lower(coalesce(i.pipeline_stage, i.status, ''))
+        when 'won' then 'won' when 'revealed' then 'revealed' when 'quoted' then 'quoted' when 'matched' then 'matched'
+        else (case when i.outcome='won' then 'won' else 'new' end) end as stage
+    from inquiries i
+    where coalesce(p_search,'')='' or i.category ilike '%'||p_search||'%' or i.summary ilike '%'||p_search||'%' or i.emirate ilike '%'||p_search||'%'
+  ), ranked as (select *, row_number() over (partition by stage order by created_at desc, id desc) rn from base),
+  sc as (select stage, count(*) c from base group by stage)
+  select jsonb_build_object(
+    'total',(select count(*) from base),
+    'stages',(select jsonb_agg(jsonb_build_object('key',s.key,'label',s.label,'count',coalesce((select c from sc where sc.stage=s.key),0),
+      'cards',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'category',r.category,'emirate',r.emirate,'summary',r.summary,'value',r.value,'budget',r.budget,'urgency',r.urgency,'status',r.status) order by r.rn) from ranked r where r.stage=s.key and r.rn<=12),'[]'::jsonb))
+      order by s.ord)
+      from (values ('new','New',1),('matched','Matched',2),('quoted','Quoted',3),('revealed','Revealed',4),('won','Won',5)) s(key,label,ord)),
+    'rows',(select coalesce(jsonb_agg(jsonb_build_object('id',b.id,'category',b.category,'emirate',b.emirate,'summary',b.summary,'value',b.value,'budget',b.budget,'urgency',b.urgency,'status',b.status,'stage',b.stage,'created_at',b.created_at) order by b.created_at desc, b.id desc),'[]'::jsonb)
+             from (select * from base order by created_at desc, id desc limit greatest(1,least(p_limit,200)) offset greatest(0,p_offset)) b)
+  ) into out; return out;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_rfq_score(i inquiries)
@@ -15279,6 +15413,45 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.match_suppliers_kw(p_keywords text[] DEFAULT '{}'::text[], p_category text DEFAULT NULL::text, p_emirate text DEFAULT NULL::text, p_role text DEFAULT NULL::text, p_min_rating numeric DEFAULT NULL::numeric, p_limit integer DEFAULT 8)
+ RETURNS TABLE(id bigint, company_name text, emirate text, business_role text, products text, services text, phone text, email text, whatsapp text, website text, rating numeric, reviews integer, capability_summary text, match_score integer, in_emirate boolean)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with base as (
+    select l.id, l.company_name, l.emirate, l.business_role, l.products, l.services,
+           l.phone, l.email, l.whatsapp, l.website, l.rating, l.reviews, l.capability_summary,
+           (
+             (select count(*) from unnest(p_keywords) k
+                where l.products ilike '%'||k||'%' or l.capability_summary ilike '%'||k||'%'
+                   or l.categories ilike '%'||k||'%' or l.company_name ilike '%'||k||'%')::int
+             + case when p_category is not null and l.sector = p_category then 2 else 0 end
+           ) as match_score,
+           coalesce(
+             p_emirate is not null and (
+               l.emirate ilike p_emirate
+               or exists (select 1 from unnest(coalesce(l.service_emirates, '{}')) se where se ilike p_emirate)
+             ), false) as in_emirate
+    from public.leads l
+    where coalesce(l.permanently_closed, false) = false
+      and (p_role is null or l.business_role = p_role)
+      and (p_min_rating is null or l.rating >= p_min_rating)
+      and (
+        (p_category is not null and l.sector = p_category)
+        or exists (select 1 from unnest(p_keywords) k
+                     where l.products ilike '%'||k||'%' or l.capability_summary ilike '%'||k||'%'
+                        or l.categories ilike '%'||k||'%' or l.company_name ilike '%'||k||'%')
+      )
+  )
+  select id, company_name, emirate, business_role, products, services, phone, email, whatsapp,
+         website, rating, reviews, capability_summary, match_score, in_emirate
+  from base
+  order by in_emirate desc, match_score desc, rating desc nulls last, reviews desc nulls last
+  limit coalesce(p_limit, 8);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.match_suppliers_kw(p_keywords text[] DEFAULT '{}'::text[], p_category text DEFAULT NULL::text, p_emirate text DEFAULT NULL::text, p_role text DEFAULT NULL::text, p_min_rating numeric DEFAULT NULL::numeric, p_limit integer DEFAULT 8, p_multi boolean DEFAULT false)
  RETURNS TABLE(id bigint, company_name text, emirate text, business_role text, products text, services text, phone text, email text, whatsapp text, website text, rating numeric, reviews integer, capability_summary text, match_score integer, in_emirate boolean)
  LANGUAGE sql
@@ -15330,45 +15503,6 @@ AS $function$
   where cat_match or strong_hits > 0 or turnkey_match
   order by in_emirate desc, match_score desc, rating desc nulls last, reviews desc nulls last
   limit coalesce(p_limit,8);
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.match_suppliers_kw(p_keywords text[] DEFAULT '{}'::text[], p_category text DEFAULT NULL::text, p_emirate text DEFAULT NULL::text, p_role text DEFAULT NULL::text, p_min_rating numeric DEFAULT NULL::numeric, p_limit integer DEFAULT 8)
- RETURNS TABLE(id bigint, company_name text, emirate text, business_role text, products text, services text, phone text, email text, whatsapp text, website text, rating numeric, reviews integer, capability_summary text, match_score integer, in_emirate boolean)
- LANGUAGE sql
- STABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  with base as (
-    select l.id, l.company_name, l.emirate, l.business_role, l.products, l.services,
-           l.phone, l.email, l.whatsapp, l.website, l.rating, l.reviews, l.capability_summary,
-           (
-             (select count(*) from unnest(p_keywords) k
-                where l.products ilike '%'||k||'%' or l.capability_summary ilike '%'||k||'%'
-                   or l.categories ilike '%'||k||'%' or l.company_name ilike '%'||k||'%')::int
-             + case when p_category is not null and l.sector = p_category then 2 else 0 end
-           ) as match_score,
-           coalesce(
-             p_emirate is not null and (
-               l.emirate ilike p_emirate
-               or exists (select 1 from unnest(coalesce(l.service_emirates, '{}')) se where se ilike p_emirate)
-             ), false) as in_emirate
-    from public.leads l
-    where coalesce(l.permanently_closed, false) = false
-      and (p_role is null or l.business_role = p_role)
-      and (p_min_rating is null or l.rating >= p_min_rating)
-      and (
-        (p_category is not null and l.sector = p_category)
-        or exists (select 1 from unnest(p_keywords) k
-                     where l.products ilike '%'||k||'%' or l.capability_summary ilike '%'||k||'%'
-                        or l.categories ilike '%'||k||'%' or l.company_name ilike '%'||k||'%')
-      )
-  )
-  select id, company_name, emirate, business_role, products, services, phone, email, whatsapp,
-         website, rating, reviews, capability_summary, match_score, in_emirate
-  from base
-  order by in_emirate desc, match_score desc, rating desc nulls last, reviews desc nulls last
-  limit coalesce(p_limit, 8);
 $function$
 
 

@@ -1578,5 +1578,13 @@
  {
   "name": "entity_activity_and_comments",
   "version": "20260725194822"
+ },
+ {
+  "name": "rfq_customers_agents_boards",
+  "version": "20260725200438"
+ },
+ {
+  "name": "fn_rfq_board_fix",
+  "version": "20260725200515"
  }
 ]
