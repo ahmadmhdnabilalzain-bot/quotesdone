@@ -1570,5 +1570,13 @@
  {
   "name": "fn_os_dashboard_viz_agent_runs_fix",
   "version": "20260725191246"
+ },
+ {
+  "name": "fn_suppliers_board",
+  "version": "20260725193552"
+ },
+ {
+  "name": "entity_activity_and_comments",
+  "version": "20260725194822"
  }
 ]

@@ -34,6 +34,7 @@ CREATE SEQUENCE IF NOT EXISTS public.doc_backups_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.doc_versions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.documents_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.dr_restore_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.entity_comments_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.error_events_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.expense_entries_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.expenses_id_seq;
@@ -59,7 +60,7 @@ CREATE SEQUENCE IF NOT EXISTS public.simulations_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supply_health_snapshots_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 
--- ===== TABLES (218) =====\nCREATE TABLE IF NOT EXISTS public.admin_mfa_sessions (
+-- ===== TABLES (219) =====\nCREATE TABLE IF NOT EXISTS public.admin_mfa_sessions (
   session_id text NOT NULL,
   email text,
   verified_at timestamp with time zone DEFAULT now(),
@@ -838,6 +839,15 @@ CREATE TABLE IF NOT EXISTS public.email_verifications (
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   attempts integer DEFAULT 0 NOT NULL,
   token_hash text
+);
+
+CREATE TABLE IF NOT EXISTS public.entity_comments (
+  id bigint DEFAULT nextval('entity_comments_id_seq'::regclass) NOT NULL,
+  entity text NOT NULL,
+  entity_id text NOT NULL,
+  author text DEFAULT 'operator'::text NOT NULL,
+  body text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.error_events (
@@ -2812,6 +2822,7 @@ ALTER TABLE public.ea_reminders ADD CONSTRAINT ea_reminders_pkey PRIMARY KEY (id
 ALTER TABLE public.ea_snapshots ADD CONSTRAINT ea_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.email_suppressions ADD CONSTRAINT email_suppressions_pkey PRIMARY KEY (email);
 ALTER TABLE public.email_verifications ADD CONSTRAINT email_verifications_pkey PRIMARY KEY (id);
+ALTER TABLE public.entity_comments ADD CONSTRAINT entity_comments_pkey PRIMARY KEY (id);
 ALTER TABLE public.error_events ADD CONSTRAINT error_events_pkey PRIMARY KEY (id);
 ALTER TABLE public.escalations_archive_20260724 ADD CONSTRAINT escalations_archive_20260724_pkey PRIMARY KEY (_pk);
 ALTER TABLE public.exec_reports ADD CONSTRAINT exec_reports_pkey PRIMARY KEY (id);
@@ -3006,44 +3017,44 @@ ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_laye
 ALTER TABLE public.company_vision ADD CONSTRAINT company_vision_singleton CHECK ((id = 1));
 ALTER TABLE public.crm_stages ADD CONSTRAINT crm_stages_probability_check CHECK (((probability >= 0) AND (probability <= 100)));
 ALTER TABLE public.customers ADD CONSTRAINT customers_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_cost_check CHECK ((cost >= (0)::numeric));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_useful_life_months_check CHECK ((useful_life_months > 0));
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_status_check CHECK ((status = ANY (ARRAY['active'::text, 'fully_depreciated'::text, 'disposed'::text])));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_method_check CHECK ((method = 'straight_line'::text));
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_cost_check CHECK ((cost >= (0)::numeric));
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_status_check CHECK ((status = ANY (ARRAY['active'::text, 'fully_depreciated'::text, 'disposed'::text])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_normal_balance_check CHECK ((normal_balance = ANY (ARRAY['D'::bpchar, 'C'::bpchar])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_type_check CHECK ((type = ANY (ARRAY['asset'::text, 'liability'::text, 'equity'::text, 'revenue'::text, 'expense'::text])));
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'posted'::text, 'void'::text])));
-ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_line_one_side CHECK (((debit = (0)::numeric) <> (credit = (0)::numeric)));
-ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_credit_check CHECK ((credit >= (0)::numeric));
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_debit_check CHECK ((debit >= (0)::numeric));
+ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_credit_check CHECK ((credit >= (0)::numeric));
+ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_line_one_side CHECK (((debit = (0)::numeric) <> (credit = (0)::numeric)));
 ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_move_type_check CHECK ((move_type = ANY (ARRAY['in'::text, 'out'::text, 'adjust'::text])));
 ALTER TABLE public.leads ADD CONSTRAINT leads_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
-ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_impact_check CHECK ((impact = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_kind_check CHECK ((kind = ANY (ARRAY['competitor'::text, 'trend'::text, 'expansion'::text, 'regulatory'::text, 'other'::text])));
+ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_impact_check CHECK ((impact = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_status_check CHECK ((status = ANY (ARRAY['open'::text, 'reviewed'::text, 'actioned'::text, 'dismissed'::text])));
 ALTER TABLE public.messages ADD CONSTRAINT messages_sender_check CHECK ((sender = ANY (ARRAY['customer'::text, 'supplier'::text])));
 ALTER TABLE public.org_action_executor ADD CONSTRAINT org_action_executor_kind_check CHECK ((kind = ANY (ARRAY['rpc'::text, 'edge'::text])));
 ALTER TABLE public.org_authority ADD CONSTRAINT org_authority_max_tier_check CHECK ((max_tier = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
 ALTER TABLE public.org_objectives ADD CONSTRAINT org_objectives_status_check CHECK ((status = ANY (ARRAY['open'::text, 'in_progress'::text, 'blocked'::text, 'done'::text, 'cancelled'::text])));
 ALTER TABLE public.org_onboarding ADD CONSTRAINT org_onboarding_status_check CHECK ((status = ANY (ARRAY['onboarding'::text, 'probation'::text, 'certified'::text, 'recert_due'::text])));
-ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_tier_check CHECK ((tier = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'assigned'::text, 'in_progress'::text, 'blocked'::text, 'done'::text, 'failed'::text, 'escalated'::text])));
+ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_tier_check CHECK ((tier = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
 ALTER TABLE public.os_settings_meta ADD CONSTRAINT os_settings_meta_type_check CHECK ((type = ANY (ARRAY['money'::text, 'int'::text, 'number'::text, 'bool'::text, 'text'::text, 'textarea'::text, 'html'::text, 'email'::text, 'phone'::text, 'csv'::text])));
 ALTER TABLE public.pdpl_requests ADD CONSTRAINT pdpl_requests_kind_check CHECK ((kind = ANY (ARRAY['export'::text, 'delete'::text])));
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_qty_check CHECK ((qty > (0)::numeric));
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'approved'::text, 'partial'::text, 'received'::text, 'billed'::text, 'closed'::text, 'cancelled'::text])));
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_singleton CHECK ((id = 1));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_quote_amount_check CHECK ((quote_amount > (0)::numeric));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_after_sales_check CHECK (((r_after_sales >= 1) AND (r_after_sales <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_punctuality_check CHECK (((r_punctuality >= 1) AND (r_punctuality <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_documentation_check CHECK (((r_documentation >= 1) AND (r_documentation <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_compliance_check CHECK (((r_compliance >= 1) AND (r_compliance <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_quality_check CHECK (((r_quality >= 1) AND (r_quality <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_communication_check CHECK (((r_communication >= 1) AND (r_communication <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_documentation_check CHECK (((r_documentation >= 1) AND (r_documentation <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_after_sales_check CHECK (((r_after_sales >= 1) AND (r_after_sales <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
-ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_likelihood_check CHECK (((likelihood >= 1) AND (likelihood <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_quality_check CHECK (((r_quality >= 1) AND (r_quality <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_punctuality_check CHECK (((r_punctuality >= 1) AND (r_punctuality <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_impact_check CHECK (((impact >= 1) AND (impact <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_status_check CHECK ((status = ANY (ARRAY['open'::text, 'mitigating'::text, 'accepted'::text, 'closed'::text])));
+ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_likelihood_check CHECK (((likelihood >= 1) AND (likelihood <= 5)));
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_pay_journal_id_fkey FOREIGN KEY (pay_journal_id) REFERENCES gl_journal(id);
@@ -3054,45 +3065,45 @@ ALTER TABLE public.customer_phone_otps ADD CONSTRAINT customer_phone_otps_custom
 ALTER TABLE public.doc_reviews ADD CONSTRAINT doc_reviews_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.experiment_assignments ADD CONSTRAINT experiment_assignments_experiment_fkey FOREIGN KEY (experiment) REFERENCES experiments(key);
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_accum_account_fkey FOREIGN KEY (accum_account) REFERENCES gl_accounts(code);
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_expense_account_fkey FOREIGN KEY (expense_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_asset_account_fkey FOREIGN KEY (asset_account) REFERENCES gl_accounts(code);
-ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_asset_id_fkey FOREIGN KEY (asset_id) REFERENCES fa_assets(id) ON DELETE CASCADE;
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_expense_account_fkey FOREIGN KEY (expense_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
+ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_asset_id_fkey FOREIGN KEY (asset_id) REFERENCES fa_assets(id) ON DELETE CASCADE;
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_parent_code_fkey FOREIGN KEY (parent_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_expense_map ADD CONSTRAINT gl_expense_map_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_reverses_fkey FOREIGN KEY (reverses) REFERENCES gl_journal(id);
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_journal_id_fkey FOREIGN KEY (journal_id) REFERENCES gl_journal(id) ON DELETE CASCADE;
 ALTER TABLE public.inbound_messages ADD CONSTRAINT inbound_messages_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
-ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
-ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;
-ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_parent_inquiry_id_fkey FOREIGN KEY (parent_inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_hired_supplier_id_fkey FOREIGN KEY (hired_supplier_id) REFERENCES leads(id);
-ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_parent_inquiry_id_fkey FOREIGN KEY (parent_inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
+ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_requirement ADD CONSTRAINT inquiry_requirement_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
-ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_inventory_account_fkey FOREIGN KEY (inventory_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_cogs_account_fkey FOREIGN KEY (cogs_account) REFERENCES gl_accounts(code);
+ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_inventory_account_fkey FOREIGN KEY (inventory_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
 ALTER TABLE public.mdm_cities ADD CONSTRAINT mdm_cities_emirate_code_fkey FOREIGN KEY (emirate_code) REFERENCES mdm_emirates(code);
+ALTER TABLE public.messages ADD CONSTRAINT messages_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.messages ADD CONSTRAINT messages_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.messages ADD CONSTRAINT messages_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
-ALTER TABLE public.messages ADD CONSTRAINT messages_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.org_agents ADD CONSTRAINT org_agents_department_fkey FOREIGN KEY (department) REFERENCES org_departments(dept_key);
 ALTER TABLE public.org_authority ADD CONSTRAINT org_authority_dept_key_fkey FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key) ON DELETE CASCADE;
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_dept_key_fkey FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key);
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_objective_id_fkey FOREIGN KEY (objective_id) REFERENCES org_objectives(id) ON DELETE CASCADE;
 ALTER TABLE public.pdpl_erase_files ADD CONSTRAINT pdpl_erase_files_request_id_fkey FOREIGN KEY (request_id) REFERENCES pdpl_requests(id) ON DELETE CASCADE;
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
-ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id) ON DELETE CASCADE;
+ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
 ALTER TABLE public.projects ADD CONSTRAINT projects_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE;
 ALTER TABLE public.prompt_versions ADD CONSTRAINT prompt_versions_prompt_key_fkey FOREIGN KEY (prompt_key) REFERENCES prompts(key);
 ALTER TABLE public.questions ADD CONSTRAINT questions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
-ALTER TABLE public.questions ADD CONSTRAINT questions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.questions ADD CONSTRAINT questions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
+ALTER TABLE public.questions ADD CONSTRAINT questions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_committed_items ADD CONSTRAINT quote_committed_items_review_id_fkey FOREIGN KEY (review_id) REFERENCES quote_reviews(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_review_messages ADD CONSTRAINT quote_review_messages_review_id_fkey FOREIGN KEY (review_id) REFERENCES quote_reviews(id) ON DELETE CASCADE;
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
@@ -3101,14 +3112,14 @@ ALTER TABLE public.regulations ADD CONSTRAINT regulations_supersedes_id_fkey FOR
 ALTER TABLE public.reveal_invoices ADD CONSTRAINT reveal_invoices_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE;
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
 ALTER TABLE public.role_permissions ADD CONSTRAINT role_permissions_role_fkey FOREIGN KEY (role) REFERENCES roles(name);
 ALTER TABLE public.supplier_capabilities ADD CONSTRAINT supplier_capabilities_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_role_fkey FOREIGN KEY (role) REFERENCES roles(name);
 
 -- ===== INDEXES =====
@@ -3150,6 +3161,7 @@ CREATE INDEX idx_documents_status ON public.documents USING btree (status) WHERE
 CREATE INDEX idx_docver_entity ON public.doc_versions USING btree (entity_type, entity_id, version DESC);
 CREATE INDEX idx_email_verif_email ON public.email_verifications USING btree (email);
 CREATE INDEX idx_email_verif_token ON public.email_verifications USING btree (token);
+CREATE INDEX idx_entity_comments_lookup ON public.entity_comments USING btree (entity, entity_id, created_at DESC);
 CREATE INDEX idx_error_events_created ON public.error_events USING btree (created_at DESC);
 CREATE INDEX idx_gl_journal_date ON public.gl_journal USING btree (entry_date);
 CREATE INDEX idx_gl_journal_source ON public.gl_journal USING btree (source, source_ref);
@@ -7690,6 +7702,50 @@ begin
   get diagnostics m = row_count; n := n + m;
 
   return n;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_entity_activity(p_entity text, p_id text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare out jsonb := '[]'::jsonb; l public.leads%rowtype;
+begin
+  -- comments (all entities)
+  out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','comment','title','Comment','actor',c.author,'body',c.body,'at',c.created_at)) from public.entity_comments c where c.entity=p_entity and c.entity_id=p_id),'[]'::jsonb);
+  -- audit trail (all entities)
+  out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','audit','title',a.action,'actor',a.actor,'at',a.at,'ok',a.ok)) from public.os_audit_log a where a.entity_id=p_id and (a.entity=p_entity or (p_entity='supplier' and a.entity in ('leads','supplier','suppliers')))),'[]'::jsonb);
+  if p_entity = 'supplier' then
+    select * into l from public.leads where id = p_id::bigint;
+    if l.id is not null then
+      out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','agent','title',coalesce(nullif(btrim(aa.title),''), aa.kind),'actor',aa.agent,'body',aa.recommendation,'at',aa.created_at,'status',aa.status)) from public.agent_actions aa where aa.target_table='leads' and aa.target_id::text = p_id),'[]'::jsonb);
+      out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','milestone','title',v.label,'actor','system','at',v.ts)) from (values
+        ('Sourced', l.created_at),('Scraped', l.scraped_at),('Invited', l.invited_at),('AI reviewed', l.ai_reviewed_at),
+        ('Documents extracted', l.doc_extracted_at),('Capability enriched', l.capability_enriched_at),
+        ('Registration submitted', l.registration_submitted_at),('Terms accepted', l.accepted_terms_at),
+        ('Terms signed', l.signed_terms_at),('Approved', l.approved_at)
+      ) v(label, ts) where v.ts is not null),'[]'::jsonb);
+    end if;
+  end if;
+  return coalesce((select jsonb_agg(e) from (select e from jsonb_array_elements(out) e where (e->>'at') is not null order by (e->>'at') desc limit 80) z),'[]'::jsonb);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_entity_comment_add(p_entity text, p_id text, p_author text, p_body text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare r public.entity_comments%rowtype;
+begin
+  if coalesce(btrim(p_body),'') = '' then return jsonb_build_object('ok', false, 'error', 'empty'); end if;
+  insert into public.entity_comments(entity, entity_id, author, body)
+    values (p_entity, p_id, coalesce(nullif(btrim(p_author),''),'operator'), left(p_body, 4000))
+    returning * into r;
+  return jsonb_build_object('ok', true, 'id', r.id, 'at', r.created_at);
 end $function$
 
 
@@ -13764,6 +13820,48 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_suppliers_board(p_search text DEFAULT ''::text, p_sector text DEFAULT ''::text, p_limit integer DEFAULT 60, p_offset integer DEFAULT 0)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare out jsonb;
+begin
+  with base as (
+    select l.id, l.company_name,
+      coalesce(nullif(trim(l.sector),''),'general') as sector,
+      coalesce(nullif(trim(l.emirate),''),'—') as emirate,
+      coalesce(l.rating, l.app_rating) as rating,
+      l.verified, (l.approved_at is not null) as approved, l.banned,
+      (l.invited_at is not null) as invited, l.claimed, (l.registration_submitted_at is not null) as registered,
+      coalesce(l.capability_score,0) as capability_score, l.created_at,
+      case when l.approved_at is not null then 'approved' when l.verified then 'verified'
+           when l.registration_submitted_at is not null then 'registered' when l.invited_at is not null then 'invited'
+           when l.contacted then 'contacted' else 'sourced' end as stage
+    from leads l
+    where (coalesce(p_search,'') = '' or l.company_name ilike '%'||p_search||'%' or l.sector ilike '%'||p_search||'%' or l.emirate ilike '%'||p_search||'%')
+      and (coalesce(p_sector,'') = '' or l.sector = p_sector)
+  ),
+  ranked as (select *, row_number() over (partition by stage order by created_at desc, id desc) as rn from base),
+  stagecounts as (select stage, count(*) as c from base group by stage)
+  select jsonb_build_object(
+    'total', (select count(*) from base),
+    'stages', (
+      select jsonb_agg(jsonb_build_object('key', s.key, 'label', s.label,
+        'count', coalesce((select c from stagecounts sc where sc.stage=s.key),0),
+        'cards', coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'company_name',r.company_name,'sector',r.sector,'emirate',r.emirate,'rating',r.rating,'verified',r.verified,'approved',r.approved,'banned',r.banned,'capability_score',r.capability_score) order by r.rn) from ranked r where r.stage=s.key and r.rn<=12),'[]'::jsonb))
+        order by s.ord)
+      from (values ('sourced','Sourced',1),('contacted','Contacted',2),('invited','Invited',3),('registered','Registered',4),('verified','Verified',5),('approved','Approved',6)) s(key,label,ord)
+    ),
+    'rows', (select coalesce(jsonb_agg(jsonb_build_object('id',b.id,'company_name',b.company_name,'sector',b.sector,'emirate',b.emirate,'rating',b.rating,'verified',b.verified,'approved',b.approved,'banned',b.banned,'invited',b.invited,'registered',b.registered,'stage',b.stage,'capability_score',b.capability_score,'created_at',b.created_at) order by b.created_at desc, b.id desc),'[]'::jsonb)
+             from (select * from base order by created_at desc, id desc limit greatest(1,least(p_limit,200)) offset greatest(0,p_offset)) b),
+    'sectors', (select coalesce(jsonb_agg(jsonb_build_object('label',x.sector,'n',x.n) order by x.n desc),'[]'::jsonb) from (select sector, count(*) n from base group by sector order by count(*) desc limit 12) x)
+  ) into out;
+  return out;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supply_health()
  RETURNS void
  LANGUAGE plpgsql
@@ -16744,6 +16842,7 @@ ALTER TABLE public.ea_reminders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ea_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_suppressions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_verifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.entity_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.error_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.escalations_archive_20260724 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exec_reports ENABLE ROW LEVEL SECURITY;
