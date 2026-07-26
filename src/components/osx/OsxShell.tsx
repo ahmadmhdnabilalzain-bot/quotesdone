@@ -2053,6 +2053,39 @@ function StrategyApp() {
   </div>);
 }
 
+const KGAP_TONE: Record<string, string> = { ok: 'green', thin: 'amber', stale: 'amber', missing: 'red' };
+function KnowledgeHealthCard() {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const [rbusy, setRbusy] = React.useState(''); const [msg, setMsg] = React.useState(''); const [show, setShow] = React.useState<'gaps' | 'all'>('gaps');
+  const load = React.useCallback(() => { setBusy(true); osApi('knowledge_gaps').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const refresh = async (slug: string) => { setRbusy(slug); setMsg(''); try { await osApi('knowledge_refresh', { slug }); setMsg('Refreshed ' + slug + ' — knowledge regenerated.'); load(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); } setRbusy(''); };
+  const sweep = async () => { setBusy(true); setMsg(''); try { const r: any = await osApi('knowledge_dispatch'); setMsg('Gap sweep run — ' + (r?.gaps_found ?? 0) + ' open task(s) for lagging agents.'); load(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); } setBusy(false); };
+  if (err && !d) return <Card className='p-4 text-sm text-destructive'>Could not load knowledge health: {err}</Card>;
+  const s = d?.summary || {}; const agents = (d?.agents || []) as any[];
+  const shown = show === 'gaps' ? agents.filter((a) => a.status !== 'ok') : agents;
+  const cov = Number(s.coverage_pct) || 0;
+  return (
+    <SectionCard title='Agent knowledge health' count={s.total} right={<div className='flex items-center gap-2'>{msg ? <span className='text-[11px] text-muted-foreground'>{msg}</span> : null}<Button className='h-7 text-xs' variant='outline' disabled={busy} onClick={sweep}>{busy ? '…' : 'Run gap sweep'}</Button></div>}>
+      <div className='p-4 space-y-3'>
+        <div className='flex items-center gap-2'><span className='text-xs text-muted-foreground w-24'>Fresh coverage</span><div className='flex-1 h-2 rounded-full bg-foreground/[0.06] overflow-hidden'><div className={cn('h-full rounded-full', cov >= 70 ? 'bg-emerald-500' : cov >= 40 ? 'bg-amber-500' : 'bg-red-500')} style={{ width: Math.max(2, cov) + '%' }} /></div><span className='text-[11px] tabular-nums text-muted-foreground'>{cov}%</span></div>
+        <div className='flex flex-wrap gap-2 text-[11px]'>{s.ok ? <Chip label={s.ok + ' fresh'} tone='green' /> : null}{s.stale ? <Chip label={s.stale + ' stale'} tone='amber' /> : null}{s.thin ? <Chip label={s.thin + ' thin'} tone='amber' /> : null}{s.missing ? <Chip label={s.missing + ' missing'} tone='red' /> : null}<span className='text-muted-foreground ml-auto'>Chief of Staff opens an auto-closing task per lagging agent daily; the curator refreshes the stalest.</span></div>
+        <div className='inline-flex rounded-md border border-border overflow-hidden text-xs'>{([['gaps', 'Needs refresh ' + agents.filter((a) => a.status !== 'ok').length], ['all', 'All ' + agents.length]] as [any, string][]).map(([f, lbl]) => (<button key={f} onClick={() => setShow(f)} className={cn('h-7 px-2.5 border-l first:border-l-0 border-border', show === f ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}>{lbl}</button>))}</div>
+        <div className='overflow-auto max-h-80 rounded-md border border-border'>
+          <table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border sticky top-0 bg-card'><th className='px-3 py-2 font-medium'>Agent</th><th className='px-3 py-2 font-medium'>Items</th><th className='px-3 py-2 font-medium'>Last refresh</th><th className='px-3 py-2 font-medium'>Status</th><th className='px-3 py-2' /></tr></thead>
+            <tbody>{shown.map((a) => (<tr key={a.slug} className='border-b border-border/40'>
+              <td className='px-3 py-2 font-medium'>{a.emoji ? a.emoji + ' ' : ''}{a.name}</td>
+              <td className='px-3 py-2 tabular-nums'>{a.items}</td>
+              <td className='px-3 py-2 text-muted-foreground whitespace-nowrap'>{a.days_stale == null ? 'never' : a.days_stale + 'd ago'}</td>
+              <td className='px-3 py-2'><Chip label={titleCase(String(a.status))} tone={KGAP_TONE[a.status] || 'slate'} /></td>
+              <td className='px-3 py-2 text-right'><Button className='h-7 text-xs' variant='outline' disabled={rbusy === a.slug} onClick={() => refresh(a.slug)}>{rbusy === a.slug ? 'Refreshing…' : 'Refresh'}</Button></td>
+            </tr>))}{!shown.length ? <tr><td colSpan={5} className='px-3 py-6 text-center text-sm text-muted-foreground'>All agents are fresh.</td></tr> : null}</tbody>
+          </table>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
 function GovernanceApp() {
   const { d, err, busy, load } = useWs('ws.governance');
   if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Governance: {err}</Card>;
@@ -2070,6 +2103,7 @@ function GovernanceApp() {
       <SectionCard title='Universal rules' count={rules.length}><div className='p-4 space-y-1.5 max-h-64 overflow-y-auto'>{rules.map((r: any, i: number) => (<div key={i} className='text-xs flex gap-2'><Check className='h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5' /><span>{typeof r === 'string' ? r : (r.rule || r.title || fmt(r))}</span></div>))}</div></SectionCard>
     </div>
     <SectionCard title='Recent escalations' count={esc.length}>{esc.length ? <div className='divide-y divide-border'>{esc.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5'><div className='text-sm font-medium flex items-center gap-1.5'>{e.title}<span className='text-[11px] text-muted-foreground'>{e.agent}</span>{e.confidence != null ? <Chip label={Math.round(e.confidence * 100) + '%'} tone='blue' /> : null}</div><div className='text-xs text-muted-foreground mt-0.5'>{e.reason} · {fmt(e.created)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No recent escalations.</div>}</SectionCard>
+    <KnowledgeHealthCard />
     {(cov || []).length ? <SectionCard title='Agent coverage' count={cov.length}><div className='overflow-auto max-h-72'><table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border sticky top-0 bg-card'><th className='px-4 py-2 font-medium'>Agent</th><th className='px-3 py-2 font-medium'>Persona</th><th className='px-3 py-2 font-medium'>Knowledge</th><th className='px-3 py-2 font-medium'>Audit items</th></tr></thead><tbody>{cov.map((c: any, i: number) => (<tr key={i} className='border-b border-border/40'><td className='px-4 py-2'>{c.agent}</td><td className='px-3 py-2'>{c.has_persona ? <Check className='h-4 w-4 text-emerald-500' /> : <Minus className='h-4 w-4 text-muted-foreground/40' />}</td><td className='px-3 py-2'>{c.has_knowledge ? <Check className='h-4 w-4 text-emerald-500' /> : <Minus className='h-4 w-4 text-muted-foreground/40' />}</td><td className='px-3 py-2 tabular-nums'>{c.audit_items}</td></tr>))}</tbody></table></div></SectionCard> : null}
   </div>);
 }

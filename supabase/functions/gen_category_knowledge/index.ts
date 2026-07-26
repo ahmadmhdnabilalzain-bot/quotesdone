@@ -22,12 +22,24 @@ Deno.serve(async (req)=>{
   const ork=await sec('openrouter_api_key'); if(!ork) { await logRun('error',{generated:0},'openrouter_api_key missing from app_secrets: no category knowledge generated this run, category agent field knowledge is stale'); return new Response(JSON.stringify({error:'no key'}),{status:200,headers:{'Content-Type':'application/json'}}); }
   const limit=Math.max(1,Math.min(24,Number(b.limit)||8));
   const force=b.force===true;
-  // categories that already have a field-knowledge row
-  const { data: have } = await admin.from('agent_knowledge').select('agent_key').like('agent_key','cat:%').eq('topic',TOPIC);
-  const haveSet=new Set((have||[]).map((r:any)=>r.agent_key));
+  const staleDays=Math.max(1,Number(b.stale_days)||14);
+  const targetSlug=(typeof b.slug==='string' && b.slug.trim()) ? b.slug.trim() : null;
+  // existing field-knowledge rows + freshness (so we can REFRESH the stalest, not just fill gaps)
+  const { data: have } = await admin.from('agent_knowledge').select('agent_key,updated_at').like('agent_key','cat:%').eq('topic',TOPIC);
+  const fresh=new Map<string,number>((have||[]).map((r:any)=>[r.agent_key, r.updated_at? Date.parse(r.updated_at):0]));
   const { data: cats } = await admin.from('category_agents').select('slug,name').eq('active',true);
-  let pool=(cats||[]).filter((c:any)=> force || !haveSet.has('cat:'+c.slug));
-  pool=pool.slice(0,limit);
+  let pool:any[];
+  if(targetSlug){
+    // targeted refresh of a single category (used by the OS "Refresh now" action)
+    pool=(cats||[]).filter((c:any)=> c.slug===targetSlug);
+  } else {
+    const staleBefore=Date.now()-staleDays*86400000;
+    const withMeta=(cats||[]).map((c:any)=>({ ...c, has:fresh.has('cat:'+c.slug), age:fresh.get('cat:'+c.slug)??0 }));
+    const missing=withMeta.filter((c:any)=> !c.has);                                   // never generated → fill first
+    const stale=withMeta.filter((c:any)=> c.has && (force || c.age < staleBefore))     // existing but aged → refresh
+      .sort((a:any,b:any)=> a.age - b.age);                                            // oldest first
+    pool=[...missing, ...stale].slice(0,limit);
+  }
   const results = await Promise.all(pool.map(async (c:any)=>{
     const sys='You are compiling the FIELD KNOWLEDGE BASE for an AI sales specialist agent that owns the "'+c.name+'" trade category on QuotesDone, a UAE B2B sourcing marketplace (focus Dubai). This text is injected directly into the agent\'s brain so it can talk to UAE customers and suppliers as a genuine expert in '+c.name+' and qualify jobs precisely. Write a dense, ACCURATE domain brief of 230-340 words covering, specifically for '+c.name+' in the UAE: (1) GOVERNING AUTHORITY & APPROVALS — the actual UAE regulator(s)/permits/NOC steps that apply to THIS trade (examples of the kind of bodies, only where they truly apply: Dubai Civil Defence (DCD) and the UAE Fire and Life Safety Code of Practice for fire/life-safety; SIRA — Security Industry Regulatory Agency — and Dubai Police for CCTV/security; DEWA for electrical connection and Shams Dubai net-metering for solar; Dubai Municipality; Trakhees for ports/free-zone areas; ESMA/Emirates Conformity; RTA; Dubai Development Authority). (2) STANDARDS — the technical standards that genuinely apply (e.g. NFPA, IEC, EN, BS, ISO, ASHRAE, ASTM, DEWA regulations) — give specific numbers ONLY when you are confident they are correct; otherwise name the standard without a number. (3) SCOPE & SPECS — the core components, materials, equipment, ratings/capacities and technical terms that buyers and suppliers actually discuss. (4) PRICE DRIVERS. (5) COMPLIANCE PITFALLS / RED FLAGS and the sharp qualifying questions the agent should ask a customer. Be concrete and UAE-specific. HARD RULE: never invent code numbers, authority names, retention periods or figures — if unsure of an exact number, refer to the requirement by name without a number rather than guessing. Output ONLY the knowledge-brief text, no preamble or headings list.';
     const user='Trade category: '+c.name+' (slug: '+c.slug+'). Market: United Arab Emirates (focus Dubai). Write its expert field knowledge base now.';

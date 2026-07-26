@@ -17628,3 +17628,12 @@ AS $function$
     'review', (select coalesce(fn_review_pending(),'[]'::jsonb))
   );
 $function$;
+
+
+-- ── Knowledge gap-detection → dispatch → verify loop (chief of staff / curator) — added 2026-07-26 ──
+-- fn_knowledge_gaps: per-agent knowledge freshness (maps bare slug + cat:slug keys).
+-- fn_dispatch_agent_knowledge_gaps: opens one auto-closing kn_task per stale/thin agent.
+-- fn_knowledge_curator now calls the dispatch each daily run; gen_category_knowledge (edge fn)
+-- refreshes the stalest categories so tasks actually close. Companion migration
+-- revoke_anon_execute_on_os_secdef_rpcs revoked anon/authenticated EXECUTE on 9 OS SECURITY
+-- DEFINER RPCs. See Supabase migrations knowledge_gap_loop / hook_agent_gap_dispatch_into_curator.
