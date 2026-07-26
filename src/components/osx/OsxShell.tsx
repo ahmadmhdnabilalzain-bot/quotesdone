@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight, Minus, Maximize2, Minimize2, ExternalLink, SquareStack, X } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight, Minus, Maximize2, Minimize2, ExternalLink, SquareStack, X, ChevronRight, Check } from 'lucide-react';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -902,25 +902,25 @@ function Knowledge() {
     <div className='space-y-5'>
       <div className='flex items-center gap-2'><BookOpen className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Knowledge coverage</h1><Button className='h-8 text-xs ml-auto' variant='outline' disabled={busy === '__report'} onClick={genReport}>{busy === '__report' ? 'Generating…' : 'Weekly learnings PDF'}</Button></div>
       {err ? <div className='text-xs text-destructive'>{err}</div> : null}
-      <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>
-        <Card className='p-4'><div className='text-xs text-muted-foreground'>Covered</div><div className='text-2xl font-bold mt-1 text-emerald-300'>{fmt(ck.covered ?? 0)}</div></Card>
-        <Card className='p-4'><div className='text-xs text-muted-foreground'>Thin</div><div className='text-2xl font-bold mt-1 text-amber-300'>{fmt(ck.thin ?? 0)}</div></Card>
-        <Card className='p-4'><div className='text-xs text-muted-foreground'>Gaps</div><div className='text-2xl font-bold mt-1 text-red-300'>{fmt(ck.gaps ?? 0)}</div></Card>
-        <Card className='p-4'><div className='text-xs text-muted-foreground'>Service categories</div><div className='text-2xl font-bold mt-1'>{fmt(ck.total ?? 0)}</div></Card>
-      </div>
+      {(() => { const tot = Number(ck.total ?? rows.length) || 1; const covPct = Math.round((Number(ck.covered ?? 0) / tot) * 100); return (
+        <Card className='p-4'>
+          <div className='flex items-center justify-between mb-2'><div className='text-sm font-semibold'>Overall coverage</div><div className='text-sm font-bold tabular-nums'>{covPct}%</div></div>
+          <div className='h-2.5 rounded-full bg-foreground/[0.06] overflow-hidden flex'><div className='h-full bg-emerald-500' style={{ width: (Number(ck.covered ?? 0) / tot * 100) + '%' }} /><div className='h-full bg-amber-500' style={{ width: (Number(ck.thin ?? 0) / tot * 100) + '%' }} /><div className='h-full bg-red-500' style={{ width: (Number(ck.gaps ?? 0) / tot * 100) + '%' }} /></div>
+          <div className='flex flex-wrap gap-x-5 gap-y-1 mt-2 text-xs'><span className='inline-flex items-center gap-1.5'><span className='h-2 w-2 rounded-full bg-emerald-500' />Covered <b>{fmt(ck.covered ?? 0)}</b></span><span className='inline-flex items-center gap-1.5'><span className='h-2 w-2 rounded-full bg-amber-500' />Thin <b>{fmt(ck.thin ?? 0)}</b></span><span className='inline-flex items-center gap-1.5'><span className='h-2 w-2 rounded-full bg-red-500' />Gaps <b>{fmt(ck.gaps ?? 0)}</b></span><span className='text-muted-foreground ml-auto'>{fmt(ck.total ?? 0)} service categories</span></div>
+        </Card>); })()}
       <Card className='overflow-hidden'>
         <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Coverage by category<Badge variant='secondary'>{rows.length}</Badge></div>
         <div className='overflow-auto max-h-[560px]'>
           <table className='w-full text-sm'>
-            <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'><th className='px-4 py-2 font-medium'>Category</th><th className='px-4 py-2 font-medium'>Chunks</th><th className='px-4 py-2 font-medium'>Status</th><th className='px-4 py-2 font-medium'></th></tr></thead>
-            <tbody>{rows.map((r: any) => (
-              <tr key={r.category} className='border-b border-border/40'>
-                <td className='px-4 py-2.5'>{r.label || titleCase(r.category)}</td>
-                <td className='px-4 py-2.5'>{fmt(r.chunks)}</td>
-                <td className='px-4 py-2.5'><Badge variant={r.status === 'covered' ? 'outline' : 'secondary'}>{r.status}</Badge></td>
-                <td className='px-4 py-2.5 text-right'>{r.status !== 'covered' ? <Button className='h-7 text-xs' disabled={busy === r.category} onClick={() => fill(r.category, r.label || r.category)}>{busy === r.category ? 'Generating…' : 'Fill gap'}</Button> : null}</td>
+            <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'><th className='px-4 py-2 font-medium'>Category</th><th className='px-4 py-2 font-medium w-40'>Chunks</th><th className='px-4 py-2 font-medium'>Status</th><th className='px-4 py-2 font-medium text-right'>Action</th></tr></thead>
+            <tbody>{rows.map((r: any) => { const chunks = Number(r.chunks) || 0; const pct = Math.min(100, (chunks / 8) * 100); return (
+              <tr key={r.category} className='border-b border-border/40 hover:bg-foreground/5'>
+                <td className='px-4 py-2.5 font-medium'>{r.label || titleCase(r.category)}</td>
+                <td className='px-4 py-2.5'><div className='flex items-center gap-2'><div className='w-20 h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full' style={{ width: Math.max(2, pct) + '%', background: chunks === 0 ? 'hsl(0 72% 55%)' : chunks < 3 ? 'hsl(38 92% 50%)' : 'hsl(160 60% 42%)' }} /></div><span className='text-[11px] text-muted-foreground tabular-nums'>{chunks}</span></div></td>
+                <td className='px-4 py-2.5'><Chip label={r.status} tone={statusTone(String(r.status))} /></td>
+                <td className='px-4 py-2.5 text-right'>{r.status !== 'covered' ? <Button className='h-7 text-xs' disabled={busy === r.category} onClick={() => fill(r.category, r.label || r.category)}>{busy === r.category ? 'Generating…' : 'Fill gap'}</Button> : <Check className='h-4 w-4 text-emerald-600 inline' />}</td>
               </tr>
-            ))}</tbody>
+            ); })}</tbody>
           </table>
         </div>
       </Card>
@@ -1165,6 +1165,8 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
   React.useEffect(() => { load(); }, [load]);
   const openItem = (it: any) => { setSel(it); setDraft(it.draft || ''); setMsg(''); };
   const send = async () => { if (!sel) return; setBusy(true); setMsg(''); try { await osApi('inbox_send', { id: sel.id, body: draft }); setSel(null); load(); } catch (e: any) { setMsg('Could not send: ' + (e?.message || 'error')); } setBusy(false); };
+  const [dbusy, setDbusy] = React.useState<string | null>(null);
+  const decide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('action_decide', { id, op }); load(); } catch (_e) { } setDbusy(null); };
   if (err) return <Card className='p-6 text-sm text-destructive'>Could not load escalations: {err}</Card>;
   if (!d) return <div className='text-muted-foreground text-sm'>Loading escalations…</div>;
   const kpis = (d.inbox && d.inbox.kpis) || {}; const rows = (d.inbox && d.inbox.rows) || []; const attention = d.attention || [];
@@ -1191,10 +1193,14 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
       {attention.length ? <Card className='overflow-hidden'>
         <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Agent decisions held for review<Badge variant='secondary'>{attention.length}</Badge></div>
         <div className='divide-y divide-border'>{attention.map((a: any) => (
-          <button key={a.id} onClick={() => onNav('agents')} title='Review in Smart Engine' className='w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-foreground/5 transition-colors'>
-            <div className='min-w-0'><div className='text-sm truncate'>{titleCase(String(a.kind || 'decision'))} · <span className='text-muted-foreground'>{a.actor}</span></div><div className='text-xs text-muted-foreground'>{a.decision} → {a.route_to}</div></div>
-            <Badge variant='outline'>held</Badge>
-          </button>
+          <div key={a.id} className='px-4 py-3 flex items-center justify-between gap-3 hover:bg-foreground/5 transition-colors'>
+            <div className='min-w-0'><div className='text-sm truncate flex items-center gap-2'>{titleCase(String(a.kind || 'decision'))} · <span className='text-muted-foreground'>{a.actor}</span>{a.risk ? <Chip label={a.risk} tone={riskTone(String(a.risk))} /> : null}</div><div className='text-xs text-muted-foreground truncate'>{a.title || a.decision} → {a.route_to}</div></div>
+            <div className='flex items-center gap-1.5 shrink-0'>
+              <Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>{dbusy === String(a.id) + 'approve' ? '…' : 'Approve'}</Button>
+              <Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>{dbusy === String(a.id) + 'reject' ? '…' : 'Reject'}</Button>
+              <button onClick={() => onNav('agents')} title='Review in Smart Engine' className='text-muted-foreground hover:text-foreground'><ArrowUpRight className='h-4 w-4' /></button>
+            </div>
+          </div>
         ))}</div>
       </Card> : null}
       <Sheet open={!!sel} onOpenChange={(o) => { if (!o) setSel(null); }}>
@@ -1417,6 +1423,27 @@ function SuppliersApp() {
   );
 }
 
+// ── Smart table cell: colored status/priority/risk chips, progress bars, money — Odoo/NetSuite-style ──
+const CHIP_TONE: Record<string, string> = { green: 'bg-emerald-500/15 text-emerald-600', amber: 'bg-amber-500/15 text-amber-600', red: 'bg-red-500/15 text-red-600', blue: 'bg-blue-500/15 text-blue-600', slate: 'bg-foreground/[0.07] text-muted-foreground', violet: 'bg-violet-500/15 text-violet-600' };
+function Chip({ label, tone }: { label: string; tone: string }) { return <span className={cn('inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-full font-medium capitalize whitespace-nowrap', CHIP_TONE[tone] || CHIP_TONE.slate)}>{label}</span>; }
+function statusTone(v: string): string { const s = String(v).toLowerCase(); if (/(done|resolved|approved|success|active|healthy|passed|paid|won|live|verified|closed|covered|complete|granted|ok\b)/.test(s)) return 'green'; if (/(error|fail|banned|rejected|critical|urgent|overdue|lost|blocked|gap|down|breach|denied)/.test(s)) return 'red'; if (/(pending|open|held|review|untriaged|draft|queued|waiting|matched|thin|warn|attention|hold|new\b)/.test(s)) return 'amber'; if (/(low|info|quoted|revealed|sent|sourced|contacted|invited|closed)/.test(s)) return 'slate'; return 'blue'; }
+function priorityTone(v: string): string { const s = String(v).toLowerCase(); if (/(urgent|critical|p0|p1)/.test(s)) return 'red'; if (/high/.test(s)) return 'amber'; if (/(normal|medium|p2)/.test(s)) return 'blue'; return 'slate'; }
+function riskTone(v: string): string { const s = String(v).toLowerCase(); if (/(critical|severe|high)/.test(s)) return 'red'; if (/(medium|moderate|warn)/.test(s)) return 'amber'; if (/(low|info|minimal)/.test(s)) return 'slate'; return 'blue'; }
+function SmartCell({ col, value }: { col: string; value: any }) {
+  const c = col.toLowerCase();
+  if (value == null || value === '') return <span className='text-muted-foreground'>—</span>;
+  if (typeof value === 'boolean') return <Chip label={value ? 'Yes' : 'No'} tone={value ? 'green' : 'slate'} />;
+  if (typeof value !== 'object') {
+    if (/(^|_)(status|state|outcome|decision|band|verdict)$/.test(c)) return <Chip label={titleCase(String(value))} tone={statusTone(String(value))} />;
+    if (/priority/.test(c)) return <Chip label={titleCase(String(value))} tone={priorityTone(String(value))} />;
+    if (/(risk|severity)/.test(c)) return <Chip label={titleCase(String(value))} tone={riskTone(String(value))} />;
+    if (/(pct|percent|coverage|rate|progress)$/.test(c) && typeof value === 'number') { const pct = value <= 1 ? value * 100 : value; return <div className='flex items-center gap-2 min-w-[96px]'><div className='flex-1 h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-primary' style={{ width: Math.max(2, Math.min(100, pct)) + '%' }} /></div><span className='text-[11px] text-muted-foreground tabular-nums'>{Math.round(pct)}%</span></div>; }
+    if (/(source|actor|route_to|department|kind|type|agent|channel)$/.test(c) && typeof value === 'string' && value.length < 40) return <span className='inline-flex items-center text-[11px] px-1.5 py-0.5 rounded bg-foreground/[0.05] text-foreground/70 whitespace-nowrap'>{value}</span>;
+    if (/(amount|value|balance|revenue|expense|cash|fee|budget|price|total|confidence|score)$/.test(c) && typeof value === 'number') return <span className='tabular-nums'>{value.toLocaleString()}</span>;
+  }
+  return <span className='break-words'>{fmt(value)}</span>;
+}
+
 // ── Generic board primitives (shared by RFQs / Customers / Smart Engine) ──
 function KanbanBoard({ stages, colors, onCard, renderCard }: { stages: any[]; colors?: Record<string, string>; onCard: (c: any) => void; renderCard: (c: any) => React.ReactNode }) {
   return (<div className='flex gap-3 overflow-x-auto pb-2'>{(stages || []).map((st: any) => (
@@ -1630,8 +1657,8 @@ function Workspace({ mod }: { mod: Mod }) {
           <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>{titleCase(name)}<Badge variant='secondary'>{rows.length}</Badge></div>
           <div className='overflow-auto max-h-[420px]'>
             <table className='w-full text-sm'>
-              <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'>{cols.map((c) => (<th key={c} className='px-4 py-2 font-medium'>{titleCase(c)}</th>))}</tr></thead>
-              <tbody>{rows.slice(0, 200).map((r, i) => (<tr key={i} onClick={() => { setRow(r); setRowTitle(titleCase(name)); }} className='border-b border-border/50 hover:bg-foreground/5 cursor-pointer'>{cols.map((c) => (<td key={c} className='px-4 py-2.5'>{fmt((r as any)[c])}</td>))}</tr>))}</tbody>
+              <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'>{cols.map((c) => (<th key={c} className='px-4 py-2 font-medium'>{titleCase(c)}</th>))}<th className='w-8' /></tr></thead>
+              <tbody>{rows.slice(0, 200).map((r, i) => (<tr key={i} onClick={() => { setRow(r); setRowTitle(singularWord(titleCase(name))); }} className='group border-b border-border/50 hover:bg-foreground/5 cursor-pointer'>{cols.map((c, ci) => (<td key={c} className={cn('px-4 py-2.5', ci === 0 && 'font-medium')}><SmartCell col={c} value={(r as any)[c]} /></td>))}<td className='pr-2 text-right'><ChevronRight className='h-3.5 w-3.5 inline text-muted-foreground/0 group-hover:text-muted-foreground/50 transition-colors' /></td></tr>))}</tbody>
             </table>
           </div>
         </Card>
