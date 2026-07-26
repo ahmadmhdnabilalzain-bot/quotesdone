@@ -128,15 +128,25 @@ Deno.serve(async (req) => {
       ? perTradeChecklists.map((c) => `Trade \"${c.slug}\" (${c.label}) — essentials its suppliers need:\n${fmtFields((c.fields || []).filter((f: any) => f.required))}`).join('\n\n')
       : (checklist.length ? fmtFields(checklist) : '(no fixed checklist for this category — use professional judgement for what a supplier needs to quote accurately)');
 
-    // Specialist FIELD KNOWLEDGE for the detected trade(s) — the same continuously-refreshed &
-    // exam-corrected briefs the internal cat: specialists reason from — so intake asks the sharp,
-    // quote-critical questions a real specialist would (authorities, standards, specs, red flags).
+    // Specialist FIELD KNOWLEDGE — RAG-retrieved from the deep, cited knowledge base (kb_chunks:
+    // 2.3k+ embedded chunks) using the CUSTOMER'S OWN words, so intake gets the passages actually
+    // relevant to this request (authorities, standards, specs, price drivers, the sharp qualifying
+    // questions). Falls back to the flat trade brief if retrieval is empty.
     let specialistKB = '';
-    if (tradeSlugsForChecklist.length) {
-      const catKeys = tradeSlugsForChecklist.map((s) => 'cat:' + s);
-      const { data: kbRows } = await admin.from('agent_knowledge').select('agent_key,content').in('agent_key', catKeys).order('priority', { ascending: false });
-      if (kbRows && kbRows.length) {
-        specialistKB = tradeSlugsForChecklist.map((s) => { const rows = (kbRows as any[]).filter((r) => r.agent_key === 'cat:' + s).map((r) => String(r.content || '').trim()).filter(Boolean); return rows.length ? (s + ':\n' + rows.join('\n').slice(0, 1400)) : ''; }).filter(Boolean).join('\n\n').slice(0, 2800);
+    if (tradeSlugsForChecklist.length && text) {
+      const parts: string[] = [];
+      for (const s of tradeSlugsForChecklist.slice(0, 2)) {
+        try {
+          const { data: chunks } = await admin.rpc('kb_query', { p_query: text.slice(0, 500), p_category: s, p_limit: 5 });
+          const items = ((chunks as any[]) || []).map((c: any) => (c.title ? c.title + ': ' : '') + String(c.snippet || c.content || '').trim()).filter(Boolean);
+          if (items.length) parts.push(s + ':\n' + items.join('\n\n'));
+        } catch (_e) { /* retrieval best-effort */ }
+      }
+      specialistKB = parts.join('\n\n').slice(0, 3800);
+      if (!specialistKB) {
+        const catKeys = tradeSlugsForChecklist.map((s) => 'cat:' + s);
+        const { data: kbRows } = await admin.from('agent_knowledge').select('agent_key,content').in('agent_key', catKeys).order('priority', { ascending: false });
+        if (kbRows && kbRows.length) specialistKB = tradeSlugsForChecklist.map((s) => { const rows = (kbRows as any[]).filter((r) => r.agent_key === 'cat:' + s).map((r) => String(r.content || '').trim()).filter(Boolean); return rows.length ? (s + ':\n' + rows.join('\n').slice(0, 1400)) : ''; }).filter(Boolean).join('\n\n').slice(0, 2800);
       }
     }
 
