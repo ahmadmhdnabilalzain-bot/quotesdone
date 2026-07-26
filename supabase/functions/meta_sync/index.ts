@@ -32,8 +32,8 @@ Deno.serve(async (req) => {
     const token = await sec('meta_access_token');
     const acct = await sec('meta_ad_account_id');
     const filter = (await sec('meta_campaign_filter')) || 'QuotesDone';
-    if (!token) { await logRun('error', { upserts: 0, campaigns: 0 }, 'meta_access_token missing from app_secrets: Meta sync is disabled, so meta_insights holds no fresh ad spend/lead data and marketing dashboards are stale'); return J({ ok: true, disabled: true, note: 'Add app_secrets.meta_access_token (ads_read) to enable Meta sync.' }); }
-    if (!acct) { await logRun('error', { upserts: 0, campaigns: 0 }, 'meta_ad_account_id not set in app_secrets: Meta sync is disabled, so meta_insights holds no fresh ad spend/lead data and marketing dashboards are stale'); return J({ ok: true, disabled: true, note: 'meta_ad_account_id not set.' }); }
+    if (!token) { await logRun('skipped', { upserts: 0, campaigns: 0, disabled: 1 }, 'Meta sync is DISABLED (no meta_access_token configured) — intentional off state, not a failure. meta_insights holds no ad spend/lead data until a token is added. Add app_secrets.meta_access_token (ads_read) to enable.'); return J({ ok: true, disabled: true, note: 'Add app_secrets.meta_access_token (ads_read) to enable Meta sync.' }); }
+    if (!acct) { await logRun('skipped', { upserts: 0, campaigns: 0, disabled: 1 }, 'Meta sync is DISABLED (meta_ad_account_id not set) — intentional off state, not a failure. Set app_secrets.meta_ad_account_id to enable.'); return J({ ok: true, disabled: true, note: 'meta_ad_account_id not set.' }); }
     const act = acct.startsWith('act_') ? acct : ('act_' + acct);
 
     // 1) campaigns filtered to the QuotesDone name

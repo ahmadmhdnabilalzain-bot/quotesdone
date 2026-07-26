@@ -40,7 +40,7 @@ Deno.serve(async (req)=>{
     T('stripe key is LIVE', sk.startsWith('sk_live_'), 'key_mode='+(sk.slice(0,8)));
     if(sk){ const ar=await fetch('https://api.stripe.com/v1/account',{headers:{Authorization:'Bearer '+sk}}); const aj=await ar.json(); T('stripe charges_enabled', aj?.charges_enabled===true, JSON.stringify(aj?.charges_enabled)); }
     // 3) security regressions - sensitive tables must NOT be anon-readable
-    const ri=await restGet('reveal_invoices?select=*&limit=1'); T('reveal_invoices not anon-readable', Array.isArray(ri.body)&&ri.body.length===0, 'status '+ri.status+' '+JSON.stringify(ri.body).slice(0,80));
+    const ri=await restGet('reveal_invoices?select=*&limit=1'); T('reveal_invoices not anon-readable', ri.status===401||ri.status===403||(ri.body&&ri.body.code==='42501')||(Array.isArray(ri.body)&&ri.body.length===0), 'status '+ri.status+' '+JSON.stringify(ri.body).slice(0,80));
     const cu=await restGet('customers?select=*&limit=1'); T('customers denied to anon', cu.status===401||cu.status===403||(cu.body&&cu.body.code==='42501'), 'status '+cu.status);
     const tx=await restGet('transactions?select=*&limit=1'); T('transactions denied to anon', tx.status===401||tx.status===403||(tx.body&&tx.body.code==='42501'), 'status '+tx.status);
     const as=await restGet('app_secrets?select=*&limit=1'); T('app_secrets denied to anon', as.status===401||as.status===403||(as.body&&as.body.code==='42501'), 'status '+as.status);
