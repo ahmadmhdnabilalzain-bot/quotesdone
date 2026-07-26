@@ -124,7 +124,7 @@ function bringToTop(list: WinState[], id: string, patch: Partial<WinState> = {})
 // Shared module renderer — used by both the tabbed main area and floating windows.
 function renderModule(id: string, go: (id: string) => void): React.ReactNode {
   const m = MODULES.find((x) => x.id === id) || MODULES[0];
-  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : m.id === 'marketing' ? <MarketingApp /> : m.id === 'fraud' ? <FraudApp /> : m.id === 'refunds' ? <RefundsApp /> : <Workspace mod={m} />;
+  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : m.id === 'marketing' ? <MarketingApp /> : m.id === 'fraud' ? <FraudApp /> : m.id === 'refunds' ? <RefundsApp /> : m.id === 'operations' ? <OperationsApp /> : m.id === 'analytics' ? <AnalyticsApp /> : m.id === 'strategy' ? <StrategyApp /> : m.id === 'governance' ? <GovernanceApp /> : m.id === 'company' ? <CompanyApp /> : m.id === 'ea' ? <AssistantApp /> : m.id === 'documents' ? <DocumentsApp /> : m.id === 'reports' ? <ReportsApp /> : <Workspace mod={m} />;
 }
 
 function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, onSnap }: { win: WinState; onFocus: () => void; onClose: () => void; onMin: () => void; onMax: () => void; onMove: (x: number, y: number) => void; onSize: (w: number, h: number) => void; onSnap: (s: 'l' | 'r' | null) => void }) {
@@ -1978,6 +1978,181 @@ function RefundsApp() {
     </Card>
     {resolved.length ? <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>Recently resolved</div><div className='divide-y divide-border'>{resolved.map((r: any, i: number) => (<div key={i} className='px-4 py-2.5 flex items-center justify-between gap-2'><span className='text-sm'>{r.amount != null ? 'AED ' + Number(r.amount).toLocaleString() : (r.transaction_id ?? r.id)}</span>{r.refund_status ? <Chip label={titleCase(String(r.refund_status))} tone={statusTone(String(r.refund_status))} /> : null}</div>))}</div></Card> : null}
     {sel ? <RefundDrawer item={sel} onResolved={() => { setSel(null); load(); }} onClose={() => setSel(null)} /> : null}
+  </div>);
+}
+
+// ── Shared section primitives for the dashboard apps ──
+function SectionCard({ title, count, children, right }: { title: string; count?: any; children: any; right?: any }) {
+  return (<Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between gap-2'><span className='flex items-center gap-2'>{title}{count != null ? <Badge variant='secondary'>{count}</Badge> : null}</span>{right}</div>{children}</Card>);
+}
+function KpiRow({ items }: { items: [string, any, string?][] }) {
+  return (<div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>{items.map(([label, value, hint], i) => (<StatTile key={i} label={label} value={value} hint={hint} />))}</div>);
+}
+function AppHeader({ icon: Icon, title, badge, onRefresh, busy }: any) {
+  return (<div className='flex flex-wrap items-center gap-2'><Icon className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>{title}</h1>{badge}{onRefresh ? <Button className='h-8 text-xs ml-auto' variant='outline' disabled={busy} onClick={onRefresh}>{busy ? 'Refreshing…' : 'Refresh'}</Button> : null}</div>);
+}
+function useWs(action: string) {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const load = React.useCallback(() => { setBusy(true); setErr(''); osApi(action).then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, [action]);
+  React.useEffect(() => { load(); }, [load]);
+  return { d, err, busy, load, setD };
+}
+
+function OperationsApp() {
+  const { d, err, busy, load } = useWs('ws.operations'); const [dbusy, setDbusy] = React.useState('');
+  const decide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('action_decide', { id, op }); load(); } catch (_e) {} setDbusy(''); };
+  const taskDone = async (id: any) => { setDbusy('t' + id); try { await osOps('task_done', { id, op: 'done' }); load(); } catch (_e) {} setDbusy(''); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Operations: {err}</Card>;
+  const k = d?.kpis || {}; const tasks = d?.tasks || []; const decisions = d?.decisions || []; const approvals = d?.approvals || []; const sec = d?.security || {};
+  const held = decisions.filter((x: any) => /held|review|pending|proposed|open/.test(String(x.decision || x.status)));
+  return (<div className='space-y-4'>
+    <AppHeader icon={Settings2} title='Operations' onRefresh={load} busy={busy} badge={k.high_risk ? <Badge className='bg-red-500/15 text-red-600 border-0'>{k.high_risk} high risk</Badge> : null} />
+    <KpiRow items={[['Open tasks', k.tasks_open], ['Decisions 24h', k.decisions_24h], ['Approvals pending', k.approvals_pending], ['Disputes', k.disputes], ['High risk', k.high_risk], ['Held for review', held.length]]} />
+    {held.length ? <SectionCard title='Decisions held for review' count={held.length}><div className='divide-y divide-border'>{held.map((a: any) => (<div key={a.id} className='px-4 py-3 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{titleCase(String(a.kind || 'decision'))}<span className='text-muted-foreground text-xs'>{a.actor}</span><Chip label={titleCase(String(a.decision))} tone={statusTone(String(a.decision))} /></div><div className='text-xs text-muted-foreground'>→ {a.route_to} · {fmt(a.created_at)}</div></div><div className='flex gap-1.5 shrink-0'><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>Approve</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>Reject</Button></div></div>))}</div></SectionCard> : null}
+    <SectionCard title='Open tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
+    {approvals.length ? <SectionCard title='Approvals pending' count={approvals.length}><div className='p-4'><ReadableObject data={approvals} /></div></SectionCard> : null}
+    {Object.keys(sec).length ? <SectionCard title='Security posture'><div className='p-4'><ReadableObject data={sec} /></div></SectionCard> : null}
+  </div>);
+}
+
+function AnalyticsApp() {
+  const { d, err, busy, load } = useWs('ws.analytics');
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Analytics: {err}</Card>;
+  const mp = d?.marketplace || {}; const sectors = d?.top_sectors || []; const emirates = d?.top_emirates || []; const fn = d?.supplier_funnel || {};
+  const funnelRows = [['directory', 'Directory'], ['submitted', 'Submitted'], ['registered', 'Registered'], ['claimed', 'Claimed'], ['approved', 'Approved']].map(([k, l]) => ({ stage: l, n: Number(fn[k]) || 0 })).filter((r) => r.n > 0 || r.stage === 'Directory');
+  return (<div className='space-y-4'>
+    <AppHeader icon={BarChart3} title='Analytics' onRefresh={load} busy={busy} />
+    <KpiRow items={[['RFQs today', mp.rfqs_today], ['RFQs 7d', mp.rfqs_7d], ['RFQs 30d', mp.rfqs_30d], ['Active suppliers 30d', mp.active_suppliers_30d], ['Response rate', mp.response_rate_pct != null ? mp.response_rate_pct + '%' : '—'], ['Avg savings', mp.avg_savings_pct != null ? mp.avg_savings_pct + '%' : '—']]} />
+    <SectionCard title='Supplier acquisition funnel'><div className='p-4'>{funnelRows.length ? <Funnel rows={funnelRows} /> : <div className='text-xs text-muted-foreground'>No funnel data.</div>}</div></SectionCard>
+    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+      <SectionCard title='Top sectors'><div className='p-4'>{sectors.length ? <HBars rows={sectors.slice(0, 10).map((s: any) => ({ label: s.key, n: Number(s.count) }))} /> : <div className='text-xs text-muted-foreground'>No data.</div>}</div></SectionCard>
+      <SectionCard title='Top emirates'><div className='p-4'>{emirates.length ? <HBars rows={emirates.slice(0, 10).map((s: any) => ({ label: s.key, n: Number(s.count) }))} /> : <div className='text-xs text-muted-foreground'>No data.</div>}</div></SectionCard>
+    </div>
+    {(mp.category_growth || []).length || (mp.competitive_categories || []).length ? <SectionCard title='Category signals'><div className='p-4'><ReadableObject data={{ category_growth: mp.category_growth, competitive_categories: mp.competitive_categories }} /></div></SectionCard> : null}
+  </div>);
+}
+
+function StrategyApp() {
+  const { d, err, busy, load } = useWs('ws.strategy'); const [sel, setSel] = React.useState<any>(null);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Strategy: {err}</Card>;
+  const k = d?.kpis || {}; const risks = d?.risks || []; const under = d?.under_supplied || []; const recs = d?.recommendations || []; const intel = d?.market_intel || []; const sims = d?.recent_simulations || [];
+  const sortedRisks = [...risks].sort((a: any, b: any) => (Number(b.score) || 0) - (Number(a.score) || 0));
+  return (<div className='space-y-4'>
+    <AppHeader icon={Compass} title='Strategy' onRefresh={load} busy={busy} badge={k.open_risks ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.open_risks} open risks</Badge> : null} />
+    <KpiRow items={[['Cash', k.cash != null ? aed(k.cash) : '—'], ['Monthly burn', k.monthly_burn != null ? aed(k.monthly_burn) : '—'], ['Runway', k.runway_months != null ? k.runway_months + ' mo' : '—'], ['Open risks', k.open_risks], ['Under-supplied', k.under_supplied_categories], ['Top supplier share', k.top_supplier_share_pct != null ? k.top_supplier_share_pct + '%' : '—']]} />
+    <SectionCard title='Risk register' count={risks.length}>{sortedRisks.length ? <div className='divide-y divide-border'>{sortedRisks.map((r: any, i: number) => (
+      <button key={i} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
+        <div className='min-w-0 flex-1'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{r.title}{r.category ? <span className='text-[11px] text-muted-foreground'>{r.category}</span> : null}<Chip label={titleCase(String(r.status))} tone={statusTone(String(r.status))} /></div><div className='text-[11px] text-muted-foreground mt-0.5'>Impact {r.impact}/5 · Likelihood {r.likelihood}/5</div></div>
+        <div className='flex items-center gap-2 shrink-0'><Chip label={'Score ' + r.score} tone={Number(r.score) >= 15 ? 'red' : Number(r.score) >= 8 ? 'amber' : 'slate'} /><ChevronRight className='h-4 w-4 text-muted-foreground' /></div>
+      </button>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open risks.</div>}</SectionCard>
+    {under.length ? <SectionCard title='Under-supplied categories' count={under.length}><div className='p-4'><HBars rows={under.slice(0, 10).map((u: any) => ({ label: u.category || u.key || u.label, n: Number(u.gap ?? u.count ?? u.n ?? 0) }))} /></div></SectionCard> : null}
+    {recs.length ? <SectionCard title='Recommendations' count={recs.length}><div className='divide-y divide-border'>{recs.map((r: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm'>{r.title || r.recommendation || fmt(r)}</div>))}</div></SectionCard> : null}
+    {intel.length ? <SectionCard title='Market intel' count={intel.length}><div className='p-4'><ReadableObject data={intel} /></div></SectionCard> : null}
+    {sims.length ? <SectionCard title='Recent simulations' count={sims.length}><div className='p-4'><ReadableObject data={sims} /></div></SectionCard> : null}
+    {sel ? <Sheet open={true} onOpenChange={(o) => { if (!o) setSel(null); }}><SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto'><SheetHeader><div className='flex items-center gap-2'><Chip label={'Score ' + sel.score} tone={Number(sel.score) >= 15 ? 'red' : Number(sel.score) >= 8 ? 'amber' : 'slate'} /><Chip label={titleCase(String(sel.status))} tone={statusTone(String(sel.status))} /></div><SheetTitle className='mt-1'>{sel.title}</SheetTitle><SheetDescription>{sel.category ? titleCase(String(sel.category)) + ' risk' : 'Risk'}</SheetDescription></SheetHeader><div className='mt-4 grid grid-cols-3 gap-2'><StatTile label='Impact' value={sel.impact + '/5'} /><StatTile label='Likelihood' value={sel.likelihood + '/5'} /><StatTile label='Score' value={sel.score} /></div><Card className='mt-4 p-4'><ReadableObject data={sel} /></Card></SheetContent></Sheet> : null}
+  </div>);
+}
+
+function GovernanceApp() {
+  const { d, err, busy, load } = useWs('ws.governance');
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Governance: {err}</Card>;
+  const k = d?.kpis || {}; const cov = d?.agent_coverage || []; const rules = d?.universal_rules || []; const esc = d?.recent_escalations || [];
+  const personaPct = k.active_agents ? Math.round(100 * (k.agents_with_persona || 0) / k.active_agents) : 0;
+  const auditPct = k.active_agents ? Math.round(100 * (k.agents_with_audit_trail || 0) / k.active_agents) : 0;
+  return (<div className='space-y-4'>
+    <AppHeader icon={Scale} title='Governance' onRefresh={load} busy={busy} badge={k.open_for_review ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.open_for_review} awaiting review</Badge> : null} />
+    <KpiRow items={[['Active agents', k.active_agents], ['Global rules', k.global_rules], ['Decisions 30d', k.decisions_30d], ['Escalated 30d', k.escalated_30d], ['Avg confidence', k.avg_confidence != null ? Math.round(k.avg_confidence * 100) + '%' : '—'], ['Knowledge items', k.knowledge_items]]} />
+    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+      <SectionCard title='Governance coverage'><div className='p-4 space-y-3'>
+        <div><div className='flex justify-between text-xs mb-1'><span>Agents with persona</span><span className='tabular-nums text-muted-foreground'>{k.agents_with_persona}/{k.active_agents}</span></div><div className='h-2 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-emerald-500' style={{ width: personaPct + '%' }} /></div></div>
+        <div><div className='flex justify-between text-xs mb-1'><span>Agents with audit trail</span><span className='tabular-nums text-muted-foreground'>{k.agents_with_audit_trail}/{k.active_agents}</span></div><div className='h-2 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-blue-500' style={{ width: auditPct + '%' }} /></div></div>
+      </div></SectionCard>
+      <SectionCard title='Universal rules' count={rules.length}><div className='p-4 space-y-1.5 max-h-64 overflow-y-auto'>{rules.map((r: any, i: number) => (<div key={i} className='text-xs flex gap-2'><Check className='h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5' /><span>{typeof r === 'string' ? r : (r.rule || r.title || fmt(r))}</span></div>))}</div></SectionCard>
+    </div>
+    <SectionCard title='Recent escalations' count={esc.length}>{esc.length ? <div className='divide-y divide-border'>{esc.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5'><div className='text-sm font-medium flex items-center gap-1.5'>{e.title}<span className='text-[11px] text-muted-foreground'>{e.agent}</span>{e.confidence != null ? <Chip label={Math.round(e.confidence * 100) + '%'} tone='blue' /> : null}</div><div className='text-xs text-muted-foreground mt-0.5'>{e.reason} · {fmt(e.created)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No recent escalations.</div>}</SectionCard>
+    {(cov || []).length ? <SectionCard title='Agent coverage' count={cov.length}><div className='overflow-auto max-h-72'><table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border sticky top-0 bg-card'><th className='px-4 py-2 font-medium'>Agent</th><th className='px-3 py-2 font-medium'>Persona</th><th className='px-3 py-2 font-medium'>Knowledge</th><th className='px-3 py-2 font-medium'>Audit items</th></tr></thead><tbody>{cov.map((c: any, i: number) => (<tr key={i} className='border-b border-border/40'><td className='px-4 py-2'>{c.agent}</td><td className='px-3 py-2'>{c.has_persona ? <Check className='h-4 w-4 text-emerald-500' /> : <Minus className='h-4 w-4 text-muted-foreground/40' />}</td><td className='px-3 py-2'>{c.has_knowledge ? <Check className='h-4 w-4 text-emerald-500' /> : <Minus className='h-4 w-4 text-muted-foreground/40' />}</td><td className='px-3 py-2 tabular-nums'>{c.audit_items}</td></tr>))}</tbody></table></div></SectionCard> : null}
+  </div>);
+}
+
+function CompanyApp() {
+  const { d, err, busy, load } = useWs('ws.company');
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Company: {err}</Card>;
+  const depts = d?.departments || []; const runs = d?.runs || []; const evals = d?.evals || []; const legal = d?.legal || {};
+  const ev = (evals[0] && evals[0].kpis) || {}; const lk = legal.kpis || {}; const lflags = legal.flags || []; const missing = legal.missing_docs || [];
+  return (<div className='space-y-4'>
+    <AppHeader icon={Building2} title='Company' onRefresh={load} busy={busy} badge={legal.health != null ? <Badge className={cn('border-0', legal.health >= 70 ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600')}>Legal health {Math.round(legal.health)}/100</Badge> : null} />
+    <KpiRow items={[['Runs 30d', ev.runs_30d], ['Run success', ev.run_success_pct != null ? ev.run_success_pct + '%' : '—'], ['QA pass', ev.qa_pass_pct != null ? ev.qa_pass_pct + '%' : '—'], ['Errors 30d', ev.errors_30d], ['Open escalations', ev.open_escalations], ['Escalation rate', ev.escalation_rate_pct != null ? ev.escalation_rate_pct + '%' : '—']]} />
+    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+      <SectionCard title='Departments' count={depts.length}><div className='p-4'><HBars rows={depts.map((x: any) => ({ label: titleCase(String(x.agent)), n: Number(x.actions) || 0 }))} /></div></SectionCard>
+      <SectionCard title='Legal posture'><div className='p-4 space-y-2'>
+        <div className='flex items-center gap-2'><span className='text-xs text-muted-foreground w-28'>Doc coverage</span><div className='flex-1 h-2 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-primary' style={{ width: Math.max(2, Math.min(100, Number(lk.coverage_pct) || 0)) + '%' }} /></div><span className='text-[11px] tabular-nums text-muted-foreground'>{Math.round(Number(lk.coverage_pct) || 0)}%</span></div>
+        <div className='flex flex-wrap gap-2 text-[11px]'>{lk.critical_missing ? <Chip label={lk.critical_missing + ' critical missing'} tone='red' /> : null}{lk.required_missing ? <Chip label={lk.required_missing + ' required missing'} tone='amber' /> : null}{lk.policies_published ? <Chip label={lk.policies_published + ' policies live'} tone='green' /> : null}{lk.open_legal_flags ? <Chip label={lk.open_legal_flags + ' open flags'} tone='amber' /> : null}</div>
+      </div></SectionCard>
+    </div>
+    {lflags.length ? <SectionCard title='Legal flags' count={lflags.length}><div className='divide-y divide-border'>{lflags.map((f: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm flex items-center gap-2'><Chip label={titleCase(String(f.risk))} tone={riskTone(String(f.risk))} /><span>{f.title}</span></div>))}</div></SectionCard> : null}
+    {missing.length ? <SectionCard title='Missing legal documents' count={missing.length}><div className='divide-y divide-border'>{missing.map((m: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm flex items-center justify-between gap-2'><span>{m.requirement}</span><div className='flex items-center gap-2 shrink-0'><span className='text-[11px] text-muted-foreground'>{m.applies_to}</span><Chip label={'P' + m.priority} tone={m.priority === 1 ? 'red' : m.priority === 2 ? 'amber' : 'slate'} /></div></div>))}</div></SectionCard> : null}
+    <SectionCard title='Recent agent runs' count={runs.length}><div className='divide-y divide-border max-h-72 overflow-y-auto'>{runs.map((r: any, i: number) => (<div key={i} className='px-4 py-2 flex items-center justify-between gap-2'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'><Chip label={titleCase(String(r.status))} tone={statusTone(String(r.status))} /><span className='font-medium'>{titleCase(String(r.agent))}</span></div>{r.note ? <div className='text-[11px] text-muted-foreground line-clamp-1'>{r.note}</div> : null}</div><span className='text-[11px] text-muted-foreground whitespace-nowrap'>{fmt(r.started_at)}</span></div>))}</div></SectionCard>
+  </div>);
+}
+
+function AssistantApp() {
+  const { d, err, busy, load } = useWs('ws.ea'); const [dbusy, setDbusy] = React.useState('');
+  const taskDone = async (id: any) => { setDbusy('t' + id); try { await osOps('task_done', { id, op: 'done' }); load(); } catch (_e) {} setDbusy(''); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Assistant: {err}</Card>;
+  const tasks = d?.open_tasks || []; const today = d?.today_events || []; const upcoming = d?.upcoming_events || []; const reminders = d?.reminders_due || []; const approvals = d?.approvals_top || []; const meetings = d?.recent_meetings || [];
+  return (<div className='space-y-4'>
+    <AppHeader icon={Calendar} title='Assistant' onRefresh={load} busy={busy} badge={d?.overdue_tasks ? <Badge className='bg-red-500/15 text-red-600 border-0'>{d.overdue_tasks} overdue</Badge> : null} />
+    <KpiRow items={[['Open tasks', tasks.length], ['Overdue', d?.overdue_tasks], ['Approvals', d?.approvals_total], ['High-risk approvals', d?.approvals_high_risk], ['Today', today.length], ['Reminders due', reminders.length]]} />
+    {(today.length || upcoming.length) ? <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+      <SectionCard title='Today' count={today.length}>{today.length ? <div className='divide-y divide-border'>{today.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm'><div className='font-medium'>{e.title || e.summary}</div><div className='text-[11px] text-muted-foreground'>{fmt(e.start || e.at || e.when)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>Nothing today.</div>}</SectionCard>
+      <SectionCard title='Upcoming' count={upcoming.length}>{upcoming.length ? <div className='divide-y divide-border'>{upcoming.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm'><div className='font-medium'>{e.title || e.summary}</div><div className='text-[11px] text-muted-foreground'>{fmt(e.start || e.at || e.when)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>Nothing scheduled.</div>}</SectionCard>
+    </div> : null}
+    <SectionCard title='Open tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
+    {approvals.length ? <SectionCard title='Approvals awaiting you' count={d?.approvals_total ?? approvals.length}><div className='p-4'><ReadableObject data={approvals} /></div></SectionCard> : null}
+    {reminders.length ? <SectionCard title='Reminders due' count={reminders.length}><div className='p-4'><ReadableObject data={reminders} /></div></SectionCard> : null}
+    {meetings.length ? <SectionCard title='Recent meetings' count={meetings.length}><div className='p-4'><ReadableObject data={meetings} /></div></SectionCard> : null}
+  </div>);
+}
+
+function DocumentsApp() {
+  const { d, err, busy, load } = useWs('ws.documents'); const [sel, setSel] = React.useState<any>(null); const [dbusy, setDbusy] = React.useState('');
+  const reviewDecide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('doc_review_decide', { id, op }); load(); } catch (_e) {} setDbusy(''); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Documents: {err}</Card>;
+  const k = d?.kpis || {}; const kinds = d?.kinds || []; const docs = d?.documents || []; const reviews = d?.reviews || [];
+  return (<div className='space-y-4'>
+    <AppHeader icon={FileText} title='Documents' onRefresh={load} busy={busy} badge={k.reviews_pending ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.reviews_pending} to review</Badge> : null} />
+    <KpiRow items={[['Documents', k.documents], ['Indexed', k.indexed], ['Versions', k.versions], ['Dropbox files', k.dropbox_files], ['Inventory total', k.inventory_total], ['Reviews pending', k.reviews_pending]]} />
+    {reviews.length ? <SectionCard title='Reviews pending' count={reviews.length}><div className='divide-y divide-border'>{reviews.map((r: any) => (<div key={r.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm font-medium line-clamp-1'>{r.title || r.file_name || 'Document #' + r.id}</div><div className='text-[11px] text-muted-foreground'>{r.kind} · {fmt(r.created_at || r.at)}</div></div><div className='flex gap-1.5 shrink-0'><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(r.id) + 'approve'} onClick={() => reviewDecide(r.id, 'approve')}>Approve</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(r.id) + 'reject'} onClick={() => reviewDecide(r.id, 'reject')}>Reject</Button></div></div>))}</div></SectionCard> : null}
+    {kinds.length ? <SectionCard title='By document type'><div className='p-4'><HBars rows={kinds.map((x: any) => ({ label: titleCase(String(x.key)), n: Number(x.count) }))} /></div></SectionCard> : null}
+    <SectionCard title='Document inventory' count={docs.length}>{docs.length ? <div className='overflow-auto max-h-[60vh]'><table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border sticky top-0 bg-card'><th className='px-4 py-2 font-medium'>File</th><th className='px-3 py-2 font-medium'>Kind</th><th className='px-3 py-2 font-medium'>Status</th><th className='px-3 py-2 font-medium'>Indexed</th><th className='px-3 py-2 font-medium'>Created</th><th className='w-8' /></tr></thead><tbody>{docs.map((doc: any) => (<tr key={doc.id} onClick={() => setSel(doc)} className='group border-b border-border/40 hover:bg-foreground/5 cursor-pointer'><td className='px-4 py-2.5 font-medium'><span className='inline-flex items-center gap-2'><FileText className='h-4 w-4 text-muted-foreground shrink-0' />{doc.file_name || 'Document #' + doc.id}</span></td><td className='px-3 py-2.5'>{doc.kind ? <Chip label={titleCase(String(doc.kind))} tone='slate' /> : '—'}</td><td className='px-3 py-2.5'><Chip label={titleCase(String(doc.status))} tone={statusTone(String(doc.status))} /></td><td className='px-3 py-2.5'>{doc.indexed ? <Check className='h-4 w-4 text-emerald-500' /> : <Minus className='h-4 w-4 text-muted-foreground/40' />}</td><td className='px-3 py-2.5 text-muted-foreground whitespace-nowrap'>{fmt(doc.created_at)}</td><td className='pr-2 text-right'><ChevronRight className='h-3.5 w-3.5 inline text-muted-foreground/0 group-hover:text-muted-foreground/50' /></td></tr>))}</tbody></table></div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No documents.</div>}</SectionCard>
+    {sel ? <RecordDrawer frame0={{ entity: sel.ref_table === 'leads' ? 'supplier' : undefined, id: sel.ref_table === 'leads' ? sel.ref_id : undefined, title: sel.file_name || 'Document #' + sel.id, row: sel }} onClose={() => setSel(null)} /> : null}
+  </div>);
+}
+
+function ReportViewerDrawer({ report, onClose }: { report: any; onClose: () => void }) {
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-2xl overflow-y-auto'>
+    <SheetHeader>
+      <div className='flex items-center gap-2 flex-wrap'>{report.report_type ? <Chip label={titleCase(String(report.report_type))} tone='blue' /> : null}{report.period ? <span className='text-[11px] text-muted-foreground'>{report.period}</span> : null}</div>
+      <SheetTitle className='mt-1'>{report.title}</SheetTitle>
+      <SheetDescription>{report.source ? titleCase(String(report.source)) + ' · ' : ''}{fmt(report.created)}</SheetDescription>
+    </SheetHeader>
+    <ReportViewer id={Number(report.id)} />
+  </SheetContent></Sheet>);
+}
+function ReportsApp() {
+  const { d, err, busy, load } = useWs('ws.reports'); const [sel, setSel] = React.useState<any>(null);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Reports: {err}</Card>;
+  const k = d?.kpis || {}; const recent = d?.recent || []; const byType = d?.by_type || []; const flags = d?.flags || [];
+  const TYPES = ['daily', 'weekly', 'monthly', 'quarterly', 'finance', 'exec', 'customer', 'supplier', 'department', 'ai'];
+  const fresh = TYPES.filter((t) => k[t + '_at']).map((t) => ({ type: t, at: k[t + '_at'], fresh: k[t + '_fresh'] }));
+  return (<div className='space-y-4'>
+    <AppHeader icon={FileBarChart} title='Reports' onRefresh={load} busy={busy} badge={k.stale_count ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.stale_count} stale</Badge> : null} />
+    <KpiRow items={[['Total reports', k.total_reports], ['Reports 30d', k.reports_30d], ['Report types', k.report_types], ['Stale', k.stale_count]]} />
+    {fresh.length ? <SectionCard title='Report freshness'><div className='p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2'>{fresh.map((f) => (<div key={f.type} className={cn('rounded-md border p-2.5', f.fresh ? 'border-emerald-500/30 bg-emerald-500/[0.03]' : 'border-amber-500/30 bg-amber-500/[0.03]')}><div className='flex items-center justify-between'><span className='text-xs font-medium capitalize'>{f.type}</span>{f.fresh ? <Check className='h-3.5 w-3.5 text-emerald-500' /> : <AlertTriangle className='h-3.5 w-3.5 text-amber-500' />}</div><div className='text-[10px] text-muted-foreground mt-1'>{fmt(f.at)}</div></div>))}</div></SectionCard> : null}
+    {flags.length ? <SectionCard title='Report flags' count={flags.length}><div className='divide-y divide-border'>{flags.map((f: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm flex items-center gap-2'><Chip label={titleCase(String(f.risk))} tone={riskTone(String(f.risk))} /><span className='flex-1'>{f.title}</span>{f.status ? <Chip label={titleCase(String(f.status))} tone={statusTone(String(f.status))} /> : null}</div>))}</div></SectionCard> : null}
+    <SectionCard title='Recent reports' count={recent.length}>{recent.length ? <div className='divide-y divide-border'>{recent.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'><div className='min-w-0 flex-1'><div className='text-sm font-medium line-clamp-1'>{r.title}</div><div className='text-[11px] text-muted-foreground'>{r.source ? titleCase(String(r.source)) + ' · ' : ''}{fmt(r.created)}</div></div>{r.report_type ? <Chip label={titleCase(String(r.report_type))} tone='blue' /> : null}<ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No reports yet.</div>}</SectionCard>
+    {byType.length ? <SectionCard title='Latest by type' count={byType.length}><div className='divide-y divide-border'>{byType.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-2.5 hover:bg-foreground/5 transition-colors flex items-center gap-2'><span className='flex-1 text-sm line-clamp-1'>{r.title}</span><Chip label={titleCase(String(r.report_type))} tone='blue' /><ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div></SectionCard> : null}
+    {sel ? <ReportViewerDrawer report={sel} onClose={() => setSel(null)} /> : null}
   </div>);
 }
 
