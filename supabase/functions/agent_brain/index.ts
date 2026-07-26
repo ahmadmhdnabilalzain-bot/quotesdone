@@ -1,4 +1,8 @@
-// agent_brain v16 — EMPLOYEE RUNTIME.
+// agent_brain v17 — EMPLOYEE RUNTIME.
+// Change vs v16: agents (especially the Chief of Staff — "the eyes") can now RESEARCH THE INTERNET
+// to permanently fill a genuine knowledge gap. When an agent emits a `research` action, we dispatch
+// the web-grounded kb_deepen engine to pull real UAE sources for those topics and ingest them into
+// the agent's permanent knowledge — so the gap is closed for everyone, once, not re-answered live.
 // Change vs v15: retrieve() is now category-scoped for specialist (cat:<slug>) agents — it
 // pulls that specialist's OWN deep region of the knowledge base first (the "trigger that
 // region of the master's brain" behaviour) and tops up with a small unscoped cross-domain
@@ -154,7 +158,7 @@ Deno.serve(async (req)=>{
     const history=(hist||[]).reverse().map((h:any)=>({role:h.role,content:h.content}));
     let ctx:any={}; try{ ctx=await context(key); }catch(_e){ ctx={error:'snapshot unavailable'}; }
     const teammates=VALID_AGENTS.filter(a=>a!==key).map(a=>a+' ('+(NAMES[a]||a)+')').join(', ');
-    const base='You are '+m.name+' at QuotesDone, a UAE B2B anonymous quotation marketplace — a senior executive employee, not an assistant. Your full employment context follows (identity, company canon, your professional expertise, live operational state, organizational experience) — it governs how you think and act. DOCTRINE: default to action within your delegated authority — complete work and report results; prepare and route gated work (money, publishing, legal action, security) for approval rather than abandoning it; never ask permission you already have. Be specific, practical and concise. Never invent numbers — operational figures come only from the LIVE OPERATIONAL STATE and LIVE DATA SNAPSHOT.\n\nTEAMWORK: You can hand a task to a colleague specialist when it clearly belongs to them. Your colleagues: '+teammates+'. To hand off, AFTER your normal reply, append on a NEW LINE exactly @@ACTIONS@@ followed by compact JSON: {"handoffs":[{"to":"<agent_key>","title":"<short task title>","details":"<exactly what you need them to do and why>"}]}. Only hand off real, specific, useful tasks. Omit the @@ACTIONS@@ line entirely if there is no handoff. Never mention this mechanism or the word @@ACTIONS@@ in your visible reply.';
+    const base='You are '+m.name+' at QuotesDone, a UAE B2B anonymous quotation marketplace — a senior executive employee, not an assistant. Your full employment context follows (identity, company canon, your professional expertise, live operational state, organizational experience) — it governs how you think and act. DOCTRINE: default to action within your delegated authority — complete work and report results; prepare and route gated work (money, publishing, legal action, security) for approval rather than abandoning it; never ask permission you already have. Be specific, practical and concise. Never invent numbers — operational figures come only from the LIVE OPERATIONAL STATE and LIVE DATA SNAPSHOT.\n\nTEAMWORK: You can hand a task to a colleague specialist when it clearly belongs to them. Your colleagues: '+teammates+'.\n\nKNOWLEDGE (your window to the world): if answering this well needs domain knowledge you do not have, you may RESEARCH THE INTERNET to fill the gap permanently — real UAE sources are pulled, verified and saved into the relevant specialist\'s knowledge so it is there for everyone next time. Use this for genuine gaps in durable domain knowledge (materials, standards, authorities, methods, market facts) — NOT for live/one-off data. Prefer answering from what you already know; reach for research only when there is a real gap worth closing.\n\nTo act, AFTER your normal reply append on a NEW LINE exactly @@ACTIONS@@ followed by compact JSON. You may include either or both keys: {"handoffs":[{"to":"<agent_key>","title":"<short task title>","details":"<what to do and why>"}],"research":[{"agent":"<specialist_slug_or_your_own_key>","topics":["<specific sub-topic to research>","<another>"]}]}. Only request real, specific, useful work. Omit the @@ACTIONS@@ line entirely if there is nothing to do. Never mention this mechanism or the word @@ACTIONS@@ in your visible reply.';
     const persona=(m as any).persona?('\n\n'+(m as any).persona):'';
     const [layered, instr, kb] = await Promise.all([layeredContext(key), instructions(key), retrieve(key, msg)]);
     const sys=base+persona+layered+instr+kb+'\n\nLIVE DATA SNAPSHOT (read-only, captured just now):\n'+JSON.stringify(ctx).slice(0,9000);
@@ -165,6 +169,20 @@ Deno.serve(async (req)=>{
         const to=String(h?.to||'').toLowerCase(); if(!VALID_AGENTS.includes(to)||to===key) continue;
         const title=String(h?.title||'task').slice(0,160); const details=String(h?.details||'').slice(0,800);
         try{ await admin.from('agent_actions').insert({agent:to,kind:'handoff',status:'pending',risk:'low',title:('Handoff — '+title).slice(0,200),recommendation:details,detail:{from:key,from_name:m.name,requested_at:new Date().toISOString()},target_table:null}); notes.push('→ Handed to '+(NAMES[to]||to)+': '+title); }catch(_e){}
+      }
+    }
+    // RESEARCH: dispatch the web-grounded kb_deepen engine to pull real sources and fill a knowledge gap.
+    if(acts&&Array.isArray(acts.research)){
+      const internal=await sec('inbound_secret');
+      for(const rq of acts.research.slice(0,3)){
+        const tgt=String(rq?.agent||key).replace(/^cat:/,'').trim();
+        const topics=(Array.isArray(rq?.topics)?rq.topics:[]).map((t:any)=>String(t).slice(0,80)).filter(Boolean).slice(0,4);
+        if(!tgt||!topics.length||!internal) continue;
+        try{
+          const rp=fetch(SUPA+'/functions/v1/kb_deepen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:internal,agent:tgt,topics_list:topics,topics:topics.length})}).catch(()=>{});
+          try{ (globalThis as any).EdgeRuntime?.waitUntil?.(rp); }catch(_e){}
+          notes.push('🔎 Researching to fill knowledge ('+tgt+'): '+topics.join(', '));
+        }catch(_e){}
       }
     }
     if(notes.length) finalReply=finalReply+'\n\n'+notes.join('\n');
