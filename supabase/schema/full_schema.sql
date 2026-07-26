@@ -17637,3 +17637,13 @@ $function$;
 -- refreshes the stalest categories so tasks actually close. Companion migration
 -- revoke_anon_execute_on_os_secdef_rpcs revoked anon/authenticated EXECUTE on 9 OS SECURITY
 -- DEFINER RPCs. See Supabase migrations knowledge_gap_loop / hook_agent_gap_dispatch_into_curator.
+
+
+-- ── knowledge_exam: proactive auto-learning loop — added 2026-07-26 ──
+-- Tables knowledge_exam_questions / knowledge_exam_results. fn_knowledge_exam_summary (score board),
+-- fn_exam_pick_agent (least-recently-examined), fn_bump_exam_question, fn_exam_revert (bulk revert of
+-- topic 'exam:%' fills). Edge fn knowledge_exam: examiner writes Qs → agent answers from its own
+-- knowledge → independent grader judges + supplies correct fact → auto-write only on 2-model
+-- convergence + policy poison-lint (topic 'exam:<topic>', revertible). Cron knowledge_exam_loop every 4h.
+-- os_api v29: exam_summary / exam_run / exam_revert. See Supabase migrations knowledge_exam_tables /
+-- knowledge_exam_helpers / knowledge_exam_cron_and_revert.

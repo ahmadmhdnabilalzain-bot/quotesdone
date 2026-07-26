@@ -2054,6 +2054,26 @@ function StrategyApp() {
 }
 
 const KGAP_TONE: Record<string, string> = { ok: 'green', thin: 'amber', stale: 'amber', missing: 'red' };
+function ExamPanel() {
+  const [d, setD] = React.useState<any>(null); const [busy, setBusy] = React.useState(false); const [msg, setMsg] = React.useState('');
+  const load = React.useCallback(() => { osApi('exam_summary').then(setD).catch(() => {}); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const run = async () => { setBusy(true); setMsg('Examining the next agent (generating questions, grading, auto-filling verified gaps)…'); try { const r: any = await osApi('exam_run', {}); setMsg('Examined ' + (r?.label || r?.agent || 'agent') + ': ' + (r?.score ?? '—') + '% · ' + (r?.gaps ?? 0) + ' gap(s), ' + (r?.filled ?? 0) + ' auto-filled, ' + (r?.conflicts ?? 0) + ' withheld.'); load(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); } setBusy(false); };
+  const o = d?.overall || {}; const agents = (d?.agents || []) as any[];
+  return (<SectionCard title='Auto-learning exam' right={<div className='flex items-center gap-2'>{msg ? <span className='text-[11px] text-muted-foreground max-w-md truncate'>{msg}</span> : null}<Button className='h-7 text-xs' variant='outline' disabled={busy} onClick={run}>{busy ? 'Examining…' : 'Run exam now'}</Button></div>}>
+    <div className='p-4 space-y-3'>
+      <div className='grid grid-cols-2 md:grid-cols-4 gap-2'>
+        <StatTile label='Avg score (30d)' value={o.avg_score != null ? o.avg_score + '%' : '—'} />
+        <StatTile label='Exams (30d)' value={o.exams_30d} />
+        <StatTile label='Gaps filled (30d)' value={o.gaps_filled_30d} />
+        <StatTile label='Question bank' value={o.question_bank} />
+      </div>
+      <div className='text-[11px] text-muted-foreground'>An examiner writes domain questions, each agent answers from its own knowledge, an independent grader judges, and a verified correction is auto-written only when two independent models agree and it passes the poison-lint. Runs every 4h.</div>
+      {agents.length ? <div className='overflow-auto max-h-64 rounded-md border border-border'><table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border sticky top-0 bg-card'><th className='px-3 py-2 font-medium'>Agent</th><th className='px-3 py-2 font-medium'>Score</th><th className='px-3 py-2 font-medium'>Examined</th><th className='px-3 py-2 font-medium'>Gaps</th><th className='px-3 py-2 font-medium'>Filled</th></tr></thead>
+        <tbody>{agents.map((a) => (<tr key={a.agent_key} className='border-b border-border/40'><td className='px-3 py-2 font-medium'>{a.agent_key}</td><td className='px-3 py-2'><Chip label={(a.score_pct ?? 0) + '%'} tone={Number(a.score_pct) >= 80 ? 'green' : Number(a.score_pct) >= 50 ? 'amber' : 'red'} /></td><td className='px-3 py-2 tabular-nums'>{a.examined}</td><td className='px-3 py-2 tabular-nums'>{a.gaps}</td><td className='px-3 py-2 tabular-nums'>{a.filled}</td></tr>))}</tbody></table></div> : <div className='text-xs text-muted-foreground'>No exams yet — click Run exam now, or wait for the 4-hourly cycle.</div>}
+    </div>
+  </SectionCard>);
+}
 function KnowledgeHealthCard() {
   const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
   const [rbusy, setRbusy] = React.useState(''); const [msg, setMsg] = React.useState(''); const [show, setShow] = React.useState<'gaps' | 'all'>('gaps');
@@ -2104,6 +2124,7 @@ function GovernanceApp() {
     </div>
     <SectionCard title='Recent escalations' count={esc.length}>{esc.length ? <div className='divide-y divide-border'>{esc.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5'><div className='text-sm font-medium flex items-center gap-1.5'>{e.title}<span className='text-[11px] text-muted-foreground'>{e.agent}</span>{e.confidence != null ? <Chip label={Math.round(e.confidence * 100) + '%'} tone='blue' /> : null}</div><div className='text-xs text-muted-foreground mt-0.5'>{e.reason} · {fmt(e.created)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No recent escalations.</div>}</SectionCard>
     <KnowledgeHealthCard />
+    <ExamPanel />
     {(cov || []).length ? <SectionCard title='Agent coverage' count={cov.length}><div className='overflow-auto max-h-72'><table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border sticky top-0 bg-card'><th className='px-4 py-2 font-medium'>Agent</th><th className='px-3 py-2 font-medium'>Persona</th><th className='px-3 py-2 font-medium'>Knowledge</th><th className='px-3 py-2 font-medium'>Audit items</th></tr></thead><tbody>{cov.map((c: any, i: number) => (<tr key={i} className='border-b border-border/40'><td className='px-4 py-2'>{c.agent}</td><td className='px-3 py-2'>{c.has_persona ? <Check className='h-4 w-4 text-emerald-500' /> : <Minus className='h-4 w-4 text-muted-foreground/40' />}</td><td className='px-3 py-2'>{c.has_knowledge ? <Check className='h-4 w-4 text-emerald-500' /> : <Minus className='h-4 w-4 text-muted-foreground/40' />}</td><td className='px-3 py-2 tabular-nums'>{c.audit_items}</td></tr>))}</tbody></table></div></SectionCard> : null}
   </div>);
 }
