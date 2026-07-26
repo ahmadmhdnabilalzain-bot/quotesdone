@@ -124,7 +124,7 @@ function bringToTop(list: WinState[], id: string, patch: Partial<WinState> = {})
 // Shared module renderer — used by both the tabbed main area and floating windows.
 function renderModule(id: string, go: (id: string) => void): React.ReactNode {
   const m = MODULES.find((x) => x.id === id) || MODULES[0];
-  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : <Workspace mod={m} />;
+  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : m.id === 'marketing' ? <MarketingApp /> : <Workspace mod={m} />;
 }
 
 function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, onSnap }: { win: WinState; onFocus: () => void; onClose: () => void; onMin: () => void; onMax: () => void; onMove: (x: number, y: number) => void; onSize: (w: number, h: number) => void; onSnap: (s: 'l' | 'r' | null) => void }) {
@@ -1618,6 +1618,168 @@ function FinanceApp() {
       </div></SheetContent></Sheet>
     </div>
   );
+}
+
+// ── Marketing — deep social/content studio (insights · review · social · blog) ──
+const CH_LABEL: Record<string, string> = { instagram: 'Instagram', linkedin: 'LinkedIn', x: 'X', facebook: 'Facebook', tiktok: 'TikTok', youtube: 'YouTube', threads: 'Threads' };
+function ChannelPills({ channels }: { channels: any }) {
+  const list: string[] = Array.isArray(channels) ? channels : (channels ? [String(channels)] : []);
+  if (!list.length) return null;
+  return (<div className='flex flex-wrap gap-1'>{list.map((c, i) => (<span key={i} className='inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-foreground/[0.06] text-foreground/70 capitalize'>{CH_LABEL[String(c).toLowerCase()] || c}</span>))}</div>);
+}
+function PostThumb({ url, className }: { url?: string; className?: string }) {
+  if (!url) return (<div className={cn('grid place-items-center bg-foreground/[0.05] text-muted-foreground', className)}><Megaphone className='h-6 w-6 opacity-30' /></div>);
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt='' loading='lazy' className={cn('object-cover bg-foreground/[0.05]', className)} onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />;
+}
+
+function SocialPostDrawer({ post, onClose }: { post: any; onClose: () => void }) {
+  const chan = Array.isArray(post.channels) ? post.channels : [];
+  const live = String(post.status || '').toLowerCase() === 'sent' || String(post.status || '').toLowerCase() === 'published';
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
+    <SheetHeader>
+      <SheetTitle className='flex items-center gap-2'>Social post{live ? <Chip label='Live' tone='green' /> : <Chip label={titleCase(String(post.status || post.mode || 'draft'))} tone={statusTone(String(post.status || post.mode || 'draft'))} />}</SheetTitle>
+      <SheetDescription>{post.created_at ? 'Created ' + fmt(post.created_at) : ''}</SheetDescription>
+    </SheetHeader>
+    <div className='mt-4 space-y-4'>
+      {post.image_url ? <div className='rounded-lg overflow-hidden border border-border'><PostThumb url={post.image_url} className='w-full max-h-96' /></div> : null}
+      <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Caption</div><div className='text-sm whitespace-pre-wrap leading-relaxed'>{post.text || <span className='text-muted-foreground'>No caption.</span>}</div></Card>
+      <div className='grid grid-cols-2 gap-3'>
+        <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Channels</div>{chan.length ? <ChannelPills channels={chan} /> : <span className='text-sm text-muted-foreground'>—</span>}</Card>
+        <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Status</div><Chip label={titleCase(String(post.status || post.mode || 'draft'))} tone={statusTone(String(post.status || post.mode || 'draft'))} />{post.error ? <div className='text-[11px] text-red-600 mt-1.5 whitespace-pre-wrap'>{post.error}</div> : null}</Card>
+      </div>
+      {post.image_url ? <a href={post.image_url} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 text-xs text-primary hover:underline'>Open full image<ExternalLink className='h-3 w-3' /></a> : null}
+    </div>
+    <ActivityPanel entity='social_post' id={post.id} />
+  </SheetContent></Sheet>);
+}
+
+function BlogDrawer({ post, onChanged, onClose }: { post: any; onChanged: (id: any, published: boolean) => void; onClose: () => void }) {
+  const [pub, setPub] = React.useState(!!post.published);
+  const [busy, setBusy] = React.useState(false); const [msg, setMsg] = React.useState('');
+  const toggle = async () => { const next = !pub; setBusy(true); setMsg(''); try { await osApi('blog_publish', { id: post.id, published: next }); setPub(next); onChanged(post.id, next); setMsg(next ? 'Published — live on the site.' : 'Unpublished — hidden from the site.'); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); } setBusy(false); };
+  const liveUrl = 'https://quotesdone.com/blog/' + (post.slug || '');
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-2xl overflow-y-auto'>
+    <SheetHeader>
+      <div className='flex items-center gap-2 flex-wrap'>{post.category ? <span className='inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-full bg-foreground/[0.06] text-foreground/70 capitalize'>{post.category}</span> : null}<Chip label={pub ? 'Published' : 'Draft'} tone={pub ? 'green' : 'amber'} /></div>
+      <SheetTitle className='mt-1'>{post.title}</SheetTitle>
+      <SheetDescription>{post.published_at ? 'Published ' + fmt(post.published_at) : 'Not published yet'}{post.slug ? ' · /blog/' + post.slug : ''}</SheetDescription>
+    </SheetHeader>
+    <div className='mt-3 flex flex-wrap items-center gap-2'>
+      <Button className='h-8 text-xs' variant={pub ? 'outline' : 'default'} disabled={busy} onClick={toggle}>{busy ? '…' : pub ? 'Unpublish' : 'Publish'}</Button>
+      {pub && post.slug ? <a href={liveUrl} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 h-8 px-3 rounded-md border border-border text-xs hover:bg-foreground/5'>View live<ExternalLink className='h-3 w-3' /></a> : null}
+      {msg ? <span className='text-[11px] text-muted-foreground'>{msg}</span> : null}
+    </div>
+    {post.excerpt ? <div className='mt-4 text-sm text-muted-foreground italic border-l-2 border-border pl-3'>{post.excerpt}</div> : null}
+    {post.body_html ? <div className='osx-prose mt-4 text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1.5 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3 [&_li]:mb-1 [&_a]:text-primary [&_a]:underline [&_strong]:font-semibold [&_img]:rounded-md [&_img]:my-3' dangerouslySetInnerHTML={{ __html: String(post.body_html) }} /> : <div className='mt-4 text-sm text-muted-foreground'>No body content stored for this post.</div>}
+    <ActivityPanel entity='blog_post' id={post.id} />
+  </SheetContent></Sheet>);
+}
+
+function ReviewDrawer({ item, onDone, onClose }: { item: any; onDone: () => void; onClose: () => void }) {
+  const [busy, setBusy] = React.useState(''); const [comment, setComment] = React.useState(''); const [msg, setMsg] = React.useState('');
+  const decide = async (decision: string) => { setBusy(decision); setMsg(''); try { await osApi('review_decide', { kind: item.__kind || 'marketing_post', ref_id: item.id ?? item.ref_id, decision, comment }); onDone(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); setBusy(''); } };
+  const img = item.image_url || item.image;
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
+    <SheetHeader><SheetTitle className='flex items-center gap-2'>Review draft<Chip label='Pending' tone='amber' /></SheetTitle><SheetDescription>{titleCase(String(item.__kind || 'marketing post'))}{item.channel ? ' · ' + item.channel : ''}</SheetDescription></SheetHeader>
+    <div className='mt-4 space-y-4'>
+      {img ? <div className='rounded-lg overflow-hidden border border-border'><PostThumb url={img} className='w-full max-h-96' /></div> : null}
+      {item.title ? <div className='text-base font-semibold'>{item.title}</div> : null}
+      {(item.body || item.text) ? <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Content</div><div className='text-sm whitespace-pre-wrap leading-relaxed'>{item.body || item.text}</div></Card> : null}
+      {item.channels ? <ChannelPills channels={item.channels} /> : null}
+      <div><div className='text-xs font-semibold text-muted-foreground mb-1'>Note (optional)</div><textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} placeholder='Add a note for the record…' className='w-full resize-none rounded-md border border-border bg-transparent p-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' /></div>
+      {msg ? <div className='text-xs text-red-600'>{msg}</div> : null}
+      <div className='flex gap-2'>
+        <Button className='h-9 text-xs' disabled={!!busy} onClick={() => decide('approve')}><Check className='h-4 w-4 mr-1' />{busy === 'approve' ? 'Publishing…' : 'Approve & publish'}</Button>
+        <Button className='h-9 text-xs' variant='outline' disabled={!!busy} onClick={() => decide('reject')}>{busy === 'reject' ? 'Rejecting…' : 'Reject'}</Button>
+      </div>
+    </div>
+  </SheetContent></Sheet>);
+}
+
+const MK_TABS = [['insights', 'Insights'], ['review', 'Review'], ['social', 'Social'], ['blog', 'Blog']] as [string, string][];
+function MarketingApp() {
+  const [tab, setTab] = React.useState('insights');
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const [social, setSocial] = React.useState<any>(null); const [blog, setBlog] = React.useState<any>(null); const [review, setReview] = React.useState<any>(null);
+  const [blogQ, setBlogQ] = React.useState(''); const [blogFilter, setBlogFilter] = React.useState<'all' | 'published' | 'draft'>('all');
+  const load = React.useCallback(() => { setBusy(true); setErr(''); osApi('marketing_studio').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const onBlogChanged = (id: any, published: boolean) => { setD((prev: any) => prev ? { ...prev, blog: (prev.blog || []).map((b: any) => b.id === id ? { ...b, published } : b) } : prev); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Marketing: {err}</Card>;
+  const k = (d?.kpis) || {}; const trend = (d?.trend) || []; const socials = (d?.social) || []; const blogs = (d?.blog) || [];
+  const rv = (d?.review) || {}; const reviewItems: any[] = [
+    ...((rv.marketing_posts || []).map((x: any) => ({ ...x, __kind: 'marketing_post' }))),
+    ...((rv.boost_budgets || []).map((x: any) => ({ ...x, __kind: 'boost_budget' }))),
+  ];
+  const leadsTrend = trend.map((p: any) => ({ d: p.d, n: Number(p.leads) || 0 }));
+  const contentTrend = trend.map((p: any) => ({ d: p.d, n: (Number(p.blog) || 0) + (Number(p.social) || 0) }));
+  const chBreak: Record<string, number> = {}; socials.forEach((s: any) => (Array.isArray(s.channels) ? s.channels : []).forEach((c: string) => { chBreak[c] = (chBreak[c] || 0) + 1; }));
+  const chRows = Object.entries(chBreak).map(([label, n]) => ({ label: CH_LABEL[label] || label, n })).sort((a, b) => b.n - a.n);
+  const publishedCount = blogs.filter((b: any) => b.published).length;
+  const visibleBlogs = blogs.filter((b: any) => (blogFilter === 'all' || (blogFilter === 'published' ? b.published : !b.published)) && (!blogQ || String(b.title || '').toLowerCase().includes(blogQ.toLowerCase()) || String(b.category || '').toLowerCase().includes(blogQ.toLowerCase())));
+  return (<div className='space-y-4'>
+    <div className='flex flex-wrap items-center gap-2'>
+      <Megaphone className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Marketing</h1>
+      {reviewItems.length ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{reviewItems.length} to review</Badge> : null}
+      {busy ? <span className='text-[11px] text-muted-foreground'>updating…</span> : null}
+      <Button className='h-8 text-xs ml-auto' variant='outline' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
+    </div>
+    <div className='inline-flex rounded-lg border border-border bg-foreground/[0.02] p-0.5'>
+      {MK_TABS.map(([id, label]) => (<button key={id} onClick={() => setTab(id)} className={cn('relative h-8 px-3 rounded-md text-xs font-medium transition-colors', tab === id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>{label}{id === 'review' && reviewItems.length ? <span className='ml-1.5 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-amber-500 text-white text-[10px]'>{reviewItems.length}</span> : null}</button>))}
+    </div>
+
+    {!d ? <div className='grid grid-cols-2 md:grid-cols-6 gap-3'>{Array.from({ length: 6 }).map((_, i) => <div key={i} className='h-20 rounded-lg bg-foreground/5 animate-pulse' />)}</div> : tab === 'insights' ? (<div className='space-y-4'>
+      <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>
+        <StatTile label='Total leads' value={k.leads_total} onClick={() => setTab('insights')} />
+        <StatTile label='Blog published' value={k.blog_published} hint={(k.blog_total || 0) + ' total'} onClick={() => setTab('blog')} />
+        <StatTile label='Social live' value={k.social_published} hint={socials.length + ' posts'} onClick={() => setTab('social')} />
+        <StatTile label='SEO pages' value={k.seo_pages} />
+        <StatTile label='Outreach sent' value={k.outreach_sent} />
+        <StatTile label='Awaiting review' value={reviewItems.length} onClick={() => setTab('review')} />
+      </div>
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Leads growth<span className='text-[11px] font-normal text-muted-foreground'>last {leadsTrend.length} snapshots</span></div><div className='p-4'>{leadsTrend.length ? <AreaSpark data={leadsTrend} /> : <div className='text-xs text-muted-foreground'>No trend yet.</div>}</div></Card>
+        <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>Content produced (blog + social)</div><div className='p-4'>{contentTrend.length ? <AreaSpark data={contentTrend} /> : <div className='text-xs text-muted-foreground'>No trend yet.</div>}</div></Card>
+      </div>
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>Marketing funnel</div><div className='p-4'><Funnel rows={[{ stage: 'SEO pages', n: Number(k.seo_pages) || 0 }, { stage: 'Content', n: (Number(k.blog_published) || 0) + (Number(k.social_published) || 0) }, { stage: 'Outreach', n: Number(k.outreach_sent) || 0 }, { stage: 'Leads', n: Number(k.leads_total) || 0 }]} /></div></Card>
+        <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>Social reach by channel</div><div className='p-4'>{chRows.length ? <HBars rows={chRows} onBar={() => setTab('social')} /> : <div className='text-xs text-muted-foreground'>No social posts yet.</div>}</div></Card>
+      </div>
+    </div>) : tab === 'review' ? (<div className='space-y-3'>
+      {reviewItems.length ? <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>{reviewItems.map((it: any, i: number) => (
+        <button key={i} onClick={() => setReview(it)} className='text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all'>
+          {(it.image_url || it.image) ? <PostThumb url={it.image_url || it.image} className='w-full h-40' /> : null}
+          <div className='p-3'><div className='flex items-center gap-2 mb-1'><Chip label={titleCase(String(it.__kind))} tone='amber' />{it.channel ? <span className='text-[11px] text-muted-foreground'>{it.channel}</span> : null}</div><div className='text-sm font-medium line-clamp-1'>{it.title || 'Draft'}</div><div className='text-xs text-muted-foreground line-clamp-2 mt-0.5'>{it.body || it.text || '—'}</div></div>
+        </button>))}</div> : (
+        <Card className='p-10 text-center'><Check className='h-8 w-8 text-emerald-500/50 mx-auto mb-2' /><div className='text-sm font-medium'>Nothing awaiting review</div><div className='text-xs text-muted-foreground mt-1'>Draft posts created by the team appear here. Open one to see its image and copy, then approve to publish or reject.</div></Card>
+      )}
+    </div>) : tab === 'social' ? (<div>
+      {socials.length ? <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>{socials.map((s: any) => { const live = /sent|published/i.test(String(s.status || '')); return (
+        <button key={s.id} onClick={() => setSocial(s)} className='text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all group'>
+          <div className='relative'><PostThumb url={s.image_url} className='w-full h-44 group-hover:brightness-105 transition-all' /><div className='absolute top-2 right-2'>{live ? <Chip label='Live' tone='green' /> : <Chip label={titleCase(String(s.status || s.mode || 'draft'))} tone={statusTone(String(s.status || s.mode || 'draft'))} />}</div></div>
+          <div className='p-3'><div className='text-sm line-clamp-2 leading-snug'>{s.text || <span className='text-muted-foreground'>No caption</span>}</div><div className='flex items-center justify-between mt-2 gap-2'><ChannelPills channels={s.channels} /><span className='text-[10px] text-muted-foreground whitespace-nowrap'>{s.created_at ? new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}</span></div></div>
+        </button>); })}</div> : (
+        <Card className='p-10 text-center'><Megaphone className='h-8 w-8 text-muted-foreground/40 mx-auto mb-2' /><div className='text-sm font-medium'>No social posts yet</div><div className='text-xs text-muted-foreground mt-1'>Posts published through Postiz appear here with their image and copy.</div></Card>
+      )}
+    </div>) : (<div className='space-y-3'>
+      <div className='flex flex-wrap items-center gap-2'>
+        <div className='relative'><Search className='h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none' /><Input value={blogQ} onChange={(e) => setBlogQ(e.target.value)} placeholder='Search posts…' className='h-9 w-56 pl-8' /></div>
+        <div className='inline-flex rounded-md border border-border overflow-hidden text-xs'>{([['all', 'All ' + blogs.length], ['published', 'Published ' + publishedCount], ['draft', 'Drafts ' + (blogs.length - publishedCount)]] as [any, string][]).map(([f, lbl]) => (<button key={f} onClick={() => setBlogFilter(f)} className={cn('h-9 px-3 border-l first:border-l-0 border-border', blogFilter === f ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}>{lbl}</button>))}</div>
+      </div>
+      {visibleBlogs.length ? <Card className='overflow-hidden'><div className='divide-y divide-border'>{visibleBlogs.map((b: any) => (
+        <button key={b.id} onClick={() => setBlog(b)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
+          <div className='min-w-0 flex-1'><div className='text-sm font-medium line-clamp-1'>{b.title}</div><div className='text-xs text-muted-foreground line-clamp-1 mt-0.5'>{b.excerpt || b.slug}</div></div>
+          {b.category ? <span className='hidden sm:inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-full bg-foreground/[0.06] text-foreground/70 capitalize shrink-0'>{b.category}</span> : null}
+          <Chip label={b.published ? 'Published' : 'Draft'} tone={b.published ? 'green' : 'amber'} />
+          <ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' />
+        </button>))}</div></Card> : <Card className='p-8 text-center text-sm text-muted-foreground'>No posts match.</Card>}
+    </div>)}
+
+    {social ? <SocialPostDrawer post={social} onClose={() => setSocial(null)} /> : null}
+    {blog ? <BlogDrawer post={blog} onChanged={onBlogChanged} onClose={() => setBlog(null)} /> : null}
+    {review ? <ReviewDrawer item={review} onDone={() => { setReview(null); load(); }} onClose={() => setReview(null)} /> : null}
+  </div>);
 }
 
 function Workspace({ mod }: { mod: Mod }) {
