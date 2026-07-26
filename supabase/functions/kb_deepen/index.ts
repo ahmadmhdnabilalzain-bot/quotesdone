@@ -17,7 +17,25 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 }
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
-function parseJson(s: string): any { if (!s) return null; let t = String(s).trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim(); const a = t.indexOf('['); if (a > 0) t = t.slice(a); try { return JSON.parse(t); } catch (_e) { return null; } }
+function parseJson(s: string): any {
+  if (!s) return null;
+  let t = String(s).trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  const a = t.indexOf('['); if (a > 0) t = t.slice(a);
+  try { return JSON.parse(t); } catch (_e) { /* model wrapped or truncated the array - salvage below */ }
+  const start = t.indexOf('['); if (start < 0) return null;
+  // 1) balanced span: strips any prose the model appended after the array
+  let depth = 0, end = -1;
+  for (let i = start; i < t.length; i++) {
+    const ch = t[i];
+    if (ch === '[') depth++;
+    else if (ch === ']') { depth--; if (depth === 0) { end = i; break; } }
+  }
+  if (end > start) { try { return JSON.parse(t.slice(start, end + 1)); } catch (_e) { /* fall through */ } }
+  // 2) truncated mid-array (hit max_tokens): keep the complete quoted strings
+  const items = t.slice(start).match(/"(?:[^"\\]|\\.)*"/g);
+  if (items && items.length) { try { return JSON.parse('[' + items.join(',') + ']'); } catch (_e) { /* noop */ } }
+  return null;
+}
 const slugify = (s: string) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
 
 // Web-grounded research: pulls real UAE sources and returns { brief, sources[] }. Sourced, not invented.
