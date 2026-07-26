@@ -25,9 +25,10 @@ async function anonProbe(anon: string, table: string): Promise<{ leaked: boolean
     if (r.status === 401 || (body && body.code === "42501")) return { leaked: false, detail: "permission denied (good)" };
     if (Array.isArray(body) && body.length === 0) return { leaked: false, detail: "RLS empty (good)" };
     if (Array.isArray(body) && body.length > 0) return { leaked: true, detail: `LEAK: ${body.length} row(s) readable by anon` };
-    return { leaked: false, detail: `status ${r.status}` };
+    if (r.status === 404) return { leaked: true, detail: `INCONCLUSIVE: table not found (404) - the probe list names a table that does not exist, so it has never actually been checked` };
+    return { leaked: true, detail: `INCONCLUSIVE: unexpected status ${r.status} - failing closed, because a probe that cannot verify safety must not report safety` };
   } catch (e) {
-    return { leaked: false, detail: "probe error: " + String(e) };
+    return { leaked: true, detail: "INCONCLUSIVE: probe error, failing closed: " + String(e) };
   }
 }
 
@@ -44,7 +45,7 @@ Deno.serve(async (req) => {
     const results: Array<{ check: string; ok: boolean; detail: string }> = [];
 
     // 1) RLS / anonymity regression: sensitive tables must NOT be readable by the public key
-    const sensitive = ["customers", "app_secrets", "leads", "transactions", "quotes", "inquiries", "messages", "agent_knowledge", "email_suppression", "social_posts", "qa_results", "customer_phone_otps", "inbound_messages"];
+    const sensitive = ["customers", "app_secrets", "leads", "transactions", "quotes", "inquiries", "messages", "agent_knowledge", "email_suppressions", "social_posts", "qa_results", "customer_phone_otps", "inbound_messages"];
     for (const t of sensitive) {
       const p = await anonProbe(anon, t);
       results.push({ check: `anon_cannot_read:${t}`, ok: !p.leaked, detail: p.detail });
@@ -74,7 +75,7 @@ Deno.serve(async (req) => {
     if (!passed) {
       const rk = await secret("resend_api_key");
       if (rk) {
-        const alertRes = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${rk}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: "QuotesDone QA <qa@send.quotesdone.com>", to: ["management@quotesdone.com"], subject: `QuotesDone QA FAILED (${failed.length} check(s))`, html: `<h3>QA suite found ${failed.length} failing check(s)</h3><pre>${JSON.stringify(failed, null, 2)}</pre>` }) }).catch(() => null);
+        const alertRes = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${rk}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: (await secret("email_from_info")) || "QuotesDone <info@quotesdone.com>", to: ["management@quotesdone.com"], subject: `QuotesDone QA FAILED (${failed.length} check(s))`, html: `<h3>QA suite found ${failed.length} failing check(s)</h3><pre>${JSON.stringify(failed, null, 2)}</pre>` }) }).catch(() => null);
         alertSent = !!(alertRes && (alertRes as Response).ok);
         if (!alertSent) alertNote = "the failure alert email could NOT be sent, so nobody was notified of these failing checks";
       } else { alertNote = "resend_api_key is missing, so no failure alert email was sent and nobody was notified of these failing checks"; }
