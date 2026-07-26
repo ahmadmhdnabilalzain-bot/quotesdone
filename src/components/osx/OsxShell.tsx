@@ -1475,6 +1475,68 @@ function BoardHeader({ icon: Icon, title, total, sub, view, setView, q, setQ, on
   </div>);
 }
 
+// ── RFQ 360 detail — request · matched suppliers · quotes side-by-side · procurement · actions ──
+function RfqDetailDrawer({ id, title, onClose, onChanged }: { id: any; title: string; onClose: () => void; onChanged: () => void }) {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState('');
+  const [stages, setStages] = React.useState<any[]>([]); const [busy, setBusy] = React.useState('');
+  const [docBusy, setDocBusy] = React.useState('');
+  const load = React.useCallback(() => { setD(null); osApi('ws.rfq', { id }).then((r: any) => setD(r && r.error ? null : r)).catch((e: any) => setErr(e.message)); }, [id]);
+  React.useEffect(() => { load(); osOps('stages_list').then((s: any) => setStages(Array.isArray(s) ? s : [])).catch(() => {}); }, [load]);
+  const act = async (fn: () => Promise<any>) => { try { await fn(); load(); onChanged(); } catch (_e) {} setBusy(''); };
+  const setStage = (stage: string) => { setBusy('stage'); act(() => osOps('rfq_stage', { inquiry: id, stage })); };
+  const setOutcome = (outcome: string) => { setBusy(outcome); act(() => osOps('rfq_outcome', { inquiry: id, outcome })); };
+  const award = (qt: any) => { setBusy('award' + qt.id); act(async () => { await osOps('note_add', { entity: 'rfq', id, body: 'Awarded to ' + (qt.company_name || 'supplier #' + qt.supplier_id) + ' — AED ' + Number(qt.amount || 0).toLocaleString() }); await osOps('rfq_outcome', { inquiry: id, outcome: 'won' }); }); };
+  const openDoc = async (doc: any) => { const key = doc.path || doc.name; setDocBusy(key); try { const r: any = await osApi('file', { bucket: 'inquiry-docs', path: doc.path }); if (r && r.url) window.open(r.url, '_blank', 'noopener'); } catch (_e) {} setDocBusy(''); };
+  const req = d?.requirements || {}; const st = d?.status || {}; const aiq = d?.ai_qualification || {}; const matching = d?.matching || []; const quotes = d?.quotes || []; const clar = d?.clarifications || []; const timeline = d?.timeline || []; const docs = d?.documents || []; const sel = d?.selected_supplier; const proc = d?.procurement;
+  const lowest = quotes.length ? Math.min(...quotes.filter((q: any) => q.amount != null).map((q: any) => Number(q.amount))) : null;
+  const compl = Number(aiq.completeness) || 0; const complPct = compl <= 1 ? compl * 100 : compl;
+  const sub = (label: string) => (<div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center justify-between'>{label}</div>);
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-2xl overflow-y-auto'>
+    <SheetHeader>
+      <div className='flex items-center gap-2 flex-wrap'>{req.category ? <span className='inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-full bg-foreground/[0.06] text-foreground/70 capitalize'>{req.category}</span> : null}{st.status ? <Chip label={titleCase(String(st.status))} tone={statusTone(String(st.status))} /> : null}{st.pipeline_stage ? <Chip label={titleCase(String(st.pipeline_stage))} tone='blue' /> : null}{st.outcome ? <Chip label={titleCase(String(st.outcome))} tone={statusTone(String(st.outcome))} /> : null}</div>
+      <SheetTitle className='mt-1'>{title}</SheetTitle>
+      <SheetDescription>{[req.emirate, req.role_needed, st.expected_value ? 'AED ' + Number(st.expected_value).toLocaleString() : null].filter(Boolean).join(' · ')}</SheetDescription>
+    </SheetHeader>
+    {!d && !err ? <div className='mt-4 text-sm text-muted-foreground'>Loading RFQ…</div> : err ? <div className='mt-4 text-sm text-destructive'>{err}</div> : <>
+      <div className='mt-3 flex flex-wrap items-center gap-2'>
+        {stages.length ? <select value={st.pipeline_stage || ''} disabled={busy === 'stage'} onChange={(e) => setStage(e.target.value)} className='h-8 rounded-md border border-border bg-transparent px-2 text-xs'><option value=''>Set stage…</option>{stages.map((s: any) => <option key={s.key} value={s.key}>{s.label}</option>)}</select> : null}
+        <Button className='h-8 text-xs' variant='outline' disabled={!!busy} onClick={() => setOutcome('won')}>Mark won</Button>
+        <Button className='h-8 text-xs' variant='outline' disabled={!!busy} onClick={() => setOutcome('lost')}>Mark lost</Button>
+      </div>
+      {sel ? <Card className='mt-4 p-3 border-emerald-500/30 bg-emerald-500/[0.04]'><div className='text-[11px] uppercase tracking-wide text-emerald-600 mb-0.5'>Selected supplier</div><div className='text-sm font-semibold'>{sel.company_name || 'Supplier #' + sel.id}</div></Card> : null}
+
+      {quotes.length ? <Card className='mt-4 overflow-hidden'>{sub('Quotes · side by side (' + quotes.length + ')')}
+        <div className='p-3 flex gap-3 overflow-x-auto'>{quotes.map((qt: any) => { const isLow = lowest != null && Number(qt.amount) === lowest; return (
+          <div key={qt.id} className={cn('w-56 shrink-0 rounded-lg border p-3', isLow ? 'border-emerald-500/50 bg-emerald-500/[0.04]' : 'border-border')}>
+            <div className='flex items-center justify-between'><span className='text-sm font-semibold line-clamp-1'>{qt.company_name || 'Supplier #' + qt.supplier_id}</span>{isLow ? <Chip label='Lowest' tone='green' /> : null}</div>
+            <div className='text-xl font-bold tabular-nums mt-1'>{qt.amount != null ? 'AED ' + Number(qt.amount).toLocaleString() : '—'}</div>
+            <div className='mt-2 space-y-1 text-[11px] text-muted-foreground'>{qt.lead_time ? <div>Lead time: <span className='text-foreground'>{qt.lead_time}</span></div> : null}{qt.quality ? <div>Quality: <span className='text-foreground'>{qt.quality}</span></div> : null}{qt.status ? <div className='pt-0.5'><Chip label={titleCase(String(qt.status))} tone={statusTone(String(qt.status))} /></div> : null}</div>
+            <Button className='h-7 text-xs w-full mt-2' variant='outline' disabled={!!busy} onClick={() => award(qt)}>{busy === 'award' + qt.id ? '…' : 'Award'}</Button>
+          </div>); })}</div></Card> : null}
+
+      <Card className='mt-4 overflow-hidden'>{sub('Requirements')}<div className='p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6'>{([['Summary', req.summary], ['Scope', req.scope_type], ['Budget', req.budget], ['Trades', Array.isArray(req.trades) ? req.trades.join(', ') : req.trades], ['BoQ confidence', req.boq_confidence], ['Keywords', Array.isArray(req.keywords) ? req.keywords.join(', ') : req.keywords]] as [string, any][]).filter(([, v]) => v != null && v !== '').map(([k, v]) => (<div key={k} className='flex flex-col py-1.5 border-b border-border/40'><span className='text-[11px] text-muted-foreground'>{k}</span><span className='text-sm break-words'>{fmt(v)}</span></div>))}</div>{req.spec ? <div className='px-4 pb-4'><div className='text-[11px] text-muted-foreground mb-1'>Spec</div><div className='text-sm whitespace-pre-wrap'>{fmt(req.spec)}</div></div> : null}</Card>
+
+      <Card className='mt-4 overflow-hidden'>{sub('AI qualification')}<div className='p-4 space-y-2'>
+        <div className='flex items-center gap-2'><span className='text-xs text-muted-foreground w-24'>Completeness</span><div className='flex-1 h-2 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-primary' style={{ width: Math.max(2, Math.min(100, complPct)) + '%' }} /></div><span className='text-[11px] tabular-nums text-muted-foreground'>{Math.round(complPct)}%</span></div>
+        <div className='flex flex-wrap gap-2 text-xs'>{aiq.rfq_ready != null ? <Chip label={aiq.rfq_ready ? 'RFQ ready' : 'Not ready'} tone={aiq.rfq_ready ? 'green' : 'amber'} /> : null}{aiq.routing ? <span className='text-muted-foreground'>Routing: {fmt(aiq.routing)}</span> : null}{aiq.brief_source ? <span className='text-muted-foreground'>Source: {aiq.brief_source}</span> : null}</div>
+      </div></Card>
+
+      {matching.length ? <Card className='mt-4 overflow-hidden'>{sub('Matched suppliers (' + matching.length + ')')}<div className='divide-y divide-border'>{matching.map((m: any, i: number) => { const sim = Number(m.similarity) || 0; const simPct = sim <= 1 ? sim * 100 : sim; return (
+        <div key={i} className='px-4 py-2.5'><div className='flex items-center justify-between gap-2'><span className='text-sm font-medium line-clamp-1'>{m.company_name || 'Supplier #' + m.supplier_id}</span><span className='text-[11px] text-muted-foreground tabular-nums'>{Math.round(simPct)}% match</span></div><div className='h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden mt-1'><div className='h-full rounded-full bg-primary' style={{ width: Math.max(2, Math.min(100, simPct)) + '%' }} /></div>{m.match_reason ? <div className='text-[11px] text-muted-foreground mt-1 line-clamp-2'>{m.match_reason}</div> : null}</div>); })}</div></Card> : null}
+
+      {docs.length ? <Card className='mt-4 overflow-hidden'>{sub('Documents')}<div className='p-2'>{docs.map((f: any, i: number) => (<div key={i} className='flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-foreground/5'><FileText className='h-4 w-4 text-muted-foreground shrink-0' /><span className='text-sm min-w-0 truncate'>{f.type || f.name}</span><Button className='h-7 text-xs ml-auto' variant='outline' disabled={docBusy === (f.path || f.name)} onClick={() => openDoc(f)}>{docBusy === (f.path || f.name) ? 'Opening…' : 'Open'}</Button></div>))}</div></Card> : null}
+
+      {proc && (typeof proc !== 'object' || Object.keys(proc).length) ? <Card className='mt-4 overflow-hidden'>{sub('Procurement analysis')}<div className='p-4'><ReadableObject data={proc} /></div></Card> : null}
+
+      {clar.length ? <Card className='mt-4 overflow-hidden'>{sub('Clarifications (' + clar.length + ')')}<div className='divide-y divide-border'>{clar.map((c: any, i: number) => (<div key={i} className='px-4 py-2.5'><div className='text-sm'>{c.question}</div>{c.answer ? <div className='text-sm text-muted-foreground mt-0.5'>↳ {c.answer}</div> : <div className='text-[11px] text-amber-600 mt-0.5'>Awaiting answer</div>}<div className='text-[11px] text-muted-foreground mt-0.5'>{fmt(c.asked_at)}</div></div>))}</div></Card> : null}
+
+      {timeline.length ? <Card className='mt-4 overflow-hidden'>{sub('Timeline')}<div className='p-4'>{timeline.map((t: any, i: number) => (<div key={i} className='flex gap-3 pb-3 last:pb-0'><div className='flex flex-col items-center'><div className='h-2 w-2 rounded-full bg-primary mt-1.5' />{i < timeline.length - 1 ? <div className='w-px flex-1 bg-border my-1' /> : null}</div><div className='min-w-0 flex-1'><div className='text-sm'>{t.event}</div><div className='text-[11px] text-muted-foreground'>{fmt(t.at)}</div></div></div>))}</div></Card> : null}
+
+      <ActivityPanel entity='rfq' id={id} />
+    </>}
+  </SheetContent></Sheet>);
+}
+
 const RFQ_COLOR: Record<string, string> = { new: '#64748b', matched: '#3b82f6', quoted: '#f59e0b', revealed: '#8b5cf6', won: '#10b981' };
 function RfqApp() {
   const [view, setView] = React.useState<'kanban' | 'list'>('kanban'); const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [q, setQ] = React.useState(''); const [row, setRow] = React.useState<any>(null);
@@ -1488,7 +1550,7 @@ function RfqApp() {
     {!d ? <div className='text-sm text-muted-foreground'>Loading…</div> : d.total === 0 ? (
       <Card className='p-6'><div className='text-center mb-4'><ArrowLeftRight className='h-8 w-8 text-muted-foreground/40 mx-auto mb-2' /><div className='text-sm font-medium'>No client requests yet</div><div className='text-xs text-muted-foreground mt-1'>The pipeline fills as buyers post RFQs — suppliers are being onboarded first. The stages below are ready.</div></div><KanbanBoard stages={d.stages || []} colors={RFQ_COLOR} onCard={() => { }} renderCard={() => null} /></Card>
     ) : view === 'kanban' ? <KanbanBoard stages={d.stages || []} colors={RFQ_COLOR} onCard={setRow} renderCard={card} /> : <RichList rows={d.rows || []} columns={columns} onRow={setRow} />}
-    {row ? <RecordDrawer frame0={{ entity: 'rfq', id: row.id, title: 'RFQ #' + row.id, row }} onClose={() => setRow(null)} /> : null}
+    {row ? <RfqDetailDrawer id={row.id} title={titleCase(String(row.category || 'RFQ')) + ' · ' + (row.emirate || '')} onChanged={() => load(q)} onClose={() => setRow(null)} /> : null}
   </div>);
 }
 
@@ -1510,12 +1572,38 @@ function CustomersApp() {
 }
 
 function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
-  const [ops, setOps] = React.useState<any>(null);
-  React.useEffect(() => { osApi('ws.agent', { key: agent.agent_key }).then(setOps).catch(() => setOps({})); }, [agent.agent_key]);
-  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
-    <SheetHeader><SheetTitle className='capitalize'>{titleCase(String(agent.agent_key))}</SheetTitle><SheetDescription>{agent.role || agent.department}</SheetDescription></SheetHeader>
-    <div className='mt-3 grid grid-cols-3 gap-2'><StatTile label='Runs 24h' value={agent.runs24} /><StatTile label='Failures 24h' value={agent.fails24} /><StatTile label='Last status' value={agent.last_status || '—'} /></div>
-    {ops === null ? <div className='mt-4 text-sm text-muted-foreground'>Loading agent operations…</div> : <Card className='mt-4 p-4'><ReadableObject data={ops || {}} /></Card>}
+  const [ops, setOps] = React.useState<any>(null); const [dbusy, setDbusy] = React.useState('');
+  const load = React.useCallback(() => { osApi('ws.agent', { key: agent.agent_key }).then(setOps).catch(() => setOps({})); }, [agent.agent_key]);
+  React.useEffect(() => { load(); }, [load]);
+  const decide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('action_decide', { id, op }); load(); } catch (_e) {} setDbusy(''); };
+  const id = ops?.identity || {}; const h = ops?.health || {}; const perf = ops?.performance || {}; const queue = ops?.queue || []; const runs = ops?.recent_runs || []; const kn = ops?.knowledge || {}; const mem = ops?.memory || {}; const convos = ops?.conversations || []; const recs = ops?.recommendations || [];
+  const healthTone = /healthy/.test(String(h.status)) ? 'green' : /degraded|error|fail/.test(String(h.status)) ? 'red' : /stale/.test(String(h.status)) ? 'amber' : 'slate';
+  const sub = (label: string, extra?: any) => (<div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center justify-between'>{label}{extra}</div>);
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-2xl overflow-y-auto'>
+    <SheetHeader>
+      <SheetTitle className='flex items-center gap-2'>{id.emoji ? <span>{id.emoji}</span> : null}{id.name || titleCase(String(agent.agent_key))}<Chip label={titleCase(String(h.status || 'idle'))} tone={healthTone} /></SheetTitle>
+      <SheetDescription>{[agent.department, id.prompt_desc || agent.role, id.prompt_version ? 'prompt v' + id.prompt_version : null].filter(Boolean).join(' · ')}</SheetDescription>
+    </SheetHeader>
+    {ops === null ? <div className='mt-4 text-sm text-muted-foreground'>Loading agent operations…</div> : <>
+      <div className='mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2'>
+        <StatTile label='Runs 24h' value={perf.runs_24h ?? agent.runs24} />
+        <StatTile label='Runs 7d' value={perf.runs_7d} />
+        <StatTile label='OK rate' value={perf.ok_rate != null ? perf.ok_rate + '%' : '—'} />
+        <StatTile label='Avg run' value={perf.avg_duration_ms ? Math.round(Number(perf.avg_duration_ms)) + ' ms' : '—'} />
+      </div>
+      {queue.length ? <Card className='mt-4 overflow-hidden'>{sub('Decisions held for review', <Badge variant='secondary'>{queue.length}</Badge>)}
+        <div className='divide-y divide-border'>{queue.map((a: any) => (<div key={a.id} className='px-4 py-3'>
+          <div className='flex items-center justify-between gap-2'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{titleCase(String(a.title || a.kind || 'decision'))}{a.risk ? <Chip label={String(a.risk)} tone={riskTone(String(a.risk))} /> : null}<Chip label={titleCase(String(a.status))} tone={statusTone(String(a.status))} /></div>{a.recommendation ? <div className='text-xs text-muted-foreground mt-0.5 line-clamp-2'>{a.recommendation}</div> : null}</div></div>
+          <div className='flex gap-1.5 mt-2'><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>{dbusy === String(a.id) + 'approve' ? '…' : 'Approve'}</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>{dbusy === String(a.id) + 'reject' ? '…' : 'Reject'}</Button></div>
+        </div>))}</div></Card> : null}
+      {recs.length ? <Card className='mt-4 overflow-hidden'>{sub('Recommendations')}<div className='divide-y divide-border'>{recs.map((r: any, i: number) => (<div key={i} className='px-4 py-2.5'><div className='text-sm font-medium flex items-center gap-1.5'>{r.title}{r.risk ? <Chip label={String(r.risk)} tone={riskTone(String(r.risk))} /> : null}</div>{r.recommendation ? <div className='text-xs text-muted-foreground mt-0.5'>{r.recommendation}</div> : null}<div className='text-[11px] text-muted-foreground mt-0.5'>{fmt(r.at)}</div></div>))}</div></Card> : null}
+      {runs.length ? <Card className='mt-4 overflow-hidden'>{sub('Recent runs')}<div className='divide-y divide-border'>{runs.map((r: any) => (<div key={r.id} className='px-4 py-2 flex items-center justify-between gap-2'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'><Chip label={titleCase(String(r.status))} tone={statusTone(String(r.status))} />{r.note ? <span className='text-muted-foreground line-clamp-1'>{r.note}</span> : null}</div></div><span className='text-[11px] text-muted-foreground whitespace-nowrap'>{fmt(r.started_at)}</span></div>))}</div></Card> : null}
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4'>
+        {(kn.recent || []).length ? <Card className='overflow-hidden'>{sub('Knowledge', <Badge variant='secondary'>{kn.count ?? (kn.recent || []).length}</Badge>)}<div className='p-3 space-y-1.5'>{(kn.recent || []).map((x: any, i: number) => (<div key={i} className='text-xs flex items-center justify-between gap-2'><span className='truncate'>{x.topic || '—'}</span>{x.priority ? <Chip label={String(x.priority)} tone={priorityTone(String(x.priority))} /> : null}</div>))}</div></Card> : null}
+        {(mem.recent || []).length ? <Card className='overflow-hidden'>{sub('Memory', <Badge variant='secondary'>{mem.count ?? (mem.recent || []).length}</Badge>)}<div className='p-3 space-y-1.5'>{(mem.recent || []).map((x: any, i: number) => (<div key={i} className='text-xs'><span className='text-muted-foreground'>{x.kind}:</span> {x.content}</div>))}</div></Card> : null}
+      </div>
+      {convos.length ? <Card className='mt-4 overflow-hidden'>{sub('Recent conversations')}<div className='p-3 space-y-2'>{convos.map((c: any, i: number) => (<div key={i} className='text-xs'><span className={cn('font-medium', c.role === 'assistant' ? 'text-primary' : 'text-foreground/70')}>{titleCase(String(c.role))}:</span> <span className='text-foreground/80'>{c.content}</span></div>))}</div></Card> : null}
+    </>}
   </SheetContent></Sheet>);
 }
 function AgentsApp() {
