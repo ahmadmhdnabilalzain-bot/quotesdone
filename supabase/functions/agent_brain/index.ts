@@ -1,4 +1,8 @@
-// agent_brain v15 — EMPLOYEE RUNTIME.
+// agent_brain v16 — EMPLOYEE RUNTIME.
+// Change vs v15: retrieve() is now category-scoped for specialist (cat:<slug>) agents — it
+// pulls that specialist's OWN deep region of the knowledge base first (the "trigger that
+// region of the master's brain" behaviour) and tops up with a small unscoped cross-domain
+// pass; functional staff keep the relevance-ranked global pass. Feeds on the kb_deepen corpus.
 // Changes vs v14: (1) context comes from fn_agent_context() — the four-layer employee
 // assembly (identity+doctrine posture, L1 company, L2 profession, L3 live state, L4
 // lint-filtered experience) instead of a flat 26-bullet knowledge dump + raw memory;
@@ -79,13 +83,31 @@ async function instructions(key:string){
     return rows.length ? '\n\nSTANDING FOUNDER INSTRUCTIONS (newest first):\n'+rows.join('\n') : '';
   }catch(_e){ return ''; }
 }
-async function retrieve(msg:string){
+// Semantic + keyword retrieval over the deep knowledge corpus (kb_chunks). For a category
+// specialist (cat:<slug>) we scope to that slug FIRST — this is the "trigger that region of
+// the master's brain" behaviour: a fit-out question pulls the fit-out deep briefs, not the
+// whole company. We top up with an unscoped pass so cross-domain facts still surface.
+async function retrieve(key:string, msg:string){
   try{
     const secret=await sec('inbound_secret'); if(!secret) return '';
-    const r=await fetch(SUPA+'/functions/v1/kb_search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:secret,query:msg,k:6})});
-    const j=await r.json(); const rows=(j&&Array.isArray(j.results))?j.results:[];
+    const cat = key.startsWith('cat:') ? key.slice(4) : null;
+    const call = async (category:string|null, k:number) => {
+      try{
+        const r=await fetch(SUPA+'/functions/v1/kb_search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:secret,query:msg,k,...(category?{category}:{})})});
+        const j=await r.json(); return (j&&Array.isArray(j.results))?j.results:[];
+      }catch(_e){ return []; }
+    };
+    let rows:any[] = [];
+    if(cat){
+      const scoped = await call(cat, 8);            // the specialist's own deep region first
+      const wide   = await call(null, 4);           // + a few cross-domain hits
+      const seen = new Set<number>(); rows = [];
+      for(const x of [...scoped, ...wide]){ if(x && !seen.has(x.id)){ seen.add(x.id); rows.push(x); } }
+    } else {
+      rows = await call(null, 8);                    // functional staff: relevance-ranked, RRF surfaces their own deep chunks
+    }
     if(!rows.length) return '';
-    return '\n\nRETRIEVED REFERENCE KNOWLEDGE (semantic + keyword matches from the company knowledge base — UAE codes, standards, regulations and internal know-how relevant to this question; use it to VERIFY, cite the reference in [brackets] when you use it):\n'+rows.map((x:any)=>'- ['+(x.citation||x.category||'ref')+'] '+String(x.snippet||'').replace(/\s+/g,' ').slice(0,400)).join('\n');
+    return '\n\nRETRIEVED REFERENCE KNOWLEDGE (semantic + keyword matches from the company knowledge base — UAE codes, standards, regulations, materials and internal know-how relevant to this question; use it to VERIFY, cite the reference in [brackets] when you use it):\n'+rows.slice(0,10).map((x:any)=>'- ['+(x.citation||x.category||'ref')+'] '+String(x.snippet||'').replace(/\s+/g,' ').slice(0,400)).join('\n');
   }catch(_e){ return ''; }
 }
 async function context(key:string){
@@ -134,7 +156,7 @@ Deno.serve(async (req)=>{
     const teammates=VALID_AGENTS.filter(a=>a!==key).map(a=>a+' ('+(NAMES[a]||a)+')').join(', ');
     const base='You are '+m.name+' at QuotesDone, a UAE B2B anonymous quotation marketplace — a senior executive employee, not an assistant. Your full employment context follows (identity, company canon, your professional expertise, live operational state, organizational experience) — it governs how you think and act. DOCTRINE: default to action within your delegated authority — complete work and report results; prepare and route gated work (money, publishing, legal action, security) for approval rather than abandoning it; never ask permission you already have. Be specific, practical and concise. Never invent numbers — operational figures come only from the LIVE OPERATIONAL STATE and LIVE DATA SNAPSHOT.\n\nTEAMWORK: You can hand a task to a colleague specialist when it clearly belongs to them. Your colleagues: '+teammates+'. To hand off, AFTER your normal reply, append on a NEW LINE exactly @@ACTIONS@@ followed by compact JSON: {"handoffs":[{"to":"<agent_key>","title":"<short task title>","details":"<exactly what you need them to do and why>"}]}. Only hand off real, specific, useful tasks. Omit the @@ACTIONS@@ line entirely if there is no handoff. Never mention this mechanism or the word @@ACTIONS@@ in your visible reply.';
     const persona=(m as any).persona?('\n\n'+(m as any).persona):'';
-    const [layered, instr, kb] = await Promise.all([layeredContext(key), instructions(key), retrieve(msg)]);
+    const [layered, instr, kb] = await Promise.all([layeredContext(key), instructions(key), retrieve(key, msg)]);
     const sys=base+persona+layered+instr+kb+'\n\nLIVE DATA SNAPSHOT (read-only, captured just now):\n'+JSON.stringify(ctx).slice(0,9000);
     const rawReply=await llm(sys,[...history,{role:'user',content:msg}],1700)||'I could not reach the AI service just now — please try again in a moment.';
     let [clean,acts]=splitActions(rawReply); let finalReply=clean||rawReply; const notes:string[]=[];
