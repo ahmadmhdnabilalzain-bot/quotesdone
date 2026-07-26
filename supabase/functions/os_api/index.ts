@@ -1,4 +1,4 @@
-// os_api v29 — backend for QuotesDone OS. JWT-gated; owner/admin only (or x-os-key preview bypass). + audit trail. + secretary console passthrough.
+// os_api v30 — backend for QuotesDone OS. JWT-gated; owner/admin only (or x-os-key preview bypass). + audit trail. + secretary console passthrough.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const BASE = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
@@ -128,6 +128,21 @@ Deno.serve(async (req) => {
     if (action === 'exam_summary') { const { data, error } = await admin.rpc('fn_knowledge_exam_summary'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
     if (action === 'exam_run') { const r = await fetch(`${BASE}/knowledge_exam`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), agent_key: body?.agent_key || undefined, generate: Number(body?.generate ?? 6), answer: Number(body?.answer ?? 8) }) }); const jd = await r.json().catch(() => ({})); if (!r.ok && jd?.error) return J({ error: jd.error }, 502); return J({ ok: true, data: jd }); }
     if (action === 'exam_revert') { const { data, error } = await admin.rpc('fn_exam_revert', { p_agent_key: body?.agent_key || null }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    if (action === 'knowledge_export') {
+      const ak = String(body?.agent_key || '').trim();
+      let sel = admin.from('agent_knowledge').select('agent_key,topic,content,priority,updated_at').order('agent_key').order('priority', { ascending: false });
+      if (ak) sel = sel.in('agent_key', ak.startsWith('cat:') ? [ak] : [ak, 'cat:' + ak]);
+      const { data, error } = await sel; if (error) return J({ error: error.message }, 500);
+      const rows = (data as any[]) || [];
+      const groups: Record<string, any[]> = {}; for (const r of rows) { (groups[r.agent_key] = groups[r.agent_key] || []).push(r); }
+      let md = '# QuotesDone — Agent Knowledge Export\n\n' + (ak ? 'Agent: `' + ak + '`\n' : 'All agents\n') + 'Generated: ' + new Date().toISOString() + '\nItems: ' + rows.length + '\n';
+      for (const [key, items] of Object.entries(groups)) {
+        md += '\n\n---\n\n## ' + key + '  (' + items.length + ' item' + (items.length === 1 ? '' : 's') + ')\n';
+        for (const it of items) { md += '\n**' + (it.topic || 'general') + '**' + (String(it.topic || '').startsWith('exam:') ? ' _(exam-verified)_' : '') + '  \n' + String(it.content || '').trim() + '\n'; }
+      }
+      const filename = 'knowledge-' + (ak ? ak.replace(/[^a-z0-9-]+/gi, '_') : 'all-agents') + '.md';
+      return J({ ok: true, data: { filename, markdown: md, count: rows.length } });
+    }
 
     if (WS[action]) { const { data, error } = await admin.rpc(WS[action]); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
 

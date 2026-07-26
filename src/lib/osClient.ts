@@ -3,16 +3,20 @@ import { createClient } from '@supabase/supabase-js';
 export const SUPA_URL = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
 export const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
 export const supa = createClient(SUPA_URL, SUPA_ANON, { auth: { persistSession: true, autoRefreshToken: true } });
+// LLM-backed actions can legitimately take a while (agent reasoning on Opus, question generation,
+// knowledge regeneration). Give those a long budget so a working-but-slow call isn't killed at 25s;
+// keep plain reads snappy. (The backend agent chain can run 45–120s across model retries.)
+const SLOW_ACTION = /secretary_chat|exam_run|knowledge_refresh|knowledge_dispatch|extract_doc|report_pdf/;
 export async function osApi(action: string, body: Record<string, any> = {}) {
   const { data: { session } } = await supa.auth.getSession();
   const token = session?.access_token;
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 25000);
+  const timer = setTimeout(() => ctl.abort(), SLOW_ACTION.test(action) ? 120000 : 30000);
   let r: Response;
   try {
     r = await fetch(SUPA_URL + '/functions/v1/os_api', { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify({ action, ...body }) });
   } catch (e: any) {
-    throw new Error(e?.name === 'AbortError' ? 'Request timed out — please retry' : (e?.message || 'Network error'));
+    throw new Error(e?.name === 'AbortError' ? 'The agent is taking longer than usual — your work is saved; please retry' : (e?.message || 'Network error'));
   } finally { clearTimeout(timer); }
   const j = await r.json().catch(() => ({} as any));
   if (r.status === 401) throw new Error('Session expired');

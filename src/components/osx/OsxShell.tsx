@@ -2080,13 +2080,14 @@ function KnowledgeHealthCard() {
   const load = React.useCallback(() => { setBusy(true); osApi('knowledge_gaps').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
   React.useEffect(() => { load(); }, [load]);
   const refresh = async (slug: string) => { setRbusy(slug); setMsg(''); try { await osApi('knowledge_refresh', { slug }); setMsg('Refreshed ' + slug + ' — knowledge regenerated.'); load(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); } setRbusy(''); };
+  const exportKb = async (slug?: string) => { setRbusy('export' + (slug || 'all')); setMsg('Building export…'); try { const r: any = await osApi('knowledge_export', slug ? { agent_key: slug } : {}); const blob = new Blob([r.markdown], { type: 'text/markdown' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = r.filename; a.click(); URL.revokeObjectURL(url); setMsg('Exported ' + r.count + ' item(s) → ' + r.filename); } catch (e: any) { setMsg('Export failed: ' + (e?.message || 'error')); } setRbusy(''); };
   const sweep = async () => { setBusy(true); setMsg(''); try { const r: any = await osApi('knowledge_dispatch'); setMsg('Gap sweep run — ' + (r?.gaps_found ?? 0) + ' open task(s) for lagging agents.'); load(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); } setBusy(false); };
   if (err && !d) return <Card className='p-4 text-sm text-destructive'>Could not load knowledge health: {err}</Card>;
   const s = d?.summary || {}; const agents = (d?.agents || []) as any[];
   const shown = show === 'gaps' ? agents.filter((a) => a.status !== 'ok') : agents;
   const cov = Number(s.coverage_pct) || 0;
   return (
-    <SectionCard title='Agent knowledge health' count={s.total} right={<div className='flex items-center gap-2'>{msg ? <span className='text-[11px] text-muted-foreground'>{msg}</span> : null}<Button className='h-7 text-xs' variant='outline' disabled={busy} onClick={sweep}>{busy ? '…' : 'Run gap sweep'}</Button></div>}>
+    <SectionCard title='Agent knowledge health' count={s.total} right={<div className='flex items-center gap-2'>{msg ? <span className='text-[11px] text-muted-foreground max-w-xs truncate'>{msg}</span> : null}<Button className='h-7 text-xs' variant='outline' disabled={rbusy === 'exportall'} onClick={() => exportKb()}>{rbusy === 'exportall' ? '…' : 'Export all (.md)'}</Button><Button className='h-7 text-xs' variant='outline' disabled={busy} onClick={sweep}>{busy ? '…' : 'Run gap sweep'}</Button></div>}>
       <div className='p-4 space-y-3'>
         <div className='flex items-center gap-2'><span className='text-xs text-muted-foreground w-24'>Fresh coverage</span><div className='flex-1 h-2 rounded-full bg-foreground/[0.06] overflow-hidden'><div className={cn('h-full rounded-full', cov >= 70 ? 'bg-emerald-500' : cov >= 40 ? 'bg-amber-500' : 'bg-red-500')} style={{ width: Math.max(2, cov) + '%' }} /></div><span className='text-[11px] tabular-nums text-muted-foreground'>{cov}%</span></div>
         <div className='flex flex-wrap gap-2 text-[11px]'>{s.ok ? <Chip label={s.ok + ' fresh'} tone='green' /> : null}{s.stale ? <Chip label={s.stale + ' stale'} tone='amber' /> : null}{s.thin ? <Chip label={s.thin + ' thin'} tone='amber' /> : null}{s.missing ? <Chip label={s.missing + ' missing'} tone='red' /> : null}<span className='text-muted-foreground ml-auto'>Chief of Staff opens an auto-closing task per lagging agent daily; the curator refreshes the stalest.</span></div>
@@ -2098,7 +2099,7 @@ function KnowledgeHealthCard() {
               <td className='px-3 py-2 tabular-nums'>{a.items}</td>
               <td className='px-3 py-2 text-muted-foreground whitespace-nowrap'>{a.days_stale == null ? 'never' : a.days_stale + 'd ago'}</td>
               <td className='px-3 py-2'><Chip label={titleCase(String(a.status))} tone={KGAP_TONE[a.status] || 'slate'} /></td>
-              <td className='px-3 py-2 text-right'><Button className='h-7 text-xs' variant='outline' disabled={rbusy === a.slug} onClick={() => refresh(a.slug)}>{rbusy === a.slug ? 'Refreshing…' : 'Refresh'}</Button></td>
+              <td className='px-3 py-2 text-right whitespace-nowrap'><Button className='h-7 text-xs mr-1' variant='ghost' disabled={rbusy === 'export' + a.slug} onClick={() => exportKb(a.slug)} title='Export this agent’s knowledge as Markdown'>{rbusy === 'export' + a.slug ? '…' : 'Export'}</Button><Button className='h-7 text-xs' variant='outline' disabled={rbusy === a.slug} onClick={() => refresh(a.slug)}>{rbusy === a.slug ? 'Refreshing…' : 'Refresh'}</Button></td>
             </tr>))}{!shown.length ? <tr><td colSpan={5} className='px-3 py-6 text-center text-sm text-muted-foreground'>All agents are fresh.</td></tr> : null}</tbody>
           </table>
         </div>
