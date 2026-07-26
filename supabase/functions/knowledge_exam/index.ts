@@ -5,10 +5,25 @@
 // independent models converge on the fact AND it passes the policy poison-lint. Fills are provenance-
 // tagged (topic 'exam:…') so they are auditable and bulk-revertible. Logs every attempt to knowledge_exam_results.
 // No human approval step by design — safety comes from model-convergence + lint, not clicking.
+// v2: examiner and examinee are now grounded on the DEEP knowledge corpus (kb_chunks via kb_search),
+// so the exam probes and measures true retrieval-augmented mastery, not just the capped context layer.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { makeLlm, OPUS_FIRST, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const SUPA = Deno.env.get('SUPABASE_URL')!;
 const T0 = Date.now();
+// Retrieve from the DEEP knowledge corpus (kb_chunks) exactly as production agents do, so the exam
+// probes — and the examinee answers from — the real retrieval-augmented knowledge, not just the
+// capped fn_agent_context layer. Without this the exam under-measures and flags false gaps.
+async function deepKb(query: string, category: string | null, k: number): Promise<string> {
+  try {
+    const secret = await sec('inbound_secret'); if (!secret || !query.trim()) return '';
+    const r = await fetch(SUPA + '/functions/v1/kb_search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, query: query.slice(0, 800), k, ...(category ? { category } : {}) }) });
+    const j = await r.json(); const rows = (j && Array.isArray(j.results)) ? j.results : [];
+    if (!rows.length) return '';
+    return rows.map((x: any) => '- [' + (x.citation || x.category || 'ref') + '] ' + String(x.snippet || '').replace(/\s+/g, ' ').slice(0, 400)).join('\n');
+  } catch (_e) { return ''; }
+}
 const examiner = makeLlm(SONNET_FIRST, { max: 1600, temperature: 0.4 });   // writes the curriculum
 const grader   = makeLlm(OPUS_FIRST,   { max: 1600, temperature: 0.1 });   // independent judge + ground truth
 const examinee = makeLlm(SONNET_FIRST, { max: 1200, temperature: 0.2 });   // answers, constrained to its KB
@@ -47,16 +62,19 @@ Deno.serve(async (req) => {
     let label = key;
     if (key.startsWith('cat:')) { const { data: ca } = await admin.from('category_agents').select('name').eq('slug', key.slice(4)).maybeSingle(); if (ca?.name) label = (ca as any).name + ' specialist'; }
 
-    // 2) the agent's actual knowledge context (what it reasons from)
+    // 2) the agent's actual knowledge context (what it reasons from) + its DEEP corpus region
+    const cat = key.startsWith('cat:') ? key.slice(4) : key;   // deep chunks are category-scoped to this slug
     const { data: ctxRaw } = await admin.rpc('fn_agent_context', { p_agent_key: key, p_max_chars: 16000 });
     const kb = String(ctxRaw || '').slice(0, 16000);
+    // Deep material for the examiner's remit — lets it write questions that probe true mastery.
+    const remitDeep = await deepKb(label + ' UAE Dubai key materials standards authorities pricing', cat, 8);
 
     // 3) examiner writes fresh questions (+ reference answers), avoiding recent duplicates
     const { data: recentQs } = await admin.from('knowledge_exam_questions').select('question').eq('agent_key', key).order('id', { ascending: false }).limit(60);
     const seen = (recentQs || []).map((r: any) => '- ' + r.question).join('\n');
     let generated = 0;
     if (nGen > 0) {
-      const gsys = 'You are a rigorous examiner building a competency test for the "' + label + '" agent at QuotesDone, a UAE (Dubai-focused) B2B sourcing marketplace. Use the AGENT REMIT below to test the knowledge THIS agent actually needs for its role: for a trade specialist that means UAE governing authorities/permits, technical standards, scope & specs, price drivers and compliance red flags; for a functional role (finance, legal, IT, analytics, marketing, operations) it means the professional, regulatory and platform knowledge that role needs in the UAE context. Produce hard, SPECIFIC, factually-answerable questions with a definite correct answer, and give each correct concise answer (<=240 chars). Output ONLY a JSON array: [{"question":"...","answer":"...","topic":"authority|standards|scope|pricing|compliance|domain","difficulty":"core|edge"}]. HARD RULE: never invent code numbers, authority names or figures — if unsure of an exact number, phrase the answer by naming the requirement without a fabricated number.\n\nAGENT REMIT (excerpt of its live knowledge):\n' + (kb ? kb.slice(0, 1400) : '(sparse — infer the role from the agent name "' + label + '")');
+      const gsys = 'You are a rigorous examiner building a competency test for the "' + label + '" agent at QuotesDone, a UAE (Dubai-focused) B2B sourcing marketplace. Use the AGENT REMIT below to test the knowledge THIS agent actually needs for its role: for a trade specialist that means UAE governing authorities/permits, technical standards, scope & specs, price drivers and compliance red flags; for a functional role (finance, legal, IT, analytics, marketing, operations) it means the professional, regulatory and platform knowledge that role needs in the UAE context. Produce hard, SPECIFIC, factually-answerable questions with a definite correct answer, and give each correct concise answer (<=240 chars). Output ONLY a JSON array: [{"question":"...","answer":"...","topic":"authority|standards|scope|pricing|compliance|domain","difficulty":"core|edge"}]. HARD RULE: never invent code numbers, authority names or figures — if unsure of an exact number, phrase the answer by naming the requirement without a fabricated number.\n\nAGENT REMIT (excerpt of its live knowledge):\n' + (kb ? kb.slice(0, 1400) : '(sparse — infer the role from the agent name "' + label + '")') + (remitDeep ? '\n\nDEEP REFERENCE MATERIAL (the specialist carries this — probe it):\n' + remitDeep.slice(0, 2000) : '');
       const guser = 'Domain: ' + label + '. Market: UAE (Dubai). Write ' + nGen + ' new questions. Do NOT repeat any of these already-asked questions:\n' + (seen || '(none yet)');
       const gout = parseJson((await examiner(gsys, guser)) || '');
       if (Array.isArray(gout)) {
@@ -70,9 +88,12 @@ Deno.serve(async (req) => {
     const qs = batch || [];
     if (!qs.length) { await logRun('ok', { generated, examined: 0 }, 'generated ' + generated + ' questions for ' + key + '; none to test yet'); return J({ ok: true, agent: key, generated, examined: 0 }); }
 
-    // 5) examinee answers using ONLY its knowledge base
+    // 5) examinee answers using its knowledge base — fn_agent_context PLUS the deep corpus it would
+    //    retrieve in production (kb_search on the batch questions), so the exam mirrors real ability.
     const qList = qs.map((q: any, i: number) => (i + 1) + '. ' + q.question).join('\n');
-    const esys = 'You are the "' + label + '" specialist agent. Answer each question using ONLY the KNOWLEDGE BASE provided. If the knowledge base does not clearly contain the answer, reply exactly "NOT_COVERED" for that item — do not guess from general knowledge. Output ONLY a JSON array of strings, one answer per question in order.\n\nKNOWLEDGE BASE:\n' + (kb || '(empty)');
+    const answerDeep = await deepKb(qs.map((q: any) => q.question).join(' '), cat, 10);
+    const esysKb = (kb || '(empty)') + (answerDeep ? '\n\nRETRIEVED REFERENCE KNOWLEDGE (deep corpus, same as production retrieval):\n' + answerDeep : '');
+    const esys = 'You are the "' + label + '" specialist agent. Answer each question using ONLY the KNOWLEDGE BASE provided. If the knowledge base does not clearly contain the answer, reply exactly "NOT_COVERED" for that item — do not guess from general knowledge. Output ONLY a JSON array of strings, one answer per question in order.\n\nKNOWLEDGE BASE:\n' + esysKb;
     const eout = parseJson((await examinee(esys, 'Questions:\n' + qList)) || '');
     const answers: string[] = Array.isArray(eout) ? eout.map((x: any) => String(x)) : qs.map(() => '__NO_ANSWER__');
 
