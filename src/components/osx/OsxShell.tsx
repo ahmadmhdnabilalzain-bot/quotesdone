@@ -124,7 +124,7 @@ function bringToTop(list: WinState[], id: string, patch: Partial<WinState> = {})
 // Shared module renderer — used by both the tabbed main area and floating windows.
 function renderModule(id: string, go: (id: string) => void): React.ReactNode {
   const m = MODULES.find((x) => x.id === id) || MODULES[0];
-  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : m.id === 'marketing' ? <MarketingApp /> : <Workspace mod={m} />;
+  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : m.id === 'marketing' ? <MarketingApp /> : m.id === 'fraud' ? <FraudApp /> : m.id === 'refunds' ? <RefundsApp /> : <Workspace mod={m} />;
 }
 
 function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, onSnap }: { win: WinState; onFocus: () => void; onClose: () => void; onMin: () => void; onMax: () => void; onMove: (x: number, y: number) => void; onSize: (w: number, h: number) => void; onSnap: (s: 'l' | 'r' | null) => void }) {
@@ -1867,6 +1867,117 @@ function MarketingApp() {
     {social ? <SocialPostDrawer post={social} onClose={() => setSocial(null)} /> : null}
     {blog ? <BlogDrawer post={blog} onChanged={onBlogChanged} onClose={() => setBlog(null)} /> : null}
     {review ? <ReviewDrawer item={review} onDone={() => { setReview(null); load(); }} onClose={() => setReview(null)} /> : null}
+  </div>);
+}
+
+// ── Fraud — risk case queue with case detail + resolve actions ──
+function FraudCaseDrawer({ flag, onResolved, onClose }: { flag: any; onResolved: () => void; onClose: () => void }) {
+  const [busy, setBusy] = React.useState(''); const [msg, setMsg] = React.useState(''); const [sub, setSub] = React.useState<any>(null);
+  const det = flag.detail || {};
+  const resolve = async (op: string) => { setBusy(op); setMsg(''); try { await osApi('fraud_resolve', { subject_type: flag.subject_type, subject_id: String(flag.subject_id), op }); onResolved(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); setBusy(''); } };
+  const amount = Number(det.amount); const median = Number(det.median); const hasCompare = isFinite(amount) && isFinite(median) && median > 0;
+  const ratio = hasCompare ? amount / median : 1; const maxv = Math.max(amount, median) || 1;
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
+    <SheetHeader>
+      <div className='flex items-center gap-2 flex-wrap'><Chip label={titleCase(String(flag.kind || 'flag'))} tone='slate' /><Chip label={titleCase(String(flag.severity || 'medium'))} tone={riskTone(String(flag.severity))} /><Chip label={titleCase(String(flag.status || 'open'))} tone={statusTone(String(flag.status))} /></div>
+      <SheetTitle className='mt-1'>{titleCase(String(flag.kind || 'Risk flag'))}</SheetTitle>
+      <SheetDescription>{titleCase(String(flag.subject_type))} · {String(flag.subject_id)} · flagged {fmt(flag.created)}</SheetDescription>
+    </SheetHeader>
+    <div className='mt-4 space-y-4'>
+      {hasCompare ? <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-2'>Price vs category median{det.band ? ' · ' + titleCase(String(det.band)) : ''}</div>
+        <div className='space-y-2'>
+          <div><div className='flex justify-between text-xs mb-1'><span>This {flag.subject_type}</span><span className='tabular-nums font-medium'>AED {amount.toLocaleString()}</span></div><div className='h-2.5 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-red-500' style={{ width: Math.max(3, (amount / maxv) * 100) + '%' }} /></div></div>
+          <div><div className='flex justify-between text-xs mb-1'><span>Category median{det.category ? ' (' + det.category + ')' : ''}</span><span className='tabular-nums text-muted-foreground'>AED {median.toLocaleString()}</span></div><div className='h-2.5 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-foreground/40' style={{ width: Math.max(3, (median / maxv) * 100) + '%' }} /></div></div>
+        </div>
+        <div className='text-[11px] text-muted-foreground mt-2'>{ratio >= 1 ? (ratio).toFixed(1) + '× above' : (1 / ratio).toFixed(1) + '× below'} the category median.</div>
+      </Card> : null}
+      <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Detail</div><ReadableObject data={det} /></Card>
+      {flag.subject_type === 'supplier' ? <Button className='h-8 text-xs' variant='outline' onClick={() => setSub({ entity: 'supplier', id: flag.subject_id })}>Open supplier record</Button> : null}
+      {msg ? <div className='text-xs text-red-600'>{msg}</div> : null}
+      <div className='flex gap-2 border-t border-border pt-3'>
+        <Button className='h-9 text-xs' variant='outline' disabled={!!busy} onClick={() => resolve('dismiss')}>{busy === 'dismiss' ? '…' : 'Dismiss (false positive)'}</Button>
+        <Button className='h-9 text-xs' variant='outline' disabled={!!busy} onClick={() => resolve('ban')}>{busy === 'ban' ? '…' : 'Ban actor'}</Button>
+      </div>
+    </div>
+    {flag.subject_type && flag.subject_id != null ? <ActivityPanel entity={flag.subject_type} id={flag.subject_id} /> : null}
+    {sub ? <RecordDrawer frame0={{ entity: sub.entity, id: sub.id, title: 'Supplier #' + sub.id }} onClose={() => setSub(null)} /> : null}
+  </SheetContent></Sheet>);
+}
+function FraudApp() {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false); const [sel, setSel] = React.useState<any>(null);
+  const load = React.useCallback(() => { setBusy(true); setErr(''); osApi('ws.fraud').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Fraud: {err}</Card>;
+  const k = d?.kpis || {}; const flags = d?.open_flags || []; const banned = d?.banned || [];
+  const sevRank = (s: string) => /high|critical|severe/.test(String(s)) ? 0 : /medium|moderate/.test(String(s)) ? 1 : 2;
+  const sorted = [...flags].sort((a: any, b: any) => sevRank(a.severity) - sevRank(b.severity));
+  return (<div className='space-y-4'>
+    <div className='flex flex-wrap items-center gap-2'><ShieldAlert className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Fraud &amp; Risk</h1>{k.high_severity ? <Badge className='bg-red-500/15 text-red-600 border-0'>{k.high_severity} high severity</Badge> : null}<Button className='h-8 text-xs ml-auto' variant='outline' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button></div>
+    <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>
+      <StatTile label='Open flags' value={k.open_flags} />
+      <StatTile label='High severity' value={k.high_severity} />
+      <StatTile label='Flags (7d)' value={k.flags_7d} />
+      <StatTile label='Banned actors' value={k.banned_actors} />
+    </div>
+    <Card className='overflow-hidden'>
+      <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Open risk flags<Badge variant='secondary'>{flags.length}</Badge></div>
+      {sorted.length ? <div className='divide-y divide-border'>{sorted.map((f: any, i: number) => (
+        <button key={i} onClick={() => setSel(f)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
+          <div className='min-w-0 flex-1'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{titleCase(String(f.kind))}<Chip label={titleCase(String(f.severity))} tone={riskTone(String(f.severity))} /></div><div className='text-xs text-muted-foreground mt-0.5'>{titleCase(String(f.subject_type))} · {f.detail?.category ? f.detail.category + ' · ' : ''}{f.detail?.amount ? 'AED ' + Number(f.detail.amount).toLocaleString() : (f.detail?.note || '')}</div></div>
+          <span className='text-[11px] text-muted-foreground whitespace-nowrap'>{fmt(f.created)}</span><ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' />
+        </button>))}</div> : <div className='px-4 py-8 text-center text-sm text-muted-foreground'>No open risk flags. The engine is watching prices, licences and duplicate accounts.</div>}
+    </Card>
+    {banned.length ? <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>Banned actors</div><div className='divide-y divide-border'>{banned.map((b: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm flex items-center justify-between'><span>{b.name || b.subject_id}</span><Chip label='Banned' tone='red' /></div>))}</div></Card> : null}
+    {sel ? <FraudCaseDrawer flag={sel} onResolved={() => { setSel(null); load(); }} onClose={() => setSel(null)} /> : null}
+  </div>);
+}
+
+// ── Refunds — dispute queue with case detail + resolve ──
+function RefundDrawer({ item, onResolved, onClose }: { item: any; onResolved: () => void; onClose: () => void }) {
+  const [busy, setBusy] = React.useState(''); const [note, setNote] = React.useState(''); const [msg, setMsg] = React.useState('');
+  const tid = item.transaction_id ?? item.id;
+  const resolve = async (op: string) => { setBusy(op); setMsg(''); try { await osApi('refund_resolve', { transaction_id: String(tid), op, note }); onResolved(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); setBusy(''); } };
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
+    <SheetHeader>
+      <div className='flex items-center gap-2 flex-wrap'>{item.refund_status ? <Chip label={titleCase(String(item.refund_status))} tone={statusTone(String(item.refund_status))} /> : <Chip label='Pending' tone='amber' />}{item.within_window != null ? <Chip label={item.within_window ? 'Within window' : 'Out of window'} tone={item.within_window ? 'green' : 'red'} /> : null}</div>
+      <SheetTitle className='mt-1'>Refund · {item.amount != null ? 'AED ' + Number(item.amount).toLocaleString() : 'Transaction ' + tid}</SheetTitle>
+      <SheetDescription>{[item.customer_name || item.customer, item.created_at ? fmt(item.created_at) : null].filter(Boolean).join(' · ')}</SheetDescription>
+    </SheetHeader>
+    <div className='mt-4 space-y-4'>
+      {item.reason ? <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Reason</div><div className='text-sm whitespace-pre-wrap'>{item.reason}</div></Card> : null}
+      <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Transaction</div><ReadableObject data={item} /></Card>
+      <div><div className='text-xs font-semibold text-muted-foreground mb-1'>Decision note (optional)</div><textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className='w-full resize-none rounded-md border border-border bg-transparent p-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' /></div>
+      {msg ? <div className='text-xs text-red-600'>{msg}</div> : null}
+      <div className='flex gap-2 border-t border-border pt-3'>
+        <Button className='h-9 text-xs' disabled={!!busy} onClick={() => resolve('approve')}>{busy === 'approve' ? '…' : 'Approve refund'}</Button>
+        <Button className='h-9 text-xs' variant='outline' disabled={!!busy} onClick={() => resolve('reject')}>{busy === 'reject' ? '…' : 'Reject'}</Button>
+      </div>
+    </div>
+  </SheetContent></Sheet>);
+}
+function RefundsApp() {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false); const [sel, setSel] = React.useState<any>(null);
+  const load = React.useCallback(() => { setBusy(true); setErr(''); osApi('ws.refunds').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Refunds: {err}</Card>;
+  const k = d?.kpis || {}; const pending = d?.pending || []; const resolved = d?.recent_resolved || [];
+  return (<div className='space-y-4'>
+    <div className='flex flex-wrap items-center gap-2'><RotateCcw className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Refunds</h1>{k.pending ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.pending} pending</Badge> : null}<Button className='h-8 text-xs ml-auto' variant='outline' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button></div>
+    <div className='grid grid-cols-2 md:grid-cols-3 gap-3'>
+      <StatTile label='Pending' value={k.pending} />
+      <StatTile label='Resolved (30d)' value={k.resolved_30d} />
+      <StatTile label='Within window' value={k.within_window} />
+    </div>
+    <Card className='overflow-hidden'>
+      <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Pending refund requests<Badge variant='secondary'>{pending.length}</Badge></div>
+      {pending.length ? <div className='divide-y divide-border'>{pending.map((r: any, i: number) => (
+        <button key={i} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
+          <div className='min-w-0 flex-1'><div className='text-sm font-medium'>{r.amount != null ? 'AED ' + Number(r.amount).toLocaleString() : 'Transaction ' + (r.transaction_id ?? r.id)}</div><div className='text-xs text-muted-foreground line-clamp-1 mt-0.5'>{r.customer_name || r.customer || ''}{r.reason ? ' · ' + r.reason : ''}</div></div>
+          <ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' />
+        </button>))}</div> : <div className='px-4 py-8 text-center text-sm text-muted-foreground'>No pending refund requests. Approved payments with disputes will appear here for review.</div>}
+    </Card>
+    {resolved.length ? <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>Recently resolved</div><div className='divide-y divide-border'>{resolved.map((r: any, i: number) => (<div key={i} className='px-4 py-2.5 flex items-center justify-between gap-2'><span className='text-sm'>{r.amount != null ? 'AED ' + Number(r.amount).toLocaleString() : (r.transaction_id ?? r.id)}</span>{r.refund_status ? <Chip label={titleCase(String(r.refund_status))} tone={statusTone(String(r.refund_status))} /> : null}</div>))}</div></Card> : null}
+    {sel ? <RefundDrawer item={sel} onResolved={() => { setSel(null); load(); }} onClose={() => setSel(null)} /> : null}
   </div>);
 }
 
