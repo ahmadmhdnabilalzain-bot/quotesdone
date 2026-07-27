@@ -1,28 +1,28 @@
 [
  {
-  "name": "Executive Office (Chief of Staff)",
+  "name": "Executive Office",
   "sort": 10,
   "active": true,
   "charter": "Run the company against the founder's objectives with minimal founder intervention; be the single interface.",
   "dept_key": "exec",
   "health_fn": "fn_ws_company",
-  "lead_agent": "brief",
+  "lead_agent": "ceo",
   "north_star": "objectives completed without founder touch",
   "brain_agent": "brief"
  },
  {
-  "name": "IT & Engineering",
+  "name": "Technology",
   "sort": 20,
   "active": true,
   "charter": "Keep the platform alive and safely evolving.",
   "dept_key": "it",
   "health_fn": "fn_ws_ai",
-  "lead_agent": "it",
+  "lead_agent": "cto",
   "north_star": "uptime x change-safety",
   "brain_agent": "it"
  },
  {
-  "name": "Procurement (Marketplace Core)",
+  "name": "Marketplace & Procurement",
   "sort": 30,
   "active": true,
   "charter": "Run intake->match->quote->reveal at high match & quote quality.",
@@ -35,13 +35,24 @@
  {
   "name": "Supplier Success",
   "sort": 40,
-  "active": true,
+  "active": false,
   "charter": "Acquire, onboard, verify, activate and retain suppliers.",
   "dept_key": "supplier_success",
   "health_fn": "fn_ws_suppliers",
   "lead_agent": "onboarding",
   "north_star": "activated suppliers per week",
   "brain_agent": "onboarding"
+ },
+ {
+  "name": "Sales & Growth",
+  "sort": 45,
+  "active": true,
+  "charter": "Own pipeline, partnerships and revenue growth against the company revenue goal.",
+  "dept_key": "sales",
+  "health_fn": null,
+  "lead_agent": "sales_director",
+  "north_star": "Qualified pipeline converted to revenue",
+  "brain_agent": null
  },
  {
   "name": "Customer Success",
@@ -77,26 +88,37 @@
   "brain_agent": "cfo"
  },
  {
-  "name": "Knowledge Management",
+  "name": "Operations",
   "sort": 80,
   "active": true,
-  "charter": "Capture, fill, retrieve and improve the company brain; never leave a gap open.",
+  "charter": "Process, quality, project coordination and document control across the company.",
   "dept_key": "knowledge",
   "health_fn": "fn_ws_knowledge",
-  "lead_agent": "docs",
-  "north_star": "coverage % / gap-close time",
+  "lead_agent": "ops_director",
+  "north_star": "Process cycle time and QA pass rate",
   "brain_agent": "docs"
  },
  {
   "name": "Analytics & Intelligence",
   "sort": 90,
-  "active": true,
+  "active": false,
   "charter": "Turn data into decisions; advisory to every department.",
   "dept_key": "analytics",
   "health_fn": "fn_ws_analytics",
   "lead_agent": "analytics",
   "north_star": "insight-to-action latency",
   "brain_agent": "analytics"
+ },
+ {
+  "name": "Human Resources",
+  "sort": 95,
+  "active": true,
+  "charter": "Recruit, onboard, develop and manage performance of every employee in the company.",
+  "dept_key": "hr",
+  "health_fn": null,
+  "lead_agent": "hr_director",
+  "north_star": "Employee capability and performance coverage",
+  "brain_agent": null
  },
  {
   "name": "Legal & Compliance",

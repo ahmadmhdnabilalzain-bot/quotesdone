@@ -1,12 +1,5 @@
 [
  {
-  "note": "never acts on the business directly",
-  "dept_key": "analytics",
-  "max_tier": "advisory",
-  "action_class": "recommend",
-  "threshold_aed": null
- },
- {
   "note": "reveal/quote follow-ups",
   "dept_key": "customer_success",
   "max_tier": "autonomous",
@@ -70,6 +63,20 @@
   "threshold_aed": 10000
  },
  {
+  "note": null,
+  "dept_key": "hr",
+  "max_tier": "autonomous",
+  "action_class": "capability_review",
+  "threshold_aed": null
+ },
+ {
+  "note": "Creating a new employee role changes the org and needs founder approval",
+  "dept_key": "hr",
+  "max_tier": "gated",
+  "action_class": "role_define",
+  "threshold_aed": null
+ },
+ {
   "note": "Tier 0: agent proposes, founder promotes",
   "dept_key": "it",
   "max_tier": "gated",
@@ -88,6 +95,13 @@
   "dept_key": "it",
   "max_tier": "autonomous",
   "action_class": "incident_fix",
+  "threshold_aed": null
+ },
+ {
+  "note": "never acts on the business directly",
+  "dept_key": "it",
+  "max_tier": "advisory",
+  "action_class": "recommend",
   "threshold_aed": null
  },
  {
@@ -161,6 +175,13 @@
   "threshold_aed": null
  },
  {
+  "note": "ramped, deliverability-gated",
+  "dept_key": "procurement",
+  "max_tier": "autonomous",
+  "action_class": "invite",
+  "threshold_aed": null
+ },
+ {
   "note": "policy-capped fanout/relevance",
   "dept_key": "procurement",
   "max_tier": "autonomous",
@@ -168,31 +189,45 @@
   "threshold_aed": null
  },
  {
-  "note": "ramped, deliverability-gated",
-  "dept_key": "supplier_success",
-  "max_tier": "autonomous",
-  "action_class": "invite",
-  "threshold_aed": null
- },
- {
   "note": "doctrine 2026-07-24: licence-OCR-clean suppliers auto-approve; anything flagged stays founder",
-  "dept_key": "supplier_success",
+  "dept_key": "procurement",
   "max_tier": "autonomous",
   "action_class": "supplier_approve_clean",
   "threshold_aed": null
  },
  {
   "note": null,
-  "dept_key": "supplier_success",
+  "dept_key": "procurement",
   "max_tier": "gated",
   "action_class": "supplier_ban",
   "threshold_aed": null
  },
  {
   "note": "contact underperformers, improve response times, recommend process fixes",
-  "dept_key": "supplier_success",
+  "dept_key": "procurement",
   "max_tier": "autonomous",
   "action_class": "supplier_coaching",
+  "threshold_aed": null
+ },
+ {
+  "note": "Drafting outbound is safe",
+  "dept_key": "sales",
+  "max_tier": "autonomous",
+  "action_class": "outreach_draft",
+  "threshold_aed": null
+ },
+ {
+  "note": "Sending on the company name requires approval",
+  "dept_key": "sales",
+  "max_tier": "gated",
+  "action_class": "outreach_send",
+  "threshold_aed": null
+ },
+ {
+  "note": null,
+  "dept_key": "sales",
+  "max_tier": "autonomous",
+  "action_class": "pipeline_review",
   "threshold_aed": null
  }
 ]

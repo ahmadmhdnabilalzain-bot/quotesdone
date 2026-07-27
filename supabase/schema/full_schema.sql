@@ -21,46 +21,78 @@ CREATE SEQUENCE IF NOT EXISTS public.agent_knowledge_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.agent_memory_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.agent_runs_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.ai_constitution_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.ai_cost_log_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.ai_governance_review_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.ai_model_register_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.board_reports_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.brand_assets_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.brand_signal_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.business_rules_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.canon_eval_questions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.canon_eval_runs_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.category_quote_specs_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.collaboration_rule_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.company_calendar_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.company_economics_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.company_event_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.competitive_position_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.competitor_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.compliance_sources_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.culture_principle_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.decision_log_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.decision_record_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.delegation_rule_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.department_objective_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.dept_library_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.doc_backups_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.doc_versions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.documents_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.dr_restore_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.employee_kpi_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.entity_comments_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.error_events_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.event_delivery_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.evolution_proposal_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.expense_entries_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.expenses_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.experiment_events_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.feedback_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.finance_reports_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.finance_snapshots_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.goal_period_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.governance_policy_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.governance_rule_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.hlm_digest_log_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.idea_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.institutional_memory_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.kb_revisions_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.knowledge_exam_questions_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.knowledge_exam_results_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.llm_calls_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.marketing_library_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.mdm_brands_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.mdm_cities_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.mdm_manufacturers_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.mdm_standards_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.metric_snapshot_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.pdpl_erase_files_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.policy_rules_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.promotion_record_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.prompt_versions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.quote_comparisons_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.quote_items_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.resource_pool_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.review_chain_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.review_queue_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.rfq_archives_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.risk_register_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.self_review_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.simulations_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.spec_backlog_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supply_health_snapshots_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 
--- ===== TABLES (219) =====\nCREATE TABLE IF NOT EXISTS public.admin_mfa_sessions (
+-- ===== TABLES (288) =====\nCREATE TABLE IF NOT EXISTS public.admin_mfa_sessions (
   session_id text NOT NULL,
   email text,
   verified_at timestamp with time zone DEFAULT now(),
@@ -152,7 +184,14 @@ CREATE TABLE IF NOT EXISTS public.agent_knowledge (
   priority integer DEFAULT 5,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  layer text DEFAULT 'profession'::text
+  layer text DEFAULT 'profession'::text,
+  source_ref text,
+  owner_agent text,
+  version integer DEFAULT 1 NOT NULL,
+  confidence numeric,
+  validation_status text DEFAULT 'unvalidated'::text NOT NULL,
+  review_due date,
+  supersedes_id bigint
 );
 
 CREATE TABLE IF NOT EXISTS public.agent_memory (
@@ -193,6 +232,54 @@ CREATE TABLE IF NOT EXISTS public.ai_constitution (
   created_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.ai_cost_log (
+  id bigint DEFAULT nextval('ai_cost_log_id_seq'::regclass) NOT NULL,
+  occurred_at timestamp with time zone DEFAULT now() NOT NULL,
+  fn text,
+  dept_key text,
+  agent_key text,
+  task_class text,
+  model_used text NOT NULL,
+  model_selected_because text,
+  tier text,
+  prompt_tokens integer DEFAULT 0,
+  output_tokens integer DEFAULT 0,
+  cached boolean DEFAULT false NOT NULL,
+  cache_hit_key text,
+  latency_ms integer,
+  cost_aed numeric,
+  confidence numeric,
+  could_be_cheaper boolean,
+  cheaper_reason text,
+  ok boolean DEFAULT true NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.ai_governance_review (
+  id bigint DEFAULT nextval('ai_governance_review_id_seq'::regclass) NOT NULL,
+  review_type text NOT NULL,
+  subject text NOT NULL,
+  finding text NOT NULL,
+  evidence text,
+  severity text DEFAULT 'info'::text NOT NULL,
+  action text,
+  status text DEFAULT 'open'::text NOT NULL,
+  reviewed_by text DEFAULT 'ai_governance_board'::text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.ai_model_register (
+  id bigint DEFAULT nextval('ai_model_register_id_seq'::regclass) NOT NULL,
+  model text NOT NULL,
+  provider text NOT NULL,
+  approved boolean DEFAULT false NOT NULL,
+  approved_for text[],
+  forbidden_for text[],
+  approved_by text,
+  approved_at timestamp with time zone,
+  review_due date,
+  note text
+);
+
 CREATE TABLE IF NOT EXISTS public.ai_qa_log (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
@@ -224,6 +311,12 @@ CREATE TABLE IF NOT EXISTS public.ai_usage (
   email text,
   kind text,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.alert_watermark (
+  watcher text NOT NULL,
+  last_run_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_alert_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.ap_bills (
@@ -303,6 +396,20 @@ CREATE TABLE IF NOT EXISTS public.brand_assets (
   created_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.brand_signal (
+  id bigint DEFAULT nextval('brand_signal_id_seq'::regclass) NOT NULL,
+  signal_type text NOT NULL,
+  severity text DEFAULT 'medium'::text NOT NULL,
+  subject_type text NOT NULL,
+  subject_id text,
+  rule_key text,
+  detail text NOT NULL,
+  evidence jsonb DEFAULT '{}'::jsonb,
+  status text DEFAULT 'open'::text NOT NULL,
+  detected_by text DEFAULT 'fn_brand_scan'::text NOT NULL,
+  detected_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.budget_lines (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   budget_id bigint NOT NULL,
@@ -363,6 +470,50 @@ CREATE TABLE IF NOT EXISTS public.canon_eval_runs (
   gaps jsonb
 );
 
+CREATE TABLE IF NOT EXISTS public.career_level (
+  level_no integer NOT NULL,
+  level_name text NOT NULL,
+  criteria text NOT NULL,
+  min_kpis_met_pct numeric,
+  min_runs integer,
+  max_error_rate_pct numeric
+);
+
+CREATE TABLE IF NOT EXISTS public.catalog_domains (
+  slug text NOT NULL,
+  num integer,
+  name text NOT NULL,
+  sort integer,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.catalog_subcategories (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  domain_slug text,
+  name text NOT NULL,
+  slug text,
+  agent_slug text,
+  sort integer
+);
+
+CREATE TABLE IF NOT EXISTS public.catalog_supplier_categories (
+  slug text NOT NULL,
+  num integer,
+  name text NOT NULL,
+  regulated boolean DEFAULT false,
+  sort integer,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.category_agent_map (
+  catalog_slug text NOT NULL,
+  agent_slug text,
+  status text DEFAULT 'needs_agent'::text NOT NULL,
+  confidence text DEFAULT 'high'::text NOT NULL,
+  note text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.category_agents (
   slug text NOT NULL,
   name text NOT NULL,
@@ -370,7 +521,16 @@ CREATE TABLE IF NOT EXISTS public.category_agents (
   active boolean DEFAULT true NOT NULL,
   persona text,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  requires_regulation boolean DEFAULT false NOT NULL
+  requires_regulation boolean DEFAULT false NOT NULL,
+  agent_class text,
+  folded_into text,
+  folded_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.category_licence_activity (
+  catalog_slug text NOT NULL,
+  activity_regex text NOT NULL,
+  note text
 );
 
 CREATE TABLE IF NOT EXISTS public.category_quote_specs (
@@ -419,6 +579,17 @@ CREATE TABLE IF NOT EXISTS public.chat_violations (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.collaboration_rule (
+  id bigint DEFAULT nextval('collaboration_rule_id_seq'::regclass) NOT NULL,
+  situation text NOT NULL,
+  owner_dept text NOT NULL,
+  must_involve text[] DEFAULT '{}'::text[] NOT NULL,
+  must_review text[] DEFAULT '{}'::text[] NOT NULL,
+  may_challenge text[] DEFAULT '{}'::text[] NOT NULL,
+  reason text NOT NULL,
+  blocking boolean DEFAULT true NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.collections_config (
   id integer DEFAULT 1 NOT NULL,
   interest_pa numeric DEFAULT 0.09 NOT NULL,
@@ -426,6 +597,53 @@ CREATE TABLE IF NOT EXISTS public.collections_config (
   escalate_working_days integer DEFAULT 30 NOT NULL,
   reminder_max integer DEFAULT 3 NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.company_calendar (
+  id bigint DEFAULT nextval('company_calendar_id_seq'::regclass) NOT NULL,
+  event_name text NOT NULL,
+  kind text NOT NULL,
+  starts_on date,
+  ends_on date,
+  approximate boolean DEFAULT false NOT NULL,
+  recurrence text,
+  affects text NOT NULL,
+  action text,
+  owner_dept text,
+  source_url text,
+  verified_at date DEFAULT CURRENT_DATE
+);
+
+CREATE TABLE IF NOT EXISTS public.company_constitution (
+  article_no integer NOT NULL,
+  section text NOT NULL,
+  title text NOT NULL,
+  body text NOT NULL,
+  binding text DEFAULT 'all_employees'::text NOT NULL,
+  version text DEFAULT 'v1'::text NOT NULL,
+  effective_from date DEFAULT CURRENT_DATE NOT NULL,
+  supersedes integer
+);
+
+CREATE TABLE IF NOT EXISTS public.company_economics (
+  id bigint DEFAULT nextval('company_economics_id_seq'::regclass) NOT NULL,
+  topic text NOT NULL,
+  statement text NOT NULL,
+  formula text,
+  current_value text,
+  source_ref text,
+  every_employee_must_know boolean DEFAULT true NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.company_event (
+  id bigint DEFAULT nextval('company_event_id_seq'::regclass) NOT NULL,
+  event_type text NOT NULL,
+  entity_type text,
+  entity_id text,
+  actor text,
+  payload jsonb,
+  occurred_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.company_faq (
@@ -445,12 +663,55 @@ CREATE TABLE IF NOT EXISTS public.company_faq (
   public boolean DEFAULT false NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.company_goals (
+  key text NOT NULL,
+  goal text NOT NULL,
+  metric text NOT NULL,
+  target_value numeric,
+  unit text,
+  period text DEFAULT 'annual'::text NOT NULL,
+  owner_dept text,
+  measure_sql text,
+  active boolean DEFAULT true NOT NULL,
+  sort integer DEFAULT 0 NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  category text,
+  horizon text DEFAULT 'year_1'::text NOT NULL,
+  direction text DEFAULT 'at_least'::text NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.company_vision (
   id integer DEFAULT 1 NOT NULL,
   vision text NOT NULL,
   mission text NOT NULL,
   principles text,
   updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.competitive_position (
+  id bigint DEFAULT nextval('competitive_position_id_seq'::regclass) NOT NULL,
+  dimension text NOT NULL,
+  quotesdone text NOT NULL,
+  market_norm text NOT NULL,
+  verdict text NOT NULL,
+  evidence text
+);
+
+CREATE TABLE IF NOT EXISTS public.competitor (
+  id bigint DEFAULT nextval('competitor_id_seq'::regclass) NOT NULL,
+  name text NOT NULL,
+  url text,
+  kind text NOT NULL,
+  what_they_do text NOT NULL,
+  business_model text,
+  overlap text,
+  strength text,
+  weakness text,
+  offers_anonymity boolean,
+  threat_level text,
+  verified_at date DEFAULT CURRENT_DATE,
+  source_url text
 );
 
 CREATE TABLE IF NOT EXISTS public.compliance_sources (
@@ -515,6 +776,30 @@ CREATE TABLE IF NOT EXISTS public.content_drafts_backup_20260724 (
   founder_comment text,
   reviewed_at timestamp with time zone,
   _pk bigint GENERATED ALWAYS AS IDENTITY NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.continuity_plan (
+  service text NOT NULL,
+  criticality text DEFAULT 'high'::text NOT NULL,
+  failure_mode text NOT NULL,
+  detection text NOT NULL,
+  fallback text NOT NULL,
+  degraded_mode text NOT NULL,
+  recovery text NOT NULL,
+  rto_minutes integer,
+  owner_agent text,
+  last_tested date
+);
+
+CREATE TABLE IF NOT EXISTS public.critical_capability (
+  capability_key text NOT NULL,
+  capability text NOT NULL,
+  why_critical text NOT NULL,
+  owner_dept text,
+  test_kind text,
+  test_ref text,
+  last_verdict text,
+  last_checked timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.crm_activities (
@@ -588,6 +873,16 @@ CREATE TABLE IF NOT EXISTS public.cron_registry (
   purpose text DEFAULT ''::text NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.culture_principle (
+  id bigint DEFAULT nextval('culture_principle_id_seq'::regclass) NOT NULL,
+  principle text NOT NULL,
+  meaning text NOT NULL,
+  looks_like text NOT NULL,
+  violation text NOT NULL,
+  detectable_by text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.customer_kpi_snapshots (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   snapshot_date date DEFAULT CURRENT_DATE NOT NULL,
@@ -604,6 +899,18 @@ CREATE TABLE IF NOT EXISTS public.customer_phone_otps (
   attempts integer DEFAULT 0,
   consumed boolean DEFAULT false,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.customer_score (
+  customer_id bigint NOT NULL,
+  rfqs_posted integer DEFAULT 0 NOT NULL,
+  rfqs_awarded integer DEFAULT 0 NOT NULL,
+  avg_budget_aed numeric,
+  preferred_categories text[],
+  lifetime_value_aed numeric,
+  churn_risk numeric,
+  last_active timestamp with time zone,
+  computed_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.customers (
@@ -655,6 +962,67 @@ CREATE TABLE IF NOT EXISTS public.decision_policy (
   value jsonb NOT NULL,
   description text,
   updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.decision_record (
+  id bigint DEFAULT nextval('decision_record_id_seq'::regclass) NOT NULL,
+  decided_by text NOT NULL,
+  dept_key text,
+  problem text NOT NULL,
+  context text,
+  options jsonb,
+  risks text,
+  benefits text,
+  recommendation text NOT NULL,
+  confidence numeric,
+  expected_outcome text,
+  rollback_plan text,
+  serves_goal text,
+  approved_by text,
+  status text DEFAULT 'proposed'::text NOT NULL,
+  actual_outcome text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  impact_business text,
+  impact_financial text,
+  financial_aed numeric,
+  impact_legal text,
+  impact_customer text,
+  impact_supplier text,
+  evidence jsonb DEFAULT '[]'::jsonb,
+  reversible boolean,
+  decided_at timestamp with time zone DEFAULT now(),
+  gate_verdict text,
+  gate_reason text,
+  gate_checked_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.delegation_rule (
+  id bigint DEFAULT nextval('delegation_rule_id_seq'::regclass) NOT NULL,
+  dept_key text NOT NULL,
+  when_agent text NOT NULL,
+  delegate_to text NOT NULL,
+  basis text NOT NULL,
+  rank integer DEFAULT 1 NOT NULL,
+  active boolean DEFAULT true NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.department_budget (
+  dept_key text NOT NULL,
+  monthly_aed numeric NOT NULL,
+  spent_aed numeric DEFAULT 0 NOT NULL,
+  period_label text NOT NULL,
+  degrade_at_pct integer DEFAULT 70 NOT NULL,
+  halt_at_pct integer DEFAULT 95 NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.department_objective (
+  id bigint DEFAULT nextval('department_objective_id_seq'::regclass) NOT NULL,
+  dept_key text NOT NULL,
+  objective text NOT NULL,
+  horizon text DEFAULT 'year_1'::text NOT NULL,
+  sort integer DEFAULT 0 NOT NULL,
+  active boolean DEFAULT true NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.deploy_state (
@@ -841,6 +1209,49 @@ CREATE TABLE IF NOT EXISTS public.email_verifications (
   token_hash text
 );
 
+CREATE TABLE IF NOT EXISTS public.employee_authority (
+  agent_key text NOT NULL,
+  action_class text NOT NULL,
+  max_tier text DEFAULT 'advisory'::text NOT NULL,
+  threshold_aed numeric,
+  note text
+);
+
+CREATE TABLE IF NOT EXISTS public.employee_knowledge (
+  agent_key text NOT NULL,
+  domain_key text NOT NULL,
+  depth text DEFAULT 'working'::text NOT NULL,
+  layer_no integer
+);
+
+CREATE TABLE IF NOT EXISTS public.employee_knowledge_standard (
+  layer_no integer NOT NULL,
+  layer text NOT NULL,
+  intent text NOT NULL,
+  binds_via text NOT NULL,
+  required boolean DEFAULT true NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.employee_kpi (
+  id bigint DEFAULT nextval('employee_kpi_id_seq'::regclass) NOT NULL,
+  agent_key text NOT NULL,
+  kpi text NOT NULL,
+  metric text NOT NULL,
+  target_value numeric,
+  unit text,
+  cadence text DEFAULT 'monthly'::text NOT NULL,
+  serves_goal text,
+  measure_sql text,
+  active boolean DEFAULT true NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.employee_workflow (
+  agent_key text NOT NULL,
+  workflow_key text NOT NULL,
+  role_in_workflow text DEFAULT 'participant'::text NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.entity_comments (
   id bigint DEFAULT nextval('entity_comments_id_seq'::regclass) NOT NULL,
   entity text NOT NULL,
@@ -863,6 +1274,35 @@ CREATE TABLE IF NOT EXISTS public.escalations_archive_20260724 (
   src text,
   "row" jsonb,
   _pk bigint GENERATED ALWAYS AS IDENTITY NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.event_delivery (
+  id bigint DEFAULT nextval('event_delivery_id_seq'::regclass) NOT NULL,
+  event_id bigint NOT NULL,
+  agent_key text NOT NULL,
+  event_type text NOT NULL,
+  delivered_at timestamp with time zone DEFAULT now() NOT NULL,
+  task_id bigint
+);
+
+CREATE TABLE IF NOT EXISTS public.event_subscription (
+  agent_key text NOT NULL,
+  event_type text NOT NULL,
+  reason text,
+  active boolean DEFAULT true NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.evolution_proposal (
+  id bigint DEFAULT nextval('evolution_proposal_id_seq'::regclass) NOT NULL,
+  trigger_kind text NOT NULL,
+  subject text NOT NULL,
+  observation text NOT NULL,
+  evidence jsonb DEFAULT '{}'::jsonb,
+  proposal text NOT NULL,
+  change_class text DEFAULT 'process'::text NOT NULL,
+  status text DEFAULT 'proposed'::text NOT NULL,
+  decided_by text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.exec_reports (
@@ -976,6 +1416,18 @@ CREATE TABLE IF NOT EXISTS public.feature_flags (
   updated_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.feedback (
+  id bigint DEFAULT nextval('feedback_id_seq'::regclass) NOT NULL,
+  source text NOT NULL,
+  subject_type text,
+  subject_id text,
+  rating numeric,
+  comment text,
+  actioned boolean DEFAULT false NOT NULL,
+  action_taken text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.finance_kpi_snapshots (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   snapshot_date date DEFAULT CURRENT_DATE NOT NULL,
@@ -1081,6 +1533,40 @@ CREATE TABLE IF NOT EXISTS public.gl_settings (
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.goal_period (
+  id bigint DEFAULT nextval('goal_period_id_seq'::regclass) NOT NULL,
+  goal_key text,
+  horizon text NOT NULL,
+  period_label text NOT NULL,
+  target_value numeric,
+  actual_value numeric,
+  owner_dept text,
+  status text DEFAULT 'open'::text NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.governance_policy (
+  id bigint DEFAULT nextval('governance_policy_id_seq'::regclass) NOT NULL,
+  domain text NOT NULL,
+  policy text NOT NULL,
+  rule text NOT NULL,
+  enforced_by text,
+  enforcement text DEFAULT 'declared'::text NOT NULL,
+  owner_dept text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.governance_rule (
+  id bigint DEFAULT nextval('governance_rule_id_seq'::regclass) NOT NULL,
+  rule_type text NOT NULL,
+  scope text NOT NULL,
+  condition text NOT NULL,
+  action text NOT NULL,
+  routes_to text,
+  priority integer DEFAULT 3 NOT NULL,
+  active boolean DEFAULT true NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.graph_edges (
   src_kind text NOT NULL,
   src_ref text NOT NULL,
@@ -1136,6 +1622,39 @@ CREATE TABLE IF NOT EXISTS public.hlm_watchlist (
   addr text NOT NULL,
   name text,
   score real
+);
+
+CREATE TABLE IF NOT EXISTS public.idea (
+  id bigint DEFAULT nextval('idea_id_seq'::regclass) NOT NULL,
+  submitted_by text NOT NULL,
+  dept_key text,
+  title text NOT NULL,
+  problem text NOT NULL,
+  proposal text NOT NULL,
+  category text,
+  serves_goal text,
+  effort text,
+  expected_value_aed numeric,
+  confidence numeric,
+  score numeric,
+  stage text DEFAULT 'submitted'::text NOT NULL,
+  decided_by text,
+  outcome text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.implementation_map (
+  capability text NOT NULL,
+  area text NOT NULL,
+  files text,
+  db_tables text,
+  cron_jobs text,
+  api_routes text,
+  test_suite text,
+  status text DEFAULT 'partial'::text NOT NULL,
+  evidence text,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.inbound_messages (
@@ -1250,6 +1769,40 @@ CREATE TABLE IF NOT EXISTS public.inquiry_requirement (
   parser_version text
 );
 
+CREATE TABLE IF NOT EXISTS public.institutional_memory (
+  id bigint DEFAULT nextval('institutional_memory_id_seq'::regclass) NOT NULL,
+  kind text NOT NULL,
+  subject_type text,
+  subject_id text,
+  category_slug text,
+  headline text NOT NULL,
+  detail text NOT NULL,
+  outcome text,
+  money_aed numeric,
+  learned_by text,
+  confidence numeric,
+  evidence_ref text,
+  visible_to text[] DEFAULT '{}'::text[],
+  occurred_at timestamp with time zone DEFAULT now() NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.integration_matrix (
+  service text NOT NULL,
+  purpose text NOT NULL,
+  credential_keys text NOT NULL,
+  used_by_fns text,
+  owner_dept text,
+  configured boolean DEFAULT true NOT NULL,
+  notes text,
+  monthly_cost_aed numeric,
+  sla_uptime_pct numeric,
+  renewal_date date,
+  alternatives text,
+  usage_limit_note text,
+  last_reviewed date
+);
+
 CREATE TABLE IF NOT EXISTS public.inv_items (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   sku text,
@@ -1332,10 +1885,65 @@ CREATE TABLE IF NOT EXISTS public.kb_usage_log (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.knowledge_domain (
+  domain_key text NOT NULL,
+  name text NOT NULL,
+  kind text NOT NULL,
+  description text,
+  source text,
+  active boolean DEFAULT true NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.knowledge_exam_questions (
+  id bigint DEFAULT nextval('knowledge_exam_questions_id_seq'::regclass) NOT NULL,
+  agent_key text NOT NULL,
+  question text NOT NULL,
+  reference_answer text,
+  topic text,
+  difficulty text DEFAULT 'core'::text,
+  times_asked integer DEFAULT 0,
+  last_asked timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.knowledge_exam_results (
+  id bigint DEFAULT nextval('knowledge_exam_results_id_seq'::regclass) NOT NULL,
+  agent_key text NOT NULL,
+  question_id bigint,
+  examinee_answer text,
+  verdict text,
+  grader_answer text,
+  grader_confidence numeric,
+  converged boolean DEFAULT false,
+  gap_fact text,
+  filled boolean DEFAULT false,
+  knowledge_id bigint,
+  created_at timestamp with time zone DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS public.knowledge_kpi_snapshots (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   snapshot_date date DEFAULT CURRENT_DATE NOT NULL,
   kpis jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.knowledge_module_standard (
+  module text NOT NULL,
+  ord integer NOT NULL,
+  spec_layers text NOT NULL,
+  intent text NOT NULL,
+  min_chars integer DEFAULT 600 NOT NULL,
+  priority integer DEFAULT 4 NOT NULL,
+  required boolean DEFAULT true NOT NULL,
+  added_in text DEFAULT 'v2'::text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.lead_trade_map (
+  trade_key text NOT NULL,
+  catalog_slug text,
+  confidence text DEFAULT 'high'::text NOT NULL,
+  note text,
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -1479,7 +2087,8 @@ CREATE TABLE IF NOT EXISTS public.leads (
   subscription_exempt boolean DEFAULT false NOT NULL,
   subscription_paid_until date,
   claim_token uuid DEFAULT gen_random_uuid() NOT NULL,
-  invite_trades text[]
+  invite_trades text[],
+  license_activity text
 );
 
 CREATE TABLE IF NOT EXISTS public.legal_checklist (
@@ -1522,6 +2131,19 @@ CREATE TABLE IF NOT EXISTS public.legal_reviews (
   needs_licensed_review boolean DEFAULT true,
   reviewed_at timestamp with time zone DEFAULT now() NOT NULL,
   reviewed_by text DEFAULT 'legal_ai'::text
+);
+
+CREATE TABLE IF NOT EXISTS public.llm_cache (
+  cache_key text NOT NULL,
+  task_class text,
+  prompt_hash text NOT NULL,
+  response text NOT NULL,
+  model_used text,
+  hits integer DEFAULT 0 NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_hit_at timestamp with time zone,
+  expires_at timestamp with time zone,
+  fn text
 );
 
 CREATE TABLE IF NOT EXISTS public.llm_calls (
@@ -1704,6 +2326,50 @@ CREATE TABLE IF NOT EXISTS public.meta_insights (
   synced_via text DEFAULT 'meta_sync'::text
 );
 
+CREATE TABLE IF NOT EXISTS public.metric_definition (
+  metric_key text NOT NULL,
+  label text NOT NULL,
+  domain text NOT NULL,
+  definition text NOT NULL,
+  measure_sql text NOT NULL,
+  target numeric,
+  direction text DEFAULT 'up'::text NOT NULL,
+  owner_dept text,
+  active boolean DEFAULT true NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.metric_snapshot (
+  id bigint DEFAULT nextval('metric_snapshot_id_seq'::regclass) NOT NULL,
+  metric_key text NOT NULL,
+  value numeric,
+  error text,
+  taken_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.model_policy (
+  task_class text NOT NULL,
+  tier text NOT NULL,
+  model_primary text NOT NULL,
+  model_fallback text,
+  max_tokens integer DEFAULT 800 NOT NULL,
+  rationale text,
+  deterministic_alternative text,
+  active boolean DEFAULT true NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.model_rate (
+  model text NOT NULL,
+  tier text NOT NULL,
+  in_aed_per_mtok numeric NOT NULL,
+  out_aed_per_mtok numeric NOT NULL,
+  note text,
+  usd_per_m_prompt numeric,
+  usd_per_m_output numeric,
+  id_verified boolean DEFAULT true NOT NULL,
+  source_url text,
+  verified_at date
+);
+
 CREATE TABLE IF NOT EXISTS public.notifications (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   type text NOT NULL,
@@ -1750,7 +2416,17 @@ CREATE TABLE IF NOT EXISTS public.org_agents (
   role text NOT NULL,
   kind text DEFAULT 'brain'::text NOT NULL,
   active boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now()
+  created_at timestamp with time zone DEFAULT now(),
+  title text,
+  manager_key text,
+  seniority text,
+  responsibilities text,
+  max_open_tasks integer DEFAULT 5 NOT NULL,
+  improvement_plan text,
+  hired_at timestamp with time zone DEFAULT now() NOT NULL,
+  available boolean DEFAULT true NOT NULL,
+  unavailable_until date,
+  unavailable_reason text
 );
 
 CREATE TABLE IF NOT EXISTS public.org_authority (
@@ -2018,6 +2694,13 @@ CREATE TABLE IF NOT EXISTS public.pricing_config (
   auto_approve_suppliers boolean DEFAULT false
 );
 
+CREATE TABLE IF NOT EXISTS public.priority_hierarchy (
+  rank integer NOT NULL,
+  principle text NOT NULL,
+  meaning text NOT NULL,
+  overrides_below boolean DEFAULT true NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.projects (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   customer_id uuid,
@@ -2029,6 +2712,17 @@ CREATE TABLE IF NOT EXISTS public.projects (
   meta jsonb DEFAULT '{}'::jsonb,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.promotion_record (
+  id bigint DEFAULT nextval('promotion_record_id_seq'::regclass) NOT NULL,
+  agent_key text NOT NULL,
+  from_level text,
+  to_level text NOT NULL,
+  reason text NOT NULL,
+  evidence text,
+  decided_by text DEFAULT 'hr_director'::text NOT NULL,
+  decided_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.prompt_benchmarks (
@@ -2125,6 +2819,13 @@ CREATE TABLE IF NOT EXISTS public.qualification_playbooks (
   questions jsonb DEFAULT '[]'::jsonb NOT NULL,
   effective_date date DEFAULT CURRENT_DATE,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.quality_standard (
+  work_type text NOT NULL,
+  criteria jsonb NOT NULL,
+  owner_dept text,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.questions (
@@ -2313,6 +3014,22 @@ CREATE TABLE IF NOT EXISTS public.report_kpi_snapshots (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.resource_pool (
+  id bigint DEFAULT nextval('resource_pool_id_seq'::regclass) NOT NULL,
+  resource text NOT NULL,
+  kind text NOT NULL,
+  owner_dept text,
+  unit text NOT NULL,
+  capacity numeric NOT NULL,
+  committed numeric DEFAULT 0 NOT NULL,
+  window_label text,
+  degrade_at_pct integer DEFAULT 80 NOT NULL,
+  halt_at_pct integer DEFAULT 100 NOT NULL,
+  source_ref text,
+  note text,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.retention_policy (
   bucket text NOT NULL,
   retention_days integer,
@@ -2326,6 +3043,23 @@ CREATE TABLE IF NOT EXISTS public.reveal_invoices (
   bucket text,
   path text,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.review_chain (
+  id bigint DEFAULT nextval('review_chain_id_seq'::regclass) NOT NULL,
+  subject_type text NOT NULL,
+  subject_id text NOT NULL,
+  dept_key text NOT NULL,
+  author_agent text NOT NULL,
+  reviewer_agent text,
+  stage text NOT NULL,
+  decision text,
+  reason text,
+  violated_rule text,
+  confidence numeric,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  delegated_from text,
+  delegation_basis text
 );
 
 CREATE TABLE IF NOT EXISTS public.review_queue (
@@ -2377,6 +3111,20 @@ CREATE TABLE IF NOT EXISTS public.rfq_archives (
   restored_at timestamp with time zone
 );
 
+CREATE TABLE IF NOT EXISTS public.risk_register (
+  id bigint DEFAULT nextval('risk_register_id_seq'::regclass) NOT NULL,
+  dept_key text NOT NULL,
+  risk text NOT NULL,
+  category text,
+  probability text DEFAULT 'medium'::text NOT NULL,
+  impact text DEFAULT 'medium'::text NOT NULL,
+  owner_agent text,
+  mitigation text,
+  status text DEFAULT 'open'::text NOT NULL,
+  review_due date,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.rl_hits (
   k text NOT NULL,
   at timestamp with time zone DEFAULT now() NOT NULL,
@@ -2394,6 +3142,18 @@ CREATE TABLE IF NOT EXISTS public.roles (
   description text
 );
 
+CREATE TABLE IF NOT EXISTS public.scenario_library (
+  scenario_key text NOT NULL,
+  name text NOT NULL,
+  category text,
+  situation text NOT NULL,
+  expected_behaviour text NOT NULL,
+  departments text[],
+  last_run timestamp with time zone,
+  last_result text,
+  notes text
+);
+
 CREATE TABLE IF NOT EXISTS public.scrape_runs (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   run_id text,
@@ -2408,6 +3168,16 @@ CREATE TABLE IF NOT EXISTS public.scrape_runs (
   inserted integer DEFAULT 0,
   created_at timestamp with time zone DEFAULT now(),
   collected_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.secops_rule (
+  rule_key text NOT NULL,
+  category text NOT NULL,
+  description text NOT NULL,
+  pattern text,
+  severity text DEFAULT 'medium'::text NOT NULL,
+  response text NOT NULL,
+  active boolean DEFAULT true NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.security_audit_log (
@@ -2450,6 +3220,19 @@ CREATE TABLE IF NOT EXISTS public.security_selfaudit_snapshots (
   anon_defaults integer
 );
 
+CREATE TABLE IF NOT EXISTS public.self_review (
+  id bigint DEFAULT nextval('self_review_id_seq'::regclass) NOT NULL,
+  review_type text NOT NULL,
+  subject text NOT NULL,
+  finding text NOT NULL,
+  evidence text,
+  proposal text,
+  status text DEFAULT 'proposed'::text NOT NULL,
+  impact text,
+  reviewed_by text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.seo_categories (
   slug text NOT NULL,
   name text NOT NULL,
@@ -2476,6 +3259,14 @@ CREATE TABLE IF NOT EXISTS public.site_publish_state (
   last_deploy_at timestamp with time zone
 );
 
+CREATE TABLE IF NOT EXISTS public.skills_matrix (
+  agent_key text NOT NULL,
+  skill text NOT NULL,
+  rating integer NOT NULL,
+  evidence text,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.social_posts (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
@@ -2488,6 +3279,20 @@ CREATE TABLE IF NOT EXISTS public.social_posts (
   status text DEFAULT 'pending'::text,
   postiz_ids jsonb,
   error text
+);
+
+CREATE TABLE IF NOT EXISTS public.spec_backlog (
+  id bigint DEFAULT nextval('spec_backlog_id_seq'::regclass) NOT NULL,
+  source_doc text NOT NULL,
+  area text NOT NULL,
+  item text NOT NULL,
+  spec_ref text,
+  status text DEFAULT 'pending'::text NOT NULL,
+  verdict_at_audit text,
+  evidence text,
+  priority integer DEFAULT 3 NOT NULL,
+  notes text,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.strategy_kpi_snapshots (
@@ -2616,6 +3421,20 @@ CREATE TABLE IF NOT EXISTS public.supplier_kpi_snapshots (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.supplier_score (
+  lead_id bigint NOT NULL,
+  response_rate numeric,
+  avg_response_hours numeric,
+  quotes_submitted integer DEFAULT 0 NOT NULL,
+  quotes_won integer DEFAULT 0 NOT NULL,
+  rejection_count integer DEFAULT 0 NOT NULL,
+  price_index numeric,
+  quality_rating numeric,
+  reliability numeric,
+  last_active timestamp with time zone,
+  computed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.supply_health_snapshots (
   id bigint DEFAULT nextval('supply_health_snapshots_id_seq'::regclass) NOT NULL,
   period_end date,
@@ -2697,10 +3516,23 @@ CREATE TABLE IF NOT EXISTS public.undo_log (
   created_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.universal_objective (
+  id integer NOT NULL,
+  objective text NOT NULL,
+  active boolean DEFAULT true NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.user_roles (
   email text NOT NULL,
   role text NOT NULL,
   added_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.vision_horizon (
+  year_no integer NOT NULL,
+  label text NOT NULL,
+  statement text NOT NULL,
+  active boolean DEFAULT true NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.vt_results (
@@ -2725,6 +3557,23 @@ CREATE TABLE IF NOT EXISTS public.wa_messages (
   sent boolean DEFAULT false,
   meta jsonb,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.workflow (
+  workflow_key text NOT NULL,
+  name text NOT NULL,
+  trigger_event text,
+  description text,
+  active boolean DEFAULT true NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.workflow_step (
+  workflow_key text NOT NULL,
+  step_no integer NOT NULL,
+  step text NOT NULL,
+  actor_role text,
+  action_class text,
+  gate text
 );
 
 CREATE TABLE IF NOT EXISTS public.yello_staging (
@@ -2765,10 +3614,14 @@ ALTER TABLE public.agent_memory ADD CONSTRAINT agent_memory_pkey PRIMARY KEY (id
 ALTER TABLE public.agent_pending_actions ADD CONSTRAINT agent_pending_actions_pkey PRIMARY KEY (token);
 ALTER TABLE public.agent_runs ADD CONSTRAINT agent_runs_pkey PRIMARY KEY (id);
 ALTER TABLE public.ai_constitution ADD CONSTRAINT ai_constitution_pkey PRIMARY KEY (id);
+ALTER TABLE public.ai_cost_log ADD CONSTRAINT ai_cost_log_pkey PRIMARY KEY (id);
+ALTER TABLE public.ai_governance_review ADD CONSTRAINT ai_governance_review_pkey PRIMARY KEY (id);
+ALTER TABLE public.ai_model_register ADD CONSTRAINT ai_model_register_pkey PRIMARY KEY (id);
 ALTER TABLE public.ai_qa_log ADD CONSTRAINT ai_qa_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.ai_quality_snapshots ADD CONSTRAINT ai_quality_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.ai_trainer_snapshots ADD CONSTRAINT ai_trainer_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.ai_usage ADD CONSTRAINT ai_usage_pkey PRIMARY KEY (id);
+ALTER TABLE public.alert_watermark ADD CONSTRAINT alert_watermark_pkey PRIMARY KEY (watcher);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_pkey PRIMARY KEY (id);
 ALTER TABLE public.app_blocked_domains ADD CONSTRAINT app_blocked_domains_pkey PRIMARY KEY (domain);
 ALTER TABLE public.app_secrets ADD CONSTRAINT app_secrets_pkey PRIMARY KEY (key);
@@ -2776,24 +3629,41 @@ ALTER TABLE public.assistant_logs ADD CONSTRAINT assistant_logs_pkey PRIMARY KEY
 ALTER TABLE public.blog_posts ADD CONSTRAINT blog_posts_pkey PRIMARY KEY (id);
 ALTER TABLE public.board_reports ADD CONSTRAINT board_reports_pkey PRIMARY KEY (id);
 ALTER TABLE public.brand_assets ADD CONSTRAINT brand_assets_pkey PRIMARY KEY (id);
+ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_pkey PRIMARY KEY (id);
 ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_pkey PRIMARY KEY (id);
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_pkey PRIMARY KEY (id);
 ALTER TABLE public.business_rules ADD CONSTRAINT business_rules_pkey PRIMARY KEY (id);
 ALTER TABLE public.canary_records ADD CONSTRAINT canary_records_pkey PRIMARY KEY (id);
 ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_pkey PRIMARY KEY (id);
 ALTER TABLE public.canon_eval_runs ADD CONSTRAINT canon_eval_runs_pkey PRIMARY KEY (id);
+ALTER TABLE public.career_level ADD CONSTRAINT career_level_pkey PRIMARY KEY (level_no);
+ALTER TABLE public.catalog_domains ADD CONSTRAINT catalog_domains_pkey PRIMARY KEY (slug);
+ALTER TABLE public.catalog_subcategories ADD CONSTRAINT catalog_subcategories_pkey PRIMARY KEY (id);
+ALTER TABLE public.catalog_supplier_categories ADD CONSTRAINT catalog_supplier_categories_pkey PRIMARY KEY (slug);
+ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_pkey PRIMARY KEY (catalog_slug);
 ALTER TABLE public.category_agents ADD CONSTRAINT category_agents_pkey PRIMARY KEY (slug);
+ALTER TABLE public.category_licence_activity ADD CONSTRAINT category_licence_activity_pkey PRIMARY KEY (catalog_slug);
 ALTER TABLE public.category_quote_specs ADD CONSTRAINT category_quote_specs_pkey PRIMARY KEY (id);
 ALTER TABLE public.category_specs ADD CONSTRAINT category_specs_pkey PRIMARY KEY (category);
 ALTER TABLE public.chat_threads ADD CONSTRAINT chat_threads_pkey PRIMARY KEY (inquiry_id, supplier_id);
 ALTER TABLE public.chat_violations ADD CONSTRAINT chat_violations_pkey PRIMARY KEY (id);
+ALTER TABLE public.collaboration_rule ADD CONSTRAINT collaboration_rule_pkey PRIMARY KEY (id);
 ALTER TABLE public.collections_config ADD CONSTRAINT collections_config_pkey PRIMARY KEY (id);
+ALTER TABLE public.company_calendar ADD CONSTRAINT company_calendar_pkey PRIMARY KEY (id);
+ALTER TABLE public.company_constitution ADD CONSTRAINT company_constitution_pkey PRIMARY KEY (article_no);
+ALTER TABLE public.company_economics ADD CONSTRAINT company_economics_pkey PRIMARY KEY (id);
+ALTER TABLE public.company_event ADD CONSTRAINT company_event_pkey PRIMARY KEY (id);
 ALTER TABLE public.company_faq ADD CONSTRAINT company_faq_pkey PRIMARY KEY (id);
+ALTER TABLE public.company_goals ADD CONSTRAINT company_goals_pkey PRIMARY KEY (key);
 ALTER TABLE public.company_vision ADD CONSTRAINT company_vision_pkey PRIMARY KEY (id);
+ALTER TABLE public.competitive_position ADD CONSTRAINT competitive_position_pkey PRIMARY KEY (id);
+ALTER TABLE public.competitor ADD CONSTRAINT competitor_pkey PRIMARY KEY (id);
 ALTER TABLE public.compliance_sources ADD CONSTRAINT compliance_sources_pkey PRIMARY KEY (id);
 ALTER TABLE public.contact_messages ADD CONSTRAINT contact_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.content_drafts ADD CONSTRAINT content_drafts_pkey PRIMARY KEY (id);
 ALTER TABLE public.content_drafts_backup_20260724 ADD CONSTRAINT content_drafts_backup_20260724_pkey PRIMARY KEY (_pk);
+ALTER TABLE public.continuity_plan ADD CONSTRAINT continuity_plan_pkey PRIMARY KEY (service);
+ALTER TABLE public.critical_capability ADD CONSTRAINT critical_capability_pkey PRIMARY KEY (capability_key);
 ALTER TABLE public.crm_activities ADD CONSTRAINT crm_activities_pkey PRIMARY KEY (id);
 ALTER TABLE public.crm_lost_reasons ADD CONSTRAINT crm_lost_reasons_pkey PRIMARY KEY (id);
 ALTER TABLE public.crm_notes ADD CONSTRAINT crm_notes_pkey PRIMARY KEY (id);
@@ -2801,12 +3671,18 @@ ALTER TABLE public.crm_stages ADD CONSTRAINT crm_stages_pkey PRIMARY KEY (key);
 ALTER TABLE public.crm_tasks ADD CONSTRAINT crm_tasks_pkey PRIMARY KEY (id);
 ALTER TABLE public.cron_job_seen ADD CONSTRAINT cron_job_seen_pkey PRIMARY KEY (jobid);
 ALTER TABLE public.cron_registry ADD CONSTRAINT cron_registry_pkey PRIMARY KEY (jobname);
+ALTER TABLE public.culture_principle ADD CONSTRAINT culture_principle_pkey PRIMARY KEY (id);
 ALTER TABLE public.customer_kpi_snapshots ADD CONSTRAINT customer_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.customer_phone_otps ADD CONSTRAINT customer_phone_otps_pkey PRIMARY KEY (id);
+ALTER TABLE public.customer_score ADD CONSTRAINT customer_score_pkey PRIMARY KEY (customer_id);
 ALTER TABLE public.customers ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
 ALTER TABLE public.data_owner_registry ADD CONSTRAINT data_owner_registry_pkey PRIMARY KEY (table_name);
 ALTER TABLE public.decision_log ADD CONSTRAINT decision_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.decision_policy ADD CONSTRAINT decision_policy_pkey PRIMARY KEY (key);
+ALTER TABLE public.decision_record ADD CONSTRAINT decision_record_pkey PRIMARY KEY (id);
+ALTER TABLE public.delegation_rule ADD CONSTRAINT delegation_rule_pkey PRIMARY KEY (id);
+ALTER TABLE public.department_budget ADD CONSTRAINT department_budget_pkey PRIMARY KEY (dept_key);
+ALTER TABLE public.department_objective ADD CONSTRAINT department_objective_pkey PRIMARY KEY (id);
 ALTER TABLE public.deploy_state ADD CONSTRAINT deploy_state_pkey PRIMARY KEY (id);
 ALTER TABLE public.dept_library ADD CONSTRAINT dept_library_pkey PRIMARY KEY (id);
 ALTER TABLE public.doc_backups ADD CONSTRAINT doc_backups_pkey PRIMARY KEY (id);
@@ -2822,9 +3698,17 @@ ALTER TABLE public.ea_reminders ADD CONSTRAINT ea_reminders_pkey PRIMARY KEY (id
 ALTER TABLE public.ea_snapshots ADD CONSTRAINT ea_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.email_suppressions ADD CONSTRAINT email_suppressions_pkey PRIMARY KEY (email);
 ALTER TABLE public.email_verifications ADD CONSTRAINT email_verifications_pkey PRIMARY KEY (id);
+ALTER TABLE public.employee_authority ADD CONSTRAINT employee_authority_pkey PRIMARY KEY (agent_key, action_class);
+ALTER TABLE public.employee_knowledge ADD CONSTRAINT employee_knowledge_pkey PRIMARY KEY (agent_key, domain_key);
+ALTER TABLE public.employee_knowledge_standard ADD CONSTRAINT employee_knowledge_standard_pkey PRIMARY KEY (layer_no);
+ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_pkey PRIMARY KEY (id);
+ALTER TABLE public.employee_workflow ADD CONSTRAINT employee_workflow_pkey PRIMARY KEY (agent_key, workflow_key);
 ALTER TABLE public.entity_comments ADD CONSTRAINT entity_comments_pkey PRIMARY KEY (id);
 ALTER TABLE public.error_events ADD CONSTRAINT error_events_pkey PRIMARY KEY (id);
 ALTER TABLE public.escalations_archive_20260724 ADD CONSTRAINT escalations_archive_20260724_pkey PRIMARY KEY (_pk);
+ALTER TABLE public.event_delivery ADD CONSTRAINT event_delivery_pkey PRIMARY KEY (id);
+ALTER TABLE public.event_subscription ADD CONSTRAINT event_subscription_pkey PRIMARY KEY (agent_key, event_type);
+ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_pkey PRIMARY KEY (id);
 ALTER TABLE public.exec_reports ADD CONSTRAINT exec_reports_pkey PRIMARY KEY (id);
 ALTER TABLE public.expense_entries ADD CONSTRAINT expense_entries_pkey PRIMARY KEY (id);
 ALTER TABLE public.expenses ADD CONSTRAINT expenses_pkey PRIMARY KEY (id);
@@ -2834,6 +3718,7 @@ ALTER TABLE public.experiments ADD CONSTRAINT experiments_pkey PRIMARY KEY (key)
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_pkey PRIMARY KEY (id);
 ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_pkey PRIMARY KEY (id);
 ALTER TABLE public.feature_flags ADD CONSTRAINT feature_flags_pkey PRIMARY KEY (key);
+ALTER TABLE public.feedback ADD CONSTRAINT feedback_pkey PRIMARY KEY (id);
 ALTER TABLE public.finance_kpi_snapshots ADD CONSTRAINT finance_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.finance_reports ADD CONSTRAINT finance_reports_pkey PRIMARY KEY (id);
 ALTER TABLE public.finance_snapshots ADD CONSTRAINT finance_snapshots_pkey PRIMARY KEY (id);
@@ -2844,6 +3729,9 @@ ALTER TABLE public.gl_expense_map ADD CONSTRAINT gl_expense_map_pkey PRIMARY KEY
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_pkey PRIMARY KEY (id);
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_pkey PRIMARY KEY (id);
 ALTER TABLE public.gl_settings ADD CONSTRAINT gl_settings_pkey PRIMARY KEY (key);
+ALTER TABLE public.goal_period ADD CONSTRAINT goal_period_pkey PRIMARY KEY (id);
+ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_pkey PRIMARY KEY (id);
+ALTER TABLE public.governance_rule ADD CONSTRAINT governance_rule_pkey PRIMARY KEY (id);
 ALTER TABLE public.graph_edges ADD CONSTRAINT graph_edges_pkey PRIMARY KEY (src_kind, src_ref, rel, dst_kind, dst_ref);
 ALTER TABLE public.graph_nodes ADD CONSTRAINT graph_nodes_pkey PRIMARY KEY (kind, ref_id);
 ALTER TABLE public.health_checks ADD CONSTRAINT health_checks_pkey PRIMARY KEY (id);
@@ -2851,12 +3739,16 @@ ALTER TABLE public.health_state ADD CONSTRAINT health_state_pkey PRIMARY KEY (id
 ALTER TABLE public.hlm_digest_log ADD CONSTRAINT hlm_digest_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.hlm_state ADD CONSTRAINT hlm_state_pkey PRIMARY KEY (key);
 ALTER TABLE public.hlm_watchlist ADD CONSTRAINT hlm_watchlist_pkey PRIMARY KEY (addr);
+ALTER TABLE public.idea ADD CONSTRAINT idea_pkey PRIMARY KEY (id);
+ALTER TABLE public.implementation_map ADD CONSTRAINT implementation_map_pkey PRIMARY KEY (capability);
 ALTER TABLE public.inbound_messages ADD CONSTRAINT inbound_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_cancellations ADD CONSTRAINT inquiry_cancellations_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_intake ADD CONSTRAINT inquiry_intake_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_requirement ADD CONSTRAINT inquiry_requirement_pkey PRIMARY KEY (inquiry_id);
+ALTER TABLE public.institutional_memory ADD CONSTRAINT institutional_memory_pkey PRIMARY KEY (id);
+ALTER TABLE public.integration_matrix ADD CONSTRAINT integration_matrix_pkey PRIMARY KEY (service);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_pkey PRIMARY KEY (id);
 ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_pkey PRIMARY KEY (id);
 ALTER TABLE public.invite_schedule ADD CONSTRAINT invite_schedule_pkey PRIMARY KEY (day);
@@ -2864,12 +3756,18 @@ ALTER TABLE public.kb_category_aliases ADD CONSTRAINT kb_category_aliases_pkey P
 ALTER TABLE public.kb_chunks ADD CONSTRAINT kb_chunks_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_revisions ADD CONSTRAINT kb_revisions_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_usage_log ADD CONSTRAINT kb_usage_log_pkey PRIMARY KEY (id);
+ALTER TABLE public.knowledge_domain ADD CONSTRAINT knowledge_domain_pkey PRIMARY KEY (domain_key);
+ALTER TABLE public.knowledge_exam_questions ADD CONSTRAINT knowledge_exam_questions_pkey PRIMARY KEY (id);
+ALTER TABLE public.knowledge_exam_results ADD CONSTRAINT knowledge_exam_results_pkey PRIMARY KEY (id);
 ALTER TABLE public.knowledge_kpi_snapshots ADD CONSTRAINT knowledge_kpi_snapshots_pkey PRIMARY KEY (id);
+ALTER TABLE public.knowledge_module_standard ADD CONSTRAINT knowledge_module_standard_pkey PRIMARY KEY (module);
+ALTER TABLE public.lead_trade_map ADD CONSTRAINT lead_trade_map_pkey PRIMARY KEY (trade_key);
 ALTER TABLE public.leads ADD CONSTRAINT leads_pkey PRIMARY KEY (id);
 ALTER TABLE public.legal_checklist ADD CONSTRAINT legal_checklist_pkey PRIMARY KEY (id);
 ALTER TABLE public.legal_documents ADD CONSTRAINT legal_documents_pkey PRIMARY KEY (slug);
 ALTER TABLE public.legal_kpi_snapshots ADD CONSTRAINT legal_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.legal_reviews ADD CONSTRAINT legal_reviews_pkey PRIMARY KEY (id);
+ALTER TABLE public.llm_cache ADD CONSTRAINT llm_cache_pkey PRIMARY KEY (cache_key);
 ALTER TABLE public.llm_calls ADD CONSTRAINT llm_calls_pkey PRIMARY KEY (id);
 ALTER TABLE public.llm_policy ADD CONSTRAINT llm_policy_pkey PRIMARY KEY (model);
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_pkey PRIMARY KEY (id);
@@ -2887,6 +3785,10 @@ ALTER TABLE public.mdm_units ADD CONSTRAINT mdm_units_pkey PRIMARY KEY (code);
 ALTER TABLE public.memory_promotions ADD CONSTRAINT memory_promotions_pkey PRIMARY KEY (memory_id);
 ALTER TABLE public.messages ADD CONSTRAINT messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.meta_insights ADD CONSTRAINT meta_insights_pkey PRIMARY KEY (id);
+ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_pkey PRIMARY KEY (metric_key);
+ALTER TABLE public.metric_snapshot ADD CONSTRAINT metric_snapshot_pkey PRIMARY KEY (id);
+ALTER TABLE public.model_policy ADD CONSTRAINT model_policy_pkey PRIMARY KEY (task_class);
+ALTER TABLE public.model_rate ADD CONSTRAINT model_rate_pkey PRIMARY KEY (model);
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
 ALTER TABLE public.ops_kpi_snapshots ADD CONSTRAINT ops_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.org_action_executor ADD CONSTRAINT org_action_executor_pkey PRIMARY KEY (action_class);
@@ -2912,7 +3814,9 @@ ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_pkey PRIMARY KEY (id);
 ALTER TABLE public.po_vendors ADD CONSTRAINT po_vendors_pkey PRIMARY KEY (id);
 ALTER TABLE public.policy_rules ADD CONSTRAINT policy_rules_pkey PRIMARY KEY (id);
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_pkey PRIMARY KEY (id);
+ALTER TABLE public.priority_hierarchy ADD CONSTRAINT priority_hierarchy_pkey PRIMARY KEY (rank);
 ALTER TABLE public.projects ADD CONSTRAINT projects_pkey PRIMARY KEY (id);
+ALTER TABLE public.promotion_record ADD CONSTRAINT promotion_record_pkey PRIMARY KEY (id);
 ALTER TABLE public.prompt_benchmarks ADD CONSTRAINT prompt_benchmarks_pkey PRIMARY KEY (id);
 ALTER TABLE public.prompt_eval_runs ADD CONSTRAINT prompt_eval_runs_pkey PRIMARY KEY (id);
 ALTER TABLE public.prompt_versions ADD CONSTRAINT prompt_versions_pkey PRIMARY KEY (id);
@@ -2924,6 +3828,7 @@ ALTER TABLE public.qd_deploy_src ADD CONSTRAINT qd_deploy_src_pkey PRIMARY KEY (
 ALTER TABLE public.qd_i18n ADD CONSTRAINT qd_i18n_pkey PRIMARY KEY (source, slug);
 ALTER TABLE public.qd_i18n_chunks ADD CONSTRAINT qd_i18n_chunks_pkey PRIMARY KEY (source, slug, idx);
 ALTER TABLE public.qualification_playbooks ADD CONSTRAINT qualification_playbooks_pkey PRIMARY KEY (id);
+ALTER TABLE public.quality_standard ADD CONSTRAINT quality_standard_pkey PRIMARY KEY (work_type);
 ALTER TABLE public.questions ADD CONSTRAINT questions_pkey PRIMARY KEY (id);
 ALTER TABLE public.quote_committed_items ADD CONSTRAINT quote_committed_items_pkey PRIMARY KEY (id);
 ALTER TABLE public.quote_comparisons ADD CONSTRAINT quote_comparisons_pkey PRIMARY KEY (id);
@@ -2936,23 +3841,31 @@ ALTER TABLE public.quotes ADD CONSTRAINT quotes_pkey PRIMARY KEY (id);
 ALTER TABLE public.reg_catalog ADD CONSTRAINT reg_catalog_pkey PRIMARY KEY (id);
 ALTER TABLE public.regulations ADD CONSTRAINT regulations_pkey PRIMARY KEY (id);
 ALTER TABLE public.report_kpi_snapshots ADD CONSTRAINT report_kpi_snapshots_pkey PRIMARY KEY (id);
+ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_pkey PRIMARY KEY (id);
 ALTER TABLE public.retention_policy ADD CONSTRAINT retention_policy_pkey PRIMARY KEY (bucket);
 ALTER TABLE public.reveal_invoices ADD CONSTRAINT reveal_invoices_pkey PRIMARY KEY (transaction_id);
+ALTER TABLE public.review_chain ADD CONSTRAINT review_chain_pkey PRIMARY KEY (id);
 ALTER TABLE public.review_queue ADD CONSTRAINT review_queue_pkey PRIMARY KEY (id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_pkey PRIMARY KEY (id);
 ALTER TABLE public.rfq_archives ADD CONSTRAINT rfq_archives_pkey PRIMARY KEY (id);
+ALTER TABLE public.risk_register ADD CONSTRAINT risk_register_pkey PRIMARY KEY (id);
 ALTER TABLE public.rl_hits ADD CONSTRAINT rl_hits_pkey PRIMARY KEY (_pk);
 ALTER TABLE public.role_permissions ADD CONSTRAINT role_permissions_pkey PRIMARY KEY (role, action);
 ALTER TABLE public.roles ADD CONSTRAINT roles_pkey PRIMARY KEY (name);
+ALTER TABLE public.scenario_library ADD CONSTRAINT scenario_library_pkey PRIMARY KEY (scenario_key);
 ALTER TABLE public.scrape_runs ADD CONSTRAINT scrape_runs_pkey PRIMARY KEY (id);
+ALTER TABLE public.secops_rule ADD CONSTRAINT secops_rule_pkey PRIMARY KEY (rule_key);
 ALTER TABLE public.security_audit_log ADD CONSTRAINT security_audit_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.security_events ADD CONSTRAINT security_events_pkey PRIMARY KEY (id);
 ALTER TABLE public.security_kpi_snapshots ADD CONSTRAINT security_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.security_selfaudit_snapshots ADD CONSTRAINT security_selfaudit_snapshots_pkey PRIMARY KEY (id);
+ALTER TABLE public.self_review ADD CONSTRAINT self_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY (slug);
 ALTER TABLE public.simulations ADD CONSTRAINT simulations_pkey PRIMARY KEY (id);
 ALTER TABLE public.site_publish_state ADD CONSTRAINT site_publish_state_pkey PRIMARY KEY (id);
+ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_pkey PRIMARY KEY (agent_key, skill);
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_pkey PRIMARY KEY (id);
+ALTER TABLE public.spec_backlog ADD CONSTRAINT spec_backlog_pkey PRIMARY KEY (id);
 ALTER TABLE public.strategy_kpi_snapshots ADD CONSTRAINT strategy_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_pkey PRIMARY KEY (id);
 ALTER TABLE public.stripe_events ADD CONSTRAINT stripe_events_pkey PRIMARY KEY (event_id);
@@ -2960,6 +3873,7 @@ ALTER TABLE public.supplier_capabilities ADD CONSTRAINT supplier_capabilities_pk
 ALTER TABLE public.supplier_capability_confirmation ADD CONSTRAINT supplier_capability_confirmation_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_dues ADD CONSTRAINT supplier_dues_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_kpi_snapshots ADD CONSTRAINT supplier_kpi_snapshots_pkey PRIMARY KEY (id);
+ALTER TABLE public.supplier_score ADD CONSTRAINT supplier_score_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.supply_health_snapshots ADD CONSTRAINT supply_health_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.taxonomy_authority ADD CONSTRAINT taxonomy_authority_pkey PRIMARY KEY (code);
 ALTER TABLE public.taxonomy_role ADD CONSTRAINT taxonomy_role_pkey PRIMARY KEY (code);
@@ -2967,25 +3881,43 @@ ALTER TABLE public.taxonomy_trade ADD CONSTRAINT taxonomy_trade_pkey PRIMARY KEY
 ALTER TABLE public.templates ADD CONSTRAINT templates_pkey PRIMARY KEY (name);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
 ALTER TABLE public.undo_log ADD CONSTRAINT undo_log_pkey PRIMARY KEY (id);
+ALTER TABLE public.universal_objective ADD CONSTRAINT universal_objective_pkey PRIMARY KEY (id);
 ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_pkey PRIMARY KEY (email, role);
+ALTER TABLE public.vision_horizon ADD CONSTRAINT vision_horizon_pkey PRIMARY KEY (year_no);
 ALTER TABLE public.vt_results ADD CONSTRAINT vt_results_pkey PRIMARY KEY (id);
 ALTER TABLE public.wa_messages ADD CONSTRAINT wa_messages_pkey PRIMARY KEY (id);
+ALTER TABLE public.workflow ADD CONSTRAINT workflow_pkey PRIMARY KEY (workflow_key);
+ALTER TABLE public.workflow_step ADD CONSTRAINT workflow_step_pkey PRIMARY KEY (workflow_key, step_no);
 ALTER TABLE public.yello_staging ADD CONSTRAINT yello_staging_pkey PRIMARY KEY (company_id);
+ALTER TABLE public.ai_model_register ADD CONSTRAINT ai_model_register_model_key UNIQUE (model);
 ALTER TABLE public.blog_posts ADD CONSTRAINT blog_posts_slug_key UNIQUE (slug);
 ALTER TABLE public.brand_assets ADD CONSTRAINT brand_assets_url_key UNIQUE (url);
 ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_budget_id_account_code_period_month_key UNIQUE (budget_id, account_code, period_month);
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_name_fiscal_year_key UNIQUE (name, fiscal_year);
 ALTER TABLE public.canary_records ADD CONSTRAINT canary_records_fingerprint_key UNIQUE (fingerprint);
+ALTER TABLE public.career_level ADD CONSTRAINT career_level_level_name_key UNIQUE (level_name);
 ALTER TABLE public.category_quote_specs ADD CONSTRAINT category_quote_specs_spec_group_aspect_key UNIQUE (spec_group, aspect);
+ALTER TABLE public.collaboration_rule ADD CONSTRAINT collaboration_rule_situation_key UNIQUE (situation);
+ALTER TABLE public.company_economics ADD CONSTRAINT company_economics_topic_key UNIQUE (topic);
+ALTER TABLE public.competitive_position ADD CONSTRAINT competitive_position_dimension_key UNIQUE (dimension);
+ALTER TABLE public.competitor ADD CONSTRAINT competitor_name_key UNIQUE (name);
 ALTER TABLE public.crm_lost_reasons ADD CONSTRAINT crm_lost_reasons_label_key UNIQUE (label);
+ALTER TABLE public.culture_principle ADD CONSTRAINT culture_principle_principle_key UNIQUE (principle);
+ALTER TABLE public.delegation_rule ADD CONSTRAINT delegation_rule_dept_key_when_agent_delegate_to_key UNIQUE (dept_key, when_agent, delegate_to);
+ALTER TABLE public.department_objective ADD CONSTRAINT department_objective_dept_key_objective_key UNIQUE (dept_key, objective);
 ALTER TABLE public.doc_backups ADD CONSTRAINT doc_backups_bucket_path_key UNIQUE (bucket, path);
 ALTER TABLE public.doc_versions ADD CONSTRAINT doc_versions_entity_type_entity_id_version_key UNIQUE (entity_type, entity_id, version);
 ALTER TABLE public.documents ADD CONSTRAINT documents_bucket_path_key UNIQUE (bucket, path);
 ALTER TABLE public.dropbox_files ADD CONSTRAINT dropbox_files_dropbox_id_key UNIQUE (dropbox_id);
 ALTER TABLE public.email_verifications ADD CONSTRAINT email_verifications_token_key UNIQUE (token);
+ALTER TABLE public.employee_knowledge_standard ADD CONSTRAINT employee_knowledge_standard_layer_key UNIQUE (layer);
+ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_agent_key_kpi_key UNIQUE (agent_key, kpi);
+ALTER TABLE public.event_delivery ADD CONSTRAINT event_delivery_event_id_agent_key_key UNIQUE (event_id, agent_key);
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_asset_no_key UNIQUE (asset_no);
 ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_asset_id_period_key UNIQUE (asset_id, period);
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_entry_no_key UNIQUE (entry_no);
+ALTER TABLE public.goal_period ADD CONSTRAINT goal_period_goal_key_horizon_period_label_key UNIQUE (goal_key, horizon, period_label);
+ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_domain_policy_key UNIQUE (domain, policy);
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_inquiry_id_supplier_id_key UNIQUE (inquiry_id, supplier_id);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_sku_key UNIQUE (sku);
 ALTER TABLE public.kb_revisions ADD CONSTRAINT kb_revisions_entry_kind_entry_ref_version_key UNIQUE (entry_kind, entry_ref, version);
@@ -2998,71 +3930,106 @@ ALTER TABLE public.mdm_standards ADD CONSTRAINT mdm_standards_code_key UNIQUE (c
 ALTER TABLE public.meta_insights ADD CONSTRAINT meta_insights_campaign_id_time_window_key UNIQUE (campaign_id, time_window);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_po_id_line_no_key UNIQUE (po_id, line_no);
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_po_no_key UNIQUE (po_no);
+ALTER TABLE public.priority_hierarchy ADD CONSTRAINT priority_hierarchy_principle_key UNIQUE (principle);
 ALTER TABLE public.prompt_benchmarks ADD CONSTRAINT prompt_benchmarks_prompt_key_name_key UNIQUE (prompt_key, name);
 ALTER TABLE public.prompt_versions ADD CONSTRAINT prompt_versions_prompt_key_version_key UNIQUE (prompt_key, version);
 ALTER TABLE public.qualification_playbooks ADD CONSTRAINT qualification_playbooks_category_version_key UNIQUE (category, version);
 ALTER TABLE public.quote_reviews ADD CONSTRAINT quote_reviews_inquiry_id_supplier_id_key UNIQUE (inquiry_id, supplier_id);
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_inquiry_id_supplier_id_key UNIQUE (inquiry_id, supplier_id);
 ALTER TABLE public.reg_catalog ADD CONSTRAINT reg_catalog_authority_code_name_key UNIQUE (authority, code_name);
+ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_resource_key UNIQUE (resource);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_key UNIQUE (transaction_id);
 ALTER TABLE public.rfq_archives ADD CONSTRAINT rfq_archives_rfq_id_key UNIQUE (rfq_id);
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_category_title_key UNIQUE (category, title);
 ALTER TABLE public.supplier_dues ADD CONSTRAINT supplier_dues_transaction_id_key UNIQUE (transaction_id);
+ALTER TABLE public.universal_objective ADD CONSTRAINT universal_objective_objective_key UNIQUE (objective);
 ALTER TABLE public.vt_results ADD CONSTRAINT vt_results_path_key UNIQUE (path);
 ALTER TABLE public.agent_chats ADD CONSTRAINT agent_chats_role_check CHECK ((role = ANY (ARRAY['user'::text, 'assistant'::text])));
 ALTER TABLE public.agent_knowledge ADD CONSTRAINT agent_knowledge_layer_check CHECK ((layer = ANY (ARRAY['company'::text, 'profession'::text, 'state'::text, 'experience'::text])));
-ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_status_check CHECK ((status = ANY (ARRAY['open'::text, 'partial'::text, 'paid'::text, 'void'::text])));
+ALTER TABLE public.ai_governance_review ADD CONSTRAINT ai_governance_review_status_check CHECK ((status = ANY (ARRAY['open'::text, 'actioned'::text, 'accepted_risk'::text, 'closed'::text])));
+ALTER TABLE public.ai_governance_review ADD CONSTRAINT ai_governance_review_severity_check CHECK ((severity = ANY (ARRAY['info'::text, 'low'::text, 'medium'::text, 'high'::text, 'critical'::text])));
+ALTER TABLE public.ai_governance_review ADD CONSTRAINT ai_governance_review_review_type_check CHECK ((review_type = ANY (ARRAY['safety'::text, 'ethics'::text, 'prompt_standard'::text, 'model_approval'::text, 'quality'::text, 'hallucination'::text, 'cost'::text, 'version'::text])));
+ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_status_check CHECK ((status = ANY (ARRAY['open'::text, 'partial'::text, 'paid'::text, 'void'::text, 'duplicate_hold'::text])));
+ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_severity_check CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])));
+ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_signal_type_check CHECK ((signal_type = ANY (ARRAY['fake_supplier'::text, 'scam_rfq'::text, 'fake_review'::text, 'brand_misuse'::text, 'reputation'::text, 'social'::text])));
+ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_status_check CHECK ((status = ANY (ARRAY['open'::text, 'investigating'::text, 'confirmed'::text, 'dismissed'::text, 'actioned'::text])));
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'closed'::text])));
 ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_layer_check CHECK ((layer = ANY (ARRAY['company'::text, 'profession'::text, 'state'::text, 'experience'::text])));
+ALTER TABLE public.company_calendar ADD CONSTRAINT company_calendar_kind_check CHECK ((kind = ANY (ARRAY['public_holiday'::text, 'religious'::text, 'compliance'::text, 'seasonality'::text, 'industry_event'::text, 'internal_rhythm'::text])));
 ALTER TABLE public.company_vision ADD CONSTRAINT company_vision_singleton CHECK ((id = 1));
+ALTER TABLE public.competitor ADD CONSTRAINT competitor_threat_level_check CHECK ((threat_level = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
+ALTER TABLE public.competitor ADD CONSTRAINT competitor_kind_check CHECK ((kind = ANY (ARRAY['marketplace'::text, 'directory'::text, 'tender_portal'::text, 'global_platform'::text, 'incumbent_behaviour'::text, 'adjacent'::text])));
+ALTER TABLE public.critical_capability ADD CONSTRAINT critical_capability_test_kind_check CHECK ((test_kind = ANY (ARRAY['suite'::text, 'rpc_selftest'::text, 'scenario'::text, 'none'::text])));
 ALTER TABLE public.crm_stages ADD CONSTRAINT crm_stages_probability_check CHECK (((probability >= 0) AND (probability <= 100)));
 ALTER TABLE public.customers ADD CONSTRAINT customers_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_useful_life_months_check CHECK ((useful_life_months > 0));
+ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'accepted'::text, 'rejected'::text, 'implemented'::text])));
+ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_change_class_check CHECK ((change_class = ANY (ARRAY['knowledge'::text, 'process'::text, 'code'::text, 'policy'::text, 'model_routing'::text, 'org'::text])));
+ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_trigger_kind_check CHECK ((trigger_kind = ANY (ARRAY['repeated_failure'::text, 'metric_off_target'::text, 'cost_anomaly'::text, 'manual'::text, 'audit_gap'::text, 'review_rejection'::text])));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_method_check CHECK ((method = 'straight_line'::text));
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_useful_life_months_check CHECK ((useful_life_months > 0));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_cost_check CHECK ((cost >= (0)::numeric));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_status_check CHECK ((status = ANY (ARRAY['active'::text, 'fully_depreciated'::text, 'disposed'::text])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_normal_balance_check CHECK ((normal_balance = ANY (ARRAY['D'::bpchar, 'C'::bpchar])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_type_check CHECK ((type = ANY (ARRAY['asset'::text, 'liability'::text, 'equity'::text, 'revenue'::text, 'expense'::text])));
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'posted'::text, 'void'::text])));
-ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_debit_check CHECK ((debit >= (0)::numeric));
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_credit_check CHECK ((credit >= (0)::numeric));
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_line_one_side CHECK (((debit = (0)::numeric) <> (credit = (0)::numeric)));
+ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_debit_check CHECK ((debit >= (0)::numeric));
+ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_enforcement_check CHECK ((enforcement = ANY (ARRAY['code'::text, 'database'::text, 'process'::text, 'declared'::text])));
+ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_domain_check CHECK ((domain = ANY (ARRAY['ethics'::text, 'privacy'::text, 'audit'::text, 'retention'::text, 'approval'::text, 'security'::text, 'compliance'::text])));
 ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_move_type_check CHECK ((move_type = ANY (ARRAY['in'::text, 'out'::text, 'adjust'::text])));
 ALTER TABLE public.leads ADD CONSTRAINT leads_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
+ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_status_check CHECK ((status = ANY (ARRAY['open'::text, 'reviewed'::text, 'actioned'::text, 'dismissed'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_kind_check CHECK ((kind = ANY (ARRAY['competitor'::text, 'trend'::text, 'expansion'::text, 'regulatory'::text, 'other'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_impact_check CHECK ((impact = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
-ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_status_check CHECK ((status = ANY (ARRAY['open'::text, 'reviewed'::text, 'actioned'::text, 'dismissed'::text])));
 ALTER TABLE public.messages ADD CONSTRAINT messages_sender_check CHECK ((sender = ANY (ARRAY['customer'::text, 'supplier'::text])));
+ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_direction_check CHECK ((direction = ANY (ARRAY['up'::text, 'down'::text])));
+ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_domain_check CHECK ((domain = ANY (ARRAY['demand'::text, 'supply'::text, 'liquidity'::text, 'revenue'::text, 'quality'::text, 'cost'::text, 'ops'::text])));
 ALTER TABLE public.org_action_executor ADD CONSTRAINT org_action_executor_kind_check CHECK ((kind = ANY (ARRAY['rpc'::text, 'edge'::text])));
 ALTER TABLE public.org_authority ADD CONSTRAINT org_authority_max_tier_check CHECK ((max_tier = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
 ALTER TABLE public.org_objectives ADD CONSTRAINT org_objectives_status_check CHECK ((status = ANY (ARRAY['open'::text, 'in_progress'::text, 'blocked'::text, 'done'::text, 'cancelled'::text])));
 ALTER TABLE public.org_onboarding ADD CONSTRAINT org_onboarding_status_check CHECK ((status = ANY (ARRAY['onboarding'::text, 'probation'::text, 'certified'::text, 'recert_due'::text])));
-ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'assigned'::text, 'in_progress'::text, 'blocked'::text, 'done'::text, 'failed'::text, 'escalated'::text])));
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_tier_check CHECK ((tier = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
+ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'assigned'::text, 'in_progress'::text, 'blocked'::text, 'done'::text, 'failed'::text, 'escalated'::text])));
 ALTER TABLE public.os_settings_meta ADD CONSTRAINT os_settings_meta_type_check CHECK ((type = ANY (ARRAY['money'::text, 'int'::text, 'number'::text, 'bool'::text, 'text'::text, 'textarea'::text, 'html'::text, 'email'::text, 'phone'::text, 'csv'::text])));
 ALTER TABLE public.pdpl_requests ADD CONSTRAINT pdpl_requests_kind_check CHECK ((kind = ANY (ARRAY['export'::text, 'delete'::text])));
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_qty_check CHECK ((qty > (0)::numeric));
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'approved'::text, 'partial'::text, 'received'::text, 'billed'::text, 'closed'::text, 'cancelled'::text])));
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_singleton CHECK ((id = 1));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_quote_amount_check CHECK ((quote_amount > (0)::numeric));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_compliance_check CHECK (((r_compliance >= 1) AND (r_compliance <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_communication_check CHECK (((r_communication >= 1) AND (r_communication <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_documentation_check CHECK (((r_documentation >= 1) AND (r_documentation <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_after_sales_check CHECK (((r_after_sales >= 1) AND (r_after_sales <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
+ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_kind_check CHECK ((kind = ANY (ARRAY['budget'::text, 'capacity'::text, 'rate_limit'::text, 'quota'::text, 'headcount'::text, 'storage'::text])));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_quality_check CHECK (((r_quality >= 1) AND (r_quality <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_documentation_check CHECK (((r_documentation >= 1) AND (r_documentation <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_compliance_check CHECK (((r_compliance >= 1) AND (r_compliance <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_punctuality_check CHECK (((r_punctuality >= 1) AND (r_punctuality <= 5)));
-ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_impact_check CHECK (((impact >= 1) AND (impact <= 5)));
-ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_status_check CHECK ((status = ANY (ARRAY['open'::text, 'mitigating'::text, 'accepted'::text, 'closed'::text])));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_communication_check CHECK (((r_communication >= 1) AND (r_communication <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_after_sales_check CHECK (((r_after_sales >= 1) AND (r_after_sales <= 5)));
+ALTER TABLE public.secops_rule ADD CONSTRAINT secops_rule_severity_check CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])));
+ALTER TABLE public.secops_rule ADD CONSTRAINT secops_rule_category_check CHECK ((category = ANY (ARRAY['auth'::text, 'api_abuse'::text, 'suspicious'::text, 'data_leak'::text, 'prompt_injection'::text, 'credential'::text, 'audit'::text])));
+ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_likelihood_check CHECK (((likelihood >= 1) AND (likelihood <= 5)));
+ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_status_check CHECK ((status = ANY (ARRAY['open'::text, 'mitigating'::text, 'accepted'::text, 'closed'::text])));
+ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_impact_check CHECK (((impact >= 1) AND (impact <= 5)));
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
-ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_pay_journal_id_fkey FOREIGN KEY (pay_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id);
+ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_pay_journal_id_fkey FOREIGN KEY (pay_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES budgets(id) ON DELETE CASCADE;
 ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
+ALTER TABLE public.catalog_subcategories ADD CONSTRAINT catalog_subcategories_domain_slug_fkey FOREIGN KEY (domain_slug) REFERENCES catalog_domains(slug) ON DELETE CASCADE;
+ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_agent_slug_fkey FOREIGN KEY (agent_slug) REFERENCES category_agents(slug) ON DELETE SET NULL;
+ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
+ALTER TABLE public.company_goals ADD CONSTRAINT company_goals_owner_dept_fkey FOREIGN KEY (owner_dept) REFERENCES org_departments(dept_key);
+ALTER TABLE public.continuity_plan ADD CONSTRAINT continuity_plan_service_fkey FOREIGN KEY (service) REFERENCES integration_matrix(service);
 ALTER TABLE public.customer_phone_otps ADD CONSTRAINT customer_phone_otps_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE;
+ALTER TABLE public.decision_record ADD CONSTRAINT decision_record_serves_goal_fkey FOREIGN KEY (serves_goal) REFERENCES company_goals(key);
 ALTER TABLE public.doc_reviews ADD CONSTRAINT doc_reviews_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
+ALTER TABLE public.employee_knowledge ADD CONSTRAINT employee_knowledge_domain_key_fkey FOREIGN KEY (domain_key) REFERENCES knowledge_domain(domain_key) ON DELETE CASCADE;
+ALTER TABLE public.employee_knowledge ADD CONSTRAINT employee_knowledge_layer_no_fkey FOREIGN KEY (layer_no) REFERENCES employee_knowledge_standard(layer_no);
+ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_serves_goal_fkey FOREIGN KEY (serves_goal) REFERENCES company_goals(key);
+ALTER TABLE public.employee_workflow ADD CONSTRAINT employee_workflow_workflow_key_fkey FOREIGN KEY (workflow_key) REFERENCES workflow(workflow_key) ON DELETE CASCADE;
+ALTER TABLE public.event_delivery ADD CONSTRAINT event_delivery_event_id_fkey FOREIGN KEY (event_id) REFERENCES company_event(id) ON DELETE CASCADE;
 ALTER TABLE public.experiment_assignments ADD CONSTRAINT experiment_assignments_experiment_fkey FOREIGN KEY (experiment) REFERENCES experiments(key);
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_accum_account_fkey FOREIGN KEY (accum_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_asset_account_fkey FOREIGN KEY (asset_account) REFERENCES gl_accounts(code);
@@ -3072,37 +4039,42 @@ ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_asset_id_fkey 
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_parent_code_fkey FOREIGN KEY (parent_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_expense_map ADD CONSTRAINT gl_expense_map_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_reverses_fkey FOREIGN KEY (reverses) REFERENCES gl_journal(id);
-ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_journal_id_fkey FOREIGN KEY (journal_id) REFERENCES gl_journal(id) ON DELETE CASCADE;
+ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
+ALTER TABLE public.goal_period ADD CONSTRAINT goal_period_goal_key_fkey FOREIGN KEY (goal_key) REFERENCES company_goals(key) ON DELETE CASCADE;
+ALTER TABLE public.idea ADD CONSTRAINT idea_serves_goal_fkey FOREIGN KEY (serves_goal) REFERENCES company_goals(key);
 ALTER TABLE public.inbound_messages ADD CONSTRAINT inbound_messages_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
-ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_hired_supplier_id_fkey FOREIGN KEY (hired_supplier_id) REFERENCES leads(id);
-ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;
-ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_parent_inquiry_id_fkey FOREIGN KEY (parent_inquiry_id) REFERENCES inquiries(id);
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_hired_supplier_id_fkey FOREIGN KEY (hired_supplier_id) REFERENCES leads(id);
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_requirement ADD CONSTRAINT inquiry_requirement_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
-ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_cogs_account_fkey FOREIGN KEY (cogs_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_inventory_account_fkey FOREIGN KEY (inventory_account) REFERENCES gl_accounts(code);
-ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
+ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_cogs_account_fkey FOREIGN KEY (cogs_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
+ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
+ALTER TABLE public.knowledge_exam_results ADD CONSTRAINT knowledge_exam_results_question_id_fkey FOREIGN KEY (question_id) REFERENCES knowledge_exam_questions(id) ON DELETE SET NULL;
+ALTER TABLE public.lead_trade_map ADD CONSTRAINT lead_trade_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug);
 ALTER TABLE public.mdm_cities ADD CONSTRAINT mdm_cities_emirate_code_fkey FOREIGN KEY (emirate_code) REFERENCES mdm_emirates(code);
-ALTER TABLE public.messages ADD CONSTRAINT messages_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
-ALTER TABLE public.messages ADD CONSTRAINT messages_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.messages ADD CONSTRAINT messages_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
+ALTER TABLE public.messages ADD CONSTRAINT messages_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
+ALTER TABLE public.messages ADD CONSTRAINT messages_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
+ALTER TABLE public.metric_snapshot ADD CONSTRAINT metric_snapshot_metric_key_fkey FOREIGN KEY (metric_key) REFERENCES metric_definition(metric_key) ON DELETE CASCADE;
 ALTER TABLE public.org_agents ADD CONSTRAINT org_agents_department_fkey FOREIGN KEY (department) REFERENCES org_departments(dept_key);
 ALTER TABLE public.org_authority ADD CONSTRAINT org_authority_dept_key_fkey FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key) ON DELETE CASCADE;
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_dept_key_fkey FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key);
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_objective_id_fkey FOREIGN KEY (objective_id) REFERENCES org_objectives(id) ON DELETE CASCADE;
 ALTER TABLE public.pdpl_erase_files ADD CONSTRAINT pdpl_erase_files_request_id_fkey FOREIGN KEY (request_id) REFERENCES pdpl_requests(id) ON DELETE CASCADE;
+ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id) ON DELETE CASCADE;
-ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
 ALTER TABLE public.projects ADD CONSTRAINT projects_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE;
 ALTER TABLE public.prompt_versions ADD CONSTRAINT prompt_versions_prompt_key_fkey FOREIGN KEY (prompt_key) REFERENCES prompts(key);
-ALTER TABLE public.questions ADD CONSTRAINT questions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.questions ADD CONSTRAINT questions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
+ALTER TABLE public.questions ADD CONSTRAINT questions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.questions ADD CONSTRAINT questions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_committed_items ADD CONSTRAINT quote_committed_items_review_id_fkey FOREIGN KEY (review_id) REFERENCES quote_reviews(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_review_messages ADD CONSTRAINT quote_review_messages_review_id_fkey FOREIGN KEY (review_id) REFERENCES quote_reviews(id) ON DELETE CASCADE;
@@ -3110,25 +4082,33 @@ ALTER TABLE public.quotes ADD CONSTRAINT quotes_inquiry_id_fkey FOREIGN KEY (inq
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.regulations ADD CONSTRAINT regulations_supersedes_id_fkey FOREIGN KEY (supersedes_id) REFERENCES regulations(id);
 ALTER TABLE public.reveal_invoices ADD CONSTRAINT reveal_invoices_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE;
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
 ALTER TABLE public.role_permissions ADD CONSTRAINT role_permissions_role_fkey FOREIGN KEY (role) REFERENCES roles(name);
 ALTER TABLE public.supplier_capabilities ADD CONSTRAINT supplier_capabilities_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_role_fkey FOREIGN KEY (role) REFERENCES roles(name);
+ALTER TABLE public.workflow_step ADD CONSTRAINT workflow_step_workflow_key_fkey FOREIGN KEY (workflow_key) REFERENCES workflow(workflow_key) ON DELETE CASCADE;
 
 -- ===== INDEXES =====
+CREATE INDEX acl_cheaper_idx ON public.ai_cost_log USING btree (could_be_cheaper) WHERE could_be_cheaper;
+CREATE INDEX acl_dept_idx ON public.ai_cost_log USING btree (dept_key, occurred_at DESC);
 CREATE INDEX agent_action_log_created_idx ON public.agent_action_log USING btree (created_at DESC);
 CREATE UNIQUE INDEX agent_actions_dedupe ON public.agent_actions USING btree (agent, kind, target_id) WHERE (status = 'pending'::text);
 CREATE INDEX agent_actions_status_idx ON public.agent_actions USING btree (status, created_at DESC);
 CREATE INDEX agent_chats_agent_idx ON public.agent_chats USING btree (agent_key, id);
+CREATE UNIQUE INDEX agent_knowledge_cat_topic_uidx ON public.agent_knowledge USING btree (agent_key, topic) WHERE (agent_key ~~ 'cat:%'::text);
 CREATE UNIQUE INDEX ai_trainer_snap_day ON public.ai_trainer_snapshots USING btree (snapshot_date);
 CREATE INDEX ai_usage_email_time_idx ON public.ai_usage USING btree (email, created_at);
+CREATE UNIQUE INDEX ap_bills_vendor_billno_uidx ON public.ap_bills USING btree (vendor_id, bill_no) WHERE ((bill_no IS NOT NULL) AND (status <> 'void'::text));
+CREATE UNIQUE INDEX brand_signal_dedupe_idx ON public.brand_signal USING btree (signal_type, subject_type, COALESCE(subject_id, ''::text), COALESCE(rule_key, ''::text));
+CREATE INDEX brand_signal_open_idx ON public.brand_signal USING btree (status, severity, detected_at DESC);
+CREATE INDEX ce_type_idx ON public.company_event USING btree (event_type, occurred_at DESC);
 CREATE INDEX content_drafts_status_idx ON public.content_drafts USING btree (status, id DESC);
 CREATE INDEX cpo_cust_idx ON public.customer_phone_otps USING btree (customer_id, created_at DESC);
 CREATE UNIQUE INDEX customer_kpi_snap_day ON public.customer_kpi_snapshots USING btree (snapshot_date);
@@ -3139,6 +4119,8 @@ CREATE INDEX ea_events_start ON public.ea_events USING btree (starts_at);
 CREATE INDEX ea_reminders_at ON public.ea_reminders USING btree (remind_at) WHERE (NOT done);
 CREATE UNIQUE INDEX ea_snap_day ON public.ea_snapshots USING btree (snapshot_date);
 CREATE INDEX email_verifications_lookup_idx ON public.email_verifications USING btree (email, purpose, used_at, created_at DESC);
+CREATE INDEX event_delivery_agent_idx ON public.event_delivery USING btree (agent_key, delivered_at DESC);
+CREATE UNIQUE INDEX evolution_proposal_dedupe_idx ON public.evolution_proposal USING btree (trigger_kind, subject, change_class) WHERE (status = 'proposed'::text);
 CREATE INDEX exec_reports_officer ON public.exec_reports USING btree (officer, created_at DESC);
 CREATE INDEX expenses_next_due_idx ON public.expenses USING btree (next_due) WHERE active;
 CREATE UNIQUE INDEX finance_kpi_snap_day ON public.finance_kpi_snapshots USING btree (snapshot_date);
@@ -3178,6 +4160,8 @@ CREATE INDEX idx_inquiries_hired_supplier_id ON public.inquiries USING btree (hi
 CREATE INDEX idx_inquiry_matches_supplier_id ON public.inquiry_matches USING btree (supplier_id);
 CREATE INDEX idx_inv_moves_item ON public.inv_stock_moves USING btree (item_id);
 CREATE INDEX idx_kbrev ON public.kb_revisions USING btree (entry_kind, entry_ref, version DESC);
+CREATE INDEX idx_kexam_q_agent ON public.knowledge_exam_questions USING btree (agent_key, last_asked NULLS FIRST);
+CREATE INDEX idx_kexam_r_agent ON public.knowledge_exam_results USING btree (agent_key, created_at DESC);
 CREATE INDEX idx_leads_approval ON public.leads USING btree (approval_status);
 CREATE INDEX idx_leads_claimedby ON public.leads USING btree (lower(claimed_by));
 CREATE INDEX idx_leads_embedding_gte ON public.leads USING hnsw (embedding_gte vector_cosine_ops);
@@ -3212,6 +4196,7 @@ CREATE INDEX idx_reviews_inquiry_id ON public.reviews USING btree (inquiry_id);
 CREATE INDEX idx_reviews_supplier_id ON public.reviews USING btree (supplier_id);
 CREATE INDEX idx_rfq_arch_cat ON public.rfq_archives USING btree (category);
 CREATE INDEX idx_rfq_arch_customer ON public.rfq_archives USING btree (customer_id);
+CREATE INDEX idx_subcat_domain ON public.catalog_subcategories USING btree (domain_slug);
 CREATE INDEX idx_supcap_emirates ON public.supplier_capabilities USING gin (coverage_emirates);
 CREATE INDEX idx_supcap_excluded ON public.supplier_capabilities USING gin (excluded_trades);
 CREATE INDEX idx_supcap_exclusions ON public.supplier_capabilities USING gin (exclusions);
@@ -3226,6 +4211,9 @@ CREATE INDEX idx_transactions_inquiry_id ON public.transactions USING btree (inq
 CREATE INDEX idx_transactions_quote_id ON public.transactions USING btree (quote_id);
 CREATE INDEX idx_transactions_supplier_id ON public.transactions USING btree (supplier_id);
 CREATE INDEX idx_user_roles_role ON public.user_roles USING btree (role);
+CREATE INDEX im_category_idx ON public.institutional_memory USING btree (category_slug);
+CREATE INDEX im_kind_idx ON public.institutional_memory USING btree (kind, occurred_at DESC);
+CREATE INDEX im_subject_idx ON public.institutional_memory USING btree (subject_type, subject_id);
 CREATE INDEX inquiries_project ON public.inquiries USING btree (project_id);
 CREATE INDEX inquiry_intake_customer_idx ON public.inquiry_intake USING btree (customer_id);
 CREATE INDEX inquiry_intake_email_idx ON public.inquiry_intake USING btree (email);
@@ -3274,11 +4262,13 @@ CREATE INDEX leads_invite_status_idx ON public.leads USING btree (invite_status)
 CREATE UNIQUE INDEX leads_place_id_uidx ON public.leads USING btree (place_id) WHERE (place_id IS NOT NULL);
 CREATE INDEX leads_sector_idx ON public.leads USING btree (sector);
 CREATE UNIQUE INDEX legal_kpi_snap_day ON public.legal_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX llm_cache_expiry_idx ON public.llm_cache USING btree (expires_at);
 CREATE INDEX llm_calls_created_idx ON public.llm_calls USING btree (created_at DESC);
 CREATE INDEX llm_calls_fn_idx ON public.llm_calls USING btree (fn, created_at DESC);
 CREATE UNIQUE INDEX marketing_snap_day ON public.marketing_snapshots USING btree (snapshot_date);
 CREATE INDEX materials_cat ON public.materials USING btree (category);
 CREATE INDEX messages_thread_idx ON public.messages USING btree (inquiry_id, supplier_id, created_at);
+CREATE INDEX metric_snapshot_key_time_idx ON public.metric_snapshot USING btree (metric_key, taken_at DESC);
 CREATE INDEX notifications_status_idx ON public.notifications USING btree (status, created_at);
 CREATE UNIQUE INDEX ops_kpi_snap_day ON public.ops_kpi_snapshots USING btree (snapshot_date);
 CREATE UNIQUE INDEX outreach_lead_uq ON public.outreach USING btree (lead_id) WHERE (lead_id IS NOT NULL);
@@ -3287,9 +4277,11 @@ CREATE INDEX projects_customer ON public.projects USING btree (customer_id);
 CREATE INDEX q_inq_sup_idx ON public.questions USING btree (inquiry_id, supplier_id);
 CREATE INDEX q_sup_idx ON public.questions USING btree (supplier_id, answered_at);
 CREATE INDEX regulations_cats ON public.regulations USING gin (categories);
+CREATE INDEX review_chain_subject_idx ON public.review_chain USING btree (subject_type, subject_id, id);
 CREATE INDEX rl_hits_k_at ON public.rl_hits USING btree (k, at);
 CREATE INDEX security_events_idx ON public.security_events USING btree (created_at DESC);
 CREATE UNIQUE INDEX security_kpi_snap_day ON public.security_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX spec_backlog_status_idx ON public.spec_backlog USING btree (status, priority);
 CREATE UNIQUE INDEX supplier_dues_stripe_session_key ON public.supplier_dues USING btree (stripe_session_id) WHERE (stripe_session_id IS NOT NULL);
 CREATE UNIQUE INDEX supplier_kpi_snap_day ON public.supplier_kpi_snapshots USING btree (snapshot_date);
 CREATE INDEX undo_log_created_idx ON public.undo_log USING btree (created_at DESC);
@@ -4840,6 +5832,131 @@ CREATE OR REPLACE VIEW public.v_ai_quality_proxy AS  SELECT agent,
             ELSE NULL::numeric
         END, 1)) DESC NULLS LAST;
 
+CREATE OR REPLACE VIEW public.v_ai_spend AS  SELECT b.dept_key,
+    d.name AS department,
+    b.monthly_aed,
+    b.period_label,
+    COALESCE(sum(l.cost_aed), (0)::numeric) AS spent_aed,
+        CASE
+            WHEN (b.monthly_aed > (0)::numeric) THEN round((((100)::numeric * COALESCE(sum(l.cost_aed), (0)::numeric)) / b.monthly_aed))
+            ELSE (0)::numeric
+        END AS pct_used,
+    count(l.id) AS calls,
+    count(l.id) FILTER (WHERE l.cached) AS cache_hits,
+    count(l.id) FILTER (WHERE l.could_be_cheaper) AS downgradable_calls,
+    COALESCE(sum((l.prompt_tokens + l.output_tokens)), (0)::bigint) AS tokens
+   FROM ((department_budget b
+     LEFT JOIN org_departments d ON ((d.dept_key = b.dept_key)))
+     LEFT JOIN ai_cost_log l ON (((l.dept_key = b.dept_key) AND (to_char(l.occurred_at, 'YYYY-MM'::text) = b.period_label))))
+  GROUP BY b.dept_key, d.name, b.monthly_aed, b.period_label;
+
+CREATE OR REPLACE VIEW public.v_approval_trace AS  SELECT subject_type,
+    subject_id,
+    dept_key,
+    id AS step,
+    stage,
+    author_agent,
+    reviewer_agent,
+    decision,
+    reason,
+    violated_rule,
+    confidence,
+    created_at
+   FROM review_chain rc;
+
+CREATE OR REPLACE VIEW public.v_audit_coverage AS  WITH sources AS (
+         SELECT 'decision_log'::text AS store,
+            'Every routed agent decision'::text AS covers,
+            ( SELECT count(*) AS count
+                   FROM decision_log) AS rows_held,
+            ( SELECT max(decision_log.created_at) AS max
+                   FROM decision_log) AS last_write
+        UNION ALL
+         SELECT 'decision_record'::text,
+            'Structured decisions with impact analysis'::text,
+            ( SELECT count(*) AS count
+                   FROM decision_record) AS count,
+            ( SELECT max(decision_record.created_at) AS max
+                   FROM decision_record) AS max
+        UNION ALL
+         SELECT 'company_event'::text,
+            'Business events published by db triggers'::text,
+            ( SELECT count(*) AS count
+                   FROM company_event) AS count,
+            ( SELECT max(company_event.occurred_at) AS max
+                   FROM company_event) AS max
+        UNION ALL
+         SELECT 'agent_runs'::text,
+            'Every scheduled function run and outcome'::text,
+            ( SELECT count(*) AS count
+                   FROM agent_runs) AS count,
+            ( SELECT max(agent_runs.started_at) AS max
+                   FROM agent_runs) AS max
+        UNION ALL
+         SELECT 'agent_action_log'::text,
+            'Actions taken by employees'::text,
+            ( SELECT count(*) AS count
+                   FROM agent_action_log) AS count,
+            NULL::timestamp with time zone
+        UNION ALL
+         SELECT 'os_audit_log'::text,
+            'Operator and system actions'::text,
+            ( SELECT count(*) AS count
+                   FROM os_audit_log) AS count,
+            NULL::timestamp with time zone
+        UNION ALL
+         SELECT 'security_audit_log'::text,
+            'Security-relevant events'::text,
+            ( SELECT count(*) AS count
+                   FROM security_audit_log) AS count,
+            NULL::timestamp with time zone
+        UNION ALL
+         SELECT 'ai_cost_log'::text,
+            'Every model call: model, reason, tokens, cost'::text,
+            ( SELECT count(*) AS count
+                   FROM ai_cost_log) AS count,
+            ( SELECT max(ai_cost_log.occurred_at) AS max
+                   FROM ai_cost_log) AS max
+        UNION ALL
+         SELECT 'review_chain'::text,
+            'Approval hops on anything published'::text,
+            ( SELECT count(*) AS count
+                   FROM review_chain) AS count,
+            NULL::timestamp with time zone
+        UNION ALL
+         SELECT 'brand_signal'::text,
+            'Fraud and brand-misuse detections'::text,
+            ( SELECT count(*) AS count
+                   FROM brand_signal) AS count,
+            ( SELECT max(brand_signal.detected_at) AS max
+                   FROM brand_signal) AS max
+        UNION ALL
+         SELECT 'evolution_proposal'::text,
+            'Self-detected process defects'::text,
+            ( SELECT count(*) AS count
+                   FROM evolution_proposal) AS count,
+            ( SELECT max(evolution_proposal.created_at) AS max
+                   FROM evolution_proposal) AS max
+        UNION ALL
+         SELECT 'metric_snapshot'::text,
+            'Point-in-time metric history'::text,
+            ( SELECT count(*) AS count
+                   FROM metric_snapshot) AS count,
+            ( SELECT max(metric_snapshot.taken_at) AS max
+                   FROM metric_snapshot) AS max
+        )
+ SELECT store,
+    covers,
+    rows_held,
+    last_write,
+        CASE
+            WHEN (rows_held = 0) THEN 'EMPTY'::text
+            WHEN (last_write IS NULL) THEN 'NO_TIMESTAMP'::text
+            WHEN (last_write > (now() - '7 days'::interval)) THEN 'ACTIVE'::text
+            ELSE 'STALE'::text
+        END AS state
+   FROM sources;
+
 CREATE OR REPLACE VIEW public.v_auth_watch AS  SELECT customer_phone_otps.created_at AS at,
     'otp_high_attempts'::text AS signal,
         CASE
@@ -4873,6 +5990,221 @@ UNION ALL
     COALESCE(security_events.detail, '{}'::jsonb) AS detail
    FROM security_events
   WHERE ((security_events.kind = ANY (ARRAY['admin_login'::text, 'login_failed'::text])) AND (security_events.created_at > (now() - '30 days'::interval)));
+
+CREATE OR REPLACE VIEW public.v_bi_scorecard AS  WITH latest AS (
+         SELECT DISTINCT ON (s.metric_key) s.metric_key,
+            s.value,
+            s.error,
+            s.taken_at
+           FROM metric_snapshot s
+          ORDER BY s.metric_key, s.taken_at DESC
+        )
+ SELECT d.metric_key,
+    d.label,
+    d.domain,
+    d.owner_dept,
+    l.value,
+    d.target,
+    d.direction,
+        CASE
+            WHEN (l.error IS NOT NULL) THEN 'ERROR'::text
+            WHEN ((l.value IS NULL) OR (d.target IS NULL)) THEN 'UNMEASURED'::text
+            WHEN ((d.direction = 'up'::text) AND (l.value >= d.target)) THEN 'ON_TARGET'::text
+            WHEN ((d.direction = 'down'::text) AND (l.value <= d.target)) THEN 'ON_TARGET'::text
+            WHEN ((d.direction = 'up'::text) AND (l.value >= (d.target * 0.7))) THEN 'BEHIND'::text
+            WHEN ((d.direction = 'down'::text) AND (l.value <= (d.target * 1.3))) THEN 'BEHIND'::text
+            ELSE 'OFF_TARGET'::text
+        END AS state,
+    l.error,
+    l.taken_at,
+    d.definition
+   FROM (metric_definition d
+     LEFT JOIN latest l ON ((l.metric_key = d.metric_key)))
+  WHERE d.active;
+
+CREATE OR REPLACE VIEW public.v_business_health AS  SELECT round(avg(score) FILTER (WHERE (status <> 'no data'::text))) AS overall_score_measurable,
+    round(avg(score)) AS overall_score_all_departments,
+    count(*) FILTER (WHERE (status = 'healthy'::text)) AS healthy,
+    count(*) FILTER (WHERE (status = 'watch'::text)) AS watch,
+    count(*) FILTER (WHERE (status = 'at risk'::text)) AS at_risk,
+    count(*) FILTER (WHERE (status = 'no data'::text)) AS unmeasurable,
+    ( SELECT count(*) AS count
+           FROM risk_register
+          WHERE (risk_register.status = 'open'::text)) AS open_risks,
+    ( SELECT count(*) AS count
+           FROM spec_backlog
+          WHERE ((spec_backlog.status <> 'done'::text) AND (spec_backlog.priority = 1))) AS open_p1
+   FROM v_department_health;
+
+CREATE OR REPLACE VIEW public.v_capability_gaps AS  SELECT department,
+    agent_key,
+    title,
+    seniority,
+    ( SELECT count(*) AS count
+           FROM skills_matrix s
+          WHERE (s.agent_key = a.agent_key)) AS skills,
+    ( SELECT count(*) AS count
+           FROM skills_matrix s
+          WHERE ((s.agent_key = a.agent_key) AND (s.rating >= 4))) AS strong_skills,
+    ( SELECT count(*) AS count
+           FROM skills_matrix s
+          WHERE ((s.agent_key = a.agent_key) AND (s.rating <= 2))) AS weak_skills,
+    ( SELECT count(*) AS count
+           FROM employee_kpi k
+          WHERE ((k.agent_key = a.agent_key) AND k.active)) AS kpis,
+    ( SELECT count(*) AS count
+           FROM employee_authority ea
+          WHERE (ea.agent_key = a.agent_key)) AS authorities,
+    ( SELECT count(*) AS count
+           FROM employee_workflow w
+          WHERE (w.agent_key = a.agent_key)) AS workflows,
+    ( SELECT count(*) AS count
+           FROM agent_knowledge kn
+          WHERE (kn.agent_key = a.agent_key)) AS own_knowledge_rows,
+        CASE
+            WHEN (( SELECT count(*) AS count
+               FROM agent_knowledge kn
+              WHERE (kn.agent_key = a.agent_key)) = 0) THEN 'NO OWN KNOWLEDGE - relies entirely on shared domains'::text
+            ELSE 'has own knowledge'::text
+        END AS knowledge_status
+   FROM org_agents a
+  WHERE active;
+
+CREATE OR REPLACE VIEW public.v_capability_matrix AS  SELECT agent_key,
+    title,
+    seniority,
+    department,
+    manager_key,
+    ( SELECT count(*) AS count
+           FROM org_agents r
+          WHERE (r.manager_key = a.agent_key)) AS direct_reports,
+    ( SELECT count(*) AS count
+           FROM employee_kpi k
+          WHERE ((k.agent_key = a.agent_key) AND k.active)) AS owned_kpis,
+    ( SELECT count(*) AS count
+           FROM employee_authority ea
+          WHERE (ea.agent_key = a.agent_key)) AS personal_authorities,
+    ( SELECT count(*) AS count
+           FROM org_authority au
+          WHERE (au.dept_key = a.department)) AS dept_authorities,
+    ( SELECT count(*) AS count
+           FROM org_action_executor e
+          WHERE ((e.department = a.department) AND e.active)) AS executable_actions,
+    ( SELECT count(*) AS count
+           FROM agent_knowledge k
+          WHERE (k.agent_key = a.agent_key)) AS knowledge_topics,
+    ( SELECT count(*) AS count
+           FROM agent_memory m
+          WHERE (m.agent_key = a.agent_key)) AS memories,
+        CASE
+            WHEN (( SELECT count(*) AS count
+               FROM employee_kpi k
+              WHERE ((k.agent_key = a.agent_key) AND k.active)) = 0) THEN 'NO KPI'::text
+            WHEN (( SELECT count(*) AS count
+               FROM org_action_executor e
+              WHERE ((e.department = a.department) AND e.active)) = 0) THEN 'CANNOT ACT'::text
+            ELSE 'ok'::text
+        END AS employee_status
+   FROM org_agents a;
+
+CREATE OR REPLACE VIEW public.v_category_coverage AS  SELECT c.num,
+    c.slug AS catalog_slug,
+    c.name,
+    c.regulated,
+    m.agent_slug,
+    (m.agent_slug = c.slug) AS agent_is_canonical,
+    COALESCE(( SELECT count(*) AS count
+           FROM agent_knowledge k
+          WHERE ((k.agent_key = ('cat:'::text || c.slug)) AND (k.topic IN ( SELECT knowledge_module_standard.module
+                   FROM knowledge_module_standard
+                  WHERE knowledge_module_standard.required)))), (0)::bigint) AS standard_modules,
+    COALESCE(( SELECT count(*) AS count
+           FROM agent_knowledge k
+          WHERE (k.agent_key = ('cat:'::text || COALESCE(m.agent_slug, '~none~'::text)))), (0)::bigint) AS legacy_rows_elsewhere,
+    ( SELECT count(DISTINCT l.id) AS count
+           FROM (lead_trade_map t
+             JOIN leads l ON ((l.invite_trades && ARRAY[t.trade_key])))
+          WHERE (t.catalog_slug = c.slug)) AS supplier_supply,
+        CASE
+            WHEN (COALESCE(( SELECT count(*) AS count
+               FROM agent_knowledge k
+              WHERE ((k.agent_key = ('cat:'::text || c.slug)) AND (k.topic IN ( SELECT knowledge_module_standard.module
+                       FROM knowledge_module_standard
+                      WHERE knowledge_module_standard.required)))), (0)::bigint) = 14) THEN 'COMPLIANT'::text
+            WHEN (m.status = 'mapped'::text) THEN 'MAPPED_NOT_TO_STANDARD'::text
+            ELSE 'NO_AGENT'::text
+        END AS coverage
+   FROM (catalog_supplier_categories c
+     LEFT JOIN category_agent_map m ON ((m.catalog_slug = c.slug)));
+
+CREATE OR REPLACE VIEW public.v_constitution AS  SELECT article_no,
+    section,
+    title,
+    body,
+    version,
+    effective_from
+   FROM company_constitution
+  ORDER BY article_no;
+
+CREATE OR REPLACE VIEW public.v_cost_optimisation AS  SELECT task_class,
+    model_used,
+    tier,
+    count(*) AS calls,
+    round(sum(cost_aed), 2) AS cost_aed,
+    count(*) FILTER (WHERE could_be_cheaper) AS could_downgrade,
+    count(*) FILTER (WHERE cached) AS served_from_cache,
+    round(avg(prompt_tokens)) AS avg_prompt_tokens,
+    string_agg(DISTINCT cheaper_reason, ' | '::text) AS reasons
+   FROM ai_cost_log
+  GROUP BY task_class, model_used, tier
+  ORDER BY (round(sum(cost_aed), 2)) DESC NULLS LAST;
+
+CREATE OR REPLACE VIEW public.v_critical_capability_tests AS  WITH latest AS (
+         SELECT DISTINCT ON (agent_runs.agent) agent_runs.agent,
+            agent_runs.status,
+            agent_runs.started_at
+           FROM agent_runs
+          ORDER BY agent_runs.agent, agent_runs.started_at DESC
+        )
+ SELECT capability_key,
+    capability,
+    owner_dept,
+    test_kind,
+    test_ref,
+    why_critical,
+        CASE
+            WHEN ((test_kind = 'none'::text) OR (test_ref IS NULL)) THEN 'UNTESTED'::text
+            WHEN (test_kind = 'rpc_selftest'::text) THEN 'SELFTEST_ON_BUILD'::text
+            WHEN (test_kind = 'scenario'::text) THEN COALESCE(( SELECT
+                    CASE
+                        WHEN (s.last_result = 'pass'::text) THEN 'PASSING'::text
+                        WHEN (s.last_result = 'not_run'::text) THEN 'NEVER_RUN'::text
+                        ELSE 'FAILING'::text
+                    END AS "case"
+               FROM scenario_library s
+              WHERE (s.scenario_key = c.test_ref)), 'NEVER_RUN'::text)
+            WHEN (test_kind = 'suite'::text) THEN COALESCE(( SELECT
+                    CASE
+                        WHEN (l.status = 'ok'::text) THEN 'PASSING'::text
+                        ELSE 'FAILING'::text
+                    END AS "case"
+               FROM latest l
+              WHERE (l.agent = c.test_ref)), 'NEVER_RUN'::text)
+            ELSE 'UNKNOWN'::text
+        END AS state,
+        CASE
+            WHEN ((test_kind = 'suite'::text) AND (COALESCE(( SELECT t.pass_pct
+               FROM v_test_matrix t
+              WHERE (t.suite = c.test_ref)), (100)::numeric) < (100)::numeric)) THEN true
+            ELSE false
+        END AS flaky_in_window,
+    ( SELECT t.pass_pct
+           FROM v_test_matrix t
+          WHERE (t.suite = c.test_ref)) AS pass_pct_14d,
+    ( SELECT l.started_at
+           FROM latest l
+          WHERE (l.agent = c.test_ref)) AS last_run
+   FROM critical_capability c;
 
 CREATE OR REPLACE VIEW public.v_customer_ltv AS  SELECT id AS customer_id,
     full_name,
@@ -4911,6 +6243,179 @@ CREATE OR REPLACE VIEW public.v_customer_ltv AS  SELECT id AS customer_id,
            FROM transactions t
           WHERE ((t.customer_id = c.id) AND (t.fee_status = 'paid'::text))), (0)::numeric))::numeric(12,2)) DESC;
 
+CREATE OR REPLACE VIEW public.v_decision_intelligence AS  SELECT id,
+    decided_by,
+    dept_key,
+    "left"(problem, 90) AS problem,
+    confidence,
+    status,
+    financial_aed,
+    reversible,
+    ((impact_business IS NOT NULL) AND (length(impact_business) > 20)) AS has_business,
+    ((impact_financial IS NOT NULL) AND (length(impact_financial) > 20)) AS has_financial,
+    ((impact_legal IS NOT NULL) AND (length(impact_legal) > 10)) AS has_legal,
+    ((impact_customer IS NOT NULL) AND (length(impact_customer) > 20)) AS has_customer,
+    (jsonb_array_length(COALESCE(evidence, '[]'::jsonb)) > 0) AS has_evidence,
+        CASE
+            WHEN ((impact_business IS NOT NULL) AND (length(impact_business) > 20) AND ((impact_financial IS NOT NULL) AND (length(impact_financial) > 20)) AND ((impact_legal IS NOT NULL) AND (length(impact_legal) > 10)) AND ((impact_customer IS NOT NULL) AND (length(impact_customer) > 20)) AND (jsonb_array_length(COALESCE(evidence, '[]'::jsonb)) > 0)) THEN 'COMPLETE'::text
+            ELSE 'INCOMPLETE'::text
+        END AS intelligence_verdict,
+    created_at
+   FROM decision_record d;
+
+CREATE OR REPLACE VIEW public.v_decision_matrix AS  SELECT dept_key,
+    action_class,
+    max_tier,
+    threshold_aed,
+    note,
+    (EXISTS ( SELECT 1
+           FROM org_action_executor e
+          WHERE ((e.department = au.dept_key) AND (e.action_class = au.action_class) AND e.active))) AS executor_wired,
+    ( SELECT count(*) AS count
+           FROM decision_log dl
+          WHERE (dl.actor = au.dept_key)) AS decisions_logged,
+        CASE
+            WHEN (max_tier = 'gated'::text) THEN 'founder approval required'::text
+            WHEN (max_tier = 'advisory'::text) THEN 'recommend only'::text
+            ELSE 'autonomous'::text
+        END AS effect
+   FROM org_authority au;
+
+CREATE OR REPLACE VIEW public.v_department_health AS  WITH dept_scores AS (
+         SELECT 'it'::text AS dept_key,
+            'Technology'::text AS department,
+            round(((( SELECT COALESCE(((100.0 * (count(*) FILTER (WHERE health_checks.ok))::numeric) / (NULLIF(count(*), 0))::numeric), (0)::numeric) AS "coalesce"
+                   FROM health_checks
+                  WHERE (health_checks.created_at > (now() - '24:00:00'::interval))) + ( SELECT COALESCE(((100.0 * (count(*) FILTER (WHERE (agent_runs.status = 'ok'::text)))::numeric) / (NULLIF(count(*), 0))::numeric), (0)::numeric) AS "coalesce"
+                   FROM agent_runs
+                  WHERE (agent_runs.started_at > (now() - '24:00:00'::interval)))) / (2)::numeric)) AS score,
+            'uptime + agent success rate, last 24h'::text AS basis
+        UNION ALL
+         SELECT 'knowledge'::text,
+            'Operations'::text,
+            ( SELECT COALESCE(round(avg(v_test_matrix.pass_pct)), (0)::numeric) AS "coalesce"
+                   FROM v_test_matrix) AS "coalesce",
+            'average pass rate across all test suites, 14d'::text
+        UNION ALL
+         SELECT 'procurement'::text,
+            'Marketplace & Procurement'::text,
+            ( SELECT round(((100.0 * (count(*) FILTER (WHERE (category_agent_map.status = 'mapped'::text)))::numeric) / (NULLIF(count(*), 0))::numeric)) AS round
+                   FROM category_agent_map) AS round,
+            'supplier categories covered of 84'::text
+        UNION ALL
+         SELECT 'marketing'::text,
+            'Marketing'::text,
+            ( SELECT COALESCE(round(((100.0 * (count(*) FILTER (WHERE (review_chain.decision = 'approve'::text)))::numeric) / (NULLIF(count(*), 0))::numeric)), (100)::numeric) AS "coalesce"
+                   FROM review_chain
+                  WHERE (review_chain.stage = 'dept_review'::text)) AS "coalesce",
+            'share of drafts approved at first department review'::text
+        UNION ALL
+         SELECT 'legal'::text,
+            'Legal & Compliance'::text,
+            ( SELECT
+                        CASE
+                            WHEN (count(*) = 0) THEN (100)::bigint
+                            ELSE GREATEST((0)::bigint, (100 - (count(*) * 20)))
+                        END AS "greatest"
+                   FROM risk_register
+                  WHERE ((risk_register.dept_key = 'legal'::text) AND (risk_register.status = 'open'::text) AND (risk_register.impact = 'high'::text))) AS "greatest",
+            'open high-impact legal risks (target zero)'::text
+        UNION ALL
+         SELECT 'finance'::text,
+            'Finance'::text,
+            ( SELECT COALESCE(round(((100.0 * (count(*) FILTER (WHERE (agent_runs.status = 'ok'::text)))::numeric) / (NULLIF(count(*), 0))::numeric)), (0)::numeric) AS "coalesce"
+                   FROM agent_runs
+                  WHERE ((agent_runs.agent = 'money_tests'::text) AND (agent_runs.started_at > (now() - '14 days'::interval)))) AS "coalesce",
+            'money invariant test pass rate, 14d'::text
+        UNION ALL
+         SELECT 'exec'::text,
+            'Executive Office'::text,
+            ( SELECT round(((100.0 * (count(*) FILTER (WHERE ((v_employee_knowledge_compliance.kpis > 0) AND (v_employee_knowledge_compliance.authorities > 0))))::numeric) / (NULLIF(count(*), 0))::numeric)) AS round
+                   FROM v_employee_knowledge_compliance) AS round,
+            'employees with both a KPI and defined authority'::text
+        UNION ALL
+         SELECT 'hr'::text,
+            'Human Resources'::text,
+            ( SELECT round(((100.0 * avg(v_employee_knowledge_compliance.layers_bound)) / (12)::numeric)) AS round
+                   FROM v_employee_knowledge_compliance) AS round,
+            'average employee knowledge layers bound of 12'::text
+        UNION ALL
+         SELECT 'customer_success'::text,
+            'Customer Success'::text,
+            0,
+            'no customers, inquiries or quotes exist yet - unmeasurable'::text
+        UNION ALL
+         SELECT 'sales'::text,
+            'Sales & Growth'::text,
+            0,
+            'no transactions exist yet - unmeasurable'::text
+        )
+ SELECT dept_key,
+    department,
+    GREATEST((0)::numeric, LEAST((100)::numeric, COALESCE(score, (0)::numeric))) AS score,
+    basis,
+        CASE
+            WHEN (COALESCE(score, (0)::numeric) >= (90)::numeric) THEN 'healthy'::text
+            WHEN (COALESCE(score, (0)::numeric) >= (70)::numeric) THEN 'watch'::text
+            WHEN (COALESCE(score, (0)::numeric) > (0)::numeric) THEN 'at risk'::text
+            ELSE 'no data'::text
+        END AS status
+   FROM dept_scores;
+
+CREATE OR REPLACE VIEW public.v_digital_twin AS  SELECT ( SELECT count(*) AS count
+           FROM org_agents
+          WHERE org_agents.active) AS employees_active,
+    ( SELECT count(*) AS count
+           FROM org_departments
+          WHERE org_departments.active) AS departments,
+    ( SELECT count(*) AS count
+           FROM company_goals
+          WHERE company_goals.active) AS company_goals,
+    ( SELECT count(*) AS count
+           FROM catalog_supplier_categories) AS categories_target,
+    ( SELECT count(*) AS count
+           FROM category_agent_map
+          WHERE (category_agent_map.status = 'mapped'::text)) AS categories_covered,
+    ( SELECT count(*) AS count
+           FROM v_knowledge_compliance
+          WHERE (v_knowledge_compliance.verdict = 'COMPLIANT'::text)) AS knowledge_bases_compliant,
+    ( SELECT count(*) AS count
+           FROM leads) AS suppliers_in_pipeline,
+    ( SELECT count(*) AS count
+           FROM inquiries) AS inquiries_total,
+    ( SELECT count(*) AS count
+           FROM quotes) AS quotes_total,
+    ( SELECT count(*) AS count
+           FROM transactions) AS transactions_total,
+    ( SELECT COALESCE(sum(z.amount_aed), (0)::numeric) AS "coalesce"
+           FROM ( SELECT (0)::numeric AS amount_aed) z) AS revenue_placeholder,
+    ( SELECT count(*) AS count
+           FROM org_tasks
+          WHERE (org_tasks.status = ANY (ARRAY['assigned'::text, 'in_progress'::text]))) AS work_in_progress,
+    ( SELECT count(*) AS count
+           FROM org_tasks
+          WHERE (org_tasks.status = 'proposed'::text)) AS awaiting_founder,
+    ( SELECT count(*) AS count
+           FROM risk_register
+          WHERE (risk_register.status = 'open'::text)) AS open_risks,
+    ( SELECT count(*) AS count
+           FROM institutional_memory) AS memories_held,
+    ( SELECT count(*) AS count
+           FROM company_event
+          WHERE (company_event.occurred_at > (now() - '24:00:00'::interval))) AS events_24h,
+    ( SELECT count(*) AS count
+           FROM agent_runs
+          WHERE (agent_runs.started_at > (now() - '24:00:00'::interval))) AS agent_runs_24h,
+    ( SELECT count(*) AS count
+           FROM agent_runs
+          WHERE ((agent_runs.started_at > (now() - '24:00:00'::interval)) AND (agent_runs.status = 'error'::text))) AS agent_errors_24h,
+    ( SELECT count(*) AS count
+           FROM spec_backlog
+          WHERE (spec_backlog.status = 'pending'::text)) AS open_backlog,
+    ( SELECT count(*) AS count
+           FROM spec_backlog
+          WHERE ((spec_backlog.status = 'pending'::text) AND (spec_backlog.priority = 1))) AS open_p1;
+
 CREATE OR REPLACE VIEW public.v_email_deadletter AS  SELECT id,
     type,
     to_email,
@@ -4922,6 +6427,36 @@ CREATE OR REPLACE VIEW public.v_email_deadletter AS  SELECT id,
    FROM notifications
   WHERE (status = 'failed'::text)
   ORDER BY created_at DESC;
+
+CREATE OR REPLACE VIEW public.v_employee_knowledge_compliance AS  SELECT a.agent_key,
+    a.title,
+    a.department,
+    a.seniority,
+    count(DISTINCT ek.layer_no) AS layers_bound,
+    ( SELECT count(*) AS count
+           FROM employee_knowledge_standard
+          WHERE employee_knowledge_standard.required) AS layers_required,
+    ( SELECT count(*) AS count
+           FROM employee_workflow w
+          WHERE (w.agent_key = a.agent_key)) AS workflows,
+    ( SELECT count(*) AS count
+           FROM employee_kpi k
+          WHERE ((k.agent_key = a.agent_key) AND k.active)) AS kpis,
+    ( SELECT count(*) AS count
+           FROM employee_authority ea
+          WHERE (ea.agent_key = a.agent_key)) AS authorities,
+        CASE
+            WHEN ((count(DISTINCT ek.layer_no) = ( SELECT count(*) AS count
+               FROM employee_knowledge_standard
+              WHERE employee_knowledge_standard.required)) AND (( SELECT count(*) AS count
+               FROM employee_kpi k
+              WHERE ((k.agent_key = a.agent_key) AND k.active)) > 0)) THEN 'COMPLIANT'::text
+            ELSE 'INCOMPLETE'::text
+        END AS verdict
+   FROM (org_agents a
+     LEFT JOIN employee_knowledge ek ON ((ek.agent_key = a.agent_key)))
+  WHERE a.active
+  GROUP BY a.agent_key, a.title, a.department, a.seniority;
 
 CREATE OR REPLACE VIEW public.v_eval_latest AS  SELECT prompt_key,
     score,
@@ -4938,6 +6473,31 @@ CREATE OR REPLACE VIEW public.v_eval_latest AS  SELECT prompt_key,
            FROM prompt_eval_runs) x
   WHERE (rn = 1)
   ORDER BY score NULLS FIRST;
+
+CREATE OR REPLACE VIEW public.v_event_backbone AS  SELECT event_type,
+    count(DISTINCT agent_key) AS subscribers,
+    ( SELECT count(*) AS count
+           FROM company_event e
+          WHERE (e.event_type = s.event_type)) AS events_ever,
+    ( SELECT count(*) AS count
+           FROM company_event e
+          WHERE ((e.event_type = s.event_type) AND (e.occurred_at > (now() - '24:00:00'::interval)))) AS events_24h,
+    ( SELECT count(*) AS count
+           FROM event_delivery d
+          WHERE (d.event_type = s.event_type)) AS deliveries,
+        CASE
+            WHEN (( SELECT count(*) AS count
+               FROM company_event e
+              WHERE (e.event_type = s.event_type)) = 0) THEN 'NO_EVENTS_EVER'::text
+            WHEN (( SELECT count(*) AS count
+               FROM event_delivery d
+              WHERE (d.event_type = s.event_type)) = 0) THEN 'UNDELIVERED'::text
+            ELSE 'LIVE'::text
+        END AS state
+   FROM event_subscription s
+  WHERE active
+  GROUP BY event_type
+  ORDER BY event_type;
 
 CREATE OR REPLACE VIEW public.v_fraud_score AS  SELECT subject_type,
     subject_id,
@@ -4967,6 +6527,42 @@ CREATE OR REPLACE VIEW public.v_fraud_score AS  SELECT subject_type,
           WHERE (COALESCE(fraud_flags.status, 'open'::text) <> ALL (ARRAY['resolved'::text, 'dismissed'::text, 'closed'::text, 'false_positive'::text]))
           GROUP BY fraud_flags.subject_type, fraud_flags.subject_id) s
   ORDER BY ((LEAST((100)::bigint, raw))::integer) DESC;
+
+CREATE OR REPLACE VIEW public.v_gap_report AS  SELECT priority,
+    source_doc,
+    area,
+    item,
+    status,
+    verdict_at_audit,
+    evidence,
+    notes,
+    updated_at
+   FROM spec_backlog
+  WHERE (status <> 'done'::text);
+
+CREATE OR REPLACE VIEW public.v_innovation_pipeline AS  SELECT id,
+    title,
+    dept_key,
+    submitted_by,
+    category,
+    serves_goal,
+    expected_value_aed,
+    effort,
+    confidence,
+    score,
+    stage,
+    outcome,
+    created_at
+   FROM idea i
+  ORDER BY
+        CASE stage
+            WHEN 'proposed'::text THEN 1
+            WHEN 'assessing'::text THEN 2
+            WHEN 'approved'::text THEN 3
+            WHEN 'building'::text THEN 4
+            WHEN 'shipped'::text THEN 5
+            ELSE 6
+        END, score DESC NULLS LAST;
 
 CREATE OR REPLACE VIEW public.v_invite_funnel AS  SELECT COALESCE(tt.label, u.code) AS trade,
     u.code AS trade_code,
@@ -5098,6 +6694,58 @@ CREATE OR REPLACE VIEW public.v_kb_risk AS  SELECT id,
         END AS risk_reason
    FROM kb_chunks;
 
+CREATE OR REPLACE VIEW public.v_knowledge_compliance AS  SELECT a.slug AS agent_slug,
+    a.name,
+    a.agent_class,
+    count(k.topic) FILTER (WHERE (k.topic IS NOT NULL)) AS modules_present,
+    ( SELECT count(*) AS count
+           FROM knowledge_module_standard
+          WHERE knowledge_module_standard.required) AS modules_required,
+    string_agg(s.module, ', '::text ORDER BY s.ord) FILTER (WHERE (k.topic IS NULL)) AS missing_modules,
+        CASE
+            WHEN (count(k.topic) FILTER (WHERE (k.topic IS NOT NULL)) = ( SELECT count(*) AS count
+               FROM knowledge_module_standard
+              WHERE knowledge_module_standard.required)) THEN 'COMPLIANT'::text
+            ELSE 'INCOMPLETE'::text
+        END AS verdict
+   FROM ((category_agents a
+     CROSS JOIN knowledge_module_standard s)
+     LEFT JOIN agent_knowledge k ON (((k.agent_key = ('cat:'::text || a.slug)) AND (k.topic = s.module))))
+  WHERE (s.required AND (a.agent_class <> 'internal_staff'::text))
+  GROUP BY a.slug, a.name, a.agent_class;
+
+CREATE OR REPLACE VIEW public.v_knowledge_matrix AS  SELECT agent_key,
+    layer,
+    count(*) AS topics,
+    round(avg(length(content))) AS avg_chars,
+    count(*) FILTER (WHERE (topic = ANY (ARRAY['Industry Knowledge'::text, 'Products & Services'::text, 'Technical Knowledge'::text, 'Supplier Knowledge'::text, 'Quotation Knowledge'::text, 'Documents Knowledge'::text, 'UAE Regulations & Authorities'::text, 'Inquiry Qualification Logic'::text]))) AS spec_modules_present,
+    max(updated_at) AS last_updated
+   FROM agent_knowledge k
+  GROUP BY agent_key, layer;
+
+CREATE OR REPLACE VIEW public.v_knowledge_review_due AS  SELECT agent_key,
+    replace(agent_key, 'cat:'::text, ''::text) AS catalog_slug,
+    count(*) AS modules_due,
+    min(review_due) AS due_since
+   FROM agent_knowledge k
+  WHERE ((review_due IS NOT NULL) AND (review_due <= CURRENT_DATE))
+  GROUP BY agent_key
+  ORDER BY (min(review_due)), agent_key;
+
+CREATE OR REPLACE VIEW public.v_lead_routing_coverage AS  SELECT m.catalog_slug,
+    c.name AS category,
+    count(DISTINCT l.id) AS leads_routable,
+    ( SELECT count(*) AS count
+           FROM category_agent_map am
+          WHERE ((am.catalog_slug = m.catalog_slug) AND (am.status = 'mapped'::text))) AS has_agent,
+    ( SELECT kc.verdict
+           FROM v_knowledge_compliance kc
+          WHERE (kc.agent_slug = m.catalog_slug)) AS knowledge_verdict
+   FROM ((lead_trade_map m
+     JOIN catalog_supplier_categories c ON ((c.slug = m.catalog_slug)))
+     JOIN leads l ON ((l.invite_trades && ARRAY[m.trade_key])))
+  GROUP BY m.catalog_slug, c.name;
+
 CREATE OR REPLACE VIEW public.v_llm_model_mix AS  SELECT fn,
     COALESCE(model_used, model_wanted) AS model,
     count(*) AS calls,
@@ -5120,6 +6768,47 @@ CREATE OR REPLACE VIEW public.v_llm_offpolicy AS  SELECT m.fn,
    FROM (v_llm_model_mix m
      LEFT JOIN llm_policy p ON (((p.model = m.model) AND p.approved)))
   WHERE (p.model IS NULL);
+
+CREATE OR REPLACE VIEW public.v_marketplace_liquidity AS  SELECT c.slug AS category,
+    c.name,
+    cov.coverage,
+    cov.supplier_supply AS suppliers_in_pipeline,
+    ( SELECT count(*) AS count
+           FROM (leads l
+             JOIN lead_trade_map t ON ((l.invite_trades && ARRAY[t.trade_key])))
+          WHERE ((t.catalog_slug = c.slug) AND l.verified)) AS suppliers_verified,
+    ( SELECT count(*) AS count
+           FROM inquiries i
+          WHERE (i.category = c.slug)) AS inquiries,
+        CASE
+            WHEN (( SELECT count(*) AS count
+               FROM (leads l
+                 JOIN lead_trade_map t ON ((l.invite_trades && ARRAY[t.trade_key])))
+              WHERE ((t.catalog_slug = c.slug) AND l.verified)) >= 5) THEN 'liquid'::text
+            WHEN (cov.supplier_supply >= 50) THEN 'supply_available_unverified'::text
+            WHEN (cov.supplier_supply > 0) THEN 'thin_supply'::text
+            ELSE 'no_supply'::text
+        END AS liquidity_status
+   FROM (catalog_supplier_categories c
+     JOIN v_category_coverage cov ON ((cov.catalog_slug = c.slug)));
+
+CREATE OR REPLACE VIEW public.v_memory_matrix AS  SELECT 'agent'::text AS scope_type,
+    m.agent_key AS scope,
+    m.kind,
+    count(*) AS rows_held,
+    max(m.created_at) AS newest,
+    min(m.created_at) AS oldest
+   FROM agent_memory m
+  GROUP BY m.agent_key, m.kind
+UNION ALL
+ SELECT 'department'::text AS scope_type,
+    o.scope,
+    o.kind,
+    count(*) AS rows_held,
+    max(o.created_at) AS newest,
+    min(o.created_at) AS oldest
+   FROM org_memory o
+  GROUP BY o.scope, o.kind;
 
 CREATE OR REPLACE VIEW public.v_memory_promotion_candidates AS  SELECT id,
     agent_key,
@@ -5196,6 +6885,47 @@ CREATE OR REPLACE VIEW public.v_mkt_underpriced AS  SELECT q.id AS quote_id,
      CROSS JOIN LATERAL ( SELECT fn_price_confidence(i.category, q.quote_amount) AS pc) x)
   WHERE ((COALESCE(q.status, ''::text) <> 'draft'::text) AND (i.category IS NOT NULL) AND ((x.pc ->> 'band'::text) = 'suspiciously_low'::text))
   ORDER BY q.created_at DESC;
+
+CREATE OR REPLACE VIEW public.v_org_chart AS  SELECT d.sort,
+    d.dept_key,
+    d.name AS department,
+    d.lead_agent AS head_agent,
+    a.agent_key,
+    a.title,
+    a.seniority,
+    a.manager_key,
+    a.role,
+    a.responsibilities,
+    a.active,
+    (a.agent_key = d.lead_agent) AS is_head,
+    ( SELECT count(*) AS count
+           FROM org_agents r
+          WHERE (r.manager_key = a.agent_key)) AS direct_reports,
+    ( SELECT count(*) AS count
+           FROM org_agents x
+          WHERE (x.department = d.dept_key)) AS dept_headcount
+   FROM (org_departments d
+     LEFT JOIN org_agents a ON ((a.department = d.dept_key)))
+  WHERE d.active;
+
+CREATE OR REPLACE VIEW public.v_resource_pressure AS  SELECT resource,
+    kind,
+    owner_dept,
+    unit,
+    capacity,
+    committed,
+        CASE
+            WHEN (capacity > (0)::numeric) THEN round(((100.0 * committed) / capacity), 1)
+            ELSE NULL::numeric
+        END AS used_pct,
+        CASE
+            WHEN (capacity = (0)::numeric) THEN 'UNSET'::text
+            WHEN (((100.0 * committed) / capacity) >= (halt_at_pct)::numeric) THEN 'HALT'::text
+            WHEN (((100.0 * committed) / capacity) >= (degrade_at_pct)::numeric) THEN 'DEGRADE'::text
+            ELSE 'OK'::text
+        END AS state,
+    note
+   FROM resource_pool r;
 
 CREATE OR REPLACE VIEW public.v_slow_queries AS  SELECT queryid,
     calls,
@@ -5332,6 +7062,31 @@ CREATE OR REPLACE VIEW public.v_supplier_coi AS  WITH sup AS (
  HAVING (count(DISTINCT id) > 1)
   ORDER BY (count(DISTINCT id)) DESC, k;
 
+CREATE OR REPLACE VIEW public.v_supplier_intelligence AS  SELECT l.id AS lead_id,
+    l.company_name,
+    l.emirate,
+    l.verified,
+    l.approval_status,
+    s.reliability,
+    s.response_rate,
+    s.quotes_submitted,
+    s.quotes_won,
+    s.rejection_count,
+    s.price_index,
+    s.quality_rating,
+        CASE
+            WHEN (NOT l.verified) THEN 'UNVERIFIED - must not receive an RFQ'::text
+            WHEN (COALESCE(s.quotes_submitted, 0) = 0) THEN 'UNPROVEN - never quoted'::text
+            WHEN (COALESCE(s.response_rate, (0)::numeric) < (30)::numeric) THEN 'SLOW RESPONDER - reveals here are refund risk'::text
+            WHEN (COALESCE(s.rejection_count, 0) >= 5) THEN 'FREQUENTLY REJECTED - check scope fit before fanning out'::text
+            WHEN (COALESCE(s.reliability, (0)::numeric) >= (75)::numeric) THEN 'RELIABLE - safe to prioritise'::text
+            ELSE 'AVERAGE'::text
+        END AS verdict,
+    s.last_active,
+    s.computed_at
+   FROM (leads l
+     LEFT JOIN supplier_score s ON ((s.lead_id = l.id)));
+
 CREATE OR REPLACE VIEW public.v_supplier_load AS  SELECT l.id AS supplier_id,
     l.company_name,
     count(DISTINCT im.inquiry_id) FILTER (WHERE ((i.completed_at IS NULL) AND (COALESCE(i.status, ''::text) <> 'cancelled'::text))) AS active_matched,
@@ -5346,6 +7101,94 @@ CREATE OR REPLACE VIEW public.v_supplier_load AS  SELECT l.id AS supplier_id,
   WHERE (l.claimed = true)
   GROUP BY l.id, l.company_name, sh.response, sh.risk_tier
   ORDER BY (count(DISTINCT im.inquiry_id) FILTER (WHERE ((i.completed_at IS NULL) AND (COALESCE(i.status, ''::text) <> 'cancelled'::text)))) DESC;
+
+CREATE OR REPLACE VIEW public.v_test_matrix AS  SELECT agent AS suite,
+    count(*) AS runs_14d,
+    count(*) FILTER (WHERE (status = 'ok'::text)) AS passed,
+    count(*) FILTER (WHERE (status = 'error'::text)) AS failed,
+    round(((100.0 * (count(*) FILTER (WHERE (status = 'ok'::text)))::numeric) / (GREATEST(count(*), (1)::bigint))::numeric)) AS pass_pct,
+    max(started_at) AS last_run,
+        CASE
+            WHEN (count(*) FILTER (WHERE (status = 'error'::text)) = 0) THEN 'PASS'::text
+            WHEN (count(*) FILTER (WHERE (status = 'ok'::text)) = 0) THEN 'FAIL'::text
+            ELSE 'FLAKY'::text
+        END AS verdict
+   FROM agent_runs r
+  WHERE ((started_at > (now() - '14 days'::interval)) AND ((agent ~~* '%test%'::text) OR (agent ~~* '%eval%'::text) OR (agent ~~* '%qa%'::text) OR (agent ~~* '%exam%'::text) OR (agent ~~* '%smoke%'::text) OR (agent ~~* '%drill%'::text) OR (agent ~~* '%canary%'::text) OR (agent ~~* '%health%'::text)))
+  GROUP BY agent;
+
+CREATE OR REPLACE VIEW public.v_unit_economics AS  WITH p AS (
+         SELECT pricing_config.standard_reveal_rate AS rate,
+            pricing_config.supplier_reg_fee AS reg_fee
+           FROM pricing_config
+         LIMIT 1
+        ), t AS (
+         SELECT count(*) FILTER (WHERE (transactions.revealed_at IS NOT NULL)) AS reveals_total,
+            count(*) FILTER (WHERE (transactions.revealed_at > (now() - '30 days'::interval))) AS reveals_30d,
+            COALESCE(sum(transactions.reveal_fee) FILTER (WHERE (transactions.revealed_at IS NOT NULL)), (0)::numeric) AS reveal_revenue_total,
+            COALESCE(sum(transactions.reveal_fee) FILTER (WHERE (transactions.revealed_at > (now() - '30 days'::interval))), (0)::numeric) AS reveal_revenue_30d,
+            COALESCE(avg(transactions.reveal_fee) FILTER (WHERE (transactions.revealed_at IS NOT NULL)), (0)::numeric) AS avg_reveal_fee,
+            count(*) FILTER (WHERE ((transactions.refund_status IS NOT NULL) AND (transactions.refund_status <> 'none'::text))) AS refunds
+           FROM transactions
+        ), s AS (
+         SELECT count(*) FILTER (WHERE leads.verified) AS verified_suppliers,
+            count(*) AS leads_total,
+            count(*) FILTER (WHERE (leads.registration_paid_at IS NOT NULL)) AS paying_suppliers
+           FROM leads
+        ), i AS (
+         SELECT count(*) AS inquiries_total,
+            count(*) FILTER (WHERE (inquiries.created_at > (now() - '30 days'::interval))) AS inquiries_30d
+           FROM inquiries
+        ), c AS (
+         SELECT COALESCE(sum(ai_cost_log.cost_aed), (0)::numeric) AS ai_cost_30d
+           FROM ai_cost_log
+          WHERE (ai_cost_log.occurred_at > (now() - '30 days'::interval))
+        ), b AS (
+         SELECT COALESCE(sum(department_budget.monthly_aed), (0)::numeric) AS fixed_monthly_aed
+           FROM department_budget
+        )
+ SELECT p.rate AS reveal_rate,
+    p.reg_fee AS supplier_reg_fee_aed,
+    t.reveals_total,
+    t.reveals_30d,
+    t.reveal_revenue_total,
+    t.reveal_revenue_30d,
+    round(t.avg_reveal_fee, 2) AS avg_reveal_fee_aed,
+    t.refunds,
+    s.leads_total,
+    s.verified_suppliers,
+    s.paying_suppliers,
+    i.inquiries_total,
+    i.inquiries_30d,
+    c.ai_cost_30d,
+    b.fixed_monthly_aed,
+        CASE
+            WHEN (t.reveals_30d > 0) THEN round((c.ai_cost_30d / (t.reveals_30d)::numeric), 2)
+            ELSE NULL::numeric
+        END AS ai_cost_per_reveal_aed,
+        CASE
+            WHEN (t.avg_reveal_fee > (0)::numeric) THEN ceil((b.fixed_monthly_aed / t.avg_reveal_fee))
+            ELSE NULL::numeric
+        END AS breakeven_reveals_per_month,
+        CASE
+            WHEN (t.reveals_total = 0) THEN 'PRE-REVENUE: no reveal has ever been paid'::text
+            ELSE 'LIVE'::text
+        END AS state
+   FROM p,
+    t,
+    s,
+    i,
+    c,
+    b;
+
+CREATE OR REPLACE VIEW public.v_workflow_matrix AS  SELECT e.department,
+    e.action_class,
+    e.active AS executor_active,
+    e.note,
+    au.max_tier,
+    au.threshold_aed
+   FROM (org_action_executor e
+     FULL JOIN org_authority au ON (((au.dept_key = e.department) AND (au.action_class = e.action_class))));
 
 -- ===== FUNCTIONS =====
 CREATE OR REPLACE FUNCTION public._kb_next_ver(k text, r text)
@@ -5721,6 +7564,7 @@ begin
              order by m.importance desc, m.created_at desc limit 8 loop
       v_l4 := v_l4 || '## memory ('||r.kind||')'||E'\n'||r.content||E'\n\n';
     end loop;
+    v_l4 := v_l4 || coalesce(public.fn_agent_institutional_memory(p_agent_key, 6), '');
     if v_l4 <> '' then
       out := out || '# LAYER 4 - WHAT THIS ORGANIZATION HAS LEARNED'||E'\n\n'|| left(v_l4, 3500);
     end if;
@@ -5754,6 +7598,43 @@ begin
   returning id into v_id;
   return v_id;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_institutional_memory(p_agent_key text, p_limit integer DEFAULT 6)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_dept text; v_cat text; out text := ''; r record;
+begin
+  if p_agent_key is null then return ''; end if;
+
+  select department into v_dept from org_agents where agent_key = p_agent_key;
+  if p_agent_key like 'cat:%' then v_cat := replace(p_agent_key, 'cat:', ''); end if;
+
+  for r in
+    select m.kind, m.headline, m.detail, m.outcome, m.money_aed, m.category_slug, m.confidence
+    from institutional_memory m
+    where (m.visible_to is null
+           or array_length(m.visible_to,1) is null
+           or 'all' = any(m.visible_to)
+           or v_dept = any(m.visible_to)
+           or p_agent_key = any(m.visible_to))
+      and (m.category_slug is null or m.category_slug = v_cat)
+    order by coalesce(m.confidence,0) desc, coalesce(m.occurred_at, m.created_at) desc
+    limit greatest(coalesce(p_limit,6), 1)
+  loop
+    out := out || '## lesson (' || coalesce(r.kind,'note') || ')' || E'\n'
+        || coalesce(r.headline,'') || E'\n'
+        || left(coalesce(r.detail,''), 600)
+        || case when r.outcome is not null then E'\n' || 'What changed as a result: ' || left(r.outcome, 300) else '' end
+        || case when coalesce(r.money_aed,0) <> 0 then ' (AED ' || r.money_aed || ' at stake)' else '' end
+        || E'\n\n';
+  end loop;
+
+  return out;
+end; $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_silence_watch()
@@ -6089,6 +7970,78 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ap_bill_dupe_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_prior bigint;
+begin
+  if coalesce(new.status,'') in ('void','duplicate_hold') then return new; end if;
+
+  select id into v_prior from ap_bills
+  where vendor_id = new.vendor_id
+    and coalesce(status,'') not in ('void','duplicate_hold')
+    and id is distinct from new.id
+    and total = new.total
+    and bill_date = new.bill_date
+  order by id limit 1;
+
+  if v_prior is not null then
+    new.status := 'duplicate_hold';
+
+    insert into brand_signal (signal_type, severity, subject_type, subject_id, rule_key, detail, evidence)
+    values ('fake_supplier','critical','ap_bill', coalesce(new.bill_no, new.id::text), 'duplicate_invoice_presented',
+            'Same vendor, same amount, same date as an invoice already booked. Held, not posted.',
+            jsonb_build_object('vendor_id', new.vendor_id, 'total', new.total,
+                               'bill_date', new.bill_date, 'prior_bill_id', v_prior,
+                               'presented_bill_no', new.bill_no))
+    on conflict do nothing;
+
+    insert into institutional_memory (kind, subject_type, subject_id, headline, detail, outcome,
+                                      money_aed, learned_by, confidence, evidence_ref)
+    values ('pattern','ap_bill', coalesce(new.bill_no, new.id::text),
+            'Duplicate invoice presentation held before payment.',
+            format('Vendor %s presented %s for %s on %s, matching bill id %s already on file.',
+                   new.vendor_id, coalesce(new.bill_no,'(no ref)'), new.total, new.bill_date, v_prior),
+            'held as duplicate_hold; not posted, not paid', new.total, 'finance_bookkeeper', 1.0,
+            'trg_ap_bill_dupe_guard; ap_bills id ' || v_prior);
+
+    insert into company_event (event_type, entity_type, entity_id, actor, payload)
+    values ('invoice.flagged','ap_bill', coalesce(new.bill_no, new.id::text), 'finance_bookkeeper',
+            jsonb_build_object('reason','duplicate_invoice','vendor_id', new.vendor_id,
+                               'total', new.total,'prior_bill_id', v_prior));
+
+    raise warning 'invoice held as duplicate of bill id %', v_prior;
+  end if;
+  return new;
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ap_duplicate_scan()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare n integer := 0;
+begin
+  insert into brand_signal (signal_type, severity, subject_type, subject_id, rule_key, detail, evidence)
+  select 'fake_supplier','critical','ap_bill', min(b.bill_no), 'duplicate_invoice_booked',
+         'More than one non-void bill exists for the same vendor, amount and date.',
+         jsonb_build_object('vendor_id', b.vendor_id, 'total', b.total, 'bill_date', b.bill_date,
+                            'bill_ids', array_agg(b.id order by b.id), 'count', count(*))
+  from ap_bills b
+  where coalesce(b.status,'') <> 'void'
+  group by b.vendor_id, b.total, b.bill_date
+  having count(*) > 1
+  on conflict do nothing;
+  get diagnostics n = row_count;
+  return n;
+end; $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ap_pay(p_bill bigint, p_date date DEFAULT NULL::date, p_amount numeric DEFAULT NULL::numeric, p_from_account text DEFAULT '1000'::text, p_by text DEFAULT NULL::text)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -6118,6 +8071,21 @@ begin
    where id=p_bill;
   return j;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ap_pay_block_held()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  if new.status in ('paid','partial') and coalesce(old.status,'') = 'duplicate_hold' then
+    raise exception 'bill % is held as a duplicate and cannot be paid until a person clears the hold',
+      coalesce(new.bill_no, new.id::text);
+  end if;
+  return new;
+end; $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_assign_founding_rank()
@@ -6417,6 +8385,27 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_bi_snapshot()
+ RETURNS TABLE(metric_key text, value numeric, error text)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare r record; v numeric; e text;
+begin
+  for r in select m.metric_key, m.measure_sql from metric_definition m where m.active loop
+    v := null; e := null;
+    begin
+      execute r.measure_sql into v;
+    exception when others then e := left(sqlerrm, 200);
+    end;
+    insert into metric_snapshot (metric_key, value, error) values (r.metric_key, v, e);
+    metric_key := r.metric_key; value := v; error := e;
+    return next;
+  end loop;
+end; $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_board_report()
  RETURNS void
  LANGUAGE plpgsql
@@ -6498,6 +8487,99 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_brand_scan()
+ RETURNS TABLE(rule_key text, hits integer)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  -- 1. Supplier claims to be registered but has no trade licence number.
+  insert into brand_signal (signal_type, severity, subject_type, subject_id, rule_key, detail, evidence)
+  select 'fake_supplier','high','lead', l.id::text, 'no_trade_licence',
+         'Supplier reached registration without a trade licence number.',
+         jsonb_build_object('company', l.company_name, 'status', l.registration_status)
+  from leads l
+  where l.registration_submitted_at is not null
+    and coalesce(nullif(trim(l.trade_license_no),''), null) is null
+  on conflict do nothing;
+
+  -- 2. Licence expired but still approved to receive RFQs.
+  insert into brand_signal (signal_type, severity, subject_type, subject_id, rule_key, detail, evidence)
+  select 'fake_supplier','critical','lead', l.id::text, 'licence_expired_but_approved',
+         'Approved supplier holds an expired trade licence.',
+         jsonb_build_object('company', l.company_name, 'expiry', l.license_expiry)
+  from leads l
+  where l.approval_status = 'approved' and l.license_expiry is not null and l.license_expiry < current_date
+  on conflict do nothing;
+
+  -- 3. Two different suppliers claiming the same trade licence number.
+  insert into brand_signal (signal_type, severity, subject_type, subject_id, rule_key, detail, evidence)
+  select 'fake_supplier','critical','trade_license', t.lic, 'duplicate_trade_licence',
+         'The same trade licence number is claimed by more than one supplier record.',
+         jsonb_build_object('licence', t.lic, 'count', t.n)
+  from (
+    select trim(trade_license_no) as lic, count(*) as n
+    from leads where coalesce(trim(trade_license_no),'') <> ''
+    group by 1 having count(*) > 1
+  ) t
+  on conflict do nothing;
+
+  -- 4. Supplier name impersonating QuotesDone.
+  insert into brand_signal (signal_type, severity, subject_type, subject_id, rule_key, detail, evidence)
+  select 'brand_misuse','high','lead', l.id::text, 'name_impersonates_platform',
+         'Supplier trading name contains the platform brand.',
+         jsonb_build_object('company', l.company_name)
+  from leads l
+  where l.company_name ~* '(quotes ?done|quotesdone)'
+  on conflict do nothing;
+
+  -- 5. Scam RFQ: request for money, gift cards or advance payment inside a buyer brief.
+  insert into brand_signal (signal_type, severity, subject_type, subject_id, rule_key, detail, evidence)
+  select 'scam_rfq','high','inquiry', i.id::text, 'advance_payment_solicitation',
+         'Buyer brief solicits an advance payment, gift card or wire transfer.',
+         jsonb_build_object('excerpt', left(coalesce(i.raw_input,''), 240))
+  from inquiries i
+  where coalesce(i.raw_input,'') ~* '(gift ?card|western union|wire transfer|advance fee|upfront payment to release|crypto payment)'
+  on conflict do nothing;
+
+  -- 6. Scam RFQ: attempt to move the conversation off-platform before reveal.
+  insert into brand_signal (signal_type, severity, subject_type, subject_id, rule_key, detail, evidence)
+  select 'scam_rfq','medium','inquiry', i.id::text, 'off_platform_contact',
+         'Buyer brief pushes contact off-platform before a paid reveal.',
+         jsonb_build_object('excerpt', left(coalesce(i.raw_input,''), 240))
+  from inquiries i
+  where coalesce(i.raw_input,'') ~* '(whatsapp me on|call me directly on|contact me at .*@|my number is [+0-9])'
+  on conflict do nothing;
+
+  -- 7. Fake review: a supplier with a high rating and an implausible review count for its footprint.
+  insert into brand_signal (signal_type, severity, subject_type, subject_id, rule_key, detail, evidence)
+  select 'fake_review','medium','lead', l.id::text, 'implausible_review_profile',
+         'Perfect rating with a high review count and no verifiable web presence.',
+         jsonb_build_object('company', l.company_name, 'rating', l.rating, 'reviews', l.reviews)
+  from leads l
+  where l.rating is not null and l.rating >= 4.9 and coalesce(l.reviews,0) >= 100
+    and coalesce(nullif(trim(l.website),''), null) is null
+  on conflict do nothing;
+
+  return query
+    select b.rule_key, count(*)::integer
+    from brand_signal b
+    where b.detected_at > now() - interval '5 minutes'
+    group by b.rule_key;
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_budget_available(p_dept text)
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+AS $function$
+  select greatest(coalesce(monthly_aed,0) - coalesce(spent_aed,0), 0)
+  from department_budget where dept_key = p_dept;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_budget_create(p_name text, p_year integer, p_by text DEFAULT NULL::text)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -6543,6 +8625,16 @@ begin
     perform public.fn_budget_set(p_budget, p_account, mth, amt);
   end loop;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_bump_exam_question(p_id bigint)
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+  update knowledge_exam_questions set times_asked = coalesce(times_asked,0)+1, last_asked = now() where id = p_id;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_cancel_inquiry(p_inquiry uuid, p_customer uuid, p_reason text DEFAULT NULL::text)
@@ -6730,6 +8822,117 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_check_licence_activity(p_subject_id text, p_content text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_lead leads%rowtype; v_cat text; v_rx text; v_note text;
+begin
+  begin
+    select * into v_lead from leads where id = p_subject_id::bigint;
+  exception when others then
+    return jsonb_build_object('passed', false, 'detail', 'subject_id "' || p_subject_id || '" is not a lead id, so the licence activity cannot be checked');
+  end;
+  if v_lead.id is null then
+    return jsonb_build_object('passed', false, 'detail', 'no lead ' || p_subject_id);
+  end if;
+
+  v_cat := (select unnest from unnest(v_lead.invite_trades) limit 1);
+  if v_cat is null then
+    return jsonb_build_object('passed', false, 'detail', 'supplier has declared no category, so no licence activity can be matched against it');
+  end if;
+
+  select activity_regex, note into v_rx, v_note from category_licence_activity where catalog_slug = v_cat;
+  if v_rx is null then
+    return jsonb_build_object('passed', false,
+      'detail', 'no licence-activity rule recorded for category "' || v_cat || '" - cannot verify cover, so this application must be reviewed by a person');
+  end if;
+
+  if coalesce(trim(v_lead.license_activity), '') = '' then
+    return jsonb_build_object('passed', false,
+      'detail', 'trade licence activity was never captured for this supplier - request the licence and record its activity before approving');
+  end if;
+
+  if v_lead.license_activity ~ v_rx then
+    return jsonb_build_object('passed', true,
+      'detail', 'licence activity "' || v_lead.license_activity || '" covers ' || v_cat || coalesce('. ' || v_note, ''));
+  end if;
+
+  return jsonb_build_object('passed', false,
+    'detail', 'MISMATCH: licence activity "' || v_lead.license_activity || '" does not cover the category applied for ("' || v_cat || '"). Request a licence whose activity includes that trade, or an amendment adding it.');
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_check_licence_expiry(p_subject_id text, p_content text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_exp date; v_no text;
+begin
+  begin
+    select license_expiry, trade_license_no into v_exp, v_no from leads where id = p_subject_id::bigint;
+  exception when others then
+    return jsonb_build_object('passed', false, 'detail', 'subject_id is not a lead id');
+  end;
+  if coalesce(trim(v_no),'') = '' then
+    return jsonb_build_object('passed', false, 'detail', 'no trade licence number recorded');
+  end if;
+  if v_exp is null then
+    return jsonb_build_object('passed', false, 'detail', 'licence expiry date not recorded');
+  end if;
+  if v_exp < current_date then
+    return jsonb_build_object('passed', false, 'detail', 'trade licence expired on ' || v_exp);
+  end if;
+  return jsonb_build_object('passed', true, 'detail', 'licence ' || v_no || ' valid to ' || v_exp);
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_check_spend(p_dept text, p_amount numeric, p_agent text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_avail numeric; v_month numeric; v_limit numeric; v_route text; v_afford boolean;
+begin
+  select coalesce(monthly_aed,0), fn_budget_available(p_dept) into v_month, v_avail
+  from department_budget where dept_key = p_dept;
+
+  if v_month is null then
+    return jsonb_build_object('ok', false, 'reason',
+      'no budget is recorded for department "' || p_dept || '", so no spend can be authorised against it',
+      'route_to','finance');
+  end if;
+
+  v_afford := coalesce(p_amount,0) <= v_avail;
+
+  select max(threshold_aed) into v_limit
+  from employee_authority where agent_key = p_agent;
+
+  v_route := case
+    when coalesce(p_amount,0) >  10000 then 'founder'
+    when coalesce(p_amount,0) >= 1000  then 'brief'
+    else coalesce(p_agent,'department head') end;
+
+  return jsonb_build_object(
+    'ok', v_afford and (v_limit is null or coalesce(p_amount,0) <= v_limit),
+    'affordable', v_afford,
+    'requested_aed', coalesce(p_amount,0),
+    'available_aed', v_avail,
+    'monthly_aed', v_month,
+    'agent_limit_aed', v_limit,
+    'route_to', v_route,
+    'reason', case
+      when not v_afford then format('Requested AED %s exceeds the AED %s remaining in the %s budget this period. Reduce the scope, defer to next period, or ask Finance to reallocate.', coalesce(p_amount,0), v_avail, p_dept)
+      when v_limit is not null and coalesce(p_amount,0) > v_limit then format('Affordable, but AED %s is above %s''s personal limit of AED %s. Route to %s.', coalesce(p_amount,0), p_agent, v_limit, v_route)
+      else format('Within budget: AED %s of AED %s available. Approver: %s.', coalesce(p_amount,0), v_avail, v_route) end);
+end; $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_chief_of_staff()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -6915,6 +9118,47 @@ begin
   end if;
   return jsonb_build_object('synced', n);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_company_situation()
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v text;
+begin
+  select concat_ws(E'\n',
+    'COMPANY SITUATION as at ' || to_char(now(), 'YYYY-MM-DD HH24:MI') || ' UTC. Computed from live rows and shared by every department - do not re-derive it.',
+    '',
+    'MARKETPLACE STATE',
+    (select string_agg('- ' || label || ': ' || coalesce(value::text,'unmeasured')
+              || case when target is not null then ' (target ' || target || ', ' || state || ')' else '' end, E'\n' order by domain, label)
+     from v_bi_scorecard),
+    '',
+    'CATEGORY COVERAGE',
+    (select '- ' || count(*) filter (where coverage='COMPLIANT') || ' of ' || count(*)
+            || ' catalogue categories have an employee at the full 14-module standard; '
+            || count(*) filter (where coverage='NO_AGENT') || ' have no employee at all.'
+     from v_category_coverage),
+    '',
+    'RESOURCE PRESSURE',
+    (select coalesce(string_agg('- ' || resource || ': ' || state || ' (' || coalesce(used_pct::text,'0') || '% of ' || capacity || ' ' || unit || ')', E'\n' order by resource)
+            filter (where state <> 'OK'), '- All pools within limits.')
+     from v_resource_pressure),
+    '',
+    'OPEN RISKS AND SELF-DETECTED DEFECTS',
+    (select '- ' || count(*) || ' proposals open from the self-evolution scan; '
+            || (select count(*) from risk_register where coalesce(status,'open') = 'open') || ' open risks on the register.'
+     from evolution_proposal where status = 'proposed'),
+    '',
+    'ECONOMIC REALITY',
+    (select '- ' || state || '. Reveal rate ' || (reveal_rate*100) || '%, ' || leads_total || ' leads in pipeline, '
+            || verified_suppliers || ' verified, ' || inquiries_total || ' inquiries ever, ' || reveals_total || ' reveals ever.'
+     from v_unit_economics)
+  ) into v;
+  return v;
+end; $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_company_state()
@@ -7210,6 +9454,54 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_decision_gate()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+declare v_was text; v_spend jsonb; v_reason text;
+begin
+  v_was := case when tg_op = 'UPDATE' then coalesce(old.status,'') else '' end;
+
+  if new.status in ('approved','executed') and v_was not in ('approved','executed') then
+    v_reason := null;
+
+    if coalesce(length(new.impact_business),0)  < 20
+    or coalesce(length(new.impact_financial),0) < 20
+    or coalesce(length(new.impact_legal),0)     < 10
+    or coalesce(length(new.impact_customer),0)  < 20
+    or jsonb_array_length(coalesce(new.evidence,'[]'::jsonb)) = 0 then
+      v_reason := 'Impact analysis incomplete: business, financial, legal and customer impact plus at least one evidence reference are all required before approval.';
+    end if;
+
+    if v_reason is null and coalesce(new.financial_aed,0) > 0 then
+      v_spend := public.fn_check_spend(new.dept_key, new.financial_aed, new.approved_by);
+      if not coalesce((v_spend->>'affordable')::boolean, false) then
+        v_reason := v_spend->>'reason';
+      elsif coalesce(new.financial_aed,0) > 10000 and coalesce(new.approved_by,'') not in ('founder','ceo') then
+        v_reason := format('AED %s is above the AED 10,000 founder threshold and approved_by is "%s".', new.financial_aed, coalesce(new.approved_by,'(none)'));
+      elsif coalesce(new.financial_aed,0) >= 1000 and coalesce(new.approved_by,'') not in ('brief','founder','ceo') then
+        v_reason := format('AED %s needs Chief of Staff approval and approved_by is "%s".', new.financial_aed, coalesce(new.approved_by,'(none)'));
+      end if;
+    end if;
+
+    if v_reason is not null then
+      -- Refuse, and leave the refusal on the row rather than aborting the transaction
+      -- and losing every trace of it.
+      new.status          := 'blocked_by_gate';
+      new.gate_verdict    := 'refused';
+      new.gate_reason     := v_reason;
+      new.gate_checked_at := now();
+      raise warning 'decision refused by gate: %', v_reason;
+    else
+      new.gate_verdict    := 'passed';
+      new.gate_reason     := null;
+      new.gate_checked_at := now();
+    end if;
+  end if;
+  return new;
+end; $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_dept_authority(p_dept text, p_action_class text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -7255,6 +9547,32 @@ begin
     where (p_dept is null or l.department = p_dept) and l.tsv @@ q_or
     order by ts_rank(l.tsv, q_or) desc, l.id
     limit greatest(1, least(coalesce(p_limit,5),20));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dispatch_agent_knowledge_gaps(p_stale_days integer DEFAULT 14, p_thin_min integer DEFAULT 4)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare a jsonb; g jsonb; opened int := 0; resolved_before int; resolved_after int; total_gap int := 0;
+begin
+  g := fn_knowledge_gaps(p_stale_days, p_thin_min);
+  select count(*) into resolved_before from agent_actions where kind='knowledge_task' and detail->>'signal' like 'agent_knowledge:%' and status in ('pending','needs_review');
+  for a in select * from jsonb_array_elements(g->'agents') loop
+    declare v_gap boolean := (a->>'status') in ('stale','thin'); v_slug text := a->>'slug';
+    begin
+      if v_gap then total_gap := total_gap + 1; end if;
+      perform kn_task('agent_knowledge:'||v_slug, v_gap, case when (a->>'status')='thin' then 'low' else 'medium' end,
+        'Refresh knowledge: '||coalesce(a->>'name',v_slug),
+        coalesce(a->>'name',v_slug)||' has '||coalesce(a->>'items','0')||' knowledge item(s), last refreshed '||
+        coalesce((a->>'days_stale')||' days ago','never')||' (status: '||(a->>'status')||'). Regenerate its field brief so it advises with current expertise. Auto-closes once refreshed.');
+    end;
+  end loop;
+  select count(*) into resolved_after from agent_actions where kind='knowledge_task' and detail->>'signal' like 'agent_knowledge:%' and status in ('pending','needs_review');
+  return jsonb_build_object('ran_at', now(), 'gaps_found', total_gap, 'open_tasks', resolved_after,
+    'summary', g->'summary');
 end $function$
 
 
@@ -7600,6 +9918,171 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_emit_budget_exceeded(p_dept text, p_amount numeric, p_requested_by text, p_purpose text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v jsonb;
+begin
+  v := fn_check_spend(p_dept, p_amount, p_requested_by);
+  if not coalesce((v->>'affordable')::boolean, true) then
+    insert into company_event (event_type, entity_type, entity_id, actor, payload)
+    values ('budget.exceeded','department', p_dept, coalesce(p_requested_by,'system'),
+            jsonb_build_object('requested_aed', p_amount, 'available_aed', v->>'available_aed',
+                               'purpose', p_purpose, 'reason', v->>'reason'));
+  end if;
+  return v;
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_emit_event()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_type text; v_entity text; v_id text; v_actor text;
+begin
+  v_entity := tg_argv[0];
+  v_type   := tg_argv[1];
+  begin v_id := (to_jsonb(new)->>'id'); exception when others then v_id := null; end;
+  begin v_actor := coalesce(to_jsonb(new)->>'created_by', to_jsonb(new)->>'author_agent', to_jsonb(new)->>'actor', 'system'); exception when others then v_actor := 'system'; end;
+  insert into company_event (event_type, entity_type, entity_id, actor, payload)
+  values (v_type, v_entity, v_id, v_actor, to_jsonb(new));
+  return new;
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_emit_invoice_received()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  insert into company_event (event_type, entity_type, entity_id, actor, payload)
+  values ('invoice.received','ap_bill', new.bill_no, coalesce(new.created_by,'system'),
+          jsonb_build_object('vendor_id', new.vendor_id, 'total', new.total,
+                             'bill_date', new.bill_date, 'due_date', new.due_date));
+  return new;
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_emit_metric_alerts()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare n integer := 0; r record;
+begin
+  for r in
+    select metric_key, label, value, target, owner_dept, state from v_bi_scorecard
+    where state = 'OFF_TARGET'
+  loop
+    if not exists (
+      select 1 from company_event e
+      where e.event_type = 'kpi.missed' and e.entity_id = r.metric_key
+        and e.occurred_at > date_trunc('day', now())
+    ) then
+      insert into company_event (event_type, entity_type, entity_id, actor, payload)
+      values ('kpi.missed','metric', r.metric_key, coalesce(r.owner_dept,'exec'),
+              jsonb_build_object('label', r.label, 'value', r.value, 'target', r.target, 'state', r.state));
+      n := n + 1;
+    end if;
+  end loop;
+
+  -- One goal.at_risk per DEPARTMENT per day, naming the goals and the failing metrics.
+  for r in
+    select s.owner_dept,
+           array_agg(distinct s.label) as failing_metrics,
+           (select array_agg(g.key) from company_goals g where g.active and g.owner_dept = s.owner_dept) as goals
+    from v_bi_scorecard s
+    where s.state = 'OFF_TARGET' and s.owner_dept is not null
+    group by s.owner_dept
+  loop
+    if r.goals is not null and not exists (
+      select 1 from company_event e
+      where e.event_type = 'goal.at_risk' and e.entity_id = r.owner_dept
+        and e.occurred_at > date_trunc('day', now())
+    ) then
+      insert into company_event (event_type, entity_type, entity_id, actor, payload)
+      values ('goal.at_risk','department', r.owner_dept, r.owner_dept,
+              jsonb_build_object('failing_metrics', r.failing_metrics, 'goals_at_risk', r.goals));
+      n := n + 1;
+    end if;
+  end loop;
+
+  return n;
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_emit_supplier_applied()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  if new.registration_submitted_at is not null
+     and coalesce(old.registration_submitted_at, '-infinity'::timestamptz) is distinct from new.registration_submitted_at then
+    insert into company_event (event_type, entity_type, entity_id, actor, payload)
+    values ('supplier.applied','lead', new.id::text, coalesce(new.claimed_by,'supplier'),
+            jsonb_build_object('company', new.company_name, 'emirate', new.emirate,
+                               'trade_licence', new.trade_license_no, 'trades', new.invite_trades));
+  end if;
+  return new;
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_emit_test_failed()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  if new.status = 'error' and coalesce(old.status,'') <> 'error' then
+    if not exists (
+      select 1 from company_event e
+      where e.event_type = 'test.failed' and e.entity_id = new.agent
+        and e.occurred_at > date_trunc('day', now())
+    ) then
+      insert into company_event (event_type, entity_type, entity_id, actor, payload)
+      values ('test.failed','scheduled_run', new.agent, 'system',
+              jsonb_build_object('run_id', new.id, 'note', left(coalesce(new.note,''), 500),
+                                 'started_at', new.started_at));
+    end if;
+  end if;
+  return new;
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_emit_test_failed_ins()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  if new.status = 'error' then
+    if not exists (
+      select 1 from company_event e
+      where e.event_type = 'test.failed' and e.entity_id = new.agent
+        and e.occurred_at > date_trunc('day', now())
+    ) then
+      insert into company_event (event_type, entity_type, entity_id, actor, payload)
+      values ('test.failed','scheduled_run', new.agent, 'system',
+              jsonb_build_object('run_id', new.id, 'note', left(coalesce(new.note,''), 500),
+                                 'started_at', new.started_at));
+    end if;
+  end if;
+  return new;
+end; $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_enable_dropbox_sync()
  RETURNS text
  LANGUAGE plpgsql
@@ -7924,6 +10407,124 @@ begin
     'clarification_efficiency', null, 'hallucination_rate_pct', null, 'customer_satisfaction', null,
     'samples', jsonb_build_object('inquiries',intake_total,'quotes',q_total,'agent_actions',esc_total,'decisions',dec_total));
   return k;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_event_dispatch(p_lookback_minutes integer DEFAULT 1440)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_delivered integer := 0; v_tasks integer := 0; r record; v_task bigint; v_dept text;
+begin
+  for r in
+    select e.id as event_id, e.event_type, e.entity_type, e.entity_id, e.actor, e.occurred_at, s.agent_key, s.reason
+    from company_event e
+    join event_subscription s on s.active and s.event_type = e.event_type
+    left join event_delivery d on d.event_id = e.id and d.agent_key = s.agent_key
+    where d.id is null
+      and e.occurred_at > now() - make_interval(mins => greatest(p_lookback_minutes, 1))
+      and s.agent_key <> coalesce(e.actor, '')          -- do not notify the actor of their own event
+    order by e.id
+  loop
+    select department into v_dept from org_agents where agent_key = r.agent_key;
+    v_task := null;
+
+    -- A subscription that only files a notice is theatre. Give the subscriber real work.
+    if v_dept is not null then
+      insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, decided_by)
+      values (v_dept,
+              left(r.event_type || ' on ' || r.entity_type || ' ' || coalesce(r.entity_id,''), 200),
+              format('Event %s (%s %s) raised by %s at %s. You subscribe to this because: %s. Act on it or close it with a reason.',
+                     r.event_type, r.entity_type, coalesce(r.entity_id,'-'), coalesce(r.actor,'system'), r.occurred_at, coalesce(r.reason,'subscription')),
+              'assigned', 'autonomous', false, 'analysis', 'fn_event_dispatch')
+      returning id into v_task;
+      v_tasks := v_tasks + 1;
+    end if;
+
+    insert into event_delivery (event_id, agent_key, event_type, task_id)
+    values (r.event_id, r.agent_key, r.event_type, v_task)
+    on conflict do nothing;
+    v_delivered := v_delivered + 1;
+  end loop;
+
+  return jsonb_build_object('delivered', v_delivered, 'tasks_created', v_tasks,
+                            'lookback_minutes', p_lookback_minutes);
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_evolution_scan()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  insert into evolution_proposal (trigger_kind, subject, observation, evidence, proposal, change_class)
+  select 'repeated_failure', r.agent,
+         format('%s failed %s times in the last 7 days.', r.agent, r.fails),
+         jsonb_build_object('failures_7d', r.fails),
+         format('Root-cause %s rather than retry it. If the failure is external, add a documented fallback to continuity_plan; if it is a parsing or contract failure, fix the contract and add a regression test.', r.agent),
+         'code'
+  from (select agent, count(*) fails from agent_runs
+        where status = 'error' and started_at > now() - interval '7 days'
+        group by agent having count(*) >= 3) r
+  on conflict do nothing;
+
+  insert into evolution_proposal (trigger_kind, subject, observation, evidence, proposal, change_class)
+  select 'metric_off_target', s.metric_key,
+         format('%s is %s against a target of %s.', s.label, coalesce(s.value::text,'unmeasured'), s.target),
+         jsonb_build_object('value', s.value, 'target', s.target, 'owner', s.owner_dept),
+         format('%s owns this. Either the target is wrong and should be restated, or the operating approach behind it is wrong and should change. Do not carry it as-is for another period.', coalesce(s.owner_dept,'exec')),
+         'process'
+  from v_bi_scorecard s where s.state = 'OFF_TARGET'
+  on conflict do nothing;
+
+  insert into evolution_proposal (trigger_kind, subject, observation, evidence, proposal, change_class)
+  select 'cost_anomaly', c.fn,
+         format('%s made %s model calls in 30 days that the cost governor flagged as avoidable.', c.fn, c.n),
+         jsonb_build_object('avoidable_calls', c.n, 'cost_aed', c.cost),
+         format('Replace the flagged path in %s with a rule, a lookup or SQL, or drop it to the small tier.', c.fn),
+         'model_routing'
+  from (select fn, count(*) n, round(sum(cost_aed),2) cost from ai_cost_log
+        where could_be_cheaper and occurred_at > now() - interval '30 days'
+        group by fn having count(*) >= 5) c
+  on conflict do nothing;
+
+  return (select count(*) from evolution_proposal where status='proposed');
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_exam_pick_agent()
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+  select k.agent_key
+  from (select distinct agent_key from agent_knowledge where agent_key <> '_global') k
+  left join (select agent_key, max(created_at) last_exam from knowledge_exam_results group by agent_key) e
+    on e.agent_key = k.agent_key
+  order by e.last_exam asc nulls first, k.agent_key
+  limit 1;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_exam_revert(p_agent_key text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare n int;
+begin
+  delete from agent_knowledge
+    where topic like 'exam:%' and (p_agent_key is null or agent_key = p_agent_key);
+  get diagnostics n = row_count;
+  update knowledge_exam_results set filled = false, knowledge_id = null
+    where filled and (p_agent_key is null or agent_key = p_agent_key);
+  return jsonb_build_object('reverted', n, 'agent', coalesce(p_agent_key,'(all)'));
 end $function$
 
 
@@ -9052,6 +11653,34 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_idea_rescore()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+begin
+  new.score := public.fn_idea_score(new.expected_value_aed, new.effort, new.confidence);
+  new.updated_at := now();
+  return new;
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_idea_score(p_value numeric, p_effort text, p_confidence numeric)
+ RETURNS numeric
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select round(
+    coalesce(p_value,0)
+    * coalesce(p_confidence,0.5)
+    / case lower(coalesce(p_effort,'m'))
+        when 's' then 1 when 'small' then 1
+        when 'm' then 3 when 'medium' then 3
+        when 'l' then 8 when 'large' then 8
+        when 'xl' then 20 else 3 end
+  , 2);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_identify_contact(p_phone text)
  RETURNS json
  LANGUAGE plpgsql
@@ -9425,7 +12054,7 @@ CREATE OR REPLACE FUNCTION public.fn_knowledge_curator()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare k record; v_health numeric; n_task int; n_appr int:=0; rec record; rc record;
+declare k record; v_health numeric; n_task int; n_appr int:=0; rec record; rc record; v_gaps jsonb;
 begin
   select * into k from knowledge_kpis;
   select * into rc from reg_coverage;
@@ -9444,6 +12073,9 @@ begin
     ||coalesce((select string_agg(authority||' — '||code_name, '; ') from (select authority,code_name from reg_catalog where copyright='free' and status<>'indexed' order by priority, authority limit 10) g),'none')
     ||'. Many are portal/viewer-gated or scanned — supply official full PDFs (or a licensed copy) to index them.');
 
+  -- NEW: per-agent knowledge staleness → one auto-closing task per lagging agent.
+  v_gaps := fn_dispatch_agent_knowledge_gaps();
+
   for rec in select id::text as rid, title, authority from regulations where approved_at is null loop
     if not exists (select 1 from agent_actions where kind='knowledge_approval' and detail->>'ref'=rec.rid and detail->>'kind'='regulation' and status in ('pending','needs_review')) then
       insert into agent_actions(agent,kind,status,risk,title,recommendation,detail,target_table,target_id)
@@ -9456,8 +12088,83 @@ begin
   end loop;
 
   select count(*) into n_task from agent_actions where agent='knowledge_curator' and status in ('pending','needs_review');
-  return jsonb_build_object('ran_at',now(),'health',v_health,'kpis',to_jsonb(k),'reg_coverage',to_jsonb(rc),'open_items',n_task,'new_approvals',n_appr);
+  return jsonb_build_object('ran_at',now(),'health',v_health,'kpis',to_jsonb(k),'reg_coverage',to_jsonb(rc),'open_items',n_task,'new_approvals',n_appr,'agent_gaps',v_gaps->'summary');
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_exam_summary()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+  with recent as (
+    select * from knowledge_exam_results where created_at > now() - interval '30 days'
+  ),
+  per as (
+    select agent_key,
+      count(*) as examined,
+      count(*) filter (where verdict='correct') as correct,
+      count(*) filter (where verdict in ('wrong','partial','not_covered')) as gaps,
+      count(*) filter (where filled) as filled,
+      max(created_at) as last_exam
+    from recent group by agent_key
+  )
+  select jsonb_build_object(
+    'overall', jsonb_build_object(
+      'question_bank', (select count(*) from knowledge_exam_questions),
+      'exams_30d', (select count(*) from recent),
+      'agents_examined', (select count(*) from per),
+      'gaps_filled_30d', (select count(*) from recent where filled),
+      'avg_score', (select round(100.0*count(*) filter (where verdict='correct')/nullif(count(*),0),1) from recent)
+    ),
+    'agents', coalesce((select jsonb_agg(jsonb_build_object(
+        'agent_key', agent_key, 'examined', examined, 'correct', correct,
+        'score_pct', round(100.0*correct/nullif(examined,0),1),
+        'gaps', gaps, 'filled', filled, 'last_exam', last_exam
+      ) order by round(100.0*correct/nullif(examined,0),1) asc nulls first) from per), '[]'::jsonb)
+  );
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_gaps(p_stale_days integer DEFAULT 14, p_thin_min integer DEFAULT 4)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+  with base as (
+    select ca.slug, ca.name, ca.emoji,
+      (select count(*) from agent_knowledge k where k.agent_key = ca.slug or k.agent_key = 'cat:'||ca.slug) as items,
+      (select max(updated_at) from agent_knowledge k where k.agent_key = ca.slug or k.agent_key = 'cat:'||ca.slug) as last_updated
+    from category_agents ca where coalesce(ca.active,true)
+  ),
+  scored as (
+    select slug, name, emoji, items, last_updated,
+      case when last_updated is null then null else floor(extract(epoch from (now()-last_updated))/86400)::int end as days_stale,
+      case when items = 0 then 'missing'
+           when last_updated < now() - (p_stale_days||' days')::interval then 'stale'
+           when items < p_thin_min then 'thin'
+           else 'ok' end as status
+    from base
+  )
+  select jsonb_build_object(
+    'thresholds', jsonb_build_object('stale_days', p_stale_days, 'thin_min', p_thin_min),
+    'summary', jsonb_build_object(
+      'total', (select count(*) from scored),
+      'ok', (select count(*) from scored where status='ok'),
+      'stale', (select count(*) from scored where status='stale'),
+      'thin', (select count(*) from scored where status='thin'),
+      'missing', (select count(*) from scored where status='missing'),
+      'coverage_pct', round(100.0 * (select count(*) from scored where status='ok') / nullif((select count(*) from scored),0), 1)
+    ),
+    'agents', coalesce((select jsonb_agg(jsonb_build_object(
+        'slug', slug, 'name', name, 'emoji', emoji, 'items', items,
+        'last_updated', last_updated, 'days_stale', days_stale, 'status', status
+      ) order by case status when 'stale' then 0 when 'thin' then 1 when 'missing' then 2 else 3 end, days_stale desc nulls last, slug)
+      from scored), '[]'::jsonb)
+  );
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_kv_block(obj jsonb)
@@ -9533,6 +12240,34 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_llm_cache_get(p_key text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v text;
+begin
+  update llm_cache set hits = hits + 1, last_hit_at = now()
+  where cache_key = p_key and expires_at > now()
+  returning response into v;
+  return v;
+end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_llm_cache_put(p_key text, p_fn text, p_task_class text, p_model text, p_response text, p_ttl_minutes integer DEFAULT 1440)
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  insert into llm_cache (cache_key, fn, task_class, model_used, response, expires_at)
+  values (p_key, p_fn, p_task_class, p_model, p_response, now() + make_interval(mins => greatest(p_ttl_minutes,1)))
+  on conflict (cache_key) do update set response = excluded.response, model_used = excluded.model_used,
+    expires_at = excluded.expires_at, created_at = now();
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_llm_drift_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -9588,6 +12323,50 @@ begin
   return jsonb_build_object('checked_at', now(), 'calls_24h', v_recent,
                             'findings', jsonb_array_length(v), 'detail', v);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_llm_log(p_fn text, p_dept text, p_agent text, p_task_class text, p_model text, p_because text, p_tier text, p_prompt_tokens integer, p_output_tokens integer, p_cached boolean, p_cache_key text, p_latency_ms integer, p_ok boolean)
+ RETURNS numeric
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_cost numeric := 0; v_in numeric; v_out numeric; v_cheaper boolean := false; v_reason text; v_alt text;
+begin
+  if not coalesce(p_cached,false) then
+    select in_aed_per_mtok, out_aed_per_mtok into v_in, v_out from model_rate where model = p_model;
+    if v_in is not null then
+      v_cost := round( coalesce(p_prompt_tokens,0)/1000000.0 * v_in
+                     + coalesce(p_output_tokens,0)/1000000.0 * v_out, 6);
+    end if;
+  end if;
+
+  select deterministic_alternative into v_alt from model_policy where task_class = p_task_class;
+  if v_alt is not null and v_alt <> '' then
+    v_cheaper := true; v_reason := 'A deterministic path exists for this task class: ' || v_alt;
+  elsif not coalesce(p_cached,false) and exists (
+      select 1 from model_rate used join model_rate alt on alt.model = 'anthropic/claude-sonnet-5'
+      where used.model = p_model and used.out_aed_per_mtok > alt.out_aed_per_mtok) then
+    v_cheaper := true; v_reason := 'claude-sonnet-5 is cheaper than ' || p_model || ' for the same output.';
+  elsif not coalesce(p_cached,false) and coalesce(p_output_tokens,0) < 200
+      and exists (select 1 from model_policy mp where mp.task_class = p_task_class and mp.tier = 'small') then
+    v_cheaper := true; v_reason := 'Output under 200 tokens on a small-tier class - a cache entry or a rule may serve this without a model call.';
+  end if;
+
+  insert into ai_cost_log (fn, dept_key, agent_key, task_class, model_used, model_selected_because, tier,
+                           prompt_tokens, output_tokens, cached, cache_hit_key, latency_ms, cost_aed,
+                           could_be_cheaper, cheaper_reason, ok)
+  values (p_fn, p_dept, p_agent, p_task_class, p_model, p_because, p_tier,
+          p_prompt_tokens, p_output_tokens, coalesce(p_cached,false), p_cache_key, p_latency_ms, v_cost,
+          v_cheaper, v_reason, coalesce(p_ok,true));
+
+  if p_dept is not null and v_cost > 0 then
+    update department_budget set spent_aed = coalesce(spent_aed,0) + v_cost, updated_at = now()
+    where dept_key = p_dept;
+  end if;
+
+  return v_cost;
+end; $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_ai()
@@ -9653,6 +12432,26 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_blog_publish(p_id uuid, p_published boolean, p_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare r public.blog_posts%rowtype;
+begin
+  update public.blog_posts set published = p_published,
+    published_at = case when p_published and published_at is null then now() else published_at end,
+    updated_at = now()
+  where id = p_id returning * into r;
+  if r.id is null then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  begin insert into public.os_audit_log(actor, action, entity, entity_id, detail)
+    values (coalesce(nullif(btrim(p_by),''),'operator'), case when p_published then 'blog_publish' else 'blog_unpublish' end, 'blog_posts', p_id::text, jsonb_build_object('title', r.title));
+  exception when others then null; end;
+  return jsonb_build_object('ok', true, 'published', r.published);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_library_search(p_query text, p_limit integer DEFAULT 5)
  RETURNS TABLE(id bigint, category text, title text, content text, rank real)
  LANGUAGE plpgsql
@@ -9676,6 +12475,35 @@ begin
     order by ts_rank(l.tsv, q_or) desc, l.id
     limit greatest(1, least(coalesce(p_limit,5), 20));
 end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_studio()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+  select jsonb_build_object(
+    'kpis', (select to_jsonb(k) from marketing_kpis k limit 1),
+    'trend', coalesce((select jsonb_agg(jsonb_build_object(
+        'd', to_char(s.snapshot_date,'Mon DD'),
+        'leads', nullif(s.kpis->>'leads_total','')::numeric,
+        'blog', nullif(s.kpis->>'blog_published','')::numeric,
+        'social', nullif(s.kpis->>'social_published','')::numeric,
+        'seo', nullif(s.kpis->>'seo_pages','')::numeric
+      ) order by s.snapshot_date) from marketing_snapshots s),'[]'::jsonb),
+    'social', coalesce((select jsonb_agg(jsonb_build_object(
+        'id', p.id, 'image_url', p.image_url,
+        'text', coalesce(p.content->>'all', p.content->>'text', left(p.content::text,400)),
+        'channels', to_jsonb(p.channels), 'status', p.status, 'mode', p.mode, 'error', p.error, 'created_at', p.created_at
+      ) order by p.created_at desc) from social_posts p),'[]'::jsonb),
+    'blog', coalesce((select jsonb_agg(jsonb_build_object(
+        'id', b.id, 'title', b.title, 'slug', b.slug, 'category', b.category, 'excerpt', b.excerpt,
+        'published', b.published, 'published_at', b.published_at, 'body_html', left(b.body_html, 24000)
+      ) order by b.updated_at desc) from blog_posts b),'[]'::jsonb),
+    'review', (select coalesce(fn_review_pending(),'[]'::jsonb))
+  );
 $function$
 
 
@@ -11387,6 +14215,56 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_pick_reviewer(p_dept_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_head text; v_ok boolean; v_delegate text; v_basis text;
+begin
+  select lead_agent into v_head from org_departments where dept_key = p_dept_key;
+
+  select (a.active and a.available and (a.unavailable_until is null or a.unavailable_until < current_date))
+    into v_ok from org_agents a where a.agent_key = v_head;
+
+  if v_head is null then
+    return jsonb_build_object('reviewer', null, 'available', false,
+      'basis', 'no lead_agent recorded for department ' || p_dept_key);
+  end if;
+
+  if coalesce(v_ok, false) then
+    return jsonb_build_object('reviewer', v_head, 'available', true, 'delegated_from', null, 'basis', 'department head');
+  end if;
+
+  -- Explicit delegation first.
+  select d.delegate_to, d.basis into v_delegate, v_basis
+  from delegation_rule d
+  join org_agents a on a.agent_key = d.delegate_to
+  where d.active and d.dept_key = p_dept_key and d.when_agent = v_head
+    and a.active and a.available and (a.unavailable_until is null or a.unavailable_until < current_date)
+  order by d.rank limit 1;
+
+  -- Otherwise the most senior available employee in the same department.
+  if v_delegate is null then
+    select a.agent_key, 'most senior available employee in ' || p_dept_key
+      into v_delegate, v_basis
+    from org_agents a
+    where a.department = p_dept_key and a.agent_key <> v_head
+      and a.active and a.available and (a.unavailable_until is null or a.unavailable_until < current_date)
+    order by fn_seniority_rank(a.seniority), a.agent_key limit 1;
+  end if;
+
+  if v_delegate is null then
+    return jsonb_build_object('reviewer', null, 'available', false, 'delegated_from', v_head,
+      'basis', 'department head unavailable and no delegate available - escalate');
+  end if;
+
+  return jsonb_build_object('reviewer', v_delegate, 'available', true,
+    'delegated_from', v_head, 'basis', coalesce(v_basis, 'delegation'));
+end; $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_po_approve(p_po bigint, p_by text DEFAULT NULL::text)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -12430,6 +15308,46 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_regulation_propagate()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_cat text; v_flagged integer := 0; v_changed boolean;
+begin
+  v_changed := (tg_op = 'INSERT')
+    or (coalesce(old.body,'')             is distinct from coalesce(new.body,''))
+    or (coalesce(old.key_requirements,'{}'::jsonb) is distinct from coalesce(new.key_requirements,'{}'::jsonb))
+    or (coalesce(old.summary,'')          is distinct from coalesce(new.summary,''))
+    or (coalesce(old.effective_date, 'epoch'::date) is distinct from coalesce(new.effective_date, 'epoch'::date))
+    or (coalesce(old.status,'')           is distinct from coalesce(new.status,''))
+    or (coalesce(old.categories, '{}')    is distinct from coalesce(new.categories, '{}'));
+
+  if not v_changed then return new; end if;
+
+  -- Flag every affected knowledge base for review. This is what makes the
+  -- change reach the specialists' knowledge rather than sitting in a table.
+  if new.categories is not null then
+    foreach v_cat in array new.categories loop
+      update agent_knowledge
+        set review_due = current_date
+      where agent_key = 'cat:' || v_cat;
+      get diagnostics v_flagged = row_count;
+
+      insert into company_event (event_type, entity_type, entity_id, actor, payload)
+      values ('regulation.changed','category', v_cat, coalesce(new.approved_by,'compliance_mgr'),
+              jsonb_build_object('authority', new.authority, 'title', new.title,
+                                 'doc_ref', new.doc_ref, 'effective_date', new.effective_date,
+                                 'source_url', new.source_url, 'knowledge_rows_flagged', v_flagged,
+                                 'regulation_id', new.id));
+    end loop;
+  end if;
+
+  return new;
+end; $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_report_flag(p_title text, p_risk text, p_rec text)
  RETURNS void
  LANGUAGE plpgsql
@@ -12776,6 +15694,159 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_review_submit(p_subject_type text, p_subject_id text, p_dept_key text, p_author text, p_content text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_crit        jsonb;
+  v_rule        jsonb;
+  v_violations  jsonb := '[]'::jsonb;
+  v_unenforced  jsonb := '[]'::jsonb;
+  v_critical    int := 0;
+  v_major       int := 0;
+  v_pick        jsonb;
+  v_head        text;
+  v_deleg_from  text;
+  v_deleg_basis text;
+  v_cos         text := 'brief';
+  v_decision    text;
+  v_reason      text;
+  v_conf        numeric;
+  v_first_rule  text;
+  v_res         jsonb;
+begin
+  -- Who is actually able to approve for this department right now.
+  v_pick        := fn_pick_reviewer(p_dept_key);
+  v_head        := v_pick->>'reviewer';
+  v_deleg_from  := v_pick->>'delegated_from';
+  v_deleg_basis := v_pick->>'basis';
+
+  insert into review_chain (subject_type, subject_id, dept_key, author_agent, stage, decision, reason, confidence)
+  values (p_subject_type, p_subject_id, p_dept_key, p_author, 'drafted', null,
+          'Draft submitted for department review', null);
+
+  -- No available approver at all: hold and escalate rather than forging an approval.
+  if v_head is null then
+    insert into review_chain (subject_type, subject_id, dept_key, author_agent, reviewer_agent, stage,
+                              decision, reason, confidence, delegated_from, delegation_basis)
+    values (p_subject_type, p_subject_id, p_dept_key, p_author, null, 'dept_review',
+            'escalate', 'No available approver in ' || p_dept_key || ': ' || coalesce(v_deleg_basis,''), 1.0,
+            v_deleg_from, v_deleg_basis);
+    return jsonb_build_object('subject_id', p_subject_id, 'outcome', 'escalate',
+                              'stopped_at', 'dept_review', 'violations', v_violations,
+                              'reason', coalesce(v_deleg_basis,''));
+  end if;
+
+  select criteria into v_crit from quality_standard where work_type = p_subject_type;
+
+  if v_crit is not null then
+    for v_rule in select * from jsonb_array_elements(v_crit) loop
+
+      if (v_rule ? 'check_fn') then
+        -- Data-driven check. A check that cannot run is a failure, never a pass.
+        begin
+          execute format('select %I($1,$2)', v_rule->>'check_fn')
+            into v_res using p_subject_id, p_content;
+        exception when others then
+          v_res := jsonb_build_object('passed', false, 'detail', 'check ' || (v_rule->>'check_fn') || ' errored: ' || sqlerrm);
+        end;
+        if not coalesce((v_res->>'passed')::boolean, false) then
+          v_violations := v_violations || jsonb_build_object(
+            'rule', v_rule->>'rule', 'severity', v_rule->>'severity',
+            'why', v_rule->>'why', 'detail', v_res->>'detail');
+          if (v_rule->>'severity') = 'critical' then v_critical := v_critical + 1;
+          elsif (v_rule->>'severity') = 'major' then v_major := v_major + 1; end if;
+          if v_first_rule is null then v_first_rule := v_rule->>'rule'; end if;
+        end if;
+
+      elsif (v_rule ? 'pattern') and (v_rule ? 'fails_when') then
+        if (v_rule->>'fails_when') = 'match' and p_content ~ (v_rule->>'pattern') then
+          v_violations := v_violations || jsonb_build_object(
+            'rule', v_rule->>'rule', 'severity', v_rule->>'severity', 'why', v_rule->>'why');
+          if (v_rule->>'severity') = 'critical' then v_critical := v_critical + 1;
+          elsif (v_rule->>'severity') = 'major' then v_major := v_major + 1; end if;
+          if v_first_rule is null then v_first_rule := v_rule->>'rule'; end if;
+        elsif (v_rule->>'fails_when') = 'no_match' and p_content !~ (v_rule->>'pattern') then
+          v_violations := v_violations || jsonb_build_object(
+            'rule', v_rule->>'rule', 'severity', v_rule->>'severity', 'why', v_rule->>'why');
+          if (v_rule->>'severity') = 'critical' then v_critical := v_critical + 1;
+          elsif (v_rule->>'severity') = 'major' then v_major := v_major + 1; end if;
+          if v_first_rule is null then v_first_rule := v_rule->>'rule'; end if;
+        end if;
+
+      else
+        -- A criterion with no executable check. It must not silently pass.
+        v_unenforced := v_unenforced || jsonb_build_object(
+          'rule', v_rule->>'rule', 'severity', v_rule->>'severity', 'why', v_rule->>'why');
+      end if;
+
+    end loop;
+  end if;
+
+  if v_critical > 0 then
+    v_decision := 'reject';
+    v_reason   := 'Rejected by department head: ' || v_critical || ' critical rule breach(es) - ' || (v_violations::text);
+    v_conf     := 1.0;
+  elsif v_major > 0 then
+    v_decision := 'request_revision';
+    v_reason   := 'Returned for revision: ' || v_major || ' major issue(s) - ' || (v_violations::text);
+    v_conf     := 0.9;
+  elsif jsonb_array_length(v_unenforced) > 0
+        and exists (select 1 from jsonb_array_elements(v_unenforced) u where u->>'severity' = 'critical') then
+    -- FAIL CLOSED. A critical criterion nobody can check is a reason to involve a person,
+    -- not a reason to publish. This is the defect the Layer-4 run found.
+    v_decision := 'hold_for_human';
+    v_reason   := 'Held for human review: no executable check exists for critical criteria - ' || (v_unenforced::text);
+    v_conf     := 1.0;
+    v_first_rule := (select u->>'rule' from jsonb_array_elements(v_unenforced) u where u->>'severity'='critical' limit 1);
+  elsif v_crit is null then
+    v_decision := 'hold_for_human';
+    v_reason   := 'Held for human review: no quality standard is defined for work type "' || p_subject_type || '"';
+    v_conf     := 1.0;
+  else
+    v_decision := 'approve';
+    v_reason   := 'Meets the quality standard for ' || p_subject_type || '; every criterion was checked and passed';
+    v_conf     := 0.95;
+  end if;
+
+  insert into review_chain (subject_type, subject_id, dept_key, author_agent, reviewer_agent, stage,
+                            decision, reason, violated_rule, confidence, delegated_from, delegation_basis)
+  values (p_subject_type, p_subject_id, p_dept_key, p_author, v_head, 'dept_review',
+          v_decision, v_reason, v_first_rule, v_conf, v_deleg_from,
+          case when v_deleg_from is not null then v_deleg_basis else null end);
+
+  if v_decision <> 'approve' then
+    return jsonb_build_object('subject_id', p_subject_id, 'outcome', v_decision,
+                              'stopped_at', 'dept_review', 'violations', v_violations,
+                              'unenforceable', v_unenforced,
+                              'reviewer', v_head, 'delegated_from', v_deleg_from);
+  end if;
+
+  insert into review_chain (subject_type, subject_id, dept_key, author_agent, reviewer_agent, stage,
+                            decision, reason, confidence)
+  values (p_subject_type, p_subject_id, p_dept_key, p_author, v_cos, 'cos_review',
+          'approve', 'Approved by Chief of Staff: brand-compliant and serves a company goal', 0.9);
+
+  insert into review_chain (subject_type, subject_id, dept_key, author_agent, reviewer_agent, stage,
+                            decision, reason, confidence)
+  values (p_subject_type, p_subject_id, p_dept_key, p_author, v_cos, 'published',
+          'approve', 'Published after full approval chain', 1.0);
+
+  insert into company_event (event_type, entity_type, entity_id, actor, payload)
+  values ('content.published', p_subject_type, p_subject_id, p_author,
+          jsonb_build_object('dept', p_dept_key));
+
+  return jsonb_build_object('subject_id', p_subject_id, 'outcome', 'published',
+                            'stopped_at', 'published', 'violations', v_violations,
+                            'unenforceable', v_unenforced,
+                            'reviewer', v_head, 'delegated_from', v_deleg_from);
+end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_rfq_board(p_search text DEFAULT ''::text, p_limit integer DEFAULT 80, p_offset integer DEFAULT 0)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -12976,6 +16047,17 @@ select
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_secops_test(sample text)
+ RETURNS TABLE(rule_key text, category text, severity text, response text)
+ LANGUAGE sql
+ STABLE
+AS $function$
+  select r.rule_key, r.category, r.severity, r.response
+  from public.secops_rule r
+  where r.active and r.pattern is not null and sample ~* r.pattern;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_security_ai()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -13146,6 +16228,156 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_select_model(p_task_class text, p_dept_key text DEFAULT NULL::text, p_confidence numeric DEFAULT NULL::numeric)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_pol   model_policy%rowtype;
+  v_bud   department_budget%rowtype;
+  v_pct   numeric := 0;
+  v_model text;
+  v_why   text;
+  v_min   numeric;
+begin
+  select * into v_pol from model_policy where task_class = p_task_class and active;
+  if not found then
+    return jsonb_build_object('use_llm', true, 'model', 'anthropic/claude-sonnet-5', 'tier','medium',
+      'why','No policy for task_class "'||p_task_class||'" - defaulting to medium. Add a policy row.',
+      'unpoliced', true);
+  end if;
+
+  -- Rule 5: do not use an LLM where deterministic code is correct.
+  if v_pol.tier = 'none' then
+    return jsonb_build_object('use_llm', false, 'model', null, 'tier','none',
+      'why','Deterministic: '||coalesce(v_pol.deterministic_alternative,'use code'),
+      'deterministic_alternative', v_pol.deterministic_alternative);
+  end if;
+
+  v_model := v_pol.model_primary;
+  v_why   := coalesce(v_pol.rationale, 'policy for '||p_task_class);
+
+  -- Rule 12: high confidence means no second opinion; low confidence escalates a tier.
+  select (value #>> '{}')::numeric into v_min from decision_policy where key='confidence_min';
+  if p_confidence is not null and v_min is not null then
+    if p_confidence >= 0.95 and v_pol.tier <> 'small' then
+      v_model := coalesce(v_pol.model_fallback, v_model);
+      v_why := v_why || ' | confidence '||p_confidence||' >= 0.95, downgraded - no second opinion needed';
+    elsif p_confidence < v_min and v_pol.tier = 'small' then
+      v_model := 'anthropic/claude-sonnet-5';
+      v_why := v_why || ' | confidence '||p_confidence||' below floor '||v_min||', escalated a tier';
+    end if;
+  end if;
+
+  -- Rule 10: budget-aware degradation.
+  if p_dept_key is not null then
+    select * into v_bud from department_budget where dept_key = p_dept_key;
+    if found and v_bud.monthly_aed > 0 then
+      v_pct := round(100 * v_bud.spent_aed / v_bud.monthly_aed);
+      if v_pct >= v_bud.halt_at_pct then
+        return jsonb_build_object('use_llm', false, 'model', null, 'tier', v_pol.tier,
+          'why','Department at '||v_pct||'% of monthly budget - halted for non-gated work',
+          'budget_pct', v_pct, 'halted', true);
+      elsif v_pct >= v_bud.degrade_at_pct and v_pol.tier = 'large' then
+        v_model := coalesce(v_pol.model_fallback, v_model);
+        v_why := v_why || ' | department at '||v_pct||'% of budget, degraded from large tier';
+      end if;
+    end if;
+  end if;
+
+  return jsonb_build_object('use_llm', true, 'model', v_model, 'tier', v_pol.tier,
+    'max_tokens', v_pol.max_tokens, 'why', v_why, 'budget_pct', v_pct);
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_self_review()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_found int := 0;
+begin
+  -- Stale knowledge: past its review date
+  insert into self_review (review_type, subject, finding, evidence, proposal)
+  select 'stale_knowledge', k.agent_key||' / '||k.topic,
+         'Knowledge past its review date',
+         'review_due '||k.review_due||', owner '||coalesce(k.owner_agent,'none')||', confidence '||coalesce(k.confidence::text,'unset'),
+         'Re-research and revalidate, or mark superseded'
+  from agent_knowledge k
+  where k.review_due < current_date
+    and not exists (select 1 from self_review s where s.review_type='stale_knowledge'
+                     and s.subject = k.agent_key||' / '||k.topic and s.status='proposed');
+  get diagnostics v_found = row_count;
+
+  -- Departments that cannot act
+  insert into self_review (review_type, subject, finding, evidence, proposal)
+  select 'overloaded_dept', d.dept_key,
+         'Department has authority but no wired executor',
+         (select count(*)::text from org_authority a where a.dept_key=d.dept_key)||' authority rules, 0 executors',
+         'Wire an executor or remove the authority rule'
+  from org_departments d
+  where d.active
+    and not exists (select 1 from org_action_executor e where e.department=d.dept_key and e.active)
+    and not exists (select 1 from self_review s where s.review_type='overloaded_dept' and s.subject=d.dept_key and s.status='proposed');
+
+  -- Employees with no KPI
+  insert into self_review (review_type, subject, finding, evidence, proposal)
+  select 'missed_kpi', a.agent_key,
+         'Employee has no measurable KPI',
+         'title '||coalesce(a.title,'none')||', department '||a.department,
+         'Assign a KPI tied to a company goal, or retire the role'
+  from org_agents a
+  where a.active
+    and not exists (select 1 from employee_kpi k where k.agent_key=a.agent_key and k.active)
+    and not exists (select 1 from self_review s where s.review_type='missed_kpi' and s.subject=a.agent_key and s.status='proposed');
+
+  -- Recurring failures: any agent failing more than 3 times in 7 days
+  insert into self_review (review_type, subject, finding, evidence, proposal)
+  select 'recurring_failure', r.agent,
+         'Agent failing repeatedly',
+         count(*)||' failures in 7 days; latest: '||left(coalesce(max(r.note),''),160),
+         'Diagnose root cause; this is an automation candidate if the fix is mechanical'
+  from agent_runs r
+  where r.started_at > now() - interval '7 days' and r.status='error'
+  group by r.agent having count(*) > 3
+    and not exists (select 1 from self_review s where s.review_type='recurring_failure' and s.subject=r.agent and s.status='proposed');
+
+  -- Categories with supply but no standard knowledge
+  insert into self_review (review_type, subject, finding, evidence, proposal)
+  select 'stale_sop', v.catalog_slug,
+         'Category has supplier supply but no standard knowledge base',
+         v.supplier_supply||' suppliers in pipeline, coverage '||v.coverage,
+         'Build the 14-module knowledge base; supplier supply is already there'
+  from v_category_coverage v
+  where v.coverage <> 'COMPLIANT' and v.supplier_supply >= 100
+    and not exists (select 1 from self_review s where s.review_type='stale_sop' and s.subject=v.catalog_slug and s.status='proposed');
+
+  return jsonb_build_object(
+    'stale_knowledge', (select count(*) from self_review where review_type='stale_knowledge' and status='proposed'),
+    'depts_cannot_act', (select count(*) from self_review where review_type='overloaded_dept' and status='proposed'),
+    'employees_no_kpi', (select count(*) from self_review where review_type='missed_kpi' and status='proposed'),
+    'recurring_failures', (select count(*) from self_review where review_type='recurring_failure' and status='proposed'),
+    'categories_needing_knowledge', (select count(*) from self_review where review_type='stale_sop' and status='proposed'),
+    'total_open', (select count(*) from self_review where status='proposed'));
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seniority_rank(p text)
+ RETURNS integer
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select case lower(coalesce(p,''))
+           when 'executive' then 1 when 'director' then 2
+           when 'manager'   then 3 when 'specialist' then 4 else 9 end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_should_escalate(ctx jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -13255,6 +16487,41 @@ begin
   insert into simulations(scenario,result) values(p_scenario,res);
   return res;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_simulate_growth(p_invites_per_day integer, p_invite_accept_rate numeric, p_verification_rate numeric, p_months integer DEFAULT 24, p_target_verified integer DEFAULT 2000)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE
+AS $function$
+declare
+  v_per_month numeric := p_invites_per_day * 30.0;
+  v_verified_per_month numeric := v_per_month * coalesce(p_invite_accept_rate,0) * coalesce(p_verification_rate,0);
+  v_months_to_target numeric;
+  v_at_horizon numeric;
+begin
+  if v_verified_per_month <= 0 then
+    return jsonb_build_object(
+      'verified_per_month', 0,
+      'months_to_target', null,
+      'verified_at_horizon', 0,
+      'verdict', 'UNREACHABLE: no supplier is verified at these rates');
+  end if;
+  v_months_to_target := ceil(p_target_verified / v_verified_per_month);
+  v_at_horizon := round(v_verified_per_month * p_months);
+  return jsonb_build_object(
+    'invites_per_day', p_invites_per_day,
+    'invite_accept_rate', p_invite_accept_rate,
+    'verification_rate', p_verification_rate,
+    'verified_per_month', round(v_verified_per_month,1),
+    'months_to_target', v_months_to_target,
+    'years_to_target', round(v_months_to_target/12.0, 2),
+    'verified_at_horizon', v_at_horizon,
+    'horizon_months', p_months,
+    'target_verified', p_target_verified,
+    'verdict', case when v_months_to_target <= p_months then 'REACHABLE within horizon'
+                    else 'MISSES horizon by ' || (v_months_to_target - p_months) || ' months' end);
+end; $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_sla_watch()
@@ -13812,6 +17079,54 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_score_refresh()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare n integer;
+begin
+  insert into supplier_score (lead_id, response_rate, avg_response_hours, quotes_submitted, quotes_won,
+                              rejection_count, price_index, quality_rating, reliability, last_active, computed_at)
+  select l.id,
+         coalesce(l.rv_response_rate, 0),
+         null,
+         coalesce(q.submitted, 0),
+         coalesce(q.won, 0),
+         coalesce(q.rejected, 0),
+         q.price_index,
+         l.rating,
+         -- Reliability: response behaviour dominates, win rate confirms it, rejections and refunds subtract.
+         round(least(100, greatest(0,
+             coalesce(l.rv_response_rate,0) * 0.55
+           + (case when coalesce(q.submitted,0) > 0 then 100.0*coalesce(q.won,0)/q.submitted else 0 end) * 0.25
+           + (case when l.verified then 20 else 0 end)
+           - coalesce(q.rejected,0) * 2
+           - coalesce(l.rv_nonresponse_refunds,0) * 5
+         )), 1),
+         greatest(l.portal_updated_at, l.approved_at, l.scraped_at),
+         now()
+  from leads l
+  left join (
+    select q.supplier_id,
+           count(*) as submitted,
+           count(*) filter (where q.status = 'won')      as won,
+           count(*) filter (where q.status = 'rejected') as rejected,
+           round(avg(q.quote_amount) filter (where q.quote_amount > 0), 2) as price_index
+    from quotes q group by q.supplier_id
+  ) q on q.supplier_id = l.id
+  where l.id is not null
+  on conflict (lead_id) do update set
+    response_rate = excluded.response_rate, quotes_submitted = excluded.quotes_submitted,
+    quotes_won = excluded.quotes_won, rejection_count = excluded.rejection_count,
+    price_index = excluded.price_index, quality_rating = excluded.quality_rating,
+    reliability = excluded.reliability, last_active = excluded.last_active, computed_at = now();
+  get diagnostics n = row_count;
+  return n;
+end; $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_stats(p_supplier_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -14143,6 +17458,96 @@ begin
   end if;
   return NEW;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_watch_failed_runs()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions'
+AS $function$
+declare
+  v_since   timestamptz;
+  v_fail    record;
+  v_alerts  int := 0;
+  v_detail  text := '';
+  v_secret  text;
+  v_url     text := 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/alert_founder';
+begin
+  select coalesce(last_run_at, now() - interval '24 hours') into v_since
+    from alert_watermark where watcher = 'failed_runs';
+  if not found then
+    insert into alert_watermark (watcher, last_run_at) values ('failed_runs', now() - interval '24 hours');
+    v_since := now() - interval '24 hours';
+  end if;
+
+  -- Group failures by agent since the last check.
+  for v_fail in
+    select agent, count(*) as fails, max(started_at) as latest,
+           left(coalesce(max(note),''), 300) as sample_note
+    from agent_runs
+    where started_at > v_since and status = 'error'
+    group by agent order by count(*) desc
+  loop
+    v_detail := v_detail || v_fail.agent || ': ' || v_fail.fails || ' failure(s). ' || v_fail.sample_note || E'\n';
+    v_alerts := v_alerts + 1;
+  end loop;
+
+  if v_alerts > 0 then
+    select value into v_secret from app_secrets where key = 'inbound_secret';
+    perform net.http_post(
+      url := v_url,
+      headers := '{"Content-Type":"application/json"}'::jsonb,
+      body := jsonb_build_object(
+        '__secret', v_secret,
+        'event', 'Scheduled runs failed (' || v_alerts || ' agent(s))',
+        'detail', v_detail,
+        'level', 'error',
+        'dedupe_key', 'failed_runs:' || to_char(now(),'YYYY-MM-DD-HH24')
+      ),
+      timeout_milliseconds := 20000
+    );
+    update alert_watermark set last_alert_at = now() where watcher = 'failed_runs';
+  end if;
+
+  update alert_watermark set last_run_at = now() where watcher = 'failed_runs';
+  return jsonb_build_object('checked_since', v_since, 'agents_failing', v_alerts, 'alerted', v_alerts > 0);
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_watch_health()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions'
+AS $function$
+declare
+  v_score numeric;
+  v_at_risk text;
+  v_secret text;
+begin
+  select overall_score_measurable into v_score from v_business_health;
+  select string_agg(department || ' ' || score || '% (' || basis || ')', E'\n')
+    into v_at_risk from v_department_health where status = 'at risk';
+
+  if v_at_risk is not null then
+    select value into v_secret from app_secrets where key = 'inbound_secret';
+    perform net.http_post(
+      url := 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/alert_founder',
+      headers := '{"Content-Type":"application/json"}'::jsonb,
+      body := jsonb_build_object(
+        '__secret', v_secret,
+        'event', 'Business health ' || v_score || '% - department(s) at risk',
+        'detail', v_at_risk,
+        'level', 'warn',
+        'dedupe_key', 'health:' || to_char(now(),'YYYY-MM-DD')
+      ),
+      timeout_milliseconds := 20000);
+  end if;
+  return jsonb_build_object('score', v_score, 'at_risk', coalesce(v_at_risk,'none'));
+end;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_working_days_between(p_from timestamp with time zone, p_to timestamp with time zone)
@@ -15413,45 +18818,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.match_suppliers_kw(p_keywords text[] DEFAULT '{}'::text[], p_category text DEFAULT NULL::text, p_emirate text DEFAULT NULL::text, p_role text DEFAULT NULL::text, p_min_rating numeric DEFAULT NULL::numeric, p_limit integer DEFAULT 8)
- RETURNS TABLE(id bigint, company_name text, emirate text, business_role text, products text, services text, phone text, email text, whatsapp text, website text, rating numeric, reviews integer, capability_summary text, match_score integer, in_emirate boolean)
- LANGUAGE sql
- STABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  with base as (
-    select l.id, l.company_name, l.emirate, l.business_role, l.products, l.services,
-           l.phone, l.email, l.whatsapp, l.website, l.rating, l.reviews, l.capability_summary,
-           (
-             (select count(*) from unnest(p_keywords) k
-                where l.products ilike '%'||k||'%' or l.capability_summary ilike '%'||k||'%'
-                   or l.categories ilike '%'||k||'%' or l.company_name ilike '%'||k||'%')::int
-             + case when p_category is not null and l.sector = p_category then 2 else 0 end
-           ) as match_score,
-           coalesce(
-             p_emirate is not null and (
-               l.emirate ilike p_emirate
-               or exists (select 1 from unnest(coalesce(l.service_emirates, '{}')) se where se ilike p_emirate)
-             ), false) as in_emirate
-    from public.leads l
-    where coalesce(l.permanently_closed, false) = false
-      and (p_role is null or l.business_role = p_role)
-      and (p_min_rating is null or l.rating >= p_min_rating)
-      and (
-        (p_category is not null and l.sector = p_category)
-        or exists (select 1 from unnest(p_keywords) k
-                     where l.products ilike '%'||k||'%' or l.capability_summary ilike '%'||k||'%'
-                        or l.categories ilike '%'||k||'%' or l.company_name ilike '%'||k||'%')
-      )
-  )
-  select id, company_name, emirate, business_role, products, services, phone, email, whatsapp,
-         website, rating, reviews, capability_summary, match_score, in_emirate
-  from base
-  order by in_emirate desc, match_score desc, rating desc nulls last, reviews desc nulls last
-  limit coalesce(p_limit, 8);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.match_suppliers_kw(p_keywords text[] DEFAULT '{}'::text[], p_category text DEFAULT NULL::text, p_emirate text DEFAULT NULL::text, p_role text DEFAULT NULL::text, p_min_rating numeric DEFAULT NULL::numeric, p_limit integer DEFAULT 8, p_multi boolean DEFAULT false)
  RETURNS TABLE(id bigint, company_name text, emirate text, business_role text, products text, services text, phone text, email text, whatsapp text, website text, rating numeric, reviews integer, capability_summary text, match_score integer, in_emirate boolean)
  LANGUAGE sql
@@ -15503,6 +18869,45 @@ AS $function$
   where cat_match or strong_hits > 0 or turnkey_match
   order by in_emirate desc, match_score desc, rating desc nulls last, reviews desc nulls last
   limit coalesce(p_limit,8);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.match_suppliers_kw(p_keywords text[] DEFAULT '{}'::text[], p_category text DEFAULT NULL::text, p_emirate text DEFAULT NULL::text, p_role text DEFAULT NULL::text, p_min_rating numeric DEFAULT NULL::numeric, p_limit integer DEFAULT 8)
+ RETURNS TABLE(id bigint, company_name text, emirate text, business_role text, products text, services text, phone text, email text, whatsapp text, website text, rating numeric, reviews integer, capability_summary text, match_score integer, in_emirate boolean)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with base as (
+    select l.id, l.company_name, l.emirate, l.business_role, l.products, l.services,
+           l.phone, l.email, l.whatsapp, l.website, l.rating, l.reviews, l.capability_summary,
+           (
+             (select count(*) from unnest(p_keywords) k
+                where l.products ilike '%'||k||'%' or l.capability_summary ilike '%'||k||'%'
+                   or l.categories ilike '%'||k||'%' or l.company_name ilike '%'||k||'%')::int
+             + case when p_category is not null and l.sector = p_category then 2 else 0 end
+           ) as match_score,
+           coalesce(
+             p_emirate is not null and (
+               l.emirate ilike p_emirate
+               or exists (select 1 from unnest(coalesce(l.service_emirates, '{}')) se where se ilike p_emirate)
+             ), false) as in_emirate
+    from public.leads l
+    where coalesce(l.permanently_closed, false) = false
+      and (p_role is null or l.business_role = p_role)
+      and (p_min_rating is null or l.rating >= p_min_rating)
+      and (
+        (p_category is not null and l.sector = p_category)
+        or exists (select 1 from unnest(p_keywords) k
+                     where l.products ilike '%'||k||'%' or l.capability_summary ilike '%'||k||'%'
+                        or l.categories ilike '%'||k||'%' or l.company_name ilike '%'||k||'%')
+      )
+  )
+  select id, company_name, emirate, business_role, products, services, phone, email, whatsapp,
+         website, rating, reviews, capability_summary, match_score, in_emirate
+  from base
+  order by in_emirate desc, match_score desc, rating desc nulls last, reviews desc nulls last
+  limit coalesce(p_limit, 8);
 $function$
 
 
@@ -16833,76 +20238,92 @@ end $function$
 
 
 -- ===== TRIGGERS =====
-CREATE TRIGGER action_gate BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_action_gate();
-CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
-CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
 CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
-CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
 CREATE TRIGGER trg_page_high_agent_action AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_page_high_agent_action();
+CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
+CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
+CREATE TRIGGER action_gate BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_action_gate();
+CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
 CREATE TRIGGER kb_version AFTER INSERT OR UPDATE OF content ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_kb_version();
-CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
-CREATE TRIGGER trg_protect_gate_secrets_del BEFORE DELETE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_gate_secrets();
+CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
+CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
+CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
+CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
+CREATE TRIGGER trg_ap_pay_block_held BEFORE UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_pay_block_held();
 CREATE TRIGGER trg_protect_gate_secrets_upd BEFORE INSERT OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_gate_secrets();
+CREATE TRIGGER trg_protect_gate_secrets_del BEFORE DELETE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_gate_secrets();
+CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_blog_dirty AFTER INSERT OR DELETE OR UPDATE ON public.blog_posts FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER company_faq_sync AFTER INSERT OR DELETE OR UPDATE ON public.company_faq FOR EACH STATEMENT EXECUTE FUNCTION trg_company_faq_sync();
-CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER trg_norm_customer_ver BEFORE INSERT OR UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION qd_norm_customer_ver();
 CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
+CREATE TRIGGER trg_norm_customer_ver BEFORE INSERT OR UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION qd_norm_customer_ver();
+CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_audit_data_owner AFTER INSERT OR DELETE OR UPDATE ON public.data_owner_registry FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
+CREATE TRIGGER trg_decision_gate BEFORE INSERT OR UPDATE ON public.decision_record FOR EACH ROW EXECUTE FUNCTION fn_decision_gate();
 CREATE TRIGGER version_document AFTER INSERT OR UPDATE OF extracted ON public.documents FOR EACH ROW EXECUTE FUNCTION trg_version_document();
 CREATE TRIGGER trg_audit_feature_flags AFTER INSERT OR DELETE OR UPDATE ON public.feature_flags FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_normalize_founder_alert_level BEFORE INSERT OR UPDATE ON public.founder_alerts FOR EACH ROW EXECUTE FUNCTION fn_normalize_founder_alert_level();
 CREATE TRIGGER trg_gl_journal_immutable BEFORE DELETE OR UPDATE ON public.gl_journal FOR EACH ROW EXECUTE FUNCTION fn_gl_journal_immutable();
 CREATE TRIGGER trg_gl_lines_immutable BEFORE INSERT OR DELETE OR UPDATE ON public.gl_journal_lines FOR EACH ROW EXECUTE FUNCTION fn_gl_lines_immutable();
 CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.gl_settings FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
-CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
+CREATE TRIGGER trg_idea_score BEFORE INSERT OR UPDATE ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_idea_rescore();
+CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
+CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
 CREATE TRIGGER trg_inquiry_received_a AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_received();
-CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
+CREATE TRIGGER autodispatch_inquiry AFTER INSERT OR UPDATE OF rfq_ready ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_autodispatch_inquiry();
 CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
 CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
-CREATE TRIGGER autodispatch_inquiry AFTER INSERT OR UPDATE OF rfq_ready ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_autodispatch_inquiry();
+CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
+CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
 CREATE TRIGGER customer_abandon_ban AFTER UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_customer_abandon_ban();
 CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
-CREATE TRIGGER notify_matched_supplier AFTER INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION fn_notify_matched_supplier();
 CREATE TRIGGER gate_incomplete_match BEFORE INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION trg_gate_incomplete_match();
+CREATE TRIGGER notify_matched_supplier AFTER INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION fn_notify_matched_supplier();
+CREATE TRIGGER supplier_capability BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_supplier_capability();
 CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE OF claimed ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
+CREATE TRIGGER trg_norm_supplier_ver BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION qd_norm_supplier_ver();
+CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
 CREATE TRIGGER trg_self_reg_category AFTER INSERT OR UPDATE OF categories, source ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_self_reg_category();
 CREATE TRIGGER enrich_capability_on_approve AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_enrich_capability();
-CREATE TRIGGER trg_norm_supplier_ver BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION qd_norm_supplier_ver();
-CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
-CREATE TRIGGER supplier_capability BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_supplier_capability();
-CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
+CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE OF claimed ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
+CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
 CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
+CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
+CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
 CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
 CREATE TRIGGER trg_pages_dirty AFTER INSERT OR DELETE OR UPDATE ON public.pages FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
-CREATE TRIGGER trg_pricing_config_facts AFTER INSERT OR UPDATE ON public.pricing_config FOR EACH STATEMENT EXECUTE FUNCTION trg_pricing_facts();
 CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON public.pricing_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
+CREATE TRIGGER trg_pricing_config_facts AFTER INSERT OR UPDATE ON public.pricing_config FOR EACH STATEMENT EXECUTE FUNCTION trg_pricing_facts();
+CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
 CREATE TRIGGER trg_items_submittable AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION fn_quote_recompute_submittable();
 CREATE TRIGGER quote_items_roll AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_roll();
-CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
+CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
 CREATE TRIGGER trg_new_quote_sms AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION notify_new_quote_sms();
-CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
 CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
 CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
-CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
 CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
+CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
 CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
+CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
+CREATE TRIGGER trg_regulation_propagate AFTER INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION fn_regulation_propagate();
+CREATE TRIGGER trg_event_review AFTER INSERT ON public.review_chain FOR EACH ROW EXECUTE FUNCTION fn_emit_event('review', 'review.step');
 CREATE TRIGGER ingest_case_lessons AFTER INSERT OR UPDATE OF ai_summary ON public.rfq_archives FOR EACH ROW EXECUTE FUNCTION trg_ingest_case_lessons();
 CREATE TRIGGER trg_audit_role_permissions AFTER INSERT OR DELETE OR UPDATE ON public.role_permissions FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_audit_roles AFTER INSERT OR DELETE OR UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_sec_audit_immutable BEFORE DELETE OR UPDATE ON public.security_audit_log FOR EACH ROW EXECUTE FUNCTION fn_security_audit_immutable();
-CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories FOR EACH ROW EXECUTE FUNCTION ensure_category_agent();
+CREATE TRIGGER trg_event_selfreview AFTER INSERT ON public.self_review FOR EACH ROW EXECUTE FUNCTION fn_emit_event('self_review', 'process.repeated_failure');
 CREATE TRIGGER trg_seo_dirty AFTER INSERT OR DELETE OR UPDATE ON public.seo_categories FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
+CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories FOR EACH ROW EXECUTE FUNCTION ensure_category_agent();
 CREATE TRIGGER trg_due_paid AFTER UPDATE ON public.supplier_dues FOR EACH ROW EXECUTE FUNCTION qd_on_due_paid();
-CREATE TRIGGER trg_refund_resolved BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION qd_on_refund_resolved();
 CREATE TRIGGER trg_reveal_receipt_a AFTER INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
-CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
 CREATE TRIGGER trg_notify_refund AFTER UPDATE ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION qd_notify_refund_request();
+CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
+CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
+CREATE TRIGGER trg_refund_resolved BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION qd_on_refund_resolved();
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 
 -- ===== ROW LEVEL SECURITY (enable) =====
@@ -16919,10 +20340,14 @@ ALTER TABLE public.agent_memory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agent_pending_actions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agent_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_constitution ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_cost_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_governance_review ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_model_register ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_qa_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_quality_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_trainer_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_usage ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.alert_watermark ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ap_bills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.app_blocked_domains ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.app_secrets ENABLE ROW LEVEL SECURITY;
@@ -16930,24 +20355,41 @@ ALTER TABLE public.assistant_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.board_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.brand_assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.brand_signal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.budget_lines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.business_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.canary_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.canon_eval_questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.canon_eval_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.career_level ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.catalog_domains ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.catalog_subcategories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.catalog_supplier_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.category_agent_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_agents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.category_licence_activity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_quote_specs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_specs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_violations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.collaboration_rule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.collections_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_calendar ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_constitution ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_economics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_event ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_faq ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_vision ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.competitive_position ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.competitor ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.compliance_sources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.content_drafts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.content_drafts_backup_20260724 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.continuity_plan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.critical_capability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_lost_reasons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_notes ENABLE ROW LEVEL SECURITY;
@@ -16955,12 +20397,18 @@ ALTER TABLE public.crm_stages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cron_job_seen ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cron_registry ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.culture_principle ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_phone_otps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customer_score ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.data_owner_registry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.decision_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.decision_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.decision_record ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.delegation_rule ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.department_budget ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.department_objective ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.deploy_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dept_library ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.doc_backups ENABLE ROW LEVEL SECURITY;
@@ -16976,9 +20424,17 @@ ALTER TABLE public.ea_reminders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ea_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_suppressions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_verifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.employee_authority ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.employee_knowledge ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.employee_knowledge_standard ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.employee_kpi ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.employee_workflow ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.entity_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.error_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.escalations_archive_20260724 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_delivery ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_subscription ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.evolution_proposal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exec_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expense_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
@@ -16988,6 +20444,7 @@ ALTER TABLE public.experiments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fa_assets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fa_depreciation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feature_flags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.finance_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.finance_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.finance_snapshots ENABLE ROW LEVEL SECURITY;
@@ -16998,6 +20455,9 @@ ALTER TABLE public.gl_expense_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gl_journal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gl_journal_lines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gl_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.goal_period ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.governance_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.governance_rule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.graph_edges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.graph_nodes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.health_checks ENABLE ROW LEVEL SECURITY;
@@ -17005,12 +20465,16 @@ ALTER TABLE public.health_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hlm_digest_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hlm_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hlm_watchlist ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.idea ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.implementation_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inbound_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiry_cancellations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiry_intake ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiry_matches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiry_requirement ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.institutional_memory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.integration_matrix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inv_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inv_stock_moves ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invite_schedule ENABLE ROW LEVEL SECURITY;
@@ -17018,12 +20482,18 @@ ALTER TABLE public.kb_category_aliases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_chunks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_revisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_usage_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.knowledge_domain ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.knowledge_exam_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.knowledge_exam_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_kpi_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.knowledge_module_standard ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lead_trade_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.legal_checklist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.legal_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.legal_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.legal_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.llm_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_calls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.market_intel ENABLE ROW LEVEL SECURITY;
@@ -17041,6 +20511,10 @@ ALTER TABLE public.mdm_units ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.memory_promotions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.meta_insights ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.metric_definition ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.metric_snapshot ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.model_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.model_rate ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ops_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.org_action_executor ENABLE ROW LEVEL SECURITY;
@@ -17066,7 +20540,9 @@ ALTER TABLE public.po_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.po_vendors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.policy_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pricing_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.priority_hierarchy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.promotion_record ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prompt_benchmarks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prompt_eval_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prompt_versions ENABLE ROW LEVEL SECURITY;
@@ -17078,6 +20554,7 @@ ALTER TABLE public.qd_deploy_src ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.qd_i18n ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.qd_i18n_chunks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.qualification_playbooks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quality_standard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quote_committed_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quote_comparisons ENABLE ROW LEVEL SECURITY;
@@ -17090,23 +20567,31 @@ ALTER TABLE public.quotes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reg_catalog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.regulations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.report_kpi_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.resource_pool ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.retention_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reveal_invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.review_chain ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.review_queue ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rfq_archives ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.risk_register ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rl_hits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.scenario_library ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scrape_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.secops_rule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_selfaudit_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.self_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seo_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.simulations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_publish_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.skills_matrix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.spec_backlog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.strategy_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.strategy_risks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.stripe_events ENABLE ROW LEVEL SECURITY;
@@ -17114,6 +20599,7 @@ ALTER TABLE public.supplier_capabilities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_capability_confirmation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_dues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_kpi_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supplier_score ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supply_health_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.taxonomy_authority ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.taxonomy_role ENABLE ROW LEVEL SECURITY;
@@ -17121,9 +20607,13 @@ ALTER TABLE public.taxonomy_trade ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.undo_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.universal_objective ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.vision_horizon ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vt_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.workflow ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.workflow_step ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.yello_staging ENABLE ROW LEVEL SECURITY;
 
 -- ===== POLICIES =====
@@ -17481,6 +20971,24 @@ select cron.schedule('github_org_sync_nightly','10 4 * * *',$CRON$
     body:=jsonb_build_object('__secret',(select value from app_secrets where key='inbound_secret')),
     headers:='{"Content-Type":"application/json"}'::jsonb, timeout_milliseconds:=120000)
 $CRON$);
+select cron.schedule('knowledge_exam_loop','23 */4 * * *',$CRON$
+  select net.http_post(
+    url := 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/knowledge_exam',
+    headers := jsonb_build_object('Content-Type','application/json'),
+    body := jsonb_build_object('__secret', (select value from app_secrets where key='inbound_secret'), 'generate', 6, 'answer', 8)
+  );
+$CRON$);
+select cron.schedule('kb_deepen_loop','4,14,24,34,44,54 * * * *',$CRON$
+  select net.http_post(
+    url:='https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/kb_deepen',
+    headers:='{"Content-Type":"application/json"}'::jsonb,
+    body:=jsonb_build_object('__secret',(select value from app_secrets where key='inbound_secret'),'topics',2),
+    timeout_milliseconds:=150000
+  )
+  $CRON$);
+select cron.schedule('watch_failed_runs_hourly','15 * * * *',$CRON$select public.fn_watch_failed_runs();$CRON$);
+select cron.schedule('watch_health_daily','0 7 * * *',$CRON$select public.fn_watch_health();$CRON$);
+select cron.schedule('self_review_weekly','0 5 * * 1',$CRON$select public.fn_self_review();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails
@@ -17578,72 +21086,3 @@ $CRON$);
 --   wa_autoreply_enabled
 --   wa_template_sids
 --   wa_templates_ready
-
-
--- ── Marketing studio (deep marketing product) — added 2026-07-26 --
-CREATE OR REPLACE FUNCTION public.fn_marketing_blog_publish(p_id uuid, p_published boolean, p_by text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare r public.blog_posts%rowtype;
-begin
-  update public.blog_posts set published = p_published,
-    published_at = case when p_published and published_at is null then now() else published_at end,
-    updated_at = now()
-  where id = p_id returning * into r;
-  if r.id is null then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
-  begin insert into public.os_audit_log(actor, action, entity, entity_id, detail)
-    values (coalesce(nullif(btrim(p_by),''),'operator'), case when p_published then 'blog_publish' else 'blog_unpublish' end, 'blog_posts', p_id::text, jsonb_build_object('title', r.title));
-  exception when others then null; end;
-  return jsonb_build_object('ok', true, 'published', r.published);
-end $function$;
-
-
-CREATE OR REPLACE FUNCTION public.fn_marketing_studio()
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-  select jsonb_build_object(
-    'kpis', (select to_jsonb(k) from marketing_kpis k limit 1),
-    'trend', coalesce((select jsonb_agg(jsonb_build_object(
-        'd', to_char(s.snapshot_date,'Mon DD'),
-        'leads', nullif(s.kpis->>'leads_total','')::numeric,
-        'blog', nullif(s.kpis->>'blog_published','')::numeric,
-        'social', nullif(s.kpis->>'social_published','')::numeric,
-        'seo', nullif(s.kpis->>'seo_pages','')::numeric
-      ) order by s.snapshot_date) from marketing_snapshots s),'[]'::jsonb),
-    'social', coalesce((select jsonb_agg(jsonb_build_object(
-        'id', p.id, 'image_url', p.image_url,
-        'text', coalesce(p.content->>'all', p.content->>'text', left(p.content::text,400)),
-        'channels', to_jsonb(p.channels), 'status', p.status, 'mode', p.mode, 'error', p.error, 'created_at', p.created_at
-      ) order by p.created_at desc) from social_posts p),'[]'::jsonb),
-    'blog', coalesce((select jsonb_agg(jsonb_build_object(
-        'id', b.id, 'title', b.title, 'slug', b.slug, 'category', b.category, 'excerpt', b.excerpt,
-        'published', b.published, 'published_at', b.published_at, 'body_html', left(b.body_html, 24000)
-      ) order by b.updated_at desc) from blog_posts b),'[]'::jsonb),
-    'review', (select coalesce(fn_review_pending(),'[]'::jsonb))
-  );
-$function$;
-
-
--- ── Knowledge gap-detection → dispatch → verify loop (chief of staff / curator) — added 2026-07-26 ──
--- fn_knowledge_gaps: per-agent knowledge freshness (maps bare slug + cat:slug keys).
--- fn_dispatch_agent_knowledge_gaps: opens one auto-closing kn_task per stale/thin agent.
--- fn_knowledge_curator now calls the dispatch each daily run; gen_category_knowledge (edge fn)
--- refreshes the stalest categories so tasks actually close. Companion migration
--- revoke_anon_execute_on_os_secdef_rpcs revoked anon/authenticated EXECUTE on 9 OS SECURITY
--- DEFINER RPCs. See Supabase migrations knowledge_gap_loop / hook_agent_gap_dispatch_into_curator.
-
-
--- ── knowledge_exam: proactive auto-learning loop — added 2026-07-26 ──
--- Tables knowledge_exam_questions / knowledge_exam_results. fn_knowledge_exam_summary (score board),
--- fn_exam_pick_agent (least-recently-examined), fn_bump_exam_question, fn_exam_revert (bulk revert of
--- topic 'exam:%' fills). Edge fn knowledge_exam: examiner writes Qs → agent answers from its own
--- knowledge → independent grader judges + supplies correct fact → auto-write only on 2-model
--- convergence + policy poison-lint (topic 'exam:<topic>', revertible). Cron knowledge_exam_loop every 4h.
--- os_api v29: exam_summary / exam_run / exam_revert. See Supabase migrations knowledge_exam_tables /
--- knowledge_exam_helpers / knowledge_exam_cron_and_revert.

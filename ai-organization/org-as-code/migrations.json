@@ -1586,5 +1586,237 @@
  {
   "name": "fn_rfq_board_fix",
   "version": "20260725200515"
+ },
+ {
+  "name": "fn_marketing_studio",
+  "version": "20260726130146"
+ },
+ {
+  "name": "revoke_anon_execute_on_os_secdef_rpcs",
+  "version": "20260726141141"
+ },
+ {
+  "name": "knowledge_gap_loop",
+  "version": "20260726142450"
+ },
+ {
+  "name": "hook_agent_gap_dispatch_into_curator",
+  "version": "20260726142843"
+ },
+ {
+  "name": "knowledge_exam_tables",
+  "version": "20260726145047"
+ },
+ {
+  "name": "knowledge_exam_helpers",
+  "version": "20260726145252"
+ },
+ {
+  "name": "knowledge_exam_cron_and_revert",
+  "version": "20260726150148"
+ },
+ {
+  "name": "add_company_goals",
+  "version": "20260726211534"
+ },
+ {
+  "name": "add_category_agent_map",
+  "version": "20260726211626"
+ },
+ {
+  "name": "fix_category_agent_map_pk",
+  "version": "20260726211709"
+ },
+ {
+  "name": "add_spec_backlog",
+  "version": "20260726214105"
+ },
+ {
+  "name": "acceptance_artifact_views",
+  "version": "20260726220144"
+ },
+ {
+  "name": "acceptance_implementation_and_integration_map",
+  "version": "20260726220158"
+ },
+ {
+  "name": "employee_model",
+  "version": "20260726220925"
+ },
+ {
+  "name": "acceptance_views_employee_aware_v2",
+  "version": "20260726221043"
+ },
+ {
+  "name": "knowledge_module_standard_v2",
+  "version": "20260726221611"
+ },
+ {
+  "name": "employee_knowledge_and_workflow_architecture",
+  "version": "20260726222440"
+ },
+ {
+  "name": "institutional_memory_and_events",
+  "version": "20260726222728"
+ },
+ {
+  "name": "knowledge_lifecycle_governance_digital_twin",
+  "version": "20260726222754"
+ },
+ {
+  "name": "review_chain_executor",
+  "version": "20260726224510"
+ },
+ {
+  "name": "ai_cost_governor",
+  "version": "20260726224820"
+ },
+ {
+  "name": "model_router_and_cost_views",
+  "version": "20260726224936"
+ },
+ {
+  "name": "vision_objectives_priority_hierarchy",
+  "version": "20260726225227"
+ },
+ {
+  "name": "business_health_score",
+  "version": "20260726225705"
+ },
+ {
+  "name": "failed_run_alerting",
+  "version": "20260726230144"
+ },
+ {
+  "name": "revoke_anon_execute_on_secdef_functions",
+  "version": "20260726230412"
+ },
+ {
+  "name": "company_constitution",
+  "version": "20260726230708"
+ },
+ {
+  "name": "catalogue_centric_coverage_view",
+  "version": "20260726232423"
+ },
+ {
+  "name": "innovation_and_intelligence",
+  "version": "20260726232912"
+ },
+ {
+  "name": "continuity_vendor_career_evolution",
+  "version": "20260726233429"
+ },
+ {
+  "name": "self_evolution_engine",
+  "version": "20260726233527"
+ },
+ {
+  "name": "decision_intelligence_impact_layer",
+  "version": "20260727001754"
+ },
+ {
+  "name": "company_economics_and_resource_management",
+  "version": "20260727002021"
+ },
+ {
+  "name": "trust_governance_ai_board_culture",
+  "version": "20260727002128"
+ },
+ {
+  "name": "brand_protection_and_secops",
+  "version": "20260727002216"
+ },
+ {
+  "name": "agent_knowledge_category_topic_unique",
+  "version": "20260727004146"
+ },
+ {
+  "name": "bi_innovation_simulation_evolution_collaboration",
+  "version": "20260727004408"
+ },
+ {
+  "name": "fix_bi_metric_sql_and_evolution_scan",
+  "version": "20260727004445"
+ },
+ {
+  "name": "execution_engine_new_actions_and_audit_coverage",
+  "version": "20260727004641"
+ },
+ {
+  "name": "model_rate_real_openrouter_figures",
+  "version": "20260727004944"
+ },
+ {
+  "name": "llm_cache_and_cost_governor_rpc",
+  "version": "20260727005033"
+ },
+ {
+  "name": "supplier_intelligence_and_shared_company_brief",
+  "version": "20260727005941"
+ },
+ {
+  "name": "rename_shared_situation_brief",
+  "version": "20260727010021"
+ },
+ {
+  "name": "critical_capability_test_coverage",
+  "version": "20260727010509"
+ },
+ {
+  "name": "capability_tests_latest_run_and_flakiness_v2",
+  "version": "20260727010542"
+ },
+ {
+  "name": "review_gate_fail_closed_and_delegation",
+  "version": "20260727013906"
+ },
+ {
+  "name": "licence_activity_check_and_executable_standards",
+  "version": "20260727013957"
+ },
+ {
+  "name": "fn_review_submit_fail_closed_v2",
+  "version": "20260727014036"
+ },
+ {
+  "name": "duplicate_invoice_control",
+  "version": "20260727014208"
+ },
+ {
+  "name": "event_dispatcher",
+  "version": "20260727014255"
+ },
+ {
+  "name": "connect_event_emitters_to_subscriptions",
+  "version": "20260727014358"
+ },
+ {
+  "name": "goal_at_risk_one_per_department",
+  "version": "20260727014443"
+ },
+ {
+  "name": "decision_gate_close_insert_hole",
+  "version": "20260727015522"
+ },
+ {
+  "name": "budget_affordability_and_spend_thresholds",
+  "version": "20260727015627"
+ },
+ {
+  "name": "regulatory_change_propagation",
+  "version": "20260727015727"
+ },
+ {
+  "name": "refusals_must_leave_a_row",
+  "version": "20260727021634"
+ },
+ {
+  "name": "ap_bills_allow_duplicate_hold_status",
+  "version": "20260727021708"
+ },
+ {
+  "name": "institutional_memory_recall_into_agent_context",
+  "version": "20260727025829"
  }
 ]
