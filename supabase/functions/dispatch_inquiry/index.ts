@@ -8,6 +8,15 @@
 //    outcome:'dispatched' and the caller got ok:true - a customer RFQ that looks routed but reached
 //    nobody. That case now returns ok:false and raises a founder_alert + email, so it surfaces even
 //    if the caller ignores the response. Route failures escalate the same way.
+// v5 AUTHORITY FIX (28 Jul 2026): body.force===true used to be honoured on the strength of
+//    inbound_secret alone. inbound_secret is accepted by 134 of 187 functions, so anything holding
+//    it could bypass THREE independent safety guards at once - the already_dispatched check, the
+//    freshness of the atomic dispatch lock, and the lost-claim exit. Two concurrent forced runs both
+//    read the existing-match set before either writes, so the dedup does not hold and suppliers get
+//    contacted twice about the same RFQ. force now needs its OWN key (dispatch_force_key) plus a
+//    written reason, and every use is recorded and escalated to the founder. A force attempt without
+//    that key is refused outright rather than silently downgraded, so nobody believes an override
+//    took effect when it did not.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -30,11 +39,11 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 }
 // Out-of-band escalation: a customer RFQ reaching nobody is revenue loss and must not depend
 // on whatever called this function noticing the response body.
-async function escalate(subject: string, detail: string) {
-  try { await admin.from('founder_alerts').insert({ level: 'high', event: 'rfq_not_dispatched', detail: String(detail).slice(0, 900), channel: 'email' }); } catch (_e) { /* */ }
+async function escalate(subject: string, detail: string, level = 'high', event = 'rfq_not_dispatched') {
+  try { await admin.from('founder_alerts').insert({ level, event, detail: String(detail).slice(0, 900), channel: 'email' }); } catch (_e) { /* */ }
   try {
     const owner = ((await sec('admin_emails')) || 'management@quotesdone.com').split(',')[0].trim();
-    await admin.from('notifications').insert({ type: 'rfq_not_dispatched', to_email: owner, to_role: 'admin', channel: 'email', subject, body: detail, status: 'queued' });
+    await admin.from('notifications').insert({ type: event, to_email: owner, to_role: 'admin', channel: 'email', subject, body: detail, status: 'queued' });
   } catch (_e) { /* */ }
 }
 
@@ -45,7 +54,36 @@ Deno.serve(async (req) => {
     if (!secretOk(inbound) || body.__secret !== inbound) { await logRun('error', {}, 'forbidden: dispatch_inquiry called without the inbound secret'); return J({ error: 'forbidden' }, 403); }
     const inquiryId = String(body.inquiry_id || '');
     if (!inquiryId) return J({ error: 'inquiry_id_required' }, 400);
-    const force = body.force === true;
+
+    // ---- FORCE AUTHORITY GATE (v5) ----------------------------------------------------------
+    // force bypasses idempotency AND concurrency control. It therefore needs authority that
+    // inbound_secret does not confer, and it must never be usable anonymously or by accident.
+    let force = false;
+    if (body.force === true) {
+      const forceKey = await sec('dispatch_force_key');
+      const reason = String(body.force_reason || '').trim();
+      if (!secretOk(forceKey) || body.__force_key !== forceKey || reason.length < 10) {
+        await logRun('error', { inquiry_id: inquiryId, stage: 'force_auth' },
+          'REFUSED a force-dispatch: force=true requires dispatch_force_key AND a force_reason of at least 10 characters. ' +
+          'force bypasses the already_dispatched guard, the dispatch lock and the lost-claim exit, so two concurrent forced runs ' +
+          'can contact the same suppliers twice about one RFQ. Nothing was dispatched.');
+        await escalate('Refused force-dispatch on inquiry ' + inquiryId,
+          'Someone called dispatch_inquiry with force=true but without dispatch_force_key (or without a written reason).\n\n' +
+          'Inquiry: ' + inquiryId + '\nReason supplied: ' + (reason || '(none)') + '\n\n' +
+          'The call was refused and nothing was dispatched. If this was you, supply __force_key and force_reason. ' +
+          'If it was not, something holding inbound_secret is attempting to re-notify suppliers.',
+          'high', 'force_dispatch_refused');
+        return J({ error: 'force_requires_dispatch_force_key_and_reason' }, 403);
+      }
+      force = true;
+      await logRun('warn', { inquiry_id: inquiryId, stage: 'force_auth', force_reason: reason.slice(0, 200) },
+        'FORCE DISPATCH AUTHORISED for inquiry ' + inquiryId + '. Idempotency and the concurrency lock are being bypassed deliberately. Reason: ' + reason.slice(0, 250));
+      await escalate('Force-dispatch used on inquiry ' + inquiryId,
+        'dispatch_inquiry was run with force=true, which re-dispatches an RFQ that was already dispatched and bypasses the concurrency lock.\n\n' +
+        'Inquiry: ' + inquiryId + '\nStated reason: ' + reason + '\n\nSuppliers not already matched to this RFQ may be contacted about it now.',
+        'warn', 'force_dispatch_used');
+    }
+    // -----------------------------------------------------------------------------------------
 
     const { data: inq } = await admin.from('inquiries').select('id,rfq_ready,routing,category,emirate,summary,status').eq('id', inquiryId).maybeSingle();
     if (!inq) { await logRun('error', { inquiry_id: inquiryId }, 'inquiry_not_found - dispatch requested for an inquiry that does not exist'); return J({ error: 'inquiry_not_found' }, 404); }
@@ -92,7 +130,8 @@ Deno.serve(async (req) => {
     const fitsAll: any[] = Array.isArray(route.fits) ? route.fits : [];
     const decisionBase = {
       dispatch_lock: null, dispatched_at: new Date().toISOString(), job_type: route.job_type || null, primary_trade: route.primary_trade || null,
-      reasoning: route.reasoning || '', evaluated: route.evaluated ?? null, retrieval: route.retrieval || null, fits_returned: fitsAll.length
+      reasoning: route.reasoning || '', evaluated: route.evaluated ?? null, retrieval: route.retrieval || null, fits_returned: fitsAll.length,
+      forced: force || undefined, force_reason: force ? String(body.force_reason || '').slice(0, 300) : undefined
     };
 
     // 2) ZERO genuine fits — never spam sellers; raise an internal coverage-gap flag
@@ -132,7 +171,7 @@ Deno.serve(async (req) => {
 
     const outcome = (pick.length && inserted === 0) ? 'dispatch_failed' : 'dispatched';
     await admin.from('inquiries').update({ routing: { ...routing, ...decisionBase, outcome, fanout: inserted, fit_ids: sent_ids, capped, max_fanout: MAX_FANOUT } }).eq('id', inquiryId);
-    const counts = { inquiry_id: inquiryId, outcome, notified: inserted, attempted: pick.length, insert_errors: insertErrors, capped, max_fanout: MAX_FANOUT, category: inq.category, emirate: inq.emirate };
+    const counts = { inquiry_id: inquiryId, outcome, notified: inserted, attempted: pick.length, insert_errors: insertErrors, capped, max_fanout: MAX_FANOUT, category: inq.category, emirate: inq.emirate, forced: force };
 
     if (pick.length && inserted === 0) {
       // v4: no longer reported as a successful dispatch.
