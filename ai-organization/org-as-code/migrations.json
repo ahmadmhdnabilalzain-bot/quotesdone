@@ -1818,5 +1818,37 @@
  {
   "name": "institutional_memory_recall_into_agent_context",
   "version": "20260727025829"
+ },
+ {
+  "name": "deliverability_guardrails",
+  "version": "20260727085058"
+ },
+ {
+  "name": "payment_dispute_table",
+  "version": "20260727085305"
+ },
+ {
+  "name": "fn_dispute_open",
+  "version": "20260727085320"
+ },
+ {
+  "name": "payment_health_views_and_wiring_v2",
+  "version": "20260727085409"
+ },
+ {
+  "name": "transactions_one_per_quote",
+  "version": "20260727100926"
+ },
+ {
+  "name": "transactions_stripe_refund_columns",
+  "version": "20260727101014"
+ },
+ {
+  "name": "protect_critical_app_secrets",
+  "version": "20260727112442"
+ },
+ {
+  "name": "protect_deploy_secret_in_app_secrets",
+  "version": "20260727133041"
  }
 ]
