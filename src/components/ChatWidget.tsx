@@ -22,11 +22,11 @@ const T = {
 // Render text safely: escape, then linkify emails / URLs / internal paths.
 // Each link is wrapped in <bdi> so it stays readable inside Arabic (right-to-left) text.
 function render(text: string) {
-  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   let h = esc(text);
-  h = h.replace(/(https?:\/\/[^\s<]+)/g, (m) => `<bdi><a href="${m}" target="_blank" rel="noopener noreferrer" style="color:#14B8A6;font-weight:600">${m}</a></bdi>`);
-  h = h.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, (m) => `<bdi><a href="mailto:${m}" style="color:#14B8A6;font-weight:600">${m}</a></bdi>`);
-  h = h.replace(/(^|[\s(])(\/(?:contact|me|portal|faq|services|blog|about)\/?)/g, (_m, p, path) => `${p}<bdi><a href="${path}" style="color:#14B8A6;font-weight:600">${path}</a></bdi>`);
+  h = h.replace(/(https?:\/\/[^\s<]+)/g, (m) => `<bdi><a href="${m}" target="_blank" rel="noopener noreferrer" style="color:#2DD4BF;font-weight:600">${m}</a></bdi>`);
+  h = h.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, (m) => `<bdi><a href="mailto:${m}" style="color:#2DD4BF;font-weight:600">${m}</a></bdi>`);
+  h = h.replace(/(^|[\s(])(\/(?:contact|app|suppliers|faq|services|blog|about)\/?)/g, (_m, p, path) => `${p}<bdi><a href="${path}" style="color:#2DD4BF;font-weight:600">${path}</a></bdi>`);
   h = h.replace(/(\+?\d[\d\s\-()]{6,}\d)/g, (m) => `<bdi>${m}</bdi>`);
   return h.replace(/\n/g, '<br>');
 }
@@ -73,9 +73,9 @@ export function ChatWidget() {
     maxWidth: '86%', padding: '9px 12px', borderRadius: 12, fontSize: 14, lineHeight: 1.55,
     whiteSpace: 'pre-wrap' as const, unicodeBidi: 'plaintext' as any, textAlign: 'start' as any, wordBreak: 'break-word' as const,
     alignSelf: role === 'user' ? 'flex-end' : 'flex-start',
-    background: role === 'user' ? '#14B8A6' : 'rgba(110,231,212,.06)',
-    color: role === 'user' ? '#04231F' : '#EAF4F2',
-    border: role === 'user' ? '0' : '1px solid rgba(110,231,212,.10)'
+    background: role === 'user' ? 'linear-gradient(135deg,#14B8A6,#0B8276)' : 'rgba(255,255,255,.06)',
+    color: role === 'user' ? '#04222b' : '#EAF4F2',
+    border: role === 'user' ? '0' : '1px solid rgba(255,255,255,.10)'
   });
 
   return (
@@ -84,10 +84,10 @@ export function ChatWidget() {
         <div role="dialog" aria-label={t.title}
           style={{ width: 'min(370px, calc(100vw - 36px))', height: 'min(520px, calc(100vh - 120px))',
             display: 'flex', flexDirection: 'column', marginBottom: 12, overflow: 'hidden',
-            background: 'rgba(6,18,27,.965)', border: '1px solid rgba(110,231,212,.19)', borderRadius: 16,
+            background: 'rgba(5,18,26,.98)', border: '1px solid rgba(255,255,255,.14)', borderRadius: 16,
             boxShadow: '0 30px 70px -30px rgba(0,0,0,.85)', backdropFilter: 'blur(10px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 15px', background: '#0C2330', borderBottom: '1px solid rgba(110,231,212,.10)' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 999, background: '#14B8A6', flex: '0 0 auto' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 15px', background: '#0C2330', borderBottom: '1px solid rgba(255,255,255,.10)' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 999, background: '#2DD4BF', flex: '0 0 auto' }} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 800, fontSize: 14, color: '#fff' }}>{t.title}</div>
               <div style={{ fontSize: 11, color: '#9DB2B2' }}>{t.sub}</div>
@@ -101,13 +101,13 @@ export function ChatWidget() {
             ))}
             {busy && <div dir="auto" style={{ ...bubble('assistant'), opacity: .7, fontStyle: 'italic' }}>{t.thinking}</div>}
           </div>
-          <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid rgba(110,231,212,.10)' }}>
+          <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid rgba(255,255,255,.10)' }}>
             <input ref={inpRef} dir="auto" value={val} onChange={(e) => setVal(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') send(); }} placeholder={t.ph} aria-label={t.ph}
-              style={{ flex: 1, minWidth: 0, background: 'rgba(110,231,212,.035)', border: '1px solid rgba(110,231,212,.19)',
+              style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.14)',
                 color: '#EAF4F2', borderRadius: 10, padding: '10px 12px', font: 'inherit', fontSize: 14, textAlign: 'start' }} />
             <button onClick={send} disabled={busy}
-              style={{ background: '#14B8A6', color: '#04231F', border: 0, borderRadius: 10,
+              style={{ background: 'linear-gradient(135deg,#14B8A6,#0B8276)', color: '#04222b', border: 0, borderRadius: 10,
                 padding: '0 15px', fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? .6 : 1 }}>{t.send}</button>
           </div>
         </div>
@@ -115,8 +115,8 @@ export function ChatWidget() {
       <button onClick={() => setOpen(!open)} aria-label={open ? t.close : t.open}
         style={{ width: 54, height: 54, borderRadius: 999, border: 0, cursor: 'pointer',
           marginInlineStart: rtl ? 0 : 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: '#14B8A6', boxShadow: '0 14px 34px -12px rgba(20,184,166,.75)' }}>
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#04231F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          background: 'linear-gradient(135deg,#2DD4BF,#14B8A6)', boxShadow: '0 14px 34px -12px rgba(45,212,191,.75)' }}>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#04222b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           {open ? <path d="M18 6 L6 18 M6 6 l12 12" />
                 : <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7A8.38 8.38 0 0 1 4 11.5 8.5 8.5 0 0 1 21 11.5z" />}
         </svg>
