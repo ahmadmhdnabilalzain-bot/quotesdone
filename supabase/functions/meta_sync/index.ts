@@ -15,6 +15,11 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 let INSIGHT_ERRORS = 0, EMPTY_INSIGHTS = 0, UPSERT_FAILS = 0; let LAST_ERR = '';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined)||undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 const GV = 'v21.0';
 function resultsFrom(row: any, objective: string): number {
   const acts = Array.isArray(row?.actions) ? row.actions : [];
@@ -28,7 +33,8 @@ function resultsFrom(row: any, objective: string): number {
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) { await logRun('error', { upserts: 0 }, 'call rejected: wrong or missing inbound secret; no Meta ad campaign insights were synced'); return J({ error: 'forbidden' }, 403); }
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) { await logRun('error', { upserts: 0 }, 'call rejected: wrong or missing inbound secret; no Meta ad campaign insights were synced'); return J({ error: 'forbidden' }, 403); }
     const token = await sec('meta_access_token');
     const acct = await sec('meta_ad_account_id');
     const filter = (await sec('meta_campaign_filter')) || 'QuotesDone';

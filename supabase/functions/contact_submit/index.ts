@@ -25,7 +25,18 @@ Deno.serve(async (req) => {
       const key = await sec('resend_api_key');
       const to = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
       const from = (await sec('resend_from')) || 'QuotesDone <noreply@quotesdone.com>';
-      if (key) {
+      // SUPPRESSION BYPASS 27 Jul 2026 ------------------------------------------------------------
+      // This handler built its own Resend call and never consulted email_suppressions - send_outbox
+      // was the only sender that did. The moment the admin notify inbox lands on that list (one
+      // hard bounce from resend_webhook is enough) we would keep pushing every contact-form message
+      // at a mailbox Resend has already told us rejects mail, damaging the sending domain for the
+      // supplier and customer mail that shares it. Check the RECIPIENT first. The contact_messages
+      // row is stored either way so nothing a customer wrote is lost, but the skipped notification
+      // is written to agent_runs rather than disappearing into the best-effort catch below.
+      const { data: supRow } = await admin.from('email_suppressions').select('email').eq('email', to.toLowerCase()).maybeSingle();
+      if (supRow) {
+        try { await admin.from('agent_runs').insert({ agent:'contact_submit', status:'error', counts:{ suppressed:1 }, note:'contact_submit did NOT email the new contact message: the admin notify address ('+to+') is in email_suppressions. The message is safe in contact_messages (ref #'+(row?.id||'')+') - read it there, then fix the mailbox and delete its email_suppressions row.', finished_at:new Date().toISOString() }); } catch(_e2){ /* */ }
+      } else if (key) {
         await fetch('https://api.resend.com/emails', { method:'POST', headers:{ 'Authorization':'Bearer '+key, 'Content-Type':'application/json' }, body: JSON.stringify({
           from, to, reply_to: email || undefined,
           subject: 'New contact message'+(name?(' from '+name):''),

@@ -61,7 +61,7 @@ Deno.serve(async (req)=>{
   }
   let body:any={}; try{ body=await req.json(); }catch(_e){}
   // secrets from app_secrets
-  const { data:secrets } = await sb.from('app_secrets').select('key,value').in('key',['inbound_secret','openrouter_api_key']);
+  const { data:secrets } = await sb.from('app_secrets').select('key,value').in('key',['inbound_secret','openrouter_api_key','cloudconvert_api_key']);
   const secret=(secrets||[]).find((s:any)=>s.key==='inbound_secret')?.value;
   const apiKey=(secrets||[]).find((s:any)=>s.key==='openrouter_api_key')?.value;
   if(!secret || body.__secret!==secret) {
@@ -109,7 +109,56 @@ Deno.serve(async (req)=>{
         const { text } = await extractText(pdf,{mergePages:true});
         const clean=(text||'').trim();
         if(clean.length>80){ extracted=await llmJSON(apiKey,`Extract the fields from this document text:\n\n${clean.slice(0,12000)}`); }
-        else { await sb.from('documents').update({status:'skipped',error:'scanned_pdf_no_text',processed_at:new Date().toISOString()}).eq('id',doc.id); await logThrottled('skipped_scanned_pdf',60,'error',{stage:'pdf',document_id:doc.id,kind:doc.kind},'Document '+doc.id+' is a scanned PDF with no extractable text layer, so it was skipped: this supplier document will never be read into the knowledge base and its specs and certifications are invisible to matching.'); return j({ok:true,id:doc.id,status:'skipped'}); }
+        else {
+          // OCR FALLBACK. A scanned PDF has no text layer, but this function already has a
+          // working vision path for images. Render the PDF to PNG via CloudConvert and use it.
+          // UAE trade licences are commonly scanned, and licence extraction is the first step
+          // of supplier verification, so skipping these blocks the whole verification pipeline.
+          let ocrOk = false;
+          try {
+            const ccKey=(secrets||[]).find((s:any)=>s.key==='cloudconvert_api_key')?.value;
+            if (ccKey) {
+              const pdfBuf = new Uint8Array(ab);
+              let pbin = ''; for (let i = 0; i < pdfBuf.length; i++) pbin += String.fromCharCode(pdfBuf[i]);
+              const pdfB64 = btoa(pbin);
+              const ccAuth = { 'Authorization': 'Bearer ' + ccKey, 'Content-Type': 'application/json' };
+              const jr = await fetch('https://api.cloudconvert.com/v2/jobs', { method: 'POST', headers: ccAuth,
+                body: JSON.stringify({ tasks: {
+                  imp: { operation: 'import/base64', file: pdfB64, filename: (doc.file_name || 'doc.pdf') },
+                  conv: { operation: 'convert', input: 'imp', input_format: 'pdf', output_format: 'png', pixel_density: 200, pages: '1-3' },
+                  exp: { operation: 'export/url', input: 'conv', inline: false, archive_multiple_files: false }
+                } }), signal: AbortSignal.timeout(25000) });
+              const jj = await jr.json();
+              const jobId = jj?.data?.id;
+              if (jobId) {
+                for (let i = 0; i < 16; i++) {
+                  await new Promise((r) => setTimeout(r, 3500));
+                  const pr = await fetch('https://api.cloudconvert.com/v2/jobs/' + jobId, { headers: ccAuth, signal: AbortSignal.timeout(12000) }).catch(() => null);
+                  if (!pr) continue;
+                  const pj = await pr.json().catch(() => ({}));
+                  const tasks = (pj?.data?.tasks || []) as any[];
+                  const done = tasks.find((t) => t.operation === 'export/url' && t.status === 'finished');
+                  if (done) {
+                    const files = (done.result?.files || []) as any[];
+                    const parts: any[] = [{ type: 'text', text: 'This is a scanned document rendered to images. Extract the fields.' }];
+                    for (const f of files.slice(0, 3)) {
+                      const ir = await fetch(f.url, { signal: AbortSignal.timeout(20000) }).catch(() => null);
+                      if (!ir || !ir.ok) continue;
+                      const ibuf = new Uint8Array(await ir.arrayBuffer());
+                      let ibin = ''; for (let k = 0; k < ibuf.length; k++) ibin += String.fromCharCode(ibuf[k]);
+                      parts.push({ type: 'image_url', image_url: { url: 'data:image/png;base64,' + btoa(ibin) } });
+                    }
+                    if (parts.length > 1) { extracted = await llmJSON(apiKey, parts); ocrOk = !!extracted; }
+                    break;
+                  }
+                  if (tasks.some((t) => t.status === 'error')) break;
+                }
+              }
+            }
+          } catch (_e) { /* fall through to the original skip */ }
+          if (ocrOk) { mime = 'application/pdf'; }
+          else { await sb.from('documents').update({status:'skipped',error:'scanned_pdf_no_text_ocr_failed',processed_at:new Date().toISOString()}).eq('id',doc.id); await logThrottled('skipped_scanned_pdf',60,'error',{stage:'pdf',document_id:doc.id,kind:doc.kind},'Document '+doc.id+' is a scanned PDF and the OCR fallback did not produce text, so it was skipped: this supplier document will never be read into the knowledge base and its specs and certifications are invisible to matching.'); return j({ok:true,id:doc.id,status:'skipped'}); }
+        }
       }catch(pe){ await sb.from('documents').update({status:'skipped',error:'pdf_parse:'+String(pe).slice(0,120),processed_at:new Date().toISOString()}).eq('id',doc.id); await logThrottled('skipped_pdf_parse',60,'error',{stage:'pdf',document_id:doc.id,kind:doc.kind},'PDF parsing failed for document '+doc.id+' and it was silently skipped, so its contents never reach the knowledge base. '+String(pe).slice(0,160)); return j({ok:true,id:doc.id,status:'skipped'}); }
       mime='application/pdf';
     } else if(isText){

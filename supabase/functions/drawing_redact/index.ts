@@ -8,6 +8,11 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 const FALLBACK_MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return null; } }
 function stripB64(s:string){ return String(s).replace(/^data:[^;]+;base64,/,''); }
 function b64ToBytes(b64:string){ const bin=atob(stripB64(b64)); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
@@ -20,9 +25,25 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
     const key = await sec('openrouter_api_key'); if (!key) return J({ error: 'no_ai_key' }, 500);
-    const prefix = String(body.prefix || ('redacted/' + Date.now())).replace(/[^A-Za-z0-9._\/-]/g, '_');
+    // ANONYMITY 27 Jul 2026. These objects are handed to matched suppliers as SIGNED URLs before any
+    // reveal or payment, and a signed URL necessarily contains the object path. The path is therefore
+    // untrusted output: anything a caller puts in it is readable by every supplier who is matched.
+    // Callers used to supply the whole prefix and both of them embedded an identifier plus a clock —
+    // customer_api sent `redacted/<customers.id>/<Date.now()>` and attach_photos sends
+    // `refphoto/<user.id>/<Date.now()>` — so a supplier could correlate the same buyer across every
+    // RFQ they ever post, which is exactly the identity QuotesDone charges a reveal fee to disclose.
+    // The caller's prefix now selects ONLY the namespace (its first path segment, e.g. 'redacted' or
+    // 'refphoto'); the identifying remainder is discarded and replaced here with an opaque random
+    // UUID that is not derivable from the customer, the inquiry or the time. This is deliberately
+    // enforced at the single point where the stored path is built, so no caller — present or future —
+    // can reintroduce the leak. Retrieval is unaffected: the paths returned below are stored verbatim
+    // in inquiries.drawing_redacted_paths, which remains the only source of truth for reading,
+    // signing and deleting these objects. Nothing anywhere reconstructs or prefix-lists this path.
+    const ns = (String(body.prefix || 'redacted').split('/')[0] || 'redacted').replace(/[^A-Za-z0-9._-]/g, '_');
+    const prefix = `${ns}/${crypto.randomUUID()}/page`;
     const imgs: any[] = Array.isArray(body.images) ? body.images.slice(0, 8) : [];
     if (!imgs.length) return J({ ok: true, paths: [], pages_in: 0, pages_out: 0 });
 

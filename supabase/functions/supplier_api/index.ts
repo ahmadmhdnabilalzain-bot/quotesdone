@@ -20,6 +20,74 @@ const CONCLUDED = ['completed','closed','cancelled'];
 // Same derivation as auth_api line 9 so the two paths produce comparable records.
 function clientIp(req: Request): string { return (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || ''; }
 const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ? null : String(v).slice(0, n);
+// ANONYMITY FIX 27 Jul 2026 -------------------------------------------------------------------
+// submit_quote stored the supplier's typed scope / conditions / exclusions / notes with nothing
+// but a length clip, and set anonymized = (source === 'upload'). The UPLOAD path is scrubbed by
+// quote_extract's model prompt; the FORM path was never scrubbed at all, so every typed quote was
+// served to the buyer verbatim BEFORE the reveal is paid for. One supplier typing "call Ahmed on
+// 050 123 4567, Al Noor Trading LLC, www.alnoor.ae" into scope hands the buyer everything the 3%
+// reveal fee is charged for, and the platform is cut out of its own transaction.
+//
+// scrubIdentity redacts, case-insensitively: the supplier's OWN company_name (loaded from leads
+// for this supplier_id) with the usual LLC / L.L.C / Trading / Contracting / Est suffix variants,
+// email addresses, URLs and bare domains, and UAE phone numbers (+971, 00971, and 0 followed by
+// 8-9 digits, which covers 05x mobiles and 02/03/04/06/07/09 landlines). Each hit becomes
+// '[removed]' and the original string is collected into quotes.masked_terms - the same audit
+// shape quote_extract already writes for the upload path, so both paths are reviewable the
+// same way. It deliberately over-redacts: a false positive costs a line of scope text, a false
+// negative costs the whole commission.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CO_SUFFIX = '(?:l\\.?\\s?l\\.?\\s?c\\.?|fz-?llc|fzc|fze|trading|contracting|establishment|est\\.?|general|co\\.?|company|group)';
+const ID_PATTERNS: RegExp[] = [
+  /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
+  /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
+  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info)(?:\.[A-Za-z]{2})?\b/gi,
+  /\+\s?971[\s.-]?\d(?:[\s.-]?\d){6,10}/g,
+  /\b00\s?971[\s.-]?\d(?:[\s.-]?\d){6,10}/g,
+  /\b0\d(?:[\s.-]?\d){7,8}\b/g,
+];
+const rxEsc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function companyRe(name: unknown): RegExp | null {
+  const base = String(name || '').replace(new RegExp('\\b' + CO_SUFFIX, 'gi'), ' ').replace(/[^A-Za-z0-9؀-ۿ ]+/g, ' ').trim();
+  const words = base.split(/\s+/).filter((w) => w.length > 1).map(rxEsc);
+  if (!words.length || base.replace(/\s+/g, '').length < 3) return null;
+  try { return new RegExp('\\b' + words.join('[\\s.,_-]*') + '(?:[\\s.,_-]*' + CO_SUFFIX + ')*', 'gi'); } catch (_e) { return null; }
+}
+function scrubIdentity(text: string | null, ownName: unknown, hits: string[]): string | null {
+  if (text == null) return text;
+  let out = String(text);
+  const nameRe = companyRe(ownName);
+  // Contact patterns run BEFORE the company-name pattern on purpose: "www.alnoor.ae" must be
+  // taken out whole as a URL, otherwise the name pattern eats "alnoor" first and leaves a
+  // half-redacted "www.[removed].ae" that still points at the supplier.
+  for (const re of (nameRe ? [...ID_PATTERNS, nameRe] : ID_PATTERNS)) {
+    out = out.replace(re, (m: string) => { const t = String(m).trim(); if (t.length < 3) return m; if (!hits.includes(t)) hits.push(t); return '[removed]'; });
+  }
+  return out;
+}
+// ANONYMITY FIX 27 Jul 2026 (customer -> supplier direction) ----------------------------------
+// scrubIdentity above protects the SUPPLIER's identity in the text a supplier types. The same
+// leak exists in the opposite direction and is worth more money: inbox serves the buyer's own
+// free text (summary / spec / boq) to every matched supplier BEFORE the 3% reveal fee is paid.
+// A brief reading "villa fit-out for Ahmed Khan, call 050 123 4567" hands the supplier
+// everything the reveal fee is charged for, and the platform is cut out of its own transaction.
+//
+// inquiry_ai's prompt already tells the model not to put identity into summary/spec, but that is
+// a soft control the customer can bypass entirely: customer_api's create_inquiry inserts a
+// client-supplied summary/spec/raw_input, and edit_inquiry patches summary/spec/boq with no
+// scrub at all. This is the deterministic server-side backstop for both paths.
+//
+// scrubDeep walks JSONB (spec, boq) and applies the EXISTING scrubIdentity to every string it
+// finds, so emails, URLs, bare domains and UAE phone numbers are redacted by exactly the same
+// patterns already trusted on the supplier side. Numbers are returned untouched, so BOQ
+// quantities and prices are unaffected. `ownName` is the buyer's own full_name, which lets
+// companyRe redact the buyer by name the same way it redacts a supplier by company name.
+function scrubDeep(v: unknown, ownName: unknown, hits: string[]): unknown {
+  if (typeof v === 'string') return scrubIdentity(v, ownName, hits);
+  if (Array.isArray(v)) return v.map((x) => scrubDeep(x, ownName, hits));
+  if (v && typeof v === 'object') { const o: Record<string, unknown> = {}; for (const k of Object.keys(v as Record<string, unknown>)) o[k] = scrubDeep((v as Record<string, unknown>)[k], ownName, hits); return o; }
+  return v;
+}
 const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n !== 0 ? n : (isFinite(n) && String(v).trim() !== '' ? n : null); };
 async function secretVal(key: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return data?.value || null; }
 function b64ToBytes(b64:string){ const bin=atob(String(b64).replace(/^data:[^;]+;base64,/,'')); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
@@ -53,7 +121,17 @@ Deno.serve(async (req) => {
     if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,bank_name,bank_account_name,bank_iban,license_doc_path,iban_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews').eq('claimed_by', email).maybeSingle(); return J({ supplier: data || null }); }
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select('id,company_name,emirate,business_role,claimed,claimed_by').ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); return J({ results: (data || []).map((r) => ({ ...r, claimable: !r.claimed || r.claimed_by === email })) }); }
     if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.' }, 400); const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, source: 'self_registered', scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) return J({ error: error.message }, 500); const reg = await setRegistration(ins!.id); return J({ ok: true, id: ins?.id, registration: reg }); }
-    if (action === 'claim') { const id = Number(body.leads_id); const { data: row } = await admin.from('leads').select('id,claimed,claimed_by').eq('id', id).maybeSingle(); if (!row) return J({ error: 'not found' }, 404); if (row.claimed && row.claimed_by !== email) return J({ error: 'This company is already claimed by another account.' }, 409); const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing && existing.id !== id) return J({ error: 'Your account already manages another company.' }, 409); await admin.from('leads').update({ claimed: true, claimed_by: email, portal_updated_at: new Date().toISOString() }).eq('id', id); const reg = await setRegistration(id); return J({ ok: true, registration: reg }); }
+    // TAKEOVER FIX 27 Jul 2026 -----------------------------------------------------------------
+    // 'claim' resolved the listing from body.leads_id - the sequential primary key - and never
+    // looked at claim_token. claim_lookup v2 was rewritten on 19 Jul 2026 to accept ONLY the
+    // unguessable token precisely because ids are walkable (see claim_lookup/index.ts header:
+    // walking id = 1,2,3... dumped all 20,470 leads). This endpoint left the other half of that
+    // hole open: anyone with any supplier login could POST leads_id = N and take ownership of any
+    // of the 20,464 unclaimed listings - name, licence, inbox and all - one id at a time. The
+    // token is the proof of invitation, so the token is now the LOOKUP KEY. leads_id is accepted
+    // only as a cross-check: if it is sent and disagrees with the row the token resolves to, the
+    // call is rejected rather than silently trusting either one.
+    if (action === 'claim') { const token = String(body.claim_token || body.token || body.t || '').trim(); if (!UUID_RE.test(token)) return J({ error: 'invalid_link', message: 'This claim link is not valid. Please use the link from your invitation, or contact management@quotesdone.com.' }, 400); const { data: row } = await admin.from('leads').select('id,claimed,claimed_by').eq('claim_token', token).maybeSingle(); if (!row) return J({ error: 'not found' }, 404); const id = Number(row.id); const askedId = Number(body.leads_id); if (body.leads_id != null && isFinite(askedId) && askedId !== id) return J({ error: 'invalid_link', message: 'This claim link does not match the company you selected. Please use the link from your invitation.' }, 400); if (row.claimed && row.claimed_by !== email) return J({ error: 'This company is already claimed by another account.' }, 409); const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing && existing.id !== id) return J({ error: 'Your account already manages another company.' }, 409); await admin.from('leads').update({ claimed: true, claimed_by: email, portal_updated_at: new Date().toISOString() }).eq('id', id); const reg = await setRegistration(id); return J({ ok: true, id, registration: reg }); }
 
     if (action === 'process_docs') {
       const { data: sup } = await admin.from('leads').select('id,company_name,services,products,service_emirates').eq('claimed_by', email).maybeSingle();
@@ -119,8 +197,21 @@ Deno.serve(async (req) => {
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       for (const c of PROFILE_COLS) if (body[c] !== undefined) upd[c] = body[c];
       if (Array.isArray(body.service_emirates)) upd.service_emirates = body.service_emirates;
-      if (body.accept_terms) { upd.accepted_terms_at = new Date().toISOString(); upd.accepted_terms_version = String(body.terms_version || 'v2'); upd.accepted_terms_ip = clientIp(req) || null; }
-      const firstSubmit = !sup.registration_submitted_at; if (autoApprove) { upd.approval_status = 'approved'; upd.verified = true; } else if (!sup.verified) { upd.approval_status = 'pending'; } if (firstSubmit) upd.registration_submitted_at = new Date().toISOString();
+      // EVIDENCE FIX 27 Jul 2026. The version recorded as legally accepted was whatever the
+      // browser posted in body.terms_version. The record this writes is the platform's dispute
+      // evidence for the 3% non-response fine (see the file header) - letting the accepting party
+      // choose which version of the agreement is on file makes it evidence of nothing, and a
+      // supplier could pin themselves to an old or invented version by editing one JSON field.
+      // The current version is now read server-side from app_secrets('terms_version'); the key is
+      // not set today, so the existing 'v2' default still applies until it is.
+      if (body.accept_terms) { const tv = String((await secretVal('terms_version')) || 'v2').trim().slice(0, 20) || 'v2'; upd.accepted_terms_at = new Date().toISOString(); upd.accepted_terms_version = tv; upd.accepted_terms_ip = clientIp(req) || null; }
+      // APPROVAL FIX 27 Jul 2026. `else if (!sup.verified)` demoted an ALREADY-APPROVED supplier
+      // back to 'pending' every time they saved their profile, because os_ops approves by setting
+      // approval_status only and never touches leads.verified. The supplier silently lost the
+      // ability to submit quotes (submit_quote requires approval_status === 'approved') and an
+      // admin's decision was reverted by an unrelated edit. Approval is only ever revoked
+      // deliberately by an admin now - this path can put a supplier INTO pending, never back.
+      const firstSubmit = !sup.registration_submitted_at; if (autoApprove) { upd.approval_status = 'approved'; upd.verified = true; } else if (String(sup.approval_status || '') !== 'approved' && !sup.verified) { upd.approval_status = 'pending'; } if (firstSubmit) upd.registration_submitted_at = new Date().toISOString();
       await admin.from('leads').update(upd).eq('id', sup.id);
       await aiSummarize(sup.id);
       const { data: full } = await admin.from('leads').select('*').eq('id', sup.id).maybeSingle();
@@ -177,15 +268,37 @@ Deno.serve(async (req) => {
       const { data: sup } = await admin.from('leads').select('id,approval_status').eq('claimed_by', email).maybeSingle(); if (!sup) return J({ error: 'claim your company first' }, 400);
       const { data: matches } = await admin.from('inquiry_matches').select('inquiry_id').eq('supplier_id', sup.id); const ids = (matches || []).map((m) => m.inquiry_id);
       if (!ids.length) return J({ inquiries: [], approval_status: sup.approval_status });
-      const { data: inq } = await admin.from('inquiries').select('id,category,emirate,summary,spec,created_at,budget,scope_type,brief_source,boq,boq_confidence,drawing_redacted_paths,status,outcome,hired_supplier_id').in('id', ids).order('created_at', { ascending: false }).limit(25);
+      const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,summary,spec,created_at,budget,scope_type,brief_source,boq,boq_confidence,drawing_redacted_paths,status,outcome,hired_supplier_id').in('id', ids).order('created_at', { ascending: false }).limit(25);
       const { data: myq } = await admin.from('quotes').select('inquiry_id,quote_amount,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,source,original_file_name,submittable').eq('supplier_id', sup.id); const qmap = Object.fromEntries((myq || []).map((x) => [x.inquiry_id, x]));
+      // Reveal gate for the scrub below. customer_api treats the mere existence of a transactions
+      // row as "revealed" (line ~430: every tx row for the customer goes into revealedQ with no
+      // further filter), and this function's own `projects` action already treats a supplier's
+      // transactions rows as its paid-for jobs. Reusing that exact definition rather than
+      // inventing a new one is what keeps post-reveal behaviour identical.
+      const { data: txs } = await admin.from('transactions').select('inquiry_id').eq('supplier_id', sup.id).in('inquiry_id', ids);
+      const revealedInq = new Set((txs || []).map((t) => String(t.inquiry_id)));
+      // customer_id is selected ONLY to look up the buyer's own name for scrubIdentity. It is
+      // never placed on the response - it is a stable id that would let a supplier correlate a
+      // buyer across RFQs.
+      const custIds = Array.from(new Set((inq || []).map((r: any) => r.customer_id).filter(Boolean).map(String)));
+      const custName: Record<string, string> = {};
+      if (custIds.length) { const { data: cs } = await admin.from('customers').select('id,full_name').in('id', custIds); for (const c of (cs || [])) if (c.full_name) custName[String(c.id)] = String(c.full_name); }
       const out: any[] = [];
       for (const i of (inq || [])) {
         const pages: string[] = [];
         for (const p of (Array.isArray(i.drawing_redacted_paths) ? i.drawing_redacted_paths : [])) { const u = await signedRedacted(String(p)); if (u) pages.push(u); }
         const concluded = CONCLUDED.includes(String(i.status));
         const youWon = i.hired_supplier_id != null && Number(i.hired_supplier_id) === Number(sup.id);
-        out.push({ id: i.id, category: i.category, emirate: i.emirate, summary: i.summary, spec: i.spec, created_at: i.created_at, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, status: i.status, concluded, you_won: youWon, quote: qmap[i.id] || null });
+        // Pre-reveal, the buyer's own free text is scrubbed on the way out. Once this supplier
+        // has a transactions row for this inquiry the reveal has been paid for, and summary /
+        // spec / boq are served byte-identically to before this change.
+        const revealed = revealedInq.has(String(i.id));
+        const hits: string[] = [];
+        const buyerName = custName[String(i.customer_id)] || null;
+        const sSummary = revealed ? i.summary : scrubIdentity(i.summary ?? null, buyerName, hits);
+        const sSpec = revealed ? i.spec : scrubDeep(i.spec, buyerName, hits);
+        const sBoq = revealed ? i.boq : scrubDeep(i.boq, buyerName, hits);
+        out.push({ id: i.id, category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, status: i.status, concluded, you_won: youWon, quote: qmap[i.id] || null });
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
     }
@@ -221,7 +334,17 @@ Deno.serve(async (req) => {
       const amt = Number(body.amount); if (!(amt > 0)) return J({ error: 'invalid amount' }, 400);
       const isUpload = body.source === 'upload';
       const items = Array.isArray(body.items) ? body.items : [];
-      const det = { inquiry_id: body.inquiry_id, supplier_id: sup.id, quote_amount: amt, notes: clip(body.notes, 1000), lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: clip(body.scope, 2000), conditions: clip(body.conditions, 2000), exclusions: clip(body.exclusions, 2000), source: isUpload ? 'upload' : 'form', anonymized: isUpload, original_file_path: body.original_file_path || null, original_file_name: body.original_file_name || null, masked_terms: Array.isArray(body.masked_terms) ? body.masked_terms : null, structured: items.length > 0 };
+      // Free text the supplier typed. On the FORM path it goes through scrubIdentity (see the
+      // helper's note, 27 Jul 2026) before it is ever stored, because these four columns are read
+      // straight back out to the buyer pre-payment. The UPLOAD path is left as-is: quote_extract
+      // already anonymised it and supplies its own masked_terms, so scrubbing twice would only
+      // mangle text a model has already cleaned.
+      const maskHits: string[] = [];
+      const scrub = (v: unknown, n: number) => isUpload ? clip(v, n) : scrubIdentity(clip(v, n), sup.company_name, maskHits);
+      const sNotes = scrub(body.notes, 1000), sScope = scrub(body.scope, 2000), sCond = scrub(body.conditions, 2000), sExcl = scrub(body.exclusions, 2000);
+      const priorMasked: string[] = Array.isArray(body.masked_terms) ? body.masked_terms.map((x: unknown) => String(x)) : [];
+      const allMasked = [...priorMasked, ...maskHits.filter((h) => !priorMasked.includes(h))];
+      const det = { inquiry_id: body.inquiry_id, supplier_id: sup.id, quote_amount: amt, notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', anonymized: true, original_file_path: body.original_file_path || null, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: items.length > 0 };
       // Capture the status BEFORE the upsert. quotes.status defaults to 'submitted', so a row
       // created by a dry_run preflight would land live and be visible to the customer even though
       // the preflight is supposed to change nothing. Caught by a demo-data walkthrough on

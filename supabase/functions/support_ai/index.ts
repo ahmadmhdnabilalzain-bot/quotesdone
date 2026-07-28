@@ -41,8 +41,23 @@ Deno.serve(async (req) => {
     const { data: sec } = await admin.from('app_secrets').select('value').eq('key', 'openrouter_api_key').maybeSingle();
     if (!sec?.value) return J({ reply: 'Our help assistant is offline right now — please email info@quotesdone.com and the team will get back to you.' });
 
-    const { data: pc } = await admin.from('pricing_config').select('*').limit(1).maybeSingle();
-    const pricing = pc ? `PRICING (authoritative — use these exact numbers for any fee question):\n${JSON.stringify(pc)}` : 'PRICING: a small reveal fee applies to unlock a chosen supplier; if asked the exact number and it is not provided, say it is shown at the reveal step.';
+    // PROMPT LEAK 27 Jul 2026 ------------------------------------------------------------------
+    // This selected pricing_config with '*' and JSON.stringify'd the ENTIRE row into the system
+    // prompt of a customer-facing chatbot, labelled "authoritative — use these exact numbers".
+    // That row is not customer data: it carries supplier-side commercial terms (supplier_reg_fee,
+    // supplier_reg_period, supplier_free_count) and an internal operations flag
+    // (auto_approve_suppliers, i.e. whether we are vetting suppliers by hand). A model handed that
+    // block and told it is authoritative will read any of it back to whoever asks, and the person
+    // asking is a member of the public. Only the customer-facing numbers go in now: the reveal
+    // rate and cap that actually apply today (promo window if one is live, standard otherwise) and
+    // the refund window. Never serialise a whole config row into a public prompt.
+    const { data: pc } = await admin.from('pricing_config').select('promo_until,promo_reveal_rate,promo_reveal_cap,standard_reveal_rate,standard_reveal_cap,refund_window_working_days').limit(1).maybeSingle();
+    const promoLive = !!pc?.promo_until && new Date() <= new Date(pc.promo_until);
+    const fees: Record<string, unknown> | null = pc ? { reveal_fee_percent: Number(promoLive ? pc.promo_reveal_rate : pc.standard_reveal_rate) * 100, refund_window_working_days: pc.refund_window_working_days } : null;
+    // The cap column is set to a sentinel (99,999,999) when there is effectively no cap — quoting
+    // that figure at a customer reads as a bug, so it is only included when it really binds.
+    if (fees && pc) { const cap = Number(promoLive ? pc.promo_reveal_cap : pc.standard_reveal_cap); if (cap > 0 && cap < 1e6) fees.reveal_fee_cap_aed = cap; }
+    const pricing = fees ? `PRICING (authoritative — use these exact numbers for any fee question; the reveal fee is a percentage of the accepted quote and is the only fee a customer pays):\n${JSON.stringify(fees)}` : 'PRICING: a small reveal fee applies to unlock a chosen supplier; if asked the exact number and it is not provided, say it is shown at the reveal step.';
 
     const system = `${FAQ}\n\n${pricing}\n\n${acct}`;
     let reply = '';

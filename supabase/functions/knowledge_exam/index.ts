@@ -31,6 +31,11 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
   try { await admin.from('agent_runs').insert({ agent: 'knowledge_exam', status, counts, note: String(note || '').slice(0, 500), started_at: new Date(T0).toISOString(), finished_at: new Date().toISOString() }); } catch (_e) { /* */ }
 }
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 function parseJson(s: string): any { if (!s) return null; let t = String(s).trim().replace(/^```(?:json)?/i, '').replace(/```$/,'').trim(); const a = t.indexOf('['), o = t.indexOf('{'); const start = (a >= 0 && (o < 0 || a < o)) ? a : o; if (start > 0) t = t.slice(start); try { return JSON.parse(t); } catch (_e) { return null; } }
 // crude convergence: do two independently-produced answers share their significant terms?
@@ -48,7 +53,8 @@ function converged(a: string, b: string): boolean {
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
     const nGen = Math.max(0, Math.min(20, Number(body.generate) ?? 6));
     const nAns = Math.max(1, Math.min(20, Number(body.answer) ?? 8));
 

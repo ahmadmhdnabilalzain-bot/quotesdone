@@ -18,6 +18,33 @@ async function logLlm(row: Record<string, unknown>) {
   try { await admin.from('llm_calls').insert(row); } catch (_e) { /* telemetry must never fail a reply */ }
 }
 
+// ABUSE CONTROL 27 Jul 2026 --------------------------------------------------------------------
+// site_assistant is a published URL with Access-Control-Allow-Origin '*', no JWT check, no shared
+// secret and - until now - no rate limit of any kind, while every accepted message spends real
+// OpenRouter credit. Anyone who opened the network tab could loop the endpoint and bill us until
+// the key ran dry. Two ceilings, both checked BEFORE the FAQ query and the OpenRouter call so a
+// blocked request costs neither a query nor a credit:
+//   - per caller IP (default 10 messages/hour) - stops the lazy version of the attack;
+//   - a GLOBAL daily ceiling that does not depend on the IP being honest. The leftmost
+//     X-Forwarded-For entry is client-supplied and trivially forged, so a caller rotating a fake
+//     header gets a fresh per-IP bucket every request - the global bucket is the one that actually
+//     caps daily spend. Do not remove it and leave only the per-IP cap.
+// Both numbers live in app_secrets (site_assistant_ip_hour, site_assistant_global_day) so they can
+// be retuned without a deploy. A blocked visitor gets a polite reply at HTTP 200, not an error
+// page: the widget renders j.reply and shows its generic error banner for anything else.
+// Reuses login_otp's rl_check RPC and the existing rl_hits table - no new limiter, no new schema.
+const RL_IP_HOUR_DEFAULT = 10;
+const RL_GLOBAL_DAY_DEFAULT = 1500;
+const RL_REPLY = 'I can only take a few questions at a time from each visitor, and you have reached that for now. Please try again a little later, or reach a person directly:\n+971 50 931 9355 (call or WhatsApp, Sun-Thu 9am-6pm GST)\nmanagement@quotesdone.com\nيمكنني الرد على عدد محدود من الأسئلة لكل زائر، وقد وصلت إلى هذا الحد الآن. يرجى المحاولة لاحقاً أو التواصل معنا مباشرة:\n+971 50 931 9355\nmanagement@quotesdone.com';
+async function secNum(k: string, dflt: number): Promise<number> { const n = Number(await sec(k)); return Number.isFinite(n) && n > 0 ? Math.floor(n) : dflt; }
+async function rl(key: string, limit: number, seconds: number): Promise<boolean> {
+  try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); if (error) return true; return data !== false; }
+  catch (_e) { return true; } // limiter unavailable must not take the public assistant offline
+}
+async function logRun(status: string, counts: Record<string, unknown>, note: string) {
+  try { await admin.from('agent_runs').insert({ agent: 'site_assistant', status, counts, note: String(note || '').slice(0, 500), finished_at: new Date().toISOString() }); } catch (_e) { /* */ }
+}
+
 const FACTS_SHARED = `SHARED FACTS (safe for anyone):\n- QuotesDone is the UAE's anonymous quotation marketplace. A customer describes a job once; the Smart Engine structures it and sends it anonymously to vetted UAE suppliers who send quotes the customer compares side by side.\n- Customer and supplier identities stay hidden until a paid reveal (anonymous by design). Suppliers never see each other's quotes.\n- SCOPE: we cover ALL trades and product categories - anything that can be quoted from specifications, drawings or photos. We do NOT cover food & beverage, or services that must be priced by an on-site visit. Minimum job value is AED 500.\n- Coverage: all 7 emirates (Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Umm Al Quwain, Fujairah).\n- You can describe a job by text, voice, photo or drawing.\n- CONTACT A HUMAN: direct line +971 50 931 9355 (call or WhatsApp, Sun-Thu 9am-6pm GST), management@quotesdone.com, or the contact page /contact/. This number is published on our contact page.\n- Operator: QuotesDone Technologies, Dubai DET E-Trader Licence No. 1633275.`;
 
 const FACTS_CUSTOMER = `CUSTOMER-SIDE FACTS:\n- Posting a job and comparing quotes is FREE for customers. A 3% facilitation fee applies ONLY when the customer chooses to reveal a supplier's contact details.\n- Post a job free at /me`;
@@ -48,6 +75,21 @@ Deno.serve(async (req) => {
     const message = String(b.message||'').trim().slice(0,500);
     if (message.length < 1) return J({ error: 'empty' }, 400);
     const path = String(b.path||'').slice(0,200);
+
+    // ABUSE CONTROL 27 Jul 2026 (see the note above rl()). Checked here - after the message is
+    // parsed, before any FAQ lookup or OpenRouter call - so a refused caller costs us nothing.
+    const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+    const ipLimit = await secNum('site_assistant_ip_hour', RL_IP_HOUR_DEFAULT);
+    const dayLimit = await secNum('site_assistant_global_day', RL_GLOBAL_DAY_DEFAULT);
+    const ipOk = await rl('site_assistant_ip:' + ip, ipLimit, 3600);
+    const globalOk = ipOk ? await rl('site_assistant_global_day', dayLimit, 86400) : true;
+    if (!ipOk || !globalOk) {
+      await logRun('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'global_day' },
+        !ipOk
+          ? ('site_assistant refused a caller that asked for more than ' + ipLimit + ' messages in an hour from one address. No OpenRouter call was made and no credit was spent. A real visitor never reaches this; sustained hits mean someone is scripting the public endpoint. Tune app_secrets.site_assistant_ip_hour if genuine visitors are being turned away.')
+          : ('site_assistant hit the GLOBAL daily ceiling of ' + dayLimit + ' visitor messages. Further messages are refused today to cap OpenRouter spend. This ceiling exists because the per-IP cap trusts a forgeable X-Forwarded-For header - if real traffic has genuinely grown, raise app_secrets.site_assistant_global_day, do not remove the ceiling.'));
+      return J({ reply: RL_REPLY, rate_limited: true });
+    }
     const history = Array.isArray(b.history) ? b.history.slice(-6).map((h:any)=>({ role: h.role==='assistant'?'assistant':'user', content: String(h.content||'').slice(0,600) })) : [];
 
     let audience = audienceFromPath(path);
