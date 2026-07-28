@@ -9,6 +9,11 @@ const CAP = 30 * 1024 * 1024; const USD_AED = 3.6725;
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const ASSET = Deno.env.get('SUPABASE_URL')! + '/storage/v1/object/public/brand';
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function callFn(name: string, payload: Record<string, unknown>){ try { const sk = await sec('inbound_secret'); const r = await fetch(FN + '/' + name, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: sk, ...payload }) }); return await r.json(); } catch (e) { return { error: String((e as Error)?.message || e) }; } }
 function parseDate(v: unknown): Date | null { if (!v) return null; const s = String(v).trim(); let d = new Date(s); if (!isNaN(d.getTime())) return d; const m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/); if (m) { let yy = Number(m[3]); if (yy < 100) yy += 2000; d = new Date(yy, Number(m[2]) - 1, Number(m[1])); if (!isNaN(d.getTime())) return d; } return null; }
 async function queue(row: Record<string, unknown>) { try { await admin.from('agent_actions').insert(row); } catch (_e) {} }
@@ -303,7 +308,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
     const job = String(body.job || '');
     const { data: run } = await admin.from('agent_runs').insert({ agent: job }).select('id').maybeSingle();
     let counts: Record<string, unknown> = {}; let status = 'ok'; let note = '';

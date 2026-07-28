@@ -2,10 +2,16 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined)||undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 Deno.serve(async (req) => {
   try {
     const b = await req.json().catch(()=>({} as any));
-    if (b.__secret !== (await sec('inbound_secret'))) return J({ error:'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || b.__secret !== __exp) return J({ error:'forbidden' }, 403);
     const token = await sec('vercel_token'); const team = await sec('vercel_team_id');
     const H = { Authorization: 'Bearer ' + token };
     if (b.action === 'logs') {

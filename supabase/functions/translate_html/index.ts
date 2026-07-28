@@ -2,6 +2,11 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined)||undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 const SYS = `You are a professional English→Arabic translator for a UAE B2B quotation marketplace called QuotesDone.
 Translate the VISIBLE TEXT of the given HTML fragment into natural, fluent Modern Standard Arabic (فصحى) appropriate for UAE business users.
 HARD RULES:
@@ -13,7 +18,8 @@ HARD RULES:
 Deno.serve(async (req) => {
   try {
     const b = await req.json().catch(()=>({} as any));
-    if (b.__secret !== (await sec('inbound_secret'))) return J({ error:'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || b.__secret !== __exp) return J({ error:'forbidden' }, 403);
     const key = await sec('openrouter_api_key'); if(!key) return J({ error:'no_key' }, 500);
     const html = String(b.html||''); if(!html) return J({ error:'no_html' }, 400);
     // Primary model + automatic fallbacks (retired slugs like claude-3.5-sonnet 404 on this account).

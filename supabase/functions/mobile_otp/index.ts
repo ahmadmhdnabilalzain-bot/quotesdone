@@ -8,6 +8,11 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined)||undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 function normPhone(p: string){ let s = String(p||'').trim().replace(/[^0-9+]/g,''); if(!s) return ''; if(s.startsWith('00')) s='+'+s.slice(2); if(!s.startsWith('+')){ if(s.startsWith('0')) s='+971'+s.slice(1); else if(s.startsWith('971')) s='+'+s; else s='+'+s; } return s; }
 
 async function verifyCreds(){ return { svc: await sec('twilio_verify_service_sid'), ks: await sec('twilio_api_key_sid'), kk: await sec('twilio_api_key_secret') }; }
@@ -33,7 +38,8 @@ Deno.serve(async (req) => {
 
     // read-only credential + service reachability check (no SMS sent). Secret-gated to avoid abuse.
     if (action === 'diag') {
-      if (body.__secret !== (await sec('inbound_secret'))) return J({ error:'forbidden' }, 403);
+      const __exp = await sec('inbound_secret');
+      if (!secretOk(__exp) || body.__secret !== __exp) return J({ error:'forbidden' }, 403);
       if (!smsEnabled) return J({ ok:false, sms_enabled:false, missing:{ verify_service_sid:!svc, api_key_sid:!ks, api_key_secret:!kk } });
       const r = await fetch(`https://verify.twilio.com/v2/Services/${svc}`, { headers:{ 'Authorization': basic(ks!,kk!) } });
       const jd = await r.json().catch(()=>({}));

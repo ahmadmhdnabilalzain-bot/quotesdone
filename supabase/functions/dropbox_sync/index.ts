@@ -24,6 +24,11 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
 }
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function accessToken(): Promise<string|null> {
   const rt = await sec('dropbox_refresh_token'); const ak = await sec('dropbox_app_key'); const as = await sec('dropbox_app_secret');
   if (!rt || !ak || !as) return null;
@@ -50,7 +55,8 @@ async function listRoot(token: string, path: string){
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) { await logThrottled('forbidden', 60, 'error', { stage:'auth' }, 'dropbox_sync rejected a caller presenting a bad or missing inbound secret. If this is the scheduled caller, the Dropbox document catalog is no longer being refreshed at all.'); return J({ error: 'forbidden' }, 403); }
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) { await logThrottled('forbidden', 60, 'error', { stage:'auth' }, 'dropbox_sync rejected a caller presenting a bad or missing inbound secret. If this is the scheduled caller, the Dropbox document catalog is no longer being refreshed at all.'); return J({ error: 'forbidden' }, 403); }
     const runStart = new Date().toISOString();
     const token = await accessToken();
     if (!token) { await logThrottled('no_dropbox_auth', 60, 'error', { stage:'token' }, 'dropbox_sync could not obtain a Dropbox access token (refresh token expired/revoked or app key/secret missing). The dropbox_files catalog is frozen and the Document Controller is showing stale contents until the OAuth credentials are restored.'); return J({ ok:false, error:'no_dropbox_auth' }); }

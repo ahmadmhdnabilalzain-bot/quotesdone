@@ -2,6 +2,11 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string | undefined) || undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 const SYS = 'You are a professional English to Arabic translator for a UAE B2B quotation marketplace called QuotesDone. Translate the VISIBLE TEXT of the given HTML fragment into natural, fluent Modern Standard Arabic for UAE business users. The fragment may have unbalanced tags (a slice of a larger document) - that is fine, keep tags exactly. HARD RULES: 1) Preserve ALL HTML tags, attributes, classes, ids, hrefs and structure EXACTLY, even if unbalanced. 2) Do NOT translate: brand name QuotesDone, URLs/href/src, emails, numbers, dates, AED, code. 3) Preserve any placeholder tokens of the form {{...}} EXACTLY as-is (for example {{LOC_THE}} and {{LOC}}) - never translate, alter, space, or remove them. 4) Translate text between tags and placeholder/title/aria-label/alt attribute VALUES. 5) Faithful and precise, including legal text. 6) Output ONLY the translated HTML fragment, no fences, no notes.';
 function chunk(html: string, size = 4500): string[] {
   if (html.length <= size) return [html];
@@ -18,7 +23,8 @@ async function llm(key: string, model: string, html: string): Promise<string | n
 }
 Deno.serve(async (req) => {
   const b = await req.json().catch(() => ({} as any));
-  if (b.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+  const __exp = await sec('inbound_secret');
+  if (!secretOk(__exp) || b.__secret !== __exp) return J({ error: 'forbidden' }, 403);
   const key = await sec('openrouter_api_key'); if (!key) return J({ error: 'no_key' }, 500);
   const source = String(b.source || ''); const slug = String(b.slug || ''); const model = b.model || 'openai/gpt-4o-mini'; const limit = Math.min(Number(b.limit || 5), 8);
   const { data: row } = await admin.from('qd_deploy_src').select('data').eq('path', 'src/content/' + source + '.json').maybeSingle();

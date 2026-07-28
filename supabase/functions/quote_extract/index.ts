@@ -13,6 +13,11 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const FALLBACK_MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return {}; } }
 function scrub(s: unknown): string {
   let t = String(s == null ? '' : s);
@@ -28,7 +33,8 @@ function dataUrl(b64: string, mime: string){ return `data:${mime};base64,${Strin
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) { await logRun('error', { forbidden: 1, quote_extracted: 0 }, 'quote_extract rejected a caller with a missing/wrong inbound secret (403). A supplier quotation was not parsed — that supplier\'s price will be missing from the comparison the customer sees, which looks like the supplier simply never quoted.'); return J({ error: 'forbidden' }, 403); }
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) { await logRun('error', { forbidden: 1, quote_extracted: 0 }, 'quote_extract rejected a caller with a missing/wrong inbound secret (403). A supplier quotation was not parsed — that supplier\'s price will be missing from the comparison the customer sees, which looks like the supplier simply never quoted.'); return J({ error: 'forbidden' }, 403); }
     const key = await sec('openrouter_api_key');
     if (!key) { await logRun('error', { quote_extracted: 0, ai_key_present: 0 }, 'quote_extract aborted: the openrouter_api_key secret is missing, so no supplier quotation can be read at all. Every quote uploaded while this persists is silently dropped and the customer sees fewer (or zero) quotes to compare.'); return J({ error: 'no ai key' }, 500); }
     const inq = body.inquiry || {};

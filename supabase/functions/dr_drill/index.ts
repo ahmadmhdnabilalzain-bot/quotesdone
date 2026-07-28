@@ -15,6 +15,11 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 }
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Content-Type':'application/json'};
 const j=(o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:cors});
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 
 // small, business-critical tables + a required key to prove schema integrity
 const TABLES:[string,string][]=[
@@ -27,7 +32,7 @@ Deno.serve(async (req)=>{
   let body:any={}; try{ body=await req.json(); }catch(_e){}
   const { data:secrets, error:secretsErr } = await sb.from('app_secrets').select('key,value').eq('key','inbound_secret');
   const secret=(secrets||[])[0]?.value;
-  if(!secret || body.__secret!==secret){
+  if(!secretOk(secret) || body.__secret!==secret){
     await logRun('error', { unauthorized:1, secret_configured: secret?1:0 }, secret ? 'Disaster-recovery drill rejected a caller with a wrong __secret; no restore drill ran. If this was the scheduled cron its secret is stale, which means backups are going unverified and a real outage could find them unrestorable.' : ('Disaster-recovery drill could not read inbound_secret from app_secrets, so every call including the scheduled cron is rejected with 401. The backup restore drill never runs and nobody is verifying that backups are restorable. ' + String(secretsErr?.message || 'no inbound_secret row')));
     return j({error:'unauthorized'},401);
   }

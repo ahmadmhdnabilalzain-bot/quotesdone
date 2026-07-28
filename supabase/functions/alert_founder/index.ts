@@ -6,6 +6,11 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined) || undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 const ACTIONABLE = new Set(['warn','warning','critical','error','high','urgent','action','danger','fail','failed','alert','escalation']);
 function wrapInternal(subject: string, bodyText: string, logo: string) {
   const logoTag = logo ? `<img src="${logo}" width="34" height="34" alt="QuotesDone" style="border-radius:8px;display:block"/>` : '';
@@ -16,7 +21,8 @@ function wrapInternal(subject: string, bodyText: string, logo: string) {
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) return J({ error:'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error:'forbidden' }, 403);
     const event = String(body.event||'').slice(0,140); if(!event) return J({ error:'event required' }, 400);
     const detail = String(body.detail||'').slice(0,1000);
     const level = String(body.level||'info').toLowerCase();

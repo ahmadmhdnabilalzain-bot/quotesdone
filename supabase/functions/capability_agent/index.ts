@@ -22,6 +22,11 @@ const BUCKET = 'supplier-docs';
 const MAX_BYTES = 8 * 1024 * 1024;
 
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 function parseJson(t: string) { let s = String(t || '').trim(); const f = s.match(/```(?:json)?\s*([\s\S]*?)```/i); if (f) s = f[1].trim(); try { return JSON.parse(s); } catch { const m = s.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch { /* */ } } return null; } }
 function clip(v: unknown, n: number) { return String(v == null ? '' : v).slice(0, n); }
 function strArr(v: unknown, n: number, len = 120): string[] { return Array.isArray(v) ? v.map((x) => clip(x, len)).filter(Boolean).slice(0, n) : []; }
@@ -63,7 +68,24 @@ async function vocabulary() {
   return { trades: tr || [], roles: ro || [] };
 }
 
-const SYS = `You are QuotesDone's supplier capability analyst for the UAE construction, fit-out, MEP and building-services market. You read a supplier's own documents and determine EXACTLY what work they can take on, so that we only ever send them inquiries they can genuinely quote. A supplier who receives irrelevant inquiries leaves the platform, so precision matters more than coverage.\n\nYou MUST classify using ONLY the controlled vocabulary given in the user message. Never invent a code.\n\nCRITICAL RULES\n1. TRADE (what the work is) and ROLE (how they participate) are separate axes. A company that MANUFACTURES fire pumps is trade=fire_fighting, role=manufacturer. It is NOT plumbing, and it is NOT an installer. Getting role wrong is the most damaging error you can make, because it is what causes a supplier to receive work they cannot perform.\n2. Assign a trade ONLY on real evidence of working in it. A passing mention of a material is not evidence: "we use stainless steel fittings" does NOT make them a steel fabricator. When in doubt, leave it out and say so in missing.\n3. products = the specific product lines or systems they supply/install, generic and in their own words (no brand names). This is the strongest matching signal, so be concrete: "VRF indoor units", "chilled water pipework", not "HVAC solutions".\n4. exclusions = anything the documents explicitly state they do NOT do or do not supply.\n5. Be honest about insufficiency. Generic marketing copy with no concrete scope is NOT sufficient. Never pad the lists to look complete — an over-broad record causes exactly the spam we are preventing.\n\nReturn STRICT JSON only:\n{"trades":[code],"roles":[code],"products":[string],"brands":[string],"project_types":[string],"exclusions":[string],"years_in_business":number|null,"team_size":number|null,"evidence":{"trades":string,"roles":string},"sufficient":boolean,"missing":[string],"confirm_summary":string,"confirm_questions":[string],"confidence":{"trades":0.0,"roles":0.0,"products":0.0}}\n\nsufficient = true ONLY if the documents evidence at least one trade AND one role AND at least two concrete product lines or services.\nmissing = plain English, addressed to the supplier, naming exactly what they must provide. Not "insufficient data" but e.g. "a product catalogue, or a list of the air-conditioning systems you supply and install".\nconfirm_summary = one short paragraph written TO THE SUPPLIER in second person, in plain language with no codes, stating what we understood their business does, for them to confirm or correct.\nconfirm_questions = up to 3 short questions that would remove remaining ambiguity. ALWAYS include one asking what they do NOT take on.`;
+const SYS = `You are QuotesDone's supplier capability analyst for the UAE construction, fit-out, MEP and building-services market. You read a supplier's own documents and determine EXACTLY what work they can take on, so that we only ever send them inquiries they can genuinely quote. A supplier who receives irrelevant inquiries leaves the platform, so precision matters more than coverage.
+
+You MUST classify using ONLY the controlled vocabulary given in the user message. Never invent a code.
+
+CRITICAL RULES
+1. TRADE (what the work is) and ROLE (how they participate) are separate axes. A company that MANUFACTURES fire pumps is trade=fire_fighting, role=manufacturer. It is NOT plumbing, and it is NOT an installer. Getting role wrong is the most damaging error you can make, because it is what causes a supplier to receive work they cannot perform.
+2. Assign a trade ONLY on real evidence of working in it. A passing mention of a material is not evidence: "we use stainless steel fittings" does NOT make them a steel fabricator. When in doubt, leave it out and say so in missing.
+3. products = the specific product lines or systems they supply/install, generic and in their own words (no brand names). This is the strongest matching signal, so be concrete: "VRF indoor units", "chilled water pipework", not "HVAC solutions".
+4. exclusions = anything the documents explicitly state they do NOT do or do not supply.
+5. Be honest about insufficiency. Generic marketing copy with no concrete scope is NOT sufficient. Never pad the lists to look complete — an over-broad record causes exactly the spam we are preventing.
+
+Return STRICT JSON only:
+{"trades":[code],"roles":[code],"products":[string],"brands":[string],"project_types":[string],"exclusions":[string],"years_in_business":number|null,"team_size":number|null,"evidence":{"trades":string,"roles":string},"sufficient":boolean,"missing":[string],"confirm_summary":string,"confirm_questions":[string],"confidence":{"trades":0.0,"roles":0.0,"products":0.0}}
+
+sufficient = true ONLY if the documents evidence at least one trade AND one role AND at least two concrete product lines or services.
+missing = plain English, addressed to the supplier, naming exactly what they must provide. Not "insufficient data" but e.g. "a product catalogue, or a list of the air-conditioning systems you supply and install".
+confirm_summary = one short paragraph written TO THE SUPPLIER in second person, in plain language with no codes, stating what we understood their business does, for them to confirm or correct.
+confirm_questions = up to 3 short questions that would remove remaining ambiguity. ALWAYS include one asking what they do NOT take on.`;
 
 async function callModel(key: string, content: any[]) {
   let last = '';
@@ -90,7 +112,8 @@ async function callModel(key: string, content: any[]) {
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
     const action = String(body.action || 'analyze');
     const probeText = clip(body.probe_text || '', 20000);
     const supplierId = Number(body.supplier_id || 0);

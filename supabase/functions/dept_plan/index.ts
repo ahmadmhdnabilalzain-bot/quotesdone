@@ -39,6 +39,15 @@ async function planDept(deptKey: string) {
   if ((openCount || 0) >= OPEN_TASK_CAP) return { dept: deptKey, skipped: 'has ' + openCount + ' open tasks' };
 
   const { data: vis } = await admin.from('company_vision').select('vision,mission').eq('id', 1).maybeSingle();
+  // Company-level strategic targets every department plans against (company_goals).
+  // Distinct from org_objectives, which is this loop's own work-item table.
+  const { data: goals } = await admin.from('company_goals')
+    .select('goal,metric,target_value,unit,period,owner_dept')
+    .eq('active', true).order('sort');
+  const goalsTxt = (goals || []).map((g: any) =>
+    '- ' + g.goal + ' (' + g.metric + (g.target_value != null ? ('; target ' + g.target_value + ' ' + (g.unit || '')) : '')
+    + '; ' + (g.period || 'annual') + (g.owner_dept ? ('; owned by ' + g.owner_dept) : '') + ')'
+  ).join('\n');
   // SENSE: recent work and whether it worked
   const { data: recent } = await admin.from('org_tasks').select('title,status,result,action_class,updated_at').eq('dept_key', deptKey).order('updated_at', { ascending: false }).limit(8);
   const { data: mem } = await admin.from('org_memory').select('kind,content,created_at').eq('scope', deptKey).order('created_at', { ascending: false }).limit(6);
@@ -60,6 +69,7 @@ async function planDept(deptKey: string) {
 
   const sys = 'You are the HEAD of the ' + (d.name || deptKey) + ' department at QuotesDone, a UAE B2B anonymous quotation marketplace. '
     + 'Company vision: ' + (vis?.vision || 'Become the smartest marketplace engine in the world.') + ' '
+    + (goalsTxt ? ('COMPANY GOALS every department is working toward — your plan must move at least one of these, and you must say which one and how:\n' + goalsTxt + '\n') : '')
     + 'Your charter: ' + (d.charter || '') + ' Your north-star metric: ' + (d.north_star || '') + '. '
     + 'You run a CONTINUOUS LOOP as an autonomous expert: review what you recently did and whether it worked, look at your live numbers, and decide the highest-leverage NEXT actions that move your north star toward the vision. You never wait for instructions. '
     + 'Propose only real, concrete, doable actions — no vague goals. For each, pick an action_class from YOUR CAPABILITIES: ' + capList + '. If none fits, use "analysis" to prepare a research/analysis deliverable. '

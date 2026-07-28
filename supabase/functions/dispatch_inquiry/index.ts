@@ -92,6 +92,9 @@ Deno.serve(async (req) => {
     if (routing.dispatched_at && !force) return J({ ok: true, skip: 'already_dispatched', dispatched_at: routing.dispatched_at });
 
     // ATOMIC CLAIM: set dispatch_lock only if unlocked (or stale). Losers of the race skip.
+    // NOTE: force skips the freshness check but STILL takes the claim below, so a forced run and a
+    // normal run cannot interleave. Two simultaneous FORCED runs remain the one uncovered case,
+    // which is why force now requires a deliberate key rather than being callable in a loop.
     const nowMs = Date.now(); const nowIso = new Date(nowMs).toISOString();
     const prevLock = routing.dispatch_lock ? Date.parse(routing.dispatch_lock) : 0;
     const lockFresh = prevLock && (nowMs - prevLock) < LOCK_STALE_MS;
@@ -189,6 +192,6 @@ Deno.serve(async (req) => {
     } else {
       await logRun('ok', counts, '');
     }
-    return J({ ok: true, outcome: 'dispatched', notified: inserted, capped, max_fanout: MAX_FANOUT, job_type: route.job_type, primary_trade: route.primary_trade });
+    return J({ ok: true, outcome: 'dispatched', notified: inserted, capped, max_fanout: MAX_FANOUT, job_type: route.job_type, primary_trade: route.primary_trade, forced: force });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception during dispatch: ' + m); return J({ error: m }, 500); }
 });

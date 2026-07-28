@@ -19,6 +19,11 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 const cors = { 'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Content-Type':'application/json' };
 const j = (o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:cors});
 async function sha256(t:string){ const b=new TextEncoder().encode(t); const h=await crypto.subtle.digest('SHA-256',b); return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 
 async function aiSummary(pkg:any):Promise<any>{
   const sys='You write concise project post-mortems for a UAE procurement marketplace. Return STRICT JSON only: '+
@@ -38,7 +43,7 @@ Deno.serve(async (req)=>{
   const { data:secrets, error:secretsErr } = await sb.from('app_secrets').select('key,value').in('key',['inbound_secret','openrouter_api_key']);
   const secret=(secrets||[]).find((s:any)=>s.key==='inbound_secret')?.value;
   const apiKey=(secrets||[]).find((s:any)=>s.key==='openrouter_api_key')?.value;
-  if(!secret || body.__secret!==secret){
+  if(!secretOk(secret) || body.__secret!==secret){
     await logRun('error', { unauthorized:1, secret_configured: secret?1:0 }, secret ? 'RFQ archiver rejected a caller with a wrong __secret; no RFQ was archived on this invocation. If this was the scheduled cron its secret is stale and completed RFQs are piling up unarchived, so their drawing files may be purged by retention before the case is preserved.' : ('RFQ archiver could not read inbound_secret from app_secrets, so every call including the scheduled cron is rejected with 401 and no completed RFQ is ever archived. ' + String(secretsErr?.message || 'no inbound_secret row')));
     return j({error:'unauthorized'},401);
   }

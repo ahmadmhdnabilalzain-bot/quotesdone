@@ -8,6 +8,11 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const cors = { 'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Content-Type':'application/json' };
 const j = (o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:cors});
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 
 // index these kinds into the shared KB (non customer-identifying capability text).
 const INDEX_KINDS = new Set(['catalog','profile','drawing']);
@@ -64,7 +69,7 @@ Deno.serve(async (req)=>{
   const { data:secrets } = await sb.from('app_secrets').select('key,value').in('key',['inbound_secret','openrouter_api_key','cloudconvert_api_key']);
   const secret=(secrets||[]).find((s:any)=>s.key==='inbound_secret')?.value;
   const apiKey=(secrets||[]).find((s:any)=>s.key==='openrouter_api_key')?.value;
-  if(!secret || body.__secret!==secret) {
+  if(!secretOk(secret) || body.__secret!==secret) {
     if(!secret) await logThrottled('missing_inbound_secret',60,'error',{stage:'auth'},'The inbound_secret row is missing from app_secrets, so doc_extract rejects every caller including the scheduler; no supplier document is being extracted or indexed at all.');
     else await logThrottled('bad_secret',60,'error',{stage:'auth'},'doc_extract rejected a caller presenting the wrong inbound secret. If this is the scheduled drainer, the document extraction queue is not being processed and supplier documents stay unread.');
     return j({error:'unauthorized'},401);

@@ -11,6 +11,11 @@ const MODELS = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8'];
 const PARSER_VERSION = 'inquiry_parse@1';
 
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 function parseJson(t: string) { let s = String(t || '').trim(); const f = s.match(/```(?:json)?\s*([\s\S]*?)```/i); if (f) s = f[1].trim(); try { return JSON.parse(s); } catch { const m = s.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch { /* */ } } return null; } }
 function clip(v: unknown, n: number) { return String(v == null ? '' : v).slice(0, n); }
 function strArr(v: unknown, n: number, len = 120): string[] { return Array.isArray(v) ? v.map((x) => clip(x, len)).filter(Boolean).slice(0, n) : []; }
@@ -23,7 +28,26 @@ function needFor(mode: string): string {
   return 'executes';
 }
 
-const SYS = `You are QuotesDone's request analyst for the UAE construction, fit-out, MEP and building-services market. You read a customer's request and express it in a controlled vocabulary so it can be matched against suppliers who have confirmed exactly what they do. Sending a request to a supplier who cannot do it costs us that supplier, so be precise and conservative.\n\nUse ONLY the codes given in the user message.\n\nRULES\n1. trades_required = every distinct trade the job genuinely needs. A request to "change the flooring, repaint, and redo the toilet plumbing" needs flooring + painting + plumbing. Do not add a trade the customer did not actually ask for.\n2. delivery_mode is one of:\n   supply_only        - customer only wants materials/products delivered; they install themselves or have their own contractor\n   supply_and_install - customer wants the product supplied AND installed (the common case)\n   install_only       - customer already has the material, needs labour/installation only\n   turnkey            - a combined multi-trade scope the customer wants ONE company to take end to end\n   Choose turnkey ONLY when the customer clearly wants a single company for the whole job.\n3. products = the specific items/systems requested, generic and concrete ("VRF indoor units", "porcelain floor tiles"), never brand names.\n4. brands_specified = brands the customer explicitly named (empty if none).\n5. project_type = office fit-out, villa, apartment, retail, hospitality, industrial, infrastructure, or null.\n6. value_estimate = approximate AED value if the customer stated a budget or it is confidently inferable from quantities, else null. Never guess wildly.\n7. missing = what the customer still needs to tell us before a supplier could actually price this.\n\nReturn STRICT JSON only:\n{"trades_required":[code],"delivery_mode":string,"products":[string],"brands_specified":[string],"project_type":string|null,"value_estimate":number|null,"multi_trade":boolean,"reasoning":string,"missing":[string],"confidence":{"trades":0.0,"delivery_mode":0.0}}`;
+const SYS = `You are QuotesDone's request analyst for the UAE construction, fit-out, MEP and building-services market. You read a customer's request and express it in a controlled vocabulary so it can be matched against suppliers who have confirmed exactly what they do. Sending a request to a supplier who cannot do it costs us that supplier, so be precise and conservative.
+
+Use ONLY the codes given in the user message.
+
+RULES
+1. trades_required = every distinct trade the job genuinely needs. A request to "change the flooring, repaint, and redo the toilet plumbing" needs flooring + painting + plumbing. Do not add a trade the customer did not actually ask for.
+2. delivery_mode is one of:
+   supply_only        - customer only wants materials/products delivered; they install themselves or have their own contractor
+   supply_and_install - customer wants the product supplied AND installed (the common case)
+   install_only       - customer already has the material, needs labour/installation only
+   turnkey            - a combined multi-trade scope the customer wants ONE company to take end to end
+   Choose turnkey ONLY when the customer clearly wants a single company for the whole job.
+3. products = the specific items/systems requested, generic and concrete ("VRF indoor units", "porcelain floor tiles"), never brand names.
+4. brands_specified = brands the customer explicitly named (empty if none).
+5. project_type = office fit-out, villa, apartment, retail, hospitality, industrial, infrastructure, or null.
+6. value_estimate = approximate AED value if the customer stated a budget or it is confidently inferable from quantities, else null. Never guess wildly.
+7. missing = what the customer still needs to tell us before a supplier could actually price this.
+
+Return STRICT JSON only:
+{"trades_required":[code],"delivery_mode":string,"products":[string],"brands_specified":[string],"project_type":string|null,"value_estimate":number|null,"multi_trade":boolean,"reasoning":string,"missing":[string],"confidence":{"trades":0.0,"delivery_mode":0.0}}`;
 
 async function callModel(key: string, user: string) {
   let last = '';
@@ -50,7 +74,8 @@ async function callModel(key: string, user: string) {
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
     const key = await sec('openrouter_api_key'); if (!key) return J({ error: 'no_ai_key' }, 500);
 
     const inquiryId = String(body.inquiry_id || '');

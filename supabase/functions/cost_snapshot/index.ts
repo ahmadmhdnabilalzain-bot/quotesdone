@@ -2,6 +2,11 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function cnt(tbl: string, col: string, sinceIso?: string, extra?: (q: any) => any) { let q = admin.from(tbl).select(col, { count: 'exact', head: true }); if (sinceIso) q = q.gte('created_at', sinceIso); if (extra) q = extra(q); const { count } = await q; return count || 0; }
 
 async function logRun(startedIso: string, status: string, counts: Record<string, unknown>, note: string) {
@@ -30,7 +35,7 @@ Deno.serve(async (req) => {
     await logRun(started, 'error', { authorised: 0, secret_lookup_ok: 0 }, 'cost_snapshot refused every caller because inbound_secret could not be read from app_secrets. The weekly burn/revenue snapshot did NOT run and no owner email was queued - this is an auth-infrastructure failure, not a quiet week with no spend to report.');
     return J({ error: 'secret unavailable' }, 503);
   }
-  if (body.__secret !== expected) {
+  if (!secretOk(expected) || body.__secret !== expected) {
     await logRun(started, 'error', { authorised: 0, bad_or_missing_secret: 1 }, 'cost_snapshot rejected an unauthenticated caller (403). Before 19 Jul 2026 a request with no __secret at all was ACCEPTED and returned full revenue and spend figures, so a rejection here may be a scanner finding the old hole - or a legitimate internal caller that was never updated to send the secret.');
     return J({ error: 'forbidden' }, 403);
   }

@@ -6,11 +6,17 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
-    if (!body.__secret || body.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || !body.__secret || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
     const token = await sec('github_token');
     if (!token) return J({ error: 'github_token not configured in app_secrets' }, 500);
     const repo = (await sec('github_repo')) || 'ahmadmhdnabilalzain-bot/quotesdone';
@@ -48,7 +54,7 @@ Deno.serve(async (req) => {
     if (newTree.sha === baseTree) return J({ ok: true, changed: false, note: 'no changes since last sync' });
 
     const commit = await fetch(api + '/git/commits', { method: 'POST', headers: H, body: JSON.stringify({
-      message: 'org-as-code: nightly sync ' + new Date().toISOString().slice(0, 10),
+      message: 'org-as-code + schema: nightly sync ' + new Date().toISOString().slice(0, 10),
       tree: newTree.sha, parents: [headSha] }) }).then(r => r.json());
     if (!commit?.sha) return J({ error: 'commit failed: ' + JSON.stringify(commit).slice(0, 200) }, 500);
     const upd = await fetch(api + '/git/refs/heads/' + branch, { method: 'PATCH', headers: H, body: JSON.stringify({ sha: commit.sha }) }).then(r => r.json());

@@ -19,6 +19,11 @@ const llmShared = makeLlm(SONNET_FIRST, { max: 1400, temperature: 0.2 }); // Son
 const CLOSED = ['completed', 'accepted', 'closed', 'cancelled'];
 
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 function parseJson(txt: string) { try { return JSON.parse(txt); } catch { /* */ } const m = txt.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch { /* */ } } return null; }
 async function llm(_key: string, sys: string, user: string, max = 1400) {
   LLM_CALLS++;
@@ -46,7 +51,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) { await logRun('error', { categories_reviewed: 0, fields_added: 0 }, 'call rejected: wrong or missing inbound secret; intake checklists were not reviewed or improved'); return J({ error: 'forbidden' }, 403); }
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) { await logRun('error', { categories_reviewed: 0, fields_added: 0 }, 'call rejected: wrong or missing inbound secret; intake checklists were not reviewed or improved'); return J({ error: 'forbidden' }, 403); }
     const key = await sec('openrouter_api_key'); if (!key) { await logRun('error', { categories_reviewed: 0, fields_added: 0 }, 'openrouter_api_key missing from app_secrets: no intake checklist learning ran, categories with zero-quote briefs keep asking customers the same incomplete questions'); return J({ error: 'AI not configured' }, 200); }
     const maxCats = Math.max(1, Math.min(8, Number(body.max_categories) || 4));
     const minCases = Math.max(1, Number(body.min_cases) || 2);

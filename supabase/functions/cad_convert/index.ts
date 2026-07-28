@@ -4,6 +4,11 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 function toB64(buf: Uint8Array): string { let s = ''; const CH = 0x8000; for (let i = 0; i < buf.length; i += CH) { s += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + CH))); } return btoa(s); }
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function jf(url: string, opts: any, ms: number){ const c = new AbortController(); const t = setTimeout(() => c.abort(), ms); try { return await fetch(url, { ...opts, signal: c.signal }); } finally { clearTimeout(t); } }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -11,7 +16,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
     const key = await sec('cloudconvert_api_key');
     if (!key) return J({ ok: false, error: 'no_converter' }, 200);
     const b64 = String(body.b64 || '').replace(/^data:[^;]+;base64,/, '');

@@ -7,6 +7,11 @@ const ASSET = Deno.env.get('SUPABASE_URL')! + '/storage/v1/object/public/brand';
 const YEAR = new Date().getUTCFullYear();
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined)||undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function sha1hex(bytes: Uint8Array){ const h = await crypto.subtle.digest('SHA-1', bytes); return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function esc(s: string){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 const COSTMAP: Record<string,string> = {'electrical':'cost-of-electrical-work-uae','plumbing':'cost-of-plumbing-uae','ac-maintenance':'cost-of-ac-maintenance-uae','cleaning':'cost-of-deep-cleaning-uae','interior-design':'cost-of-fit-out-uae','joinery-kitchens':'cost-of-kitchen-uae','waterproofing':'cost-of-waterproofing-uae','tiling-marble':'cost-of-tiling-marble-uae','pest-control':'cost-of-pest-control-uae','swimming-pools':'cost-of-swimming-pool-uae','movers':'cost-of-movers-uae','handyman':'cost-of-handyman-uae','facilities-management':'cost-of-facilities-management-uae','ac-duct-cleaning':'cost-of-ac-duct-cleaning-uae','smart-home':'cost-of-smart-home-uae','solar':'cost-of-solar-uae','curtains-blinds':'cost-of-curtains-blinds-uae','cctv-security':'cost-of-cctv-installation-uae','painting':'cost-of-house-painting-uae','flooring':'cost-of-flooring-uae','false-ceiling':'cost-of-false-ceiling-uae','landscaping':'cost-of-landscaping-uae','aluminium-glass':'cost-of-aluminium-glass-uae','signage':'cost-of-signage-uae'};
@@ -229,7 +234,8 @@ function contactPage(){
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
     try { I18N = await (await fetch(ASSET + '/i18n_chrome.html')).text(); } catch(_e){ I18N=''; }
     const token = await sec('vercel_token'); const team = await sec('vercel_team_id'); const project = (await sec('vercel_project')) || 'qd-site';
     if (!token || !team) return J({ ok:false, error:'vercel_not_configured' }, 200);

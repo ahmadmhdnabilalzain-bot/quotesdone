@@ -1,0 +1,307 @@
+// ai_gateway — THE single AI router. Every model call in the company should come through here.
+//
+// WHY THIS EXISTS. Before it, ~68 edge functions called OpenRouter, 37 of them with their own
+// hand-rolled fetch. Those 37 are invisible to ai_cost_log, so the company could not even see what
+// it was spending, let alone control it. model_policy held 26 carefully written routing rules that
+// had never executed once, because _shared/llm.ts only consults them when a caller passes taskClass
+// and no caller did. The result: 100% of measured calls went to Sonnet or Opus, there was no cheap
+// tier in existence, the cache had zero rows, and the budget halt was unreachable.
+//
+// This function is where all of that becomes real, in one place, so behaviour can change without
+// redeploying 68 functions.
+//
+// ORDER OF OPERATIONS — cheapest possible outcome first, every time:
+//   1. rate limit        - refuse abuse before spending anything
+//   2. Level 0           - templates and the approved FAQ answer with NO model at all
+//   3. routing           - fn_ai_route picks the tier from the calling function or task_class
+//   4. refusal           - tier='none' means deterministic code is correct; we decline
+//   5. budget halt       - department over its ceiling stops non-gated work
+//   6. cache             - exact hash, then SEMANTIC similarity on free in-region embeddings
+//   7. the call          - with Anthropic prompt caching, a hard token cap, and a model ladder
+//   8. log               - real cost from model_registry, including cache-read pricing
+//
+// dry_run:true runs 1-6 and returns the decision WITHOUT calling a model, so the whole thing can be
+// verified for zero spend.
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const J = (o: unknown, s = 200) =>
+  new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
+
+async function sec(k: string) {
+  const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle();
+  return (data?.value as string) || '';
+}
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+
+// Free, in-region. Module scope on purpose: building the session per request is exactly what killed
+// kb_embed with WORKER_RESOURCE_LIMIT on 28 Jul.
+// deno-lint-ignore no-explicit-any
+let _emb: any = null;
+// deno-lint-ignore no-explicit-any
+function embedder(): any {
+  // deno-lint-ignore no-explicit-any
+  if (_emb === null) _emb = new (globalThis as any).Supabase.ai.Session('gte-small');
+  return _emb;
+}
+async function embed(text: string): Promise<string | null> {
+  try {
+    const v = await embedder().run(String(text).slice(0, 1200), { mean_pool: true, normalize: true }) as number[];
+    return '[' + v.join(',') + ']';
+  } catch (_e) { return null; }  // embedding is an optimisation; never fail the call for it
+}
+
+async function sha256(s: string): Promise<string> {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+
+// Anthropic bills a cached prefix at ~10% of the prompt rate but requires a minimum cacheable
+// block. Below roughly 1k tokens the cache write costs more than it saves, so only mark long
+// system prompts. This is the single biggest lever we have: 94% of spend is input tokens.
+const CACHE_MIN_CHARS = 4000;
+
+// supabase-js .rpc() returns a PostgrestFilterBuilder - it is thenable but NOT a Promise, so
+// .catch() on it throws "admin.rpc(...).catch is not a function". Caught in dry-run testing.
+// Every non-critical call (logging, cache writes) goes through here: telemetry must never be
+// able to fail the business call it is describing.
+async function rpcSafe(name: string, args: Record<string, unknown>) {
+  try { const { data } = await admin.rpc(name, args); return data; } catch (_e) { return null; }
+}
+
+interface Body {
+  __secret?: string;
+  fn?: string; task_class?: string; dept?: string; agent?: string;
+  sys?: string; input?: string | { role: string; content: string }[];
+  max?: number; temperature?: number; confidence?: number;
+  cache_ttl_min?: number; try_faq?: boolean; faq_text?: string;
+  rate_key?: string; rate_limit?: number; rate_window_s?: number;
+  stream?: boolean; dry_run?: boolean; escalate?: boolean;
+  action?: string; text?: string;
+}
+
+Deno.serve(async (req) => {
+  const t0 = Date.now();
+  try {
+    const body = (await req.json().catch(() => ({}))) as Body;
+    const inbound = await sec('inbound_secret');
+    if (!secretOk(inbound) || body.__secret !== inbound) return J({ error: 'forbidden' }, 403);
+
+    // Utility path: embed text for callers that need a vector (FAQ backfill, semantic search).
+    // Free, so it never touches routing or budget.
+    if (body.action === 'embed') {
+      const v = await embed(String(body.text || ''));
+      return J({ ok: true, embedding: v });
+    }
+
+    const fnName = String(body.fn || 'unknown');
+    const dry = body.dry_run === true;
+
+    // ---- 1. RATE LIMIT ------------------------------------------------------------------
+    // Public surfaces (wa_inbound had none) must be capped before anything is spent.
+    if (body.rate_key) {
+      const { data: rl } = await admin.rpc('fn_rate_limit', {
+        p_bucket: String(body.rate_key),
+        p_limit: Number(body.rate_limit ?? 20),
+        p_window_seconds: Number(body.rate_window_s ?? 3600),
+      });
+      if (rl && rl.allowed === false) {
+        return J({ ok: true, used_llm: false, outcome: 'rate_limited', detail: rl });
+      }
+    }
+
+    // ---- 2. LEVEL 0 — answer with no model at all ---------------------------------------
+    // The plan's "70% should never reach AI". Templates and the 151 approved public FAQs.
+    // Semantic matching included, because keyword search missed 2 of 5 realistic questions.
+    if (body.try_faq) {
+      const q = String(body.faq_text ?? (typeof body.input === 'string' ? body.input : '') ?? '');
+      const qEmb = q.length > 2 ? await embed(q) : null;
+      const { data: faq } = await admin.rpc('fn_faq_answer', {
+        p_text: q, p_min_rank: 0.15, p_embedding: qEmb, p_min_similarity: 0.86,
+      });
+      if (faq && faq.answered === true) {
+        await rpcSafe('fn_llm_log', {
+          p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+          p_task_class: 'level0_' + String(faq.source), p_model: 'none',
+          p_because: 'Answered with no model: ' + faq.source + ' (confidence ' + faq.confidence + ')',
+          p_tier: 'none', p_prompt_tokens: 0, p_output_tokens: 0, p_cached: true,
+          p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
+        });
+        return J({ ok: true, used_llm: false, outcome: 'level0', source: faq.source,
+                   content: faq.answer, confidence: faq.confidence, cost_usd: 0 });
+      }
+    }
+
+    // ---- 3. ROUTE -----------------------------------------------------------------------
+    const { data: route, error: rErr } = await admin.rpc('fn_ai_route', {
+      p_task_class: body.task_class ?? null,
+      p_dept_key: body.dept ?? null,
+      p_confidence: body.confidence ?? null,
+      p_fn: fnName,
+      p_escalate: body.escalate === true,
+    });
+    if (rErr || !route) {
+      return J({ ok: false, error: 'route_failed', detail: String(rErr?.message || 'no route') }, 500);
+    }
+
+    // ---- 4 & 5. REFUSALS: deterministic work, or a department over budget ----------------
+    if (route.use_llm === false) {
+      await rpcSafe('fn_llm_log', {
+        p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+        p_task_class: route.task_class ?? null, p_model: 'none', p_because: route.why,
+        p_tier: route.tier ?? 'none', p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
+        p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
+      });
+      return J({ ok: true, used_llm: false,
+                 outcome: route.halted ? 'budget_halted' : 'refused_deterministic',
+                 why: route.why, deterministic_alternative: route.deterministic_alternative ?? null,
+                 cost_usd: 0 });
+    }
+
+    const model: string = route.model;
+    const fallback: string | null = route.fallback ?? null;
+    const maxTok = Math.min(Number(body.max ?? route.max_tokens ?? 700), Number(route.max_tokens ?? 4000));
+    const sys = String(body.sys || '');
+    const msgs = typeof body.input === 'string'
+      ? [{ role: 'user', content: body.input }]
+      : (Array.isArray(body.input) ? body.input : []);
+
+    // ---- 6. CACHE — exact, then semantic ------------------------------------------------
+    const wantCache = Number(body.cache_ttl_min ?? 0) > 0;
+    let cacheKey: string | null = null;
+    let promptEmb: string | null = null;
+    if (wantCache) {
+      cacheKey = await sha256([model, String(maxTok), sys, JSON.stringify(msgs)].join(' '));
+      promptEmb = await embed(sys.slice(0, 400) + ' ' + JSON.stringify(msgs).slice(0, 800));
+      const { data: hit } = await admin.rpc('fn_llm_cache_lookup', {
+        p_key: cacheKey, p_embedding: promptEmb,
+        p_task_class: route.task_class ?? null, p_min_similarity: 0.95,
+      });
+      if (hit && hit.hit === true) {
+        await rpcSafe('fn_llm_log', {
+          p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+          p_task_class: route.task_class ?? null, p_model: hit.model ?? model,
+          p_because: hit.kind + ' cache hit (similarity ' + hit.similarity + ')',
+          p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: true,
+          p_cache_key: cacheKey, p_latency_ms: Date.now() - t0, p_ok: true,
+        });
+        return J({ ok: true, used_llm: false, outcome: 'cache_' + hit.kind,
+                   content: hit.response, similarity: hit.similarity, cost_usd: 0 });
+      }
+    }
+
+    // ---- DRY RUN: everything decided, nothing spent -------------------------------------
+    if (dry) {
+      return J({ ok: true, dry_run: true, used_llm: false, outcome: 'would_call',
+                 model, fallback, tier: route.tier, task_class: route.task_class,
+                 max_tokens: maxTok, prompt_cache: route.cache === true && sys.length >= CACHE_MIN_CHARS,
+                 stream_ok: route.stream === true, budget_pct: route.budget_pct, why: route.why });
+    }
+
+    // ---- 7. THE CALL --------------------------------------------------------------------
+    const key = await sec('openrouter_api_key');
+    if (!key) return J({ ok: false, error: 'openrouter_api_key missing' }, 500);
+
+    // Mark the system prompt cacheable when the model supports it and the block is big enough
+    // to be worth a cache write. agent_brain's ~30k-char prefix is the target here.
+    const useCache = route.cache === true && sys.length >= CACHE_MIN_CHARS;
+    const sysMsg = useCache
+      ? { role: 'system', content: [{ type: 'text', text: sys, cache_control: { type: 'ephemeral' } }] }
+      : { role: 'system', content: sys };
+
+    const ladder = [model, ...(fallback && fallback !== model ? [fallback] : [])];
+    const wantStream = body.stream === true && route.stream === true;
+
+    let out: string | null = null, used = model, usage: Record<string, number> = {}, lastErr = '';
+    for (const m of ladder) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const ac = new AbortController();
+        const to = setTimeout(() => ac.abort(), 25000);
+        try {
+          const payload: Record<string, unknown> = {
+            model: m, max_tokens: maxTok, messages: [sysMsg, ...msgs],
+          };
+          if (body.temperature != null) payload.temperature = body.temperature;
+          if (wantStream) payload.stream = true;
+
+          const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload), signal: ac.signal,
+          });
+
+          if (wantStream) {
+            // Hand the stream straight back. The caller can abandon it, which stops generation
+            // and stops billing - that is the whole point of streaming for cost.
+            clearTimeout(to);
+            if (r.ok && r.body) {
+              await rpcSafe('fn_llm_log', {
+                p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+                p_task_class: route.task_class ?? null, p_model: m,
+                p_because: route.why + ' | streamed (token counts not available on the stream path)',
+                p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
+                p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
+              });
+              return new Response(r.body, {
+                headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache',
+                           'X-QD-Model': m, 'X-QD-Tier': String(route.tier) },
+              });
+            }
+            lastErr = 'stream not available: HTTP ' + r.status;
+            continue;
+          }
+
+          const j = await r.json();
+          const c = j?.choices?.[0]?.message?.content;
+          if (c) { out = c; used = m; usage = j?.usage || {}; break; }
+          lastErr = JSON.stringify(j?.error || j).slice(0, 200);
+        } catch (e) {
+          lastErr = String((e as Error)?.message || e).slice(0, 200);
+        } finally { clearTimeout(to); }
+      }
+      if (out) break;
+    }
+
+    // ---- 8. LOG with real money ---------------------------------------------------------
+    const inTok = Number(usage.prompt_tokens ?? 0);
+    const outTok = Number(usage.completion_tokens ?? 0);
+    // OpenRouter reports the cached portion under a few different names depending on provider.
+    const cachedIn = Number(
+      (usage as Record<string, number>).cache_read_input_tokens ??
+      (usage as Record<string, number>).cached_tokens ?? 0);
+
+    let costUsd: number | null = null;
+    try {
+      const { data } = await admin.rpc('fn_model_cost_usd', {
+        p_model: used, p_in_tokens: inTok, p_out_tokens: outTok, p_cached_in_tokens: cachedIn,
+      });
+      costUsd = data == null ? null : Number(data);
+    } catch (_e) { /* pricing is reporting, not a gate */ }
+
+    await rpcSafe('fn_llm_log', {
+      p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+      p_task_class: route.task_class ?? null, p_model: used,
+      p_because: route.why + (used !== model ? ' [fell back from ' + model + ']' : '')
+                 + (useCache ? ' | prompt cache on, ' + cachedIn + ' input tokens read from cache' : ''),
+      p_tier: route.tier ?? null, p_prompt_tokens: inTok, p_output_tokens: outTok,
+      p_cached: cachedIn > 0, p_cache_key: cacheKey, p_latency_ms: Date.now() - t0, p_ok: !!out,
+    });
+
+    if (!out) return J({ ok: false, error: 'all_models_failed', detail: lastErr, ladder }, 502);
+
+    if (wantCache && cacheKey) {
+      await rpcSafe('fn_llm_cache_store', {
+        p_key: cacheKey, p_fn: fnName, p_task_class: route.task_class ?? null, p_model: used,
+        p_response: out, p_ttl_minutes: Number(body.cache_ttl_min), p_embedding: promptEmb,
+        p_saved_usd: costUsd ?? 0,
+      });
+    }
+
+    return J({ ok: true, used_llm: true, outcome: 'generated', content: out, model: used,
+               tier: route.tier, task_class: route.task_class,
+               prompt_tokens: inTok, output_tokens: outTok, cached_input_tokens: cachedIn,
+               cost_usd: costUsd, latency_ms: Date.now() - t0 });
+  } catch (e) {
+    return J({ ok: false, error: String((e as Error)?.message || e) }, 500);
+  }
+});

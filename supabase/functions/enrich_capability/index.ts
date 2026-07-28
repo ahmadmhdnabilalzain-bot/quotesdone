@@ -17,6 +17,11 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 const LLM_STATE = { keyMissing: false, failures: [] as string[] };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 function parseJson(s: string){ try { const m=String(s||'').match(/\{[\s\S]*\}/); return m?JSON.parse(m[0]):null; } catch { return null; } }
 
 async function llm(sys: string, user: string, max = 700): Promise<string> {
@@ -49,7 +54,8 @@ Deno.serve(async (req) => {
   LLM_STATE.keyMissing = false; LLM_STATE.failures.length = 0;
   try {
     const body = await req.json().catch(()=>({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) { await logRun('error', { stage:'auth', rejected:1 }, 'Rejected a call with a wrong or missing __secret; no supplier capability profiles were written, so suppliers awaiting enrichment stay without a capability_summary and the matching adjudicator cannot judge them for any RFQ'); return J({ error:'forbidden' }, 403); }
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) { await logRun('error', { stage:'auth', rejected:1 }, 'Rejected a call with a wrong or missing __secret; no supplier capability profiles were written, so suppliers awaiting enrichment stay without a capability_summary and the matching adjudicator cannot judge them for any RFQ'); return J({ error:'forbidden' }, 403); }
 
     if (body.lead_id) {
       const { data: lead, error: leadErr } = await admin.from('leads').select(COLS).eq('id', Number(body.lead_id)).maybeSingle();

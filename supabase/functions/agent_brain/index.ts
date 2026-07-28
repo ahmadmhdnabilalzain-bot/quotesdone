@@ -25,7 +25,7 @@ async function sec(k:string){ const {data}=await admin.from('app_secrets').selec
 async function cntT(t:string, mod?:(q:any)=>any){ let q=admin.from(t).select('id',{count:'exact',head:true}); if(mod) q=mod(q); const {count}=await q; return count||0; }
 // Executive reasoning on Opus 4.8 (strongest), Sonnet 5 as automatic fallback — and this time the code matches the comment.
 const llm = makeLlm(OPUS_FIRST, { max: 1600 });
-async function llmFast(sys:string, user:string){ const key=await sec('openrouter_api_key'); if(!key) return ''; const MODELS=['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8']; try{ const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({models:MODELS,max_tokens:160,temperature:0,messages:[{role:'system',content:sys},{role:'user',content:user}]}),signal:AbortSignal.timeout(20000)}); const j=await r.json(); return j?.choices?.[0]?.message?.content||''; }catch(_e){ return ''; } }
+async function llmFast(sys:string, user:string){ try{ const secret=await sec('inbound_secret'); if(!secret) return ''; const r=await fetch(SUPA+'/functions/v1/ai_gateway',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:secret,fn:'agent_brain',task_class:'memory_retrieval',sys,input:user,max:160,temperature:0}),signal:AbortSignal.timeout(20000)}); const j=await r.json(); return j?.content||''; }catch(_e){ return ''; } }
 
 // Lint gate: a candidate memory that matches any active forbidden-language rule is refused.
 async function lintClean(text:string):Promise<boolean>{

@@ -13,12 +13,18 @@ let LLM_CALLS=0, LLM_FAILS=0, SHORT_OUTPUTS=0, UPDATE_FAILS=0; let LAST_ERR='';
 // Anthropic-only per standard: Sonnet 5 primary, Opus 4.8 fallback.
 const llmShared = makeLlm(SONNET_FIRST, { max: 420, temperature: 0.4 });
 async function sec(k:string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function llm(_key:string, sys:string, user:string){ LLM_CALLS++; const c=await llmShared(sys,user); if(!c){ LLM_FAILS++; LAST_ERR='openrouter call failed or returned no content'; return ''; } return c; }
 
 Deno.serve(async (req)=>{
  try{
   let b:any={}; try{ b=await req.json(); }catch(_){}
-  if(b.__secret!==(await sec('inbound_secret'))) { await logRun('error',{generated:0},'call rejected: wrong or missing inbound secret; no category personas generated'); return new Response(JSON.stringify({error:'forbidden'}),{status:403,headers:{'Content-Type':'application/json'}}); }
+  const __exp = await sec('inbound_secret');
+  if(!secretOk(__exp) || b.__secret!==__exp) { await logRun('error',{generated:0},'call rejected: wrong or missing inbound secret; no category personas generated'); return new Response(JSON.stringify({error:'forbidden'}),{status:403,headers:{'Content-Type':'application/json'}}); }
   const ork=await sec('openrouter_api_key'); if(!ork) { await logRun('error',{generated:0},'openrouter_api_key missing from app_secrets: no category personas generated this run, category sales agents remain without a persona and cannot work their inquiries'); return new Response(JSON.stringify({error:'no key'}),{status:200,headers:{'Content-Type':'application/json'}}); }
   const limit=Math.max(1,Math.min(24,Number(b.limit)||8));
   const force=b.force===true;

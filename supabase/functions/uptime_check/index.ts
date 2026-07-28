@@ -31,6 +31,11 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function setSec(k: string, v: string) { try { await admin.from('app_secrets').upsert({ key: k, value: v }, { onConflict: 'key' }); } catch (_e) { /* */ } }
 const SITE = 'https://quotesdone.com';
 // path -> a marker that must appear in the SSR HTML when the page is healthy (kept broad to avoid false positives)
@@ -51,7 +56,7 @@ Deno.serve(async (req) => {
     try { await admin.from('agent_runs').insert({ agent: 'uptime', started_at: started, finished_at: new Date().toISOString(), status: 'error', counts: { authorised: 0, secret_lookup_ok: 0 }, note: 'uptime_check refused every caller because inbound_secret is missing or empty in app_secrets. NO page checks ran, so an absence of site_down alerts right now means the monitor is blind, not that quotesdone.com is healthy.' }); } catch (_e) { /* */ }
     return J({ error: 'secret unavailable' }, 503);
   }
-  if (body.__secret !== inbound) {
+  if (!secretOk(inbound) || body.__secret !== inbound) {
     try { await admin.from('agent_runs').insert({ agent: 'uptime', started_at: started, finished_at: new Date().toISOString(), status: 'error', counts: { authorised: 0, bad_or_missing_secret: 1 }, note: 'uptime_check rejected an unauthenticated caller (403). Until 19 Jul 2026 a request with no __secret was ACCEPTED and could trigger a production redeploy of quotesdone.com, so this rejection may be a scanner probing the old hole. No checks ran and no redeploy was triggered.' }); } catch (_e) { /* */ }
     return J({ error: 'forbidden' }, 403);
   }

@@ -16,8 +16,31 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
   try { await admin.from('agent_runs').insert({ agent: 'kb_deepen', status, counts, note: String(note || '').slice(0, 500), started_at: new Date(T0).toISOString(), finished_at: new Date().toISOString() }); } catch (_e) { /* */ }
 }
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
-function parseJson(s: string): any { if (!s) return null; let t = String(s).trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim(); const a = t.indexOf('['); if (a > 0) t = t.slice(a); try { return JSON.parse(t); } catch (_e) { return null; } }
+function parseJson(s: string): any {
+  if (!s) return null;
+  let t = String(s).trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  const a = t.indexOf('['); if (a > 0) t = t.slice(a);
+  try { return JSON.parse(t); } catch (_e) { /* model wrapped or truncated the array - salvage below */ }
+  const start = t.indexOf('['); if (start < 0) return null;
+  // 1) balanced span: strips any prose the model appended after the array
+  let depth = 0, end = -1;
+  for (let i = start; i < t.length; i++) {
+    const ch = t[i];
+    if (ch === '[') depth++;
+    else if (ch === ']') { depth--; if (depth === 0) { end = i; break; } }
+  }
+  if (end > start) { try { return JSON.parse(t.slice(start, end + 1)); } catch (_e) { /* fall through */ } }
+  // 2) truncated mid-array (hit max_tokens): keep the complete quoted strings
+  const items = t.slice(start).match(/"(?:[^"\\]|\\.)*"/g);
+  if (items && items.length) { try { return JSON.parse('[' + items.join(',') + ']'); } catch (_e) { /* noop */ } }
+  return null;
+}
 const slugify = (s: string) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
 
 // Web-grounded research: pulls real UAE sources and returns { brief, sources[] }. Sourced, not invented.
@@ -45,7 +68,8 @@ const FUNCTIONAL = ['marketing', 'finance', 'cfo', 'legal', 'it', 'security', 'o
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
     const perRun = Math.max(1, Math.min(8, Number(body.topics ?? 2)));
     const BUDGET_MS = 115000; // stop before the edge wall-clock (~150s) so the run always logs cleanly
 

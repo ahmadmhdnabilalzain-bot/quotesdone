@@ -6,11 +6,17 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const SUPA = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 const BUCKET = 'backups'; const PATH = 'imports/kb_final.json';
 Deno.serve(async (req) => {
   try {
     const b = await req.json().catch(() => ({} as any));
-    if (b.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || b.__secret !== __exp) return J({ error: 'forbidden' }, 403);
     if (b.op === 'sign') {
       try { await admin.storage.createBucket(BUCKET, { public: false }); } catch (_e) { /* exists */ }
       const { data, error } = await admin.storage.from(BUCKET).createSignedUploadUrl(PATH, { upsert: true } as any);

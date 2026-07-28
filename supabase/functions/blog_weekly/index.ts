@@ -8,6 +8,11 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const llm = makeLlm(SONNET_FIRST, { max: 3500, temperature: 0.6 });
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 async function sec(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 const slugify = (t: string) => t.toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 70);
 
 async function llmJSON(sys: string, user: string): Promise<any | null> {
@@ -24,7 +29,8 @@ async function llmJSON(sys: string, user: string): Promise<any | null> {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' } });
   const body = await req.json().catch(() => ({} as any));
-  if (body.__secret !== (await sec('inbound_secret'))) return J({ error: 'forbidden' }, 403);
+  const __exp = await sec('inbound_secret');
+  if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
   const started = new Date().toISOString();
   const publish = body.publish !== false;
   try {

@@ -12,12 +12,17 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 const BASE = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     const secret = await sec('inbound_secret');
-    if (!body?.__secret || body.__secret !== secret) { await logRun('error', { filled: 0 }, 'call rejected: wrong or missing inbound secret; no knowledge gaps were filled'); return J({ error: 'unauthorized' }, 401); }
+    if (!secretOk(secret) || !body?.__secret || body.__secret !== secret) { await logRun('error', { filled: 0 }, 'call rejected: wrong or missing inbound secret; no knowledge gaps were filled'); return J({ error: 'unauthorized' }, 401); }
     const limit = Math.min(Math.max(Number(body?.limit) || 2, 1), 5);
 
     // pick service categories with zero knowledge chunks

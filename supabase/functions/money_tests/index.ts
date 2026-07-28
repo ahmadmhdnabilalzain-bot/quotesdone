@@ -14,6 +14,11 @@ const BASE = Deno.env.get('SUPABASE_URL')!;
 const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
 const J=(o:unknown,s=200)=>new Response(JSON.stringify(o,null,2),{status:s,headers:{'Content-Type':'application/json'}});
 async function sec(k:string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string)||''; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 function revealFee(amount:number,cfg:any,at=new Date()){ if(!amount||amount<=0) return 0; const promo=!!cfg.promo_until&&at<=new Date(cfg.promo_until); const rate=Number(promo?cfg.promo_reveal_rate:cfg.standard_reveal_rate); const cap=Number(promo?cfg.promo_reveal_cap:cfg.standard_reveal_cap); return Math.min(Math.round(amount*rate*100)/100, cap); }
 async function restGet(path:string){ const r=await fetch(`${BASE}/rest/v1/${path}`,{headers:{apikey:ANON,Authorization:'Bearer '+ANON}}); let b:any=null; try{b=await r.json();}catch(_e){} return {status:r.status, body:b}; }
 async function rpc(name:string,body:any){ const r=await fetch(`${BASE}/rest/v1/rpc/${name}`,{method:'POST',headers:{apikey:ANON,Authorization:'Bearer '+ANON,'Content-Type':'application/json'},body:JSON.stringify(body)}); let b:any=null; try{b=await r.json();}catch(_e){} return {status:r.status, body:b}; }
@@ -23,7 +28,8 @@ Deno.serve(async (req)=>{
   // the public anon key could trigger the probe suite and read which tables are exposed. The daily cron now
   // sends __secret; verify_jwt stays true as defence-in-depth.
   const body = await req.json().catch(()=>({} as any));
-  if (body.__secret !== (await sec('inbound_secret'))) return J({ error:'forbidden' }, 403);
+  const __exp = await sec('inbound_secret');
+  if (!secretOk(__exp) || body.__secret !== __exp) return J({ error:'forbidden' }, 403);
   const results:{name:string,pass:boolean,detail?:string}[]=[];
   const T=(name:string,pass:boolean,detail='')=>results.push({name,pass,detail:pass?undefined:detail});
   let cfgErrMsg='';

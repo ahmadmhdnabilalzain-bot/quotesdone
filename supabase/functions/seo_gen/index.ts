@@ -3,6 +3,11 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined)||undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 function parseJson(t: string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return null; } }
 const SYS = `You write helpful, accurate SEO landing-page content for QuotesDone, a UAE home & building services marketplace where customers get multiple quotes from vetted suppliers. For the given service, return STRICT JSON ONLY: {"intro": string (~110-140 words, UK English, UAE context: what the service covers, who typically needs it, what affects cost/scope, and that customers can compare several quotes free; natural and useful, not keyword-stuffed), "includes": string[] (exactly 6 concrete scope items a customer might request), "faqs": [{"q":string,"a":string}] (exactly 3 real questions UAE customers ask — e.g. cost factors, timelines, what to check in a quote — with concise 1-2 sentence answers)}. Use AED and UAE emirates where natural. Never invent specific prices.`;
 async function genOne(key: string, c: any){
@@ -16,7 +21,8 @@ async function genOne(key: string, c: any){
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) return J({ error:'forbidden' }, 403);
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error:'forbidden' }, 403);
     const key = await sec('openrouter_api_key'); if(!key) return J({ error:'no_ai' }, 200);
     const { data: rows } = await admin.from('seo_categories').select('slug,name,search_term').eq('generated', false).order('sort').limit(20);
     if (!rows || !rows.length) return J({ ok:true, finished:true, done:0 });
