@@ -21,8 +21,16 @@ const T = {
 
 // Render text safely: escape, then linkify emails / URLs / internal paths.
 // Each link is wrapped in <bdi> so it stays readable inside Arabic (right-to-left) text.
+// XSS FIX 27 Jul 2026. esc() escaped &, < and > but NOT the double quote, and the very next
+// line interpolated the raw regex match into href="${m}". The URL pattern is [^\s<]+, which
+// happily matches a quote character, so assistant output containing
+//   https://x/" onmouseover="…
+// broke out of the attribute and executed, because the result is rendered with
+// dangerouslySetInnerHTML. The assistant's output is driven by public, unauthenticated input
+// via site_assistant, so this was reachable by anyone. Quotes are now escaped before
+// linkification, which leaves them entity-encoded and inert inside the attribute.
 function render(text: string) {
-  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   let h = esc(text);
   h = h.replace(/(https?:\/\/[^\s<]+)/g, (m) => `<bdi><a href="${m}" target="_blank" rel="noopener noreferrer" style="color:#14B8A6;font-weight:600">${m}</a></bdi>`);
   h = h.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, (m) => `<bdi><a href="mailto:${m}" style="color:#14B8A6;font-weight:600">${m}</a></bdi>`);

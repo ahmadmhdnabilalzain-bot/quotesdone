@@ -30,6 +30,20 @@ async function otpHash(code: string): Promise<string> {
 async function twilioAuth() { const sid = await sec('twilio_api_key_sid'); const secret = await sec('twilio_api_key_secret'); const va = await sec('twilio_verify_service_sid'); if (!sid || !secret || !va) return null; return { hdr: 'Basic ' + btoa(sid + ':' + secret), va }; }
 async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; try { const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, subject, html }) }); return r.ok; } catch { return false; } }
 
+// SUPPRESSION BYPASS 27 Jul 2026 ----------------------------------------------------------------
+// send_outbox was the ONLY sender in the codebase that consulted email_suppressions. sendEmail()
+// above builds its own Resend call, so a sign-in code went out to any address a caller typed in -
+// including the 27 hard_bounce:permanent rows resend_webhook has recorded. Re-mailing a mailbox
+// Resend has already told us rejects permanently is exactly what burns the sender reputation the
+// suppression list exists to protect, and the code could never arrive anyway: the user sat waiting
+// for an email that bounced while we returned ok:true. Transactional or not, we do not send, and we
+// say so instead of silently succeeding. Fails OPEN on a lookup error - a suppression-table outage
+// must not lock every user out of sign-in.
+async function isSuppressed(email: string): Promise<boolean> {
+  try { const { data } = await admin.from('email_suppressions').select('email').eq('email', email).maybeSingle(); return !!data; }
+  catch (_e) { return false; }
+}
+
 // ABUSE CONTROL 19 Jul 2026 --------------------------------------------------------------------
 // The SMS branch was rate limited per PHONE NUMBER only (6/hour). With allow_signup:true the
 // "does this number have an account?" check is skipped, so an attacker could walk a list of UAE
@@ -67,6 +81,11 @@ Deno.serve(async (req) => {
     if (action === 'send') {
       if (emailOk(idRaw)) {
         const email = idRaw.toLowerCase();
+        // Checked BEFORE the row is inserted so we never mint a code that cannot be delivered.
+        if (await isSuppressed(email)) {
+          await logRun('error', { suppressed: 1, channel: 'email' }, 'login_otp refused to email a sign-in code to ' + email + ' - it is in email_suppressions (hard bounce, spam complaint or unsubscribe). No code was issued and no Resend call was made. If this is a real user, confirm the mailbox works and delete their email_suppressions row; do not remove this check.');
+          return J({ error: 'We cannot email this address - it is on our do-not-send list because mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.', suppressed: true }, 403);
+        }
         const since = new Date(Date.now() - 3600e3).toISOString();
         const { count } = await admin.from('email_verifications').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since);
         if ((count || 0) >= 8) return J({ error: 'Too many code requests. Please try again later.' }, 429);

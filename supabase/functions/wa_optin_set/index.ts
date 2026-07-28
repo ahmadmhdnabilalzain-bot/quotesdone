@@ -3,6 +3,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin':'*', 'Access-Control-Allow-Headers':'authorization, content-type, apikey', 'Access-Control-Allow-Methods':'POST, OPTIONS' };
 const J = (o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:{'Content-Type':'application/json',...CORS}});
+async function sec(k:string){ const { data } = await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string | undefined; }
 Deno.serve(async (req)=>{
   if (req.method==='OPTIONS') return new Response('ok',{headers:CORS});
   try{
@@ -11,6 +12,20 @@ Deno.serve(async (req)=>{
     const kind = b.user_kind==='supplier' ? 'supplier' : 'customer';
     const optin = b.wa_optin === true;
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return J({ error:'bad_email' },400);
+    // UNAUTHENTICATED CONSENT WRITES 27 Jul 2026 -------------------------------------------------
+    // This function had no authentication of any kind. verify_jwt=true on the gateway only proves
+    // the caller holds SOME project JWT, and the anon key is one - it ships in the public browser
+    // bundle. So anyone could POST {email:<any supplier>, wa_optin:false} to silently kill that
+    // supplier's WhatsApp notifications, or wa_optin:true to forge a consent record we would then
+    // rely on as our PDPL/TDRA evidence that the person agreed to be messaged. Consent we cannot
+    // attribute is worse than no consent. Accept only the inbound secret (server-to-server) or a
+    // signed-in user changing their OWN row; the portal already sends the user's session token.
+    const jwt = (req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');
+    const inbound = await sec('inbound_secret');
+    let actor = '';
+    if (inbound && b.__secret === inbound) actor = 'secret';
+    else { const { data: au } = await admin.auth.getUser(jwt).catch(()=>({ data:{ user:null } } as any)); const ue = String(au?.user?.email||'').toLowerCase(); if (ue && ue === email) actor = 'self'; }
+    if (!actor) return J({ error:'unauthorized' },401);
     if(kind==='customer'){
       const { data } = await admin.from('customers').update({ wa_optin:optin }).eq('email',email).select('id').maybeSingle();
       return J({ ok:true, updated: !!data, wa_optin:optin });

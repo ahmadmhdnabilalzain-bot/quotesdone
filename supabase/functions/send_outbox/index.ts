@@ -114,7 +114,14 @@ Deno.serve(async (req) => {
     };
     let lastErr = '';
     for (const n of rows) {
-      if (n.channel === 'sms') { skipped++; continue; }
+      // WHATSAPP ROWS EATEN 27 Jul 2026 - the select above pulls every queued row of EVERY channel but
+      // this line excluded only 'sms', and the next line marks any row with no to_email as 'skipped'.
+      // WhatsApp notifications carry to_phone and never to_email, so each one this poller reached was
+      // flipped to 'skipped' before send_whatsapp (which drains channel='whatsapp' AND status='queued')
+      // could see it. Running every 2 minutes, this poller almost always won the race - the WhatsApp
+      // message was destroyed, not delayed. Exclude 'whatsapp' exactly as 'sms' is excluded: leave the
+      // row untouched at 'queued' so its own sender can drain it.
+      if (n.channel === 'sms' || n.channel === 'whatsapp') { skipped++; continue; }
       if (!n.to_email) { await admin.from('notifications').update({ status: 'skipped' }).eq('id', n.id); continue; }
       if (supSet.has(n.to_email)) { await admin.from('notifications').update({ status: 'suppressed' }).eq('id', n.id); suppressed++; continue; }
       const ageH = (Date.now() - new Date(n.created_at).getTime()) / 3.6e6;

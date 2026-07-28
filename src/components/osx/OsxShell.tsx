@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { supa, osApi, osOps, osReportBody, SUPA_URL } from '@/lib/osClient';
+import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, osPages, osHealth, osIncidents, SUPA_URL } from '@/lib/osClient';
 import { cn } from '@/lib/utils';
 function ReportViewer({ id }: { id: number }) {
   const [st, setSt] = React.useState<'idle' | 'load' | 'done' | 'err'>('load');
@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight, Minus, Maximize2, Minimize2, ExternalLink, SquareStack, X, ChevronRight, Check } from 'lucide-react';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -62,6 +62,12 @@ const MODULES: Mod[] = [
   { id: 'fraud', label: 'Fraud', icon: ShieldAlert, ws: 'ws.fraud' },
   { id: 'refunds', label: 'Refunds', icon: RotateCcw, ws: 'ws.refunds' },
   { id: 'audit', label: 'Audit log', icon: ScrollText, kind: 'audit' },
+  { id: 'settings', label: 'Settings', icon: SlidersHorizontal, kind: 'settings' },
+  { id: 'automation', label: 'Automation', icon: Workflow, kind: 'automation' },
+  { id: 'catalog', label: 'Categories', icon: ListChecks, kind: 'catalog' },
+  { id: 'content', label: 'Content', icon: Newspaper, kind: 'content' },
+  { id: 'health', label: 'System Health', icon: Activity, kind: 'health' },
+  { id: 'support', label: 'Support', icon: LifeBuoy, kind: 'support' },
 ];
 const PIPELINE = [ ['sent','New'], ['matched','Matched'], ['quoted','Quoted'], ['revealed','Revealed'], ['completed','Won'] ];
 
@@ -101,6 +107,78 @@ function ReadableObject({ data }: { data: any }): any {
   })}</div>);
 }
 function titleCase(s: string) { return String(s).replace(/[_\.]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
+function deEnt(s: any) { return String(s == null ? '' : s).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'"); }
+
+// ── Window Manager — hybrid workspace: pop any module/record into a floating, draggable/resizable window ──
+type WinSpec = { id: string; title: string; icon?: any; render: () => React.ReactNode };
+type WinState = WinSpec & { x: number; y: number; w: number; h: number; z: number; min: boolean; max: boolean; snap?: 'l' | 'r' | null };
+const WinCtx = React.createContext<{ open: (s: WinSpec) => void } | null>(null);
+function useWindows() { return React.useContext(WinCtx); }
+// Keep floating-window z-indexes in a compact low range (31..~45) so they never cover the Ctrl+K palette (z-50).
+function bringToTop(list: WinState[], id: string, patch: Partial<WinState> = {}): WinState[] {
+  const others = list.filter((x) => x.id !== id).sort((a, b) => a.z - b.z).map((x, i) => ({ ...x, z: 31 + i }));
+  const tgt = list.find((x) => x.id === id); if (!tgt) return list;
+  return [...others, { ...tgt, ...patch, z: 31 + others.length }];
+}
+
+// Shared module renderer — used by both the tabbed main area and floating windows.
+function renderModule(id: string, go: (id: string) => void): React.ReactNode {
+  const m = MODULES.find((x) => x.id === id) || MODULES[0];
+  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : m.id === 'marketing' ? <MarketingApp /> : m.id === 'fraud' ? <FraudApp /> : m.id === 'refunds' ? <RefundsApp /> : m.id === 'operations' ? <OperationsApp /> : m.id === 'analytics' ? <AnalyticsApp /> : m.id === 'strategy' ? <StrategyApp /> : m.id === 'governance' ? <GovernanceApp /> : m.id === 'company' ? <CompanyApp /> : m.id === 'ea' ? <AssistantApp /> : m.id === 'documents' ? <DocumentsApp /> : m.id === 'reports' ? <ReportsApp /> : <Workspace mod={m} />;
+}
+
+function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, onSnap }: { win: WinState; onFocus: () => void; onClose: () => void; onMin: () => void; onMax: () => void; onMove: (x: number, y: number) => void; onSize: (w: number, h: number) => void; onSnap: (s: 'l' | 'r' | null) => void }) {
+  const Icon = win.icon;
+  const startDrag = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    onFocus(); const sx = e.clientX, sy = e.clientY, ox = win.x, oy = win.y; let snapped: 'l' | 'r' | null = null;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const mv = (ev: PointerEvent) => { const nx = ox + ev.clientX - sx, ny = oy + ev.clientY - sy; snapped = ev.clientX < 12 ? 'l' : ev.clientX > vw - 12 ? 'r' : (ev.clientY < 8 ? null : null); onMove(Math.max(-40, nx), Math.max(52, Math.min(vh - 40, ny))); };
+    const up = () => { document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); if (snapped) onSnap(snapped); };
+    document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
+  };
+  const startResize = (e: React.PointerEvent) => {
+    e.stopPropagation(); onFocus(); const sx = e.clientX, sy = e.clientY, ow = win.w, oh = win.h;
+    const mv = (ev: PointerEvent) => onSize(Math.max(340, ow + ev.clientX - sx), Math.max(220, oh + ev.clientY - sy));
+    const up = () => { document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); };
+    document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
+  };
+  if (win.min) return null;
+  const style: React.CSSProperties = win.max ? { left: 0, top: 48, width: '100%', height: 'calc(100% - 48px)' }
+    : win.snap === 'l' ? { left: 0, top: 48, width: '50%', height: 'calc(100% - 48px)' }
+    : win.snap === 'r' ? { right: 0, top: 48, width: '50%', height: 'calc(100% - 48px)' }
+    : { left: win.x, top: win.y, width: win.w, height: win.h };
+  return (
+    <div className='fixed rounded-xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150' style={{ ...style, zIndex: win.z }} onMouseDown={onFocus}>
+      <div className='h-9 shrink-0 flex items-center gap-2 px-3 border-b border-border bg-foreground/[0.03] cursor-move select-none' onPointerDown={startDrag} onDoubleClick={onMax}>
+        {Icon ? <Icon className='h-3.5 w-3.5 text-primary shrink-0' /> : null}
+        <span className='text-xs font-medium truncate'>{win.title}</span>
+        <div className='ml-auto flex items-center gap-0.5'>
+          <button title='Minimize' onClick={onMin} className='h-6 w-6 grid place-items-center rounded hover:bg-foreground/10 text-muted-foreground'><Minus className='h-3.5 w-3.5' /></button>
+          <button title={win.max ? 'Restore' : 'Maximize'} onClick={onMax} className='h-6 w-6 grid place-items-center rounded hover:bg-foreground/10 text-muted-foreground'>{win.max ? <Minimize2 className='h-3 w-3' /> : <Maximize2 className='h-3 w-3' />}</button>
+          <button title='Close' onClick={onClose} className='h-6 w-6 grid place-items-center rounded hover:bg-destructive/15 hover:text-destructive text-muted-foreground'><X className='h-3.5 w-3.5' /></button>
+        </div>
+      </div>
+      <div className='flex-1 min-h-0 overflow-auto p-4'>{win.render()}</div>
+      {!win.max && !win.snap ? <div onPointerDown={startResize} className='absolute bottom-0 right-0 h-4 w-4 cursor-se-resize opacity-40 hover:opacity-80' style={{ background: 'linear-gradient(135deg, transparent 50%, hsl(var(--muted-foreground)) 50%, hsl(var(--muted-foreground)) 60%, transparent 60%, transparent 70%, hsl(var(--muted-foreground)) 70%, hsl(var(--muted-foreground)) 80%, transparent 80%)' }} /> : null}
+    </div>
+  );
+}
+
+function WindowLayer({ wins, focus, close, min, max, move, size, snap }: { wins: WinState[]; focus: (id: string) => void; close: (id: string) => void; min: (id: string) => void; max: (id: string) => void; move: (id: string, x: number, y: number) => void; size: (id: string, w: number, h: number) => void; snap: (id: string, s: 'l' | 'r' | null) => void }) {
+  if (!wins.length) return null;
+  return (<>
+    {wins.map((w) => <FloatingWindow key={w.id} win={w} onFocus={() => focus(w.id)} onClose={() => close(w.id)} onMin={() => min(w.id)} onMax={() => max(w.id)} onMove={(x, y) => move(w.id, x, y)} onSize={(ww, hh) => size(w.id, ww, hh)} onSnap={(s) => snap(w.id, s)} />)}
+    <div className='fixed bottom-0 left-0 right-0 h-9 z-[60] flex items-center gap-1 px-2 border-t border-border bg-card/95 backdrop-blur overflow-x-auto'>
+      <SquareStack className='h-3.5 w-3.5 text-muted-foreground shrink-0' />
+      {wins.map((w) => { const Ic = w.icon; return (
+        <button key={w.id} onClick={() => (w.min ? min(w.id) : focus(w.id))} className={cn('flex items-center gap-1.5 h-6 px-2.5 rounded text-xs shrink-0 transition-colors', w.min ? 'bg-foreground/5 text-muted-foreground hover:bg-foreground/10' : 'bg-primary/15 text-primary')}>
+          {Ic ? <Ic className='h-3 w-3' /> : null}<span className='max-w-[140px] truncate'>{w.title}</span>
+          <span onClick={(e) => { e.stopPropagation(); close(w.id); }} className='opacity-50 hover:opacity-100 ml-0.5'>×</span>
+        </button>); })}
+    </div>
+  </>);
+}
 
 export default function OsxShell() {
   const [ready, setReady] = React.useState(false);
@@ -109,6 +187,17 @@ export default function OsxShell() {
   const [tabs, setTabs] = React.useState<string[]>(['console']);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [live, setLive] = React.useState(0);
+  const [wins, setWins] = React.useState<WinState[]>([]);
+  const openWindow = React.useCallback((s: WinSpec) => {
+    setWins((w) => { const ex = w.find((x) => x.id === s.id); if (ex) return bringToTop(w, s.id, { min: false }); const n = w.length; const withNew = [...w, { ...s, x: 90 + (n % 6) * 30, y: 96 + (n % 6) * 30, w: 760, h: 500, z: 0, min: false, max: false, snap: null }]; return bringToTop(withNew, s.id); });
+  }, []);
+  const focusWin = React.useCallback((id: string) => setWins((w) => bringToTop(w, id, { min: false })), []);
+  const closeWin = React.useCallback((id: string) => setWins((w) => w.filter((x) => x.id !== id)), []);
+  const minWin = React.useCallback((id: string) => setWins((w) => w.map((x) => x.id === id ? { ...x, min: !x.min } : x)), []);
+  const maxWin = React.useCallback((id: string) => setWins((w) => { const t = w.find((x) => x.id === id); return bringToTop(w, id, { max: !t?.max, snap: null }); }), []);
+  const moveWin = React.useCallback((id: string, x: number, y: number) => setWins((w) => w.map((k) => k.id === id ? { ...k, x, y, snap: null, max: false } : k)), []);
+  const sizeWin = React.useCallback((id: string, ww: number, hh: number) => setWins((w) => w.map((k) => k.id === id ? { ...k, w: ww, h: hh } : k)), []);
+  const snapWin = React.useCallback((id: string, s: 'l' | 'r' | null) => setWins((w) => bringToTop(w, id, { snap: s, max: false })), []);
 
   React.useEffect(() => {
     let sub: any;
@@ -134,7 +223,9 @@ export default function OsxShell() {
 
   const go = (id: string) => { setTabs((t) => t.includes(id) ? t : [...t, id]); setCur(id); };
   const closeTab = (id: string) => { setTabs((t) => { const nt = t.filter((x) => x !== id); if (!nt.length) return ['console']; if (id === cur) setCur(nt[nt.length - 1]); return nt; }); };
+  const popOut = (id: string) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; openWindow({ id: 'mod:' + id, title: m.label, icon: m.icon, render: () => renderModule(id, go) }); };
   return (
+    <WinCtx.Provider value={{ open: openWindow }}>
     <div className='osx dark min-h-screen flex text-foreground'>
       <aside className='w-60 shrink-0 border-r border-border bg-card/40 hidden md:flex md:flex-col'>
         <div className='h-14 flex items-center gap-2 px-4 border-b border-border'>
@@ -143,21 +234,21 @@ export default function OsxShell() {
         </div>
         <nav className='flex-1 overflow-auto p-2 space-y-0.5'>
           {MODULES.map((m) => { const I = m.icon; return (
-            <button key={m.id} onClick={() => go(m.id)} className={cn('w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors', m.id === cur ? 'bg-primary/15 text-primary' : 'text-foreground/80 hover:bg-white/5')}>
+            <button key={m.id} onClick={() => go(m.id)} className={cn('w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors', m.id === cur ? 'bg-primary/15 text-primary' : 'text-foreground/80 hover:bg-foreground/5')}>
               <I className='h-4 w-4' /><span>{m.label}</span>
             </button>
           ); })}
         </nav>
         <div className='p-2 border-t border-border'>
-          <button onClick={async () => { try { await supa.auth.signOut(); } catch (_e) {} setEmail(''); }} className='w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-foreground/70 hover:bg-white/5'><LogOut className='h-4 w-4' />Sign out</button>
+          <button onClick={async () => { try { await supa.auth.signOut(); } catch (_e) {} setEmail(''); }} className='w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-foreground/70 hover:bg-foreground/5'><LogOut className='h-4 w-4' />Sign out</button>
         </div>
       </aside>
 
       <div className='flex-1 min-w-0 flex flex-col'>
         <header className='h-14 shrink-0 border-b border-border flex items-center gap-3 px-4'>
           <PipelineTracker onNav={go} />
-          <button onClick={() => setPaletteOpen(true)} className='ml-auto flex items-center gap-2 rounded-md border border-border px-3 h-9 text-sm text-muted-foreground hover:bg-white/5'>
-            <Search className='h-4 w-4' /><span className='hidden sm:inline'>Search or run a command</span><kbd className='hidden sm:inline text-[10px] bg-white/10 rounded px-1.5 py-0.5'>⌘K</kbd>
+          <button onClick={() => setPaletteOpen(true)} className='ml-auto flex items-center gap-2 rounded-md border border-border px-3 h-9 text-sm text-muted-foreground hover:bg-foreground/5'>
+            <Search className='h-4 w-4' /><span className='hidden sm:inline'>Search or run a command</span><kbd className='hidden sm:inline text-[10px] bg-foreground/10 rounded px-1.5 py-0.5'>⌘K</kbd>
           </button>
           <AgentStatus onOpen={() => go('agents')} />
           <NotificationsBell pulse={live} onNav={go} />
@@ -165,8 +256,9 @@ export default function OsxShell() {
         </header>
         <div className='h-10 shrink-0 border-b border-border flex items-stretch gap-1 px-2 overflow-x-auto'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; const I = m.icon; return (
-            <div key={id} onClick={() => setCur(id)} className={cn('group flex items-center gap-1.5 px-3 text-xs cursor-pointer border-b-2', id === cur ? 'border-primary text-primary bg-white/5' : 'border-transparent text-muted-foreground hover:text-foreground')}>
+            <div key={id} onClick={() => setCur(id)} title='Double-click title or use ⧉ to pop out to a floating window' className={cn('group flex items-center gap-1.5 px-3 text-xs cursor-pointer border-b-2', id === cur ? 'border-primary text-primary bg-foreground/5' : 'border-transparent text-muted-foreground hover:text-foreground')}>
               <I className='h-3.5 w-3.5' /><span>{m.label}</span>
+              <button title='Pop out to floating window' onClick={(e) => { e.stopPropagation(); popOut(id); }} className='opacity-0 group-hover:opacity-70 hover:!opacity-100 ml-0.5'><ExternalLink className='h-3 w-3' /></button>
               {tabs.length > 1 ? <button onClick={(e) => { e.stopPropagation(); closeTab(id); }} className='opacity-40 group-hover:opacity-100 hover:text-foreground ml-0.5 text-sm leading-none'>×</button> : null}
             </div>
           ); })}
@@ -174,7 +266,7 @@ export default function OsxShell() {
         <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
             <div key={id} className={id === cur ? '' : 'hidden'}>
-              {m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'intake_audio' ? <IntakeAudio /> : <Workspace mod={m} />}
+              {renderModule(id, go)}
             </div>
           ); })}
         </main>
@@ -193,6 +285,451 @@ export default function OsxShell() {
           </CommandGroup>
         </CommandList>
       </CommandDialog>
+      <WindowLayer wins={wins} focus={focusWin} close={closeWin} min={minWin} max={maxWin} move={moveWin} size={sizeWin} snap={snapWin} />
+    </div>
+    </WinCtx.Provider>
+  );
+}
+
+function prettyErr(r: any): string {
+  const e = r?.error || 'invalid';
+  const map: any = { must_be_a_number: 'Must be a number', must_be_a_whole_number: 'Must be a whole number', below_minimum: 'Below the minimum (' + r?.min + ')', above_maximum: 'Above the maximum (' + r?.max + ')', must_be_true_or_false: 'Must be on or off', not_an_email: 'Not a valid email address', too_long: 'Too long (max ' + r?.maxlen + ' characters)', key_not_editable: 'This setting is locked and cannot be changed here', no_history_to_revert: 'No previous value to revert to' };
+  return map[e] || e;
+}
+
+function SettingRow({ s, onSaved }: { s: any; onSaved: (key: string, val: string) => void }) {
+  const [val, setVal] = React.useState<string>(String(s.value ?? ''));
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const [hist, setHist] = React.useState<any[] | null>(null);
+  React.useEffect(() => { setVal(String(s.value ?? '')); }, [s.value]);
+  const dirty = String(s.value ?? '') !== val;
+  const save = async (confirm?: boolean) => {
+    setBusy(true); setErr(''); setMsg('');
+    try {
+      const r: any = await osSettings('set', { key: s.key, value: val, confirm: !!confirm });
+      if (r && r.needs_confirm) {
+        setBusy(false);
+        if (typeof window !== 'undefined' && window.confirm('“' + (r.label || s.label) + '” is a sensitive switch. Apply it now?')) { await save(true); }
+        return;
+      }
+      if (r && r.ok === false) { setErr(prettyErr(r)); setBusy(false); return; }
+      onSaved(s.key, r?.new ?? val); setMsg('Saved'); setTimeout(() => setMsg(''), 1500);
+    } catch (e: any) { setErr(e?.message || 'Failed'); }
+    setBusy(false);
+  };
+  const revert = async () => {
+    setBusy(true); setErr(''); setMsg('');
+    try { const r: any = await osSettings('revert', { key: s.key }); if (r && r.ok === false) { setErr(prettyErr(r)); } else { onSaved(s.key, r?.new ?? val); setVal(String(r?.new ?? val)); setMsg('Reverted'); setTimeout(() => setMsg(''), 1500); } }
+    catch (e: any) { setErr(e?.message || 'Failed'); }
+    setBusy(false);
+  };
+  const loadHist = async () => { try { const r: any = await osSettings('history', { key: s.key }); setHist(r?.history || []); } catch (_e) { setHist([]); } };
+  const isBool = s.type === 'bool';
+  const isBig = s.type === 'textarea' || s.type === 'html';
+  return (
+    <div className='py-3 border-b border-border/40 last:border-0'>
+      <div className='flex flex-col md:flex-row items-start gap-4'>
+        <div className='w-full md:w-64 shrink-0'>
+          <div className='text-sm font-medium flex items-center gap-1.5'>{s.label}{s.dangerous ? <span title='Sensitive switch' className='text-amber-400'>●</span> : null}</div>
+          {s.help ? <div className='text-xs text-muted-foreground mt-0.5'>{s.help}</div> : null}
+          <div className='text-[10px] text-muted-foreground/60 mt-0.5 font-mono'>{s.key}</div>
+        </div>
+        <div className='flex-1 min-w-0 w-full'>
+          {isBool ? (
+            <button type='button' onClick={() => setVal(val === 'true' ? 'false' : 'true')} className={cn('inline-flex h-6 items-center rounded-full px-0.5 w-11 transition-colors', val === 'true' ? 'bg-primary' : 'bg-muted')}><span className={cn('h-5 w-5 rounded-full bg-white shadow transition-transform', val === 'true' ? 'translate-x-5' : 'translate-x-0')} /></button>
+          ) : isBig ? (
+            <textarea value={val} onChange={(e) => setVal(e.target.value)} rows={s.type === 'html' ? 8 : 4} className='w-full rounded-md border border-border bg-background/60 p-2 text-sm font-mono' />
+          ) : (
+            <Input value={val} onChange={(e) => setVal(e.target.value)} type={s.type === 'money' || s.type === 'int' || s.type === 'number' ? 'number' : 'text'} className='max-w-md' />
+          )}
+          <div className='flex items-center gap-3 mt-2'>
+            <Button className='h-7 text-xs' disabled={busy || !dirty} onClick={() => save(false)}>{busy ? 'Saving…' : 'Save'}</Button>
+            {dirty ? <button type='button' className='text-xs text-muted-foreground underline' onClick={() => setVal(String(s.value ?? ''))}>Cancel</button> : null}
+            <button type='button' className='text-xs text-muted-foreground underline ml-auto' onClick={() => { if (hist === null) loadHist(); else setHist(null); }}>{hist === null ? 'History' : 'Hide'}</button>
+            <button type='button' className='text-xs text-muted-foreground underline' onClick={revert} disabled={busy}>Revert</button>
+          </div>
+          {msg ? <div className='text-xs text-emerald-400 mt-1'>{msg}</div> : null}
+          {err ? <div className='text-xs text-destructive mt-1'>{err}</div> : null}
+          {hist && hist.length ? <div className='mt-2 text-xs text-muted-foreground space-y-1'>{hist.map((h: any, i: number) => (<div key={i} className='flex flex-wrap gap-2'><span className='opacity-60'>{h.at ? new Date(h.at).toLocaleString() : ''}</span><span>{h.actor}</span><span className='opacity-80'>“{h.old}” → “{h.new}”</span></div>))}</div> : null}
+          {hist && !hist.length ? <div className='mt-2 text-xs text-muted-foreground'>No changes recorded yet.</div> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SettingsPanel() {
+  const [d, setD] = React.useState<any[] | null>(null);
+  const [err, setErr] = React.useState('');
+  const load = React.useCallback(() => { setD(null); setErr(''); osSettings('list').then((r: any) => setD(r?.settings || [])).catch((e: any) => setErr(e.message)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const onSaved = (key: string, val: string) => { setD((prev) => (prev ? prev.map((x) => (x.key === key ? { ...x, value: val } : x)) : prev)); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load settings: {err}</Card>;
+  if (!d) return <div className='text-muted-foreground text-sm'>Loading settings…</div>;
+  const groups: string[] = [];
+  d.forEach((s) => { if (!groups.includes(s.grp)) groups.push(s.grp); });
+  return (
+    <div className='space-y-5'>
+      <div className='flex flex-wrap items-center gap-2'><SlidersHorizontal className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Settings</h1><span className='text-xs text-muted-foreground md:ml-2'>Business configuration. API keys and secrets are managed separately and never appear here. Every change is audit-logged and reversible.</span></div>
+      {groups.map((g) => (
+        <Card key={g} className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>{g}</div>
+          <div className='px-4'>
+            {d.filter((s) => s.grp === g).map((s) => (<SettingRow key={s.key} s={s} onSaved={onSaved} />))}
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function fmtCron(s: string): string {
+  const map: any = { '* * * * *': 'every minute', '*/2 * * * *': 'every 2 min', '*/5 * * * *': 'every 5 min', '*/10 * * * *': 'every 10 min', '*/15 * * * *': 'every 15 min', '*/20 * * * *': 'every 20 min', '*/30 * * * *': 'every 30 min', '0 * * * *': 'hourly' };
+  return map[s] || s;
+}
+
+function JobRow({ j, onChanged }: { j: any; onChanged: () => void }) {
+  const [sched, setSched] = React.useState<string>(String(j.schedule || ''));
+  const [busy, setBusy] = React.useState('');
+  const [msg, setMsg] = React.useState('');
+  const [err, setErr] = React.useState('');
+  React.useEffect(() => { setSched(String(j.schedule || '')); }, [j.schedule]);
+  const schedDirty = String(j.schedule || '') !== sched;
+  const act = async (fn: () => Promise<any>, tag: string) => { setBusy(tag); setErr(''); setMsg(''); try { const r: any = await fn(); if (r && r.ok === false) setErr(r.error || 'Failed'); else { setMsg('Done'); setTimeout(() => setMsg(''), 1200); onChanged(); } } catch (e: any) { setErr(e?.message || 'Failed'); } setBusy(''); };
+  const toggle = () => act(() => osAutomation('set_active', { jobid: j.jobid, active: !j.active }), 'toggle');
+  const runNow = () => { if (typeof window !== 'undefined' && !window.confirm('Run “' + j.human_name + '” right now? This executes the job immediately.')) return; act(() => osAutomation('run', { jobid: j.jobid }), 'run'); };
+  const saveSched = () => act(() => osAutomation('reschedule', { jobid: j.jobid, schedule: sched }), 'sched');
+  const stColor = j.last_status === 'succeeded' ? 'text-emerald-400' : j.last_status === 'failed' ? 'text-destructive' : 'text-muted-foreground';
+  return (
+    <div className='py-2.5 border-b border-border/40 last:border-0 flex flex-col md:flex-row md:items-center gap-3'>
+      <div className='md:w-72 shrink-0'>
+        <div className='text-sm font-medium flex items-center gap-2'>{j.human_name}{!j.active ? <Badge variant='secondary' className='text-[10px]'>paused</Badge> : null}</div>
+        <div className='text-[10px] text-muted-foreground/60 font-mono'>{j.jobname}</div>
+      </div>
+      <div className='flex items-center gap-2'>
+        <Input value={sched} onChange={(e) => setSched(e.target.value)} className='h-7 w-36 text-xs font-mono' />
+        {schedDirty ? <Button className='h-7 text-xs' disabled={busy === 'sched'} onClick={saveSched}>Set</Button> : <span className='text-[11px] text-muted-foreground w-20'>{fmtCron(j.schedule)}</span>}
+      </div>
+      <div className={cn('text-xs flex items-center gap-1.5 md:w-52 min-w-0', stColor)}>
+        <Circle className='h-2 w-2 fill-current shrink-0' /><span className='truncate'>{j.last_status || 'no runs'}{j.last_start ? ' · ' + new Date(j.last_start).toLocaleString() : ''}</span>
+      </div>
+      <div className='flex items-center gap-2 md:ml-auto'>
+        <Button variant='outline' className='h-7 text-xs' disabled={busy === 'run'} onClick={runNow}>{busy === 'run' ? 'Running…' : 'Run now'}</Button>
+        <button type='button' onClick={toggle} disabled={busy === 'toggle'} className={cn('inline-flex h-6 items-center rounded-full px-0.5 w-11 transition-colors', j.active ? 'bg-primary' : 'bg-muted')}><span className={cn('h-5 w-5 rounded-full bg-white shadow transition-transform', j.active ? 'translate-x-5' : 'translate-x-0')} /></button>
+      </div>
+      {(msg || err) ? <div className={cn('text-xs md:w-full', err ? 'text-destructive' : 'text-emerald-400')}>{err || msg}</div> : null}
+    </div>
+  );
+}
+
+function AutomationPanel() {
+  const [d, setD] = React.useState<any[] | null>(null);
+  const [err, setErr] = React.useState('');
+  const load = React.useCallback(() => { setErr(''); osAutomation('list').then((r: any) => setD(r?.jobs || [])).catch((e: any) => setErr(e.message)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load automation: {err}</Card>;
+  if (!d) return <div className='text-muted-foreground text-sm'>Loading automation…</div>;
+  const groups: string[] = [];
+  d.forEach((j) => { if (!groups.includes(j.category)) groups.push(j.category); });
+  groups.sort();
+  const active = d.filter((j) => j.active).length;
+  return (
+    <div className='space-y-5'>
+      <div className='flex flex-wrap items-center gap-2'><Workflow className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Automation</h1><span className='text-xs text-muted-foreground md:ml-2'>{active} of {d.length} scheduled jobs running. Pause, re-time, or run any job. Every change is audit-logged.</span></div>
+      {groups.map((g) => (
+        <Card key={g} className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>{g}<Badge variant='secondary'>{d.filter((j) => j.category === g).length}</Badge></div>
+          <div className='px-4'>
+            {d.filter((j) => j.category === g).map((j) => (<JobRow key={j.jobid} j={j} onChanged={load} />))}
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function catSlug(s: string): string { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40); }
+
+function CatalogPanel() {
+  const [cats, setCats] = React.useState<any[] | null>(null);
+  const [q, setQ] = React.useState('');
+  const [sel, setSel] = React.useState<string>('');
+  const [label, setLabel] = React.useState('');
+  const [grp, setGrp] = React.useState('');
+  const [fields, setFields] = React.useState<any[]>([]);
+  const [specs, setSpecs] = React.useState<any[]>([]);
+  const [sample, setSample] = React.useState('');
+  const [test, setTest] = React.useState<any>(null);
+  const [busy, setBusy] = React.useState('');
+  const [msg, setMsg] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const loadCats = React.useCallback(() => { osCatalog('list').then((r: any) => setCats(r?.categories || [])).catch((e: any) => setErr(e.message)); }, []);
+  React.useEffect(() => { loadCats(); }, [loadCats]);
+  const open = async (c: string) => { setSel(c); setErr(''); setMsg(''); setTest(null); setSample(''); try { const d: any = await osCatalog('get', { category: c }); setLabel(d?.label || c); setGrp(d?.spec_group || ''); setFields(Array.isArray(d?.fields) ? d.fields.map((f: any) => ({ ...f })) : []); setSpecs(Array.isArray(d?.specs) ? d.specs.map((s: any) => ({ ...s })) : []); } catch (e: any) { setErr(e.message); } };
+  const saveFields = async () => { setBusy('fields'); setErr(''); setMsg(''); try { const clean = fields.map((f) => ({ key: f.key || catSlug(f.question), type: f.type || 'text', options: Array.isArray(f.options) ? f.options : [], question: f.question || '', required: !!f.required })); const r: any = await osCatalog('save_fields', { category: sel, fields: clean }); if (r && r.ok === false) setErr(r.error); else { setMsg('Questions saved'); setTimeout(() => setMsg(''), 1500); loadCats(); } } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const saveSpec = async (s: any, i: number) => { setBusy('spec' + i); setErr(''); try { const r: any = await osCatalog('spec_upsert', { id: s.id || null, spec_group: grp, aspect: s.aspect || catSlug(s.label), label: s.label, match_regex: s.match_regex, mandatory: !!s.mandatory, note: s.note || '' }); if (r && r.ok === false) setErr(r.error); else { setMsg('Check saved'); setTimeout(() => setMsg(''), 1200); const d: any = await osCatalog('get', { category: sel }); setSpecs(Array.isArray(d?.specs) ? d.specs.map((x: any) => ({ ...x })) : []); loadCats(); } } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const delSpec = async (s: any) => { if (!s.id) { setSpecs((arr) => arr.filter((x) => x !== s)); return; } if (typeof window !== 'undefined' && !window.confirm('Delete this gate check?')) return; setBusy('del' + s.id); try { await osCatalog('spec_delete', { id: s.id }); setSpecs((arr) => arr.filter((x) => x.id !== s.id)); loadCats(); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const runTest = async () => { setBusy('test'); setErr(''); try { const r: any = await osCatalog('test_gate', { category: sel, sample }); setTest(r); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const filtered = (cats || []).filter((c) => !q || (c.label + ' ' + c.category).toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-center gap-2'><ListChecks className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Categories</h1><span className='text-xs text-muted-foreground md:ml-2'>Edit the questions customers answer and the checks a supplier quote must pass. Test the gate live — no code needed. Changes are audit-logged.</span></div>
+      <div className='grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4'>
+        <Card className='overflow-hidden'>
+          <div className='p-2 border-b border-border'><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder='Search categories…' className='h-8 text-sm' /></div>
+          <div className='overflow-auto max-h-[640px]'>
+            {!cats ? <div className='p-3 text-sm text-muted-foreground'>Loading…</div> : filtered.map((c) => (
+              <button key={c.category} type='button' onClick={() => open(c.category)} className={cn('w-full text-left px-3 py-2 border-b border-border/40 hover:bg-foreground/5', sel === c.category ? 'bg-primary/10' : '')}>
+                <div className='text-sm font-medium'>{c.label}</div>
+                <div className='text-[11px] text-muted-foreground'>{c.n_fields} questions · {c.n_specs} gate checks</div>
+              </button>
+            ))}
+          </div>
+        </Card>
+        <div className='min-w-0 space-y-4'>
+          {!sel ? <Card className='p-6 text-sm text-muted-foreground'>Select a category to edit its intake questions and quote-gate checks.</Card> : (<>
+            {(msg || err) ? <div className={cn('text-xs', err ? 'text-destructive' : 'text-emerald-400')}>{err || msg}</div> : null}
+            <Card className='overflow-hidden'>
+              <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between gap-2'><span>Intake questions — {label}</span><Button className='h-7 text-xs' disabled={busy === 'fields'} onClick={saveFields}>{busy === 'fields' ? 'Saving…' : 'Save questions'}</Button></div>
+              <div className='p-3 space-y-2'>
+                {fields.map((f, i) => (
+                  <div key={i} className='flex flex-wrap items-center gap-2 border-b border-border/40 pb-2'>
+                    <Input value={f.question || ''} onChange={(e) => setFields((a) => a.map((x, j) => j === i ? { ...x, question: e.target.value } : x))} placeholder='Question' className='h-8 text-sm flex-1 min-w-[220px]' />
+                    <select value={f.type || 'text'} onChange={(e) => setFields((a) => a.map((x, j) => j === i ? { ...x, type: e.target.value } : x))} className='h-8 rounded-md border border-border bg-background text-xs px-2'>
+                      <option value='text'>text</option><option value='select'>select</option><option value='multiselect'>multiselect</option><option value='number'>number</option>
+                    </select>
+                    <label className='text-xs flex items-center gap-1'><input type='checkbox' checked={!!f.required} onChange={(e) => setFields((a) => a.map((x, j) => j === i ? { ...x, required: e.target.checked } : x))} />required</label>
+                    <button type='button' className='text-xs text-destructive underline' onClick={() => setFields((a) => a.filter((_, j) => j !== i))}>remove</button>
+                    {(f.type === 'select' || f.type === 'multiselect') ? <Input value={(Array.isArray(f.options) ? f.options.join(', ') : '')} onChange={(e) => setFields((a) => a.map((x, j) => j === i ? { ...x, options: e.target.value.split(',').map((o: string) => o.trim()).filter(Boolean) } : x))} placeholder='Options, comma-separated' className='h-8 text-xs w-full' /> : null}
+                  </div>
+                ))}
+                <button type='button' className='text-xs text-primary underline' onClick={() => setFields((a) => [...a, { key: '', type: 'text', options: [], question: '', required: false }])}>+ Add question</button>
+              </div>
+            </Card>
+            <Card className='overflow-hidden'>
+              <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Quote-gate checks <span className='text-xs text-muted-foreground font-normal'>· group: {grp}</span></div>
+              <div className='p-3 space-y-2'>
+                {specs.map((s, i) => (
+                  <div key={s.id || ('new' + i)} className='flex flex-wrap items-center gap-2 border-b border-border/40 pb-2'>
+                    <Input value={s.label || ''} onChange={(e) => setSpecs((a) => a.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} placeholder='What to check (e.g. Camera resolution)' className='h-8 text-sm flex-1 min-w-[200px]' />
+                    <Input value={s.match_regex || ''} onChange={(e) => setSpecs((a) => a.map((x, j) => j === i ? { ...x, match_regex: e.target.value } : x))} placeholder='pattern (regex)' className='h-8 text-xs font-mono flex-1 min-w-[200px]' />
+                    <label className='text-xs flex items-center gap-1'><input type='checkbox' checked={!!s.mandatory} onChange={(e) => setSpecs((a) => a.map((x, j) => j === i ? { ...x, mandatory: e.target.checked } : x))} />must-have</label>
+                    <Button className='h-7 text-xs' disabled={busy === 'spec' + i} onClick={() => saveSpec(s, i)}>Save</Button>
+                    <button type='button' className='text-xs text-destructive underline' onClick={() => delSpec(s)}>delete</button>
+                  </div>
+                ))}
+                <button type='button' className='text-xs text-primary underline' onClick={() => setSpecs((a) => [...a, { id: null, label: '', match_regex: '', mandatory: false, aspect: '' }])}>+ Add check</button>
+              </div>
+            </Card>
+            <Card className='overflow-hidden'>
+              <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Test the gate</div>
+              <div className='p-3 space-y-2'>
+                <textarea value={sample} onChange={(e) => setSample(e.target.value)} rows={4} placeholder='Paste a sample supplier quote here to see which checks it passes…' className='w-full rounded-md border border-border bg-background/60 p-2 text-sm' />
+                <Button className='h-7 text-xs' disabled={busy === 'test' || !sample} onClick={runTest}>{busy === 'test' ? 'Testing…' : 'Test against this category'}</Button>
+                {test ? <div className='mt-1 space-y-1'>
+                  <div className={cn('text-sm font-medium', test.passes ? 'text-emerald-400' : 'text-amber-400')}>{test.passes ? 'Passes the mandatory checks' : 'Would be blocked — missing must-haves'} · {test.matched_count}/{test.total} checks matched</div>
+                  {(test.aspects || []).map((a: any, i: number) => (<div key={i} className='text-xs flex items-center gap-2'><span className={a.matched ? 'text-emerald-400' : 'text-muted-foreground'}>{a.matched ? '✓' : '✗'}</span><span>{a.label}</span>{a.mandatory ? <Badge variant='secondary' className='text-[9px]'>must</Badge> : null}</div>))}
+                </div> : null}
+              </div>
+            </Card>
+          </>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContentPanel() {
+  const [pages, setPages] = React.useState<any[] | null>(null);
+  const [services, setServices] = React.useState<any[] | null>(null);
+  const [doc, setDoc] = React.useState<any>(null);
+  const [locale, setLocale] = React.useState<'en' | 'ar'>('en');
+  const [busy, setBusy] = React.useState('');
+  const [msg, setMsg] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const [newSvc, setNewSvc] = React.useState('');
+  const load = React.useCallback(() => { osPages('pages_list').then((r: any) => setPages(r?.rows || [])).catch((e: any) => setErr(e.message)); osPages('service_list').then((r: any) => setServices(r?.rows || [])).catch(() => { }); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const openPage = async (source: string, slug: string, loc: 'en' | 'ar') => { setBusy('open'); setErr(''); setMsg(''); try { const d: any = await osPages('page_get', { source, slug, locale: loc }); setDoc({ source, slug, title: d?.title || '', html: d?.html || '' }); setLocale(loc); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const savePage = async () => { if (!doc) return; setBusy('save'); setErr(''); try { await osPages('page_save', { source: doc.source, slug: doc.slug, locale, title: doc.title, html: doc.html }); setMsg('Saved as draft — click Publish to go live'); setTimeout(() => setMsg(''), 2500); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const translate = async () => { if (!doc) return; setBusy('tr'); setErr(''); try { await osPages('translate', { source: doc.source, slug: doc.slug }); setMsg('Arabic regenerated from English — open the AR tab to review'); setTimeout(() => setMsg(''), 3000); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const genService = async () => { if (!newSvc.trim()) return; setBusy('gen'); setErr(''); try { const r: any = await osPages('service_generate', { name: newSvc.trim() }); setMsg(r?.note || 'Queued — it will appear shortly'); setNewSvc(''); setTimeout(load, 5000); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const delService = async (slug: string) => { if (typeof window !== 'undefined' && !window.confirm('Delete service page "' + slug + '"?')) return; setBusy('del' + slug); try { await osPages('service_delete', { slug }); load(); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const publish = async () => { if (typeof window !== 'undefined' && !window.confirm('Publish all saved content changes to the LIVE site now?')) return; setBusy('pub'); setErr(''); try { await osPages('publish'); setMsg('Publishing to the live site — this can take a minute'); setTimeout(() => setMsg(''), 4000); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  if (doc) {
+    return (
+      <div className='space-y-4'>
+        <div className='flex flex-wrap items-center gap-2'>
+          <button type='button' className='text-xs text-primary underline' onClick={() => setDoc(null)}>← Back</button>
+          <Newspaper className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>{doc.source} · {doc.slug}</h1>
+          <div className='ml-auto flex items-center gap-1'>
+            <button type='button' onClick={() => openPage(doc.source, doc.slug, 'en')} className={cn('h-7 px-3 text-xs rounded-md', locale === 'en' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>EN</button>
+            <button type='button' onClick={() => openPage(doc.source, doc.slug, 'ar')} className={cn('h-7 px-3 text-xs rounded-md', locale === 'ar' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>AR</button>
+          </div>
+        </div>
+        {(msg || err) ? <div className={cn('text-xs', err ? 'text-destructive' : 'text-emerald-400')}>{err || msg}</div> : null}
+        <Card className='p-3 space-y-2'>
+          <Input value={doc.title} onChange={(e) => setDoc({ ...doc, title: e.target.value })} placeholder='Page title' className='text-sm' />
+          <textarea value={doc.html} onChange={(e) => setDoc({ ...doc, html: e.target.value })} rows={20} dir={locale === 'ar' ? 'rtl' : 'ltr'} className='w-full rounded-md border border-border bg-background/60 p-2 text-sm font-mono' />
+          <div className='flex items-center gap-2'>
+            <Button className='h-8 text-xs' disabled={busy === 'save'} onClick={savePage}>{busy === 'save' ? 'Saving…' : 'Save draft'}</Button>
+            {locale === 'en' ? <Button variant='outline' className='h-8 text-xs' disabled={busy === 'tr'} onClick={translate}>{busy === 'tr' ? 'Translating…' : 'Regenerate Arabic'}</Button> : null}
+            <Button variant='outline' className='h-8 text-xs ml-auto' disabled={busy === 'pub'} onClick={publish}>{busy === 'pub' ? 'Publishing…' : 'Publish to live site'}</Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-center gap-2'><Newspaper className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Content</h1><span className='text-xs text-muted-foreground md:ml-2'>Edit site pages and service landing pages, then publish to the live site. Changes are audit-logged.</span>
+        <Button className='h-8 text-xs ml-auto' disabled={busy === 'pub'} onClick={publish}>{busy === 'pub' ? 'Publishing…' : 'Publish to live site'}</Button>
+      </div>
+      {(msg || err) ? <div className={cn('text-xs', err ? 'text-destructive' : 'text-emerald-400')}>{err || msg}</div> : null}
+      <Card className='overflow-hidden'>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Site pages</div>
+        <div className='overflow-auto max-h-[360px]'>
+          {!pages ? <div className='p-3 text-sm text-muted-foreground'>Loading…</div> : pages.length === 0 ? <div className='p-3 text-sm text-muted-foreground'>No editable pages.</div> : pages.map((p: any, i: number) => (
+            <div key={i} className='flex items-center gap-2 px-4 py-2 border-b border-border/40'>
+              <div className='flex-1 min-w-0'><div className='text-sm font-medium truncate'>{deEnt(p.title)}</div><div className='text-[11px] text-muted-foreground'>{p.source} · {p.slug}{p.has_ar ? ' · EN+AR' : ' · EN only'}</div></div>
+              <Button variant='outline' className='h-7 text-xs' onClick={() => openPage(p.source, p.slug, 'en')}>Edit</Button>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card className='overflow-hidden'>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex flex-wrap items-center gap-2'>Service pages
+          <div className='ml-auto flex items-center gap-2'><Input value={newSvc} onChange={(e) => setNewSvc(e.target.value)} placeholder='New service name…' className='h-7 w-48 text-xs' /><Button className='h-7 text-xs' disabled={busy === 'gen' || !newSvc.trim()} onClick={genService}>{busy === 'gen' ? 'Generating…' : 'Generate'}</Button></div>
+        </div>
+        <div className='overflow-auto max-h-[360px]'>
+          {!services ? <div className='p-3 text-sm text-muted-foreground'>Loading…</div> : services.length === 0 ? <div className='p-3 text-sm text-muted-foreground'>No service pages yet.</div> : services.map((s: any, i: number) => (
+            <div key={i} className='flex items-center gap-2 px-4 py-2 border-b border-border/40'>
+              <div className='flex-1 min-w-0'><div className='text-sm font-medium truncate'>{deEnt(s.title)}</div><div className='text-[11px] text-muted-foreground'>{s.slug}{s.has_ar ? ' · EN+AR' : ' · EN only'}</div></div>
+              <button type='button' className='text-xs text-destructive underline' disabled={busy === 'del' + s.slug} onClick={() => delService(s.slug)}>delete</button>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function HealthPanel({ onNav }: { onNav: (id: string) => void }) {
+  const [h, setH] = React.useState<any>(null);
+  const [rec, setRec] = React.useState<any>(null);
+  const [err, setErr] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const load = React.useCallback(() => { setBusy(true); setErr(''); Promise.all([osHealth('health'), osHealth('reconcile')]).then(([a, b]: any) => { setH(a); setRec(b); }).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  if (err && !h) return <Card className='p-6 text-sm text-destructive'>Could not load system health: {err}</Card>;
+  if (!h) return <div className='text-muted-foreground text-sm'>Loading system health…</div>;
+  const ok = h.overall === 'healthy';
+  const kv = (label: string, val: any, nav?: string) => (<div onClick={nav ? () => onNav(nav) : undefined} className={cn('flex justify-between text-sm py-1 border-b border-border/30', nav && 'cursor-pointer hover:text-primary')}><span className='text-muted-foreground'>{label}</span><span className='font-medium inline-flex items-center gap-1'>{val}{nav ? <ArrowUpRight className='h-3 w-3 opacity-50' /> : null}</span></div>);
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-center gap-2'><Activity className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>System Health</h1>
+        <Badge className={cn('ml-1', ok ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400')}>{ok ? 'All healthy' : 'Needs attention'}</Badge>
+        <Button variant='outline' className='h-8 text-xs ml-auto' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
+      </div>
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Operations</div>
+          <div className='p-4'>
+            {kv('Failing scheduled jobs (24h)', (h.failing_crons || []).length, 'automation')}
+            {kv('Agent errors (24h)', h.agent_errors_24h, 'agents')}
+            {kv('Health-check failures (24h)', h.health_check_fails_24h)}
+            {kv('AI health failures', h.ai_health_fails)}
+            {(h.failing_crons || []).length ? <div className='mt-3 space-y-1'>{(h.failing_crons || []).map((c: any, i: number) => (<button key={i} onClick={() => onNav('automation')} title='Manage in Automation' className='block w-full text-left text-xs text-destructive hover:underline'>{c.job}: {c.message || c.status}</button>))}</div> : null}
+            {(h.top_error_agents || []).length ? <div className='mt-3'><div className='text-xs text-muted-foreground mb-1'>Top error sources (24h)</div>{(h.top_error_agents || []).map((a: any, i: number) => (<div key={i} className='text-xs flex justify-between'><span>{a.agent}</span><span className='text-muted-foreground'>{a.errors}</span></div>))}</div> : null}
+          </div>
+        </Card>
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Money reconciliation</div>
+          <div className='p-4'>
+            {rec ? (<>
+              {kv('Reveal transactions', rec.transactions_total)}
+              {kv('Revenue — reveal fees (AED)', rec.revenue_reveal_fees_aed)}
+              {kv('Refunds pending', rec.refunds_pending, 'refunds')}
+              {kv('Refunds resolved', rec.refunds_resolved)}
+              {kv('Stripe events recorded', rec.stripe_events_total)}
+              {kv('Stripe paid checkouts', rec.stripe_paid_checkouts)}
+              {kv('Ledger balanced', rec.gl_balanced === null ? 'n/a' : (rec.gl_balanced ? 'Yes' : 'NO — review'))}
+            </>) : <div className='text-sm text-muted-foreground'>Loading…</div>}
+          </div>
+        </Card>
+      </div>
+      <div className='text-[11px] text-muted-foreground'>Snapshot at {h.generated_at ? new Date(h.generated_at).toLocaleString() : ''}. Read-only.</div>
+    </div>
+  );
+}
+
+function SupportPanel() {
+  const [tab, setTab] = React.useState<'help' | 'incidents' | 'runbooks'>('help');
+  const [incidents, setIncidents] = React.useState<any[] | null>(null);
+  const [runbooks, setRunbooks] = React.useState<any[] | null>(null);
+  const [openRb, setOpenRb] = React.useState<string>('');
+  const [form, setForm] = React.useState<any>({ title: '', kind: 'bug', severity: 'medium', description: '' });
+  const [busy, setBusy] = React.useState('');
+  const [msg, setMsg] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const loadInc = React.useCallback(() => { osIncidents('list').then((r: any) => setIncidents(r?.incidents || [])).catch((e: any) => setErr(e.message)); }, []);
+  const loadRb = React.useCallback(() => { osIncidents('runbooks').then((r: any) => setRunbooks(r?.runbooks || [])).catch((e: any) => setErr(e.message)); }, []);
+  React.useEffect(() => { loadInc(); loadRb(); }, [loadInc, loadRb]);
+  const submit = async () => { if (!form.title.trim()) { setErr('Please add a short title'); return; } setBusy('open'); setErr(''); setMsg(''); try { const r: any = await osIncidents('open', form); if (r && r.ok === false) setErr(r.error); else { setMsg('Reported — the founder has been notified. Reference #' + (r?.id || '')); setForm({ title: '', kind: 'bug', severity: 'medium', description: '' }); loadInc(); setTab('incidents'); } } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const resolve = async (id: number) => { const res = typeof window !== 'undefined' ? window.prompt('Resolution note (optional):', '') : ''; if (res === null) return; setBusy('res' + id); try { await osIncidents('resolve', { id, resolution: res || '' }); loadInc(); } catch (e: any) { setErr(e.message); } setBusy(''); };
+  const openInc = (incidents || []).filter((x) => x.status === 'open').length;
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-center gap-2'><LifeBuoy className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Support</h1><span className='text-xs text-muted-foreground md:ml-2'>Report a problem, track incidents, and follow a runbook when something goes wrong.</span></div>
+      <div className='flex items-center gap-1'>
+        {(['help', 'incidents', 'runbooks'] as const).map((t) => (<button key={t} type='button' onClick={() => setTab(t)} className={cn('h-8 px-3 text-xs rounded-md', tab === t ? 'bg-primary text-primary-foreground' : 'bg-muted')}>{t === 'help' ? 'Get help' : t === 'incidents' ? ('Incidents' + (openInc ? ' (' + openInc + ')' : '')) : 'Runbooks'}</button>))}
+      </div>
+      {(msg || err) ? <div className={cn('text-xs', err ? 'text-destructive' : 'text-emerald-400')}>{err || msg}</div> : null}
+      {tab === 'help' ? (
+        <Card className='p-4 space-y-3 max-w-2xl'>
+          <div className='text-sm text-muted-foreground'>Describe what went wrong. This opens an incident and notifies the founder right away. For common problems, check Runbooks first — many can be fixed from the OS without help.</div>
+          <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder='Short title (e.g. Checkout not working)' className='text-sm' />
+          <div className='flex flex-wrap gap-2'>
+            <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })} className='h-9 rounded-md border border-border bg-background text-xs px-2'><option value='bug'>Something is broken</option><option value='payment'>Payment / money</option><option value='data'>Data looks wrong</option><option value='access'>Access / login</option><option value='other'>Other</option></select>
+            <select value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })} className='h-9 rounded-md border border-border bg-background text-xs px-2'><option value='low'>Low</option><option value='medium'>Medium</option><option value='high'>High / urgent</option></select>
+          </div>
+          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={5} placeholder='What happened? Include any reference numbers, names, or error messages you saw.' className='w-full rounded-md border border-border bg-background/60 p-2 text-sm' />
+          <Button className='h-9 text-sm' disabled={busy === 'open'} onClick={submit}>{busy === 'open' ? 'Reporting…' : 'Report & notify founder'}</Button>
+        </Card>
+      ) : null}
+      {tab === 'incidents' ? (
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Incidents</div>
+          <div className='overflow-auto max-h-[560px]'>
+            {!incidents ? <div className='p-3 text-sm text-muted-foreground'>Loading…</div> : incidents.length === 0 ? <div className='p-4 text-sm text-muted-foreground'>No incidents. Everything is running smoothly.</div> : incidents.map((x: any) => (
+              <div key={x.id} className='px-4 py-3 border-b border-border/40'>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <Badge variant='secondary' className={cn('text-[10px]', x.severity === 'high' ? 'bg-destructive/20 text-destructive' : '')}>{x.severity}</Badge>
+                  <span className='text-sm font-medium'>#{x.id} {x.title}</span>
+                  <Badge variant='secondary' className={cn('text-[10px] ml-1', x.status === 'open' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400')}>{x.status}</Badge>
+                  {x.status === 'open' ? <button type='button' className='text-xs text-primary underline ml-auto' disabled={busy === 'res' + x.id} onClick={() => resolve(x.id)}>Mark resolved</button> : null}
+                </div>
+                {x.description ? <div className='text-xs text-muted-foreground mt-1'>{x.description}</div> : null}
+                <div className='text-[10px] text-muted-foreground/60 mt-1'>{x.kind} · by {x.opened_by} · {x.opened_at ? new Date(x.opened_at).toLocaleString() : ''}{x.resolution ? ' · resolved: ' + x.resolution : ''}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : null}
+      {tab === 'runbooks' ? (
+        <div className='space-y-2'>
+          {!runbooks ? <div className='text-sm text-muted-foreground'>Loading…</div> : runbooks.map((r: any) => (
+            <Card key={r.slug} className='overflow-hidden'>
+              <button type='button' className='w-full text-left px-4 py-3 flex items-center gap-2' onClick={() => setOpenRb(openRb === r.slug ? '' : r.slug)}>
+                <Badge variant='secondary' className='text-[10px]'>{r.category}</Badge><span className='text-sm font-medium'>{r.title}</span><span className='ml-auto text-muted-foreground text-xs'>{openRb === r.slug ? '−' : '+'}</span>
+              </button>
+              {openRb === r.slug ? <div className='px-4 pb-3 space-y-2'><div className='text-xs text-muted-foreground'><span className='font-medium text-foreground'>When: </span>{r.when_to_use}</div><div className='text-sm whitespace-pre-line'>{r.steps}</div></div> : null}
+            </Card>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -365,25 +902,25 @@ function Knowledge() {
     <div className='space-y-5'>
       <div className='flex items-center gap-2'><BookOpen className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Knowledge coverage</h1><Button className='h-8 text-xs ml-auto' variant='outline' disabled={busy === '__report'} onClick={genReport}>{busy === '__report' ? 'Generating…' : 'Weekly learnings PDF'}</Button></div>
       {err ? <div className='text-xs text-destructive'>{err}</div> : null}
-      <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>
-        <Card className='p-4'><div className='text-xs text-muted-foreground'>Covered</div><div className='text-2xl font-bold mt-1 text-emerald-300'>{fmt(ck.covered ?? 0)}</div></Card>
-        <Card className='p-4'><div className='text-xs text-muted-foreground'>Thin</div><div className='text-2xl font-bold mt-1 text-amber-300'>{fmt(ck.thin ?? 0)}</div></Card>
-        <Card className='p-4'><div className='text-xs text-muted-foreground'>Gaps</div><div className='text-2xl font-bold mt-1 text-red-300'>{fmt(ck.gaps ?? 0)}</div></Card>
-        <Card className='p-4'><div className='text-xs text-muted-foreground'>Service categories</div><div className='text-2xl font-bold mt-1'>{fmt(ck.total ?? 0)}</div></Card>
-      </div>
+      {(() => { const tot = Number(ck.total ?? rows.length) || 1; const covPct = Math.round((Number(ck.covered ?? 0) / tot) * 100); return (
+        <Card className='p-4'>
+          <div className='flex items-center justify-between mb-2'><div className='text-sm font-semibold'>Overall coverage</div><div className='text-sm font-bold tabular-nums'>{covPct}%</div></div>
+          <div className='h-2.5 rounded-full bg-foreground/[0.06] overflow-hidden flex'><div className='h-full bg-emerald-500' style={{ width: (Number(ck.covered ?? 0) / tot * 100) + '%' }} /><div className='h-full bg-amber-500' style={{ width: (Number(ck.thin ?? 0) / tot * 100) + '%' }} /><div className='h-full bg-red-500' style={{ width: (Number(ck.gaps ?? 0) / tot * 100) + '%' }} /></div>
+          <div className='flex flex-wrap gap-x-5 gap-y-1 mt-2 text-xs'><span className='inline-flex items-center gap-1.5'><span className='h-2 w-2 rounded-full bg-emerald-500' />Covered <b>{fmt(ck.covered ?? 0)}</b></span><span className='inline-flex items-center gap-1.5'><span className='h-2 w-2 rounded-full bg-amber-500' />Thin <b>{fmt(ck.thin ?? 0)}</b></span><span className='inline-flex items-center gap-1.5'><span className='h-2 w-2 rounded-full bg-red-500' />Gaps <b>{fmt(ck.gaps ?? 0)}</b></span><span className='text-muted-foreground ml-auto'>{fmt(ck.total ?? 0)} service categories</span></div>
+        </Card>); })()}
       <Card className='overflow-hidden'>
         <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Coverage by category<Badge variant='secondary'>{rows.length}</Badge></div>
         <div className='overflow-auto max-h-[560px]'>
           <table className='w-full text-sm'>
-            <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'><th className='px-4 py-2 font-medium'>Category</th><th className='px-4 py-2 font-medium'>Chunks</th><th className='px-4 py-2 font-medium'>Status</th><th className='px-4 py-2 font-medium'></th></tr></thead>
-            <tbody>{rows.map((r: any) => (
-              <tr key={r.category} className='border-b border-border/40'>
-                <td className='px-4 py-2.5'>{r.label || titleCase(r.category)}</td>
-                <td className='px-4 py-2.5'>{fmt(r.chunks)}</td>
-                <td className='px-4 py-2.5'><Badge variant={r.status === 'covered' ? 'outline' : 'secondary'}>{r.status}</Badge></td>
-                <td className='px-4 py-2.5 text-right'>{r.status !== 'covered' ? <Button className='h-7 text-xs' disabled={busy === r.category} onClick={() => fill(r.category, r.label || r.category)}>{busy === r.category ? 'Generating…' : 'Fill gap'}</Button> : null}</td>
+            <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'><th className='px-4 py-2 font-medium'>Category</th><th className='px-4 py-2 font-medium w-40'>Chunks</th><th className='px-4 py-2 font-medium'>Status</th><th className='px-4 py-2 font-medium text-right'>Action</th></tr></thead>
+            <tbody>{rows.map((r: any) => { const chunks = Number(r.chunks) || 0; const pct = Math.min(100, (chunks / 8) * 100); return (
+              <tr key={r.category} className='border-b border-border/40 hover:bg-foreground/5'>
+                <td className='px-4 py-2.5 font-medium'>{r.label || titleCase(r.category)}</td>
+                <td className='px-4 py-2.5'><div className='flex items-center gap-2'><div className='w-20 h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full' style={{ width: Math.max(2, pct) + '%', background: chunks === 0 ? 'hsl(0 72% 55%)' : chunks < 3 ? 'hsl(38 92% 50%)' : 'hsl(160 60% 42%)' }} /></div><span className='text-[11px] text-muted-foreground tabular-nums'>{chunks}</span></div></td>
+                <td className='px-4 py-2.5'><Chip label={r.status} tone={statusTone(String(r.status))} /></td>
+                <td className='px-4 py-2.5 text-right'>{r.status !== 'covered' ? <Button className='h-7 text-xs' disabled={busy === r.category} onClick={() => fill(r.category, r.label || r.category)}>{busy === r.category ? 'Generating…' : 'Fill gap'}</Button> : <Check className='h-4 w-4 text-emerald-600 inline' />}</td>
               </tr>
-            ))}</tbody>
+            ); })}</tbody>
           </table>
         </div>
       </Card>
@@ -399,7 +936,7 @@ function NotificationsBell({ pulse, onNav }: { pulse: number; onNav: (id: string
   const count = items.length;
   return (
     <>
-      <button onClick={() => setOpen(true)} title='Notifications' className='relative flex items-center justify-center h-9 w-9 rounded-md border border-border hover:bg-white/5'>
+      <button onClick={() => setOpen(true)} title='Notifications' className='relative flex items-center justify-center h-9 w-9 rounded-md border border-border hover:bg-foreground/5'>
         <Bell className='h-4 w-4' />
         {count ? <span className='absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center'>{count > 99 ? '99+' : count}</span> : null}
       </button>
@@ -408,7 +945,7 @@ function NotificationsBell({ pulse, onNav }: { pulse: number; onNav: (id: string
           <SheetHeader><SheetTitle>Notifications</SheetTitle><SheetDescription>Recent founder alerts & reminders</SheetDescription></SheetHeader>
           <div className='mt-4 divide-y divide-border'>
             {items.length ? items.map((n: any, i: number) => (
-              <button key={i} onClick={() => { setOpen(false); onNav(routeFor(n.type)); }} className='w-full text-left py-3 hover:bg-white/5 transition-colors flex items-start gap-3'>
+              <button key={i} onClick={() => { setOpen(false); onNav(routeFor(n.type)); }} className='w-full text-left py-3 hover:bg-foreground/5 transition-colors flex items-start gap-3'>
                 <span className='mt-1 h-2 w-2 rounded-full bg-primary shrink-0'></span>
                 <div className='min-w-0'><div className='text-sm font-medium'>{n.subject || titleCase(String(n.type || 'notification'))}</div><div className='text-xs text-muted-foreground'>{titleCase(String(n.type || ''))} · {new Date(n.created_at).toLocaleString()}</div></div>
               </button>
@@ -430,7 +967,7 @@ function AgentStatus({ onOpen }: { onOpen: () => void }) {
   }, []);
   if (!k) return null;
   return (
-    <button onClick={onOpen} title='Open Smart Engine' className='hidden md:flex items-center gap-2 rounded-md border border-border px-3 h-9 text-xs hover:bg-white/5'>
+    <button onClick={onOpen} title='Open Smart Engine' className='hidden md:flex items-center gap-2 rounded-md border border-border px-3 h-9 text-xs hover:bg-foreground/5'>
       <span className='relative flex h-2 w-2'><span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-60'></span><span className='relative inline-flex rounded-full h-2 w-2 bg-primary'></span></span>
       <span className='font-semibold'>{fmt(k.agents ?? 0)}</span><span className='text-muted-foreground'>agents</span>
       <span className='text-muted-foreground'>·</span>
@@ -446,7 +983,7 @@ function PipelineTracker({ onNav }: { onNav: (id: string) => void }) {
     <div className='hidden lg:flex items-center'>
       {PIPELINE.map(([key, label], i) => (
         <div key={key} className='flex items-center'>
-          <button onClick={() => onNav('rfqs')} title={'View ' + label + ' RFQs'} className='flex items-center gap-1.5 rounded-md px-2.5 py-1 bg-white/5 text-xs hover:bg-white/10 transition-colors'>
+          <button onClick={() => onNav('rfqs')} title={'View ' + label + ' RFQs'} className='flex items-center gap-1.5 rounded-md px-2.5 py-1 bg-foreground/5 text-xs hover:bg-foreground/10 transition-colors'>
             <span className='text-muted-foreground'>{label}</span>
             <span className='font-semibold text-foreground'>{counts[key] ?? 0}</span>
           </button>
@@ -482,7 +1019,7 @@ function Console() {
       <div className='px-5 py-3 border-b border-border flex items-center gap-2'><div className='h-8 w-8 rounded-lg bg-primary text-primary-foreground grid place-items-center font-bold'>✦</div><div><div className='font-semibold text-sm'>Command Console</div><div className='text-xs text-muted-foreground'>Instruct the Secretary — it acts across the team.</div></div></div>
       <div className='flex-1 overflow-auto p-4 space-y-3'>
         {!msgs.length ? <div className='text-sm text-muted-foreground'>Ask for a status, approve a supplier, draft content, log a finance entry, or attach an invoice and tell me what to do with it.</div> : null}
-        {msgs.map((m, i) => (<div key={i} className={cn('max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm whitespace-pre-wrap', m.role === 'user' ? 'ml-auto bg-primary text-primary-foreground' : 'bg-white/5')}>{m.content}</div>))}
+        {msgs.map((m, i) => (<div key={i} className={cn('max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm whitespace-pre-wrap', m.role === 'user' ? 'ml-auto bg-primary text-primary-foreground' : 'bg-foreground/5')}>{m.content}</div>))}
         {busy ? <div className='text-sm text-muted-foreground'>…</div> : null}
         {confirm ? <div className='flex gap-2'><Button size='sm' onClick={() => decide('confirm')}>Confirm</Button><Button size='sm' variant='outline' onClick={() => decide('cancel')}>Cancel</Button></div> : null}
         <div ref={endRef} />
@@ -498,25 +1035,126 @@ function Console() {
   );
 }
 
+// ── Lightweight SVG charts (dependency-free) ──────────────────────────
+const CHART_COLORS = ['hsl(173 80% 36%)', 'hsl(210 90% 56%)', 'hsl(38 92% 50%)', 'hsl(261 60% 58%)', 'hsl(340 72% 55%)', 'hsl(150 55% 42%)', 'hsl(200 80% 45%)', 'hsl(20 85% 55%)', 'hsl(280 55% 55%)'];
+function HBars({ rows, onBar }: { rows: { label: string; n: number }[]; onBar?: (r: any) => void }) {
+  const max = Math.max(1, ...rows.map((r) => r.n));
+  if (!rows.length) return <div className='text-xs text-muted-foreground'>No data yet.</div>;
+  return (<div className='space-y-2.5'>{rows.map((r, i) => (
+    <div key={i} onClick={onBar ? () => onBar(r) : undefined} className={cn('group', onBar && 'cursor-pointer')}>
+      <div className='flex items-center justify-between text-xs mb-1'><span className='truncate capitalize text-foreground/80'>{r.label}</span><span className='tabular-nums text-muted-foreground ml-2'>{r.n.toLocaleString()}</span></div>
+      <div className='h-2.5 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full transition-all group-hover:brightness-110' style={{ width: Math.max(2, (r.n / max) * 100) + '%', background: CHART_COLORS[i % CHART_COLORS.length] }} /></div>
+    </div>))}</div>);
+}
+function Funnel({ rows, onStage }: { rows: { stage: string; n: number }[]; onStage?: (r: any) => void }) {
+  const max = Math.max(1, ...rows.map((r) => r.n));
+  return (<div className='space-y-1.5'>{rows.map((r, i) => { const w = Math.max(4, (r.n / max) * 100); const prev = i > 0 ? rows[i - 1].n : r.n; const conv = prev > 0 ? Math.round((r.n / prev) * 100) : 0; return (
+    <div key={i} onClick={onStage ? () => onStage(r) : undefined} className={cn('flex items-center gap-3', onStage && 'cursor-pointer')}>
+      <div className='w-20 sm:w-24 shrink-0 text-xs text-foreground/80 text-right'>{r.stage}</div>
+      <div className='flex-1 h-7 rounded-md bg-foreground/[0.06] overflow-hidden'>
+        <div className='h-full rounded-md flex items-center px-2 text-[11px] font-semibold text-white transition-all min-w-[2.5rem]' style={{ width: w + '%', background: CHART_COLORS[0], opacity: 1 - i * 0.09 }}>{r.n.toLocaleString()}</div>
+      </div>
+      <div className='w-9 shrink-0 text-[11px] text-muted-foreground text-right tabular-nums'>{i > 0 ? conv + '%' : ''}</div>
+    </div>); })}</div>);
+}
+function AreaSpark({ data, height = 72 }: { data: { d: string; n: number }[]; height?: number }) {
+  const w = 600, h = height, pad = 8; const max = Math.max(1, ...data.map((p) => p.n)); const n = data.length || 1;
+  const x = (i: number) => pad + (i * (w - 2 * pad)) / Math.max(1, n - 1);
+  const y = (v: number) => h - pad - (v / max) * (h - 2 * pad);
+  const line = data.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.n).toFixed(1)}`).join(' ');
+  const area = `${line} L${x(n - 1).toFixed(1)},${h - pad} L${x(0).toFixed(1)},${h - pad} Z`;
+  const peak = data.reduce((a, p, i) => (p.n > data[a].n ? i : a), 0);
+  return (<div>
+    <svg viewBox={`0 0 ${w} ${h}`} className='w-full' style={{ height }} preserveAspectRatio='none'>
+      <defs><linearGradient id='ag' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stopColor={CHART_COLORS[0]} stopOpacity='0.35' /><stop offset='100%' stopColor={CHART_COLORS[0]} stopOpacity='0' /></linearGradient></defs>
+      <path d={area} fill='url(#ag)' />
+      <path d={line} fill='none' stroke={CHART_COLORS[0]} strokeWidth='2' vectorEffect='non-scaling-stroke' />
+    </svg>
+    <div className='flex justify-between text-[10px] text-muted-foreground mt-1'>{data.filter((_, i) => i % Math.ceil(n / 5) === 0 || i === n - 1).map((p, i) => <span key={i}>{p.d}</span>)}</div>
+    {data[peak] && data[peak].n > 0 ? <div className='text-[11px] text-muted-foreground mt-1'>Peak: <span className='text-foreground font-medium'>{data[peak].n}</span> on {data[peak].d}</div> : null}
+  </div>);
+}
+function StatTile({ label, value, hint, onClick }: { label: string; value: any; hint?: string; onClick?: () => void }) {
+  return (<Card onClick={onClick} className={cn('p-4', onClick && 'cursor-pointer hover:border-primary/60 transition-colors')}>
+    <div className='text-xs text-muted-foreground flex items-center gap-1'>{label}{onClick ? <ArrowUpRight className='h-3 w-3 opacity-40' /> : null}</div>
+    <div className='text-2xl font-bold mt-1 tabular-nums'>{fmt(value)}</div>
+    {hint ? <div className='text-[11px] text-muted-foreground mt-0.5'>{hint}</div> : null}
+  </Card>);
+}
+
 function Overview({ onNav }: { onNav: (id: string) => void }) {
-  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState('');
-  React.useEffect(() => { osApi('ws.exec').then(setD).catch((e) => setErr(e.message)); }, []);
-  if (err) return <Card className='p-6 text-sm text-destructive'>Could not load: {err}</Card>;
-  if (!d) return <div className='text-muted-foreground text-sm'>Loading overview…</div>;
-  const kpis: [string, any][] = [];
-  const walk = (o: any, pre = '') => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (typeof v === 'number' || typeof v === 'string') { if (kpis.length < 8 && /rev|count|total|rate|open|pending|active|won|quote|inquir|supplier|customer/i.test(k)) kpis.push([titleCase(pre + k), v]); } else if (v && typeof v === 'object' && !Array.isArray(v) && pre === '') walk(v, ''); } };
-  walk(d?.command || d || {});
-  const health = (d && d.command && d.command.health) || {}; const band = String(health.band || 'unknown'); const bandColor = /crit|down|bad|fail/.test(band) ? 'border-red-500/40 text-red-300' : /attention|warn|risk/.test(band) ? 'border-amber-500/40 text-amber-300' : /ok|good|healthy|strong/.test(band) ? 'border-emerald-500/40 text-emerald-300' : 'border-border text-muted-foreground';
+  const [v, setV] = React.useState<any>(null); const [health, setHealth] = React.useState<any>({}); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const load = React.useCallback(() => { setBusy(true); setErr(''); Promise.all([osApi('viz'), osApi('ws.exec').catch(() => null)]).then(([viz, exec]: any) => { setV(viz); setHealth((exec && exec.command && exec.command.health) || {}); }).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  if (err && !v) return <Card className='p-6 text-sm text-destructive'>Could not load command center: {err}</Card>;
+  if (!v) return <div className='text-muted-foreground text-sm'>Loading command center…</div>;
+  const H = v.headline || {}; const band = String(health.band || 'unknown');
+  const bandColor = /crit|down|bad|fail/.test(band) ? 'border-red-500/40 text-red-600' : /attention|warn|risk|watch/.test(band) ? 'border-amber-500/40 text-amber-600' : /ok|good|healthy|strong/.test(band) ? 'border-emerald-500/40 text-emerald-600' : 'border-border text-muted-foreground';
+  const pipeline = (v.pipeline || []) as { stage: string; n: number }[]; const pipelineLive = pipeline.some((p) => p.n > 0);
   return (
     <div className='space-y-5'>
-      <Card className={cn('p-4 flex items-center justify-between gap-4 border', bandColor)}>
-        <div><div className='text-[11px] uppercase tracking-wide opacity-70'>Business health</div><div className='text-2xl font-bold mt-0.5'>{health.index ?? '—'}<span className='text-sm font-normal opacity-70'> / 100 · {titleCase(band)}</span></div></div>
-        <div className='text-xs opacity-80 max-w-md text-right'>{health.note || 'Live signals across revenue, uptime, disputes and activity.'}</div>
-      </Card>
-      <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>
-        {kpis.length ? kpis.map(([k, v]) => { const kl = k.toLowerCase(); const tgt = /supplier/.test(kl) ? 'suppliers' : /customer/.test(kl) ? 'customers' : /rfq|quote/.test(kl) ? 'rfqs' : /rev|fee|cash|expense|invoice|outstanding/.test(kl) ? 'finance' : null; return (<Card key={k} onClick={tgt ? () => onNav(tgt) : undefined} className={cn('p-4', tgt && 'cursor-pointer hover:border-primary/60 transition-colors')}><div className='text-xs text-muted-foreground'>{k}</div><div className='text-2xl font-bold mt-1'>{fmt(v)}</div></Card>); }) : <Card className='p-4 col-span-full text-sm text-muted-foreground'>No metrics available yet.</Card>}
+      <div className='flex items-center gap-2'>
+        <LayoutDashboard className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Command Center</h1>
+        <span className='text-xs text-muted-foreground ml-1'>Live business picture</span>
+        <Button variant='outline' className='h-8 text-xs ml-auto' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
       </div>
-      <Card className='p-4'><div className='text-sm font-semibold mb-2'>Live snapshot</div><div className='text-xs text-muted-foreground'>Metrics refresh automatically from the marketplace. Use the modules on the left for detail.</div></Card>
+
+      <Card onClick={() => onNav('health')} className={cn('p-4 flex items-center justify-between gap-4 border cursor-pointer hover:brightness-[1.02] transition-all', bandColor)}>
+        <div><div className='text-[11px] uppercase tracking-wide opacity-70'>Business health</div><div className='text-2xl font-bold mt-0.5'>{health.index ?? '—'}<span className='text-sm font-normal opacity-70'> / 100 · {titleCase(band)}</span></div></div>
+        <div className='flex items-center gap-2 max-w-md'><div className='text-xs opacity-80 text-right'>{health.note || 'Live signals across revenue, uptime, disputes and activity.'}</div><ArrowUpRight className='h-4 w-4 shrink-0 opacity-60' /></div>
+      </Card>
+
+      <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>
+        <StatTile label='Suppliers sourced' value={H.suppliers_total} onClick={() => onNav('suppliers')} />
+        <StatTile label='Invited' value={H.invited_total} hint='invite campaign' onClick={() => onNav('suppliers')} />
+        <StatTile label='Registered' value={H.registered_total} onClick={() => onNav('suppliers')} />
+        <StatTile label='Verified' value={H.verified_total} onClick={() => onNav('suppliers')} />
+        <StatTile label='Agents active (24h)' value={H.agents_active_24h} onClick={() => onNav('agents')} />
+        <StatTile label='Agent runs (24h)' value={H.runs_24h} onClick={() => onNav('agents')} />
+      </div>
+
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Supplier onboarding funnel<span className='text-[11px] font-normal text-muted-foreground'>sourced → approved</span></div>
+          <div className='p-4'><Funnel rows={v.funnel || []} onStage={() => onNav('suppliers')} /></div>
+        </Card>
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Supplier invites — last 14 days</div>
+          <div className='p-4'><AreaSpark data={v.invites_14d || []} /><div className='text-[11px] text-muted-foreground mt-2'>Campaign is currently <span className='font-medium text-amber-600'>paused</span>. {H.invited_total || 0} suppliers invited in total.</div></div>
+        </Card>
+      </div>
+
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Suppliers by sector</div>
+          <div className='p-4'><HBars rows={(v.by_sector || []).slice(0, 8)} onBar={() => onNav('suppliers')} /></div>
+        </Card>
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Suppliers by emirate</div>
+          <div className='p-4'><HBars rows={(v.by_emirate || []).slice(0, 8)} onBar={() => onNav('suppliers')} /></div>
+        </Card>
+      </div>
+
+      <Card className='overflow-hidden'>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Busiest agents — last 24h{H.runs_failed_24h ? <span className='text-[11px] font-normal text-amber-600'>{H.runs_failed_24h} failed run{H.runs_failed_24h === 1 ? '' : 's'}</span> : <span className='text-[11px] font-normal text-muted-foreground'>{H.runs_24h || 0} runs across {H.agents_active_24h || 0} agents</span>}</div>
+        <div className='p-4'><HBars rows={(v.agents_24h || []).slice(0, 8)} onBar={() => onNav('agents')} /></div>
+      </Card>
+
+      <Card className='overflow-hidden'>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Marketplace pipeline<span className='text-[11px] font-normal text-muted-foreground'>RFQ → won</span></div>
+        <div className='p-4'>{pipelineLive ? <Funnel rows={pipeline} onStage={() => onNav('rfqs')} /> : <div className='text-sm text-muted-foreground'>No client requests yet — this pipeline fills once buyers start posting RFQs. Suppliers are being onboarded first.</div>}</div>
+      </Card>
+
+      <Card className='p-4'>
+        <div className='text-sm font-semibold mb-3'>Quick access</div>
+        <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2'>
+          {([['rfqs', 'RFQs & Procurement', ArrowLeftRight], ['suppliers', 'Suppliers', Hammer], ['customers', 'Customers', Users], ['finance', 'Finance', DollarSign], ['escalations', 'Escalations', AlertTriangle], ['reports', 'Reports', FileBarChart], ['documents', 'Documents', FileText], ['health', 'System Health', Activity]] as [string, string, any][]).map(([id, label, Ic]) => (
+            <button key={id} onClick={() => onNav(id)} className='flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2.5 text-sm text-left hover:border-primary/60 hover:bg-foreground/5 transition-colors'>
+              <Ic className='h-4 w-4 text-primary shrink-0' /><span className='truncate'>{label}</span>
+            </button>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
@@ -527,6 +1165,8 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
   React.useEffect(() => { load(); }, [load]);
   const openItem = (it: any) => { setSel(it); setDraft(it.draft || ''); setMsg(''); };
   const send = async () => { if (!sel) return; setBusy(true); setMsg(''); try { await osApi('inbox_send', { id: sel.id, body: draft }); setSel(null); load(); } catch (e: any) { setMsg('Could not send: ' + (e?.message || 'error')); } setBusy(false); };
+  const [dbusy, setDbusy] = React.useState<string | null>(null);
+  const decide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('action_decide', { id, op }); load(); } catch (_e) { } setDbusy(null); };
   if (err) return <Card className='p-6 text-sm text-destructive'>Could not load escalations: {err}</Card>;
   if (!d) return <div className='text-muted-foreground text-sm'>Loading escalations…</div>;
   const kpis = (d.inbox && d.inbox.kpis) || {}; const rows = (d.inbox && d.inbox.rows) || []; const attention = d.attention || [];
@@ -542,7 +1182,7 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
       <Card className='overflow-hidden'>
         <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Inbox — awaiting your reply<Badge variant='secondary'>{rows.length}</Badge></div>
         {rows.length ? <div className='divide-y divide-border'>{rows.map((it: any) => (
-          <button key={it.id} onClick={() => openItem(it)} className='w-full text-left px-4 py-3 hover:bg-white/5 transition-colors'>
+          <button key={it.id} onClick={() => openItem(it)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors'>
             <div className='flex items-center justify-between gap-3'>
               <div className='min-w-0'><div className='text-sm font-medium truncate'>{it.subject || '(no subject)'}</div><div className='text-xs text-muted-foreground truncate'>{it.from_email} · {it.summary || ''}</div></div>
               {it.draft ? <Badge variant='secondary'>Draft ready</Badge> : <Badge variant='outline'>New</Badge>}
@@ -553,17 +1193,21 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
       {attention.length ? <Card className='overflow-hidden'>
         <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Agent decisions held for review<Badge variant='secondary'>{attention.length}</Badge></div>
         <div className='divide-y divide-border'>{attention.map((a: any) => (
-          <button key={a.id} onClick={() => onNav('agents')} title='Review in Smart Engine' className='w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-white/5 transition-colors'>
-            <div className='min-w-0'><div className='text-sm truncate'>{titleCase(String(a.kind || 'decision'))} · <span className='text-muted-foreground'>{a.actor}</span></div><div className='text-xs text-muted-foreground'>{a.decision} → {a.route_to}</div></div>
-            <Badge variant='outline'>held</Badge>
-          </button>
+          <div key={a.id} className='px-4 py-3 flex items-center justify-between gap-3 hover:bg-foreground/5 transition-colors'>
+            <div className='min-w-0'><div className='text-sm truncate flex items-center gap-2'>{titleCase(String(a.kind || 'decision'))} · <span className='text-muted-foreground'>{a.actor}</span>{a.risk ? <Chip label={a.risk} tone={riskTone(String(a.risk))} /> : null}</div><div className='text-xs text-muted-foreground truncate'>{a.title || a.decision} → {a.route_to}</div></div>
+            <div className='flex items-center gap-1.5 shrink-0'>
+              <Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>{dbusy === String(a.id) + 'approve' ? '…' : 'Approve'}</Button>
+              <Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>{dbusy === String(a.id) + 'reject' ? '…' : 'Reject'}</Button>
+              <button onClick={() => onNav('agents')} title='Review in Smart Engine' className='text-muted-foreground hover:text-foreground'><ArrowUpRight className='h-4 w-4' /></button>
+            </div>
+          </div>
         ))}</div>
       </Card> : null}
       <Sheet open={!!sel} onOpenChange={(o) => { if (!o) setSel(null); }}>
         <SheetContent className='osx dark w-full sm:max-w-lg overflow-y-auto'>
           <SheetHeader><SheetTitle>{sel?.subject || 'Message'}</SheetTitle><SheetDescription>{sel?.from_email}</SheetDescription></SheetHeader>
           <div className='mt-4 space-y-4'>
-            <div><div className='text-xs font-semibold text-muted-foreground mb-1'>Their message</div><div className='text-sm whitespace-pre-wrap rounded-md border border-border p-3 bg-white/5'>{sel?.body}</div></div>
+            <div><div className='text-xs font-semibold text-muted-foreground mb-1'>Their message</div><div className='text-sm whitespace-pre-wrap rounded-md border border-border p-3 bg-foreground/5'>{sel?.body}</div></div>
             <div><div className='text-xs font-semibold text-muted-foreground mb-1'>Your reply (Smart Engine draft — edit before sending)</div><textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={8} className='w-full resize-none rounded-md border border-border bg-transparent p-3 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' /></div>
             {msg ? <div className='text-xs text-destructive'>{msg}</div> : null}
             <div className='flex gap-2'>
@@ -575,6 +1219,997 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
       </Sheet>
     </div>
   );
+}
+
+// ── Zoho/Odoo-style navigable record drawer ─────────────────────────────
+const REL_ENTITY: Record<string, string> = { quotes: 'quote', quote: 'quote', inquiries: 'rfq', rfqs: 'rfq', inquiry: 'rfq', customers: 'customer', customer: 'customer', suppliers: 'supplier', supplier: 'supplier', leads: 'supplier', tasks: 'task', task: 'task', agent_actions: 'agent_action', agent_action: 'agent_action' };
+const WS_ENTITY: Record<string, string> = { supplier: 'ws.supplier', customer: 'ws.customer', rfq: 'ws.rfq' };
+// Scalar foreign-key fields → the entity they point at (Zoho-style click-through on any *_id field).
+const FK_ENTITY: Record<string, string> = { supplier_id: 'supplier', lead_id: 'supplier', supplier: 'supplier', customer_id: 'customer', customer: 'customer', buyer_id: 'customer', inquiry_id: 'rfq', rfq_id: 'rfq', inquiry: 'rfq', quote_id: 'quote', quote: 'quote', agent_action_id: 'agent_action', task_id: 'task' };
+function singularWord(s: string) { return String(s).replace(/ies$/i, 'y').replace(/s$/i, ''); }
+
+// Odoo-style "chatter": activity timeline + comments + AI ask, on real events.
+function ActivityPanel({ entity, id }: { entity: string; id: any }) {
+  const [items, setItems] = React.useState<any[] | null>(null);
+  const [body, setBody] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const [ai, setAi] = React.useState(''); const [aiBusy, setAiBusy] = React.useState(false); const [aiOut, setAiOut] = React.useState('');
+  const load = React.useCallback(() => { osApi('activity', { entity, id }).then((d: any) => setItems(Array.isArray(d) ? d : [])).catch(() => setItems([])); }, [entity, id]);
+  React.useEffect(() => { load(); }, [load]);
+  const addComment = async () => { const t = body.trim(); if (!t) return; setBusy(true); try { await osApi('comment_add', { entity, id, body: t }); setBody(''); load(); } catch (_e) { } setBusy(false); };
+  const askAI = async () => { const q = ai.trim(); if (!q) return; setAiBusy(true); setAiOut(''); try { const d: any = await osApi('secretary_chat', { message: q + ' (regarding ' + entity + ' #' + id + ')' }); setAiOut(d?.reply || 'No response.'); } catch (e: any) { setAiOut('Error: ' + (e?.message || 'could not reach the assistant')); } setAiBusy(false); };
+  const iconFor = (k: string) => k === 'comment' ? MessageSquare : k === 'agent' ? Sparkles : k === 'audit' ? ScrollText : Circle;
+  return (
+    <Card className='mt-4 overflow-hidden'>
+      <div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center gap-2'><Activity className='h-4 w-4 text-primary' />Activity</div>
+      <div className='p-4 space-y-4'>
+        <div className='flex gap-2'>
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addComment(); }} rows={2} placeholder='Add a note… (⌘+Enter to post)' className='flex-1 resize-none rounded-md border border-border bg-transparent p-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' />
+          <Button className='h-8 text-xs self-end' disabled={busy || !body.trim()} onClick={addComment}>{busy ? '…' : 'Post'}</Button>
+        </div>
+        <div className='rounded-md border border-primary/30 bg-primary/[0.04] p-2'>
+          <div className='flex items-center gap-2'><Sparkles className='h-4 w-4 text-primary shrink-0' /><input value={ai} onChange={(e) => setAi(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') askAI(); }} placeholder='Ask AI about this record…' className='flex-1 bg-transparent text-sm outline-none' /><Button className='h-8 text-xs' variant='outline' disabled={aiBusy || !ai.trim()} onClick={askAI}>{aiBusy ? '…' : 'Ask'}</Button></div>
+          {aiOut ? <div className='text-xs whitespace-pre-wrap mt-2 border-t border-border/50 pt-2'>{aiOut}</div> : null}
+        </div>
+        {items === null ? <div className='text-xs text-muted-foreground'>Loading activity…</div> : !items.length ? <div className='text-xs text-muted-foreground'>No activity recorded yet.</div> : (
+          <div>{items.map((it: any, i: number) => { const I = iconFor(it.kind); return (
+            <div key={i} className='flex gap-3 pb-3 last:pb-0'>
+              <div className='flex flex-col items-center'><div className={cn('h-6 w-6 rounded-full grid place-items-center shrink-0', it.kind === 'comment' ? 'bg-primary/15 text-primary' : it.kind === 'agent' ? 'bg-violet-500/15 text-violet-600' : it.kind === 'milestone' ? 'bg-emerald-500/15 text-emerald-600' : 'bg-foreground/5 text-muted-foreground')}><I className='h-3 w-3' /></div>{i < items.length - 1 ? <div className='w-px flex-1 bg-border my-1' /> : null}</div>
+              <div className='min-w-0 flex-1 -mt-0.5'>
+                <div className='text-sm flex items-center gap-1.5 flex-wrap'><span className='font-medium capitalize'>{titleCase(String(it.title || it.kind))}</span>{it.status ? <Badge variant='outline' className='text-[10px]'>{it.status}</Badge> : null}</div>
+                {it.body ? <div className='text-sm text-foreground/80 mt-0.5 whitespace-pre-wrap'>{it.body}</div> : null}
+                <div className='text-[11px] text-muted-foreground mt-0.5'>{it.actor || 'system'} · {fmt(it.at)}</div>
+              </div>
+            </div>); })}</div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function RecordDrawer({ frame0, actions, extra, reportId, onClose }: { frame0: any; actions?: any; extra?: any; reportId?: number; onClose: () => void }) {
+  const [stack, setStack] = React.useState<any[]>([frame0]);
+  const key0 = (frame0 && (String(frame0.entity) + ':' + String(frame0.id) + ':' + String(frame0.row && frame0.row.id))) || '';
+  React.useEffect(() => { setStack([frame0]); }, [key0]); // eslint-disable-line react-hooks/exhaustive-deps
+  const top = stack[stack.length - 1];
+  const [data, setData] = React.useState<any>(null);
+  const [files, setFiles] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [busyDoc, setBusyDoc] = React.useState('');
+  React.useEffect(() => {
+    let alive = true; setData(top.row || null); setFiles([]);
+    const ent = top.entity, id = top.id;
+    if (!ent || id == null) { setLoading(false); return; }
+    setLoading(true);
+    (async () => {
+      const ws = WS_ENTITY[ent];
+      const pP = ws ? osApi(ws, { id }).catch(() => null) : osApi('record', { entity: ent, id }).then((r: any) => (r && r.record !== undefined ? r.record : r)).catch(() => null);
+      const fP = (ent === 'supplier' || ent === 'customer' || ent === 'rfq') ? osApi('files', { entity: ent, id }).catch(() => [] as any) : Promise.resolve([] as any);
+      const [pd, fd] = await Promise.all([pP, fP]);
+      if (!alive) return;
+      setData(pd || top.row || null);
+      setFiles(Array.isArray(fd) ? fd : (fd && Array.isArray(fd.data) ? fd.data : []));
+      setLoading(false);
+    })();
+    return () => { alive = false; };
+  }, [top.entity, top.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const openDoc = async (doc: any) => { const dkey = doc.path || doc.url || doc.name || ''; setBusyDoc(dkey); try { let url = doc.url; if (!url && doc.path) { const r: any = await osApi('file', { bucket: doc.bucket || 'supplier-docs', path: doc.path }); url = r && r.url; } if (url && typeof window !== 'undefined') window.open(url, '_blank', 'noopener'); } catch (_e) { } setBusyDoc(''); };
+  const openRelated = (k: string, r: any) => { const ent = REL_ENTITY[String(k).toLowerCase()]; const id = r.id ?? r.rfq_id ?? r.inquiry_id ?? r.quote_id ?? r.supplier_id ?? r.customer_id; setStack((s) => [...s, { entity: ent, id: ent ? id : undefined, title: singularWord(titleCase(k)) + (id != null ? ' #' + id : ''), row: r }]); };
+  const openRef = (ent: string, id: any) => { if (!ent || id == null || id === '') return; setStack((s) => [...s, { entity: ent, id, title: singularWord(titleCase(ent)) + ' #' + id }]); };
+  const rec = data && typeof data === 'object' && data.record !== undefined && data.record ? data.record : data;
+  const scal: [string, any][] = []; const arrs: [string, any[]][] = [];
+  const collect = (o: any) => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (Array.isArray(v)) { if (v.length && typeof v[0] === 'object') arrs.push([k, v as any[]]); } else if (v && typeof v === 'object') { collect(v); } else scal.push([k, v]); } };
+  collect(rec);
+  // Zoho/Odoo-style: show only populated, meaningful fields — hide nulls, internal/vector/token columns, and huge blobs.
+  const HIDE_KEY = /(^|_)(embedding|embedding_gte|body|claim_token|token|place_id|maps_url|emirates_id|owner_dob|password|secret|ip)$|embedding|_token$|_ip$/i;
+  const scalShow = scal.filter(([k, v]) => v != null && v !== '' && !HIDE_KEY.test(String(k)) && !(typeof v === 'string' && v.length > 400) && !(typeof v === 'string' && /^\[\s*-?\d/.test(v.trim())));
+  const grpFiles: Record<string, any[]> = {}; (files || []).forEach((f: any) => { const g = (f && f.group) || 'Documents'; (grpFiles[g] = grpFiles[g] || []).push(f); });
+  return (
+    <Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent side='right' className='w-full sm:max-w-2xl overflow-y-auto'>
+        <SheetHeader>
+          {stack.length > 1 ? <div className='flex items-center gap-1.5 text-xs text-muted-foreground mb-1 flex-wrap'>{stack.map((f, i) => (<React.Fragment key={i}>{i > 0 ? <span>/</span> : null}<button type='button' className={cn(i === stack.length - 1 ? 'text-foreground font-medium' : 'hover:text-foreground underline')} onClick={() => setStack((s) => s.slice(0, i + 1))}>{f.title}</button></React.Fragment>))}</div> : null}
+          <SheetTitle>{top.title}</SheetTitle>
+          <SheetDescription>{(rec && (rec.company_name || rec.email || rec.summary || (rec.id != null ? 'ID ' + rec.id : ''))) || ''}</SheetDescription>
+        </SheetHeader>
+        {stack.length === 1 && actions ? <div className='mt-3 flex flex-wrap gap-2'>{actions}</div> : null}
+        {stack.length === 1 && reportId ? <ReportViewer id={reportId} /> : null}
+        {Object.keys(grpFiles).length ? <div className='mt-4 space-y-3'>{Object.entries(grpFiles).map(([g, fs]) => (
+          <Card key={g} className='overflow-hidden'><div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center gap-2'><FileText className='h-4 w-4 text-primary' />{g}<Badge variant='secondary' className='ml-auto'>{fs.length}</Badge></div>
+            <div className='p-2'>{fs.map((f: any, i: number) => (<div key={i} className='flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-foreground/5'><FileText className='h-4 w-4 text-muted-foreground shrink-0' /><span className='text-sm min-w-0 truncate'>{f.type || f.name}</span><Button className='h-7 text-xs ml-auto' variant='outline' disabled={busyDoc === (f.path || f.url || f.name)} onClick={() => openDoc(f)}>{busyDoc === (f.path || f.url || f.name) ? 'Opening…' : 'Open'}</Button></div>))}</div>
+          </Card>))}</div> : null}
+        {loading ? <div className='mt-4 text-sm text-muted-foreground'>Loading record…</div> : null}
+        {scalShow.length ? <Card className='mt-4 overflow-hidden'><div className='px-4 py-2.5 border-b border-border text-sm font-semibold'>Details</div><div className='p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6'>{scalShow.map(([k, v], i) => { const fk = FK_ENTITY[String(k).toLowerCase()]; const linkable = !!fk && v != null && v !== '' && (typeof v === 'number' || typeof v === 'string') && !(fk === top.entity && String(v) === String(top.id)); return (<div key={k + i} className='flex flex-col py-1.5 border-b border-border/40 min-w-0'><span className='text-[11px] text-muted-foreground'>{titleCase(k)}</span>{linkable ? <button type='button' onClick={() => openRef(fk, v)} className='text-sm break-words text-primary hover:underline text-left inline-flex items-center gap-1'>{fmt(v)}<ArrowUpRight className='h-3 w-3 opacity-60' /></button> : <span className='text-sm break-words'>{fmt(v)}</span>}</div>); })}</div></Card> : null}
+        {arrs.map(([k, rows], ai) => { const cols = Object.keys(rows[0]).filter((c) => !/^(id|uuid)$/i.test(c) && typeof (rows[0] as any)[c] !== 'object').slice(0, 4); return (
+          <Card key={k + ai} className='mt-4 overflow-hidden'>
+            <div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center justify-between'>{titleCase(k)}<Badge variant='secondary'>{rows.length}</Badge></div>
+            <div className='overflow-auto max-h-72'><table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border'>{cols.map((c) => <th key={c} className='px-3 py-1.5 font-medium'>{titleCase(c)}</th>)}</tr></thead>
+              <tbody>{rows.slice(0, 100).map((r: any, i: number) => (<tr key={i} onClick={() => openRelated(k, r)} className='border-b border-border/40 hover:bg-foreground/5 cursor-pointer'>{cols.map((c) => <td key={c} className='px-3 py-2'>{fmt(r[c])}</td>)}</tr>))}</tbody></table></div>
+          </Card>); })}
+        {stack.length === 1 && extra ? <div className='mt-4'>{extra}</div> : null}
+        {top.entity && top.id != null && top.id !== '' ? <ActivityPanel entity={top.entity} id={top.id} /> : null}
+        {!loading && !scalShow.length && !arrs.length && !Object.keys(grpFiles).length ? <div className='mt-4 text-sm text-muted-foreground'>No further detail available.</div> : null}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ── Suppliers flagship: Odoo-style list + kanban board ────────────────
+const SECTOR_PALETTE = ['#0d9488', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#10b981', '#0ea5e9', '#f97316', '#a855f7', '#14b8a6', '#e11d48', '#6366f1'];
+function sectorColor(s: string) { const str = String(s || ''); let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0; return SECTOR_PALETTE[h % SECTOR_PALETTE.length]; }
+function Stars({ v }: { v: any }) { const r = Number(v) || 0; if (!r) return <span className='text-[11px] text-muted-foreground'>No rating</span>; const full = Math.round(r); return (<span className='inline-flex items-center gap-0.5 text-amber-500 text-xs' title={r.toFixed(1)}>{Array.from({ length: 5 }).map((_, i) => <span key={i} className={i < full ? '' : 'opacity-25'}>★</span>)}<span className='text-[11px] text-muted-foreground ml-1'>{r.toFixed(1)}</span></span>); }
+function SectorPill({ s }: { s: string }) { const c = sectorColor(s); return (<span className='inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full capitalize' style={{ background: c + '22', color: c }}><span className='h-1.5 w-1.5 rounded-full' style={{ background: c }} />{s}</span>); }
+function StatusChips({ c }: { c: any }) { return (<>{c.approved ? <Badge className='bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15 border-0 text-[10px]'>Approved</Badge> : null}{c.verified ? <Badge className='bg-blue-500/15 text-blue-600 hover:bg-blue-500/15 border-0 text-[10px]'>Verified</Badge> : null}{c.banned ? <Badge variant='destructive' className='text-[10px]'>Banned</Badge> : null}</>); }
+const STAGE_COLOR: Record<string, string> = { sourced: '#64748b', contacted: '#3b82f6', invited: '#f59e0b', registered: '#8b5cf6', verified: '#14b8a6', approved: '#10b981' };
+function initials(s: string) { const w = String(s || '?').replace(/[^A-Za-z؀-ۿ ]/g, '').trim().split(/\s+/); return ((w[0]?.[0] || '') + (w[1]?.[0] || '')).toUpperCase() || '#'; }
+
+function SuppliersApp() {
+  const [view, setView] = React.useState<'kanban' | 'list'>('kanban');
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const [q, setQ] = React.useState(''); const [sector, setSector] = React.useState('');
+  const [row, setRow] = React.useState<any>(null); const [dbusy, setDbusy] = React.useState(false);
+  const load = React.useCallback((search: string, sec: string) => { setBusy(true); setErr(''); osApi('suppliers_board', { search, sector: sec, limit: 80 }).then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load('', ''); }, [load]);
+  const doSearch = () => load(q, sector);
+  const pickSector = (s: string) => { const ns = sector === s ? '' : s; setSector(ns); load(q, ns); };
+  const decide = async (id: any, op: string) => { setDbusy(true); try { await osOps('supplier_decide', { id, op, note: op === 'reject' ? 'Rejected from OS' : undefined }); setRow(null); load(q, sector); } catch (_e) { } setDbusy(false); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load suppliers: {err}</Card>;
+  const stages = (d?.stages || []) as any[]; const rows = (d?.rows || []) as any[]; const sectors = (d?.sectors || []) as any[];
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-center gap-2'>
+        <Hammer className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Suppliers</h1>
+        <Badge variant='secondary'>{(d?.total ?? 0).toLocaleString()}</Badge>
+        {busy ? <span className='text-[11px] text-muted-foreground'>updating…</span> : null}
+        <div className='flex items-center gap-2 ml-auto'>
+          <div className='relative'>
+            <Search className='h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none' />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') doSearch(); }} placeholder='Search company, sector, emirate…' className='h-9 w-64 pl-8' />
+          </div>
+          <div className='inline-flex rounded-md border border-border overflow-hidden'>
+            <button title='Kanban board' onClick={() => setView('kanban')} className={cn('h-9 px-2.5 grid place-items-center', view === 'kanban' ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}><LayoutDashboard className='h-4 w-4' /></button>
+            <button title='List' onClick={() => setView('list')} className={cn('h-9 px-2.5 grid place-items-center border-l border-border', view === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}><ListChecks className='h-4 w-4' /></button>
+          </div>
+        </div>
+      </div>
+      {sectors.length ? <div className='flex flex-wrap gap-1.5'>{sectors.map((s: any) => (<button key={s.label} onClick={() => pickSector(s.label)} className={cn('text-[11px] px-2 py-1 rounded-full border transition-colors capitalize', sector === s.label ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-foreground/5')}>{s.label} <span className='opacity-60'>{s.n}</span></button>))}</div> : null}
+
+      {!d ? <div className='grid grid-cols-2 md:grid-cols-6 gap-3'>{Array.from({ length: 6 }).map((_, i) => <div key={i} className='h-48 rounded-lg bg-foreground/5 animate-pulse' />)}</div> : view === 'kanban' ? (
+        <div className='flex gap-3 overflow-x-auto pb-2'>
+          {stages.map((st: any) => (
+            <div key={st.key} className='w-72 shrink-0 flex flex-col rounded-lg bg-foreground/[0.03] border border-border' style={{ borderTop: `3px solid ${STAGE_COLOR[st.key]}` }}>
+              <div className='px-3 py-2 border-b border-border flex items-center justify-between'><span className='text-sm font-semibold'>{st.label}</span><Badge variant='secondary'>{st.count.toLocaleString()}</Badge></div>
+              <div className='flex-1 overflow-y-auto p-2 space-y-2 max-h-[62vh] min-h-[120px]'>
+                {(st.cards || []).map((c: any) => (
+                  <button key={c.id} onClick={() => setRow(c)} className='w-full text-left bg-card rounded-lg border border-border p-3 hover:shadow-md hover:border-primary/40 transition-all'>
+                    <div className='text-sm font-semibold leading-snug line-clamp-2'>{c.company_name}</div>
+                    <div className='flex items-center gap-1.5 mt-1.5 flex-wrap'><SectorPill s={c.sector} /><span className='text-[11px] text-muted-foreground'>{c.emirate}</span></div>
+                    <div className='flex items-center justify-between mt-2 gap-2'><Stars v={c.rating} /><div className='flex gap-1 flex-wrap justify-end'><StatusChips c={c} /></div></div>
+                  </button>
+                ))}
+                {st.count > (st.cards?.length || 0) ? <div className='text-[11px] text-muted-foreground text-center py-1'>+{(st.count - (st.cards?.length || 0)).toLocaleString()} more</div> : null}
+                {!st.cards?.length ? <div className='text-[11px] text-muted-foreground text-center py-6'>Empty</div> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <Card className='overflow-hidden'>
+          <div className='overflow-auto max-h-[70vh]'>
+            <table className='w-full text-sm'>
+              <thead><tr className='text-left text-xs text-muted-foreground border-b border-border sticky top-0 bg-card z-10'><th className='px-4 py-2.5 font-medium'>Company</th><th className='px-3 py-2.5 font-medium'>Sector</th><th className='px-3 py-2.5 font-medium'>Emirate</th><th className='px-3 py-2.5 font-medium'>Rating</th><th className='px-3 py-2.5 font-medium'>Stage</th><th className='px-3 py-2.5 font-medium'>Status</th></tr></thead>
+              <tbody>{rows.map((c: any) => (
+                <tr key={c.id} onClick={() => setRow(c)} className='border-b border-border/50 hover:bg-foreground/5 cursor-pointer'>
+                  <td className='px-4 py-2.5'><div className='flex items-center gap-2.5'><div className='h-7 w-7 shrink-0 rounded-full grid place-items-center text-[10px] font-bold text-white' style={{ background: sectorColor(c.sector) }}>{initials(c.company_name)}</div><span className='font-medium line-clamp-1'>{c.company_name}</span></div></td>
+                  <td className='px-3 py-2.5'><SectorPill s={c.sector} /></td>
+                  <td className='px-3 py-2.5 text-muted-foreground whitespace-nowrap'>{c.emirate}</td>
+                  <td className='px-3 py-2.5 whitespace-nowrap'><Stars v={c.rating} /></td>
+                  <td className='px-3 py-2.5'><span className='inline-flex items-center gap-1.5 text-xs capitalize whitespace-nowrap'><span className='h-2 w-2 rounded-full' style={{ background: STAGE_COLOR[c.stage] }} />{c.stage}</span></td>
+                  <td className='px-3 py-2.5'><div className='flex gap-1 flex-wrap'><StatusChips c={c} /></div></td>
+                </tr>))}</tbody>
+            </table>
+          </div>
+          {rows.length >= 80 ? <div className='px-4 py-2 text-[11px] text-muted-foreground border-t border-border'>Showing the most recent 80 of {(d?.total ?? 0).toLocaleString()} — search or pick a sector to narrow.</div> : null}
+        </Card>
+      )}
+
+      {row ? <RecordDrawer frame0={{ entity: 'supplier', id: row.id, title: 'Supplier #' + row.id, row }}
+        actions={<>
+          <Button className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decide(row.id, 'approve')}>Approve</Button>
+          <Button className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decide(row.id, 'reject')}>Reject</Button>
+          <Button className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decide(row.id, row.banned ? 'unban' : 'ban')}>{row.banned ? 'Unban' : 'Ban'}</Button>
+        </>}
+        onClose={() => setRow(null)} /> : null}
+    </div>
+  );
+}
+
+// ── Smart table cell: colored status/priority/risk chips, progress bars, money — Odoo/NetSuite-style ──
+const CHIP_TONE: Record<string, string> = { green: 'bg-emerald-500/15 text-emerald-600', amber: 'bg-amber-500/15 text-amber-600', red: 'bg-red-500/15 text-red-600', blue: 'bg-blue-500/15 text-blue-600', slate: 'bg-foreground/[0.07] text-muted-foreground', violet: 'bg-violet-500/15 text-violet-600' };
+function Chip({ label, tone }: { label: string; tone: string }) { return <span className={cn('inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-full font-medium capitalize whitespace-nowrap', CHIP_TONE[tone] || CHIP_TONE.slate)}>{label}</span>; }
+function statusTone(v: string): string { const s = String(v).toLowerCase(); if (/(done|resolved|approved|success|active|healthy|passed|paid|won|live|verified|closed|covered|complete|granted|ok\b)/.test(s)) return 'green'; if (/(error|fail|banned|rejected|critical|urgent|overdue|lost|blocked|gap|down|breach|denied)/.test(s)) return 'red'; if (/(pending|open|held|review|untriaged|draft|queued|waiting|matched|thin|warn|attention|hold|new\b)/.test(s)) return 'amber'; if (/(low|info|quoted|revealed|sent|sourced|contacted|invited|closed)/.test(s)) return 'slate'; return 'blue'; }
+function priorityTone(v: string): string { const s = String(v).toLowerCase(); if (/(urgent|critical|p0|p1)/.test(s)) return 'red'; if (/high/.test(s)) return 'amber'; if (/(normal|medium|p2)/.test(s)) return 'blue'; return 'slate'; }
+function riskTone(v: string): string { const s = String(v).toLowerCase(); if (/(critical|severe|high)/.test(s)) return 'red'; if (/(medium|moderate|warn)/.test(s)) return 'amber'; if (/(low|info|minimal)/.test(s)) return 'slate'; return 'blue'; }
+function SmartCell({ col, value }: { col: string; value: any }) {
+  const c = col.toLowerCase();
+  if (value == null || value === '') return <span className='text-muted-foreground'>—</span>;
+  if (typeof value === 'boolean') return <Chip label={value ? 'Yes' : 'No'} tone={value ? 'green' : 'slate'} />;
+  if (typeof value !== 'object') {
+    if (/(^|_)(status|state|outcome|decision|band|verdict)$/.test(c)) return <Chip label={titleCase(String(value))} tone={statusTone(String(value))} />;
+    if (/priority/.test(c)) return <Chip label={titleCase(String(value))} tone={priorityTone(String(value))} />;
+    if (/(risk|severity)/.test(c)) return <Chip label={titleCase(String(value))} tone={riskTone(String(value))} />;
+    if (/(pct|percent|coverage|rate|progress)$/.test(c) && typeof value === 'number') { const pct = value <= 1 ? value * 100 : value; return <div className='flex items-center gap-2 min-w-[96px]'><div className='flex-1 h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-primary' style={{ width: Math.max(2, Math.min(100, pct)) + '%' }} /></div><span className='text-[11px] text-muted-foreground tabular-nums'>{Math.round(pct)}%</span></div>; }
+    if (/(source|actor|route_to|department|kind|type|agent|channel)$/.test(c) && typeof value === 'string' && value.length < 40) return <span className='inline-flex items-center text-[11px] px-1.5 py-0.5 rounded bg-foreground/[0.05] text-foreground/70 whitespace-nowrap'>{value}</span>;
+    if (/(amount|value|balance|revenue|expense|cash|fee|budget|price|total|confidence|score)$/.test(c) && typeof value === 'number') return <span className='tabular-nums'>{value.toLocaleString()}</span>;
+  }
+  return <span className='break-words'>{fmt(value)}</span>;
+}
+
+// ── Generic board primitives (shared by RFQs / Customers / Smart Engine) ──
+function KanbanBoard({ stages, colors, onCard, renderCard }: { stages: any[]; colors?: Record<string, string>; onCard: (c: any) => void; renderCard: (c: any) => React.ReactNode }) {
+  return (<div className='flex gap-3 overflow-x-auto pb-2'>{(stages || []).map((st: any) => (
+    <div key={st.key} className='w-72 shrink-0 flex flex-col rounded-lg bg-foreground/[0.03] border border-border' style={colors?.[st.key] ? { borderTop: '3px solid ' + colors[st.key] } : undefined}>
+      <div className='px-3 py-2 border-b border-border flex items-center justify-between'><span className='text-sm font-semibold'>{st.label}</span><Badge variant='secondary'>{Number(st.count || 0).toLocaleString()}</Badge></div>
+      <div className='flex-1 overflow-y-auto p-2 space-y-2 max-h-[62vh] min-h-[120px]'>
+        {(st.cards || []).map((c: any, i: number) => (<button key={c.id ?? i} onClick={() => onCard(c)} className='w-full text-left bg-card rounded-lg border border-border p-3 hover:shadow-md hover:border-primary/40 transition-all'>{renderCard(c)}</button>))}
+        {Number(st.count || 0) > (st.cards || []).length ? <div className='text-[11px] text-muted-foreground text-center py-1'>+{(Number(st.count) - (st.cards || []).length).toLocaleString()} more</div> : null}
+        {!(st.cards || []).length ? <div className='text-[11px] text-muted-foreground text-center py-6'>Empty</div> : null}
+      </div>
+    </div>))}</div>);
+}
+function RichList({ rows, columns, onRow, footer }: { rows: any[]; columns: { key: string; label: string; render: (r: any) => React.ReactNode }[]; onRow: (r: any) => void; footer?: React.ReactNode }) {
+  if (!rows.length) return <Card className='p-8 text-center text-sm text-muted-foreground'>Nothing to show yet.</Card>;
+  return (<Card className='overflow-hidden'><div className='overflow-auto max-h-[70vh]'><table className='w-full text-sm'>
+    <thead><tr className='text-left text-xs text-muted-foreground border-b border-border sticky top-0 bg-card z-10'>{columns.map((c) => (<th key={c.key} className='px-3 py-2.5 font-medium'>{c.label}</th>))}</tr></thead>
+    <tbody>{rows.map((r, i) => (<tr key={r.id ?? i} onClick={() => onRow(r)} className='border-b border-border/50 hover:bg-foreground/5 cursor-pointer'>{columns.map((c) => (<td key={c.key} className='px-3 py-2.5'>{c.render(r)}</td>))}</tr>))}</tbody>
+  </table></div>{footer}</Card>);
+}
+function BoardHeader({ icon: Icon, title, total, sub, view, setView, q, setQ, onSearch, right }: any) {
+  return (<div className='flex flex-wrap items-center gap-2'>
+    <Icon className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>{title}</h1>
+    <Badge variant='secondary'>{Number(total || 0).toLocaleString()}</Badge>{sub ? <span className='text-[11px] text-muted-foreground'>{sub}</span> : null}
+    <div className='flex items-center gap-2 ml-auto'>
+      {onSearch ? <div className='relative'><Search className='h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none' /><Input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') onSearch(); }} placeholder='Search…' className='h-9 w-56 pl-8' /></div> : null}
+      {view ? <div className='inline-flex rounded-md border border-border overflow-hidden'><button title='Board' onClick={() => setView('kanban')} className={cn('h-9 px-2.5 grid place-items-center', view === 'kanban' ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}><LayoutDashboard className='h-4 w-4' /></button><button title='List' onClick={() => setView('list')} className={cn('h-9 px-2.5 grid place-items-center border-l border-border', view === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}><ListChecks className='h-4 w-4' /></button></div> : null}
+      {right}
+    </div>
+  </div>);
+}
+
+// ── RFQ 360 detail — request · matched suppliers · quotes side-by-side · procurement · actions ──
+function RfqDetailDrawer({ id, title, onClose, onChanged }: { id: any; title: string; onClose: () => void; onChanged: () => void }) {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState('');
+  const [stages, setStages] = React.useState<any[]>([]); const [busy, setBusy] = React.useState('');
+  const [docBusy, setDocBusy] = React.useState('');
+  const load = React.useCallback(() => { setD(null); osApi('ws.rfq', { id }).then((r: any) => setD(r && r.error ? null : r)).catch((e: any) => setErr(e.message)); }, [id]);
+  React.useEffect(() => { load(); osOps('stages_list').then((s: any) => setStages(Array.isArray(s) ? s : [])).catch(() => {}); }, [load]);
+  const act = async (fn: () => Promise<any>) => { try { await fn(); load(); onChanged(); } catch (_e) {} setBusy(''); };
+  const setStage = (stage: string) => { setBusy('stage'); act(() => osOps('rfq_stage', { inquiry: id, stage })); };
+  const setOutcome = (outcome: string) => { setBusy(outcome); act(() => osOps('rfq_outcome', { inquiry: id, outcome })); };
+  const award = (qt: any) => { setBusy('award' + qt.id); act(async () => { await osOps('note_add', { entity: 'rfq', id, body: 'Awarded to ' + (qt.company_name || 'supplier #' + qt.supplier_id) + ' — AED ' + Number(qt.amount || 0).toLocaleString() }); await osOps('rfq_outcome', { inquiry: id, outcome: 'won' }); }); };
+  const openDoc = async (doc: any) => { const key = doc.path || doc.name; setDocBusy(key); try { const r: any = await osApi('file', { bucket: 'inquiry-docs', path: doc.path }); if (r && r.url) window.open(r.url, '_blank', 'noopener'); } catch (_e) {} setDocBusy(''); };
+  const req = d?.requirements || {}; const st = d?.status || {}; const aiq = d?.ai_qualification || {}; const matching = d?.matching || []; const quotes = d?.quotes || []; const clar = d?.clarifications || []; const timeline = d?.timeline || []; const docs = d?.documents || []; const sel = d?.selected_supplier; const proc = d?.procurement;
+  const lowest = quotes.length ? Math.min(...quotes.filter((q: any) => q.amount != null).map((q: any) => Number(q.amount))) : null;
+  const compl = Number(aiq.completeness) || 0; const complPct = compl <= 1 ? compl * 100 : compl;
+  const sub = (label: string) => (<div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center justify-between'>{label}</div>);
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-2xl overflow-y-auto'>
+    <SheetHeader>
+      <div className='flex items-center gap-2 flex-wrap'>{req.category ? <span className='inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-full bg-foreground/[0.06] text-foreground/70 capitalize'>{req.category}</span> : null}{st.status ? <Chip label={titleCase(String(st.status))} tone={statusTone(String(st.status))} /> : null}{st.pipeline_stage ? <Chip label={titleCase(String(st.pipeline_stage))} tone='blue' /> : null}{st.outcome ? <Chip label={titleCase(String(st.outcome))} tone={statusTone(String(st.outcome))} /> : null}</div>
+      <SheetTitle className='mt-1'>{title}</SheetTitle>
+      <SheetDescription>{[req.emirate, req.role_needed, st.expected_value ? 'AED ' + Number(st.expected_value).toLocaleString() : null].filter(Boolean).join(' · ')}</SheetDescription>
+    </SheetHeader>
+    {!d && !err ? <div className='mt-4 text-sm text-muted-foreground'>Loading RFQ…</div> : err ? <div className='mt-4 text-sm text-destructive'>{err}</div> : <>
+      <div className='mt-3 flex flex-wrap items-center gap-2'>
+        {stages.length ? <select value={st.pipeline_stage || ''} disabled={busy === 'stage'} onChange={(e) => setStage(e.target.value)} className='h-8 rounded-md border border-border bg-transparent px-2 text-xs'><option value=''>Set stage…</option>{stages.map((s: any) => <option key={s.key} value={s.key}>{s.label}</option>)}</select> : null}
+        <Button className='h-8 text-xs' variant='outline' disabled={!!busy} onClick={() => setOutcome('won')}>Mark won</Button>
+        <Button className='h-8 text-xs' variant='outline' disabled={!!busy} onClick={() => setOutcome('lost')}>Mark lost</Button>
+      </div>
+      {sel ? <Card className='mt-4 p-3 border-emerald-500/30 bg-emerald-500/[0.04]'><div className='text-[11px] uppercase tracking-wide text-emerald-600 mb-0.5'>Selected supplier</div><div className='text-sm font-semibold'>{sel.company_name || 'Supplier #' + sel.id}</div></Card> : null}
+
+      {quotes.length ? <Card className='mt-4 overflow-hidden'>{sub('Quotes · side by side (' + quotes.length + ')')}
+        <div className='p-3 flex gap-3 overflow-x-auto'>{quotes.map((qt: any) => { const isLow = lowest != null && Number(qt.amount) === lowest; return (
+          <div key={qt.id} className={cn('w-56 shrink-0 rounded-lg border p-3', isLow ? 'border-emerald-500/50 bg-emerald-500/[0.04]' : 'border-border')}>
+            <div className='flex items-center justify-between'><span className='text-sm font-semibold line-clamp-1'>{qt.company_name || 'Supplier #' + qt.supplier_id}</span>{isLow ? <Chip label='Lowest' tone='green' /> : null}</div>
+            <div className='text-xl font-bold tabular-nums mt-1'>{qt.amount != null ? 'AED ' + Number(qt.amount).toLocaleString() : '—'}</div>
+            <div className='mt-2 space-y-1 text-[11px] text-muted-foreground'>{qt.lead_time ? <div>Lead time: <span className='text-foreground'>{qt.lead_time}</span></div> : null}{qt.quality ? <div>Quality: <span className='text-foreground'>{qt.quality}</span></div> : null}{qt.status ? <div className='pt-0.5'><Chip label={titleCase(String(qt.status))} tone={statusTone(String(qt.status))} /></div> : null}</div>
+            <Button className='h-7 text-xs w-full mt-2' variant='outline' disabled={!!busy} onClick={() => award(qt)}>{busy === 'award' + qt.id ? '…' : 'Award'}</Button>
+          </div>); })}</div></Card> : null}
+
+      <Card className='mt-4 overflow-hidden'>{sub('Requirements')}<div className='p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6'>{([['Summary', req.summary], ['Scope', req.scope_type], ['Budget', req.budget], ['Trades', Array.isArray(req.trades) ? req.trades.join(', ') : req.trades], ['BoQ confidence', req.boq_confidence], ['Keywords', Array.isArray(req.keywords) ? req.keywords.join(', ') : req.keywords]] as [string, any][]).filter(([, v]) => v != null && v !== '').map(([k, v]) => (<div key={k} className='flex flex-col py-1.5 border-b border-border/40'><span className='text-[11px] text-muted-foreground'>{k}</span><span className='text-sm break-words'>{fmt(v)}</span></div>))}</div>{req.spec ? <div className='px-4 pb-4'><div className='text-[11px] text-muted-foreground mb-1'>Spec</div><div className='text-sm whitespace-pre-wrap'>{fmt(req.spec)}</div></div> : null}</Card>
+
+      <Card className='mt-4 overflow-hidden'>{sub('AI qualification')}<div className='p-4 space-y-2'>
+        <div className='flex items-center gap-2'><span className='text-xs text-muted-foreground w-24'>Completeness</span><div className='flex-1 h-2 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-primary' style={{ width: Math.max(2, Math.min(100, complPct)) + '%' }} /></div><span className='text-[11px] tabular-nums text-muted-foreground'>{Math.round(complPct)}%</span></div>
+        <div className='flex flex-wrap gap-2 text-xs'>{aiq.rfq_ready != null ? <Chip label={aiq.rfq_ready ? 'RFQ ready' : 'Not ready'} tone={aiq.rfq_ready ? 'green' : 'amber'} /> : null}{aiq.routing ? <span className='text-muted-foreground'>Routing: {fmt(aiq.routing)}</span> : null}{aiq.brief_source ? <span className='text-muted-foreground'>Source: {aiq.brief_source}</span> : null}</div>
+      </div></Card>
+
+      {matching.length ? <Card className='mt-4 overflow-hidden'>{sub('Matched suppliers (' + matching.length + ')')}<div className='divide-y divide-border'>{matching.map((m: any, i: number) => { const sim = Number(m.similarity) || 0; const simPct = sim <= 1 ? sim * 100 : sim; return (
+        <div key={i} className='px-4 py-2.5'><div className='flex items-center justify-between gap-2'><span className='text-sm font-medium line-clamp-1'>{m.company_name || 'Supplier #' + m.supplier_id}</span><span className='text-[11px] text-muted-foreground tabular-nums'>{Math.round(simPct)}% match</span></div><div className='h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden mt-1'><div className='h-full rounded-full bg-primary' style={{ width: Math.max(2, Math.min(100, simPct)) + '%' }} /></div>{m.match_reason ? <div className='text-[11px] text-muted-foreground mt-1 line-clamp-2'>{m.match_reason}</div> : null}</div>); })}</div></Card> : null}
+
+      {docs.length ? <Card className='mt-4 overflow-hidden'>{sub('Documents')}<div className='p-2'>{docs.map((f: any, i: number) => (<div key={i} className='flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-foreground/5'><FileText className='h-4 w-4 text-muted-foreground shrink-0' /><span className='text-sm min-w-0 truncate'>{f.type || f.name}</span><Button className='h-7 text-xs ml-auto' variant='outline' disabled={docBusy === (f.path || f.name)} onClick={() => openDoc(f)}>{docBusy === (f.path || f.name) ? 'Opening…' : 'Open'}</Button></div>))}</div></Card> : null}
+
+      {proc && (typeof proc !== 'object' || Object.keys(proc).length) ? <Card className='mt-4 overflow-hidden'>{sub('Procurement analysis')}<div className='p-4'><ReadableObject data={proc} /></div></Card> : null}
+
+      {clar.length ? <Card className='mt-4 overflow-hidden'>{sub('Clarifications (' + clar.length + ')')}<div className='divide-y divide-border'>{clar.map((c: any, i: number) => (<div key={i} className='px-4 py-2.5'><div className='text-sm'>{c.question}</div>{c.answer ? <div className='text-sm text-muted-foreground mt-0.5'>↳ {c.answer}</div> : <div className='text-[11px] text-amber-600 mt-0.5'>Awaiting answer</div>}<div className='text-[11px] text-muted-foreground mt-0.5'>{fmt(c.asked_at)}</div></div>))}</div></Card> : null}
+
+      {timeline.length ? <Card className='mt-4 overflow-hidden'>{sub('Timeline')}<div className='p-4'>{timeline.map((t: any, i: number) => (<div key={i} className='flex gap-3 pb-3 last:pb-0'><div className='flex flex-col items-center'><div className='h-2 w-2 rounded-full bg-primary mt-1.5' />{i < timeline.length - 1 ? <div className='w-px flex-1 bg-border my-1' /> : null}</div><div className='min-w-0 flex-1'><div className='text-sm'>{t.event}</div><div className='text-[11px] text-muted-foreground'>{fmt(t.at)}</div></div></div>))}</div></Card> : null}
+
+      <ActivityPanel entity='rfq' id={id} />
+    </>}
+  </SheetContent></Sheet>);
+}
+
+const RFQ_COLOR: Record<string, string> = { new: '#64748b', matched: '#3b82f6', quoted: '#f59e0b', revealed: '#8b5cf6', won: '#10b981' };
+function RfqApp() {
+  const [view, setView] = React.useState<'kanban' | 'list'>('kanban'); const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [q, setQ] = React.useState(''); const [row, setRow] = React.useState<any>(null);
+  const load = React.useCallback((s: string) => { osApi('rfq_board', { search: s, limit: 80 }).then(setD).catch((e: any) => setErr(e.message)); }, []);
+  React.useEffect(() => { load(''); }, [load]);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load RFQs: {err}</Card>;
+  const card = (c: any) => (<><div className='text-sm font-semibold capitalize'>{c.category}</div>{c.summary ? <div className='text-xs text-muted-foreground line-clamp-2 mt-0.5'>{c.summary}</div> : null}<div className='flex items-center justify-between mt-2'><span className='text-[11px] text-muted-foreground'>{c.emirate}</span>{c.value ? <span className='text-xs font-medium'>AED {Number(c.value).toLocaleString()}</span> : c.budget ? <span className='text-[11px] text-muted-foreground'>{c.budget}</span> : null}</div></>);
+  const columns = [{ key: 'category', label: 'Category', render: (r: any) => <span className='font-medium capitalize'>{r.category}</span> }, { key: 'summary', label: 'Summary', render: (r: any) => <span className='text-muted-foreground line-clamp-1'>{r.summary || '—'}</span> }, { key: 'emirate', label: 'Emirate', render: (r: any) => r.emirate }, { key: 'value', label: 'Value', render: (r: any) => r.value ? 'AED ' + Number(r.value).toLocaleString() : (r.budget || '—') }, { key: 'stage', label: 'Stage', render: (r: any) => <span className='capitalize'>{r.stage}</span> }];
+  return (<div className='space-y-4'>
+    <BoardHeader icon={ArrowLeftRight} title='RFQs & Procurement' total={d?.total} view={view} setView={setView} q={q} setQ={setQ} onSearch={() => load(q)} />
+    {!d ? <div className='text-sm text-muted-foreground'>Loading…</div> : d.total === 0 ? (
+      <Card className='p-6'><div className='text-center mb-4'><ArrowLeftRight className='h-8 w-8 text-muted-foreground/40 mx-auto mb-2' /><div className='text-sm font-medium'>No client requests yet</div><div className='text-xs text-muted-foreground mt-1'>The pipeline fills as buyers post RFQs — suppliers are being onboarded first. The stages below are ready.</div></div><KanbanBoard stages={d.stages || []} colors={RFQ_COLOR} onCard={() => { }} renderCard={() => null} /></Card>
+    ) : view === 'kanban' ? <KanbanBoard stages={d.stages || []} colors={RFQ_COLOR} onCard={setRow} renderCard={card} /> : <RichList rows={d.rows || []} columns={columns} onRow={setRow} />}
+    {row ? <RfqDetailDrawer id={row.id} title={titleCase(String(row.category || 'RFQ')) + ' · ' + (row.emirate || '')} onChanged={() => load(q)} onClose={() => setRow(null)} /> : null}
+  </div>);
+}
+
+const CUST_COLOR: Record<string, string> = { new: '#64748b', verified: '#10b981', banned: '#ef4444' };
+function CustomersApp() {
+  const [view, setView] = React.useState<'kanban' | 'list'>('list'); const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [q, setQ] = React.useState(''); const [row, setRow] = React.useState<any>(null);
+  const load = React.useCallback((s: string) => { osApi('customers_board', { search: s, limit: 80 }).then(setD).catch((e: any) => setErr(e.message)); }, []);
+  React.useEffect(() => { load(''); }, [load]);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load customers: {err}</Card>;
+  const card = (c: any) => (<><div className='text-sm font-semibold'>{c.full_name}</div><div className='text-xs text-muted-foreground truncate'>{c.email || c.phone || '—'}</div><div className='flex gap-1 mt-2'>{c.email_verified ? <Badge className='bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15 border-0 text-[10px]'>Verified</Badge> : null}{c.banned ? <Badge variant='destructive' className='text-[10px]'>Banned</Badge> : null}</div></>);
+  const columns = [{ key: 'full_name', label: 'Name', render: (r: any) => <span className='font-medium'>{r.full_name}</span> }, { key: 'email', label: 'Email', render: (r: any) => <span className='text-muted-foreground'>{r.email || '—'}</span> }, { key: 'phone', label: 'Phone', render: (r: any) => r.phone || '—' }, { key: 'email_verified', label: 'Verified', render: (r: any) => r.email_verified ? 'Yes' : 'No' }, { key: 'stage', label: 'Stage', render: (r: any) => <span className='capitalize'>{r.stage}</span> }];
+  return (<div className='space-y-4'>
+    <BoardHeader icon={Users} title='Customers' total={d?.total} view={view} setView={setView} q={q} setQ={setQ} onSearch={() => load(q)} />
+    {!d ? <div className='text-sm text-muted-foreground'>Loading…</div> : d.total === 0 ? (
+      <Card className='p-8 text-center'><Users className='h-8 w-8 text-muted-foreground/40 mx-auto mb-2' /><div className='text-sm font-medium'>No customers yet</div><div className='text-xs text-muted-foreground mt-1'>Buyers appear here once they sign up and post requests.</div></Card>
+    ) : view === 'kanban' ? <KanbanBoard stages={d.stages || []} colors={CUST_COLOR} onCard={setRow} renderCard={card} /> : <RichList rows={d.rows || []} columns={columns} onRow={setRow} />}
+    {row ? <RecordDrawer frame0={{ entity: 'customer', id: row.id, title: 'Customer ' + row.id, row }} onClose={() => setRow(null)} /> : null}
+  </div>);
+}
+
+function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
+  const [ops, setOps] = React.useState<any>(null); const [dbusy, setDbusy] = React.useState('');
+  const load = React.useCallback(() => { osApi('ws.agent', { key: agent.agent_key }).then(setOps).catch(() => setOps({})); }, [agent.agent_key]);
+  React.useEffect(() => { load(); }, [load]);
+  const decide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('action_decide', { id, op }); load(); } catch (_e) {} setDbusy(''); };
+  const id = ops?.identity || {}; const h = ops?.health || {}; const perf = ops?.performance || {}; const queue = ops?.queue || []; const runs = ops?.recent_runs || []; const kn = ops?.knowledge || {}; const mem = ops?.memory || {}; const convos = ops?.conversations || []; const recs = ops?.recommendations || [];
+  const healthTone = /healthy/.test(String(h.status)) ? 'green' : /degraded|error|fail/.test(String(h.status)) ? 'red' : /stale/.test(String(h.status)) ? 'amber' : 'slate';
+  const sub = (label: string, extra?: any) => (<div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center justify-between'>{label}{extra}</div>);
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-2xl overflow-y-auto'>
+    <SheetHeader>
+      <SheetTitle className='flex items-center gap-2'>{id.emoji ? <span>{id.emoji}</span> : null}{id.name || titleCase(String(agent.agent_key))}<Chip label={titleCase(String(h.status || 'idle'))} tone={healthTone} /></SheetTitle>
+      <SheetDescription>{[agent.department, id.prompt_desc || agent.role, id.prompt_version ? 'prompt v' + id.prompt_version : null].filter(Boolean).join(' · ')}</SheetDescription>
+    </SheetHeader>
+    {ops === null ? <div className='mt-4 text-sm text-muted-foreground'>Loading agent operations…</div> : <>
+      <div className='mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2'>
+        <StatTile label='Runs 24h' value={perf.runs_24h ?? agent.runs24} />
+        <StatTile label='Runs 7d' value={perf.runs_7d} />
+        <StatTile label='OK rate' value={perf.ok_rate != null ? perf.ok_rate + '%' : '—'} />
+        <StatTile label='Avg run' value={perf.avg_duration_ms ? Math.round(Number(perf.avg_duration_ms)) + ' ms' : '—'} />
+      </div>
+      {queue.length ? <Card className='mt-4 overflow-hidden'>{sub('Decisions held for review', <Badge variant='secondary'>{queue.length}</Badge>)}
+        <div className='divide-y divide-border'>{queue.map((a: any) => (<div key={a.id} className='px-4 py-3'>
+          <div className='flex items-center justify-between gap-2'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{titleCase(String(a.title || a.kind || 'decision'))}{a.risk ? <Chip label={String(a.risk)} tone={riskTone(String(a.risk))} /> : null}<Chip label={titleCase(String(a.status))} tone={statusTone(String(a.status))} /></div>{a.recommendation ? <div className='text-xs text-muted-foreground mt-0.5 line-clamp-2'>{a.recommendation}</div> : null}</div></div>
+          <div className='flex gap-1.5 mt-2'><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>{dbusy === String(a.id) + 'approve' ? '…' : 'Approve'}</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>{dbusy === String(a.id) + 'reject' ? '…' : 'Reject'}</Button></div>
+        </div>))}</div></Card> : null}
+      {recs.length ? <Card className='mt-4 overflow-hidden'>{sub('Recommendations')}<div className='divide-y divide-border'>{recs.map((r: any, i: number) => (<div key={i} className='px-4 py-2.5'><div className='text-sm font-medium flex items-center gap-1.5'>{r.title}{r.risk ? <Chip label={String(r.risk)} tone={riskTone(String(r.risk))} /> : null}</div>{r.recommendation ? <div className='text-xs text-muted-foreground mt-0.5'>{r.recommendation}</div> : null}<div className='text-[11px] text-muted-foreground mt-0.5'>{fmt(r.at)}</div></div>))}</div></Card> : null}
+      {runs.length ? <Card className='mt-4 overflow-hidden'>{sub('Recent runs')}<div className='divide-y divide-border'>{runs.map((r: any) => (<div key={r.id} className='px-4 py-2 flex items-center justify-between gap-2'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'><Chip label={titleCase(String(r.status))} tone={statusTone(String(r.status))} />{r.note ? <span className='text-muted-foreground line-clamp-1'>{r.note}</span> : null}</div></div><span className='text-[11px] text-muted-foreground whitespace-nowrap'>{fmt(r.started_at)}</span></div>))}</div></Card> : null}
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4'>
+        {(kn.recent || []).length ? <Card className='overflow-hidden'>{sub('Knowledge', <Badge variant='secondary'>{kn.count ?? (kn.recent || []).length}</Badge>)}<div className='p-3 space-y-1.5'>{(kn.recent || []).map((x: any, i: number) => (<div key={i} className='text-xs flex items-center justify-between gap-2'><span className='truncate'>{x.topic || '—'}</span>{x.priority ? <Chip label={String(x.priority)} tone={priorityTone(String(x.priority))} /> : null}</div>))}</div></Card> : null}
+        {(mem.recent || []).length ? <Card className='overflow-hidden'>{sub('Memory', <Badge variant='secondary'>{mem.count ?? (mem.recent || []).length}</Badge>)}<div className='p-3 space-y-1.5'>{(mem.recent || []).map((x: any, i: number) => (<div key={i} className='text-xs'><span className='text-muted-foreground'>{x.kind}:</span> {x.content}</div>))}</div></Card> : null}
+      </div>
+      {convos.length ? <Card className='mt-4 overflow-hidden'>{sub('Recent conversations')}<div className='p-3 space-y-2'>{convos.map((c: any, i: number) => (<div key={i} className='text-xs'><span className={cn('font-medium', c.role === 'assistant' ? 'text-primary' : 'text-foreground/70')}>{titleCase(String(c.role))}:</span> <span className='text-foreground/80'>{c.content}</span></div>))}</div></Card> : null}
+    </>}
+  </SheetContent></Sheet>);
+}
+function AgentsApp() {
+  const [view, setView] = React.useState<'kanban' | 'list'>('kanban'); const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [sel, setSel] = React.useState<any>(null);
+  React.useEffect(() => { osApi('agents_board').then(setD).catch((e: any) => setErr(e.message)); }, []);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Smart Engine: {err}</Card>;
+  const card = (c: any) => (<><div className='flex items-center gap-1.5'><span className={cn('h-2 w-2 rounded-full', c.active ? 'bg-emerald-500' : 'bg-muted')} /><span className='text-sm font-semibold capitalize'>{titleCase(String(c.agent_key))}</span></div>{c.role ? <div className='text-xs text-muted-foreground line-clamp-2 mt-0.5'>{c.role}</div> : null}<div className='flex items-center gap-2 mt-2 flex-wrap'><span className='text-[11px] text-muted-foreground'>{c.runs24} runs/24h</span>{c.last_status ? <Badge variant='outline' className='text-[10px]'>{c.last_status}</Badge> : null}{c.fails24 > 0 ? <Badge variant='destructive' className='text-[10px]'>{c.fails24} failed</Badge> : null}</div></>);
+  const columns = [{ key: 'agent_key', label: 'Agent', render: (r: any) => <span className='font-medium capitalize'>{titleCase(String(r.agent_key))}</span> }, { key: 'department', label: 'Dept', render: (r: any) => <span className='capitalize'>{r.department}</span> }, { key: 'role', label: 'Role', render: (r: any) => <span className='text-muted-foreground line-clamp-1'>{r.role || '—'}</span> }, { key: 'runs24', label: 'Runs 24h', render: (r: any) => r.runs24 }, { key: 'last_status', label: 'Last', render: (r: any) => r.last_status || '—' }];
+  return (<div className='space-y-4'>
+    <BoardHeader icon={Sparkles} title='Smart Engine' total={d?.total} sub={d ? (Number(d.runs24 || 0).toLocaleString() + ' runs/24h') : ''} view={view} setView={setView} />
+    {!d ? <div className='text-sm text-muted-foreground'>Loading agents…</div> : view === 'kanban' ? <KanbanBoard stages={d.departments || []} onCard={setSel} renderCard={card} /> : <RichList rows={d.rows || []} columns={columns} onRow={setSel} />}
+    {sel ? <AgentDrawer agent={sel} onClose={() => setSel(null)} /> : null}
+  </div>);
+}
+
+// ── Finance — NetSuite-style portfolio ────────────────────────────────
+function MiniLine({ data }: { data: { label: string; v: number }[] }) {
+  const vals = data.map((p) => p.v); const min = Math.min(0, ...vals), max = Math.max(0, ...vals); const range = (max - min) || 1;
+  const w = 600, h = 80, pad = 8; const n = data.length || 1;
+  const x = (i: number) => pad + (i * (w - 2 * pad)) / Math.max(1, n - 1);
+  const y = (v: number) => h - pad - ((v - min) / range) * (h - 2 * pad);
+  const line = data.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
+  const zeroY = y(0);
+  return (<svg viewBox={`0 0 ${w} ${h}`} className='w-full' style={{ height: 80 }} preserveAspectRatio='none'>
+    <line x1={pad} y1={zeroY} x2={w - pad} y2={zeroY} stroke='hsl(var(--border))' strokeWidth='1' vectorEffect='non-scaling-stroke' strokeDasharray='3 3' />
+    <path d={line} fill='none' stroke={CHART_COLORS[0]} strokeWidth='2' vectorEffect='non-scaling-stroke' />
+  </svg>);
+}
+const aed = (v: any) => { const n = Number(v); if (!isFinite(n)) return '—'; return (n < 0 ? '-' : '') + 'AED ' + Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 }); };
+function FinanceApp() {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const [glOpen, setGlOpen] = React.useState(false); const [glLines, setGlLines] = React.useState<any[]>([{ account: '', debit: '', credit: '', memo: '' }, { account: '', debit: '', credit: '', memo: '' }]); const [glMemo, setGlMemo] = React.useState(''); const [glDate, setGlDate] = React.useState(''); const [glMsg, setGlMsg] = React.useState(''); const [glBusy, setGlBusy] = React.useState(false);
+  const [invOpen, setInvOpen] = React.useState(false); const [invBusy, setInvBusy] = React.useState(false); const [invMsg, setInvMsg] = React.useState('');
+  const load = React.useCallback(() => { setBusy(true); setErr(''); osApi('ws.finance').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const glTotals = () => glLines.reduce((a: any, l: any) => ({ dr: a.dr + (Number(l.debit) || 0), cr: a.cr + (Number(l.credit) || 0) }), { dr: 0, cr: 0 });
+  const postGl = async () => { const lines = glLines.map((l: any) => ({ account: String(l.account || '').trim(), debit: Number(l.debit) || 0, credit: Number(l.credit) || 0, memo: l.memo || undefined })).filter((l: any) => l.account && (l.debit || l.credit)); const t = lines.reduce((a: any, l: any) => ({ dr: a.dr + l.debit, cr: a.cr + l.credit }), { dr: 0, cr: 0 }); if (lines.length < 2) { setGlMsg('Need at least two lines.'); return; } if (Math.round((t.dr - t.cr) * 100) !== 0) { setGlMsg('Out of balance: debits ' + t.dr + ' vs credits ' + t.cr); return; } setGlBusy(true); setGlMsg(''); try { await osOps('gl_post', { memo: glMemo || 'OS entry', date: glDate || undefined, lines }); setGlOpen(false); setGlLines([{ account: '', debit: '', credit: '', memo: '' }, { account: '', debit: '', credit: '', memo: '' }]); setGlMemo(''); setGlDate(''); load(); } catch (e: any) { setGlMsg('Post failed: ' + (e?.message || '')); } setGlBusy(false); };
+  const onInvFile = async (f: File) => { setInvBusy(true); setInvMsg('Uploading & reading…'); try { const b64: string = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result || '')); rd.onerror = rej; rd.readAsDataURL(f); }); const { data: { session } } = await supa.auth.getSession(); const r = await fetch(SUPA_URL + '/functions/v1/finance_doc', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || '') }, body: JSON.stringify({ filename: f.name, mime: f.type, b64 }) }); const jd = await r.json().catch(() => ({})); if (!r.ok || jd?.error) throw new Error(jd?.error || ('HTTP ' + r.status)); if (jd.logged && jd.logged.ok) { setInvMsg('Logged: ' + (jd.parsed?.vendor || '') + ' — ' + (jd.parsed?.currency || 'AED') + ' ' + (jd.parsed?.amount || '') + '.'); load(); } else { setInvMsg('Stored the original; auto-posting skipped (amount unclear).'); } } catch (e: any) { setInvMsg('Failed: ' + (e?.message || '')); } setInvBusy(false); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load finance: {err}</Card>;
+  const k = (d?.ai?.kpis) || {}; const pnl = (d?.pnl) || {}; const accounts = (d?.cash?.accounts) || []; const cashflow = (d?.cashflow) || []; const exp = (d?.expense_breakdown) || []; const trend = (d?.ai?.trend) || []; const horizons = (d?.ai?.forecast?.horizons) || [];
+  const kv = (label: string, val: any, tone?: string) => (<div className='flex justify-between text-sm py-1.5 border-b border-border/40 last:border-0'><span className='text-muted-foreground'>{label}</span><span className={cn('font-medium tabular-nums', tone)}>{val}</span></div>);
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-center gap-2'>
+        <DollarSign className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Finance</h1>
+        <Badge className={cn('border-0', (d?.ai?.health ?? 0) >= 60 ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600')}>Health {Math.round(Number(d?.ai?.health || 0))}/100</Badge>
+        <div className='ml-auto flex gap-2'>
+          <Button className='h-8 text-xs' variant='outline' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
+          <Button className='h-8 text-xs' variant='outline' onClick={() => { setInvOpen(true); setInvMsg(''); }}>Log invoice (PDF)</Button>
+          <Button className='h-8 text-xs' onClick={() => { setGlOpen(true); setGlMsg(''); }}>New journal entry</Button>
+        </div>
+      </div>
+
+      {!d ? <div className='grid grid-cols-2 md:grid-cols-6 gap-3'>{Array.from({ length: 6 }).map((_, i) => <div key={i} className='h-20 rounded-lg bg-foreground/5 animate-pulse' />)}</div> : <>
+        <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>
+          <StatTile label='Cash position' value={aed(k.cash)} />
+          <StatTile label='Net income (total)' value={aed(pnl.net_income)} />
+          <StatTile label='Revenue (total)' value={aed(k.revenue_total)} />
+          <StatTile label='Expenses (total)' value={aed(k.expense_total)} />
+          <StatTile label='Monthly burn' value={aed(k.monthly_burn)} />
+          <StatTile label='Runway' value={k.runway_months == null ? '—' : k.runway_months + ' mo'} />
+        </div>
+
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+          <Card className='overflow-hidden'>
+            <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Cash trend — last 14 days</div>
+            <div className='p-4'>{trend.length ? <><MiniLine data={trend.map((p: any) => ({ label: p.d, v: Number(p.cash) }))} /><div className='flex justify-between text-[10px] text-muted-foreground mt-1'><span>{trend[0]?.d}</span><span>{trend[trend.length - 1]?.d}</span></div></> : <div className='text-xs text-muted-foreground'>No trend yet.</div>}</div>
+          </Card>
+          <Card className='overflow-hidden'>
+            <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Cash forecast</div>
+            <div className='p-4 grid grid-cols-3 gap-2'>{horizons.length ? horizons.map((h: any) => (<div key={h.days} className='rounded-md border border-border p-2.5'><div className='text-[11px] text-muted-foreground'>{h.days} days</div><div className={cn('text-base font-bold mt-0.5 tabular-nums', Number(h.projected_cash) < 0 ? 'text-amber-600' : '')}>{aed(h.projected_cash)}</div></div>)) : <div className='text-xs text-muted-foreground col-span-3'>No forecast.</div>}</div>
+          </Card>
+        </div>
+
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+          <Card className='overflow-hidden'>
+            <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Chart of accounts</div>
+            <div className='p-4'>{accounts.map((a: any) => kv(a.code + ' · ' + a.name, aed(a.balance), Number(a.balance) < 0 ? 'text-amber-600' : undefined))}</div>
+          </Card>
+          <Card className='overflow-hidden'>
+            <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Expense breakdown</div>
+            <div className='p-4'>{exp.length ? <HBars rows={exp.map((e: any) => ({ label: e.name, n: Number(e.amount) }))} /> : <div className='text-xs text-muted-foreground'>No expenses recorded.</div>}</div>
+          </Card>
+        </div>
+
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Monthly cash flow</div>
+          <div className='overflow-auto'><table className='w-full text-sm'><thead><tr className='text-left text-xs text-muted-foreground border-b border-border'><th className='px-4 py-2 font-medium'>Month</th><th className='px-4 py-2 font-medium text-right'>Inflow</th><th className='px-4 py-2 font-medium text-right'>Outflow</th><th className='px-4 py-2 font-medium text-right'>Net</th></tr></thead>
+            <tbody>{cashflow.map((c: any) => (<tr key={c.month} className='border-b border-border/40'><td className='px-4 py-2'>{c.month}</td><td className='px-4 py-2 text-right tabular-nums text-emerald-600'>{aed(c.inflow)}</td><td className='px-4 py-2 text-right tabular-nums'>{aed(c.outflow)}</td><td className={cn('px-4 py-2 text-right tabular-nums font-medium', Number(c.net) < 0 ? 'text-amber-600' : 'text-emerald-600')}>{aed(c.net)}</td></tr>))}</tbody></table></div>
+        </Card>
+      </>}
+
+      <Sheet open={invOpen} onOpenChange={setInvOpen}><SheetContent side='right' className='w-full sm:max-w-md overflow-y-auto'><SheetHeader><SheetTitle>Log invoice from PDF</SheetTitle><SheetDescription>Stored, extracted, and posted to finance.</SheetDescription></SheetHeader><div className='mt-4 space-y-3'><input type='file' accept='.pdf,.png,.jpg,.jpeg,application/pdf,image/*' disabled={invBusy} onChange={(e) => { const f = e.target.files?.[0]; if (f) onInvFile(f); }} className='block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground file:px-3 file:py-1.5 file:text-xs' />{invMsg ? <div className='text-xs text-foreground/80 whitespace-pre-wrap'>{invMsg}</div> : null}</div></SheetContent></Sheet>
+      <Sheet open={glOpen} onOpenChange={setGlOpen}><SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto'><SheetHeader><SheetTitle>New journal entry</SheetTitle><SheetDescription>Double-entry — debits must equal credits.</SheetDescription></SheetHeader><div className='mt-4 space-y-3'>
+        <div className='flex gap-2'><input type='date' value={glDate} onChange={(e) => setGlDate(e.target.value)} className='rounded-md border border-border bg-transparent p-2 text-sm' /><input placeholder='Memo' value={glMemo} onChange={(e) => setGlMemo(e.target.value)} className='flex-1 rounded-md border border-border bg-transparent p-2 text-sm' /></div>
+        <div className='space-y-2'>{glLines.map((l: any, i: number) => (<div key={i} className='flex gap-2'><input placeholder='Account code' value={l.account} onChange={(e) => { const n = glLines.slice(); n[i] = { ...n[i], account: e.target.value }; setGlLines(n); }} className='flex-1 rounded-md border border-border bg-transparent p-2 text-sm' /><input placeholder='Debit' inputMode='decimal' value={l.debit} onChange={(e) => { const n = glLines.slice(); n[i] = { ...n[i], debit: e.target.value }; setGlLines(n); }} className='w-24 rounded-md border border-border bg-transparent p-2 text-sm' /><input placeholder='Credit' inputMode='decimal' value={l.credit} onChange={(e) => { const n = glLines.slice(); n[i] = { ...n[i], credit: e.target.value }; setGlLines(n); }} className='w-24 rounded-md border border-border bg-transparent p-2 text-sm' /></div>))}</div>
+        <div className='flex items-center justify-between text-xs text-muted-foreground'><button onClick={() => setGlLines([...glLines, { account: '', debit: '', credit: '', memo: '' }])} className='hover:text-foreground'>+ Add line</button><span>Debits {glTotals().dr.toFixed(2)} · Credits {glTotals().cr.toFixed(2)}</span></div>
+        {glMsg ? <div className='text-xs text-destructive'>{glMsg}</div> : null}
+        <div className='flex gap-2'><Button className='h-8 text-xs' disabled={glBusy} onClick={postGl}>{glBusy ? 'Posting…' : 'Post entry'}</Button><Button className='h-8 text-xs' variant='outline' onClick={() => setGlOpen(false)}>Cancel</Button></div>
+      </div></SheetContent></Sheet>
+    </div>
+  );
+}
+
+// ── Marketing — deep social/content studio (insights · review · social · blog) ──
+const CH_LABEL: Record<string, string> = { instagram: 'Instagram', linkedin: 'LinkedIn', x: 'X', facebook: 'Facebook', tiktok: 'TikTok', youtube: 'YouTube', threads: 'Threads' };
+function ChannelPills({ channels }: { channels: any }) {
+  const list: string[] = Array.isArray(channels) ? channels : (channels ? [String(channels)] : []);
+  if (!list.length) return null;
+  return (<div className='flex flex-wrap gap-1'>{list.map((c, i) => (<span key={i} className='inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-foreground/[0.06] text-foreground/70 capitalize'>{CH_LABEL[String(c).toLowerCase()] || c}</span>))}</div>);
+}
+function PostThumb({ url, className }: { url?: string; className?: string }) {
+  if (!url) return (<div className={cn('grid place-items-center bg-foreground/[0.05] text-muted-foreground', className)}><Megaphone className='h-6 w-6 opacity-30' /></div>);
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt='' loading='lazy' className={cn('object-cover bg-foreground/[0.05]', className)} onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />;
+}
+
+function SocialPostDrawer({ post, onClose }: { post: any; onClose: () => void }) {
+  const chan = Array.isArray(post.channels) ? post.channels : [];
+  const live = String(post.status || '').toLowerCase() === 'sent' || String(post.status || '').toLowerCase() === 'published';
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
+    <SheetHeader>
+      <SheetTitle className='flex items-center gap-2'>Social post{live ? <Chip label='Live' tone='green' /> : <Chip label={titleCase(String(post.status || post.mode || 'draft'))} tone={statusTone(String(post.status || post.mode || 'draft'))} />}</SheetTitle>
+      <SheetDescription>{post.created_at ? 'Created ' + fmt(post.created_at) : ''}</SheetDescription>
+    </SheetHeader>
+    <div className='mt-4 space-y-4'>
+      {post.image_url ? <div className='rounded-lg overflow-hidden border border-border'><PostThumb url={post.image_url} className='w-full max-h-96' /></div> : null}
+      <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Caption</div><div className='text-sm whitespace-pre-wrap leading-relaxed'>{post.text || <span className='text-muted-foreground'>No caption.</span>}</div></Card>
+      <div className='grid grid-cols-2 gap-3'>
+        <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Channels</div>{chan.length ? <ChannelPills channels={chan} /> : <span className='text-sm text-muted-foreground'>—</span>}</Card>
+        <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Status</div><Chip label={titleCase(String(post.status || post.mode || 'draft'))} tone={statusTone(String(post.status || post.mode || 'draft'))} />{post.error ? <div className='text-[11px] text-red-600 mt-1.5 whitespace-pre-wrap'>{post.error}</div> : null}</Card>
+      </div>
+      {post.image_url ? <a href={post.image_url} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 text-xs text-primary hover:underline'>Open full image<ExternalLink className='h-3 w-3' /></a> : null}
+    </div>
+    <ActivityPanel entity='social_post' id={post.id} />
+  </SheetContent></Sheet>);
+}
+
+function BlogDrawer({ post, onChanged, onClose }: { post: any; onChanged: (id: any, published: boolean) => void; onClose: () => void }) {
+  const [pub, setPub] = React.useState(!!post.published);
+  const [busy, setBusy] = React.useState(false); const [msg, setMsg] = React.useState('');
+  const toggle = async () => { const next = !pub; setBusy(true); setMsg(''); try { await osApi('blog_publish', { id: post.id, published: next }); setPub(next); onChanged(post.id, next); setMsg(next ? 'Published — live on the site.' : 'Unpublished — hidden from the site.'); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); } setBusy(false); };
+  const liveUrl = 'https://quotesdone.com/blog/' + (post.slug || '');
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-2xl overflow-y-auto'>
+    <SheetHeader>
+      <div className='flex items-center gap-2 flex-wrap'>{post.category ? <span className='inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-full bg-foreground/[0.06] text-foreground/70 capitalize'>{post.category}</span> : null}<Chip label={pub ? 'Published' : 'Draft'} tone={pub ? 'green' : 'amber'} /></div>
+      <SheetTitle className='mt-1'>{post.title}</SheetTitle>
+      <SheetDescription>{post.published_at ? 'Published ' + fmt(post.published_at) : 'Not published yet'}{post.slug ? ' · /blog/' + post.slug : ''}</SheetDescription>
+    </SheetHeader>
+    <div className='mt-3 flex flex-wrap items-center gap-2'>
+      <Button className='h-8 text-xs' variant={pub ? 'outline' : 'default'} disabled={busy} onClick={toggle}>{busy ? '…' : pub ? 'Unpublish' : 'Publish'}</Button>
+      {pub && post.slug ? <a href={liveUrl} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 h-8 px-3 rounded-md border border-border text-xs hover:bg-foreground/5'>View live<ExternalLink className='h-3 w-3' /></a> : null}
+      {msg ? <span className='text-[11px] text-muted-foreground'>{msg}</span> : null}
+    </div>
+    {post.excerpt ? <div className='mt-4 text-sm text-muted-foreground italic border-l-2 border-border pl-3'>{post.excerpt}</div> : null}
+    {post.body_html ? <div className='osx-prose mt-4 text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1.5 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3 [&_li]:mb-1 [&_a]:text-primary [&_a]:underline [&_strong]:font-semibold [&_img]:rounded-md [&_img]:my-3' dangerouslySetInnerHTML={{ __html: String(post.body_html) }} /> : <div className='mt-4 text-sm text-muted-foreground'>No body content stored for this post.</div>}
+    <ActivityPanel entity='blog_post' id={post.id} />
+  </SheetContent></Sheet>);
+}
+
+function ReviewDrawer({ item, onDone, onClose }: { item: any; onDone: () => void; onClose: () => void }) {
+  const [busy, setBusy] = React.useState(''); const [comment, setComment] = React.useState(''); const [msg, setMsg] = React.useState('');
+  const decide = async (decision: string) => { setBusy(decision); setMsg(''); try { await osApi('review_decide', { kind: item.__kind || 'marketing_post', ref_id: item.id ?? item.ref_id, decision, comment }); onDone(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); setBusy(''); } };
+  const img = item.image_url || item.image;
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
+    <SheetHeader><SheetTitle className='flex items-center gap-2'>Review draft<Chip label='Pending' tone='amber' /></SheetTitle><SheetDescription>{titleCase(String(item.__kind || 'marketing post'))}{item.channel ? ' · ' + item.channel : ''}</SheetDescription></SheetHeader>
+    <div className='mt-4 space-y-4'>
+      {img ? <div className='rounded-lg overflow-hidden border border-border'><PostThumb url={img} className='w-full max-h-96' /></div> : null}
+      {item.title ? <div className='text-base font-semibold'>{item.title}</div> : null}
+      {(item.body || item.text) ? <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Content</div><div className='text-sm whitespace-pre-wrap leading-relaxed'>{item.body || item.text}</div></Card> : null}
+      {item.channels ? <ChannelPills channels={item.channels} /> : null}
+      <div><div className='text-xs font-semibold text-muted-foreground mb-1'>Note (optional)</div><textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} placeholder='Add a note for the record…' className='w-full resize-none rounded-md border border-border bg-transparent p-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' /></div>
+      {msg ? <div className='text-xs text-red-600'>{msg}</div> : null}
+      <div className='flex gap-2'>
+        <Button className='h-9 text-xs' disabled={!!busy} onClick={() => decide('approve')}><Check className='h-4 w-4 mr-1' />{busy === 'approve' ? 'Publishing…' : 'Approve & publish'}</Button>
+        <Button className='h-9 text-xs' variant='outline' disabled={!!busy} onClick={() => decide('reject')}>{busy === 'reject' ? 'Rejecting…' : 'Reject'}</Button>
+      </div>
+    </div>
+  </SheetContent></Sheet>);
+}
+
+const MK_TABS = [['insights', 'Insights'], ['review', 'Review'], ['social', 'Social'], ['blog', 'Blog']] as [string, string][];
+function MarketingApp() {
+  const [tab, setTab] = React.useState('insights');
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const [social, setSocial] = React.useState<any>(null); const [blog, setBlog] = React.useState<any>(null); const [review, setReview] = React.useState<any>(null);
+  const [blogQ, setBlogQ] = React.useState(''); const [blogFilter, setBlogFilter] = React.useState<'all' | 'published' | 'draft'>('all');
+  const load = React.useCallback(() => { setBusy(true); setErr(''); osApi('marketing_studio').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const onBlogChanged = (id: any, published: boolean) => { setD((prev: any) => prev ? { ...prev, blog: (prev.blog || []).map((b: any) => b.id === id ? { ...b, published } : b) } : prev); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Marketing: {err}</Card>;
+  const k = (d?.kpis) || {}; const trend = (d?.trend) || []; const socials = (d?.social) || []; const blogs = (d?.blog) || [];
+  const rv = (d?.review) || {}; const reviewItems: any[] = [
+    ...((rv.marketing_posts || []).map((x: any) => ({ ...x, __kind: 'marketing_post' }))),
+    ...((rv.boost_budgets || []).map((x: any) => ({ ...x, __kind: 'boost_budget' }))),
+  ];
+  const leadsTrend = trend.map((p: any) => ({ d: p.d, n: Number(p.leads) || 0 }));
+  const contentTrend = trend.map((p: any) => ({ d: p.d, n: (Number(p.blog) || 0) + (Number(p.social) || 0) }));
+  const chBreak: Record<string, number> = {}; socials.forEach((s: any) => (Array.isArray(s.channels) ? s.channels : []).forEach((c: string) => { chBreak[c] = (chBreak[c] || 0) + 1; }));
+  const chRows = Object.entries(chBreak).map(([label, n]) => ({ label: CH_LABEL[label] || label, n })).sort((a, b) => b.n - a.n);
+  const publishedCount = blogs.filter((b: any) => b.published).length;
+  const visibleBlogs = blogs.filter((b: any) => (blogFilter === 'all' || (blogFilter === 'published' ? b.published : !b.published)) && (!blogQ || String(b.title || '').toLowerCase().includes(blogQ.toLowerCase()) || String(b.category || '').toLowerCase().includes(blogQ.toLowerCase())));
+  return (<div className='space-y-4'>
+    <div className='flex flex-wrap items-center gap-2'>
+      <Megaphone className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Marketing</h1>
+      {reviewItems.length ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{reviewItems.length} to review</Badge> : null}
+      {busy ? <span className='text-[11px] text-muted-foreground'>updating…</span> : null}
+      <Button className='h-8 text-xs ml-auto' variant='outline' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
+    </div>
+    <div className='inline-flex rounded-lg border border-border bg-foreground/[0.02] p-0.5'>
+      {MK_TABS.map(([id, label]) => (<button key={id} onClick={() => setTab(id)} className={cn('relative h-8 px-3 rounded-md text-xs font-medium transition-colors', tab === id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>{label}{id === 'review' && reviewItems.length ? <span className='ml-1.5 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-amber-500 text-white text-[10px]'>{reviewItems.length}</span> : null}</button>))}
+    </div>
+
+    {!d ? <div className='grid grid-cols-2 md:grid-cols-6 gap-3'>{Array.from({ length: 6 }).map((_, i) => <div key={i} className='h-20 rounded-lg bg-foreground/5 animate-pulse' />)}</div> : tab === 'insights' ? (<div className='space-y-4'>
+      <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>
+        <StatTile label='Total leads' value={k.leads_total} onClick={() => setTab('insights')} />
+        <StatTile label='Blog published' value={k.blog_published} hint={(k.blog_total || 0) + ' total'} onClick={() => setTab('blog')} />
+        <StatTile label='Social live' value={k.social_published} hint={socials.length + ' posts'} onClick={() => setTab('social')} />
+        <StatTile label='SEO pages' value={k.seo_pages} />
+        <StatTile label='Outreach sent' value={k.outreach_sent} />
+        <StatTile label='Awaiting review' value={reviewItems.length} onClick={() => setTab('review')} />
+      </div>
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Leads growth<span className='text-[11px] font-normal text-muted-foreground'>last {leadsTrend.length} snapshots</span></div><div className='p-4'>{leadsTrend.length ? <AreaSpark data={leadsTrend} /> : <div className='text-xs text-muted-foreground'>No trend yet.</div>}</div></Card>
+        <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>Content produced (blog + social)</div><div className='p-4'>{contentTrend.length ? <AreaSpark data={contentTrend} /> : <div className='text-xs text-muted-foreground'>No trend yet.</div>}</div></Card>
+      </div>
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>Marketing funnel</div><div className='p-4'><Funnel rows={[{ stage: 'SEO pages', n: Number(k.seo_pages) || 0 }, { stage: 'Content', n: (Number(k.blog_published) || 0) + (Number(k.social_published) || 0) }, { stage: 'Outreach', n: Number(k.outreach_sent) || 0 }, { stage: 'Leads', n: Number(k.leads_total) || 0 }]} /></div></Card>
+        <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>Social reach by channel</div><div className='p-4'>{chRows.length ? <HBars rows={chRows} onBar={() => setTab('social')} /> : <div className='text-xs text-muted-foreground'>No social posts yet.</div>}</div></Card>
+      </div>
+    </div>) : tab === 'review' ? (<div className='space-y-3'>
+      {reviewItems.length ? <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>{reviewItems.map((it: any, i: number) => (
+        <button key={i} onClick={() => setReview(it)} className='text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all'>
+          {(it.image_url || it.image) ? <PostThumb url={it.image_url || it.image} className='w-full h-40' /> : null}
+          <div className='p-3'><div className='flex items-center gap-2 mb-1'><Chip label={titleCase(String(it.__kind))} tone='amber' />{it.channel ? <span className='text-[11px] text-muted-foreground'>{it.channel}</span> : null}</div><div className='text-sm font-medium line-clamp-1'>{it.title || 'Draft'}</div><div className='text-xs text-muted-foreground line-clamp-2 mt-0.5'>{it.body || it.text || '—'}</div></div>
+        </button>))}</div> : (
+        <Card className='p-10 text-center'><Check className='h-8 w-8 text-emerald-500/50 mx-auto mb-2' /><div className='text-sm font-medium'>Nothing awaiting review</div><div className='text-xs text-muted-foreground mt-1'>Draft posts created by the team appear here. Open one to see its image and copy, then approve to publish or reject.</div></Card>
+      )}
+    </div>) : tab === 'social' ? (<div>
+      {socials.length ? <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>{socials.map((s: any) => { const live = /sent|published/i.test(String(s.status || '')); return (
+        <button key={s.id} onClick={() => setSocial(s)} className='text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all group'>
+          <div className='relative'><PostThumb url={s.image_url} className='w-full h-44 group-hover:brightness-105 transition-all' /><div className='absolute top-2 right-2'>{live ? <Chip label='Live' tone='green' /> : <Chip label={titleCase(String(s.status || s.mode || 'draft'))} tone={statusTone(String(s.status || s.mode || 'draft'))} />}</div></div>
+          <div className='p-3'><div className='text-sm line-clamp-2 leading-snug'>{s.text || <span className='text-muted-foreground'>No caption</span>}</div><div className='flex items-center justify-between mt-2 gap-2'><ChannelPills channels={s.channels} /><span className='text-[10px] text-muted-foreground whitespace-nowrap'>{s.created_at ? new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}</span></div></div>
+        </button>); })}</div> : (
+        <Card className='p-10 text-center'><Megaphone className='h-8 w-8 text-muted-foreground/40 mx-auto mb-2' /><div className='text-sm font-medium'>No social posts yet</div><div className='text-xs text-muted-foreground mt-1'>Posts published through Postiz appear here with their image and copy.</div></Card>
+      )}
+    </div>) : (<div className='space-y-3'>
+      <div className='flex flex-wrap items-center gap-2'>
+        <div className='relative'><Search className='h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none' /><Input value={blogQ} onChange={(e) => setBlogQ(e.target.value)} placeholder='Search posts…' className='h-9 w-56 pl-8' /></div>
+        <div className='inline-flex rounded-md border border-border overflow-hidden text-xs'>{([['all', 'All ' + blogs.length], ['published', 'Published ' + publishedCount], ['draft', 'Drafts ' + (blogs.length - publishedCount)]] as [any, string][]).map(([f, lbl]) => (<button key={f} onClick={() => setBlogFilter(f)} className={cn('h-9 px-3 border-l first:border-l-0 border-border', blogFilter === f ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}>{lbl}</button>))}</div>
+      </div>
+      {visibleBlogs.length ? <Card className='overflow-hidden'><div className='divide-y divide-border'>{visibleBlogs.map((b: any) => (
+        <button key={b.id} onClick={() => setBlog(b)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
+          <div className='min-w-0 flex-1'><div className='text-sm font-medium line-clamp-1'>{b.title}</div><div className='text-xs text-muted-foreground line-clamp-1 mt-0.5'>{b.excerpt || b.slug}</div></div>
+          {b.category ? <span className='hidden sm:inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-full bg-foreground/[0.06] text-foreground/70 capitalize shrink-0'>{b.category}</span> : null}
+          <Chip label={b.published ? 'Published' : 'Draft'} tone={b.published ? 'green' : 'amber'} />
+          <ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' />
+        </button>))}</div></Card> : <Card className='p-8 text-center text-sm text-muted-foreground'>No posts match.</Card>}
+    </div>)}
+
+    {social ? <SocialPostDrawer post={social} onClose={() => setSocial(null)} /> : null}
+    {blog ? <BlogDrawer post={blog} onChanged={onBlogChanged} onClose={() => setBlog(null)} /> : null}
+    {review ? <ReviewDrawer item={review} onDone={() => { setReview(null); load(); }} onClose={() => setReview(null)} /> : null}
+  </div>);
+}
+
+// ── Fraud — risk case queue with case detail + resolve actions ──
+function FraudCaseDrawer({ flag, onResolved, onClose }: { flag: any; onResolved: () => void; onClose: () => void }) {
+  const [busy, setBusy] = React.useState(''); const [msg, setMsg] = React.useState(''); const [sub, setSub] = React.useState<any>(null);
+  const det = flag.detail || {};
+  const resolve = async (op: string) => { setBusy(op); setMsg(''); try { await osApi('fraud_resolve', { subject_type: flag.subject_type, subject_id: String(flag.subject_id), op }); onResolved(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); setBusy(''); } };
+  const amount = Number(det.amount); const median = Number(det.median); const hasCompare = isFinite(amount) && isFinite(median) && median > 0;
+  const ratio = hasCompare ? amount / median : 1; const maxv = Math.max(amount, median) || 1;
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
+    <SheetHeader>
+      <div className='flex items-center gap-2 flex-wrap'><Chip label={titleCase(String(flag.kind || 'flag'))} tone='slate' /><Chip label={titleCase(String(flag.severity || 'medium'))} tone={riskTone(String(flag.severity))} /><Chip label={titleCase(String(flag.status || 'open'))} tone={statusTone(String(flag.status))} /></div>
+      <SheetTitle className='mt-1'>{titleCase(String(flag.kind || 'Risk flag'))}</SheetTitle>
+      <SheetDescription>{titleCase(String(flag.subject_type))} · {String(flag.subject_id)} · flagged {fmt(flag.created)}</SheetDescription>
+    </SheetHeader>
+    <div className='mt-4 space-y-4'>
+      {hasCompare ? <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-2'>Price vs category median{det.band ? ' · ' + titleCase(String(det.band)) : ''}</div>
+        <div className='space-y-2'>
+          <div><div className='flex justify-between text-xs mb-1'><span>This {flag.subject_type}</span><span className='tabular-nums font-medium'>AED {amount.toLocaleString()}</span></div><div className='h-2.5 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-red-500' style={{ width: Math.max(3, (amount / maxv) * 100) + '%' }} /></div></div>
+          <div><div className='flex justify-between text-xs mb-1'><span>Category median{det.category ? ' (' + det.category + ')' : ''}</span><span className='tabular-nums text-muted-foreground'>AED {median.toLocaleString()}</span></div><div className='h-2.5 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-foreground/40' style={{ width: Math.max(3, (median / maxv) * 100) + '%' }} /></div></div>
+        </div>
+        <div className='text-[11px] text-muted-foreground mt-2'>{ratio >= 1 ? (ratio).toFixed(1) + '× above' : (1 / ratio).toFixed(1) + '× below'} the category median.</div>
+      </Card> : null}
+      <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Detail</div><ReadableObject data={det} /></Card>
+      {flag.subject_type === 'supplier' ? <Button className='h-8 text-xs' variant='outline' onClick={() => setSub({ entity: 'supplier', id: flag.subject_id })}>Open supplier record</Button> : null}
+      {msg ? <div className='text-xs text-red-600'>{msg}</div> : null}
+      <div className='flex gap-2 border-t border-border pt-3'>
+        <Button className='h-9 text-xs' variant='outline' disabled={!!busy} onClick={() => resolve('dismiss')}>{busy === 'dismiss' ? '…' : 'Dismiss (false positive)'}</Button>
+        <Button className='h-9 text-xs' variant='outline' disabled={!!busy} onClick={() => resolve('ban')}>{busy === 'ban' ? '…' : 'Ban actor'}</Button>
+      </div>
+    </div>
+    {flag.subject_type && flag.subject_id != null ? <ActivityPanel entity={flag.subject_type} id={flag.subject_id} /> : null}
+    {sub ? <RecordDrawer frame0={{ entity: sub.entity, id: sub.id, title: 'Supplier #' + sub.id }} onClose={() => setSub(null)} /> : null}
+  </SheetContent></Sheet>);
+}
+function FraudApp() {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false); const [sel, setSel] = React.useState<any>(null);
+  const load = React.useCallback(() => { setBusy(true); setErr(''); osApi('ws.fraud').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Fraud: {err}</Card>;
+  const k = d?.kpis || {}; const flags = d?.open_flags || []; const banned = d?.banned || [];
+  const sevRank = (s: string) => /high|critical|severe/.test(String(s)) ? 0 : /medium|moderate/.test(String(s)) ? 1 : 2;
+  const sorted = [...flags].sort((a: any, b: any) => sevRank(a.severity) - sevRank(b.severity));
+  return (<div className='space-y-4'>
+    <div className='flex flex-wrap items-center gap-2'><ShieldAlert className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Fraud &amp; Risk</h1>{k.high_severity ? <Badge className='bg-red-500/15 text-red-600 border-0'>{k.high_severity} high severity</Badge> : null}<Button className='h-8 text-xs ml-auto' variant='outline' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button></div>
+    <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>
+      <StatTile label='Open flags' value={k.open_flags} />
+      <StatTile label='High severity' value={k.high_severity} />
+      <StatTile label='Flags (7d)' value={k.flags_7d} />
+      <StatTile label='Banned actors' value={k.banned_actors} />
+    </div>
+    <Card className='overflow-hidden'>
+      <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Open risk flags<Badge variant='secondary'>{flags.length}</Badge></div>
+      {sorted.length ? <div className='divide-y divide-border'>{sorted.map((f: any, i: number) => (
+        <button key={i} onClick={() => setSel(f)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
+          <div className='min-w-0 flex-1'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{titleCase(String(f.kind))}<Chip label={titleCase(String(f.severity))} tone={riskTone(String(f.severity))} /></div><div className='text-xs text-muted-foreground mt-0.5'>{titleCase(String(f.subject_type))} · {f.detail?.category ? f.detail.category + ' · ' : ''}{f.detail?.amount ? 'AED ' + Number(f.detail.amount).toLocaleString() : (f.detail?.note || '')}</div></div>
+          <span className='text-[11px] text-muted-foreground whitespace-nowrap'>{fmt(f.created)}</span><ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' />
+        </button>))}</div> : <div className='px-4 py-8 text-center text-sm text-muted-foreground'>No open risk flags. The engine is watching prices, licences and duplicate accounts.</div>}
+    </Card>
+    {banned.length ? <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>Banned actors</div><div className='divide-y divide-border'>{banned.map((b: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm flex items-center justify-between'><span>{b.name || b.subject_id}</span><Chip label='Banned' tone='red' /></div>))}</div></Card> : null}
+    {sel ? <FraudCaseDrawer flag={sel} onResolved={() => { setSel(null); load(); }} onClose={() => setSel(null)} /> : null}
+  </div>);
+}
+
+// ── Refunds — dispute queue with case detail + resolve ──
+function RefundDrawer({ item, onResolved, onClose }: { item: any; onResolved: () => void; onClose: () => void }) {
+  const [busy, setBusy] = React.useState(''); const [note, setNote] = React.useState(''); const [msg, setMsg] = React.useState('');
+  const tid = item.transaction_id ?? item.id;
+  const resolve = async (op: string) => { setBusy(op); setMsg(''); try { await osApi('refund_resolve', { transaction_id: String(tid), op, note }); onResolved(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); setBusy(''); } };
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
+    <SheetHeader>
+      <div className='flex items-center gap-2 flex-wrap'>{item.refund_status ? <Chip label={titleCase(String(item.refund_status))} tone={statusTone(String(item.refund_status))} /> : <Chip label='Pending' tone='amber' />}{item.within_window != null ? <Chip label={item.within_window ? 'Within window' : 'Out of window'} tone={item.within_window ? 'green' : 'red'} /> : null}</div>
+      <SheetTitle className='mt-1'>Refund · {item.amount != null ? 'AED ' + Number(item.amount).toLocaleString() : 'Transaction ' + tid}</SheetTitle>
+      <SheetDescription>{[item.customer_name || item.customer, item.created_at ? fmt(item.created_at) : null].filter(Boolean).join(' · ')}</SheetDescription>
+    </SheetHeader>
+    <div className='mt-4 space-y-4'>
+      {item.reason ? <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Reason</div><div className='text-sm whitespace-pre-wrap'>{item.reason}</div></Card> : null}
+      <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Transaction</div><ReadableObject data={item} /></Card>
+      <div><div className='text-xs font-semibold text-muted-foreground mb-1'>Decision note (optional)</div><textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className='w-full resize-none rounded-md border border-border bg-transparent p-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' /></div>
+      {msg ? <div className='text-xs text-red-600'>{msg}</div> : null}
+      <div className='flex gap-2 border-t border-border pt-3'>
+        <Button className='h-9 text-xs' disabled={!!busy} onClick={() => resolve('approve')}>{busy === 'approve' ? '…' : 'Approve refund'}</Button>
+        <Button className='h-9 text-xs' variant='outline' disabled={!!busy} onClick={() => resolve('reject')}>{busy === 'reject' ? '…' : 'Reject'}</Button>
+      </div>
+    </div>
+  </SheetContent></Sheet>);
+}
+function RefundsApp() {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false); const [sel, setSel] = React.useState<any>(null);
+  const load = React.useCallback(() => { setBusy(true); setErr(''); osApi('ws.refunds').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Refunds: {err}</Card>;
+  const k = d?.kpis || {}; const pending = d?.pending || []; const resolved = d?.recent_resolved || [];
+  return (<div className='space-y-4'>
+    <div className='flex flex-wrap items-center gap-2'><RotateCcw className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Refunds</h1>{k.pending ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.pending} pending</Badge> : null}<Button className='h-8 text-xs ml-auto' variant='outline' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button></div>
+    <div className='grid grid-cols-2 md:grid-cols-3 gap-3'>
+      <StatTile label='Pending' value={k.pending} />
+      <StatTile label='Resolved (30d)' value={k.resolved_30d} />
+      <StatTile label='Within window' value={k.within_window} />
+    </div>
+    <Card className='overflow-hidden'>
+      <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Pending refund requests<Badge variant='secondary'>{pending.length}</Badge></div>
+      {pending.length ? <div className='divide-y divide-border'>{pending.map((r: any, i: number) => (
+        <button key={i} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
+          <div className='min-w-0 flex-1'><div className='text-sm font-medium'>{r.amount != null ? 'AED ' + Number(r.amount).toLocaleString() : 'Transaction ' + (r.transaction_id ?? r.id)}</div><div className='text-xs text-muted-foreground line-clamp-1 mt-0.5'>{r.customer_name || r.customer || ''}{r.reason ? ' · ' + r.reason : ''}</div></div>
+          <ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' />
+        </button>))}</div> : <div className='px-4 py-8 text-center text-sm text-muted-foreground'>No pending refund requests. Approved payments with disputes will appear here for review.</div>}
+    </Card>
+    {resolved.length ? <Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>Recently resolved</div><div className='divide-y divide-border'>{resolved.map((r: any, i: number) => (<div key={i} className='px-4 py-2.5 flex items-center justify-between gap-2'><span className='text-sm'>{r.amount != null ? 'AED ' + Number(r.amount).toLocaleString() : (r.transaction_id ?? r.id)}</span>{r.refund_status ? <Chip label={titleCase(String(r.refund_status))} tone={statusTone(String(r.refund_status))} /> : null}</div>))}</div></Card> : null}
+    {sel ? <RefundDrawer item={sel} onResolved={() => { setSel(null); load(); }} onClose={() => setSel(null)} /> : null}
+  </div>);
+}
+
+// ── Shared section primitives for the dashboard apps ──
+function SectionCard({ title, count, children, right }: { title: string; count?: any; children: any; right?: any }) {
+  return (<Card className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between gap-2'><span className='flex items-center gap-2'>{title}{count != null ? <Badge variant='secondary'>{count}</Badge> : null}</span>{right}</div>{children}</Card>);
+}
+function KpiRow({ items }: { items: [string, any, string?][] }) {
+  return (<div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>{items.map(([label, value, hint], i) => (<StatTile key={i} label={label} value={value} hint={hint} />))}</div>);
+}
+function AppHeader({ icon: Icon, title, badge, onRefresh, busy }: any) {
+  return (<div className='flex flex-wrap items-center gap-2'><Icon className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>{title}</h1>{badge}{onRefresh ? <Button className='h-8 text-xs ml-auto' variant='outline' disabled={busy} onClick={onRefresh}>{busy ? 'Refreshing…' : 'Refresh'}</Button> : null}</div>);
+}
+function useWs(action: string) {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const load = React.useCallback(() => { setBusy(true); setErr(''); osApi(action).then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, [action]);
+  React.useEffect(() => { load(); }, [load]);
+  return { d, err, busy, load, setD };
+}
+
+function OperationsApp() {
+  const { d, err, busy, load } = useWs('ws.operations'); const [dbusy, setDbusy] = React.useState('');
+  const decide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('action_decide', { id, op }); load(); } catch (_e) {} setDbusy(''); };
+  const taskDone = async (id: any) => { setDbusy('t' + id); try { await osOps('task_done', { id, op: 'done' }); load(); } catch (_e) {} setDbusy(''); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Operations: {err}</Card>;
+  const k = d?.kpis || {}; const tasks = d?.tasks || []; const decisions = d?.decisions || []; const approvals = d?.approvals || []; const sec = d?.security || {};
+  const held = decisions.filter((x: any) => /held|review|pending|proposed|open/.test(String(x.decision || x.status)));
+  return (<div className='space-y-4'>
+    <AppHeader icon={Settings2} title='Operations' onRefresh={load} busy={busy} badge={k.high_risk ? <Badge className='bg-red-500/15 text-red-600 border-0'>{k.high_risk} high risk</Badge> : null} />
+    <KpiRow items={[['Open tasks', k.tasks_open], ['Decisions 24h', k.decisions_24h], ['Approvals pending', k.approvals_pending], ['Disputes', k.disputes], ['High risk', k.high_risk], ['Held for review', held.length]]} />
+    {held.length ? <SectionCard title='Decisions held for review' count={held.length}><div className='divide-y divide-border'>{held.map((a: any) => (<div key={a.id} className='px-4 py-3 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{titleCase(String(a.kind || 'decision'))}<span className='text-muted-foreground text-xs'>{a.actor}</span><Chip label={titleCase(String(a.decision))} tone={statusTone(String(a.decision))} /></div><div className='text-xs text-muted-foreground'>→ {a.route_to} · {fmt(a.created_at)}</div></div><div className='flex gap-1.5 shrink-0'><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>Approve</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>Reject</Button></div></div>))}</div></SectionCard> : null}
+    <SectionCard title='Open tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
+    {approvals.length ? <SectionCard title='Approvals pending' count={approvals.length}><div className='p-4'><ReadableObject data={approvals} /></div></SectionCard> : null}
+    {Object.keys(sec).length ? <SectionCard title='Security posture'><div className='p-4'><ReadableObject data={sec} /></div></SectionCard> : null}
+  </div>);
+}
+
+function AnalyticsApp() {
+  const { d, err, busy, load } = useWs('ws.analytics');
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Analytics: {err}</Card>;
+  const mp = d?.marketplace || {}; const sectors = d?.top_sectors || []; const emirates = d?.top_emirates || []; const fn = d?.supplier_funnel || {};
+  const funnelRows = [['directory', 'Directory'], ['submitted', 'Submitted'], ['registered', 'Registered'], ['claimed', 'Claimed'], ['approved', 'Approved']].map(([k, l]) => ({ stage: l, n: Number(fn[k]) || 0 })).filter((r) => r.n > 0 || r.stage === 'Directory');
+  return (<div className='space-y-4'>
+    <AppHeader icon={BarChart3} title='Analytics' onRefresh={load} busy={busy} />
+    <KpiRow items={[['RFQs today', mp.rfqs_today], ['RFQs 7d', mp.rfqs_7d], ['RFQs 30d', mp.rfqs_30d], ['Active suppliers 30d', mp.active_suppliers_30d], ['Response rate', mp.response_rate_pct != null ? mp.response_rate_pct + '%' : '—'], ['Avg savings', mp.avg_savings_pct != null ? mp.avg_savings_pct + '%' : '—']]} />
+    <SectionCard title='Supplier acquisition funnel'><div className='p-4'>{funnelRows.length ? <Funnel rows={funnelRows} /> : <div className='text-xs text-muted-foreground'>No funnel data.</div>}</div></SectionCard>
+    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+      <SectionCard title='Top sectors'><div className='p-4'>{sectors.length ? <HBars rows={sectors.slice(0, 10).map((s: any) => ({ label: s.key, n: Number(s.count) }))} /> : <div className='text-xs text-muted-foreground'>No data.</div>}</div></SectionCard>
+      <SectionCard title='Top emirates'><div className='p-4'>{emirates.length ? <HBars rows={emirates.slice(0, 10).map((s: any) => ({ label: s.key, n: Number(s.count) }))} /> : <div className='text-xs text-muted-foreground'>No data.</div>}</div></SectionCard>
+    </div>
+    {(mp.category_growth || []).length || (mp.competitive_categories || []).length ? <SectionCard title='Category signals'><div className='p-4'><ReadableObject data={{ category_growth: mp.category_growth, competitive_categories: mp.competitive_categories }} /></div></SectionCard> : null}
+  </div>);
+}
+
+function StrategyApp() {
+  const { d, err, busy, load } = useWs('ws.strategy'); const [sel, setSel] = React.useState<any>(null);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Strategy: {err}</Card>;
+  const k = d?.kpis || {}; const risks = d?.risks || []; const under = d?.under_supplied || []; const recs = d?.recommendations || []; const intel = d?.market_intel || []; const sims = d?.recent_simulations || [];
+  const sortedRisks = [...risks].sort((a: any, b: any) => (Number(b.score) || 0) - (Number(a.score) || 0));
+  return (<div className='space-y-4'>
+    <AppHeader icon={Compass} title='Strategy' onRefresh={load} busy={busy} badge={k.open_risks ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.open_risks} open risks</Badge> : null} />
+    <KpiRow items={[['Cash', k.cash != null ? aed(k.cash) : '—'], ['Monthly burn', k.monthly_burn != null ? aed(k.monthly_burn) : '—'], ['Runway', k.runway_months != null ? k.runway_months + ' mo' : '—'], ['Open risks', k.open_risks], ['Under-supplied', k.under_supplied_categories], ['Top supplier share', k.top_supplier_share_pct != null ? k.top_supplier_share_pct + '%' : '—']]} />
+    <SectionCard title='Risk register' count={risks.length}>{sortedRisks.length ? <div className='divide-y divide-border'>{sortedRisks.map((r: any, i: number) => (
+      <button key={i} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
+        <div className='min-w-0 flex-1'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{r.title}{r.category ? <span className='text-[11px] text-muted-foreground'>{r.category}</span> : null}<Chip label={titleCase(String(r.status))} tone={statusTone(String(r.status))} /></div><div className='text-[11px] text-muted-foreground mt-0.5'>Impact {r.impact}/5 · Likelihood {r.likelihood}/5</div></div>
+        <div className='flex items-center gap-2 shrink-0'><Chip label={'Score ' + r.score} tone={Number(r.score) >= 15 ? 'red' : Number(r.score) >= 8 ? 'amber' : 'slate'} /><ChevronRight className='h-4 w-4 text-muted-foreground' /></div>
+      </button>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open risks.</div>}</SectionCard>
+    {under.length ? <SectionCard title='Under-supplied categories' count={under.length}><div className='p-4'><HBars rows={under.slice(0, 10).map((u: any) => ({ label: u.category || u.key || u.label, n: Number(u.gap ?? u.count ?? u.n ?? 0) }))} /></div></SectionCard> : null}
+    {recs.length ? <SectionCard title='Recommendations' count={recs.length}><div className='divide-y divide-border'>{recs.map((r: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm'>{r.title || r.recommendation || fmt(r)}</div>))}</div></SectionCard> : null}
+    {intel.length ? <SectionCard title='Market intel' count={intel.length}><div className='p-4'><ReadableObject data={intel} /></div></SectionCard> : null}
+    {sims.length ? <SectionCard title='Recent simulations' count={sims.length}><div className='p-4'><ReadableObject data={sims} /></div></SectionCard> : null}
+    {sel ? <Sheet open={true} onOpenChange={(o) => { if (!o) setSel(null); }}><SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto'><SheetHeader><div className='flex items-center gap-2'><Chip label={'Score ' + sel.score} tone={Number(sel.score) >= 15 ? 'red' : Number(sel.score) >= 8 ? 'amber' : 'slate'} /><Chip label={titleCase(String(sel.status))} tone={statusTone(String(sel.status))} /></div><SheetTitle className='mt-1'>{sel.title}</SheetTitle><SheetDescription>{sel.category ? titleCase(String(sel.category)) + ' risk' : 'Risk'}</SheetDescription></SheetHeader><div className='mt-4 grid grid-cols-3 gap-2'><StatTile label='Impact' value={sel.impact + '/5'} /><StatTile label='Likelihood' value={sel.likelihood + '/5'} /><StatTile label='Score' value={sel.score} /></div><Card className='mt-4 p-4'><ReadableObject data={sel} /></Card></SheetContent></Sheet> : null}
+  </div>);
+}
+
+const KGAP_TONE: Record<string, string> = { ok: 'green', thin: 'amber', stale: 'amber', missing: 'red' };
+function ExamPanel() {
+  const [d, setD] = React.useState<any>(null); const [busy, setBusy] = React.useState(false); const [msg, setMsg] = React.useState('');
+  const load = React.useCallback(() => { osApi('exam_summary').then(setD).catch(() => {}); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const run = async () => { setBusy(true); setMsg('Examining the next agent (generating questions, grading, auto-filling verified gaps)…'); try { const r: any = await osApi('exam_run', {}); setMsg('Examined ' + (r?.label || r?.agent || 'agent') + ': ' + (r?.score ?? '—') + '% · ' + (r?.gaps ?? 0) + ' gap(s), ' + (r?.filled ?? 0) + ' auto-filled, ' + (r?.conflicts ?? 0) + ' withheld.'); load(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); } setBusy(false); };
+  const o = d?.overall || {}; const agents = (d?.agents || []) as any[];
+  return (<SectionCard title='Auto-learning exam' right={<div className='flex items-center gap-2'>{msg ? <span className='text-[11px] text-muted-foreground max-w-md truncate'>{msg}</span> : null}<Button className='h-7 text-xs' variant='outline' disabled={busy} onClick={run}>{busy ? 'Examining…' : 'Run exam now'}</Button></div>}>
+    <div className='p-4 space-y-3'>
+      <div className='grid grid-cols-2 md:grid-cols-4 gap-2'>
+        <StatTile label='Avg score (30d)' value={o.avg_score != null ? o.avg_score + '%' : '—'} />
+        <StatTile label='Exams (30d)' value={o.exams_30d} />
+        <StatTile label='Gaps filled (30d)' value={o.gaps_filled_30d} />
+        <StatTile label='Question bank' value={o.question_bank} />
+      </div>
+      <div className='text-[11px] text-muted-foreground'>An examiner writes domain questions, each agent answers from its own knowledge, an independent grader judges, and a verified correction is auto-written only when two independent models agree and it passes the poison-lint. Runs every 4h.</div>
+      {agents.length ? <div className='overflow-auto max-h-64 rounded-md border border-border'><table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border sticky top-0 bg-card'><th className='px-3 py-2 font-medium'>Agent</th><th className='px-3 py-2 font-medium'>Score</th><th className='px-3 py-2 font-medium'>Examined</th><th className='px-3 py-2 font-medium'>Gaps</th><th className='px-3 py-2 font-medium'>Filled</th></tr></thead>
+        <tbody>{agents.map((a) => (<tr key={a.agent_key} className='border-b border-border/40'><td className='px-3 py-2 font-medium'>{a.agent_key}</td><td className='px-3 py-2'><Chip label={(a.score_pct ?? 0) + '%'} tone={Number(a.score_pct) >= 80 ? 'green' : Number(a.score_pct) >= 50 ? 'amber' : 'red'} /></td><td className='px-3 py-2 tabular-nums'>{a.examined}</td><td className='px-3 py-2 tabular-nums'>{a.gaps}</td><td className='px-3 py-2 tabular-nums'>{a.filled}</td></tr>))}</tbody></table></div> : <div className='text-xs text-muted-foreground'>No exams yet — click Run exam now, or wait for the 4-hourly cycle.</div>}
+    </div>
+  </SectionCard>);
+}
+function KnowledgeHealthCard() {
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const [rbusy, setRbusy] = React.useState(''); const [msg, setMsg] = React.useState(''); const [show, setShow] = React.useState<'gaps' | 'all'>('gaps');
+  const load = React.useCallback(() => { setBusy(true); osApi('knowledge_gaps').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  React.useEffect(() => { load(); }, [load]);
+  const refresh = async (slug: string) => { setRbusy(slug); setMsg(''); try { await osApi('knowledge_refresh', { slug }); setMsg('Refreshed ' + slug + ' — knowledge regenerated.'); load(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); } setRbusy(''); };
+  const exportKb = async (slug?: string) => { setRbusy('export' + (slug || 'all')); setMsg('Building export…'); try { const r: any = await osApi('knowledge_export', slug ? { agent_key: slug } : {}); const blob = new Blob([r.markdown], { type: 'text/markdown' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = r.filename; a.click(); URL.revokeObjectURL(url); setMsg('Exported ' + r.count + ' item(s) → ' + r.filename); } catch (e: any) { setMsg('Export failed: ' + (e?.message || 'error')); } setRbusy(''); };
+  const sweep = async () => { setBusy(true); setMsg(''); try { const r: any = await osApi('knowledge_dispatch'); setMsg('Gap sweep run — ' + (r?.gaps_found ?? 0) + ' open task(s) for lagging agents.'); load(); } catch (e: any) { setMsg('Failed: ' + (e?.message || 'error')); } setBusy(false); };
+  if (err && !d) return <Card className='p-4 text-sm text-destructive'>Could not load knowledge health: {err}</Card>;
+  const s = d?.summary || {}; const agents = (d?.agents || []) as any[];
+  const shown = show === 'gaps' ? agents.filter((a) => a.status !== 'ok') : agents;
+  const cov = Number(s.coverage_pct) || 0;
+  return (
+    <SectionCard title='Agent knowledge health' count={s.total} right={<div className='flex items-center gap-2'>{msg ? <span className='text-[11px] text-muted-foreground max-w-xs truncate'>{msg}</span> : null}<Button className='h-7 text-xs' variant='outline' disabled={rbusy === 'exportall'} onClick={() => exportKb()}>{rbusy === 'exportall' ? '…' : 'Export all (.md)'}</Button><Button className='h-7 text-xs' variant='outline' disabled={busy} onClick={sweep}>{busy ? '…' : 'Run gap sweep'}</Button></div>}>
+      <div className='p-4 space-y-3'>
+        <div className='flex items-center gap-2'><span className='text-xs text-muted-foreground w-24'>Fresh coverage</span><div className='flex-1 h-2 rounded-full bg-foreground/[0.06] overflow-hidden'><div className={cn('h-full rounded-full', cov >= 70 ? 'bg-emerald-500' : cov >= 40 ? 'bg-amber-500' : 'bg-red-500')} style={{ width: Math.max(2, cov) + '%' }} /></div><span className='text-[11px] tabular-nums text-muted-foreground'>{cov}%</span></div>
+        <div className='flex flex-wrap gap-2 text-[11px]'>{s.ok ? <Chip label={s.ok + ' fresh'} tone='green' /> : null}{s.stale ? <Chip label={s.stale + ' stale'} tone='amber' /> : null}{s.thin ? <Chip label={s.thin + ' thin'} tone='amber' /> : null}{s.missing ? <Chip label={s.missing + ' missing'} tone='red' /> : null}<span className='text-muted-foreground ml-auto'>Chief of Staff opens an auto-closing task per lagging agent daily; the curator refreshes the stalest.</span></div>
+        <div className='inline-flex rounded-md border border-border overflow-hidden text-xs'>{([['gaps', 'Needs refresh ' + agents.filter((a) => a.status !== 'ok').length], ['all', 'All ' + agents.length]] as [any, string][]).map(([f, lbl]) => (<button key={f} onClick={() => setShow(f)} className={cn('h-7 px-2.5 border-l first:border-l-0 border-border', show === f ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}>{lbl}</button>))}</div>
+        <div className='overflow-auto max-h-80 rounded-md border border-border'>
+          <table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border sticky top-0 bg-card'><th className='px-3 py-2 font-medium'>Agent</th><th className='px-3 py-2 font-medium'>Items</th><th className='px-3 py-2 font-medium'>Last refresh</th><th className='px-3 py-2 font-medium'>Status</th><th className='px-3 py-2' /></tr></thead>
+            <tbody>{shown.map((a) => (<tr key={a.slug} className='border-b border-border/40'>
+              <td className='px-3 py-2 font-medium'>{a.emoji ? a.emoji + ' ' : ''}{a.name}</td>
+              <td className='px-3 py-2 tabular-nums'>{a.items}</td>
+              <td className='px-3 py-2 text-muted-foreground whitespace-nowrap'>{a.days_stale == null ? 'never' : a.days_stale + 'd ago'}</td>
+              <td className='px-3 py-2'><Chip label={titleCase(String(a.status))} tone={KGAP_TONE[a.status] || 'slate'} /></td>
+              <td className='px-3 py-2 text-right whitespace-nowrap'><Button className='h-7 text-xs mr-1' variant='ghost' disabled={rbusy === 'export' + a.slug} onClick={() => exportKb(a.slug)} title='Export this agent’s knowledge as Markdown'>{rbusy === 'export' + a.slug ? '…' : 'Export'}</Button><Button className='h-7 text-xs' variant='outline' disabled={rbusy === a.slug} onClick={() => refresh(a.slug)}>{rbusy === a.slug ? 'Refreshing…' : 'Refresh'}</Button></td>
+            </tr>))}{!shown.length ? <tr><td colSpan={5} className='px-3 py-6 text-center text-sm text-muted-foreground'>All agents are fresh.</td></tr> : null}</tbody>
+          </table>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+function GovernanceApp() {
+  const { d, err, busy, load } = useWs('ws.governance');
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Governance: {err}</Card>;
+  const k = d?.kpis || {}; const cov = d?.agent_coverage || []; const rules = d?.universal_rules || []; const esc = d?.recent_escalations || [];
+  const personaPct = k.active_agents ? Math.round(100 * (k.agents_with_persona || 0) / k.active_agents) : 0;
+  const auditPct = k.active_agents ? Math.round(100 * (k.agents_with_audit_trail || 0) / k.active_agents) : 0;
+  return (<div className='space-y-4'>
+    <AppHeader icon={Scale} title='Governance' onRefresh={load} busy={busy} badge={k.open_for_review ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.open_for_review} awaiting review</Badge> : null} />
+    <KpiRow items={[['Active agents', k.active_agents], ['Global rules', k.global_rules], ['Decisions 30d', k.decisions_30d], ['Escalated 30d', k.escalated_30d], ['Avg confidence', k.avg_confidence != null ? Math.round(k.avg_confidence * 100) + '%' : '—'], ['Knowledge items', k.knowledge_items]]} />
+    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+      <SectionCard title='Governance coverage'><div className='p-4 space-y-3'>
+        <div><div className='flex justify-between text-xs mb-1'><span>Agents with persona</span><span className='tabular-nums text-muted-foreground'>{k.agents_with_persona}/{k.active_agents}</span></div><div className='h-2 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-emerald-500' style={{ width: personaPct + '%' }} /></div></div>
+        <div><div className='flex justify-between text-xs mb-1'><span>Agents with audit trail</span><span className='tabular-nums text-muted-foreground'>{k.agents_with_audit_trail}/{k.active_agents}</span></div><div className='h-2 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-blue-500' style={{ width: auditPct + '%' }} /></div></div>
+      </div></SectionCard>
+      <SectionCard title='Universal rules' count={rules.length}><div className='p-4 space-y-1.5 max-h-64 overflow-y-auto'>{rules.map((r: any, i: number) => (<div key={i} className='text-xs flex gap-2'><Check className='h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5' /><span>{typeof r === 'string' ? r : (r.rule || r.title || fmt(r))}</span></div>))}</div></SectionCard>
+    </div>
+    <SectionCard title='Recent escalations' count={esc.length}>{esc.length ? <div className='divide-y divide-border'>{esc.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5'><div className='text-sm font-medium flex items-center gap-1.5'>{e.title}<span className='text-[11px] text-muted-foreground'>{e.agent}</span>{e.confidence != null ? <Chip label={Math.round(e.confidence * 100) + '%'} tone='blue' /> : null}</div><div className='text-xs text-muted-foreground mt-0.5'>{e.reason} · {fmt(e.created)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No recent escalations.</div>}</SectionCard>
+    <KnowledgeHealthCard />
+    <ExamPanel />
+    {(cov || []).length ? <SectionCard title='Agent coverage' count={cov.length}><div className='overflow-auto max-h-72'><table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border sticky top-0 bg-card'><th className='px-4 py-2 font-medium'>Agent</th><th className='px-3 py-2 font-medium'>Persona</th><th className='px-3 py-2 font-medium'>Knowledge</th><th className='px-3 py-2 font-medium'>Audit items</th></tr></thead><tbody>{cov.map((c: any, i: number) => (<tr key={i} className='border-b border-border/40'><td className='px-4 py-2'>{c.agent}</td><td className='px-3 py-2'>{c.has_persona ? <Check className='h-4 w-4 text-emerald-500' /> : <Minus className='h-4 w-4 text-muted-foreground/40' />}</td><td className='px-3 py-2'>{c.has_knowledge ? <Check className='h-4 w-4 text-emerald-500' /> : <Minus className='h-4 w-4 text-muted-foreground/40' />}</td><td className='px-3 py-2 tabular-nums'>{c.audit_items}</td></tr>))}</tbody></table></div></SectionCard> : null}
+  </div>);
+}
+
+function CompanyApp() {
+  const { d, err, busy, load } = useWs('ws.company');
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Company: {err}</Card>;
+  const depts = d?.departments || []; const runs = d?.runs || []; const evals = d?.evals || []; const legal = d?.legal || {};
+  const ev = (evals[0] && evals[0].kpis) || {}; const lk = legal.kpis || {}; const lflags = legal.flags || []; const missing = legal.missing_docs || [];
+  return (<div className='space-y-4'>
+    <AppHeader icon={Building2} title='Company' onRefresh={load} busy={busy} badge={legal.health != null ? <Badge className={cn('border-0', legal.health >= 70 ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600')}>Legal health {Math.round(legal.health)}/100</Badge> : null} />
+    <KpiRow items={[['Runs 30d', ev.runs_30d], ['Run success', ev.run_success_pct != null ? ev.run_success_pct + '%' : '—'], ['QA pass', ev.qa_pass_pct != null ? ev.qa_pass_pct + '%' : '—'], ['Errors 30d', ev.errors_30d], ['Open escalations', ev.open_escalations], ['Escalation rate', ev.escalation_rate_pct != null ? ev.escalation_rate_pct + '%' : '—']]} />
+    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+      <SectionCard title='Departments' count={depts.length}><div className='p-4'><HBars rows={depts.map((x: any) => ({ label: titleCase(String(x.agent)), n: Number(x.actions) || 0 }))} /></div></SectionCard>
+      <SectionCard title='Legal posture'><div className='p-4 space-y-2'>
+        <div className='flex items-center gap-2'><span className='text-xs text-muted-foreground w-28'>Doc coverage</span><div className='flex-1 h-2 rounded-full bg-foreground/[0.06] overflow-hidden'><div className='h-full rounded-full bg-primary' style={{ width: Math.max(2, Math.min(100, Number(lk.coverage_pct) || 0)) + '%' }} /></div><span className='text-[11px] tabular-nums text-muted-foreground'>{Math.round(Number(lk.coverage_pct) || 0)}%</span></div>
+        <div className='flex flex-wrap gap-2 text-[11px]'>{lk.critical_missing ? <Chip label={lk.critical_missing + ' critical missing'} tone='red' /> : null}{lk.required_missing ? <Chip label={lk.required_missing + ' required missing'} tone='amber' /> : null}{lk.policies_published ? <Chip label={lk.policies_published + ' policies live'} tone='green' /> : null}{lk.open_legal_flags ? <Chip label={lk.open_legal_flags + ' open flags'} tone='amber' /> : null}</div>
+      </div></SectionCard>
+    </div>
+    {lflags.length ? <SectionCard title='Legal flags' count={lflags.length}><div className='divide-y divide-border'>{lflags.map((f: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm flex items-center gap-2'><Chip label={titleCase(String(f.risk))} tone={riskTone(String(f.risk))} /><span>{f.title}</span></div>))}</div></SectionCard> : null}
+    {missing.length ? <SectionCard title='Missing legal documents' count={missing.length}><div className='divide-y divide-border'>{missing.map((m: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm flex items-center justify-between gap-2'><span>{m.requirement}</span><div className='flex items-center gap-2 shrink-0'><span className='text-[11px] text-muted-foreground'>{m.applies_to}</span><Chip label={'P' + m.priority} tone={m.priority === 1 ? 'red' : m.priority === 2 ? 'amber' : 'slate'} /></div></div>))}</div></SectionCard> : null}
+    <SectionCard title='Recent agent runs' count={runs.length}><div className='divide-y divide-border max-h-72 overflow-y-auto'>{runs.map((r: any, i: number) => (<div key={i} className='px-4 py-2 flex items-center justify-between gap-2'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'><Chip label={titleCase(String(r.status))} tone={statusTone(String(r.status))} /><span className='font-medium'>{titleCase(String(r.agent))}</span></div>{r.note ? <div className='text-[11px] text-muted-foreground line-clamp-1'>{r.note}</div> : null}</div><span className='text-[11px] text-muted-foreground whitespace-nowrap'>{fmt(r.started_at)}</span></div>))}</div></SectionCard>
+  </div>);
+}
+
+function AssistantApp() {
+  const { d, err, busy, load } = useWs('ws.ea'); const [dbusy, setDbusy] = React.useState('');
+  const taskDone = async (id: any) => { setDbusy('t' + id); try { await osOps('task_done', { id, op: 'done' }); load(); } catch (_e) {} setDbusy(''); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Assistant: {err}</Card>;
+  const tasks = d?.open_tasks || []; const today = d?.today_events || []; const upcoming = d?.upcoming_events || []; const reminders = d?.reminders_due || []; const approvals = d?.approvals_top || []; const meetings = d?.recent_meetings || [];
+  return (<div className='space-y-4'>
+    <AppHeader icon={Calendar} title='Assistant' onRefresh={load} busy={busy} badge={d?.overdue_tasks ? <Badge className='bg-red-500/15 text-red-600 border-0'>{d.overdue_tasks} overdue</Badge> : null} />
+    <KpiRow items={[['Open tasks', tasks.length], ['Overdue', d?.overdue_tasks], ['Approvals', d?.approvals_total], ['High-risk approvals', d?.approvals_high_risk], ['Today', today.length], ['Reminders due', reminders.length]]} />
+    {(today.length || upcoming.length) ? <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+      <SectionCard title='Today' count={today.length}>{today.length ? <div className='divide-y divide-border'>{today.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm'><div className='font-medium'>{e.title || e.summary}</div><div className='text-[11px] text-muted-foreground'>{fmt(e.start || e.at || e.when)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>Nothing today.</div>}</SectionCard>
+      <SectionCard title='Upcoming' count={upcoming.length}>{upcoming.length ? <div className='divide-y divide-border'>{upcoming.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm'><div className='font-medium'>{e.title || e.summary}</div><div className='text-[11px] text-muted-foreground'>{fmt(e.start || e.at || e.when)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>Nothing scheduled.</div>}</SectionCard>
+    </div> : null}
+    <SectionCard title='Open tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
+    {approvals.length ? <SectionCard title='Approvals awaiting you' count={d?.approvals_total ?? approvals.length}><div className='p-4'><ReadableObject data={approvals} /></div></SectionCard> : null}
+    {reminders.length ? <SectionCard title='Reminders due' count={reminders.length}><div className='p-4'><ReadableObject data={reminders} /></div></SectionCard> : null}
+    {meetings.length ? <SectionCard title='Recent meetings' count={meetings.length}><div className='p-4'><ReadableObject data={meetings} /></div></SectionCard> : null}
+  </div>);
+}
+
+function DocumentsApp() {
+  const { d, err, busy, load } = useWs('ws.documents'); const [sel, setSel] = React.useState<any>(null); const [dbusy, setDbusy] = React.useState('');
+  const reviewDecide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('doc_review_decide', { id, op }); load(); } catch (_e) {} setDbusy(''); };
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Documents: {err}</Card>;
+  const k = d?.kpis || {}; const kinds = d?.kinds || []; const docs = d?.documents || []; const reviews = d?.reviews || [];
+  return (<div className='space-y-4'>
+    <AppHeader icon={FileText} title='Documents' onRefresh={load} busy={busy} badge={k.reviews_pending ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.reviews_pending} to review</Badge> : null} />
+    <KpiRow items={[['Documents', k.documents], ['Indexed', k.indexed], ['Versions', k.versions], ['Dropbox files', k.dropbox_files], ['Inventory total', k.inventory_total], ['Reviews pending', k.reviews_pending]]} />
+    {reviews.length ? <SectionCard title='Reviews pending' count={reviews.length}><div className='divide-y divide-border'>{reviews.map((r: any) => (<div key={r.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm font-medium line-clamp-1'>{r.title || r.file_name || 'Document #' + r.id}</div><div className='text-[11px] text-muted-foreground'>{r.kind} · {fmt(r.created_at || r.at)}</div></div><div className='flex gap-1.5 shrink-0'><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(r.id) + 'approve'} onClick={() => reviewDecide(r.id, 'approve')}>Approve</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(r.id) + 'reject'} onClick={() => reviewDecide(r.id, 'reject')}>Reject</Button></div></div>))}</div></SectionCard> : null}
+    {kinds.length ? <SectionCard title='By document type'><div className='p-4'><HBars rows={kinds.map((x: any) => ({ label: titleCase(String(x.key)), n: Number(x.count) }))} /></div></SectionCard> : null}
+    <SectionCard title='Document inventory' count={docs.length}>{docs.length ? <div className='overflow-auto max-h-[60vh]'><table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border sticky top-0 bg-card'><th className='px-4 py-2 font-medium'>File</th><th className='px-3 py-2 font-medium'>Kind</th><th className='px-3 py-2 font-medium'>Status</th><th className='px-3 py-2 font-medium'>Indexed</th><th className='px-3 py-2 font-medium'>Created</th><th className='w-8' /></tr></thead><tbody>{docs.map((doc: any) => (<tr key={doc.id} onClick={() => setSel(doc)} className='group border-b border-border/40 hover:bg-foreground/5 cursor-pointer'><td className='px-4 py-2.5 font-medium'><span className='inline-flex items-center gap-2'><FileText className='h-4 w-4 text-muted-foreground shrink-0' />{doc.file_name || 'Document #' + doc.id}</span></td><td className='px-3 py-2.5'>{doc.kind ? <Chip label={titleCase(String(doc.kind))} tone='slate' /> : '—'}</td><td className='px-3 py-2.5'><Chip label={titleCase(String(doc.status))} tone={statusTone(String(doc.status))} /></td><td className='px-3 py-2.5'>{doc.indexed ? <Check className='h-4 w-4 text-emerald-500' /> : <Minus className='h-4 w-4 text-muted-foreground/40' />}</td><td className='px-3 py-2.5 text-muted-foreground whitespace-nowrap'>{fmt(doc.created_at)}</td><td className='pr-2 text-right'><ChevronRight className='h-3.5 w-3.5 inline text-muted-foreground/0 group-hover:text-muted-foreground/50' /></td></tr>))}</tbody></table></div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No documents.</div>}</SectionCard>
+    {sel ? <RecordDrawer frame0={{ entity: sel.ref_table === 'leads' ? 'supplier' : undefined, id: sel.ref_table === 'leads' ? sel.ref_id : undefined, title: sel.file_name || 'Document #' + sel.id, row: sel }} onClose={() => setSel(null)} /> : null}
+  </div>);
+}
+
+function ReportViewerDrawer({ report, onClose }: { report: any; onClose: () => void }) {
+  return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-2xl overflow-y-auto'>
+    <SheetHeader>
+      <div className='flex items-center gap-2 flex-wrap'>{report.report_type ? <Chip label={titleCase(String(report.report_type))} tone='blue' /> : null}{report.period ? <span className='text-[11px] text-muted-foreground'>{report.period}</span> : null}</div>
+      <SheetTitle className='mt-1'>{report.title}</SheetTitle>
+      <SheetDescription>{report.source ? titleCase(String(report.source)) + ' · ' : ''}{fmt(report.created)}</SheetDescription>
+    </SheetHeader>
+    <ReportViewer id={Number(report.id)} />
+  </SheetContent></Sheet>);
+}
+function ReportsApp() {
+  const { d, err, busy, load } = useWs('ws.reports'); const [sel, setSel] = React.useState<any>(null);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Reports: {err}</Card>;
+  const k = d?.kpis || {}; const recent = d?.recent || []; const byType = d?.by_type || []; const flags = d?.flags || [];
+  const TYPES = ['daily', 'weekly', 'monthly', 'quarterly', 'finance', 'exec', 'customer', 'supplier', 'department', 'ai'];
+  const fresh = TYPES.filter((t) => k[t + '_at']).map((t) => ({ type: t, at: k[t + '_at'], fresh: k[t + '_fresh'] }));
+  return (<div className='space-y-4'>
+    <AppHeader icon={FileBarChart} title='Reports' onRefresh={load} busy={busy} badge={k.stale_count ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.stale_count} stale</Badge> : null} />
+    <KpiRow items={[['Total reports', k.total_reports], ['Reports 30d', k.reports_30d], ['Report types', k.report_types], ['Stale', k.stale_count]]} />
+    {fresh.length ? <SectionCard title='Report freshness'><div className='p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2'>{fresh.map((f) => (<div key={f.type} className={cn('rounded-md border p-2.5', f.fresh ? 'border-emerald-500/30 bg-emerald-500/[0.03]' : 'border-amber-500/30 bg-amber-500/[0.03]')}><div className='flex items-center justify-between'><span className='text-xs font-medium capitalize'>{f.type}</span>{f.fresh ? <Check className='h-3.5 w-3.5 text-emerald-500' /> : <AlertTriangle className='h-3.5 w-3.5 text-amber-500' />}</div><div className='text-[10px] text-muted-foreground mt-1'>{fmt(f.at)}</div></div>))}</div></SectionCard> : null}
+    {flags.length ? <SectionCard title='Report flags' count={flags.length}><div className='divide-y divide-border'>{flags.map((f: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm flex items-center gap-2'><Chip label={titleCase(String(f.risk))} tone={riskTone(String(f.risk))} /><span className='flex-1'>{f.title}</span>{f.status ? <Chip label={titleCase(String(f.status))} tone={statusTone(String(f.status))} /> : null}</div>))}</div></SectionCard> : null}
+    <SectionCard title='Recent reports' count={recent.length}>{recent.length ? <div className='divide-y divide-border'>{recent.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'><div className='min-w-0 flex-1'><div className='text-sm font-medium line-clamp-1'>{r.title}</div><div className='text-[11px] text-muted-foreground'>{r.source ? titleCase(String(r.source)) + ' · ' : ''}{fmt(r.created)}</div></div>{r.report_type ? <Chip label={titleCase(String(r.report_type))} tone='blue' /> : null}<ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No reports yet.</div>}</SectionCard>
+    {byType.length ? <SectionCard title='Latest by type' count={byType.length}><div className='divide-y divide-border'>{byType.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-2.5 hover:bg-foreground/5 transition-colors flex items-center gap-2'><span className='flex-1 text-sm line-clamp-1'>{r.title}</span><Chip label={titleCase(String(r.report_type))} tone='blue' /><ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div></SectionCard> : null}
+    {sel ? <ReportViewerDrawer report={sel} onClose={() => setSel(null)} /> : null}
+  </div>);
 }
 
 function Workspace({ mod }: { mod: Mod }) {
@@ -590,27 +2225,37 @@ function Workspace({ mod }: { mod: Mod }) {
   const postGl = async () => { const lines = glLines.map((l: any) => ({ account: String(l.account || '').trim(), debit: Number(l.debit) || 0, credit: Number(l.credit) || 0, memo: l.memo || undefined })).filter((l: any) => l.account && (l.debit || l.credit)); const t = lines.reduce((a: any, l: any) => ({ dr: a.dr + l.debit, cr: a.cr + l.credit }), { dr: 0, cr: 0 }); if (lines.length < 2) { setGlMsg('Need at least two lines.'); return; } if (Math.round((t.dr - t.cr) * 100) !== 0) { setGlMsg('Out of balance: debits ' + t.dr + ' vs credits ' + t.cr); return; } setGlBusy(true); setGlMsg(''); try { await osOps('gl_post', { memo: glMemo || 'OS entry', date: glDate || undefined, lines }); setGlOpen(false); setGlLines([{ account: '', debit: '', credit: '', memo: '' }, { account: '', debit: '', credit: '', memo: '' }]); setGlMemo(''); setGlDate(''); reload(); } catch (e: any) { setGlMsg('Post failed: ' + (e?.message || '')); } setGlBusy(false); };
   const onInvFile = async (f: File) => { setInvBusy(true); setInvMsg('Uploading & reading…'); try { const b64: string = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result || '')); rd.onerror = rej; rd.readAsDataURL(f); }); const { data: { session } } = await supa.auth.getSession(); const r = await fetch(SUPA_URL + '/functions/v1/finance_doc', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || '') }, body: JSON.stringify({ filename: f.name, mime: f.type, b64 }) }); const jd = await r.json().catch(() => ({})); if (!r.ok || jd?.error) throw new Error(jd?.error || ('HTTP ' + r.status)); if (jd.logged && jd.logged.ok) { setInvMsg('Logged: ' + (jd.parsed?.vendor || '') + ' — ' + (jd.parsed?.currency || 'AED') + ' ' + (jd.parsed?.amount || '') + '. Original stored & queued for Dropbox backup.'); reload(); } else if (jd.parsed) { setInvMsg('Stored & extracted, but auto-posting was skipped because the amount was unclear. What I read: ' + Object.entries(jd.parsed || {}).filter(([, x]: any) => x != null && x !== '' && typeof x !== 'object').map(([k, x]: any) => String(k).replace(/_/g, ' ') + ': ' + String(x)).join(', ')); } else { setInvMsg('Stored the original (' + (jd.extracted_chars || 0) + ' chars extracted); could not auto-parse a finance entry.'); } } catch (e: any) { setInvMsg('Failed: ' + (e?.message || '')); } setInvBusy(false); };
   if (err) return <Card className='p-6 text-sm text-destructive'>Could not load {mod.label}: {err}</Card>;
-  if (!d) return <div className='text-muted-foreground text-sm'>Loading {mod.label}…</div>;
+  if (!d) return (<div className='space-y-4'><div className='flex items-center gap-2'><mod.icon className='h-5 w-5 text-primary/40' /><div className='h-6 w-40 bg-foreground/5 rounded animate-pulse' /></div><div className='grid grid-cols-2 md:grid-cols-4 gap-3'>{Array.from({ length: 4 }).map((_, i) => <div key={i} className='h-20 rounded-lg bg-foreground/5 animate-pulse' />)}</div><div className='h-64 rounded-lg bg-foreground/5 animate-pulse' /></div>);
   const tables: [string, any[]][] = [];
   const scalars: [string, any][] = [];
-  const scan = (o: any) => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (Array.isArray(v)) { if (v.length && typeof v[0] === 'object') tables.push([k, v as any[]]); } else if (v && typeof v === 'object') { scan(v); } else if (typeof v === 'number' || typeof v === 'string') scalars.push([k, v]); } };
+  const charts: [string, { label: string; n: number }[]][] = [];
+  const isCountArr = (rows: any[]): { label: string; n: number }[] | null => {
+    if (!rows.length || rows.length > 24) return null;
+    const keys = Object.keys(rows[0]); if (keys.length > 3) return null;
+    const labelK = keys.find((kk) => /^(key|label|name|category|kind|sector|emirate|month|department|stage|title)$/i.test(kk));
+    const numK = keys.find((kk) => /^(count|n|amount|value|total|balance|runs|c|score)$/i.test(kk));
+    if (!labelK || !numK || !rows.every((r) => typeof r[numK] === 'number')) return null;
+    return rows.map((r) => ({ label: String(r[labelK]), n: Number(r[numK]) }));
+  };
+  const scan = (o: any) => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (Array.isArray(v)) { if (v.length && typeof v[0] === 'object') { const ch = isCountArr(v as any[]); if (ch) charts.push([k, ch]); else tables.push([k, v as any[]]); } } else if (v && typeof v === 'object') { scan(v); } else if (typeof v === 'number' || typeof v === 'string') scalars.push([k, v]); } };
   scan(d);
   return (
     <div className='space-y-5'>
       <div className='flex items-center gap-2'><mod.icon className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>{mod.label}</h1>{mod.id === 'finance' ? <div className='ml-auto flex gap-2'><Button className='h-8 text-xs' variant='outline' onClick={() => { setInvOpen(true); setInvMsg(''); }}>Log invoice (PDF)</Button><Button className='h-8 text-xs' onClick={() => { setGlOpen(true); setGlMsg(''); }}>New journal entry</Button></div> : null}</div>
-      {scalars.length ? <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>{scalars.slice(0, 8).map(([k, v]) => (<Card key={k} className='p-4'><div className='text-xs text-muted-foreground'>{titleCase(k)}</div><div className='text-xl font-bold mt-1'>{fmt(v)}</div></Card>))}</div> : null}
+      {scalars.length ? <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>{scalars.slice(0, 12).map(([k, v]) => (<Card key={k} className='p-4'><div className='text-xs text-muted-foreground'>{titleCase(k)}</div><div className='text-xl font-bold mt-1 tabular-nums'>{fmt(v)}</div></Card>))}</div> : null}
+      {charts.length ? <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>{charts.map(([name, rows]) => (<Card key={name} className='overflow-hidden'><div className='px-4 py-3 border-b border-border text-sm font-semibold'>{titleCase(name)}</div><div className='p-4'><HBars rows={rows.slice(0, 10)} /></div></Card>))}</div> : null}
       {tables.map(([name, rows]) => { const isUuidV = (x: any) => typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x); const cols = (Object.keys(rows[0]).filter((k) => !((k === 'id' || k === 'uuid' || /_id$/.test(k)) && isUuidV((rows[0] as any)[k]))).slice(0, 6)); return (
         <Card key={name} className='overflow-hidden'>
           <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>{titleCase(name)}<Badge variant='secondary'>{rows.length}</Badge></div>
           <div className='overflow-auto max-h-[420px]'>
             <table className='w-full text-sm'>
-              <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'>{cols.map((c) => (<th key={c} className='px-4 py-2 font-medium'>{titleCase(c)}</th>))}</tr></thead>
-              <tbody>{rows.slice(0, 200).map((r, i) => (<tr key={i} onClick={() => { setRow(r); setRowTitle(titleCase(name)); }} className='border-b border-border/50 hover:bg-white/5 cursor-pointer'>{cols.map((c) => (<td key={c} className='px-4 py-2.5'>{fmt((r as any)[c])}</td>))}</tr>))}</tbody>
+              <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'>{cols.map((c) => (<th key={c} className='px-4 py-2 font-medium'>{titleCase(c)}</th>))}<th className='w-8' /></tr></thead>
+              <tbody>{rows.slice(0, 200).map((r, i) => (<tr key={i} onClick={() => { setRow(r); setRowTitle(singularWord(titleCase(name))); }} className='group border-b border-border/50 hover:bg-foreground/5 cursor-pointer'>{cols.map((c, ci) => (<td key={c} className={cn('px-4 py-2.5', ci === 0 && 'font-medium')}><SmartCell col={c} value={(r as any)[c]} /></td>))}<td className='pr-2 text-right'><ChevronRight className='h-3.5 w-3.5 inline text-muted-foreground/0 group-hover:text-muted-foreground/50 transition-colors' /></td></tr>))}</tbody>
             </table>
           </div>
         </Card>
       ); })}
-      {!tables.length && !scalars.length ? <Card className='p-4'><ReadableObject data={d} /></Card> : null}
+      {!tables.length && !scalars.length && !charts.length ? <Card className='p-4'><ReadableObject data={d} /></Card> : null}
 
       <Sheet open={invOpen} onOpenChange={setInvOpen}>
         <SheetContent side='right' className='osx dark w-full sm:max-w-md overflow-y-auto'>
@@ -634,29 +2279,23 @@ function Workspace({ mod }: { mod: Mod }) {
           </div>
         </SheetContent>
       </Sheet>
-      <Sheet open={!!row} onOpenChange={(o) => { if (!o) { setRow(null); setDetail(null); setEdit(null); } }}>
-        <SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto'>
-          <SheetHeader><SheetTitle>{rowTitle} detail</SheetTitle><SheetDescription>{row && (row.id ? 'ID ' + row.id : row.company_name || row.email || '')}</SheetDescription></SheetHeader>
-          {row ? <div className='mt-3 flex flex-wrap gap-2'>
-            {(() => { const ent = mod.id === 'suppliers' ? 'ws.supplier' : mod.id === 'customers' ? 'ws.customer' : mod.id === 'rfqs' ? 'ws.rfq' : null; const idv = (row as any).id ?? (row as any).rfq_id ?? (row as any).inquiry_id; return ent && idv != null ? <Button className='h-8 text-xs' disabled={dbusy} onClick={async () => { setDbusy(true); setDetail(null); try { const dd = await osApi(ent, { id: idv }); setDetail(dd); } catch (e: any) { setDetail({ error: e?.message || 'could not load' }); } setDbusy(false); }}>{dbusy ? 'Loading…' : 'Open full profile'}</Button> : null; })()}
-            {(() => { const r: any = row; const btn = (label: string, action: string, params: any) => <Button key={label} className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decide(action, params)}>{label}</Button>; const btnApi = (label: string, action: string, params: any) => <Button key={label} className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decideApi(action, params)}>{label}</Button>; const out: any[] = [];
-              if (mod.id === 'suppliers') { out.push(btn('Approve','supplier_decide',{id:r.id,op:'approve'}), btn('Reject','supplier_decide',{id:r.id,op:'reject',note:'Rejected from OS'}), btn(r.banned?'Unban':'Ban','supplier_decide',{id:r.id,op:r.banned?'unban':'ban'})); }
-              else if (mod.id === 'customers') { out.push(btn(r.banned?'Unban':'Ban','customer_decide',{id:r.id,op:r.banned?'unban':'ban'})); }
-              else if (mod.id === 'rfqs') { out.push(btn('Mark won','rfq_outcome',{inquiry:r.id,outcome:'won'}), btn('Mark lost','rfq_outcome',{inquiry:r.id,outcome:'lost'})); }
-              else if (mod.id === 'fraud') { if (r.subject_type && r.subject_id != null) { out.push(btnApi('Dismiss','fraud_resolve',{subject_type:r.subject_type,subject_id:String(r.subject_id),op:'dismiss'}), btnApi('Ban','fraud_resolve',{subject_type:r.subject_type,subject_id:String(r.subject_id),op:'ban'})); } else if (r.kind && r.subject_id != null && r.reason !== undefined) { out.push(btnApi('Unban','fraud_resolve',{subject_type:r.kind,subject_id:String(r.subject_id),op:'unban'})); } }
-              else if (mod.id === 'refunds') { const tid = r.transaction_id ?? r.id; if (tid != null && r.refund_status !== undefined) { out.push(btnApi('Approve refund','refund_resolve',{transaction_id:String(tid),op:'approve'}), btnApi('Reject refund','refund_resolve',{transaction_id:String(tid),op:'reject'})); } }
-              if (r && r.agent && (r.status === 'pending' || r.status === 'needs_review')) { out.push(btn('Approve','action_decide',{id:r.id,op:'approve'}), btn('Reject','action_decide',{id:r.id,op:'reject'})); }
-              return out;
-            })()}
-            {editableType() ? <Button className='h-8 text-xs' variant='outline' disabled={ebusy} onClick={() => openEdit(editableType()!)}>Edit</Button> : null}
-            <Button className='h-8 text-xs' variant='outline' onClick={() => { try { navigator.clipboard?.writeText(JSON.stringify(row, null, 2)); } catch (_e) {} }}>Copy details</Button>
-          </div> : null}
-          {row && (row as any).report_type && (row as any).id ? <ReportViewer id={Number((row as any).id)} /> : null}
-          {row ? <details className='mt-3' open={!((row as any).report_type)}><summary className='cursor-pointer text-xs text-muted-foreground select-none'>{(row as any).report_type ? 'Show raw fields' : 'Details'}</summary><div className='mt-2 space-y-2'>{Object.entries(row).filter(([k]) => k !== 'body').map(([k, v]) => (<div key={k} className='flex gap-3 text-sm border-b border-border/40 py-1.5'><div className='w-40 shrink-0 text-muted-foreground'>{titleCase(k)}</div><div className='min-w-0 break-words'>{fmt(v)}</div></div>))}</div></details> : null}
-          {detail ? <div className='mt-4 rounded-md border border-border p-3'><div className='text-xs font-semibold text-muted-foreground mb-2'>Full profile</div><div className='max-h-80 overflow-auto'><ReadableObject data={detail} /></div></div> : null}
-          {edit ? <div className='mt-4 rounded-md border border-border p-3 space-y-3'><div className='text-xs font-semibold text-muted-foreground'>Edit content</div>{Object.keys(edit).filter((k) => k !== 'id').map((k) => (<div key={k}><div className='text-[11px] text-muted-foreground mb-1'>{titleCase(k)}</div><textarea value={edit[k] ?? ''} onChange={(e) => setEdit({ ...edit, [k]: e.target.value })} rows={String(edit[k] || '').length > 80 ? 5 : 2} className='w-full resize-none rounded-md border border-border bg-transparent p-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' /></div>))}{emsg ? <div className='text-xs text-destructive'>{emsg}</div> : null}<div className='flex gap-2'><Button className='h-8 text-xs' disabled={ebusy} onClick={saveEdit}>{ebusy ? 'Saving…' : 'Save'}</Button><Button className='h-8 text-xs' variant='outline' onClick={() => setEdit(null)}>Cancel</Button></div></div> : null}
-        </SheetContent>
-      </Sheet>
+      {row ? (() => {
+        const ent = mod.id === 'suppliers' ? 'supplier' : mod.id === 'customers' ? 'customer' : mod.id === 'rfqs' ? 'rfq' : undefined;
+        const idv = (row as any).id ?? (row as any).rfq_id ?? (row as any).inquiry_id;
+        const acts = (() => { const r: any = row; const btn = (label: string, action: string, params: any) => <Button key={label} className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decide(action, params)}>{label}</Button>; const btnApi = (label: string, action: string, params: any) => <Button key={label} className='h-8 text-xs' variant='outline' disabled={dbusy} onClick={() => decideApi(action, params)}>{label}</Button>; const out: any[] = [];
+          if (mod.id === 'suppliers') { out.push(btn('Approve','supplier_decide',{id:r.id,op:'approve'}), btn('Reject','supplier_decide',{id:r.id,op:'reject',note:'Rejected from OS'}), btn(r.banned?'Unban':'Ban','supplier_decide',{id:r.id,op:r.banned?'unban':'ban'})); }
+          else if (mod.id === 'customers') { out.push(btn(r.banned?'Unban':'Ban','customer_decide',{id:r.id,op:r.banned?'unban':'ban'})); }
+          else if (mod.id === 'rfqs') { out.push(btn('Mark won','rfq_outcome',{inquiry:r.id,outcome:'won'}), btn('Mark lost','rfq_outcome',{inquiry:r.id,outcome:'lost'})); }
+          else if (mod.id === 'fraud') { if (r.subject_type && r.subject_id != null) { out.push(btnApi('Dismiss','fraud_resolve',{subject_type:r.subject_type,subject_id:String(r.subject_id),op:'dismiss'}), btnApi('Ban','fraud_resolve',{subject_type:r.subject_type,subject_id:String(r.subject_id),op:'ban'})); } else if (r.kind && r.subject_id != null && r.reason !== undefined) { out.push(btnApi('Unban','fraud_resolve',{subject_type:r.kind,subject_id:String(r.subject_id),op:'unban'})); } }
+          else if (mod.id === 'refunds') { const tid = r.transaction_id ?? r.id; if (tid != null && r.refund_status !== undefined) { out.push(btnApi('Approve refund','refund_resolve',{transaction_id:String(tid),op:'approve'}), btnApi('Reject refund','refund_resolve',{transaction_id:String(tid),op:'reject'})); } }
+          if (r && r.agent && (r.status === 'pending' || r.status === 'needs_review')) { out.push(btn('Approve','action_decide',{id:r.id,op:'approve'}), btn('Reject','action_decide',{id:r.id,op:'reject'})); }
+          return out;
+        })();
+        const actions = <>{acts}{editableType() ? <Button className='h-8 text-xs' variant='outline' disabled={ebusy} onClick={() => openEdit(editableType()!)}>Edit</Button> : null}<Button className='h-8 text-xs' variant='outline' onClick={() => { try { navigator.clipboard?.writeText(JSON.stringify(row, null, 2)); } catch (_e) {} }}>Copy details</Button></>;
+        const extra = edit ? <div className='rounded-md border border-border p-3 space-y-3'><div className='text-xs font-semibold text-muted-foreground'>Edit content</div>{Object.keys(edit).filter((k) => k !== 'id').map((k) => (<div key={k}><div className='text-[11px] text-muted-foreground mb-1'>{titleCase(k)}</div><textarea value={edit[k] ?? ''} onChange={(e) => setEdit({ ...edit, [k]: e.target.value })} rows={String(edit[k] || '').length > 80 ? 5 : 2} className='w-full resize-none rounded-md border border-border bg-transparent p-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' /></div>))}{emsg ? <div className='text-xs text-destructive'>{emsg}</div> : null}<div className='flex gap-2'><Button className='h-8 text-xs' disabled={ebusy} onClick={saveEdit}>{ebusy ? 'Saving…' : 'Save'}</Button><Button className='h-8 text-xs' variant='outline' onClick={() => setEdit(null)}>Cancel</Button></div></div> : null;
+        const niceLabel = ent ? ({ supplier: 'Supplier', customer: 'Customer', rfq: 'RFQ' } as Record<string, string>)[ent] || titleCase(ent) : singularWord(rowTitle);
+        return <RecordDrawer frame0={{ entity: ent, id: idv, title: niceLabel + (idv != null ? ' #' + idv : ''), row }} actions={actions} extra={extra} reportId={(row as any).report_type && (row as any).id ? Number((row as any).id) : undefined} onClose={() => { setRow(null); setDetail(null); setEdit(null); }} />;
+      })() : null}
     </div>
   );
 }

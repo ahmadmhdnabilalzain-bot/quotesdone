@@ -9,6 +9,24 @@ function emailOk(e: string) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e 
 function toE164(p: string): string { let d = String(p || '').replace(/[^\d+]/g, ''); if (d.startsWith('+')) { const n = d.slice(1).replace(/\D/g, ''); return n.length >= 8 ? '+' + n : ''; } d = d.replace(/\D/g, ''); if (d.startsWith('00')) d = d.slice(2); if (d.startsWith('971')) return '+' + d; if (d.startsWith('0')) return '+971' + d.slice(1); if (d.length === 9 && d.startsWith('5')) return '+971' + d; if (d.length >= 8) return '+' + d; return ''; }
 function ageFrom(dob: string): number | null { const d = new Date(dob); if (isNaN(d.getTime())) return null; const t = new Date(); let a = t.getFullYear() - d.getFullYear(); const m = t.getMonth() - d.getMonth(); if (m < 0 || (m === 0 && t.getDate() < d.getDate())) a--; return a; }
 function code6() { return String(Math.floor(100000 + Math.random() * 900000)); }
+// SECURITY FIX (27 Jul 2026): email codes here were stored in PLAINTEXT (email_verifications.token)
+// and checked with .eq('token', code) — a WHERE clause on the secret. A wrong guess simply matched no
+// row, so nothing could be counted: no attempt cap, no lockout, no per-caller ceiling. 10^6 codes is
+// minutes of scripted guessing. login_otp documented and fixed exactly this on 19–21 Jul; kyc never
+// got the same treatment. Same approach copied here: HMAC-SHA256(code, app_secrets.otp_hmac_key) at
+// rest (an unsalted hash of a 6-digit code is reversible from one table leak by precomputing all a
+// million), fail closed if the key is absent rather than downgrade, guesses counted on the row and
+// capped, plus a per-IP ceiling. email_verifications already carries attempts + token_hash (login_otp
+// uses both), so no schema change is involved.
+const KYC_EMAIL_MAX_ATTEMPTS = 5;
+const KYC_EMAIL_VERIFY_PER_IP_HOUR = 30;
+let _otpKey: string | null = null;
+async function otpKey(): Promise<string> { if (_otpKey) return _otpKey; const k = await sec('otp_hmac_key'); if (!k) throw new Error('otp_hmac_key_missing'); _otpKey = k; return k; }
+async function otpHash(code: string): Promise<string> { const ck = await crypto.subtle.importKey('raw', new TextEncoder().encode(await otpKey()), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); const mac = await crypto.subtle.sign('HMAC', ck, new TextEncoder().encode(code)); return Array.from(new Uint8Array(mac)).map((x) => x.toString(16).padStart(2, '0')).join(''); }
+async function rl(key: string, limit: number, seconds: number): Promise<boolean> {
+  try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); if (error) return true; return data !== false; }
+  catch (_e) { return true; } // limiter unavailable must not lock legitimate users out of account completion
+}
 async function twilioAuth() { const sid = await sec('twilio_api_key_sid'); const secret = await sec('twilio_api_key_secret'); const va = await sec('twilio_verify_service_sid'); if (!sid || !secret || !va) return null; return { hdr: 'Basic ' + btoa(sid + ':' + secret), va }; }
 async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; try { const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, subject, html }) }); return r.ok; } catch { return false; } }
 function wrapCode(code: string) { const logo = 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/brand/icon_192.png'; return `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1f2937"><div style="text-align:center;padding:18px 0"><img src="${logo}" width="44" height="44" alt="QuotesDone"></div><div style="background:#fff;border:1px solid #eef0f2;border-radius:14px;padding:26px;text-align:center"><h1 style="font-size:19px;color:#111827;margin:0 0 8px">Confirm your email</h1><p style="font-size:14px;color:#6b7280;margin:0 0 16px">Enter this code to confirm your email on QuotesDone. It expires in 10 minutes.</p><div style="font-size:34px;font-weight:800;letter-spacing:8px;color:#0d9488;background:#f0fdfa;border-radius:12px;padding:14px 0">${code}</div></div></div>`; }
@@ -40,23 +58,23 @@ Deno.serve(async (req) => {
     const kind = lead ? 'supplier' : 'customer';
 
     if (action === 'state') {
-      const emailProven = !!((user as any).email_confirmed_at || (user as any).confirmed_at);
+      // SECURITY FIX (27 Jul 2026): 'state' derived `emailProven` from the auth provider's
+      // email_confirmed_at / confirmed_at and, on a plain READ, flipped owner_email_verified /
+      // email_verified to true. That flag proves nothing on this platform: every auth user is minted
+      // with email_confirm:true (login_otp ensureUser, and auth_api before it was retired), so
+      // emailProven was ALWAYS true and the first 'state' call self-granted email verification to
+      // anyone holding a session — including a session obtained by SMS alone, which never touches the
+      // address. Email is proven only by the 6-digit code this function itself sends and checks
+      // (send_email -> verify_email). A read must not mutate identity state, so the persist-what-we-
+      // report insert from the earlier fix is gone too: with nothing granted here there is nothing to
+      // persist, and a customer with no row is simply not verified yet (save_customer /
+      // verify_email create it). Response shape is unchanged for CustomerPortal / SupplierPortal.
       if (kind === 'supplier') {
-        let ev = !!lead!.owner_email_verified;
-        if (!ev && emailProven) { await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email); ev = true; }
+        const ev = !!lead!.owner_email_verified;
         return J({ ok: true, kind, email, full_name: lead!.contact_name, phone: lead!.phone, dob: lead!.owner_dob, email_verified: ev, phone_verified: !!lead!.owner_phone_verified, terms_signed: !!lead!.signed_terms_url });
       }
       const c = cust || {} as any;
-      let ev = !!c.email_verified;
-      if (!ev && emailProven && cust) { await admin.from('customers').update({ email_verified: true }).eq('id', cust.id); ev = true; }
-      else if (!ev && emailProven && !cust) {
-        // No customers row exists yet. Previously this reported email_verified:true and
-        // persisted nothing, so customer_api would later create the row with false - the
-        // gate that just passed would then fail on the next call. Persist what we report.
-        try { await admin.from('customers').insert({ email, email_verified: true }); }
-        catch (_e) { /* a concurrent request may have created it; the reported state is still correct */ }
-        ev = true;
-      }
+      const ev = !!c.email_verified;
       return J({ ok: true, kind, email, full_name: c.full_name || '', phone: c.phone || '', dob: c.date_of_birth || '', email_verified: ev, phone_verified: !!c.phone_verified, terms_signed: !!c.signed_terms_url });
     }
 
@@ -73,7 +91,10 @@ Deno.serve(async (req) => {
 
     if (action === 'send_email') {
       const c = code6();
-      await admin.from('email_verifications').insert({ email, token: c, purpose: 'kyc', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+      // 27 Jul 2026: store token_hash (HMAC), never the bare code. token stays NULL from here on;
+      // verify_email still honours a plaintext token row so codes issued before this deploy work out
+      // their 10 minutes. Expiry was and stays 10 minutes and is enforced on the verify side.
+      await admin.from('email_verifications').insert({ email, token_hash: await otpHash(c), purpose: 'kyc', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
       // previously the send result was discarded: a failed send left the user waiting with no trace
       const sent = await sendEmail(email, 'Confirm your QuotesDone email', wrapCode(c));
       if (!sent) await logRun('error', { action, kind }, 'verification email failed to send (Resend rejected or key missing) - user cannot verify');
@@ -82,11 +103,38 @@ Deno.serve(async (req) => {
     }
     if (action === 'verify_email') {
       const c = String(b.code || '').replace(/\D/g, '');
-      const { data: row } = await admin.from('email_verifications').select('*').eq('email', email).eq('token', c).eq('purpose', 'kyc').is('used_at', null).order('created_at', { ascending: false }).maybeSingle();
+      if (!c) return J({ error: 'Enter the 6-digit code.' }, 400);
+      // SECURITY FIX (27 Jul 2026): see the OTP note at the top. The lookup used to put the code in
+      // the WHERE clause, so a wrong guess was indistinguishable from "no code" and could not be
+      // counted — unlimited guesses at 10^6. Now: cap per caller BEFORE touching the row, fetch the
+      // newest live code, compare in code, count the miss, and burn the code on the 5th.
+      const vip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+      if (!(await rl('kyc_verify_email_ip:' + vip, KYC_EMAIL_VERIFY_PER_IP_HOUR, 3600))) {
+        await logRun('error', { action, kind, rate_limited: 1, scope: 'verify_ip' }, 'kyc blocked a caller making more than ' + KYC_EMAIL_VERIFY_PER_IP_HOUR + ' email-code attempts in an hour. A real person never reaches this; sustained hits mean someone is guessing codes.');
+        return J({ error: 'Too many attempts. Please request a new code.' }, 429);
+      }
+      // limit(1) + [0], NOT maybeSingle(): a user who pressed send twice has two live rows and
+      // maybeSingle() errors on >1 and returns null, which would reject BOTH codes (login_otp's
+      // self-inflicted lockout, 21 Jul). limit(1) deterministically takes the newest.
+      const { data: rows } = await admin.from('email_verifications').select('*').eq('email', email).eq('purpose', 'kyc').is('used_at', null).order('created_at', { ascending: false }).limit(1);
+      const row = rows && rows[0];
       if (!row) return J({ error: 'Incorrect or expired code.' }, 400);
       if (new Date(row.expires_at) < new Date()) return J({ error: 'That code has expired.' }, 400);
+      if ((row.attempts || 0) >= KYC_EMAIL_MAX_ATTEMPTS) {
+        await admin.from('email_verifications').update({ used_at: new Date().toISOString() }).eq('id', row.id);
+        await logRun('error', { action, kind, locked: 1 }, 'kyc burned an email code after ' + KYC_EMAIL_MAX_ATTEMPTS + ' wrong guesses; the user must request a new one. Sustained hits on one account mean someone is guessing.');
+        return J({ error: 'Too many incorrect attempts. Please request a new code.' }, 429);
+      }
+      // row.token is only set for codes issued before hashing shipped on 27 Jul 2026
+      const match = row.token_hash ? ((await otpHash(c)) === row.token_hash) : (!!row.token && c === row.token);
+      if (!match) { await admin.from('email_verifications').update({ attempts: (row.attempts || 0) + 1 }).eq('id', row.id); return J({ error: 'Incorrect or expired code.' }, 400); }
       await admin.from('email_verifications').update({ used_at: new Date().toISOString() }).eq('id', row.id);
-      if (kind === 'supplier') await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email); else await admin.from('customers').update({ email_verified: true }).eq('email', email);
+      // 27 Jul 2026: 'state' no longer creates the customers row as a side effect of a read, so this
+      // must not assume one exists — an .update() on a missing row silently persists nothing and the
+      // user would loop on the verify step forever. Insert it, falling back to update on a race.
+      if (kind === 'supplier') await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email);
+      else if (cust) await admin.from('customers').update({ email_verified: true }).eq('email', email);
+      else { const ins = await admin.from('customers').insert({ email, email_verified: true }); if (ins.error) await admin.from('customers').update({ email_verified: true }).eq('email', email); }
       await logRun('ok', { action, kind }, '');
       return J({ ok: true });
     }

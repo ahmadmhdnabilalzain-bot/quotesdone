@@ -14,11 +14,16 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 }
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     const expectedSecret = await sec('inbound_secret');
-    if (body.__secret !== expectedSecret) {
+    if (!secretOk(expectedSecret) || body.__secret !== expectedSecret) {
       await logRun('error', { forbidden: 1, secret_configured: expectedSecret ? 1 : 0 }, expectedSecret ? 'Retention purge rejected a caller with a wrong __secret; no PDPL data-minimisation purge ran on this invocation. If this is the weekly cron, its secret is stale and expired drawing files are being retained indefinitely.' : 'Retention purge could not read inbound_secret from app_secrets, so every call including the weekly cron is rejected with 403. No customer drawing files are being purged and records past their retention window remain stored.');
       return J({ error: 'forbidden' }, 403);
     }

@@ -1,4 +1,4 @@
-// os_api v22 — backend for QuotesDone OS. JWT-gated; owner/admin only (or x-os-key preview bypass). + audit trail. + secretary console passthrough.
+// os_api v30 — backend for QuotesDone OS. JWT-gated; owner/admin only (or x-os-key preview bypass). + audit trail. + secretary console passthrough.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const BASE = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
@@ -22,7 +22,7 @@ const WS: Record<string, string> = {
   'ws.ea': 'fn_ws_ea', 'ws.reports': 'fn_ws_reports', 'ws.strategy': 'fn_ws_strategy', 'ws.governance': 'fn_ws_governance',
   'ws.fraud': 'fn_ws_fraud', 'ws.refunds': 'fn_ws_refunds',
 };
-const OSAPI_MUTATIONS = new Set(['inbox_send','fraud_resolve','refund_resolve','prompt_approve','prompt_rollback','prompt_gate']);
+const OSAPI_MUTATIONS = new Set(['inbox_send','fraud_resolve','refund_resolve','prompt_approve','prompt_rollback','prompt_gate','comment_add','review_decide','blog_publish','knowledge_dispatch','knowledge_refresh','exam_run','exam_revert']);
 
 Deno.serve(async (req) => {
   try {
@@ -55,6 +55,13 @@ Deno.serve(async (req) => {
 
     if (action === 'ping') return J({ ok: true, user: email });
     if (action === 'dashboard') { const { data, error } = await admin.rpc('fn_os_command'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
+    if (action === 'viz') { const { data, error } = await admin.rpc('fn_os_dashboard_viz'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
+    if (action === 'suppliers_board') { const { data, error } = await admin.rpc('fn_suppliers_board', { p_search: String(body?.search || ''), p_sector: String(body?.sector || ''), p_limit: Number(body?.limit || 60), p_offset: Number(body?.offset || 0) }); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
+    if (action === 'rfq_board') { const { data, error } = await admin.rpc('fn_rfq_board', { p_search: String(body?.search || ''), p_limit: Number(body?.limit || 80), p_offset: Number(body?.offset || 0) }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    if (action === 'customers_board') { const { data, error } = await admin.rpc('fn_customers_board', { p_search: String(body?.search || ''), p_limit: Number(body?.limit || 80), p_offset: Number(body?.offset || 0) }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    if (action === 'agents_board') { const { data, error } = await admin.rpc('fn_agents_board'); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    if (action === 'activity') { const { data, error } = await admin.rpc('fn_entity_activity', { p_entity: String(body?.entity || ''), p_id: String(body?.id || '') }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    if (action === 'comment_add') { const { data, error } = await admin.rpc('fn_entity_comment_add', { p_entity: String(body?.entity || ''), p_id: String(body?.id || ''), p_author: email, p_body: String(body?.body || '') }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'nav') { const { data, error } = await admin.rpc('fn_os_nav'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
     if (action === 'ws.suppliers') { const { data, error } = await admin.rpc('fn_ws_suppliers', { p: body?.params || {} }); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
     if (action === 'ws.supplier') { const { data, error } = await admin.rpc('fn_ws_supplier_360', { p_id: Number(body?.id) }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
@@ -110,6 +117,32 @@ Deno.serve(async (req) => {
     }
     if (action === 'prompt_approve') { const { data, error } = await admin.rpc('fn_prompt_approve_draft', { p_key: String(body?.key || ''), p_version: Number(body?.version), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'prompt_rollback') { const { data, error } = await admin.rpc('fn_prompt_rollback', { p_key: String(body?.key || ''), p_to_version: Number(body?.to_version), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+
+    if (action === 'marketing_studio') { const { data, error } = await admin.rpc('fn_marketing_studio'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
+    if (action === 'review_decide') { const { data, error } = await admin.rpc('fn_review_decide', { p_kind: String(body?.kind || ''), p_ref_id: Number(body?.ref_id), p_decision: String(body?.decision || ''), p_comment: String(body?.comment || ''), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    if (action === 'blog_publish') { const { data, error } = await admin.rpc('fn_marketing_blog_publish', { p_id: String(body?.id || ''), p_published: Boolean(body?.published), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+
+    if (action === 'knowledge_gaps') { const { data, error } = await admin.rpc('fn_knowledge_gaps'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
+    if (action === 'knowledge_dispatch') { const { data, error } = await admin.rpc('fn_dispatch_agent_knowledge_gaps'); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    if (action === 'knowledge_refresh') { const r = await fetch(`${BASE}/gen_category_knowledge`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), slug: String(body?.slug || '') }) }); const jd = await r.json().catch(() => ({})); if (!r.ok && jd?.error) return J({ error: jd.error }, 502); return J({ ok: true, data: jd }); }
+    if (action === 'exam_summary') { const { data, error } = await admin.rpc('fn_knowledge_exam_summary'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
+    if (action === 'exam_run') { const r = await fetch(`${BASE}/knowledge_exam`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), agent_key: body?.agent_key || undefined, generate: Number(body?.generate ?? 6), answer: Number(body?.answer ?? 8) }) }); const jd = await r.json().catch(() => ({})); if (!r.ok && jd?.error) return J({ error: jd.error }, 502); return J({ ok: true, data: jd }); }
+    if (action === 'exam_revert') { const { data, error } = await admin.rpc('fn_exam_revert', { p_agent_key: body?.agent_key || null }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    if (action === 'knowledge_export') {
+      const ak = String(body?.agent_key || '').trim();
+      let sel = admin.from('agent_knowledge').select('agent_key,topic,content,priority,updated_at').order('agent_key').order('priority', { ascending: false });
+      if (ak) sel = sel.in('agent_key', ak.startsWith('cat:') ? [ak] : [ak, 'cat:' + ak]);
+      const { data, error } = await sel; if (error) return J({ error: error.message }, 500);
+      const rows = (data as any[]) || [];
+      const groups: Record<string, any[]> = {}; for (const r of rows) { (groups[r.agent_key] = groups[r.agent_key] || []).push(r); }
+      let md = '# QuotesDone — Agent Knowledge Export\n\n' + (ak ? 'Agent: `' + ak + '`\n' : 'All agents\n') + 'Generated: ' + new Date().toISOString() + '\nItems: ' + rows.length + '\n';
+      for (const [key, items] of Object.entries(groups)) {
+        md += '\n\n---\n\n## ' + key + '  (' + items.length + ' item' + (items.length === 1 ? '' : 's') + ')\n';
+        for (const it of items) { md += '\n**' + (it.topic || 'general') + '**' + (String(it.topic || '').startsWith('exam:') ? ' _(exam-verified)_' : '') + '  \n' + String(it.content || '').trim() + '\n'; }
+      }
+      const filename = 'knowledge-' + (ak ? ak.replace(/[^a-z0-9-]+/gi, '_') : 'all-agents') + '.md';
+      return J({ ok: true, data: { filename, markdown: md, count: rows.length } });
+    }
 
     if (WS[action]) { const { data, error } = await admin.rpc(WS[action]); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
 

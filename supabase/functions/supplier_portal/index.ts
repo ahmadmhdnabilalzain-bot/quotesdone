@@ -186,7 +186,22 @@ Deno.serve(async (req) => {
             }
           } catch (_e) { /* fall back to the typed value below */ }
         }
-        if (kind.expCol && it.expiry && !licExpiryFromDoc) upd[kind.expCol] = String(it.expiry).slice(0, 10);
+        // LICENCE EXPIRY FIX 27 Jul 2026. The fallback above ran whenever extraction had not produced
+        // a date - including when NO document was attached at all, since the extraction block requires
+        // it.original_b64. A supplier could therefore POST { kind:'license', expiry:'2030-01-01' } with
+        // no file and push their own licence expiry three years out, which defeats the whole point of
+        // #86 and of fn_reconcile_doc_blocks (the daily job that suspends matching on an expired
+        // licence). license_expiry is now only ever written from what license_extract read off the
+        // document; a typed licence expiry is never trusted. Other kinds keep the typed value - none of
+        // them is read server-side and none of them is self-asserted against an automatic suspension.
+        if (kindStr === 'license') {
+          if (!licExpiryFromDoc && it.expiry) {
+            failed.push(it.original_b64
+              ? { kind: kindStr, reason: 'Your trade licence file was saved, but we could not read the expiry date from it, so the expiry on file is unchanged. Please upload a clear copy of the full licence page (PDF or a sharp photo).' }
+              : { kind: kindStr, reason: 'A trade licence document is required. The licence expiry is read from the licence itself and cannot be entered by hand — please attach your current trade licence.' });
+            if (!it.original_b64) continue;
+          }
+        } else if (kind.expCol && it.expiry) upd[kind.expCol] = String(it.expiry).slice(0, 10);
         saved.push(kindStr);
       }
       if (catAppend.length) {

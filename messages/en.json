@@ -15,11 +15,11 @@
     "titleA": "Get real quotes.",
     "titleB": "Stay",
     "titleEm": "completely anonymous.",
-    "subtitle": "Post your job once. We match you with vetted UAE suppliers who compete with anonymous quotes. Compare price, rating and track record, then reveal only the one you choose.",
+    "subtitle": "Post your job once. We match you with licence-checked UAE suppliers who compete with anonymous quotes. Compare their prices, then reveal only the one you choose.",
     "ctaPrimary": "Get quotes",
     "ctaSupplier": "Join as a supplier",
     "stat1n": "20,400+",
-    "stat1l": "vetted suppliers",
+    "stat1l": "UAE suppliers indexed",
     "stat2n": "7",
     "stat2l": "emirates",
     "stat3n": "30+",
@@ -40,7 +40,7 @@
       {
         "n": "02",
         "title": "Get matched quotes",
-        "body": "Vetted suppliers compete with anonymous quotes. Compare price, rating and track record side by side."
+        "body": "Licence-checked suppliers compete with anonymous quotes. Compare their prices side by side."
       },
       {
         "n": "03",
@@ -63,8 +63,8 @@
         "body": "Because suppliers compete without seeing each other, you see real market prices."
       },
       {
-        "title": "Vetted suppliers only",
-        "body": "Every supplier holds a valid UAE trade licence, verified before they quote."
+        "title": "Trade licence checked",
+        "body": "No supplier can quote until we have checked their UAE trade licence."
       },
       {
         "title": "You're in control",
@@ -75,7 +75,7 @@
   "cats": {
     "eyebrow": "Categories",
     "title": "Every speciality in one platform",
-    "sub": "From fit-out to CCTV to landscaping — 30+ categories of vetted suppliers.",
+    "sub": "From fit-out to CCTV to landscaping — 30+ categories of licence-checked suppliers.",
     "items": [
       {
         "title": "Fit-out & décor",
@@ -114,11 +114,11 @@
   "cta": {
     "eyebrow": "Start now",
     "title": "Your next quote is minutes away",
-    "sub": "Post your job free and watch vetted suppliers compete for it. You only pay 3% when you reveal the one you choose.",
+    "sub": "Post your job free and watch licence-checked suppliers compete for it. You only pay 3% when you reveal the one you choose.",
     "supplier": "Become a supplier"
   },
   "footer": {
-    "tagline": "The UAE's anonymous quote marketplace. Post once, compare vetted suppliers, and reveal only the one you choose.",
+    "tagline": "The UAE's anonymous quote marketplace. Post once, compare licence-checked suppliers, and reveal only the one you choose.",
     "company": "Company",
     "about": "About",
     "contact": "Contact",
@@ -145,8 +145,8 @@
     "policy": "Cookie Policy"
   },
   "meta": {
-    "siteTitle": "QuotesDone — Anonymous quotes from vetted UAE suppliers",
-    "siteDesc": "Post your job once and get anonymous, comparable quotes from vetted UAE suppliers. Compare price, rating and track record, then reveal only the supplier you choose."
+    "siteTitle": "QuotesDone — Anonymous quotes from licence-checked UAE suppliers",
+    "siteDesc": "Post your job once and get anonymous, comparable quotes from licence-checked UAE suppliers. Compare their prices, then reveal only the supplier you choose."
   },
   "blog": {
     "onlyEnglish": "This article is currently available in English only."

@@ -33,8 +33,15 @@ Deno.serve(async (req) => {
   try {
     if (req.method === 'OPTIONS') return J({ ok: true });
     let email = '';
+    // OS BYPASS FIX 27 Jul 2026. A single static app_secrets.os_bypass_key in an x-os-key header
+    // skipped the entire admin identity check, so anyone holding that string could approve or ban a
+    // supplier, cancel an inquiry, post to the GL or rewrite board reports - and the audit row named
+    // 'os-preview@quotesdone.com', a fabricated person, so the log read as if a colleague had done it.
+    // The key stays live because the preview surfaces read through it, but it is now read-only (see the
+    // READONLY gate below) and it is recorded under its own name, never as an email address.
+    let viaBypass = false;
     const osKey = req.headers.get('x-os-key') || '';
-    if (osKey && osKey === (await sec('os_bypass_key'))) { email = 'os-preview@quotesdone.com'; }
+    if (osKey && osKey === (await sec('os_bypass_key'))) { email = 'os_bypass_key (no human identity)'; viaBypass = true; }
     else {
       const token = (req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'').trim();
       if (!token) return J({ error: 'unauthorized' }, 401);
@@ -55,6 +62,9 @@ Deno.serve(async (req) => {
         await admin.from('os_audit_log').insert({ actor: email, action, entity: ent || null, entity_id: eid || null, detail: det });
       } catch (_e) { /* audit must never break the operation */ }
     }
+    // Deliberately after the audit insert: an attempt to mutate with the static preview key is exactly
+    // the event worth having on record, so it is logged first and refused second.
+    if (viaBypass && !READONLY.has(action)) return J({ error: 'forbidden', hint: 'the x-os-key preview key is read-only — sign in with an admin account to make changes' }, 403);
 
     if (action === 'audit_log') {
       const lim = Math.min(Number(b.limit || 200), 1000);
@@ -101,7 +111,13 @@ Deno.serve(async (req) => {
     if (action === 'cancel_inquiry') { const { data, error } = await admin.rpc('fn_cancel_inquiry', { p_inquiry: String(b.inquiry||''), p_customer: String(b.customer||''), p_reason: b.reason||null }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'prompt_reject') { const { data, error } = await admin.rpc('fn_prompt_reject_draft', { p_key: String(b.key||''), p_version: Number(b.version), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'action_decide') { const op = String(b.op||''); const st = op==='approve'?'approved':(op==='reject'?'rejected':op); const { error } = await admin.from('agent_actions').update({ status: st, decided_by: email, decided_at: now() }).eq('id', Number(b.id)); if (error) return J({ error: error.message }, 500); return J({ ok: true }); }
-    if (action === 'supplier_decide') { const op = String(b.op||''); const id = Number(b.id); let patch: any; if (op==='approve') patch={ approval_status:'approved', approved_at:now(), approval_decided_by:email, matching_blocked:false, rejection_reason:null }; else if (op==='reject') patch={ approval_status:'rejected', approved_at:now(), approval_decided_by:email, rejection_reason:b.note||null }; else if (op==='ban') patch={ banned:true, banned_reason:b.note||null, matching_blocked:true }; else if (op==='unban') patch={ banned:false, matching_blocked:false }; else return J({ error:'bad_op' },400); const { error } = await admin.from('leads').update(patch).eq('id', id); if (error) return J({ error: error.message }, 500); return J({ ok: true }); }
+    // VERIFIED FIX 27 Jul 2026. Approving here set approval_status only and never touched
+    // leads.verified, so the two flags drifted apart: supplier_api's save_profile read `verified` and
+    // demoted an admin-approved supplier back to 'pending' on their next profile save, silently
+    // revoking an admin decision and their ability to quote. verified now moves with the decision -
+    // true on approve, false on reject and ban - so the two columns can no longer disagree. unban is
+    // left alone on purpose: lifting a suspension is not a re-approval, and approval_status still rules.
+    if (action === 'supplier_decide') { const op = String(b.op||''); const id = Number(b.id); let patch: any; if (op==='approve') patch={ approval_status:'approved', approved_at:now(), approval_decided_by:email, matching_blocked:false, rejection_reason:null, verified:true }; else if (op==='reject') patch={ approval_status:'rejected', approved_at:now(), approval_decided_by:email, rejection_reason:b.note||null, verified:false }; else if (op==='ban') patch={ banned:true, banned_reason:b.note||null, matching_blocked:true, verified:false }; else if (op==='unban') patch={ banned:false, matching_blocked:false }; else return J({ error:'bad_op' },400); const { error } = await admin.from('leads').update(patch).eq('id', id); if (error) return J({ error: error.message }, 500); return J({ ok: true }); }
     if (action === 'customer_decide') { const op = String(b.op||''); const patch = op==='ban'?{ banned:true, banned_reason:b.note||null }:{ banned:false }; const { error } = await admin.from('customers').update(patch).eq('id', String(b.id)); if (error) return J({ error: error.message }, 500); return J({ ok: true }); }
     if (action === 'doc_review_decide') { const op = String(b.op||''); const st = op==='approve'?'approved':(op==='reject'?'rejected':op); const { error } = await admin.from('doc_reviews').update({ status: st, decided_by: email, decided_at: now() }).eq('id', Number(b.id)); if (error) return J({ error: error.message }, 500); return J({ ok: true }); }
     if (action === 'note_add') { const { error } = await admin.from('crm_notes').insert({ entity: String(b.entity||''), entity_id: String(b.id||''), body: String(b.body||''), author: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true }); }

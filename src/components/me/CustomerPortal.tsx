@@ -31,7 +31,9 @@ const T = {
     my_requests:'My requests', messages:'Messages', back_requests:'← Back to requests', new_request:'+ New request', close:'Close',
     k_requests:'Requests', k_open:'Open', k_quotes:'Quotes received', k_avg:'Avg quotes/req', k_hired:'Hired', k_spend:'Spend',
     your_requests:'Your requests', no_requests:'No requests yet. ', post_first:'Post your first request', describe_job:' — describe the job in text, voice, a photo, or a drawing.',
-    request_sent:'Request sent — matching you with suppliers now.', payment_confirmed:'Payment confirmed — supplier contact unlocked below.' },
+    request_sent:'Request sent — matching you with suppliers now.', payment_confirmed:'Payment confirmed — supplier contact unlocked below.',
+    payment_pending:'Payment received — we are still confirming it with your bank. This page will unlock the supplier as soon as it clears; you can safely reload in a moment.',
+    payment_check_failed:'We could not confirm your payment just now. Your card may still have been charged — do not pay again. Reload this page shortly, or email management@quotesdone.com with this reference: ' },
   ar: { brand_sub:'طلباتي', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_requests:'جارٍ تحميل طلباتك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', create_account_title:'أنشئ حسابك',
     signup_sub:'أدخل بريدك الإلكتروني وسننشئ حسابك فورًا. ستضيف اسمك وتاريخ ميلادك وتتحقق من رقم جوالك في الخطوة التالية.',
@@ -50,11 +52,25 @@ const T = {
     my_requests:'طلباتي', messages:'الرسائل', back_requests:'→ العودة إلى الطلبات', new_request:'+ طلب جديد', close:'إغلاق',
     k_requests:'الطلبات', k_open:'المفتوحة', k_quotes:'العروض المستلمة', k_avg:'متوسط العروض/طلب', k_hired:'المُتعاقد معهم', k_spend:'الإنفاق',
     your_requests:'طلباتك', no_requests:'لا توجد طلبات بعد. ', post_first:'انشر طلبك الأول', describe_job:' — صِف العمل نصًا أو صوتًا أو بصورة أو برسم.',
-    request_sent:'تم إرسال الطلب — نطابقك مع المورّدين الآن.', payment_confirmed:'تم تأكيد الدفع — تم فتح بيانات تواصل المورّد أدناه.' }
+    request_sent:'تم إرسال الطلب — نطابقك مع المورّدين الآن.', payment_confirmed:'تم تأكيد الدفع — تم فتح بيانات تواصل المورّد أدناه.',
+    payment_pending:'تم استلام الدفعة — ما زلنا نؤكدها مع البنك. ستُفتح بيانات المورّد فور اكتمال التأكيد؛ يمكنك تحديث الصفحة بعد قليل.',
+    payment_check_failed:'تعذّر تأكيد الدفع الآن. قد تكون بطاقتك قد خُصمت بالفعل — لا تدفع مرة أخرى. حدّث الصفحة بعد قليل أو راسلنا على management@quotesdone.com بهذا الرقم المرجعي: ' }
 };
 const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
-const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
+// Before a supplier is revealed, customer_api (v37, `ratingBand`) does not send a numeric rating —
+// it sends a coarse BAND string: '4.5+' | '4.0-4.5' | '3.5-4.0' | 'below 3.5'. Feeding that to
+// Number() yields NaN, which propagated into the value score and rendered a literal "Value NaN/100"
+// on every quote card. Bands are resolved here first; a real number is still accepted post-reveal.
+const RATING_BANDS = { '4.5+': 4.75, '4.0-4.5': 4.25, '3.5-4.0': 3.75, 'below 3.5': 3.0 };
+const ratingScoreOf = (r) => {
+  if (r == null) return 60;
+  const b = RATING_BANDS[String(r).trim()];
+  if (b != null) return Math.round((b / 5) * 100);
+  const n = Number(r);
+  return Number.isFinite(n) ? Math.round((n / 5) * 100) : 60;
+};
+const EMIRATES =['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
 const fileB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(String(rd.result).split(',')[1] || ''); rd.readAsDataURL(f); });
 
 // ── Additional copy for the rebuilt portal. Original keys above are untouched. ──
@@ -415,7 +431,18 @@ function Portal({ token, lang, kyc }) {
   useEffect(() => {
     Promise.allSettled([loadOv(), loadInq(), loadMe()]).then(() => setLoading(false));
     const sid = new URLSearchParams(location.search).get('session_id');
-    if (sid) { call('stripe_confirm', { session_id: sid }, token).then((j) => { history.replaceState({}, '', location.pathname); if (j && j.ok) { setNote(t(lang, 'payment_confirmed')); loadInq(); } }); }
+    // 27 Jul 2026: history.replaceState used to run unconditionally, BEFORE the ok check, and there
+    // was no else branch. A payment that came back pending (async payment method) or errored at
+    // Stripe left the customer with no message at all AND erased session_id from the address bar,
+    // so a reload could not retry. They had been charged and had no way to tell. The URL is now
+    // cleared only on success; every other outcome says something and keeps the reference.
+    if (sid) {
+      call('stripe_confirm', { session_id: sid }, token).then((j) => {
+        if (j && j.ok) { history.replaceState({}, '', location.pathname); setNote(t(lang, 'payment_confirmed')); loadInq(); }
+        else if (j && j.pending) { setNote(t(lang, 'payment_pending')); loadInq(); }
+        else { setNote(t(lang, 'payment_check_failed') + sid); }
+      }).catch(() => setNote(t(lang, 'payment_check_failed') + sid));
+    }
   }, [token]);
 
   const inqs = (data && data.inquiries) || [];
@@ -639,7 +666,7 @@ function RequestDetail({ inq, token, lang, onBack, onChange }) {
     const minP = ps.length ? Math.min(...ps) : 0, maxP = ps.length ? Math.max(...ps) : 0;
     for (const q of quotes) { const p = Number(q.price) || 0;
       const priceScore = (!p || maxP === minP) ? 70 : Math.round(100 - ((p - minP) / (maxP - minP)) * 55);
-      const ratingScore = q.rating != null ? Math.round((Number(q.rating) / 5) * 100) : 60;
+      const ratingScore = ratingScoreOf(q.rating);
       const compScore = Math.min(100, 50 + (q.scope ? 20 : 0) + (q.warranty ? 10 : 0) + (q.lead_time ? 10 : 0) + (q.verified ? 10 : 0));
       m[q.id] = Math.round(priceScore * 0.5 + ratingScore * 0.3 + compScore * 0.2); }
     return m; }, [quotes]);

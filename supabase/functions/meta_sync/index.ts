@@ -15,6 +15,11 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 let INSIGHT_ERRORS = 0, EMPTY_INSIGHTS = 0, UPSERT_FAILS = 0; let LAST_ERR = '';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined)||undefined; }
+// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
+// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
+// service-role authority on a function that requires no JWT. The stored secret must now be a real
+// value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 const GV = 'v21.0';
 function resultsFrom(row: any, objective: string): number {
   const acts = Array.isArray(row?.actions) ? row.actions : [];
@@ -28,12 +33,13 @@ function resultsFrom(row: any, objective: string): number {
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
-    if (body.__secret !== (await sec('inbound_secret'))) { await logRun('error', { upserts: 0 }, 'call rejected: wrong or missing inbound secret; no Meta ad campaign insights were synced'); return J({ error: 'forbidden' }, 403); }
+    const __exp = await sec('inbound_secret');
+    if (!secretOk(__exp) || body.__secret !== __exp) { await logRun('error', { upserts: 0 }, 'call rejected: wrong or missing inbound secret; no Meta ad campaign insights were synced'); return J({ error: 'forbidden' }, 403); }
     const token = await sec('meta_access_token');
     const acct = await sec('meta_ad_account_id');
     const filter = (await sec('meta_campaign_filter')) || 'QuotesDone';
-    if (!token) { await logRun('error', { upserts: 0, campaigns: 0 }, 'meta_access_token missing from app_secrets: Meta sync is disabled, so meta_insights holds no fresh ad spend/lead data and marketing dashboards are stale'); return J({ ok: true, disabled: true, note: 'Add app_secrets.meta_access_token (ads_read) to enable Meta sync.' }); }
-    if (!acct) { await logRun('error', { upserts: 0, campaigns: 0 }, 'meta_ad_account_id not set in app_secrets: Meta sync is disabled, so meta_insights holds no fresh ad spend/lead data and marketing dashboards are stale'); return J({ ok: true, disabled: true, note: 'meta_ad_account_id not set.' }); }
+    if (!token) { await logRun('skipped', { upserts: 0, campaigns: 0, disabled: 1 }, 'Meta sync is DISABLED (no meta_access_token configured) — intentional off state, not a failure. meta_insights holds no ad spend/lead data until a token is added. Add app_secrets.meta_access_token (ads_read) to enable.'); return J({ ok: true, disabled: true, note: 'Add app_secrets.meta_access_token (ads_read) to enable Meta sync.' }); }
+    if (!acct) { await logRun('skipped', { upserts: 0, campaigns: 0, disabled: 1 }, 'Meta sync is DISABLED (meta_ad_account_id not set) — intentional off state, not a failure. Set app_secrets.meta_ad_account_id to enable.'); return J({ ok: true, disabled: true, note: 'meta_ad_account_id not set.' }); }
     const act = acct.startsWith('act_') ? acct : ('act_' + acct);
 
     // 1) campaigns filtered to the QuotesDone name

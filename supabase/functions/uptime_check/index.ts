@@ -1,6 +1,17 @@
-// uptime_check v4 - checks live pages. Self-heals deploy-shaped failures by auto-redeploying once (silent),
-// and only escalates to the founder (via alert_founder, which is severity-gated + branded) if it is STILL
-// broken on the next run. Recovers silently. Cron-safe.
+// uptime_check v5 - checks live pages and TELLS A HUMAN. It does not deploy anything. Escalates via
+// alert_founder (severity-gated + branded) with what was detected. Recovers silently. Cron-safe.
+//
+// SAFETY FIX 27 Jul 2026 -------------------------------------------------------------------------
+// WHAT WAS WRONG: v4 "self-healed" a deploy-shaped failure by POSTing deploy_next_preview with
+// target:'production'. That meant a 12s timeout, a 502 from the edge, or one flaky DNS lookup - any
+// transient blip - republished WHATEVER happened to be sitting in qd_deploy_src to the live site,
+// unreviewed, with no human in the loop, and did it silently (the founder_alerts row was logged at
+// level 'info' precisely because the robot thought it had it handled). A monitor that fixes things
+// by pushing code turns a network hiccup into a release. Since the Stripe account went live today
+// that is a paying-customer-facing release triggered by packet loss.
+// WHY THIS FIX: the auto-deploy is gone entirely. A failing page is now always a crit alert to the
+// founder describing exactly what was detected and whether it looks deploy-shaped; republishing is a
+// human decision made after looking at the pending source. Nothing here can deploy any more.
 //
 // SECURITY FIX 19 Jul 2026 ---------------------------------------------------------------------
 // The gate used to read:
@@ -66,17 +77,18 @@ Deno.serve(async (req) => {
       return J({ ok: true, checks: CHECKS.length, failures: 0 });
     }
 
+    // FIX 27 Jul 2026: deployShaped is now purely DESCRIPTIVE - it tells the founder what the failure
+    // looks like. It used to gate `canHeal`, which fired a production deploy of qd_deploy_src and
+    // downgraded this alert to 'info' so nobody was told. A failing page is always crit now.
     const deployShaped = fails.some((f) => /missing_marker|empty_body|http_5|http_404|fetch_error/.test(String(f.reason || '')));
-    const canHeal = deployShaped && (Date.now() - lastHeal > 60 * 60e3);
-    try { await admin.from('founder_alerts').insert({ level: canHeal ? 'info' : 'crit', event: 'site_down', detail: fails.length + ' failing check(s): ' + JSON.stringify(fails).slice(0, 400), channel: 'system' }); } catch (_e) { /* */ }
+    try { await admin.from('founder_alerts').insert({ level: 'crit', event: 'site_down', detail: fails.length + ' failing check(s): ' + JSON.stringify(fails).slice(0, 400), channel: 'system' }); } catch (_e) { /* */ }
 
-    if (canHeal) {
-      try { await fetch(FN + '/deploy_next_preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: inbound, target: 'production' }) }); } catch (_e) { /* */ }
-      await setSec('uptime_last_autoheal', String(Date.now()));
-      return J({ ok: false, self_heal: 'redeploy_triggered', failures: fails.length, fails });
-    }
-
-    const detail = fails.length + ' page(s) on quotesdone.com still failing' + (lastHeal ? ' AFTER an automatic redeploy' : '') + ': ' + JSON.stringify(fails).slice(0, 300) + '. This likely needs a code/deploy fix.';
+    // FIX 27 Jul 2026: the auto-redeploy that used to sit here is DELETED, not disabled - a monitor
+    // must never publish code. What replaces it is a description of what was detected, so the founder
+    // can decide whether qd_deploy_src is even the right thing to republish.
+    const detail = fails.length + ' page(s) on quotesdone.com are failing: ' + JSON.stringify(fails).slice(0, 300)
+      + (deployShaped ? ' The failures look deploy-shaped (missing marker / empty body / 5xx / 404 / fetch error), which can also just be a transient network blip - re-run the check before acting.' : ' The failures do not look deploy-shaped.')
+      + ' NOTE: uptime_check no longer auto-redeploys (removed 27 Jul 2026, it republished unreviewed source on transient errors). If a republish is genuinely the fix, review qd_deploy_src and publish deliberately from the OS.';
     try { await fetch(FN + '/alert_founder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: inbound, level: 'critical', event: 'Live site check failing', detail, dedupe_key: 'site_down' }) }); } catch (_e) { /* */ }
     return J({ ok: false, escalated: true, failures: fails.length, fails });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }

@@ -76,22 +76,30 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   const { category, emirate, keywords, summary, budget, extra, useRouter, multi } = opts;
   let fits: { id: number; company_name?: string; reason?: string }[] = [];
   let routing: Record<string, any> = {};
+  let routerAnswered = false;
   if (useRouter) {
     try {
       const secret = await getSecret('inbound_secret');
       const rr = await fetch(`${SUPABASE_URL}/functions/v1/route_inquiry`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, inquiry_id: inqId }) });
       const rj = await rr.json();
-      if (rj?.ok) { routing = { job_type: rj.job_type, primary_trade: rj.primary_trade, reasoning: rj.reasoning, evaluated: rj.evaluated, at: new Date().toISOString() }; fits = Array.isArray(rj.fits) ? rj.fits : []; }
+      if (rj?.ok) { routerAnswered = true; routing = { job_type: rj.job_type, primary_trade: rj.primary_trade, reasoning: rj.reasoning, evaluated: rj.evaluated, note: rj.note || null, needs_detail: rj.needs_detail === true, missing: Array.isArray(rj.missing) ? rj.missing.slice(0, 6) : null, at: new Date().toISOString() }; fits = Array.isArray(rj.fits) ? rj.fits : []; }
       else routing = { error: rj?.error || 'route_failed', at: new Date().toISOString() };
     } catch (e) { routing = { error: String((e as Error)?.message || e), at: new Date().toISOString() }; }
   }
-  // Fall back to keyword matching whenever we are not using the router, the router errored,
-  // OR the router returned successfully but produced ZERO fits (never strand a customer).
-  if (!useRouter || routing.error || fits.length === 0) {
+  // ROUTE_INQUIRY OVERRIDE (27 Jul 2026). This used to fall back to match_suppliers_kw whenever
+  // fits was empty, INCLUDING when route_inquiry had answered successfully with zero fits. But
+  // needs_detail (brief too thin), no_capability_match and no_registered_suppliers are the
+  // router's genuine verdicts, not failures — it deliberately contacts nobody. Fanning the RFQ
+  // out to 8 keyword-matched suppliers anyway threw the adjudication away, spammed suppliers who
+  // cannot do the job, and made every negative verdict invisible. We now fall back ONLY when the
+  // router genuinely did not answer: it was not used, it errored, or the response was missing.
+  // A successful zero-fit answer is respected — coverage gap path, router's reason persisted.
+  if (!useRouter || routing.error || !routerAnswered) {
     const { data: sups } = await admin.rpc('match_suppliers_kw', { p_keywords: keywords, p_category: category, p_emirate: emirate, p_limit: 8, p_multi: multi });
-    fits = (sups || []).map((s: { id: number; company_name?: string }) => ({ id: s.id, company_name: s.company_name, reason: useRouter ? 'keyword fallback (router returned no fits)' : (multi ? 'turnkey / combined match' : 'trade specialist match') }));
+    fits = (sups || []).map((s: { id: number; company_name?: string }) => ({ id: s.id, company_name: s.company_name, reason: useRouter ? 'keyword fallback (router unavailable)' : (multi ? 'turnkey / combined match' : 'trade specialist match') }));
     if (useRouter) routing.fallback = true; else routing = { mode: multi ? 'turnkey' : 'trade', at: new Date().toISOString() };
   }
+  if (routerAnswered && fits.length === 0) { routing.router_verdict = String(routing.note || (routing.needs_detail ? 'needs_detail' : 'adjudicated_no_fit')); routing.keyword_fallback_suppressed = true; }
   const fitIds = fits.map((f) => Number(f.id)).filter(Boolean);
   let supRows: Record<string, any>[] = [];
   if (fitIds.length) { const { data: ls } = await admin.from('leads').select('id,company_name,email').in('id', fitIds); supRows = ls || []; }
@@ -112,6 +120,16 @@ async function getCfg(): Promise<Cfg> { const { data } = await admin.from('prici
 function revealFee(amount: number, cfg: Cfg, at: Date = new Date()): number { if (!amount || amount <= 0) return 0; const promo = !!cfg.promo_until && at <= new Date(cfg.promo_until); const rate = Number(promo ? cfg.promo_reveal_rate : cfg.standard_reveal_rate); const cap = Number(promo ? cfg.promo_reveal_cap : cfg.standard_reveal_cap); return Math.min(Math.round(amount * rate * 100) / 100, cap); }
 function ratingOf(l: Record<string, any>) { const appN = Number(l.app_reviews || 0); if (appN > 0) return { value: l.app_rating != null ? Number(l.app_rating) : null, count: appN, source: 'QuotesDone' }; const g = l.rating ?? l.rating_maps; const gn = l.reviews ?? l.reviews_maps; return { value: g != null ? Number(g) : null, count: gn != null ? Number(gn) : 0, source: 'Google' }; }
 function band(n: number) { n = Number(n || 0); if (n < 1000) return '< AED 1k'; if (n < 5000) return 'AED 1–5k'; if (n < 20000) return 'AED 5–20k'; if (n < 50000) return 'AED 20–50k'; return 'AED 50k+'; }
+// PRE-REVEAL FINGERPRINT (27 Jul 2026). my_inquiries used to return the supplier's exact rating,
+// exact review count, emirate, years-since-founding and win rate on EVERY quote, revealed or not.
+// "4.6 stars, 23 reviews, Sharjah, trading since 2011" is a unique fingerprint: one Google Maps
+// search finds the company, and the buyer contacts them directly without ever paying the reveal
+// fee, which is the only transaction revenue this business has. Unrevealed quotes now carry
+// coarse bands that fit hundreds of firms, plus the verified flag (a trust signal that identifies
+// nobody). Emirate, win rate and rating source are withheld until a transaction exists.
+function ratingBand(v: unknown): string | null { const n = Number(v); if (v == null || !isFinite(n) || n <= 0) return null; if (n >= 4.5) return '4.5+'; if (n >= 4) return '4.0-4.5'; if (n >= 3.5) return '3.5-4.0'; return 'below 3.5'; }
+function reviewCountBand(v: unknown): string { const n = Number(v || 0); if (n >= 50) return '50+'; if (n >= 20) return '20-49'; if (n >= 5) return '5-19'; return 'under 5'; }
+function yearsBand(v: unknown): string | null { if (v == null) return null; const n = Number(v); if (!isFinite(n)) return null; if (n >= 10) return '10+ years'; if (n >= 5) return '5-9 years'; return 'under 5 years'; }
 
 async function storeOriginal(custId: string, name: string, mime: string, b64: string): Promise<string | null> {
   try { const bytes = b64ToBytes(b64); if (!bytes.length || bytes.length > 25 * 1024 * 1024) return null; const safe = String(name).replace(/[^\w.\-]+/g, '_').slice(0, 120); const path = `drawings/${custId}/${Date.now()}_${safe}`; const up = await admin.storage.from('drawing-files').upload(path, bytes, { contentType: mime, upsert: false }); return up.error ? null : path; } catch { return null; }
@@ -269,6 +287,14 @@ Deno.serve(async (req) => {
     let { data: cust } = await admin.from('customers').select('*').eq('email', email).maybeSingle();
     if (!cust) { const ins = await admin.from('customers').insert({ email }).select('*').maybeSingle(); cust = ins.data; }
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
+    // BANNED CUSTOMER (27 Jul 2026). messages_api auto-bans a buyer who pushes contact details
+    // off-platform (it writes customers.banned = true) but customer_api never read that column,
+    // so the ban only ever closed the chat: the same person could still post RFQs, reveal
+    // suppliers, request refunds and rate them from the main buyer surface. Every mutating
+    // action is refused now. 'me' and 'my_inquiries' stay open on purpose so the person can
+    // still see their own account state and existing requests rather than hitting a dead wall.
+    const MUTATING = ['create_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry'];
+    if (cust?.banned === true && MUTATING.includes(action)) return J({ error: 'Your account is suspended. Please contact support@quotesdone.com if you believe this is a mistake.' }, 403);
 
     if (action === 'me') return J({ customer: cust });
 
@@ -285,7 +311,7 @@ Deno.serve(async (req) => {
       }
       if (!images.length) return J({ ok: true, boq: null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], note: isCad ? 'cad_not_converted' : 'no_readable_pages' });
       try {
-        const redPrefix = `redacted/${cust.id}/${Date.now()}`;
+        const redPrefix = `redacted/${crypto.randomUUID()}/page`;
         const [boqRes, redRes] = await Promise.allSettled([
           fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images }) }),
           fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images, prefix: redPrefix }) }),
@@ -306,11 +332,16 @@ Deno.serve(async (req) => {
       if ((recent || 0) >= INQUIRY_LIMIT_PER_HOUR) return J({ error: 'You have created many requests in a short time. Please try again later.' }, 429);
       const drawing = body.drawing && typeof body.drawing === 'object' ? body.drawing : null;
       const boqObj = drawing?.boq && typeof drawing.boq === 'object' ? drawing.boq : null;
-      const boqReady = !!(boqObj && Array.isArray(boqObj.boq) && boqObj.boq.length >= 1);
       const briefSource = drawing ? (['drawing','quotation'].includes(String(drawing.brief_source)) ? String(drawing.brief_source) : 'drawing') : null;
       let intake: any = null;
       if (body.intake_id) { const { data: it } = await admin.from('inquiry_intake').select('*').eq('id', String(body.intake_id)).maybeSingle(); if (it && it.email === email && it.status === 'ready') intake = it; }
-      if (!intake && !boqReady) return J({ error: 'intake_required', message: 'Please answer a few quick questions so suppliers can quote accurately.' }, 428);
+      // INTAKE GATE BYPASS (27 Jul 2026). The mandatory intake used to be waived whenever the
+      // CALLER posted a drawing object carrying a one-line boq array — a body the client builds
+      // and can therefore forge, so { drawing: { boq: { boq: [{}] } } } skipped the questions
+      // entirely and suppliers got briefs with no scope, quantity or emirate. The only bypass now
+      // is a real, server-side inquiry_intake row owned by this customer and marked 'ready'
+      // (resolved just above). A drawing still enriches the brief; it no longer replaces it.
+      if (!intake) return J({ error: 'intake_required', message: 'Please answer a few quick questions so suppliers can quote accurately.' }, 428);
       const briefObj = intake?.brief && typeof intake.brief === 'object' ? intake.brief : null;
       let category = String(body.category || '').trim();
       if (!category && intake?.category) category = String(intake.category).trim();
@@ -399,7 +430,11 @@ Deno.serve(async (req) => {
       if (ids.length) { const { data: txs } = await admin.from('transactions').select('id,quote_id,revealed_at,created_at').eq('customer_id', cust.id); for (const t of txs || []) { revealedQ.add(String(t.quote_id)); txByQuote[String(t.quote_id)] = String(t.id); revealAtByQuote[String(t.quote_id)] = (t.revealed_at || t.created_at) || null; } }
       const { data: revs } = await admin.from('reviews').select('transaction_id').eq('customer_id', cust.id); const ratedTx = new Set((revs || []).map((r) => String(r.transaction_id)));
       const now = new Date();
-      const mapRow = async (i: any) => ({ id: i.id, category: i.category, emirate: i.emirate, summary: i.summary, spec: i.spec, status: i.status, created_at: i.created_at, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx) => { const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: 'Supplier ' + supplierLabel(idx), price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: r.value ?? null, rating_count: r.count ?? 0, rating_source: r.source || null, emirate: m.emirate ?? null, verified: m.verified ?? false, years_active: m.years_active ?? null, jobs_won: m.jobs_won ?? 0, win_rate: m.win_rate ?? null }; }) });
+      // Pre-reveal quote rows carry BANDS only (see ratingBand/reviewCountBand/yearsBand above);
+      // rating_source, emirate and win_rate are set to undefined so JSON.stringify omits the keys
+      // outright rather than shipping a null the client could still reason about. Revealed quotes
+      // — a transactions row exists for that quote_id — keep the exact values, unchanged.
+      const mapRow = async (i: any) => ({ id: i.id, category: i.category, emirate: i.emirate, summary: i.summary, spec: i.spec, status: i.status, created_at: i.created_at, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx) => { const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: 'Supplier ' + supplierLabel(idx), price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined }; }) });
       const out = [] as any[];
       for (const i of (tops || [])) {
         const row = await mapRow(i);

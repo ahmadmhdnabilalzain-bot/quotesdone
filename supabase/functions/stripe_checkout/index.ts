@@ -42,9 +42,29 @@ Deno.serve(async (req) => {
     const fee = revealFee(Number(q.quote_amount), cfg || {});
     if (!(fee > 0)) { await logRun('error', { quote_id: qid, quote_amount: q.quote_amount, fee, has_pricing_config: !!cfg }, 'invalid_fee computed - checkout blocked (check pricing_config rates/caps and quote_amount)'); return J({ error: 'invalid_fee' }, 400); }
     const fils = Math.round(fee * 100);
-    const base = String(body.return_url || 'https://quotesdone.com').replace(/\/+$/, '');
-    const success = base + '/app?paid={CHECKOUT_SESSION_ID}&reveal=' + qid;
-    const cancel = base + '/app';
+    // 27 Jul 2026 — two defects fixed here.
+    // (1) OPEN REDIRECT. return_url was taken verbatim from the request body, so a crafted call
+    //     sent the paying customer to any domain with the Checkout Session id in the query string.
+    //     The host is now allowlisted and anything else falls back to the canonical site.
+    // (2) DEAD RETURN PAGE. success_url was `<return_url>/app?paid=…`. The portal passes
+    //     `location.origin + '/me'`, so customers landed on https://quotesdone.com/me/app — a route
+    //     that does not exist — and the query parameter was named `paid`, while CustomerPortal.tsx:417
+    //     reads `session_id`. The browser-side confirmation path (stripe_confirm) was therefore
+    //     unreachable and settlement depended entirely on the webhook.
+    const safeBase = (raw: unknown): string => {
+      const FALLBACK = 'https://quotesdone.com';
+      try {
+        const u = new URL(String(raw || FALLBACK));
+        if (u.protocol !== 'https:') return FALLBACK;
+        const h = u.hostname.toLowerCase();
+        const ok = h === 'quotesdone.com' || h === 'www.quotesdone.com' || h.endsWith('.vercel.app');
+        return ok ? (u.origin + u.pathname).replace(/\/+$/, '') : FALLBACK;
+      } catch { return FALLBACK; }
+    };
+    const base = safeBase(body.return_url) || 'https://quotesdone.com';
+    const portal = /\/me$/.test(base) ? base : (base + '/me');
+    const success = portal + '?session_id={CHECKOUT_SESSION_ID}&reveal=' + encodeURIComponent(qid);
+    const cancel = portal;
     const form = new URLSearchParams();
     form.set('mode', 'payment');
     form.set('success_url', success);
