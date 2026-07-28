@@ -26,9 +26,17 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const MODELS = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8'];
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+// FAIL-CLOSED 28 Jul 2026 (missed by the 27 Jul sweep): sec() returns undefined/'' when the
+// app_secrets read fails or the row is missing, and the guard below compared strictly, so a caller
+// posting {} matched and gained full service-role authority on a function that requires no JWT. The
+// stored secret must now be a real value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function policyRaw(k: string){ const { data } = await admin.from('decision_policy').select('value').eq('key', k).maybeSingle(); return (data as any)?.value; }
 async function policyBool(k: string){ const v = await policyRaw(k); return v === true || String(v) === 'true'; }
 async function policyNum(k: string, dflt: number){ const n = Number(await policyRaw(k)); return Number.isFinite(n) ? n : dflt; }
+// Same shape as policyBool but ON unless explicitly switched off, so the taxonomy pre-filter below
+// is live by default and can still be killed from decision_policy without a redeploy.
+async function policyOn(k: string){ const v = await policyRaw(k); return !(v === false || String(v).toLowerCase() === 'false'); }
 function parseJson(t: string){ let s=String(t||'').trim(); const f=s.match(/```(?:json)?\s*([\s\S]*?)```/i); if(f) s=f[1].trim(); try { return JSON.parse(s); } catch { const m = s.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch { /* */ } } return null; } }
 function clip(s: unknown, n: number){ return String(s == null ? '' : s).slice(0, n); }
 
@@ -77,6 +85,77 @@ async function retrieve(jobText: string, inq: any, emirate: string, diag: any = 
   return order;
 }
 
+// TAXONOMY PRE-FILTER 28 Jul 2026 (decision_policy.use_taxonomy_prefilter, default ON).
+// The canonical catalogue (catalog_domains -> catalog_subcategories) is bridged onto the trade agents
+// that actually hold category knowledge by subcategory_agent_map (sub_slug -> agent_slug), and 16309
+// of the 16394 suppliers classified in lead_subcategory (99.5%) reach an agent that exists. Routing
+// referenced none of it, so the adjudicator paid for up to 60-80 blurbs that the taxonomy already
+// knew were the wrong trade. This resolves the inquiry's DECLARED trade signal to a set of canonical
+// subcategories and reports which of the already-retrieved candidates are classified into them.
+// It is a narrowing/reordering pass over the ids hybrid retrieval returned: it never adds a
+// candidate, never touches the approved-supplier filter, the fallback, or the adjudicator, and it
+// leaves `ids` exactly as retrieved whenever the taxonomy resolves nothing or overlaps nothing.
+// The free-form summary is deliberately NOT used as input - a wrong trade guess here would narrow
+// the pool towards the wrong suppliers, which is the failure mode the whole function exists to avoid.
+const _norm = (s: unknown) => String(s ?? '').trim().toLowerCase();
+function tradeTokens(v: unknown): string[] {
+  const n = _norm(v); if (!n) return [];
+  return [n, n.replace(/[\s/]+/g, '-').replace(/[^a-z0-9_-]/g, ''), n.replace(/[\s-]+/g, '_')].filter(Boolean);
+}
+async function taxonomyPrefilter(ids: number[], inq: any, inquiryId: string, diag: any): Promise<Set<number>> {
+  const hit = new Set<number>();
+  try {
+    const tokens = new Set<string>();
+    for (const t of tradeTokens(inq.category)) tokens.add(t);
+    if (Array.isArray(inq.trades)) for (const t of inq.trades.slice(0, 16)) for (const x of tradeTokens(t)) tokens.add(x);
+    if (inquiryId) {
+      // READ ONLY. inquiry_parse is never invoked from here - that LLM call belongs to the v9
+      // capability gate; this pre-filter must stay cheap enough to be unconditional.
+      const { data: rq } = await admin.from('inquiry_requirement').select('trades_required').eq('inquiry_id', inquiryId).maybeSingle();
+      if (rq && Array.isArray((rq as any).trades_required)) for (const t of (rq as any).trades_required) for (const x of tradeTokens(t)) tokens.add(x);
+    }
+    if (!tokens.size) { diag.tax_prefilter = 'no_trade_signal'; return hit; }
+    // taxonomy_trade (25 rows) and lead_trade_map (24 rows) are the controlled vocabulary and its
+    // agent bridge - both tiny, so they are pulled whole and matched in memory.
+    const [tradesRes, mapRes] = await Promise.all([
+      admin.from('taxonomy_trade').select('code,aliases'),
+      admin.from('lead_trade_map').select('trade_key,catalog_slug,confidence'),
+    ]);
+    if (tradesRes.error || mapRes.error) { diag.tax_error = clip(tradesRes.error?.message || mapRes.error?.message, 160); return hit; }
+    const codes = new Set<string>();
+    for (const t of (tradesRes.data || [])) {
+      const code = _norm((t as any).code); if (!code) continue;
+      if (tokens.has(code)) { codes.add(code); continue; }
+      for (const a of ((t as any).aliases || [])) if (tokens.has(_norm(a))) { codes.add(code); break; }
+    }
+    // ONLY high-confidence trade->agent rows may narrow anything. The medium/low ones are explicit
+    // best-effort fudges for trades that have no agent of their own - lead_trade_map sends
+    // 'landscaping' to facilities-management-companies, whose subcategories are laundry, pest control
+    // and mailroom services. Narrowing a swimming-pool RFQ towards those would be worse than not
+    // using the taxonomy at all, so an inquiry that only resolves through a weak row resolves to
+    // nothing here and takes the untouched legacy path.
+    const agents = new Set<string>();
+    for (const r of (mapRes.data || [])) { const a = (r as any).catalog_slug; if (a && _norm((r as any).confidence) === 'high' && codes.has(_norm((r as any).trade_key))) agents.add(String(a)); }
+    // A category that is already an agent slug (e.g. 'electrical-suppliers') maps straight through;
+    // tokens that are not agent slugs simply match nothing in the bridge.
+    for (const t of tokens) agents.add(t);
+    const { data: sam, error: samErr } = await admin.from('subcategory_agent_map').select('sub_slug,confidence').in('agent_slug', [...agents].slice(0, 120));
+    if (samErr) { diag.tax_error = clip(samErr.message, 160); return hit; }
+    // Same reasoning one level down: the 'low' bridge rows are the ones whose own note says the trade
+    // has no agent and it was parked on the nearest neighbour. They must not pull candidates in.
+    const subs = [...new Set((sam || []).filter((r: any) => _norm(r.confidence) !== 'low').map((r: any) => String(r.sub_slug)).filter(Boolean))];
+    diag.tax_trades = [...codes].join('+') || null;
+    diag.tax_subcats = subs.length;
+    if (!subs.length) { diag.tax_prefilter = 'no_taxonomy_match'; return hit; }
+    // Bounded by the ids retrieval already produced, so this is an indexed lookup of at most ~80
+    // rows - never a scan of the 25k-row classification table.
+    const { data: cls, error: clsErr } = await admin.from('lead_subcategory').select('lead_id').in('sub_slug', subs.slice(0, 200)).in('lead_id', ids);
+    if (clsErr) { diag.tax_error = clip(clsErr.message, 160); return hit; }
+    for (const r of (cls || [])) { const n = Number((r as any).lead_id); if (n) hit.add(n); }
+  } catch (e) { diag.tax_exception = clip((e as Error)?.message || e, 160); }
+  return hit;
+}
+
 // v9: structured capability retrieval. Returns null when the feature is off or unusable, so the
 // caller falls through to the untouched legacy path.
 async function capabilityRetrieve(inquiryId: string, secret: string, diag: any): Promise<any[] | null> {
@@ -118,7 +197,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
     const inbound = await sec('inbound_secret');
-    if (body.__secret !== inbound) { await logRun('error', { forbidden: 1, fits: 0 }, 'route_inquiry rejected a caller with a missing/wrong inbound secret (403). No routing was performed — if this came from dispatch_inquiry, that RFQ silently produced zero supplier fits and will be miscounted as a supply coverage gap.'); return J({ error:'forbidden' }, 403); }
+    if (!secretOk(inbound) || body.__secret !== inbound) { await logRun('error', { forbidden: 1, fits: 0 }, 'route_inquiry rejected a caller with a missing/wrong inbound secret (403). No routing was performed — if this came from dispatch_inquiry, that RFQ silently produced zero supplier fits and will be miscounted as a supply coverage gap.'); return J({ error:'forbidden' }, 403); }
     const key = await sec('openrouter_api_key'); if (!key) { await logRun('error', { fits: 0, ai_key_present: 0 }, 'route_inquiry aborted: the openrouter_api_key secret is missing, so the adjudicator could not run at all. This RFQ produced no supplier fits because of a configuration failure, not because no supplier exists — every inquiry routed while this persists will be miscounted as a coverage gap.'); return J({ error:'no ai key' }, 500); }
 
     let inq = body.inquiry || {};
@@ -143,6 +222,7 @@ Deno.serve(async (req) => {
     let pool: any[] = []; let retrieval = 'hybrid';
     const diag: any = {};
     let capScores: Record<number, any> = {};
+    let taxIds = new Set<number>();
 
     // ---------- v9: structured capability path (opt-in) ----------
     const useCap = await policyBool('use_capability_matching');
@@ -171,7 +251,19 @@ Deno.serve(async (req) => {
       }
     } else {
       // ---------- legacy path, untouched ----------
-      const ids = await retrieve(jobText, inq, emirate, diag);
+      let ids = await retrieve(jobText, inq, emirate, diag);
+      // Taxonomy pre-filter: prefer the retrieved candidates that the canonical taxonomy already
+      // classifies into this trade. Everything below - the leads fetch, the approved filter, the
+      // under-8 fallback and the adjudicator - is unchanged and still sees a plain list of ids.
+      if (ids.length && await policyOn('use_taxonomy_prefilter')) {
+        taxIds = await taxonomyPrefilter(ids, inq, String(body.inquiry_id || ''), diag);
+        const preferred = ids.filter((id) => taxIds.has(id));
+        diag.tax_retrieved = ids.length; diag.tax_candidates = preferred.length;
+        const taxMin = await policyNum('taxonomy_prefilter_min', 8);
+        if (preferred.length >= taxMin) { ids = preferred; diag.tax_prefilter = 'narrowed'; }
+        else if (preferred.length) { ids = [...preferred, ...ids.filter((id) => !taxIds.has(id))]; diag.tax_prefilter = 'preferred'; }
+        else if (!diag.tax_prefilter) diag.tax_prefilter = 'no_overlap';
+      } else if (!diag.tax_prefilter) diag.tax_prefilter = 'off';
       if (ids.length) {
         const { data: rows, error: rowsErr } = await admin.from('leads').select(SUP_COLS).in('id', ids.slice(0, 80));
         if (rowsErr) diag.leads_fetch_error = clip(rowsErr.message, 160);
@@ -195,6 +287,14 @@ Deno.serve(async (req) => {
     }
 
     pool = pool.slice(0, 40);
+    // Make the pre-filter's effect measurable in the existing telemetry: agent_runs.counts gets the
+    // split, and the retrieval label (which dispatch_inquiry copies into inquiries.routing) records
+    // that the taxonomy shaped this pool at all. Composes with 'hybrid', 'hybrid+fallback', 'fallback'.
+    if (diag.tax_prefilter === 'narrowed' || diag.tax_prefilter === 'preferred') {
+      retrieval += '+taxonomy';
+      const fromTax = pool.filter((c: any) => taxIds.has(Number(c.id))).length;
+      diag.tax_pool_from_taxonomy = fromTax; diag.tax_pool_from_legacy = pool.length - fromTax;
+    }
     const retrievalBroke = !!(diag.vector_rpc_error || diag.vector_exception || diag.kw_rpc_error || diag.kw_exception || diag.leads_fetch_error || diag.approval_filter_error || diag.fallback_query_error);
     if (!pool.length) { await logRun(retrievalBroke ? 'error' : 'ok', { fits: 0, evaluated: 0, zero_fits_genuine: retrievalBroke ? 0 : 1, retrieval, ...diag }, retrievalBroke ? ('RFQ produced no supplier fits because supplier retrieval itself failed (' + clip(diag.fallback_query_error || diag.approval_filter_error || diag.leads_fetch_error || diag.kw_rpc_error || diag.kw_exception || diag.vector_rpc_error || diag.vector_exception, 140) + '), not because no supplier exists — dispatch_inquiry will record this as a supply coverage gap and the customer will be told nobody serves them, which is false.') : 'RFQ produced no supplier fits and this is genuine: retrieval and the approved-supplier fallback both ran cleanly and the approved supplier base contains nobody usable for this job. This is a real supply coverage gap.'); return J({ ok:true, job_type:null, fits:[], note:'no_registered_suppliers', retrieval }); }
 

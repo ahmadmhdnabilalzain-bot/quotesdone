@@ -50,12 +50,37 @@ async function buildService(name: string, slug: string){
     await admin.from('qd_deploy_src').update({ data: JSON.stringify(j2) }).eq('path', SERVICES);
   } catch (_e) { /* background best-effort */ }
 }
+// Every action below that only READS. Anything not on this list is refused when the caller arrived
+// through the x-os-key preview bypass (see the OS BYPASS note in Deno.serve). Derived by walking the
+// action handlers in this file one by one, not by name: pages_list and page_get select legal.json and
+// marketing.json out of qd_deploy_src, service_list selects services.json, and '' is the empty action,
+// which reaches no handler at all. Deliberately NOT here:
+//   page_save, translate, service_delete - update qd_deploy_src
+//   service_generate                     - spends OpenRouter credit and writes the new page back
+//   publish                              - calls deploy_next_preview with target:'production', i.e.
+//                                          ships whatever is in qd_deploy_src to quotesdone.com
+// An unknown action is not on the list either, so the bypass cannot reach a handler added later
+// without someone deciding it is a read.
+const READONLY = new Set(['','pages_list','page_get','service_list']);
 Deno.serve(async (req) => {
   try {
     if (req.method === 'OPTIONS') return J({ ok: true });
     let email = '';
+    // OS BYPASS FIX 28 Jul 2026. os_ops was hardened on 27 Jul and os_api on 28 Jul; this third twin
+    // carries the same branch and was missed by both passes. A single static app_secrets.os_bypass_key
+    // in an x-os-key header skipped the entire admin identity check, so anyone holding that string could
+    // rewrite the legal and marketing pages, spend OpenRouter credit generating or translating service
+    // pages, delete a service page and - worst - call publish, which posts to deploy_next_preview with
+    // target:'production' and so publishes whatever is in qd_deploy_src to quotesdone.com. The audit row
+    // then named 'os-preview@quotesdone.com', a fabricated person, so the log read as if a colleague had
+    // done it. Nothing reads through os_bypass_key and app_secrets has no os_bypass_key row, which is the
+    // only reason the branch is currently unreachable. Do NOT create that row to make a preview work; it
+    // is a static bearer secret on an admin surface. The branch is kept only so that a key created in
+    // future cannot mutate anything: it is read-only (see the READONLY gate above) and it is recorded
+    // under its own name, never as an email address. os_ops and os_api carry the same gate.
+    let viaBypass = false;
     const osKey = req.headers.get('x-os-key') || '';
-    if (osKey && osKey === (await sec('os_bypass_key'))) { email = 'os-preview@quotesdone.com'; }
+    if (osKey && osKey === (await sec('os_bypass_key'))) { email = 'os_bypass_key (no human identity)'; viaBypass = true; }
     else {
       const token = (req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'').trim();
       if (!token) return J({ error: 'unauthorized' }, 401);
@@ -66,9 +91,14 @@ Deno.serve(async (req) => {
     const b = await req.json().catch(() => ({} as any));
     const action = String(b?.action || '');
 
-    if (['page_save','publish','translate','service_generate','service_delete'].includes(action)) {
+    // A non-read action arriving on the preview key is audited here too, even when it is not one of the
+    // five named mutations: an attempt to mutate with the static key is exactly the event worth having
+    // on record, so it is logged first and refused second.
+    if (['page_save','publish','translate','service_generate','service_delete'].includes(action) || (viaBypass && !READONLY.has(action))) {
       try { const det: any = { ...b }; delete det.action; if (det.html) det.html = '[' + String(det.html).length + ' chars]'; await admin.from('os_audit_log').insert({ actor: email, action, entity: b.source || (action.startsWith('service')?'services':'site'), entity_id: b.slug || b.name || null, detail: det }); } catch (_e) {}
     }
+    // Deliberately after the audit insert, for the reason given above.
+    if (viaBypass && !READONLY.has(action)) return J({ error: 'forbidden', hint: 'the x-os-key preview key is read-only — sign in with an admin account to make changes' }, 403);
 
     if (action === 'pages_list') {
       const out: any[] = [];
@@ -135,7 +165,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'publish') {
-      const r = await fetch(`${FN_BASE}/deploy_next_preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), target: 'production' }) });
+      const r = await fetch(`${FN_BASE}/deploy_next_preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __deploy_secret: (await sec('deploy_secret')) || (await sec('inbound_secret')), target: 'production' }) });
       const jd = await r.json().catch(() => ({}));
       if (!(jd as any)?.ok) return J({ error: (jd as any)?.error || 'deploy_failed' }, 502);
       return J({ ok: true, data: { id: (jd as any).id, url: (jd as any).url } });

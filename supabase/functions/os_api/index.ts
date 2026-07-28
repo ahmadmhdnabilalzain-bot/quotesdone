@@ -1,4 +1,4 @@
-// os_api v30 — backend for QuotesDone OS. JWT-gated; owner/admin only (or x-os-key preview bypass). + audit trail. + secretary console passthrough.
+// os_api — backend for QuotesDone OS. JWT-gated; owner/admin only (or a read-only x-os-key preview bypass). + audit trail. + secretary console passthrough.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const BASE = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
@@ -23,14 +23,41 @@ const WS: Record<string, string> = {
   'ws.fraud': 'fn_ws_fraud', 'ws.refunds': 'fn_ws_refunds',
 };
 const OSAPI_MUTATIONS = new Set(['inbox_send','fraud_resolve','refund_resolve','prompt_approve','prompt_rollback','prompt_gate','comment_add','review_decide','blog_publish','knowledge_dispatch','knowledge_refresh','exam_run','exam_revert']);
+// Every action below that only READS. Anything not on this list is refused when the caller arrived
+// through the x-os-key preview bypass (see the OS BYPASS note in Deno.serve). Derived by walking the
+// action handlers in this file one by one, not by name: each RPC listed here was checked in the
+// database and performs no persistent write (fn_ws_agents fills a `create temp ... on commit drop`
+// table and nothing else). Deliberately NOT here, even though they read something first:
+//   report_pdf     - renders and stores a PDF object in the finance-reports bucket
+//   extract_doc    - reads no record; hands caller-supplied bytes to extract_text under inbound_secret
+//   secretary_chat - drives the secretary agent, which acts
+// and the thirteen entries of OSAPI_MUTATIONS above. An unknown action is not on the list either, so
+// the bypass cannot reach a handler added later without someone deciding it is a read.
+const READONLY = new Set([
+  'ping','dashboard','viz','suppliers_board','rfq_board','customers_board','agents_board','activity','nav',
+  'inbox','search','record','files','file','prompt_view','marketing_studio','knowledge_gaps','exam_summary','knowledge_export',
+  'ws.suppliers','ws.supplier','ws.customer','ws.agent','ws.rfq',
+  'ws.exec','ws.marketplace','ws.customers','ws.operations','ws.ai','ws.knowledge','ws.documents','ws.analytics',
+  'ws.company','ws.finance','ws.agents','ws.marketing','ws.ea','ws.reports','ws.strategy','ws.governance','ws.fraud','ws.refunds',
+]);
 
 Deno.serve(async (req) => {
   try {
     if (req.method === 'OPTIONS') return J({ ok: true });
     const authHeader = req.headers.get('Authorization') || '';
     let email = '';
+    // OS BYPASS FIX 28 Jul 2026. os_ops was hardened on 27 Jul; this twin was missed. A single static
+    // app_secrets.os_bypass_key in an x-os-key header skipped the entire admin identity check on a
+    // function that runs with verify_jwt:false, so anyone holding that string could send from the
+    // inbox, resolve a fraud case or a refund, approve or roll back a prompt, publish a blog post,
+    // dispatch knowledge, run or revert an exam, comment or decide a review - and the audit row named
+    // 'os-preview@quotesdone.com', a fabricated person, so the log read as if a colleague had done it.
+    // Nothing reads through this key and no app_secrets row for it exists today, which is the only
+    // reason the hole was inert: creating that row alone would have opened it. It is now read-only
+    // (see the READONLY gate below) and it is recorded under its own name, never as an email address.
+    let viaBypass = false;
     const osKey = req.headers.get('x-os-key') || '';
-    if (osKey && osKey === (await sec('os_bypass_key'))) { email = 'os-preview@quotesdone.com'; }
+    if (osKey && osKey === (await sec('os_bypass_key'))) { email = 'os_bypass_key (no human identity)'; viaBypass = true; }
     else {
       const token = authHeader.replace(/^Bearer\s+/i, '').trim();
       if (!token) return J({ error: 'unauthorized' }, 401);
@@ -44,7 +71,10 @@ Deno.serve(async (req) => {
     const action = (body?.action as string) || 'ping';
 
     // ---- audit trail for os_api mutations (never block) ----
-    if (OSAPI_MUTATIONS.has(action)) {
+    // A non-read action arriving on the preview key is audited here too, even when it is not one of
+    // OSAPI_MUTATIONS: an attempt to mutate with the static key is exactly the event worth having on
+    // record, so it is logged first and refused second.
+    if (OSAPI_MUTATIONS.has(action) || (viaBypass && !READONLY.has(action))) {
       try {
         const det: any = { ...body }; delete det.action;
         const ent = String(body?.subject_type || (body?.transaction_id ? 'transactions' : '') || (body?.key ? 'prompt' : ''));
@@ -52,6 +82,8 @@ Deno.serve(async (req) => {
         await admin.from('os_audit_log').insert({ actor: email, action, entity: ent || null, entity_id: eid || null, detail: det });
       } catch (_e) { /* audit must never break the operation */ }
     }
+    // Deliberately after the audit insert, for the reason given above.
+    if (viaBypass && !READONLY.has(action)) return J({ error: 'forbidden', hint: 'the x-os-key preview key is read-only — sign in with an admin account to make changes' }, 403);
 
     if (action === 'ping') return J({ ok: true, user: email });
     if (action === 'dashboard') { const { data, error } = await admin.rpc('fn_os_command'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }

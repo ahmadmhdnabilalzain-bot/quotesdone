@@ -10,6 +10,11 @@ const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
 const MAX_ATTEMPTS = 3;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+// FAIL-CLOSED 28 Jul 2026 (missed by the 27 Jul sweep): sec() returns undefined/'' when the
+// app_secrets read fails or the row is missing, and the guard below compared strictly, so a caller
+// posting {} matched and gained full service-role authority on a function that requires no JWT. The
+// stored secret must now be a real value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function tmplRow(n: string) { try { const { data } = await admin.from('templates').select('content').eq('name', n).maybeSingle(); return (data?.content as string) || ''; } catch { return ''; } }
 function esc(s: string) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function linkify(s: string) { return s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#0d9488">$1</a>'); }
@@ -71,7 +76,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const inbound = await sec('inbound_secret');
-    if (body.__secret !== inbound) { await logThrottled('forbidden', 60, 'error', {}, 'send_outbox called without the inbound secret'); return J({ error: 'forbidden' }, 403); }
+    if (!secretOk(inbound) || body.__secret !== inbound) { await logThrottled('forbidden', 60, 'error', {}, 'send_outbox called without the inbound secret'); return J({ error: 'forbidden' }, 403); }
     // Preview mode: render the internal/branded template for a sample body without sending.
     if (body.preview) {
       const logo = (await sec('email_logo_url')) || '';
@@ -114,7 +119,14 @@ Deno.serve(async (req) => {
     };
     let lastErr = '';
     for (const n of rows) {
-      if (n.channel === 'sms') { skipped++; continue; }
+      // WHATSAPP ROWS EATEN 27 Jul 2026 - the select above pulls every queued row of EVERY channel but
+      // this line excluded only 'sms', and the next line marks any row with no to_email as 'skipped'.
+      // WhatsApp notifications carry to_phone and never to_email, so each one this poller reached was
+      // flipped to 'skipped' before send_whatsapp (which drains channel='whatsapp' AND status='queued')
+      // could see it. Running every 2 minutes, this poller almost always won the race - the WhatsApp
+      // message was destroyed, not delayed. Exclude 'whatsapp' exactly as 'sms' is excluded: leave the
+      // row untouched at 'queued' so its own sender can drain it.
+      if (n.channel === 'sms' || n.channel === 'whatsapp') { skipped++; continue; }
       if (!n.to_email) { await admin.from('notifications').update({ status: 'skipped' }).eq('id', n.id); continue; }
       if (supSet.has(n.to_email)) { await admin.from('notifications').update({ status: 'suppressed' }).eq('id', n.id); suppressed++; continue; }
       const ageH = (Date.now() - new Date(n.created_at).getTime()) / 3.6e6;

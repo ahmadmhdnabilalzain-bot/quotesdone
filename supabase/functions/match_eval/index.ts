@@ -14,6 +14,11 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 }
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+// FAIL-CLOSED 28 Jul 2026 (missed by the 27 Jul sweep): sec() returns undefined/'' when the
+// app_secrets read fails or the row is missing, and the guard below compared strictly, so a caller
+// posting {} matched and gained full service-role authority on a function that requires no JWT. The
+// stored secret must now be a real value before any caller value can equal it.
+const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 
 // fixture sellers (distinct trades) — capability_summary is what the adjudicator judges on
 const FIX = [
@@ -37,7 +42,7 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(()=>({} as any));
   const inbound = await sec('inbound_secret');
   if (!inbound) { await logRun('error', { stage:'config' }, 'inbound_secret missing from app_secrets: match_eval can never authenticate itself to route_inquiry, so the matching precision/recall benchmark never runs and match-quality regressions stay invisible'); }
-  if (body.__secret !== inbound) { await logRun('error', { stage:'auth', rejected:1 }, 'Rejected a call with a wrong or missing __secret; the matching benchmark did not run, so any degradation in supplier-match precision/recall goes unmeasured'); return J({ error:'forbidden' }, 403); }
+  if (!secretOk(inbound) || body.__secret !== inbound) { await logRun('error', { stage:'auth', rejected:1 }, 'Rejected a call with a wrong or missing __secret; the matching benchmark did not run, so any degradation in supplier-match precision/recall goes unmeasured'); return J({ error:'forbidden' }, 403); }
   const created: number[] = []; const tagById = new Map<number,string>();
   try {
     const seedFails: string[] = [];

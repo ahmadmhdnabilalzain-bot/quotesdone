@@ -11,8 +11,15 @@ Deno.serve(async (req) => {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
-    const admins = (await sec('admin_emails')).toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
-    if (admins.length && !admins.includes(user.email.toLowerCase())) return J({ error: 'admin only' }, 403);
+    // FAIL-OPEN FIX 28 Jul 2026. The gate read `if (admins.length && !admins.includes(...))`, so it only
+    // applied when admin_emails was readable and non-empty. With that row missing, renamed, or the read
+    // returning nothing, admins was empty, the whole check was skipped and any authenticated user - every
+    // supplier and customer holding a QuotesDone login - could read board_reports in full. A guard must
+    // never be conditional on its own config being readable. It now falls closed to the founder and runs
+    // unconditionally, the same shape canon_eval, content_revise, dept_plan, dept_learn, marketing_draft,
+    // analytics_recommend and boost_recommend already use.
+    const admins = (await sec('admin_emails') || 'management@quotesdone.com').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+    if (!admins.includes(user.email.toLowerCase())) return J({ error: 'admin only' }, 403);
     const b = await req.json().catch(() => ({} as any));
     const id = Number(b.id);
     if (!id) return J({ error: 'id required' }, 400);
