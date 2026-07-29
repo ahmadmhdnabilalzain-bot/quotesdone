@@ -21,7 +21,14 @@ export function generateStaticParams() {
 // Per-page generateMetadata supplies title/description/canonical/hreflang.
 // Only the template lives here so pages never inherit an English title in Arabic.
 export const metadata: Metadata = {
-  title: { default: 'QuotesDone', template: '%s' }
+  title: { default: 'QuotesDone', template: '%s' },
+  applicationName: 'QuotesDone',
+  appleWebApp: { capable: true, title: 'QuotesDone', statusBarStyle: 'black-translucent' },
+  manifest: '/manifest.webmanifest',
+};
+
+export const viewport = {
+  themeColor: '#0C2330',
 };
 
 export default async function LocaleLayout(props: { children: React.ReactNode; params: Promise<{ locale: string }> }) {
@@ -44,12 +51,16 @@ export default async function LocaleLayout(props: { children: React.ReactNode; p
     : `${body.variable} ${head.variable} ${mono.variable}`;
   const headVar = locale === 'ar' ? 'var(--font-ar)' : 'var(--font-head-latin)';
   const bodyVar = locale === 'ar' ? 'var(--font-ar)' : 'var(--font-body-latin)';
+  // JetBrains Mono is Latin-only, so Arabic in any mono class renders as tofu.
+  // Tajawal covers Latin + tabular figures, so data (AED, region codes) is safe.
+  const monoVar = locale === 'ar' ? 'var(--font-ar)' : 'var(--font-mono-latin)';
 
   return (
     <html lang={locale} dir={dir} className={fontVars}
           style={{ ['--font-head' as string]: headVar, ['--font-body' as string]: bodyVar,
-                   ['--font-mono' as string]: 'var(--font-mono-latin)' } as React.CSSProperties}>
+                   ['--font-mono' as string]: monoVar } as React.CSSProperties}>
       <body className="font-sans">
+        <div className="aurora" aria-hidden />
         <NodeField />
         <NextIntlClientProvider messages={messages}>{children}<CookieConsent /><ChatWidget /></NextIntlClientProvider>
       </body>

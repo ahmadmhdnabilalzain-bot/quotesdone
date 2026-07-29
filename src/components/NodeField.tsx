@@ -9,16 +9,19 @@ import { useEffect, useRef } from 'react';
  *
  * Perf notes (learned the hard way):
  *  · DPR pinned to 1: this is decoration, retina is indistinguishable here.
- *  · Desktop ~30fps with a constellation + a radial falloff painted INTO the
+ *  · Desktop ~36fps with a constellation + a radial falloff painted INTO the
  *    canvas — a CSS mask on a fixed full-viewport layer re-blends every frame,
  *    so the falloff is a single destination-in composite instead.
+ *  · The pointer is a first-class light: nearby nodes brighten and thread
+ *    connection lines to the cursor, so the field reacts to the visitor.
  *  · MOBILE is a different budget. That per-frame destination-in fillRect reads
  *    back and re-blends the WHOLE surface every frame, and the O(n²) constellation
  *    stroke adds hundreds of path ops — together they make phones stutter. On
  *    phones we drop BOTH: no lines, no composite. The same radial falloff is baked
- *    into each dot's alpha (O(n), not O(pixels)), the loop runs at ~24fps, there is
- *    no pointer-parallax (phones have no hover), and resize ignores height-only
- *    changes so the address bar collapsing mid-scroll can't re-init the canvas.
+ *    into each dot's alpha (O(n), not O(pixels)), the loop runs at ~24fps. Touch
+ *    gently steers the light source (one cheap lerp), but there is no per-node
+ *    pointer math, and resize ignores height-only changes so the address bar
+ *    collapsing mid-scroll can't re-init the canvas.
  */
 export function NodeField() {
   const ref = useRef<HTMLCanvasElement | null>(null);
@@ -31,9 +34,11 @@ export function NodeField() {
 
     const rtl = document.documentElement.dir === 'rtl';
     const mob = window.innerWidth < 760;
-    const minDelta = mob ? 42 : 32;            // ~24fps on phones, ~30fps on desktop
+    const minDelta = mob ? 42 : 28;            // ~24fps on phones, ~36fps on desktop
     let W = 0, H = 0, live = true, last = 0, raf = 0, lastW = 0;
     let mx = 0, my = 0, tmx = 0, tmy = 0, sk = 0;
+    // Pointer in pixel space (for the interactive light). -1 => no pointer yet.
+    let ptx = -1, pty = -1, cptx = -1, cpty = -1, pOn = 0, tpOn = 0;
     const N = mob ? 40 : 130;
     type Node = { x: number; y: number; z: number; vx: number; vy: number };
     let nodes: Node[] = [];
@@ -61,12 +66,27 @@ export function NodeField() {
     const onMove = (e: PointerEvent) => {
       tmx = e.clientX / window.innerWidth - 0.5;
       tmy = e.clientY / window.innerHeight - 0.5;
+      ptx = e.clientX; pty = e.clientY; tpOn = 1;
       if (queued) return; queued = true;
       requestAnimationFrame(() => { queued = false; });
     };
+    const onLeave = () => { tpOn = 0; };
+    // Touch: steer the light source on phones (cheap — just updates targets).
+    const onTouch = (e: TouchEvent) => {
+      const t = e.touches[0]; if (!t) return;
+      tmx = t.clientX / window.innerWidth - 0.5;
+      tmy = t.clientY / window.innerHeight - 0.5;
+      ptx = t.clientX; pty = t.clientY; tpOn = 1;
+    };
     addEventListener('resize', onResize, { passive: true });
     addEventListener('scroll', onScroll, { passive: true });
-    if (!mob) addEventListener('pointermove', onMove, { passive: true });
+    if (!mob) {
+      addEventListener('pointermove', onMove, { passive: true });
+      addEventListener('pointerleave', onLeave, { passive: true });
+    } else {
+      addEventListener('touchmove', onTouch, { passive: true });
+      addEventListener('touchstart', onTouch, { passive: true });
+    }
     const onVis = () => { live = !document.hidden; };
     document.addEventListener('visibilitychange', onVis);
 
@@ -77,11 +97,18 @@ export function NodeField() {
       last = ts;
 
       if (!mob) { mx += (tmx - mx) * 0.045; my += (tmy - my) * 0.045; }
+      // Smooth the interactive light toward the pointer and fade its influence.
+      pOn += (tpOn - pOn) * 0.06;
+      if (cptx < 0 && ptx >= 0) { cptx = ptx; cpty = pty; }
+      if (ptx >= 0) { cptx += (ptx - cptx) * 0.12; cpty += (pty - cpty) * 0.12; }
       ctx.clearRect(0, 0, W, H);
 
       const cx = rtl ? W * 0.42 : W * 0.58, cy = H * 0.48;
       const dim = 1 - sk * 0.82;
-      const gx = rtl ? W * 0.24 : W * 0.76, gy = H * 0.14;   // the light source
+      // On mobile, the light source itself drifts toward the last touch.
+      const baseGx = rtl ? W * 0.24 : W * 0.76, baseGy = H * 0.14;
+      const gx = mob && cptx >= 0 ? baseGx + (cptx - baseGx) * 0.5 * pOn : baseGx;
+      const gy = mob && cpty >= 0 ? baseGy + (cpty - baseGy) * 0.5 * pOn : baseGy;
       const pts: { x: number; y: number; r: number; z: number }[] = [];
       for (const n of nodes) {
         n.x += n.vx; n.y += n.vy;
@@ -108,7 +135,7 @@ export function NodeField() {
         return;
       }
 
-      // ── Desktop: constellation + dots + one composite falloff. ──
+      // ── Desktop: constellation + dots + cursor light + one composite falloff. ──
       if (!fade || fw !== W || fh !== H) {
         const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, Math.max(W, H) * 1.05);
         g.addColorStop(0, 'rgba(255,255,255,1)');
@@ -132,6 +159,31 @@ export function NodeField() {
       }
       ctx.stroke();
 
+      // ── Cursor light: thread bright teal lines to nearby nodes and pull them ──
+      // toward the pointer, so the field visibly reacts to the visitor.
+      const infl = pOn * dim;
+      if (cptx >= 0 && infl > 0.02) {
+        const RR = 168, RR2 = RR * RR;
+        ctx.lineWidth = 0.85;
+        for (const q of pts) {
+          const dx = q.x - cptx, dy = q.y - cpty;
+          const d2 = dx * dx + dy * dy;
+          if (d2 > RR2) continue;
+          const t = 1 - Math.sqrt(d2) / RR;             // 0..1, nearer = stronger
+          ctx.strokeStyle = `rgba(110,231,212,${(0.5 * t * t * infl).toFixed(3)})`;
+          ctx.beginPath(); ctx.moveTo(cptx, cpty); ctx.lineTo(q.x, q.y); ctx.stroke();
+          // brighten the node itself
+          ctx.fillStyle = `rgba(180,245,235,${(0.7 * t * infl).toFixed(3)})`;
+          ctx.beginPath(); ctx.arc(q.x, q.y, q.r + t * 1.3, 0, 6.283); ctx.fill();
+        }
+        // a soft glow core at the pointer
+        const cg = ctx.createRadialGradient(cptx, cpty, 0, cptx, cpty, 90);
+        cg.addColorStop(0, `rgba(110,231,212,${(0.16 * infl).toFixed(3)})`);
+        cg.addColorStop(1, 'rgba(110,231,212,0)');
+        ctx.fillStyle = cg;
+        ctx.beginPath(); ctx.arc(cptx, cpty, 90, 0, 6.283); ctx.fill();
+      }
+
       for (const q of pts) {
         ctx.fillStyle = `rgba(150,201,214,${((0.2 + (1.15 - q.z) * 0.55) * dim).toFixed(3)})`;
         ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 6.283); ctx.fill();
@@ -153,7 +205,13 @@ export function NodeField() {
       cancelAnimationFrame(raf);
       removeEventListener('resize', onResize);
       removeEventListener('scroll', onScroll);
-      if (!mob) removeEventListener('pointermove', onMove);
+      if (!mob) {
+        removeEventListener('pointermove', onMove);
+        removeEventListener('pointerleave', onLeave);
+      } else {
+        removeEventListener('touchmove', onTouch);
+        removeEventListener('touchstart', onTouch);
+      }
       document.removeEventListener('visibilitychange', onVis);
     };
   }, []);

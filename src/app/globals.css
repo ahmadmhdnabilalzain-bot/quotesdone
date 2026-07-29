@@ -59,6 +59,220 @@ p{text-wrap:pretty}
 .surface-hover{transition:border-color .22s var(--e),transform .22s var(--e)}
 .surface-hover:hover{border-color:var(--line2);transform:translateY(-3px)}
 
+/* ══════════════════════════════════════════════════════════════════════
+   PREMIUM DEPTH LAYER
+   Additive utilities that deepen the existing key-light model — never a
+   new palette. Glass, layered navy-tinted shadow, neon hairline borders,
+   and a soft mesh glow, all derived from the brand teal/gold/navy tokens.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Glassmorphism: a lit, frosted surface that sits above the node field. */
+.glass{
+  background:linear-gradient(168deg,rgba(23,58,75,.55),rgba(10,27,38,.42));
+  border:1px solid var(--line2);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);
+  backdrop-filter:blur(16px) saturate(140%);
+  box-shadow:var(--key),0 30px 80px -50px rgba(0,12,20,.95),0 2px 10px -6px rgba(0,12,20,.7);
+}
+
+/* Multi-layered luxury lift — stacked navy-tinted shadows read as real depth. */
+.depth{
+  box-shadow:
+    var(--key),
+    0 2px 6px -3px rgba(0,12,20,.55),
+    0 12px 28px -14px rgba(0,12,20,.8),
+    0 44px 110px -60px rgba(0,12,20,.98);
+}
+
+/* Neon hairline border that lights on hover — hyper-minimal, brand teal. */
+.neon-edge{position:relative;isolation:isolate}
+.neon-edge::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:linear-gradient(140deg,rgba(110,231,212,.5),rgba(110,231,212,0) 42%,rgba(227,192,101,.4));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:0;transition:opacity .35s var(--e);
+}
+@media (hover:hover){ .neon-edge:hover::before{opacity:1} }
+
+/* Soft radial mesh glow — a single subtle accent bloom, no gradient soup. */
+.mesh-glow{position:relative;isolation:isolate}
+.mesh-glow::after{
+  content:'';position:absolute;inset:-1px;z-index:-1;border-radius:inherit;pointer-events:none;
+  background:
+    radial-gradient(60% 90% at 15% 0%,rgba(20,184,166,.16),transparent 60%),
+    radial-gradient(55% 80% at 100% 100%,rgba(227,192,101,.10),transparent 62%);
+}
+
+/* Ambient section bloom — a wide, low-opacity teal halo behind a hero band. */
+.bloom{position:relative;isolation:isolate}
+.bloom::before{
+  content:'';position:absolute;z-index:-1;inset:auto;left:50%;top:0;translate:-50% -38%;
+  width:min(1040px,130%);height:600px;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(20,184,166,.22),transparent 72%);
+  filter:blur(10px);
+}
+
+/* Sharpen display type — optical rendering for razor-sharp headlines. */
+.crisp{text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LIVING MOTION — always-on, ambient. This is what makes the page feel
+   alive at rest: a slow brand-colored aurora drifts behind everything, the
+   engine instrument breathes and scans, raised surfaces float. All of it is
+   GPU-cheap (transform/opacity only) and fully disabled for reduced-motion.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* AURORA — a slow drift of teal/gold light behind the whole document. */
+.aurora{
+  position:fixed;inset:-25% -12% auto -12%;height:135vh;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(38% 44% at 20% 26%,rgba(20,184,166,.22),transparent 60%),
+    radial-gradient(34% 40% at 84% 18%,rgba(227,192,101,.13),transparent 62%),
+    radial-gradient(46% 52% at 66% 84%,rgba(11,130,118,.20),transparent 64%);
+  filter:blur(34px);
+  animation:qd-aurora 24s var(--e) infinite alternate;
+  will-change:transform,opacity;
+}
+@keyframes qd-aurora{
+  0%  {transform:translate3d(-3%,-2%,0) scale(1.05) rotate(0deg);  opacity:.72}
+  50% {transform:translate3d(5%, 3%,0)  scale(1.16) rotate(4deg);  opacity:1}
+  100%{transform:translate3d(-2%,4%,0)  scale(1.08) rotate(-3deg); opacity:.8}
+}
+@media(max-width:1040px){.aurora{opacity:.62;filter:blur(26px)}}
+
+/* FLOAT — a gentle vertical drift for raised instruments/cards. */
+@keyframes qd-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-11px)}}
+.qd-float{animation:qd-float 7.5s var(--e) infinite;will-change:transform}
+
+/* PULSE — a live-status halo that ripples outward. */
+@keyframes qd-pulse{
+  0%  {box-shadow:0 0 0 0 rgba(20,184,166,.55)}
+  70% {box-shadow:0 0 0 9px rgba(20,184,166,0)}
+  100%{box-shadow:0 0 0 0 rgba(20,184,166,0)}
+}
+.qd-pulse{animation:qd-pulse 2.4s ease-out infinite}
+
+/* SCAN — a soft light sweep down the engine instrument, reading as "working". */
+@keyframes qd-scan{0%{transform:translateY(-120%)}100%{transform:translateY(820%)}}
+.qd-scan{position:absolute;inset-inline:0;top:0;height:14%;pointer-events:none;z-index:20;
+  background:linear-gradient(180deg,transparent,rgba(110,231,212,.10),transparent);
+  animation:qd-scan 5.5s var(--e) infinite;will-change:transform}
+
+/* SHIMMER — a slow sheen that travels across a headline gradient. */
+@keyframes qd-shimmer{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+
+@media (prefers-reduced-motion:reduce){
+  .neon-edge::before{transition:none}
+  .aurora,.qd-float,.qd-pulse,.qd-scan{animation:none}
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   HUD / TECHNICAL LAYER
+   A precision-instrument vocabulary that reframes the page from "cards on a
+   background" to "readouts on an instrument": a faint measurement grid,
+   L-shaped corner brackets, indexed section headers and a live node dot.
+   All static or transform-only, brand teal, and cheap on mobile.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Measurement grid — a faint blueprint plane, masked so it fades at edges. */
+.grid-tech{position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(110,231,212,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(110,231,212,.055) 1px,transparent 1px);
+  background-size:56px 56px;
+  -webkit-mask-image:radial-gradient(ellipse 80% 74% at 50% 30%,#000 36%,transparent 78%);
+  mask-image:radial-gradient(ellipse 80% 74% at 50% 30%,#000 36%,transparent 78%);
+}
+.grid-tech-sm{background-size:32px 32px}
+@media(max-width:760px){.grid-tech{background-size:40px 40px}}
+
+/* Four L-shaped corner brackets drawn with backgrounds — no extra elements. */
+.corners{--cc:rgba(110,231,212,.5);--cs:15px;--ct:1px;pointer-events:none;
+  background:
+    linear-gradient(var(--cc),var(--cc)) 0 0/var(--cs) var(--ct) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 0 0/var(--ct) var(--cs) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 100% 0/var(--cs) var(--ct) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 100% 0/var(--ct) var(--cs) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 0 100%/var(--cs) var(--ct) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 0 100%/var(--ct) var(--cs) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 100% 100%/var(--cs) var(--ct) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 100% 100%/var(--ct) var(--cs) no-repeat;
+}
+
+/* A live status dot with a soft breathing ring (used to head each section). */
+.node-dot{position:relative;display:inline-block;width:7px;height:7px;border-radius:99px;
+  background:var(--teal);box-shadow:0 0 10px rgba(20,184,166,.9)}
+.node-dot::after{content:'';position:absolute;inset:-4px;border-radius:99px;
+  border:1px solid rgba(20,184,166,.5);animation:qd-pulse 2.4s ease-out infinite}
+
+/* A hairline connector rail for the process sequence. */
+.rail{position:absolute;height:1px;top:0;inset-inline:0;
+  background:linear-gradient(90deg,transparent,var(--line2) 12%,var(--line2) 88%,transparent)}
+
+/* Techy press feedback — a crisp, satisfying push-down on tap. */
+.press{transition:transform .13s var(--e)}
+.press:active{transform:scale(.96)}
+@media (prefers-reduced-motion:reduce){.node-dot::after{animation:none}.press{transition:none}}
+
+/* ══════════════════════════════════════════════════════════════════════
+   COMMAND-DECK REWORK LAYER
+   The homepage is reframed as one continuous intelligent instrument:
+   centered section kickers, a display type treatment, an animated data
+   beam threading the process, a seamless marquee, and a rotating conic
+   halo for the hero. Brand teal/gold only; all transform/opacity.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Gradient display text — a teal→paper→gold sheen for the biggest headlines. */
+.text-brand-grad{
+  background:linear-gradient(96deg,#EAF4F2 0%,#6EE7D4 42%,#EAF4F2 62%,#E3C065 100%);
+  background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+  animation:qd-shimmer 9s linear infinite;
+}
+@media (prefers-reduced-motion:reduce){.text-brand-grad{animation:none}}
+
+/* A crisp hairline that separates each section with a centered node. */
+.divider-node{position:relative;height:1px;
+  background:linear-gradient(90deg,transparent,var(--line2) 20%,var(--line2) 80%,transparent)}
+.divider-node::after{content:'';position:absolute;left:50%;top:50%;width:5px;height:5px;
+  translate:-50% -50%;border-radius:99px;background:var(--teal);
+  box-shadow:0 0 10px rgba(20,184,166,.9)}
+
+/* Animated data beam — a pulse of light travels the process connector. */
+.beam{position:absolute;top:0;inset-inline:0;height:1px;overflow:visible;
+  background:linear-gradient(90deg,transparent,var(--line2) 12%,var(--line2) 88%,transparent)}
+.beam::after{content:'';position:absolute;top:-1px;left:0;width:120px;height:3px;border-radius:99px;
+  background:linear-gradient(90deg,transparent,rgba(110,231,212,.95),transparent);
+  filter:blur(.3px);animation:qd-beam 4.6s var(--e) infinite}
+@keyframes qd-beam{0%{left:-16%;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:100%;opacity:0}}
+[dir="rtl"] .beam::after{animation-direction:reverse}
+@media (prefers-reduced-motion:reduce){.beam::after{animation:none;opacity:0}}
+
+/* Seamless marquee for the trust/coverage ticker. */
+.marquee{display:flex;width:max-content;animation:qd-marquee 34s linear infinite}
+.marquee:hover{animation-play-state:paused}
+@keyframes qd-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+[dir="rtl"] .marquee{animation-direction:reverse}
+@media (prefers-reduced-motion:reduce){.marquee{animation:none}}
+
+/* Rotating conic halo — a slow "engine ring" behind the hero instrument. */
+.halo{position:absolute;border-radius:99px;pointer-events:none;z-index:-1;
+  background:conic-gradient(from 0deg,transparent 0deg,rgba(20,184,166,.22) 60deg,transparent 140deg,rgba(227,192,101,.14) 220deg,transparent 300deg);
+  filter:blur(30px);animation:qd-rotate 22s linear infinite;will-change:transform}
+@keyframes qd-rotate{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.halo{animation:none}}
+
+/* Numbered chip used across the reworked bento cards. */
+.idx{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";letter-spacing:.02em}
+
+/* Card hover lift shared by the new bento tiles. */
+.tile{transition:transform .4s var(--e),border-color .4s var(--e),box-shadow .4s var(--e)}
+@media (hover:hover){.tile:hover{transform:translateY(-4px)}}
+@media (prefers-reduced-motion:reduce){.tile{transition:none}.tile:hover{transform:none}}
+
 /* ── the key light sweeps the primary action ──────────────────────── */
 .btn-key{position:relative;overflow:hidden;isolation:isolate}
 .btn-key::after{content:'';position:absolute;inset:0;transform:translateX(-120%);
@@ -231,6 +445,29 @@ button,a{touch-action:manipulation;-webkit-tap-highlight-color:rgba(20,184,166,.
 
 /* Section rhythm: the portal was uniformly spaced, which flattens hierarchy. */
 .qd-section + .qd-section{margin-top:26px}
+
+/* ── PORTAL COMMAND-DECK ENTRY ─────────────────────────────────────────
+   Aligns the supplier sign-in with the marketing site's command-deck
+   language: a brand-mark badge, gradient title, and corner-bracket frame
+   on the auth card, plus a hairline glow under the sticky top bar. */
+.qd-topbar{box-shadow:0 1px 0 rgba(110,231,212,.10),0 18px 40px -34px rgba(0,12,20,.9)}
+.qd-brandbadge{background:linear-gradient(168deg,rgba(20,184,166,.22),rgba(20,184,166,.05));
+  border:1px solid var(--line2);
+  box-shadow:inset 0 1px 0 rgba(110,231,212,.28),0 18px 34px -18px rgba(20,184,166,.7)}
+.qd-grad-text{background:linear-gradient(96deg,#EAF4F2 0%,#6EE7D4 46%,#EAF4F2 62%,#E3C065 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+/* Four corner ticks drawn from a single pseudo-element. */
+.qd-login::after{content:'';position:absolute;inset:9px;pointer-events:none;opacity:.5;
+  background:
+   linear-gradient(#6ee7d4,#6ee7d4) 0 0/13px 2px,
+   linear-gradient(#6ee7d4,#6ee7d4) 0 0/2px 13px,
+   linear-gradient(#6ee7d4,#6ee7d4) 100% 0/13px 2px,
+   linear-gradient(#6ee7d4,#6ee7d4) 100% 0/2px 13px,
+   linear-gradient(#6ee7d4,#6ee7d4) 0 100%/13px 2px,
+   linear-gradient(#6ee7d4,#6ee7d4) 0 100%/2px 13px,
+   linear-gradient(#6ee7d4,#6ee7d4) 100% 100%/13px 2px,
+   linear-gradient(#6ee7d4,#6ee7d4) 100% 100%/2px 13px;
+  background-repeat:no-repeat}
 
 /* ══════════════════════════════════════════════════════════════════
    ARABIC TYPOGRAPHY LAYER

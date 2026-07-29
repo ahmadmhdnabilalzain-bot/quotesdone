@@ -47,18 +47,22 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
     <>
       <SiteHeader />
       <main id="main" className="container-x py-beat-s md:py-beat" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-        <nav aria-label="Breadcrumb" className="mb-8 font-mono text-[11px] text-faint">
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.05] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-faint backdrop-blur"
+        >
+          <span className="node-dot" aria-hidden />
           <Link href="/" className="transition-colors hover:text-teal-light">Home</Link>
-          <span className="mx-2">·</span>
+          <span className="text-teal/50">/</span>
           <Link href="/blog/" className="transition-colors hover:text-teal-light">Blog</Link>
         </nav>
 
         <article className="max-w-[820px]">
           <header className="border-b border-[var(--line)] pb-8">
             {p.category && (
-              <p className="text-[13px] font-medium text-teal-light">{p.category}</p>
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">{p.category}</p>
             )}
-            <h1 lang="en" dir="ltr" className="mt-3 max-w-[20ch] text-balance font-head text-[clamp(28px,4vw,46px)] font-semibold leading-[1.08] tracking-[-0.035em] text-white">
+            <h1 lang="en" dir="ltr" className="text-brand-grad mt-4 max-w-[20ch] text-balance font-head text-[clamp(28px,4vw,46px)] font-semibold leading-[1.08] tracking-[-0.035em]">
               {p.title}
             </h1>
             {p.excerpt && (
@@ -84,8 +88,13 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
             dangerouslySetInnerHTML={{ __html: p.body_html }}
           />
 
-          <aside className="surface mt-14 rounded-[22px] p-8 text-center">
-            <h2 className="text-balance font-head text-[22px] font-semibold tracking-[-0.02em] text-white">
+          <aside className="glass mesh-glow relative mt-14 overflow-hidden rounded-[22px] p-8 text-center sm:p-10">
+            <span className="corners absolute inset-3" aria-hidden />
+            <p className="inline-flex items-center gap-2.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.2em] text-teal-light">
+              <span className="node-dot" aria-hidden />
+              Ready when you are
+            </p>
+            <h2 className="text-brand-grad mt-4 text-balance font-head text-[clamp(22px,3vw,28px)] font-semibold tracking-[-0.02em]">
               Get real quotes for this job
             </h2>
             <p className="mx-auto mt-3 max-w-[48ch] text-[15px] leading-relaxed text-muted">
@@ -93,7 +102,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
             </p>
             <Link
               href="/me"
-              className="btn-key mt-6 inline-block rounded-full bg-teal px-7 py-3.5 text-[15px] font-bold text-[#04231F] shadow-[0_14px_38px_-14px_rgba(20,184,166,.7)] transition-colors duration-200 hover:bg-[#1ED0BC]"
+              className="btn-key press mt-7 inline-block rounded-full bg-teal px-8 py-3.5 text-[15px] font-bold text-[#04231F] shadow-[0_14px_38px_-14px_rgba(20,184,166,.7)] transition-all duration-200 hover:bg-[#1ED0BC] hover:shadow-[0_18px_44px_-14px_rgba(20,184,166,.9)]"
             >
               Get quotes
             </Link>

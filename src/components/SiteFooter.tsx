@@ -1,5 +1,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
+import { Reveal, SpringHover } from '@/components/motion/primitives';
+import { BrandMark } from '@/components/BrandMark';
 
 // Live company accounts (verified against Postiz + reachable). Keep in sync if a handle changes.
 const SOCIALS = [
@@ -19,29 +21,37 @@ export function SiteFooter() {
   return (
     <footer className="mt-beat-s border-t border-[var(--line)] pt-14 pb-10 md:mt-beat">
       <div className="container-x">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-12">
+        <Reveal className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-12">
           <div>
-            <Link href="/" className="font-head text-[19px] font-bold tracking-tight text-white">
-              Quotes<span className="text-teal">Done</span>
+            <Link
+              href="/"
+              aria-label="QuotesDone"
+              className="group inline-flex items-center gap-2.5 font-head text-[19px] font-bold tracking-tight text-white"
+            >
+              <BrandMark className="h-8 w-8 shrink-0 drop-shadow-[0_2px_8px_rgba(20,184,166,.35)] transition-transform duration-300 ease-expo group-hover:rotate-[8deg] group-hover:scale-110" />
+              <span>
+                Quotes<span className="text-teal">Done</span>
+              </span>
             </Link>
             <p className="mt-4 max-w-[34ch] text-pretty text-[14px] leading-relaxed text-muted">
               {t('footer.tagline')}
             </p>
             <div className="mt-6 flex items-center gap-2.5" style={{ direction: 'ltr' }}>
               {SOCIALS.map((s) => (
-                <a
-                  key={s.name}
-                  href={s.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={s.name}
-                  title={s.name}
-                  className="grid h-9 w-9 place-items-center rounded-full border border-[var(--line2)] bg-teal-light/[0.03] text-muted transition-colors duration-200 hover:border-teal hover:bg-teal/[0.09] hover:text-teal-light"
-                >
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false">
-                    <path d={s.d} />
-                  </svg>
-                </a>
+                <SpringHover key={s.name} className="rounded-full" scale={1.12} lift={-3}>
+                  <a
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={s.name}
+                    title={s.name}
+                    className="grid h-9 w-9 place-items-center rounded-full border border-[var(--line2)] bg-teal-light/[0.03] text-muted transition-colors duration-200 hover:border-teal hover:bg-teal/[0.09] hover:text-teal-light hover:shadow-[0_10px_26px_-12px_rgba(20,184,166,.8)]"
+                  >
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false">
+                      <path d={s.d} />
+                    </svg>
+                  </a>
+                </SpringHover>
               ))}
             </div>
           </div>
@@ -72,7 +82,7 @@ export function SiteFooter() {
               <li><Link className={link} href="/complaints">{t('footer.complaints')}</Link></li>
             </ul>
           </div>
-        </div>
+        </Reveal>
         <div className="mt-12 border-t border-[var(--line)] pt-6 font-mono text-[11px] leading-relaxed text-faint">
           © {new Date().getFullYear()} QuotesDone Technologies · Dubai DET E-Trader Licence No. 1633275 · {t('footer.rights')}
         </div>

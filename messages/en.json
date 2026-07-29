@@ -18,14 +18,20 @@
     "subtitle": "Post your job once. We match you with vetted UAE suppliers who compete with anonymous quotes. Compare price, rating and track record, then reveal only the one you choose.",
     "ctaPrimary": "Get quotes",
     "ctaSupplier": "Join as a supplier",
-    "stat1n": "20,400+",
-    "stat1l": "vetted suppliers",
-    "stat2n": "7",
-    "stat2l": "emirates",
-    "stat3n": "30+",
-    "stat3l": "specialities",
-    "stat4n": "3%",
-    "stat4l": "only when you choose"
+    "proof": [
+      { "k": "7 Emirates", "v": "covered nationwide" },
+      { "k": "3% fee", "v": "only when you choose" },
+      { "k": "Verified", "v": "licence-checked suppliers" },
+      { "k": "Anonymous", "v": "by default, always" }
+    ],
+    "briefText": "SPC flooring, 250 sqm villa in Dubai, supply & install.",
+    "live": "Live",
+    "posted": "Brief posted",
+    "competing": "Anonymous quotes competing",
+    "best": "Best match",
+    "hidden": "hidden",
+    "reveal": "Reveal to unlock",
+    "sorting": "Ranking by price, rating & track record"
   },
   "how": {
     "eyebrow": "How it works",
@@ -74,8 +80,9 @@
   },
   "cats": {
     "eyebrow": "Categories",
-    "title": "Every speciality in one platform",
-    "sub": "From fit-out to CCTV to landscaping — 30+ categories of vetted suppliers.",
+    "title": "Whatever the job, we've got it covered",
+    "sub": "These are just a few of the trades our vetted suppliers cover. If it can be supplied or installed in the UAE, you can source it here.",
+    "more": "…and much more",
     "items": [
       {
         "title": "Fit-out & décor",

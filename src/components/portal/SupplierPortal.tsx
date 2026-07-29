@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { BrandMark } from '@/components/BrandMark';
 
 const URL = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
 const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
@@ -111,7 +112,7 @@ const T = {
     conflict_customer:'هذا البريد مسجّل كعميل. يُرجى استخدام تطبيق العملاء لتسجيل الدخول.',
     setup_title:'أنشئ حساب المورّد', setup_sub_company:'سجّل شركتك ثم أكمل ملفك.', setup_sub_profile:'أكمل ملفك لبدء استقبال طلبات التسعير وتقديم العروض.',
     onboard_title:'سجّل شركتك', onboard_sub:'أدخل اسم شركتك وإمارتك الرئيسية. التسجيل مجاني لأول 1000 مورّد.', company_name:'اسم الشركة', emirate:'الإمارة', create_company:'إنشاء الشركة', enter_company:'أدخل اسم شركتك.', err_generic:'حدث خطأ ما.', something_wrong:'حدث خطأ ما',
-    t_overview:'نظرة عامة', t_billing:'الفواتير', bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة. لا نأخذ أي عمولة على الأعمال التي تفوز بها.', bill_total:'إجمالي المستحق', bill_pay:'ادفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدك. يرجى المحاولة مرة أخرى.', bill_commission:'استرداد رسوم الكشف', bill_fine:'رسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'حاول مرة أخرى', bill_secure:'سيتم تحويلك إلى Stripe للدفع بأمان. لا تطّلع QuotesDone على بيانات بطاقتك. تنشأ هذه المبالغ فقط عند استرداد مبلغ للعميل لتعذّر الوصول إليك \u2014 ولا توجد عمولة على الأعمال المنجزة.', t_rfqs:'طلبات التسعير', t_documents:'المستندات', t_projects:'المشاريع', t_messages:'الرسائل', approved:'معتمد', pending:'قيد المراجعة',
+    t_overview:'نظرة عامة', t_billing:'الفواتير', bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة. لا نأخذ أي عمولة على الأعمال التي تفوز بها.', bill_total:'إجمالي المستحق', bill_pay:'ادفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدك. يرجى المحاولة مرة أخرى.', bill_commission:'استرداد رسو�� الكشف', bill_fine:'رسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'حاول مرة أخرى', bill_secure:'سيتم تحويلك إلى Stripe للدفع بأمان. لا تطّلع QuotesDone على بيانات بطاقتك. تنشأ هذه المبالغ فقط عند استرداد مبلغ للعميل لتعذّر الوصول إليك \u2014 ولا توجد عمولة على الأعمال المنجزة.', t_rfqs:'طلبات التسعير', t_documents:'المستندات', t_projects:'المشاريع', t_messages:'الرسائل', approved:'معتمد', pending:'قيد المراجعة',
     k_quotes_sent:'العروض المُرسلة', k_reveals:'مرات الكشف', k_hired:'المُتعاقد معه', k_win:'نسبة الفوز', k_rating:'التقييم', k_deal_value:'قيمة الصفقات',
     price_pos:'الموقع السعري', anon_note:'مجهول — لا يعرض أسعار المنافسين أبدًا', not_enough:'بيانات غير كافية', last12:'آخر 12 شهرًا', quotes_reveals:'عروض / كشوفات',
     pp_fallback:'بمجرد تقديمك عروضًا على بعض طلبات التسعير التنافسية، سترى هنا كيف تقارن أسعارك بالسوق — دون الكشف عن أسعار أي طرف آخر.',
@@ -166,8 +167,11 @@ export function SupplierPortal() {
   if (!mounted) return null;
   return (
     <div dir={rtl ? 'rtl' : 'ltr'} className="osx min-h-screen bg-background text-foreground" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <header className="sticky top-0 z-10 flex items-center justify-between px-5 py-3.5 bg-card/70 backdrop-blur border-b border-border">
-        <a className="text-base font-extrabold text-foreground no-underline" href="/">QuotesDone <span className="text-primary font-bold">{t(lang, 'brand_sub')}</span></a>
+      <header className="qd-topbar sticky top-0 z-10 flex items-center justify-between px-5 py-3 bg-card/70 backdrop-blur-xl border-b border-border">
+        <a className="group flex items-center gap-2.5 text-[15px] font-extrabold text-foreground no-underline" href="/">
+          <BrandMark className="h-7 w-7 transition-transform duration-500 group-hover:rotate-[8deg]" />
+          <span>QuotesDone <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary align-middle">{t(lang, 'brand_sub')}</span></span>
+        </a>
         <div className="flex gap-2 items-center">
           <Button variant="outline" size="sm" onClick={() => { try { localStorage.setItem('qd-lang', lang === 'ar' ? 'en' : 'ar'); } catch (_e) {} if (typeof location !== 'undefined') location.reload(); }}>{lang === 'ar' ? 'EN' : 'عربي'}</Button>
           <Button asChild variant="outline" size="sm"><a href="/">{t(lang, 'home')}</a></Button>
@@ -191,10 +195,13 @@ function Login({ onAuth, lang }) {
   const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg((j && j.error) || t(lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
   const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
   return (
-    <div className={S.center}><Card className="qd-panel w-full max-w-[400px] p-5">
-      <div className={cn(S.tabsWrap, 'mb-3.5')}><button className={cn(S.tab, !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
-      <div className={S.h1}>{isSignup ? t(lang, 'register_title') : t(lang, 'welcome_back')}</div>
-      <div className={cn(S.sub, 'mt-1')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
+    <div className={S.center}><Card className="qd-login qd-panel w-full max-w-[410px] p-6 sm:p-7">
+      <div className="mb-5 flex flex-col items-center text-center">
+        <span className="qd-brandbadge mb-4 grid h-12 w-12 place-items-center rounded-2xl"><BrandMark className="h-6 w-6" /></span>
+        <div className={cn(S.h1, 'qd-grad-text')}>{isSignup ? t(lang, 'register_title') : t(lang, 'welcome_back')}</div>
+        <div className={cn(S.sub, 'mx-auto mt-2')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
+      </div>
+      <div className={cn(S.tabsWrap, 'mb-4 flex w-full')}><button className={cn(S.tab, 'flex-1', !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, 'flex-1', isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
       {step === 'id' ? (<>
         <Input className="mt-3" placeholder={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} />
         <Button className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button>

@@ -1,4 +1,6 @@
 import { useTranslations } from 'next-intl';
+import { Reveal, Stagger, StaggerItem } from '@/components/motion/primitives';
+import { SectionHeader } from '@/components/SectionHeader';
 
 type Step = { n: string; title: string; body: string };
 
@@ -7,39 +9,35 @@ export function HowItWorks() {
   const steps = t.raw('steps') as Step[];
   return (
     <section id="how" className="container-x py-beat-s md:py-beat">
-      <div className="reveal grid gap-6 border-t border-[var(--line)] pt-10 md:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)] md:gap-14">
-        <div>
-          <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-teal-light">
-            {t('eyebrow')}
-          </p>
-          <h2 className="mt-4 max-w-[14ch] text-balance font-head text-[clamp(28px,3.4vw,44px)] font-semibold leading-[1.08] tracking-[-0.035em] text-white">
-            {t('title')}
-          </h2>
-        </div>
-        <p className="max-w-[58ch] self-end text-pretty text-[16.5px] leading-relaxed text-muted">
-          {t('sub')}
-        </p>
+      <SectionHeader eyebrow={t('eyebrow')} index="02" title={t('title')} sub={t('sub')} />
+
+      <div className="relative mt-14 md:mt-16">
+        {/* the data beam threads the three steps on desktop */}
+        <span className="beam left-[14%] right-[14%] top-9 hidden md:block" aria-hidden />
+        <Stagger className="grid gap-4 md:grid-cols-3 md:gap-5">
+          {steps.map((s) => (
+            <StaggerItem key={s.n}>
+              <article className="tile neon-edge group relative h-full overflow-hidden rounded-[22px] border border-[var(--line2)] bg-navy-deep/50 p-7 backdrop-blur-sm hover:border-teal/40 md:p-8">
+                <span className="grid-tech grid-tech-sm opacity-60" aria-hidden />
+                {/* index medallion sits on the beam */}
+                <span className="relative z-10 flex h-[72px] w-[72px] items-center justify-center rounded-2xl border border-[var(--line2)] bg-navy-deep/80 font-head text-[26px] font-semibold text-teal-light shadow-[0_10px_30px_-16px_rgba(0,12,20,.9)]">
+                  {s.n}
+                  <span className="node-dot absolute -right-1 -top-1" aria-hidden />
+                </span>
+                <h3 className="relative mt-7 font-head text-[21px] font-semibold leading-snug tracking-[-0.02em] text-white">
+                  {s.title}
+                </h3>
+                <p className="relative mt-3 text-pretty text-[14.5px] leading-relaxed text-muted">{s.body}</p>
+                <span className="relative mt-7 block h-px w-10 bg-teal/40 transition-all duration-500 ease-expo group-hover:w-24 group-hover:bg-teal group-hover:shadow-[0_0_12px_rgba(110,231,212,.6)]" />
+              </article>
+            </StaggerItem>
+          ))}
+        </Stagger>
       </div>
 
-      {/* A real ordered sequence: the numbers carry information. */}
-      <ol className="mt-12 grid gap-px overflow-hidden rounded-[22px] border border-[var(--line)] bg-[var(--line)] md:grid-cols-3">
-        {steps.map((s, i) => (
-          <li
-            key={s.n}
-            className="reveal group relative bg-navy-deep/60 p-7 transition-colors duration-300 hover:bg-teal-light/[0.035] md:p-8"
-            style={{ transitionDelay: `${i * 70}ms` }}
-          >
-            <span className="font-mono text-[11px] font-semibold tabular tracking-[0.18em] text-teal-light/70">
-              {s.n}
-            </span>
-            <h3 className="mt-4 font-head text-[19px] font-semibold leading-snug tracking-[-0.015em] text-white">
-              {s.title}
-            </h3>
-            <p className="mt-3 max-w-[42ch] text-pretty text-[14.5px] leading-relaxed text-muted">{s.body}</p>
-            <span className="mt-6 block h-px w-10 bg-teal/40 transition-all duration-500 ease-expo group-hover:w-20 group-hover:bg-teal" />
-          </li>
-        ))}
-      </ol>
+      <Reveal className="mt-16 md:mt-20">
+        <div className="divider-node" aria-hidden />
+      </Reveal>
     </section>
   );
 }
