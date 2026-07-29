@@ -109,6 +109,89 @@ async function aiReview(lead: Record<string, unknown>) {
 }
 async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await admin.from('notifications').insert(rows); } catch (_e) { /* */ } }
 
+// DOCUMENTS-LEAD + DOUBLE CONFIRMATION 29 Jul 2026 ---------------------------------------------
+// Spec: "These documents are the PRIMARY data source. An agent extracts information from them to
+// understand what the supplier does", and "the supplier is also given the option to manually write
+// the services they provide (for DOUBLE CONFIRMATION against the extracted data)".
+//
+// Until now process_docs wrote extracted services only when the supplier had typed NOTHING
+// (`&& !sup.services`), so the documents were the FALLBACK and the typed text was the source of
+// truth - the exact inversion of the spec - and the two were never compared, so no mismatch could
+// ever surface.
+//
+// Now: extracted services ALWAYS win the canonical leads.services field, the supplier's typed text
+// is preserved as the DECLARED value, and the two are cross-checked on every extraction and on
+// every profile save.
+//
+// WHERE THE DECLARED TEXT AND THE OUTCOME LIVE, AND WHY agent_actions: one row per check, kind
+// 'supplier_services_crosscheck', target_table/target_id = leads/<id>, whole comparison in the
+// jsonb `detail` (verdict, overlap, shared terms, extracted list, declared text, note). No
+// migration is added and no other feature's column is borrowed: every leads JSONB column already
+// has an owner (ai_review_flags is REWRITTEN WHOLESALE by this function's own aiReview on every
+// save, so anything parked there is lost within seconds; machinery / brands_carried /
+// client_references / iso_certifications / manufacturer_authorizations belong to capability
+// enrichment) and supplier_capabilities is owned end to end by capability_agent, which upserts
+// whole rows including review_status. agent_actions is the platform's existing durable, queryable
+// review surface, it is where the spec asks conflicts to be raised anyway, and unlike a single
+// column it keeps the FULL HISTORY of what the supplier declared versus what the documents said.
+// Query it with: select detail->>'verdict', detail->>'declared_services' from agent_actions
+// where kind = 'supplier_services_crosscheck'.
+//
+// A conflict NEVER blocks registration - the founder wants full automation, so we flag and carry on.
+const SVC_STOP = new Set(['and','the','for','with','all','our','any','are','you','your','uae','dubai','abu','general','other','service','work','job','provide','providing','provider','company','llc','etc','type','various','including','include','solution']);
+const svcStem = (w: string) => (w.length > 4 && w.endsWith('ies')) ? w.slice(0, -3) + 'y' : ((w.length > 3 && w.endsWith('s')) ? w.slice(0, -1) : w);
+function svcTerms(v: unknown): string[] {
+  return String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9؀-ۿ]+/g, ' ').split(/\s+/).map(svcStem).filter((w) => w.length > 2 && !SVC_STOP.has(w));
+}
+// Term overlap rather than string equality: the documents may say "supply and installation of VRF
+// air conditioning systems" where the supplier typed "AC installation", and those two agree.
+// Containment (shared / smaller set) is used rather than Jaccard so a long extracted list is not
+// punished against a short typed line. 60%+ = agreement, some shared terms = partial overlap,
+// nothing in common = conflict.
+function crossCheckServices(extracted: string[], declared: unknown) {
+  const dText = String(declared == null ? '' : declared).trim();
+  const eText = extracted.join(', ');
+  const eSet = new Set(svcTerms(eText));
+  const dSet = new Set(svcTerms(dText));
+  const q = (s: string) => '"' + s.slice(0, 300) + '"';
+  if (!eSet.size) return { verdict: 'no_extraction', overlap: 0, shared: [] as string[], note: 'Nothing usable was extracted from the documents, so there was nothing to cross-check the supplier text against.' };
+  if (!dSet.size) return { verdict: 'not_declared', overlap: 0, shared: [] as string[], note: 'Supplier typed no services of their own, so the document extraction ' + q(eText) + ' stands unconfirmed. Not a conflict.' };
+  const shared = [...dSet].filter((w) => eSet.has(w));
+  const overlap = shared.length / Math.min(eSet.size, dSet.size);
+  const verdict = overlap >= 0.6 ? 'agreement' : (shared.length ? 'partial' : 'conflict');
+  const head = verdict === 'agreement' ? 'Documents and supplier agree' : (verdict === 'partial' ? 'Partial overlap' : 'CONFLICT');
+  return { verdict, overlap, shared, note: head + ': documents say ' + q(eText) + ', supplier typed ' + q(dText) + ' (' + Math.round(overlap * 100) + '% overlap' + (shared.length ? ', shared: ' + shared.slice(0, 8).join(', ') : ', nothing in common') + '). Documents are the source of truth; the typed text is kept as the declared value.' };
+}
+// The declared text has to survive the fact that leads.services now holds the EXTRACTED value -
+// re-running extraction would otherwise compare the documents against themselves. The most recent
+// cross-check row is the durable record of what the supplier actually typed.
+async function priorCrossCheck(supplierId: number) {
+  try {
+    const { data } = await admin.from('agent_actions').select('detail').eq('kind', 'supplier_services_crosscheck').eq('target_id', String(supplierId)).order('id', { ascending: false }).limit(1).maybeSingle();
+    if (!data) return { found: false, declared: null as unknown, extracted: [] as string[] };
+    const d = (data.detail || {}) as Record<string, unknown>;
+    return { found: true, declared: (d.declared_services ?? null) as unknown, extracted: Array.isArray(d.extracted_services) ? (d.extracted_services as string[]) : [] };
+  } catch (_e) { return { found: false, declared: null as unknown, extracted: [] as string[] }; }
+}
+async function recordServicesCrossCheck(supplierId: number, companyName: unknown, extracted: string[], declared: unknown) {
+  const cc = crossCheckServices(extracted, declared);
+  const conflict = cc.verdict === 'conflict';
+  try {
+    await admin.from('agent_actions').insert({
+      agent: 'onboarding',
+      kind: 'supplier_services_crosscheck',
+      status: conflict ? 'needs_review' : 'auto_done',
+      risk: conflict ? 'medium' : 'low',
+      title: 'Services cross-check (' + cc.verdict + ') — ' + String(companyName || ('supplier #' + supplierId)).slice(0, 120),
+      recommendation: conflict ? "The documents and the supplier's own description have nothing in common. Registration was NOT blocked. Open the trade licence / company profile and correct leads.services if the extraction is wrong, or ask the supplier what they actually do." : cc.note,
+      detail: { supplier_id: supplierId, verdict: cc.verdict, overlap: Math.round(cc.overlap * 100) / 100, shared_terms: cc.shared.slice(0, 20), extracted_services: extracted, declared_services: declared == null ? null : String(declared).slice(0, 2000), note: cc.note, checked_at: new Date().toISOString(), source: 'supplier_api' },
+      target_table: 'leads',
+      target_id: String(supplierId),
+    });
+  } catch (_e) { /* the cross-check is evidence, not a gate - it must never break registration */ }
+  return cc;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
@@ -160,6 +243,9 @@ Deno.serve(async (req) => {
         } catch (e) { out.license_error = String((e as Error)?.message || e); }
       }
       const profImgs: any[] = [];
+      // Extracted services for THIS run, kept aside so they can be cross-checked against the
+      // supplier's own typed text once the row has been written (see the 29 Jul 2026 header).
+      let xServices: string[] = [];
       const prof = body.company_profile || {};
       if (prof.path) { upd.company_profile_doc_path = String(prof.path); }
       else if (prof.original_b64) { try { const u8 = b64ToBytes(String(prof.original_b64)); const fn = String(prof.filename || 'profile').replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 120); const p = `profiles/${sup.id}/${Date.now()}_${fn}`; await admin.storage.from('supplier-docs').upload(p, u8, { contentType: prof.mime || 'application/octet-stream', upsert: true }); upd.company_profile_doc_path = p; } catch (_e) { /* */ } }
@@ -179,7 +265,14 @@ Deno.serve(async (req) => {
         try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'profile', images: profImgs.slice(0, 10) }) }); const jd = await r.json();
           if (jd?.ok && jd.profile) { const pf = jd.profile;
             if (pf.summary) upd.capability_summary = pf.summary;
-            if (Array.isArray(pf.services) && pf.services.length && !sup.services) upd.services = pf.services.join(', ');
+            // DOCUMENTS LEAD (spec, 29 Jul 2026). This line used to read
+            //   if (Array.isArray(pf.services) && pf.services.length && !sup.services) ...
+            // so the trade licence / company profile / catalogue only got to speak when the
+            // supplier had typed nothing at all. The documents are the PRIMARY data source, so
+            // what the agent extracts from them now ALWAYS becomes the canonical leads.services.
+            // The supplier's own words are not lost - they are preserved as the declared value
+            // and cross-checked immediately below.
+            if (Array.isArray(pf.services) && pf.services.length) { xServices = pf.services.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 40); upd.services = xServices.join(', '); }
             if (Array.isArray(pf.products) && pf.products.length && !sup.products) upd.products = pf.products.join(', ');
             if (Array.isArray(pf.emirates) && pf.emirates.length && !(Array.isArray(sup.service_emirates) && sup.service_emirates.length)) upd.service_emirates = pf.emirates;
             out.profile = { summary: pf.summary, sectors: pf.sectors, confidence: pf.confidence };
@@ -187,6 +280,18 @@ Deno.serve(async (req) => {
         } catch (e) { out.profile_error = String((e as Error)?.message || e); }
       }
       await admin.from('leads').update(upd).eq('id', sup.id);
+      // DOUBLE CONFIRMATION (spec, 29 Jul 2026). The typed services box exists so the supplier's
+      // own description can be checked AGAINST the documents; until now the two were never
+      // compared, so no mismatch could ever be flagged. Compare them, record the outcome in
+      // agent_actions, and raise a review item when they conflict. Registration is never blocked.
+      // The declared text comes from the last cross-check record when one exists, because
+      // leads.services now holds the EXTRACTED value and comparing it to itself proves nothing.
+      if (xServices.length) {
+        const prior = await priorCrossCheck(sup.id);
+        const declared = prior.found ? prior.declared : (sup.services ?? null);
+        const cc = await recordServicesCrossCheck(sup.id, sup.company_name, xServices, declared);
+        out.services_crosscheck = { verdict: cc.verdict, overlap: Math.round(cc.overlap * 100) / 100, note: cc.note, extracted_services: xServices, declared_services: declared == null ? null : String(declared) };
+      }
       return J({ ok: true, extracted: out });
     }
 
@@ -197,6 +302,23 @@ Deno.serve(async (req) => {
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       for (const c of PROFILE_COLS) if (body[c] !== undefined) upd[c] = body[c];
       if (Array.isArray(body.service_emirates)) upd.service_emirates = body.service_emirates;
+      // DOCUMENTS LEAD + DOUBLE CONFIRMATION (spec, 29 Jul 2026). PROFILE_COLS contains
+      // 'services', so the typed box wrote straight over whatever the documents produced -
+      // extraction would win at upload time and then be silently reverted by the next save. The
+      // typed text is for CONFIRMATION, not authorship: once an extraction exists it keeps the
+      // canonical field and the typed text is stored as the declared value and cross-checked
+      // instead. With no extraction on file the supplier's text is still the only source we have,
+      // so it is written through unchanged.
+      let servicesCheck: Record<string, unknown> | null = null;
+      if (upd.services !== undefined) {
+        const prior = await priorCrossCheck(sup.id);
+        if (prior.extracted.length) {
+          const declared = clip(upd.services, 2000);
+          upd.services = prior.extracted.join(', ');
+          const cc = await recordServicesCrossCheck(sup.id, sup.company_name, prior.extracted, declared);
+          servicesCheck = { verdict: cc.verdict, overlap: Math.round(cc.overlap * 100) / 100, note: cc.note, extracted_services: prior.extracted, declared_services: declared };
+        }
+      }
       // EVIDENCE FIX 27 Jul 2026. The version recorded as legally accepted was whatever the
       // browser posted in body.terms_version. The record this writes is the platform's dispute
       // evidence for the 3% non-response fine (see the file header) - letting the accepting party
@@ -211,6 +333,19 @@ Deno.serve(async (req) => {
       // ability to submit quotes (submit_quote requires approval_status === 'approved') and an
       // admin's decision was reverted by an unrelated edit. Approval is only ever revoked
       // deliberately by an admin now - this path can put a supplier INTO pending, never back.
+      //
+      // AUTOMATION 29 Jul 2026 (spec: "everything is fully automated... no manual approval
+      // steps"): pricing_config.auto_approve_suppliers is now TRUE, so the first branch is the
+      // live one and every registration is approved and verified on save instead of halting at
+      // 'pending'. Be honest about what that does and does not check: this branch applies NO
+      // licence-validity, document-presence or banned test - none has ever existed on this path,
+      // before or after the change, so nothing automated is being bypassed; what is removed is the
+      // human licence check that 'pending' used to force. The checks that DO survive live
+      // elsewhere and are untouched: match_suppliers_kw still excludes banned, matching_blocked,
+      // permanently_closed and 'rejected' suppliers, submit_quote still requires accepted terms
+      // and a settled registration fee, and aiReview below still writes its findings to
+      // ai_review_notes / ai_review_flags and still emails management on first submission -
+      // advisory only, it has never gated anything. An automated licence-expiry gate belongs HERE.
       const firstSubmit = !sup.registration_submitted_at; if (autoApprove) { upd.approval_status = 'approved'; upd.verified = true; } else if (String(sup.approval_status || '') !== 'approved' && !sup.verified) { upd.approval_status = 'pending'; } if (firstSubmit) upd.registration_submitted_at = new Date().toISOString();
       await admin.from('leads').update(upd).eq('id', sup.id);
       await aiSummarize(sup.id);
@@ -219,7 +354,7 @@ Deno.serve(async (req) => {
       if (review) { const notes = (review.summary || '') + (Array.isArray(review.issues) && review.issues.length ? '  Issues: ' + review.issues.map((i: { field: string; note: string }) => `${i.field} — ${i.note}`).join('; ') : ''); await admin.from('leads').update({ ai_review_notes: notes.slice(0, 2000), ai_review_flags: review.issues || [], ai_reviewed_at: new Date().toISOString() }).eq('id', sup.id); }
       if (firstSubmit) { const mgmt = (await secretVal('admin_emails') || 'management@quotesdone.com').split(',')[0].trim(); const revLine = review ? ` AI check: ${review.severity || 'clean'} — ${review.summary || ''}` : ''; const lic = full?.name_corrected_from ? ` Licence name corrected from \"${full.name_corrected_from}\" to \"${full.company_name}\".` : ''; const licInfo = full?.trade_license_no ? ` Licence ${full.trade_license_no}${full.license_city ? ', ' + full.license_city : ''}${full.license_expiry ? ', expires ' + full.license_expiry : ''}.` : ''; await notify([ { type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id, subject: 'New supplier registered — review needed', body: `New supplier \"${full?.company_name || sup.company_name}\"${full?.emirate ? ' (' + full.emirate + ')' : ''} has registered and is pending your approval.${licInfo}${lic}${revLine}` }, { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, subject: autoApprove ? 'Your QuotesDone supplier account is active' : 'Thanks for registering with QuotesDone', body: autoApprove ? `Your account for ${sup.company_name} is active — you can now receive inquiries and submit quotes.` : `Thank you for registering ${full?.company_name || sup.company_name} with QuotesDone. Our team will verify your trade licence and details, and email you once your account is approved.` } ]); }
       const { data: me } = await admin.from('leads').select('approval_status').eq('id', sup.id).maybeSingle();
-      return J({ ok: true, approval_status: me?.approval_status || 'pending', review: review ? { severity: review.severity, summary: review.summary, issues: review.issues } : null });
+      return J({ ok: true, approval_status: me?.approval_status || 'pending', services_crosscheck: servicesCheck, review: review ? { severity: review.severity, summary: review.summary, issues: review.issues } : null });
     }
     // Registration fee - creates a Stripe Checkout Session and nothing else.
     //
