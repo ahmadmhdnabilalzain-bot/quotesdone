@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Reveal, SpringHover } from '@/components/motion/primitives';
+import { BrandMark } from '@/components/BrandMark';
 
 // Live company accounts (verified against Postiz + reachable). Keep in sync if a handle changes.
 const SOCIALS = [
@@ -22,8 +23,15 @@ export function SiteFooter() {
       <div className="container-x">
         <Reveal className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-12">
           <div>
-            <Link href="/" className="font-head text-[19px] font-bold tracking-tight text-white">
-              Quotes<span className="text-teal">Done</span>
+            <Link
+              href="/"
+              aria-label="QuotesDone"
+              className="group inline-flex items-center gap-2.5 font-head text-[19px] font-bold tracking-tight text-white"
+            >
+              <BrandMark className="h-8 w-8 shrink-0 drop-shadow-[0_2px_8px_rgba(20,184,166,.35)] transition-transform duration-300 ease-expo group-hover:rotate-[8deg] group-hover:scale-110" />
+              <span>
+                Quotes<span className="text-teal">Done</span>
+              </span>
             </Link>
             <p className="mt-4 max-w-[34ch] text-pretty text-[14px] leading-relaxed text-muted">
               {t('footer.tagline')}

@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Reveal, Stagger, StaggerItem, TiltCard, SpringHover, Spotlight } from '@/components/motion/primitives';
+import { BrandMark } from '@/components/BrandMark';
 
 function Stat({ n, l }: { n: string; l: string }) {
   return (
@@ -19,7 +20,7 @@ function EnginePanel({ labels }: { labels: { brief: string; steps: string[]; hid
       {/* a soft light sweep travels down the instrument — reads as "processing" */}
       <span className="qd-scan" aria-hidden />
       <div className="flex items-center gap-2.5 border-b border-[var(--line)] bg-teal-light/[0.03] px-5 py-3.5">
-        <span className="qd-pulse h-1.5 w-1.5 rounded-full bg-teal" />
+        <BrandMark className="h-4 w-4 shrink-0" />
         <span className="font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-faint">
           Smart Engine live
         </span>
@@ -76,9 +77,10 @@ export function Hero() {
       <span className="grid-tech" aria-hidden />
       <section className="container-x relative z-10 pb-[72px] pt-12 md:pb-[104px] md:pt-16">
         {/* technical status row — language-neutral instrument markers */}
-        <div className="mb-10 flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.2em] text-faint/70">
-          <span className="node-dot" aria-hidden />
+        <div className="mb-10 flex items-center gap-3.5 font-mono text-[10px] uppercase tracking-[0.2em] text-faint/70">
+          <BrandMark className="h-5 w-5 shrink-0" />
           <span className="tabular">01 / MATCH</span>
+          <span className="node-dot" aria-hidden />
           <span className="h-px flex-1 bg-[var(--line)]" />
           <span className="tabular hidden sm:inline">EST · 2024</span>
         </div>

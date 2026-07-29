@@ -21,7 +21,14 @@ export function generateStaticParams() {
 // Per-page generateMetadata supplies title/description/canonical/hreflang.
 // Only the template lives here so pages never inherit an English title in Arabic.
 export const metadata: Metadata = {
-  title: { default: 'QuotesDone', template: '%s' }
+  title: { default: 'QuotesDone', template: '%s' },
+  applicationName: 'QuotesDone',
+  appleWebApp: { capable: true, title: 'QuotesDone', statusBarStyle: 'black-translucent' },
+  manifest: '/manifest.webmanifest',
+};
+
+export const viewport = {
+  themeColor: '#0C2330',
 };
 
 export default async function LocaleLayout(props: { children: React.ReactNode; params: Promise<{ locale: string }> }) {

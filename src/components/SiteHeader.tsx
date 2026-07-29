@@ -3,6 +3,7 @@ import { Link } from '@/i18n/routing';
 import { LangSwitch } from './LangSwitch';
 import { MobileNav } from './MobileNav';
 import { ScrollProgress, SpringHover } from '@/components/motion/primitives';
+import { BrandMark } from '@/components/BrandMark';
 
 export function SiteHeader() {
   const t = useTranslations('nav');
@@ -20,8 +21,15 @@ export function SiteHeader() {
       <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-navy-deep/[0.74] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-navy-deep/[0.62]">
         <ScrollProgress />
         <div className="container-x flex h-16 items-center gap-1.5 sm:gap-3 md:gap-6">
-          <Link href="/" className="whitespace-nowrap font-head text-[17px] font-bold tracking-tight text-white sm:text-[19px]">
-            Quotes<span className="text-teal">Done</span>
+          <Link
+            href="/"
+            aria-label="QuotesDone"
+            className="group flex items-center gap-2 whitespace-nowrap font-head text-[17px] font-bold tracking-tight text-white sm:text-[19px]"
+          >
+            <BrandMark className="h-7 w-7 shrink-0 drop-shadow-[0_2px_8px_rgba(20,184,166,.35)] transition-transform duration-300 ease-expo group-hover:rotate-[8deg] group-hover:scale-110 sm:h-[30px] sm:w-[30px]" />
+            <span>
+              Quotes<span className="text-teal">Done</span>
+            </span>
           </Link>
           <nav className="ms-2 hidden items-center gap-0.5 md:flex">
             {NAV.map((n) => (
