@@ -45,6 +45,60 @@ Deno.serve(async (req) => {
   // --- real OpenRouter spend ---
   let or: any = { ok: false };
   try { const key = await sec('openrouter_api_key'); if (key) { const r = await fetch('https://openrouter.ai/api/v1/credits', { headers: { 'Authorization': 'Bearer ' + key } }); const j = await r.json(); const dt = j?.data || {}; or = { ok: true, total_credits: dt.total_credits, total_usage: dt.total_usage, remaining: (Number(dt.total_credits || 0) - Number(dt.total_usage || 0)) }; } } catch (e) { or = { ok: false, error: String((e as Error)?.message || e).slice(0, 80) }; }
+
+  // --- BURN RATE + RUNWAY, and an alarm that actually fires -------------------------------
+  // WHY THIS EXISTS. On 29 Jul 2026 the balance was found at $1.48 with nobody warned. Nothing
+  // was broken: the figure was being measured correctly and reported accurately - into a WEEKLY
+  // email. Two things made that useless. A balance that empties in about ten days cannot be
+  // guarded by a seven-day check, and a number sitting in a summary is not an alarm; no threshold
+  // was ever compared, so no message could ever say "act now". Every agent, the Secretary,
+  // document reading, translation and matching all stop at zero, so this is the single point of
+  // failure for the whole company. Runway is derived from the previous snapshot rather than
+  // guessed, so the warning can say how many days are left, not just that the number looks small.
+  let burnPerDay = 0; let daysLeft: number | null = null;
+  try {
+    const { data: prev } = await admin.from('agent_runs')
+      .select('started_at, counts').eq('agent', 'cost_snapshot').eq('status', 'ok')
+      .order('started_at', { ascending: false }).limit(6);
+    const prevRow = (prev || []).find((r: any) => Number(r?.counts?.openrouter_usd?.spent_total) > 0);
+    if (or.ok && prevRow) {
+      const prevSpent = Number(prevRow.counts.openrouter_usd.spent_total);
+      const days = Math.max((Date.now() - new Date(prevRow.started_at).getTime()) / 864e5, 0.01);
+      const delta = Number(or.total_usage || 0) - prevSpent;
+      if (delta > 0 && days >= 0.2) {
+        burnPerDay = delta / days;
+        daysLeft = burnPerDay > 0 ? Number(or.remaining || 0) / burnPerDay : null;
+      }
+    }
+  } catch (_e) { /* runway is advisory - never fail the snapshot for it */ }
+
+  const minUsd = Number((await sec('openrouter_min_usd')) || 20);
+  let alerted = 0; let alertErr = '';
+  if (or.ok && Number(or.remaining) <= minUsd) {
+    try {
+      const runway = daysLeft != null
+        ? (' At the current burn of about $' + burnPerDay.toFixed(2) + ' a day that is roughly ' + daysLeft.toFixed(1) + ' days left.')
+        : '';
+      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/alert_founder', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          __secret: expected,
+          // level 'critical' also sends WhatsApp via alert_founder, and it de-dupes for 6h,
+          // so a daily check cannot turn into a daily nag.
+          level: 'critical',
+          dedupe_key: 'openrouter_credit_low',
+          event: 'AI credit low: $' + Number(or.remaining).toFixed(2) + ' left',
+          detail: 'Every AI call in the company - all agents, the Secretary, document reading, translation and supplier matching - runs on one OpenRouter balance. They all stop when it reaches zero.'
+            + runway + ' Top up at https://openrouter.ai/credits. This warning fires below $' + minUsd
+            + '; change that with app_secrets.openrouter_min_usd.',
+        }),
+      });
+      const jr = await r.json().catch(() => ({}));
+      alerted = jr?.notified ? 1 : 0;
+      if (!jr?.ok) alertErr = String(jr?.error || 'alert_founder did not confirm').slice(0, 120);
+    } catch (e) { alertErr = String((e as Error)?.message || e).slice(0, 120); }
+  }
+
   // --- revenue (paid reveal fees) ---
   async function rev(sinceIso?: string) { let q = admin.from('transactions').select('reveal_fee').eq('fee_status', 'paid'); if (sinceIso) q = q.gte('revealed_at', sinceIso); const { data } = await q; return (data || []).reduce((s: number, t: any) => s + Number(t.reveal_fee || 0), 0); }
   const revenue_7d = await rev(d7); const revenue_30d = await rev(d30); const revenue_all = await rev();
@@ -57,29 +111,38 @@ Deno.serve(async (req) => {
   const fmt = (n: number) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const snapshot = {
     generated_at: new Date().toISOString(),
-    openrouter_usd: or.ok ? { spent_total: or.total_usage, credits_total: or.total_credits, remaining: or.remaining } : or,
+    openrouter_usd: or.ok
+      ? { spent_total: or.total_usage, credits_total: or.total_credits, remaining: or.remaining,
+          burn_per_day: Number(burnPerDay.toFixed(4)), days_left: daysLeft == null ? null : Number(daysLeft.toFixed(1)),
+          alert_threshold: minUsd, low_balance_alert_sent: alerted === 1 }
+      : or,
     revenue: { last_7d: revenue_7d, last_30d: revenue_30d, all_time: revenue_all },
     activity_7d: { inquiries: inquiries_7d, reveals: reveals_7d, new_suppliers: new_suppliers_7d, emails_sent: emails_7d, ai_runs: ai_runs_7d },
     note: 'OpenRouter is the only provider with a live spend API wired. Apify / Twilio / Resend / Supabase balances require their own keys + endpoints to add.'
   };
 
+  // email:false is the daily balance-watch call - it checks the balance and alerts if low
+  // WITHOUT sending the full summary, so making the watch daily does not turn a weekly report
+  // into daily noise. The Monday job still sends the summary.
   let emailQueued = 0; let emailErr = '';
   if (body.email !== false) {
     try {
       const owner = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
-      const orLine = or.ok ? ('OpenRouter (AI): $' + Number(or.total_usage || 0).toFixed(2) + ' spent total, $' + Number(or.remaining || 0).toFixed(2) + ' credit remaining.') : 'OpenRouter: spend API unavailable.';
+      const runwayLine = or.ok && daysLeft != null ? (' Burn is about $' + burnPerDay.toFixed(2) + '/day, roughly ' + daysLeft.toFixed(1) + ' days of credit left.') : '';
+      const orLine = or.ok ? ('OpenRouter (AI): $' + Number(or.total_usage || 0).toFixed(2) + ' spent total, $' + Number(or.remaining || 0).toFixed(2) + ' credit remaining.' + runwayLine) : 'OpenRouter: spend API unavailable.';
       const bodyTxt = 'QuotesDone weekly burn + revenue snapshot\n\n'
         + 'REVENUE (paid reveal fees)\n  Last 7 days: ' + fmt(revenue_7d) + '\n  Last 30 days: ' + fmt(revenue_30d) + '\n  All time: ' + fmt(revenue_all) + '\n\n'
         + 'ACTIVITY (last 7 days)\n  Inquiries: ' + inquiries_7d + '\n  Reveals (paid): ' + reveals_7d + '\n  New onboarded suppliers: ' + new_suppliers_7d + '\n  Emails sent: ' + emails_7d + '\n  AI/agent runs: ' + ai_runs_7d + '\n\n'
-        + 'COSTS\n  ' + orLine + '\n  (Apify, Twilio, Resend, Supabase: check each dashboard — no live API wired.)\n';
+        + 'COSTS\n  ' + orLine + '\n  (Apify, Twilio, Resend, Supabase: check each dashboard - no live API wired.)\n';
       if (owner) { const { error: nErr } = await admin.from('notifications').insert([{ type: 'cost_snapshot', to_email: owner, to_role: 'admin', channel: 'email', subject: 'QuotesDone weekly burn + revenue snapshot', body: bodyTxt }]); if (nErr) emailErr = String(nErr.message).slice(0, 140); else emailQueued = 1; }
     } catch (e) { emailErr = String(e).slice(0, 140); }
   }
 
-  const counts = { ...snapshot, authorised: 1, email_queued: emailQueued, openrouter_ok: or.ok ? 1 : 0 };
-  if (emailErr) await logRun(started, 'error', counts, 'cost_snapshot computed the weekly burn/revenue figures but FAILED to queue the owner email (' + emailErr + '). The numbers exist in agent_runs but nobody was told - absence of the weekly email this week means delivery broke, not that there was nothing to report.');
+  const counts = { ...snapshot, authorised: 1, email_queued: emailQueued, openrouter_ok: or.ok ? 1 : 0, low_balance_alert: alerted };
+  if (alertErr) await logRun(started, 'error', counts, 'cost_snapshot found the AI credit at or below the $' + minUsd + ' threshold but FAILED to raise the founder alert (' + alertErr + '). The balance figure is in agent_runs but nobody was told, which is exactly the failure this alarm exists to prevent.');
+  else if (emailErr) await logRun(started, 'error', counts, 'cost_snapshot computed the weekly burn/revenue figures but FAILED to queue the owner email (' + emailErr + '). The numbers exist in agent_runs but nobody was told - absence of the weekly email this week means delivery broke, not that there was nothing to report.');
   else if (!or.ok) await logRun(started, 'error', counts, 'cost_snapshot ran and emailed the weekly summary, but the OpenRouter spend API was unreachable (' + String(or.error || 'no key configured') + '), so AI cost shows as unavailable rather than zero. Do not read the missing figure as "no AI spend this week".');
-  else await logRun(started, 'ok', counts, 'cost_snapshot ran cleanly: revenue 7d/30d/all-time computed, OpenRouter spend fetched, owner email queued.');
+  else await logRun(started, 'ok', counts, 'cost_snapshot ran cleanly: revenue computed, OpenRouter spend fetched' + (daysLeft != null ? (', runway ' + daysLeft.toFixed(1) + ' days') : '') + (alerted ? ', LOW BALANCE ALERT SENT' : '') + (emailQueued ? ', owner email queued' : ', summary email skipped (balance-watch run)') + '.');
 
   return J({ ok: true, snapshot });
 });
