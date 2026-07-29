@@ -58,7 +58,7 @@ export default async function LocaleLayout(props: { children: React.ReactNode; p
   return (
     <html lang={locale} dir={dir} className={fontVars}
           style={{ ['--font-head' as string]: headVar, ['--font-body' as string]: bodyVar,
-                   ['--font-mono' as string]: 'var(--font-mono-latin)' } as React.CSSProperties}>
+                   ['--font-mono' as string]: monoVar } as React.CSSProperties}>
       <body className="font-sans">
         <div className="aurora" aria-hidden />
         <NodeField />
