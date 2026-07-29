@@ -53,6 +53,15 @@ export function Categories() {
               </div>
             </StaggerItem>
           ))}
+          <StaggerItem>
+            <div className="group relative flex items-center gap-4 py-6 pl-5 pr-4 transition-colors duration-300 hover:bg-teal-light/[0.03] md:pl-7">
+              <span className="absolute inset-y-4 left-0 w-px bg-teal shadow-[0_0_10px_rgba(110,231,212,.7)]" />
+              <span className="font-mono text-[11px] tabular text-teal-light">++</span>
+              <h3 className="font-head text-[19px] font-semibold tracking-[-0.02em] text-teal-light">
+                {t('more')}
+              </h3>
+            </div>
+          </StaggerItem>
         </Stagger>
       </div>
     </section>
