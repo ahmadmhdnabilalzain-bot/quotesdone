@@ -51,6 +51,9 @@ export default async function LocaleLayout(props: { children: React.ReactNode; p
     : `${body.variable} ${head.variable} ${mono.variable}`;
   const headVar = locale === 'ar' ? 'var(--font-ar)' : 'var(--font-head-latin)';
   const bodyVar = locale === 'ar' ? 'var(--font-ar)' : 'var(--font-body-latin)';
+  // JetBrains Mono is Latin-only, so Arabic in any mono class renders as tofu.
+  // Tajawal covers Latin + tabular figures, so data (AED, region codes) is safe.
+  const monoVar = locale === 'ar' ? 'var(--font-ar)' : 'var(--font-mono-latin)';
 
   return (
     <html lang={locale} dir={dir} className={fontVars}

@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
-import { Reveal } from '@/components/motion/primitives';
+import { Reveal, Stagger, StaggerItem } from '@/components/motion/primitives';
+import { SectionHeader } from '@/components/SectionHeader';
 
 type Step = { n: string; title: string; body: string };
 
@@ -8,54 +9,34 @@ export function HowItWorks() {
   const steps = t.raw('steps') as Step[];
   return (
     <section id="how" className="container-x py-beat-s md:py-beat">
-      {/* indexed technical header */}
-      <Reveal className="border-t border-[var(--line)] pt-10">
-        <div className="flex items-center gap-4 font-mono text-[10.5px] uppercase tracking-[0.2em] text-teal-light">
-          <span className="node-dot" aria-hidden />
-          <span>{t('eyebrow')}</span>
-          <span className="tabular ml-auto text-faint/60">02</span>
-        </div>
-        <div className="mt-6 grid gap-6 md:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)] md:gap-14">
-          <h2 className="crisp max-w-[14ch] text-balance font-head text-[clamp(28px,3.6vw,46px)] font-semibold leading-[1.05] tracking-[-0.04em] text-white">
-            {t('title')}
-          </h2>
-          <p className="max-w-[58ch] self-end text-pretty text-[16.5px] leading-relaxed text-muted">
-            {t('sub')}
-          </p>
-        </div>
-      </Reveal>
+      <SectionHeader eyebrow={t('eyebrow')} index="02" title={t('title')} sub={t('sub')} />
 
-      {/* A connected sequence: a rail threads the steps, numbers carry order. */}
-      <Reveal delay={0.1} y={30}>
-        <ol className="relative mt-12 grid gap-px overflow-hidden rounded-[22px] border border-[var(--line)] bg-[var(--line)] depth md:grid-cols-3">
-          <span className="rail top-0 z-10 hidden md:block" aria-hidden />
-          {steps.map((s, i) => (
-            <li
-              key={s.n}
-              className="group relative overflow-hidden bg-navy-deep/60 p-7 transition-all duration-300 hover:bg-teal-light/[0.045] md:p-9"
-              style={{ transitionDelay: `${i * 60}ms` }}
-            >
-              {/* oversized ghost numeral — depth without ornament */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -right-3 -top-6 select-none font-head text-[130px] font-bold leading-none tracking-tighter text-teal-light/[0.045] transition-colors duration-500 group-hover:text-teal-light/[0.08]"
-              >
-                {s.n}
-              </span>
-              <span className="relative flex items-center gap-2.5">
-                <span className="node-dot" aria-hidden />
-                <span className="font-mono text-[12px] font-semibold tabular tracking-[0.18em] text-teal-light/80">
+      <div className="relative mt-14 md:mt-16">
+        {/* the data beam threads the three steps on desktop */}
+        <span className="beam left-[14%] right-[14%] top-9 hidden md:block" aria-hidden />
+        <Stagger className="grid gap-4 md:grid-cols-3 md:gap-5">
+          {steps.map((s) => (
+            <StaggerItem key={s.n}>
+              <article className="tile neon-edge group relative h-full overflow-hidden rounded-[22px] border border-[var(--line2)] bg-navy-deep/50 p-7 backdrop-blur-sm hover:border-teal/40 md:p-8">
+                <span className="grid-tech grid-tech-sm opacity-60" aria-hidden />
+                {/* index medallion sits on the beam */}
+                <span className="relative z-10 flex h-[72px] w-[72px] items-center justify-center rounded-2xl border border-[var(--line2)] bg-navy-deep/80 font-head text-[26px] font-semibold text-teal-light shadow-[0_10px_30px_-16px_rgba(0,12,20,.9)]">
                   {s.n}
+                  <span className="node-dot absolute -right-1 -top-1" aria-hidden />
                 </span>
-              </span>
-              <h3 className="relative mt-6 font-head text-[20px] font-semibold leading-snug tracking-[-0.015em] text-white">
-                {s.title}
-              </h3>
-              <p className="relative mt-3 max-w-[42ch] text-pretty text-[14.5px] leading-relaxed text-muted">{s.body}</p>
-              <span className="relative mt-7 block h-px w-10 bg-teal/40 transition-all duration-500 ease-expo group-hover:w-24 group-hover:bg-teal group-hover:shadow-[0_0_12px_rgba(110,231,212,.6)]" />
-            </li>
+                <h3 className="relative mt-7 font-head text-[21px] font-semibold leading-snug tracking-[-0.02em] text-white">
+                  {s.title}
+                </h3>
+                <p className="relative mt-3 text-pretty text-[14.5px] leading-relaxed text-muted">{s.body}</p>
+                <span className="relative mt-7 block h-px w-10 bg-teal/40 transition-all duration-500 ease-expo group-hover:w-24 group-hover:bg-teal group-hover:shadow-[0_0_12px_rgba(110,231,212,.6)]" />
+              </article>
+            </StaggerItem>
           ))}
-        </ol>
+        </Stagger>
+      </div>
+
+      <Reveal className="mt-16 md:mt-20">
+        <div className="divider-node" aria-hidden />
       </Reveal>
     </section>
   );
