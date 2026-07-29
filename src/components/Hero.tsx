@@ -4,9 +4,10 @@ import { Reveal, Stagger, StaggerItem, TiltCard, SpringHover, Spotlight } from '
 
 function Stat({ n, l }: { n: string; l: string }) {
   return (
-    <StaggerItem>
-      <div className="font-mono text-[26px] font-semibold tabular text-white">{n}</div>
-      <div className="mt-1 text-xs leading-snug text-faint">{l}</div>
+    <StaggerItem className="group h-full bg-navy-deep/50 px-6 py-6 transition-colors duration-300 hover:bg-teal-light/[0.035] md:px-8 md:py-7">
+      <div className="font-mono text-[clamp(24px,2.6vw,32px)] font-semibold tabular text-white">{n}</div>
+      <div className="mt-1.5 text-xs leading-snug text-faint">{l}</div>
+      <span className="mt-4 block h-px w-8 bg-teal/40 transition-all duration-500 ease-expo group-hover:w-14 group-hover:bg-teal" />
     </StaggerItem>
   );
 }
@@ -21,6 +22,9 @@ function EnginePanel({ labels }: { labels: { brief: string; steps: string[]; hid
         <span className="qd-pulse h-1.5 w-1.5 rounded-full bg-teal" />
         <span className="font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-faint">
           Smart Engine live
+        </span>
+        <span className="ml-auto font-mono text-[9.5px] tabular tracking-[0.16em] text-faint/70">
+          ENGINE · v3
         </span>
       </div>
       <div className="flex gap-3 px-5 py-4">
@@ -68,33 +72,42 @@ function EnginePanel({ labels }: { labels: { brief: string; steps: string[]; hid
 export function Hero() {
   const t = useTranslations('hero');
   return (
-    <Spotlight className="bloom">
-      <section className="container-x pb-[72px] pt-14 md:pb-[104px] md:pt-20">
-        <div className="grid items-center gap-14 lg:grid-cols-[1.06fr_.94fr]">
+    <Spotlight className="bloom relative overflow-hidden">
+      <span className="grid-tech" aria-hidden />
+      <section className="container-x relative z-10 pb-[72px] pt-12 md:pb-[104px] md:pt-16">
+        {/* technical status row — language-neutral instrument markers */}
+        <div className="mb-10 flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.2em] text-faint/70">
+          <span className="node-dot" aria-hidden />
+          <span className="tabular">01 / MATCH</span>
+          <span className="h-px flex-1 bg-[var(--line)]" />
+          <span className="tabular hidden sm:inline">EST · 2024</span>
+        </div>
+
+        <div className="grid items-center gap-14 lg:grid-cols-[1.08fr_.92fr]">
           <Stagger>
             <StaggerItem>
-              <span className="inline-flex items-center gap-2.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-teal-light">
+              <span className="inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.03] px-3.5 py-1.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-teal-light">
                 <span className="qd-pulse h-1.5 w-1.5 rounded-full bg-teal" />
                 {t('badge')}
               </span>
             </StaggerItem>
             <StaggerItem>
-              <h1 className="crisp mt-6 max-w-[16ch] font-head text-[clamp(38px,5.2vw,62px)] font-semibold leading-[1.04] tracking-[-0.04em] text-white">
+              <h1 className="crisp mt-7 max-w-[15ch] font-head text-[clamp(42px,6vw,72px)] font-semibold leading-[0.98] tracking-[-0.045em] text-white">
                 <span className="text-teal-light">{t('titleA')}</span> {t('titleB')}{' '}
                 <em className="not-italic text-white">{t('titleEm')}</em>
               </h1>
             </StaggerItem>
             <StaggerItem>
-              <p className="mt-6 max-w-[52ch] text-[clamp(16px,1.5vw,18px)] leading-relaxed text-muted">
+              <p className="mt-7 max-w-[50ch] text-[clamp(16px,1.5vw,18.5px)] leading-relaxed text-muted">
                 {t('subtitle')}
               </p>
             </StaggerItem>
             <StaggerItem>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
+              <div className="mt-9 flex flex-wrap items-center gap-3">
                 <SpringHover className="rounded-full">
                   <Link
                     href="/me"
-                    className="btn-key rounded-full bg-teal px-7 py-4 text-[15.5px] font-bold text-[#04231F] shadow-[0_14px_38px_-14px_rgba(20,184,166,.7)] transition-colors duration-200 hover:bg-[#1ED0BC]"
+                    className="btn-key press rounded-full bg-teal px-7 py-4 text-[15.5px] font-bold text-[#04231F] shadow-[0_14px_38px_-14px_rgba(20,184,166,.7)] transition-colors duration-200 hover:bg-[#1ED0BC]"
                   >
                     {t('ctaPrimary')}
                   </Link>
@@ -102,22 +115,19 @@ export function Hero() {
                 <SpringHover className="rounded-full">
                   <Link
                     href="/portal"
-                    className="rounded-full border border-[var(--line2)] bg-teal-light/[0.03] px-7 py-4 text-[15.5px] font-semibold text-paper transition-colors duration-200 hover:border-teal hover:bg-teal/[0.07] hover:text-white"
+                    className="press rounded-full border border-[var(--line2)] bg-teal-light/[0.03] px-7 py-4 text-[15.5px] font-semibold text-paper transition-colors duration-200 hover:border-teal hover:bg-teal/[0.07] hover:text-white"
                   >
                     {t('ctaSupplier')}
                   </Link>
                 </SpringHover>
               </div>
             </StaggerItem>
-            <Stagger className="mt-12 grid max-w-xl grid-cols-2 gap-8 sm:grid-cols-4">
-              <Stat n={t('stat1n')} l={t('stat1l')} />
-              <Stat n={t('stat2n')} l={t('stat2l')} />
-              <Stat n={t('stat3n')} l={t('stat3l')} />
-              <Stat n={t('stat4n')} l={t('stat4l')} />
-            </Stagger>
           </Stagger>
+
           <Reveal delay={0.15} y={34}>
-            <div className="qd-float">
+            <div className="qd-float relative">
+              {/* HUD bracket frame around the live instrument */}
+              <span className="corners absolute -inset-3 hidden md:block" aria-hidden />
               <TiltCard className="relative rounded-[22px]" max={9}>
                 <EnginePanel
                   labels={{ brief: 'Brief', steps: ['Structuring', 'Matching', 'Anonymising'], hidden: 'hidden' }}
@@ -126,6 +136,19 @@ export function Hero() {
             </div>
           </Reveal>
         </div>
+
+        {/* full-width glass readout strip — the stats promoted to an instrument panel */}
+        <Reveal delay={0.1} y={26}>
+          <div className="relative mt-14 md:mt-16">
+            <span className="corners absolute -inset-2" aria-hidden />
+            <Stagger className="depth grid grid-cols-2 gap-px overflow-hidden rounded-[20px] border border-[var(--line)] bg-[var(--line)] sm:grid-cols-4">
+              <Stat n={t('stat1n')} l={t('stat1l')} />
+              <Stat n={t('stat2n')} l={t('stat2l')} />
+              <Stat n={t('stat3n')} l={t('stat3l')} />
+              <Stat n={t('stat4n')} l={t('stat4l')} />
+            </Stagger>
+          </div>
+        </Reveal>
       </section>
     </Spotlight>
   );

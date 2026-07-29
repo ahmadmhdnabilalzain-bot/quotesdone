@@ -168,6 +168,54 @@ p{text-wrap:pretty}
   .aurora,.qd-float,.qd-pulse,.qd-scan{animation:none}
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   HUD / TECHNICAL LAYER
+   A precision-instrument vocabulary that reframes the page from "cards on a
+   background" to "readouts on an instrument": a faint measurement grid,
+   L-shaped corner brackets, indexed section headers and a live node dot.
+   All static or transform-only, brand teal, and cheap on mobile.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Measurement grid — a faint blueprint plane, masked so it fades at edges. */
+.grid-tech{position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(110,231,212,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(110,231,212,.055) 1px,transparent 1px);
+  background-size:56px 56px;
+  -webkit-mask-image:radial-gradient(ellipse 80% 74% at 50% 30%,#000 36%,transparent 78%);
+  mask-image:radial-gradient(ellipse 80% 74% at 50% 30%,#000 36%,transparent 78%);
+}
+.grid-tech-sm{background-size:32px 32px}
+@media(max-width:760px){.grid-tech{background-size:40px 40px}}
+
+/* Four L-shaped corner brackets drawn with backgrounds — no extra elements. */
+.corners{--cc:rgba(110,231,212,.5);--cs:15px;--ct:1px;pointer-events:none;
+  background:
+    linear-gradient(var(--cc),var(--cc)) 0 0/var(--cs) var(--ct) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 0 0/var(--ct) var(--cs) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 100% 0/var(--cs) var(--ct) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 100% 0/var(--ct) var(--cs) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 0 100%/var(--cs) var(--ct) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 0 100%/var(--ct) var(--cs) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 100% 100%/var(--cs) var(--ct) no-repeat,
+    linear-gradient(var(--cc),var(--cc)) 100% 100%/var(--ct) var(--cs) no-repeat;
+}
+
+/* A live status dot with a soft breathing ring (used to head each section). */
+.node-dot{position:relative;display:inline-block;width:7px;height:7px;border-radius:99px;
+  background:var(--teal);box-shadow:0 0 10px rgba(20,184,166,.9)}
+.node-dot::after{content:'';position:absolute;inset:-4px;border-radius:99px;
+  border:1px solid rgba(20,184,166,.5);animation:qd-pulse 2.4s ease-out infinite}
+
+/* A hairline connector rail for the process sequence. */
+.rail{position:absolute;height:1px;top:0;inset-inline:0;
+  background:linear-gradient(90deg,transparent,var(--line2) 12%,var(--line2) 88%,transparent)}
+
+/* Techy press feedback — a crisp, satisfying push-down on tap. */
+.press{transition:transform .13s var(--e)}
+.press:active{transform:scale(.96)}
+@media (prefers-reduced-motion:reduce){.node-dot::after{animation:none}.press{transition:none}}
+
 /* ── the key light sweeps the primary action ──────────────────────── */
 .btn-key{position:relative;overflow:hidden;isolation:isolate}
 .btn-key::after{content:'';position:absolute;inset:0;transform:translateX(-120%);
