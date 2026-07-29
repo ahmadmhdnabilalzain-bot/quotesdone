@@ -162,11 +162,43 @@ Worth noting what the table shows: the cheap tier is now carrying real traffic. 
 gateway, 100% of measured calls went to Sonnet or Opus. Extraction and classification now
 land on flash-lite and haiku, and only contract analysis and agent reasoning reach Sonnet.
 
-**Still unproven** — these need a real file, record id or signed-in user, so they were not
-exercised: `doc_extract`, `license_extract`, `quote_extract`, `drawing_boq`, `profile_ai`,
-`capability_agent`, `translate_page`, `prompt_improve`, `os_pages`, `finance_doc`,
-`customer_api`, `inquiry_intake`, `inquiry_ai`, `resend_inbound`, `route_inquiry`,
-`agent_autogen`, `kb_fill_gap`, `quote_compare`, `transcribe`.
+A second pass with real inputs verified seven more, each with a cost-logged model call:
+`license_extract` (read a synthetic UAE trade licence correctly — name, licence number,
+authority, emirate, dates, TRN), `profile_ai`, `capability_agent`, `quote_extract`,
+`drawing_boq`, `kb_fill_gap` (filled a genuine 0-row category gap, 6 chunks inserted) and
+`prompt_improve`. Seventeen of the 31 are now proven end to end.
+
+One image-specific note: `drawing_boq` rejected a 1-bit PNG floor plan with
+`invalid_request_error - Could not process image` from the provider, then handled a normal
+image fine. That is an upstream image-format limit, not a routing fault, but real customer
+drawings should be sent as standard RGB rather than 1-bit.
+
+**Fixed 29 Jul: `translate_page` was returning HTTP 500 on every single call** — see the
+commit. Pre-existing bug, unrelated to the gateway; the migration is just what caused it to
+be called for the first time in weeks. Now verified returning Arabic.
+
+**Still unproven, and why:**
+
+| function | reason |
+|---|---|
+| `quote_compare` | needs 2+ non-draft quotes on one inquiry; there are zero quotes platform-wide |
+| `inquiry_ai` | no `__secret` path — needs a signed-in user, or an `app_secrets.test_token` row that does not exist |
+| `finance_doc` | calling it uploads a file and posts a real expense |
+| `os_pages` | its AI actions rewrite `qd_deploy_src`; `publish` ships quotesdone.com |
+| `agent_autogen` | creates a category agent and queues an email to the owner |
+| `doc_extract`, `transcribe`, `customer_api`, `inquiry_intake`, `resend_inbound`, `route_inquiry` | need a real document, audio file, or signed-in session |
+
+These are not known-broken — they are untested, which is a different thing. Each one boots
+and enforces auth. Exercise them with real data when the opportunity arises naturally.
+
+## Guard against this happening again
+
+A scheduled task **"QuotesDone: daily deploy-vs-repo drift check"** runs every day at 09:00
+Dubai. It compares each function's deployed timestamp against the last commit, compares
+applied migrations against `supabase/migrations/`, pulls and commits anything that drifted,
+checks `ai_cost_log` for failures and a spend spike, and reports in plain English. It is not
+permitted to deploy, change schema, send, publish or delete — mirroring production into git
+is its only write.
 
 One false alarm, recorded so nobody re-chases it: `prompt_improve` returns `{"error":"no_key"}`
 on an empty body. That is a missing `body.key` (which prompt to improve), not a missing
