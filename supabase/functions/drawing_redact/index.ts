@@ -1,12 +1,13 @@
 // drawing_redact - blacks out client/consultant/contractor/project identifiers (title block, logos, address,
 // contacts, drawing/project numbers) on drawing pages so a REDACTED copy can be shared with suppliers.
 // Fail-closed: any page we cannot confidently clean is skipped (not shared). Internal-only: __secret auth.
+// Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
-const FALLBACK_MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
+const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 // FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
@@ -27,7 +28,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
     if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
-    const key = await sec('openrouter_api_key'); if (!key) return J({ error: 'no_ai_key' }, 500);
+    const key = await sec('inbound_secret'); if (!key) return J({ error: 'no_ai_key' }, 500);
     // ANONYMITY 27 Jul 2026. These objects are handed to matched suppliers as SIGNED URLs before any
     // reveal or payment, and a signed URL necessarily contains the object path. The path is therefore
     // untrusted output: anything a caller puts in it is readable by every supplier who is matched.
@@ -52,9 +53,9 @@ Deno.serve(async (req) => {
     const regionsByPage: Record<number, {x:number;y:number;w:number;h:number}[]> = {};
     const identityByPage: Record<number, boolean> = {};
     try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ models: FALLBACK_MODELS, max_tokens: 2000, temperature: 0, messages: [{ role: 'system', content: SYS }, { role: 'user', content }] }) });
+      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'drawing_redact', max: 2000, temperature: 0, sys: SYS, input: [{ role: 'user', content }] }) });
       const jd = await r.json();
-      const parsed = parseJson(jd?.choices?.[0]?.message?.content || '');
+      const parsed = parseJson(jd?.content || '');
       if (!parsed || !Array.isArray(parsed.pages)) return J({ ok: false, error: 'detect_failed' }, 200);
       for (const p of parsed.pages) { const i = Number(p?.i); if (!Number.isFinite(i)) continue; identityByPage[i] = p?.has_identity !== false; regionsByPage[i] = Array.isArray(p?.regions) ? p.regions.map((g:any)=>({x:Number(g.x)||0,y:Number(g.y)||0,w:Number(g.w)||0,h:Number(g.h)||0})).filter((g:any)=>g.w>0&&g.h>0) : []; }
     } catch (_e) { return J({ ok: false, error: 'detect_exception' }, 200); }

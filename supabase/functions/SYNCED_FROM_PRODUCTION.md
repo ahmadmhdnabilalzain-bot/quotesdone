@@ -65,3 +65,109 @@ was verified and left untouched rather than rewritten.
 Only `index.ts` files under `supabase/functions/<slug>/` were written. Nothing was
 deleted, nothing outside `supabase/functions/` was touched, and no git command was run —
 these changes are unstaged working-tree edits for you to review and commit yourself.
+
+---
+
+# PRODUCTION IS AHEAD OF THIS MIRROR — 29 July 2026
+
+Deployed to `htdblwldjkcgjvmqkbeh` and **not yet pulled back into this repo**. Read the
+deployed version before editing any of these; the local copy is stale by definition.
+
+| slug | prod version | what changed |
+|---|---|---|
+| `ai_gateway` | v5 | Carries vision, audio, the OpenRouter web/file-parser plugins, tool-calling and `response_format`. Capability is inferred from the payload and passed to routing. Caching disabled for binary and tool turns (see the comment on why the semantic path was dangerous there). 55s budget on modality calls. |
+| `_shared/llm.ts` | shipped with `kb_research_test` v4 | New `llmCall` / `llmVision` / `llmWeb`. `makeLlm` is unchanged in behaviour and is now a wrapper over `llmCall`. |
+| `kb_research_test` | v4 | Web research now goes through the gateway instead of its own OpenRouter fetch. |
+
+Database (already committed via migrations, no drift):
+
+- `model_registry` gained `supports_vision` / `supports_audio` / `supports_tools`.
+- `fn_ai_route` gained `p_require_caps text[]` and substitutes a capable model, preferring
+  the intended tier and then the nearest tier **above** it, so a capability substitution
+  never silently becomes a quality downgrade.
+- New policy classes `document_extraction` (4000 tokens) and `speech_transcription`.
+  `extract_text`, `doc_extract`, `quote_extract`, `license_extract`, `drawing_boq` and
+  `drawing_redact` moved off `ocr_cleanup`, whose 1200-token ceiling was truncating
+  extractions. `secretary_act` moved off `customer_communication` (800 tokens) onto
+  `chief_of_staff_decision`. `customer_api` was unmapped and is now mapped.
+
+**To re-mirror:** `powershell -ExecutionPolicy Bypass -File scripts\qd-pull-functions.ps1`
+(needs an `sbp_` access token). Do not hand-edit these three files here — pull them.
+
+## CORRECTION — these were already migrated in production, only the repo was behind
+
+An earlier draft of this note listed the functions below as "still calling OpenRouter
+directly". That was read off the stale repo copy and was **wrong**. Production source was
+pulled and checked: they were migrated onto `ai_gateway` and deployed on 28 Jul between
+22:49 and 23:28 UTC — i.e. *after* the 22:40 UTC commit `11c497b`, which is why none of it
+is in git. **31 edge functions are deployed and absent from this repo.** Their local copies
+here are pre-migration and must not be edited or redeployed; pull them first.
+
+Boot-verified 29 Jul: all 27 that had never been exercised were probed with a deliberately
+invalid secret. 18 returned 403 and 9 returned 401 (the JWT-gated ones) — every one loads,
+parses and enforces its auth guard. No 5xx, no import errors. Their runtime gateway path is
+still unexercised; see the note at the end.
+
+The 31, all deployed and absent from git:
+
+`agent_autogen`, `capability_agent`, `customer_api`, `doc_extract`, `drawing_boq`,
+`drawing_redact`, `extract_text`, `finance_doc`, `inquiry_ai`, `inquiry_intake`,
+`inquiry_parse`, `kb_fill_gap`, `legal_review`, `license_extract`,
+`os_pages`, `profile_ai`, `prompt_improve`, `quote_compare`, `quote_extract`,
+`quote_review`, `resend_inbound`, `route_inquiry`, `secretary_act`, `seo_gen`,
+`supplier_review`, `transcribe`, `translate_html`, `translate_page`, `kb_deepen`,
+`kb_research_test`, `ai_gateway`.
+
+(`site_assistant`, `wa_inbound` and `learn_gaps` were deployed BEFORE the last commit and
+are correctly mirrored — they are not part of the drift.)
+
+`ai_health` and `cost_snapshot` stay direct on purpose: they probe OpenRouter itself and
+read its credit balance, so routing them through the gateway would test the wrong thing.
+
+## Migrations applied but not committed
+
+| version | name |
+|---|---|
+| `20260728230844` | `channel_decisions_task_cap_and_quality_loop` |
+| `20260728234811` | `model_capabilities_and_capability_aware_routing` |
+| `20260728234853` | `fn_ai_route_capability_aware` |
+| `20260728235000` | `fn_ai_route_capability_substitute_respects_tier` |
+
+The SQL for all four is recoverable from `supabase_migrations.schema_migrations.statements`.
+
+## Verification status — 29 July 2026
+
+The repo mirror is now complete: all 31 functions and the 4 migrations are in the working
+tree. Deployed is still not the same as working, so each was exercised.
+
+**Proven end to end** — a real model call, correctly routed, cost-logged in `ai_cost_log`:
+
+| function | task class | model actually used |
+|---|---|---|
+| `legal_review` | contract_analysis | claude-sonnet-5 |
+| `inquiry_parse` | json_extraction | gemini-3.1-flash-lite |
+| `translate_html` | content_drafting | claude-haiku (correct Arabic returned) |
+| `quote_review` | quote_comparison | claude-haiku |
+| `supplier_review` | supplier_matching | gemini-3.1-flash-lite |
+| `kb_deepen` | knowledge_research | claude-haiku |
+| `kb_research_test` | knowledge_research | web plugin, 5 real sources |
+| `extract_text` | document_extraction | gemini-3.5-flash (vision) |
+| `secretary_act` | chief_of_staff_decision | claude-sonnet-5 (real tool_calls) |
+
+`seo_gen` and `drawing_redact` ran cleanly with no work queued (no model call needed).
+All 27 previously-unexercised functions boot and enforce their auth guard: 18 return 403 on
+a bad secret, 9 return 401 without a JWT, zero 5xx.
+
+Worth noting what the table shows: the cheap tier is now carrying real traffic. Before the
+gateway, 100% of measured calls went to Sonnet or Opus. Extraction and classification now
+land on flash-lite and haiku, and only contract analysis and agent reasoning reach Sonnet.
+
+**Still unproven** — these need a real file, record id or signed-in user, so they were not
+exercised: `doc_extract`, `license_extract`, `quote_extract`, `drawing_boq`, `profile_ai`,
+`capability_agent`, `translate_page`, `prompt_improve`, `os_pages`, `finance_doc`,
+`customer_api`, `inquiry_intake`, `inquiry_ai`, `resend_inbound`, `route_inquiry`,
+`agent_autogen`, `kb_fill_gap`, `quote_compare`, `transcribe`.
+
+One false alarm, recorded so nobody re-chases it: `prompt_improve` returns `{"error":"no_key"}`
+on an empty body. That is a missing `body.key` (which prompt to improve), not a missing
+credential.

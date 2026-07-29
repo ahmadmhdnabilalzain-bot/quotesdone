@@ -2,7 +2,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
-const FALLBACK_MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
+// Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
+const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 
 const CATS = ['acrylic','aluminium','carpentry','fitout','flooring','glass','gypsum','landscaping','painting','safety','scaffolding','security','signage','steel','upholstery','wallpaper'];
 
@@ -39,20 +40,21 @@ function parseJson(txt: string) {
   throw new Error('AI returned non-JSON');
 }
 
+// Signature unchanged; `key` is now the inbound_secret used to authenticate to ai_gateway.
 async function callClaude(key: string, parts: { text?: string; img?: { mime: string; data: string } }[]) {
   const content: unknown[] = [];
   for (const p of parts) {
     if (p.text) content.push({ type: 'text', text: p.text });
     if (p.img) content.push({ type: 'image_url', image_url: { url: `data:${p.img.mime};base64,${p.img.data}` } });
   }
-  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const r = await fetch(GW, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://quotesdone.com', 'X-Title': 'QuotesDone' },
-    body: JSON.stringify({ models: FALLBACK_MODELS, max_tokens: 1100, temperature: 0.15, messages: [{ role: 'system', content: SYS }, { role: 'user', content }] }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ __secret: key, fn: 'profile_ai', max: 1100, temperature: 0.15, sys: SYS, input: [{ role: 'user', content }] }),
   });
   const d = await r.json();
-  if (!r.ok) throw new Error(d?.error?.message || 'openrouter error');
-  return parseJson(d?.choices?.[0]?.message?.content || '{}');
+  if (!r.ok || d?.ok === false) throw new Error(d?.detail || d?.error || 'ai_gateway error');
+  return parseJson(d?.content || '{}');
 }
 
 const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
@@ -81,7 +83,7 @@ Deno.serve(async (req) => {
     if (!ok) { const { data: t } = await admin.from('app_secrets').select('value').eq('key', 'test_token').maybeSingle(); if (t?.value && body.__test === t.value) ok = true; }
     if (!ok) return J({ error: 'forbidden' }, 403);
 
-    const { data: keyRow } = await admin.from('app_secrets').select('value').eq('key', 'openrouter_api_key').maybeSingle();
+    const { data: keyRow } = await admin.from('app_secrets').select('value').eq('key', 'inbound_secret').maybeSingle();
     if (!keyRow?.value) return J({ error: 'smart engine not configured', fallback: true }, 200);
 
     const parts: { text?: string; img?: { mime: string; data: string } }[] = [];

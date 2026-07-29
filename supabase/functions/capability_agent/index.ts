@@ -12,11 +12,13 @@
 // actions: analyze | confirm | state
 // v2: probe_text — secret-guarded diagnostic that analyses supplied text instead of stored documents,
 //     so extraction quality can be tested ("would this profile be enough?") without an upload. Never persists.
+// v3: the model call goes through ai_gateway (multimodal passthrough), so the model ladder, routing,
+//     budget and cost logging all live in one place instead of here.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
-const MODELS = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8'];
+const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const AGENT_VERSION = 'capability_agent@2';
 const BUCKET = 'supplier-docs';
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -87,25 +89,23 @@ missing = plain English, addressed to the supplier, naming exactly what they mus
 confirm_summary = one short paragraph written TO THE SUPPLIER in second person, in plain language with no codes, stating what we understood their business does, for them to confirm or correct.
 confirm_questions = up to 3 short questions that would remove remaining ambiguity. ALWAYS include one asking what they do NOT take on.`;
 
+// Signature unchanged; `key` is now the inbound_secret used to authenticate to ai_gateway.
+// The model ladder and the retry live in the gateway now, so this is a single call.
 async function callModel(key: string, content: any[]) {
   let last = '';
-  for (const model of MODELS) {
-    for (let at = 0; at < 2; at++) {
-      try {
-        const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model, max_tokens: 2500, temperature: 0.1, messages: [
-            { role: 'system', content: [{ type: 'text', text: SYS, cache_control: { type: 'ephemeral' } }] },
-            { role: 'user', content } ] })
-        });
-        const jd = await r.json();
-        if (!r.ok) { last = 'http ' + r.status + ' ' + clip(jd?.error?.message, 140); continue; }
-        const p = parseJson(jd?.choices?.[0]?.message?.content || '');
-        if (p && Object.keys(p).length) return { ai: p, err: '' };
-        last = 'unparseable model output';
-      } catch (e) { last = clip((e as Error)?.message || e, 140); }
+  try {
+    const r = await fetch(GW, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: key, fn: 'capability_agent', max: 2500, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }] })
+    });
+    const jd = await r.json();
+    if (!r.ok || jd?.ok === false) { last = 'http ' + r.status + ' ' + clip(jd?.detail || jd?.error, 140); }
+    else {
+      const p = parseJson(jd?.content || '');
+      if (p && Object.keys(p).length) return { ai: p, err: '' };
+      last = 'unparseable model output';
     }
-  }
+  } catch (e) { last = clip((e as Error)?.message || e, 140); }
   return { ai: null, err: last };
 }
 
@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
     }
 
     // ---------------- analyze ----------------
-    const key = await sec('openrouter_api_key');
+    const key = await sec('inbound_secret');
     if (!key) return J({ error: 'no_ai_key' }, 500);
 
     const used: string[] = [];

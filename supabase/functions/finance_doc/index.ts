@@ -37,10 +37,10 @@ Deno.serve(async (req) => {
     // 3) AI parse into a finance entry
     let entry: any = null;
     if (text && text.length > 10) {
-      const key = await sec('openrouter_api_key');
+      const key = await sec('inbound_secret');
       if (key) {
         const prompt = `Extract a finance entry from this UAE invoice/receipt text. Return STRICT JSON only: {\"kind\":\"expense|income|subscription\",\"amount\":<number in AED>,\"currency\":\"AED\",\"vendor\":\"...\",\"category\":\"...\",\"description\":\"...\",\"cycle\":\"monthly|annual|quarterly|weekly (only if subscription)\"}. If it is a recurring software/service subscription, use kind=subscription. Amount is the total incl VAT. No prose.\n\nTEXT:\n` + text.slice(0, 6000);
-        try { const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'anthropic/claude-sonnet-5', messages: [{ role: 'user', content: prompt }], temperature: 0.1 }) }); const jd = await r.json().catch(() => ({})); let t = (jd as any)?.choices?.[0]?.message?.content || ''; t = String(t).replace(/```json/gi, '').replace(/```/g, '').trim(); const m = t.match(/\{[\s\S]*\}/); entry = JSON.parse(m ? m[0] : t); } catch (_e) { entry = null; }
+        try { const r = await fetch(`${BASE}/ai_gateway`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'finance_doc', sys: '', input: prompt, temperature: 0.1 }) }); const jd = await r.json().catch(() => ({})); let t = (jd as any)?.content || ''; t = String(t).replace(/```json/gi, '').replace(/```/g, '').trim(); const m = t.match(/\{[\s\S]*\}/); entry = JSON.parse(m ? m[0] : t); } catch (_e) { entry = null; }
       }
     }
 
@@ -57,3 +57,4 @@ Deno.serve(async (req) => {
     return J({ ok: true, path, extracted_chars: text.length, parsed: entry, logged });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 });
+

@@ -18,11 +18,11 @@ async function readPath(path: string): Promise<any> {
 }
 async function readFile(src: string){ const path = FILES[src]; if (!path) return null; return await readPath(path); }
 async function orLLM(models: string[], sys: string, user: string, max = 4500): Promise<string | null> {
-  const key = await sec('openrouter_api_key'); if (!key) return null;
+  const key = await sec('inbound_secret'); if (!key) return null;
   try {
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ models, max_tokens: max, temperature: 0.3, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }) });
+    const r = await fetch(FN_BASE + '/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'os_pages', sys, input: user, max, temperature: 0.3 }) });
     const j = await r.json(); if (!r.ok) return null;
-    let c = j?.choices?.[0]?.message?.content || ''; c = c.replace(/^```[a-z]*\n?/i, '').replace(/```\s*$/, '').trim(); return c || null;
+    let c = j?.content || ''; c = c.replace(/^```[a-z]*\n?/i, '').replace(/```\s*$/, '').trim(); return c || null;
   } catch { return null; }
 }
 async function translateHtml(html: string, model?: string): Promise<string> {
@@ -173,3 +173,4 @@ Deno.serve(async (req) => {
     return J({ error: 'unknown_action', action }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 });
+

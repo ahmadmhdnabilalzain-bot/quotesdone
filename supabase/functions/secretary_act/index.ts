@@ -1,11 +1,13 @@
 // secretary_act v4 — the Chief of Staff. Acts on the founder's instructions via a real toolkit.
-// Tool-calling loop (OpenRouter). Low-risk tools run immediately; high-stakes tools pause for a confirm.
+// Tool-calling loop (via ai_gateway). Low-risk tools run immediately; high-stakes tools pause for a confirm.
 // v3 (agent network): + query_platform (department dashboards) + ask_agent (delegate to a specialist).
 // v4 (org foundation): + objective (turn a founder OUTCOME into a routed, tracked plan across departments
 //     via intent_router, read its status, and see the whole-company scorecard). Auth: __secret OR admin JWT.
 // v5 (marketing): post_content now PUBLISHES to social via the Postiz connector (linkedin/instagram/x/
 //     facebook) — still a high-stakes tool that pauses for a founder confirm; default type=draft (stages
 //     in Postiz), or schedule/now on request. This is how the founder acts on publishing from the OS.
+// v6 (gateway): the tool-calling loop now runs through ai_gateway, which passes `tools` through and
+//     returns `tool_calls`, so the Secretary is routed, budgeted and cost-logged like everything else.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
@@ -91,7 +93,7 @@ async function tool_run_maintenance(target: string) {
   if (target === 'clear_test_queue') { const { data, error } = await admin.from('notifications').update({ status: 'cancelled' }).in('status', ['held', 'queued']).or('to_email.ilike.%.test,to_email.ilike.%@quotesdone.test,to_email.is.null').select('id'); if (error) return { error: error.message }; return { cancelled: (data || []).length }; }
   return { error: 'unknown target' };
 }
-async function llm(sys: string, user: string, max = 700) { const key = await sec('openrouter_api_key'); if (!key) return null; for (const model of ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8', 'openai/gpt-4o']) { try { const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: max, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }), signal: AbortSignal.timeout(25000) }); const j = await r.json(); const c = j?.choices?.[0]?.message?.content; if (c) return c; } catch (_e) {} } return null; }
+async function llm(sys: string, user: string, max = 700) { const key = await sec('inbound_secret'); if (!key) return null; try { const r = await fetch(FN + '/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'secretary_act', sys, input: user, max, temperature: null }), signal: AbortSignal.timeout(25000) }); const j = await r.json(); const c = j?.content; if (c) return c; } catch (_e) {} return null; }
 async function tool_draft_content(channel: string, topic: string, notes: string) {
   let brain = ''; try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: 'marketing', p_max_chars: 6000 }); brain = data ? String(data) : ''; } catch (_e) {}
   const out = await llm('You write concise, on-brand content for QuotesDone, a UAE B2B anonymous quotation marketplace. Practical, trustworthy, pro-SME. No invented statistics.\n\n' + brain, 'Channel: ' + channel + '\nTopic: ' + topic + (notes ? ('\nNotes: ' + notes) : '') + '\nWrite the ' + channel + ' content now.', 900) || 'Draft unavailable (AI not reachable).';
@@ -196,11 +198,24 @@ Rules:
 - High-stakes actions (refunds/money, sending to many, publishing publicly, deleting data, banning/approving suppliers) will pause for a one-line founder confirmation — expected; still call the tool.
 - Concise and practical. Money in AED. If a channel isn't connected yet, say so plainly. Never invent operational data.`;
 
+// The tool-calling loop, now through ai_gateway (v3): it passes `tools` straight through to the
+// provider and returns `tool_calls` (and an empty content string on a pure tool turn), so routing,
+// the model ladder, the budget halt and cost logging all apply here too. The gateway builds its own
+// system message from `sys`, so the system turn is split off and the rest is passed as `input`.
 async function orChat(messages: any[]) {
-  const key = await sec('openrouter_api_key'); if (!key) return { error: 'no ai key' };
-  for (const model of ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8', 'openai/gpt-4o']) {
-    try { const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 1200, temperature: 0.2, tools: TOOLS, messages }), signal: AbortSignal.timeout(30000) }); const j = await r.json(); const m = j?.choices?.[0]?.message; if (m) return { message: m }; } catch (_e) {}
-  }
+  const key = await sec('inbound_secret'); if (!key) return { error: 'no ai key' };
+  const hasSys = messages[0]?.role === 'system';
+  const sys = hasSys ? String(messages[0].content || '') : '';
+  const rest = hasSys ? messages.slice(1) : messages;
+  try {
+    const r = await fetch(FN + '/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'secretary_act', max: 1200, temperature: 0.2, tools: TOOLS, sys, input: rest }), signal: AbortSignal.timeout(30000) });
+    const j = await r.json();
+    if (r.ok && j?.ok !== false) {
+      const m: any = { role: 'assistant', content: j?.content ?? '' };
+      if (j?.tool_calls) m.tool_calls = j.tool_calls;
+      return { message: m };
+    }
+  } catch (_e) {}
   return { error: 'ai_unreachable' };
 }
 

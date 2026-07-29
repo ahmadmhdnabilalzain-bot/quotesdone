@@ -10,10 +10,20 @@
 // This function is where all of that becomes real, in one place, so behaviour can change without
 // redeploying 68 functions.
 //
+// 29 JUL 2026 — MODALITIES. The first migration wave stalled with ~33 functions still calling
+// OpenRouter directly, and it was not stubbornness: the gateway could only carry plain text.
+// Anything needing eyes (a scanned trade licence), ears (Arabic/English voice notes), the web
+// plugin (grounded UAE research) or tool-calling (the Secretary) had nowhere to go. Rather than
+// leave a third of the company's spend unmeasured, the gateway now carries all four, and
+// CAPABILITY is a routing input: fn_ai_route substitutes a capable model rather than letting the
+// provider reject the payload. The caller does not declare its needs - we infer them from what it
+// actually sent, because a caller that has to remember a flag will eventually forget it.
+//
 // ORDER OF OPERATIONS — cheapest possible outcome first, every time:
 //   1. rate limit        - refuse abuse before spending anything
 //   2. Level 0           - templates and the approved FAQ answer with NO model at all
-//   3. routing           - fn_ai_route picks the tier from the calling function or task_class
+//   3. routing           - fn_ai_route picks the tier from the calling function or task_class,
+//                          then substitutes for capability if the payload needs it
 //   4. refusal           - tier='none' means deterministic code is correct; we decline
 //   5. budget halt       - department over its ceiling stops non-gated work
 //   6. cache             - exact hash, then SEMANTIC similarity on free in-region embeddings
@@ -69,15 +79,51 @@ async function rpcSafe(name: string, args: Record<string, unknown>) {
   try { const { data } = await admin.rpc(name, args); return data; } catch (_e) { return null; }
 }
 
+// deno-lint-ignore no-explicit-any
+type Msg = { role: string; content?: any; [k: string]: unknown };
+
 interface Body {
   __secret?: string;
   fn?: string; task_class?: string; dept?: string; agent?: string;
-  sys?: string; input?: string | { role: string; content: string }[];
+  sys?: string; input?: string | Msg[];
+  messages?: Msg[];                       // full OpenAI-shape passthrough (multimodal, tool turns)
   max?: number; temperature?: number; confidence?: number;
   cache_ttl_min?: number; try_faq?: boolean; faq_text?: string;
   rate_key?: string; rate_limit?: number; rate_window_s?: number;
   stream?: boolean; dry_run?: boolean; escalate?: boolean;
   action?: string; text?: string;
+  // --- modalities, added 29 Jul 2026 ---
+  // deno-lint-ignore no-explicit-any
+  plugins?: any[];                        // OpenRouter plugins: web search, file-parser
+  // deno-lint-ignore no-explicit-any
+  tools?: any[];                          // OpenAI-style tool definitions
+  // deno-lint-ignore no-explicit-any
+  tool_choice?: any;
+  // deno-lint-ignore no-explicit-any
+  response_format?: any;                  // JSON mode / json_schema
+  require_caps?: string[];                // override; normally inferred from the payload
+  want_message?: boolean;                 // return the whole assistant message (tool_calls included)
+}
+
+// What the payload actually needs, read off the payload itself. A caller that has to declare
+// "this has an image in it" will eventually forget to, and the failure mode is a provider error
+// nobody can trace. Reading it here means vision/audio can never be mis-routed by omission.
+// deno-lint-ignore no-explicit-any
+function inferCaps(msgs: Msg[], tools?: any[]): { caps: string[]; hasBinary: boolean } {
+  const caps = new Set<string>();
+  let hasBinary = false;
+  for (const m of msgs) {
+    const c = m?.content;
+    if (!Array.isArray(c)) continue;
+    for (const part of c) {
+      const t = String((part as Record<string, unknown>)?.type || '');
+      if (t === 'image_url' || t === 'image') { caps.add('vision'); hasBinary = true; }
+      else if (t === 'input_audio' || t === 'audio') { caps.add('audio'); hasBinary = true; }
+      else if (t === 'file') { caps.add('vision'); hasBinary = true; }  // file-parser feeds pages to the vision path
+    }
+  }
+  if (Array.isArray(tools) && tools.length) caps.add('tools');
+  return { caps: Array.from(caps), hasBinary };
 }
 
 Deno.serve(async (req) => {
@@ -132,6 +178,23 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ---- MESSAGES ------------------------------------------------------------------------
+    // Two shapes, one path. `messages` is the full OpenAI array and wins when present - that is
+    // what a tool-calling loop needs, because it must replay assistant tool_calls and tool
+    // results verbatim. `sys` + `input` remains the shorthand the 32 migrated callers use.
+    const sys = String(body.sys || '');
+    const explicit = Array.isArray(body.messages) ? body.messages : null;
+    const convo: Msg[] = explicit
+      ? explicit
+      : (typeof body.input === 'string'
+          ? [{ role: 'user', content: body.input }]
+          : (Array.isArray(body.input) ? body.input as Msg[] : []));
+
+    const { caps: inferred, hasBinary } = inferCaps(convo, body.tools);
+    const caps = Array.isArray(body.require_caps) && body.require_caps.length
+      ? Array.from(new Set([...body.require_caps, ...inferred]))
+      : inferred;
+
     // ---- 3. ROUTE -----------------------------------------------------------------------
     const { data: route, error: rErr } = await admin.rpc('fn_ai_route', {
       p_task_class: body.task_class ?? null,
@@ -139,12 +202,13 @@ Deno.serve(async (req) => {
       p_confidence: body.confidence ?? null,
       p_fn: fnName,
       p_escalate: body.escalate === true,
+      p_require_caps: caps.length ? caps : null,
     });
     if (rErr || !route) {
       return J({ ok: false, error: 'route_failed', detail: String(rErr?.message || 'no route') }, 500);
     }
 
-    // ---- 4 & 5. REFUSALS: deterministic work, or a department over budget ----------------
+    // ---- 4 & 5. REFUSALS: deterministic work, a department over budget, or no capable model ---
     if (route.use_llm === false) {
       await rpcSafe('fn_llm_log', {
         p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
@@ -155,24 +219,30 @@ Deno.serve(async (req) => {
       return J({ ok: true, used_llm: false,
                  outcome: route.halted ? 'budget_halted' : 'refused_deterministic',
                  why: route.why, deterministic_alternative: route.deterministic_alternative ?? null,
-                 cost_usd: 0 });
+                 caps, cost_usd: 0 });
     }
 
     const model: string = route.model;
     const fallback: string | null = route.fallback ?? null;
     const maxTok = Math.min(Number(body.max ?? route.max_tokens ?? 700), Number(route.max_tokens ?? 4000));
-    const sys = String(body.sys || '');
-    const msgs = typeof body.input === 'string'
-      ? [{ role: 'user', content: body.input }]
-      : (Array.isArray(body.input) ? body.input : []);
 
     // ---- 6. CACHE — exact, then semantic ------------------------------------------------
-    const wantCache = Number(body.cache_ttl_min ?? 0) > 0;
+    // Two things are deliberately NOT cacheable:
+    //   * tool-calling turns - the stored value is text, but the useful part of the reply is the
+    //     tool_calls array, and replaying a stale tool call would act on stale state;
+    //   * anything with a base64 image or audio blob - the exact hash can never hit (every scan is
+    //     a different blob), and the SEMANTIC path is actively dangerous, because embedding a
+    //     truncated base64 string produces near-identical vectors for two unrelated documents.
+    //     A 0.95 "hit" there would return another supplier's invoice. Off, on purpose.
+    const cacheable = Number(body.cache_ttl_min ?? 0) > 0 && !hasBinary && !(body.tools && body.tools.length);
     let cacheKey: string | null = null;
     let promptEmb: string | null = null;
-    if (wantCache) {
-      cacheKey = await sha256([model, String(maxTok), sys, JSON.stringify(msgs)].join(' '));
-      promptEmb = await embed(sys.slice(0, 400) + ' ' + JSON.stringify(msgs).slice(0, 800));
+    if (cacheable) {
+      cacheKey = await sha256([
+        model, String(maxTok), sys, JSON.stringify(convo),
+        JSON.stringify(body.plugins ?? null), JSON.stringify(body.response_format ?? null),
+      ].join(' '));
+      promptEmb = await embed(sys.slice(0, 400) + ' ' + JSON.stringify(convo).slice(0, 800));
       const { data: hit } = await admin.rpc('fn_llm_cache_lookup', {
         p_key: cacheKey, p_embedding: promptEmb,
         p_task_class: route.task_class ?? null, p_min_similarity: 0.95,
@@ -195,7 +265,10 @@ Deno.serve(async (req) => {
       return J({ ok: true, dry_run: true, used_llm: false, outcome: 'would_call',
                  model, fallback, tier: route.tier, task_class: route.task_class,
                  max_tokens: maxTok, prompt_cache: route.cache === true && sys.length >= CACHE_MIN_CHARS,
-                 stream_ok: route.stream === true, budget_pct: route.budget_pct, why: route.why });
+                 stream_ok: route.stream === true, budget_pct: route.budget_pct,
+                 caps, cacheable, has_binary: hasBinary,
+                 plugins: body.plugins ?? null, tools: (body.tools || []).length || 0,
+                 why: route.why });
     }
 
     // ---- 7. THE CALL --------------------------------------------------------------------
@@ -208,21 +281,37 @@ Deno.serve(async (req) => {
     const sysMsg = useCache
       ? { role: 'system', content: [{ type: 'text', text: sys, cache_control: { type: 'ephemeral' } }] }
       : { role: 'system', content: sys };
+    // An empty system message is not free - it is a message the provider still tokenises, and on
+    // the transcribe path there is no system prompt at all. Only prepend one when it says something,
+    // and never when the caller already supplied its own system turn inside `messages`.
+    const hasOwnSystem = convo.some((m) => m?.role === 'system');
+    const outbound: Msg[] = (sys && !hasOwnSystem) ? [sysMsg as Msg, ...convo] : convo;
 
     const ladder = [model, ...(fallback && fallback !== model ? [fallback] : [])];
     const wantStream = body.stream === true && route.stream === true;
 
-    let out: string | null = null, used = model, usage: Record<string, number> = {}, lastErr = '';
+    let out: string | null = null;
+    // deno-lint-ignore no-explicit-any
+    let outMsg: any = null;
+    let used = model, usage: Record<string, number> = {}, lastErr = '';
     for (const m of ladder) {
       for (let attempt = 0; attempt < 2; attempt++) {
         const ac = new AbortController();
-        const to = setTimeout(() => ac.abort(), 25000);
+        // Vision and audio payloads are large and slow; 25s is right for chat and far too tight
+        // for a three-page scanned licence. Give the modality paths room rather than logging a
+        // timeout that looks like a model failure.
+        const budgetMs = (hasBinary || (body.plugins && body.plugins.length)) ? 55000 : 25000;
+        const to = setTimeout(() => ac.abort(), budgetMs);
         try {
           const payload: Record<string, unknown> = {
-            model: m, max_tokens: maxTok, messages: [sysMsg, ...msgs],
+            model: m, max_tokens: maxTok, messages: outbound,
           };
           if (body.temperature != null) payload.temperature = body.temperature;
           if (wantStream) payload.stream = true;
+          if (body.plugins && body.plugins.length) payload.plugins = body.plugins;
+          if (body.tools && body.tools.length) payload.tools = body.tools;
+          if (body.tool_choice != null) payload.tool_choice = body.tool_choice;
+          if (body.response_format != null) payload.response_format = body.response_format;
 
           const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
@@ -252,14 +341,26 @@ Deno.serve(async (req) => {
           }
 
           const j = await r.json();
-          const c = j?.choices?.[0]?.message?.content;
-          if (c) { out = c; used = m; usage = j?.usage || {}; break; }
+          const msg = j?.choices?.[0]?.message;
+          const c = msg?.content;
+          // A tool-calling reply is a SUCCESS with empty content - the answer is in tool_calls.
+          // Treating it as "no content" is what would make the Secretary look broken.
+          const hasCalls = Array.isArray(msg?.tool_calls) && msg.tool_calls.length > 0;
+          if (c || hasCalls) {
+            // Some models return content as an array of parts; callers expect a string.
+            out = typeof c === 'string'
+              ? c
+              // deno-lint-ignore no-explicit-any
+              : (Array.isArray(c) ? c.map((p: any) => p?.text || '').join('') : '');
+            outMsg = msg; used = m; usage = j?.usage || {};
+            break;
+          }
           lastErr = JSON.stringify(j?.error || j).slice(0, 200);
         } catch (e) {
           lastErr = String((e as Error)?.message || e).slice(0, 200);
         } finally { clearTimeout(to); }
       }
-      if (out) break;
+      if (outMsg) break;
     }
 
     // ---- 8. LOG with real money ---------------------------------------------------------
@@ -282,14 +383,15 @@ Deno.serve(async (req) => {
       p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
       p_task_class: route.task_class ?? null, p_model: used,
       p_because: route.why + (used !== model ? ' [fell back from ' + model + ']' : '')
+                 + (caps.length ? ' | caps: ' + caps.join('+') : '')
                  + (useCache ? ' | prompt cache on, ' + cachedIn + ' input tokens read from cache' : ''),
       p_tier: route.tier ?? null, p_prompt_tokens: inTok, p_output_tokens: outTok,
-      p_cached: cachedIn > 0, p_cache_key: cacheKey, p_latency_ms: Date.now() - t0, p_ok: !!out,
+      p_cached: cachedIn > 0, p_cache_key: cacheKey, p_latency_ms: Date.now() - t0, p_ok: !!outMsg,
     });
 
-    if (!out) return J({ ok: false, error: 'all_models_failed', detail: lastErr, ladder }, 502);
+    if (!outMsg) return J({ ok: false, error: 'all_models_failed', detail: lastErr, ladder, caps }, 502);
 
-    if (wantCache && cacheKey) {
+    if (cacheable && cacheKey && out) {
       await rpcSafe('fn_llm_cache_store', {
         p_key: cacheKey, p_fn: fnName, p_task_class: route.task_class ?? null, p_model: used,
         p_response: out, p_ttl_minutes: Number(body.cache_ttl_min), p_embedding: promptEmb,
@@ -298,7 +400,12 @@ Deno.serve(async (req) => {
     }
 
     return J({ ok: true, used_llm: true, outcome: 'generated', content: out, model: used,
-               tier: route.tier, task_class: route.task_class,
+               // The whole message when asked for: tool_calls for the agent loops, annotations for
+               // the web plugin's source citations (kb_research reports sources, not just prose).
+               message: body.want_message === true ? outMsg : undefined,
+               tool_calls: outMsg?.tool_calls ?? undefined,
+               annotations: outMsg?.annotations ?? undefined,
+               tier: route.tier, task_class: route.task_class, caps,
                prompt_tokens: inTok, output_tokens: outTok, cached_input_tokens: cachedIn,
                cost_usd: costUsd, latency_ms: Date.now() - t0 });
   } catch (e) {

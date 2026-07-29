@@ -10,7 +10,6 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
-const MODELS = ['anthropic/claude-opus-4.8','anthropic/claude-sonnet-5'];
 
 // Robust JSON extraction. Handles: clean JSON, fenced JSON, UNTERMINATED fences (truncated output),
 // prose preambles, and truncated objects (repairs by balancing braces/brackets and closing open strings).
@@ -73,19 +72,19 @@ Deno.serve(async (req) => {
 
     const sys = 'You are a contracts analyst assisting a UAE B2B marketplace. Review the document and identify MISSING or RISKY clauses against best practice for this document type. Consider: parties & definitions, scope, payment/commission, liability & indemnity, limitation of liability, confidentiality/NDA, data protection (UAE PDPL), IP/content ownership, termination, warranties, force majeure, governing law & jurisdiction (should be UAE/relevant emirate), dispute resolution, compliance with UAE law. You are NOT a lawyer and must NOT give definitive legal advice or say the document is safe/enforceable. Flag issues for a licensed UAE lawyer to decide. Return STRICT JSON only, no markdown fences and no commentary. Keep each "issue" under 40 words so the response is never truncated. Schema: {"summary": string (plain, 3-4 sentences), "risk_flags": [{"clause": string, "issue": string, "severity": "low|medium|high"}], "missing_clauses": string[], "risk_level": "low|medium|high", "lawyer_questions": string[]}';
     const usr = 'DOCUMENT TYPE: '+kind+'\nTITLE: '+title+'\n\nDOCUMENT:\n"""\n'+text+'\n"""';
-    const key = await sec('openrouter_api_key'); if (!key) { await logRun('error',{},'ai_unavailable: no openrouter key'); return J({ error:'ai_unavailable' }); }
+    const key = await sec('inbound_secret'); if (!key) { await logRun('error',{},'ai_unavailable: no inbound secret'); return J({ error:'ai_unavailable' }); }
     let parsed:any=null; let used=''; let lastRaw=''; let lastErr='';
-    for (const model of MODELS) {
+    for (let attempt=0; attempt<2; attempt++) {
       try {
-        const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method:'POST', headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'}, body: JSON.stringify({ model, max_tokens:4000, temperature:0.2, response_format:{type:'json_object'}, messages:[{role:'system',content:sys},{role:'user',content:usr}] }) });
+        const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret:key, fn:'legal_review', sys, input:usr, max:4000, temperature:0.2 }) });
         const jd=await r.json();
         if(jd?.error){ lastErr=String(jd.error?.message||jd.error).slice(0,200); continue; }
-        const c=jd?.choices?.[0]?.message?.content||'';
-        const finish=jd?.choices?.[0]?.finish_reason||'';
+        const c=jd?.content||'';
+        const model=String(jd?.model||'ai_gateway');
         lastRaw=String(c).slice(0,300);
         const p=parseJson(c);
-        if(p){ parsed=p; used=model; if(finish==='length') await logRun('ok',{truncated:true},'recovered truncated output from '+model); break; }
-        lastErr='unparseable ('+model+', finish='+finish+')';
+        if(p){ parsed=p; used=model; break; }
+        lastErr='unparseable ('+model+', outcome='+String(jd?.outcome||'')+')';
       } catch(e){ lastErr=String((e as Error)?.message||e).slice(0,200); }
     }
     if (!parsed) { await logRun('error',{},'llm_failed: '+lastErr+' | raw: '+lastRaw); return J({ error:'llm_failed', detail:lastErr }); }
@@ -104,3 +103,4 @@ Deno.serve(async (req) => {
   } catch (e) { const m=String((e as Error)?.message || e); await logRun('error',{},'exception: '+m); return J({ error: m }, 500); }
 });
 function jsonb_min(p:any, kind:string, title:string, id:any){ return { signal:'contract_review', kind, title, review_id:id, missing:(p.missing_clauses||[]).slice(0,8) }; }
+

@@ -62,15 +62,15 @@ function isArabic(text: string): boolean { return /[؀-ۿ]/.test(String(text || 
 function sanitizeInput(text: string): string { return String(text || '').replace(/\bignore (all |any |previous )?(above|prior|earlier)?\s*(instructions|prompts?|rules?)\b/gi, '[removed]').replace(/\b(system|assistant|developer)\s*:/gi, '$1 -').slice(0, 4000); }
 
 async function llm(messages: any[]): Promise<string | null> {
-  const key = await sec('openrouter_api_key'); if (!key) return null;
-  const models = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8'];
-  // Prompt caching: send the (large, static) system prompt as a cache_control block so repeat turns read it at ~10% cost.
-  const cmsgs = messages.map((m: any) => (m && m.role === 'system' && typeof m.content === 'string') ? { role: 'system', content: [{ type: 'text', text: m.content, cache_control: { type: 'ephemeral' } }] } : m);
-  for (const model of models) {
+  const key = await sec('inbound_secret'); if (!key) return null;
+  // Prompt caching is now applied by ai_gateway on the system prompt it receives.
+  const sys = messages.filter((m: any) => m && m.role === 'system').map((m: any) => String(m.content || '')).join('\n\n');
+  const input = messages.filter((m: any) => !m || m.role !== 'system');
+  {
     try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, messages: cmsgs, temperature: 0.1, max_tokens: 4000, response_format: { type: 'json_object' } }) });
-      if (!r.ok) continue; const jd = await r.json(); const c = jd?.choices?.[0]?.message?.content; if (c) return c;
-    } catch (_e) { /* try next */ }
+      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'inquiry_intake', sys, input, max: 4000, temperature: 0.1 }) });
+      if (!r.ok) return null; const jd = await r.json(); const c = jd?.content; if (c) return c;
+    } catch (_e) { /* fall through to null */ }
   }
   return null;
 }
@@ -269,3 +269,4 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     return J({ ok: true, intake_id: draft.id, category, trades, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], readiness: Number(out.readiness) || 0, missing: out.missing || [], brief });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 });
+

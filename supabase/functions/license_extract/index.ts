@@ -4,10 +4,11 @@
 // (3) 'cert' mode reads ANY certificate (insurance, ISO, manufacturer authorisation) and pulls the
 //     expiry date out of it - so nobody is ever asked to type dd/mm/yyyy by hand. A supplier holding
 //     the document already has the date; asking them to retype it is a chance to get it wrong.
+// Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
-const MODELS = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8'];
+const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 // FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
@@ -46,7 +47,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
     if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
-    const key = await sec('openrouter_api_key'); if (!key) return J({ error: 'no ai key' }, 500);
+    const secret = await sec('inbound_secret'); if (!secret) return J({ error: 'no ai key' }, 500);
     const mode = body.mode === 'profile' ? 'profile' : body.mode === 'cert' ? 'cert' : 'license';
     const images: any[] = Array.isArray(body.images) ? body.images : [];
     if (!images.length && !body.file_b64) return J({ error: 'no file' }, 400);
@@ -54,10 +55,10 @@ Deno.serve(async (req) => {
     const sys = mode === 'license' ? SYS_LICENSE : mode === 'cert' ? SYS_CERT : SYS_PROFILE;
     let ai: any = {};
     try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ models: MODELS, max_tokens: 1500, temperature: 0.1, messages: [{ role: 'system', content: sys }, { role: 'user', content }] }) });
+      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'license_extract', max: 1500, temperature: 0.1, sys, input: [{ role: 'user', content }] }) });
       const jd = await r.json();
-      if (!r.ok) return J({ error: 'ai_error', detail: jd?.error?.message || JSON.stringify(jd).slice(0, 300) }, 502);
-      ai = parseJson(jd?.choices?.[0]?.message?.content || '{}');
+      if (!r.ok || jd?.ok === false) return J({ error: 'ai_error', detail: jd?.detail || jd?.error || JSON.stringify(jd).slice(0, 300) }, 502);
+      ai = parseJson(jd?.content || '{}');
     } catch (e) { return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
 
     if (mode === 'license') {

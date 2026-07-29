@@ -116,10 +116,10 @@ Deno.serve(async (req) => {
     const owner = adminList[0] || 'management@quotesdone.com';
 
     // ---- Forwarded receipt / subscription -> finance ----
-    if (key && isReceiptish(toLocal, subject, from)) {
+    if (inbSecret && isReceiptish(toLocal, subject, from)) {
       try {
-        const r = await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,max_tokens:400,temperature:0,messages:[{role:'system',content:RECEIPT_SYS},{role:'user',content:`From: ${from}\nSubject: ${subject}\nBody:\n${text}`}]})});
-        const jd = await r.json(); const ex:any = r.ok ? parseJson(jd?.choices?.[0]?.message?.content||'{}') : {};
+        const r = await fetch(`${SUPA_URL}/functions/v1/ai_gateway`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:inbSecret,fn:'resend_inbound',sys:RECEIPT_SYS,input:`From: ${from}\nSubject: ${subject}\nBody:\n${text}`,max:400,temperature:0})});
+        const jd = await r.json(); const ex:any = r.ok ? parseJson(jd?.content||'{}') : {};
         if (!r.ok) await logRun('error', { from, subject }, 'receipt extraction LLM call failed (http ' + r.status + ') - this email looked like a receipt but no expense was booked');
         if (ex && ex.is_receipt === true && ex.vendor && Number(ex.amount) > 0) {
           const amount = Number(ex.amount);
@@ -200,6 +200,7 @@ Deno.serve(async (req) => {
         const content:any[] = [{ type:'text', text:`Email from supplier ${lead?.company_name||from}. Subject: ${subject}. Body: ${text}. Attached file: ${fname} (${mime}). Classify this document.` }];
         if (/^image\//.test(mime)) { try { content.push({ type:'image_url', image_url:{ url:`data:${mime};base64,${bytesToB64(bytes)}` } }); } catch {} }
         try {
+          // NOT migrated to ai_gateway: this call attaches image content for image attachments and the gateway does not proxy image payloads yet.
           const r = await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,max_tokens:500,temperature:0.1,messages:[{role:'system',content:SYS},{role:'user',content}]})});
           const jd = await r.json(); if (r.ok) ai = { ...ai, ...parseJson(jd?.choices?.[0]?.message?.content||'{}') }; else classifyFailures++;
         } catch { classifyFailures++; }
@@ -251,3 +252,4 @@ Deno.serve(async (req) => {
     return J({ ok: true, matched_lead: lead?.id||null, stored, reviews, applied: appliedSummary });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception (inbound email dropped): ' + m); return J({ error: m }, 500); }
 });
+

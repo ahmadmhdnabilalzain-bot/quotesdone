@@ -20,15 +20,14 @@ Deno.serve(async (req) => {
     const b = await req.json().catch(()=>({} as any));
     const __exp = await sec('inbound_secret');
     if (!secretOk(__exp) || b.__secret !== __exp) return J({ error:'forbidden' }, 403);
-    const key = await sec('openrouter_api_key'); if(!key) return J({ error:'no_key' }, 500);
+    const key = __exp; if(!key) return J({ error:'no_key' }, 500);
     const html = String(b.html||''); if(!html) return J({ error:'no_html' }, 400);
-    // Primary model + automatic fallbacks (retired slugs like claude-3.5-sonnet 404 on this account).
+    // Model choice now belongs to ai_gateway; b.model is kept only for the response's model field.
     const model = b.model || 'anthropic/claude-sonnet-5';
-    const models = [model, 'openai/gpt-4o', 'openai/gpt-4o-mini'].filter((v,i,a)=>a.indexOf(v)===i);
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method:'POST', headers:{ 'Authorization':'Bearer '+key, 'Content-Type':'application/json' }, body: JSON.stringify({ models, temperature:0.2, max_tokens:8000, messages:[{role:'system',content:SYS},{role:'user',content:html}] }) });
+    const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: key, fn: 'translate_html', sys: SYS, input: html, max:8000, temperature:0.2 }) });
     const jd = await r.json();
     if(!r.ok) return J({ error:'llm_failed', status:r.status, detail: JSON.stringify(jd).slice(0,400) }, 200);
-    let out = jd?.choices?.[0]?.message?.content || '';
+    let out = jd?.content || '';
     out = out.replace(/^```[a-z]*\n?/i,'').replace(/```\s*$/,'').trim();
     return J({ ok:true, ar: out, model: jd?.model || model, usage: jd?.usage||null });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }

@@ -1,5 +1,6 @@
 // quote_extract - reads a supplier's uploaded quotation (page images and/or PDF) and returns an
 // ANONYMIZED standardized quote. Masks company identity AND brand/model/identity-revealing terms.
+// Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
@@ -11,7 +12,7 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
   } catch (_e) { /* never let logging break the function */ }
 }
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
-const FALLBACK_MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
+const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 // FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
@@ -35,8 +36,8 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
     if (!secretOk(__exp) || body.__secret !== __exp) { await logRun('error', { forbidden: 1, quote_extracted: 0 }, 'quote_extract rejected a caller with a missing/wrong inbound secret (403). A supplier quotation was not parsed — that supplier\'s price will be missing from the comparison the customer sees, which looks like the supplier simply never quoted.'); return J({ error: 'forbidden' }, 403); }
-    const key = await sec('openrouter_api_key');
-    if (!key) { await logRun('error', { quote_extracted: 0, ai_key_present: 0 }, 'quote_extract aborted: the openrouter_api_key secret is missing, so no supplier quotation can be read at all. Every quote uploaded while this persists is silently dropped and the customer sees fewer (or zero) quotes to compare.'); return J({ error: 'no ai key' }, 500); }
+    const secret = await sec('inbound_secret');
+    if (!secret) { await logRun('error', { quote_extracted: 0, ai_key_present: 0 }, 'quote_extract aborted: the inbound_secret secret is missing, so the AI gateway cannot be called and no supplier quotation can be read at all. Every quote uploaded while this persists is silently dropped and the customer sees fewer (or zero) quotes to compare.'); return J({ error: 'no ai key' }, 500); }
     const inq = body.inquiry || {};
 
     const content: any[] = [{ type: 'text', text: `Job context (for understanding only): category ${inq.category||'-'}${inq.summary?(', summary: '+inq.summary):''}. Read the attached supplier quotation (all pages) and return the anonymized standardized JSON.` }];
@@ -54,10 +55,10 @@ Deno.serve(async (req) => {
     let aiParseOk = false;
     const aiPages = imgs.length ? Math.min(imgs.length, 8) : (body.file_b64 ? 1 : 0);
     try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ models: FALLBACK_MODELS, max_tokens: 2000, temperature: 0.1, messages: [{ role: 'system', content: SYS }, { role: 'user', content }] }) });
+      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'quote_extract', max: 2000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }] }) });
       const jd = await r.json();
-      if (!r.ok) { await logRun('error', { quote_extracted: 0, pages: aiPages, ai_ok: 0 }, 'quote_extract could not read a supplier quotation because the vision model call returned an error (' + String(jd?.error?.message || ('http ' + r.status)).slice(0, 140) + '). The supplier\'s quotation exists but produced no structured quote, so the customer\'s comparison is missing a real price.'); return J({ error: 'ai_error', detail: jd?.error?.message || JSON.stringify(jd).slice(0,300) }, 502); }
-      const _rawContent = jd?.choices?.[0]?.message?.content || '{}';
+      if (!r.ok || jd?.ok === false) { await logRun('error', { quote_extracted: 0, pages: aiPages, ai_ok: 0 }, 'quote_extract could not read a supplier quotation because the vision model call returned an error (' + String(jd?.detail || jd?.error || ('http ' + r.status)).slice(0, 140) + '). The supplier\'s quotation exists but produced no structured quote, so the customer\'s comparison is missing a real price.'); return J({ error: 'ai_error', detail: jd?.detail || jd?.error || JSON.stringify(jd).slice(0,300) }, 502); }
+      const _rawContent = jd?.content || '{}';
       ai = parseJson(_rawContent);
       aiParseOk = !!(ai && typeof ai === 'object' && Object.keys(ai).length > 0);
     } catch (e) { await logRun('error', { quote_extracted: 0, pages: aiPages, ai_ok: 0 }, 'quote_extract threw while calling the vision model (' + String((e as Error)?.message || e).slice(0, 140) + '), so a supplier quotation was never converted into a comparable quote — the customer will see one fewer price and assume that supplier did not respond.'); return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }

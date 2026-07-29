@@ -1,7 +1,7 @@
 // route_inquiry - HYBRID RETRIEVAL (vector gte-small + keyword) narrows the whole supplier base to the most
 // relevant approved candidates, then an LLM adjudicates who can GENUINELY quote the exact job. Safe
 // fallback to a plain approved-pull if retrieval fails.
-// COST: Sonnet 5 first (Opus 4.8 only as fallback) + prompt caching on the system prompt.
+// COST: model choice + budget now belong to ai_gateway (prompt caching handled there).
 // Completeness gate: an essentially-empty brief is not dispatched to suppliers (returns needs_detail).
 //
 // v9 STRUCTURED CAPABILITY MATCHING (decision_policy.use_capability_matching):
@@ -24,7 +24,6 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
   } catch (_e) { /* never let logging break the function */ }
 }
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
-const MODELS = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8'];
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 // FAIL-CLOSED 28 Jul 2026 (missed by the 27 Jul sweep): sec() returns undefined/'' when the
 // app_secrets read fails or the row is missing, and the guard below compared strictly, so a caller
@@ -198,7 +197,6 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(()=>({} as any));
     const inbound = await sec('inbound_secret');
     if (!secretOk(inbound) || body.__secret !== inbound) { await logRun('error', { forbidden: 1, fits: 0 }, 'route_inquiry rejected a caller with a missing/wrong inbound secret (403). No routing was performed — if this came from dispatch_inquiry, that RFQ silently produced zero supplier fits and will be miscounted as a supply coverage gap.'); return J({ error:'forbidden' }, 403); }
-    const key = await sec('openrouter_api_key'); if (!key) { await logRun('error', { fits: 0, ai_key_present: 0 }, 'route_inquiry aborted: the openrouter_api_key secret is missing, so the adjudicator could not run at all. This RFQ produced no supplier fits because of a configuration failure, not because no supplier exists — every inquiry routed while this persists will be miscounted as a coverage gap.'); return J({ error:'no ai key' }, 500); }
 
     let inq = body.inquiry || {};
     let inqLoadErr: any = null;
@@ -308,8 +306,8 @@ Deno.serve(async (req) => {
     let ai:any = null;
     let aiLastErr: any = null;
     let aiAttempts = 0;
-    for (const model of MODELS){ for(let at=0; at<2 && !ai; at++){ try{ aiAttempts++; const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{ method:'POST', headers:{ 'Authorization':`Bearer ${key}`, 'Content-Type':'application/json' }, body: JSON.stringify({ model, max_tokens:1800, temperature:0.1, messages:[{ role:'system', content: [{ type:'text', text: SYS, cache_control:{ type:'ephemeral' } }] },{ role:'user', content: user }] }) }); const jd=await r.json(); if(!r.ok) aiLastErr = 'http ' + r.status + ' ' + clip(jd?.error?.message || '', 120); const c=jd?.choices?.[0]?.message?.content; if(c){ const p=parseJson(c); if(p && Object.keys(p).length){ ai=p; break; } else if (r.ok) aiLastErr = 'unparseable model output'; } else if (r.ok) aiLastErr = 'empty model response'; }catch(_e){ aiLastErr = clip((_e as Error)?.message || _e, 140); } } if(ai) break; }
-    if (!ai) { await logRun('error', { fits: 0, evaluated: pool.length, zero_fits_genuine: 0, ai_attempts: aiAttempts, ai_ok: 0, retrieval, ...diag }, 'RFQ produced no supplier fits because the adjudicator call failed after ' + aiAttempts + ' attempts across both models (' + clip(aiLastErr || 'unknown', 120) + '), not because no supplier exists — ' + pool.length + ' viable candidates were never judged. Downstream this is indistinguishable from a supply coverage gap and the customer\'s RFQ silently goes nowhere.'); return J({ error:'ai_exception', detail:'no model returned parseable output' }, 502); }
+    for(let at=0; at<2 && !ai; at++){ try{ aiAttempts++; const r=await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway',{ method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: inbound, fn: 'route_inquiry', sys: SYS, input: user, max:1800, temperature:0.1 }) }); const jd=await r.json(); if(!r.ok) aiLastErr = 'http ' + r.status + ' ' + clip(jd?.error?.message || '', 120); const c=jd?.content; if(c){ const p=parseJson(c); if(p && Object.keys(p).length){ ai=p; break; } else if (r.ok) aiLastErr = 'unparseable model output'; } else if (r.ok) aiLastErr = 'empty model response'; }catch(_e){ aiLastErr = clip((_e as Error)?.message || _e, 140); } }
+    if (!ai) { await logRun('error', { fits: 0, evaluated: pool.length, zero_fits_genuine: 0, ai_attempts: aiAttempts, ai_ok: 0, retrieval, ...diag }, 'RFQ produced no supplier fits because the adjudicator call failed after ' + aiAttempts + ' attempts (' + clip(aiLastErr || 'unknown', 120) + '), not because no supplier exists — ' + pool.length + ' viable candidates were never judged. Downstream this is indistinguishable from a supply coverage gap and the customer\'s RFQ silently goes nowhere.'); return J({ error:'ai_exception', detail:'no model returned parseable output' }, 502); }
 
     const byId = new Map(pool.map((c:any)=>[Number(c.id), c]));
     const matches = Array.isArray(ai.matches) ? ai.matches : [];

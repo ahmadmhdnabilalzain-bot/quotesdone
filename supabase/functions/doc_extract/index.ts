@@ -19,8 +19,10 @@ const INDEX_KINDS = new Set(['catalog','profile','drawing']);
 // never index (pricing tied to identity, or PII documents)
 // quote, licence, egr are intentionally excluded.
 
+// inbound_secret, captured once per request so llmJSON can reach ai_gateway without a signature change.
+let GW='';
+
 async function llmJSON(apiKey:string, content:unknown):Promise<any>{
-  const models=['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
   const sys='You are a document-extraction engine for a UAE construction/services procurement platform. '+
     'Return STRICT JSON only (no markdown) with exactly these keys: '+
     'text (string: a faithful transcription or concise summary of the readable content), '+
@@ -28,19 +30,24 @@ async function llmJSON(apiKey:string, content:unknown):Promise<any>{
     'dates (array of strings as seen), quantities (array of strings like "12 nos", "45 sqm"), '+
     'certifications (array of strings e.g. SIRA, ISO 9001, IP65, CE). '+
     'Use [] for anything absent. Never invent values.';
-  for(const model of models){
-    try{
-      const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',
-        headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},
-        body:JSON.stringify({model,temperature:0,max_tokens:2000,
-          messages:[{role:'system',content:sys},{role:'user',content}]})});
-      if(!r.ok){continue;}
-      const d=await r.json();
-      let t=d?.choices?.[0]?.message?.content||'';
-      t=t.replace(/^```(json)?/i,'').replace(/```$/,'').trim();
-      const m=t.match(/\{[\s\S]*\}/); if(m) return JSON.parse(m[0]);
-    }catch(_e){/*try next*/}
-  }
+  // BOTH paths now go through ai_gateway (routing, cache, budget, cost logging). Gateway v3 passes
+  // multimodal content blocks straight through, so the image / scanned-page payload no longer needs
+  // a direct OpenRouter call - the model ladder lives in the gateway.
+  const key = apiKey || GW;
+  try{
+    const payload = (typeof content==='string')
+      ? {__secret:key,fn:'doc_extract',sys,input:content,max:2000,temperature:0}
+      : {__secret:key,fn:'doc_extract',sys,input:[{role:'user',content}],max:2000,temperature:0};
+    const r=await fetch(Deno.env.get('SUPABASE_URL')!+'/functions/v1/ai_gateway',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)});
+    if(!r.ok){return null;}
+    const d=await r.json();
+    if(d?.ok===false){return null;}
+    let t=d?.content||'';
+    t=String(t).replace(/^```(json)?/i,'').replace(/```$/,'').trim();
+    const m=t.match(/\{[\s\S]*\}/); if(m) return JSON.parse(m[0]);
+  }catch(_e){/*fall through to null*/}
   return null;
 }
 
@@ -66,15 +73,17 @@ Deno.serve(async (req)=>{
   }
   let body:any={}; try{ body=await req.json(); }catch(_e){}
   // secrets from app_secrets
-  const { data:secrets } = await sb.from('app_secrets').select('key,value').in('key',['inbound_secret','openrouter_api_key','cloudconvert_api_key']);
+  const { data:secrets } = await sb.from('app_secrets').select('key,value').in('key',['inbound_secret','cloudconvert_api_key']);
   const secret=(secrets||[]).find((s:any)=>s.key==='inbound_secret')?.value;
-  const apiKey=(secrets||[]).find((s:any)=>s.key==='openrouter_api_key')?.value;
   if(!secretOk(secret) || body.__secret!==secret) {
     if(!secret) await logThrottled('missing_inbound_secret',60,'error',{stage:'auth'},'The inbound_secret row is missing from app_secrets, so doc_extract rejects every caller including the scheduler; no supplier document is being extracted or indexed at all.');
     else await logThrottled('bad_secret',60,'error',{stage:'auth'},'doc_extract rejected a caller presenting the wrong inbound secret. If this is the scheduled drainer, the document extraction queue is not being processed and supplier documents stay unread.');
     return j({error:'unauthorized'},401);
   }
-  if(!apiKey) { await logThrottled('no_openrouter_key',60,'error',{stage:'config'},'openrouter_api_key is missing from app_secrets, so doc_extract cannot call the extraction model; every uploaded supplier document is stuck pending and none of their specs, brands or certifications reach the knowledge base.'); return j({error:'no_openrouter_key'},500); }
+  GW=String(secret);
+  // The OpenRouter key now lives only inside ai_gateway; what this function needs is the inbound secret.
+  const apiKey=GW;
+  if(!apiKey) { await logThrottled('no_openrouter_key',60,'error',{stage:'config'},'inbound_secret is missing from app_secrets, so doc_extract cannot reach ai_gateway to call the extraction model; every uploaded supplier document is stuck pending and none of their specs, brands or certifications reach the knowledge base.'); return j({error:'no_openrouter_key'},500); }
 
   // pick a document: explicit id, or next pending (batch drainer passes nothing)
   let doc:any=null;

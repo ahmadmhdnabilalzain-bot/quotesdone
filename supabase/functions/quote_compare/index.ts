@@ -15,7 +15,6 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 }
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
-const FALLBACK_MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
 const DISCLAIMER_EN = "This is QuotesDone's impartial recommendation, prepared to make your decision easier. From all the quotes you received, we have shortlisted the three that best match your job on specification, value and terms, and compared those in detail. You remain completely free to reveal and choose any supplier from your full list of quotes — we simply highlight the strongest options so you don't have to read every quote line by line.";
 const DISCLAIMER_AR = "هذه توصية محايدة من QuotesDone أعددناها لتسهيل قرارك. من بين جميع العروض التي استلمتها، اخترنا الثلاثة الأنسب لعملك من حيث المواصفات والقيمة والشروط، وقارنّاها بالتفصيل. يبقى لك كامل الحرية في كشف واختيار أي مورّد من قائمة عروضك الكاملة — نحن فقط نُبرز أقوى الخيارات حتى لا تضطر لقراءة كل عرض سطرًا بسطر.";
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined)||undefined; }
@@ -124,24 +123,22 @@ Deno.serve(async (req) => {
     if (expertRef) payload.expert_reference = expertRef;
     if (mustSpecs.length) payload.must_state_specs = mustSpecs;
     const sys = SYS + (lang === 'ar' ? AR : '');
-    const key = await sec('openrouter_api_key'); if (!key) { await logRun('error', { compared: 0, quotes_seen: qs.length, ai_key_present: 0 }, 'quote_compare aborted: the openrouter_api_key secret is missing, so ' + qs.length + ' real supplier quotes could not be compared. The customer is shown \'ai_unavailable\' at the exact moment they are trying to choose a supplier, and the RFQ stalls at the decision step.'); return J({ ok: false, error: 'ai_unavailable' }, 200); }
+    const key = await sec('inbound_secret'); if (!key) { await logRun('error', { compared: 0, quotes_seen: qs.length, ai_key_present: 0 }, 'quote_compare aborted: the inbound_secret secret is missing, so ' + qs.length + ' real supplier quotes could not be compared. The customer is shown \'ai_unavailable\' at the exact moment they are trying to choose a supplier, and the RFQ stalls at the decision step.'); return J({ ok: false, error: 'ai_unavailable' }, 200); }
     let parsed: any = null; let lastDetail = '';
     let attempts = 0;
-    for (const model of FALLBACK_MODELS) {
-      for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
-        try {
-          attempts++;
-          const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 4200, temperature: 0.2, response_format: { type: 'json_object' }, messages: [ { role: 'system', content: [ { type: 'text', text: sys, cache_control: { type: 'ephemeral' } } ] }, { role: 'user', content: JSON.stringify(payload) } ] }) });
-          const jd = await r.json();
-          if (!r.ok) { lastDetail = 'http' + (r.status) + ':' + model + ':' + (JSON.stringify(jd?.error||'').slice(0,140)); continue; }
-          const content = jd?.choices?.[0]?.message?.content || jd?.choices?.[0]?.message?.reasoning || '';
-          if (!content) { lastDetail = 'empty:' + model; continue; }
-          const p = parseJson(content);
-          if (p) { parsed = p; break; }
-          lastDetail = 'parse:' + model;
-        } catch (e) { lastDetail = 'exc:' + model + ':' + String((e as Error)?.message || e).slice(0, 100); }
-      }
-      if (parsed) break;
+    for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
+      try {
+        attempts++;
+        const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'quote_compare', sys, input: JSON.stringify(payload), max: 4200, temperature: 0.2 }) });
+        const jd = await r.json();
+        const model = String(jd?.model || 'ai_gateway');
+        if (!r.ok) { lastDetail = 'http' + (r.status) + ':' + model + ':' + (JSON.stringify(jd?.error||'').slice(0,140)); continue; }
+        const content = jd?.content || '';
+        if (!content) { lastDetail = 'empty:' + model + ':' + String(jd?.outcome || ''); continue; }
+        const p = parseJson(content);
+        if (p) { parsed = p; break; }
+        lastDetail = 'parse:' + model;
+      } catch (e) { lastDetail = 'exc:' + String((e as Error)?.message || e).slice(0, 100); }
     }
     if (!parsed) { await logRun('error', { compared: 0, quotes_seen: qs.length, ai_attempts: attempts, ai_ok: 0, lang }, 'quote_compare produced NO comparison for ' + qs.length + ' real supplier quotes because every model attempt failed or returned unparseable output (' + String(lastDetail).slice(0, 120) + '). The customer reached the decision step, was given nothing to compare, and this returns HTTP 200 so it is invisible to ordinary error monitoring.'); return J({ ok: false, error: 'parse_failed', detail: lastDetail }, 200); }
     if (Array.isArray(parsed.quotes) && parsed.quotes.length > 3) parsed.quotes = parsed.quotes.slice(0, 3);
@@ -161,3 +158,4 @@ Deno.serve(async (req) => {
     return J({ ok: true, analysis: parsed });
   } catch (e) { await logRun('error', { compared: 0, unhandled_exception: 1 }, 'quote_compare threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e).slice(0, 200) + ' — the customer could not compare the quotes they received and the RFQ stalls at the decision step.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 });
+

@@ -7,7 +7,6 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
-const MODELS = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8'];
 const PARSER_VERSION = 'inquiry_parse@1';
 
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
@@ -51,22 +50,18 @@ Return STRICT JSON only:
 
 async function callModel(key: string, user: string) {
   let last = '';
-  for (const model of MODELS) {
-    for (let at = 0; at < 2; at++) {
-      try {
-        const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model, max_tokens: 1600, temperature: 0.1, messages: [
-            { role: 'system', content: [{ type: 'text', text: SYS, cache_control: { type: 'ephemeral' } }] },
-            { role: 'user', content: user } ] })
-        });
-        const jd = await r.json();
-        if (!r.ok) { last = 'http ' + r.status + ' ' + clip(jd?.error?.message, 140); continue; }
-        const p = parseJson(jd?.choices?.[0]?.message?.content || '');
-        if (p && Object.keys(p).length) return { ai: p, err: '' };
-        last = 'unparseable model output';
-      } catch (e) { last = clip((e as Error)?.message || e, 140); }
-    }
+  for (let at = 0; at < 2; at++) {
+    try {
+      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: key, fn: 'inquiry_parse', sys: SYS, input: user, max: 1600, temperature: 0.1 })
+      });
+      const jd = await r.json();
+      if (!r.ok) { last = 'http ' + r.status + ' ' + clip(jd?.error?.message || jd?.error, 140); continue; }
+      const p = parseJson(jd?.content || '');
+      if (p && Object.keys(p).length) return { ai: p, err: '' };
+      last = jd?.used_llm === false ? clip('gateway ' + (jd?.outcome || 'no_content'), 140) : 'unparseable model output';
+    } catch (e) { last = clip((e as Error)?.message || e, 140); }
   }
   return { ai: null, err: last };
 }
@@ -76,7 +71,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
     if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
-    const key = await sec('openrouter_api_key'); if (!key) return J({ error: 'no_ai_key' }, 500);
+    const key = await sec('inbound_secret'); if (!key) return J({ error: 'no_ai_key' }, 500);
 
     const inquiryId = String(body.inquiry_id || '');
     const probe = clip(body.probe_text || '', 8000);

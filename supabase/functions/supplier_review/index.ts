@@ -2,7 +2,6 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
-const CLAUDE_MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
 
 const SYS = `You are a data-quality reviewer for QuotesDone, a UAE supplier marketplace. A supplier has just submitted their registration. Your job is to catch obvious mistakes BEFORE a human admin reviews it, so the admin's job is easy.
 
@@ -30,23 +29,22 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { data: sec } = await admin.from('app_secrets').select('value').eq('key', 'inbound_secret').maybeSingle();
     if (!sec?.value || body.__secret !== sec.value) return J({ error: 'forbidden' }, 403);
-    const { data: keyRow } = await admin.from('app_secrets').select('value').eq('key', 'openrouter_api_key').maybeSingle();
-    if (!keyRow?.value) return J({ ok: true, severity: 'clean', issues: [], summary: 'AI review unavailable (not configured).', fallback: true });
+    if (!sec?.value) return J({ ok: true, severity: 'clean', issues: [], summary: 'AI review unavailable (not configured).', fallback: true });
 
     const p = body.profile || {};
     const fields = ['company_name','sector','emirate','service_emirates','contact_name','signatory_name','phone','services','products','description','trade_license_no','license_authority','license_expiry','trn','egr_number','bank_name','bank_account_name','bank_iban'];
     const lines = fields.filter((f) => p[f] !== undefined && p[f] !== null && String(p[f]).trim() !== '').map((f) => `${f}: ${Array.isArray(p[f]) ? p[f].join(', ') : p[f]}`);
     const userMsg = 'SUPPLIER REGISTRATION TO REVIEW:\n' + lines.join('\n');
 
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${keyRow.value}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://quotesdone.com', 'X-Title': 'QuotesDone' },
-      body: JSON.stringify({ models: CLAUDE_MODELS, max_tokens: 800, temperature: 0.1, messages: [{ role: 'system', content: SYS }, { role: 'user', content: userMsg }] }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: sec.value, fn: 'supplier_review', sys: SYS, input: userMsg, max: 800, temperature: 0.1 }),
     });
     const d = await r.json();
     if (!r.ok) return J({ ok: true, severity: 'clean', issues: [], summary: 'AI review failed; manual check advised.', fallback: true });
     let review;
-    try { review = parseJson(d?.choices?.[0]?.message?.content || '{}'); }
+    try { review = parseJson(d?.content || '{}'); }
     catch { return J({ ok: true, severity: 'clean', issues: [], summary: 'AI review unreadable; manual check advised.', fallback: true }); }
     if (!Array.isArray(review.issues)) review.issues = [];
     return J({ ok: review.ok !== false, severity: review.severity || (review.issues.length ? 'review' : 'clean'), issues: review.issues, summary: review.summary || '' });

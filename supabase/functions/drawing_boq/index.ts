@@ -2,7 +2,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
-const FALLBACK_MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
+// Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
+const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 // FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
@@ -23,7 +24,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
     if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
-    const key = await sec('openrouter_api_key');
+    const key = await sec('inbound_secret');
     if (!key) return J({ error: 'no ai key' }, 500);
     const hint = body.hint ? String(body.hint).slice(0,400) : '';
 
@@ -41,12 +42,12 @@ Deno.serve(async (req) => {
     let rawContent = '';
     let ai: any = {};
     try {
-      const payload = { models: FALLBACK_MODELS, max_tokens: 8000, temperature: 0.1, messages: [{ role: 'system', content: SYS }, { role: 'user', content }] };
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://quotesdone.com', 'X-Title': 'QuotesDone' }, body: JSON.stringify(payload) });
+      const payload = { __secret: key, fn: 'drawing_boq', max: 8000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }] };
+      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const jd = await r.json();
-      if (!r.ok) return J({ error: 'ai_error', detail: jd?.error?.message || '', meta: JSON.stringify(jd?.error?.metadata||jd).slice(0,600) }, 502);
-      rawContent = jd?.choices?.[0]?.message?.content || '';
-      if (body.__debug) return J({ ok: true, _len: String(rawContent).length, finish: jd?.choices?.[0]?.finish_reason });
+      if (!r.ok || jd?.ok === false) return J({ error: 'ai_error', detail: jd?.detail || jd?.error || '', meta: JSON.stringify(jd).slice(0,600) }, 502);
+      rawContent = jd?.content || '';
+      if (body.__debug) return J({ ok: true, _len: String(rawContent).length, finish: jd?.finish_reason });
       ai = parseJson(rawContent || '{}');
     } catch (e) { return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
 

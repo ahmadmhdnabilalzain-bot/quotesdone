@@ -1,6 +1,6 @@
 // kb_deepen v3 — WEB-GROUNDED deep mastery. For an agent it (1) maps the sub-topics a world-class
 // master of that domain knows (the "regions of the brain"), then (2) for each uncovered topic it
-// RESEARCHES THE REAL WEB (OpenRouter web plugin — authoritative UAE authority/standard/manufacturer
+// RESEARCHES THE REAL WEB (web plugin via ai_gateway — authoritative UAE authority/standard/manufacturer
 // sources), writes a grounded reference brief, and ingests it — with the REAL source URLs as the
 // citation — into the permanent knowledge base (kb_chunks, embedded + retrievable). No knowledge is
 // invented from model memory; every brief is sourced. Rolls through topics across runs so each agent's
@@ -10,6 +10,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const BASE = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
+const GW = BASE + '/ai_gateway';
 const T0 = Date.now();
 const mapper = makeLlm(SONNET_FIRST, { max: 1200, temperature: 0.3 });   // topic map (cheap, no web)
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -44,19 +45,21 @@ function parseJson(s: string): any {
 const slugify = (s: string) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
 
 // Web-grounded research: pulls real UAE sources and returns { brief, sources[] }. Sourced, not invented.
+// Runs through ai_gateway (v3): the web plugin is passed through and the citation annotations come
+// back on the gateway response, so the routing, budget and cost logging all apply to it.
 async function research(topic: string, label: string): Promise<{ brief: string; sources: string[] }> {
-  const key = await sec('openrouter_api_key'); if (!key) return { brief: '', sources: [] };
+  const key = await sec('inbound_secret'); if (!key) return { brief: '', sources: [] };
   const sys = 'You are a meticulous UAE (Dubai-focused) B2B market researcher supporting a ' + label + '. Research the sub-topic from AUTHORITATIVE, CURRENT sources — UAE government authorities and regulators, standards bodies, reputable manufacturers/suppliers and established trade references. Then write a DEEP, factual reference brief (350-600 words) a top specialist would rely on, covering as relevant: what it is and how it is made/works; the grades/types/thicknesses/variants and how to choose; quality tiers (premium vs standard); the UAE authorities, approvals and standards that apply; real price drivers and realistic UAE ballpark ranges; where it is used and what it enables; common mistakes, failure modes and red flags; and the sharp questions a pro asks. Ground every specific in what you actually find in the sources. HARD RULE: never fabricate a code number, authority name, standard or figure — if a precise number is not found, name the requirement without inventing one. Output ONLY the brief prose (no preamble, no bibliography list).';
   const user = 'Deeply research for the UAE (Dubai) market, sub-topic: "' + topic + '" (for a ' + label + '). Write the grounded reference brief.';
   try {
     const ac = new AbortController(); const to = setTimeout(() => ac.abort(), 45000);
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'anthropic/claude-sonnet-5', plugins: [{ id: 'web', max_results: 6 }], max_tokens: 2000, temperature: 0.2, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }), signal: ac.signal });
+    const r = await fetch(GW, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: key, fn: 'kb_deepen', plugins: [{ id: 'web', max_results: 6 }], max: 2000, temperature: 0.2, sys, input: [{ role: 'user', content: user }] }), signal: ac.signal });
     clearTimeout(to);
-    const j = await r.json(); const msg = j?.choices?.[0]?.message || {};
-    const brief = String(msg.content || '').trim();
-    const urls: string[] = ((msg.annotations || []) as any[]).map((a) => a?.url_citation?.url || a?.url || '').filter(Boolean);
+    const j = await r.json();
+    const brief = String(j?.content || '').trim();
+    const urls: string[] = ((j?.annotations || []) as any[]).map((a) => a?.url_citation?.url || a?.url || '').filter(Boolean);
     const sources = Array.from(new Set(urls)).slice(0, 6);
     return { brief, sources };
   } catch (_e) { return { brief: '', sources: [] }; }

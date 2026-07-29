@@ -10,7 +10,6 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
-const MODELS = ['anthropic/claude-opus-4.8','anthropic/claude-sonnet-5'];
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
@@ -31,13 +30,13 @@ Deno.serve(async (req) => {
     const sys = 'You are an expert prompt engineer improving a production system prompt for a UAE B2B trades/quotation marketplace. Rewrite the prompt to fix the stated weakness while preserving its purpose, scope, output format and any hard rules. Keep it concise and unambiguous. Do NOT invent new tools, capabilities, or data the agent does not have. Return ONLY the improved system prompt text — no preamble, no explanation, no markdown fences.';
     const usr = 'PROMPT KEY: '+key+'\n\nWHY IT UNDERPERFORMS:\n'+reason+'\n\nRECENT ISSUES (founder-rejected agent actions):\n'+evidence+'\n\nCURRENT PROMPT:\n"""\n'+current+'\n"""\n\nRewrite it to fix the weakness. Return only the improved prompt.';
 
-    const apiKey = await sec('openrouter_api_key'); if (!apiKey) return J({ error: 'ai_unavailable' });
+    const apiKey = await sec('inbound_secret'); if (!apiKey) return J({ error: 'ai_unavailable' });
     let improved = ''; let usedModel = '';
-    for (const model of MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method:'POST', headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'}, body: JSON.stringify({ model, max_tokens: 2000, temperature: 0.3, messages:[{role:'system',content:sys},{role:'user',content:usr}] }) });
-        const jd = await r.json(); const c = jd?.choices?.[0]?.message?.content || '';
-        if (c && c.trim().length > 100) { improved = c.trim().replace(/^```[a-z]*\n?/i,'').replace(/```$/,'').trim(); usedModel = model; break; }
+        const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret: apiKey, fn: 'prompt_improve', sys, input: usr, max: 2000, temperature: 0.3 }) });
+        const jd = await r.json(); const c = jd?.content || '';
+        if (c && c.trim().length > 100) { improved = c.trim().replace(/^```[a-z]*\n?/i,'').replace(/```$/,'').trim(); usedModel = String(jd?.model || 'ai_gateway'); break; }
       } catch (_e) { /* try next */ }
     }
     if (!improved) return J({ error: 'llm_failed' });

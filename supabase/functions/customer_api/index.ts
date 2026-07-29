@@ -135,15 +135,15 @@ async function storeOriginal(custId: string, name: string, mime: string, b64: st
   try { const bytes = b64ToBytes(b64); if (!bytes.length || bytes.length > 25 * 1024 * 1024) return null; const safe = String(name).replace(/[^\w.\-]+/g, '_').slice(0, 120); const path = `drawings/${custId}/${Date.now()}_${safe}`; const up = await admin.storage.from('drawing-files').upload(path, bytes, { contentType: mime, upsert: false }); return up.error ? null : path; } catch { return null; }
 }
 async function translateQuoteAr(q: any): Promise<any|null> {
-  const key = await getSecret('openrouter_api_key'); if (!key) return null;
+  const key = await getSecret('inbound_secret'); if (!key) return null;
   const payload = { job_category:q.job_category||'', job_summary:q.job_summary||'', emirate:q.emirate||'', items:(q.items||[]).map((it:any)=>({desc:it.desc||'',unit:it.unit||''})), lead_time:q.lead_time||'', validity:q.validity||'', warranty:q.warranty||'', payment_terms:q.payment_terms||'', conditions:q.conditions||'', exclusions:q.exclusions||'', notes:q.notes||'', scope:q.scope||'' };
   const sys = 'You are a professional Arabic translator for UAE B2B construction and services quotations. Translate every string VALUE in the given JSON into clear, formal Modern Standard Arabic. Keep ALL numbers, measurements, dimensions, currency codes (AED), percentages, dates and Latin brand/model codes EXACTLY as they are. Translate the emirate name to Arabic. Return ONLY a valid JSON object with the SAME keys and structure (items is an array of {desc,unit}); no commentary, no code fences.';
-  for (const model of ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8']) {
+  {
     try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method:'POST', headers:{ 'Authorization':'Bearer '+key, 'Content-Type':'application/json' }, body: JSON.stringify({ model, max_tokens:2200, temperature:0.2, messages:[{ role:'system', content: sys },{ role:'user', content: JSON.stringify(payload) }] }) });
-      const jd = await r.json(); let c = jd?.choices?.[0]?.message?.content || ''; const m = c.match(/\{[\s\S]*\}/); if (m) c = m[0]; const t = JSON.parse(c);
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/ai_gateway`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: key, fn:'customer_api', sys, input: JSON.stringify(payload), max:2200, temperature:0.2 }) });
+      const jd = await r.json(); let c = jd?.content || ''; const m = c.match(/\{[\s\S]*\}/); if (m) c = m[0]; const t = JSON.parse(c);
       return { supplier_label:q.supplier_label, job_category:t.job_category||q.job_category, job_summary:t.job_summary||q.job_summary, emirate:t.emirate||q.emirate, items:(q.items||[]).map((it:any,i:number)=>({ desc:(t.items&&t.items[i]&&t.items[i].desc)||it.desc, qty:it.qty, unit:(t.items&&t.items[i]&&t.items[i].unit)||it.unit })), lead_time:t.lead_time||q.lead_time, validity:t.validity||q.validity, warranty:t.warranty||q.warranty, payment_terms:t.payment_terms||q.payment_terms, conditions:t.conditions||q.conditions, exclusions:t.exclusions||q.exclusions, notes:t.notes||q.notes, scope:t.scope||q.scope, total:q.total };
-    } catch (_e) { /* try next model */ }
+    } catch (_e) { /* fall through to null */ }
   }
   return null;
 }
@@ -398,7 +398,6 @@ Deno.serve(async (req) => {
         const { matches } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, keywords: tkKeywords, summary, budget, extra, useRouter: false, multi: true });
         return J({ ok: true, inquiry_id: inq!.id, scope_type: 'turnkey', matches });
       }
-
       const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols }).select('id').maybeSingle();
       if (e1) return J({ error: e1.message }, 500);
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
@@ -602,3 +601,4 @@ Deno.serve(async (req) => {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
 });
+

@@ -5,7 +5,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
-const MODELS = ['anthropic/claude-opus-4.8', 'anthropic/claude-sonnet-5'];
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 // FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
@@ -55,7 +54,6 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
     if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
-    const key = await sec('openrouter_api_key'); if (!key) return J({ error: 'no ai key' }, 500);
 
     const inq = body.inquiry || {};
     const extracted = body.extracted || {};
@@ -77,10 +75,10 @@ Deno.serve(async (req) => {
     }
 
     let ai: any = null;
-    for (const model of MODELS) { for (let at = 0; at < 2 && !ai; at++) { try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 2600, temperature: 0.15, messages: [{ role: 'system', content: SYS }, { role: 'user', content: ctx.join('\n\n') }] }) });
-      const jd = await r.json(); const c = jd?.choices?.[0]?.message?.content; if (c) { const p = parseJson(c); if (p && Array.isArray(p.items)) { ai = p; break; } }
-    } catch (_e) { /* try next */ } } if (ai) break; }
+    for (let at = 0; at < 2 && !ai; at++) { try {
+      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: __exp, fn: 'quote_review', sys: SYS, input: ctx.join('\n\n'), max: 2600, temperature: 0.15 }) });
+      const jd = await r.json(); const c = jd?.content; if (c) { const p = parseJson(c); if (p && Array.isArray(p.items)) { ai = p; break; } }
+    } catch (_e) { /* try next */ } }
     if (!ai) return J({ error: 'ai_unavailable' }, 502);
 
     const items = (ai.items || []).map((it: any, i: number) => {

@@ -12,10 +12,10 @@ function parseSections(raw: string): any[] {
   return [];
 }
 async function genOnce(key: string, label: string, category: string): Promise<any[]> {
-  const prompt = `You are QuotesDone's trade knowledge curator for the UAE B2B services market. Produce authoritative, factual reference knowledge for the service category "${label}" (slug: ${category}).\nReturn STRICT JSON ONLY (no markdown, no prose): {\"sections\":[{\"title\":\"...\",\"content\":\"...\"}]} with 4-6 sections covering: (1) Scope & typical deliverables, (2) UAE regulations/standards & required approvals — name the authority (SIRA, Dubai Municipality, Civil Defence, DEWA, ADDC, ESMA, TDRA, etc.), (3) Key materials/brands/equipment, (4) Pricing drivers & typical cost ranges in AED, (5) Common quality red flags & how to vet suppliers, (6) Typical project timeline. Be specific to the UAE.`;
-  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'anthropic/claude-sonnet-5', messages: [{ role: 'user', content: prompt }], temperature: 0.2 }) });
+  const prompt = `You are QuotesDone's trade knowledge curator for the UAE B2B services market. Produce authoritative, factual reference knowledge for the service category \"${label}\" (slug: ${category}).\nReturn STRICT JSON ONLY (no markdown, no prose): {\"sections\":[{\"title\":\"...\",\"content\":\"...\"}]} with 4-6 sections covering: (1) Scope & typical deliverables, (2) UAE regulations/standards & required approvals — name the authority (SIRA, Dubai Municipality, Civil Defence, DEWA, ADDC, ESMA, TDRA, etc.), (3) Key materials/brands/equipment, (4) Pricing drivers & typical cost ranges in AED, (5) Common quality red flags & how to vet suppliers, (6) Typical project timeline. Be specific to the UAE.`;
+  const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'kb_fill_gap', sys: '', input: prompt, temperature: 0.2 }) });
   const jd = await r.json().catch(() => ({} as any));
-  return parseSections(jd?.choices?.[0]?.message?.content || '');
+  return parseSections(jd?.content || '');
 }
 
 Deno.serve(async (req) => {
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
 
     const category = String(body?.category || '').trim(); const label = String(body?.label || category).trim();
     if (!category) return J({ error: 'category_required' }, 400);
-    const key = await sec('openrouter_api_key'); if (!key) return J({ error: 'no_llm_key' }, 500);
+    const key = await sec('inbound_secret'); if (!key) return J({ error: 'no_llm_key' }, 500);
 
     let sections = await genOnce(key, label, category);
     if (!sections.length) sections = await genOnce(key, label, category); // one retry

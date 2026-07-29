@@ -14,18 +14,19 @@ function chunk(html: string, size = 4500): string[] {
   for (const p of parts) { buf += p; if (p.startsWith('</') && buf.length >= size) { chunks.push(buf); buf = ''; } }
   if (buf.trim()) chunks.push(buf); return chunks;
 }
+// `model` is kept only for signature compatibility with the existing call sites - ai_gateway owns model choice now.
 async function llm(key: string, model: string, html: string): Promise<string | null> {
   try {
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, temperature: 0.2, max_tokens: 8000, messages: [{ role: 'system', content: SYS }, { role: 'user', content: html }] }) });
+    const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'translate_page', sys: SYS, input: html, max: 8000, temperature: 0.2 }) });
     const jd = await r.json(); if (!r.ok) return null;
-    let out = jd?.choices?.[0]?.message?.content || ''; out = out.replace(/^```[a-z]*\n?/i, '').replace(/```\s*$/, '').trim(); return out || null;
+    let out = jd?.content || ''; out = out.replace(/^```[a-z]*\n?/i, '').replace(/```\s*$/, '').trim(); return out || null;
   } catch (_e) { return null; }
 }
 Deno.serve(async (req) => {
   const b = await req.json().catch(() => ({} as any));
   const __exp = await sec('inbound_secret');
   if (!secretOk(__exp) || b.__secret !== __exp) return J({ error: 'forbidden' }, 403);
-  const key = await sec('openrouter_api_key'); if (!key) return J({ error: 'no_key' }, 500);
+  const key = __exp; if (!key) return J({ error: 'no_key' }, 500);
   const source = String(b.source || ''); const slug = String(b.slug || ''); const model = b.model || 'openai/gpt-4o-mini'; const limit = Math.min(Number(b.limit || 5), 8);
   const { data: row } = await admin.from('qd_deploy_src').select('data').eq('path', 'src/content/' + source + '.json').maybeSingle();
   if (!row) return J({ error: 'no_source' }, 404);

@@ -43,10 +43,10 @@ function parseJson(txt: string) { try { return JSON.parse(txt); } catch { /* */ 
 
 async function llm(key: string, sys: string, user: string, max = 4500) {
   LLM_CALLS++;
-  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ models: MODELS, max_tokens: max, temperature: 0.2, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] }) });
+  const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'agent_autogen', sys, input: user, max, temperature: 0.2 }) });
   const d = await r.json();
-  if (!r.ok) { LAST_ERR = 'openrouter HTTP ' + r.status + ': ' + String(d?.error?.message || ''); throw new Error(d?.error?.message || 'openrouter error'); }
-  return d?.choices?.[0]?.message?.content || '';
+  if (!r.ok) { LAST_ERR = 'ai_gateway HTTP ' + r.status + ': ' + String(d?.error || ''); throw new Error(d?.error || 'ai_gateway error'); }
+  return d?.content || '';
 }
 
 const GEN_SYS = `You create a new expert trade category for QuotesDone, a UAE B2B quotation marketplace where customers post jobs and verified suppliers submit anonymised fixed-price quotes. Given a supplier trade/category name, output EVERYTHING needed to launch a first-class expert sales agent for it, grounded in real UAE market practice.
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
     if (!secretOk(__exp) || body.__secret !== __exp) { await logRun('error', { created: 0 }, 'call rejected: wrong or missing inbound secret; no expert category agents were created'); return J({ error: 'forbidden' }, 403); }
-    const key = await sec('openrouter_api_key'); if (!key) { await logRun('error', { created: 0 }, 'openrouter_api_key missing from app_secrets: no expert category agents created this run, uncovered supplier trades stay uncovered'); return J({ error: 'AI not configured' }, 200); }
+    const key = __exp; if (!key) { await logRun('error', { created: 0 }, 'inbound_secret missing from app_secrets: no expert category agents created this run, uncovered supplier trades stay uncovered'); return J({ error: 'AI not configured' }, 200); }
     const max = Math.max(1, Math.min(5, Number(body.max) || 3));
 
     const { data: agents } = await admin.from('category_agents').select('slug,name');
@@ -127,3 +127,4 @@ Deno.serve(async (req) => {
     return J({ ok: true, mode: 'scan', considered: candidates.length, results });
   } catch (e) { await logRun('error', { created: 0, llm_calls: LLM_CALLS, parse_failures: PARSE_FAILS }, 'agent_autogen crashed before completing; uncovered trades were not provisioned this run: ' + String((e as Error)?.message || e)); return J({ error: String((e as Error)?.message || e) }, 500); }
 });
+
