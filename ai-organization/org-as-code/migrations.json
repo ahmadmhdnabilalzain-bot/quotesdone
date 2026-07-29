@@ -1850,5 +1850,281 @@
  {
   "name": "protect_deploy_secret_in_app_secrets",
   "version": "20260727133041"
+ },
+ {
+  "name": "lead_category_taxonomy",
+  "version": "20260728080133"
+ },
+ {
+  "name": "lead_haystack_view",
+  "version": "20260728080201"
+ },
+ {
+  "name": "contracting_domain_and_lead_subcategory_v3",
+  "version": "20260728090728"
+ },
+ {
+  "name": "invite_balance_across_canonical_categories",
+  "version": "20260728103435"
+ },
+ {
+  "name": "subcategory_agent_bridge",
+  "version": "20260728103523"
+ },
+ {
+  "name": "harden_function_privileges_and_search_path",
+  "version": "20260728154559"
+ },
+ {
+  "name": "kpi_measure_sql_make_every_kpi_measurable",
+  "version": "20260728165640"
+ },
+ {
+  "name": "fn_kpi_scoreboard_close_the_accountability_loop",
+  "version": "20260728165658"
+ },
+ {
+  "name": "fn_kpi_scoreboard_robust_target_parse",
+  "version": "20260728165728"
+ },
+ {
+  "name": "fix_supplier_coverage_metric_measure_onboarded_not_scraped",
+  "version": "20260728165824"
+ },
+ {
+  "name": "agent_identity_resolution_autonomy_from_30_jul",
+  "version": "20260728170742"
+ },
+ {
+  "name": "fn_kpi_review_weekly_turn_missed_kpis_into_work",
+  "version": "20260728171053"
+ },
+ {
+  "name": "outcome_record_close_the_improvement_loop_v2",
+  "version": "20260728172337"
+ },
+ {
+  "name": "fn_outcome_evaluate_grade_and_retire",
+  "version": "20260728172404"
+ },
+ {
+  "name": "fn_outcome_evaluate_fix_memory_columns_and_wire_kpi_review",
+  "version": "20260728172444"
+ },
+ {
+  "name": "bos_daily_conductor_one_operating_rhythm",
+  "version": "20260728172824"
+ },
+ {
+  "name": "undo_log_make_reversal_real",
+  "version": "20260728172908"
+ },
+ {
+  "name": "fn_undo_correct_uuid_signature",
+  "version": "20260728172931"
+ },
+ {
+  "name": "audit_every_agent_action",
+  "version": "20260728173008"
+ },
+ {
+  "name": "ceo_cascade_and_department_kpi_tracking",
+  "version": "20260728173045"
+ },
+ {
+  "name": "ai_economy_attribute_spend_and_enforce_budgets",
+  "version": "20260728173145"
+ },
+ {
+  "name": "appoint_chief_performance_officer_v2",
+  "version": "20260728173258"
+ },
+ {
+  "name": "weekly_executive_meeting_and_ceo_self_questioning",
+  "version": "20260728173424"
+ },
+ {
+  "name": "fn_exec_meeting_fix_incident_column",
+  "version": "20260728173539"
+ },
+ {
+  "name": "fn_exec_meeting_read_dont_recompute",
+  "version": "20260728173914"
+ },
+ {
+  "name": "fn_ceo_questions_fix_array_append",
+  "version": "20260728174024"
+ },
+ {
+  "name": "activate_knowledge_decay",
+  "version": "20260728174103"
+ },
+ {
+  "name": "fix_availability_metric_watchdog_was_structurally_zero",
+  "version": "20260728174323"
+ },
+ {
+  "name": "undo_log_retention",
+  "version": "20260728175015"
+ },
+ {
+  "name": "conductor_check_cron_history_not_agent_runs",
+  "version": "20260728190150"
+ },
+ {
+  "name": "supplier_supply_gap_engine",
+  "version": "20260728190701"
+ },
+ {
+  "name": "retarget_kpis_to_the_supplier_launch_goal",
+  "version": "20260728190724"
+ },
+ {
+  "name": "operating_system_layer_ten_core_systems",
+  "version": "20260728191223"
+ },
+ {
+  "name": "staff_the_three_missing_operating_systems",
+  "version": "20260728191254"
+ },
+ {
+  "name": "os_kpis_authority_and_scoreboard",
+  "version": "20260728191331"
+ },
+ {
+  "name": "os_review_and_executive_meeting_by_os",
+  "version": "20260728191417"
+ },
+ {
+  "name": "executive_meeting_runs_by_operating_system",
+  "version": "20260728191502"
+ },
+ {
+  "name": "os_blueprint_mission_objectives_ownership_io",
+  "version": "20260728191802"
+ },
+ {
+  "name": "os_objectives_interfaces_and_event_contract",
+  "version": "20260728191846"
+ },
+ {
+  "name": "os_independent_knowledge_and_weekly_improvement",
+  "version": "20260728191919"
+ },
+ {
+  "name": "workflows_for_every_operating_system",
+  "version": "20260728192207"
+ },
+ {
+  "name": "memory_os_backfill_sop_loop_and_full_health_v2",
+  "version": "20260728192259"
+ },
+ {
+  "name": "permission_to_disagree",
+  "version": "20260728193356"
+ },
+ {
+  "name": "fn_challenge_fix_false_negative_and_rank1_severity",
+  "version": "20260728193453"
+ },
+ {
+  "name": "company_consciousness_and_ai_board",
+  "version": "20260728193559"
+ },
+ {
+  "name": "fn_company_reflect_fix_actor_column",
+  "version": "20260728193632"
+ },
+ {
+  "name": "reputation_maturity_energy_and_marketplace_health",
+  "version": "20260728193744"
+ },
+ {
+  "name": "fn_company_indices_no_inline_scoreboard",
+  "version": "20260728193932"
+ },
+ {
+  "name": "opportunity_detection_resource_allocation_simulator",
+  "version": "20260728194039"
+ },
+ {
+  "name": "fn_what_if_fix_scenario_type",
+  "version": "20260728194112"
+ },
+ {
+  "name": "company_brain_time_machine_operating_manual",
+  "version": "20260728194203"
+ },
+ {
+  "name": "fn_graph_rebuild_correct_edge_columns",
+  "version": "20260728194236"
+ },
+ {
+  "name": "edge_heartbeat_watchdog",
+  "version": "20260728200511"
+ },
+ {
+  "name": "seed_edge_expectations",
+  "version": "20260728200640"
+ },
+ {
+  "name": "edge_health_scan_fix_tier",
+  "version": "20260728200739"
+ },
+ {
+  "name": "fix_agent_runs_availability_metric",
+  "version": "20260728202759"
+ },
+ {
+  "name": "ai_spend_guard",
+  "version": "20260728203036"
+ },
+ {
+  "name": "ai_model_registry",
+  "version": "20260728204813"
+ },
+ {
+  "name": "ai_fn_task_class_map_and_cheap_tier",
+  "version": "20260728204939"
+ },
+ {
+  "name": "fn_ai_route_v2",
+  "version": "20260728205045"
+ },
+ {
+  "name": "semantic_cache_and_no_ai_layer",
+  "version": "20260728205157"
+ },
+ {
+  "name": "fn_faq_answer_volatile",
+  "version": "20260728205222"
+ },
+ {
+  "name": "faq_semantic_answer",
+  "version": "20260728205312"
+ },
+ {
+  "name": "fn_agent_context_honour_cap",
+  "version": "20260728214210"
+ },
+ {
+  "name": "revoke_trigger_fn_rpc_exposure",
+  "version": "20260728220234"
+ },
+ {
+  "name": "channel_decisions_task_cap_and_quality_loop",
+  "version": "20260728230844"
+ },
+ {
+  "name": "model_capabilities_and_capability_aware_routing",
+  "version": "20260728234811"
+ },
+ {
+  "name": "fn_ai_route_capability_aware",
+  "version": "20260728234853"
+ },
+ {
+  "name": "fn_ai_route_capability_substitute_respects_tier",
+  "version": "20260728235000"
  }
 ]

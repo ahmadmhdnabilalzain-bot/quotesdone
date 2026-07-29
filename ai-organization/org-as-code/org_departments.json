@@ -11,6 +11,39 @@
   "brain_agent": "brief"
  },
  {
+  "name": "Knowledge Engineering",
+  "sort": 11,
+  "active": true,
+  "charter": "Owns everything the company knows: the knowledge base, retrieval, embeddings, validation, decay and the auto-learning exam loop.",
+  "dept_key": "knowledge_eng",
+  "health_fn": null,
+  "lead_agent": "knowledge_director",
+  "north_star": "Every employee answers from current, cited, validated knowledge",
+  "brain_agent": "knowledge_director"
+ },
+ {
+  "name": "Intelligence",
+  "sort": 12,
+  "active": true,
+  "charter": "Owns analytics, KPI instrumentation, forecasting, and market, competitive, supplier and customer intelligence.",
+  "dept_key": "intelligence",
+  "health_fn": null,
+  "lead_agent": "intel_director",
+  "north_star": "Every decision is made against a number somebody trusts",
+  "brain_agent": "intel_director"
+ },
+ {
+  "name": "Evolution",
+  "sort": 13,
+  "active": true,
+  "charter": "Owns innovation intake, the improvement loop, the outcome ledger, performance and cost optimisation, and organisational design.",
+  "dept_key": "evolution",
+  "health_fn": null,
+  "lead_agent": "cpo",
+  "north_star": "The company is measurably better than it was last week",
+  "brain_agent": "cpo"
+ },
+ {
   "name": "Technology",
   "sort": 20,
   "active": true,
