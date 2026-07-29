@@ -23,8 +23,20 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
-const llm = makeLlm(SONNET_FIRST, { max: 500, temperature: 0.2 });
-const MAX_TASKS = 3;            // per run; hourly cadence drains the rest (bounded runtime)
+// 29 Jul 2026: this waited 25s (makeLlm's default) while ai_gateway allows a two-model ladder up to
+// 55s. Six analyses today finished at 50-60s, were billed, and were thrown away by this caller,
+// then escalated to the founder as empty. This function's own budget is 110s, so waiting is free.
+const llm = makeLlm(SONNET_FIRST, { max: 500, temperature: 0.2, timeoutMs: 75000 });
+
+// A department that cannot reach its specialist returns a courteous sentence, not a deliverable.
+// Those sentences are 60-90 characters, which sailed past a bare length check and marked the task
+// DONE with an apology stored as the work product. A false success is worse than an escalation:
+// an escalation gets looked at, a false success never does.
+const NOT_WORK = /(could not reach|couldn't reach|unable to reach|not reachable|ai_unreachable|ai (service|is) (unavailable|unreachable)|try again in a moment|no ai key|ai not reachable|service unavailable)/i;
+const MAX_TASKS = 2;            // per run; hourly cadence drains the rest (bounded runtime)
+                                // 29 Jul 2026: 3 -> 2. A department-brain call can now take up to
+                                // 75s and TIME_BUDGET_MS is 110s, so three per run could not fit and
+                                // the third was always abandoned mid-flight.
 const MAX_ATTEMPTS = 3;        // no deliverable after this many hourly tries → escalate to founder
 const TIME_BUDGET_MS = 110000; // stop starting new specialist calls before the edge wall limit
 const STALE_MIN = 15;          // reclaim an in_progress task a prior (possibly killed) run left behind
@@ -39,7 +51,23 @@ async function authed(req: Request, body: any): Promise<boolean> {
   return !!(user?.email && allow.includes(user.email.toLowerCase()));
 }
 
-const VALID_BRAINS = new Set(['legal', 'collections', 'cfo', 'bookkeeper', 'security', 'it', 'onboarding', 'docs', 'followup', 'bd', 'marketing', 'brief']);
+// 29 Jul 2026: this was a hardcoded list of 12 brain keys. Evolution (cpo), Intelligence
+// (intel_director) and Knowledge Engineering (knowledge_director) were added later, were not in it,
+// and so never reached their own specialist - every task they were given fell through to a generic
+// stand-in. A department's brain is now validated against the real agent registry (org_agents), so
+// adding a department can no longer silently disable its specialist. Cached per request; a failed
+// lookup falls back to the original twelve rather than blocking all dispatch.
+const LEGACY_BRAINS = ['legal', 'collections', 'cfo', 'bookkeeper', 'security', 'it', 'onboarding', 'docs', 'followup', 'bd', 'marketing', 'brief'];
+let _brains: Set<string> | null = null;
+async function validBrains(): Promise<Set<string>> {
+  if (_brains) return _brains;
+  try {
+    const { data } = await admin.from('org_agents').select('agent_key');
+    const keys = (data || []).map((r: any) => String(r.agent_key)).filter(Boolean);
+    _brains = new Set(keys.length ? keys : LEGACY_BRAINS);
+  } catch (_e) { _brains = new Set(LEGACY_BRAINS); }
+  return _brains;
+}
 // A deliverable-complete class is one where the work product IS the completion (advice/analysis/plan/
 // draft/knowledge). Others are 'prepared' — the department's own autonomous machinery (invite ramp,
 // kb autofill, approval lane, etc.) performs the real side effect on its schedule.
@@ -57,10 +85,14 @@ async function dispatch(deptName: string, brainKey: string, objective: string, t
     'Do the work now, to the fullest extent of your authority and knowledge. Produce the ACTUAL deliverable ' +
     '(the real draft / analysis / recommendation / plan / checklist / findings), not a description of what you would do. ' +
     'Be concrete and specific to QuotesDone and the UAE market. End with a one-line "RESULT:" summarising what you produced.';
-  if (brainKey && VALID_BRAINS.has(brainKey)) {
+  if (brainKey && (await validBrains()).has(brainKey)) {
     try {
+      // 29 Jul 2026: was 50000, which was 5s TIGHTER than ai_gateway's own 55s budget - so this
+      // caller walked away while the model was still generating and still being billed, and the
+      // task recorded "could not reach the AI service". The inner call must outlast the layer it
+      // depends on, never the reverse.
       const r = await fetch(FN + '/agent_brain', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ __secret: await sec('inbound_secret'), agent: brainKey, message: instruction }), signal: AbortSignal.timeout(50000) });
+        body: JSON.stringify({ __secret: await sec('inbound_secret'), agent: brainKey, message: instruction }), signal: AbortSignal.timeout(75000) });
       const j = await r.json().catch(() => ({} as any));
       if (j?.reply && String(j.reply).length > 40) return String(j.reply);
     } catch (_e) { /* fall through to generic */ }
@@ -141,7 +173,7 @@ Deno.serve(async (req) => {
       const oneLine = resultLine(deliverable);
       const delivered = DELIVERED_CLASSES.test(t.action_class || '') || t.tier === 'advisory';
       const mode = delivered ? 'delivered' : 'prepared'; // 'prepared' → dept's autonomous machinery executes the side effect
-      const hasWork = deliverable.length > 60;
+      const hasWork = deliverable.length > 60 && !NOT_WORK.test(deliverable.slice(0, 400));
 
       if (hasWork) {
         try { await admin.from('org_memory').insert({ scope: t.dept_key, kind: 'deliverable', content: (t.title + ' — ' + oneLine).slice(0, 500) + '\n\n' + deliverable.slice(0, 2500), source: 'cos' }); } catch (_e) {}

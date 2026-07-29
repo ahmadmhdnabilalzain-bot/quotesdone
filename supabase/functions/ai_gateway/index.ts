@@ -91,6 +91,7 @@ interface Body {
   cache_ttl_min?: number; try_faq?: boolean; faq_text?: string;
   rate_key?: string; rate_limit?: number; rate_window_s?: number;
   stream?: boolean; dry_run?: boolean; escalate?: boolean;
+  client_timeout_ms?: number;             // how long the caller will actually wait; the gateway finishes inside it
   action?: string; text?: string;
   // --- modalities, added 29 Jul 2026 ---
   // deno-lint-ignore no-explicit-any
@@ -287,6 +288,27 @@ Deno.serve(async (req) => {
     const hasOwnSystem = convo.some((m) => m?.role === 'system');
     const outbound: Msg[] = (sys && !hasOwnSystem) ? [sysMsg as Msg, ...convo] : convo;
 
+    // 29 Jul 2026 - WALL DEADLINE. The ladder could run two models x two attempts x 25s, up to
+    // about 100 seconds, while _shared/llm.ts abandons a plain call after 30. On 29 Jul five
+    // cos_execute analyses completed at 50-60s with ok=true and 1200 output tokens each, were
+    // billed, and were thrown away by a caller that had already stopped listening - then escalated
+    // to the founder as "produced nothing". Paying for work and discarding it is worse than failing
+    // fast, so the gateway now finishes inside the caller's patience and never starts an attempt
+    // that cannot land in time. Binary and web-plugin calls get the longer budget because
+    // _shared/llm.ts waits 70s for those.
+    // 29 Jul 2026 (revised, same day). The first version of this hardcoded 26s for plain text and
+    // immediately broke agent_brain, which legitimately takes 22-23s on a 24k-token prompt: routing
+    // and embedding eat 3-4s first, so the attempt was clamped to ~22s and aborted mid-generation.
+    // Guessing the caller's patience is the mistake. The caller knows it, so the caller declares it
+    // via client_timeout_ms and the gateway finishes inside that, keeping a 3s margin for the reply
+    // to travel back. Without a declared value we keep the previous generous behaviour rather than
+    // a guess that can strand a working call.
+    const declared = Number(body.client_timeout_ms || 0);
+    const wallBudgetMs = declared > 5000
+      ? Math.max(declared - 3000, 8000)
+      : ((hasBinary || (body.plugins && body.plugins.length)) ? 55000 : 55000);
+    const deadlineAt = t0 + wallBudgetMs;
+    let deadlineHit = false;
     const ladder = [model, ...(fallback && fallback !== model ? [fallback] : [])];
     const wantStream = body.stream === true && route.stream === true;
 
@@ -296,12 +318,21 @@ Deno.serve(async (req) => {
     let used = model, usage: Record<string, number> = {}, lastErr = '';
     for (const m of ladder) {
       for (let attempt = 0; attempt < 2; attempt++) {
+        // An attempt needs a few seconds to be worth starting at all.
+        const msLeft = deadlineAt - Date.now();
+        if (msLeft < 4000) { deadlineHit = true; break; }
         const ac = new AbortController();
         // Vision and audio payloads are large and slow; 25s is right for chat and far too tight
         // for a three-page scanned licence. Give the modality paths room rather than logging a
         // timeout that looks like a model failure.
-        const budgetMs = (hasBinary || (body.plugins && body.plugins.length)) ? 55000 : 25000;
-        const to = setTimeout(() => ac.abort(), budgetMs);
+        // 29 Jul 2026: the plain-text per-attempt cap was 25000ms while the wall budget is 55000ms,
+        // so no single attempt could ever use the wall. Agent reasoning over a 14k-24k token context
+        // takes 24s+ and was being aborted mid-generation every time - billed, discarded, and logged
+        // as a model failure. 45s lets one attempt actually finish inside the 55s wall. The ladder
+        // gets fewer retries on slow calls, which is the right trade: one complete answer beats two
+        // truncated ones.
+        const budgetMs = (hasBinary || (body.plugins && body.plugins.length)) ? 55000 : 45000;
+        const to = setTimeout(() => ac.abort(), Math.min(budgetMs, deadlineAt - Date.now()));
         try {
           const payload: Record<string, unknown> = {
             model: m, max_tokens: maxTok, messages: outbound,
@@ -360,7 +391,7 @@ Deno.serve(async (req) => {
           lastErr = String((e as Error)?.message || e).slice(0, 200);
         } finally { clearTimeout(to); }
       }
-      if (outMsg) break;
+      if (outMsg || deadlineHit) break;
     }
 
     // ---- 8. LOG with real money ---------------------------------------------------------
@@ -389,7 +420,9 @@ Deno.serve(async (req) => {
       p_cached: cachedIn > 0, p_cache_key: cacheKey, p_latency_ms: Date.now() - t0, p_ok: !!outMsg,
     });
 
-    if (!outMsg) return J({ ok: false, error: 'all_models_failed', detail: lastErr, ladder, caps }, 502);
+    if (!outMsg) return J({ ok: false, error: deadlineHit ? 'gateway_deadline' : 'all_models_failed',
+                            detail: deadlineHit ? ('no model answered within the ' + wallBudgetMs + 'ms budget the caller waits for; last error: ' + lastErr) : lastErr,
+                            ladder, caps }, 502);
 
     if (cacheable && cacheKey && out) {
       await rpcSafe('fn_llm_cache_store', {

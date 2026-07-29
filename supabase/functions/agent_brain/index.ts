@@ -24,7 +24,11 @@ const J = (o:unknown,s=200)=> new Response(JSON.stringify(o),{status:s,headers:{
 async function sec(k:string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 async function cntT(t:string, mod?:(q:any)=>any){ let q=admin.from(t).select('id',{count:'exact',head:true}); if(mod) q=mod(q); const {count}=await q; return count||0; }
 // Executive reasoning on Opus 4.8 (strongest), Sonnet 5 as automatic fallback — and this time the code matches the comment.
-const llm = makeLlm(OPUS_FIRST, { max: 1600 });
+// 29 Jul 2026: no timeoutMs meant _shared/llm.ts aborted at 30s while ai_gateway runs a 55s wall.
+// This walked away from its own answer mid-generation, returned "could not reach the AI service",
+// and left the gateway billing for 25 more seconds. An inner caller must outlast the layer it
+// depends on. 70s sits above the gateway's 55s wall and below cos_execute's 75s patience.
+const llm = makeLlm(OPUS_FIRST, { max: 1600, timeoutMs: 70000 });
 async function llmFast(sys:string, user:string){ try{ const secret=await sec('inbound_secret'); if(!secret) return ''; const r=await fetch(SUPA+'/functions/v1/ai_gateway',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:secret,fn:'agent_brain',task_class:'memory_retrieval',sys,input:user,max:160,temperature:0}),signal:AbortSignal.timeout(20000)}); const j=await r.json(); return j?.content||''; }catch(_e){ return ''; } }
 
 // Lint gate: a candidate memory that matches any active forbidden-language rule is refused.
