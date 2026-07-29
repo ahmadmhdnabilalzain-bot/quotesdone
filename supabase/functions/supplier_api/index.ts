@@ -191,6 +191,28 @@ async function recordServicesCrossCheck(supplierId: number, companyName: unknown
   } catch (_e) { /* the cross-check is evidence, not a gate - it must never break registration */ }
   return cc;
 }
+// LICENCE GATE 29 Jul 2026. Unlike the services cross-check above, this one IS a gate: the
+// supplier was NOT approved. The row exists so a human can see every held registration and why,
+// on the same agent_actions surface, with the same shape (agent / kind / status / risk / title /
+// recommendation / jsonb detail / target_table+target_id).
+async function recordLicenceGate(supplierId: number, companyName: unknown, reason: string, evidence: Record<string, unknown>) {
+  const missing = reason === 'no_licence';
+  try {
+    await admin.from('agent_actions').insert({
+      agent: 'onboarding',
+      kind: 'supplier_licence_gate',
+      status: 'needs_review',
+      risk: missing ? 'high' : 'medium',
+      title: 'Auto-approval held (' + (missing ? 'no trade licence on file' : 'trade licence expired') + ') — ' + String(companyName || ('supplier #' + supplierId)).slice(0, 120),
+      recommendation: missing
+        ? 'Auto-approval is ON but this supplier has no trade licence document or licence number on file, so approval_status was left at pending. Ask the supplier to upload their UAE trade licence; saving the profile with a valid licence approves them automatically.'
+        : 'Auto-approval is ON but the trade licence expiry extracted from the uploaded document is in the past, so approval_status was left at pending. Ask the supplier to upload their renewed trade licence; saving the profile with an in-date licence approves them automatically.',
+      detail: { supplier_id: supplierId, reason, gate: 'licence_expiry', approved: false, approval_status: 'pending', ...evidence, checked_at: new Date().toISOString(), source: 'supplier_api' },
+      target_table: 'leads',
+      target_id: String(supplierId),
+    });
+  } catch (_e) { /* the review row must never break the save - the gate itself already held approval */ }
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -296,7 +318,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'save_profile') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,approval_status,registration_submitted_at,verified').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,approval_status,registration_submitted_at,verified,license_doc_path,license_expiry,trade_license_no').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first' }, 400);
       const { data: pc } = await admin.from('pricing_config').select('auto_approve_suppliers').eq('id', 1).maybeSingle(); const autoApprove = !!pc?.auto_approve_suppliers;
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
@@ -346,13 +368,40 @@ Deno.serve(async (req) => {
       // and a settled registration fee, and aiReview below still writes its findings to
       // ai_review_notes / ai_review_flags and still emails management on first submission -
       // advisory only, it has never gated anything. An automated licence-expiry gate belongs HERE.
-      const firstSubmit = !sup.registration_submitted_at; if (autoApprove) { upd.approval_status = 'approved'; upd.verified = true; } else if (String(sup.approval_status || '') !== 'approved' && !sup.verified) { upd.approval_status = 'pending'; } if (firstSubmit) upd.registration_submitted_at = new Date().toISOString();
+      //
+      // LICENCE-EXPIRY GATE 29 Jul 2026 — this is the "belongs HERE" above, now implemented.
+      // Auto-approval is fully automated, so the licence check the human 'pending' queue used to
+      // force is made automatically from what license_extract has ALREADY written to leads:
+      //   leads.license_doc_path  - the stored trade licence document (set on upload)
+      //   leads.trade_license_no  - the licence number read off it
+      //   leads.license_expiry    - the expiry date read off it (date, YYYY-MM-DD), left NULL
+      //                             when the document printed none (license_extract never guesses)
+      // Values being saved in THIS request win over what is on the row, so a supplier who uploads
+      // a valid licence and saves in one go is approved on that licence, not on the stale row.
+      //
+      // An extracted-but-absent expiry is deliberately NOT a failure: license_extract returns null
+      // rather than inventing a date, and blocking on that would suspend suppliers whose licence
+      // genuinely prints no expiry. The gate is "present, and not known to be expired".
+      const licPath = String((upd.license_doc_path ?? sup.license_doc_path) || '').trim();
+      const licNo = String((upd.trade_license_no ?? sup.trade_license_no) || '').trim();
+      const licExpiryVal = (upd.license_expiry ?? sup.license_expiry) ?? null;
+      const licExpiry = licExpiryVal ? String(licExpiryVal).slice(0, 10) : '';
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const licencePresent = !!licPath || !!licNo;
+      const licenceExpired = !!licExpiry && licExpiry < todayIso;
+      const licenceOk = licencePresent && !licenceExpired;
+      const licenceReason = !licencePresent ? 'no_licence' : (licenceExpired ? 'licence_expired' : 'ok');
+      // Auto-approval now requires the licence gate to pass. A supplier who fails it is NOT
+      // approved: they stay 'pending' exactly as before automation, and a review row is raised.
+      const autoApproved = autoApprove && licenceOk;
+      const firstSubmit = !sup.registration_submitted_at; if (autoApproved) { upd.approval_status = 'approved'; upd.verified = true; } else if (String(sup.approval_status || '') !== 'approved' && !sup.verified) { upd.approval_status = 'pending'; } if (firstSubmit) upd.registration_submitted_at = new Date().toISOString();
       await admin.from('leads').update(upd).eq('id', sup.id);
+      if (autoApprove && !licenceOk) await recordLicenceGate(sup.id, sup.company_name, licenceReason, { license_doc_path: licPath || null, trade_license_no: licNo || null, license_expiry: licExpiry || null, checked_on: todayIso });
       await aiSummarize(sup.id);
       const { data: full } = await admin.from('leads').select('*').eq('id', sup.id).maybeSingle();
       const review = await aiReview(full || {});
       if (review) { const notes = (review.summary || '') + (Array.isArray(review.issues) && review.issues.length ? '  Issues: ' + review.issues.map((i: { field: string; note: string }) => `${i.field} — ${i.note}`).join('; ') : ''); await admin.from('leads').update({ ai_review_notes: notes.slice(0, 2000), ai_review_flags: review.issues || [], ai_reviewed_at: new Date().toISOString() }).eq('id', sup.id); }
-      if (firstSubmit) { const mgmt = (await secretVal('admin_emails') || 'management@quotesdone.com').split(',')[0].trim(); const revLine = review ? ` AI check: ${review.severity || 'clean'} — ${review.summary || ''}` : ''; const lic = full?.name_corrected_from ? ` Licence name corrected from \"${full.name_corrected_from}\" to \"${full.company_name}\".` : ''; const licInfo = full?.trade_license_no ? ` Licence ${full.trade_license_no}${full.license_city ? ', ' + full.license_city : ''}${full.license_expiry ? ', expires ' + full.license_expiry : ''}.` : ''; await notify([ { type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id, subject: 'New supplier registered — review needed', body: `New supplier \"${full?.company_name || sup.company_name}\"${full?.emirate ? ' (' + full.emirate + ')' : ''} has registered and is pending your approval.${licInfo}${lic}${revLine}` }, { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, subject: autoApprove ? 'Your QuotesDone supplier account is active' : 'Thanks for registering with QuotesDone', body: autoApprove ? `Your account for ${sup.company_name} is active — you can now receive inquiries and submit quotes.` : `Thank you for registering ${full?.company_name || sup.company_name} with QuotesDone. Our team will verify your trade licence and details, and email you once your account is approved.` } ]); }
+      if (firstSubmit) { const mgmt = (await secretVal('admin_emails') || 'management@quotesdone.com').split(',')[0].trim(); const revLine = review ? ` AI check: ${review.severity || 'clean'} — ${review.summary || ''}` : ''; const lic = full?.name_corrected_from ? ` Licence name corrected from \"${full.name_corrected_from}\" to \"${full.company_name}\".` : ''; const licInfo = full?.trade_license_no ? ` Licence ${full.trade_license_no}${full.license_city ? ', ' + full.license_city : ''}${full.license_expiry ? ', expires ' + full.license_expiry : ''}.` : ''; await notify([ { type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id, subject: 'New supplier registered — review needed', body: `New supplier \"${full?.company_name || sup.company_name}\"${full?.emirate ? ' (' + full.emirate + ')' : ''} has registered and is pending your approval.${licInfo}${lic}${revLine}` }, { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, subject: autoApproved ? 'Your QuotesDone supplier account is active' : 'Thanks for registering with QuotesDone', body: autoApproved ? `Your account for ${sup.company_name} is active — you can now receive inquiries and submit quotes.` : `Thank you for registering ${full?.company_name || sup.company_name} with QuotesDone. Our team will verify your trade licence and details, and email you once your account is approved.` } ]); }
       const { data: me } = await admin.from('leads').select('approval_status').eq('id', sup.id).maybeSingle();
       return J({ ok: true, approval_status: me?.approval_status || 'pending', services_crosscheck: servicesCheck, review: review ? { severity: review.severity, summary: review.summary, issues: review.issues } : null });
     }
@@ -433,7 +482,12 @@ Deno.serve(async (req) => {
         const sSummary = revealed ? i.summary : scrubIdentity(i.summary ?? null, buyerName, hits);
         const sSpec = revealed ? i.spec : scrubDeep(i.spec, buyerName, hits);
         const sBoq = revealed ? i.boq : scrubDeep(i.boq, buyerName, hits);
-        out.push({ id: i.id, category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, status: i.status, concluded, you_won: youWon, quote: qmap[i.id] || null });
+        // ANONYMITY FIX 29 Jul 2026. budget is an 80-char FREE-TEXT box, not a number ("around
+        // 250k, call Ahmad on 050 123 4567"), and it was the one customer-authored field on this
+        // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
+        // through the same scrubIdentity as summary, behind the same reveal gate.
+        const sBudget = revealed ? i.budget : scrubIdentity(i.budget ?? null, buyerName, hits);
+        out.push({ id: i.id, category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, status: i.status, concluded, you_won: youWon, quote: qmap[i.id] || null });
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
     }
