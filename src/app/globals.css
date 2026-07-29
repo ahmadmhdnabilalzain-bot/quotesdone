@@ -414,6 +414,29 @@ button,a{touch-action:manipulation;-webkit-tap-highlight-color:rgba(20,184,166,.
 /* Section rhythm: the portal was uniformly spaced, which flattens hierarchy. */
 .qd-section + .qd-section{margin-top:26px}
 
+/* ── PORTAL COMMAND-DECK ENTRY ─────────────────────────────────────────
+   Aligns the supplier sign-in with the marketing site's command-deck
+   language: a brand-mark badge, gradient title, and corner-bracket frame
+   on the auth card, plus a hairline glow under the sticky top bar. */
+.qd-topbar{box-shadow:0 1px 0 rgba(110,231,212,.10),0 18px 40px -34px rgba(0,12,20,.9)}
+.qd-brandbadge{background:linear-gradient(168deg,rgba(20,184,166,.22),rgba(20,184,166,.05));
+  border:1px solid var(--line2);
+  box-shadow:inset 0 1px 0 rgba(110,231,212,.28),0 18px 34px -18px rgba(20,184,166,.7)}
+.qd-grad-text{background:linear-gradient(96deg,#EAF4F2 0%,#6EE7D4 46%,#EAF4F2 62%,#E3C065 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+/* Four corner ticks drawn from a single pseudo-element. */
+.qd-login::after{content:'';position:absolute;inset:9px;pointer-events:none;opacity:.5;
+  background:
+   linear-gradient(#6ee7d4,#6ee7d4) 0 0/13px 2px,
+   linear-gradient(#6ee7d4,#6ee7d4) 0 0/2px 13px,
+   linear-gradient(#6ee7d4,#6ee7d4) 100% 0/13px 2px,
+   linear-gradient(#6ee7d4,#6ee7d4) 100% 0/2px 13px,
+   linear-gradient(#6ee7d4,#6ee7d4) 0 100%/13px 2px,
+   linear-gradient(#6ee7d4,#6ee7d4) 0 100%/2px 13px,
+   linear-gradient(#6ee7d4,#6ee7d4) 100% 100%/13px 2px,
+   linear-gradient(#6ee7d4,#6ee7d4) 100% 100%/2px 13px;
+  background-repeat:no-repeat}
+
 /* ══════════════════════════════════════════════════════════════════
    ARABIC TYPOGRAPHY LAYER
    Tailwind utilities are direction-agnostic, so every tracking-*,
