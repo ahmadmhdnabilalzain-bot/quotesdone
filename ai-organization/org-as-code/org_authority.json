@@ -28,7 +28,7 @@
   "threshold_aed": null
  },
  {
-  "note": "destructive ops always gated, any dept",
+  "note": "2026-07-29 autonomy policy: KEPT GATED — irreversible destruction of company/customer data, any dept",
   "dept_key": "exec",
   "max_tier": "gated",
   "action_class": "data_delete",
@@ -56,7 +56,7 @@
   "threshold_aed": null
  },
  {
-  "note": "refund/payout/GL post — founder approval, hard-capped",
+  "note": "2026-07-29 autonomy policy: KEPT GATED — moves real money; hard cap retained",
   "dept_key": "finance",
   "max_tier": "gated",
   "action_class": "money_move",
@@ -70,16 +70,16 @@
   "threshold_aed": null
  },
  {
-  "note": "Creating a new employee role changes the org and needs founder approval",
+  "note": "2026-07-29 autonomy policy: defining a role is a reversible document; actual hiring/comp still hits the finance.money_move gate",
   "dept_key": "hr",
-  "max_tier": "gated",
+  "max_tier": "autonomous",
   "action_class": "role_define",
   "threshold_aed": null
  },
  {
-  "note": "Tier 0: agent proposes, founder promotes",
+  "note": "2026-07-29 autonomy policy: ship via safety pipeline + rollback, post-hoc review not pre-approval; requires green CI",
   "dept_key": "it",
-  "max_tier": "gated",
+  "max_tier": "supervised",
   "action_class": "code_deploy",
   "threshold_aed": null
  },
@@ -105,16 +105,16 @@
   "threshold_aed": null
  },
  {
-  "note": "rotate/reconnect integrations with approval",
+  "note": "2026-07-29 autonomy policy: KEPT GATED — credential rotation can lock the company out of its own systems",
   "dept_key": "it",
   "max_tier": "gated",
   "action_class": "secret_change",
   "threshold_aed": null
  },
  {
-  "note": "live intake-form changes via prompt_gate",
+  "note": "2026-07-29 autonomy policy: intake-form changes are versioned and revertible",
   "dept_key": "knowledge",
-  "max_tier": "gated",
+  "max_tier": "autonomous",
   "action_class": "intake_change",
   "threshold_aed": null
  },
@@ -133,7 +133,7 @@
   "threshold_aed": null
  },
  {
-  "note": "demand letters, PDPL erase — approval",
+  "note": "2026-07-29 autonomy policy: KEPT GATED — demand letters / PDPL erasure bind the company externally and destroy data",
   "dept_key": "legal",
   "max_tier": "gated",
   "action_class": "legal_action",
@@ -147,7 +147,7 @@
   "threshold_aed": null
  },
  {
-  "note": "campaigns created paused; activation gated",
+  "note": "2026-07-29 autonomy policy: KEPT GATED — ad budget is unrecoverable spend; campaigns are built and scheduled autonomously, only activation/budget needs the founder",
   "dept_key": "marketing",
   "max_tier": "gated",
   "action_class": "ad_spend",
@@ -168,9 +168,9 @@
   "threshold_aed": null
  },
  {
-  "note": "public posting needs approval",
+  "note": "2026-07-29 autonomy policy: publishing is reversible (edit/unpublish); monitoring-only dashboard, no pre-approval",
   "dept_key": "marketing",
-  "max_tier": "gated",
+  "max_tier": "autonomous",
   "action_class": "content_publish",
   "threshold_aed": null
  },
@@ -196,7 +196,7 @@
   "threshold_aed": null
  },
  {
-  "note": null,
+  "note": "2026-07-29 autonomy policy: KEPT GATED — permanent commercial harm to a third party, not agent-reversible",
   "dept_key": "procurement",
   "max_tier": "gated",
   "action_class": "supplier_ban",
@@ -217,9 +217,9 @@
   "threshold_aed": null
  },
  {
-  "note": "Sending on the company name requires approval",
+  "note": "2026-07-29 autonomy policy: sending is routine sales work, ramp/deliverability caps enforced in flow; PDPL/TDRA consent capture still open (see action 1723)",
   "dept_key": "sales",
-  "max_tier": "gated",
+  "max_tier": "autonomous",
   "action_class": "outreach_send",
   "threshold_aed": null
  },

@@ -2126,5 +2126,53 @@
  {
   "name": "fn_ai_route_capability_substitute_respects_tier",
   "version": "20260728235000"
+ },
+ {
+  "name": "daily_ai_credit_balance_watch",
+  "version": "20260729110354"
+ },
+ {
+  "name": "knowledge_coverage_measures_the_real_86_category_catalogue",
+  "version": "20260729113332"
+ },
+ {
+  "name": "lead_lifecycle_stage_backfill_and_selfmaintenance",
+  "version": "20260729132605"
+ },
+ {
+  "name": "cron_lead_lifecycle_refresh_daily",
+  "version": "20260729132625"
+ },
+ {
+  "name": "cron_seo_gen_weekly",
+  "version": "20260729132649"
+ },
+ {
+  "name": "autonomy_policy_operational_classes_2026_07_29",
+  "version": "20260729140831"
+ },
+ {
+  "name": "rfq_category_required_field_gate",
+  "version": "20260729140842"
+ },
+ {
+  "name": "rfq_required_gate_keyless_field_safety",
+  "version": "20260729141025"
+ },
+ {
+  "name": "durable_masking_on_inquiries",
+  "version": "20260729141449"
+ },
+ {
+  "name": "supplier_documentation_scoreboard_view",
+  "version": "20260729141515"
+ },
+ {
+  "name": "customer_master_tracker_view",
+  "version": "20260729141532"
+ },
+ {
+  "name": "dropbox_category_folder_from_catalog_86",
+  "version": "20260729141623"
  }
 ]

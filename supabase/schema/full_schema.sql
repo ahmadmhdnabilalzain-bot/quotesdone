@@ -1919,7 +1919,13 @@ CREATE TABLE IF NOT EXISTS public.inquiries (
   urgency text,
   parent_inquiry_id uuid,
   provenance jsonb,
-  plausibility jsonb
+  plausibility jsonb,
+  summary_masked text,
+  raw_input_masked text,
+  budget_masked text,
+  spec_masked jsonb,
+  boq_masked jsonb,
+  completeness_masked jsonb
 );
 
 CREATE TABLE IF NOT EXISTS public.inquiry_cancellations (
@@ -4422,18 +4428,18 @@ ALTER TABLE public.vt_results ADD CONSTRAINT vt_results_path_key UNIQUE (path);
 ALTER TABLE public.agent_chats ADD CONSTRAINT agent_chats_role_check CHECK ((role = ANY (ARRAY['user'::text, 'assistant'::text])));
 ALTER TABLE public.agent_knowledge ADD CONSTRAINT agent_knowledge_layer_check CHECK ((layer = ANY (ARRAY['company'::text, 'profession'::text, 'state'::text, 'experience'::text])));
 ALTER TABLE public.agent_reputation ADD CONSTRAINT agent_reputation_tier_check CHECK ((tier = ANY (ARRAY['probation'::text, 'standard'::text, 'trusted'::text, 'senior_trusted'::text])));
-ALTER TABLE public.ai_governance_review ADD CONSTRAINT ai_governance_review_review_type_check CHECK ((review_type = ANY (ARRAY['safety'::text, 'ethics'::text, 'prompt_standard'::text, 'model_approval'::text, 'quality'::text, 'hallucination'::text, 'cost'::text, 'version'::text])));
 ALTER TABLE public.ai_governance_review ADD CONSTRAINT ai_governance_review_severity_check CHECK ((severity = ANY (ARRAY['info'::text, 'low'::text, 'medium'::text, 'high'::text, 'critical'::text])));
 ALTER TABLE public.ai_governance_review ADD CONSTRAINT ai_governance_review_status_check CHECK ((status = ANY (ARRAY['open'::text, 'actioned'::text, 'accepted_risk'::text, 'closed'::text])));
+ALTER TABLE public.ai_governance_review ADD CONSTRAINT ai_governance_review_review_type_check CHECK ((review_type = ANY (ARRAY['safety'::text, 'ethics'::text, 'prompt_standard'::text, 'model_approval'::text, 'quality'::text, 'hallucination'::text, 'cost'::text, 'version'::text])));
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_status_check CHECK ((status = ANY (ARRAY['open'::text, 'partial'::text, 'paid'::text, 'void'::text, 'duplicate_hold'::text])));
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_recommendation_check CHECK ((recommendation = ANY (ARRAY['proceed'::text, 'proceed_with_conditions'::text, 'do_not_proceed'::text, 'abstain'::text])));
 ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_signal_type_check CHECK ((signal_type = ANY (ARRAY['fake_supplier'::text, 'scam_rfq'::text, 'fake_review'::text, 'brand_misuse'::text, 'reputation'::text, 'social'::text])));
-ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_severity_check CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])));
 ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_status_check CHECK ((status = ANY (ARRAY['open'::text, 'investigating'::text, 'confirmed'::text, 'dismissed'::text, 'actioned'::text])));
+ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_severity_check CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])));
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'closed'::text])));
 ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_layer_check CHECK ((layer = ANY (ARRAY['company'::text, 'profession'::text, 'state'::text, 'experience'::text])));
-ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_founder_response_check CHECK ((founder_response = ANY (ARRAY['accepted'::text, 'overruled'::text, 'modified'::text, NULL::text])));
 ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_stance_check CHECK ((stance = ANY (ARRAY['support'::text, 'concern'::text, 'recommend_against'::text])));
+ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_founder_response_check CHECK ((founder_response = ANY (ARRAY['accepted'::text, 'overruled'::text, 'modified'::text, NULL::text])));
 ALTER TABLE public.company_calendar ADD CONSTRAINT company_calendar_kind_check CHECK ((kind = ANY (ARRAY['public_holiday'::text, 'religious'::text, 'compliance'::text, 'seasonality'::text, 'industry_event'::text, 'internal_rhythm'::text])));
 ALTER TABLE public.company_vision ADD CONSTRAINT company_vision_singleton CHECK ((id = 1));
 ALTER TABLE public.competitor ADD CONSTRAINT competitor_kind_check CHECK ((kind = ANY (ARRAY['marketplace'::text, 'directory'::text, 'tender_portal'::text, 'global_platform'::text, 'incumbent_behaviour'::text, 'adjacent'::text])));
@@ -4442,26 +4448,26 @@ ALTER TABLE public.critical_capability ADD CONSTRAINT critical_capability_test_k
 ALTER TABLE public.crm_stages ADD CONSTRAINT crm_stages_probability_check CHECK (((probability >= 0) AND (probability <= 100)));
 ALTER TABLE public.customers ADD CONSTRAINT customers_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
 ALTER TABLE public.department_objective ADD CONSTRAINT department_objective_status_check CHECK ((status = ANY (ARRAY['active'::text, 'superseded'::text, 'achieved'::text, 'dropped'::text])));
-ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_trigger_kind_check CHECK ((trigger_kind = ANY (ARRAY['repeated_failure'::text, 'metric_off_target'::text, 'cost_anomaly'::text, 'manual'::text, 'audit_gap'::text, 'review_rejection'::text])));
-ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'accepted'::text, 'rejected'::text, 'implemented'::text])));
 ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_change_class_check CHECK ((change_class = ANY (ARRAY['knowledge'::text, 'process'::text, 'code'::text, 'policy'::text, 'model_routing'::text, 'org'::text])));
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_cost_check CHECK ((cost >= (0)::numeric));
+ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'accepted'::text, 'rejected'::text, 'implemented'::text])));
+ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_trigger_kind_check CHECK ((trigger_kind = ANY (ARRAY['repeated_failure'::text, 'metric_off_target'::text, 'cost_anomaly'::text, 'manual'::text, 'audit_gap'::text, 'review_rejection'::text])));
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_method_check CHECK ((method = 'straight_line'::text));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_useful_life_months_check CHECK ((useful_life_months > 0));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_status_check CHECK ((status = ANY (ARRAY['active'::text, 'fully_depreciated'::text, 'disposed'::text])));
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_method_check CHECK ((method = 'straight_line'::text));
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_cost_check CHECK ((cost >= (0)::numeric));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_type_check CHECK ((type = ANY (ARRAY['asset'::text, 'liability'::text, 'equity'::text, 'revenue'::text, 'expense'::text])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_normal_balance_check CHECK ((normal_balance = ANY (ARRAY['D'::bpchar, 'C'::bpchar])));
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'posted'::text, 'void'::text])));
-ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_line_one_side CHECK (((debit = (0)::numeric) <> (credit = (0)::numeric)));
-ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_credit_check CHECK ((credit >= (0)::numeric));
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_debit_check CHECK ((debit >= (0)::numeric));
+ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_credit_check CHECK ((credit >= (0)::numeric));
+ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_line_one_side CHECK (((debit = (0)::numeric) <> (credit = (0)::numeric)));
 ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_enforcement_check CHECK ((enforcement = ANY (ARRAY['code'::text, 'database'::text, 'process'::text, 'declared'::text])));
 ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_domain_check CHECK ((domain = ANY (ARRAY['ethics'::text, 'privacy'::text, 'audit'::text, 'retention'::text, 'approval'::text, 'security'::text, 'compliance'::text])));
 ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_move_type_check CHECK ((move_type = ANY (ARRAY['in'::text, 'out'::text, 'adjust'::text])));
 ALTER TABLE public.leads ADD CONSTRAINT leads_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
-ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_impact_check CHECK ((impact = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_kind_check CHECK ((kind = ANY (ARRAY['competitor'::text, 'trend'::text, 'expansion'::text, 'regulatory'::text, 'other'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_status_check CHECK ((status = ANY (ARRAY['open'::text, 'reviewed'::text, 'actioned'::text, 'dismissed'::text])));
+ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_impact_check CHECK ((impact = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
 ALTER TABLE public.messages ADD CONSTRAINT messages_sender_check CHECK ((sender = ANY (ARRAY['customer'::text, 'supplier'::text])));
 ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_direction_check CHECK ((direction = ANY (ARRAY['up'::text, 'down'::text])));
 ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_domain_check CHECK ((domain = ANY (ARRAY['demand'::text, 'supply'::text, 'liquidity'::text, 'revenue'::text, 'quality'::text, 'cost'::text, 'ops'::text])));
@@ -4479,8 +4485,8 @@ ALTER TABLE public.os_knowledge_domain ADD CONSTRAINT os_knowledge_domain_owners
 ALTER TABLE public.os_objective ADD CONSTRAINT os_objective_horizon_check CHECK ((horizon = ANY (ARRAY['strategic'::text, 'annual'::text, 'quarterly'::text, 'weekly'::text, 'daily'::text])));
 ALTER TABLE public.os_review ADD CONSTRAINT os_review_health_check CHECK ((health = ANY (ARRAY['green'::text, 'amber'::text, 'red'::text])));
 ALTER TABLE public.os_settings_meta ADD CONSTRAINT os_settings_meta_type_check CHECK ((type = ANY (ARRAY['money'::text, 'int'::text, 'number'::text, 'bool'::text, 'text'::text, 'textarea'::text, 'html'::text, 'email'::text, 'phone'::text, 'csv'::text])));
-ALTER TABLE public.outcome_record ADD CONSTRAINT outcome_record_expected_direction_check CHECK ((expected_direction = ANY (ARRAY['up'::text, 'down'::text])));
 ALTER TABLE public.outcome_record ADD CONSTRAINT outcome_record_verdict_check CHECK ((verdict = ANY (ARRAY['pending'::text, 'improved'::text, 'no_change'::text, 'worse'::text, 'unmeasurable'::text])));
+ALTER TABLE public.outcome_record ADD CONSTRAINT outcome_record_expected_direction_check CHECK ((expected_direction = ANY (ARRAY['up'::text, 'down'::text])));
 ALTER TABLE public.payment_dispute ADD CONSTRAINT payment_dispute_status_check CHECK ((status = ANY (ARRAY['needs_response'::text, 'under_review'::text, 'won'::text, 'lost'::text, 'warning_closed'::text, 'withdrawn'::text])));
 ALTER TABLE public.pdpl_requests ADD CONSTRAINT pdpl_requests_kind_check CHECK ((kind = ANY (ARRAY['export'::text, 'delete'::text])));
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_qty_check CHECK ((qty > (0)::numeric));
@@ -4488,26 +4494,26 @@ ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_status_check CHECK ((statu
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_singleton CHECK ((id = 1));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_quote_amount_check CHECK ((quote_amount > (0)::numeric));
 ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_kind_check CHECK ((kind = ANY (ARRAY['budget'::text, 'capacity'::text, 'rate_limit'::text, 'quota'::text, 'headcount'::text, 'storage'::text])));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_communication_check CHECK (((r_communication >= 1) AND (r_communication <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_after_sales_check CHECK (((r_after_sales >= 1) AND (r_after_sales <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_compliance_check CHECK (((r_compliance >= 1) AND (r_compliance <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_quality_check CHECK (((r_quality >= 1) AND (r_quality <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_punctuality_check CHECK (((r_punctuality >= 1) AND (r_punctuality <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_documentation_check CHECK (((r_documentation >= 1) AND (r_documentation <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_after_sales_check CHECK (((r_after_sales >= 1) AND (r_after_sales <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_communication_check CHECK (((r_communication >= 1) AND (r_communication <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_punctuality_check CHECK (((r_punctuality >= 1) AND (r_punctuality <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_quality_check CHECK (((r_quality >= 1) AND (r_quality <= 5)));
 ALTER TABLE public.secops_rule ADD CONSTRAINT secops_rule_severity_check CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])));
 ALTER TABLE public.secops_rule ADD CONSTRAINT secops_rule_category_check CHECK ((category = ANY (ARRAY['auth'::text, 'api_abuse'::text, 'suspicious'::text, 'data_leak'::text, 'prompt_injection'::text, 'credential'::text, 'audit'::text])));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_likelihood_check CHECK (((likelihood >= 1) AND (likelihood <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_impact_check CHECK (((impact >= 1) AND (impact <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_status_check CHECK ((status = ANY (ARRAY['open'::text, 'mitigating'::text, 'accepted'::text, 'closed'::text])));
-ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
+ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_pay_journal_id_fkey FOREIGN KEY (pay_journal_id) REFERENCES gl_journal(id);
-ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
+ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_advisor_key_fkey FOREIGN KEY (advisor_key) REFERENCES board_advisor(advisor_key);
-ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES budgets(id) ON DELETE CASCADE;
 ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
+ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES budgets(id) ON DELETE CASCADE;
 ALTER TABLE public.catalog_subcategories ADD CONSTRAINT catalog_subcategories_domain_slug_fkey FOREIGN KEY (domain_slug) REFERENCES catalog_domains(slug) ON DELETE CASCADE;
 ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_agent_slug_fkey FOREIGN KEY (agent_slug) REFERENCES category_agents(slug) ON DELETE SET NULL;
 ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
@@ -4524,23 +4530,23 @@ ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_serves_goal_fkey FOR
 ALTER TABLE public.employee_workflow ADD CONSTRAINT employee_workflow_workflow_key_fkey FOREIGN KEY (workflow_key) REFERENCES workflow(workflow_key) ON DELETE CASCADE;
 ALTER TABLE public.event_delivery ADD CONSTRAINT event_delivery_event_id_fkey FOREIGN KEY (event_id) REFERENCES company_event(id) ON DELETE CASCADE;
 ALTER TABLE public.experiment_assignments ADD CONSTRAINT experiment_assignments_experiment_fkey FOREIGN KEY (experiment) REFERENCES experiments(key);
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_expense_account_fkey FOREIGN KEY (expense_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_asset_account_fkey FOREIGN KEY (asset_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_accum_account_fkey FOREIGN KEY (accum_account) REFERENCES gl_accounts(code);
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_expense_account_fkey FOREIGN KEY (expense_account) REFERENCES gl_accounts(code);
-ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_asset_id_fkey FOREIGN KEY (asset_id) REFERENCES fa_assets(id) ON DELETE CASCADE;
+ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_parent_code_fkey FOREIGN KEY (parent_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_expense_map ADD CONSTRAINT gl_expense_map_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_reverses_fkey FOREIGN KEY (reverses) REFERENCES gl_journal(id);
-ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_journal_id_fkey FOREIGN KEY (journal_id) REFERENCES gl_journal(id) ON DELETE CASCADE;
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
+ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_journal_id_fkey FOREIGN KEY (journal_id) REFERENCES gl_journal(id) ON DELETE CASCADE;
 ALTER TABLE public.goal_period ADD CONSTRAINT goal_period_goal_key_fkey FOREIGN KEY (goal_key) REFERENCES company_goals(key) ON DELETE CASCADE;
 ALTER TABLE public.idea ADD CONSTRAINT idea_serves_goal_fkey FOREIGN KEY (serves_goal) REFERENCES company_goals(key);
 ALTER TABLE public.inbound_messages ADD CONSTRAINT inbound_messages_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_parent_inquiry_id_fkey FOREIGN KEY (parent_inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_hired_supplier_id_fkey FOREIGN KEY (hired_supplier_id) REFERENCES leads(id);
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
-ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.inquiry_requirement ADD CONSTRAINT inquiry_requirement_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
@@ -4556,9 +4562,9 @@ ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_lead_id_fkey
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.lead_trade_map ADD CONSTRAINT lead_trade_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug);
 ALTER TABLE public.mdm_cities ADD CONSTRAINT mdm_cities_emirate_code_fkey FOREIGN KEY (emirate_code) REFERENCES mdm_emirates(code);
-ALTER TABLE public.messages ADD CONSTRAINT messages_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
-ALTER TABLE public.messages ADD CONSTRAINT messages_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.messages ADD CONSTRAINT messages_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
+ALTER TABLE public.messages ADD CONSTRAINT messages_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
+ALTER TABLE public.messages ADD CONSTRAINT messages_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.metric_snapshot ADD CONSTRAINT metric_snapshot_metric_key_fkey FOREIGN KEY (metric_key) REFERENCES metric_definition(metric_key) ON DELETE CASCADE;
 ALTER TABLE public.org_agents ADD CONSTRAINT org_agents_department_fkey FOREIGN KEY (department) REFERENCES org_departments(dept_key);
 ALTER TABLE public.org_authority ADD CONSTRAINT org_authority_dept_key_fkey FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key) ON DELETE CASCADE;
@@ -4572,33 +4578,33 @@ ALTER TABLE public.os_responsibility ADD CONSTRAINT os_responsibility_os_key_fke
 ALTER TABLE public.os_review ADD CONSTRAINT os_review_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.outcome_record ADD CONSTRAINT outcome_record_expected_kpi_id_fkey FOREIGN KEY (expected_kpi_id) REFERENCES employee_kpi(id);
 ALTER TABLE public.pdpl_erase_files ADD CONSTRAINT pdpl_erase_files_request_id_fkey FOREIGN KEY (request_id) REFERENCES pdpl_requests(id) ON DELETE CASCADE;
-ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id) ON DELETE CASCADE;
+ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
 ALTER TABLE public.projects ADD CONSTRAINT projects_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE;
 ALTER TABLE public.prompt_versions ADD CONSTRAINT prompt_versions_prompt_key_fkey FOREIGN KEY (prompt_key) REFERENCES prompts(key);
-ALTER TABLE public.questions ADD CONSTRAINT questions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.questions ADD CONSTRAINT questions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.questions ADD CONSTRAINT questions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
+ALTER TABLE public.questions ADD CONSTRAINT questions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_committed_items ADD CONSTRAINT quote_committed_items_review_id_fkey FOREIGN KEY (review_id) REFERENCES quote_reviews(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_review_messages ADD CONSTRAINT quote_review_messages_review_id_fkey FOREIGN KEY (review_id) REFERENCES quote_reviews(id) ON DELETE CASCADE;
-ALTER TABLE public.quotes ADD CONSTRAINT quotes_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
+ALTER TABLE public.quotes ADD CONSTRAINT quotes_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.regulations ADD CONSTRAINT regulations_supersedes_id_fkey FOREIGN KEY (supersedes_id) REFERENCES regulations(id);
 ALTER TABLE public.reveal_invoices ADD CONSTRAINT reveal_invoices_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE;
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.role_permissions ADD CONSTRAINT role_permissions_role_fkey FOREIGN KEY (role) REFERENCES roles(name);
 ALTER TABLE public.subcategory_agent_map ADD CONSTRAINT subcategory_agent_map_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.subcategory_keyword ADD CONSTRAINT subcategory_keyword_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.supplier_capabilities ADD CONSTRAINT supplier_capabilities_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_role_fkey FOREIGN KEY (role) REFERENCES roles(name);
 ALTER TABLE public.workflow ADD CONSTRAINT workflow_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.workflow_step ADD CONSTRAINT workflow_step_workflow_key_fkey FOREIGN KEY (workflow_key) REFERENCES workflow(workflow_key) ON DELETE CASCADE;
@@ -4778,6 +4784,7 @@ CREATE INDEX leads_emirate_idx ON public.leads USING btree (emirate);
 CREATE UNIQUE INDEX leads_founding_rank_uidx ON public.leads USING btree (founding_rank) WHERE (founding_rank IS NOT NULL);
 CREATE INDEX leads_has_email_idx ON public.leads USING btree (((email IS NOT NULL)));
 CREATE INDEX leads_invite_status_idx ON public.leads USING btree (invite_status);
+CREATE INDEX leads_lifecycle_stage_idx ON public.leads USING btree (lifecycle_stage);
 CREATE UNIQUE INDEX leads_place_id_uidx ON public.leads USING btree (place_id) WHERE (place_id IS NOT NULL);
 CREATE INDEX leads_sector_idx ON public.leads USING btree (sector);
 CREATE UNIQUE INDEX legal_kpi_snap_day ON public.legal_kpi_snapshots USING btree (snapshot_date);
@@ -5453,6 +5460,29 @@ CREATE OR REPLACE VIEW public.governance_kpis AS  WITH agents AS (
            FROM agent_actions) AS audit_trail_total,
     ( SELECT count(DISTINCT agent_actions.agent) AS count
            FROM agent_actions) AS agents_with_audit_trail;
+
+CREATE OR REPLACE VIEW public.inquiries_supplier_safe AS  SELECT id,
+    category,
+    emirate,
+    role_needed,
+    status,
+    created_at,
+    scope_type,
+    trades,
+    keywords,
+    brief_source,
+    urgency,
+    boq_confidence,
+    drawing_redacted_paths,
+    outcome,
+    hired_supplier_id,
+    summary_masked AS summary,
+    raw_input_masked AS raw_input,
+    budget_masked AS budget,
+    spec_masked AS spec,
+    boq_masked AS boq,
+    completeness_masked AS completeness
+   FROM inquiries i;
 
 CREATE OR REPLACE VIEW public.inv_on_hand AS  SELECT i.id,
     i.sku,
@@ -6777,6 +6807,26 @@ CREATE OR REPLACE VIEW public.v_customer_ltv AS  SELECT id AS customer_id,
            FROM transactions t
           WHERE ((t.customer_id = c.id) AND (t.fee_status = 'paid'::text))), (0)::numeric))::numeric(12,2)) DESC;
 
+CREATE OR REPLACE VIEW public.v_customer_master AS  SELECT id AS customer_id,
+    full_name AS name,
+    phone AS mobile,
+    email,
+        CASE
+            WHEN (COALESCE(btrim(signed_terms_path), ''::text) <> ''::text) THEN ('QD-TC-'::text || upper("left"(replace((id)::text, '-'::text, ''::text), 8)))
+            ELSE NULL::text
+        END AS tc_document_no,
+    signed_terms_path AS tc_document_path,
+    signed_terms_url AS tc_document_url,
+    tos_version AS tc_version,
+    COALESCE(signed_terms_at, tos_accepted_at) AS tc_accepted_at,
+    tos_ip AS tc_accepted_ip,
+    (((('/QuotesDone Backup/Customers/'::text || fn_dbx_safe(COALESCE(full_name, 'Customer'::text))) || ' ('::text) || "left"((id)::text, 8)) || ')'::text) AS dropbox_folder,
+    phone_verified,
+    email_verified,
+    created_at AS registered_at
+   FROM customers c
+  ORDER BY created_at DESC NULLS LAST;
+
 CREATE OR REPLACE VIEW public.v_decision_intelligence AS  SELECT id,
     decided_by,
     dept_key,
@@ -7231,6 +7281,19 @@ CREATE OR REPLACE VIEW public.v_kb_confidence AS  SELECT id,
             kb_chunks.effective_date,
             kb_chunks.created_at
            FROM kb_chunks) s;
+
+CREATE OR REPLACE VIEW public.v_kb_coverage AS  SELECT c.slug AS category,
+    c.name AS label,
+    c.num,
+    count(k.id) AS chunks,
+        CASE
+            WHEN (count(k.id) = 0) THEN 'gap'::text
+            WHEN (count(k.id) < 3) THEN 'thin'::text
+            ELSE 'covered'::text
+        END AS status
+   FROM (catalog_supplier_categories c
+     LEFT JOIN kb_chunks k ON ((regexp_replace(COALESCE(k.category, ''::text), '^cat:'::text, ''::text) = c.slug)))
+  GROUP BY c.slug, c.name, c.num;
 
 CREATE OR REPLACE VIEW public.v_kb_regulation_gaps AS  SELECT slug AS category,
     name,
@@ -7836,6 +7899,193 @@ CREATE OR REPLACE VIEW public.v_supplier_coi AS  WITH sup AS (
  HAVING (count(DISTINCT id) > 1)
   ORDER BY (count(DISTINCT id)) DESC, k;
 
+CREATE OR REPLACE VIEW public.v_supplier_doc_score AS  WITH docs AS (
+         SELECT (d.ref_id)::bigint AS lead_id,
+            bool_or((d.kind = 'licence'::text)) AS doc_licence,
+            bool_or((d.kind = 'catalog'::text)) AS doc_catalog,
+            bool_or((d.kind = 'profile'::text)) AS doc_profile,
+            (count(*))::integer AS doc_rows
+           FROM documents d
+          WHERE ((d.ref_table = 'leads'::text) AND (d.ref_id ~ '^[0-9]+$'::text))
+          GROUP BY (d.ref_id)::bigint
+        ), f AS (
+         SELECT l.id AS lead_id,
+            l.company_name,
+            COALESCE(NULLIF(btrim(l.claimed_by), ''::text), NULLIF(btrim(l.email), ''::text)) AS contact_email,
+            l.approval_status,
+            COALESCE(l.claimed, false) AS claimed,
+            COALESCE(l.banned, false) AS banned,
+            l.lifecycle_stage,
+            cc.name AS primary_category,
+            COALESCE(dd.doc_rows, 0) AS extracted_doc_rows,
+            ((COALESCE(btrim(l.license_doc_path), ''::text) <> ''::text) OR COALESCE(dd.doc_licence, false)) AS has_licence,
+            ((l.license_expiry IS NOT NULL) AND (l.license_expiry < CURRENT_DATE)) AS licence_expired,
+            l.license_expiry,
+            (COALESCE(btrim(l.egr_doc_path), ''::text) <> ''::text) AS has_egr,
+            (COALESCE(btrim(l.iban_doc_path), ''::text) <> ''::text) AS has_iban,
+            (COALESCE(btrim(l.vat_doc_path), ''::text) <> ''::text) AS has_vat_doc,
+            ((COALESCE(btrim(l.trn), ''::text) <> ''::text) OR (COALESCE(btrim(l.vat_number), ''::text) <> ''::text)) AS has_vat_no,
+            (COALESCE(btrim(l.insurance_doc_path), ''::text) <> ''::text) AS has_insurance,
+            ((l.insurance_expiry IS NOT NULL) AND (l.insurance_expiry < CURRENT_DATE)) AS insurance_expired,
+            l.insurance_expiry,
+            ((COALESCE(btrim(l.company_profile_doc_path), ''::text) <> ''::text) OR COALESCE(dd.doc_profile, false)) AS has_profile,
+            ((COALESCE(array_length(l.catalog_doc_paths, 1), 0) > 0) OR COALESCE(dd.doc_catalog, false)) AS has_catalogue,
+            (COALESCE(btrim(l.iso_doc_path), ''::text) <> ''::text) AS has_iso,
+            ((l.iso_expiry IS NOT NULL) AND (l.iso_expiry < CURRENT_DATE)) AS iso_expired,
+            (COALESCE(btrim(l.manufacturer_auth_doc_path), ''::text) <> ''::text) AS has_mfa,
+            ((l.manufacturer_auth_expiry IS NOT NULL) AND (l.manufacturer_auth_expiry < CURRENT_DATE)) AS mfa_expired,
+            (COALESCE(btrim(l.signed_terms_path), ''::text) <> ''::text) AS has_signed_terms
+           FROM (((leads l
+             LEFT JOIN docs dd ON ((dd.lead_id = l.id)))
+             LEFT JOIN lead_category lc ON (((lc.lead_id = l.id) AND lc.is_primary)))
+             LEFT JOIN catalog_supplier_categories cc ON ((cc.slug = lc.slug)))
+        ), s AS (
+         SELECT f.lead_id,
+            f.company_name,
+            f.contact_email,
+            f.approval_status,
+            f.claimed,
+            f.banned,
+            f.lifecycle_stage,
+            f.primary_category,
+            f.extracted_doc_rows,
+            f.has_licence,
+            f.licence_expired,
+            f.license_expiry,
+            f.has_egr,
+            f.has_iban,
+            f.has_vat_doc,
+            f.has_vat_no,
+            f.has_insurance,
+            f.insurance_expired,
+            f.insurance_expiry,
+            f.has_profile,
+            f.has_catalogue,
+            f.has_iso,
+            f.iso_expired,
+            f.has_mfa,
+            f.mfa_expired,
+            f.has_signed_terms,
+            ((((((((
+                CASE
+                    WHEN (f.has_licence AND (NOT f.licence_expired)) THEN 30
+                    ELSE 0
+                END +
+                CASE
+                    WHEN f.has_egr THEN 12
+                    ELSE 0
+                END) +
+                CASE
+                    WHEN f.has_iban THEN 10
+                    ELSE 0
+                END) +
+                CASE
+                    WHEN f.has_vat_doc THEN 10
+                    WHEN f.has_vat_no THEN 5
+                    ELSE 0
+                END) +
+                CASE
+                    WHEN (f.has_insurance AND (NOT f.insurance_expired)) THEN 10
+                    ELSE 0
+                END) +
+                CASE
+                    WHEN f.has_profile THEN 10
+                    ELSE 0
+                END) +
+                CASE
+                    WHEN f.has_catalogue THEN 10
+                    ELSE 0
+                END) +
+                CASE
+                    WHEN (f.has_iso AND (NOT f.iso_expired)) THEN 5
+                    ELSE 0
+                END) +
+                CASE
+                    WHEN (f.has_mfa AND (NOT f.mfa_expired)) THEN 3
+                    ELSE 0
+                END) AS score,
+            array_remove(ARRAY[
+                CASE
+                    WHEN (NOT f.has_licence) THEN 'Trade licence (mandatory)'::text
+                    WHEN f.licence_expired THEN ('Trade licence EXPIRED on '::text || (f.license_expiry)::text)
+                    ELSE NULL::text
+                END,
+                CASE
+                    WHEN (NOT f.has_egr) THEN 'Establishment card'::text
+                    ELSE NULL::text
+                END,
+                CASE
+                    WHEN (NOT f.has_iban) THEN 'Bank IBAN letter'::text
+                    ELSE NULL::text
+                END,
+                CASE
+                    WHEN ((NOT f.has_vat_doc) AND (NOT f.has_vat_no)) THEN 'VAT certificate / TRN'::text
+                    WHEN (NOT f.has_vat_doc) THEN 'VAT certificate (TRN on file, document missing)'::text
+                    ELSE NULL::text
+                END,
+                CASE
+                    WHEN (NOT f.has_insurance) THEN 'Insurance certificate'::text
+                    WHEN f.insurance_expired THEN ('Insurance certificate EXPIRED on '::text || (f.insurance_expiry)::text)
+                    ELSE NULL::text
+                END,
+                CASE
+                    WHEN (NOT f.has_profile) THEN 'Company profile'::text
+                    ELSE NULL::text
+                END,
+                CASE
+                    WHEN (NOT f.has_catalogue) THEN 'Product catalogue'::text
+                    ELSE NULL::text
+                END,
+                CASE
+                    WHEN (NOT f.has_iso) THEN 'ISO certificate'::text
+                    WHEN f.iso_expired THEN 'ISO certificate EXPIRED'::text
+                    ELSE NULL::text
+                END,
+                CASE
+                    WHEN (NOT f.has_mfa) THEN 'Manufacturer authorisation'::text
+                    WHEN f.mfa_expired THEN 'Manufacturer authorisation EXPIRED'::text
+                    ELSE NULL::text
+                END,
+                CASE
+                    WHEN (NOT f.has_signed_terms) THEN 'Signed Terms & Conditions'::text
+                    ELSE NULL::text
+                END], NULL::text) AS missing
+           FROM f
+        )
+ SELECT lead_id,
+    company_name,
+    contact_email,
+    primary_category,
+    approval_status,
+    claimed,
+    banned,
+    lifecycle_stage,
+    score,
+        CASE
+            WHEN (score >= 85) THEN 'A'::text
+            WHEN (score >= 70) THEN 'B'::text
+            WHEN (score >= 50) THEN 'C'::text
+            WHEN (score >= 25) THEN 'D'::text
+            ELSE 'F'::text
+        END AS grade,
+    cardinality(missing) AS missing_count,
+    missing,
+    has_licence,
+    licence_expired,
+    has_egr,
+    has_iban,
+    has_vat_doc,
+    has_vat_no,
+    has_insurance,
+    insurance_expired,
+    has_profile,
+    has_catalogue,
+    has_iso,
+    has_mfa,
+    has_signed_terms,
+    extracted_doc_rows
+   FROM s;
+
 CREATE OR REPLACE VIEW public.v_supplier_intelligence AS  SELECT l.id AS lead_id,
     l.company_name,
     l.emirate,
@@ -8011,6 +8261,39 @@ CREATE OR REPLACE FUNCTION public._next_docver(p_type text, p_id text)
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$ select coalesce(max(version),0)+1 from public.doc_versions where entity_type=p_type and entity_id=p_id $function$
+
+
+CREATE OR REPLACE FUNCTION public._rfq_answered(v text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select v is not null
+     and btrim(v) <> ''
+     and btrim(v) not in ('[]','{}','-','?')
+     and lower(btrim(v)) not in ('null','not sure','unknown','tbd','n/a','na');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public._rfq_concept(k text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when k is null or btrim(k) = '' then null
+    -- location first: "emirate / area" is a place, not a quantity
+    when k ~ '(location|emirate|address|site|floor|region|area/|/area)' then 'loc'
+    when k ~ '(quantity|qty|size|sizes|dimension|dimensions|area|volume|units|linear|count|sqm|sqft)' then 'qty'
+    when k ~ '(scope|supply_install|install)'         then 'scope'
+    when k ~ '(timeline|schedule|duration|deadline|when)' then 'time'
+    when k ~ '(budget|price|cost)'                    then 'budget'
+    when k ~ '(finish|material|fabric|fibre|colou?r)' then 'material'
+    when k ~ '(item|product|element|service)'         then 'item'
+    else null end;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.add_working_days(d date, n integer)
@@ -11048,6 +11331,34 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_dbx_category(p_lead_id bigint)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+  select public.fn_dbx_safe(coalesce(
+    -- 1. the supplier's primary catalog category (the real 86-item taxonomy)
+    (select c.name from public.lead_category lc
+       join public.catalog_supplier_categories c on c.slug = lc.slug
+      where lc.lead_id = p_lead_id and lc.is_primary
+      order by lc.score desc nulls last limit 1),
+    -- 2. any catalog category we managed to map, best score first
+    (select c.name from public.lead_category lc
+       join public.catalog_supplier_categories c on c.slug = lc.slug
+      where lc.lead_id = p_lead_id
+      order by lc.score desc nulls last limit 1),
+    -- 3. legacy text, but only when it is literally a catalog slug or catalog name
+    (select c.name from public.leads l
+       join public.catalog_supplier_categories c
+         on c.slug = btrim(split_part(coalesce(l.categories,''),',',1))
+         or lower(c.name) = lower(btrim(split_part(coalesce(l.categories,''),',',1)))
+         or c.slug = btrim(coalesce(l.sector,''))
+      where l.id = p_lead_id limit 1),
+    'Uncategorized'));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_dbx_safe(x text)
  RETURNS text
  LANGUAGE sql
@@ -12010,7 +12321,7 @@ begin
   with s as (
     select l.*,
       '/QuotesDone Backup/Suppliers/'
-        || fn_dbx_safe(coalesce(nullif(btrim(split_part(coalesce(l.categories,''),',',1)),''), nullif(l.sector,''), 'Uncategorized'))
+        || public.fn_dbx_category(l.id)
         || '/' || fn_dbx_safe(coalesce(l.company_name,'Supplier')) || ' (' || l.id || ')/' as base
     from public.leads l
     where l.approved_at is not null or l.registration_submitted_at is not null
@@ -12046,7 +12357,7 @@ begin
          'storage', 'S:'||s.id||':cat:'||cat
   from ( select l.id,
       '/QuotesDone Backup/Suppliers/'
-        || fn_dbx_safe(coalesce(nullif(btrim(split_part(coalesce(l.categories,''),',',1)),''), nullif(l.sector,''), 'Uncategorized'))
+        || public.fn_dbx_category(l.id)
         || '/' || fn_dbx_safe(coalesce(l.company_name,'Supplier')) || ' (' || l.id || ')/' as base, l.catalog_doc_paths
     from public.leads l
     where (l.approved_at is not null or l.registration_submitted_at is not null
@@ -12061,7 +12372,7 @@ begin
          s.base || 'Company Details.pdf', 'S:'||s.id||':details'
   from ( select l.id,
       '/QuotesDone Backup/Suppliers/'
-        || fn_dbx_safe(coalesce(nullif(btrim(split_part(coalesce(l.categories,''),',',1)),''), nullif(l.sector,''), 'Uncategorized'))
+        || public.fn_dbx_category(l.id)
         || '/' || fn_dbx_safe(coalesce(l.company_name,'Supplier')) || ' (' || l.id || ')/' as base
     from public.leads l
     where l.approved_at is not null or l.registration_submitted_at is not null
@@ -14371,6 +14682,37 @@ declare k text; v text; out text := ''; begin
   if out = '' then out := '  (no data)'; end if;
   return rtrim(out, E'\n');
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_lead_lifecycle_stage(l leads)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  select case
+    when l.claimed is true
+      or l.signed is true
+      or l.registration_submitted_at is not null
+      or nullif(btrim(coalesce(l.claimed_by, '')), '') is not null
+      or nullif(btrim(coalesce(l.approval_status, '')), '') is not null
+      or nullif(btrim(coalesce(l.registration_status, '')), '') is not null
+      then 'registered'
+    when l.portal_updated_at is not null
+      or l.accepted_terms_at is not null
+      or l.owner_email_verified is true
+      then 'responded'
+    when lower(btrim(coalesce(l.invite_status, ''))) in ('bounced', 'failed', 'undeliverable', 'invalid', 'rejected')
+      then 'undeliverable'
+    when (l.invited_at is not null and l.invited_at < now() - interval '14 days')
+      or (l.invited_at is null and l.contacted is true and coalesce(l.created_at, now()) < now() - interval '14 days')
+      then 'no_response'
+    when l.invited_at is not null
+      or l.contacted is true
+      or nullif(btrim(coalesce(l.invite_status, '')), '') is not null
+      then 'contacted'
+    else 'not_contacted'
+  end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_legal_ai()
@@ -17979,6 +18321,21 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_refresh_lead_lifecycle()
+ RETURNS integer
+ LANGUAGE plpgsql
+AS $function$
+declare n integer;
+begin
+  update public.leads l
+     set lifecycle_stage = public.fn_lead_lifecycle_stage(l)
+   where l.lifecycle_stage is distinct from public.fn_lead_lifecycle_stage(l);
+  get diagnostics n = row_count;
+  return n;
+end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_refund_state(p_transaction uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -18672,6 +19029,131 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_rfq_required_check(i inquiries)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  spec_fields jsonb; f jsonb; bag jsonb := '{}'::jsonb; blob text;
+  k text; v text; bk text; opt text; tok text; toks text[];
+  reqn int := 0; have text[] := '{}';
+  miss jsonb := '[]'::jsonb; advisory jsonb := '[]'::jsonb; found boolean;
+begin
+  select cs.fields into spec_fields
+    from public.category_specs cs
+   where lower(cs.category) = lower(coalesce(i.category,''))
+   limit 1;
+
+  if spec_fields is null or jsonb_typeof(spec_fields) <> 'array' then
+    return jsonb_build_object('applicable', false, 'reason', 'no category_specs row',
+      'category', i.category, 'required_ok', true, 'required_total', 0,
+      'present','[]'::jsonb, 'missing','[]'::jsonb, 'advisory_missing','[]'::jsonb, 'checked_at', now());
+  end if;
+
+  if i.spec is not null and jsonb_typeof(i.spec) = 'object' then
+    for k, v in
+      select e.key, case when jsonb_typeof(e.value) in ('object','array')
+                         then e.value::text else coalesce(e.value #>> '{}','') end
+        from jsonb_each(i.spec) e
+    loop
+      bag := bag || jsonb_build_object(lower(k), v);
+    end loop;
+
+    for k, v in
+      select e2.key, case when jsonb_typeof(e2.value) in ('object','array')
+                          then e2.value::text else coalesce(e2.value #>> '{}','') end
+        from jsonb_each(i.spec) e1
+        join lateral jsonb_each(case when jsonb_typeof(e1.value)='object'
+                                     then e1.value else '{}'::jsonb end) e2 on true
+    loop
+      if not public._rfq_answered(bag->>lower(k)) then
+        bag := bag || jsonb_build_object(lower(k), v);
+      end if;
+    end loop;
+  end if;
+
+  bag := bag
+    || case when coalesce(i.emirate,'') <> '' then
+            jsonb_build_object('emirate', i.emirate,
+              'location', coalesce(nullif(bag->>'location',''), i.emirate)) else '{}'::jsonb end
+    || case when coalesce(i.scope_type,'') <> '' then
+            jsonb_build_object('scope', coalesce(nullif(bag->>'scope',''), i.scope_type)) else '{}'::jsonb end
+    || case when coalesce(i.budget,'') <> '' then jsonb_build_object('budget', i.budget) else '{}'::jsonb end
+    || case when coalesce(array_length(i.trades,1),0) > 0 then
+            jsonb_build_object('trades', array_to_string(i.trades,', ')) else '{}'::jsonb end
+    || case when coalesce(i.drawing_file_path,'') <> '' or i.boq is not null then
+            jsonb_build_object('drawing','provided') else '{}'::jsonb end;
+
+  blob := lower(concat_ws(' ', i.summary, i.raw_input, i.spec::text));
+  foreach tok in array coalesce(regexp_split_to_array(lower(coalesce(i.category,'')), '[^a-z0-9]+'), '{}'::text[]) loop
+    if length(coalesce(tok,'')) >= 4 then blob := replace(blob, tok, ' '); end if;
+  end loop;
+
+  for f in select value from jsonb_array_elements(spec_fields)
+            where coalesce((value->>'required')::boolean, false)
+  loop
+    k := nullif(btrim(lower(coalesce(f->>'key',''))), '');
+
+    -- Keyless required field: unaddressable, so ADVISORY ONLY (never blocks dispatch).
+    if k is null then
+      advisory := advisory || jsonb_build_object(
+        'question', f->>'question', 'reason', 'category_specs field has no key - cannot be gated');
+      continue;
+    end if;
+
+    reqn := reqn + 1; found := false;
+
+    if public._rfq_answered(bag->>k) then found := true; end if;
+
+    if not found then
+      for bk in select key from jsonb_each_text(bag) loop
+        if public._rfq_answered(bag->>bk) then
+          if public._rfq_concept(k) is not null
+             and public._rfq_concept(k) = public._rfq_concept(bk) then
+            found := true;
+          else
+            foreach tok in array coalesce(string_to_array(k,'_'), '{}'::text[]) loop
+              if length(coalesce(tok,'')) >= 4
+                 and (bk = tok or bk like '%'||tok||'%' or tok like '%'||bk||'%') then
+                found := true;
+              end if;
+            end loop;
+          end if;
+        end if;
+        exit when found;
+      end loop;
+    end if;
+
+    if not found and jsonb_typeof(f->'options') = 'array' then
+      for opt in select lower(o) from jsonb_array_elements_text(f->'options') o loop
+        toks := coalesce(regexp_split_to_array(regexp_replace(coalesce(opt,''),'[^a-z0-9 ]',' ','g'), '\s+'), '{}'::text[]);
+        foreach tok in array toks loop
+          if length(coalesce(tok,'')) >= 4 and blob like '%'||tok||'%' then found := true; end if;
+        end loop;
+        exit when found;
+      end loop;
+    end if;
+
+    if found then
+      have := array_append(have, k);
+    else
+      miss := miss || jsonb_build_object('key', k, 'question', f->>'question', 'type', f->>'type');
+    end if;
+  end loop;
+
+  return jsonb_build_object(
+    'applicable', true, 'category', i.category,
+    'required_total', reqn,
+    'required_ok', (jsonb_array_length(miss) = 0),
+    'present', to_jsonb(have),
+    'missing', miss,
+    'advisory_missing', advisory,
+    'checked_at', now());
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_rfq_score(i inquiries)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -18679,6 +19161,7 @@ CREATE OR REPLACE FUNCTION public.fn_rfq_score(i inquiries)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare pts int:=0; miss text[]:='{}'; have text[]:='{}'; spectxt text;
+        catchk jsonb; catmiss text[]:='{}'; m jsonb; gready boolean; catok boolean;
 begin
   spectxt := coalesce(i.spec::text,'');
   if coalesce(i.category,'')<>'' then pts:=pts+20; have:=array_append(have,'category'); else miss:=array_append(miss,'category'); end if;
@@ -18688,7 +19171,28 @@ begin
   if i.budget is not null then pts:=pts+15; have:=array_append(have,'budget'); else miss:=array_append(miss,'budget'); end if;
   if coalesce(array_length(i.trades,1),0)>0 or coalesce(i.drawing_file_path,'')<>'' or i.boq is not null then
      pts:=pts+15; have:=array_append(have,'supporting_detail'); else miss:=array_append(miss,'supporting_detail'); end if;
-  return jsonb_build_object('score',pts,'ready',pts>=70,'have',to_jsonb(have),'missing',to_jsonb(miss),'scored_at',now());
+
+  gready := pts >= 70;
+
+  catchk := public.fn_rfq_required_check(i);
+  catok  := coalesce((catchk->>'required_ok')::boolean, true);
+
+  if coalesce((catchk->>'applicable')::boolean,false) then
+    for m in select value from jsonb_array_elements(coalesce(catchk->'missing','[]'::jsonb)) loop
+      catmiss := array_append(catmiss, coalesce(nullif(m->>'question',''), m->>'key'));
+    end loop;
+  end if;
+
+  return jsonb_build_object(
+    'score', pts,
+    'generic_ready', gready,
+    'category_required_ok', catok,
+    'ready', (gready and catok),
+    'have', to_jsonb(have),
+    'missing', to_jsonb(miss || catmiss),
+    'category_missing', coalesce(catchk->'missing','[]'::jsonb),
+    'category_check', catchk,
+    'scored_at', now());
 end $function$
 
 
@@ -21076,7 +21580,7 @@ AS $function$
       'chunks',(select count(*) from kb_chunks),
       'document_chunks',(select count(*) from kb_chunks where source_kind='document'),
       'categories',(select count(distinct category) from kb_chunks),
-      'category_specs',(select count(*) from category_specs)
+      'category_specs',(select count(*) from catalog_supplier_categories)
     ),
     'curator', jsonb_build_object(
       'health', (select (kpis->>'health')::numeric from knowledge_kpi_snapshots order by snapshot_date desc limit 1),
@@ -21096,14 +21600,14 @@ AS $function$
     'regulations', coalesce((select jsonb_agg(jsonb_build_object('title',title,'status',authority||coalesce(' · '||status,''),'source_url',source_url) order by coalesce(effective_date, created_at) desc)
         from (select * from regulations order by coalesce(effective_date, created_at) desc limit 20) rg),'[]'::jsonb),
     'categories', coalesce((select jsonb_agg(jsonb_build_object('key',cat,'count',c) order by c desc) from (
-        select coalesce(nullif(category,''),'general') cat, count(*) c from kb_chunks group by 1 order by 2 desc limit 16) kk),'[]'::jsonb),
-    'coverage', coalesce((select jsonb_agg(jsonb_build_object('category',cs.category,'label',cs.label,'chunks',cc.n,'status',case when cc.n=0 then 'gap' when cc.n<3 then 'thin' else 'covered' end) order by cc.n asc, cs.category)
-        from category_specs cs left join lateral (select count(*) n from kb_chunks kb where kb.category=cs.category) cc on true),'[]'::jsonb),
+        select coalesce(nullif(regexp_replace(coalesce(category,''),'^cat:',''),''),'general') cat, count(*) c from kb_chunks group by 1 order by 2 desc limit 16) kk),'[]'::jsonb),
+    'coverage', coalesce((select jsonb_agg(jsonb_build_object('category',v.category,'label',v.label,'chunks',v.chunks,'status',v.status) order by v.chunks asc, v.num)
+        from v_kb_coverage v),'[]'::jsonb),
     'coverage_kpis', jsonb_build_object(
-        'gaps',(select count(*) from category_specs cs where not exists(select 1 from kb_chunks kb where kb.category=cs.category)),
-        'thin',(select count(*) from category_specs cs where (select count(*) from kb_chunks kb where kb.category=cs.category) between 1 and 2),
-        'covered',(select count(*) from category_specs cs where (select count(*) from kb_chunks kb where kb.category=cs.category) >= 3),
-        'total',(select count(*) from category_specs)
+        'gaps',(select count(*) from v_kb_coverage where status='gap'),
+        'thin',(select count(*) from v_kb_coverage where status='thin'),
+        'covered',(select count(*) from v_kb_coverage where status='covered'),
+        'total',(select count(*) from v_kb_coverage)
     ),
     'recent', coalesce((select jsonb_agg(jsonb_build_object('id',id,'title',title,'category',category,'citation',citation)) from (select * from kb_chunks order by created_at desc limit 20) c),'[]'::jsonb)
   )
@@ -21744,6 +22248,37 @@ begin
   -- local UAE mobile  05x xxx xxxx  (9 digits starting 5, optional separators) — bounded so prices/qtys are safe
   s := regexp_replace(s, '\y0?5[0-9][ \-]?[0-9]{3}[ \-]?[0-9]{4}\y', '[hidden]', 'g');
   return s;
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.mask_contacts_jsonb(j jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r jsonb; k text; v jsonb; e jsonb;
+begin
+  if j is null then return j; end if;
+  case jsonb_typeof(j)
+    when 'string' then
+      return to_jsonb(public.mask_contacts(j #>> '{}'));
+    when 'object' then
+      r := '{}'::jsonb;
+      for k, v in select key, value from jsonb_each(j) loop
+        r := r || jsonb_build_object(k, public.mask_contacts_jsonb(v));
+      end loop;
+      return r;
+    when 'array' then
+      r := '[]'::jsonb;
+      for e in select value from jsonb_array_elements(j) loop
+        r := r || jsonb_build_array(public.mask_contacts_jsonb(e));
+      end loop;
+      return r;
+    else
+      return j;
+  end case;
 end;
 $function$
 
@@ -22515,6 +23050,41 @@ begin
 end$function$
 
 
+CREATE OR REPLACE FUNCTION public.scrub_inquiry_contacts()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare changed boolean := false;
+begin
+  new.summary_masked      := public.mask_contacts(new.summary);
+  new.raw_input_masked    := public.mask_contacts(new.raw_input);
+  new.budget_masked       := public.mask_contacts(new.budget);
+  new.spec_masked         := public.mask_contacts_jsonb(new.spec);
+  new.boq_masked          := public.mask_contacts_jsonb(new.boq);
+  new.completeness_masked := public.mask_contacts_jsonb(new.completeness);
+
+  changed := (new.summary_masked      is distinct from new.summary)
+          or (new.raw_input_masked    is distinct from new.raw_input)
+          or (new.budget_masked       is distinct from new.budget)
+          or (new.spec_masked         is distinct from new.spec)
+          or (new.boq_masked          is distinct from new.boq)
+          or (new.completeness_masked is distinct from new.completeness);
+
+  if changed then
+    begin
+      insert into public.founder_alerts(level, event, detail, channel)
+      values ('warn', 'inquiry_contact_masked',
+              'Masked customer contact details in the supplier-facing copy of inquiry '||coalesce(new.id::text,'?')||' from customer '||coalesce(new.customer_id::text,'?')||'.',
+              'system');
+    exception when others then null; end;
+  end if;
+  return new;
+end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.scrub_quote_contacts()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -22943,6 +23513,17 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_leads_lifecycle_stage()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+begin
+  new.lifecycle_stage := public.fn_lead_lifecycle_stage(new);
+  return new;
+end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_mask_quote_contact()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -23341,34 +23922,34 @@ end $function$
 
 
 -- ===== TRIGGERS =====
-CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
-CREATE TRIGGER trg_page_high_agent_action AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_page_high_agent_action();
 CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
-CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
 CREATE TRIGGER action_gate BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_action_gate();
+CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
 CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
+CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
+CREATE TRIGGER trg_page_high_agent_action AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_page_high_agent_action();
 CREATE TRIGGER kb_version AFTER INSERT OR UPDATE OF content ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_kb_version();
 CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
 CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
+CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
 CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
 CREATE TRIGGER trg_ai_cost_attribute BEFORE INSERT ON public.ai_cost_log FOR EACH ROW EXECUTE FUNCTION trg_ai_cost_attribute();
 CREATE TRIGGER trg_ap_pay_block_held BEFORE UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_pay_block_held();
 CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
 CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
-CREATE TRIGGER trg_protect_gate_secrets_del BEFORE DELETE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_gate_secrets();
-CREATE TRIGGER trg_protect_gate_secrets_upd BEFORE INSERT OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_gate_secrets();
 CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
 CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
+CREATE TRIGGER trg_protect_gate_secrets_del BEFORE DELETE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_gate_secrets();
+CREATE TRIGGER trg_protect_gate_secrets_upd BEFORE INSERT OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_gate_secrets();
 CREATE TRIGGER trg_blog_dirty AFTER INSERT OR DELETE OR UPDATE ON public.blog_posts FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER trg_undo_business_rules BEFORE DELETE OR UPDATE ON public.business_rules FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER company_faq_sync AFTER INSERT OR DELETE OR UPDATE ON public.company_faq FOR EACH STATEMENT EXECUTE FUNCTION trg_company_faq_sync();
 CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_goal_cascade AFTER UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
+CREATE TRIGGER trg_norm_customer_ver BEFORE INSERT OR UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION qd_norm_customer_ver();
 CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
-CREATE TRIGGER trg_norm_customer_ver BEFORE INSERT OR UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION qd_norm_customer_ver();
 CREATE TRIGGER trg_audit_data_owner AFTER INSERT OR DELETE OR UPDATE ON public.data_owner_registry FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
@@ -23387,63 +23968,65 @@ CREATE TRIGGER trg_undo_governance_rule BEFORE DELETE OR UPDATE ON public.govern
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_idea_score BEFORE INSERT OR UPDATE ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_idea_rescore();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
-CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
-CREATE TRIGGER trg_inquiry_received_a AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_received();
-CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
+CREATE TRIGGER autodispatch_inquiry AFTER INSERT OR UPDATE OF rfq_ready ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_autodispatch_inquiry();
+CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
 CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
+CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
 CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
 CREATE TRIGGER customer_abandon_ban AFTER UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_customer_abandon_ban();
-CREATE TRIGGER autodispatch_inquiry AFTER INSERT OR UPDATE OF rfq_ready ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_autodispatch_inquiry();
+CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
 CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
-CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
+CREATE TRIGGER trg_inquiry_received_a AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_received();
+CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
 CREATE TRIGGER notify_matched_supplier AFTER INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION fn_notify_matched_supplier();
 CREATE TRIGGER gate_incomplete_match BEFORE INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION trg_gate_incomplete_match();
-CREATE TRIGGER trg_self_reg_category AFTER INSERT OR UPDATE OF categories, source ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_self_reg_category();
 CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
-CREATE TRIGGER enrich_capability_on_approve AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_enrich_capability();
 CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER supplier_capability BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_supplier_capability();
-CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE OF claimed ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
-CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
-CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER trg_norm_supplier_ver BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION qd_norm_supplier_ver();
+CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
+CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
+CREATE TRIGGER supplier_capability BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_supplier_capability();
+CREATE TRIGGER trg_self_reg_category AFTER INSERT OR UPDATE OF categories, source ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_self_reg_category();
+CREATE TRIGGER enrich_capability_on_approve AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_enrich_capability();
+CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE OF claimed ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
+CREATE TRIGGER trg_leads_lifecycle_stage BEFORE INSERT OR UPDATE OF claimed, signed, registration_submitted_at, claimed_by, approval_status, registration_status, portal_updated_at, accepted_terms_at, owner_email_verified, invite_status, invited_at, contacted, created_at, lifecycle_stage ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_leads_lifecycle_stage();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
 CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
 CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
-CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
 CREATE TRIGGER trg_pages_dirty AFTER INSERT OR DELETE OR UPDATE ON public.pages FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
-CREATE TRIGGER trg_pricing_config_facts AFTER INSERT OR UPDATE ON public.pricing_config FOR EACH STATEMENT EXECUTE FUNCTION trg_pricing_facts();
+CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
 CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON public.pricing_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
+CREATE TRIGGER trg_pricing_config_facts AFTER INSERT OR UPDATE ON public.pricing_config FOR EACH STATEMENT EXECUTE FUNCTION trg_pricing_facts();
 CREATE TRIGGER trg_undo_priority_hierarchy BEFORE DELETE OR UPDATE ON public.priority_hierarchy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('rank');
-CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
 CREATE TRIGGER quote_items_roll AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_roll();
 CREATE TRIGGER trg_items_submittable AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION fn_quote_recompute_submittable();
-CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
-CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
+CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
+CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
 CREATE TRIGGER trg_new_quote_sms AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION notify_new_quote_sms();
 CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
-CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
-CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
-CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
+CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
+CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
 CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
-CREATE TRIGGER trg_regulation_propagate AFTER INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION fn_regulation_propagate();
+CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
+CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
+CREATE TRIGGER trg_regulation_propagate AFTER INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION fn_regulation_propagate();
 CREATE TRIGGER trg_event_review AFTER INSERT ON public.review_chain FOR EACH ROW EXECUTE FUNCTION fn_emit_event('review', 'review.step');
 CREATE TRIGGER ingest_case_lessons AFTER INSERT OR UPDATE OF ai_summary ON public.rfq_archives FOR EACH ROW EXECUTE FUNCTION trg_ingest_case_lessons();
 CREATE TRIGGER trg_audit_role_permissions AFTER INSERT OR DELETE OR UPDATE ON public.role_permissions FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_audit_roles AFTER INSERT OR DELETE OR UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_sec_audit_immutable BEFORE DELETE OR UPDATE ON public.security_audit_log FOR EACH ROW EXECUTE FUNCTION fn_security_audit_immutable();
 CREATE TRIGGER trg_event_selfreview AFTER INSERT ON public.self_review FOR EACH ROW EXECUTE FUNCTION fn_emit_event('self_review', 'process.repeated_failure');
-CREATE TRIGGER trg_seo_dirty AFTER INSERT OR DELETE OR UPDATE ON public.seo_categories FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories FOR EACH ROW EXECUTE FUNCTION ensure_category_agent();
+CREATE TRIGGER trg_seo_dirty AFTER INSERT OR DELETE OR UPDATE ON public.seo_categories FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER trg_due_paid AFTER UPDATE ON public.supplier_dues FOR EACH ROW EXECUTE FUNCTION qd_on_due_paid();
-CREATE TRIGGER trg_notify_refund AFTER UPDATE ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION qd_notify_refund_request();
-CREATE TRIGGER trg_reveal_receipt_a AFTER INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
 CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
-CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
 CREATE TRIGGER trg_refund_resolved BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION qd_on_refund_resolved();
+CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
+CREATE TRIGGER trg_reveal_receipt_a AFTER INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
+CREATE TRIGGER trg_notify_refund AFTER UPDATE ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION qd_notify_refund_request();
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 
 -- ===== ROW LEVEL SECURITY (enable) =====
@@ -24165,6 +24748,23 @@ select cron.schedule('edge_health_scan_15min','3,18,33,48 * * * *',$CRON$ select
 select cron.schedule('ai_spend_guard_hourly','40 * * * *',$CRON$ select fn_ai_spend_guard() $CRON$);
 select cron.schedule('model_benchmark_daily','25 4 * * *',$CRON$ select fn_model_benchmark() $CRON$);
 select cron.schedule('model_autoswitch_daily','35 4 * * *',$CRON$ select fn_model_autoswitch() $CRON$);
+select cron.schedule('cost_snapshot_balance_daily','0 5 * * *',$CRON$
+  select net.http_post(
+    url:='https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/cost_snapshot',
+    headers:='{"Content-Type":"application/json"}'::jsonb,
+    body:=jsonb_build_object(
+      '__secret',(select value from app_secrets where key='inbound_secret'),
+      'email', false),
+    timeout_milliseconds:=120000)
+  $CRON$);
+select cron.schedule('lead_lifecycle_refresh_daily','25 1 * * *',$CRON$select public.fn_refresh_lead_lifecycle();$CRON$);
+select cron.schedule('seo_gen_weekly','40 22 * * 0',$CRON$
+  select net.http_post(
+    url:='https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/seo_gen',
+    headers:='{"Content-Type":"application/json"}'::jsonb,
+    body:=jsonb_build_object('__secret',(select value from app_secrets where key='inbound_secret')),
+    timeout_milliseconds:=120000)
+$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails
@@ -24227,6 +24827,7 @@ select cron.schedule('model_autoswitch_daily','35 4 * * *',$CRON$ select fn_mode
 --   meta_sync_enabled
 --   min_job_value_aed
 --   openrouter_api_key
+--   openrouter_min_usd
 --   otp_hmac_key
 --   postiz_api_key
 --   postiz_integrations
@@ -24246,6 +24847,7 @@ select cron.schedule('model_autoswitch_daily','35 4 * * *',$CRON$ select fn_mode
 --   site_assistant_ip_hour
 --   sla_quote_hours
 --   sms_enabled
+--   social_posts_per_week
 --   stripe_publishable_key
 --   stripe_secret_key
 --   stripe_webhook_secret
