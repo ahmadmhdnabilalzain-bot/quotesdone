@@ -87,8 +87,16 @@ Deno.serve(async (req) => {
       if (!rec) return J({ error: 'record_not_found' }, 404);
 
       let termsText = '', termsLabel = '';
-      if (kind === 'supplier') { termsText = (await sec('supplier_terms_html')) || ''; termsLabel = 'Supplier Agreement — Version 4'; }
-      else { const { data: p } = await admin.from('pages').select('html').eq('slug', 'legal_terms_body').maybeSingle(); termsText = (p?.html as string) || ''; termsLabel = 'Customer Terms & Conditions — Version 3'; }
+      // ONE SOURCE OF TRUTH FOR THE VERSION (2 Aug 2026, external code review). This label was
+      // hard-coded to "Version 4" while supplier_api recorded the accepted version as whatever
+      // app_secrets('terms_version') said — a key that did not exist, so it silently recorded 'v2'
+      // — and kyc hard-coded 'v4' on a third path. A certificate that names a different version of
+      // the agreement than the acceptance row it certifies is not evidence of anything; it is the
+      // first thing a counterparty's lawyer would attack. Both now read the same secrets, so the
+      // label, the stored version and the document move together and can only be changed in one
+      // place. The fallbacks match today's live documents so nothing breaks if a key is deleted.
+      if (kind === 'supplier') { termsText = (await sec('supplier_terms_html')) || ''; termsLabel = (await sec('supplier_terms_label')) || 'Supplier Agreement — Version 5'; }
+      else { const { data: p } = await admin.from('pages').select('html').eq('slug', 'legal_terms_body').maybeSingle(); termsText = (p?.html as string) || ''; termsLabel = (await sec('customer_terms_label')) || 'Customer Terms & Conditions — Version 3'; }
       const hash = await sha256hex(termsText);
       const acceptedIso = (kind === 'supplier' ? rec.accepted_terms_at : rec.tos_accepted_at) || new Date().toISOString();
       const ip = (kind === 'supplier' ? rec.accepted_terms_ip : rec.tos_ip) || '';

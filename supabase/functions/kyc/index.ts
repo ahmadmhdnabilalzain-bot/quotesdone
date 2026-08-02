@@ -184,8 +184,15 @@ Deno.serve(async (req) => {
     if (action === 'accept_terms') {
       const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim();
       const nowIso = new Date().toISOString();
-      if (kind === 'supplier') await admin.from('leads').update({ accepted_terms_at: nowIso, accepted_terms_version: 'v4', accepted_terms_ip: ip }).eq('claimed_by', email);
-      else await admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: 'v3', tos_ip: ip }).eq('email', email);
+      // ONE SOURCE OF TRUTH FOR THE VERSION (2 Aug 2026, external code review). 'v4' and 'v3' were
+      // hard-coded here, supplier_api read app_secrets('terms_version') (a key that did not exist,
+      // so it recorded 'v2'), and compliance_archive printed "Version 4" on the certificate. Three
+      // independent answers to "which document did this business actually sign?", which is the one
+      // question an acceptance record exists to answer. All three now read the same secrets.
+      const supV = (await sec('supplier_terms_version')) || (await sec('terms_version')) || 'v5';
+      const custV = (await sec('customer_terms_version')) || 'v3';
+      if (kind === 'supplier') await admin.from('leads').update({ accepted_terms_at: nowIso, accepted_terms_version: supV, accepted_terms_ip: ip }).eq('claimed_by', email);
+      else await admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email);
       let signed_url = null; let signErr = '';
       try { const secret = await sec('inbound_secret'); const r = await fetch(`${FN}/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, action: 'sign', kind, email }) }); const jd = await r.json(); signed_url = jd?.signed_url || null; if (!signed_url) signErr = String(jd?.error || jd?.detail || 'no signed_url returned').slice(0, 200); } catch (e) { signErr = String((e as Error)?.message || e).slice(0, 200); }
       // terms acceptance is recorded either way; a missing signed PDF is a compliance-trail gap worth surfacing

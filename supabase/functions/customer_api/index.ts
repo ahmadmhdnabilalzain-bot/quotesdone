@@ -432,6 +432,36 @@ Deno.serve(async (req) => {
 
     if (action === 'create_inquiry') {
       if (!cust.email_verified) return J({ error: 'Please verify your email before sending a request. Open the Account tab and enter the 6-digit code we email you.' }, 403);
+      // REGISTRATION COMPLETENESS GATE (2 Aug 2026, external code review). This endpoint checked
+      // email_verified and nothing else, so the three things that make a buyer real — a name, a
+      // reachable mobile, and an accepted version of the Terms — were enforced by the FRONTEND
+      // only. Anyone with a verified email and a JWT could POST straight here and put an RFQ in
+      // front of matched suppliers with none of them. Two concrete costs: the supplier who later
+      // wins the job is handed a reveal (which the buyer paid 3% for) containing an empty contact
+      // card, and there is no accepted-terms record to point at if that job goes wrong — the
+      // entire T&C evidence chain assumes tos_accepted_at exists by the time an RFQ is dispatched.
+      //
+      // Deliberately NOT blocking on signed_terms_path. The signed certificate is produced
+      // out-of-band by compliance_archive (PDF render + Dropbox mirror), so a transient failure
+      // there is not the buyer's fault, is not a privacy risk, and blocking on it would take a
+      // customer's ability to trade away for an operational fault of ours. It is repaired in the
+      // background instead, so the evidence still lands and the gap stays visible.
+      const missingReg: string[] = [];
+      if (!String(cust.full_name || '').trim()) missingReg.push('your name');
+      if (!String(cust.phone || '').trim()) missingReg.push('a mobile number');
+      if (!cust.tos_accepted_at) missingReg.push('acceptance of the Terms & Conditions');
+      if (missingReg.length) {
+        const list = missingReg.length === 1 ? missingReg[0] : missingReg.slice(0, -1).join(', ') + ' and ' + missingReg[missingReg.length - 1];
+        return J({ error: 'registration_incomplete', missing: missingReg, message: `Please finish setting up your account first — we still need ${list}. Open the Account tab; it takes under a minute. Suppliers quote on your request without seeing who you are, but we need this on file before it goes out.` }, 428);
+      }
+      if (!cust.signed_terms_path) {
+        // Fire-and-forget repair. Never awaited: create_inquiry must not inherit the latency or
+        // the failure mode of a PDF render and a Dropbox round-trip.
+        try {
+          const s = await getSecret('inbound_secret');
+          fetch(`${SUPABASE_URL}/functions/v1/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: s, action: 'sign', kind: 'customer', email }) }).catch(() => { /* best effort */ });
+        } catch (_e) { /* never blocks the buyer */ }
+      }
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
       const { count: recent } = await admin.from('inquiries').select('id', { count: 'exact', head: true }).eq('customer_id', cust.id).gte('created_at', hourAgo);
       if ((recent || 0) >= INQUIRY_LIMIT_PER_HOUR) return J({ error: 'You have created many requests in a short time. Please try again later.' }, 429);
