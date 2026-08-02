@@ -588,7 +588,11 @@ Deno.serve(async (req) => {
         try {
           await admin.from('quote_items').delete().eq('quote_id', q!.id);
           const rows = items.slice(0, 80).map((it: any, i: number) => ({ quote_id: q!.id, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand, 120), model: clip(it.model, 120), specification: clip(it.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300) }));
-          const clean = rows.filter((r) => r.description);
+          // Typed because `deno check` runs in CI now: the mapped row shape is inferred from an
+          // `any` element, so `r` has no type and noImplicitAny rejects it. A line item with no
+          // description is dropped, not stored blank - a quote line the buyer cannot read is worse
+          // than one that is absent.
+          const clean = rows.filter((r: { description: string | null }) => r.description);
           if (clean.length) await admin.from('quote_items').insert(clean);
         } catch (_e) { /* */ }
       }
