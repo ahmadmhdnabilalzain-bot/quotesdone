@@ -9,10 +9,8 @@
 -- electronically sign and that compliance_archive renders into a PDF certificate, so an internal
 -- contradiction here is a live legal exposure, not a typo. Version bumped 4 -> 5 because the
 -- commercial terms have materially changed.
--- Safe to apply: zero suppliers had signed at the time of writing (leads.accepted_terms_at null
--- everywhere), so no existing acceptance is retro-changed.
--- NOTE: the full text of each replacement clause lives in the applied migration; this file is the
--- committed record of it. Re-running is idempotent - the regexes no longer match once applied.
+-- Safe to apply: zero suppliers have signed to date (leads.accepted_terms_at is null everywhere),
+-- so no existing acceptance is being retro-changed.
 
 update app_secrets set value = regexp_replace(value,
   '<li><b>Commission</b>[^<]*</li>',
@@ -75,7 +73,7 @@ where key = 'supplier_terms_html';
 insert into app_secrets (key, value) values
   ('terms_version', 'v5'),
   ('supplier_terms_version', 'v5'),
-  ('supplier_terms_label', 'Supplier Agreement - Version 5'),
+  ('supplier_terms_label', 'Supplier Agreement — Version 5'),
   ('customer_terms_version', 'v3'),
-  ('customer_terms_label', 'Customer Terms & Conditions - Version 3')
+  ('customer_terms_label', 'Customer Terms & Conditions — Version 3')
 on conflict (key) do update set value = excluded.value;
