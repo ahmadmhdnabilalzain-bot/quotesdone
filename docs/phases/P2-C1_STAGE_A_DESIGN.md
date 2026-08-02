@@ -115,3 +115,55 @@ Nothing customer-visible changes. No production router is touched at Stage A.
 ## Stage A test list
 
 The 14 required tests map to the model above without amendment. Tests 1, 2 and 3 are the reference-not-copy proof; 4 and 5 the precedence and conflict proof; 6 and 7 the lifecycle proof; 8, 9 and 10 the derivation proof; 11 the audit proof; 12, 13 and 14 the safety proof. Test 2 — "updating that answer changes all five workstream views immediately" — is trivially true if the design is right and impossible to pass if it is not, which makes it the single most informative test in the list.
+
+---
+
+# Approved amendments — 2 August 2026
+
+Two founder decisions that change the schema above. Both settle open questions 2 and part of the setter design; implement the amended version, not the original.
+
+## 1. Field identity is explicit and stable — open question 2 is closed
+
+A shared display label is not evidence of a shared field. `pressure_rating` in plumbing and in fire are different fields that happen to read alike, and treating them as one would let a shared answer satisfy a workstream it has no business satisfying — failure mode 3 in the Stage A test list, arriving through the back door.
+
+```
+field_definition
+  field_id        text primary key   -- 'plumbing.pressure_rating', 'fire.pressure_rating',
+                                     -- 'hvac.design_pressure', 'shared.project_emirate'
+  scope           ('shared'|'trade_specific'|'trade_subset')
+  trade_key       text               -- null for shared
+  label_en · label_ar · unit · answer_type
+  validation_ref · evidence_rule · regulatory_interpretation · applies_when
+  UNIQUE (scope, trade_key, label_en)  -- catches an accidental second identity for one field
+field_definition_trade   -- for trade_subset only
+  field_id · trade_key
+```
+
+`inquiry_answer.field_key` becomes `field_id` and references `field_definition`. Questions, requirements, answers, validations and completeness all key on that identity — one join, one truth.
+
+**A field may be `shared` only when meaning, unit, validation, evidence rules, regulatory interpretation and applicability are *all* identical.** Six conditions, and any one of them failing makes it trade-specific. This is deliberately hard to qualify for: the cost of wrongly sharing is a wrong dispatch, the cost of wrongly splitting is one extra question.
+
+## 2. The setter distinguishes corroboration from conflict
+
+The original design treated every lower-precedence write as a conflict. That is wrong for the commonest case — a drawing that *agrees* with the customer. Four paths, on normalised comparison:
+
+| Incoming | Action |
+|---|---|
+| lower precedence, **same** normalised value | record supporting evidence and provenance. **No conflict.** The answer is now better attested, not disputed |
+| lower precedence, **different** value | unresolved conflict. Canonical value unchanged. Both preserved |
+| higher precedence | supersedes, with `superseded_by` retaining the previous row and its provenance |
+| `model_inference` on a mandatory field | may never satisfy it alone. It proposes; confirmation promotes it to `customer_confirmed` |
+
+Normalisation is per `field_definition` (unit, case, numeric tolerance) — comparing "8 bar" against "8.0 BAR" as different values would manufacture conflicts out of formatting, which trains people to dismiss the conflict queue.
+
+## 3. Legacy inquiries — no row created by reading
+
+An existing inquiry has no group and gets one **only** if a second trade is genuinely added. The compatibility identity is deterministic and computed, never stored: reads, updates, qualification and dispatch behave exactly as today. Nothing is backfilled, and nothing is written merely because a view was queried.
+
+## 4. Test order
+
+Run 1, 2, 3, 4, 5, 6 first as listed in the instruction — they are the reference-not-copy, precedence, conflict and dispatch-gating proofs, and they are the ones that fail loudly if the model is wrong. The remaining eight follow.
+
+## 5. Required before Stage B — the eleven-subcategory matrix
+
+For each of MEP's eleven mapped subcategories: name and id, **exactly one** primary trade, explicit secondary applicability (never automatic many-to-many), whether its questions are shared or technical, mandatory and optional counts, named authorities, proposed question ownership, and the rationale. MEP owns shared project fields only — it does not own duplicated child-trade technical fields. Anything ambiguous stays unapproved and comes back as a question.
