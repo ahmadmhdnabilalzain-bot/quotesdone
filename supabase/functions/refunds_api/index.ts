@@ -107,6 +107,37 @@ Deno.serve(async (req) => {
     if (!(await authed(req, body))) { await logRun('error', { action: String(body?.action || '') }, 'forbidden: refund API called without valid secret or admin JWT'); return J({ error: 'forbidden' }, 403); }
     const action = String(body.action || '');
 
+    // ---- PHASE 1 EMERGENCY CONTAINMENT — hotfix/phase1-emergency-containment, 2 Aug 2026 ----
+    // Independent audit finding 3.1: 'resolve' issues a REAL Stripe refund (POST /v1/refunds) and is
+    // reachable with any address listed in app_secrets.admin_emails, or with the shared inbound_secret,
+    // with no Control Mode session and no entry in public.control_mode_action. Until refund_resolve is
+    // registered and gated, it requires a live Control Mode session belonging to a human identity.
+    // Fails closed: any error, any missing identity and any non-true gate result denies.
+    // list_pending and list_recent are read-only and are deliberately left unchanged.
+    // Reverse: delete this block and redeploy. See supabase/rollback/phase1_containment_down.sql.
+    if (action === 'resolve') {
+      let allowed = false;
+      let detail = 'control_mode_unavailable';
+      try {
+        const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+        const { data: { user } } = await admin.auth.getUser(jwt);
+        const actor = String(user?.email || '').toLowerCase();
+        if (!actor) {
+          detail = 'no_human_identity';
+        } else {
+          const { data: gate, error: gerr } = await admin.rpc('fn_control_mode_require', { p_actor_email: actor, p_action: 'refund_resolve' });
+          if (gerr) throw new Error(gerr.message);
+          allowed = (gate as any)?.allowed === true;
+          detail = String((gate as any)?.error || (allowed ? 'allowed' : 'control_mode_required'));
+        }
+      } catch (_e) { allowed = false; detail = 'control_mode_unavailable'; }
+      if (!allowed) {
+        await logRun('error', { action, detail }, 'refund resolve refused by Phase 1 emergency containment: no valid Control Mode session');
+        return J({ error: 'containment_control_mode_required', detail,
+          hint: 'Phase 1 emergency containment: issuing a Stripe refund requires an open Control Mode session held by an authorised identity. refund_resolve is not yet registered in control_mode_action.' }, 403);
+      }
+    }
+
     if (action === 'list_pending') {
       const { data } = await admin.from('transactions').select('id,inquiry_id,supplier_id,customer_id,reveal_fee,quote_amount,revealed_at,refund_requested_at,refund_status,refund_note,supplier_ack_at').eq('refund_status', 'requested').order('refund_requested_at', { ascending: true }).limit(200);
       return J({ ok: true, rows: await enrich(data || []) });
