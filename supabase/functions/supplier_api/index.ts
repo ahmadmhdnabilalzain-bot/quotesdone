@@ -201,13 +201,20 @@ async function recordLicenceGate(supplierId: number, companyName: unknown, reaso
     await admin.from('agent_actions').insert({
       agent: 'onboarding',
       kind: 'supplier_licence_gate',
-      status: 'needs_review',
+      // TELEMETRY, NOT A TASK (2 Aug 2026, founder decision: no manual approval path). This row
+      // used to be written as 'needs_review', which is precisely the human queue the founder asked
+      // us to remove — and a queue nobody reads is worse than no queue, because it looks like a
+      // safety net that is not there. It is now a counted refusal. Nobody is asked to do anything;
+      // the supplier self-serves by re-uploading. Its only job is to make the cost of the decision
+      // measurable: select detail->>'reason', count(*) from agent_actions
+      // where kind='supplier_licence_gate' group by 1;
+      status: 'logged',
       risk: missing ? 'high' : 'medium',
-      title: 'Auto-approval held (' + (missing ? 'no trade licence on file' : 'trade licence expired') + ') — ' + String(companyName || ('supplier #' + supplierId)).slice(0, 120),
+      title: 'Supplier refused automatically (' + (missing ? 'no trade licence on file' : 'trade licence expired') + ') — ' + String(companyName || ('supplier #' + supplierId)).slice(0, 120),
       recommendation: missing
-        ? 'Auto-approval is ON but this supplier has no trade licence document or licence number on file, so approval_status was left at pending. Ask the supplier to upload their UAE trade licence; saving the profile with a valid licence approves them automatically.'
-        : 'Auto-approval is ON but the trade licence expiry extracted from the uploaded document is in the past, so approval_status was left at pending. Ask the supplier to upload their renewed trade licence; saving the profile with an in-date licence approves them automatically.',
-      detail: { supplier_id: supplierId, reason, gate: 'licence_expiry', approved: false, approval_status: 'pending', ...evidence, checked_at: new Date().toISOString(), source: 'supplier_api' },
+        ? 'No action required. This supplier has no trade licence document or licence number on file, so registration was refused automatically and they were emailed and asked to upload one. Uploading a valid licence approves them with no human involvement. Recorded so the auto-refusal rate stays measurable.'
+        : 'No action required. The trade licence expiry read from the uploaded document is in the past, so registration was refused automatically and they were emailed and asked to upload the renewal. Uploading an in-date licence approves them with no human involvement. Recorded so the auto-refusal rate stays measurable.',
+      detail: { supplier_id: supplierId, reason, gate: 'licence_expiry', approved: false, approval_status: 'action_required', ...evidence, checked_at: new Date().toISOString(), source: 'supplier_api' },
       target_table: 'leads',
       target_id: String(supplierId),
     });
@@ -391,10 +398,27 @@ Deno.serve(async (req) => {
       const licenceExpired = !!licExpiry && licExpiry < todayIso;
       const licenceOk = licencePresent && !licenceExpired;
       const licenceReason = !licencePresent ? 'no_licence' : (licenceExpired ? 'licence_expired' : 'ok');
-      // Auto-approval now requires the licence gate to pass. A supplier who fails it is NOT
-      // approved: they stay 'pending' exactly as before automation, and a review row is raised.
+      // NO MANUAL APPROVAL PATH (2 Aug 2026, founder decision on the external review's §1).
+      // The code used to contain two contradictory ideas: auto-approve when the licence reads, and
+      // an implicit human queue ('pending') when it does not. The founder chose fully automatic,
+      // no human path. So a failed licence gate is now a REFUSAL WITH A REASON the supplier can
+      // act on immediately, not a ticket parked on someone's desk:
+      //   * approval_status goes to 'action_required', not 'pending' — 'pending' reads as "we are
+      //     looking at it", which is a promise nobody is going to keep.
+      //   * licence_gate_reason is stored so the portal and the email can name the exact problem.
+      //   * re-saving the profile re-runs this gate, so the supplier self-serves an approval the
+      //     moment they upload a readable, in-date licence. No queue, no waiting, no human.
+      // THE RISK THE FOUNDER ACCEPTED, stated plainly: a genuine supplier with a bad scan or an
+      // unusual licence layout is now refused with no exception route, and would never be seen.
+      // That is invisible unless it is counted, so every refusal is still recorded (as telemetry,
+      // status 'logged' — NOT 'needs_review', which would recreate the queue we just removed).
+      // Watch it: select count(*) from agent_actions where kind='supplier_licence_gate'.
+      // If that number climbs against real registrations, the decision needs revisiting.
       const autoApproved = autoApprove && licenceOk;
-      const firstSubmit = !sup.registration_submitted_at; if (autoApproved) { upd.approval_status = 'approved'; upd.verified = true; } else if (String(sup.approval_status || '') !== 'approved' && !sup.verified) { upd.approval_status = 'pending'; } if (firstSubmit) upd.registration_submitted_at = new Date().toISOString();
+      const firstSubmit = !sup.registration_submitted_at;
+      if (autoApproved) { upd.approval_status = 'approved'; upd.verified = true; upd.licence_gate_reason = null; }
+      else if (String(sup.approval_status || '') !== 'approved' && !sup.verified) { upd.approval_status = autoApprove ? 'action_required' : 'pending'; upd.licence_gate_reason = autoApprove ? licenceReason : null; }
+      if (firstSubmit) upd.registration_submitted_at = new Date().toISOString();
       await admin.from('leads').update(upd).eq('id', sup.id);
       if (autoApprove && !licenceOk) await recordLicenceGate(sup.id, sup.company_name, licenceReason, { license_doc_path: licPath || null, trade_license_no: licNo || null, license_expiry: licExpiry || null, checked_on: todayIso });
       await aiSummarize(sup.id);
@@ -407,7 +431,7 @@ Deno.serve(async (req) => {
       // 'action required' mails that need no action, and the one case that DOES need a human —
       // the licence gate failing — is indistinguishable from the all-clear case. The subject and
       // body now state what actually happened, and only the blocked case asks for anything.
-      await notify([ { type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id, subject: autoApproved ? 'New supplier auto-approved' : `New supplier held — ${licenceReason || 'licence check failed'}`, body: `New supplier \"${full?.company_name || sup.company_name}\"${full?.emirate ? ' (' + full.emirate + ')' : ''} has registered and was ${autoApproved ? 'APPROVED AUTOMATICALLY (licence present and in date). No action needed — this is a record.' : `HELD as pending: ${licenceReason || 'the trade licence could not be verified'}. The supplier has been asked to correct it; this only needs you if they cannot.`}${licInfo}${lic}${revLine}` }, { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, subject: autoApproved ? 'Your QuotesDone supplier account is active' : 'Thanks for registering with QuotesDone', body: autoApproved ? `Your account for ${sup.company_name} is active — you can now receive inquiries and submit quotes.` : `Thank you for registering ${full?.company_name || sup.company_name} with QuotesDone.\n\nYour account is not active yet for one reason: ${licenceReason || 'we could not read a valid, in-date trade licence from what you uploaded'}.\n\nPlease sign in to your supplier portal and upload a clear copy of your current trade licence (all pages, in date). Your account activates automatically as soon as we can read it — there is no waiting list and no manual approval queue. If you have uploaded it and still see this, reply to this email and a person will look.` } ]); }
+      await notify([ { type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id, subject: autoApproved ? 'New supplier auto-approved' : `Supplier refused automatically — ${licenceReason || 'licence check failed'}`, body: `New supplier \"${full?.company_name || sup.company_name}\"${full?.emirate ? ' (' + full.emirate + ')' : ''} has registered and was ${autoApproved ? 'APPROVED AUTOMATICALLY (licence present and in date). No action needed — this is a record.' : `REFUSED AUTOMATICALLY: ${licenceReason || 'the trade licence could not be verified'}. No action needed — there is no approval queue. They have been emailed the exact problem and are approved the moment they upload a readable, in-date licence. This mail exists so the auto-refusal rate stays visible; if you start seeing genuine businesses here, the fully-automatic policy needs revisiting.`}${licInfo}${lic}${revLine}` }, { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, subject: autoApproved ? 'Your QuotesDone supplier account is active' : 'Thanks for registering with QuotesDone', body: autoApproved ? `Your account for ${sup.company_name} is active — you can now receive inquiries and submit quotes.` : `Thank you for registering ${full?.company_name || sup.company_name} with QuotesDone.\n\nYour account is not active yet for one reason: ${licenceReason || 'we could not read a valid, in-date trade licence from what you uploaded'}.\n\nPlease sign in to your supplier portal and upload a clear copy of your current trade licence (all pages, in date). Your account activates automatically as soon as we can read it — there is no waiting list and no manual approval queue, so nobody has to get to you.\n\nTips if it keeps failing: photograph or scan the whole page (not a crop), make sure the text is sharp enough to read on screen, and check the expiry date has not passed. If you have tried this and still see the same message, reply to this email.` } ]); }
       const { data: me } = await admin.from('leads').select('approval_status').eq('id', sup.id).maybeSingle();
       return J({ ok: true, approval_status: me?.approval_status || 'pending', services_crosscheck: servicesCheck, review: review ? { severity: review.severity, summary: review.summary, issues: review.issues } : null });
     }
