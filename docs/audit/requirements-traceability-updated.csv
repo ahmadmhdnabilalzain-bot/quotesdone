@@ -1,0 +1,87 @@
+surface,item,vision,phase,supplied_status,audited_verdict,frontend_verified,backend_verified
+OS,Executive Home,"Live health, revenue, customers, suppliers, AI employees and bottlenecks",P1,Backend partial; frontend unverified,partial,"partial - OsxShell dashboard/viz actions render; no provenance, no v2 contract","fn_os_command, fn_os_dashboard_viz, fn_company_indices, fn_company_situation"
+OS,AI Conversation,Founder talks to executive team instead of navigating,P1,Backend partial; frontend unverified,partial,"partial - OsxShell calls os_api secretary_chat; no command preview, no authority check, no simulation",os_api secretary_chat; secretary_act; fn_query_platform
+OS,Live Company,Animated live work and cross-department handoffs,P1,Backend partial; frontend unverified,partial,partial - OsxShell activity action + the only realtime subscription in the repo,"company_event, event_delivery, activity APIs, agent_runs"
+OS,Organization,See hierarchy and enter each employee workspace,P1,Backend implemented; frontend unverified,absent,absent in frontend - no org chart component,"org_agents, org_departments, v_org_chart, fn_ws_agent_ops"
+OS,Employee View,"Thoughts, tasks, decisions, performance, confidence, knowledge, plans and learning",P1,Partial,absent,absent in frontend,fn_ws_agent_ops includes identity/health/performance/knowledge/memory/queue
+OS,Company Timeline,Every action visible chronologically,P1,Partial,absent,absent in frontend,"company_event, decision_log, os_audit_log, agent_runs, entity activity"
+OS,Mission Control,Live node view of agents and operating systems,P2,Backend partial; frontend unverified,absent,absent in frontend,"agents_board, v_ai_agent_health, v_os_health, event backbone"
+OS,Digital Twin,Health/workload/KPI pressure across company,P2,Backend implemented at aggregate level,absent,absent in frontend,"v_digital_twin, company_snapshot, company_index"
+OS,Approval Center,Only rare strategic decisions reach founder,P1,Implemented but conflicts with monitoring-only goal,partial,"partial - OsxShell review_decide / refund_resolve / fraud_resolve, no Observe/Control mode","agent_actions, review_queue, os_ops approve/reject APIs"
+OS,Executive Reports,Interactive drill-down reports,P2,Backend partial; frontend unverified,partial,partial - OsxShell record/file/files + report_body; os_api report_pdf unused,"exec_reports, board_reports, report PDFs, multiple workspaces"
+OS,Intelligence Center,"Risks, opportunities, forecasts, competitors, spending",P2,Partial,absent,absent in frontend,"opportunity, simulations, market_intel, competitive_position, ai cost views"
+OS,Company Memory,Search decisions and lessons,P2,Backend partial,absent,absent in frontend,"agent_memory, org_memory, institutional_memory, decision logs, os search"
+OS,Command Palette,Universal navigation and commands,P1,Backend partial; frontend unverified,partial,"partial - cmdk installed, ui/command.tsx exists, OsxShell uses it; backend os_api nav+search built but NOT called","fn_os_nav, fn_os_search, secretary tools"
+OS,Notifications,Grouped critical/important/suggested/completed,P1,Partial,partial,"partial - OsxShell inbox action; no grouping, snooze or urgency routing","notifications, founder_alerts, inbox APIs"
+OS,Interactive Company Map,"Relationships among departments, processes, entities and knowledge",P3,Backend partial; frontend unverified,absent,absent in frontend,"graph_nodes, graph_edges, fn_graph_rebuild"
+OS,What-if Simulator,"Simulate pricing, costs, channels and outages",P2,Partial,absent,absent in frontend,"simulations, fn_what_if, growth simulator"
+OS,Voice Executive Companion,Spoken brief and commands,P4,Missing as OS feature,absent,absent as OS feature - wavesurfer + transcribe exist elsewhere,transcription/voice functions exist for other flows
+OS,Executive Meeting Room,"OS heads present wins, risks and requests",P2,Backend implemented,absent,absent in frontend,"fn_exec_meeting, board reports, os reviews"
+OS,Company Consciousness,Nightly reflection and self-improvement,P2,Backend implemented,absent,absent in frontend,"fn_company_reflect, company_reflection"
+OS,Enterprise Event Nervous System,Everything reacts to events,P0,Partial,partial,"no UI - event backbone exists, outbox does not","PARTIAL - company_event 98 / event_delivery 57 / subscriptions 48 exist and fn_emit_event fires today; NO outbox table, so a commit that fails to emit is lost"
+OS,Organizational Graph Engine,Navigate infinite company relationships,P3,Partial,partial,"no UI - graph_nodes/edges + rebuild fn exist, nothing renders them",graph_nodes/edges and rebuild function
+OS,Autonomous Resource Allocation,Move budget/compute/resources by policy,P3,Partial,partial,"no UI - allocation_change + fn_reallocate exist, recommendation-only","allocation_change, fn_reallocate"
+OS,AI Board of Directors,Independent specialist viewpoints,P2,Backend implemented at basic level,partial,no UI - board_advisor/board_opinion/fn_board_review exist,"board_advisor, board_opinion, fn_board_review"
+OS,Multi-model Intelligence,Route by cost/quality/task,P0,Implemented,implemented,no UI needed - ai_gateway is infrastructure; cost views exist in OsxShell viz,"IMPLEMENTED - ai_gateway + fn_ai_route + budgets + cache + ai_cost_log, verified live"
+OS,Autonomous Procurement,"Discover gaps, qualify and invite suppliers",P2,Partial,partial,no UI - invite executor + matching exist,"supply gap, invite executor, matching and supplier automation"
+OS,Knowledge Confidence Layer,"Source, confidence, validation, expiry and owner",P0,Implemented,implemented,no UI - lifecycle metadata present and now extended by both corpora,"IMPLEMENTED - and now extended: both corpora carry validation_status, confidence, review_after, source lineage"
+OS,Strategic Memory,Remember why strategies changed,P2,Partial,partial,"no UI - 3 memory tables, no unified retrieval or supersession links","institutional_memory, outcome_record, decision records"
+OS,Opportunity Detection,Detect underserved categories and growth openings,P2,Implemented backend,partial,no UI - fn_opportunity_scan exists; no route to workflow or outcome measurement,"opportunity, fn_opportunity_scan"
+OS,Marketplace Health Index,One transparent marketplace score,P1,Implemented,implemented,"partial UI - surfaced through OsxShell dashboard/viz, no provenance or freshness","fn_company_indices, marketplace health views"
+OS,Organizational Energy,"Velocity, backlog and collaboration",P2,Implemented,implemented,partial UI - company_index surfaced in OsxShell viz,company_index organizational_energy
+OS,AI Reputation,Agent correctness/reliability/cost/collaboration,P2,Implemented,implemented,"no UI - agent_reputation exists, not rendered",agent_reputation
+OS,Executive Replay,Replay a day and decisions,P3,Partial,absent,absent in frontend,"company_snapshot, events and logs"
+OS,Stress Testing,"Simulate outages, fraud, cash and campaign failures",P2,Partial,partial,"no UI - DR drills and simulations exist, no game-day suite","DR drills, simulations, continuity plans"
+OS,Autonomous Hiring/Restructuring,Propose or create roles based on load,P4,Partial/proposal only,partial,"no UI - proposal-only, correctly founder-gated","evolution proposals, org model"
+OS,Explainability Everywhere,Why/who/knowledge/policies/alternatives/outcome,P0,Partial and fragmented,partial,"no UI - 6 fragmented stores, no trace drawer","PARTIAL - 6 separate stores (decision_log 986, decision_record 3, agent_actions 1991, os_audit_log 2925, agent_action_log 28, security_audit_log 1664); no unified trace"
+OS,Competitive Benchmarking,Track competitor changes monthly,P3,Partial,partial,"no UI - competitor/market_intel tables exist, no scheduled collection","competitor, competitive_position, market_intel"
+OS,Digital Operating Manual,System documents workflows and ownership,P2,Backend implemented,implemented,"no UI - v_operating_manual exists, no explorer",v_operating_manual
+OS,Autonomous Governance,Pause automation on violations,P0,Partial,partial,no UI - no Observe/Control mode anywhere in repo or DB,PARTIAL - org_authority 33 rows re-tiered 29 Jul; 8 of 10 corpus hard gates have NO authority row; no Observe/Control mode anywhere
+OS,Personalization,OS adapts display priorities to founder behavior,P4,Missing,absent,absent,No clear preference model in export
+OS,3D/Spatial HQ,Living 3D company headquarters,P5,Frontend unverified; non-core,deferred,absent - correctly deferred,No frontend in export
+SUPPLIER,Entry experience,AI-led welcome and onboarding,P1,Backend partial; frontend unverified,partial,partial - SupplierPortal login + onboarding screens,claim/create_company/process_docs/save_profile
+SUPPLIER,AI supplier onboarding,"Extract company, category, capabilities and documents",P0,Partial,partial,partial - calls supplier_api/kyc; still legacy taxonomy,"PARTIAL - profile_ai still on the legacy 16-category classifier; the 86-route taxonomy and 4,212 aliases are imported and unused"
+SUPPLIER,Supplier digital twin,"Living profile, capability, certifications, risk and opportunity fit",P1,Admin backend strong; supplier self-service partial,absent,absent in frontend (admin-side only),"supplier_twin, fn_ws_supplier_360, fn_supplier_stats"
+SUPPLIER,Command center,"Opportunities, alerts, performance and recommendations",P1,Partial,partial,partial,supplier_portal overview/docs/eligibility
+SUPPLIER,3D supplier environment,Factory/inventory visual model,P5,Missing/unverified,deferred,absent - correctly deferred,No frontend; no normalized plant model
+SUPPLIER,Living company profile,"Identity, coverage, capabilities and confidence",P1,Partial,partial,"partial - profile form, no versioning or completeness score",leads fields and admin 360 view
+SUPPLIER,Product intelligence,Convert catalogues to structured products/specs,P1,Missing as normalized product system,absent,absent,Catalog PDFs and text fields only
+SUPPLIER,AI product cards,Structured product cards and project compatibility,P2,Missing,absent,absent,No product-card API/table
+SUPPLIER,RFQ intelligence center,Relevant opportunities with fit and deadline,P1,Core inbox implemented,partial,"partial - inbox list, newest first, no scoring",supplier_api inbox
+SUPPLIER,AI RFQ ranking,Recommended opportunities rather than newest first,P1,Missing,absent,absent,Inbox orders created_at descending
+SUPPLIER,AI quote builder,Help construct complete quote,P2,Partial,partial,partial - quote submit form only,"quote_extract, structured score, quote coach, dry run"
+SUPPLIER,Negotiation assistant,Recommend safe responses and concessions,P3,Missing,absent,absent,No dedicated negotiation flow
+SUPPLIER,Performance intelligence,"Quality, delivery, response, pricing and trends",P1,Backend implemented,absent,absent in frontend,"fn_supplier_stats, supplier performance views"
+SUPPLIER,Market intelligence,"Demand trends, competition and market positioning",P3,Backend partial; not self-facing,absent,absent,market intel and pricing stats exist
+SUPPLIER,Supplier AI employee,Ask why losing RFQs and what to improve,P2,Missing as supplier-specific assistant,absent,absent,No supplier assistant action
+SUPPLIER,Document intelligence,"Validity, expiry, use and impact",P1,Partial,partial,partial - upload + expiry surfaced,"documents upload, expiry alerts, extraction"
+SUPPLIER,Risk protection,"Monitor expiry, complaints, delays and drops",P2,Partial,absent,absent in frontend,"eligibility, expiry reconciliation, supplier scores"
+SUPPLIER,Collaboration workspace,"Project files, messages and timeline",P2,Partial,absent,absent,projects action; messages after reveal
+SUPPLIER,Supplier network map,Demand/project/supplier visualization,P5,Missing/unverified,absent,absent,No frontend
+SUPPLIER,Gamification/ranking,Transparent professional supplier tiers,P3,Partial backend,absent,absent,scores/rank fields exist
+SUPPLIER,Inventory,Available/reserved/production stock,P4,Missing normalized system,absent,absent,No inventory linked to supplier products
+SUPPLIER,Finance,"Registration, dues, earnings and invoices",P2,Partial,partial,partial - SupplierPortal BillingPanel + supplier_pay,"supplier pay, dues, transactions"
+SUPPLIER,Mobile,Full supplier mobile experience,P4,Frontend unverified,partial,"partial - responsive + PWA; UNVERIFIED, no screenshots captured",No frontend export
+SUPPLIER,UI language,"Command-first, glass/floating workspace",P2,Frontend unverified,partial,"partial - own inline EN/AR dictionary, not next-intl",Next.js not included
+CUSTOMER,Entry workspace,AI procurement workspace with priorities,P1,Backend partial; frontend unverified,partial,partial - CustomerPortal overview,customer_portal overview
+CUSTOMER,Customer digital twin,"Business profile, preferences and buying patterns",P2,Admin backend partial,absent,absent in frontend,fn_ws_customer_360/customer health
+CUSTOMER,AI procurement assistant,Natural-language procurement specialist,P1,Core inquiry AI exists; portal integration unverified,partial,partial - inquiry_intake called from portal,"inquiry_ai, inquiry_intake, route_inquiry"
+CUSTOMER,Command center,"Projects, RFQs, budget and recommendations",P1,Partial,partial,partial,customer stats + project API
+CUSTOMER,Project workspace,"Projects, linked RFQs, spend, timeline and files",P2,Basic backend,absent,absent in frontend,project_api and project_summary
+CUSTOMER,3D project view,BIM/spatial procurement status,P5,Missing/unverified,deferred,absent - correctly deferred,Drawing/BIM-related utilities only
+CUSTOMER,AI RFQ creation,Create structured inquiry from normal language/files,P0,Implemented core,implemented,implemented - create_inquiry + drawing analysis wired,IMPLEMENTED backend - and fn_kb_route_decide/fn_kb_next_question now exist and are tested but NOT yet called by any production function
+CUSTOMER,RFQ command center,"Lifecycle, response count, analysis and award",P1,Partial,partial,partial - my_inquiries list,"my_inquiries, boards and statuses"
+CUSTOMER,Supplier discovery,Find qualified suppliers,P1,Implemented internally but identity must remain hidden,implemented,implemented - anonymous by construction; no pool-strength display,matching and inquiry_matches
+CUSTOMER,Quote comparison,Compare all and recommend top three,P0,Implemented but LLM-dependent,partial,"partial - single quote_compare call, LLM-dependent, no deterministic fallback","PARTIAL - deterministic inputs now exist (4,696 validation rules, per-category mandatory questions, pricing drivers); the deterministic scorer itself is not built"
+CUSTOMER,All quote access,Customer can open every quote,P1,Implemented,implemented,implemented - quotes returned with inquiries,my_inquiries returns quotes
+CUSTOMER,Spending intelligence,"Budgets, spend and savings",P3,Mostly missing self-facing,absent,absent,project budget + transactions only
+CUSTOMER,Purchase approvals,Enterprise approval chain,P3,Missing customer-specific workflow,absent,absent,Internal PO approval exists but not customer org workflow
+CUSTOMER,Supplier relationship management,"History, quality and relationship score",P2,Partial,partial,partial - supplier_history after reveal,supplier_history after reveal
+CUSTOMER,Document vault,"Search contracts, quotes, drawings and warranties",P2,Partial,absent,absent,storage/entity files and generated PDFs
+CUSTOMER,Negotiation assistant,Recommend negotiation and draft message,P3,Missing,absent,absent,No customer negotiation endpoint
+CUSTOMER,Communication center,Unified chat/email/WhatsApp/documents,P2,Partial,partial,"partial - messages_api, 9 call sites",messages_api and notifications
+CUSTOMER,Customer memory,Remember procurement preferences,P2,Partial,absent,absent,locale/history; no explicit preference store
+CUSTOMER,Mobile,Customer mobile experience,P4,Frontend unverified,partial,"partial - responsive + PWA; UNVERIFIED, no screenshots captured",No frontend export
+CUSTOMER,Predictive intelligence,Predict future needs,P4,Missing,absent,absent,No customer-facing forecasting
+CUSTOMER,Arabic experience,Full Arabic customer journey and reports,P1,Backend partial; frontend unverified,blocked,BLOCKED - portal uses its own inline dictionary and its own dir state; /ar/me renders English,locale/lang and Arabic comparison support
+CUSTOMER,Enterprise accounts,"Multiple users, roles and approval rules",P3,Missing,absent,absent - customers is single-user,customers is a single-user profile
