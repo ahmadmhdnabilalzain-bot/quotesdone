@@ -57,3 +57,24 @@ The hand-written consolidations under `20260802190*`, `2026080220*` and `2026080
 `supabase/migrations-superseded-consolidated/` — out of the migrations path so they cannot be
 double-applied, but kept in the tree so any semantic difference remains reviewable rather than
 discarded. They are superseded, not deleted.
+
+## Amendment 1 — a 31st migration, found by the replay, not by the audit
+
+The replay verification (`scripts/sql/replay_verify.sql`) counts the applied migrations inside the
+P2-C1 version window instead of trusting either the audit or this manifest. It reported **44**
+migrations in `20260802165328 .. 20260802183212`, against 30 here plus 13 in
+`STAGE_B6_RECOVERY_MANIFEST.md` — 43. One migration was in neither manifest:
+
+| # | version | name | sha256 | chars |
+|---|---------|------|--------|-------|
+| 31 | 20260802175843 | p2_c1_stage_b5_operator_rollback | `98102c368dc9e8250b125d4ab7cc3f648f01c20ac7f1fb8210531c85c263a292` | 23,156 |
+
+It sits after the last Stage B.5 migration listed above (`20260802175653`) and before the first
+Stage B.6 migration (`20260802181006`), so both recovery windows excluded it at their boundaries.
+This is the same class of mistake as the 22-versus-30 count error recorded earlier: a boundary
+chosen from a name-based reading of the work rather than from the applied record.
+
+Revised totals: **31** Stage A/B/B.5 migrations, 319,503 characters; **44** P2-C1 migrations in
+total once the 13 Stage B.6 migrations are included.
+
+This amendment is committed before the file is written, on the same rule as the original manifest.
