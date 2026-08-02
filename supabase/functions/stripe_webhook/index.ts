@@ -152,6 +152,46 @@ Deno.serve(async (req) => {
         }
       }
     }
+    // ---- REFUNDS (2 Aug 2026, Phase 1.7) ---------------------------------------------------
+    // Until now the only Stripe event this function understood was checkout.session.completed, so
+    // money going OUT was invisible: a refund issued here or in the Stripe dashboard produced no
+    // record at all, and refund rate, reason, approver and reconciliation were unanswerable. The
+    // ledger (public.refunds) now settles from these three events.
+    //
+    // fn_refund_settle is idempotent on stripe_refund_id because Stripe retries webhooks, and a
+    // refund settled twice reads as two refunds. A refund that arrives with no matching request -
+    // one issued straight from the Stripe dashboard - is RECORDED rather than dropped, because an
+    // unrecorded refund is precisely the money that never reconciles.
+    if (event.type === 'charge.refunded' || event.type === 'refund.updated' || event.type === 'refund.created') {
+      const o = event.data?.object || {};
+      // charge.refunded delivers a charge with a refunds list; refund.* deliver the refund itself.
+      const refunds = Array.isArray(o?.refunds?.data) ? o.refunds.data : (o?.object === 'refund' ? [o] : []);
+      if (!refunds.length) {
+        await logRun('error', { type: event.type, id: String(o?.id || '') },
+          'REFUND EVENT WITH NO REFUND OBJECT - nothing settled; check the Stripe payload shape');
+      }
+      for (const rf of refunds) {
+        try {
+          const { data, error } = await admin.rpc('fn_refund_settle', {
+            p_stripe_refund_id: String(rf?.id || ''),
+            p_status: String(rf?.status || 'pending'),
+            p_amount_fils: Number(rf?.amount || 0) || null,
+            p_payment_intent: String(rf?.payment_intent || o?.payment_intent || '') || null,
+            p_charge_id: String(rf?.charge || o?.id || '') || null,
+            p_failure_reason: rf?.failure_reason ? String(rf.failure_reason) : null,
+          });
+          if (error) {
+            await logRun('error', { refund: String(rf?.id || ''), type: event.type },
+              'REFUND NOT RECORDED - the money left Stripe but the ledger rejected it: ' + error.message);
+          } else {
+            await logRun('ok', { refund: String(rf?.id || ''), result: data, type: event.type }, '');
+          }
+        } catch (e) {
+          await logRun('error', { refund: String(rf?.id || ''), type: event.type },
+            'REFUND NOT RECORDED - exception while settling: ' + String((e as Error)?.message || e));
+        }
+      }
+    }
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return new Response('handler error: ' + m, { status: 500 }); }
   return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 });

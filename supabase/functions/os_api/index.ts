@@ -85,6 +85,52 @@ Deno.serve(async (req) => {
     // Deliberately after the audit insert, for the reason given above.
     if (viaBypass && !READONLY.has(action)) return J({ error: 'forbidden', hint: 'the x-os-key preview key is read-only — sign in with an admin account to make changes' }, 403);
 
+    // ---- OBSERVE MODE / CONTROL MODE (2 Aug 2026, Phase 1.4) ----------------------------------
+    // The founder's stated architecture is "monitor and issue rare high-level instructions". This
+    // function exposes 14 actions that approve suppliers, resolve refunds and fraud, publish public
+    // content, change agent prompts and send mail as the company - with, until now, no distinction
+    // between looking and acting. One stolen session or one mis-tap on a phone was enough.
+    //
+    // Observe Mode is not a setting; it is the ABSENCE of a Control Mode session, so it is where you
+    // are unless you did something deliberate. Control Mode is short-lived (15 min), needs a fresh
+    // phone code that cannot be replayed, and needs a written reason stored beside whatever you then
+    // change. Both the grant and every refusal go into control_mode_audit.
+    if (action === 'control_mode_status') {
+      const { data, error } = await admin.rpc('fn_control_mode_status', { p_actor_email: email });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, user: email, data });
+    }
+    if (action === 'control_mode_open') {
+      const { data, error } = await admin.rpc('fn_control_mode_open', {
+        p_actor_email: email, p_reason: String(body?.reason || ''),
+        p_phone: String(body?.phone || ''), p_code: String(body?.code || ''),
+        p_user_id: (u?.user?.id as string) || null,
+        p_ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+        p_ua: req.headers.get('user-agent') || null,
+      });
+      if (error) return J({ error: error.message }, 500);
+      // deno-lint-ignore no-explicit-any
+      const r = data as any;
+      return J(r?.ok ? { ok: true, user: email, data: r } : { error: r?.error || 'control_mode_denied', hint: r?.message }, r?.ok ? 200 : 403);
+    }
+    if (action === 'control_mode_close') {
+      const { data, error } = await admin.rpc('fn_control_mode_close', { p_actor_email: email });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, user: email, data });
+    }
+    // The gate itself. The registry (public.control_mode_action) decides which actions need it, so
+    // adding a mutating action here without registering it shows up in the audit as an unregistered
+    // action rather than sliding past unnoticed.
+    try {
+      const { data: gate } = await admin.rpc('fn_control_mode_require', { p_actor_email: email, p_action: action });
+      // deno-lint-ignore no-explicit-any
+      const g = gate as any;
+      if (g && g.allowed === false) {
+        return J({ error: 'control_mode_required', mode: 'observe',
+                   hint: g.message || 'This changes something. Open Control Mode with a phone code and a reason first.' }, 403);
+      }
+    } catch (_e) { /* a lookup failure must not block reads; mutations still carry their own checks */ }
+
     if (action === 'ping') return J({ ok: true, user: email });
     if (action === 'dashboard') { const { data, error } = await admin.rpc('fn_os_command'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
     if (action === 'viz') { const { data, error } = await admin.rpc('fn_os_dashboard_viz'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
