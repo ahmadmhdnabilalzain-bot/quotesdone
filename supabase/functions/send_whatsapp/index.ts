@@ -89,10 +89,41 @@ Deno.serve(async (req) => {
       if (!res.ok) await logRun('error', { direct: true }, 'direct WhatsApp send rejected by Twilio: ' + String(res.error || '').slice(0, 200));
       return J({ ok:res.ok, sid:res.sid, error:res.error });
     }
+    // SENDER-REPUTATION GUARD (2 Aug 2026). This function is scheduled every 2 minutes and drains
+    // 25 rows a run, so the ceiling was ~18,000 WhatsApp messages a day from a number that has
+    // never sent a single one. WhatsApp does not ban on volume alone - it bans on QUALITY RATING,
+    // which is driven by block-and-report rate - but a brand-new sender that suddenly emits
+    // thousands of business-initiated messages to people who never opted in is the fastest way to
+    // collect those blocks. Losing the number is not a setback we can buy our way out of: the
+    // template approvals, the display name and the tier history go with it.
+    // Two limits, both cheap and both at the only chokepoint that exists:
+    //   * wa_daily_cap - business-initiated messages in a rolling 24h. Default 40. Meta's own
+    //     starting tier for an unverified business is 250 unique conversations/24h and 1,000 once
+    //     verified, so 40 is deliberately well inside it while we have no quality history at all.
+    //     Raise it in app_secrets - roughly double it per week, and only while Twilio still reports
+    //     quality "High". Do not jump straight to the tier limit.
+    //   * wa_per_recipient_24h - messages to the SAME number in 24h. Default 1. One unwanted
+    //     message is ignored; three in a day is what gets reported.
+    // Over-cap rows are left 'queued', so nothing is lost - it just goes out tomorrow.
+    const dayCap = Math.max(0, Number((await sec('wa_daily_cap')) ?? 40) || 40);
+    const perRecip = Math.max(1, Number((await sec('wa_per_recipient_24h')) ?? 1) || 1);
+    const since24 = new Date(Date.now() - 86400e3).toISOString();
+    const { count: sentLast24 } = await admin.from('notifications').select('id', { count: 'exact', head: true })
+      .eq('channel','whatsapp').eq('status','sent').gte('sent_at', since24);
+    let budget = Math.max(0, dayCap - Number(sentLast24 || 0));
+    if (budget <= 0) {
+      await logThrottled('daily_cap', 180, 'ok', { cap: dayCap, sent_last_24h: Number(sentLast24 || 0) },
+        'WhatsApp daily cap of ' + dayCap + ' reached. Queued messages are held, not dropped, and resume automatically. Raise app_secrets.wa_daily_cap only while Twilio reports sender quality High.');
+      return J({ ok:true, sent:0, failed:0, skipped:0, requeued:0, unmapped:0, capped:true, cap:dayCap, sent_last_24h:Number(sentLast24||0) });
+    }
     const { data: rows } = await admin.from('notifications').select('id,type,to_phone,subject,body').eq('channel','whatsapp').eq('status','queued').not('to_phone','is',null).order('created_at',{ascending:true}).limit(25);
-    let sent=0, failed=0, skipped=0, requeued=0, unmapped=0; let lastErr=''; const unmappedTypes = new Set<string>();
+    let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0; let lastErr=''; const unmappedTypes = new Set<string>();
     for (const n of (rows||[])) {
       const to = normPhone(String(n.to_phone||'')); if(!to){ await admin.from('notifications').update({status:'failed'}).eq('id',n.id); failed++; continue; }
+      if (budget <= 0) { capped++; requeued++; continue; }
+      const { count: toThisNumber } = await admin.from('notifications').select('id', { count: 'exact', head: true })
+        .eq('channel','whatsapp').eq('status','sent').eq('to_phone', n.to_phone).gte('sent_at', since24);
+      if (Number(toThisNumber || 0) >= perRecip) { capped++; requeued++; continue; }
       const key = tmplKey(String(n.type||''));
       const sid = (ready && key && tmpl[key]) ? (tmpl[key].en||null) : null;
       let res;
@@ -114,8 +145,10 @@ Deno.serve(async (req) => {
         await admin.from('notifications').update({ status:'skipped' }).eq('id', n.id); skipped++; continue;
       }
       await admin.from('notifications').update({ status: res.ok?'sent':'failed', sent_at: res.ok?new Date().toISOString():null }).eq('id', n.id);
-      if (res.ok) sent++; else { failed++; lastErr = String(res.error || '').slice(0, 200); }
+      if (res.ok) { sent++; budget--; } else { failed++; lastErr = String(res.error || '').slice(0, 200); }
     }
+    if (capped) await logThrottled('rate_capped', 180, 'ok', { capped, cap: dayCap, per_recipient: perRecip },
+      capped + ' WhatsApp message(s) held this run by the sender-reputation cap (daily ' + dayCap + ', per recipient ' + perRecip + ' / 24h). They stay queued and go out as budget frees up.');
     // Templates not approved yet + a growing queue is the quiet failure worth surfacing.
     if (requeued) await logThrottled('templates_not_ready', 60, 'error', { requeued, pending: (rows||[]).length },
       requeued + ' WhatsApp notification(s) cannot be sent yet because the matching template is missing or still awaiting Meta approval. They stay queued and are rescanned every run, so this backlog will keep growing until the template SIDs are live.');
@@ -123,6 +156,6 @@ Deno.serve(async (req) => {
       unmapped + ' WhatsApp notification(s) had a message type with no template mapping in tmplKey(), so they were dropped. Types: ' + [...unmappedTypes].join(', '));
     if (failed) await logRun('error', { sent, failed, skipped, templates_ready: ready }, 'Twilio rejected ' + failed + ' WhatsApp message(s). Last error: ' + lastErr);
     else if (sent || (skipped && !requeued)) await logRun('ok', { sent, failed, skipped, templates_ready: ready }, '');
-    return J({ ok:true, sent, failed, skipped, requeued, unmapped, templates_ready:ready });
+    return J({ ok:true, sent, failed, skipped, requeued, unmapped, capped, cap:dayCap, per_recipient_24h:perRecip, templates_ready:ready });
   } catch (e) { const m = String((e as Error)?.message||e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
 });
