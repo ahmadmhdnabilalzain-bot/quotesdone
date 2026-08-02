@@ -221,3 +221,32 @@ Edge functions changed: `supplier_api`, `os_api`, `stripe_webhook`. All three ve
 | | | **24/24** |
 
 **Stopping here. Phase 2 not started.**
+
+---
+
+## Delivery evidence — recorded after the token was deleted
+
+Branch `feature/phase1-safety-and-decisions`, commit `aebf5cc`, pushed to `origin`. 22 files, 17 migrations, 3 edge functions, this report. Repository and production agree; nothing applied through the management API is missing from the checkout.
+
+Final end-state check, run against production *after* the import token was removed:
+
+| Check | Value | Expected |
+|---|---|---|
+| `app_secrets.kb_import_token` rows | **0** | 0 |
+| `kb_corpus_import` — old token, empty token, absent token, write attempt | **403 on all four** | 403 |
+| `public.refunds` rows | **0** | 0 — every test refund removed |
+| `v_supplier_exception_queue` | **0** | 0 — every test lead removed |
+| `org_authority` rows | **153** | 153 |
+| Hard gates with an authority row | **10 / 10** | 10 / 10 |
+| `control_mode_action` registered mutations | **14** | 14 |
+| Open Control Mode sessions | **0** | 0 — Observe Mode is the live default |
+| `v_supplier_pricing` | **1000 AED / yearly** | AED 1,000/year |
+| `ops_kb_stage.records` with status `approved` | **0** | 0 — nothing mass-promoted |
+| `ops_kb_stage.records` total | **3,959** | unchanged — corpus not re-imported |
+| Cron `supplier_exception_sweep_daily` | active, `20 6 * * *` | active |
+| Cron `control_mode_sweep_5min` | active, `*/5 * * * *` | active |
+| `os_api` / `supplier_api` / `stripe_webhook` probe | 401 / 401 / 400 | no 5xx |
+
+The 1,317 `target_state` records remain `target_state`. They describe the company being built, not the company running, and none of them was activated by being imported.
+
+One note on the transfer channel itself. The token existed only to move files across the gap between the sandbox that ran the work and the checkout that has to hold it. That gap is real and will recur every phase, so `scripts/pull_asset.js` is committed as a general puller — but it is useless without a token, and the token is created and destroyed inside a single phase. Nothing durable was left open.
