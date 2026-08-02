@@ -40,9 +40,24 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('POST only', { status: 405 });
   const raw = await req.text();
   const sig = req.headers.get('Stripe-Signature') || '';
-  const whsec = await secret('stripe_webhook_secret');
-  if (!whsec) { await logRun('error', {}, 'not_configured: stripe_webhook_secret missing'); return new Response('not_configured', { status: 400 }); }
-  if (!(await verifySig(sig, raw, whsec))) { await logRun('error', {}, 'bad_signature (rejected before parsing)'); return new Response('bad signature', { status: 400 }); }
+  // TWO ENDPOINTS, TWO SIGNING SECRETS (2 Aug 2026). Refund behaviour has to be provable without
+  // refunding real customer payments, so a Stripe TEST-MODE endpoint points at this same handler.
+  // Stripe issues a separate signing secret per endpoint, so the function has to accept either -
+  // and each is tried in full, so a test-mode delivery can never be validated by the live secret or
+  // the reverse. Neither secret is ever logged; only which mode verified.
+  //
+  // Order is deliberate: live first, so the common case costs one HMAC and a test-mode delivery
+  // costs two. If only one secret is configured, only that one is accepted.
+  const whsecLive = await secret('stripe_webhook_secret');
+  const whsecTest = await secret('stripe_webhook_secret_test');
+  if (!whsecLive && !whsecTest) {
+    await logRun('error', {}, 'not_configured: neither stripe_webhook_secret nor stripe_webhook_secret_test is set');
+    return new Response('not_configured', { status: 400 });
+  }
+  let sigMode = '';
+  if (whsecLive && await verifySig(sig, raw, whsecLive)) sigMode = 'live';
+  else if (whsecTest && await verifySig(sig, raw, whsecTest)) sigMode = 'test';
+  if (!sigMode) { await logRun('error', {}, 'bad_signature (rejected before parsing)'); return new Response('bad signature', { status: 400 }); }
   let event: any; try { event = JSON.parse(raw); } catch { await logRun('error', {}, 'bad_json from Stripe'); return new Response('bad json', { status: 400 }); }
   // Ledger (Finding 7): record every signature-verified delivery for audit + reconciliation and
   // count retries. Best-effort and non-blocking — correctness is still enforced by the conditional
@@ -162,7 +177,12 @@ Deno.serve(async (req) => {
     // refund settled twice reads as two refunds. A refund that arrives with no matching request -
     // one issued straight from the Stripe dashboard - is RECORDED rather than dropped, because an
     // unrecorded refund is precisely the money that never reconciles.
-    if (event.type === 'charge.refunded' || event.type === 'refund.updated' || event.type === 'refund.created') {
+    // refund.failed added 2 Aug 2026. Stripe emits it when a refund that was accepted later fails -
+    // typically the customer's bank rejecting the credit days after the fact. Without it the ledger
+    // would keep a refund reading 'processing' forever and finance would chase money that never
+    // moved. It carries the same bare refund object as refund.created/updated.
+    if (event.type === 'charge.refunded' || event.type === 'refund.updated'
+        || event.type === 'refund.created' || event.type === 'refund.failed') {
       const o = event.data?.object || {};
       // charge.refunded delivers a charge with a refunds list; refund.* deliver the refund itself.
       const refunds = Array.isArray(o?.refunds?.data) ? o.refunds.data : (o?.object === 'refund' ? [o] : []);
@@ -189,7 +209,12 @@ Deno.serve(async (req) => {
           let amountSource = 'webhook_event';
           if (amountFils === null && rf?.id) {
             try {
-              const sk = await secret('stripe_secret_key');
+              // The lookup must use the key for the MODE the event arrived on. A test-mode refund id
+              // queried with the live key returns 404, which would look like "Stripe has no amount"
+              // and quarantine a refund that was perfectly well-formed.
+              const sk = sigMode === 'test'
+                ? (await secret('stripe_secret_key_test')) || ''
+                : await secret('stripe_secret_key');
               if (sk) {
                 const lookup = await fetch('https://api.stripe.com/v1/refunds/' + encodeURIComponent(String(rf.id)),
                   { headers: { Authorization: 'Bearer ' + sk } });

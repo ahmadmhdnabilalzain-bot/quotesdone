@@ -19,10 +19,37 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, '..', '..');
 const src = fs.readFileSync(path.join(ROOT, 'supabase', 'functions', 'stripe_webhook', 'index.ts'), 'utf8');
 
-test('the webhook handles all three refund event types', () => {
-  for (const evt of ['charge.refunded', 'refund.updated', 'refund.created']) {
+test('the webhook handles all four refund event types', () => {
+  for (const evt of ['charge.refunded', 'refund.updated', 'refund.created', 'refund.failed']) {
     assert.ok(src.includes(evt), `stripe_webhook does not handle ${evt}`);
   }
+});
+
+test('a test-mode endpoint can share this handler without weakening live verification', () => {
+  // Two endpoints, two signing secrets, each verified in full. This is what lets refund behaviour
+  // be proven in Stripe test mode instead of by refunding real customer payments.
+  assert.match(src, /stripe_webhook_secret_test/, 'no test-mode signing secret is accepted');
+  assert.match(src, /sigMode = 'live'/, 'the live secret is no longer tried');
+  assert.match(src, /sigMode = 'test'/, 'the test secret is no longer tried');
+  // Both must go through the same full HMAC comparison - no shortcut for test mode.
+  const testBranch = src.slice(src.indexOf("sigMode = 'live'"), src.indexOf("sigMode = 'test'") + 60);
+  assert.match(testBranch, /verifySig\(sig, raw, whsecTest\)/,
+    'the test-mode secret is not verified with the same routine as live');
+  // An unverified request must still be refused outright.
+  assert.match(src, /if \(!sigMode\)/, 'a request matching neither secret is no longer rejected');
+});
+
+test('a refund amount is looked up with the key for the mode it arrived on', () => {
+  // A test-mode refund id queried with the live key returns 404, which would look like "Stripe has
+  // no amount" and quarantine a perfectly well-formed refund.
+  assert.match(src, /sigMode === 'test'/, 'the amount lookup ignores which mode the event came from');
+  assert.match(src, /stripe_secret_key_test/, 'there is no test-mode API key for the lookup');
+});
+
+test('no secret value is ever logged', () => {
+  // Only which mode verified, never the material. Grep for the obvious mistakes.
+  assert.doesNotMatch(src, /logRun\([^)]*whsec/, 'a signing secret is passed into a log line');
+  assert.doesNotMatch(src, /logRun\([^)]*\bsk\b/, 'a Stripe API key is passed into a log line');
 });
 
 test('the webhook reads both refund payload shapes', () => {
