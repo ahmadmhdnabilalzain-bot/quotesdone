@@ -45,6 +45,28 @@ test('the webhook still verifies the Stripe signature before doing anything', ()
   assert.ok(sigAt > 0 && sigAt < refundAt, 'refund handling appears before signature verification');
 });
 
+test('a missing amount is looked up from Stripe before it is accepted as unknown', () => {
+  // The webhook must ask the authoritative source before recording "unknown". One extra API call on
+  // a path that almost never fires is cheap; a refund with no amount in the ledger is not.
+  assert.match(src, /api\.stripe\.com\/v1\/refunds\//,
+    'stripe_webhook does not look the refund up by id when the event carries no amount');
+  assert.match(src, /amountSource = 'stripe_api'/,
+    'a looked-up amount is not recorded as coming from the Stripe API');
+  assert.match(src, /p_amount_source/, 'the amount source is not passed to the ledger');
+});
+
+test('the webhook never fabricates a refund amount', () => {
+  // The 1-fils placeholder is gone from both sides. A number that is not known is not written.
+  assert.doesNotMatch(src, /amount_fils:\s*1\b/, 'a literal 1-fils amount is back in the webhook');
+  assert.match(src, /let amountFils: number \| null/,
+    'the amount is no longer allowed to be null - unknown will be coerced into a number again');
+});
+
+test('an event that cannot be recorded is quarantined, not dropped', () => {
+  assert.match(src, /fn_refund_quarantine/,
+    'stripe_webhook does not quarantine refund events it cannot record');
+});
+
 test('settlement is delegated to the database, not reimplemented in the handler', () => {
   // The ordering and idempotency rules are in fn_refund_settle. A second implementation in
   // TypeScript would be a second set of rules to keep in step.

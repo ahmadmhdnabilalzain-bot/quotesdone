@@ -169,16 +169,52 @@ Deno.serve(async (req) => {
       if (!refunds.length) {
         await logRun('error', { type: event.type, id: String(o?.id || '') },
           'REFUND EVENT WITH NO REFUND OBJECT - nothing settled; check the Stripe payload shape');
+        try {
+          await admin.rpc('fn_refund_quarantine', {
+            p_stripe_refund_id: null, p_event_type: event.type,
+            p_reason: 'event contained no refund object',
+            p_payload: { object: o?.object || null, id: o?.id || null },
+            p_stripe_event_id: String(event?.id || '') || null,
+          });
+        } catch (_e) { /* quarantining must never break the 200 back to Stripe */ }
       }
       for (const rf of refunds) {
         try {
+          // ASK STRIPE RATHER THAN GUESS (2 Aug 2026). An earlier version stored 1 fils when an
+          // event carried no amount, to satisfy a CHECK. That put a fabricated number in the
+          // ledger. The amount is now either known or NULL - and before accepting NULL, we ask
+          // Stripe for the refund by id, which is the authoritative answer and costs one call on a
+          // path that almost never fires.
+          let amountFils: number | null = Number(rf?.amount || 0) || null;
+          let amountSource = 'webhook_event';
+          if (amountFils === null && rf?.id) {
+            try {
+              const sk = await secret('stripe_secret_key');
+              if (sk) {
+                const lookup = await fetch('https://api.stripe.com/v1/refunds/' + encodeURIComponent(String(rf.id)),
+                  { headers: { Authorization: 'Bearer ' + sk } });
+                const lj = await lookup.json().catch(() => ({}));
+                const n = Number(lj?.amount || 0) || null;
+                if (n !== null) { amountFils = n; amountSource = 'stripe_api'; }
+                else {
+                  await logRun('error', { refund: String(rf.id), http: lookup.status },
+                    'REFUND AMOUNT UNKNOWN - not in the event and Stripe returned none. Recorded as unknown and quarantined.');
+                }
+              }
+            } catch (e) {
+              await logRun('error', { refund: String(rf?.id || '') },
+                'refund amount lookup against Stripe failed: ' + String((e as Error)?.message || e));
+            }
+          }
           const { data, error } = await admin.rpc('fn_refund_settle', {
             p_stripe_refund_id: String(rf?.id || ''),
             p_status: String(rf?.status || 'pending'),
-            p_amount_fils: Number(rf?.amount || 0) || null,
+            p_amount_fils: amountFils,
             p_payment_intent: String(rf?.payment_intent || o?.payment_intent || '') || null,
             p_charge_id: String(rf?.charge || o?.id || '') || null,
             p_failure_reason: rf?.failure_reason ? String(rf.failure_reason) : null,
+            p_amount_source: amountSource,
+            p_stripe_event_id: String(event?.id || '') || null,
           });
           if (error) {
             await logRun('error', { refund: String(rf?.id || ''), type: event.type },

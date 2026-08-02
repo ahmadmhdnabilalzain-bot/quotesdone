@@ -50,8 +50,13 @@ jobs:
       # silent 500 rather than a visible failure. The remaining functions follow; a failure here
       # does not block, because 191 functions written over months will not all be clean on day one
       # and a permanently red gate teaches people to ignore gates.
+      # --node-modules-dir=auto is required, not cosmetic. There is a package.json at the repo root
+      # (the Next.js app), so Deno treats this as a Node project and expects a node_modules
+      # directory that a fresh checkout does not have. Without the flag it fails resolving
+      # npm:@supabase/realtime-js - an environment error that says nothing about the code, which is
+      # the worst kind of red build: it trains people to ignore the gate.
       - name: Check the gated functions
-        run: deno check --no-lock supabase/functions/os_api/index.ts supabase/functions/stripe_webhook/index.ts supabase/functions/supplier_api/index.ts supabase/functions/supplier_pay/index.ts
+        run: deno check --no-lock --node-modules-dir=auto supabase/functions/os_api/index.ts supabase/functions/stripe_webhook/index.ts supabase/functions/supplier_api/index.ts supabase/functions/supplier_pay/index.ts
       - name: Check every other edge function (advisory)
         continue-on-error: true
-        run: deno check --no-lock supabase/functions/*/index.ts
+        run: deno check --no-lock --node-modules-dir=auto supabase/functions/*/index.ts
