@@ -67,3 +67,73 @@ no round trip:
 
 Neither is present on `operations-ag` today (checked: no access-token file, no `SUPABASE_*` env vars).
 With either, recovery becomes a ~30-line script and a checksum comparison.
+
+---
+
+## Status update — recovered, and two entries added
+
+All Stage B.6 migrations are now in `supabase/migrations/` as `2026080222NN_<name>.sql`, recovered
+verbatim and checksum-verified by `scripts/recover_stage_b6.mjs`. The "not yet recovered" heading
+above is history; it is kept so the reason for the delay, and the fix for it, stay on the record.
+
+Two entries beyond the original twelve:
+
+| # | Version | Name | SHA-256 | chars |
+|---|---|---|---|---|
+| 13 | 20260802183212 | p2_c1_holdout_v1_result_of_record | `33be6f4351e857f32d5ab795d2b23689b3dabafa3d6bec8d280ec6d527ee1a75` | 3,626 |
+| 14 | 20260802184500 | p2_c1_stage_b6_rollback_completion | `11ed3ca8df17f70a6cee4ef23c6626064fb9a175ad2698b8b8d5e7e43628eb9b` | 17,307 |
+
+Entry 14 completes the rollback. The twelfth migration removed 22 stage-owned objects and said
+nothing about four others; the report implied a clean sweep it had not made. Entry 14 classifies
+each of the four in the open:
+
+| object | class | disposition |
+|---|---|---|
+| `p2c1_holdout_result_of_record` | **B — permanent audit evidence** | intentionally survives |
+| `trg_holdout_record_immutable()` | **B** | survives; it protects the row above |
+| trigger `holdout_record_immutable` | **B** | survives; it protects the row above |
+| `fn_p2c1_rollback_stage_b6` | instrument | retained; it is the tool doing the removal |
+
+and adds one declared exception:
+
+| object | disposition |
+|---|---|
+| `fn_mep_full_scope(text)` | **not** restored to the Stage B.5 text — the B.6 change was a defect fix to a Stage B.5 rule, and reverting it reintroduces a false positive (wrong trade activation). Kept and declared rather than reverted silently. |
+
+`fn_term_matches` **is** restored to the Stage B.5 form, because reverting it costs only English
+plural and Arabic internal-article tolerance — a false negative, which degrades to a clarification
+question rather than to a wrong dispatch. The governing rule is now explicit: restore prior-stage
+objects to their prior-stage form, except where the reversion is unsafe.
+
+The verification was also tightened. It now aborts on any of: a removable object surviving; missing
+audit evidence; `fn_term_matches` or `fn_group_dispatch_report` not in their Stage B.5 form;
+`fn_mep_full_scope` not in its corrected form; Stage A or Stage B below 14/14; Stage B.5 language
+parity below 23/23 or scope negatives below 12/12; any fixture data remaining. The Stage B.5 suites
+and the fixture check were previously printed but not asserted.
+
+### Rehearsals, 2 Aug 2026
+
+Both paths were exercised against production and both rolled back.
+
+**Abort path** — `fn_p2c1_rollback_stage_b6('rehearse', …)`:
+
+```
+removable objects 22 -> 0, all_removed true
+stage_a 14/14  stage_b 14/14  lang_parity 23/23  scope_negatives 12/12
+intentional survivors: 4 (result of record with 1 row, its trigger function, its trigger, the rollback itself)
+declared exceptions: 1 (fn_mep_full_scope)
+fixtures remaining: 0 groups, 0 answers, 0 audit rows
+```
+
+**Commit path** — the real `'commit'` branch run inside a `DO` block that raises at the end, which
+is the only way to reach the code past the rehearsal `RAISE` without leaving B.6 removed:
+
+```
+audit rows written: 1
+removable B.6 relations left: 0
+audit-evidence rows surviving: 1
+re-run response: {"ok": false, "error": "stage_b6_not_present"}
+verdict: stage b6 removed; audit evidence retained; prior stage restored
+```
+
+**Roll B.6 back BEFORE `fn_p2c1_rollback_stage_b`** — B.6 sits on top of the Stage B/B.5 objects.
