@@ -619,3 +619,15 @@ soften a case, and never to edit the sealed file.
 - Do not deliver fewer than 120 pairs, and do not pad the count with near-duplicates.
 
 Stop after producing the four artefacts.
+
+---
+
+## SUPERSEDED - DO NOT USE AS THE INDEPENDENT AUTHORING BRIEF
+
+This version is contaminated. Its "Named interpretation rules" section listed the exact lexical
+triggers of four known interpretation gaps, and its worked examples repeated them. An author given
+this document would be steered straight at the cases the implementation is known to mishandle,
+which is the opposite of what a holdout is for.
+
+Use `P2C1_HOLDOUT_V2_AUTHORING_BRIEF_SANITIZED.md` instead. This file is retained only as the
+record of what was removed and why.
