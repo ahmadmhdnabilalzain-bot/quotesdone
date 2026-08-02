@@ -162,13 +162,19 @@ model.**
 **Component rules:**
 
 - A component disposition **overrides** the trade disposition for that component only.
-- A trade may be active while one or more of its components is non-contributing. A trade whose
-  trade-level disposition contributes, but whose supply component is `client_supplied`, is still
-  active: we perform, we do not procure.
-- A trade whose components are **all** non-contributing is **not** active, whatever the trade-level
-  line says.
-- If the text states no split, emit exactly one component row — `complete_trade_scope` — carrying the
-  trade disposition.
+- **Unstated components inherit the trade disposition.** A case lists rows only for the components
+  its text actually addresses; the remaining components take the trade-level value. This is why an
+  override on one component does not disturb the rest of the trade.
+- If the text states **no** split at all, emit exactly one row — `complete_trade_scope` — carrying
+  the trade disposition. If the text **does** state a split for a trade, `complete_trade_scope` must
+  not appear for that trade.
+- A trade may be active while one or more of its components is non-contributing: the trade-level
+  disposition contributes, a single component is overridden to something that does not, and the rest
+  inherit. We perform, we simply do not perform that one part.
+- A trade is **not** active if its trade-level disposition does not contribute, or if every one of
+  the nine components is explicitly stated and every one of them is non-contributing.
+- **A component disposition can demand clarification on its own.** See 2.7 — the override that
+  changes activation is not the only override that matters.
 
 ### 2.5 Precedence and conflict resolution
 
@@ -204,19 +210,41 @@ entirely and a system that respects them will score identically.
 
 ### 2.7 Clarification
 
+**Clarification rules apply to trade dispositions and component dispositions alike.** A clarifying
+disposition at either level demands clarification. This is not a detail: an unresolved option or
+contradiction sitting on a component must not disappear beneath an otherwise contributing trade.
+A trade can be perfectly clear, active, and about to be dispatched, while one component of its scope
+is still an open question — and that question has to reach the customer.
+
 `clarification_required` is **true** when, and only when, at least one of the following holds:
 
-- any detected trade carries a disposition whose `clarifies` flag is set in 2.2 —
+- any entry in `trade_dispositions` carries a disposition whose `clarifies` flag is set in 2.2 —
   `optional`, `proposed`, `unknown`, `conflicted`; or
+- **any entry in `component_dispositions` carries one of those same four values**, whatever the
+  trade-level disposition of that trade is; or
 - no trade could be detected but the message is a genuine scope enquiry; or
 - a scope modifier is present whose clause binding is genuinely ambiguous under 2.6.
 
-It is **false** for a clean reading composed only of non-clarifying dispositions, and for messages
-that are not scope enquiries at all.
+It is **false** only for a reading in which every trade disposition **and** every component
+disposition is non-clarifying, and for messages that are not scope enquiries at all.
 
-Every case with `clarification_required: true` states `clarification_reason`, one of:
-`conflict`, `ambiguous_trade`, `unconfirmed_proposal`, `optional_pending_decision`,
-`no_trade_detected`, `ambiguous_scope_binding`.
+**`clarification_reason`** is stated on every case where clarification is required, and is the
+**first** applicable entry in this precedence order, so that the expected value is deterministic when
+several triggers co-occur:
+
+| # | reason | trigger |
+|---|---|---|
+| 1 | `conflict` | any `conflicted` disposition, **at trade or component level** |
+| 2 | `ambiguous_trade` | any `unknown` disposition, at either level |
+| 3 | `unconfirmed_proposal` | any `proposed` disposition, at either level |
+| 4 | `optional_pending_decision` | any `optional` disposition, at either level |
+| 5 | `ambiguous_scope_binding` | a modifier whose clause binding is ambiguous under 2.6 |
+| 6 | `no_trade_detected` | nothing detected, but the message is a genuine scope enquiry |
+
+**Conflict at component level carries the same consequences as conflict at trade level.** If any
+component disposition is `conflicted`, then `scope_conflict_unresolved` must appear in
+`dispatch_blockers` and `clarification_reason` must be `conflict` — exactly as it would if the
+contradiction sat on the trade.
 
 ### 2.8 Detection, activation, and attachments
 
@@ -233,8 +261,19 @@ Every case with `clarification_required: true` states `clarification_reason`, on
 | blocker | raised when |
 |---|---|
 | `no_active_trade` | no trade ends up active |
-| `scope_conflict_unresolved` | any trade is `conflicted` |
-| `clarification_pending` | clarification is required and the answer would change activation |
+| `scope_conflict_unresolved` | any disposition is `conflicted`, **at trade or component level** |
+| `clarification_pending` | clarification is required **and** the answer would change any of the three things below |
+
+**`clarification_pending` applies when resolving the open question would change:**
+
+1. the **active trade set** — the answer decides whether a trade is delivered at all; or
+2. the **quoted or delivered component scope** — the answer decides what is priced, procured or
+   performed within a trade that is already active; or
+3. the **dispatchable supplier brief** — the answer changes what a supplier would be told to quote.
+
+Criterion 2 is the one that a trade-level-only reading misses. An option or a contradiction sitting
+on a single component leaves the trade active and the trade set unchanged, yet it still makes the
+brief we would send incomplete. That is a blocker.
 
 Two further blockers exist in the wider model — one for missing shared mandatory fields, one for a
 trade active but individually ineligible. **Neither may appear in a v2 case**, because v2 texts are
@@ -303,11 +342,11 @@ included. Keeping them non-counting avoids double-counting the same error.
 | V7 | no trade appears in both `active_trades` and `must_not_activate` |
 | V8 | no trade appears in both `detected_trades` and `must_not_detect` |
 | V9 | every trade in `component_dispositions` appears in `detected_trades`, and every detected trade has ≥ 1 component row |
-| V10 | a trade with no stated split has exactly one component row, `complete_trade_scope`, whose disposition equals the trade disposition |
-| V11 | a trade all of whose component dispositions are non-contributing does not appear in `active_trades` |
-| V12 | if any disposition is `conflicted`, `clarification_required` is true and `scope_conflict_unresolved` is in `dispatch_blockers` |
-| V13 | `clarification_required` is true **iff** some detected disposition has `clarifies` set, or `clarification_reason` is `no_trade_detected` or `ambiguous_scope_binding` |
-| V14 | `clarification_reason` is non-null and in the 2.7 enum when clarification is required, and null otherwise |
+| V10 | a trade with no stated split has exactly one component row, `complete_trade_scope`, whose disposition equals the trade disposition; a trade **with** a stated split has no `complete_trade_scope` row |
+| V11 | a trade appears in `active_trades` **iff** its trade disposition contributes **and** it is not the case that all nine components are explicitly stated and all non-contributing |
+| **V12** | if **any** disposition is `conflicted` — **in `trade_dispositions` or in `component_dispositions`** — then `clarification_required` is true, `scope_conflict_unresolved` is in `dispatch_blockers`, and `clarification_reason` is `conflict` |
+| **V13** | `clarification_required` is true **iff** at least one of: some entry in `trade_dispositions` has `clarifies` set; **some entry in `component_dispositions` has `clarifies` set**; `clarification_reason` is `ambiguous_scope_binding`; `clarification_reason` is `no_trade_detected` |
+| V14 | `clarification_reason` is null when clarification is not required; otherwise it is the **first applicable** entry in the 2.7 precedence table, computed over trade **and** component dispositions together |
 | V15 | if `active_trades` is empty, `no_active_trade` is in `dispatch_blockers` |
 | V16 | the two out-of-scope blockers named in 2.9 never appear |
 | V17 | all trade keys from 2.1, dispositions from 2.2, components from 2.4, blockers from 2.9 |
@@ -317,6 +356,7 @@ included. Keeping them non-counting avoids double-counting the same error.
 | V21 | `text_ar` is Unicode NFC and contains ≥ 1 character in the Arabic block |
 | V22 | bucket counts meet the section 4 minimums; total ≥ 126 |
 | V23 | all cross-cutting minimums in section 4 are met |
+| **V24** | `clarification_pending` is in `dispatch_blockers` **iff** `clarification_required` is true. Every clarifying disposition in this suite meets at least one of the three criteria in 2.9 by construction. An author who believes they have a counterexample raises it as a specification gap in the manifest — they do not silently omit the blocker |
 
 ---
 
@@ -357,6 +397,14 @@ freely, but do not pad with near-duplicates. Two cases that differ only in a nou
 - each of the nine components appears in ≥ 4 cases
 - each of the five trades is `included` in ≥ 8 cases and non-contributing in ≥ 6
 - ≥ 8 cases whose correct disposition is `unknown` because of an ambiguity the text does not resolve
+- **≥ 8 cases where a trade is active and contributing while one of its components carries a
+  clarifying disposition** — `optional`, `proposed`, `unknown` or `conflicted` — so that
+  `clarification_required` is true even though the trade itself is clean. Spread these across at
+  least three different components and at least three different trades. This is the shape a
+  trade-level-only reading silently drops, and a suite without it cannot detect that failure.
+- **≥ 3 cases where the *only* `conflicted` disposition is at component level**, so that
+  `scope_conflict_unresolved` must be raised by a component contradiction alone
+- each of the four clarifying dispositions appears at component level in ≥ 2 cases
 
 ---
 
@@ -492,6 +540,21 @@ hvac / electrical / plumbing / fire / elv
 ## Bucket coverage
 A..R, counts against the section 4 minimums
 
+## Clarification
+clarification required, total                      : <n>
+  triggered by a trade disposition only            : <n>
+  triggered by a component disposition only        : <n>
+  triggered by both                                : <n>
+cases: active trade + clarifying component         : <n>   (minimum 8)
+cases: conflict at component level only            : <n>   (minimum 3)
+clarifying dispositions at component level         : optional <n> · proposed <n> ·
+                                                     unknown <n> · conflicted <n>
+by clarification_reason                            : conflict <n> · ambiguous_trade <n> ·
+                                                     unconfirmed_proposal <n> ·
+                                                     optional_pending_decision <n> ·
+                                                     ambiguous_scope_binding <n> ·
+                                                     no_trade_detected <n>
+
 ## Adversarial and variation
 adversarial cases · cases with must_not_detect · morphology variants by class
 mixed-language cases · Gulf-register cases · document-bearing cases
@@ -547,6 +610,7 @@ it is the confusion-matrix accuracy above, and it is named as such.
 | disposition errors on false detections | count | a detected-but-not-expected trade has no expected disposition; it is counted as a detection false positive and reported here, never folded into disposition accuracy |
 | component-disposition accuracy | 2 × Σ expected `component_dispositions` | a component row that was not produced scores zero |
 | clarification accuracy | 2 × case_count | |
+| clarification accuracy, component-triggered subset | 2 × (cases where clarification is triggered by a component disposition) | **reported separately.** A system that derives clarification from trade dispositions alone will score well on the headline figure and near zero here; netting the two together hides exactly that failure |
 | blocker-set accuracy | 2 × case_count | exact set equality |
 | English/Arabic parity | case_count | EN and AR produce identical output, right or wrong |
 
@@ -564,7 +628,12 @@ it is the confusion-matrix accuracy above, and it is named as such.
    whose expected disposition is non-contributing — a wrong activation. The opposite direction,
    under-detection, is safe-direction: it costs a clarification question, not a wrong dispatch. Report
    the two directions separately and never net them off.
-6. **Every remaining failure is explained individually.** A failure list without diagnoses is not a
+6. **A missed component-level clarification is an unsafe error, not a near miss.** Where the
+   expectation requires clarification because of a component disposition and the system returns
+   `clarification_required: false`, the case is counted as unsafe: the trade dispatches, the supplier
+   brief goes out, and an unresolved option or contradiction inside the scope goes with it. It is
+   reported in the unsafe list alongside wrong activations, never as a plain clarification miss.
+7. **Every remaining failure is explained individually.** A failure list without diagnoses is not a
    result.
 
 ### 8.4 Acceptance thresholds
@@ -575,6 +644,8 @@ it is the confusion-matrix accuracy above, and it is named as such.
 | English/Arabic parity | ≥ 99% |
 | detection false positives on cases expecting non-detection | **0** |
 | unsafe activations | **0** |
+| missed component-level clarifications | **0** |
+| clarification accuracy, component-triggered subset | ≥ 99% |
 | unexplained failures | **0** |
 
 **Do not tune to these.** If v2 fails, the correct response is to fix the interpretation rules, or to
