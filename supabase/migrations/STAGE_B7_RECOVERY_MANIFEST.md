@@ -17,8 +17,17 @@ stored in.
 | 4 | 20260802205300 | p2_c1_stage_b7_hvac_phrase_identification | `12aa50147a63e974b40d1dd8af2dcfded32f06d0ea432f7521160b2b1cce098b` | 3,138 |
 | 5 | 20260802205400 | p2_c1_stage_b7_regression_suite | `11d635b881c999f52b61a28625c2f90b4830f36da1e14c2963de99a9374f44a1` | 13,075 |
 | 6 | 20260802205500 | p2_c1_stage_b7_operator_rollback | `837cf29ad6a3f997edffa1ee1ff4c702e0dc5d3eb0db7d9c75daa8616ffc25fd` | 21,537 |
+| 7 | 20260802205600 | p2_c1_stage_b7_detection_performance | `ee50e55d2080552eec1f9d4549a0d6a6ebfd3a9f263bb6cceae5742ac2fb5b59` | 12,337 |
 
-Total 78,097 characters. **Execution order is the version order above and must be preserved** —
+**Amendment 1** — migration 7 was added after the first six were measured. Part 3 cost 31% on the
+interpretation hot path (81.3 ms → 106.2 ms mean over the 54-case corpus in both languages), which
+is a number worth finding here rather than in production. It short-circuits the party and supply
+detectors and deletes twenty-one client-supply phrases the semantic rule already derives — the
+phrase list Part 3 exists to replace, re-created by accident. Its first draft used a party
+pre-filter that was not a true superset for Arabic multi-word patterns; the B.7 regression suite
+failed two Arabic cases and the filter was corrected. Every suite is identical before and after.
+
+Total 90,434 characters. **Execution order is the version order above and must be preserved** —
 migration 2 replaces `fn_scope_detect`, migration 3 replaces `fn_mep_full_scope`, and migration 6
 restores both to their Stage B.6 bodies.
 
