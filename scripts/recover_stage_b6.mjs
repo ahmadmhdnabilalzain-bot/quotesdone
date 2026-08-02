@@ -19,7 +19,7 @@ import { homedir } from 'node:os';
 
 const PROJECT_REF = 'htdblwldjkcgjvmqkbeh';
 const FROM = '20260802181006';
-const TO = '20260802182544';
+const TO = '20260802183212';
 const OUT_DIR = join(process.cwd(), 'supabase', 'migrations');
 
 // Repo filenames use a 2026080222* prefix, in the original execution order.
@@ -36,6 +36,9 @@ const EXPECTED = [
   ['20260802182259', 'p2_c1_stage_b6_holdout_runner', 'cba0bb644ec36baae1269575c21b019e12594404bb8f73a0d536d23e7425435b'],
   ['20260802182423', 'p2_c1_stage_b6_fix_scope_adjacency_separator', '179c9b90ce342fcf6b752bfa486f9f6e930e0a7490635ef3299dc83202418a68'],
   ['20260802182544', 'p2_c1_stage_b6_operator_rollback', '57e61e516b9cb0a909e305dbdd49376b2240a91e8e6e4240dbbd4a468b65ae77'],
+  // Applied after the original manifest window; found by the "nothing in production absent from
+  // the repository" check. Creates p2c1_holdout_result_of_record (immutable by trigger).
+  ['20260802183212', 'p2_c1_holdout_v1_result_of_record', '33be6f4351e857f32d5ab795d2b23689b3dabafa3d6bec8d280ec6d527ee1a75'],
 ];
 
 function token() {
