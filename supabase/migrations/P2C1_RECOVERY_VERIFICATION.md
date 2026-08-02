@@ -158,3 +158,115 @@ The five failures are the deferred Part 3 gaps, not regressions:
 | `PARITY_MISMATCH` | 3 |
 
 Holdout v1 expectations were not edited. Zero expectation drift.
+
+---
+
+## 5. Migration filenames now carry the applied version
+
+The recovered files were first written with a repository sequence number — `2026080222NN` for
+Stage B.6, `2026080223NN` for Stage A/B/B.5. Two problems, one of them dangerous:
+
+1. **Order was inverted.** Stage B.6 (`22NN`) sorted *before* Stage A/B/B.5 (`23NN`), the reverse of
+   how they actually ran.
+2. **`supabase db push` would have re-applied all of them.** Those names are 12 digits, not 14, and
+   none exists in `schema_migrations`. Push compares filename versions against the applied record,
+   so it would have treated every recovered file as new work and tried to apply an already-applied
+   Stage A on top of itself.
+
+All 45 files are now named `<applied version>_<name>.sql`, taken from each file's own recovery
+header rather than invented (`scripts/rename_recovered_to_applied_version.mjs`). Filename order is
+now applied order, and push sees them as already applied.
+
+The three `p2_01` / `p2_02` / `p2_03` files still carry a filename version that differs from the
+version they were applied under. They are present and correct; only the name is wrong. Left alone
+here because renaming an applied migration file is a separate change with its own risk.
+
+## 6. Stage B.6 rollback completion — migration 45
+
+`20260802184500 p2_c1_stage_b6_rollback_completion`, sha
+`11ed3ca8df17f70a6cee4ef23c6626064fb9a175ad2698b8b8d5e7e43628eb9b`, 17,307 chars.
+Manifest entry committed at `71b358b`, before the file was written.
+
+### Classification of the four objects the previous rollback left unaccounted for
+
+| object | class | disposition |
+|---|---|---|
+| `p2c1_holdout_result_of_record` | **B — permanent audit evidence** | intentionally survives |
+| `trg_holdout_record_immutable()` | **B** | survives; it protects the row above |
+| trigger `holdout_record_immutable` | **B** | survives; it protects the row above |
+| `fn_p2c1_rollback_stage_b6` | instrument | retained; it is the tool doing the removal |
+
+`p2c1_holdout_result_of_record` is **B**, on four grounds:
+
+1. It is the once-only record of the first and only independent evaluation of holdout v1. If
+   rollback deleted it, a rollback-then-reapply cycle would permit a second "first evaluation" —
+   defeating the `holdout_record_immutable` trigger, whose entire purpose is that a holdout measures
+   an implementation exactly once. Rollback would become a way to launder the holdout's
+   independence.
+2. It has no operational role. No interpretation function, view, dispatch path or route reads it.
+   Removing it changes no behaviour; keeping it costs nothing.
+3. It has no foreign keys in either direction, so surviving leaves no dangling reference.
+4. Its creating migration is already survival-safe — `create table if not exists` plus
+   `insert … on conflict do nothing` — so re-applying B.6 over a surviving table is idempotent.
+   The original author's intent was almost certainly B; it was simply never stated. It is stated now.
+
+### One declared exception
+
+`fn_mep_full_scope(text)` is **not** restored to its Stage B.5 text. The B.6 change
+(`20260802182423`) was a defect fix to a Stage B.5 rule: B.5 said the full-scope modifier had to sit
+in the same clause as the MEP anchor, and its regex excluded clause punctuation from the intervening
+*words* but not from the *separators*. Reverting it reintroduces a false positive — three trades
+activated across a full stop. Reversion is unsafe, so the corrected form is kept and named in the
+report.
+
+`fn_term_matches` **is** restored to the Stage B.5 form. Reverting it costs only English plural and
+Arabic internal-article tolerance: a false *negative*, which degrades to a clarification question
+rather than to a wrong dispatch. The governing rule is now explicit — restore prior-stage objects to
+their prior-stage form, except where the reversion is unsafe.
+
+### The verification now asserts what it used to only print
+
+Aborts on any of: a removable object surviving; missing audit evidence; `fn_term_matches` or
+`fn_group_dispatch_report` not in Stage B.5 form; `fn_mep_full_scope` not in its corrected form;
+Stage A or Stage B below 14/14; Stage B.5 language parity below 23/23 or scope negatives below
+12/12; any fixture data remaining. The last three were previously reported but not enforced.
+
+### Both paths rehearsed against production, both rolled back
+
+**Abort path** — `fn_p2c1_rollback_stage_b6('rehearse', …)`:
+
+```
+removable objects 22 -> 0, all_removed true
+stage_a 14/14  stage_b 14/14  lang_parity 23/23  scope_negatives 12/12
+intentional survivors 4, declared exceptions 1
+fixtures remaining: 0 groups, 0 answers, 0 audit rows
+```
+
+**Commit path** — the real `'commit'` branch inside a `DO` block that raises at the end, the only
+way to reach the code past the rehearsal `RAISE` without leaving B.6 removed:
+
+```
+audit rows written: 1
+removable B.6 relations left: 0
+audit-evidence rows surviving: 1
+re-run response: {"ok": false, "error": "stage_b6_not_present"}
+verdict: stage b6 removed; audit evidence retained; prior stage restored
+```
+
+## 7. Final state
+
+```
+replay        45 migrations replayed, teardown residue 0 asserted,
+              fingerprint 15,014 lines before and after, no differences
+parity        A 0, B 0, C 0, D 0 in the P2-C1 window
+battery       stage A 14/14, stage B 14/14, regression 2/2, scope negatives 12/12,
+              language parity 23/23, disposition 22/22
+holdout v1    54/54 executed, 49/54 passed, 0 false positives, 5 false negatives, seal intact
+app gates     typecheck clean, npm test 31/31, gated deno check exit 0
+activation    mep_trade_route 6 (unchanged), live workstreams 0, live groups 0,
+              scope dispositions 0, audit rows 0
+expectations  holdout cases 54, result of record 1 row, seal checksum unchanged
+```
+
+No interpretation rule changed. No route activated. No holdout expectation edited.
+Part 3 and holdout v2 are not started.

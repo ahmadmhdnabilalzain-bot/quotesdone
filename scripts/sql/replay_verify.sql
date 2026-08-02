@@ -53,7 +53,7 @@ declare
     'trg_scope_marker_norm'];
   v_types  text[] := array['answer_precedence','gate_state'];
   v_from   text := '20260802165328';
-  v_to     text := '20260802183212';
+  v_to     text := '20260802184500';
   r        record;
   s        text;
   v_mig    int := 0;
@@ -71,8 +71,8 @@ begin
     from supabase_migrations.schema_migrations
    where version >= v_from and version <= v_to;
 
-  if v_expect <> 44 then
-    raise exception 'MIGRATION COUNT MISMATCH: % applied in the window, manifests cover 44', v_expect;
+  if v_expect <> 45 then
+    raise exception 'MIGRATION COUNT MISMATCH: % applied in the window, manifests cover 45', v_expect;
   end if;
 
   ------------------------------------------------------------------ 1. pre

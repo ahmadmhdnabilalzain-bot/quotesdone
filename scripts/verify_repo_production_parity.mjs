@@ -23,7 +23,7 @@ import { homedir } from 'node:os';
 
 const PROJECT_REF = 'htdblwldjkcgjvmqkbeh';
 const MIG = join(process.cwd(), 'supabase', 'migrations');
-const WIN_FROM = '20260802165328', WIN_TO = '20260802183212';
+const WIN_FROM = '20260802165328', WIN_TO = '20260802184500';
 const inWindow = v => v >= WIN_FROM && v <= WIN_TO;
 
 function token() {

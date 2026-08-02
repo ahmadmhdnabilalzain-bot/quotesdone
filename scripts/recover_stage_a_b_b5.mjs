@@ -64,8 +64,8 @@ EXPECTED.forEach((exp, i) => {
   if (sha !== exp.sha) {
     console.error(`DRIFT: ${r.name} hashes ${sha}, manifest says ${exp.sha}`); bad++; return;
   }
-  const seq = String(i + 1).padStart(2, '0');
-  const file = `2026080223${seq}_${r.name}.sql`;
+  // filename IS the applied version, so `supabase db push` sees these as already applied
+  const file = `${r.version}_${r.name}.sql`;
   const header =
     `-- P2-C1 - recovered verbatim from supabase_migrations.schema_migrations.\n` +
     `-- Applied version: ${r.version}   name: ${r.name}\n` +
@@ -74,7 +74,7 @@ EXPECTED.forEach((exp, i) => {
     `-- The body below is byte-for-byte as applied; only this header was added, and it is\n` +
     `-- excluded from the checksum.\n\n`;
   writeFileSync(join(MIG_DIR, file), header + r.sql, 'utf8');
-  console.log(`${seq}   ${file.padEnd(68)} ${sha.slice(0, 8)} ${r.sql.length}`);
+  console.log(`${String(i + 1).padStart(2, '0')}   ${file.padEnd(68)} ${sha.slice(0, 8)} ${r.sql.length}`);
   ok++;
 });
 
