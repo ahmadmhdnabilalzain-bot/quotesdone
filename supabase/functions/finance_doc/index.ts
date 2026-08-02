@@ -57,4 +57,3 @@ Deno.serve(async (req) => {
     return J({ ok: true, path, extracted_chars: text.length, parsed: entry, logged });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 });
-

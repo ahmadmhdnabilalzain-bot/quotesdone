@@ -127,4 +127,3 @@ Deno.serve(async (req) => {
     return J({ ok: true, mode: 'scan', considered: candidates.length, results });
   } catch (e) { await logRun('error', { created: 0, llm_calls: LLM_CALLS, parse_failures: PARSE_FAILS }, 'agent_autogen crashed before completing; uncovered trades were not provisioned this run: ' + String((e as Error)?.message || e)); return J({ error: String((e as Error)?.message || e) }, 500); }
 });
-

@@ -311,6 +311,72 @@ async function buildComparePdf(a: any, inq: any, lang: string) {
   return { j, ref };
 }
 
+// REDACTION PROVENANCE 2 Aug 2026 (external security review). WHY: QuotesDone sells anonymity —
+// a supplier must not learn who the buyer is until the reveal fee is paid. supplier_api hands every
+// matched supplier a SIGNED URL for each entry in inquiries.drawing_redacted_paths, and it will sign
+// ANY object path in the 'drawing-files' bucket. The customer's ORIGINAL, unredacted upload sits in
+// that SAME bucket at drawings/<customer_id>/<ts>_<name> (see storeOriginal above); redacted pages
+// sit at redacted/<uuid>/page_pN.jpg. create_inquiry used to copy drawing.drawing_redacted_paths
+// verbatim out of the REQUEST BODY, so a modified or simply buggy frontend could name the original —
+// title block, client name, address, contacts, project number — and every matched supplier would get
+// it for free, pre-reveal, destroying both the promise and the reveal-fee revenue behind it.
+// Paths are no longer trusted from the client. drawing_redact records each run in
+// public.drawing_redaction_runs (owner, outputs, pages_in/pages_out, status) and this resolver will
+// only ever attach paths found in a run row that belongs to the CALLING customer. Anything else is
+// REJECTED with an explicit error rather than silently dropped, so the frontend can surface it
+// instead of quietly shipping a half-anonymous RFQ.
+const REDACT_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type RedactResolve = { paths: string[] } | { err: Record<string, unknown>; status: number };
+async function resolveRedactedPaths(custId: string, authUserId: string, drawing: any): Promise<RedactResolve> {
+  const asked = Array.isArray(drawing?.drawing_redacted_paths) ? drawing.drawing_redacted_paths.map((s: any) => String(s)).slice(0, 24) : [];
+  const jobIds = [
+    ...(drawing?.redaction_job_id ? [String(drawing.redaction_job_id)] : []),
+    ...(Array.isArray(drawing?.redaction_job_ids) ? drawing.redaction_job_ids.map((s: any) => String(s)) : []),
+  ].filter((s) => REDACT_UUID_RE.test(s)).slice(0, 8);
+  // Explicit opt-out: the buyer (or the UI, after a partial redaction) can choose to share no pages
+  // at all. Sharing fewer pages never leaks anything, so this is always allowed.
+  if (drawing?.share_redacted === false) return { paths: [] };
+  if (!jobIds.length && !asked.length) return { paths: [] };
+  // Reference photos go through attach_photos, which is authenticated as the same auth user but does
+  // not know customers.id; drawing_redact stores the prefix it was called with, so those runs are
+  // attributed by that instead. Both branches are server-side ownership checks — neither trusts a path.
+  const photoRef = 'refphoto/' + String(authUserId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24) + '/';
+  const { data: runs, error: rerr } = await admin.from('drawing_redaction_runs')
+    .select('id,customer_id,caller_ref,output_paths,pages_in,pages_out,status')
+    .or(`customer_id.eq.${custId},caller_ref.like.${photoRef}%`)
+    .order('created_at', { ascending: false }).limit(60);
+  if (rerr) return { err: { error: 'redaction_lookup_failed', message: 'We could not verify the redacted drawing pages just now. Please try again in a moment.' }, status: 503 };
+  const mine = (runs || []).filter((r: any) => (r.customer_id && String(r.customer_id) === String(custId)) || (r.caller_ref && String(r.caller_ref).startsWith(photoRef)));
+  const byId: Record<string, any> = {}; for (const r of mine) byId[String(r.id)] = r;
+  const chosen: any[] = [];
+  for (const jid of jobIds) {
+    const r = byId[jid];
+    if (!r) return { err: { error: 'redaction_job_not_found', message: 'That redaction job does not belong to your account or has expired. Please re-upload the drawing and try again.' }, status: 403 };
+    chosen.push(r);
+  }
+  if (!jobIds.length) chosen.push(...mine);
+  const allowed = new Set<string>();
+  for (const r of chosen) for (const p of (r.output_paths || [])) allowed.add(String(p));
+  let paths: string[];
+  if (asked.length) {
+    const bad = asked.filter((p: string) => !allowed.has(p));
+    if (bad.length) return { err: { error: 'redacted_paths_unverified', rejected: bad.length, message: `${bad.length} of the attached drawing page(s) did not come from a redaction run on your account, so nothing was sent. Please re-run the drawing analysis and submit again.` }, status: 400 };
+    paths = asked;
+  } else {
+    paths = Array.from(allowed);
+  }
+  // COMPLETENESS. A partial run (say 5 of 8 pages cleaned) must not quietly attach the 5 that
+  // worked: the buyer believes the whole drawing was anonymised, and the 3 that failed are exactly
+  // the pages the model was least sure about. Fail closed and name the number. A TOTAL failure still
+  // behaves as before — no run outputs, no paths, and the inquiry goes out with no drawing attached.
+  const used = chosen.filter((r: any) => (r.output_paths || []).some((p: any) => paths.includes(String(p))));
+  let missing = 0; for (const r of used) missing += Math.max(0, Number(r.pages_in || 0) - Number(r.pages_out || 0));
+  if (paths.length && missing > 0) {
+    return { err: { error: 'redaction_incomplete', pages_missing: missing, message: `${missing} page(s) of your drawing could not be redacted, so no pages were shared. Please re-upload a clearer copy, or send the request without the drawing.` }, status: 409 };
+  }
+  return { paths };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
@@ -348,14 +414,19 @@ Deno.serve(async (req) => {
         const redPrefix = `redacted/${crypto.randomUUID()}/page`;
         const [boqRes, redRes] = await Promise.allSettled([
           fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images }) }),
-          fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images, prefix: redPrefix }) }),
+          fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path }) }),
         ]);
-        let redacted: string[] = [];
-        if (redRes.status === 'fulfilled') { try { const rj = await redRes.value.json(); if (rj?.ok && Array.isArray(rj.paths)) redacted = rj.paths; } catch (_e) { /* */ } }
-        if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted }, 200);
+        let redacted: string[] = []; let redJob: string | null = null; let redIn = 0; let redOut = 0;
+        // Only pass paths back to the client once drawing_redact has RECORDED the run server-side
+        // (drawing_redaction_runs). An unrecorded run cannot be verified at create_inquiry, so its
+        // paths are unusable — dropping them here lands on the existing total-failure behaviour
+        // (inquiry goes out with no drawing) instead of a confusing rejection later.
+        if (redRes.status === 'fulfilled') { try { const rj = await redRes.value.json(); redIn = Number(rj?.pages_in || 0); redOut = Number(rj?.pages_out || 0); if (rj?.ok && rj?.recorded && rj?.job_id && Array.isArray(rj.paths)) { redacted = rj.paths.map((x: any) => String(x)); redJob = String(rj.job_id); } } catch (_e) { /* */ } }
+        const redMeta = { redaction_job_id: redJob, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_complete: redOut >= redIn };
+        if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
         const jd = await boqRes.value.json();
-        if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted }, 200);
-        return J({ ok: true, boq: jd.boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted });
+        if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
+        return J({ ok: true, boq: jd.boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta });
       } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [] }, 200); }
     }
 
@@ -398,7 +469,10 @@ Deno.serve(async (req) => {
       keywords = keywords.slice(0, 30);
       const drawingPath = drawing?.drawing_file_path ? String(drawing.drawing_file_path) : null;
       const drawingName = drawing?.drawing_file_name ? String(drawing.drawing_file_name).slice(0, 180) : null;
-      const drawingRedacted = Array.isArray(drawing?.drawing_redacted_paths) ? drawing.drawing_redacted_paths.map((s: any) => String(s)).slice(0, 12) : null;
+      // Never trust drawing.drawing_redacted_paths from the body — see resolveRedactedPaths above.
+      const rr = await resolveRedactedPaths(String(cust.id), String(user.id || ''), drawing);
+      if ('err' in rr) return J(rr.err, rr.status);
+      const drawingRedacted = rr.paths.length ? rr.paths.slice(0, 24) : null;
       const distinctTrades = Array.from(new Set(tradesIn)).slice(0, 6);
       const wantSplit = scope_type === 'multi' && distinctTrades.length > 1;
       const wantTurnkey = scope_type === 'turnkey';

@@ -158,4 +158,3 @@ Deno.serve(async (req) => {
     return J({ ok: true, analysis: parsed });
   } catch (e) { await logRun('error', { compared: 0, unhandled_exception: 1 }, 'quote_compare threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e).slice(0, 200) + ' — the customer could not compare the quotes they received and the RFQ stalls at the decision step.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 });
-

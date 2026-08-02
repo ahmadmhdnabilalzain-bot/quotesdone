@@ -252,4 +252,3 @@ Deno.serve(async (req) => {
     return J({ ok: true, matched_lead: lead?.id||null, stored, reviews, applied: appliedSummary });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception (inbound email dropped): ' + m); return J({ error: m }, 500); }
 });
-

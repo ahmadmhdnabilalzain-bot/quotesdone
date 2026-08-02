@@ -103,4 +103,3 @@ Deno.serve(async (req) => {
   } catch (e) { const m=String((e as Error)?.message || e); await logRun('error',{},'exception: '+m); return J({ error: m }, 500); }
 });
 function jsonb_min(p:any, kind:string, title:string, id:any){ return { signal:'contract_review', kind, title, review_id:id, missing:(p.missing_clauses||[]).slice(0,8) }; }
-
