@@ -97,6 +97,24 @@ test('the Control Mode code is generated from a CSPRNG', () => {
   assert.doesNotMatch(src, /Math\.random\(\)/, 'Math.random is not acceptable for a credential');
 });
 
+test('the authenticated user id is read from a hoisted variable, not an out-of-scope one', () => {
+  // Regression guard for the bug that made Control Mode unopenable: control_mode_open read
+  // `u?.user?.id`, but `u` is declared with const inside the else branch of the auth block, so at
+  // runtime it threw a ReferenceError that the outer catch returned as an opaque 500. Every
+  // database-level test of Control Mode passed while the API path could never work.
+  //
+  // `deno check` in CI catches this class properly. This assertion is the cheap, specific version
+  // that also runs on a laptop with no Deno installed.
+  assert.match(src, /let userId: string \| null = null;/,
+    'os_api no longer hoists userId out of the auth block');
+  const declAt = src.indexOf('const { data: u, error: uerr }');
+  assert.ok(declAt > 0, 'the auth block no longer looks the way this check expects');
+  const closeBrace = src.indexOf('\n    }', declAt);
+  const afterAuth = src.slice(closeBrace);
+  assert.ok(!/\bu\?\./.test(afterAuth),
+    'os_api references `u` after the block where it is declared has closed - that is the ReferenceError');
+});
+
 test('no phone number is hardcoded anywhere in os_api', () => {
   // The founder's number lives in app_secrets. A literal international number in source is both a
   // leak and a thing that goes stale.
