@@ -22,24 +22,59 @@ const WS: Record<string, string> = {
   'ws.ea': 'fn_ws_ea', 'ws.reports': 'fn_ws_reports', 'ws.strategy': 'fn_ws_strategy', 'ws.governance': 'fn_ws_governance',
   'ws.fraud': 'fn_ws_fraud', 'ws.refunds': 'fn_ws_refunds',
 };
-const OSAPI_MUTATIONS = new Set(['inbox_send','fraud_resolve','refund_resolve','prompt_approve','prompt_rollback','prompt_gate','comment_add','review_decide','blog_publish','knowledge_dispatch','knowledge_refresh','exam_run','exam_revert']);
-// Every action below that only READS. Anything not on this list is refused when the caller arrived
-// through the x-os-key preview bypass (see the OS BYPASS note in Deno.serve). Derived by walking the
-// action handlers in this file one by one, not by name: each RPC listed here was checked in the
-// database and performs no persistent write (fn_ws_agents fills a `create temp ... on commit drop`
-// table and nothing else). Deliberately NOT here, even though they read something first:
-//   report_pdf     - renders and stores a PDF object in the finance-reports bucket
-//   extract_doc    - reads no record; hands caller-supplied bytes to extract_text under inbound_secret
-//   secretary_chat - drives the secretary agent, which acts
-// and the thirteen entries of OSAPI_MUTATIONS above. An unknown action is not on the list either, so
-// the bypass cannot reach a handler added later without someone deciding it is a read.
-const READONLY = new Set([
-  'ping','dashboard','viz','suppliers_board','rfq_board','customers_board','agents_board','activity','nav',
-  'inbox','search','record','files','file','prompt_view','marketing_studio','knowledge_gaps','exam_summary','knowledge_export',
-  'ws.suppliers','ws.supplier','ws.customer','ws.agent','ws.rfq',
-  'ws.exec','ws.marketplace','ws.customers','ws.operations','ws.ai','ws.knowledge','ws.documents','ws.analytics',
-  'ws.company','ws.finance','ws.agents','ws.marketing','ws.ea','ws.reports','ws.strategy','ws.governance','ws.fraud','ws.refunds',
-]);
+// ---- ACTION CLASSIFICATION (2 Aug 2026, Phase 1 hardening) -------------------------------------
+// Every action this function will route, classified, with no default. It feeds two independent
+// gates: the preview-key allowlist below, and Observe/Control Mode in the database
+// (public.control_mode_action). scripts/checks/os_action_classification.mjs fails the build if a
+// dispatched action is missing here, or if this table lists an action that no longer exists.
+//
+//   read_only    - performs no persistent business write
+//   mutating     - requires an open Control Mode session
+//   mode_control - Control Mode's own plumbing, which cannot require what it grants
+//
+// AN ACTION ABSENT FROM THIS TABLE IS REFUSED. Absence is not permission. The first version of this
+// gate treated "unregistered" as "read-only", and it was wrong twice on the day it shipped:
+// secretary_chat drives an agent that acts and was unregistered, so it was ungated; and `record`
+// was registered as mutating although fn_os_record is STABLE, so opening any record would have
+// demanded a phone code. Both are correct below.
+type ActionClass = 'read_only' | 'mutating' | 'mode_control';
+const ACTION_CLASS: Record<string, ActionClass> = {
+  control_mode_status: 'mode_control', control_mode_open: 'mode_control',
+  control_mode_close: 'mode_control', control_mode_challenge: 'mode_control',
+
+  inbox_send: 'mutating', fraud_resolve: 'mutating', refund_resolve: 'mutating',
+  prompt_approve: 'mutating', prompt_rollback: 'mutating', prompt_gate: 'mutating',
+  comment_add: 'mutating', review_decide: 'mutating', blog_publish: 'mutating',
+  knowledge_dispatch: 'mutating', knowledge_refresh: 'mutating', exam_run: 'mutating',
+  exam_revert: 'mutating', secretary_chat: 'mutating',
+
+  ping: 'read_only', dashboard: 'read_only', viz: 'read_only', suppliers_board: 'read_only',
+  rfq_board: 'read_only', customers_board: 'read_only', agents_board: 'read_only',
+  activity: 'read_only', nav: 'read_only', inbox: 'read_only', search: 'read_only',
+  record: 'read_only', files: 'read_only', file: 'read_only', prompt_view: 'read_only',
+  marketing_studio: 'read_only', knowledge_gaps: 'read_only', exam_summary: 'read_only',
+  knowledge_export: 'read_only', extract_doc: 'read_only', report_pdf: 'read_only',
+  'ws.suppliers': 'read_only', 'ws.supplier': 'read_only', 'ws.customer': 'read_only',
+  'ws.agent': 'read_only', 'ws.rfq': 'read_only', 'ws.exec': 'read_only',
+  'ws.marketplace': 'read_only', 'ws.customers': 'read_only', 'ws.operations': 'read_only',
+  'ws.ai': 'read_only', 'ws.knowledge': 'read_only', 'ws.documents': 'read_only',
+  'ws.analytics': 'read_only', 'ws.company': 'read_only', 'ws.finance': 'read_only',
+  'ws.agents': 'read_only', 'ws.marketing': 'read_only', 'ws.ea': 'read_only',
+  'ws.reports': 'read_only', 'ws.strategy': 'read_only', 'ws.governance': 'read_only',
+  'ws.fraud': 'read_only', 'ws.refunds': 'read_only',
+};
+
+const OSAPI_MUTATIONS = new Set(Object.keys(ACTION_CLASS).filter((a) => ACTION_CLASS[a] === 'mutating'));
+// What the x-os-key preview bypass may reach. Narrower than read_only on purpose: two actions read
+// before they do anything, but still cost something a static string should not be able to spend.
+//   report_pdf   - renders and stores a PDF object in the finance-reports bucket
+//   extract_doc  - hands caller-supplied bytes to extract_text, which is a paid OCR call
+// Everything else classified read_only is allowed; anything mutating, mode_control or unclassified
+// is not, so the bypass cannot reach a handler added later without someone classifying it first.
+const BYPASS_DENY = new Set(['report_pdf', 'extract_doc']);
+const READONLY = new Set(
+  Object.keys(ACTION_CLASS).filter((a) => ACTION_CLASS[a] === 'read_only' && !BYPASS_DENY.has(a)),
+);
 
 Deno.serve(async (req) => {
   try {
@@ -56,6 +91,12 @@ Deno.serve(async (req) => {
     // reason the hole was inert: creating that row alone would have opened it. It is now read-only
     // (see the READONLY gate below) and it is recorded under its own name, never as an email address.
     let viaBypass = false;
+    // Hoisted out of the else block below. It used to be read from `u` further down, in
+    // control_mode_open, where `u` is out of scope - a ReferenceError caught by the outer try/catch
+    // and returned as an opaque 500, which meant Control Mode could never actually be opened through
+    // this function even though the database function behind it worked. Found by `deno check`, which
+    // now runs in CI for exactly this reason.
+    let userId: string | null = null;
     const osKey = req.headers.get('x-os-key') || '';
     if (osKey && osKey === (await sec('os_bypass_key'))) { email = 'os_bypass_key (no human identity)'; viaBypass = true; }
     else {
@@ -63,12 +104,28 @@ Deno.serve(async (req) => {
       if (!token) return J({ error: 'unauthorized' }, 401);
       const { data: u, error: uerr } = await admin.auth.getUser(token);
       email = u?.user?.email || '';
+      userId = (u?.user?.id as string) || null;
       if (uerr || !email) return J({ error: 'unauthorized' }, 401);
       if (!(await isAdmin(email))) return J({ error: 'forbidden' }, 403);
     }
 
     const body = await req.json().catch(() => ({} as any));
     const action = (body?.action as string) || 'ping';
+
+    // ---- FAIL CLOSED ON AN UNCLASSIFIED ACTION (2 Aug 2026, Phase 1 hardening) -----------------
+    // First gate after identity, before anything else looks at the action. An action nobody has
+    // classified is an action nobody has thought about, and the asymmetry is the whole argument:
+    // refusing a read costs one redeploy, allowing an unreviewed mutation costs an incident. The
+    // database gate refuses the same case independently, so both layers have to be forgotten at once
+    // for something ungated to run.
+    if (!ACTION_CLASS[action]) {
+      try {
+        await admin.from('os_audit_log').insert({ actor: email, action,
+          detail: { refused: 'action_classification_required', via_bypass: viaBypass } });
+      } catch (_e) { /* audit must never break the refusal */ }
+      return J({ error: 'action_classification_required', action,
+        hint: 'This action is not classified. Add it to ACTION_CLASS in os_api and to public.control_mode_action, then redeploy. Until then it is refused.' }, 403);
+    }
 
     // ---- audit trail for os_api mutations (never block) ----
     // A non-read action arriving on the preview key is audited here too, even when it is not one of
@@ -100,36 +157,84 @@ Deno.serve(async (req) => {
       if (error) return J({ error: error.message }, 500);
       return J({ ok: true, user: email, data });
     }
+    // Step one of two. The code is minted here, hashed before it is stored, and sent to the number
+    // registered against this admin identity in app_secrets - it is not taken from the request, so a
+    // caller cannot nominate the phone their own code goes to. What comes back to the browser is a
+    // challenge id, a one-time nonce and the last four digits: never the number, never the code.
+    if (action === 'control_mode_challenge') {
+      const buf = new Uint32Array(1);
+      crypto.getRandomValues(buf);                       // not Math.random - this is a credential
+      const code = String(100000 + (buf[0] % 900000));
+      const { data: h, error: herr } = await admin.rpc('fn_otp_hash', { p_code: code });
+      if (herr) return J({ error: herr.message }, 500);
+      const { data, error } = await admin.rpc('fn_control_mode_challenge_start', {
+        p_actor_email: email, p_code_hash: String(h || ''),
+        p_ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+      });
+      if (error) return J({ error: error.message }, 500);
+      // deno-lint-ignore no-explicit-any
+      const r = data as any;
+      if (!r?.ok) return J({ error: r?.error || 'challenge_failed', hint: r?.message }, 403);
+      let delivered = false;
+      try {
+        const sent = await fetch(`${BASE}/send_whatsapp`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ __secret: await sec('inbound_secret'), to: r.phone,
+            body: `QuotesDone Control Mode code: ${code}\nValid for ${r.minutes} minutes. If you did not ask for this, someone else is signed in to your console.` }),
+        });
+        delivered = !!(await sent.json().catch(() => ({})))?.ok;
+      } catch (_e) { /* delivery failure is reported, not thrown - the challenge still exists */ }
+      return J({ ok: true, user: email, data: {
+        challenge_id: r.challenge_id, nonce: r.nonce, phone_tail: r.phone_tail,
+        expires_at: r.expires_at, delivered,
+        message: delivered ? `Code sent to the number ending ${r.phone_tail}.`
+                           : `Could not deliver the code to the number ending ${r.phone_tail}. Check WhatsApp sending before retrying.`,
+      } }, 200);
+    }
+    // Step two. Challenge id + nonce + code, all three, all bound to this admin identity and to the
+    // purpose 'control_mode'. A sign-in code or a customer verification code is not accepted here -
+    // that was the whole defect in the first version.
     if (action === 'control_mode_open') {
       const { data, error } = await admin.rpc('fn_control_mode_open', {
         p_actor_email: email, p_reason: String(body?.reason || ''),
-        p_phone: String(body?.phone || ''), p_code: String(body?.code || ''),
-        p_user_id: (u?.user?.id as string) || null,
+        p_challenge_id: String(body?.challenge_id || '') || null,
+        p_nonce: String(body?.nonce || ''), p_code: String(body?.code || ''),
+        p_user_id: userId,
         p_ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
         p_ua: req.headers.get('user-agent') || null,
       });
       if (error) return J({ error: error.message }, 500);
       // deno-lint-ignore no-explicit-any
       const r = data as any;
-      return J(r?.ok ? { ok: true, user: email, data: r } : { error: r?.error || 'control_mode_denied', hint: r?.message }, r?.ok ? 200 : 403);
+      return J(r?.ok ? { ok: true, user: email, data: r } : { error: r?.error || 'control_mode_denied', hint: r?.message, attempts_left: r?.attempts_left }, r?.ok ? 200 : 403);
     }
     if (action === 'control_mode_close') {
       const { data, error } = await admin.rpc('fn_control_mode_close', { p_actor_email: email });
       if (error) return J({ error: error.message }, 500);
       return J({ ok: true, user: email, data });
     }
-    // The gate itself. The registry (public.control_mode_action) decides which actions need it, so
-    // adding a mutating action here without registering it shows up in the audit as an unregistered
-    // action rather than sliding past unnoticed.
+    // The gate itself. public.control_mode_action decides; an action it does not know is refused
+    // there too, independently of the ACTION_CLASS check above.
+    //
+    // The failure path matters as much as the success path. This used to swallow any error and
+    // continue, which meant a database hiccup silently downgraded every mutation to ungated. Now a
+    // failed lookup is only survivable for something this file already knows is read_only; anything
+    // mutating is refused until the gate can actually answer.
     try {
-      const { data: gate } = await admin.rpc('fn_control_mode_require', { p_actor_email: email, p_action: action });
+      const { data: gate, error: gerr } = await admin.rpc('fn_control_mode_require', { p_actor_email: email, p_action: action });
+      if (gerr) throw new Error(gerr.message);
       // deno-lint-ignore no-explicit-any
       const g = gate as any;
       if (g && g.allowed === false) {
-        return J({ error: 'control_mode_required', mode: 'observe',
+        return J({ error: g.error || 'control_mode_required', mode: 'observe',
                    hint: g.message || 'This changes something. Open Control Mode with a phone code and a reason first.' }, 403);
       }
-    } catch (_e) { /* a lookup failure must not block reads; mutations still carry their own checks */ }
+    } catch (_e) {
+      if (ACTION_CLASS[action] !== 'read_only') {
+        return J({ error: 'control_mode_unavailable', mode: 'observe',
+                   hint: 'The Control Mode gate could not be checked, so this change is refused. Try again in a moment.' }, 503);
+      }
+    }
 
     if (action === 'ping') return J({ ok: true, user: email });
     if (action === 'dashboard') { const { data, error } = await admin.rpc('fn_os_command'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
