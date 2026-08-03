@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -101,9 +102,18 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     let ok = false; let internal = false;
-    const { data: s, error: secErr } = await admin.from('app_secrets').select('value').eq('key', 'inbound_secret').maybeSingle();
-    if (secErr) { await logRun('error', { suppliers: 0, secret_lookup_ok: 0 }, 'match could not read the inbound_secret from app_secrets (' + String(secErr.message).slice(0, 140) + '), so secret-authenticated callers are rejected regardless of correctness. Supplier matching returns nothing for an auth-infrastructure reason, not because no supplier matches.'); }
-    if (s?.value && body?.__secret === s.value) { ok = true; internal = true; }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called. The
+    // `body?.__secret &&` short-circuit is kept so ordinary JWT traffic does not pay for a
+    // verifier round trip. The operator-facing log for an auth-INFRASTRUCTURE failure is kept
+    // too, because the point it was making still holds: when the credential check itself is
+    // unavailable, match returns zero suppliers for a reason that has nothing to do with supply,
+    // and that absence would otherwise be read as a genuine coverage gap.
+    if (body?.__secret) {
+      const __auth = await requireInternal(admin, body.__secret, 'match');
+      if (__auth.ok) { ok = true; internal = true; }
+      else if (__auth.status === 503) { await logRun('error', { suppliers: 0, secret_lookup_ok: 0 }, 'match could not verify an internal credential because fn_internal_auth was unreachable, so secret-authenticated callers are rejected regardless of correctness. Supplier matching returns nothing for an auth-infrastructure reason, not because no supplier matches.'); }
+    }
     if (!ok) {
       const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
       if (jwt) { try { const { data: { user } } = await admin.auth.getUser(jwt); if (user) ok = true; } catch (_e) { /* */ } }

@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 
@@ -13,14 +14,15 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 // app_secrets has no 'test_token' row today, so the branch was already inert and removing it breaks
 // nothing. It is deleted rather than left dormant so that re-adding a test_token row for some
 // unrelated test harness cannot silently re-grant production write access here.
-// The same dormant __test branch still exists in yello_scrape and profile_ai; equally inert today.
+// UPDATE 3 Aug 2026: the same dormant __test branch has now been removed from yello_scrape and
+// profile_ai on this same reasoning, so no __test branch survives anywhere.
+// AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+// per-context credential and the legacy shared secret, and records which one called. The
+// fail-closed property established above is preserved and strengthened: requireInternal refuses
+// an absent credential AND refuses when the verifier itself cannot be reached, rather than
+// comparing against a value it failed to read.
 async function auth(body: any): Promise<boolean> {
-  if (!body || !body.__secret) return false;
-  const { data } = await admin.from('app_secrets').select('value').eq('key', 'inbound_secret').maybeSingle();
-  const expected = (data?.value as string) || '';
-  // Fail closed if the secret is missing or empty rather than comparing against a falsy value.
-  if (!expected) return false;
-  return body.__secret === expected;
+  return (await requireInternal(admin, body?.__secret, 'dir_ingest')).ok;
 }
 
 Deno.serve(async (req) => {

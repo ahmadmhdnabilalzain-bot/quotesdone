@@ -1,5 +1,6 @@
 // wa_optin_set - records a user's WhatsApp opt-in consent (service messages only). Sets wa_optin on customers/leads by email.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin':'*', 'Access-Control-Allow-Headers':'authorization, content-type, apikey', 'Access-Control-Allow-Methods':'POST, OPTIONS' };
 const J = (o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:{'Content-Type':'application/json',...CORS}});
@@ -21,9 +22,12 @@ Deno.serve(async (req)=>{
     // attribute is worse than no consent. Accept only the inbound secret (server-to-server) or a
     // signed-in user changing their OWN row; the portal already sends the user's session token.
     const jwt = (req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');
-    const inbound = await sec('inbound_secret');
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called. The
+    // `b.__secret &&` short-circuit is kept deliberately, so a signed-in user changing their own
+    // consent row does not pay for a verifier round trip.
     let actor = '';
-    if (inbound && b.__secret === inbound) actor = 'secret';
+    if (b.__secret && (await requireInternal(admin, b.__secret, 'wa_optin_set')).ok) actor = 'secret';
     else { const { data: au } = await admin.auth.getUser(jwt).catch(()=>({ data:{ user:null } } as any)); const ue = String(au?.user?.email||'').toLowerCase(); if (ue && ue === email) actor = 'self'; }
     if (!actor) return J({ error:'unauthorized' },401);
     if(kind==='customer'){

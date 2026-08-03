@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -77,11 +78,16 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({}));
-    let ok = false;
-    const { data: sec1 } = await admin.from('app_secrets').select('value').eq('key', 'inbound_secret').maybeSingle();
-    if (sec1?.value && body.__secret === sec1.value) ok = true;
-    if (!ok) { const { data: t } = await admin.from('app_secrets').select('value').eq('key', 'test_token').maybeSingle(); if (t?.value && body.__test === t.value) ok = true; }
-    if (!ok) return J({ error: 'forbidden' }, 403);
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    //
+    // The dormant `__test` / test_token branch is REMOVED rather than migrated, applying the
+    // ruling recorded in dir_ingest on 19 Jul 2026: a QA credential must never carry production
+    // authority. app_secrets has no test_token row (verified 3 Aug 2026), so the branch was inert.
+    // It is deleted rather than left dormant so that re-adding a test_token row for an unrelated
+    // harness cannot silently re-grant access to supplier-profile extraction.
+    const __auth = await requireInternal(admin, body?.__secret, 'profile_ai');
+    if (!__auth.ok) return J({ error: 'forbidden' }, 403);
 
     const { data: keyRow } = await admin.from('app_secrets').select('value').eq('key', 'inbound_secret').maybeSingle();
     if (!keyRow?.value) return J({ error: 'smart engine not configured', fallback: true }, 200);

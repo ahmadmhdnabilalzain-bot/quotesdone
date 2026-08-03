@@ -17,6 +17,7 @@
 // authority; gated work is prepared and routed, not abandoned).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { makeLlm, OPUS_FIRST, SONNET_FIRST } from '../_shared/llm.ts';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA = Deno.env.get('SUPABASE_URL')!;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
@@ -144,8 +145,11 @@ Deno.serve(async (req)=>{
     const body=await req.json().catch(()=>({}));
     // Auth: internal __secret path (agent-to-agent collaboration) OR admin JWT. Fail-closed.
     let email='';
-    const internalSecret=await sec('inbound_secret');
-    if(body.__secret && internalSecret && body.__secret===internalSecret){
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called. The
+    // `body.__secret &&` short-circuit is kept deliberately, so ordinary admin-JWT traffic does
+    // not pay for a verifier round trip.
+    if(body.__secret && (await requireInternal(admin, body.__secret, 'agent_brain')).ok){
       email='internal@quotesdone.com';
     } else {
       const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');

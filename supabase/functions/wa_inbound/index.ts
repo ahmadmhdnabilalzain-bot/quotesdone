@@ -11,6 +11,7 @@
 //      is unchanged - the model still returns {reply,lang,audience,escalate}; only the transport
 //      moved. A Level 0 FAQ answer arrives as plain prose, so it is wrapped in the same envelope.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const TW = (s = 200) => new Response('<Response></Response>', { status: s, headers: { 'Content-Type': 'text/xml' } });
@@ -212,8 +213,12 @@ Deno.serve(async (req) => {
       //   if (j.__secret !== undefined && j.__secret !== await sec('inbound_secret')) return TW(200);
       // which only rejected a WRONG secret - a JSON POST with NO __secret at all skipped the check
       // entirely and reached the send path. Now fails closed.
-      const expected = await sec('inbound_secret');
-      if (!expected || j.__secret !== expected) {
+      // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+      // per-context credential and the legacy shared secret, and records which one called. The
+      // fail-closed property the 19 Jul 2026 fix established is preserved: requireInternal
+      // refuses an absent credential and refuses when the verifier cannot be reached.
+      const __auth = await requireInternal(admin, j?.__secret, 'wa_inbound');
+      if (!__auth.ok) {
         await logRun('error', { authorised: 0, path: 'json' }, 'wa_inbound rejected a JSON caller with a missing or wrong inbound secret. Until 19 Jul 2026 a JSON POST with no __secret was ACCEPTED and could trigger an outbound WhatsApp to any number, so this rejection may be a scanner probing the old hole. No message was processed and nothing was sent.');
         return TW(200);
       }

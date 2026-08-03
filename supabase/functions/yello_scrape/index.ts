@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -91,11 +92,18 @@ function extractEmails(html: string, host?: string): string|null {
   return ok[0];
 }
 
+// AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+// per-context credential and the legacy shared secret, and records which one called.
+//
+// The dormant `__test` / test_token branch is REMOVED rather than migrated, applying the ruling
+// already recorded in dir_ingest on 19 Jul 2026: a QA credential must never carry production
+// authority. app_secrets has no test_token row (verified 3 Aug 2026), so the branch was inert and
+// deleting it breaks nothing. It is deleted rather than left dormant so that re-adding a
+// test_token row for some unrelated harness cannot silently re-grant access here. That argument
+// applies verbatim to this function: yello_scrape bulk-writes yello_staging, the very same
+// directory pipeline dir_ingest feeds.
 async function auth(body: any): Promise<boolean> {
-  if (!body) return false;
-  const { data } = await admin.from('app_secrets').select('key,value').in('key', ['inbound_secret','test_token']);
-  const sec = Object.fromEntries((data||[]).map((r:any)=>[r.key,r.value]));
-  return (body.__secret && body.__secret === sec.inbound_secret) || (body.__test && body.__test === sec.test_token);
+  return (await requireInternal(admin, body?.__secret, 'yello_scrape')).ok;
 }
 
 Deno.serve(async (req) => {
@@ -106,7 +114,11 @@ Deno.serve(async (req) => {
 
   try {
     if (action === 'stats') {
-      const { data } = await admin.rpc('exec_count_stage').catch(() => ({ data: null } as any));
+      // 3 Aug 2026: this was `admin.rpc('exec_count_stage').catch(...)`. A PostgREST builder is
+      // NOT a Promise and has no .catch, so the intended guard threw TypeError on every call and
+      // the whole 'stats' action failed — the same crash class fixed in designer and secretary_act
+      // today. `.then(onOk, onErr)` works because the builder is thenable.
+      const { data } = await admin.rpc('exec_count_stage').then((r: any) => r, () => ({ data: null } as any));
       const { data: rows } = await admin.from('yello_staging').select('stage');
       const by: Record<string,number> = {}; (rows||[]).forEach((r:any)=>{ by[r.stage]=(by[r.stage]||0)+1; });
       const { count: withEmail } = await admin.from('yello_staging').select('company_id',{count:'exact',head:true}).not('email','is',null);
