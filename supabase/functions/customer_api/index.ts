@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -165,8 +166,25 @@ function ratingBand(v: unknown): string | null { const n = Number(v); if (v == n
 function reviewCountBand(v: unknown): string { const n = Number(v || 0); if (n >= 50) return '50+'; if (n >= 20) return '20-49'; if (n >= 5) return '5-19'; return 'under 5'; }
 function yearsBand(v: unknown): string | null { if (v == null) return null; const n = Number(v); if (!isFinite(n)) return null; if (n >= 10) return '10+ years'; if (n >= 5) return '5-9 years'; return 'under 5 years'; }
 
+// AUDIT 9.1 (3 Aug 2026). This is the least trusted input in the system: the customer drawing
+// path. Whatever lands here is later rendered, passed to an LLM, and shown to suppliers. It
+// previously took the caller's declared Content-Type and the caller's filename at face value and
+// checked nothing but the byte length - so an HTML document, an SVG carrying script, or a PDF with
+// an embedded /Launch action all stored cleanly as "a drawing". It also stored phone photos with
+// their EXIF intact, which on an anonymous marketplace means the supplier receives the customer's
+// GPS coordinates attached to the "masked" site photo.
 async function storeOriginal(custId: string, name: string, mime: string, b64: string): Promise<string | null> {
-  try { const bytes = b64ToBytes(b64); if (!bytes.length || bytes.length > 25 * 1024 * 1024) return null; const safe = String(name).replace(/[^\w.\-]+/g, '_').slice(0, 120); const path = `drawings/${custId}/${Date.now()}_${safe}`; const up = await admin.storage.from('drawing-files').upload(path, bytes, { contentType: mime, upsert: false }); return up.error ? null : path; } catch { return null; }
+  try {
+    const s = sanitizeUpload({ input: b64, declaredMime: mime, filename: name, allow: SAFE_UPLOAD, maxBytes: 25 * 1024 * 1024 });
+    if (!s.ok) {
+      console.warn(`[9.1] drawing rejected: ${s.error} - ${s.detail}${s.mime ? ` (sniffed ${s.mime}, declared ${mime})` : ''}`);
+      return null;
+    }
+    if (s.declaredMismatch) console.warn(`[9.1] drawing declared ${mime} but is ${s.mime}; stored as ${s.mime}`);
+    const path = `drawings/${custId}/${Date.now()}_${safeFilename(name, s.mime)}`;
+    const up = await admin.storage.from('drawing-files').upload(path, s.bytes, { contentType: s.mime, upsert: false });
+    return up.error ? null : path;
+  } catch { return null; }
 }
 async function translateQuoteAr(q: any): Promise<any|null> {
   const key = await getSecret('inbound_secret'); if (!key) return null;

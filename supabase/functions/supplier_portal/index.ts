@@ -1,5 +1,6 @@
 // supplier_portal v5 — advanced supplier dashboard API. Supplier-authed (own leads row via claimed_by).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -138,11 +139,15 @@ Deno.serve(async (req) => {
         const kindStr = String(it.kind || '');
         if (kindStr === 'catalogs') {
           if (it.original_b64) {
+            // AUDIT 9.1 (3 Aug 2026). Sanitised from the bytes before storage; see
+            // supabase/functions/_shared/attachment.ts. A rejection is reported to the supplier
+            // in `failed` rather than swallowed, so they are never told a document is on file
+            // when it was refused.
             try {
-              const u8 = b64ToBytes(String(it.original_b64));
-              const fn = String(it.filename || 'catalog').replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 120);
-              const p = `catalogs/${sup.id}/${Date.now()}_${fn}`;
-              const { error: upErr } = await admin.storage.from('supplier-docs').upload(p, u8, { contentType: it.mime || 'application/octet-stream', upsert: true });
+              const s = sanitizeUpload({ input: String(it.original_b64), declaredMime: it.mime, filename: it.filename || 'catalog', allow: SAFE_UPLOAD });
+              if (!s.ok) { failed.push({ kind: 'catalogs', reason: s.detail }); continue; }
+              const p = `catalogs/${sup.id}/${Date.now()}_${safeFilename(it.filename || 'catalog', s.mime)}`;
+              const { error: upErr } = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
               if (upErr) { failed.push({ kind: 'catalogs', reason: upErr.message }); continue; }
               catAppend.push(p); saved.push('catalogs');
             } catch (e) { failed.push({ kind: 'catalogs', reason: String((e as Error)?.message || e).slice(0, 200) }); }
@@ -155,13 +160,19 @@ Deno.serve(async (req) => {
           // saved, so a supplier could be told their trade licence was on file when the
           // storage write had failed. Failures are now returned to the caller.
           try {
-            const u8 = b64ToBytes(String(it.original_b64));
-            const clean = String(it.filename || kindStr).replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 120);
+            // AUDIT 9.1 (3 Aug 2026). These are trade licences, insurance certificates and ISO
+            // certificates - documents an admin opens in a browser during review. Before this they
+            // were stored as whatever the caller declared, defaulting to application/octet-stream,
+            // with the extension taken from the caller's filename. The type is now decided from the
+            // bytes and the extension is forced to match it.
+            const s = sanitizeUpload({ input: String(it.original_b64), declaredMime: it.mime, filename: it.filename || kindStr, allow: SAFE_UPLOAD });
+            if (!s.ok) { failed.push({ kind: kindStr, reason: s.detail }); continue; }
+            const clean = safeFilename(it.filename || kindStr, s.mime);
             const p = `${kind.folder}/${sup.id}/${Date.now()}_${clean}`;
-            const { error: upErr } = await admin.storage.from('supplier-docs').upload(p, u8, { contentType: it.mime || 'application/octet-stream', upsert: true });
+            const { error: upErr } = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
             if (upErr) { failed.push({ kind: kindStr, reason: upErr.message }); continue; }
             upd[kind.pathCol] = p;
-            if (kind.nameCol) upd[kind.nameCol] = String(it.filename || clean).slice(0, 200);
+            if (kind.nameCol) upd[kind.nameCol] = clean.slice(0, 200);
           } catch (e) { failed.push({ kind: kindStr, reason: String((e as Error)?.message || e).slice(0, 200) }); continue; }
         }
         // #86: read the trade-licence expiry (and licence no / authority) SERVER-SIDE from the

@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -265,7 +266,23 @@ Deno.serve(async (req) => {
       const out: Record<string, unknown> = {};
       const lic = body.license || {};
       if (lic.path) { upd.license_doc_path = String(lic.path); }
-      else if (lic.original_b64) { try { const u8 = b64ToBytes(String(lic.original_b64)); const fn = String(lic.filename || 'license').replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 120); const p = `licenses/${sup.id}/${Date.now()}_${fn}`; await admin.storage.from('supplier-docs').upload(p, u8, { contentType: lic.mime || 'application/octet-stream', upsert: true }); upd.license_doc_path = p; } catch (_e) { /* */ } }
+      // AUDIT 9.1 (3 Aug 2026). The trade licence upload. Three defects in one line:
+      //   * no type check at all - the bytes went to storage as whatever the caller declared,
+      //     defaulting to application/octet-stream, so an HTML document or an executable stored
+      //     cleanly as a supplier's trade licence and was later served back to an admin reviewer;
+      //   * the filename was only character-filtered, so the stored extension could disagree with
+      //     the content ("licence.pdf" holding HTML);
+      //   * the whole thing sat in try/catch with an empty handler, so a failed upload was
+      //     SILENT - the supplier saw success, license_doc_path was never set, and the document
+      //     review queue simply never saw a licence.
+      else if (lic.original_b64) {
+        const s = sanitizeUpload({ input: String(lic.original_b64), declaredMime: lic.mime, filename: lic.filename || 'license', allow: SAFE_UPLOAD });
+        if (!s.ok) return J({ error: s.error, detail: s.detail, message: 'That licence file cannot be accepted. Please upload a PDF or a clear photo (JPEG or PNG) of your trade licence.' }, s.error === 'file_too_large' ? 413 : 415);
+        const p = `licenses/${sup.id}/${Date.now()}_${safeFilename(lic.filename || 'license', s.mime)}`;
+        const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
+        if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store your trade licence. Please try again.' }, 502);
+        upd.license_doc_path = p;
+      }
       const licImgs = Array.isArray(lic.images) ? lic.images : [];
       if (licImgs.length || lic.file_b64) {
         try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'license', images: licImgs, file_b64: lic.file_b64, mime: lic.mime, filename: lic.filename }) }); const jd = await r.json();
@@ -289,10 +306,31 @@ Deno.serve(async (req) => {
       let xServices: string[] = [];
       const prof = body.company_profile || {};
       if (prof.path) { upd.company_profile_doc_path = String(prof.path); }
-      else if (prof.original_b64) { try { const u8 = b64ToBytes(String(prof.original_b64)); const fn = String(prof.filename || 'profile').replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 120); const p = `profiles/${sup.id}/${Date.now()}_${fn}`; await admin.storage.from('supplier-docs').upload(p, u8, { contentType: prof.mime || 'application/octet-stream', upsert: true }); upd.company_profile_doc_path = p; } catch (_e) { /* */ } }
+      // AUDIT 9.1. Company profile document - same treatment as the trade licence above.
+      else if (prof.original_b64) {
+        const s = sanitizeUpload({ input: String(prof.original_b64), declaredMime: prof.mime, filename: prof.filename || 'profile', allow: SAFE_UPLOAD });
+        if (!s.ok) return J({ error: s.error, detail: s.detail, message: 'That company profile cannot be accepted. Please upload a PDF or an image (JPEG or PNG).' }, s.error === 'file_too_large' ? 413 : 415);
+        const p = `profiles/${sup.id}/${Date.now()}_${safeFilename(prof.filename || 'profile', s.mime)}`;
+        const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
+        if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store your company profile. Please try again.' }, 502);
+        upd.company_profile_doc_path = p;
+      }
       if (Array.isArray(prof.images)) profImgs.push(...prof.images);
       const cats = Array.isArray(body.catalogs) ? body.catalogs.slice(0, 5) : []; const catPaths: string[] = [];
-      for (const c of cats) { if (c?.path) { catPaths.push(String(c.path)); } else if (c?.original_b64) { try { const u8 = b64ToBytes(String(c.original_b64)); const fn = String(c.filename || 'catalog').replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 120); const p = `catalogs/${sup.id}/${Date.now()}_${fn}`; await admin.storage.from('supplier-docs').upload(p, u8, { contentType: c.mime || 'application/octet-stream', upsert: true }); catPaths.push(p); } catch (_e) { /* */ } } if (Array.isArray(c?.images)) profImgs.push(...c.images); }
+      // AUDIT 9.1. Catalogues. A rejected catalogue is refused outright rather than skipped,
+      // because silently dropping one is how a supplier ends up believing a document is on file.
+      for (const c of cats) {
+        if (c?.path) { catPaths.push(String(c.path)); }
+        else if (c?.original_b64) {
+          const s = sanitizeUpload({ input: String(c.original_b64), declaredMime: c.mime, filename: c.filename || 'catalog', allow: SAFE_UPLOAD });
+          if (!s.ok) return J({ error: s.error, detail: s.detail, message: 'One of your catalogue files cannot be accepted. Please upload PDFs or images (JPEG or PNG).' }, s.error === 'file_too_large' ? 413 : 415);
+          const p = `catalogs/${sup.id}/${Date.now()}_${safeFilename(c.filename || 'catalog', s.mime)}`;
+          const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
+          if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store one of your catalogue files. Please try again.' }, 502);
+          catPaths.push(p);
+        }
+        if (Array.isArray(c?.images)) profImgs.push(...c.images);
+      }
       // Append, never replace. Assigning catPaths wholesale wiped every catalogue the supplier
       // had already uploaded the moment they added one more - silent data loss, no warning, no
       // undo. supplier_portal.save_documents already appends; this is the registration path
@@ -572,7 +610,21 @@ Deno.serve(async (req) => {
       if (!images.length) return J({ error: 'Could not read the file pages. Please attach a clear PDF or photo.' }, 400);
       const orig = body.original || {};
       let original_file_path: string | null = null, original_file_name: string | null = null;
-      try { if (orig.path) { original_file_path = String(orig.path); original_file_name = String(orig.filename || 'quotation').slice(0, 180); } else if (orig.b64) { const u8 = b64ToBytes(String(orig.b64)); original_file_name = String(orig.filename || 'quotation').slice(0, 180); original_file_path = `quotes/${sup.id}/${inquiry_id}/${Date.now()}_${original_file_name.replace(/[^A-Za-z0-9._-]/g, '_')}`; await admin.storage.from('quote-files').upload(original_file_path, u8, { contentType: orig.mime || 'application/octet-stream', upsert: true }); } } catch (_e) { /* */ }
+      // AUDIT 9.1 (3 Aug 2026). The supplier's original quotation document. It is stored and later
+      // served back to admins and, on some paths, referenced to the customer. It had no type check
+      // and defaulted to application/octet-stream, and the failure was swallowed - so a rejected or
+      // failed upload silently produced a quote with no attached document.
+      if (orig.path) {
+        original_file_path = String(orig.path);
+        original_file_name = safeFilename(orig.filename || 'quotation', 'application/pdf');
+      } else if (orig.b64) {
+        const s = sanitizeUpload({ input: String(orig.b64), declaredMime: orig.mime, filename: orig.filename || 'quotation', allow: SAFE_UPLOAD });
+        if (!s.ok) return J({ error: s.error, detail: s.detail, message: 'That quotation file cannot be accepted. Please attach a PDF or a clear photo (JPEG or PNG).' }, s.error === 'file_too_large' ? 413 : 415);
+        original_file_name = safeFilename(orig.filename || 'quotation', s.mime);
+        original_file_path = `quotes/${sup.id}/${inquiry_id}/${Date.now()}_${original_file_name}`;
+        const up = await admin.storage.from('quote-files').upload(original_file_path, s.bytes, { contentType: s.mime, upsert: true });
+        if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store your quotation file. Please try again.' }, 502);
+      }
       const { data: inq } = await admin.from('inquiries').select('category,summary').eq('id', inquiry_id).maybeSingle();
       const secret = await secretVal('inbound_secret');
       let jd: any = {};
