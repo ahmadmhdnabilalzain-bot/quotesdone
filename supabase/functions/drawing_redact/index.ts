@@ -15,12 +15,43 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return null; } }
+// Chunked so a full-page JPEG cannot blow the argument limit: String.fromCharCode(...bytes)
+// overflows the stack well before a 1600px drawing page finishes encoding.
+function bytesToB64(u8: Uint8Array){ let out=''; const CH=0x8000; for(let i=0;i<u8.length;i+=CH){ out+=String.fromCharCode.apply(null, Array.from(u8.subarray(i,i+CH)) as any); } return btoa(out); }
 function stripB64(s:string){ return String(s).replace(/^data:[^;]+;base64,/,''); }
 function b64ToBytes(b64:string){ const bin=atob(stripB64(b64)); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
 const MAXW = 1600;
 const MARGIN = 0.03;
 
 const SYS = `You are a privacy redaction assistant for construction / architectural / MEP drawings that will be shared with COMPETING suppliers. For EACH page image, find EVERY area containing information that could identify the client, the project, or the firms involved — so a supplier cannot identify or contact them.\nCover: the title block (usually a vertical strip on the right edge or a horizontal strip along the bottom), and any consultant / architect / engineer / contractor / developer / owner / client names, company logos, stamps, signatures, addresses, plot / parcel / makani numbers, project name or number, drawing number or reference, phone numbers, emails and websites — wherever they appear (including next to the legend).\nDo NOT cover the technical drawing, dimensions, room/space names, grid bubbles, north arrow, or the legend's symbol explanations themselves — only the identifying text/logos.\nBe GENEROUS: if unsure whether a block is identifying, INCLUDE it. It is far better to over-cover than to leak.\nReturn STRICT JSON ONLY: {\"pages\":[{\"i\":0,\"has_identity\":true,\"regions\":[{\"x\":0.80,\"y\":0.0,\"w\":0.20,\"h\":1.0}]}]} — x,y,w,h are fractions 0..1 of the page (x,y = top-left corner of the box). One object per page, in the SAME order as the images. If a page truly has no identifying info, set has_identity=false and regions=[].`;
+
+// POST-REDACTION VERIFICATION (independent audit 9.2). Detection above is a single multimodal
+// call. It can return regions and still miss a small logo or a phone number, and when it returns
+// has_identity:false the page was previously uploaded UNMODIFIED with the run recorded 'complete'.
+// Every page is now re-examined AFTER rendering, adversarially and with no knowledge of what the
+// first pass claimed. Anything it flags is refused, not published. Uncertainty counts as dirty.
+const VERIFY_SYS = `You are the final check before a REDACTED construction drawing is shared with COMPETING suppliers. You are looking at the page EXACTLY as the supplier will see it.
+Report ANY remaining information that could identify the client, the project, or the firms involved: company names, logos, stamps, signatures, addresses, plot/parcel/makani numbers, project names or numbers, drawing numbers or references, phone numbers, emails, websites, or personal names. Text inside a black box is covered and does not count - only report what is still LEGIBLE.
+Do not report the technical drawing, dimensions, room names, grid bubbles, north arrow or legend symbols.
+Return STRICT JSON ONLY: {"clean": true, "found": []} or {"clean": false, "found": ["consultant name top right", "phone number in title block"]}.
+If you cannot read the image, or you are unsure, answer {"clean": false, "found": ["uncertain"]}.`;
+
+async function verifyPage(key: string, jpgB64: string): Promise<{ clean: boolean; found: string[] }> {
+  try {
+    const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: key, fn: 'drawing_redact_verify', max: 400, temperature: 0, sys: VERIFY_SYS,
+        input: [{ role: 'user', content: [
+          { type: 'text', text: 'Check this redacted page. Return the JSON.' },
+          { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + jpgB64 } }] }] }) });
+    const jd = await r.json();
+    const parsed = parseJson(jd?.content || '');
+    if (!parsed || typeof parsed.clean !== 'boolean') return { clean: false, found: ['verify_unparseable'] };
+    return { clean: parsed.clean === true, found: Array.isArray(parsed.found) ? parsed.found.map(String).slice(0, 8) : [] };
+  } catch (_e) {
+    return { clean: false, found: ['verify_exception'] };
+  }
+}
+
 
 // REDACTION PROVENANCE 2 Aug 2026 (external security review). WHY: suppliers are served the paths
 // this function returns as SIGNED URLs before any reveal fee is paid, and supplier_api will sign
@@ -34,7 +65,7 @@ const SYS = `You are a privacy redaction assistant for construction / architectu
 // is reported as unrecorded (recorded:false) and its paths will be refused downstream - fail-closed,
 // exactly like a page we could not clean.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-async function recordRun(id: string, body: any, o: { status: string; paths: string[]; pages_in: number; pages_out: number; skipped: number }): Promise<boolean> {
+async function recordRun(id: string, body: any, o: { status: string; paths: string[]; pages_in: number; pages_out: number; skipped: number; pages_verified?: number; verify_failed?: number; verify_detail?: any }): Promise<boolean> {
   try {
     const custId = typeof body?.owner_customer_id === 'string' && UUID_RE.test(body.owner_customer_id) ? body.owner_customer_id : null;
     const { error } = await admin.from('drawing_redaction_runs').insert({
@@ -48,6 +79,9 @@ async function recordRun(id: string, body: any, o: { status: string; paths: stri
       pages_out: o.pages_out,
       skipped: o.skipped,
       status: o.status,
+      pages_verified: o.pages_verified ?? 0,
+      verify_failed: o.verify_failed ?? 0,
+      verify_detail: o.verify_detail ?? null,
     });
     return !error;
   } catch (_e) { return false; }
@@ -92,12 +126,16 @@ Deno.serve(async (req) => {
       for (const p of parsed.pages) { const i = Number(p?.i); if (!Number.isFinite(i)) continue; identityByPage[i] = p?.has_identity !== false; regionsByPage[i] = Array.isArray(p?.regions) ? p.regions.map((g:any)=>({x:Number(g.x)||0,y:Number(g.y)||0,w:Number(g.w)||0,h:Number(g.h)||0})).filter((g:any)=>g.w>0&&g.h>0) : []; }
     } catch (_e) { const recorded = await recordRun(job_id, body, { status: 'detect_exception', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_exception', job_id, recorded }, 200); }
 
-    const paths: string[] = []; let skipped = 0;
+    const paths: string[] = []; let skipped = 0; let verified = 0; let verifyFailed = 0; const verifyDetail: any[] = [];
     for (let i = 0; i < imgs.length; i++) {
       try {
         const regions = regionsByPage[i] || [];
         const hasId = identityByPage[i] !== false;
+        // A page the model says has identity but gives no regions for is unusable - unchanged.
         if (hasId && regions.length === 0) { skipped++; continue; }
+        // has_identity:false used to mean 'upload it untouched'. One unverified model judgement
+        // is not enough to publish a page to competitors; it now falls through to the
+        // verification pass below like every other page.
         const b = (imgs[i] && (imgs[i].b64 || imgs[i].data)) || imgs[i];
         let img = await Image.decode(b64ToBytes(String(b)));
         if (img.width > MAXW) img = img.resize(MAXW, Image.RESIZE_AUTO);
@@ -111,6 +149,11 @@ Deno.serve(async (req) => {
           img.composite(box, x, y);
         }
         const jpg = await img.encodeJPEG(82);
+        // Adversarial second pass over what the supplier will actually see. Fails closed.
+        const b64out = bytesToB64(jpg);
+        const vr = await verifyPage(key, b64out);
+        if (!vr.clean) { verifyFailed++; skipped++; verifyDetail.push({ page: i, found: vr.found }); continue; }
+        verified++;
         const path = `${prefix}_p${i}.jpg`;
         const up = await admin.storage.from('drawing-files').upload(path, jpg, { contentType: 'image/jpeg', upsert: true });
         if (up.error) { skipped++; continue; }
@@ -118,7 +161,7 @@ Deno.serve(async (req) => {
       } catch (_e) { skipped++; continue; }
     }
     const status = paths.length === 0 ? 'failed' : (paths.length < imgs.length ? 'partial' : 'complete');
-    const recorded = await recordRun(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped });
-    return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, status });
+    const recorded = await recordRun(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: verifyDetail.length ? verifyDetail : null });
+    return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: verifyDetail, status });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 });
