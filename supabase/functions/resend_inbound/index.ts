@@ -1,9 +1,11 @@
-// resend_inbound v14 - inbound emails. Webhook metadata-only; body via GET /emails/inbound/{id}; attachments via
+// resend_inbound v15 - inbound emails. Webhook metadata-only; body via GET /emails/inbound/{id}; attachments via
 // /attachments/{id} -> download_url. Receipts -> finance. Supplier docs -> store + AI classify + AUTO-EXTRACT
 // (trade licence -> licence no/authority/emirate/expiry/TRN; profile/catalogue -> capability) applied to the matched lead.
 // v12: agent_runs instrumentation for silently-lost inbound documents.
 // v13: Svix signature verification (see PROVENANCE below).
 // v14: DUPLICATE-EXPENSE FIX (see DEDUP below).
+// v15: RECEIPT ARCHIVE RETRY + BACKFILL (see v15 FIX below). v14's dedup guard returned before any
+//      upload was attempted, which silently made "re-forward the email to retry" impossible.
 //
 // v13 SECURITY FIX 19 Jul 2026 -----------------------------------------------------------------
 // v12 authenticated ONLY on a shared token in the QUERY STRING (?s=...). The full URL including
@@ -157,8 +159,20 @@ Deno.serve(async (req) => {
           // amount differs it is flagged for review rather than silently booked - a genuine second
           // same-day charge from one vendor is possible, but rare enough to deserve a human look,
           // and under-booking with an alert is far safer than silently double-counting costs.
-          const { data: sameDay } = await admin.from('expense_entries').select('id,amount,currency').eq('vendor', vendor).eq('charged_on', charged).limit(5);
-          if (sameDay && sameDay.length) {
+          const { data: sameDay } = await admin.from('expense_entries').select('id,amount,currency,doc_path').eq('vendor', vendor).eq('charged_on', charged).limit(5);
+          // v15 FIX 3 Aug 2026 - RECEIPT ARCHIVE BACKFILL --------------------------------------
+          // v14 returned from this guard BEFORE any upload was attempted. That made the remedy
+          // printed by v_expense_receipt_gap - "re-forward the vendor email to the inbound address
+          // to retry" - a no-op: the re-forward was discarded as a duplicate and the entry kept
+          // doc_path NULL for ever. Returning non-200 on a failed archive would not help either,
+          // because Resend's own redelivery lands on this same guard. A receipt whose expense
+          // entry is missing its document is not a duplicate to discard, it IS the retry - so fall
+          // through and archive it against the EXISTING row instead of inserting a second one.
+          // Restricted to an exact vendor+date+amount+currency match, because a same-day entry
+          // with a DIFFERENT amount may be a genuine second charge and attaching this document to
+          // it would file the wrong evidence against a real expense.
+          const gapRow: any = (sameDay || []).find((x:any) => !x.doc_path && Number(x.amount) === amount && String(x.currency||'').toUpperCase() === currency) || null;
+          if (sameDay && sameDay.length && !gapRow) {
             const exact = sameDay.some((x:any) => Number(x.amount) === amount && String(x.currency||'').toUpperCase() === currency);
             if (!exact) {
               try{ await admin.from('notifications').insert({ type:'expense_review', to_email: owner, to_role:'admin', channel:'email', subject:'Possible duplicate expense was NOT booked', body:`A receipt for ${vendor} dated ${charged} showing ${amount} ${currency} was not booked, because an expense from that vendor already exists on that date (${sameDay.map((x:any)=>x.amount+' '+x.currency).join(', ')}).\n\nThis is usually the same receipt arriving twice and being read slightly differently. If it is genuinely a SECOND charge on the same day, add it manually.` }); }catch(_e){}
@@ -173,7 +187,27 @@ Deno.serve(async (req) => {
           if (!docBytes) { const html = String((d.html)|| text || subject); docBytes = new TextEncoder().encode('<meta charset=\"utf-8\"><pre style=\"font:14px/1.5 monospace;white-space:pre-wrap\">'+html.replace(/</g,'&lt;')+'</pre>'); docName = 'receipt.html'; docType = 'text/html'; }
           const ext = docType === 'application/pdf' ? 'pdf' : 'html';
           const rp = `receipts/${charged}/${Date.now()}_${vendor.replace(/[^A-Za-z0-9._-]/g,'_')}.${ext}`;
-          let docPath: string | null = null; let upErr = ''; try { const up = await admin.storage.from('receipt-files').upload(rp, docBytes, { contentType: docType, upsert: true }); if (!up.error) docPath = rp; else upErr = String(up.error.message||'').slice(0,150); } catch (e) { upErr = String((e as Error)?.message||e).slice(0,150); }
+          // v15: three attempts. A refused archive is usually transient, and a receipt that is
+          // separated from the expense it evidences is a VAT-record gap, not a cosmetic one.
+          let docPath: string | null = null; let upErr = ''; let upAttempts = 0;
+          for (let attempt = 1; attempt <= 3 && !docPath; attempt++) {
+            upAttempts = attempt;
+            const rpN = attempt === 1 ? rp : `receipts/${charged}/${Date.now()}_${vendor.replace(/[^A-Za-z0-9._-]/g,'_')}.${ext}`;
+            try { const up = await admin.storage.from('receipt-files').upload(rpN, docBytes, { contentType: docType, upsert: true }); if (!up.error) docPath = rpN; else upErr = String(up.error.message||'').slice(0,150); }
+            catch (e) { upErr = String((e as Error)?.message||e).slice(0,150); }
+            if (!docPath && attempt < 3) await new Promise((r) => setTimeout(r, 400 * attempt));
+          }
+          if (gapRow) {
+            // BACKFILL ONLY. The expense is already booked and the subscription row already
+            // exists; attaching the evidence must not book it a second time and must not re-run
+            // the subscription upsert. Nothing below this branch runs.
+            if (docPath) await admin.from('expense_entries').update({ doc_path: docPath, doc_name: docName.slice(0,180), doc_content_type: docType }).eq('id', gapRow.id);
+            await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[receipt archive ${docPath?'backfilled':'RETRY FAILED'}] entry #${gapRow.id} ${vendor} ${amount} ${currency} on ${charged}`, attachments_count: docPath?1:0, matched_existing: true, needs_review: !docPath });
+            await logRun(docPath ? 'ok' : 'error', { receipt: true, booked: false, archive_backfill: true, entry_id: gapRow.id, vendor, amount, currency, doc_archived: !!docPath, upload_attempts: upAttempts },
+              docPath ? ('receipt archive backfilled onto expense_entries#' + gapRow.id + ' - no second expense was booked')
+                      : ('receipt archive retry FAILED for expense_entries#' + gapRow.id + ' after ' + upAttempts + ' attempt(s): ' + upErr + '. The expense is still booked without its document; v_expense_receipt_gap will keep reporting it.'));
+            return J({ ok: true, receipt: true, archive_backfill: true, entry_id: gapRow.id, vendor, amount, currency, doc: docPath });
+          }
           await admin.from('expense_entries').insert({ vendor, category: recurring ? 'Subscription' : 'Usage', amount, currency, charged_on: charged, note: ('auto from forwarded ' + (recurring?'subscription':'receipt') + ': ' + String(ex.note||subject)).slice(0,300), source: 'receipt', doc_path: docPath, doc_name: docName.slice(0,180), doc_content_type: docType });
           let bookedSub = false;
           if (recurring) {
@@ -185,7 +219,10 @@ Deno.serve(async (req) => {
           }
           await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[expense ${recurring?'subscription':'one-off'}] ${vendor} ${amount} ${currency} on ${charged}${docPath?' +'+ext:''}`, attachments_count: docPath?1:0, matched_existing: false, needs_review: false });
           try{ await admin.from('notifications').insert({ type:'expense_logged', to_email: owner, to_role:'admin', channel:'email', subject:`Expense logged: ${vendor} ${amount} ${currency}`, body:`Logged from your forwarded email.\n\nVendor: ${vendor}\nAmount: ${amount} ${currency}\nDate: ${charged}\nType: ${recurring?(cad+' subscription'):'one-off'}` }); }catch(_e){}
-          await logRun(upErr ? 'error' : 'ok', { receipt: true, booked: true, vendor, amount, currency, recurring, cadence: cad, doc_archived: !!docPath }, upErr ? ('expense booked but the receipt document failed to archive: ' + upErr) : '');
+          // v15: keyed on docPath, not upErr. upErr now holds the LAST error of up to three
+          // attempts, so a retry that eventually succeeded would otherwise be reported as failed -
+          // and fn_watch_failed_runs pages on any error row.
+          await logRun(docPath ? 'ok' : 'error', { receipt: true, booked: true, vendor, amount, currency, recurring, cadence: cad, doc_archived: !!docPath, upload_attempts: upAttempts }, docPath ? '' : ('expense booked but the receipt document failed to archive after ' + upAttempts + ' attempt(s): ' + upErr + '. Re-forward the vendor email to the inbound address - v15 will archive it onto the existing entry without booking a second expense.'));
           return J({ ok: true, receipt: true, vendor, amount, currency, charged_on: charged, recurring, cadence: cad, booked_subscription: bookedSub, doc: docPath });
         }
       } catch (e) { await logRun('error', { from, subject }, 'receipt handling threw, fell through to document handling: ' + String((e as Error)?.message||e).slice(0,200)); }
