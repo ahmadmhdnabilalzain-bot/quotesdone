@@ -142,10 +142,36 @@ Deno.serve(async (req) => {
       const attempts = (t.attempts || 0) + 1;
       await admin.from('org_tasks').update({ status: 'in_progress', attempts, last_run_at: nowIso(), updated_at: nowIso() }).eq('id', t.id);
 
+      // AUDIT 7.3 (4 Aug 2026). RE-CHECK THE AUTHORITY, DO NOT INHERIT IT.
+      //
+      // This used to gate execution on org_tasks.tier alone - a column written by whoever created the
+      // row. Three things write tasks and only intent_router consulted the authority model, so
+      // fn_event_dispatch granted itself 'autonomous' on every task it made and this function
+      // executed them without ever asking. A permission carried in the payload is not a permission,
+      // it is a claim by the caller.
+      //
+      // The tier is now resolved HERE, from fn_dept_authority, at the moment of execution. The stored
+      // tier is used only to detect the disagreement, which is itself the signal worth having: a row
+      // claiming more authority than the model grants means something upstream is minting authority.
+      const authRow: any = (await admin.rpc('fn_dept_authority', { p_dept: t.dept_key, p_action_class: t.action_class })).data;
+      const grantedTier = String(authRow?.tier || 'gated');
+      if (t.tier === 'autonomous' && grantedTier !== 'autonomous') {
+        try {
+          await admin.from('agent_runs').insert({ agent: 'cos_execute', status: 'error',
+            counts: { signal: 'tier_claim_exceeds_grant', task_id: t.id, dept: t.dept_key,
+                      action_class: t.action_class, claimed: t.tier, granted: grantedTier },
+            note: ('org_tasks#' + t.id + ' was written with tier=autonomous but the authority model grants only "'
+              + grantedTier + '" for ' + t.dept_key + '/' + t.action_class + '. Whatever created this row is '
+              + 'minting authority it does not have. Reason: ' + String(authRow?.reason || '-')).slice(0, 500),
+            started_at: nowIso(), finished_at: nowIso() });
+        } catch (_e) { /* never let the alert block the refusal */ }
+      }
+
       // EXECUTOR PATH — if this action_class is wired to a real executor, run it (real side effect)
-      // instead of only preparing a deliverable. advisory tasks never execute (advice only).
+      // instead of only preparing a deliverable. Anything the model does not grant autonomously falls
+      // through to the advisory path below, which prepares a deliverable and moves nothing.
       const ex: any = execMap.get(t.action_class);
-      if (ex && (t.tier !== 'advisory' || ex.advisory_safe)) {
+      if (ex && grantedTier === 'autonomous' && (t.tier !== 'advisory' || ex.advisory_safe)) {
         let execResult: any;
         try {
           if (ex.kind === 'rpc') { const { data, error } = await admin.rpc(ex.target, ex.params || {}); execResult = error ? { error: error.message } : data; }
