@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 async function sec(k:string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 // FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
@@ -10,7 +11,10 @@ const FIXED:Record<string,string>={brief:'Daily Brief',secretary:'Secretary (Chi
 Deno.serve(async (req)=>{
   let b:any={}; try{ b=await req.json(); }catch(_){}
   const __exp = await sec('inbound_secret');
-  if(!secretOk(__exp) || b.__secret!==__exp) return new Response('forbidden',{status:403});
+  // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+  // per-context credential and the legacy shared secret, and records which one called.
+  const __auth = await requireInternal(admin, b?.__secret, 'export_all_knowledge');
+  if(!__auth.ok) return new Response('forbidden',{status:403});
   const { data: kn } = await admin.from('agent_knowledge').select('agent_key,topic,content,priority').order('priority',{ascending:false});
   const { data: cats } = await admin.from('category_agents').select('slug,name,persona').eq('active',true).order('name');
   const byKey=new Map<string, any[]>();

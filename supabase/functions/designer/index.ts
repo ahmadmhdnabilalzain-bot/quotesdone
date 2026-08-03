@@ -3,6 +3,7 @@
 // Auth: __secret == inbound_secret. Secret needed to generate: openai_api_key.
 // Actions: 'status' (readiness), 'generate' (default).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
@@ -23,7 +24,10 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' } });
   const body = await req.json().catch(() => ({} as any));
   const __exp = await sec('inbound_secret');
-  if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
+  // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+  // per-context credential and the legacy shared secret, and records which one called.
+  const __auth = await requireInternal(admin, body?.__secret, 'designer');
+  if (!__auth.ok) return J({ error: 'forbidden' }, 403);
 
   const key = await sec('openai_api_key');
   const fallback = await sec('default_post_image');
@@ -44,7 +48,7 @@ Deno.serve(async (req) => {
 
   // No key: don't fail hard — tell the caller it's not configured and offer the brand fallback image.
   if (!key) {
-    await admin.from('agent_runs').insert({ agent: 'designer', started_at: started, finished_at: new Date().toISOString(), status: 'skipped', note: 'openai_api_key not set' }).catch(() => null);
+    await admin.from('agent_runs').insert({ agent: 'designer', started_at: started, finished_at: new Date().toISOString(), status: 'skipped', note: 'openai_api_key not set' }).then(() => null, () => null);
     return J({ ok: false, ready: false, error: 'openai_not_configured', need: ['openai_api_key'], fallback_url: fallback || null, message: 'Image generation is not active yet — add the openai_api_key secret. A brand fallback image is available.' }, 200);
   }
 
@@ -68,7 +72,7 @@ Deno.serve(async (req) => {
     if (up.error) return J({ ok: false, error: up.error.message }, 200);
     const url = SUPA + '/storage/v1/object/public/brand/' + path;
 
-    await admin.from('content_drafts').insert({ channel: 'image', title: ('Design: ' + brief).slice(0, 200), body: url, status: 'ready', source: 'agent:designer' }).catch(() => null);
+    await admin.from('content_drafts').insert({ channel: 'image', title: ('Design: ' + brief).slice(0, 200), body: url, status: 'ready', source: 'agent:designer' }).then(() => null, () => null);
     await admin.from('agent_runs').insert({ agent: 'designer', started_at: started, finished_at: new Date().toISOString(), status: 'ok', counts: { size, purpose } });
     return J({ ok: true, url, size, purpose });
   } catch (e) {

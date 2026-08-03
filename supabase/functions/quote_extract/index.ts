@@ -2,6 +2,7 @@
 // ANONYMIZED standardized quote. Masks company identity AND brand/model/identity-revealing terms.
 // Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -35,7 +36,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) { await logRun('error', { forbidden: 1, quote_extracted: 0 }, 'quote_extract rejected a caller with a missing/wrong inbound secret (403). A supplier quotation was not parsed — that supplier\'s price will be missing from the comparison the customer sees, which looks like the supplier simply never quoted.'); return J({ error: 'forbidden' }, 403); }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'quote_extract');
+    if (!__auth.ok) { await logRun('error', { forbidden: 1, quote_extracted: 0 }, 'quote_extract rejected a caller with a missing/wrong inbound secret (403). A supplier quotation was not parsed — that supplier\'s price will be missing from the comparison the customer sees, which looks like the supplier simply never quoted.'); return J({ error: 'forbidden' }, 403); }
     const secret = await sec('inbound_secret');
     if (!secret) { await logRun('error', { quote_extracted: 0, ai_key_present: 0 }, 'quote_extract aborted: the inbound_secret secret is missing, so the AI gateway cannot be called and no supplier quotation can be read at all. Every quote uploaded while this persists is silently dropped and the customer sees fewer (or zero) quotes to compare.'); return J({ error: 'no ai key' }, 500); }
     const inq = body.inquiry || {};

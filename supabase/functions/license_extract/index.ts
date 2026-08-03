@@ -6,6 +6,7 @@
 //     the document already has the date; asking them to retype it is a chance to get it wrong.
 // Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
@@ -46,7 +47,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'license_extract');
+    if (!__auth.ok) return J({ error: 'forbidden' }, 403);
     const secret = await sec('inbound_secret'); if (!secret) return J({ error: 'no ai key' }, 500);
     const mode = body.mode === 'profile' ? 'profile' : body.mode === 'cert' ? 'cert' : 'license';
     const images: any[] = Array.isArray(body.images) ? body.images : [];

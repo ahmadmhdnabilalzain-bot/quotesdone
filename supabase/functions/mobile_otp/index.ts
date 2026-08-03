@@ -4,6 +4,7 @@
 // Actions: 'status' (reports sms_enabled + phone), 'send', 'verify', 'diag' (read-only credential check).
 // Authed via the customer's Supabase JWT. verify_jwt=false (validates JWT internally).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -39,7 +40,10 @@ Deno.serve(async (req) => {
     // read-only credential + service reachability check (no SMS sent). Secret-gated to avoid abuse.
     if (action === 'diag') {
       const __exp = await sec('inbound_secret');
-      if (!secretOk(__exp) || body.__secret !== __exp) return J({ error:'forbidden' }, 403);
+      // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+      // per-context credential and the legacy shared secret, and records which one called.
+      const __auth = await requireInternal(admin, body?.__secret, 'mobile_otp');
+      if (!__auth.ok) return J({ error:'forbidden' }, 403);
       if (!smsEnabled) return J({ ok:false, sms_enabled:false, missing:{ verify_service_sid:!svc, api_key_sid:!ks, api_key_secret:!kk } });
       const r = await fetch(`https://verify.twilio.com/v2/Services/${svc}`, { headers:{ 'Authorization': basic(ks!,kk!) } });
       const jd = await r.json().catch(()=>({}));

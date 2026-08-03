@@ -4,6 +4,7 @@
 // about production - it was testing a code path no real function would use once migrated, and its
 // spend was invisible to ai_cost_log. Same question, now asked through the same door.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { llmWeb } from '../_shared/llm.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -20,7 +21,10 @@ Deno.serve(async (req) => {
     // deno-lint-ignore no-explicit-any
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'kb_research_test');
+    if (!__auth.ok) return J({ error: 'forbidden' }, 403);
 
     const topic = String(body.topic || 'MDF moisture resistant grade selection for joinery');
     const r = await llmWeb(

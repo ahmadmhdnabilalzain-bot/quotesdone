@@ -2,6 +2,7 @@
 // + compliance checklists (UAE) into category_specs. Auth: __secret == inbound_secret.
 // Actions: 'generate' {category}, 'backfill' {limit}.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
@@ -31,7 +32,10 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' } });
   const body = await req.json().catch(() => ({} as any));
   const __exp = await sec('inbound_secret');
-  if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
+  // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+  // per-context credential and the legacy shared secret, and records which one called.
+  const __auth = await requireInternal(admin, body?.__secret, 'category_reqs');
+  if (!__auth.ok) return J({ error: 'forbidden' }, 403);
   const action = String(body.action || 'generate');
 
   if (action === 'generate') {

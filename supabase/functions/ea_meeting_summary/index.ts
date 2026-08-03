@@ -2,6 +2,7 @@
 // summary + decisions + action items, stores it in ea_meetings, and creates tracked tasks (crm_tasks) for the
 // action items. Internal use; drafts/records only — never sends anything externally.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const llm = makeLlm(SONNET_FIRST, { max: 1600, temperature: 0.2 });
@@ -17,7 +18,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'ea_meeting_summary');
+    if (!__auth.ok) return J({ error: 'forbidden' }, 403);
     const title = String(body.title || 'Meeting');
     const attendees = Array.isArray(body.attendees) ? body.attendees : [];
     let text = String(body.text || body.transcript || '').trim();
