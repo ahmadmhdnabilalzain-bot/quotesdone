@@ -494,7 +494,16 @@ Deno.serve(async (req) => {
       const { data: sup } = await admin.from('leads').select('id,approval_status').eq('claimed_by', email).maybeSingle(); if (!sup) return J({ error: 'claim your company first' }, 400);
       const { data: matches } = await admin.from('inquiry_matches').select('inquiry_id').eq('supplier_id', sup.id); const ids = (matches || []).map((m) => m.inquiry_id);
       if (!ids.length) return J({ inquiries: [], approval_status: sup.approval_status });
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,summary,spec,created_at,budget,scope_type,brief_source,boq,boq_confidence,drawing_redacted_paths,status,outcome,hired_supplier_id').in('id', ids).order('created_at', { ascending: false }).limit(25);
+      // SUPPLIER-SAFE PROJECTION (independent audit 9.3). The supplier inbox used to read the raw
+      // inquiries row and redact on the way out, which meant every present and future
+      // supplier-facing endpoint had to remember to do the same. public.inquiries_supplier_safe is
+      // the single supplier-facing projection: it serves the *_masked columns under their normal
+      // names and does not expose customer_id at all, so a buyer cannot be correlated across RFQs.
+      // Write-time masking was hardened first (migration harden_inquiry_masking_for_supplier_safe_view)
+      // so this is not a downgrade - before that it missed UAE landlines, bare domains and the
+      // buyer's own name, all of which the retrieval-time scrub did catch.
+      // scrubIdentity below is deliberately kept as a second, independent layer.
+      const { data: inq } = await admin.from('inquiries_supplier_safe').select('id,category,emirate,summary,spec,created_at,budget,scope_type,brief_source,boq,boq_confidence,drawing_redacted_paths,status,outcome,hired_supplier_id').in('id', ids).order('created_at', { ascending: false }).limit(25);
       const { data: myq } = await admin.from('quotes').select('inquiry_id,quote_amount,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,source,original_file_name,submittable').eq('supplier_id', sup.id); const qmap = Object.fromEntries((myq || []).map((x) => [x.inquiry_id, x]));
       // Reveal gate for the scrub below. customer_api treats the mere existence of a transactions
       // row as "revealed" (line ~430: every tx row for the customer goes into revealedQ with no

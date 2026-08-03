@@ -88,6 +88,38 @@ Deno.serve(async (req) => {
     const { data: inq } = await admin.from('inquiries').select('id,rfq_ready,routing,category,emirate,summary,status').eq('id', inquiryId).maybeSingle();
     if (!inq) { await logRun('error', { inquiry_id: inquiryId }, 'inquiry_not_found - dispatch requested for an inquiry that does not exist'); return J({ error: 'inquiry_not_found' }, 404); }
     if (inq.rfq_ready !== true) return J({ ok: true, skip: 'not_rfq_ready' });
+
+    // CANONICAL DISPATCH GATE (independent audit 9.4) -----------------------------------------
+    // v_workstream_dispatch.dispatch_eligible already encoded the real answer - active, every
+    // mandatory answer present, no unresolved conflict, every required workstream gate satisfied -
+    // and nothing read it. Dispatch decided on inquiries.rfq_ready alone, so an RFQ could go out to
+    // suppliers with the interpretation engine still holding open questions about it.
+    //
+    // fn_inquiry_dispatch_eligible resolves the inquiry to its ACTIVE workstreams and requires all
+    // of them. An inquiry with no workstreams is eligible ('no_workstreams') - workstreams exist
+    // for multi-trade and turnkey work, and blocking simple single-trade RFQs is not what this
+    // check is for.
+    //
+    // Fails closed, and deliberately applies even under force: the force key exists to break a
+    // stale concurrency lock, not to send suppliers an incomplete brief. The refusal names the
+    // workstream and what is missing, so it is actionable rather than mysterious.
+    {
+      let gate: any = null;
+      try {
+        const { data, error } = await admin.rpc('fn_inquiry_dispatch_eligible', { p_inquiry_id: inquiryId });
+        if (error) throw new Error(error.message);
+        gate = data;
+      } catch (e) {
+        await logRun('error', { inquiry_id: inquiryId, detail: String((e as Error)?.message || e) },
+          'dispatch refused: could not evaluate dispatch eligibility');
+        return J({ ok: false, error: 'dispatch_eligibility_unavailable' }, 503);
+      }
+      if (gate?.eligible !== true) {
+        await logRun('error', { inquiry_id: inquiryId, gate },
+          'dispatch refused: one or more workstreams are not dispatch-eligible');
+        return J({ ok: true, skip: 'not_dispatch_eligible', gate });
+      }
+    }
     const routing = (inq.routing && typeof inq.routing === 'object') ? inq.routing as any : {};
     if (routing.dispatched_at && !force) return J({ ok: true, skip: 'already_dispatched', dispatched_at: routing.dispatched_at });
 
