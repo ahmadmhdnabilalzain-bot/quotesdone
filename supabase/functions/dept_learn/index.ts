@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     if (body.dept_key) return J({ ok: true, result: await learnDept(String(body.dept_key)) });
     if (body.all) {
       const { data: depts } = await admin.from('org_departments').select('dept_key').eq('active', true);
-      const secret = await sec('inbound_secret');
+      const secret = await sec('cred_fn_dept_learn');
       const keys = (depts || []).map((d: any) => d.dept_key);
       await Promise.all(keys.map((k: string) => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, dept_key: k }), signal: AbortSignal.timeout(2500) }).catch(() => {})));
       return J({ ok: true, fanned_out: keys.length });

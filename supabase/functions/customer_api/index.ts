@@ -114,7 +114,7 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   let routerAnswered = false;
   if (useRouter) {
     try {
-      const secret = await getSecret('inbound_secret');
+      const secret = await getSecret('cred_fn_customer_api');
       const rr = await fetch(`${SUPABASE_URL}/functions/v1/route_inquiry`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, inquiry_id: inqId }) });
       const rj = await rr.json();
       if (rj?.ok) { routerAnswered = true; routing = { job_type: rj.job_type, primary_trade: rj.primary_trade, reasoning: rj.reasoning, evaluated: rj.evaluated, note: rj.note || null, needs_detail: rj.needs_detail === true, missing: Array.isArray(rj.missing) ? rj.missing.slice(0, 6) : null, at: new Date().toISOString() }; fits = Array.isArray(rj.fits) ? rj.fits : []; }
@@ -187,7 +187,7 @@ async function storeOriginal(custId: string, name: string, mime: string, b64: st
   } catch { return null; }
 }
 async function translateQuoteAr(q: any): Promise<any|null> {
-  const key = await getSecret('inbound_secret'); if (!key) return null;
+  const key = await getSecret('cred_fn_customer_api'); if (!key) return null;
   const payload = { job_category:q.job_category||'', job_summary:q.job_summary||'', emirate:q.emirate||'', items:(q.items||[]).map((it:any)=>({desc:it.desc||'',unit:it.unit||''})), lead_time:q.lead_time||'', validity:q.validity||'', warranty:q.warranty||'', payment_terms:q.payment_terms||'', conditions:q.conditions||'', exclusions:q.exclusions||'', notes:q.notes||'', scope:q.scope||'' };
   const sys = 'You are a professional Arabic translator for UAE B2B construction and services quotations. Translate every string VALUE in the given JSON into clear, formal Modern Standard Arabic. Keep ALL numbers, measurements, dimensions, currency codes (AED), percentages, dates and Latin brand/model codes EXACTLY as they are. Translate the emirate name to Arabic. Return ONLY a valid JSON object with the SAME keys and structure (items is an array of {desc,unit}); no commentary, no code fences.';
   {
@@ -213,7 +213,7 @@ async function buildQuotePdf(q: any, inq: any, wantAr: boolean) {
   if (!items.length && inq?.boq && Array.isArray((inq.boq as any).boq)) items = (inq.boq as any).boq.map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc).slice(0, 40);
   const quote = { supplier_label: letter, job_category: inq?.category, job_summary: inq?.summary, emirate: inq?.emirate, items, scope: items.length ? String(q.scope || '') : String(q.scope || inq?.summary || ''), lead_time: q.lead_time, validity: q.validity, warranty: q.warranty, payment_terms: q.payment_terms, conditions: q.conditions, exclusions: q.exclusions, notes: q.notes, total: q.quote_amount };
   const ref = 'QD-' + String(q.inquiry_id || '').slice(0, 8).toUpperCase() + '-' + letter;
-  const secret = await getSecret('inbound_secret');
+  const secret = await getSecret('cred_fn_customer_api');
   const payload: any = { __secret: secret, quote, lang: wantAr ? 'bi' : 'en', ref, name: ref };
   if (wantAr) { const quoteAr = await translateQuoteAr(quote); payload.quote_ar = quoteAr || quote; }
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -265,7 +265,7 @@ async function buildBriefPdf(inq: any, lang: string) {
   blocks.push({ t: 'note', text: T(
     'This is the anonymised brief QuotesDone sends to matched suppliers. The customer name, company and contact details are never included - suppliers quote on the scope alone, and contact details are exchanged only after the customer reveals a quote.',
     'هذا هو الملخّص المجهول الذي ترسله QuotesDone إلى المورّدين المطابقين. لا يتضمّن اسم العميل أو شركته أو بيانات التواصل — يقدّم المورّدون عروضهم بناءً على النطاق فقط، وتُتبادل بيانات التواصل فقط بعد أن يكشف العميل عن العرض.') });
-  const secret = await getSecret('inbound_secret');
+  const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ __secret: secret, title: T('Supplier brief', 'ملخّص المورّد'), ref, name: ref, lang: ar ? 'ar' : 'en', blocks, options: { letterhead: true } }) });
   const j = await r.json();
@@ -322,7 +322,7 @@ async function buildComparePdf(a: any, inq: any, lang: string) {
   blocks.push({ t: 'space', h: 6 });
   blocks.push({ t: 'note', text: String(a.disclaimer || '') });
   const ref = 'QD-' + String(inq?.id || '').slice(0, 8).toUpperCase() + '-CMP';
-  const secret = await getSecret('inbound_secret');
+  const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ __secret: secret, title: T('Quote comparison report', 'تقرير مقارنة العروض'), ref, name: ref, lang: ar ? 'ar' : 'en', blocks, options: { letterhead: true } }) });
   const j = await r.json();
@@ -422,7 +422,7 @@ Deno.serve(async (req) => {
       const mime = String(body.mime || 'application/octet-stream');
       const hint = String(body.hint || '').slice(0, 400);
       const path = body.original_b64 ? await storeOriginal(cust.id, name, mime, String(body.original_b64)) : null;
-      const secret = await getSecret('inbound_secret');
+      const secret = await getSecret('cred_fn_customer_api');
       const isCad = /\.(dwg|dxf)$/i.test(name) || /dwg|dxf|autocad|acad/i.test(mime);
       if (!images.length && isCad && body.original_b64) {
         try { const cr = await fetch(`${SUPABASE_URL}/functions/v1/cad_convert`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, b64: body.original_b64, filename: name }) }); const cj = await cr.json(); if (cj?.ok && Array.isArray(cj.images) && cj.images.length) images = cj.images.slice(0, 10); } catch (_e) { /* */ }
@@ -476,7 +476,7 @@ Deno.serve(async (req) => {
         // Fire-and-forget repair. Never awaited: create_inquiry must not inherit the latency or
         // the failure mode of a PDF render and a Dropbox round-trip.
         try {
-          const s = await getSecret('inbound_secret');
+          const s = await getSecret('cred_fn_customer_api');
           fetch(`${SUPABASE_URL}/functions/v1/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: s, action: 'sign', kind: 'customer', email }) }).catch(() => { /* best effort */ });
         } catch (_e) { /* never blocks the buyer */ }
       }
@@ -622,7 +622,7 @@ Deno.serve(async (req) => {
       // Reuse the cached analysis when the quote set is unchanged; otherwise ask for a fresh one.
       let analysis: any = null;
       try {
-        const secret = await getSecret('inbound_secret');
+        const secret = await getSecret('cred_fn_customer_api');
         const r = await fetch(`${SUPABASE_URL}/functions/v1/quote_compare`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, inquiry_id: iid, lang }) });
         const jd = await r.json();
         if (jd?.ok && jd.analysis) analysis = jd.analysis; else return J({ error: jd?.note || jd?.error || 'comparison_unavailable' }, 200);

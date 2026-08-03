@@ -93,7 +93,7 @@ async function dispatch(deptName: string, brainKey: string, objective: string, t
       // task recorded "could not reach the AI service". The inner call must outlast the layer it
       // depends on, never the reverse.
       const r = await fetch(FN + '/agent_brain', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ __secret: await sec('inbound_secret'), agent: brainKey, message: instruction }), signal: AbortSignal.timeout(75000) });
+        body: JSON.stringify({ __secret: await sec('cred_fn_cos_execute'), agent: brainKey, message: instruction }), signal: AbortSignal.timeout(75000) });
       const j = await r.json().catch(() => ({} as any));
       if (j?.reply && String(j.reply).length > 40) return String(j.reply);
     } catch (_e) { /* fall through to generic */ }
@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
         let execResult: any;
         try {
           if (ex.kind === 'rpc') { const { data, error } = await admin.rpc(ex.target, ex.params || {}); execResult = error ? { error: error.message } : data; }
-          else { const r = await fetch(FN + '/' + ex.target, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), objective_id: t.objective_id, task_id: t.id, ...(ex.params || {}) }), signal: AbortSignal.timeout(50000) }); execResult = await r.json().catch(() => ({ error: 'bad_json' })); }
+          else { const r = await fetch(FN + '/' + ex.target, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_cos_execute'), objective_id: t.objective_id, task_id: t.id, ...(ex.params || {}) }), signal: AbortSignal.timeout(50000) }); execResult = await r.json().catch(() => ({ error: 'bad_json' })); }
         } catch (e) { execResult = { error: String((e as Error)?.message || e) }; }
         const okExec = execResult && !execResult.error;
         const oneLine = (okExec ? String(execResult.note || JSON.stringify(execResult)) : 'executor error: ' + String(execResult?.error || 'unknown')).slice(0, 300);

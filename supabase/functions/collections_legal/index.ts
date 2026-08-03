@@ -21,7 +21,7 @@ const dbx = (x: unknown) => String(x??'').replace(/[\\/:*?"<>|\r\n\t]+/g,' ').re
 const REF = (id: unknown) => 'QD-NR-' + String(id);
 
 async function renderPdf(html: string, title: string, name: string){
-  const r = await fetch(`${BASE}/make_pdf`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), html, title, name: name.replace(/[^a-z0-9_]+/gi,'_').slice(0,60), bucket:'supplier-docs', folder:'legal' }) });
+  const r = await fetch(`${BASE}/make_pdf`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_to_make_pdf'), html, title, name: name.replace(/[^a-z0-9_]+/gi,'_').slice(0,60), bucket:'supplier-docs', folder:'legal' }) });
   const jd = await r.json().catch(()=>({} as any));
   if (!jd?.path) throw new Error('make_pdf '+(jd?.error||r.status));
   return String(jd.path);

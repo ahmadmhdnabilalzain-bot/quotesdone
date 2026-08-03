@@ -18,7 +18,7 @@ async function readPath(path: string): Promise<any> {
 }
 async function readFile(src: string){ const path = FILES[src]; if (!path) return null; return await readPath(path); }
 async function orLLM(models: string[], sys: string, user: string, max = 4500): Promise<string | null> {
-  const key = await sec('inbound_secret'); if (!key) return null;
+  const key = await sec('cred_fn_os_pages'); if (!key) return null;
   try {
     const r = await fetch(FN_BASE + '/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'os_pages', sys, input: user, max, temperature: 0.3 }) });
     const j = await r.json(); if (!r.ok) return null;
@@ -27,7 +27,7 @@ async function orLLM(models: string[], sys: string, user: string, max = 4500): P
 }
 async function translateHtml(html: string, model?: string): Promise<string> {
   const prot = html.replace(/\{\{LOC_THE\}\}/g, '<xloct></xloct>').replace(/\{\{LOC\}\}/g, '<xloc></xloc>');
-  const r = await fetch(`${FN_BASE}/translate_html`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), html: prot, model: model || 'anthropic/claude-sonnet-5' }) });
+  const r = await fetch(`${FN_BASE}/translate_html`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_os_pages'), html: prot, model: model || 'anthropic/claude-sonnet-5' }) });
   const jd = await r.json().catch(() => ({} as any));
   if (!(jd as any)?.ok) throw new Error((jd as any)?.error || 'translate_failed');
   return String((jd as any).ar || '').replace(/<xloct><\/xloct>/g, '{{LOC_THE}}').replace(/<xloc><\/xloc>/g, '{{LOC}}');
@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'publish') {
-      const r = await fetch(`${FN_BASE}/deploy_next_preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __deploy_secret: (await sec('deploy_secret')) || (await sec('inbound_secret')), target: 'production' }) });
+      const r = await fetch(`${FN_BASE}/deploy_next_preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __deploy_secret: await sec('deploy_secret'), target: 'production' }) });
       const jd = await r.json().catch(() => ({}));
       if (!(jd as any)?.ok) return J({ error: (jd as any)?.error || 'deploy_failed' }, 502);
       return J({ ok: true, data: { id: (jd as any).id, url: (jd as any).url } });

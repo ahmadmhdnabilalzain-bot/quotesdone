@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
       // postiz_publish authenticates on __secret==inbound_secret and reads {action,text,type,channels,image_url}.
       // type='now' = a real live post (this runs only for founder-approved content, behind marketing_golive
       // and behind the weekly cap).
-      const inbound = await secret("inbound_secret");
+      const inbound = await secret("cred_fn_social_stage");
       const imageUrl = (row.image_url || img) || undefined;
       const pr = await fetch(`${SB_URL}/functions/v1/postiz_publish`, {
         method: "POST",

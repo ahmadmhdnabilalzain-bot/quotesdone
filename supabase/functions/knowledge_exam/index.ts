@@ -18,7 +18,7 @@ const T0 = Date.now();
 // capped fn_agent_context layer. Without this the exam under-measures and flags false gaps.
 async function deepKb(query: string, category: string | null, k: number): Promise<string> {
   try {
-    const secret = await sec('inbound_secret'); if (!secret || !query.trim()) return '';
+    const secret = await sec('cred_fn_knowledge_exam'); if (!secret || !query.trim()) return '';
     const r = await fetch(SUPA + '/functions/v1/kb_search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, query: query.slice(0, 800), k, ...(category ? { category } : {}) }) });
     const j = await r.json(); const rows = (j && Array.isArray(j.results)) ? j.results : [];
     if (!rows.length) return '';

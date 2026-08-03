@@ -49,7 +49,7 @@ const slugify = (s: string) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-
 // Runs through ai_gateway (v3): the web plugin is passed through and the citation annotations come
 // back on the gateway response, so the routing, budget and cost logging all apply to it.
 async function research(topic: string, label: string): Promise<{ brief: string; sources: string[] }> {
-  const key = await sec('inbound_secret'); if (!key) return { brief: '', sources: [] };
+  const key = await sec('cred_fn_kb_deepen'); if (!key) return { brief: '', sources: [] };
   const sys = 'You are a meticulous UAE (Dubai-focused) B2B market researcher supporting a ' + label + '. Research the sub-topic from AUTHORITATIVE, CURRENT sources — UAE government authorities and regulators, standards bodies, reputable manufacturers/suppliers and established trade references. Then write a DEEP, factual reference brief (350-600 words) a top specialist would rely on, covering as relevant: what it is and how it is made/works; the grades/types/thicknesses/variants and how to choose; quality tiers (premium vs standard); the UAE authorities, approvals and standards that apply; real price drivers and realistic UAE ballpark ranges; where it is used and what it enables; common mistakes, failure modes and red flags; and the sharp questions a pro asks. Ground every specific in what you actually find in the sources. HARD RULE: never fabricate a code number, authority name, standard or figure — if a precise number is not found, name the requirement without inventing one. Output ONLY the brief prose (no preamble, no bibliography list).';
   const user = 'Deeply research for the UAE (Dubai) market, sub-topic: "' + topic + '" (for a ' + label + '). Write the grounded reference brief.';
   try {
@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
       if (!sources.length) ungrounded++;   // keep it (web-informed) but track that no citation URL came back
       const sid = 'deep::' + agent + '::' + slugify(topic);
       const citation = sources.length ? ('Web-researched (UAE) — sources: ' + sources.join(' ; ')) : 'Web-researched (UAE sources)';
-      const r = await fetch(BASE + '/kb_ingest_text', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), source_id: sid, title: label + ' — ' + topic, category: agent, citation, text: brief }) });
+      const r = await fetch(BASE + '/kb_ingest_text', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_kb_deepen'), source_id: sid, title: label + ' — ' + topic, category: agent, citation, text: brief }) });
       const jd = await r.json().catch(() => ({} as any));
       if (jd?.ok) { added++; done.push(topic); }
     }

@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const saved: string[] = [];
       const failed: { kind: string; reason: string }[] = [];
-      const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'inbound_secret').maybeSingle();
+      const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_supplier_portal').maybeSingle();
       const INBOUND_SECRET = (_isec?.value as string) || '';
       let catAppend: string[] = [];
       for (const it of items) {

@@ -41,7 +41,7 @@ const CASES = [
 
 Deno.serve(async (req) => {
   const body = await req.json().catch(()=>({} as any));
-  const inbound = await sec('inbound_secret');
+  const inbound = await sec('cred_fn_to_route_inquiry');
   if (!inbound) { await logRun('error', { stage:'config' }, 'inbound_secret missing from app_secrets: match_eval can never authenticate itself to route_inquiry, so the matching precision/recall benchmark never runs and match-quality regressions stay invisible'); }
   // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
   // per-context credential and the legacy shared secret, and records which one called.

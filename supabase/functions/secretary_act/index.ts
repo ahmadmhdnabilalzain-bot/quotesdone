@@ -22,7 +22,7 @@ async function whoami(req: Request, body: any): Promise<string | null> {
   const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
   return (user?.email && allow.includes(user.email.toLowerCase())) ? user.email.toLowerCase() : null;
 }
-async function callFn(name: string, payload: Record<string, unknown>) { try { const sk = await sec('inbound_secret'); const r = await fetch(FN + '/' + name, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: sk, ...payload }) }); return await r.json(); } catch (e) { return { error: String((e as Error)?.message || e) }; } }
+async function callFn(name: string, payload: Record<string, unknown>) { try { const sk = await sec('cred_fn_secretary_act'); const r = await fetch(FN + '/' + name, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: sk, ...payload }) }); return await r.json(); } catch (e) { return { error: String((e as Error)?.message || e) }; } }
 const dayAgo = (d: number) => new Date(Date.now() - d * 864e5).toISOString();
 
 const HIGH = new Set(['issue_refund', 'supplier_decision', 'delete_files', 'post_content']);
@@ -75,7 +75,7 @@ async function tool_query_platform(topic: string, args: any) { const { data, err
 async function tool_ask_agent(agent: string, question: string) {
   const ag = String(agent || '').toLowerCase().trim(); const q = String(question || '').trim().slice(0, 2000);
   if (!ag || !q) return { error: 'need agent and question' };
-  try { const sk = await sec('inbound_secret'); const r = await fetch(FN + '/agent_brain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: sk, agent: ag, message: q }), signal: AbortSignal.timeout(45000) }); const j = await r.json().catch(() => ({} as any)); if (j?.reply) return { agent: ag, reply: String(j.reply).slice(0, 4000) }; return { error: j?.error || 'no_reply', agent: ag }; } catch (e) { return { error: String((e as Error)?.message || e), agent: ag }; }
+  try { const sk = await sec('cred_fn_secretary_act'); const r = await fetch(FN + '/agent_brain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: sk, agent: ag, message: q }), signal: AbortSignal.timeout(45000) }); const j = await r.json().catch(() => ({} as any)); if (j?.reply) return { agent: ag, reply: String(j.reply).slice(0, 4000) }; return { error: j?.error || 'no_reply', agent: ag }; } catch (e) { return { error: String((e as Error)?.message || e), agent: ag }; }
 }
 async function tool_lookup(entity: string, query: string) {
   const q = String(query || '').replace(/[%,()*]/g, ' ').trim().slice(0, 80);
@@ -94,7 +94,7 @@ async function tool_run_maintenance(target: string) {
   if (target === 'clear_test_queue') { const { data, error } = await admin.from('notifications').update({ status: 'cancelled' }).in('status', ['held', 'queued']).or('to_email.ilike.%.test,to_email.ilike.%@quotesdone.test,to_email.is.null').select('id'); if (error) return { error: error.message }; return { cancelled: (data || []).length }; }
   return { error: 'unknown target' };
 }
-async function llm(sys: string, user: string, max = 700) { const key = await sec('inbound_secret'); if (!key) return null; try { const r = await fetch(FN + '/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'secretary_act', sys, input: user, max, temperature: null }), signal: AbortSignal.timeout(25000) }); const j = await r.json(); const c = j?.content; if (c) return c; } catch (_e) {} return null; }
+async function llm(sys: string, user: string, max = 700) { const key = await sec('cred_fn_secretary_act'); if (!key) return null; try { const r = await fetch(FN + '/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'secretary_act', sys, input: user, max, temperature: null }), signal: AbortSignal.timeout(25000) }); const j = await r.json(); const c = j?.content; if (c) return c; } catch (_e) {} return null; }
 async function tool_draft_content(channel: string, topic: string, notes: string) {
   let brain = ''; try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: 'marketing', p_max_chars: 6000 }); brain = data ? String(data) : ''; } catch (_e) {}
   const out = await llm('You write concise, on-brand content for QuotesDone, a UAE B2B anonymous quotation marketplace. Practical, trustworthy, pro-SME. No invented statistics.\n\n' + brain, 'Channel: ' + channel + '\nTopic: ' + topic + (notes ? ('\nNotes: ' + notes) : '') + '\nWrite the ' + channel + ' content now.', 900) || 'Draft unavailable (AI not reachable).';
@@ -204,7 +204,7 @@ Rules:
 // the model ladder, the budget halt and cost logging all apply here too. The gateway builds its own
 // system message from `sys`, so the system turn is split off and the rest is passed as `input`.
 async function orChat(messages: any[]) {
-  const key = await sec('inbound_secret'); if (!key) return { error: 'no ai key' };
+  const key = await sec('cred_fn_secretary_act'); if (!key) return { error: 'no ai key' };
   const hasSys = messages[0]?.role === 'system';
   const sys = hasSys ? String(messages[0].content || '') : '';
   const rest = hasSys ? messages.slice(1) : messages;

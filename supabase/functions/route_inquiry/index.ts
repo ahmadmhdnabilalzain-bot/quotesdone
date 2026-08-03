@@ -196,7 +196,7 @@ async function capabilityRetrieve(inquiryId: string, secret: string, diag: any):
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
-    const inbound = await sec('inbound_secret');
+    const inbound = await sec('cred_fn_route_inquiry');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'route_inquiry');

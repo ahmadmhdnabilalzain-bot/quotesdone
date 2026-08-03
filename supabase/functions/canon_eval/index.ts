@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     if (!(await authed(req, body))) return J({ error: 'forbidden' }, 403);
     const agent = String(body.agent || 'followup');
     const limit = Math.max(1, Math.min(Number(body.limit) || 4, 6));
-    const secret = await sec('inbound_secret');
+    const secret = await sec('cred_fn_to_agent_brain');
 
     const { data: all } = await admin.from('canon_eval_questions')
       .select('id,category,question,reference,layer,agent_key').eq('active', true)

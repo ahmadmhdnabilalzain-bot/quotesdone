@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     if (!deduped) {
       const iso = new Date(nowMs).toISOString();
       await admin.from('app_secrets').upsert({ key: 'cron_down_last_alert', value: iso }, { onConflict: 'key' });
-      const secret = await sec('inbound_secret');
+      const secret = await sec('cred_fn_resilience_ping');
       const detail = 'SCHEDULER DOWN: no pg_cron job has run in ' + (ageMin ?? 'an unknown number of') + ' minutes. All scheduled automation (email, invites, matching follow-ups, autonomy sweep, daily brief) is stalled until the scheduler is restored. This alert reached you via the external watchdog.';
       // Page directly over HTTP (independent of pg_cron/pg_net). WhatsApp sends immediately inside alert_founder.
       try {

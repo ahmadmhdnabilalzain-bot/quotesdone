@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
           return J({ ok:true, result:'Queued to '+to.length+' '+channel+' recipient(s) — sending on the next cycle.' });
         }
         const chans = (channel === 'social' || channel === 'all') ? ['x','linkedin','facebook','instagram'] : [channel];
-        let pub: any = {}; try { const sk = await sec('inbound_secret'); const pr = await fetch(SUPA + '/functions/v1/postiz_publish', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: sk, action:'post', type:'now', channels: chans, text, title }) }); pub = await pr.json(); } catch (e) { pub = { error: String((e as Error)?.message || e) }; }
+        let pub: any = {}; try { const sk = await sec('cred_fn_agent_act'); const pr = await fetch(SUPA + '/functions/v1/postiz_publish', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: sk, action:'post', type:'now', channels: chans, text, title }) }); pub = await pr.json(); } catch (e) { pub = { error: String((e as Error)?.message || e) }; }
         if (pub && pub.ok && (pub.published_to || 0) > 0) {
           await admin.from('content_drafts').insert({ channel: channel||'social', title, body:text, status:'posted', source:'agent:'+(body.agent||'marketing') });
           const skip = (pub.skipped && pub.skipped.length) ? (' Skipped: '+pub.skipped.join(', ')+'.') : '';
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
       if (kind === 'ad_campaign') {
         const name = String(args.name||'QuotesDone Campaign').slice(0,120);
         const plan = 'Objective: '+(args.objective||'OUTCOME_TRAFFIC')+'\\nDaily budget: AED '+(args.daily_budget_aed||50)+'\\nAudience: '+(args.audience||'UAE SMEs')+'\\nLink: '+(args.link||'https://quotesdone.com/app')+'\\n\\nAd copy:\\n'+(args.message||'');
-        let mr: any = {}; try { const sk = await sec('inbound_secret'); const r = await fetch(SUPA + '/functions/v1/meta_ads', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: sk, action:'quick_campaign', name, objective: args.objective, daily_budget_aed: args.daily_budget_aed, countries: args.countries }) }); mr = await r.json(); } catch (e) { mr = { error: String((e as Error)?.message || e) }; }
+        let mr: any = {}; try { const sk = await sec('cred_fn_agent_act'); const r = await fetch(SUPA + '/functions/v1/meta_ads', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: sk, action:'quick_campaign', name, objective: args.objective, daily_budget_aed: args.daily_budget_aed, countries: args.countries }) }); mr = await r.json(); } catch (e) { mr = { error: String((e as Error)?.message || e) }; }
         if (mr && mr.ok && mr.campaign_id) {
           await admin.from('crm_tasks').insert({ title:'Review & launch Meta campaign: '+name, detail:'Created PAUSED in Meta Ads Manager.\\nCampaign: '+mr.campaign_id+'  Ad set: '+(mr.adset_id||'-')+'\\n\\n'+plan+'\\n\\nNext: add the ad creative in Ads Manager, then switch it ON to start spending.', priority:'normal', source:'agent:'+(body.agent||'marketing'), status:'open' });
           return J({ ok:true, result:'Created a PAUSED Meta campaign + ad set (campaign '+mr.campaign_id+'). Add the creative and switch it on in Ads Manager to start spending — I never activate it for you. Full plan saved as a task.' });

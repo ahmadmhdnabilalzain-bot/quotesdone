@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     const cardEyebrow = String(parsed?.card_eyebrow || '').slice(0, 30);
     try {
       const ir = await fetch(FN + '/marketing_image', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ __secret: await sec('inbound_secret'), title: cardHeadline, eyebrow: cardEyebrow }), signal: AbortSignal.timeout(50000) });
+        body: JSON.stringify({ __secret: await sec('cred_fn_marketing_draft'), title: cardHeadline, eyebrow: cardEyebrow }), signal: AbortSignal.timeout(50000) });
       const ij = await ir.json().catch(() => ({} as any)); if (ij?.ok && ij.url) imageUrl = ij.url;
     } catch (_e) { /* draft still saves without an image */ }
 

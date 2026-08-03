@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     html += `<div class='muted' style='margin-top:28px'>Generated automatically by the QuotesDone knowledge curator.</div></body></html>`;
 
     const baseCounts = { chunks: (chunks || []).length, gaps_filled: gapsFilled.length, actions: (actions || []).length, decisions: (decisions || []).length, categories_with_new_knowledge: catRows.length };
-    const r = await fetch(`${BASE}/make_pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), html, title: 'Weekly Agent Learnings', name: 'agent-learnings-' + new Date().toISOString().slice(0,10), bucket: 'finance-reports', folder: 'learnings' }) });
+    const r = await fetch(`${BASE}/make_pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_to_make_pdf'), html, title: 'Weekly Agent Learnings', name: 'agent-learnings-' + new Date().toISOString().slice(0,10), bucket: 'finance-reports', folder: 'learnings' }) });
     const jd = await r.json().catch(() => ({} as any));
     if (!jd?.url) { await logRun('error', { ...baseCounts, report_generated: 0, make_pdf_http: r.status }, 'weekly agent-learnings report FAILED to render: make_pdf returned no URL (' + String(jd?.error || 'render_failed') + '); the founder gets no weekly visibility into what the agents learned'); return J({ error: jd?.error || 'render_failed' }, 500); }
 

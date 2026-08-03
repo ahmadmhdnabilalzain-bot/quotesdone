@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     const { data: signed } = await admin.storage.from('agent-docs').createSignedUrl(path, 7*24*3600);
     let pdf_url=null, pdf_path=null;
     if (body.pdf !== false){
-      try { const secret=await sec('inbound_secret'); const pr = await fetch(`${URL_}/functions/v1/pdf_native`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret: secret, title, body_html: frag, name: safe, lang, options:{ letterhead:true, sign: body.sign!==false, stamp: body.stamp!==false } }) }); const pj=await pr.json(); if(pj?.ok){ pdf_url=pj.url; pdf_path=pj.path; } } catch(_e){ /* */ }
+      try { const secret=await sec('cred_fn_to_pdf_native'); const pr = await fetch(`${URL_}/functions/v1/pdf_native`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret: secret, title, body_html: frag, name: safe, lang, options:{ letterhead:true, sign: body.sign!==false, stamp: body.stamp!==false } }) }); const pj=await pr.json(); if(pj?.ok){ pdf_url=pj.url; pdf_path=pj.path; } } catch(_e){ /* */ }
     }
     return J({ ok:true, title, lang, path, url: signed?.signedUrl||null, pdf_url, pdf_path, bytes: html.length });
   } catch (e) { return J({ error: String((e as Error)?.message||e) }, 500); }

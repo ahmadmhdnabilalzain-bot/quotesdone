@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     if (!frag) frag = bodyInner(html);
     // Brand letterhead is the default for every generated document unless explicitly opted out.
     if (!body.plain && options.letterhead === undefined) options.letterhead = true;
-    const secret = await sec('inbound_secret');
+    const secret = await sec('cred_fn_to_pdf_native');
     const payload: Record<string, unknown> = {
       __secret: secret,
       title: body.title || extractTitle(html) || 'Document',

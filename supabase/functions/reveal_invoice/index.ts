@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       '<table style="width:55%;margin-left:auto"><tbody>' + totalsRows + '</tbody></table>' +
       note +
       '<p>This is the QuotesDone facilitation fee for revealing the selected supplier’s contact details. The amount payable to the supplier for the works is agreed separately and directly between the customer and the supplier.</p>';
-    const inbound = await secret('inbound_secret');
+    const inbound = await secret('cred_fn_reveal_invoice');
     const pr = await fetch(URL_ + '/functions/v1/pdf_native', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: inbound, title, body_html, name: invNo, lang: 'en', options: { letterhead: true, sign: true, stamp: true } }) });
     const pj = await pr.json();
     if (!pj?.ok || !pj.path) { await logRun('error', { quote_id: qid, invoice_no: invNo }, 'pdf_native failed: ' + String(pj?.error || pj?.detail || '').slice(0, 200)); return J({ error: 'pdf_failed', detail: pj?.error || pj?.detail || '' }, 502); }

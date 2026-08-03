@@ -30,7 +30,7 @@ async function cntT(t:string, mod?:(q:any)=>any){ let q=admin.from(t).select('id
 // and left the gateway billing for 25 more seconds. An inner caller must outlast the layer it
 // depends on. 70s sits above the gateway's 55s wall and below cos_execute's 75s patience.
 const llm = makeLlm(OPUS_FIRST, { max: 1600, timeoutMs: 70000 });
-async function llmFast(sys:string, user:string){ try{ const secret=await sec('inbound_secret'); if(!secret) return ''; const r=await fetch(SUPA+'/functions/v1/ai_gateway',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:secret,fn:'agent_brain',task_class:'memory_retrieval',sys,input:user,max:160,temperature:0}),signal:AbortSignal.timeout(20000)}); const j=await r.json(); return j?.content||''; }catch(_e){ return ''; } }
+async function llmFast(sys:string, user:string){ try{ const secret=await sec('cred_fn_agent_brain'); if(!secret) return ''; const r=await fetch(SUPA+'/functions/v1/ai_gateway',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:secret,fn:'agent_brain',task_class:'memory_retrieval',sys,input:user,max:160,temperature:0}),signal:AbortSignal.timeout(20000)}); const j=await r.json(); return j?.content||''; }catch(_e){ return ''; } }
 
 // Lint gate: a candidate memory that matches any active forbidden-language rule is refused.
 async function lintClean(text:string):Promise<boolean>{
@@ -98,7 +98,7 @@ async function instructions(key:string){
 // whole company. We top up with an unscoped pass so cross-domain facts still surface.
 async function retrieve(key:string, msg:string){
   try{
-    const secret=await sec('inbound_secret'); if(!secret) return '';
+    const secret=await sec('cred_fn_agent_brain'); if(!secret) return '';
     const cat = key.startsWith('cat:') ? key.slice(4) : null;
     const call = async (category:string|null, k:number) => {
       try{
@@ -181,7 +181,7 @@ Deno.serve(async (req)=>{
     }
     // RESEARCH: dispatch the web-grounded kb_deepen engine to pull real sources and fill a knowledge gap.
     if(acts&&Array.isArray(acts.research)){
-      const internal=await sec('inbound_secret');
+      const internal=await sec('cred_fn_agent_brain');
       for(const rq of acts.research.slice(0,3)){
         const tgt=String(rq?.agent||key).replace(/^cat:/,'').trim();
         const topics=(Array.isArray(rq?.topics)?rq.topics:[]).map((t:any)=>String(t).slice(0,80)).filter(Boolean).slice(0,4);

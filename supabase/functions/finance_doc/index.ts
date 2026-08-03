@@ -33,12 +33,12 @@ Deno.serve(async (req) => {
 
     // 2) extract text
     let text = '';
-    try { const r = await fetch(`${BASE}/extract_text`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), filename, mime, b64 }) }); const jd = await r.json().catch(() => ({})); text = String((jd as any)?.text || ''); } catch (_e) {}
+    try { const r = await fetch(`${BASE}/extract_text`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_finance_doc'), filename, mime, b64 }) }); const jd = await r.json().catch(() => ({})); text = String((jd as any)?.text || ''); } catch (_e) {}
 
     // 3) AI parse into a finance entry
     let entry: any = null;
     if (text && text.length > 10) {
-      const key = await sec('inbound_secret');
+      const key = await sec('cred_fn_finance_doc');
       if (key) {
         const prompt = `Extract a finance entry from this UAE invoice/receipt text. Return STRICT JSON only: {\"kind\":\"expense|income|subscription\",\"amount\":<number in AED>,\"currency\":\"AED\",\"vendor\":\"...\",\"category\":\"...\",\"description\":\"...\",\"cycle\":\"monthly|annual|quarterly|weekly (only if subscription)\"}. If it is a recurring software/service subscription, use kind=subscription. Amount is the total incl VAT. No prose.\n\nTEXT:\n` + text.slice(0, 6000);
         try { const r = await fetch(`${BASE}/ai_gateway`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'finance_doc', sys: '', input: prompt, temperature: 0.1 }) }); const jd = await r.json().catch(() => ({})); let t = (jd as any)?.content || ''; t = String(t).replace(/```json/gi, '').replace(/```/g, '').trim(); const m = t.match(/\{[\s\S]*\}/); entry = JSON.parse(m ? m[0] : t); } catch (_e) { entry = null; }
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     let logged: any = null;
     if (entry && Number(entry.amount) > 0) {
       entry.source = 'invoice_upload'; entry.doc_path = path; entry.doc_name = filename; entry.doc_content_type = mime;
-      try { const r = await fetch(`${BASE}/finance_ingest`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), action: 'log', entry }) }); logged = await r.json().catch(() => ({})); } catch (e) { logged = { error: String((e as Error)?.message || e) }; }
+      try { const r = await fetch(`${BASE}/finance_ingest`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_finance_doc'), action: 'log', entry }) }); logged = await r.json().catch(() => ({})); } catch (e) { logged = { error: String((e as Error)?.message || e) }; }
     }
 
     // 5) queue for Dropbox backup (best-effort)

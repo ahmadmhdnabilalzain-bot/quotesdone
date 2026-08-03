@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
       try {
         const sent = await fetch(`${BASE}/send_whatsapp`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ __secret: await sec('inbound_secret'), to: r.phone,
+          body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), to: r.phone,
             body: `QuotesDone Control Mode code: ${code}\nValid for ${r.minutes} minutes. If you did not ask for this, someone else is signed in to your console.` }),
         });
         delivered = !!(await sent.json().catch(() => ({})))?.ok;
@@ -257,13 +257,13 @@ Deno.serve(async (req) => {
     if (action === 'record') { const { data, error } = await admin.rpc('fn_os_record', { p_entity: String(body?.entity || ''), p_id: String(body?.id || '') }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
 
     if (action === 'secretary_chat') {
-      const payload: any = { __secret: await sec('inbound_secret'), actor_email: email };
+      const payload: any = { __secret: await sec('cred_fn_os_api'), actor_email: email };
       for (const k of ['message','history','attachments','confirm_token','decision']) if (body?.[k] !== undefined) payload[k] = body[k];
       const r = await fetch(`${BASE}/secretary_act`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const jd = await r.json().catch(() => ({})); if (!r.ok && jd?.error) return J({ error: jd.error }, 502); return J({ ok: true, data: jd });
     }
     if (action === 'extract_doc') {
-      const r = await fetch(`${BASE}/extract_text`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), filename: String(body?.filename || 'document'), mime: String(body?.mime || ''), b64: String(body?.b64 || '') }) });
+      const r = await fetch(`${BASE}/extract_text`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), filename: String(body?.filename || 'document'), mime: String(body?.mime || ''), b64: String(body?.b64 || '') }) });
       const jd = await r.json().catch(() => ({})); return J({ ok: true, data: jd });
     }
 
@@ -285,16 +285,16 @@ Deno.serve(async (req) => {
       else { const { data } = await admin.from('board_reports').select('title,body').eq('id', id).maybeSingle(); if (!data) return J({ error: 'not_found' }, 404); title = String((data as any).title || 'Report'); text = String((data as any).body || ''); }
       let hb = ''; for (const raw of text.split('\n')) { const t = raw.replace(/\s+$/, ''); if (!t) { hb += '<div style="height:6px"></div>'; continue; } if (/^[=\-_]{3,}$/.test(t)) continue; if (t === t.toUpperCase() && /[A-Z]/.test(t) && t.length < 64) hb += `<h3>${esc(t)}</h3>`; else hb += `<p>${esc(t)}</p>`; }
       const html = `<html><head><title>${esc(title)}</title></head><body><h1>${esc(title)}</h1>${hb}</body></html>`;
-      const r = await fetch(`${BASE}/make_pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), html, title, name: 'report-' + id, bucket: 'finance-reports', folder: 'reports' }) });
+      const r = await fetch(`${BASE}/make_pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), html, title, name: 'report-' + id, bucket: 'finance-reports', folder: 'reports' }) });
       const jd = await r.json().catch(() => ({})); if (!jd?.url) return J({ error: jd?.error || 'render_failed' }, 500); return J({ ok: true, data: { url: jd.url, path: jd.path } });
     }
 
     if (action === 'prompt_view') {
-      const r = await fetch(`${BASE}/prompt_gate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), action: 'view', key: String(body?.key || ''), version: body?.version }) });
+      const r = await fetch(`${BASE}/prompt_gate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), action: 'view', key: String(body?.key || ''), version: body?.version }) });
       const jd = await r.json().catch(() => ({})); return J({ ok: true, data: jd });
     }
     if (action === 'prompt_gate') {
-      const p = fetch(`${BASE}/prompt_gate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), action: 'gate', key: String(body?.key || ''), version: body?.version }) });
+      const p = fetch(`${BASE}/prompt_gate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), action: 'gate', key: String(body?.key || ''), version: body?.version }) });
       try { (globalThis as any).EdgeRuntime?.waitUntil?.(p); } catch (_e) { /* ignore */ }
       return J({ ok: true, data: { queued: true } });
     }
@@ -307,9 +307,9 @@ Deno.serve(async (req) => {
 
     if (action === 'knowledge_gaps') { const { data, error } = await admin.rpc('fn_knowledge_gaps'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
     if (action === 'knowledge_dispatch') { const { data, error } = await admin.rpc('fn_dispatch_agent_knowledge_gaps'); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
-    if (action === 'knowledge_refresh') { const r = await fetch(`${BASE}/gen_category_knowledge`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), slug: String(body?.slug || '') }) }); const jd = await r.json().catch(() => ({})); if (!r.ok && jd?.error) return J({ error: jd.error }, 502); return J({ ok: true, data: jd }); }
+    if (action === 'knowledge_refresh') { const r = await fetch(`${BASE}/gen_category_knowledge`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), slug: String(body?.slug || '') }) }); const jd = await r.json().catch(() => ({})); if (!r.ok && jd?.error) return J({ error: jd.error }, 502); return J({ ok: true, data: jd }); }
     if (action === 'exam_summary') { const { data, error } = await admin.rpc('fn_knowledge_exam_summary'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
-    if (action === 'exam_run') { const r = await fetch(`${BASE}/knowledge_exam`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), agent_key: body?.agent_key || undefined, generate: Number(body?.generate ?? 6), answer: Number(body?.answer ?? 8) }) }); const jd = await r.json().catch(() => ({})); if (!r.ok && jd?.error) return J({ error: jd.error }, 502); return J({ ok: true, data: jd }); }
+    if (action === 'exam_run') { const r = await fetch(`${BASE}/knowledge_exam`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), agent_key: body?.agent_key || undefined, generate: Number(body?.generate ?? 6), answer: Number(body?.answer ?? 8) }) }); const jd = await r.json().catch(() => ({})); if (!r.ok && jd?.error) return J({ error: jd.error }, 502); return J({ ok: true, data: jd }); }
     if (action === 'exam_revert') { const { data, error } = await admin.rpc('fn_exam_revert', { p_agent_key: body?.agent_key || null }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'knowledge_export') {
       const ak = String(body?.agent_key || '').trim();

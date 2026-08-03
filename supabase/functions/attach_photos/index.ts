@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const images = (Array.isArray(body.images) ? body.images : []).filter((im: any) => im && im.data && im.mime).slice(0, 24);
     if (!images.length) return J({ ok: true, paths: [] });
-    const secret = await sec('inbound_secret');
+    const secret = await sec('cred_fn_attach_photos');
     const prefix = `refphoto/${uid}/${Date.now()}`;
     let paths: string[] = [];
     try {

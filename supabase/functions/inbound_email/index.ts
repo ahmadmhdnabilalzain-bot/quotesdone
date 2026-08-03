@@ -41,9 +41,9 @@ Deno.serve(async (req) => {
     // Auth: external inbound webhook uses its own dedicated secret (inbound_webhook_secret).
     // The internal RPC secret (inbound_secret) is also accepted for backward compatibility and
     // is what we forward to internal functions (profile_ai).
-    const { data: secRows } = await admin.from('app_secrets').select('key,value').in('key', ['inbound_webhook_secret', 'inbound_secret']);
+    const { data: secRows } = await admin.from('app_secrets').select('key,value').in('key', ['inbound_webhook_secret', 'cred_fn_inbound_email']);
     const whSecret = (secRows || []).find((r: { key: string; value: string }) => r.key === 'inbound_webhook_secret')?.value || '';
-    const ibSecret = (secRows || []).find((r: { key: string; value: string }) => r.key === 'inbound_secret')?.value || '';
+    const ibSecret = (secRows || []).find((r: { key: string; value: string }) => r.key === 'cred_fn_inbound_email')?.value || '';
     const provided = req.headers.get('x-webhook-secret') || body.__secret || '';
     if (!provided || (provided !== whSecret && provided !== ibSecret)) return J({ error: 'forbidden' }, 403);
     const sec = { value: ibSecret }; // internal secret for downstream calls

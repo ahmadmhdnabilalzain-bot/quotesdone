@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
   // (the notifications insert below), i.e. use this endpoint as an unauthenticated mailer.
   // Now fails CLOSED: a correct secret is required. Both cron callers (cost_snapshot_weekly)
   // already pass it, so this changes nothing for legitimate traffic.
-  const expected = await sec('inbound_secret');
+  const expected = await sec('cred_fn_to_alert_founder');
   if (!expected) {
     await logRun(started, 'error', { authorised: 0, secret_lookup_ok: 0 }, 'cost_snapshot refused every caller because inbound_secret could not be read from app_secrets. The weekly burn/revenue snapshot did NOT run and no owner email was queued - this is an auth-infrastructure failure, not a quiet week with no spend to report.');
     return J({ error: 'secret unavailable' }, 503);

@@ -15,7 +15,7 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
-    const secret = await sec('inbound_secret');
+    const secret = await sec('cred_fn_reg_fetch');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'reg_fetch');

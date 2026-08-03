@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     }
     const msg = `[${level.toUpperCase()}] ${event}${detail? '\n\n'+detail : ''}`;
     let wa=false, email=false;
-    const phone = await sec('admin_mfa_phone'); const inbound = await sec('inbound_secret');
+    const phone = await sec('admin_mfa_phone'); const inbound = await sec('cred_fn_alert_founder');
     if (phone && ['critical','urgent','high','danger'].includes(level)) {
       const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send_whatsapp`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret: inbound, to: phone, body: 'QuotesDone ['+level+']: '+event+(detail?' — '+detail:'') }) });
       const jd = await r.json().catch(()=>({})); wa = !!jd?.ok;

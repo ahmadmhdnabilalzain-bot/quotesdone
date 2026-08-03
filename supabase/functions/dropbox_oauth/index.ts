@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       try { const ar = await fetch('https://api.dropboxapi.com/2/users/get_current_account', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tj.access_token } }); const aj = await ar.json(); email = aj?.email || ''; name = aj?.name?.display_name || ''; } catch (_e) { /* ignore */ }
       await admin.from('app_secrets').update({ value: tj.refresh_token }).eq('key', 'dropbox_refresh_token');
       let sync = 'started'; let cron = 'unknown';
-      try { await fetch(`${BASE}/dropbox_sync`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret') }) }); } catch (_e) { sync = 'queued'; }
+      try { await fetch(`${BASE}/dropbox_sync`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_dropbox_oauth') }) }); } catch (_e) { sync = 'queued'; }
       try { const { data } = await admin.rpc('fn_enable_dropbox_sync'); cron = String(data || 'unknown'); } catch (_e) { /* ignore */ }
       return H(SHELL(`<h2>✓ Dropbox connected</h2><p>Linked to <b>${esc(name || email || 'the authorized account')}</b>${email ? ' (' + esc(email) + ')' : ''}.</p><p>Sync ${sync}; daily sync <b>${esc(cron === 'enabled' ? 'on' : cron)}</b>.</p>`));
     }

@@ -85,7 +85,7 @@ async function renderGenerated(row: any): Promise<{bucket:string, path:string}>{
     inner = kvTable([ ['Inquiry ID', i.id], ['Customer', c?.full_name], ['Status', i.status], ['Created', fmtD(i.created_at)], ['Drawing on file', i.drawing_file_name || (i.drawing_file_path? 'yes':'—')] ]) + (i.summary ? `<h3>Request</h3><p>${esc(i.summary)}</p>` : '');
   } else if (row.gen_kind === 'comparison'){
     const inqId = String(row.gen_ref);
-    const r0 = await fetch(`${BASE}/quote_compare`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret: await sec('inbound_secret'), inquiry_id: inqId }) });
+    const r0 = await fetch(`${BASE}/quote_compare`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret: await sec('cred_fn_dropbox_backup'), inquiry_id: inqId }) });
     const cj = await r0.json().catch(()=>({} as any));
     if (!cj?.ok || !cj.analysis) throw new Error('compare '+(cj?.error||cj?.note||r0.status));
     const a = cj.analysis;
@@ -101,7 +101,7 @@ async function renderGenerated(row: any): Promise<{bucket:string, path:string}>{
   } else throw new Error('unknown_gen_kind');
 
   const html = `<html><head><title>${esc(title)}</title></head><body><h1>${esc(title)}</h1>${inner}<p style="margin-top:24px;color:#888;font-size:11px">Auto-generated backup document — QuotesDone · ${new Date().toISOString().slice(0,10)}</p></body></html>`;
-  const r = await fetch(`${BASE}/make_pdf`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: await sec('inbound_secret'), html, title, name: (row.gen_kind+'_'+row.gen_ref).replace(/[^a-z0-9_]+/gi,'_').slice(0,60), bucket:'backups', folder:'generated' }) });
+  const r = await fetch(`${BASE}/make_pdf`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_dropbox_backup'), html, title, name: (row.gen_kind+'_'+row.gen_ref).replace(/[^a-z0-9_]+/gi,'_').slice(0,60), bucket:'backups', folder:'generated' }) });
   const jd = await r.json().catch(()=>({} as any));
   if (!jd?.path) throw new Error('make_pdf '+(jd?.error||r.status));
   return { bucket: 'backups', path: String(jd.path) };
