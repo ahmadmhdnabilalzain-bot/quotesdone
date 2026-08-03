@@ -2,6 +2,7 @@
 // checks it against VirusTotal's known-malware DB. FILE CONTENTS ARE NEVER UPLOADED to VirusTotal.
 // The worklist of files is supplied by fn_run_vt() (which can read storage.objects); this fn downloads + hashes + checks.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
@@ -17,7 +18,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'vt_scan');
+    if (!__auth.ok) return J({ error: 'forbidden' }, 403);
     const { data: run } = await admin.from('agent_runs').insert({ agent: 'vt_scan' }).select('id').maybeSingle();
     const counts: Record<string, number> = { checked: 0, malicious: 0, clean: 0, unknown: 0, errors: 0, skipped: 0 };
     const finish = async (status: string, note = '') => { if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status, counts, note }).eq('id', run.id); };

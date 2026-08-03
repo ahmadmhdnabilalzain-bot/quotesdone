@@ -12,6 +12,7 @@
 // documentation score ASCENDING, so the emptiest supplier profiles are always chased first. Falls back
 // to the old query if the view is unavailable, so reminders never stop going out.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
@@ -28,7 +29,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'doc_reminder');
+    if (!__auth.ok) return J({ error: 'forbidden' }, 403);
     const windowDays = Math.max(1, Math.min(90, Number(body.days) || 14));
     const reDays = Math.max(3, Math.min(30, Number(body.resend_after_days) || 10));
     const max = Math.max(1, Math.min(500, Number(body.limit) || 500));

@@ -1,5 +1,6 @@
 // site_deploy - renders the app pages + programmatic SEO pages (services x emirates) + blog + Arabic + legal pages + sitemap/robots + llms.txt, and pushes a PRODUCTION deployment to Vercel (qd-site). Secret-guarded.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const BASE = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const SITE = 'https://quotesdone.com';
@@ -235,7 +236,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'site_deploy');
+    if (!__auth.ok) return J({ error: 'forbidden' }, 403);
     try { I18N = await (await fetch(ASSET + '/i18n_chrome.html')).text(); } catch(_e){ I18N=''; }
     const token = await sec('vercel_token'); const team = await sec('vercel_team_id'); const project = (await sec('vercel_project')) || 'qd-site';
     if (!token || !team) return J({ ok:false, error:'vercel_not_configured' }, 200);

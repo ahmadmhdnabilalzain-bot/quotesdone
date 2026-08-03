@@ -1,5 +1,6 @@
 // compliance_archive v4 — signed T&C acceptance certificates + customer register + Dropbox mirror.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
@@ -10,7 +11,7 @@ const DBX_BASE = '/QuotesDone Backup';
 const TENYRS = 10 * 365 * 24 * 3600;
 
 async function sec(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
-async function authed(req: Request, body: any) { if (body.__secret && body.__secret === (await sec('inbound_secret'))) return true; const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''); const { data: { user } } = await admin.auth.getUser(jwt); const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
+async function authed(req: Request, body: any) { if ((await requireInternal(admin, body?.__secret, 'compliance_archive')).ok) return true; const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''); const { data: { user } } = await admin.auth.getUser(jwt); const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
 function esc(s: any) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function safeName(s: string) { return String(s || '').replace(/[^\w.\- ]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'record'; }
 async function sha256hex(s: string) { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join(''); }
