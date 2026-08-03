@@ -570,7 +570,20 @@ Deno.serve(async (req) => {
       // customer_id is selected ONLY to look up the buyer's own name for scrubIdentity. It is
       // never placed on the response - it is a stable id that would let a supplier correlate a
       // buyer across RFQs.
-      const custIds = Array.from(new Set((inq || []).map((r: any) => r.customer_id).filter(Boolean).map(String)));
+      // REGRESSION FIX 3 Aug 2026. When this select moved from `inquiries` to
+      // `inquiries_supplier_safe` (audit 2.x), the safe view stopped exposing customer_id - which
+      // is correct, a supplier must never receive it. But this block still read r.customer_id off
+      // the view's rows, so custIds was ALWAYS empty, custName was ALWAYS empty, and buyerName was
+      // ALWAYS null. scrubIdentity therefore lost its "buyer's own name" input entirely: the second
+      // independent layer had been silently switched off, leaving only the write-time masking.
+      // deno check caught it as a type error; the runtime effect was invisible.
+      //
+      // The owner is now read from the raw table under the service role, keyed by inquiry id. It
+      // exists only inside this function to feed the scrubber and is never placed on the response.
+      const ownerOf: Record<string, string> = {};
+      { const { data: owners } = await admin.from('inquiries').select('id,customer_id').in('id', ids);
+        for (const o of (owners || [])) if (o?.customer_id) ownerOf[String(o.id)] = String(o.customer_id); }
+      const custIds = Array.from(new Set(Object.values(ownerOf)));
       const custName: Record<string, string> = {};
       if (custIds.length) { const { data: cs } = await admin.from('customers').select('id,full_name').in('id', custIds); for (const c of (cs || [])) if (c.full_name) custName[String(c.id)] = String(c.full_name); }
       const out: any[] = [];
@@ -584,7 +597,7 @@ Deno.serve(async (req) => {
         // spec / boq are served byte-identically to before this change.
         const revealed = revealedInq.has(String(i.id));
         const hits: string[] = [];
-        const buyerName = custName[String(i.customer_id)] || null;
+        const buyerName = custName[ownerOf[String(i.id)] || ''] || null;
         const sSummary = revealed ? i.summary : scrubIdentity(i.summary ?? null, buyerName, hits);
         const sSpec = revealed ? i.spec : scrubDeep(i.spec, buyerName, hits);
         const sBoq = revealed ? i.boq : scrubDeep(i.boq, buyerName, hits);

@@ -521,7 +521,12 @@ Deno.serve(async (req) => {
       const rr = await resolveRedactedPaths(String(cust.id), String(user.id || ''), drawing);
       if ('err' in rr) return J(rr.err, rr.status);
       const drawingRedacted = rr.paths.length ? rr.paths.slice(0, 24) : null;
-      const distinctTrades = Array.from(new Set(tradesIn)).slice(0, 6);
+      // `tradesIn` arrives from the request body, so Set<unknown> is what TypeScript infers and
+      // every downstream use of a trade - labelize(tr), KW[tr], category: tr - was an error.
+      // Coercing here rather than casting at each use means a non-string trade is normalised once,
+      // at the boundary, instead of being asserted away four times further down.
+      const tradeStrings: string[] = (Array.isArray(tradesIn) ? tradesIn : []).map((t: unknown) => String(t ?? '').trim()).filter((s: string) => s.length > 0);
+      const distinctTrades: string[] = Array.from(new Set<string>(tradeStrings)).slice(0, 6);
       const wantSplit = scope_type === 'multi' && distinctTrades.length > 1;
       const wantTurnkey = scope_type === 'turnkey';
       const drawCols = { drawing_file_path: drawingPath, drawing_file_name: drawingName, drawing_redacted_paths: drawingRedacted, boq: boqObj, boq_confidence: boqObj?.confidence || null };
@@ -593,7 +598,10 @@ Deno.serve(async (req) => {
       const mapRow = async (i: any) => ({ id: i.id, category: i.category, emirate: i.emirate, summary: i.summary, spec: i.spec, status: i.status, created_at: i.created_at, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx) => { const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: 'Supplier ' + supplierLabel(idx), price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined }; }) });
       const out = [] as any[];
       for (const i of (tops || [])) {
-        const row = await mapRow(i);
+        // mapRow returns an object literal, so its inferred type has no is_combined / child_count /
+        // children. The combined-project decoration below is genuinely dynamic - only split parents
+        // get it - so the row is typed as an open record rather than the literal's shape.
+        const row: Record<string, any> = await mapRow(i);
         const ch = kidsByParent[String(i.id)];
         if (ch && ch.length) { row.is_combined = true; row.child_count = ch.length; row.children = []; for (const c of ch) row.children.push(await mapRow(c)); }
         out.push(row);

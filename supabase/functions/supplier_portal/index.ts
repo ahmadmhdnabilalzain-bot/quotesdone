@@ -43,9 +43,15 @@ Deno.serve(async (req) => {
     const b = await req.json().catch(() => ({} as any));
     const action = b.action;
 
+    // The `if (!sup) return` above narrows sup for the straight-line code, but TypeScript cannot
+    // carry that narrowing into a closure - buildAlerts could in principle be called later, when
+    // sup has been reassigned. Binding the id once makes the guarantee explicit instead of
+    // suppressing the error with a non-null assertion.
+    const supId = sup.id;
+
     async function buildAlerts(){
       const out: any[] = [];
-      const { data: exp } = await admin.rpc('fn_supplier_expiries', { p_supplier_id: sup.id });
+      const { data: exp } = await admin.rpc('fn_supplier_expiries', { p_supplier_id: supId });
       for (const e of (exp || [])) {
         if (e.status === 'expired' || e.status === 'expiring') {
           out.push({ kind:'doc_expiry', severity: e.status==='expired'?'high':'medium',
@@ -54,16 +60,16 @@ Deno.serve(async (req) => {
             action:'documents' });
         }
       }
-      const { data: matches } = await admin.from('inquiry_matches').select('inquiry_id').eq('supplier_id', sup.id);
+      const { data: matches } = await admin.from('inquiry_matches').select('inquiry_id').eq('supplier_id', supId);
       const mids = [...new Set((matches || []).map((m:any)=>m.inquiry_id))];
       if (mids.length) {
-        const { data: myq } = await admin.from('quotes').select('inquiry_id').eq('supplier_id', sup.id);
+        const { data: myq } = await admin.from('quotes').select('inquiry_id').eq('supplier_id', supId);
         const quoted = new Set((myq || []).map((x:any)=>x.inquiry_id));
         const { data: openInq } = await admin.from('inquiries').select('id').in('id', mids).in('status', ['sent','open','active','collecting','live','quoted']);
         const openIds = (openInq || []).map((x:any)=>x.id).filter((id:any)=>!quoted.has(id));
         if (openIds.length) out.push({ kind:'new_rfq', severity:'medium', count: openIds.length, title: openIds.length+' new RFQ'+(openIds.length>1?'s':'')+' waiting for your quote', detail:'Open requests matched to your capabilities that you have not quoted yet.', action:'inbox' });
       }
-      const { count: drafts } = await admin.from('quotes').select('id',{count:'exact',head:true}).eq('supplier_id', sup.id).eq('status','draft');
+      const { count: drafts } = await admin.from('quotes').select('id',{count:'exact',head:true}).eq('supplier_id', supId).eq('status','draft');
       if (drafts) out.push({ kind:'draft_quote', severity:'low', count: drafts, title: drafts+' draft quote'+(drafts>1?'s':'')+' to complete', detail:'Add the missing details so we can send them to customers.', action:'inbox' });
       return out;
     }
