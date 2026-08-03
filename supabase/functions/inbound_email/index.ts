@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { sanitizeUpload, SAFE_IMAGE } from '../_shared/attachment.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-webhook-secret' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -53,10 +54,25 @@ Deno.serve(async (req) => {
     const subject = String(body.subject || '');
     const text = String(body.text || body.body || '');
     const atts = Array.isArray(body.attachments) ? body.attachments : [];
-    const images = atts.filter((a: { mime?: string; content_type?: string; data?: string }) => {
-      const m = String(a?.mime || a?.content_type || '');
-      return a?.data && /^image\//i.test(m);
-    }).map((a: { mime?: string; content_type?: string; data: string }) => ({ mime: a.mime || a.content_type, data: a.data }));
+    // AUDIT 9.1 (3 Aug 2026): this trusted the SENDER'S declared mime — anyone who could send mail
+    // to this address could post arbitrary bytes to the model by labelling them "image/png". The
+    // declared type is now only a hint: sanitizeUpload identifies the bytes, refuses anything that
+    // is not a real JPEG/PNG/WebP, and strips EXIF/GPS before the image is forwarded. A refused
+    // attachment is DROPPED rather than failing the whole email, because the text still needs to
+    // route — but the count is reported so a sender pushing rejects is visible.
+    const images: { mime: string; data: string }[] = [];
+    let attachmentsRefused = 0;
+    for (const a of atts as { mime?: string; content_type?: string; data?: string }[]) {
+      if (!a?.data) continue;
+      const san = sanitizeUpload({ input: a.data, declaredMime: a.mime || a.content_type || null,
+                                   allow: SAFE_IMAGE, maxBytes: 10 * 1024 * 1024 });
+      if (!san.ok) { attachmentsRefused++; continue; }
+      let bin = '';
+      for (let i = 0; i < san.bytes.length; i += 0x8000) {
+        bin += String.fromCharCode(...san.bytes.subarray(i, i + 0x8000));
+      }
+      images.push({ mime: san.mime, data: btoa(bin) });
+    }
     if (!fromEmail) return J({ error: 'missing from' }, 400);
     const dom = domainOf(fromEmail);
     const isFree = FREE.has(dom);
@@ -75,7 +91,7 @@ Deno.serve(async (req) => {
     if (!lead && candidates.length > 1) {
       const { data: m } = await admin.from('inbound_messages').insert({
         lead_id: null, from_email: fromEmail, to_email: String(body.to || ''), subject, body: text.slice(0, 20000),
-        attachments_count: atts.length, matched_existing: true, created_new_lead: false, ai_ok: false,
+        attachments_count: atts.length, attachments_refused: attachmentsRefused, matched_existing: true, created_new_lead: false, ai_ok: false,
         needs_review: true, ai_notes: `ambiguous: ${candidates.length} companies share this email`, raw: { candidates },
       }).select('id').maybeSingle();
       return J({ ok: true, needs_review: true, reason: 'multiple companies share this email; queued for manual review', candidates, message_id: m?.id });
@@ -134,7 +150,7 @@ Deno.serve(async (req) => {
 
     await admin.from('inbound_messages').insert({
       lead_id: lead.id, from_email: fromEmail, to_email: String(body.to || ''), subject, body: text.slice(0, 20000),
-      attachments_count: atts.length, matched_existing: !createdNew, created_new_lead: createdNew,
+      attachments_count: atts.length, attachments_refused: attachmentsRefused, matched_existing: !createdNew, created_new_lead: createdNew,
       ai_ok: aiOk, needs_review: false, ai_notes: aiNotes || null, raw: { fields_updated: Object.keys(upd) },
     });
 

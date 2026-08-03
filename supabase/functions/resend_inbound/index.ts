@@ -17,6 +17,7 @@
 // second factor - both must now pass. The body is read ONCE as raw text because the signature is
 // over the exact bytes; it is parsed only after verification succeeds.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -194,22 +195,31 @@ Deno.serve(async (req) => {
     let lead: any = null;
     if (from) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
     let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = [];
-    let lostAttachments = 0; let uploadFailures = 0; let classifyFailures = 0;
+    let lostAttachments = 0; let uploadFailures = 0; let classifyFailures = 0; let refusedAttachments = 0;
     for (const a of atts.slice(0,6)) {
       const fname = String(a.filename || a.name || 'document').slice(0,180);
       const mime = String(a.content_type || a.contentType || 'application/octet-stream');
-      const bytes = await attachmentBytes(a, emailId, rkey);
+      const rawBytes = await attachmentBytes(a, emailId, rkey);
       // previously a silent 'continue' - a supplier's trade licence could vanish with no record
-      if (!bytes) { lostAttachments++; continue; }
+      if (!rawBytes) { lostAttachments++; continue; }
+      // AUDIT 9.1 (3 Aug 2026): mime came from the sender's content_type header and was written
+      // onto the storage object and into the model prompt unexamined. Sniff the bytes, refuse
+      // anything that is not a PDF or a real image, strip EXIF/GPS from photographed documents.
+      // A refusal is counted separately from a LOST attachment: they are different failures and an
+      // operator needs to tell "we would not accept it" from "we could not fetch it".
+      const __san = sanitizeUpload({ input: rawBytes, declaredMime: mime, filename: fname, allow: SAFE_UPLOAD });
+      if (!__san.ok) { refusedAttachments++; continue; }
+      const bytes = __san.bytes;
+      const sniffedMime = __san.mime;
       const path = `inbound/${lead?.id||'unknown'}/${Date.now()}_${fname.replace(/[^A-Za-z0-9._-]/g,'_')}`;
-      const up = await admin.storage.from('supplier-docs').upload(path, bytes, { contentType: mime, upsert: true });
+      const up = await admin.storage.from('supplier-docs').upload(path, bytes, { contentType: sniffedMime, upsert: true });
       // the upload result was never checked: a failed upload still counted as stored
       if (up && (up as any).error) { uploadFailures++; continue; }
       stored++;
       let ai:any = { relevant:null, category:'other', summary:'', suggested_field:null, confidence:'low' };
       if (key) {
         const content:any[] = [{ type:'text', text:`Email from supplier ${lead?.company_name||from}. Subject: ${subject}. Body: ${text}. Attached file: ${fname} (${mime}). Classify this document.` }];
-        if (/^image\//.test(mime)) { try { content.push({ type:'image_url', image_url:{ url:`data:${mime};base64,${bytesToB64(bytes)}` } }); } catch {} }
+        if (/^image\//.test(sniffedMime)) { try { content.push({ type:'image_url', image_url:{ url:`data:${sniffedMime};base64,${bytesToB64(bytes)}` } }); } catch {} }
         try {
           // NOT migrated to ai_gateway: this call attaches image content for image attachments and the gateway does not proxy image payloads yet.
           const r = await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,max_tokens:500,temperature:0.1,messages:[{role:'system',content:SYS},{role:'user',content}]})});
@@ -257,7 +267,7 @@ Deno.serve(async (req) => {
       try{ await admin.from('notifications').insert({ type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
     }
     if (from && from !== 'onboarding@resend.dev' && stored>0 && lead) await admin.from('notifications').insert({ type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body:`Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s) and updated your records.`, status:'queued' });
-    const counts = { from, matched_lead: lead?.id||null, attachments: atts.length, stored, lost_attachments: lostAttachments, upload_failures: uploadFailures, classify_failures: classifyFailures, applied: appliedSummary.length, signature_verified: 1 };
+    const counts = { from, matched_lead: lead?.id||null, attachments: atts.length, stored, refused_attachments: refusedAttachments, lost_attachments: lostAttachments, upload_failures: uploadFailures, classify_failures: classifyFailures, applied: appliedSummary.length, signature_verified: 1 };
     if (lostAttachments || uploadFailures) await logRun('error', counts, 'INBOUND DOCUMENTS LOST - ' + lostAttachments + ' attachment(s) could not be downloaded from Resend and ' + uploadFailures + ' failed to upload to storage. Sender: ' + from + ', subject: ' + subject.slice(0, 120));
     else if (atts.length || stored) await logRun('ok', counts, appliedSummary.length ? ('applied: ' + appliedSummary.join('; ').slice(0, 300)) : (lead ? '' : 'no matching lead for sender'));
     return J({ ok: true, matched_lead: lead?.id||null, stored, reviews, applied: appliedSummary });
