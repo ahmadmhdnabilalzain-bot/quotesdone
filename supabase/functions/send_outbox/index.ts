@@ -76,7 +76,11 @@ function tmpl(opts: { body: string; logo: string; name: string; title: string; c
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
-    const inbound = await sec('inbound_secret');
+    // AUDIT 9.5 (3 Aug 2026): the unsubscribe footer and the RFC 8058 List-Unsubscribe headers
+    // are signed with a dedicated long-lived key. They used to be signed with inbound_secret, so
+    // withdrawing it would have both invalidated every delivered link AND - because the link is
+    // only built when the key reads back - sent supplier mail with no unsubscribe mechanism at all.
+    const unsubKey = await sec('unsubscribe_signing_key');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'send_outbox');
@@ -142,7 +146,7 @@ Deno.serve(async (req) => {
       if (sent >= remaining) break;
       const from = supplierSide ? fromSup : fromInfo;
       const reply = supplierSide ? (docReq ? replyDocs : replySup) : replyInfo;
-      const unsub = (supplierSide && inbound) ? `${FN_BASE}/unsubscribe?e=${encodeURIComponent(n.to_email)}&t=${await unsubTok(n.to_email, inbound)}` : '';
+      const unsub = (supplierSide && unsubKey) ? `${FN_BASE}/unsubscribe?e=${encodeURIComponent(n.to_email)}&t=${await unsubTok(n.to_email, unsubKey)}` : '';
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
       const htmlBody = tmpl({ body: n.body || '', logo, name: sigName, title: sigTitle, channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
       try {

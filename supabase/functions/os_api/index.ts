@@ -225,7 +225,18 @@ Deno.serve(async (req) => {
       if (gerr) throw new Error(gerr.message);
       // deno-lint-ignore no-explicit-any
       const g = gate as any;
-      if (g && g.allowed === false) {
+      // FAIL CLOSED 3 Aug 2026 (audit 3.3). This was `if (g && g.allowed === false)` - "allow
+      // unless told no". A null or absent RPC payload WITH NO ERROR fell straight through to the
+      // handler ungated, which is the exact shape this whole work existed to remove. The gate must
+      // now say allowed===true out loud. A missing payload is treated identically to a failed
+      // lookup below: refused for anything mutating, survivable only for something this file
+      // already knows is read_only.
+      if (!g || typeof g !== 'object') {
+        if (ACTION_CLASS[action] !== 'read_only') {
+          return J({ error: 'control_mode_unavailable', mode: 'observe',
+                     hint: 'The Control Mode gate returned nothing, so this change is refused. Try again in a moment.' }, 503);
+        }
+      } else if (g.allowed !== true) {
         return J({ error: g.error || 'control_mode_required', mode: 'observe',
                    hint: g.message || 'This changes something. Open Control Mode with a phone code and a reason first.' }, 403);
       }

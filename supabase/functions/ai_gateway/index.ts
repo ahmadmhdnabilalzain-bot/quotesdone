@@ -132,8 +132,7 @@ Deno.serve(async (req) => {
   const t0 = Date.now();
   try {
     const body = (await req.json().catch(() => ({}))) as Body;
-    const inbound = await sec('inbound_secret');
-    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+      // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'ai_gateway');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);

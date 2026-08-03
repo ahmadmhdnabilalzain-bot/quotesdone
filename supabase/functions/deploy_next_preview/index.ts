@@ -15,8 +15,11 @@ async function sha1hex(bytes: Uint8Array){ const h = await crypto.subtle.digest(
 async function deployAuth(b: any, fn: string){
   const dep = await sec('deploy_secret');
   if (dep) return b.__deploy_secret === dep;
-  const inbound = await sec('inbound_secret');
-  const ok = !!inbound && (b.__deploy_secret === inbound || b.__secret === inbound);
+  // FALLBACK DROPPED 3 Aug 2026 (audit 9.5). app_secrets.deploy_secret exists, so the line above
+  // has returned for every real call since 27 Jul and this fallback has been dead code that merely
+  // kept deploy authority coupled to the omnipotent shared secret. Deploy authority is now
+  // deploy_secret and nothing else; a caller presenting the shared secret is refused.
+  const ok: boolean = false;
   if (ok) { const t = new Date().toISOString(); try { await admin.from('agent_runs').insert({ agent:'deploy_authority', started_at:t, finished_at:t, status:'error', counts:{ fallback_auth:1, fn }, note:'DEPLOY SECRET NOT SET YET: '+fn+' authorised a deploy-capable call using inbound_secret because app_secrets has no deploy_secret row. inbound_secret is accepted by 134 of 187 functions, so until deploy_secret exists anything holding it can publish arbitrary source to quotesdone.com. Create app_secrets key deploy_secret and have callers send __deploy_secret.' }); } catch(_e){ /* never block the deploy path on a log write */ } }
   return ok;
 }

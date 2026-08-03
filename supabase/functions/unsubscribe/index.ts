@@ -31,8 +31,19 @@ Deno.serve(async (req) => {
   // posted the form to the wrong host path.
   const link = (act: string) => '?e=' + encodeURIComponent(e) + '&t=' + encodeURIComponent(t) + (act ? '&a=' + act : '');
   try {
-    const secret = await sec('inbound_secret');
-    if (!e || !t || !secret || t !== (await tok(e, secret))) {
+    // AUDIT 9.5 (3 Aug 2026): unsubscribe links are signed with their OWN long-lived key now, not
+    // the omnipotent shared secret. `unsubscribe_signing_key_legacy` is a verify-only copy of the
+    // value that signed every link delivered before today, so withdrawing inbound_secret cannot
+    // break a link already sitting in someone's inbox. Only the first key ever signs; see
+    // send_outbox. Neither is inbound_secret, so this path no longer depends on it at all.
+    const [signKey, legacyKey] = await Promise.all([
+      sec('unsubscribe_signing_key'), sec('unsubscribe_signing_key_legacy'),
+    ]);
+    const tokenOk = !!e && !!t && (
+      (!!signKey   && t === (await tok(e, signKey))) ||
+      (!!legacyKey && t === (await tok(e, legacyKey)))
+    );
+    if (!tokenOk) {
       return new Response(page('Invalid link', 'This unsubscribe link is invalid or has expired. If you keep receiving emails, reply to any of them and we will remove you.'), { status: 400, headers: H });
     }
     const { data: cur } = await admin.from('email_suppressions').select('email,reason,source').eq('email', e).maybeSingle();
