@@ -41,14 +41,13 @@ Deno.serve(async (req)=>{
   if(req.method==='OPTIONS') return new Response('ok',{headers:cors});
   const sb=createClient(URL,KEY);
   let body:any={}; try{ body=await req.json(); }catch(_e){}
-  const { data:secrets, error:secretsErr } = await sb.from('app_secrets').select('key,value').in('key',['inbound_secret','openrouter_api_key']);
-  const secret=(secrets||[]).find((s:any)=>s.key==='inbound_secret')?.value;
+  const { data:secrets, error:secretsErr } = await sb.from('app_secrets').select('key,value').eq('key','openrouter_api_key');
   const apiKey=(secrets||[]).find((s:any)=>s.key==='openrouter_api_key')?.value;
   // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
   // per-context credential and the legacy shared secret, and records which one called.
   const __auth = await requireInternal(admin, body?.__secret, 'archive_rfq');
   if(!__auth.ok){
-    await logRun('error', { unauthorized:1, secret_configured: secret?1:0 }, secret ? 'RFQ archiver rejected a caller with a wrong __secret; no RFQ was archived on this invocation. If this was the scheduled cron its secret is stale and completed RFQs are piling up unarchived, so their drawing files may be purged by retention before the case is preserved.' : ('RFQ archiver could not read inbound_secret from app_secrets, so every call including the scheduled cron is rejected with 401 and no completed RFQ is ever archived. ' + String(secretsErr?.message || 'no inbound_secret row')));
+    await logRun('error', { unauthorized:1, verifier_status: __auth.status }, __auth.status !== 503 ? 'RFQ archiver rejected a caller with a wrong __secret; no RFQ was archived on this invocation. If this was the scheduled cron its secret is stale and completed RFQs are piling up unarchived, so their drawing files may be purged by retention before the case is preserved.' : ('RFQ archiver could not read inbound_secret from app_secrets, so every call including the scheduled cron is rejected with 401 and no completed RFQ is ever archived. ' + String(secretsErr?.message || 'no inbound_secret row')));
     return j({error:'unauthorized'},401);
   }
 

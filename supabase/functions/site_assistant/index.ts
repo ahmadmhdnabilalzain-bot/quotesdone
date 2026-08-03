@@ -58,7 +58,9 @@ const FACTS_CUSTOMER = `CUSTOMER-SIDE FACTS:\n- Posting a job and comparing quot
 
 const FACTS_SUPPLIER = `SUPPLIER-SIDE FACTS (commercially sensitive - see AUDIENCE RULES before using):\n- No commission, ever - suppliers keep 100% of the value of jobs they win.\n- Registration is FREE for all suppliers until 31 July 2027. From 1 August 2027 an annual subscription of AED 1,000/year applies, EXCEPT the first 1,000 suppliers to register, who are exempt permanently and never pay it.\n- A non-response fine (equal to the customer's reveal fee) applies only if a supplier ignores a customer who has already paid to reveal them.\n- Suppliers register free at /portal with a valid UAE trade licence; verification takes up to 3 working days and verified suppliers are prioritised.`;
 
-function tok(s: string){ return (String(s||'').toLowerCase().match(/[a-z0-9]{3,}/g) || []); }
+// `match` returns RegExpMatchArray | null, so `|| []` produced RegExpMatchArray | never[] and every
+// downstream .includes(someString) was a type error. Naming the type collapses the union.
+function tok(s: string): string[] { return (String(s||'').toLowerCase().match(/[a-z0-9]{3,}/g) || []); }
 
 function audienceFromPath(p: string): 'customer' | 'supplier' | 'unknown' {
   const s = String(p || '').toLowerCase();

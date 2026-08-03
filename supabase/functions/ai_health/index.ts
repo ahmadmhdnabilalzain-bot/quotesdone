@@ -29,11 +29,10 @@ Deno.serve(async (req) => {
     // counter to 0 and suppress the paging transition, hiding a real AI outage from the operator.
     // It could also manufacture a false 'ai_provider_down' page. Now fails CLOSED; the
     // ai_health_15min cron caller already passes the secret, so legitimate traffic is unaffected.
-    const expected = await sec('inbound_secret');
-    if (!expected) {
-      try { await admin.from('agent_runs').insert({ agent: 'ai_health', started_at: started, finished_at: new Date().toISOString(), status: 'error', counts: { authorised: 0, secret_lookup_ok: 0 }, note: 'ai_health refused every caller because inbound_secret could not be read from app_secrets. The AI-provider liveness check did NOT run, so an absence of ai_provider_down alerts right now means the monitor is blind, not that the provider is healthy.' }); } catch (_e) { /* */ }
-      return J({ error: 'secret unavailable' }, 503);
-    }
+    // AUDIT 9.5 (3 Aug 2026): the "is the secret row even there" pre-check is gone. It existed to
+    // fail closed when app_secrets could not be read, and requireInternal now does that properly —
+    // it returns 503 when the verifier cannot answer for ANY reason, not just a missing row. The
+    // pre-check was also the last thing in this function reading the shared secret.
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'ai_health');

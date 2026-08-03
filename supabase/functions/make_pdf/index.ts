@@ -41,7 +41,12 @@ Deno.serve(async (req) => {
       raw: !!body.raw,
     };
     const r = await fetch(`${BASE}/pdf_native`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-    if (body.raw){ const buf = new Uint8Array(await r.arrayBuffer()); return new Response(buf, { status: r.status, headers: { 'Content-Type':'application/pdf', ...CORS } }); }
+    // REAL BUG, not a lint 3 Aug 2026: CORS carries 'Content-Type': 'application/json' and was
+    // spread AFTER the PDF content type, so every raw response was served labelled as JSON. The
+    // spread goes first now, so the explicit type wins. TypeScript had been saying this all along
+    // (TS2783 "specified more than once", TS2785 "this spread always overwrites this property")
+    // and it was being carried as a known pre-existing error rather than read.
+    if (body.raw){ const buf = new Uint8Array(await r.arrayBuffer()); return new Response(buf, { status: r.status, headers: { ...CORS, 'Content-Type':'application/pdf' } }); }
     const jd = await r.json();
     return J(jd, r.status);
   } catch (e) { return J({ error: String((e as Error)?.message||e) }, 500); }

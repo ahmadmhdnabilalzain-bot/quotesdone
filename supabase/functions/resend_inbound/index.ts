@@ -87,6 +87,17 @@ Deno.serve(async (req) => {
     const s = url.searchParams.get('s');
     const ibs = await sec('inbound_secret'); const rit = await sec('resend_inbound_token');
     if (!s || (s !== ibs && s !== rit)) { await logRun('error', { authorised: 0, stage: 'query_token' }, 'resend_inbound rejected a caller with a bad or missing ?s token. No inbound email was processed - if this was genuine Resend traffic, a supplier document or forwarded receipt has been dropped.'); return J({ error: 'forbidden' }, 403); }
+    // AUDIT 9.5 (3 Aug 2026) - THE INSTRUMENT, not the fix. This endpoint accepts the omnipotent
+    // shared secret as a ?s= query token, and the shared secret is due to be withdrawn on 10 Aug.
+    // Whether that breaks inbound email depends entirely on which value Resend's configured webhook
+    // URL actually carries, and that cannot be read from here. So: say so, loudly, every time the
+    // shared secret is the value that authorised. Seven days of silence means Resend is on the
+    // dedicated token and withdrawal is safe; a single one of these means it is not, and the URL
+    // must be re-issued with resend_inbound_token BEFORE the secret is withdrawn.
+    if (ibs && s === ibs && s !== rit) {
+      await logRun('error', { authorised: 1, stage: 'query_token', via: 'legacy_shared_secret' },
+        'resend_inbound was authorised by the SHARED SECRET, not by resend_inbound_token. When the shared secret is withdrawn this endpoint will start refusing genuine Resend deliveries and inbound supplier email will silently stop. Re-issue the Resend inbound webhook URL with resend_inbound_token before withdrawal.');
+    }
 
     // Read the body ONCE as raw text - the Svix signature covers the exact bytes.
     const raw = await req.text();

@@ -16,7 +16,7 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const TW = (s = 200) => new Response('<Response></Response>', { status: s, headers: { 'Content-Type': 'text/xml' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
-function tok(s: string) { return (String(s || '').toLowerCase().match(/[a-z0-9؀-ۿ]{3,}/g) || []); }
+function tok(s: string): string[] { return (String(s || '').toLowerCase().match(/[a-z0-9؀-ۿ]{3,}/g) || []); }
 
 function mkLog(t0: number) {
   return async (status: string, counts: Record<string, unknown>, note: string) => {

@@ -89,7 +89,11 @@ async function tool_run_maintenance(target: string) {
   if (target === 'health') return await admin.rpc('run_health_check').then((r) => r.data);
   if (target === 'smoke') { await admin.rpc('fn_smoke'); return { ran: 'smoke' }; }
   if (target === 'security') { await admin.rpc('fn_security_scan'); const { data } = await admin.from('agent_runs').select('counts').eq('agent', 'security').order('id', { ascending: false }).limit(1); return (data && data[0]?.counts) || { ran: 'security' }; }
-  if (target === 'it_health') return await admin.rpc('run_agent', { p_job: 'it_health' }).then((r) => r.data).catch(() => ({ ran: 'it_health' }));
+  // STANDING RULE 12 (3 Aug 2026): PostgREST returns a thenable, not a Promise, so `.then(...)` on it
+  // is typed PromiseLike and the `.catch` that followed was a type error. The very same shape written
+  // directly on a builder is a runtime TypeError - that is how yello_scrape and designer both broke.
+  // Two-argument .then() is correct in every case, and the line below already uses it.
+  if (target === 'it_health') return await admin.rpc('run_agent', { p_job: 'it_health' }).then((r) => r.data, () => ({ ran: 'it_health' }));
   if (target === 'recompute_response') { await admin.rpc('qd_recompute_response').then(() => null, () => null); return { ran: 'recompute_response' }; }
   if (target === 'clear_test_queue') { const { data, error } = await admin.from('notifications').update({ status: 'cancelled' }).in('status', ['held', 'queued']).or('to_email.ilike.%.test,to_email.ilike.%@quotesdone.test,to_email.is.null').select('id'); if (error) return { error: error.message }; return { cancelled: (data || []).length }; }
   return { error: 'unknown target' };
