@@ -71,6 +71,38 @@ Deno.serve(async (req) => {
     // the event worth having on record, so it is logged first and refused second.
     if (viaBypass && !READONLY.has(action)) return J({ error: 'forbidden', hint: 'the x-os-key preview key is read-only — sign in with an admin account to make changes' }, 403);
 
+    // ---- CONTROL MODE GATE (independent audit 3.1) --------------------------------------
+    // os_ops dispatches 30 actions. Until 3 Aug 2026 the 18 mutating ones - supplier_decide,
+    // customer_decide, po_approve, gl_post, cancel_inquiry, doc_review_decide, field_set,
+    // action_decide, kb_approve/reject/gov, prompt_reject, content_save, rfq_stage, rfq_outcome,
+    // note_add, task_create, task_done - sat behind isAdmin() alone, and not one of them existed
+    // in public.control_mode_action. An admin in Observe Mode could approve a supplier or post to
+    // the general ledger without ever opening Control Mode. Phase 1 containment hid this by making
+    // the whole function read-only; that block was removed on founder instruction, so the gate has
+    // to be real.
+    //
+    // All 30 actions are now classified. requires_control is generated from
+    // (classification = 'mutating'), so anything that changes state needs a live Control Mode
+    // session held by the acting admin.
+    //
+    // Fails closed three ways: an unclassified action is refused by fn_control_mode_require with
+    // 'action_classification_required' (so a new action cannot ship ungoverned), any RPC error
+    // denies, and an absent session denies. READONLY actions are untouched.
+    if (!READONLY.has(action)) {
+      let allowed = false;
+      let detail = 'control_mode_unavailable';
+      try {
+        const { data: gate, error: gerr } = await admin.rpc('fn_control_mode_require', { p_actor_email: String(email).toLowerCase(), p_action: action });
+        if (gerr) throw new Error(gerr.message);
+        allowed = (gate as any)?.allowed === true;
+        detail = String((gate as any)?.error || (allowed ? 'allowed' : 'control_mode_required'));
+      } catch (_e) { allowed = false; detail = 'control_mode_unavailable'; }
+      if (!allowed) {
+        return J({ error: 'control_mode_required', action, detail,
+          hint: 'This action changes state, so it requires an open Control Mode session. Open one via os_api control_mode_open (with MFA), then retry.' }, 403);
+      }
+    }
+
     if (action === 'audit_log') {
       const lim = Math.min(Number(b.limit || 200), 1000);
       let q = admin.from('os_audit_log').select('id,at,actor,action,entity,entity_id,detail').order('at', { ascending: false }).limit(lim);
