@@ -37,6 +37,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight, Minus, Maximize2, Minimize2, ExternalLink, SquareStack, X, ChevronRight, Check } from 'lucide-react';
+import { ControlModeProvider, ControlModeIndicator } from '@/components/osx/ControlMode';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -225,6 +226,10 @@ export default function OsxShell() {
   const closeTab = (id: string) => { setTabs((t) => { const nt = t.filter((x) => x !== id); if (!nt.length) return ['console']; if (id === cur) setCur(nt[nt.length - 1]); return nt; }); };
   const popOut = (id: string) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; openWindow({ id: 'mod:' + id, title: m.label, icon: m.icon, render: () => renderModule(id, go) }); };
   return (
+    // ControlModeProvider wraps the whole shell, not just the header. It listens for the gate
+    // refusal that osClient fires from ANY module, so pressing a blocked button anywhere brings up
+    // the panel that unblocks it. Before this, Phase 1.4's gate had no UI at all.
+    <ControlModeProvider>
     <WinCtx.Provider value={{ open: openWindow }}>
     <div className='osx dark min-h-screen flex text-foreground'>
       <aside className='w-60 shrink-0 border-r border-border bg-card/40 hidden md:flex md:flex-col'>
@@ -250,6 +255,7 @@ export default function OsxShell() {
           <button onClick={() => setPaletteOpen(true)} className='ml-auto flex items-center gap-2 rounded-md border border-border px-3 h-9 text-sm text-muted-foreground hover:bg-foreground/5'>
             <Search className='h-4 w-4' /><span className='hidden sm:inline'>Search or run a command</span><kbd className='hidden sm:inline text-[10px] bg-foreground/10 rounded px-1.5 py-0.5'>⌘K</kbd>
           </button>
+          <ControlModeIndicator />
           <AgentStatus onOpen={() => go('agents')} />
           <NotificationsBell pulse={live} onNav={go} />
           <div className='flex items-center gap-1.5 text-xs text-muted-foreground' title='Live activity'><Circle className={cn('h-2.5 w-2.5', live ? 'fill-emerald-400 text-emerald-400' : 'fill-muted text-muted')} />{live > 0 ? live + ' live' : 'idle'}</div>
@@ -288,6 +294,7 @@ export default function OsxShell() {
       <WindowLayer wins={wins} focus={focusWin} close={closeWin} min={minWin} max={maxWin} move={moveWin} size={sizeWin} snap={snapWin} />
     </div>
     </WinCtx.Provider>
+    </ControlModeProvider>
   );
 }
 
