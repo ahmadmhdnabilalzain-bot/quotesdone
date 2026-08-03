@@ -3,6 +3,7 @@
 // Routed through ai_gateway (v3 multimodal + plugins passthrough) so the spend is logged and routed.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { sanitizeOrMessage, SAFE_UPLOAD } from '../_shared/attachment.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -19,8 +20,15 @@ Deno.serve(async (req) => {
     const filename = String(body.filename||'document');
     const mime = String(body.mime||'application/octet-stream');
     let b64 = String(body.b64||''); if(!b64) return J({ error:'b64 required' }, 400);
-    const dataUrl = b64.startsWith('data:') ? b64 : ('data:'+mime+';base64,'+b64);
-    const isImage = /image\//i.test(mime) || /\.(png|jpe?g|webp|gif|heic|heif)$/i.test(filename);
+    // AUDIT 9.1 (3 Aug 2026): this built a data URL from the CALLER'S declared mime and posted it
+    // to the model. The bytes were never looked at, so a file claiming to be a PDF reached the
+    // file-parser plugin as whatever it actually was. Sniff first, then build the URL from the
+    // sniffed type.
+    const __san = sanitizeOrMessage({ input: b64, declaredMime: mime, filename, allow: SAFE_UPLOAD });
+    if (!__san.ok) return J(__san.body, __san.status);
+    const __b64 = btoa(String.fromCharCode(...__san.result.bytes));
+    const dataUrl = 'data:' + __san.result.mime + ';base64,' + __b64;
+    const isImage = /^image\//.test(__san.result.mime);   // the sniffed type, not the claim
     const secret = await sec('cred_fn_ai'); if(!secret) return J({ error:'ai_unavailable' }, 500);
     let content: any; let plugins: any = undefined;
     if (isImage) content = [{ type:'text', text:PROMPT }, { type:'image_url', image_url:{ url:dataUrl } }];

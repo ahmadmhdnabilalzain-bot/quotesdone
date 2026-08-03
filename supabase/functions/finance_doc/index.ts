@@ -2,6 +2,7 @@
 // and queue it for Dropbox backup. Admin-JWT or __secret gated.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { sanitizeOrMessage, SAFE_UPLOAD } from '../_shared/attachment.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const BASE = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } });
@@ -25,10 +26,18 @@ Deno.serve(async (req) => {
 
     // 1) store original
     let bytes: Uint8Array;
-    try { bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)); } catch (_e) { return J({ error: 'bad_base64' }, 400); }
+    // AUDIT 9.1 (3 Aug 2026): the declared mime came from the request body and was written
+    // straight onto the storage object and the expense row. sanitizeUpload sniffs the real type
+    // from the bytes, refuses anything that is not a PDF or a real image, catches polyglots, and
+    // strips EXIF/GPS from photographed invoices before they land in a bucket. Fails CLOSED.
+    const __san = sanitizeOrMessage({ input: b64, declaredMime: mime, filename, allow: SAFE_UPLOAD });
+    if (!__san.ok) return J(__san.body, __san.status);
+    bytes = __san.result.bytes;
     const safe = filename.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-80);
     const path = new Date().toISOString().slice(0, 7) + '/' + Date.now() + '-' + safe;
-    const up = await admin.storage.from('finance-docs').upload(path, bytes, { contentType: mime, upsert: true });
+    // The SNIFFED type, not the claimed one - storing a caller's assertion about its own upload
+    // is how an executable ends up served as a PDF.
+    const up = await admin.storage.from('finance-docs').upload(path, bytes, { contentType: __san.result.mime, upsert: true });
     if (up.error) return J({ error: 'store_failed: ' + up.error.message }, 500);
 
     // 2) extract text
