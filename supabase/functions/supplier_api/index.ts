@@ -92,14 +92,26 @@ const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n
 async function secretVal(key: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return data?.value || null; }
 function b64ToBytes(b64:string){ const bin=atob(String(b64).replace(/^data:[^;]+;base64,/,'')); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
 async function signedRedacted(path: string){ try { const { data } = await admin.storage.from('drawing-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
+// AUDIT 4.2 (3 Aug 2026) ------------------------------------------------------------------
+// This function used to decide the registration state itself, from registered_supplier_count()
+// against pricing_config.supplier_free_count, evaluated AFTER the insert - so the test was
+// "N < 1000" when N had already become 1000, and only 999 suppliers were ever free. Supplier
+// #1000 came out of it simultaneously subscription_exempt=true (per fn_assign_founding_rank)
+// and registration_status='due', registration_fee_due=1000. It also had no date test at all,
+// so it marked suppliers 'due' - which submit_quote below refuses on - a full year before the
+// contractual charging date of 1 Aug 2027. And it stamped registration_paid_at on free
+// suppliers, recording a payment that never happened.
+//
+// The rule now lives in exactly one place: fn_supplier_registration_state(), enforced on write
+// by trg_bz_supplier_registration_state on public.leads. This function no longer decides
+// anything - it touches the row so the trigger derives the state, then reports what the single
+// source of truth says.
 async function setRegistration(leadId: number) {
-  const { data: cfg } = await admin.from('pricing_config').select('supplier_free_count,supplier_reg_fee').eq('id', 1).maybeSingle();
-  const { data: cnt } = await admin.rpc('registered_supplier_count');
-  const free = (Number(cnt) || 0) < (Number(cfg?.supplier_free_count) || 1000);
-  if (free) { await admin.from('leads').update({ registration_status: 'free', registration_fee_due: 0, registration_paid_at: new Date().toISOString(), registration_expires_at: new Date(Date.now() + YEAR_MS).toISOString(), portal_updated_at: new Date().toISOString() }).eq('id', leadId); return { status: 'free', fee_due: 0 }; }
-  const fee = Number(cfg?.supplier_reg_fee) || 1000;
-  await admin.from('leads').update({ registration_status: 'due', registration_fee_due: fee, portal_updated_at: new Date().toISOString() }).eq('id', leadId);
-  return { status: 'due', fee_due: fee };
+  await admin.from('leads').update({ portal_updated_at: new Date().toISOString() }).eq('id', leadId);
+  const { data: st, error } = await admin.rpc('fn_supplier_registration_state', { p_lead_id: leadId });
+  if (error || !(st as any)?.ok) return { status: 'unknown', fee_due: 0, may_quote: true, reason: 'registration_state_unavailable' };
+  const s = st as any;
+  return { status: String(s.status), fee_due: Number(s.fee_due || 0), may_quote: s.may_quote !== false, founding_rank: s.founding_rank ?? null, charging_starts: s.charging_starts ?? null, reason: String(s.reason || '') };
 }
 async function aiSummarize(leadId: number) {
   try { const { data: lead } = await admin.from('leads').select('id,company_name,sector,emirate,services,products,description,certifications,verified,service_emirates').eq('id', leadId).maybeSingle(); if (!lead) return; const secret = await secretVal('inbound_secret'); if (!secret) return; const text = [lead.company_name && ('Company: ' + lead.company_name), lead.sector && ('Trade: ' + lead.sector), lead.services && ('Services: ' + lead.services), lead.products && ('Products: ' + lead.products), lead.description && ('About: ' + lead.description), lead.certifications && ('Certifications: ' + lead.certifications)].filter(Boolean).join('\n'); if (!text) return; const r = await fetch(`${SUPA_URL}/functions/v1/profile_ai`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, company_name: lead.company_name, sector: lead.sector, emirate: lead.emirate, text }) }); const jd = await r.json(); if (jd?.ok && jd.profile) { const p = jd.profile; const upd: Record<string, unknown> = {}; if (p.capability_summary) upd.capability_summary = p.capability_summary; if (Array.isArray(p.service_emirates) && p.service_emirates.length && !(Array.isArray(lead.service_emirates) && lead.service_emirates.length)) upd.service_emirates = p.service_emirates; if (p.description && !lead.description) upd.description = p.description; if (p.category && !lead.sector) upd.sector = p.category; if (Object.keys(upd).length) await admin.from('leads').update(upd).eq('id', leadId); } } catch (_e) { /* */ }
@@ -460,12 +472,17 @@ Deno.serve(async (req) => {
     // money path that never got it. registration_status is now written solely by stripe_webhook
     // on a signature-verified checkout.session.completed event.
     if (action === 'pay_registration') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,email,registration_status,registration_fee_due').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,email').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first' }, 400);
-      const status = String(sup.registration_status || '');
-      if (status === 'paid') return J({ ok: true, already_paid: true });
-      if (status === 'free') return J({ ok: true, free_tier: true, message: 'Your registration is free - you are within the first 1,000 suppliers.' });
-      const fee = Number(sup.registration_fee_due || 0);
+      // AUDIT 4.2. Read the single source of truth rather than the stored label, which is only
+      // recomputed on write and can be a day stale across the charging start date.
+      const { data: regSt, error: regErr } = await admin.rpc('fn_supplier_registration_state', { p_lead_id: sup.id });
+      if (regErr || !(regSt as any)?.ok) return J({ error: 'registration_state_unavailable', detail: regErr?.message || 'lead_not_found' }, 503);
+      const reg = regSt as any;
+      if (reg.status === 'paid') return J({ ok: true, already_paid: true, paid_until: reg.paid_until });
+      if (reg.status === 'exempt') return J({ ok: true, exempt: true, founding_rank: reg.founding_rank, message: 'Your registration is permanently free - you are supplier number ' + reg.founding_rank + ', inside the founding cohort. There is no fee to pay, now or in future.' });
+      if (reg.status === 'not_due') return J({ ok: true, nothing_to_pay: true, charging_starts: reg.charging_starts, message: 'There is nothing to pay yet. The yearly registration fee starts on ' + reg.charging_starts + '.' });
+      const fee = Number(reg.fee_due || 0);
       if (!(fee > 0)) return J({ ok: true, nothing_to_pay: true });
       const sk = await secretVal('stripe_secret_key');
       if (!sk) return J({ error: 'stripe_not_configured' }, 503);
@@ -568,7 +585,17 @@ Deno.serve(async (req) => {
       if (!sup) return J({ error: 'claim your company first' }, 400);
       if (!sup.accepted_terms_at) return J({ error: 'accept the supplier terms first' }, 400);
       if (sup.approval_status !== 'approved') return J({ error: 'Your registration is pending verification. You can submit quotes once an admin approves your account (within 3 working days).' }, 403);
-      if (sup.registration_status === 'due') return J({ error: 'Your AED 1,000 yearly registration is due. Please complete registration to send quotes.' }, 402);
+      // AUDIT 4.2. This gate used to read the stored registration_status, which setRegistration()
+      // set to 'due' on every supplier past the (off-by-one) free count regardless of the date -
+      // blocking suppliers from quoting a year before the fee is contractually charged. It now
+      // asks the single source of truth, and fails CLOSED on an unavailable answer rather than
+      // silently opening the paywall.
+      {
+        const { data: regSt, error: regErr } = await admin.rpc('fn_supplier_registration_state', { p_lead_id: sup.id });
+        const reg = regSt as any;
+        if (regErr || !reg?.ok) return J({ error: 'registration_state_unavailable', detail: regErr?.message || 'lead_not_found', hint: 'We could not confirm your registration status. Please try again shortly.' }, 503);
+        if (reg.may_quote === false) return J({ error: 'Your ' + String(reg.currency || 'AED') + ' ' + Number(reg.fee_due || 0) + ' yearly registration is due. Please complete registration to send quotes.', registration: { status: reg.status, fee_due: reg.fee_due, currency: reg.currency, reason: reg.reason } }, 402);
+      }
       const { data: inqStat } = await admin.from('inquiries').select('status').eq('id', body.inquiry_id).maybeSingle();
       if (inqStat && CONCLUDED.includes(String(inqStat.status))) return J({ error: 'This request has been concluded — the customer has already selected a supplier. Thank you for your interest, and best of luck on the next one.' }, 409);
       const amt = Number(body.amount); if (!(amt > 0)) return J({ error: 'invalid amount' }, 400);

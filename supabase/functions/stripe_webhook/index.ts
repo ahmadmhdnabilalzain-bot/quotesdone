@@ -118,9 +118,18 @@ Deno.serve(async (req) => {
 
           // Only settle a lead that is genuinely still unpaid. This makes duplicate deliveries a
           // no-op, and stops a repeat webhook silently pushing the expiry out by another year.
+          // AUDIT 4.2 (3 Aug 2026). This block wrote registration_status='paid' and an expiry
+          // timestamp, but NOTHING anywhere in the codebase ever wrote leads.subscription_paid_until
+          // - the column the exemption/paid/due rule actually reads. A supplier who paid was
+          // therefore recorded as paid in one column and unpaid in the one that decides whether
+          // they may quote, and would have gone back to 'due' on the next write to their row.
+          // subscription_paid_until is now the settlement of record; registration_status and
+          // registration_fee_due are derived from it by trg_bz_supplier_registration_state, so
+          // they are deliberately NOT set here - the trigger overwrites them either way.
           const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+          const paidUntil = new Date(Date.now() + YEAR_MS);
           const { data: settled, error: rErr } = await admin.from('leads')
-            .update({ registration_status: 'paid', registration_fee_due: 0, registration_paid_at: new Date().toISOString(), registration_expires_at: new Date(Date.now() + YEAR_MS).toISOString() })
+            .update({ subscription_paid_until: paidUntil.toISOString().slice(0, 10), registration_paid_at: new Date().toISOString(), registration_expires_at: paidUntil.toISOString() })
             .eq('id', supId).neq('registration_status', 'paid').select('id,email,company_name');
 
           if (rErr) { await logRun('error', { kind: 'supplier_registration', supplier_id: supId, amount: paidAmount }, 'SUPPLIER PAID BUT NOT RECORDED - failed to mark registration paid (' + rErr.message + '). Payment ref ' + payRef + '. The supplier has been charged and still shows as unregistered, so they may be blocked from quoting until this is reconciled by hand.'); return new Response('registration update failed: ' + rErr.message, { status: 500 }); }
