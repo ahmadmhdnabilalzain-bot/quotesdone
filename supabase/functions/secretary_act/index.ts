@@ -127,7 +127,45 @@ async function tool_post_content(a: any) {
   }
   return { pending_channel: channel, note: channel + ' is not connected yet (needs its posting token). Saved as a draft.' };
 }
-async function tool_issue_refund(transaction_id: string, reason: string) { const { data: tx } = await admin.from('transactions').select('id,refund_status').eq('id', transaction_id).maybeSingle(); if (!tx) return { error: 'transaction_not_found' }; await admin.from('transactions').update({ refund_status: 'refunded', refund_note: String(reason || '').slice(0, 500), refund_resolved_at: new Date().toISOString() }).eq('id', transaction_id); const { data: due } = await admin.from('supplier_dues').select('amount_due,status').eq('transaction_id', transaction_id).order('created_at', { ascending: false }).maybeSingle(); return { refunded: transaction_id, supplier_charge: due || null }; }
+// AUDIT 5.3/5.5 CLASS DEFECT, fixed 4 Aug 2026. This used to write
+//   transactions.refund_status = 'refunded', refund_resolved_at = now()
+// DIRECTLY. It never called refunds_api, never reached Stripe, and never wrote a refunds row. The
+// result was books that said refunded while Stripe said paid - the same ledger desync 5.5 is about,
+// arriving through a different door - and it did it while bypassing the Control Mode gate that
+// refunds_api carries precisely because `resolve` moves real money. The founder chat confirmation is
+// a good control over INTENT; it is not a substitute for the one code path that reconciles.
+//
+// Now it REQUESTS through fn_refund_request, which is the single writer of refunds rows. That
+// function applies the founder's policy on its own: inside transactions.refund_deadline and at or
+// below org_authority.threshold_aed (AED 2,000) it auto-approves; otherwise it records the request
+// and holds it for a human, with the reason in reconciliation_note. Execution against Stripe stays
+// where it belongs - refunds_api - so there is exactly one path from "refund" to "money moved".
+async function tool_issue_refund(transaction_id: string, reason: string) {
+  const { data: tx } = await admin.from('transactions').select('id,reveal_fee,refund_status').eq('id', transaction_id).maybeSingle();
+  if (!tx) return { error: 'transaction_not_found' };
+  const fils = Math.round(Number(tx.reveal_fee || 0) * 100);
+  if (!fils || fils <= 0) return { error: 'transaction_has_no_reveal_fee', transaction_id };
+  const { data, error } = await admin.rpc('fn_refund_request', {
+    p_amount_fils: fils,
+    // The tool takes free text; the ledger takes a closed vocabulary. Never guess a specific code
+    // from a sentence - record 'other' and keep the founder's own words in the note.
+    p_reason_code: 'other',
+    p_requested_by: 'secretary_act',
+    p_transaction_id: transaction_id,
+    p_note: String(reason || '').slice(0, 500),
+  });
+  if (error) return { error: error.message };
+  const r = data as any;
+  const { data: due } = await admin.from('supplier_dues').select('amount_due,status').eq('transaction_id', transaction_id).order('created_at', { ascending: false }).maybeSingle();
+  return {
+    transaction_id, refund_id: r?.refund_id ?? null, status: r?.status ?? null,
+    auto_approved: r?.auto_approved === true, ceiling_aed: r?.ceiling_aed ?? null,
+    note: r?.auto_approved === true
+      ? 'Approved automatically under the in-window policy. The Stripe refund itself is executed by refunds_api.'
+      : 'Recorded and held for a human - outside the refund window or above the declared ceiling. No money has moved.',
+    supplier_charge: due || null,
+  };
+}
 async function tool_supplier_decision(supplier_id: string, action: string, reason: string) {
   const id = Number(supplier_id); const { data: l } = await admin.from('leads').select('id,company_name,claimed_by').eq('id', id).maybeSingle(); if (!l) return { error: 'supplier_not_found' };
   if (action === 'approve') { await admin.from('leads').update({ approval_status: 'approved', verified: true, lifecycle_stage: 'active', approved_at: new Date().toISOString() }).eq('id', id); if (l.claimed_by) await admin.from('notifications').insert({ type: 'registration_approved', to_email: l.claimed_by, to_role: 'supplier', lead_id: id, channel: 'email', subject: "You're verified on QuotesDone", body: 'Good news — ' + (l.company_name || 'your company') + ' has been approved on QuotesDone. You can now receive inquiries and quote: https://quotesdone.com/suppliers/' }); }
