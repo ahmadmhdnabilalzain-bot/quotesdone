@@ -1,0 +1,15 @@
+-- The shim could not work, and finding out why exposed something worse.
+--
+-- BOTH overloads of match_suppliers_kw have defaults on EVERY parameter (6 and 7 respectively). So
+-- a six-argument call matches both candidates and Postgres refuses:
+--     function public.match_suppliers_kw(text[], unknown, unknown, unknown, unknown, integer)
+--     is not unique
+-- That is not something this session introduced - it has been true of both overloads all along. Any
+-- caller invoking it with six arguments has been getting an error, not a weaker match. Which also
+-- means the "6-arg version has none of the exclusions" hazard was unreachable in practice, and the
+-- real defect was that the ambiguity existed at all.
+--
+-- The fix is to have one function, not two. The 7-argument version already defaults p_multi to
+-- false, so every six-argument call site resolves to it unchanged and picks up the full exclusion
+-- set - banned, matching_blocked, permanently_closed, rejected and action_required.
+drop function if exists public.match_suppliers_kw(text[], text, text, text, numeric, integer);;
