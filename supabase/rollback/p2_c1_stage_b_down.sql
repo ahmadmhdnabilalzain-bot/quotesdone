@@ -7,15 +7,45 @@
 --
 --   1. Run this script. It removes every object Stage B created and every column it added.
 --   2. Re-apply, in order:
---        supabase/migrations/20260802190000_p2_c1_stage_a_mep_model.sql
---        supabase/migrations/20260802190100_p2_c1_stage_a_field_identities.sql
---        supabase/migrations/20260802190200_p2_c1_stage_a_teardown_and_fixture.sql
---        supabase/migrations/20260802190300_p2_c1_stage_a_supersede_ordering_fix.sql
---        supabase/migrations/20260802190400_p2_c1_stage_a_selftest.sql
---      All five are idempotent (create or replace / create if not exists / on conflict do nothing).
+--        supabase/migrations/20260802165328_p2_c1_stage_a_mep_model.sql
+--        supabase/migrations/20260802165447_p2_c1_stage_a_mep_functions_and_views.sql
+--        supabase/migrations/20260802165657_p2_c1_stage_a_mep_trades_and_field_identities.sql
+--        supabase/migrations/20260802165742_p2_c1_stage_a_flag_consistency_split_fields_for_review.sql
+--        supabase/migrations/20260802165847_p2_c1_stage_a_teardown_gate.sql
+--        supabase/migrations/20260802165953_p2_c1_stage_a_selftest.sql
+--        supabase/migrations/20260802170028_p2_c1_stage_a_fix_supersede_ordering.sql
+--        supabase/migrations/20260802170101_p2_c1_stage_a_setter_uses_supersede_helper.sql
+--        supabase/migrations/20260802170233_p2_c1_stage_a_selftest_fix_corroboration_case.sql
+--        supabase/migrations/20260802170345_p2_c1_stage_a_selftest_fix_test12_measurement.sql
+--        supabase/migrations/20260802170530_p2_c1_stage_a_mep_subcategory_review_matrix.sql
+--      All are idempotent (create or replace / create if not exists / on conflict do nothing).
 --      Step 2 restores the Stage A view bodies, the Stage A activation function, and the five
 --      *.brand_policy field identities with their field_definition_source mappings - which this
 --      script removes by cascade when it drops shared.brand_acceptance_policy.
+--
+-- CORRECTED 3 Aug 2026 (independent audit finding 8.3, severity critical).
+-- Step 2 previously named five files under supabase/migrations/ with a 2026080219xx prefix:
+--   20260802190000_p2_c1_stage_a_mep_model.sql and four siblings.
+-- NONE OF THOSE PATHS EXIST. They were moved to supabase/migrations-superseded-consolidated/.
+-- Because step 1 below drops shared.brand_acceptance_policy with cascade BEFORE step 2 runs, an
+-- operator following the documented procedure was left with the Stage A objects dropped and no
+-- file at the path given to restore them.
+--
+-- The audit stopped at "the paths do not exist". The deeper problem is that pointing step 2 at
+-- migrations-superseded-consolidated/ would have been wrong even if the files had been there:
+-- that directory holds the SUPERSEDED authoring set, not the migrations that were actually applied
+-- to production. Re-applying it would have restored a DIFFERENT Stage A from the one being rolled
+-- back to. The eleven files above are the applied set, verified against
+-- supabase_migrations.schema_migrations versions 20260802165328 through 20260802170530.
+--
+-- PRE-FLIGHT. Before running step 1, confirm every step 2 file is actually present, or you will
+-- discover the gap after the cascade rather than before it:
+--
+--   Get-ChildItem supabase\migrations -Filter '*p2_c1_stage_a*' | Measure-Object    # expect 11
+--
+-- and on a POSIX shell:
+--
+--   ls supabase/migrations/*p2_c1_stage_a* | wc -l                                  # expect 11
 --
 -- REHEARSED, not assumed. On 2 August 2026 this script ran inside a transaction that was then
 -- deliberately aborted:
