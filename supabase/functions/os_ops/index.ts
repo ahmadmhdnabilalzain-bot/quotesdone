@@ -71,21 +71,6 @@ Deno.serve(async (req) => {
     // the event worth having on record, so it is logged first and refused second.
     if (viaBypass && !READONLY.has(action)) return J({ error: 'forbidden', hint: 'the x-os-key preview key is read-only — sign in with an admin account to make changes' }, 403);
 
-    // ---- PHASE 1 EMERGENCY CONTAINMENT — hotfix/phase1-emergency-containment, 2 Aug 2026 ----
-    // Independent audit finding 3.1: os_ops dispatches 18 mutating actions (supplier_decide,
-    // po_approve, gl_post, kb_approve, doc_review_decide, cancel_inquiry, field_set, ...) behind
-    // isAdmin() alone. Not one of them exists in public.control_mode_action, so an admin in Observe
-    // Mode can approve a supplier, post to the general ledger or decide a document review without
-    // ever opening Control Mode. Until every mutating action is registered and gated, os_ops is
-    // read-only. This FAILS CLOSED: anything outside the explicit READONLY allow-list is refused,
-    // including an action this file does not recognise. Placed deliberately after the audit insert
-    // above, so the attempt is on record before it is refused.
-    // Reverse: delete this block and redeploy. See supabase/rollback/phase1_containment_down.sql.
-    if (!READONLY.has(action)) {
-      return J({ error: 'containment_mutations_disabled', action,
-        hint: 'Phase 1 emergency containment: os_ops mutating actions are disabled until they are registered in control_mode_action and gated by Control Mode. Read-only actions are unaffected.' }, 503);
-    }
-
     if (action === 'audit_log') {
       const lim = Math.min(Number(b.limit || 200), 1000);
       let q = admin.from('os_audit_log').select('id,at,actor,action,entity,entity_id,detail').order('at', { ascending: false }).limit(lim);

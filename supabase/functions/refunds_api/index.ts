@@ -107,14 +107,19 @@ Deno.serve(async (req) => {
     if (!(await authed(req, body))) { await logRun('error', { action: String(body?.action || '') }, 'forbidden: refund API called without valid secret or admin JWT'); return J({ error: 'forbidden' }, 403); }
     const action = String(body.action || '');
 
-    // ---- PHASE 1 EMERGENCY CONTAINMENT — hotfix/phase1-emergency-containment, 2 Aug 2026 ----
-    // Independent audit finding 3.1: 'resolve' issues a REAL Stripe refund (POST /v1/refunds) and is
-    // reachable with any address listed in app_secrets.admin_emails, or with the shared inbound_secret,
-    // with no Control Mode session and no entry in public.control_mode_action. Until refund_resolve is
-    // registered and gated, it requires a live Control Mode session belonging to a human identity.
+    // ---- CONTROL MODE GATE: refund_resolve ----------------------------------------------
+    // 'resolve' issues a REAL Stripe refund (POST /v1/refunds). Without a gate it is reachable with
+    // any address listed in app_secrets.admin_emails, or with the shared inbound_secret - a secret
+    // referenced by 43 of 148 cron jobs. Moving money therefore requires a live Control Mode session
+    // held by a human identity.
+    //
+    // This began life on 2 Aug 2026 as a Phase 1 emergency-containment block, justified at the time
+    // by refund_resolve not existing in public.control_mode_action. It does now: risk=high,
+    // classification=mutating, requires_control=true. So this is no longer containment - it is the
+    // permanent control the refund workstream requires, and it stays after containment is removed.
+    //
     // Fails closed: any error, any missing identity and any non-true gate result denies.
-    // list_pending and list_recent are read-only and are deliberately left unchanged.
-    // Reverse: delete this block and redeploy. See supabase/rollback/phase1_containment_down.sql.
+    // list_pending and list_recent are read-only and are deliberately left ungated.
     if (action === 'resolve') {
       let allowed = false;
       let detail = 'control_mode_unavailable';
@@ -132,9 +137,9 @@ Deno.serve(async (req) => {
         }
       } catch (_e) { allowed = false; detail = 'control_mode_unavailable'; }
       if (!allowed) {
-        await logRun('error', { action, detail }, 'refund resolve refused by Phase 1 emergency containment: no valid Control Mode session');
-        return J({ error: 'containment_control_mode_required', detail,
-          hint: 'Phase 1 emergency containment: issuing a Stripe refund requires an open Control Mode session held by an authorised identity. refund_resolve is not yet registered in control_mode_action.' }, 403);
+        await logRun('error', { action, detail }, 'refund resolve refused: no valid Control Mode session');
+        return J({ error: 'control_mode_required', detail,
+          hint: 'Issuing a Stripe refund requires an open Control Mode session held by an authorised identity.' }, 403);
       }
     }
 
