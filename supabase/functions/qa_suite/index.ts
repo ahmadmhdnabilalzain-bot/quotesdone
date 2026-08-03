@@ -1,7 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import { requireInternal } from "../_shared/internal_auth.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const admin = createClient(SB_URL, SB_KEY);
 
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -55,11 +58,22 @@ async function anonProbe(anon: string, table: string): Promise<{ leaked: boolean
 
 Deno.serve(async (req) => {
   try {
-    const guard = await secret("postiz_publish_key");
-    const providedKey = req.headers.get("x-internal-key");
-    if (!guard) { await logRun("error", { stage: "config" }, "postiz_publish_key is missing from app_secrets, so qa_suite can never authenticate and the RLS/data-leak and data-integrity checks never run: a regression that exposes customer, supplier or secret data would go completely unnoticed"); }
-    else if (providedKey && providedKey !== guard) { await logRun("error", { stage: "auth", rejected: 1 }, "Rejected a call presenting a wrong x-internal-key; the QA suite did not run, so RLS leaks and data-integrity regressions stay unverified for this cycle"); }
-    if (!guard || providedKey !== guard) return json({ error: "unauthorized" }, 401);
+    // AUDIT 9.5 (4 Aug 2026). This compared a raw header, `x-internal-key`, against
+    // app_secrets.postiz_publish_key. That was a SECOND shared secret - one string, no scope, no
+    // attribution, no rotation path - spanning two unrelated functions (a QA suite and a social
+    // publisher) and completely invisible to the internal_credential model, to
+    // v_legacy_secret_users and to the shared-secret withdrawal plan. Audit 9.5 measured one shared
+    // secret and declared coverage; this is what it was not looking at.
+    //
+    // The credential now arrives as body.__secret and is checked by the same verifier as everything
+    // else, so scope, rotation and attribution live in one place. The header path is removed rather
+    // than deprecated: leaving it would preserve exactly the thing being removed.
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const __auth = await requireInternal(admin, (body as { __secret?: unknown })?.__secret, "qa_suite");
+    if (!__auth.ok) {
+      await logRun("error", { stage: "auth", rejected: 1 }, "Rejected a call that presented no accepted internal credential; the QA suite did not run, so RLS leaks and data-integrity regressions stay unverified for this cycle");
+      return json({ error: "unauthorized" }, 403);
+    }
     const anon = await secret("anon_key");
     if (!anon) { await logRun("error", { stage: "config" }, "anon_key is missing from app_secrets, so qa_suite cannot probe RLS at all: a table left publicly readable (customers, leads, app_secrets, quotes) would never be detected"); return json({ error: "anon_key not configured" }, 500); }
 

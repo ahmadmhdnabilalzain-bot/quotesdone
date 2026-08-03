@@ -80,7 +80,28 @@ Deno.serve(async (req) => {
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'send_whatsapp');
-    if (!__auth.ok) { await logThrottled('forbidden', 60, 'error', {}, 'send_whatsapp called without the inbound secret'); return J({ error:'forbidden' }, 403); }
+    if (!__auth.ok) {
+      // 4 Aug 2026. An unidentified EXTERNAL process has been presenting an unrecognised credential
+      // here every two minutes since 05:06 UTC on 3 Aug - 500+ attempts against an endpoint that
+      // sends messages. It was written off as a "phantom caller outside cron.job"; it is outside
+      // cron.job, but it is not a phantom. Ruled out by measurement: pg_net logged zero non-200
+      // responses over three hours, no object in pg_proc references send_whatsapp, and the repo's
+      // only scheduled caller is wa_flush, which authenticates fine and returns 200 alongside it.
+      //
+      // This row previously recorded that a refusal happened and nothing about who was refused, so
+      // the same denial has been logged hourly for a day without ever becoming actionable. A
+      // repeated unauthorised caller you cannot name is not noise, it is an open question.
+      const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || null;
+      await logThrottled('forbidden', 60, 'error', {
+        caller_ip: ip, user_agent: (req.headers.get('user-agent') || '').slice(0, 200),
+        referer: (req.headers.get('referer') || '').slice(0, 200),
+        has_secret_field: typeof (body as { __secret?: unknown })?.__secret === 'string',
+        secret_len: typeof (body as { __secret?: unknown })?.__secret === 'string' ? String((body as { __secret?: string }).__secret).length : 0,
+      }, 'send_whatsapp refused a caller presenting no accepted internal credential. Identity recorded above so a ' +
+         'repeated unauthorised caller can be named rather than counted. The secret VALUE is never logged - only its ' +
+         'length, which distinguishes "sent nothing" from "sent something wrong" without disclosing either.');
+      return J({ error:'forbidden' }, 403);
+    }
     const acct = await sec('twilio_account_sid'); const ks = await sec('twilio_api_key_sid'); const kk = await sec('twilio_api_key_secret'); const from = await sec('twilio_wa_from');
     if (!acct || !ks || !kk || !from) { await logThrottled('not_configured', 60, 'error', {}, 'WHATSAPP NOT SENDING - missing twilio_account_sid / api_key_sid / api_key_secret / wa_from'); return J({ ok:false, error:'whatsapp_not_configured' }, 200); }
     const ready = ((await sec('wa_templates_ready'))||'false')==='true';

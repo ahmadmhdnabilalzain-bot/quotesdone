@@ -1,3 +1,25 @@
+-- ==================================================================================================
+-- STALE. DO NOT REPLAY THIS FILE. Captured 2 August 2026, 15:50.
+--
+-- Fifty-one migrations have been applied since, including the entire Audit 9.5 credential separation.
+-- This file still contains 199 references to `inbound_secret`, among them
+--
+--     cron.schedule('wa_flush','*/2 * * * *', ... key='inbound_secret' ...)      (line ~24416)
+--
+-- whose live counterpart has been on `cred_cron_notifications` since 3 August. Replaying this file
+-- would silently put cron jobs and database functions back on the single shared secret and undo
+-- WI-001 / spec_backlog#201 in one command, with nothing failing to announce it.
+--
+-- It is a READING aid. To rebuild a database, replay supabase/migrations/ in order - that set is
+-- complete and `final_sync_check.mjs` proves every applied migration has a file.
+--
+-- To regenerate: `supabase link` then `supabase db dump --linked --keep-comments -f <this file>`.
+-- Once regenerated and confirmed to contain no `inbound_secret` reference outside
+-- fn_protect_app_secret / fn_protect_gate_secrets, delete this banner - the guard in
+-- scripts/checks/schema_dump_not_replayable.test.mjs requires the banner only while the staleness
+-- marker is still present.
+-- ==================================================================================================
+--
 -- QuotesDone — FULL SCHEMA EXPORT (generated from live DB, project htdblwldjkcgjvmqkbeh)
 -- Excludes: secret VALUES (key names listed below), and table ROW DATA (PII).
 -- Order is best-effort; this is a faithful reference mirror, not a guaranteed one-click restore.

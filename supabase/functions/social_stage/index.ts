@@ -1,4 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import { requireInternal } from "../_shared/internal_auth.ts";
 
 // social_stage — PUBLISHES founder-APPROVED social posts LIVE (the "approve -> goes online" half of the
 // marketing review gate). It only touches content_drafts whose review_status='approved' (set by the founder
@@ -8,6 +10,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // review queue.
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const admin = createClient(SB_URL, SB_KEY);
 
 // Channels one approved draft fans out to. The founder's cadence spec counts a fan-out like this as
 // ONE post, not four — see WEEKLY PUBLISH CAP below.
@@ -97,11 +100,21 @@ async function recordPublished(draftId: number, text: string, imageUrl: string |
 
 Deno.serve(async (req) => {
   try {
-    const guard = await secret("postiz_publish_key");
-    const providedKey = req.headers.get("x-internal-key");
-    if (!guard) { await logThrottled("config_no_publish_key", 60, "error", { stage: "config" }, "postiz_publish_key is missing from app_secrets, so social_stage can never authenticate: no approved post is ever published and the social pipeline is silently dead"); }
-    else if (providedKey && providedKey !== guard) { await logThrottled("auth_bad_key", 60, "error", { stage: "auth", rejected: 1 }, "Rejected a call presenting a wrong x-internal-key; no approved posts were published this cycle"); }
-    if (!guard || req.headers.get("x-internal-key") !== guard) return json({ error: "unauthorized" }, 401);
+    // AUDIT 9.5 (4 Aug 2026). This compared a raw `x-internal-key` header against
+    // app_secrets.postiz_publish_key - a SECOND shared secret, spanning this function and qa_suite,
+    // with no scope, no attribution and no rotation path, and invisible to internal_credential,
+    // v_legacy_secret_users and the whole shared-secret withdrawal plan. It guards a function that
+    // publishes LIVE to LinkedIn, X, Facebook and Instagram.
+    //
+    // The credential now arrives as body.__secret and goes through the same verifier as everything
+    // else. The header path is removed rather than deprecated: leaving it would preserve exactly the
+    // thing being removed.
+    const authBody = await req.json().catch(() => ({} as Record<string, unknown>));
+    const __auth = await requireInternal(admin, (authBody as { __secret?: unknown })?.__secret, "social_stage");
+    if (!__auth.ok) {
+      await logThrottled("auth_refused", 60, "error", { stage: "auth", rejected: 1 }, "Rejected a call that presented no accepted internal credential; no approved posts were published this cycle");
+      return json({ error: "unauthorized" }, 403);
+    }
 
     // GO-LIVE GATE: do nothing until the founder flips marketing_golive to 'true'
     // (intentional pause = idle run that did no work, so it is deliberately NOT logged)

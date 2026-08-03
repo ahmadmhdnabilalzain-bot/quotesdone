@@ -1,5 +1,6 @@
 // wa_templates_watch - polls Twilio for WhatsApp template approval; when ALL approved, flips wa_templates_ready='true' and emails the founder.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -21,8 +22,19 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
 async function sec(k:string){ const {data}=await sb.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 const J=(o:unknown,s=200)=>new Response(JSON.stringify(o,null,2),{status:s,headers:{'Content-Type':'application/json'}});
 
-Deno.serve(async ()=>{
+Deno.serve(async (req)=>{
   try{
+    // AUDIT 9.5 (4 Aug 2026). This handler never read the request. It had NO internal gate at all -
+    // `Deno.serve(async ()=>{...})` - and ran as the service role. Its only protection was
+    // verify_jwt, and the anon key is a valid JWT that ships in the frontend, so anyone holding the
+    // public key could invoke it. It reads Twilio credentials, enumerates template approval statuses
+    // into its response, writes app_secrets.wa_templates_ready and queues founder mail.
+    //
+    // Not in the D3/D5 inventory and not in v_internal_secret_migration_progress either, because the
+    // view counts crons that present a secret and this one presented none.
+    const body = await req.json().catch(()=>({} as Record<string, unknown>));
+    const __auth = await requireInternal(sb, (body as { __secret?: unknown })?.__secret, 'wa_templates_watch');
+    if (!__auth.ok) return J({ error: 'forbidden' }, 403);
     // already ready = idle run that does no work, deliberately not logged
     if(((await sec('wa_templates_ready'))||'false')==='true') return J({ ok:true, already_ready:true });
     const ks=await sec('twilio_api_key_sid'); const kk=await sec('twilio_api_key_secret');
