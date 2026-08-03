@@ -2,11 +2,12 @@
 // Images -> vision; PDFs -> OpenRouter file-parser. Admin/secret only.
 // Routed through ai_gateway (v3 multimodal + plugins passthrough) so the spend is logged and routed.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
-async function authed(req: Request, body: any){ if(body.__secret && body.__secret===(await sec('inbound_secret'))) return true; const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,''); const { data:{ user } }=await admin.auth.getUser(jwt); const allow=(await sec('admin_emails')||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
+async function authed(req: Request, body: any){ if(body?.__secret && (await requireInternal(admin, body.__secret, 'extract_text')).ok) return true; const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,''); const { data:{ user } }=await admin.auth.getUser(jwt); const allow=(await sec('admin_emails')||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const PROMPT = 'Extract ALL readable text and content from this document faithfully, as clean plain text / markdown. Preserve tables (as markdown tables), headings, figures and key numbers. Do not summarise, do not add commentary — output ONLY the extracted content.';
 

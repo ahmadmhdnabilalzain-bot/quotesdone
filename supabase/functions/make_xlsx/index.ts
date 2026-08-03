@@ -1,11 +1,12 @@
 // make_xlsx - reusable native .xlsx generator (SheetJS). Input rows or multi-sheet; stores xlsx, returns signed URL. Admin/secret only.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
-async function authed(req: Request, body: any){ if (body.__secret && body.__secret === (await sec('inbound_secret'))) return true; const jwt = (req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,''); const { data:{ user } } = await admin.auth.getUser(jwt); const allow = (await sec('admin_emails')||'').split(',').map((s)=>s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
+async function authed(req: Request, body: any){ if (body?.__secret && (await requireInternal(admin, body.__secret, 'make_xlsx')).ok) return true; const jwt = (req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,''); const { data:{ user } } = await admin.auth.getUser(jwt); const allow = (await sec('admin_emails')||'').split(',').map((s)=>s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {

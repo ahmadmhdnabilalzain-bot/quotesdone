@@ -4,6 +4,7 @@
 // objective + tasks to the ledger, and returns the plan. Departments then execute their tasks; the
 // CoS tracks the objective to done. Auth: __secret (inbound) OR admin-email JWT.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
@@ -11,7 +12,7 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 const llm = makeLlm(SONNET_FIRST, { max: 1400, temperature: 0 });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
 async function authed(req: Request, body: any): Promise<boolean> {
-  if (body.__secret && body.__secret === (await sec('inbound_secret'))) return true;
+  if (body?.__secret && (await requireInternal(admin, body.__secret, 'intent_router')).ok) return true;
   const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''); if (!jwt) return false;
   const { data: { user } } = await admin.auth.getUser(jwt);
   const allow = (await sec('admin_emails') || 'management@quotesdone.com').split(',').map((s) => s.trim().toLowerCase());

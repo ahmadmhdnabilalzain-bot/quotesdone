@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 
@@ -14,7 +15,7 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   // Auth: admin JWT (email in admin_emails) OR inbound_secret. Full-PII export must never be behind a shared test token.
   let authed = false;
-  if (body.__secret && body.__secret === (await sec('inbound_secret'))) authed = true;
+  if (body?.__secret && (await requireInternal(admin, body.__secret, 'export_leads_csv')).ok) authed = true;
   if (!authed) {
     const jwt = (req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');
     if (jwt) {

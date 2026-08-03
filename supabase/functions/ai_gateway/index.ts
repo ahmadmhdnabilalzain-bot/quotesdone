@@ -33,6 +33,7 @@
 // dry_run:true runs 1-6 and returns the decision WITHOUT calling a model, so the whole thing can be
 // verified for zero spend.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) =>
@@ -132,7 +133,10 @@ Deno.serve(async (req) => {
   try {
     const body = (await req.json().catch(() => ({}))) as Body;
     const inbound = await sec('inbound_secret');
-    if (!secretOk(inbound) || body.__secret !== inbound) return J({ error: 'forbidden' }, 403);
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'ai_gateway');
+    if (!__auth.ok) return J({ error: 'forbidden' }, 403);
 
     // Utility path: embed text for callers that need a vector (FAQ backfill, semantic search).
     // Free, so it never touches routing or budget.

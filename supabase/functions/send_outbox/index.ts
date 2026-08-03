@@ -5,6 +5,7 @@
 //      while mail silently piled up. Recurring config states are throttled to one row per hour so the
 //      2-minute cadence cannot bury the signal; idle runs with no work are not logged at all.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
 const MAX_ATTEMPTS = 3;
@@ -76,7 +77,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const inbound = await sec('inbound_secret');
-    if (!secretOk(inbound) || body.__secret !== inbound) { await logThrottled('forbidden', 60, 'error', {}, 'send_outbox called without the inbound secret'); return J({ error: 'forbidden' }, 403); }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'send_outbox');
+    if (!__auth.ok) { await logThrottled('forbidden', 60, 'error', {}, 'send_outbox called without the inbound secret'); return J({ error: 'forbidden' }, 403); }
     // Preview mode: render the internal/branded template for a sample body without sending.
     if (body.preview) {
       const logo = (await sec('email_logo_url')) || '';

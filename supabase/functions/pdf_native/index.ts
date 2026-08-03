@@ -1,5 +1,6 @@
 // pdf_native v14 - serverless PDF (pdf-lib). Premium dark header band (site theme) + clean light body.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { PDFDocument, StandardFonts, rgb } from 'https://esm.sh/pdf-lib@1.17.1';
 import fontkit from 'https://esm.sh/@pdf-lib/fontkit@1.1.1';
 import bidiFactory from 'https://esm.sh/bidi-js@1.0.3';
@@ -10,7 +11,7 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 const CO = { name:'QuotesDone Technologies', licence:'DET E-Trader Licence No. 1633275', city:'Dubai, United Arab Emirates', email:'management@quotesdone.com', phone:'+971 50 931 9355', web:'quotesdone.com', signer:'Ahmad Alzain', title:'Founder & Managing Director' };
 const CO_AR = { city:'دبي، الإمارات العربية المتحدة', signer:'أحمد الزين', title:'المؤسس والمدير الإداري' };
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
-async function authed(req: Request, body: any){ if (body.__secret && body.__secret === (await sec('inbound_secret'))) return true; const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,''); const { data:{ user } } = await admin.auth.getUser(jwt); const allow=(await sec('admin_emails')||'').split(',').map((s)=>s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
+async function authed(req: Request, body: any){ if (body?.__secret && (await requireInternal(admin, body.__secret, 'pdf_native')).ok) return true; const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,''); const { data:{ user } } = await admin.auth.getUser(jwt); const allow=(await sec('admin_emails')||'').split(',').map((s)=>s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
 const NAVY=rgb(0.047,0.137,0.188), TEAL=rgb(0.078,0.722,0.651), GOLD=rgb(0.906,0.71,0.235), INK=rgb(0.08,0.094,0.11), MUT=rgb(0.4,0.44,0.52), LINE=rgb(0.9,0.91,0.93), WHITE=rgb(1,1,1), BANDTXT=rgb(0.82,0.87,0.9);
 async function fetchBytes(path: string){ try { const r = await fetch(`${ASSET}/${path}`); if(!r.ok) return null; return new Uint8Array(await r.arrayBuffer()); } catch { return null; } }
 function isArCode(c:number){ return (c>=0x600&&c<=0x6FF)||(c>=0x750&&c<=0x77F)||(c>=0x8A0&&c<=0x8FF)||(c>=0xFB50&&c<=0xFDFF)||(c>=0xFE70&&c<=0xFEFF); }

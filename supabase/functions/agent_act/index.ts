@@ -2,6 +2,7 @@
 // Agent reads curated live data + company brain, PROPOSES one whitelisted action, and drafts/publishes content on explicit founder confirm.
 // Reasoning on Opus 4.8 (strongest) with Sonnet 5 automatic fallback + retry — robust to model hiccups/deprecations.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA = Deno.env.get('SUPABASE_URL')!;
@@ -69,7 +70,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
     let authed = false; let who = 'secret';
-    if (body.__secret && body.__secret === (await sec('inbound_secret'))) authed = true;
+    if (body?.__secret && (await requireInternal(admin, body.__secret, 'agent_act')).ok) authed = true;
     if (!authed) {
       const jwt = (req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');
       const { data: { user } } = await admin.auth.getUser(jwt);

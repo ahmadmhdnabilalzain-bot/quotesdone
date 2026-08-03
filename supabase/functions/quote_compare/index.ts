@@ -4,6 +4,7 @@
 // flags, spec hierarchy, and what a complete quote must itemise — so the agent sanity-checks
 // prices against the market and ranks technical quality authoritatively for any trade.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -31,7 +32,7 @@ Deno.serve(async (req) => {
     const inquiry_id = String(body.inquiry_id || '');
     const langReq = String(body.lang || '').toLowerCase();
     let isAdmin = false; let cust: any = null;
-    if (body.__secret && body.__secret === (await sec('inbound_secret'))) isAdmin = true;
+    if (body?.__secret && (await requireInternal(admin, body.__secret, 'quote_compare')).ok) isAdmin = true;
     if (!isAdmin) {
       const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
       const { data: { user } } = await admin.auth.getUser(jwt);

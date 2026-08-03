@@ -3,6 +3,7 @@
 // The supplier is shown anonymized as 'Supplier N' (our standard quotation format); a small admin band
 // shows the real supplier identity for internal monitoring only.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const ASSET = URL_ + '/storage/v1/object/public/brand';
@@ -18,7 +19,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(()=>({} as any));
     // auth: admin JWT or shared secret
     let authed = false;
-    if (body.__secret && body.__secret === (await sec('inbound_secret'))) authed = true;
+    if (body?.__secret && (await requireInternal(admin, body.__secret, 'quote_pdf')).ok) authed = true;
     if (!authed) {
       const jwt = (req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');
       const { data: { user } } = await admin.auth.getUser(jwt);

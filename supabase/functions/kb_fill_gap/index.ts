@@ -1,5 +1,6 @@
 // kb_fill_gap — generate + ingest UAE trade knowledge for a category gap. Admin-JWT or __secret gated.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
@@ -23,7 +24,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     let ok = false;
-    if (body?.__secret && body.__secret === (await sec('inbound_secret'))) ok = true;
+    if (body?.__secret && (await requireInternal(admin, body.__secret, 'kb_fill_gap')).ok) ok = true;
     else { const tok = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim(); if (tok) { const { data: u } = await admin.auth.getUser(tok); const em = u?.user?.email || ''; if (em && await isAdmin(em)) ok = true; } }
     if (!ok) return J({ error: 'unauthorized' }, 401);
 

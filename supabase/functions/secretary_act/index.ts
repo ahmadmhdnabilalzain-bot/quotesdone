@@ -9,13 +9,14 @@
 // v6 (gateway): the tool-calling loop now runs through ai_gateway, which passes `tools` through and
 //     returns `tool_calls`, so the Secretary is routed, budgeted and cost-logged like everything else.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 async function sec(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 async function whoami(req: Request, body: any): Promise<string | null> {
-  if (body.__secret && body.__secret === (await sec('inbound_secret'))) return 'founder';
+  if (body?.__secret && (await requireInternal(admin, body.__secret, 'secretary_act')).ok) return 'founder';
   const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''); if (!jwt) return null;
   const { data: { user } } = await admin.auth.getUser(jwt);
   const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -89,7 +90,7 @@ async function tool_run_maintenance(target: string) {
   if (target === 'smoke') { await admin.rpc('fn_smoke'); return { ran: 'smoke' }; }
   if (target === 'security') { await admin.rpc('fn_security_scan'); const { data } = await admin.from('agent_runs').select('counts').eq('agent', 'security').order('id', { ascending: false }).limit(1); return (data && data[0]?.counts) || { ran: 'security' }; }
   if (target === 'it_health') return await admin.rpc('run_agent', { p_job: 'it_health' }).then((r) => r.data).catch(() => ({ ran: 'it_health' }));
-  if (target === 'recompute_response') { await admin.rpc('qd_recompute_response').catch(() => null); return { ran: 'recompute_response' }; }
+  if (target === 'recompute_response') { await admin.rpc('qd_recompute_response').then(() => null, () => null); return { ran: 'recompute_response' }; }
   if (target === 'clear_test_queue') { const { data, error } = await admin.from('notifications').update({ status: 'cancelled' }).in('status', ['held', 'queued']).or('to_email.ilike.%.test,to_email.ilike.%@quotesdone.test,to_email.is.null').select('id'); if (error) return { error: error.message }; return { cancelled: (data || []).length }; }
   return { error: 'unknown target' };
 }

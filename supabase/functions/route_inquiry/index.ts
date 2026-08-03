@@ -14,6 +14,7 @@
 //   Zero gated candidates is a GENUINE coverage gap and is reported as such - we do NOT silently fall
 //   back to keyword retrieval, because that is exactly how irrelevant inquiries reach suppliers.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -196,7 +197,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
     const inbound = await sec('inbound_secret');
-    if (!secretOk(inbound) || body.__secret !== inbound) { await logRun('error', { forbidden: 1, fits: 0 }, 'route_inquiry rejected a caller with a missing/wrong inbound secret (403). No routing was performed — if this came from dispatch_inquiry, that RFQ silently produced zero supplier fits and will be miscounted as a supply coverage gap.'); return J({ error:'forbidden' }, 403); }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'route_inquiry');
+    if (!__auth.ok) { await logRun('error', { forbidden: 1, fits: 0 }, 'route_inquiry rejected a caller with a missing/wrong inbound secret (403). No routing was performed — if this came from dispatch_inquiry, that RFQ silently produced zero supplier fits and will be miscounted as a supply coverage gap.'); return J({ error:'forbidden' }, 403); }
 
     let inq = body.inquiry || {};
     let inqLoadErr: any = null;
