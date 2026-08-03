@@ -3,6 +3,7 @@
 // then nulls their DB paths. Keeps supplier quote files (needed post-reveal) and KYC
 // docs (handled by pdpl_erase). Internal only: __secret gated. Meant to run weekly.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -23,7 +24,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     const expectedSecret = await sec('inbound_secret');
-    if (!secretOk(expectedSecret) || body.__secret !== expectedSecret) {
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'retention_purge');
+    if (!__auth.ok) {
       await logRun('error', { forbidden: 1, secret_configured: expectedSecret ? 1 : 0 }, expectedSecret ? 'Retention purge rejected a caller with a wrong __secret; no PDPL data-minimisation purge ran on this invocation. If this is the weekly cron, its secret is stale and expired drawing files are being retained indefinitely.' : 'Retention purge could not read inbound_secret from app_secrets, so every call including the weekly cron is rejected with 403. No customer drawing files are being purged and records past their retention window remain stored.');
       return J({ error: 'forbidden' }, 403);
     }

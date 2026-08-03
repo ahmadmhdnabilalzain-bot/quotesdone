@@ -1,5 +1,6 @@
 // kb_autofill_gaps — autonomously fill the worst knowledge gaps. __secret gated (cron). Notifies founder only if all fills fail.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -22,7 +23,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     const secret = await sec('inbound_secret');
-    if (!secretOk(secret) || !body?.__secret || body.__secret !== secret) { await logRun('error', { filled: 0 }, 'call rejected: wrong or missing inbound secret; no knowledge gaps were filled'); return J({ error: 'unauthorized' }, 401); }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'kb_autofill_gaps');
+    if (!__auth.ok) { await logRun('error', { filled: 0 }, 'call rejected: wrong or missing inbound secret; no knowledge gaps were filled'); return J({ error: 'unauthorized' }, 401); }
     const limit = Math.min(Math.max(Number(body?.limit) || 2, 1), 5);
 
     // pick service categories with zero knowledge chunks

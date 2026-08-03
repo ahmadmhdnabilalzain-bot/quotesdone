@@ -1,3 +1,4 @@
+import { requireInternal } from '../_shared/internal_auth.ts';
 // doc_extract — universal Document Intelligence extractor.
 // Pulls {text, specifications, brands[], models[], dates[], quantities[], certifications[]}
 // from a registered document, and indexes non-sensitive docs into kb_chunks.
@@ -75,7 +76,10 @@ Deno.serve(async (req)=>{
   // secrets from app_secrets
   const { data:secrets } = await sb.from('app_secrets').select('key,value').in('key',['inbound_secret','cloudconvert_api_key']);
   const secret=(secrets||[]).find((s:any)=>s.key==='inbound_secret')?.value;
-  if(!secretOk(secret) || body.__secret!==secret) {
+  // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+  // per-context credential and the legacy shared secret, and records which one called.
+  const __auth = await requireInternal(sb, body?.__secret, 'doc_extract');
+  if(!__auth.ok) {
     if(!secret) await logThrottled('missing_inbound_secret',60,'error',{stage:'auth'},'The inbound_secret row is missing from app_secrets, so doc_extract rejects every caller including the scheduler; no supplier document is being extracted or indexed at all.');
     else await logThrottled('bad_secret',60,'error',{stage:'auth'},'doc_extract rejected a caller presenting the wrong inbound secret. If this is the scheduled drainer, the document extraction queue is not being processed and supplier documents stay unread.');
     return j({error:'unauthorized'},401);

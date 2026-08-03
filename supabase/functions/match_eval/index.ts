@@ -3,6 +3,7 @@
 // PRECISION (wrong-trade sellers kept out) and RECALL (the right seller let in). Self-cleaning: it
 // deletes its fixtures at the end. Stores each run to match_eval_runs for monitoring/regression.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -42,7 +43,10 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(()=>({} as any));
   const inbound = await sec('inbound_secret');
   if (!inbound) { await logRun('error', { stage:'config' }, 'inbound_secret missing from app_secrets: match_eval can never authenticate itself to route_inquiry, so the matching precision/recall benchmark never runs and match-quality regressions stay invisible'); }
-  if (!secretOk(inbound) || body.__secret !== inbound) { await logRun('error', { stage:'auth', rejected:1 }, 'Rejected a call with a wrong or missing __secret; the matching benchmark did not run, so any degradation in supplier-match precision/recall goes unmeasured'); return J({ error:'forbidden' }, 403); }
+  // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+  // per-context credential and the legacy shared secret, and records which one called.
+  const __auth = await requireInternal(admin, body?.__secret, 'match_eval');
+  if (!__auth.ok) { await logRun('error', { stage:'auth', rejected:1 }, 'Rejected a call with a wrong or missing __secret; the matching benchmark did not run, so any degradation in supplier-match precision/recall goes unmeasured'); return J({ error:'forbidden' }, 403); }
   const created: number[] = []; const tagById = new Map<number,string>();
   try {
     const seedFails: string[] = [];

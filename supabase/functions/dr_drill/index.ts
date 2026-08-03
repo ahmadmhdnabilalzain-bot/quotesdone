@@ -1,3 +1,4 @@
+import { requireInternal } from '../_shared/internal_auth.ts';
 // dr_drill — disaster-recovery restore drill.
 // Downloads backup JSON files, parses them, reloads into public.dr_restore,
 // and reports backup-vs-live row counts + schema-key integrity. Secret-gated.
@@ -32,7 +33,10 @@ Deno.serve(async (req)=>{
   let body:any={}; try{ body=await req.json(); }catch(_e){}
   const { data:secrets, error:secretsErr } = await sb.from('app_secrets').select('key,value').eq('key','inbound_secret');
   const secret=(secrets||[])[0]?.value;
-  if(!secretOk(secret) || body.__secret!==secret){
+  // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+  // per-context credential and the legacy shared secret, and records which one called.
+  const __auth = await requireInternal(admin, body?.__secret, 'dr_drill');
+  if(!__auth.ok){
     await logRun('error', { unauthorized:1, secret_configured: secret?1:0 }, secret ? 'Disaster-recovery drill rejected a caller with a wrong __secret; no restore drill ran. If this was the scheduled cron its secret is stale, which means backups are going unverified and a real outage could find them unrestorable.' : ('Disaster-recovery drill could not read inbound_secret from app_secrets, so every call including the scheduled cron is rejected with 401. The backup restore drill never runs and nobody is verifying that backups are restorable. ' + String(secretsErr?.message || 'no inbound_secret row')));
     return j({error:'unauthorized'},401);
   }

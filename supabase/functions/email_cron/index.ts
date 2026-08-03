@@ -5,6 +5,7 @@
 //     bare catch. Runs every 2 minutes, so recurring states are throttled to one row per hour and healthy
 //     idle runs are not logged at all.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -38,7 +39,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({}));
     const secret = await sec('inbound_secret');
-    if (!secretOk(secret) || body.__secret !== secret) { await logThrottled('forbidden', 60, 'error', {}, 'email_cron called without the inbound secret'); return J({ error:'forbidden' }, 403); }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'email_cron');
+    if (!__auth.ok) { await logThrottled('forbidden', 60, 'error', {}, 'email_cron called without the inbound secret'); return J({ error:'forbidden' }, 403); }
     let enabled = (await sec('email_enabled')) === 'true';
     let verified = enabled;
     let domainNote = '';

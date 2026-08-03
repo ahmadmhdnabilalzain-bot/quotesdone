@@ -1,5 +1,6 @@
 // agent_learnings_report — weekly 'what agents learned' PDF. __secret or admin-JWT gated. Optional notify=founder.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -20,7 +21,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     let ok = false;
-    if (body?.__secret && body.__secret === (await sec('inbound_secret'))) ok = true;
+    if ((await requireInternal(admin, body?.__secret, 'agent_learnings_report')).ok) ok = true;
     else { const tok = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim(); if (tok) { const { data: u } = await admin.auth.getUser(tok); const em = u?.user?.email || ''; if (em && await isAdmin(em)) ok = true; } }
     if (!ok) { if (body?.__secret) { await logRun('error', { report_generated: 0 }, 'call rejected: wrong inbound secret supplied; no weekly agent-learnings report was generated'); } return J({ error: 'unauthorized' }, 401); }
 

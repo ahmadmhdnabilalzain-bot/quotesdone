@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
@@ -35,7 +36,10 @@ Deno.serve(async (req) => {
     await logRun(started, 'error', { authorised: 0, secret_lookup_ok: 0 }, 'cost_snapshot refused every caller because inbound_secret could not be read from app_secrets. The weekly burn/revenue snapshot did NOT run and no owner email was queued - this is an auth-infrastructure failure, not a quiet week with no spend to report.');
     return J({ error: 'secret unavailable' }, 503);
   }
-  if (!secretOk(expected) || body.__secret !== expected) {
+  // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+  // per-context credential and the legacy shared secret, and records which one called.
+  const __auth = await requireInternal(admin, body?.__secret, 'cost_snapshot');
+  if (!__auth.ok) {
     await logRun(started, 'error', { authorised: 0, bad_or_missing_secret: 1 }, 'cost_snapshot rejected an unauthenticated caller (403). Before 19 Jul 2026 a request with no __secret at all was ACCEPTED and returned full revenue and spend figures, so a rejection here may be a scanner finding the old hole - or a legitimate internal caller that was never updated to send the secret.');
     return J({ error: 'forbidden' }, 403);
   }

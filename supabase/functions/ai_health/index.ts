@@ -3,6 +3,7 @@
 // admin notification) only on the transition INTO an outage (2 consecutive failures), and logs recovery when it
 // returns. Consecutive-failure state persists in app_secrets.ai_health_fails. Secret-gated (verify_jwt=false).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
@@ -33,7 +34,10 @@ Deno.serve(async (req) => {
       try { await admin.from('agent_runs').insert({ agent: 'ai_health', started_at: started, finished_at: new Date().toISOString(), status: 'error', counts: { authorised: 0, secret_lookup_ok: 0 }, note: 'ai_health refused every caller because inbound_secret could not be read from app_secrets. The AI-provider liveness check did NOT run, so an absence of ai_provider_down alerts right now means the monitor is blind, not that the provider is healthy.' }); } catch (_e) { /* */ }
       return J({ error: 'secret unavailable' }, 503);
     }
-    if (!secretOk(expected) || body.__secret !== expected) {
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'ai_health');
+    if (!__auth.ok) {
       try { await admin.from('agent_runs').insert({ agent: 'ai_health', started_at: started, finished_at: new Date().toISOString(), status: 'error', counts: { authorised: 0, bad_or_missing_secret: 1 }, note: 'ai_health rejected an unauthenticated caller (403). Before 19 Jul 2026 a request with no __secret was ACCEPTED and could write app_secrets.ai_health_fails, so a rejection here may be a scanner probing the old hole - or an internal caller never updated to send the secret. This run performed NO liveness check.' }); } catch (_e) { /* */ }
       return J({ error: 'forbidden' }, 403);
     }

@@ -1,3 +1,4 @@
+import { requireInternal } from '../_shared/internal_auth.ts';
 // archive_rfq v2 — archives a COMPLETED RFQ as an atomic case: structured data, the actual
 // uploaded files (copied, not just referenced), AI conversations, RFQ + quote version history,
 // supplier responses, quotations, comparison, decision history, audit logs, and an AI summary.
@@ -43,7 +44,10 @@ Deno.serve(async (req)=>{
   const { data:secrets, error:secretsErr } = await sb.from('app_secrets').select('key,value').in('key',['inbound_secret','openrouter_api_key']);
   const secret=(secrets||[]).find((s:any)=>s.key==='inbound_secret')?.value;
   const apiKey=(secrets||[]).find((s:any)=>s.key==='openrouter_api_key')?.value;
-  if(!secretOk(secret) || body.__secret!==secret){
+  // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+  // per-context credential and the legacy shared secret, and records which one called.
+  const __auth = await requireInternal(admin, body?.__secret, 'archive_rfq');
+  if(!__auth.ok){
     await logRun('error', { unauthorized:1, secret_configured: secret?1:0 }, secret ? 'RFQ archiver rejected a caller with a wrong __secret; no RFQ was archived on this invocation. If this was the scheduled cron its secret is stale and completed RFQs are piling up unarchived, so their drawing files may be purged by retention before the case is preserved.' : ('RFQ archiver could not read inbound_secret from app_secrets, so every call including the scheduled cron is rejected with 401 and no completed RFQ is ever archived. ' + String(secretsErr?.message || 'no inbound_secret row')));
     return j({error:'unauthorized'},401);
   }

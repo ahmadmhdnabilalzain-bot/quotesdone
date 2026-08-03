@@ -2,12 +2,13 @@
 // or the expenses@ email pipeline; forecasts upcoming recurring payments; and runs the 3-day subscription reminder.
 // Auth: __secret == inbound_secret (server + cron) OR admin-email JWT.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 async function sec(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 async function whoami(req: Request, body: any): Promise<boolean> {
-  if (body.__secret && body.__secret === (await sec('inbound_secret'))) return true;
+  if ((await requireInternal(admin, body?.__secret, 'finance_ingest')).ok) return true;
   const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''); if (!jwt) return false;
   const { data: { user } } = await admin.auth.getUser(jwt);
   const allow = (await sec('admin_emails') || '').split(/[,;\s]+/).map((s) => s.trim().toLowerCase()).filter(Boolean);
