@@ -120,6 +120,31 @@ Deno.serve(async (req) => {
         return J({ ok: true, skip: 'not_dispatch_eligible', gate });
       }
     }
+
+    // FREEZE THE SUPPLIER BRIEF (independent audit 9.3) ---------------------------------------
+    // inquiries_supplier_safe gave suppliers a single, masked projection, but it read the LIVE
+    // inquiry row: the brief a supplier quoted against could change underneath them after
+    // dispatch, silently. fn_freeze_supplier_brief snapshots it into public.inquiry_supplier_brief,
+    // which is append-only, and inquiries_supplier_safe serves that snapshot from then on.
+    //
+    // Only what a supplier quotes against is frozen. status, outcome and hired_supplier_id stay
+    // live, because a supplier needs the current state of the job, not its state at dispatch.
+    //
+    // Idempotent: refreezing identical content is a no-op, so a retried dispatch does not inflate
+    // the version history. A genuine re-dispatch after the buyer edits writes a NEW VERSION rather
+    // than mutating the old one, so what was shown, and when, survives.
+    //
+    // Deliberately non-fatal: a dispatch that cannot freeze still proceeds, because the brief is
+    // masked either way and blocking the RFQ would be a worse outcome than losing the snapshot.
+    // The failure is recorded so it is visible rather than silent.
+    try {
+      const { data: frozen, error: fzErr } = await admin.rpc('fn_freeze_supplier_brief', { p_inquiry_id: inquiryId, p_reason: force ? 'force_dispatch' : 'dispatch' });
+      if (fzErr) throw new Error(fzErr.message);
+      await logRun('info', { inquiry_id: inquiryId, frozen }, 'supplier brief frozen for dispatch');
+    } catch (e) {
+      await logRun('error', { inquiry_id: inquiryId, detail: String((e as Error)?.message || e) },
+        'supplier brief could not be frozen - dispatch continued on the live masked projection');
+    }
     const routing = (inq.routing && typeof inq.routing === 'object') ? inq.routing as any : {};
     if (routing.dispatched_at && !force) return J({ ok: true, skip: 'already_dispatched', dispatched_at: routing.dispatched_at });
 
