@@ -40,12 +40,28 @@ export const SAFE_DOCUMENT = ['application/pdf'] as const;
 export const SAFE_IMAGE    = ['image/jpeg', 'image/png', 'image/webp'] as const;
 export const SAFE_UPLOAD   = [...SAFE_DOCUMENT, ...SAFE_IMAGE] as const;
 
+// AUDIT 9.1 part 2 (3 Aug 2026). Two ingestion paths could not use this module at all: cad_convert
+// takes DWG/DXF and transcribe takes audio, and sniff() knew only PDF and images — so calling
+// sanitizeUpload on either would have refused every legitimate upload. Adding the magic numbers is
+// the change that makes those call sites possible; it widens nothing on its own, because a type is
+// only ever accepted when the CALLER passes an allow-list containing it.
+export const SAFE_AUDIO = ['audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/webm', 'audio/flac'] as const;
+export const SAFE_CAD   = ['image/vnd.dwg', 'image/vnd.dxf'] as const;
+
 const EXT: Record<string, string> = {
   'application/pdf': 'pdf',
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
+  'audio/wav': 'wav',
+  'audio/mpeg': 'mp3',
+  'audio/mp4': 'm4a',
+  'audio/ogg': 'ogg',
+  'audio/webm': 'weba',
+  'audio/flac': 'flac',
+  'image/vnd.dwg': 'dwg',
+  'image/vnd.dxf': 'dxf',
 };
 
 function startsWith(b: Uint8Array, sig: number[], at = 0): boolean {
@@ -78,6 +94,27 @@ export function sniff(b: Uint8Array): string {
   if (startsWith(b, [0x47, 0x49, 0x46, 0x38])) return 'image/gif';
   if (startsWith(b, [0x52, 0x49, 0x46, 0x46]) && asciiAt(b, 8, 4) === 'WEBP') return 'image/webp';
 
+  // ---- audio (transcribe) ----------------------------------------------------------------
+  // RIFF is shared with WebP, so the WAVE branch must sit beside it and after it.
+  if (startsWith(b, [0x52, 0x49, 0x46, 0x46]) && asciiAt(b, 8, 4) === 'WAVE') return 'audio/wav';
+  if (startsWith(b, [0x49, 0x44, 0x33])) return 'audio/mpeg';                        // ID3-tagged MP3
+  // Bare MP3 frame sync: 11 set bits. Catches files with no ID3 header at all.
+  if (b[0] === 0xff && (b[1] & 0xe0) === 0xe0) return 'audio/mpeg';
+  if (startsWith(b, [0x4f, 0x67, 0x67, 0x53])) return 'audio/ogg';                   // OggS
+  if (startsWith(b, [0x66, 0x4c, 0x61, 0x43])) return 'audio/flac';                  // fLaC
+  if (startsWith(b, [0x1a, 0x45, 0xdf, 0xa3])) return 'audio/webm';                  // EBML (WebM/Matroska)
+  if (asciiAt(b, 4, 4) === 'ftyp') {
+    const brand = asciiAt(b, 8, 4);
+    if (brand === 'M4A ' || brand === 'M4B ' || brand === 'mp42' || brand === 'isom' || brand === 'mp41') return 'audio/mp4';
+  }
+
+  // ---- CAD (cad_convert) -----------------------------------------------------------------
+  // DWG carries its format version in the first six ASCII bytes: AC1015, AC1018, AC1021,
+  // AC1024, AC1027, AC1032 and so on. Matching the AC10.. shape rather than an enumerated list
+  // means a newer AutoCAD release does not silently become an unrecognised upload.
+  if (/^AC10\d\d$/.test(asciiAt(b, 0, 6))) return 'image/vnd.dwg';
+  if (asciiAt(b, 0, 18) === 'AutoCAD Binary DXF') return 'image/vnd.dxf';
+
   if (startsWith(b, [0x50, 0x4b, 0x03, 0x04]) || startsWith(b, [0x50, 0x4b, 0x05, 0x06])) return 'application/zip';
   if (startsWith(b, [0x1f, 0x8b])) return 'application/gzip';
   if (startsWith(b, [0x52, 0x61, 0x72, 0x21])) return 'application/x-rar-compressed';
@@ -92,6 +129,13 @@ export function sniff(b: Uint8Array): string {
   if (/^<\?xml/.test(lower) && lower.includes('<svg')) return 'danger/svg';
   if (/^<svg[\s>]/.test(lower)) return 'danger/svg';
   if (/^<\?php/.test(lower)) return 'danger/script';
+
+  // ASCII DXF is plain text — a group code 0 followed by SECTION — so it can only be identified
+  // HERE, after every danger/* branch above has had its say. A file that is both valid HTML and
+  // valid DXF is refused as HTML, which is the correct precedence: the dangerous reading wins.
+  if (/^0\s+SECTION/.test(head) && /\$ACADVER|\bHEADER\b|\bENTITIES\b/.test(head.toUpperCase())) {
+    return 'image/vnd.dxf';
+  }
 
   return 'application/octet-stream';
 }

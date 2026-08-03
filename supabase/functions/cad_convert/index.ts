@@ -3,6 +3,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
+import { sanitizeOrMessage, SAFE_CAD } from '../_shared/attachment.ts';
 function toB64(buf: Uint8Array): string { let s = ''; const CH = 0x8000; for (let i = 0; i < buf.length; i += CH) { s += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + CH))); } return btoa(s); }
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 // FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
@@ -26,6 +27,14 @@ Deno.serve(async (req) => {
     const b64 = String(body.b64 || '').replace(/^data:[^;]+;base64,/, '');
     if (!b64) return J({ ok: false, error: 'no_file' }, 200);
     const filename = String(body.filename || 'drawing.dwg');
+    // AUDIT 9.1 (3 Aug 2026): the type came off the FILENAME and the bytes were forwarded to
+    // CloudConvert unexamined — an unauthenticated-by-content file relay. sniff() now recognises
+    // DWG by its AC10xx version header (matched as a shape, so a newer AutoCAD release does not
+    // become an unknown upload) and both ASCII and binary DXF.
+    const __san = sanitizeOrMessage({ input: b64, declaredMime: null, filename,
+                                      allow: SAFE_CAD, maxBytes: 40 * 1024 * 1024,
+                                      stripMetadata: false });
+    if (!__san.ok) return J({ ok: false, ...__san.body }, __san.status);
     const ext = (filename.split('.').pop() || 'dwg').toLowerCase();
     const input_format = ext === 'dxf' ? 'dxf' : 'dwg';
     const auth = { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' };

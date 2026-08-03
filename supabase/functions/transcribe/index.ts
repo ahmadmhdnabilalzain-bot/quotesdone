@@ -3,6 +3,7 @@
 // Client records WAV. Prompt is NEUTRAL + anti-hallucination (no domain priming) so silence/noise returns empty. Auth-gated.
 // Routed through ai_gateway (v3 multimodal passthrough carries the input_audio block verbatim).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { sanitizeOrMessage, SAFE_AUDIO } from '../_shared/attachment.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -20,7 +21,15 @@ Deno.serve(async (req) => {
     let b64 = String(body.audio_b64 || body.audio || '');
     b64 = b64.replace(/^data:[^;,]*;base64,/, '').replace(/^data:[^,]*,/, '');
     const mime = String(body.mime || 'audio/wav').toLowerCase();
-    const format = mime.includes('mp3') || mime.includes('mpeg') ? 'mp3' : 'wav';
+    // AUDIT 9.1 (3 Aug 2026): the format posted to the model came from body.mime — the caller's
+    // own claim — and the bytes were never looked at, so anything at all could be sent as
+    // "audio/wav" and billed for. sniff() now knows the audio magics, so the real container
+    // decides and a PDF or an executable dressed as a voice note is refused.
+    const __san = sanitizeOrMessage({ input: b64, declaredMime: mime, filename: 'voice-note',
+                                      allow: SAFE_AUDIO, maxBytes: 17 * 1024 * 1024,
+                                      stripMetadata: false });
+    if (!__san.ok) return J(__san.body, __san.status);
+    const format = __san.result.mime === 'audio/mpeg' ? 'mp3' : 'wav';   // sniffed, not claimed
     if (!b64 || b64.length < 100) return J({ error: 'empty_audio' }, 400);
     if (b64.length > 22_000_000) return J({ error: 'Audio too long. Please keep it under about 2 minutes.' }, 413);
     const secret = await sec('cred_fn_ai'); if (!secret) return J({ error: 'transcription_not_configured' }, 500);
