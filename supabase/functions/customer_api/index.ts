@@ -66,6 +66,40 @@ function scrubIdentity(text: string | null, ownName: unknown, hits: string[]): s
   return out;
 }
 async function queueNotifications(rows: Record<string, unknown>[]) { try { if (rows.length) await admin.from('notifications').insert(rows); } catch (_e) { /* */ } }
+// AUDIT 1.5 (4 Aug 2026) -----------------------------------------------------------------------
+// Both supplier-facing emails in this file passed ownName = null to scrubIdentity. companyRe(null)
+// returns null, so the buyer's name pattern was never added to the loop and only ID_PATTERNS ran -
+// emails, URLs, messenger links and UAE numbers. The buyer's NAME went out verbatim, pre-reveal, to
+// every matched supplier. The portal has always done this correctly: supplier_api resolves
+// buyerName from inquiries.customer_id -> customers.full_name and passes it into the identical
+// scrubIdentity. The email was the one supplier-facing surface where the name survived.
+//
+// The database is not a backstop for this. mask_contacts() removes contact strings and leaves names
+// - verified on production:
+//   select public.mask_contacts('Villa fit-out for Ahmed Khan, call 0501234567 or a@b.com');
+//     -> 'Villa fit-out for Ahmed Khan, call [hidden] or [hidden]'
+//
+// FAIL CLOSED. `resolved:false` means the owner lookup itself failed, which is NOT the same as "this
+// inquiry has no customer name on record". We cannot scrub a name we could not read, so callers
+// must drop the customer-authored text entirely rather than emit it unscrubbed. Returning null on a
+// failed read would have re-created the exact defect this comment describes.
+//
+// The name exists only to feed the scrubber and is never placed on a response.
+type BuyerName = { resolved: true; name: string | null } | { resolved: false };
+async function buyerNameOf(inquiryId: string): Promise<BuyerName> {
+  try {
+    const { data: inq, error: e1 } = await admin.from('inquiries').select('customer_id').eq('id', inquiryId).maybeSingle();
+    if (e1) return { resolved: false };
+    const cid = inq?.customer_id;
+    if (!cid) return { resolved: true, name: null };   // genuinely no owner recorded - nothing to scrub
+    const { data: c, error: e2 } = await admin.from('customers').select('full_name').eq('id', cid).maybeSingle();
+    if (e2) return { resolved: false };
+    const n = String(c?.full_name || '').trim();
+    // scrubIdentity/companyRe already refuse anything under 3 characters; matching that here keeps
+    // "we found a name" and "the scrubber will act on it" the same statement.
+    return { resolved: true, name: n.length >= 3 ? n : null };
+  } catch (_e) { return { resolved: false }; }
+}
 async function notifyLosers(inquiryId: string, summary: string | null, winnerId: number | null) {
   try {
     let qb = admin.from('quotes').select('supplier_id').eq('inquiry_id', inquiryId);
@@ -74,7 +108,12 @@ async function notifyLosers(inquiryId: string, summary: string | null, winnerId:
     const ids = [...new Set((others || []).map((o: any) => Number(o.supplier_id)).filter(Boolean))];
     if (!ids.length) return;
     const { data: ls } = await admin.from('leads').select('id,email,company_name').in('id', ids);
-    const job = summary && summary.trim() ? '“' + (scrubIdentity(summary.trim(), null, []) || '') + '”' : 'a recent job you quoted';
+    // AUDIT 1.5: the losing suppliers never paid for a reveal, so this is a pre-reveal surface even
+    // though it is sent after the award. If the owner could not be read we quote nothing back at
+    // them - the generic phrase below is already the correct fallback.
+    const bn = await buyerNameOf(inquiryId);
+    const scrubbedJob = (bn.resolved && summary && summary.trim()) ? (scrubIdentity(summary.trim(), bn.name, []) || '') : '';
+    const job = scrubbedJob ? '“' + scrubbedJob + '”' : 'a recent job you quoted';
     const rows = (ls || []).filter((s: any) => s.email && /@/.test(s.email)).map((s: any) => ({
       type: 'job_awarded_other', to_email: s.email, to_role: 'supplier', lead_id: s.id, inquiry_id: inquiryId,
       subject: 'Update on a job you quoted — QuotesDone',
@@ -145,7 +184,16 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   routing.fanout = matchRows.length;
   try { await admin.from('inquiries').update({ routing }).eq('id', inqId); } catch (_e) { /* */ }
   if (!matchRows.length) { routing.coverage_gap_flagged = await flagCoverageGap(inqId, category, emirate, summary); return { matches: 0, routing }; }
-  const notifs = matchRows.map((mr) => supById.get(Number(mr.supplier_id))).filter((s: any) => s && s.email && /@/.test(s.email)).map((s: any) => ({ type: 'new_inquiry', to_email: s.email, to_role: 'supplier', lead_id: s.id, inquiry_id: inqId, subject: 'New job request on QuotesDone', body: 'A customer is requesting quotes for: ' + (scrubIdentity(summary || category, null, []) || '') + (emirate ? ' (' + (scrubIdentity(emirate, null, []) || '') + ')' : '') + (budget ? ' — budget ' + (scrubIdentity(budget, null, []) || '') : '') + '.' + (scrubIdentity(extra || '', null, []) || '') + ' Log in to your QuotesDone supplier portal to quote.' }));
+  // AUDIT 1.5. This is the first supplier-facing surface an inquiry ever reaches and it is entirely
+  // pre-reveal. summary, budget and extra are customer free text; category and emirate are platform
+  // values from a fixed list. If the owner could not be read, the free-text fields are dropped and
+  // the supplier is told the trade and emirate only - enough to log in and look, nothing authored by
+  // the buyer. A supplier who receives less detail can still quote; a buyer whose name was emailed
+  // to eight strangers cannot be un-emailed.
+  const bn = await buyerNameOf(inqId);
+  const cust = (t: string | null | undefined) => (bn.resolved && t) ? (scrubIdentity(String(t), bn.name, []) || '') : '';
+  const headline = cust(summary) || category;
+  const notifs = matchRows.map((mr) => supById.get(Number(mr.supplier_id))).filter((s: any) => s && s.email && /@/.test(s.email)).map((s: any) => ({ type: 'new_inquiry', to_email: s.email, to_role: 'supplier', lead_id: s.id, inquiry_id: inqId, subject: 'New job request on QuotesDone', body: 'A customer is requesting quotes for: ' + headline + (emirate ? ' (' + emirate + ')' : '') + (cust(budget) ? ' — budget ' + cust(budget) : '') + '.' + cust(extra) + ' Log in to your QuotesDone supplier portal to quote.' }));
   await queueNotifications(notifs);
   return { matches: matchRows.length, routing };
 }
