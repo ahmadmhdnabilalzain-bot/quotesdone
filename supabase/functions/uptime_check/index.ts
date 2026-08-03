@@ -27,6 +27,7 @@
 // comparing against a falsy value. The uptime cron caller already passes __secret, so legitimate
 // traffic is unchanged.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -51,14 +52,32 @@ Deno.serve(async (req) => {
   const started = new Date().toISOString();
   let body: any = {}; try { body = await req.json(); } catch (_e) { /* a GET or empty POST lands here - and must NOT be treated as authorised */ }
 
-  const inbound = await sec('inbound_secret');
-  if (!inbound) {
-    try { await admin.from('agent_runs').insert({ agent: 'uptime', started_at: started, finished_at: new Date().toISOString(), status: 'error', counts: { authorised: 0, secret_lookup_ok: 0 }, note: 'uptime_check refused every caller because inbound_secret is missing or empty in app_secrets. NO page checks ran, so an absence of site_down alerts right now means the monitor is blind, not that quotesdone.com is healthy.' }); } catch (_e) { /* */ }
-    return J({ error: 'secret unavailable' }, 503);
-  }
-  if (!secretOk(inbound) || body.__secret !== inbound) {
-    try { await admin.from('agent_runs').insert({ agent: 'uptime', started_at: started, finished_at: new Date().toISOString(), status: 'error', counts: { authorised: 0, bad_or_missing_secret: 1 }, note: 'uptime_check rejected an unauthenticated caller (403). Until 19 Jul 2026 a request with no __secret was ACCEPTED and could trigger a production redeploy of quotesdone.com, so this rejection may be a scanner probing the old hole. No checks ran and no redeploy was triggered.' }); } catch (_e) { /* */ }
-    return J({ error: 'forbidden' }, 403);
+  // AUDIT 9.5 / WI-001 (3 Aug 2026). PILOT FUNCTION for scoped internal credentials.
+  //
+  // This used to compare body.__secret against the single shared app_secrets.inbound_secret - the
+  // same string that authenticates 43 cron jobs and 42 other edge functions. The comparison itself
+  // was correct and fail-closed after the 19 Jul fix; the problem is what it compared against.
+  //
+  // requireInternal() asks the database instead (fn_internal_auth), which:
+  //   * accepts the new per-context credential AND, during the migration window, the legacy shared
+  //     secret - so the existing cron keeps working unchanged until it is moved;
+  //   * checks that the presented credential is SCOPED to 'uptime_check' specifically. The
+  //     cron.monitoring credential can call this and ai_health, and nothing else. The shared secret
+  //     could call everything, which is the property being removed;
+  //   * records who called. Until now every call authenticated by that string was indistinguishable
+  //     in the logs, so a leak could not be scoped.
+  //
+  // Still fails closed, and now also when the verifier itself is unreachable.
+  const auth = await requireInternal(admin, body.__secret, 'uptime_check');
+  if (!auth.ok) {
+    try {
+      await admin.from('agent_runs').insert({ agent: 'uptime', started_at: started, finished_at: new Date().toISOString(), status: 'error',
+        counts: { authorised: 0, refused: 1 },
+        note: auth.status === 503
+          ? 'uptime_check refused every caller because the internal credential verifier could not be reached. NO page checks ran, so an absence of site_down alerts right now means the monitor is blind, not that quotesdone.com is healthy.'
+          : 'uptime_check rejected a caller with no valid internal credential (403). Until 19 Jul 2026 a request with no __secret was ACCEPTED and could trigger a production redeploy of quotesdone.com, so this may be a scanner probing the old hole. The reason for the refusal is in internal_credential_audit. No checks ran and no redeploy was triggered.' });
+    } catch (_e) { /* */ }
+    return J({ error: auth.error, message: auth.message }, auth.status);
   }
 
   const fails: any[] = [];
@@ -94,7 +113,15 @@ Deno.serve(async (req) => {
     const detail = fails.length + ' page(s) on quotesdone.com are failing: ' + JSON.stringify(fails).slice(0, 300)
       + (deployShaped ? ' The failures look deploy-shaped (missing marker / empty body / 5xx / 404 / fetch error), which can also just be a transient network blip - re-run the check before acting.' : ' The failures do not look deploy-shaped.')
       + ' NOTE: uptime_check no longer auto-redeploys (removed 27 Jul 2026, it republished unreviewed source on transient errors). If a republish is genuinely the fix, review qd_deploy_src and publish deliberately from the OS.';
-    try { await fetch(FN + '/alert_founder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: inbound, level: 'critical', event: 'Live site check failing', detail, dedupe_key: 'site_down' }) }); } catch (_e) { /* */ }
+    // AUDIT 9.5, OUTBOUND SIDE - still on the legacy shared secret, deliberately.
+    // This function is both a callee (gated above by requireInternal) and a caller. Moving the
+    // OUTBOUND hop needs alert_founder to accept the verifier too, and needs this function to hold
+    // a credential scoped to ['alert_founder']. That is the next step in the caller-by-caller order,
+    // not this one. Changing both ends at once is precisely the big-bang swap WI-001 warns against.
+    // Until then this call is authenticated by the legacy credential - which is now COUNTED, so it
+    // shows up in v_internal_credential_health as a reason the shared secret is still in use.
+    const outbound = await sec('inbound_secret');
+    try { await fetch(FN + '/alert_founder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: outbound, level: 'critical', event: 'Live site check failing', detail, dedupe_key: 'site_down' }) }); } catch (_e) { /* */ }
     return J({ ok: false, escalated: true, failures: fails.length, fails });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 });
