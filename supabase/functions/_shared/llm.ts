@@ -65,6 +65,61 @@ function guessFn(): string {
   return 'unknown';
 }
 
+// AUDIT 9.5 / WI-001 (4 Aug 2026) ----------------------------------------------------------------
+// This module was the shared secret's largest consumer and it was in neither the D3 nor the D5 hop
+// inventory. Both inventories were built by reading each function's own fetch() calls; this hop is
+// inside a shared module, so all 32 importers authenticated to ai_gateway with sec('inbound_secret')
+// and none of them ever presented a scoped credential. legacy.shared's use_count was 379 and still
+// rising when this was found.
+//
+// It also made the pencilled 10 Aug withdrawal of inbound_secret a platform-wide outage that would
+// have produced no error anywhere. A withdrawn credential returns 403; the code below reads the
+// body, finds no `content`, and returns `null` - which is this module's documented contract for
+// "the model legitimately declined". Every one of the 32 callers handles null by moving on. No
+// exception, no agent_runs row, no page from fn_watch_failed_runs. The whole AI layer would have
+// gone quiet and every monitor would have reported normal.
+//
+// Two changes, and the second matters more than the first:
+//   1. Present cred_fn_<caller>, scoped to ai_gateway alone (migration
+//      audit_95_llm_path_scoped_credentials issues one per importer).
+//   2. Make an authentication refusal LOUD. A 403 or a 503 from the verifier is now written to
+//      agent_runs as an error before null is returned, so the failure that would otherwise be
+//      indistinguishable from a policy refusal has its own signal.
+//
+// The legacy fallback is deliberately KEPT. internal_auth.ts's own doctrine is that callers move
+// one context at a time and the shared secret is withdrawn only once its use_count stops rising - a
+// hard cutover on a path this wide, where failure is a `null`, is the exact shape of defect this
+// comment describes. The fallback is recorded (below) rather than silent, because
+// v_legacy_secret_users records the CALLEE (always 'ai_gateway') and so cannot name which importer
+// is still on it. Without this row the watch that gates the withdrawal would be blind.
+const AUTH_SIGNAL_MIN = 30;   // one agent_runs row per signal per caller per 30 minutes
+async function logAuth(signal: string, fnName: string, status: string, note: string) {
+  try {
+    const since = new Date(Date.now() - AUTH_SIGNAL_MIN * 60000).toISOString();
+    const { data } = await _admin.from('agent_runs').select('id').eq('agent', 'llm_gateway_auth')
+      .gte('started_at', since).eq('counts->>signal', signal).eq('counts->>fn', fnName).limit(1);
+    if (data && data.length) return;
+    await _admin.from('agent_runs').insert({
+      agent: 'llm_gateway_auth', status, counts: { signal, fn: fnName },
+      note: note.slice(0, 500), started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+    });
+  } catch (_e) { /* never let logging block a model call */ }
+}
+
+/** The credential this caller should present to ai_gateway, scoped first, legacy fallback second. */
+async function gatewayCredential(fnName: string): Promise<string> {
+  const scoped = fnName && fnName !== 'unknown' ? await sec('cred_fn_' + fnName) : '';
+  if (scoped) return scoped;
+  const legacy = await sec('inbound_secret');
+  if (legacy) {
+    await logAuth('legacy_fallback', fnName, 'error',
+      'llm.ts fell back to the shared inbound_secret for ' + fnName + ' because app_secrets.cred_fn_' +
+      fnName + ' is missing or empty. The shared secret cannot be withdrawn while this row keeps appearing, ' +
+      'and v_legacy_secret_users cannot name this caller because it records the callee (ai_gateway).');
+  }
+  return legacy;
+}
+
 export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) {
   const dMax = def.max ?? 700;
   const dTo = def.timeoutMs ?? 25000;
@@ -74,8 +129,13 @@ export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) 
     const ac = new AbortController();
     const to = setTimeout(() => ac.abort(), dTo + 5000); // gateway has its own 25s per attempt
     try {
-      const secret = await sec('inbound_secret');
-      if (!secret) return null;
+      const secret = await gatewayCredential(fnName);
+      if (!secret) {
+        await logAuth('no_credential', fnName, 'error',
+          fnName + ' has neither app_secrets.cred_fn_' + fnName + ' nor inbound_secret, so it cannot ' +
+          'authenticate to ai_gateway and every model call from it returns null.');
+        return null;
+      }
 
       const r = await fetch(GATEWAY, {
         method: 'POST',
@@ -101,6 +161,31 @@ export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) 
       });
 
       const j = await r.json().catch(() => null);
+
+      // AUDIT 9.5. THE FAILURE THAT LOOKED LIKE A POLICY DECISION. Everything below still returns
+      // null, because 32 call sites depend on that contract and changing it is a separate job. What
+      // changes is that a refusal to AUTHENTICATE now leaves a row. Before this, revoking the
+      // credential returned 403, fell through to `typeof j.content === 'string'` -> null, and was
+      // indistinguishable from the gateway deciding not to call a model. Both counted as "the model
+      // said nothing" and neither reached a monitor.
+      if (r.status === 403 || r.status === 401) {
+        await logAuth('gateway_forbidden', fnName, 'error',
+          'ai_gateway REFUSED the credential presented by ' + fnName + ' (HTTP ' + r.status + ', ' +
+          String(j?.error || 'forbidden') + '). Every model call from this function is returning null and its ' +
+          'callers cannot tell that apart from a deliberate refusal. Check internal_credential_audit for the reason.');
+        return null;
+      }
+      if (r.status === 503 && j?.error === 'credential_check_unavailable') {
+        await logAuth('verifier_unavailable', fnName, 'error',
+          'ai_gateway could not reach the credential verifier for ' + fnName + ', so the call was refused ' +
+          'rather than allowed. Model calls are failing closed - correct, but silent to the caller.');
+        return null;
+      }
+      if (!r.ok && !j) {
+        await logAuth('gateway_error', fnName, 'error',
+          'ai_gateway returned HTTP ' + r.status + ' with no JSON body for ' + fnName + '.');
+        return null;
+      }
       if (!j) return null;
 
       // A deterministic refusal or a budget halt is a legitimate "no". Returning null here is
