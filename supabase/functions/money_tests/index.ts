@@ -29,7 +29,6 @@ Deno.serve(async (req)=>{
   // the public anon key could trigger the probe suite and read which tables are exposed. The daily cron now
   // sends __secret; verify_jwt stays true as defence-in-depth.
   const body = await req.json().catch(()=>({} as any));
-  const __exp = await sec('inbound_secret');
   // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
   // per-context credential and the legacy shared secret, and records which one called.
   const __auth = await requireInternal(admin, body?.__secret, 'money_tests');

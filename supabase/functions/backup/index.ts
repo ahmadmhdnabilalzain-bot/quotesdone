@@ -37,7 +37,6 @@ async function listBucket(bucket:string, prefix='', acc:any[]=[], depth=0):Promi
 
 Deno.serve(async (req)=>{
   let b:any={}; try{ b=await req.json(); }catch(_){}
-  const __exp = await sec('inbound_secret');
   // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
   // per-context credential and the legacy shared secret, and records which one called.
   const __auth = await requireInternal(admin, b?.__secret, 'backup');

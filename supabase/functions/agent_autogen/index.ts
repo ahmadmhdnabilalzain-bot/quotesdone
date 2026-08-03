@@ -95,12 +95,12 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
-    const __exp = await sec('inbound_secret');
+    const __out = await sec('cred_fn_ai');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'agent_autogen');
     if (!__auth.ok) { await logRun('error', { created: 0 }, 'call rejected: wrong or missing inbound secret; no expert category agents were created'); return J({ error: 'forbidden' }, 403); }
-    const key = __exp; if (!key) { await logRun('error', { created: 0 }, 'inbound_secret missing from app_secrets: no expert category agents created this run, uncovered supplier trades stay uncovered'); return J({ error: 'AI not configured' }, 200); }
+    const key = __out; if (!key) { await logRun('error', { created: 0 }, 'cred_fn_ai missing from app_secrets: no expert category agents created this run, uncovered supplier trades stay uncovered'); return J({ error: 'AI not configured' }, 200); }
     const max = Math.max(1, Math.min(5, Number(body.max) || 3));
 
     const { data: agents } = await admin.from('category_agents').select('slug,name');

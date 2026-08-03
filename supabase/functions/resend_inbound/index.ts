@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
     const isResend = p?.type === 'email.received' && p?.data;
     let d = isResend ? p.data : (p.data || p);
     const emailId = String(d.email_id || d.id || '');
-    const rkey = await sec('resend_api_key'); const key = await sec('openrouter_api_key'); const inbSecret = ibs;
+    const rkey = await sec('resend_api_key'); const key = await sec('openrouter_api_key'); const inbSecret = await sec('cred_fn_ai');
     let text = pickBody(d);
     let atts: any[] = Array.isArray(d.attachments) ? d.attachments : [];
     if ((!text || text.length < 20 || !atts.length) && emailId && rkey) {

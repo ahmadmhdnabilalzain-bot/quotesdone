@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const format = mime.includes('mp3') || mime.includes('mpeg') ? 'mp3' : 'wav';
     if (!b64 || b64.length < 100) return J({ error: 'empty_audio' }, 400);
     if (b64.length > 22_000_000) return J({ error: 'Audio too long. Please keep it under about 2 minutes.' }, 413);
-    const secret = await sec('inbound_secret'); if (!secret) return J({ error: 'transcription_not_configured' }, 500);
+    const secret = await sec('cred_fn_ai'); if (!secret) return J({ error: 'transcription_not_configured' }, 500);
 
     const content = [ { type: 'text', text: PROMPT }, { type: 'input_audio', input_audio: { data: b64, format } } ];
     let text: string | null = null; let lastErr = '';

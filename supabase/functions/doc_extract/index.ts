@@ -2,7 +2,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 // doc_extract — universal Document Intelligence extractor.
 // Pulls {text, specifications, brands[], models[], dates[], quantities[], certifications[]}
 // from a registered document, and indexes non-sensitive docs into kb_chunks.
-// Secret-gated (inbound_secret). Service-role only.
+// Secret-gated (inbound via fn_internal_auth). Service-role only.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -20,7 +20,7 @@ const INDEX_KINDS = new Set(['catalog','profile','drawing']);
 // never index (pricing tied to identity, or PII documents)
 // quote, licence, egr are intentionally excluded.
 
-// inbound_secret, captured once per request so llmJSON can reach ai_gateway without a signature change.
+// cred_fn_ai, captured once per request so llmJSON can reach ai_gateway without a signature change.
 let GW='';
 
 async function llmJSON(apiKey:string, content:unknown):Promise<any>{
@@ -74,20 +74,20 @@ Deno.serve(async (req)=>{
   }
   let body:any={}; try{ body=await req.json(); }catch(_e){}
   // secrets from app_secrets
-  const { data:secrets } = await sb.from('app_secrets').select('key,value').in('key',['inbound_secret','cloudconvert_api_key']);
-  const secret=(secrets||[]).find((s:any)=>s.key==='inbound_secret')?.value;
+  const { data:secrets } = await sb.from('app_secrets').select('key,value').in('key',['cred_fn_ai','cloudconvert_api_key']);
+  const secret=(secrets||[]).find((s:any)=>s.key==='cred_fn_ai')?.value;
   // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
   // per-context credential and the legacy shared secret, and records which one called.
   const __auth = await requireInternal(sb, body?.__secret, 'doc_extract');
   if(!__auth.ok) {
-    if(!secret) await logThrottled('missing_inbound_secret',60,'error',{stage:'auth'},'The inbound_secret row is missing from app_secrets, so doc_extract rejects every caller including the scheduler; no supplier document is being extracted or indexed at all.');
+    if(!secret) await logThrottled('missing_cred_fn_ai',60,'error',{stage:'auth'},'The cred_fn_ai row is missing from app_secrets, so doc_extract cannot authenticate to ai_gateway; no supplier document is being extracted or indexed at all.');
     else await logThrottled('bad_secret',60,'error',{stage:'auth'},'doc_extract rejected a caller presenting the wrong inbound secret. If this is the scheduled drainer, the document extraction queue is not being processed and supplier documents stay unread.');
     return j({error:'unauthorized'},401);
   }
   GW=String(secret);
   // The OpenRouter key now lives only inside ai_gateway; what this function needs is the inbound secret.
   const apiKey=GW;
-  if(!apiKey) { await logThrottled('no_openrouter_key',60,'error',{stage:'config'},'inbound_secret is missing from app_secrets, so doc_extract cannot reach ai_gateway to call the extraction model; every uploaded supplier document is stuck pending and none of their specs, brands or certifications reach the knowledge base.'); return j({error:'no_openrouter_key'},500); }
+  if(!apiKey) { await logThrottled('no_openrouter_key',60,'error',{stage:'config'},'cred_fn_ai is missing from app_secrets, so doc_extract cannot reach ai_gateway to call the extraction model; every uploaded supplier document is stuck pending and none of their specs, brands or certifications reach the knowledge base.'); return j({error:'no_openrouter_key'},500); }
 
   // pick a document: explicit id, or next pending (batch drainer passes nothing)
   let doc:any=null;

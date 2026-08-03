@@ -10,7 +10,6 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 const FIXED:Record<string,string>={brief:'Daily Brief',secretary:'Secretary (Chief of Staff)',cfo:'CFO',legal:'Legal Counsel',collections:'Collections Accountant',bookkeeper:'Bookkeeper',onboarding:'Onboarding / KYC',docs:'Document Controller',security:'Security Engineer',it:'IT / Uptime (SRE)',followup:'Follow-up (Lifecycle)',bd:'BD Representative',marketing:'Marketing'};
 Deno.serve(async (req)=>{
   let b:any={}; try{ b=await req.json(); }catch(_){}
-  const __exp = await sec('inbound_secret');
   // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
   // per-context credential and the legacy shared secret, and records which one called.
   const __auth = await requireInternal(admin, b?.__secret, 'export_all_knowledge');

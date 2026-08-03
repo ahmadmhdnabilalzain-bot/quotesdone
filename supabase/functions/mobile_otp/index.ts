@@ -39,7 +39,6 @@ Deno.serve(async (req) => {
 
     // read-only credential + service reachability check (no SMS sent). Secret-gated to avoid abuse.
     if (action === 'diag') {
-      const __exp = await sec('inbound_secret');
       // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
       // per-context credential and the legacy shared secret, and records which one called.
       const __auth = await requireInternal(admin, body?.__secret, 'mobile_otp');

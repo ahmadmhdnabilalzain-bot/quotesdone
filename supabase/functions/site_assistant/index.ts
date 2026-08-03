@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
       if (audience !== 'unknown') source = 'text';
     }
 
-    const key = await sec('inbound_secret');
+    const key = await sec('cred_fn_ai');
     if (!key) return J({ reply: 'For help, please call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.' });
 
     const { data: faqs } = await admin.from('company_faq').select('id,question,answer,tags').eq('public', true).eq('status','approved');

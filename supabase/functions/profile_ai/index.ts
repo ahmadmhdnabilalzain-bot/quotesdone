@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
     const __auth = await requireInternal(admin, body?.__secret, 'profile_ai');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
 
-    const { data: keyRow } = await admin.from('app_secrets').select('value').eq('key', 'inbound_secret').maybeSingle();
+    const { data: keyRow } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_ai').maybeSingle();
     if (!keyRow?.value) return J({ error: 'smart engine not configured', fallback: true }, 200);
 
     const parts: { text?: string; img?: { mime: string; data: string } }[] = [];

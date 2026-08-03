@@ -167,7 +167,7 @@ async function retrieveFaq(q: string): Promise<{ ctx: string; ids: number[] }> {
 // applies the per-sender ceiling (20/hour) this endpoint never had. The caller still gets the
 // same parsed object - {reply,lang,audience,escalate} - or null when nothing could be produced.
 async function llm(sys: string, user: string, faqText: string, rateKey: string): Promise<any> {
-  const secret = await sec('inbound_secret'); if (!secret) return null;
+  const secret = await sec('cred_fn_ai'); if (!secret) return null;
   try {
     const r = await fetch(GATEWAY, {
       method: 'POST',

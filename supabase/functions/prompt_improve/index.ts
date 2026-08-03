@@ -14,7 +14,6 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
-    const __exp = await sec('inbound_secret');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'prompt_improve');
@@ -34,7 +33,7 @@ Deno.serve(async (req) => {
     const sys = 'You are an expert prompt engineer improving a production system prompt for a UAE B2B trades/quotation marketplace. Rewrite the prompt to fix the stated weakness while preserving its purpose, scope, output format and any hard rules. Keep it concise and unambiguous. Do NOT invent new tools, capabilities, or data the agent does not have. Return ONLY the improved system prompt text — no preamble, no explanation, no markdown fences.';
     const usr = 'PROMPT KEY: '+key+'\n\nWHY IT UNDERPERFORMS:\n'+reason+'\n\nRECENT ISSUES (founder-rejected agent actions):\n'+evidence+'\n\nCURRENT PROMPT:\n"""\n'+current+'\n"""\n\nRewrite it to fix the weakness. Return only the improved prompt.';
 
-    const apiKey = await sec('inbound_secret'); if (!apiKey) return J({ error: 'ai_unavailable' });
+    const apiKey = await sec('cred_fn_ai'); if (!apiKey) return J({ error: 'ai_unavailable' });
     let improved = ''; let usedModel = '';
     for (let attempt = 0; attempt < 2; attempt++) {
       try {

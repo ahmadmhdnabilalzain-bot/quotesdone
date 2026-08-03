@@ -45,12 +45,12 @@ function englishSide(d: unknown): { html: string; title: string } {
 Deno.serve(async (req) => {
   try {
     const b = await req.json().catch(() => ({} as any));
-    const __exp = await sec('inbound_secret');
+    const __out = await sec('cred_fn_ai');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, b?.__secret, 'translate_page');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
-    const key = __exp; if (!key) return J({ error: 'no_key' }, 500);
+    const key = __out; if (!key) return J({ error: 'no_key' }, 500);
     const source = String(b.source || ''); const slug = String(b.slug || ''); const model = b.model || 'openai/gpt-4o-mini'; const limit = Math.min(Number(b.limit || 5), 8);
     const { data: row } = await admin.from('qd_deploy_src').select('data').eq('path', 'src/content/' + source + '.json').maybeSingle();
     if (!row) return J({ error: 'no_source' }, 404);

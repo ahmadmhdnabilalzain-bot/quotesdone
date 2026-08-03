@@ -61,7 +61,6 @@ async function logRun(status:string, counts:Record<string,unknown>, note:string)
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
-    const __exp = await sec('inbound_secret');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'legal_review');
@@ -76,7 +75,7 @@ Deno.serve(async (req) => {
 
     const sys = 'You are a contracts analyst assisting a UAE B2B marketplace. Review the document and identify MISSING or RISKY clauses against best practice for this document type. Consider: parties & definitions, scope, payment/commission, liability & indemnity, limitation of liability, confidentiality/NDA, data protection (UAE PDPL), IP/content ownership, termination, warranties, force majeure, governing law & jurisdiction (should be UAE/relevant emirate), dispute resolution, compliance with UAE law. You are NOT a lawyer and must NOT give definitive legal advice or say the document is safe/enforceable. Flag issues for a licensed UAE lawyer to decide. Return STRICT JSON only, no markdown fences and no commentary. Keep each "issue" under 40 words so the response is never truncated. Schema: {"summary": string (plain, 3-4 sentences), "risk_flags": [{"clause": string, "issue": string, "severity": "low|medium|high"}], "missing_clauses": string[], "risk_level": "low|medium|high", "lawyer_questions": string[]}';
     const usr = 'DOCUMENT TYPE: '+kind+'\nTITLE: '+title+'\n\nDOCUMENT:\n"""\n'+text+'\n"""';
-    const key = await sec('inbound_secret'); if (!key) { await logRun('error',{},'ai_unavailable: no inbound secret'); return J({ error:'ai_unavailable' }); }
+    const key = await sec('cred_fn_ai'); if (!key) { await logRun('error',{},'ai_unavailable: no inbound secret'); return J({ error:'ai_unavailable' }); }
     let parsed:any=null; let used=''; let lastRaw=''; let lastErr='';
     for (let attempt=0; attempt<2; attempt++) {
       try {

@@ -9,7 +9,6 @@ async function sec(k:string){ const {data}=await admin.from('app_secrets').selec
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 Deno.serve(async (req)=>{
   let b:any={}; try{ b=await req.json(); }catch(_){}
-  const __exp = await sec('inbound_secret');
   // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
   // per-context credential and the legacy shared secret, and records which one called.
   const __auth = await requireInternal(admin, b?.__secret, 'export_cat_knowledge');

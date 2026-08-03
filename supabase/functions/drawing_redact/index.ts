@@ -92,12 +92,11 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
-    const __exp = await sec('inbound_secret');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'drawing_redact');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
-    const key = await sec('inbound_secret'); if (!key) return J({ error: 'no_ai_key' }, 500);
+    const key = await sec('cred_fn_ai'); if (!key) return J({ error: 'no_ai_key' }, 500);
     const job_id = crypto.randomUUID();
     // ANONYMITY 27 Jul 2026. These objects are handed to matched suppliers as SIGNED URLs before any
     // reveal or payment, and a signed URL necessarily contains the object path. The path is therefore

@@ -70,12 +70,11 @@ async function callModel(key: string, user: string) {
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
-    const __exp = await sec('inbound_secret');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'inquiry_parse');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
-    const key = await sec('inbound_secret'); if (!key) return J({ error: 'no_ai_key' }, 500);
+    const key = await sec('cred_fn_ai'); if (!key) return J({ error: 'no_ai_key' }, 500);
 
     const inquiryId = String(body.inquiry_id || '');
     const probe = clip(body.probe_text || '', 8000);

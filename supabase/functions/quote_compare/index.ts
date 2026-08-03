@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
     if (expertRef) payload.expert_reference = expertRef;
     if (mustSpecs.length) payload.must_state_specs = mustSpecs;
     const sys = SYS + (lang === 'ar' ? AR : '');
-    const key = await sec('inbound_secret'); if (!key) { await logRun('error', { compared: 0, quotes_seen: qs.length, ai_key_present: 0 }, 'quote_compare aborted: the inbound_secret secret is missing, so ' + qs.length + ' real supplier quotes could not be compared. The customer is shown \'ai_unavailable\' at the exact moment they are trying to choose a supplier, and the RFQ stalls at the decision step.'); return J({ ok: false, error: 'ai_unavailable' }, 200); }
+    const key = await sec('cred_fn_ai'); if (!key) { await logRun('error', { compared: 0, quotes_seen: qs.length, ai_key_present: 0 }, 'quote_compare aborted: the cred_fn_ai credential is missing, so ' + qs.length + ' real supplier quotes could not be compared. The customer is shown \'ai_unavailable\' at the exact moment they are trying to choose a supplier, and the RFQ stalls at the decision step.'); return J({ ok: false, error: 'ai_unavailable' }, 200); }
     let parsed: any = null; let lastDetail = '';
     let attempts = 0;
     for (let attempt = 0; attempt < 2 && !parsed; attempt++) {

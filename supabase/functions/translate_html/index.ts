@@ -19,12 +19,12 @@ HARD RULES:
 Deno.serve(async (req) => {
   try {
     const b = await req.json().catch(()=>({} as any));
-    const __exp = await sec('inbound_secret');
+    const __out = await sec('cred_fn_ai');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, b?.__secret, 'translate_html');
     if (!__auth.ok) return J({ error:'forbidden' }, 403);
-    const key = __exp; if(!key) return J({ error:'no_key' }, 500);
+    const key = __out; if(!key) return J({ error:'no_key' }, 500);
     const html = String(b.html||''); if(!html) return J({ error:'no_html' }, 400);
     // Model choice now belongs to ai_gateway; b.model is kept only for the response's model field.
     const model = b.model || 'anthropic/claude-sonnet-5';

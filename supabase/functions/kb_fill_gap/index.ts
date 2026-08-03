@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
 
     const category = String(body?.category || '').trim(); const label = String(body?.label || category).trim();
     if (!category) return J({ error: 'category_required' }, 400);
-    const key = await sec('inbound_secret'); if (!key) return J({ error: 'no_llm_key' }, 500);
+    const key = await sec('cred_fn_ai'); if (!key) return J({ error: 'no_llm_key' }, 500);
 
     let sections = await genOnce(key, label, category);
     if (!sections.length) sections = await genOnce(key, label, category); // one retry

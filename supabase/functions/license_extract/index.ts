@@ -46,12 +46,11 @@ function buildContent(mode: string, images: any[], body: any): any[] {
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
-    const __exp = await sec('inbound_secret');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'license_extract');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
-    const secret = await sec('inbound_secret'); if (!secret) return J({ error: 'no ai key' }, 500);
+    const secret = await sec('cred_fn_ai'); if (!secret) return J({ error: 'no ai key' }, 500);
     const mode = body.mode === 'profile' ? 'profile' : body.mode === 'cert' ? 'cert' : 'license';
     const images: any[] = Array.isArray(body.images) ? body.images : [];
     if (!images.length && !body.file_b64) return J({ error: 'no file' }, 400);

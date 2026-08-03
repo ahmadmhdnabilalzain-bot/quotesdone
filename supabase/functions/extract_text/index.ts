@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     let b64 = String(body.b64||''); if(!b64) return J({ error:'b64 required' }, 400);
     const dataUrl = b64.startsWith('data:') ? b64 : ('data:'+mime+';base64,'+b64);
     const isImage = /image\//i.test(mime) || /\.(png|jpe?g|webp|gif|heic|heif)$/i.test(filename);
-    const secret = await sec('inbound_secret'); if(!secret) return J({ error:'ai_unavailable' }, 500);
+    const secret = await sec('cred_fn_ai'); if(!secret) return J({ error:'ai_unavailable' }, 500);
     let content: any; let plugins: any = undefined;
     if (isImage) content = [{ type:'text', text:PROMPT }, { type:'image_url', image_url:{ url:dataUrl } }];
     else { content = [{ type:'text', text:PROMPT }, { type:'file', file:{ filename, file_data:dataUrl } }]; plugins = [{ id:'file-parser', pdf:{ engine:'pdf-text' } }]; }

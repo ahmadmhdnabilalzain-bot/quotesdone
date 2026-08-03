@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({}));
-    const { data: sec } = await admin.from('app_secrets').select('value').eq('key', 'inbound_secret').maybeSingle();
+    const { data: sec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_ai').maybeSingle();
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'supplier_review');

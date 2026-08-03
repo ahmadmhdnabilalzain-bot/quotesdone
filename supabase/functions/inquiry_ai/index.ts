@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
     if ((usedC || 0) >= AI_LIMIT_PER_HOUR) return J({ error: 'Too many requests right now. Please try again in a little while.' }, 429);
     await admin.from('ai_usage').insert({ email: who, kind: 'inquiry' });
 
-    const { data: sec } = await admin.from('app_secrets').select('value').eq('key', 'inbound_secret').maybeSingle();
+    const { data: sec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_ai').maybeSingle();
     if (!sec?.value) return J({ error: 'AI not configured', fallback: true }, 200);
     const key = sec.value;
 

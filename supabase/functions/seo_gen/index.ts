@@ -22,12 +22,12 @@ async function genOne(key: string, c: any){
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
-    const __exp = await sec('inbound_secret');
+    const __out = await sec('cred_fn_ai');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'seo_gen');
     if (!__auth.ok) return J({ error:'forbidden' }, 403);
-    const key = __exp; if(!key) return J({ error:'no_ai' }, 200);
+    const key = __out; if(!key) return J({ error:'no_ai' }, 200);
     const { data: rows } = await admin.from('seo_categories').select('slug,name,search_term').eq('generated', false).order('sort').limit(20);
     if (!rows || !rows.length) return J({ ok:true, finished:true, done:0 });
     const results = await Promise.all(rows.map((c)=>genOne(key, c)));

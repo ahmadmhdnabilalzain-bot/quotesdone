@@ -63,7 +63,7 @@ function isArabic(text: string): boolean { return /[؀-ۿ]/.test(String(text || 
 function sanitizeInput(text: string): string { return String(text || '').replace(/\bignore (all |any |previous )?(above|prior|earlier)?\s*(instructions|prompts?|rules?)\b/gi, '[removed]').replace(/\b(system|assistant|developer)\s*:/gi, '$1 -').slice(0, 4000); }
 
 async function llm(messages: any[]): Promise<string | null> {
-  const key = await sec('inbound_secret'); if (!key) return null;
+  const key = await sec('cred_fn_ai'); if (!key) return null;
   // Prompt caching is now applied by ai_gateway on the system prompt it receives.
   const sys = messages.filter((m: any) => m && m.role === 'system').map((m: any) => String(m.content || '')).join('\n\n');
   const input = messages.filter((m: any) => !m || m.role !== 'system');

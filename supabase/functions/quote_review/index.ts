@@ -53,7 +53,7 @@ Rules: include EVERY line from the quotation in items (confirmed true/false). co
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
-    const __exp = await sec('inbound_secret');
+    const __out = await sec('cred_fn_ai');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'quote_review');
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
 
     let ai: any = null;
     for (let at = 0; at < 2 && !ai; at++) { try {
-      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: __exp, fn: 'quote_review', sys: SYS, input: ctx.join('\n\n'), max: 2600, temperature: 0.15 }) });
+      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: __out, fn: 'quote_review', sys: SYS, input: ctx.join('\n\n'), max: 2600, temperature: 0.15 }) });
       const jd = await r.json(); const c = jd?.content; if (c) { const p = parseJson(c); if (p && Array.isArray(p.items)) { ai = p; break; } }
     } catch (_e) { /* try next */ } }
     if (!ai) return J({ error: 'ai_unavailable' }, 502);

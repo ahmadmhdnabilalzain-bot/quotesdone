@@ -16,7 +16,6 @@ const BUCKET = 'backups'; const PATH = 'imports/kb_final.json';
 Deno.serve(async (req) => {
   try {
     const b = await req.json().catch(() => ({} as any));
-    const __exp = await sec('inbound_secret');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, b?.__secret, 'kb_import');
