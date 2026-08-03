@@ -1,6 +1,7 @@
 // money_tests - automated invariant checks for the payment paths + security regressions.
 // Runs read-only/black-box assertions; alerts the founder (admin notification) on any failure.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -29,7 +30,10 @@ Deno.serve(async (req)=>{
   // sends __secret; verify_jwt stays true as defence-in-depth.
   const body = await req.json().catch(()=>({} as any));
   const __exp = await sec('inbound_secret');
-  if (!secretOk(__exp) || body.__secret !== __exp) return J({ error:'forbidden' }, 403);
+  // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+  // per-context credential and the legacy shared secret, and records which one called.
+  const __auth = await requireInternal(admin, body?.__secret, 'money_tests');
+  if (!__auth.ok) return J({ error:'forbidden' }, 403);
   const results:{name:string,pass:boolean,detail?:string}[]=[];
   const T=(name:string,pass:boolean,detail='')=>results.push({name,pass,detail:pass?undefined:detail});
   let cfgErrMsg='';

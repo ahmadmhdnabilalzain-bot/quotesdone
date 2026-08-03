@@ -4,6 +4,7 @@
 // same account is ignored and the sync always completes. On a complete sync it prunes local index rows that no longer
 // exist so the catalog matches Dropbox.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -56,7 +57,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) { await logThrottled('forbidden', 60, 'error', { stage:'auth' }, 'dropbox_sync rejected a caller presenting a bad or missing inbound secret. If this is the scheduled caller, the Dropbox document catalog is no longer being refreshed at all.'); return J({ error: 'forbidden' }, 403); }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'dropbox_sync');
+    if (!__auth.ok) { await logThrottled('forbidden', 60, 'error', { stage:'auth' }, 'dropbox_sync rejected a caller presenting a bad or missing inbound secret. If this is the scheduled caller, the Dropbox document catalog is no longer being refreshed at all.'); return J({ error: 'forbidden' }, 403); }
     const runStart = new Date().toISOString();
     const token = await accessToken();
     if (!token) { await logThrottled('no_dropbox_auth', 60, 'error', { stage:'token' }, 'dropbox_sync could not obtain a Dropbox access token (refresh token expired/revoked or app key/secret missing). The dropbox_files catalog is frozen and the Document Controller is showing stale contents until the OAuth credentials are restored.'); return J({ ok:false, error:'no_dropbox_auth' }); }

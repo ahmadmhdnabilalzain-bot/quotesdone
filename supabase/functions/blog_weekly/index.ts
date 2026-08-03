@@ -3,6 +3,7 @@
 // publishes to blog_posts (or drafts if publish:false), logs, and files a review task.
 // Auth: __secret == inbound_secret. Body: { publish?:bool=true }
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const llm = makeLlm(SONNET_FIRST, { max: 3500, temperature: 0.6 });
@@ -30,7 +31,10 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' } });
   const body = await req.json().catch(() => ({} as any));
   const __exp = await sec('inbound_secret');
-  if (!secretOk(__exp) || body.__secret !== __exp) return J({ error: 'forbidden' }, 403);
+  // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+  // per-context credential and the legacy shared secret, and records which one called.
+  const __auth = await requireInternal(admin, body?.__secret, 'blog_weekly');
+  if (!__auth.ok) return J({ error: 'forbidden' }, 403);
   const started = new Date().toISOString();
   const publish = body.publish !== false;
   try {

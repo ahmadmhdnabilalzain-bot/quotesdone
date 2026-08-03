@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 async function sec(k:string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
@@ -14,7 +15,10 @@ const AGENTS=['legal','collections','cfo','bookkeeper','security','it','onboardi
 Deno.serve(async (req)=>{
   let b:any={}; try{ b=await req.json(); }catch(_){}
   const __exp = await sec('inbound_secret');
-  if(!secretOk(__exp) || b.__secret!==__exp) return new Response(JSON.stringify({error:'forbidden'}),{status:403,headers:{'Content-Type':'application/json'}});
+  // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+  // per-context credential and the legacy shared secret, and records which one called.
+  const __auth = await requireInternal(admin, b?.__secret, 'reflect');
+  if(!__auth.ok) return new Response(JSON.stringify({error:'forbidden'}),{status:403,headers:{'Content-Type':'application/json'}});
   const started=new Date().toISOString();
   const ork=await sec('openrouter_api_key'); if(!ork) return new Response(JSON.stringify({error:'no key'}),{status:200,headers:{'Content-Type':'application/json'}});
   const since=new Date(Date.now()-14*864e5).toISOString();

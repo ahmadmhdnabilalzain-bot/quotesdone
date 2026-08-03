@@ -6,6 +6,7 @@
 //     and Twilio rejections were indistinguishable from a healthy idle flush. Recurring config states are
 //     throttled to one row per hour; idle runs with nothing queued are not logged at all.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined) || undefined; }
@@ -47,7 +48,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) { await logThrottled('forbidden', 60, 'error', {}, 'send_sms called without the inbound secret'); return J({ error: 'forbidden' }, 403); }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'send_sms');
+    if (!__auth.ok) { await logThrottled('forbidden', 60, 'error', {}, 'send_sms called without the inbound secret'); return J({ error: 'forbidden' }, 403); }
     const acct = await sec('twilio_account_sid'); const ks = await sec('twilio_api_key_sid'); const kk = await sec('twilio_api_key_secret'); const from = await sec('twilio_from');
     if (!acct || !ks || !kk || !from) { await logThrottled('not_configured', 60, 'error', {}, 'SMS NOT SENDING - missing twilio_account_sid / api_key_sid / api_key_secret / twilio_from'); return J({ ok: false, error: 'sms_not_configured' }, 200); }
 

@@ -3,6 +3,7 @@
 // adjudicator (route_inquiry) reads to judge who can genuinely quote a job. Never invents scope it
 // cannot infer; thin inputs -> conservative summary + low_confidence flag. Single (lead_id) or batch.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const _llm = makeLlm(SONNET_FIRST, { max: 700, temperature: 0 });
@@ -55,14 +56,22 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) { await logRun('error', { stage:'auth', rejected:1 }, 'Rejected a call with a wrong or missing __secret; no supplier capability profiles were written, so suppliers awaiting enrichment stay without a capability_summary and the matching adjudicator cannot judge them for any RFQ'); return J({ error:'forbidden' }, 403); }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'enrich_capability');
+    if (!__auth.ok) { await logRun('error', { stage:'auth', rejected:1 }, 'Rejected a call with a wrong or missing __secret; no supplier capability profiles were written, so suppliers awaiting enrichment stay without a capability_summary and the matching adjudicator cannot judge them for any RFQ'); return J({ error:'forbidden' }, 403); }
 
     if (body.lead_id) {
       const { data: lead, error: leadErr } = await admin.from('leads').select(COLS).eq('id', Number(body.lead_id)).maybeSingle();
       if (!lead) { await logRun('error', { stage:'single', lead_id: Number(body.lead_id), found: 0 }, 'Lead '+String(body.lead_id)+' could not be loaded for enrichment'+(leadErr ? (': '+String(leadErr.message)) : ' (not found)')+'; this supplier keeps no capability_summary and cannot be matched to any RFQ'); return J({ error:'lead_not_found' }, 404); }
       const r = await enrichOne(lead);
       await logRun(r.ok ? 'ok' : 'error', { stage:'single', lead_id: r.id, enriched: r.ok ? 1 : 0, low_confidence: r.low === true, reason: r.reason, llm_key_missing: LLM_STATE.keyMissing, llm_failures: LLM_STATE.failures }, r.ok ? ('Supplier '+r.id+' enriched'+(r.low ? ' with low_confidence (thin profile, so the adjudicator may under-match this supplier)' : '')) : ('Supplier '+r.id+' was NOT enriched ('+String(r.reason)+(LLM_STATE.failures.length ? ('; llm: '+LLM_STATE.failures.join(' | ')) : '')+'); it is left without a capability_summary and cannot be matched to any RFQ'));
-      return J({ ok: true, ...r });
+      // Pre-existing, surfaced by deno check while migrating this gate (3 Aug 2026): this read
+      // `{ ok: true, ...r }`, and r carries its own `ok`. The spread wins, so the literal `true`
+      // was already dead - a request that failed to enrich returned ok:false despite the code
+      // appearing to hard-code success. Behaviour is unchanged; the precedence is now deliberate
+      // rather than accidental, and it is r.ok that is the truth.
+      return J({ ...r, ok: r.ok === true });
     }
 
     // batch backfill: approved, matchable, not yet enriched

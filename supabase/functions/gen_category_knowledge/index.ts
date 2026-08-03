@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
@@ -24,7 +25,10 @@ Deno.serve(async (req)=>{
  try{
   let b:any={}; try{ b=await req.json(); }catch(_){}
   const __exp = await sec('inbound_secret');
-  if(!secretOk(__exp) || b.__secret!==__exp) { await logRun('error',{generated:0},'call rejected: wrong or missing inbound secret; no category knowledge generated'); return new Response(JSON.stringify({error:'forbidden'}),{status:403,headers:{'Content-Type':'application/json'}}); }
+  // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+  // per-context credential and the legacy shared secret, and records which one called.
+  const __auth = await requireInternal(admin, b?.__secret, 'gen_category_knowledge');
+  if(!__auth.ok) { await logRun('error',{generated:0},'call rejected: wrong or missing inbound secret; no category knowledge generated'); return new Response(JSON.stringify({error:'forbidden'}),{status:403,headers:{'Content-Type':'application/json'}}); }
   const ork=await sec('openrouter_api_key'); if(!ork) { await logRun('error',{generated:0},'openrouter_api_key missing from app_secrets: no category knowledge generated this run, category agent field knowledge is stale'); return new Response(JSON.stringify({error:'no key'}),{status:200,headers:{'Content-Type':'application/json'}}); }
   const limit=Math.max(1,Math.min(24,Number(b.limit)||8));
   const force=b.force===true;

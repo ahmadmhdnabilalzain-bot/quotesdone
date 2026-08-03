@@ -12,6 +12,7 @@
 //   * There was no wall-clock budget, so a slow run walked into the CPU ceiling instead of returning
 //     the work it had already completed. Now stops cleanly and lets the next cron tick continue.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 // Module scope: created once per worker, reused across invocations. Do NOT move this inside Deno.serve.
@@ -55,7 +56,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) { await logThrottled('forbidden', 60, 'error', { stage: 'auth' }, 'kb_embed rejected a caller presenting a bad or missing inbound secret. If this is the scheduled backfill, no knowledge-base chunks are being embedded and semantic search silently degrades to whatever was already indexed.'); return J({ error: 'forbidden' }, 403); }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'kb_embed');
+    if (!__auth.ok) { await logThrottled('forbidden', 60, 'error', { stage: 'auth' }, 'kb_embed rejected a caller presenting a bad or missing inbound secret. If this is the scheduled backfill, no knowledge-base chunks are being embedded and semantic search silently degrades to whatever was already indexed.'); return J({ error: 'forbidden' }, 403); }
     // 5 is the measured ceiling on this project's edge worker. Empirically on 28 Jul 2026:
     // limit 40 -> 546, limit 20 -> 546, limit 10 -> 546, limit 8 -> 546, limit 5 -> 200. The gte-small
     // session grows its allocation with each run() inside one invocation, so the batch has to stay

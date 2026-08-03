@@ -1,6 +1,7 @@
 // agent_autogen — when suppliers arrive from a category we don't cover yet, auto-create a full expert
 // sales agent for it: persona + verified knowledge pack + intake checklist. Daily cron + callable.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -95,7 +96,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) { await logRun('error', { created: 0 }, 'call rejected: wrong or missing inbound secret; no expert category agents were created'); return J({ error: 'forbidden' }, 403); }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'agent_autogen');
+    if (!__auth.ok) { await logRun('error', { created: 0 }, 'call rejected: wrong or missing inbound secret; no expert category agents were created'); return J({ error: 'forbidden' }, 403); }
     const key = __exp; if (!key) { await logRun('error', { created: 0 }, 'inbound_secret missing from app_secrets: no expert category agents created this run, uncovered supplier trades stay uncovered'); return J({ error: 'AI not configured' }, 200); }
     const max = Math.max(1, Math.min(5, Number(body.max) || 3));
 

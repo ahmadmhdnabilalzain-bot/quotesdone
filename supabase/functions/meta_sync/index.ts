@@ -3,6 +3,7 @@
 // meta_campaign_filter (default 'QuotesDone') so the founder's DJ campaigns never enter QuotesDone's dashboards.
 // Does NOT post to the GL. Returns {disabled:true} until a token is added.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -34,7 +35,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) { await logRun('error', { upserts: 0 }, 'call rejected: wrong or missing inbound secret; no Meta ad campaign insights were synced'); return J({ error: 'forbidden' }, 403); }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'meta_sync');
+    if (!__auth.ok) { await logRun('error', { upserts: 0 }, 'call rejected: wrong or missing inbound secret; no Meta ad campaign insights were synced'); return J({ error: 'forbidden' }, 403); }
     const token = await sec('meta_access_token');
     const acct = await sec('meta_ad_account_id');
     const filter = (await sec('meta_campaign_filter')) || 'QuotesDone';

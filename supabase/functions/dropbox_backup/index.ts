@@ -3,6 +3,7 @@
 // inquiry summary, quote comparison). Read-only on our storage; only uploads to Dropbox. Exception: op:pdpl_erase deletes the
 // files queued in pdpl_erase_files for an approved PDPL erasure request (Dropbox delete_v2 + storage remove). inbound_secret gated.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -110,7 +111,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
     const __exp = await sec('inbound_secret');
-    if (!secretOk(__exp) || body.__secret !== __exp) { await logThrottled('forbidden', 60, 'error', { stage:'auth' }, 'dropbox_backup rejected a caller presenting a bad or missing inbound secret. If this is the scheduled caller, no Dropbox backup is running at all and every backup is stale.'); return J({ error:'forbidden' }, 403); }
+    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
+    // per-context credential and the legacy shared secret, and records which one called.
+    const __auth = await requireInternal(admin, body?.__secret, 'dropbox_backup');
+    if (!__auth.ok) { await logThrottled('forbidden', 60, 'error', { stage:'auth' }, 'dropbox_backup rejected a caller presenting a bad or missing inbound secret. If this is the scheduled caller, no Dropbox backup is running at all and every backup is stale.'); return J({ error:'forbidden' }, 403); }
 
     if (body.op === 'selftest'){
       const token = await accessToken(); if(!token) { await logThrottled('no_dropbox_auth', 60, 'error', { stage:'selftest' }, 'Dropbox selftest could not obtain an access token (refresh token / app key / app secret missing or rejected). Dropbox backups are not running; every document backup is stale until the OAuth credentials are restored.'); return J({ ok:false, error:'no_dropbox_auth' }); }
