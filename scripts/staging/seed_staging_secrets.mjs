@@ -96,9 +96,46 @@ for (const [k, why] of guardRefused) console.log(`   ${k.padEnd(28)} ${why}`);
 if (!APPLY) { console.log('\nDRY RUN - nothing written. Re-run with --apply.'); process.exit(0); }
 
 const lit = (s) => `'${String(s).replace(/'/g, "''")}'`;
-await mgmtWrite(STAGING,
-  `insert into public.app_secrets (key, value) values ${payload.map(([k, v]) => `(${lit(k)}, ${lit(v ?? '')})`).join(',')}
-   on conflict (key) do update set value = excluded.value`, 'seed app_secrets');
+
+// Only write what actually differs. Some keys are protected by triggers: fn_autonomy_control_guard
+// refuses to WIDEN agent_autonomy_from without `set local app.change_reason`, which a PostgREST
+// call cannot do - deliberately, because that key was reachable by all 190 service-role functions.
+// Re-writing an identical value would trip that guard for no reason and abort the whole seed.
+const existing = new Map((await mgmtRead(STAGING, 'select key, value from public.app_secrets'))
+  .map(r => [r.key, r.value]));
+const changed = payload.filter(([k, v]) => existing.get(k) !== (v ?? ''));
+console.log(`\n${changed.length} of ${payload.length} key(s) differ from staging and will be written`);
+
+if (changed.length) {
+  await mgmtWrite(STAGING,
+    `insert into public.app_secrets (key, value) values ${changed.map(([k, v]) => `(${lit(k)}, ${lit(v ?? '')})`).join(',')}
+     on conflict (key) do update set value = excluded.value`, 'seed app_secrets');
+}
 
 const after = await mgmtRead(STAGING, 'select count(*) as n from public.app_secrets');
 console.log(`\nstaging app_secrets now: ${after[0].n} keys`);
+
+// ---- internal_credential -----------------------------------------------------------------------
+// app_secrets holds the credential VALUES; public.internal_credential is the registry that says
+// which context each one belongs to and what it is scoped to reach. fn_internal_auth checks the
+// registry, so with 74 rows in production and 0 in staging every function-to-function call was
+// refused: create_inquiry reported routing {"error":"forbidden","fallback":true} and every RFQ
+// produced zero supplier fits, which the system then miscounts as a supply coverage gap.
+// Only the hash is copied - never a plaintext secret - and usage counters start clean.
+const creds = await mgmtRead(PROD_REF,
+  `select context, label, secret_hash, scope, is_legacy, active, expires_at
+   from public.internal_credential order by id`);
+const arr = (a) => Array.isArray(a) ? `ARRAY[${a.map(x => lit(x)).join(',')}]::text[]` : `'{}'::text[]`;
+const credVals = creds.map(c => `(${[
+  lit(c.context), c.label === null ? 'null' : lit(c.label), lit(c.secret_hash), arr(c.scope),
+  c.is_legacy ? 'true' : 'false', c.active ? 'true' : 'false',
+  c.expires_at === null ? 'null' : lit(c.expires_at),
+].join(',')})`).join(',');
+
+if (credVals) {
+  await mgmtWrite(STAGING,
+    `insert into public.internal_credential (context, label, secret_hash, scope, is_legacy, active, expires_at)
+     values ${credVals}`, 'seed internal_credential');
+}
+const credAfter = await mgmtRead(STAGING, 'select count(*) as n from public.internal_credential');
+console.log(`staging internal_credential now: ${credAfter[0].n} rows (production has ${creds.length})`);
