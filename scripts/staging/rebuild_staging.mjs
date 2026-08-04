@@ -115,9 +115,18 @@ const passes = [];
 for (let pass = 1; pass <= 6 && pending.length; pass++) {
   const failed = [];
   let ok = 0;
+  let done = 0;
+  const t0 = Date.now();
   for (const s of pending) {
     try { assertNoProductionLiteral(s, 'statement'); await mgmtWrite(REF, s, 'statement'); ok++; }
     catch (e) { failed.push({ sql: s, err: String(e.message).slice(0, 300) }); }
+    // A job that prints only when a pass ends is indistinguishable from a job that has stopped.
+    // The 4 Aug run hung at statement ~150 and looked identical to one making progress.
+    if (++done % 50 === 0) {
+      const rate = done / ((Date.now() - t0) / 1000);
+      process.stdout.write(`    pass ${pass}: ${done}/${pending.length} ok=${ok} fail=${failed.length} ` +
+        `${rate.toFixed(1)}/s eta=${Math.round((pending.length - done) / rate)}s\n`);
+    }
   }
   passes.push({ pass, applied: ok, failed: failed.length });
   say(`pass ${pass}: applied ${ok}, failed ${failed.length}`);

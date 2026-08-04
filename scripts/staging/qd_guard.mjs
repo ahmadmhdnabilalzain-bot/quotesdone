@@ -52,11 +52,25 @@ export function assertNoProductionLiteral(sql, where = 'statement') {
 // are retried with backoff so that a recorded failure means what it says.
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// A request with no timeout is not a slow request, it is a stopped program. The 4 Aug rebuild
+// stalled at function ~150 of 590 on a connection that never resolved: the backoff below could
+// not fire because the promise never settled, and the job sat there looking like work. Every
+// request now fails loudly after REQ_TIMEOUT_MS so a hang becomes a retry, not a silence.
+const REQ_TIMEOUT_MS = Number(process.env.QD_REQ_TIMEOUT_MS || 60000);
+
 async function post(ref, sql, attempt = 0) {
-  const r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
-    method: 'POST', headers: H, body: JSON.stringify({ query: sql }),
-  });
-  const body = await r.text();
+  let r, body;
+  try {
+    r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+      method: 'POST', headers: H, body: JSON.stringify({ query: sql }),
+      signal: AbortSignal.timeout(REQ_TIMEOUT_MS),
+    });
+    body = await r.text();
+  } catch (e) {
+    // Timeout or transport failure: retry on the same schedule as a 429.
+    if (attempt < 6) { await sleep(1500 * Math.pow(2, attempt)); return post(ref, sql, attempt + 1); }
+    throw new Error(`transport failed after ${attempt + 1} attempts: ${e.name}: ${e.message}`);
+  }
   if (r.status === 429 || r.status === 502 || r.status === 503 || r.status === 504) {
     if (attempt < 6) { await sleep(1500 * Math.pow(2, attempt)); return post(ref, sql, attempt + 1); }
   }
