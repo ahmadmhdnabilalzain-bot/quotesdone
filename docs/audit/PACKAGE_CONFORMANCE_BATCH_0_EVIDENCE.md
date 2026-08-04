@@ -14,7 +14,7 @@ to rest on a premise that is false, and the correction is the most important out
 
 | step | outcome |
 |---|---|
-| 1 — preserve the audit | **BLOCKED.** The register does not exist on this machine. See §1. |
+| 1 — preserve the audit | **NOT POSSIBLE.** The register is unrecoverable; rebuild deferred by decision. See §1. |
 | 2 — staging readiness | **DONE, and the premise was wrong.** A branch costs 32 cents. A *usable* branch is a workstream. See §2. |
 | 3 — A-01 remediation | **PROVEN in staging.** See §4. |
 | 4 — importer idempotency | **DONE, with a stronger fix than specified.** See §3. |
@@ -47,11 +47,28 @@ fails both published hashes by construction, and the governing rule for this bat
 register may not be reinterpreted from scratch. A regenerated matrix would be a new opinion wearing
 the old one's authority.
 
-**Action required from the founder:** re-attach both files. They will be hash-checked against
-`0d453a04…` and `f2ae80bc…` and committed unchanged.
+**Resolved, 4 Aug: the files are unrecoverable.** Searched and negative in every reachable
+location — `C:\Users\Opera` (full recursive), `docs/audit/`, the project's file uploads (`files:
+[]`), Dropbox, Gmail (7 days) — and the founder could not find them either. They were delivered
+into a conversation and never saved anywhere durable.
 
-Everything else in Batch 0 was completed without them, because the technical steps are fully
-specified in the session brief itself.
+**Decision taken:** do not rebuild now. The dependency-ordered conformance list survives in
+`claude/package-conformance-audit-4aug.md` and covers the next several batches; the matrix is a
+*completeness ledger* ("how far are we?"), not the work queue ("what next?"). It will be rebuilt
+nearer launch, from the six packages — which are present and hash-verified — by a session that is
+**not** implementing the fixes, so it keeps the independence that made the original worth having.
+Any rebuild must carry a new name and provenance: the published hashes refer to files that no
+longer exist and must not be attached to a new artifact.
+
+**The process defect that caused this, and the fix.** The 4 Aug instruction was *audit-only — do
+not commit*. Right about the code, wrong about the finding. Committing a read-only CSV to a branch
+changes nothing operationally. The rule that protected the repository destroyed the register.
+**From now on an audit deliverable is committed to `docs/audit/` in the session that produces it,
+on its own branch, always.** "Do not commit" means do not commit changes to the system. It never
+means do not record what you found.
+
+Everything else in Batch 0 was completed without the register, because the technical steps are
+fully specified in the session brief itself.
 
 ---
 
