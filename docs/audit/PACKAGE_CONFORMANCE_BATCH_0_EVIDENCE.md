@@ -149,11 +149,31 @@ refusing: 'not-a-ref' is not a valid project ref
 
 ### 2.5 `check_branch_isolation.mjs` re-run with a branch present
 
-Before the branch existed it passed vacuously (preview branches = 0). With `staging-batch0`
-present it **failed** — and failed correctly: the branch had no `cron.job` relation, so the check
-could not evaluate its assertion, reported `UNKNOWN`, and exited non-zero rather than counting an
-unevaluatable assertion as a pass. Recorded here so a later reader does not mistake it for a
-regression. It must be re-run once the branch carries a full schema.
+Run three times this session, and all three results are worth keeping.
+
+1. **Before the branch existed** — passed vacuously (preview branches = 0).
+2. **While the branch was still building** — **failed**, and failed correctly: the branch had no
+   `cron.job` relation, so the check could not evaluate its assertion, reported `UNKNOWN`, and
+   exited non-zero rather than counting an unevaluatable assertion as a pass. Recorded so a later
+   reader does not mistake it for a regression.
+3. **With the branch present and `kb_stage` built** — **passes**, and emits a forward-looking
+   warning worth acting on:
+
+```
+production has 20 function(s) embedding its own ref
+
+--- staging-batch0  (pglpqrhvozwepymcuunn)  status=MIGRATIONS_FAILED
+      NOTE  this branch has 0 of production's 20 ref-embedding functions.
+            A complete replay would give it more ways to reach production than it has now.
+      PASS  0 active jobs reach production
+
+ISOLATED - no branch cron can reach production.
+```
+
+**The branch is isolated partly because it is incomplete.** Finishing the rebuild (§2.6) will
+create the 20 ref-embedding functions on it. This check must be re-run at the end of that rebuild,
+not just at its start — the same trap as 3–4 Aug, when a halted replay made an incomplete branch
+look safe.
 
 ### 2.6 corrected route to a usable staging database
 
