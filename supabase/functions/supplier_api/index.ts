@@ -580,12 +580,43 @@ Deno.serve(async (req) => {
       //
       // The owner is now read from the raw table under the service role, keyed by inquiry id. It
       // exists only inside this function to feed the scrubber and is never placed on the response.
+      // AUDIT 1.5 EXTENSION (4 Aug 2026). FAIL CLOSED, the way customer_api already does.
+      //
+      // Both lookups below dropped their `error`. On a failed read ownerOf/custName stayed empty,
+      // buyerName came out null, and scrubIdentity(text, null, hits) silently skips the name
+      // pattern and RETURNS THE TEXT ANYWAY — so the buyer's name would go out in summary, spec,
+      // boq and budget to every matched supplier pre-reveal, with no 503, no drop and no log.
+      // The customer→supplier direction got a {resolved} discriminator on 3 Aug; this inbox, the
+      // surface that actually serves buyer free text pre-reveal, had no such concept.
+      //
+      // The database is not a backstop: mask_contacts() strips contacts and leaves names —
+      // 'Villa fit-out for Ahmed Khan, call [hidden] or [hidden]', verified on production.
+      //
+      // Note the asymmetry `ownerResolved` encodes. An inquiry with no customer_id is RESOLVED
+      // with nothing to scrub; a lookup that ERRORED is not resolved, and its free text must be
+      // dropped. A supplier who receives less detail can still quote; a buyer whose name reached
+      // eight strangers cannot be un-sent. This is a batch read, so a single error drops the whole
+      // page's free text — coarser than customer_api's per-inquiry check, deliberately so.
+      let ownerResolved = true;
       const ownerOf: Record<string, string> = {};
-      { const { data: owners } = await admin.from('inquiries').select('id,customer_id').in('id', ids);
-        for (const o of (owners || [])) if (o?.customer_id) ownerOf[String(o.id)] = String(o.customer_id); }
+      { const { data: owners, error: eOwners } = await admin.from('inquiries').select('id,customer_id').in('id', ids);
+        if (eOwners) ownerResolved = false;
+        else for (const o of (owners || [])) if (o?.customer_id) ownerOf[String(o.id)] = String(o.customer_id); }
       const custIds = Array.from(new Set(Object.values(ownerOf)));
       const custName: Record<string, string> = {};
-      if (custIds.length) { const { data: cs } = await admin.from('customers').select('id,full_name').in('id', custIds); for (const c of (cs || [])) if (c.full_name) custName[String(c.id)] = String(c.full_name); }
+      if (ownerResolved && custIds.length) { const { data: cs, error: eCust } = await admin.from('customers').select('id,full_name').in('id', custIds); if (eCust) ownerResolved = false; else for (const c of (cs || [])) if (c.full_name) custName[String(c.id)] = String(c.full_name); }
+      if (!ownerResolved) {
+        // Say so. The worst property of the previous behaviour was not that it failed open — it
+        // was that it failed open in silence, so the failure had no observable consequence at all.
+        try {
+          await admin.from('agent_runs').insert({
+            agent: 'supplier_api', status: 'error', started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+            counts: { signal: 'buyer_identity_unresolved', inquiries: ids.length },
+            note: ('supplier inbox: the inquiry owner could not be read, so customer-authored text was dropped from '
+              + ids.length + ' pre-reveal inquiry row(s) rather than emitted unscrubbed.').slice(0, 500),
+          });
+        } catch (_e) { /* never let the trail block the response */ }
+      }
       const out: any[] = [];
       for (const i of (inq || [])) {
         const pages: string[] = [];
@@ -598,14 +629,18 @@ Deno.serve(async (req) => {
         const revealed = revealedInq.has(String(i.id));
         const hits: string[] = [];
         const buyerName = custName[ownerOf[String(i.id)] || ''] || null;
-        const sSummary = revealed ? i.summary : scrubIdentity(i.summary ?? null, buyerName, hits);
-        const sSpec = revealed ? i.spec : scrubDeep(i.spec, buyerName, hits);
-        const sBoq = revealed ? i.boq : scrubDeep(i.boq, buyerName, hits);
+        // ownerResolved === false means we could not READ the owner, which is not the same as
+        // "this inquiry has no owner". We cannot scrub a name we could not read, so the buyer's
+        // own text is withheld rather than emitted unscrubbed. Category, emirate, status, quote
+        // and the redacted drawings still go out — enough to log in and quote.
+        const sSummary = revealed ? i.summary : (ownerResolved ? scrubIdentity(i.summary ?? null, buyerName, hits) : null);
+        const sSpec = revealed ? i.spec : (ownerResolved ? scrubDeep(i.spec, buyerName, hits) : null);
+        const sBoq = revealed ? i.boq : (ownerResolved ? scrubDeep(i.boq, buyerName, hits) : null);
         // ANONYMITY FIX 29 Jul 2026. budget is an 80-char FREE-TEXT box, not a number ("around
         // 250k, call Ahmad on 050 123 4567"), and it was the one customer-authored field on this
         // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
         // through the same scrubIdentity as summary, behind the same reveal gate.
-        const sBudget = revealed ? i.budget : scrubIdentity(i.budget ?? null, buyerName, hits);
+        const sBudget = revealed ? i.budget : (ownerResolved ? scrubIdentity(i.budget ?? null, buyerName, hits) : null);
         out.push({ id: i.id, category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, status: i.status, concluded, you_won: youWon, quote: qmap[i.id] || null });
       }
       return J({ inquiries: out, approval_status: sup.approval_status });

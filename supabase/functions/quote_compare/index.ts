@@ -98,7 +98,17 @@ Deno.serve(async (req) => {
     const nowTs = Date.now();
     const labelled = qs.map((q: any, i: number) => {
       const ql = (q.quality && typeof q.quality === 'object') ? q.quality : null;
-      const missMandatory = ql && Array.isArray(ql.missing) ? ql.missing.filter((m: any) => m && m.mandatory).length : null;
+      // AUDIT (4 Aug 2026). This read `m.mandatory` off `quality.missing`, which trg_quote_quality
+      // writes as to_jsonb(gmiss) where gmiss is text[] — an array of plain STRINGS. A string has no
+      // .mandatory, so the filter matched nothing and missing_mandatory was 0 for every quote ever
+      // compared. The single deterministic input to the ranking prompt was a constant.
+      // The objects that carry `mandatory` are at quality.category.missing, and the trigger has
+      // already counted them into quality.category.mandatory_missing — so read the number it
+      // computed instead of re-deriving it. It stays null (not 0) when the category has no spec
+      // group: "we do not know" and "nothing is missing" must never collapse into one value again.
+      const cq = (ql && typeof (ql as any).category === 'object' && (ql as any).category) ? (ql as any).category : null;
+      const mmRaw = cq ? Number((cq as any).mandatory_missing) : Number.NaN;
+      const missMandatory = Number.isFinite(mmRaw) ? mmRaw : null;
       const items = itemsByQuote[String(q.id)] || [];
       const tr = q.supplier_id != null ? trackBySupplier[String(q.supplier_id)] : null;
       return { label: 'Supplier ' + supplierLabel(i), price: q.quote_amount, lead_time: q.lead_time, validity: q.validity, warranty: q.warranty, payment_terms: q.payment_terms, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, notes: q.notes,

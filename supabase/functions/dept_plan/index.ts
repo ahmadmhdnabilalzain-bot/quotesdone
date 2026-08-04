@@ -45,8 +45,15 @@ async function planDept(deptKey: string) {
   if (!d || !d.active) return { dept: deptKey, skipped: 'unknown or inactive' };
 
   // Guard: already enough open work → don't pile up.
-  const { count: openCount } = await admin.from('org_tasks').select('id', { count: 'exact', head: true }).eq('dept_key', deptKey).in('status', ['assigned', 'proposed', 'in_progress']);
-  if ((openCount || 0) >= OPEN_TASK_CAP) return { dept: deptKey, skipped: 'has ' + openCount + ' open tasks' };
+  // AUDIT (4 Aug 2026). This counted `proposed` too. `proposed` means "waiting on a founder
+  // decision", and there is no approval path, so a proposed row can never clear. Counting it
+  // turned a throughput guard into an off switch: eight of thirteen departments were permanently
+  // barred from planning by a queue with no reader, and the count could only ever rise.
+  // The cap now measures work that is actually MOVING. The founder backlog is still returned,
+  // because it is a real number that ought to be falling — not one that should become invisible.
+  const { count: openCount } = await admin.from('org_tasks').select('id', { count: 'exact', head: true }).eq('dept_key', deptKey).in('status', ['assigned', 'in_progress']);
+  const { count: awaitingFounder } = await admin.from('org_tasks').select('id', { count: 'exact', head: true }).eq('dept_key', deptKey).eq('status', 'proposed');
+  if ((openCount || 0) >= OPEN_TASK_CAP) return { dept: deptKey, skipped: 'has ' + openCount + ' open tasks', awaiting_founder: awaitingFounder || 0 };
 
   const { data: vis } = await admin.from('company_vision').select('vision,mission').eq('id', 1).maybeSingle();
   // Company-level strategic targets every department plans against (company_goals).
@@ -94,7 +101,25 @@ async function planDept(deptKey: string) {
   let parsed: any = null;
   try { parsed = JSON.parse(raw.replace(/^```(json)?/i, '').replace(/```$/, '').trim()); } catch (_e) { const m = raw.match(/\{[\s\S]*\}/); if (m) { try { parsed = JSON.parse(m[0]); } catch (_e2) { /* noop */ } } }
   const tasks = Array.isArray(parsed?.tasks) ? parsed.tasks.slice(0, MAX_NEW) : [];
-  if (!tasks.length) return { dept: deptKey, planned: 0, note: 'no new tasks proposed' };
+  if (!tasks.length) {
+    // AUDIT (4 Aug 2026). Three different states used to return the same sentence, so a week of
+    // "no new tasks proposed" was indistinguishable from a week of unparseable model output.
+    // fn_edge_health_scan filed org_tasks#323 saying dept_plan had produced no effect, and the
+    // note gave nobody a way to say why. A diagnosis you cannot make is a defect in the log.
+    const why = parsed === null ? 'output_did_not_parse'
+      : !Array.isArray((parsed as any)?.tasks) ? 'output_parsed_but_no_tasks_array'
+      : 'proposed_nothing';
+    if (why !== 'proposed_nothing') {
+      try {
+        await admin.from('agent_runs').insert({
+          agent: 'dept_plan', status: 'error', started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+          counts: { signal: why, dept: deptKey, raw_len: raw.length },
+          note: (deptKey + ': model output unusable (' + why + '). First 300 chars: ' + raw.slice(0, 300)).slice(0, 500),
+        });
+      } catch (_e) { /* never let the trail block planning */ }
+    }
+    return { dept: deptKey, planned: 0, reason: why, note: why === 'proposed_nothing' ? 'no new tasks proposed' : 'model output unusable: ' + why };
+  }
 
   // One objective per planning cycle, owned by the department.
   const { data: obj } = await admin.from('org_objectives').insert({
