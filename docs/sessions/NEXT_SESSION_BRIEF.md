@@ -1,6 +1,8 @@
 # START HERE — QuotesDone, 4 August 2026, end of session 6
 
-`37dac27` on **`repair/package-conformance-batch-0`** (parent `9d002d3` = `main` = `origin/main`).
+`d4cab4b` on **`repair/package-conformance-batch-0`** (parent `9d002d3` = `main` = `origin/main`).
+**Pushed and in sync with `origin`** — the branch was already on GitHub at `37dac27`; only this
+brief was missing. Still **not merged. Production unchanged.**
 Migrations **712**. `npm test` exits **0**, 0 failures, now 16 node check files (the new
 `scripts/staging/sql_split.test.mjs` is picked up automatically).
 
@@ -355,6 +357,10 @@ The live traffic picture: inquiries 0, quotes 0, customers 0, leads 20,464.
 - **"Doesn't exist" is not "can't be created" — and "can be created" is not "is usable."**
 - **A branch can be isolated because it is broken.** Finishing the rebuild reduces its isolation.
 - **A plan that removes the defect cannot demonstrate the cure.** Reproduce, remediate, measure.
+- **A session that measures only current state cannot distinguish "was always so" from "became so
+  five minutes ago."** This brief inherited "not pushed" and carried it forward as fact; the branch
+  had been on GitHub the whole time. Write **is**, not **was**, about anything you did not watch
+  change. `git reflog` is the cheap check.
 
 _Carried forward: an alarm is only as good as its reader · `cron.job_run_details` is a log nobody
 reads · a ramp that measures time instead of output ratchets through an outage · a monitor can fail

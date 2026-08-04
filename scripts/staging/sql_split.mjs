@@ -51,7 +51,19 @@ export function splitStatements(sql) {
         const tag = m[0];
         const j = sql.indexOf(tag, i + tag.length);
         const end = j === -1 ? n : j + tag.length;
-        buf += sql.slice(i, end); i = end; continue;
+        buf += sql.slice(i, end); i = end;
+        // A closing dollar-quote is the last token of a CREATE FUNCTION body. fn_schema_export()
+        // terminates none of its 590 function definitions with a semicolon, so splitting on ';'
+        // alone glues the entire FUNCTIONS section into ONE 1.1 MB statement - which then trips
+        // the production-literal quarantine as a unit and silently drops all 590 functions.
+        // Treat "body closed, next token starts a new statement" as a terminator.
+        const rest = sql.slice(i);
+        const ws = /^\s*/.exec(rest)[0].length;
+        if (/^(?:CREATE|ALTER|DROP|COMMENT|GRANT|REVOKE|--)\b/i.test(rest.slice(ws))) {
+          if (buf.trim()) out.push(buf.trim());
+          buf = '';
+        }
+        continue;
       }
     }
     if (c === ';') { buf += ';'; i++; if (buf.trim()) out.push(buf.trim()); buf = ''; continue; }

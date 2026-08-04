@@ -29,6 +29,19 @@ eq('nested different tags', splitStatements(
   `create function h() returns void as $outer$ begin execute $q$ select 1; $q$; end; $outer$ language plpgsql;`),
   ['create function h() returns void as $outer$ begin execute $q$ select 1; $q$; end; $outer$ language plpgsql;']);
 
+// The shape fn_schema_export() actually emits: 0 of 590 function definitions are terminated with
+// a semicolon. Every test above ends its function with ';', which is why the suite passed while
+// the real dump collapsed into a single 1.1 MB statement.
+eq('unterminated function body ends at the next CREATE', splitStatements(
+  `CREATE OR REPLACE FUNCTION public.a() RETURNS int LANGUAGE sql AS $function$ select 1 $function$\n\n\n` +
+  `CREATE OR REPLACE FUNCTION public.b() RETURNS int LANGUAGE sql AS $function$ select 2 $function$\n`),
+  ['CREATE OR REPLACE FUNCTION public.a() RETURNS int LANGUAGE sql AS $function$ select 1 $function$',
+   'CREATE OR REPLACE FUNCTION public.b() RETURNS int LANGUAGE sql AS $function$ select 2 $function$']);
+
+eq('trailing clause after body is not a boundary', splitStatements(
+  `create function f() returns void as $$ begin perform 1; end; $$ language plpgsql; select 9;`),
+  ['create function f() returns void as $$ begin perform 1; end; $$ language plpgsql;', 'select 9;']);
+
 eq('line comment with semicolon', splitStatements("select 1; -- a; comment\nselect 2;"),
   ['select 1;', '-- a; comment\nselect 2;']);
 
