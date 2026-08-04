@@ -26,3 +26,9 @@ s.key
 *.key
 qd-src.zip
 *.skill
+
+# The kb_corpus_import bearer token. Minted per import, revoked after, never committed.
+knowledge-import/.tok
+# The 67 knowledge packages: 27 MB of source archives, re-downloadable, not repo content.
+knowledge-import/all86/
+

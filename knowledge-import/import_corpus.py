@@ -218,10 +218,26 @@ def scenario_row(rec, run_id):
 # wrapped ones are ALSO written to kb_stage.records so their narrative text stays searchable and
 # versioned like every other record.
 def rule_shape(r):
-    if r.get('rule_id'): return 'flat'
+    # ORDER IS THE WHOLE FIX. 4 Aug 2026.
+    #
+    # The comment above says both shapes are handled. They were not. 28 of the 67 packages emit a
+    # rule that carries BOTH a flat `rule_id` AND a full record envelope - record_id, title,
+    # content, structured_data{when,then}, keywords, validation_status. Testing `rule_id` first
+    # classified every one of them as 'flat', and rule_row(shape='flat') writes
+    # `record_id: None, payload: {}` - so the rule landed in kb_stage.decision_rules stripped of
+    # its narrative, and the record was NEVER written to kb_stage.records at all.
+    #
+    # Measured on production 4 Aug 2026: 3,793 decision_rule records absent from kb_stage.records
+    # across 28 categories - including construction, MEP, utilities, gas, wastewater, firefighting
+    # and ELV, the seven core construction trades. 61 of the other 62 record types matched the
+    # source packages exactly, which is what made this invisible: the corpus looked complete.
+    #
+    # The envelope is the stronger signal, so it is tested first. A record that has a record_id and
+    # a rule body in structured_data IS wrapped, whatever else it also carries.
     sd = r.get('structured_data')
     if r.get('record_id') and isinstance(sd, dict) and (sd.get('rule_id') or sd.get('when') or sd.get('then')):
         return 'wrapped'
+    if r.get('rule_id'): return 'flat'
     return None
 
 
