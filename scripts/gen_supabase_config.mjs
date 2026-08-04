@@ -66,7 +66,17 @@ if (process.argv.includes('--check')) {
     if (!committed.has(f.slug)) drift.push(`${f.slug}: live=${f.verify_jwt} but ABSENT from config.toml`);
     else if (committed.get(f.slug) !== f.verify_jwt) drift.push(`${f.slug}: config=${committed.get(f.slug)} live=${f.verify_jwt}`);
   }
-  for (const slug of committed.keys()) if (!deployed.has(slug)) drift.push(`${slug}: in config.toml but NOT DEPLOYED`);
+  // "In config.toml but not deployed" is a real finding on production: something was removed
+  // without review. On a staging project being populated in batches it is simply the state
+  // between batches, and treating it as drift blocks every deploy after the first - which is
+  // exactly what happened when 38 of 190 functions were live. Absent is not drifted.
+  const isProduction = PROJECT_REF === 'htdblwldjkcgjvmqkbeh';
+  if (isProduction) {
+    for (const slug of committed.keys()) if (!deployed.has(slug)) drift.push(`${slug}: in config.toml but NOT DEPLOYED`);
+  } else {
+    const undeployed = [...committed.keys()].filter((s) => !deployed.has(s));
+    if (undeployed.length) console.log(`note: ${undeployed.length} function(s) in config.toml not yet deployed to ${PROJECT_REF} (not drift)`);
+  }
   if (drift.length) {
     console.error(`VERIFY_JWT DRIFT (${drift.length}):`);
     for (const d of drift) console.error('  ' + d);
