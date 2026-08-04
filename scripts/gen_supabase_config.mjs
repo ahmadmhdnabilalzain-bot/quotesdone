@@ -80,11 +80,18 @@ if (process.argv.includes('--check')) {
   if (drift.length) {
     console.error(`VERIFY_JWT DRIFT (${drift.length}):`);
     for (const d of drift) console.error('  ' + d);
-    process.exit(1);
+    process.exitCode = 1;
+  } else {
+    console.log(`verify_jwt drift check: OK (${sorted.length} functions, ${jwtTrue.length} require a JWT)`);
+    process.exitCode = 0;
   }
-  console.log(`verify_jwt drift check: OK (${sorted.length} functions, ${jwtTrue.length} require a JWT)`);
-  process.exit(0);
-}
+  // Deliberately NOT process.exit(). On Node 24 for Windows, calling exit() while undici's
+  // keep-alive socket is still closing aborts the process with
+  //   Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), src\win\async.c line 94
+  // which returns non-zero AFTER the check has already printed OK - so a passing drift check
+  // read as a failing one and refused a 152-function deploy. Setting exitCode lets Node drain
+  // its handles and exit on its own with the status we asked for.
+} else {
 
 const lines = [];
 lines.push('# GENERATED FILE - do not hand-edit. Regenerate with:');
@@ -112,3 +119,8 @@ console.log(`wrote ${OUT}`);
 console.log(`functions=${sorted.length} verify_jwt_true=${jwtTrue.length} verify_jwt_false=${sorted.length - jwtTrue.length}`);
 console.log(`deployed-but-not-in-repo (${onlyDeployed.length}): ${onlyDeployed.join(' ') || '-'}`);
 console.log(`in-repo-but-not-deployed (${onlyRepo.length}): ${onlyRepo.join(' ') || '-'}`);
+
+}
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
