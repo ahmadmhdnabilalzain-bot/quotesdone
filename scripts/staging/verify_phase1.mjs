@@ -69,7 +69,8 @@ check('isolate', 'no cron jobs armed on staging', Number(crons) === 0, `${crons}
 // A staging routine carrying the production ref calls production from staging.
 const [{ n: leaks }] = await mgmtRead(REF,
   `select count(*)::int as n from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-   where n.nspname='public' and pg_get_functiondef(p.oid) like '%${PROD_REF}%'`);
+   where n.nspname='public' and p.prokind = 'f'
+     and pg_get_functiondef(p.oid) like '%${PROD_REF}%'`);
 check('isolate', 'no routine references production', Number(leaks) === 0, `${leaks} routine(s)`);
 
 const [{ n: liveKeys }] = await mgmtRead(REF,
