@@ -121,6 +121,3 @@ console.log(`deployed-but-not-in-repo (${onlyDeployed.length}): ${onlyDeployed.j
 console.log(`in-repo-but-not-deployed (${onlyRepo.length}): ${onlyRepo.join(' ') || '-'}`);
 
 }
-[INFO] Recording command outcome: printf
-
-[OK] Command outcome recorded
