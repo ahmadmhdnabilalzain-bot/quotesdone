@@ -10,12 +10,38 @@
 //
 //   node scripts/staging/apply_missing_objects.mjs [--apply]
 import { readFileSync } from 'node:fs';
-import { splitStatements } from './sql_split.mjs';
+import { splitStatements, repairDumpSectionBreaks } from './sql_split.mjs';
 import { mgmtRead, mgmtWrite, PROD_REF, assertNotProduction } from './qd_guard.mjs';
 
 const SCHEMA_FILE = 'C:/Users/Opera/quotesdone/supabase/schema/full_schema.sql';
 const REF = assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'apply missing');
 const APPLY = process.argv.includes('--apply');
+
+// ---- enum types first ------------------------------------------------------------------------
+// fn_schema_export() emits EXTENSIONS, SEQUENCES, TABLES, CONSTRAINTS, INDEXES, VIEWS, FUNCTIONS,
+// TRIGGERS, RLS, POLICIES, CRON and APP_SECRETS - and no TYPES section at all. Zero CREATE TYPE
+// statements in 1.7 MB. Any table with an enum column therefore cannot be created from the
+// baseline at any point, ever: six of them failed with "type answer_precedence does not exist".
+// The catalogue is the source of truth, so read the types from it directly.
+const ENUM_Q = `select t.typname, string_agg(quote_literal(e.enumlabel), ',' order by e.enumsortorder) as labels
+  from pg_type t
+  join pg_namespace n on n.oid = t.typnamespace
+  join pg_enum e on e.enumtypid = t.oid
+  where n.nspname = 'public' and t.typtype = 'e'
+  group by t.typname order by t.typname`;
+
+const prodEnums = await mgmtRead(PROD_REF, ENUM_Q);
+const stageEnums = new Set((await mgmtRead(REF, ENUM_Q)).map(r => r.typname));
+for (const e of prodEnums) {
+  if (stageEnums.has(e.typname)) continue;
+  if (!APPLY) { console.log(`would create enum public.${e.typname}`); continue; }
+  try {
+    await mgmtWrite(REF, `create type public.${e.typname} as enum (${e.labels})`, 'enum');
+    console.log(`created enum public.${e.typname}`);
+  } catch (err) {
+    console.log(`FAILED enum ${e.typname}: ${String(err.message).slice(0, 140)}`);
+  }
+}
 
 const q = "select table_name from information_schema.tables where table_schema='public' and table_type='BASE TABLE'";
 const prod = new Set((await mgmtRead(PROD_REF, q)).map(r => r.table_name));
@@ -26,7 +52,21 @@ console.log(`production ${prod.size} tables, staging ${stage.size}, missing ${mi
 if (!missing.length) { console.log('nothing to do'); process.exit(0); }
 console.log('missing: ' + missing.join(', '));
 
-const raw = readFileSync(SCHEMA_FILE, 'utf8');
+// Sequences the dump omits entirely. workflow_step_run_id_seq is absent from its SEQUENCES
+// section, so workflow_step_run's DEFAULT nextval() had nothing to point at.
+const SEQ_Q = "select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='S'";
+const prodSeq = (await mgmtRead(PROD_REF, SEQ_Q)).map(r => r.relname);
+const stageSeq = new Set((await mgmtRead(REF, SEQ_Q)).map(r => r.relname));
+for (const s of prodSeq) {
+  if (stageSeq.has(s)) continue;
+  if (!APPLY) { console.log(`would create sequence public.${s}`); continue; }
+  try {
+    await mgmtWrite(REF, `create sequence if not exists public.${s}`, 'sequence');
+    console.log(`created sequence public.${s}`);
+  } catch (err) { console.log(`FAILED sequence ${s}: ${String(err.message).slice(0, 140)}`); }
+}
+
+const raw = repairDumpSectionBreaks(readFileSync(SCHEMA_FILE, 'utf8'));
 // The CRON JOBS section arms 151 schedules pointing at production. It is never applied to a branch.
 const SEC = /^-- ===== (.+?) =====/gm;
 const bounds = [];
@@ -55,6 +95,21 @@ for (let pass = 1; pass <= 5 && pending.length; pass++) {
   }
   console.log(`pass ${pass}: applied ${ok}, failed ${failed.length}`);
   const noProgress = failed.length === pending.length;
+  // A pass that fixes nothing has told us everything it is going to. Print why, rather than
+  // reporting a count and discarding the reason - the count alone cannot be acted on.
+  if (noProgress || !failed.length) {
+    const byErr = new Map();
+    for (const f of failed) {
+      const k = (/ERROR:\s+\w+:\s*([^"\\]{0,90})/.exec(f.err)?.[1] || f.err.slice(0, 90)).trim();
+      byErr.set(k, (byErr.get(k) || 0) + 1);
+    }
+    for (const [k, v] of [...byErr.entries()].sort((a, b) => b[1] - a[1])) {
+      console.log(`   ${String(v).padStart(4)}  ${k}`);
+    }
+    for (const f of failed.slice(0, 5)) {
+      console.log(`   STMT: ${f.sql.slice(0, 150).replace(/\s+/g, ' ')}`);
+    }
+  }
   pending = failed.map(f => f.sql);
   if (!failed.length || noProgress) break;
 }
