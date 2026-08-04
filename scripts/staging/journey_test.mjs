@@ -114,16 +114,26 @@ step('customer accepts terms', r.status === 200, `HTTP ${r.status} ${r.text}`);
 // unless body.intake_id names an inquiry_intake row owned by this customer whose status is
 // 'ready' - a deliberate gate added 27 Jul after the old one could be waived from the client.
 // This runs the real multi-turn intake through OpenRouter until it reports ready.
+// Concrete values, not polite vagueness. The intake runs a structured extractor against the
+// trade's checklist, so "standard specification, please assume typical values" populates nothing
+// and readiness stalls at 40. Each line below answers a specific checklist field.
 const ANSWERS = [
-  'We need 40 aluminium windows supplied and installed for a villa in Dubai Marina.',
-  'Approximately 40 units, standard casement, roughly 1.2m by 1.5m each.',
-  'Powder-coated white aluminium, double glazed, with mosquito mesh.',
-  'The villa is in Dubai Marina and we would like installation within eight weeks.',
-  'Budget is flexible; we want supply and installation included in the quotation.',
-  'Yes, please proceed with those details.',
+  'Aluminium windows: supply and installation. 40 units for a private villa in Dubai Marina.',
+  'Sizes: 40 units at 1200 mm W x 1500 mm H each, approximately 72 square metres in total.',
+  'Scope: supply and install, including removing the existing windows and disposing of them.',
+  'Property: private villa in Dubai Marina, ground and first floor, direct vehicle access, no crane needed.',
+  'Specification: powder-coated white aluminium, double glazed 6-12-6, with mosquito mesh and handles.',
+  'Timeline: installation within eight weeks of order. Budget is open; include supply and install.',
 ];
-let intakeId = null, intakeStatus = null, turns = 0;
-for (const answer of ANSWERS) {
+// The loop is adaptive, not a fixed script. Once category_specs was loaded the intake gained a
+// real per-trade checklist, and a canned six-message conversation stopped reaching 'ready' - the
+// earlier one-turn pass happened only because an empty category_specs meant no checklist existed
+// to satisfy. Each turn answers whatever the server says is still missing.
+let intakeId = null, intakeStatus = null, turns = 0, readiness = 0, missing = [];
+for (let i = 0; i < 10; i++) {
+  const answer = i < ANSWERS.length
+    ? ANSWERS[i]
+    : `Details: ${missing.slice(0, 6).map((m) => `${m}: standard specification, please assume typical values`).join('; ') || 'please proceed with typical values'}.`;
   const ir = await call('inquiry_intake', cust.jwt,
     intakeId ? { intake_id: intakeId, text: answer, email: cust.email }
              : { text: answer, email: cust.email });
@@ -131,10 +141,12 @@ for (const answer of ANSWERS) {
   if (ir.status !== 200) { intakeStatus = `HTTP ${ir.status} ${ir.text}`; break; }
   intakeId = ir.json?.intake_id ?? ir.json?.id ?? intakeId;
   intakeStatus = ir.json?.status ?? null;
+  readiness = Number(ir.json?.readiness ?? 0);
+  missing = Array.isArray(ir.json?.missing) ? ir.json.missing.map(String) : [];
   if (intakeStatus === 'ready') break;
 }
 step('AI intake question flow', intakeStatus === 'ready',
-  `${turns} turn(s), status=${intakeStatus}, id=${intakeId ?? 'none'}`);
+  `${turns} turn(s), status=${intakeStatus}, readiness=${readiness}, still missing=${missing.length ? missing.slice(0, 4).join('|') : 'none'}`);
 
 r = await call('customer_api', cust.jwt, {
   action: 'create_inquiry',

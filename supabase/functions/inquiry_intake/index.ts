@@ -286,7 +286,26 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       if (out.status === 'needs_info' && (!out.questions || out.questions.length === 0) && provKeys.length >= 5) { out.readiness = Math.max(Number(out.readiness) || 0, 80); }
     } catch (_e) { /* guard best-effort */ }
 
+    // SEMANTIC INTERPRETER IN SHADOW MODE.
+    // The model's category used to override the deterministic one unconditionally. Measured on
+    // staging: "Aluminium windows: supply and install 40 units, 1200 x 1500 mm, villa in Dubai
+    // Marina, powder coated, double glazed" was classified `flooring`. That loaded the flooring
+    // checklist, so the intake asked "Which flooring?" and "Remove existing floor / need subfloor
+    // levelling?" - questions this customer can never answer. readiness stuck at 40 across ten
+    // turns and the inquiry could never be created. The customer was trapped.
+    //
+    // The keyword layer had it right the whole time (aluminium-and-glass-suppliers, weights 3
+    // and 2, zero flooring matches) and was simply discarded. So: when deterministic evidence
+    // exists and the model's category has none of it, the deterministic answer stands. The
+    // disagreement is returned as classifier_override rather than swallowed, because a
+    // suggestion that silently wins is not a suggestion.
+    const kwCategory = detectCat(allText);
+    let classifierOverride: { model: string; kept: string } | null = null;
     let cat = out.category || category;
+    if (out.category && kwTrades.length && !kwTrades.includes(out.category) && out.category !== kwCategory) {
+      const kept = kwCategory || kwTrades[0];
+      if (kept) { classifierOverride = { model: String(out.category), kept: String(kept) }; cat = kept; }
+    }
     if (!cat || (!validSlugs.includes(cat) && cat !== 'general')) { cat = detectCat(allText) || (validSlugs.includes(String(draft.category)) ? draft.category : null) || 'general'; }
     category = cat;
     const status = ['rejected', 'needs_info', 'ready'].includes(out.status) ? out.status : 'needs_info';
@@ -294,6 +313,18 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     turns.push({ role: 'assistant', text: out.assistant_message || '', agent: specialist ? specialist.slug : null });
 
     let trades = Array.isArray(out.trades) ? out.trades.map((s: any) => String(s)).filter((s: string) => validSlugs.includes(s)) : [];
+    // Same rule for the trade list. A hallucinated extra trade is not harmless: every trade adds
+    // its own checklist, so one invented trade can hold a complete request at needs_info forever.
+    // When the keyword layer found anything at all, a model trade it did not corroborate is
+    // dropped. When there is no keyword evidence, the model is all we have and is trusted.
+    if (kwTrades.length) {
+      const supported = trades.filter((s: string) => kwTrades.includes(s) || s === kwCategory);
+      if (supported.length !== trades.length) {
+        classifierOverride = classifierOverride
+          ?? { model: trades.filter((s: string) => !supported.includes(s)).join(','), kept: supported.join(',') || kwTrades.join(',') };
+      }
+      trades = supported;
+    }
     if (!trades.length) trades = kwTrades.slice();
     if (category && validSlugs.includes(category) && !trades.includes(category)) trades.unshift(category);
     if (trades.includes('flooring') && trades.includes('tiling')) trades = trades.filter((c: string) => c !== 'tiling');
@@ -320,6 +351,6 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     if (!saveErr) { await logRun(llmCallOk && llmParseOk ? 'ok' : 'error', { intake_saved: 1, status_computed: status, readiness: Number(out.readiness) || 0, trades: trades.length, questions: Array.isArray(out.questions) ? out.questions.length : 0, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0, llm_parse_ok: llmParseOk ? 1 : 0, category_specs_loaded: validSlugs.length, specialist: specialist ? specialist.slug : null }, (llmCallOk && llmParseOk) ? ('Intake turn completed normally: status=' + status + ', category=' + String(category) + ', trades=' + trades.length + ', agent=' + String(specialist ? specialist.slug : 'generic') + '. ' + (status === 'ready' ? 'Brief is supplier-ready and can be dispatched.' : 'RFQ is NOT yet dispatchable — it stays parked until the customer replies.')) : ('Intake turn completed but only via the keyword fallback (LLM unavailable/unparseable): status=' + status + ', category=' + String(category) + ' — this brief was not written by the model, so a request that is actually complete may be wrongly held at needs_info and never reach a supplier.'));
     }
 
-    return J({ ok: true, intake_id: draft.id, category, trades, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], readiness: Number(out.readiness) || 0, missing: out.missing || [], brief, agent: specialist ? specialist.slug : null, agent_name: specialist ? specialist.name : null });
+    return J({ ok: true, intake_id: draft.id, category, trades, classifier_override: classifierOverride, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], readiness: Number(out.readiness) || 0, missing: out.missing || [], brief, agent: specialist ? specialist.slug : null, agent_name: specialist ? specialist.name : null });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 });
