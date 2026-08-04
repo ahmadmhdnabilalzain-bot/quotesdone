@@ -1,7 +1,21 @@
 'use client';
 import { createClient } from '@supabase/supabase-js';
-export const SUPA_URL = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
-export const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
+const SUPA_URL_FALLBACK = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
+const SUPA_ANON_FALLBACK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
+// The project ref and anon key used to be compiled in, so a preview deployment talked to
+// PRODUCTION regardless of what was configured for it - and setting Vercel env vars did nothing,
+// because nothing read them. Both now resolve from the environment; the production literals remain
+// only as a fallback so an unconfigured production build behaves exactly as before.
+export const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || SUPA_URL_FALLBACK;
+export const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || SUPA_ANON_FALLBACK;
+export const SUPA_FN = `${SUPA_URL}/functions/v1`;
+
+// A silent fallback is how a staging page ends up writing to production. Say so, loudly, in the
+// one place a developer will see it.
+if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  console.warn('[qd] NEXT_PUBLIC_SUPABASE_URL is unset - this page is talking to PRODUCTION.');
+}
+
 export const supa = createClient(SUPA_URL, SUPA_ANON, { auth: { persistSession: true, autoRefreshToken: true } });
 // LLM-backed actions can legitimately take a while (agent reasoning on Opus, question generation,
 // knowledge regeneration). Give those a long budget so a working-but-slow call isn't killed at 25s;

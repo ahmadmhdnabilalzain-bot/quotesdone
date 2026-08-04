@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 
 const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
-const FN = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/site_assistant';
+const FN = `${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://htdblwldjkcgjvmqkbeh.supabase.co'}/functions/v1/site_assistant`;
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
