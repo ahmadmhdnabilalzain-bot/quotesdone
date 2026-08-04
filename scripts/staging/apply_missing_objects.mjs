@@ -49,8 +49,10 @@ const stage = new Set((await mgmtRead(REF, q)).map(r => r.table_name));
 const missing = [...prod].filter(t => !stage.has(t)).sort();
 
 console.log(`production ${prod.size} tables, staging ${stage.size}, missing ${missing.length}`);
-if (!missing.length) { console.log('nothing to do'); process.exit(0); }
-console.log('missing: ' + missing.join(', '));
+// Do NOT exit here when tables are complete: views and routines are checked further down, and
+// returning "nothing to do" on a full table set hid a 9-view, 25-routine gap.
+if (missing.length) console.log('missing: ' + missing.join(', '));
+else console.log('all tables present - continuing to views and routines');
 
 // Sequences the dump omits entirely. workflow_step_run_id_seq is absent from its SEQUENCES
 // section, so workflow_step_run's DEFAULT nextval() had nothing to point at.
@@ -78,9 +80,22 @@ for (const b of bounds) if (b.name !== 'CRON JOBS') body += raw.slice(b.start, b
 const all = splitStatements(body);
 // A statement is in scope when it names a missing table with a word boundary, so `quotes` does
 // not drag in `quote_items`.
-const wanted = all.filter(s =>
-  !s.includes(PROD_REF) &&
-  missing.some(t => new RegExp(`\\b${t}\\b`).test(s)));
+// Point the body at THIS project instead of dropping it. Twenty of the routines staging lacks -
+// fn_ai_trainer, run_auto_deploy, trg_autodispatch_inquiry and friends - hardcode
+// https://<production>.supabase.co/functions/v1/... in their bodies. Excluding them satisfies the
+// letter of the guard (staging must never call production) while leaving staging without the
+// function at all, so the behaviour can never be tested. Rewriting the ref satisfies the guard's
+// intent: the function exists and calls STAGING's own endpoints. qd_guard still refuses anything
+// that reaches it carrying the production literal, because the rewrite happens first and is
+// asserted below.
+const localize = (sql) => sql.split(PROD_REF).join(REF);
+const assertLocalized = (sql) => {
+  if (sql.includes(PROD_REF)) throw new Error('localize() failed to remove the production ref');
+  return sql;
+};
+
+const wanted = all.filter(s => missing.some(t => new RegExp(`\\b${t}\\b`).test(s)))
+  .map(s => assertLocalized(localize(s)));
 
 console.log(`statements parsed ${all.length}, referencing a missing table: ${wanted.length}`);
 if (!APPLY) { console.log('\nDRY RUN - nothing applied. Re-run with --apply.'); process.exit(0); }
@@ -118,4 +133,96 @@ const after = new Set((await mgmtRead(REF, q)).map(r => r.table_name));
 const stillMissing = [...prod].filter(t => !after.has(t)).sort();
 console.log(`\nstaging now ${after.size} tables; still missing ${stillMissing.length}` +
   (stillMissing.length ? ': ' + stillMissing.join(', ') : ''));
-process.exitCode = stillMissing.length ? 1 : 0;
+
+// ---- views and routines --------------------------------------------------------------------
+// Tables are not the whole schema. The rebuild left staging 9 views and 25 routines short, and
+// the missing views are precisely the instruments the later phases are measured with -
+// v_executor_registry_gaps, v_llm_calls_without_task_class, v_model_policy_offcatalog,
+// v_workflow_side_effects_without_executor. A phase whose measuring instrument does not exist
+// cannot be reported on at all, so these are not cosmetic.
+const VIEW_Q = "select table_name as name from information_schema.views where table_schema='public'";
+const FUNC_Q = "select proname as name from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'";
+
+// ---- column-level drift ------------------------------------------------------------------------
+// A table can be present and still wrong. v_executor_registry_gaps failed with
+// "column risk_tier does not exist" - the table was there, the column was not, and a table-level
+// parity check reports 403/403 and calls that done.
+const COL_Q = `select table_name, column_name, data_type, is_nullable, column_default
+  from information_schema.columns where table_schema='public'`;
+const pCols = await mgmtRead(PROD_REF, COL_Q);
+const sCols = new Set((await mgmtRead(REF, COL_Q)).map(c => `${c.table_name}.${c.column_name}`));
+const colGap = pCols.filter(c => !sCols.has(`${c.table_name}.${c.column_name}`) && after.has(c.table_name));
+console.log(`\ncolumns missing from existing staging tables: ${colGap.length}`);
+for (const c of colGap.slice(0, 20)) console.log(`   ${c.table_name}.${c.column_name} ${c.data_type}`);
+if (APPLY) {
+  let cok = 0, cbad = 0;
+  for (const c of colGap) {
+    const def = c.column_default ? ` default ${localize(c.column_default)}` : '';
+    const sql = `alter table public.${c.table_name} add column if not exists ${c.column_name} ${c.data_type}${def}`;
+    try { await mgmtWrite(REF, sql, 'column'); cok++; }
+    catch (e) { cbad++; if (cbad <= 5) console.log(`   FAILED ${c.table_name}.${c.column_name}: ${String(e.message).slice(0, 120)}`); }
+  }
+  console.log(`   added ${cok}, failed ${cbad}`);
+}
+
+async function closeGap(label, listQ, defQ, build = (d) => d.ddl) {
+  const want = new Set((await mgmtRead(PROD_REF, listQ)).map(r => r.name));
+  const have = new Set((await mgmtRead(REF, listQ)).map(r => r.name));
+  const gap = [...want].filter(x => !have.has(x)).sort();
+  if (!gap.length) { console.log(`\n${label}: none missing`); return 0; }
+  console.log(`\n${label}: ${gap.length} missing - ${gap.join(', ')}`);
+
+  // Take the DEFINITION FROM THE CATALOGUE, not from the dump. pg_get_functiondef and
+  // pg_get_viewdef emit canonical, complete DDL - no section headers, no literal escape damage,
+  // no dependence on a splitter getting a 1.7 MB file exactly right. Supabase is the source of
+  // truth, so ask Postgres what the object is rather than re-deriving it from a text export.
+  const defs = await mgmtRead(PROD_REF, defQ(gap));
+  const stmts = defs.map(d => assertLocalized(localize(build(d))));
+  console.log(`${label}: ${stmts.length} definition(s) read from the catalogue`);
+  if (!APPLY) return gap.length;
+
+  let pending2 = stmts.slice();
+  for (let pass = 1; pass <= 5 && pending2.length; pass++) {
+    const failed = [];
+    let ok = 0;
+    for (const s of pending2) {
+      try { await mgmtWrite(REF, s, 'statement'); ok++; }
+      catch (e) { failed.push({ sql: s, err: String(e.message).slice(0, 200) }); }
+    }
+    console.log(`   pass ${pass}: applied ${ok}, failed ${failed.length}`);
+    const noProgress = failed.length === pending2.length;
+    if (noProgress || !failed.length) {
+      const byErr = new Map();
+      for (const f of failed) {
+        const k = (/ERROR:\s+\w+:\s*([^"\\]{0,90})/.exec(f.err)?.[1] || f.err.slice(0, 90)).trim();
+        byErr.set(k, (byErr.get(k) || 0) + 1);
+      }
+      for (const [k, v] of [...byErr.entries()].sort((a, b) => b[1] - a[1])) {
+        console.log(`      ${String(v).padStart(3)}  ${k}`);
+      }
+    }
+    pending2 = failed.map(f => f.sql);
+    if (!failed.length || noProgress) break;
+  }
+  const left = (await mgmtRead(REF, listQ)).map(r => r.name);
+  const stillGap = [...want].filter(x => !left.includes(x));
+  console.log(`${label}: still missing ${stillGap.length}` + (stillGap.length ? ': ' + stillGap.join(', ') : ''));
+  return stillGap.length;
+}
+
+const inList = (names) => names.map(n => `'${n.replace(/'/g, "''")}'`).join(',');
+
+// The DDL keyword is assembled in JS, not in SQL: mgmtRead refuses any query whose TEXT contains
+// a write verb, and a query that merely builds the string 'CREATE OR REPLACE VIEW' trips it. The
+// guard cannot tell a literal from a statement, and it is right to fail closed.
+const viewGap = await closeGap('views', VIEW_Q,
+  (names) => `select viewname, definition from pg_views
+              where schemaname='public' and viewname in (${inList(names)})`,
+  (d) => `CREATE OR REPLACE VIEW public.${d.viewname} AS ${d.definition}`);
+
+const funcGap = await closeGap('routines', FUNC_Q, (names) =>
+  `select pg_get_functiondef(p.oid) as ddl
+   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname='public' and p.proname in (${inList(names)})`);
+
+process.exitCode = (stillMissing.length + viewGap + funcGap) ? 1 : 0;
