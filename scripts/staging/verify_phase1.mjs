@@ -81,13 +81,18 @@ check('isolate', 'no live payment or deploy tokens', Number(liveKeys) === 0, `${
 // ---- 5. forward migrations ------------------------------------------------------------------------
 // Phase 1 asks that "migrations can move forward from a known baseline". That requires the
 // migration ledger to exist and to record where staging actually is.
-let applied = -1;
-try {
-  const [{ n }] = await mgmtRead(REF, 'select count(*)::int as n from supabase_migrations.schema_migrations');
-  applied = Number(n);
-} catch { /* table absent */ }
+// The ledger has to agree with production, not merely exist. Staging's schema was rebuilt from
+// production's baseline, but its ledger still claimed 31 migrations with the newest dated June -
+// the remnant of the original failed branch replay. A `supabase db push` against that state would
+// have tried to replay 254 migrations the schema already contained. A ledger that understates how
+// far a database has come is worse than an empty one, because tooling believes it.
+const LEDGER = 'select count(*)::int as n, max(version) as newest from supabase_migrations.schema_migrations';
+let applied = -1, newest = null;
+try { const [r] = await mgmtRead(REF, LEDGER); applied = Number(r.n); newest = r.newest; } catch { /* absent */ }
+const [pl] = await mgmtRead(PROD_REF, LEDGER);
 const repoMigrations = readdirSync('supabase/migrations').filter(f => f.endsWith('.sql')).length;
-check('migrate', 'migration ledger exists', applied >= 0, `${applied} recorded, ${repoMigrations} files in repo`);
+check('migrate', 'ledger matches production', applied === Number(pl.n) && newest === pl.newest,
+  `staging ${applied}@${newest}, production ${pl.n}@${pl.newest}, ${repoMigrations} files in repo`);
 
 const pass = rows.filter(r => r.ok).length;
 console.log(`\nPHASE 1 VERIFY ${pass}/${rows.length} on ${REF}`);
