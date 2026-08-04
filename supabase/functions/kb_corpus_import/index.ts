@@ -141,6 +141,59 @@ Deno.serve(async (req) => {
       return J({ ok: true, written: rows.length, affected: data ?? null });
     }
 
+    // --- COMPANY OPERATIONS CORPUS -------------------------------------------------------------
+    // Second corpus, same shape of problem, so the same door rather than a second function with a
+    // second token and a second thing to forget to revoke. Targets are validated inside
+    // ops_stage_upsert's CASE; this set only produces a better error for a typo.
+    if (action.startsWith('ops_')) {
+      if (action === 'ops_begin_run') {
+        const { data, error } = await admin.rpc('ops_begin_run', {
+          p_package: String(body.package_name || ''), p_version: String(body.package_version || ''),
+          p_sha: String(body.package_sha256 || ''),
+        });
+        if (error) return J({ error: error.message }, 500);
+        return J({ ok: true, ...(data as Record<string, unknown>) });
+      }
+      if (action === 'ops_finish_run') {
+        const { error } = await admin.rpc('ops_finish_run', {
+          p_run_id: String(body.run_id || ''), p_status: String(body.status || 'completed'),
+          p_ins: Number(body.inserted_count || 0), p_upd: Number(body.updated_count || 0),
+          p_skip: Number(body.skipped_count || 0), p_rej: Number(body.rejected_count || 0),
+          p_detail: body.detail ?? {},
+        });
+        if (error) return J({ error: error.message }, 500);
+        return J({ ok: true });
+      }
+      if (action === 'ops_get_files') {
+        const { data, error } = await admin.rpc('ops_get_files', { p_run_id: String(body.run_id || '') });
+        if (error) return J({ error: error.message }, 500);
+        return J({ ok: true, files: data ?? {} });
+      }
+      if (action === 'ops_rollback_run') {
+        const { data, error } = await admin.rpc('ops_rollback_run', { p_run_id: String(body.run_id || '') });
+        if (error) return J({ error: error.message }, 500);
+        return J({ ok: true, result: data });
+      }
+      if (action === 'ops_batch') {
+        const rows = Array.isArray(body.rows) ? body.rows : [];
+        if (!rows.length) return J({ ok: true, written: 0 });
+        if (rows.length > MAX_ROWS) return J({ error: 'batch_too_large', max: MAX_ROWS, got: rows.length }, 400);
+        const { data, error } = await admin.rpc('ops_stage_upsert', { p_target: String(body.target || ''), p_rows: rows });
+        if (error) {
+          // deno-lint-ignore no-explicit-any
+          const first = rows[0] as any;
+          const idField = ['record_id', 'source_id', 'department_key', 'workflow_key', 'concept_key']
+            .find((k) => first && k in first) || 'id';
+          // deno-lint-ignore no-explicit-any
+          const ids = rows.slice(0, 25).map((r: any) => r?.[idField]).filter(Boolean);
+          return J({ error: error.message, details: error.details ?? null, hint: error.hint ?? null,
+                     target: body.target, rows: rows.length, id_field: idField, sample_ids: ids }, 422);
+        }
+        return J({ ok: true, written: rows.length, affected: data ?? null });
+      }
+      return J({ error: 'unknown_ops_action', action }, 400);
+    }
+
     // --- source-of-truth transfer for the importer itself ---------------------------------------
     // The importer runs in a workspace that has no direct access to the repository checkout. Rather
     // than retyping ~700 lines of Python across that gap by hand (slow, and every retype is a chance
