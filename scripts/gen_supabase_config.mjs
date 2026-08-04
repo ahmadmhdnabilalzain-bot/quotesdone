@@ -17,7 +17,10 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const PROJECT_REF = 'htdblwldjkcgjvmqkbeh';
+// Production remains the default so regeneration keeps producing the committed config.toml.
+// QD_TARGET_REF lets --check compare against a staging branch, which is the only way to deploy
+// functions anywhere other than production.
+const PROJECT_REF = process.env.QD_TARGET_REF || 'htdblwldjkcgjvmqkbeh';
 const TOKEN_PATH = 'C:/Users/Opera/.supabase/access-token';
 const REPO = process.cwd();
 const OUT = join(REPO, 'supabase', 'config.toml');
