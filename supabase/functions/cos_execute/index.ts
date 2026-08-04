@@ -1,7 +1,8 @@
 // cos_execute (v4) — the Chief of Staff's EXECUTION ENGINE. Runs hourly. Turns the objective/task
 // ledger from a plan into work actually getting done. For each ready task:
-//   - if its action_class is wired to a real executor (org_action_executor registry), it RUNS that
-//     executor (real side effect, within the executor's own guards) and records mode:'executed';
+//   - if its action_class is wired to a real executor REGISTERED TO ITS OWN DEPARTMENT
+//     (org_action_executor, keyed on action_class AND department), it RUNS that executor (real side
+//     effect, within the executor's own guards) and records mode:'executed';
 //   - otherwise it dispatches to the owning department's specialist (agent_brain), which reasons +
 //     produces the deliverable within its delegated authority (mode:'prepared'/'delivered').
 // Either way it records to the ledger + organizational memory, advances the task by its authority tier,
@@ -120,8 +121,21 @@ Deno.serve(async (req) => {
     const { data: depts } = await admin.from('org_departments').select('dept_key,name,brain_agent,lead_agent');
     const deptMap = new Map((depts || []).map((d: any) => [d.dept_key, d]));
     // Action-executor registry: action_classes wired to a REAL side-effect executor.
-    const { data: execs } = await admin.from('org_action_executor').select('action_class,kind,target,params,active,advisory_safe').eq('active', true);
-    const execMap = new Map((execs || []).map((e: any) => [e.action_class, e]));
+    //
+    // AUDIT (4 Aug 2026). KEYED ON (action_class, department), NOT action_class ALONE.
+    // org_action_executor carries a `department` column and every active row sets it, but the lookup
+    // ignored it, so one department's task ran another department's executor. org_tasks#20
+    // (supplier_success/invite) did exactly that on 25 Jul 2026 and enqueued 10 real supplier invites
+    // through procurement's fn_org_exec_invite — for a department org_authority has no row for.
+    // A declared constraint that is not enforced is worse than no constraint. A task whose owning
+    // department does not own the executor now falls through to the advisory deliverable path, which
+    // prepares work and moves nothing.
+    const { data: execs } = await admin.from('org_action_executor').select('action_class,department,kind,target,params,active,advisory_safe').eq('active', true);
+    // '::' cannot occur in an action_class or a dept_key, so the composite key cannot collide.
+    const execKey = (ac: string, dept: string) => String(ac || '') + '::' + String(dept || '');
+    const execMap = new Map((execs || []).map((e: any) => [execKey(e.action_class, e.department), e]));
+    // Same registry keyed by class alone — used ONLY to name the refusal, never to run anything.
+    const execAnyDept = new Map((execs || []).map((e: any) => [e.action_class, e]));
 
     // Ready set: freshly assigned + any in_progress a prior run may have left orphaned (stale).
     const staleCut = new Date(Date.now() - STALE_MIN * 60000).toISOString();
@@ -170,7 +184,23 @@ Deno.serve(async (req) => {
       // EXECUTOR PATH — if this action_class is wired to a real executor, run it (real side effect)
       // instead of only preparing a deliverable. Anything the model does not grant autonomously falls
       // through to the advisory path below, which prepares a deliverable and moves nothing.
-      const ex: any = execMap.get(t.action_class);
+      const ex: any = execMap.get(execKey(t.action_class, t.dept_key));
+      if (!ex && grantedTier === 'autonomous') {
+        // An executor for this class exists, but it belongs to another department. Refuse it and say
+        // so — this is the signal that either the task is misfiled or the registry row is.
+        const foreign: any = execAnyDept.get(t.action_class);
+        if (foreign) {
+          try {
+            await admin.from('agent_runs').insert({ agent: 'cos_execute', status: 'error',
+              counts: { signal: 'executor_department_mismatch', task_id: t.id, dept: t.dept_key,
+                        action_class: t.action_class, executor: foreign.target, executor_dept: foreign.department },
+              note: ('org_tasks#' + t.id + ' is owned by ' + t.dept_key + ' but the only executor for '
+                + t.action_class + ' (' + foreign.target + ') belongs to ' + String(foreign.department || '(none)')
+                + '. Refused; routed to the advisory deliverable path instead.').slice(0, 500),
+              started_at: nowIso(), finished_at: nowIso() });
+          } catch (_e) { /* never let the alert block the refusal */ }
+        }
+      }
       if (ex && grantedTier === 'autonomous' && (t.tier !== 'advisory' || ex.advisory_safe)) {
         let execResult: any;
         try {

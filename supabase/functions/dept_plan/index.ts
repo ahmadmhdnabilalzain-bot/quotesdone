@@ -4,8 +4,9 @@
 // GENERATES ITS OWN next objectives/tasks. The existing cos_execute engine carries them out; their
 // outcomes feed the next cycle. No founder-fed tasks. This is what keeps the company growing unattended.
 //
-// Founder gates stay narrow: a task is only sent for founder approval (status='proposed') when it
-// spends money or publishes public content; everything safe runs autonomously (status='assigned').
+// Founder gates are decided by the AUTHORITY MODEL (fn_dept_authority), not by this file: a task is
+// created gated (status='proposed') whenever the model does not grant the owning department
+// unsupervised power over that action class. Everything the model does clear runs (status='assigned').
 // Auth: __secret (cron / self fan-out) OR admin JWT.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
@@ -16,9 +17,17 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 const llm = makeLlm(SONNET_FIRST, { max: 1200, temperature: 0.35 });
 
-// Work that runs WITHOUT the founder (safe, reversible, non-spending, non-publishing).
-// Anything not in this set, or anything the department head marks needs_founder, waits for approval.
-const AUTONOMOUS_SAFE = new Set(['content_draft', 'knowledge_fill', 'recommend', 'invite', 'analysis', 'research', 'seo', 'monitor', 'reconcile', 'outreach_draft']);
+// CEILING, NOT A GRANT. This set can only REFUSE autonomy; it can never confer it. The tier itself
+// comes from fn_dept_authority (see planDept). Until 4 Aug 2026 this same set WAS the decision, and
+// being department-blind it minted authority for 112 (department, action_class) pairs the model does
+// not grant at all — see the block comment at the routing site. It is kept as an upper bound so that
+// switching to the model could not, by itself, release the 14 pairs where the model grants MORE than
+// this file used to. Removing it is a founder decision, not an edit.
+const AUTONOMOUS_CEILING = new Set(['content_draft', 'knowledge_fill', 'recommend', 'invite', 'analysis', 'research', 'seo', 'monitor', 'reconcile', 'outreach_draft']);
+// Mirrors public.fn_authority_rank exactly. Unknown ranks highest so that comparisons fail closed.
+const TIER_RANK: Record<string, number> = { advisory: 0, gated: 1, supervised: 2, autonomous: 3 };
+const rank = (t: string) => (t in TIER_RANK ? TIER_RANK[t] : 3);
+const KNOWN_TIERS = new Set(['advisory', 'gated', 'supervised', 'autonomous']);
 const OPEN_TASK_CAP = 5;     // don't let a department pile up unstarted work
 const MAX_NEW = 3;           // per cycle
 
@@ -74,7 +83,8 @@ async function planDept(deptKey: string) {
     + 'Your charter: ' + (d.charter || '') + ' Your north-star metric: ' + (d.north_star || '') + '. '
     + 'You run a CONTINUOUS LOOP as an autonomous expert: review what you recently did and whether it worked, look at your live numbers, and decide the highest-leverage NEXT actions that move your north star toward the vision. You never wait for instructions. '
     + 'Propose only real, concrete, doable actions — no vague goals. For each, pick an action_class from YOUR CAPABILITIES: ' + capList + '. If none fits, use "analysis" to prepare a research/analysis deliverable. '
-    + 'Set needs_founder=true ONLY when the action spends money or publishes public content; otherwise it runs autonomously. '
+    + 'Set needs_founder=true when the action spends money, publishes public content, or you judge it should not run unattended. '
+    + 'needs_founder only TIGHTENS: the authority model decides what may run unattended, and it cannot be overridden from here. '
     + 'Do NOT duplicate anything already open. Return STRICT minified JSON only: {"plan_rationale":"<2-3 sentences: what you learned from recent outcomes and why these are the next best moves>","tasks":[{"title":"<short>","detail":"<exactly what to do and the outcome you expect>","action_class":"<one of the above>","needs_founder":false}]}. At most ' + MAX_NEW + ' tasks; fewer if that is genuinely the right call.'
     + (expertise ? ('\n\nHOW YOU THINK (management discipline + your domain expertise — plan by this):\n' + expertise) : '');
   const user = 'RECENT WORK & OUTCOMES:\n' + recentTxt + '\n\nLEARNED NOTES:\n' + memTxt + '\n\nLIVE NUMBERS:\n' + (kpi || '(no KPI feed)') + '\n\nALREADY OPEN (do not duplicate):\n' + openTxt + '\n\nDecide your next moves and return the JSON.';
@@ -92,22 +102,79 @@ async function planDept(deptKey: string) {
     raw_input: 'dept_plan self-planning cycle', created_by: deptKey, status: 'active', priority: 3,
   }).select('id').maybeSingle();
 
-  const rows = tasks.map((t: any) => {
-    const ac = String(t?.action_class || 'analysis').toLowerCase().trim();
-    const gated = t?.needs_founder === true || !AUTONOMOUS_SAFE.has(ac);
-    return {
+  // AUDIT (4 Aug 2026). ROUTE ON THE AUTHORITY MODEL, NOT ON A CONSTANT IN THIS FILE.
+  //
+  // This block used to decide BOTH status and tier from AUTONOMOUS_SAFE — a hardcoded,
+  // DEPARTMENT-BLIND set. Measured against fn_dept_authority across every active department and
+  // every known action class, that constant granted tier='autonomous' to 112 (department,
+  // action_class) pairs the model grants nothing for, and to one it grants only 'advisory'.
+  // That is not theoretical: org_tasks#20, supplier_success/invite, was created 'autonomous' by
+  // this path and executed on 25 Jul 2026, enqueueing 10 real supplier invites for a department
+  // org_authority has no row for. It is the same defect audit 7.3 fixed in fn_event_dispatch and
+  // cos_execute — "a permission carried in the payload is not a permission, it is a claim by the
+  // caller" — and dept_plan was not included in that fix.
+  //
+  // The tier now comes from fn_dept_authority, the same source cos_execute re-checks against at
+  // execution time, so the two can no longer disagree by construction.
+  //
+  // AUTONOMOUS_CEILING survives only as an UPPER BOUND. There are 14 pairs where the model grants
+  // MORE than this file used to (e.g. procurement/supplier_approve_clean, sales/outreach_send).
+  // Honouring those would be a real widening of what runs unattended, and that is a founder
+  // decision — so the ceiling still clamps them to 'gated' and every clamp is recorded, making the
+  // gap measurable instead of invisible. A restriction living in a file is safe; a grant is not.
+  const rows: any[] = [];
+  const clamped: string[] = [];
+  const unknownClass: string[] = [];
+  // The prompt tells the department head to pick an action_class from its OWN capabilities and to
+  // fall back to 'analysis'. Nothing enforced it, so a hallucinated class went straight into
+  // org_tasks.action_class and into the authority lookup. Classes the department cannot execute now
+  // become the deliverable class the prompt already names.
+  const ownClasses = new Set<string>((caps || []).map((c: any) => String(c.action_class)));
+  for (const t of tasks) {
+    let ac = String(t?.action_class || 'analysis').toLowerCase().trim();
+    let detail = String(t?.detail || '').slice(0, 2000);
+    if (ac !== 'analysis' && !ownClasses.has(ac)) {
+      unknownClass.push(ac);
+      // Keep the original ask ON THE ROW, not only in the run log. The row is what a human reads.
+      detail = (detail + '\n\n[dept_plan: requested action_class "' + ac.slice(0, 60) + '" is not executable by '
+        + deptKey + '; routed to analysis so it produces a deliverable instead of a row nothing can action.]').slice(0, 2000);
+      ac = 'analysis';
+    }
+    let granted = 'gated';
+    try {
+      const { data: auth } = await admin.rpc('fn_dept_authority', { p_dept: deptKey, p_action_class: ac });
+      const tv = String((auth as any)?.tier || '');
+      granted = KNOWN_TIERS.has(tv) ? tv : 'gated';   // unreadable / unknown tier → gated, fail closed
+    } catch (_e) { granted = 'gated'; }               // model unreachable → gated, fail closed
+    const ceiling = AUTONOMOUS_CEILING.has(ac) ? 'autonomous' : 'gated';
+    let tier = rank(granted) > rank(ceiling) ? ceiling : granted;
+    if (tier !== granted) clamped.push(deptKey + '/' + ac + ' ' + granted + '→' + tier);
+    // The department head may only TIGHTEN its own routing, never loosen it.
+    if (t?.needs_founder === true && rank(tier) > rank('gated')) tier = 'gated';
+    rows.push({
       objective_id: obj?.id || null, dept_key: deptKey,
-      title: String(t?.title || 'Untitled').slice(0, 200), detail: String(t?.detail || '').slice(0, 2000),
-      action_class: ac, status: gated ? 'proposed' : 'assigned',
-      tier: gated ? 'gated' : 'autonomous', needs_founder: gated, decided_by: 'dept_plan',
-    };
-  });
+      title: String(t?.title || 'Untitled').slice(0, 200), detail,
+      action_class: ac, status: tier === 'gated' ? 'proposed' : 'assigned',
+      tier, needs_founder: tier === 'gated', decided_by: 'dept_plan',
+    });
+  }
+  if (clamped.length || unknownClass.length) {
+    try {
+      await admin.from('agent_runs').insert({
+        agent: 'dept_plan', status: 'ok', started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+        counts: { signal: 'routing_clamped', dept: deptKey, clamped: clamped.length, unknown_class: unknownClass.length },
+        note: ((clamped.length ? ('authority model grants more than AUTONOMOUS_CEILING allows: ' + clamped.join('; ')) : '')
+          + (unknownClass.length ? ((clamped.length ? ' | ' : '') + 'action_class not executable by ' + deptKey
+             + ', routed to analysis: ' + unknownClass.join(', ')) : '')).slice(0, 500),
+      });
+    } catch (_e) { /* never let the trail block planning */ }
+  }
   const { data: ins } = await admin.from('org_tasks').insert(rows).select('id,status');
   const assigned = (ins || []).filter((r: any) => r.status === 'assigned').length;
   const proposed = (ins || []).filter((r: any) => r.status === 'proposed').length;
 
-  await admin.from('org_memory').insert({ scope: deptKey, kind: 'plan', content: 'Self-planned ' + rows.length + ' task(s) (' + assigned + ' autonomous, ' + proposed + ' for founder). Rationale: ' + String(parsed?.plan_rationale || '').slice(0, 400), source: 'dept_plan' });
-  return { dept: deptKey, planned: rows.length, autonomous: assigned, needs_founder: proposed, rationale: String(parsed?.plan_rationale || '').slice(0, 240) };
+  await admin.from('org_memory').insert({ scope: deptKey, kind: 'plan', content: 'Self-planned ' + rows.length + ' task(s) (' + assigned + ' cleared by the authority model, ' + proposed + ' for founder). Rationale: ' + String(parsed?.plan_rationale || '').slice(0, 400), source: 'dept_plan' });
+  return { dept: deptKey, planned: rows.length, assigned, needs_founder: proposed, tiers: rows.map((r: any) => r.action_class + ':' + r.tier), clamped, unknown_class: unknownClass, rationale: String(parsed?.plan_rationale || '').slice(0, 240) };
 }
 
 Deno.serve(async (req) => {
