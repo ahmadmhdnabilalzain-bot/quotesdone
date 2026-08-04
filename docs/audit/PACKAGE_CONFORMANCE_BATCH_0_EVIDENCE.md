@@ -505,3 +505,43 @@ migrations applied to production 0
    the table to 12,929 without a delete; the alternative is the §4.5 delete and keeping the current
    scheme. Both reach 12,929. The first is idempotent afterwards; the second is not.
 7. Only then the §4 work in the previous brief — wiring the 86-route taxonomy.
+
+---
+
+## 9. Addendum — a watch query that can never fire
+
+The session-5 brief lists this under "Watch", annotated *"the router. Must become non-zero when
+§4 item 1 is done."*
+
+```sql
+select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+ where n.nspname='public' and p.prokind='f'
+   and pg_get_functiondef(p.oid) ~* 'fn_kb_route\(|fn_kb_retrieve\(|fn_trade_identify\(';
+```
+
+**It already returns 10.** Measured on production, 4 Aug:
+
+```
+fn_inquiry_interpret · fn_kb_retrieve · fn_kb_route · fn_kb_route_decide · fn_trade_identify
+fn_p2c1_rollback_stage_b · fn_p2c1_run_lang_case · fn_p2c1_scope_rule_tests
+fn_p2c1_stage_b_regression · fn_p2c1_stage_b_selftest
+```
+
+Three compounding reasons it cannot signal what it was written to signal:
+
+1. `pg_get_functiondef` of a function includes its **own** name, so `fn_kb_route` matches itself.
+2. The router's internals call each other — `fn_kb_route_decide`, `fn_inquiry_interpret`.
+3. Five `fn_p2c1_*` **test harnesses** call it, which is the audit's own point: 344 route tests
+   execute and pass while nothing in the application calls in.
+
+So the number is 10 today and will be 10 after the router is wired, and 10 if it is never wired.
+The claim it was written to test — *"the 86-route taxonomy has zero callers"* — is about
+`supabase/functions/**` and `src/**`, which is a repo search, not a catalog query. Replace it with:
+
+```
+rg -n 'fn_kb_route|fn_kb_retrieve|fn_kb_next_question|fn_trade_identify|fn_inquiry_interpret|fn_inquiry_workstream_activate' supabase/functions src
+# 0 today. Non-zero is the signal that §4 item 1 landed.
+```
+
+Same family as the carried-forward lesson *"a deterministic signal that is always zero is worse
+than no signal"* — here inverted, and worse, because a non-zero reading looks like progress.
