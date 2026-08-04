@@ -103,9 +103,15 @@ for (const [slug, body] of FNS) {
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(30000),
     });
-    const text = (await r.text()).slice(0, 120).replace(/\s+/g, ' ');
-    // 404 = not deployed. 5xx = boot failure, which is the interesting one.
-    const alive = r.status !== 404 && r.status < 500;
+    const raw = await r.text();
+    const text = raw.slice(0, 120).replace(/\s+/g, ' ');
+    // A function that answers with its OWN JSON has booted and run, whatever the status - even
+    // 404 {"error":"not_found"}, which is the correct reply to a request naming no record.
+    // A function that is not deployed returns 404 with the platform's own non-JSON body, and a
+    // function that crashes on boot returns 5xx. Those are the failures worth reporting.
+    let ownReply = false;
+    try { ownReply = typeof JSON.parse(raw) === 'object'; } catch { /* not its own reply */ }
+    const alive = r.status < 500 && (ownReply || r.status !== 404);
     record('edgefn', slug, alive, `HTTP ${r.status} ${text}`);
   } catch (e) {
     record('edgefn', slug, false, String(e.message).slice(0, 80));
