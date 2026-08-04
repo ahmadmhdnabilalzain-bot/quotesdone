@@ -98,6 +98,17 @@ Deno.serve(async (req) => {
     if (b.intake_id) { const { data } = await admin.from('inquiry_intake').select('*').eq('id', b.intake_id).maybeSingle(); if (data && (data.email === email)) draft = data; }
     if (!draft) { const { data, error: draftErr } = await admin.from('inquiry_intake').insert({ customer_id: cust?.id || null, email, status: 'needs_info', turns: [] }).select('*').single(); draft = data; if (draftErr || !draft) { await logRun('error', { intake_persisted: 0 }, 'A customer-submitted inquiry failed to persist: insert into inquiry_intake returned ' + String(draftErr?.message || 'no row') + ' — this RFQ is lost at the front door, it will never be routed and no supplier will ever quote it.'); } }
 
+    // The insert above logs a precise diagnostic when it fails - "this RFQ is lost at the front
+    // door" - and then execution used to continue straight into draft.turns, so the caller got
+    // "Cannot read properties of null (reading 'turns')" and the real reason stayed in a log
+    // nobody was reading. Fail here, with the reason, in the response.
+    if (!draft) {
+      return J({
+        error: 'intake_unavailable',
+        message: 'Your request could not be saved. Nothing has been submitted - please try again.',
+      }, 503);
+    }
+
     const turns: any[] = Array.isArray(draft.turns) ? draft.turns : [];
     if (text) turns.push({ role: 'user', text });
     const allText = turns.filter((t) => t.role === 'user').map((t) => t.text).join(' \n ') + ' ' + (draft.raw_input || '');
