@@ -107,11 +107,29 @@ Deno.serve(async (req) => {
     const ready = ((await sec('wa_templates_ready'))||'false')==='true';
     let tmpl:any = {};
     try { tmpl = JSON.parse((await sec('wa_template_sids'))||'{}'); } catch(_){ tmpl = {}; }
-    if (body.to && body.body) {
+    // DIRECT SEND. 4 Aug 2026: this accepted only a freeform Body, and freeform is the one thing
+    // WhatsApp will not deliver business-initiated. Meta allows Body only inside the 24-hour window
+    // the RECIPIENT opens by messaging us first; outside it Twilio returns 63016 and tells you to
+    // use ContentSid. The only caller of this path is os_api's Control Mode challenge, sending a
+    // code to a phone that has never messaged this number - so that code was never deliverable, and
+    // nobody saw it fail because os_api reports delivery as a boolean and swallows the reason.
+    // A template is accepted in and out of session, so it is tried first; a freeform body, when one
+    // is supplied, is the fallback that still works in-session while a template awaits approval.
+    if (body.to && (body.body || body.templateKey)) {
       const to = normPhone(String(body.to)); if (!to || to.length<8) { await logRun('error', { direct: true }, 'bad_phone on direct send: ' + String(body.to || '').slice(0, 40)); return J({ ok:false, error:'bad_phone' }, 200); }
+      const tkey = String(body.templateKey || '');
+      const tsid = tkey ? (tmpl?.[tkey]?.[String(body.lang || 'en')] || tmpl?.[tkey]?.en || null) : null;
+      if (tkey && ready && tsid) {
+        const t = await waSendTemplate(acct, ks, kk, from, to, String(tsid), (body.vars || {}) as Record<string,string>);
+        if (t.ok) return J({ ok:true, sid:t.sid, via:'template' });
+        await logRun('error', { direct: true, template: tkey }, 'direct WhatsApp TEMPLATE send rejected by Twilio: ' + String(t.error || '').slice(0, 200));
+      } else if (tkey) {
+        await logRun('error', { direct: true, template: tkey }, 'no approved template registered for "' + tkey + '" (wa_templates_ready=' + ready + ') - falling back to freeform, which only delivers in-session');
+      }
+      if (!body.body) return J({ ok:false, error: tkey ? ('no_template:' + tkey) : 'nothing_to_send', via:'template' }, 200);
       const res = await waSendBody(acct, ks, kk, from, to, String(body.body).slice(0,1500));
       if (!res.ok) await logRun('error', { direct: true }, 'direct WhatsApp send rejected by Twilio: ' + String(res.error || '').slice(0, 200));
-      return J({ ok:res.ok, sid:res.sid, error:res.error });
+      return J({ ok:res.ok, sid:res.sid, error:res.error, via:'freeform' });
     }
     // SENDER-REPUTATION GUARD (2 Aug 2026). This function is scheduled every 2 minutes and drains
     // 25 rows a run, so the ceiling was ~18,000 WhatsApp messages a day from a number that has

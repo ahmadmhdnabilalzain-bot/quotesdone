@@ -175,20 +175,35 @@ Deno.serve(async (req) => {
       // deno-lint-ignore no-explicit-any
       const r = data as any;
       if (!r?.ok) return J({ error: r?.error || 'challenge_failed', hint: r?.message }, 403);
-      let delivered = false;
+      let delivered = false; let via = ''; let why = '';
       try {
         const sent = await fetch(`${BASE}/send_whatsapp`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
+          // 4 Aug 2026: this sent the code as freeform text only. WhatsApp refuses freeform
+          // business-initiated messages outside the 24-hour window the recipient opens by messaging
+          // us (Twilio 63016), and the Control Mode phone has never messaged this number - so the
+          // code has never been deliverable, and `delivered:false` below was the only trace. The
+          // approved authentication template is now tried first; the freeform text remains as the
+          // in-session fallback and is what still arrives while a template awaits Meta approval.
           body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), to: r.phone,
+            templateKey: 'control_mode_code', vars: { '1': code },
             body: `QuotesDone Control Mode code: ${code}\nValid for ${r.minutes} minutes. If you did not ask for this, someone else is signed in to your console.` }),
         });
-        delivered = !!(await sent.json().catch(() => ({})))?.ok;
-      } catch (_e) { /* delivery failure is reported, not thrown - the challenge still exists */ }
+        // deno-lint-ignore no-explicit-any
+        const sr = (await sent.json().catch(() => ({}))) as any;
+        delivered = !!sr?.ok; via = String(sr?.via || ''); why = String(sr?.error || '');
+      } catch (e) { why = String((e as Error)?.message || 'send_whatsapp unreachable'); }
       return J({ ok: true, user: email, data: {
         challenge_id: r.challenge_id, nonce: r.nonce, phone_tail: r.phone_tail,
-        expires_at: r.expires_at, delivered,
-        message: delivered ? `Code sent to the number ending ${r.phone_tail}.`
-                           : `Could not deliver the code to the number ending ${r.phone_tail}. Check WhatsApp sending before retrying.`,
+        expires_at: r.expires_at, delivered, via, why,
+        // "Could not deliver" with no reason is what let this sit unexplained: Twilio 63016 means
+        // the freeform code was sent outside WhatsApp's 24-hour window, which is a different
+        // problem from a wrong number or a dead credential and needs a different fix.
+        message: delivered ? `Code sent to the number ending ${r.phone_tail}${via ? ' (' + via + ')' : ''}.`
+                           : `Could not deliver the code to the number ending ${r.phone_tail}.` +
+                             (/63016/.test(why)
+                               ? ' WhatsApp only accepts a plain-text message within 24 hours of that phone messaging us. Send any WhatsApp message to the QuotesDone number from that handset, then request the code again.'
+                               : why ? ` Twilio said: ${why.slice(0, 160)}` : ' Check WhatsApp sending before retrying.'),
       } }, 200);
     }
     // Step two. Challenge id + nonce + code, all three, all bound to this admin identity and to the
