@@ -99,24 +99,32 @@ const x = await one(REF, `select
 step('every lead_trade_map slug resolves to a real category',
   Number(x.dangling) === 0, `${x.dangling} dangling catalog_slug value(s)`);
 
-// The gaps below are REAL and unfixed. They are pinned rather than tolerated: the assertion is that
-// the gap set has not changed, so closing one or opening a new one both show up as a failure here
-// instead of drifting silently.
-const KNOWN_UNMAPPED = 'wallpaper';
-const KNOWN_NO_CATEGORY = 'elevators,signage';
-const KNOWN_ROUTE_DANGLING = 'renewable-energy-companies,domestic-services-companies,' +
-  'gas-systems-suppliers,utility-contractors';
+// CLOSED 5 Aug 2026. These three gaps were PINNED here for two sessions as "real and unfixed", and
+// the pin was doing real harm: it asserted the gap set had not CHANGED, so the gate stayed green
+// while 3 of 25 trades could not be reached from any catalogue route and 4 routes pointed at
+// categories that do not exist. A gate that certifies a defect as stable is not a gate.
+//
+// Two of the three were also mis-described. `elevators` and `signage` were recorded as deliberately
+// unmapped because there was "NO CATALOGUE CATEGORY" — but `lifts-and-escalator-suppliers` and
+// `signage-and-printing-suppliers` both exist, and so does `paints-and-finishing-materials-suppliers`
+// for `wallpaper`. Nothing was undecidable; the rows simply pointed nowhere.
+//
+// The 4 dangling routes were each the category name slugified WITHOUT its parenthetical, so each
+// resolved to exactly one real category by prefix match.
+//
+// Fixed in BOTH projects by scripts/staging/apply_taxonomy_fix.mjs — this is reference data, and a
+// staging-only fix would have turned this gate green while every real customer still hit the gap.
+step('every taxonomy_trade code reaches a catalogue category',
+  x.unmapped === '' && x.no_category === '',
+  x.unmapped === '' && x.no_category === ''
+    ? 'all 25 trades resolve through lead_trade_map to a real catalogue category'
+    : `absent from lead_trade_map: [${x.unmapped}]; mapped but catalog_slug null: [${x.no_category}]`);
 
-step('the set of trades with no catalogue route is unchanged',
-  x.unmapped === KNOWN_UNMAPPED && x.no_category === KNOWN_NO_CATEGORY,
-  `absent from lead_trade_map: [${x.unmapped}]; mapped but catalog_slug null: [${x.no_category}] ` +
-  '— 3 of 25 trades cannot be reached from a catalogue route');
-
-step('the set of routes pointing at a missing category is unchanged',
-  x.route_dangling === KNOWN_ROUTE_DANGLING,
-  `${x.route_dangling.split(',').filter(Boolean).length} route(s): each is the category name ` +
-  'slugified WITHOUT its parenthetical, e.g. renewable-energy-companies vs the real ' +
-  'renewable-energy-companies-solar-ev-battery');
+step('no route points at a category that does not exist',
+  x.route_dangling === '',
+  x.route_dangling === ''
+    ? 'every kb_operational_route.expected_catalog_slug resolves'
+    : `${x.route_dangling.split(',').filter(Boolean).length} dangling: ${x.route_dangling}`);
 
 const pass = checks.filter((c) => c.ok).length;
 console.log(`\nTAXONOMY ${pass}/${checks.length} on ${REF} (zero spend)`);
