@@ -58,7 +58,15 @@ Deno.serve(async (req) => {
     let aiParseOk = false;
     const aiPages = imgs.length ? Math.min(imgs.length, 8) : (body.file_b64 ? 1 : 0);
     try {
-      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'quote_extract', max: 2000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }] }) });
+      // 5 Aug 2026. This asked for 2000 output tokens. Measured against deployed staging on a
+      // single-page, seven-line quotation: the call returned 1996 tokens with finish_reason
+      // 'length' and unparseable output, while the same call at 4000 finished at 2407 and parsed
+      // correctly. gemini-3.5-flash spends most of the budget on reasoning tokens - 1996 output
+      // tokens carried only 206 characters of visible JSON - so 2000 could not fit even the
+      // smallest real quotation. parseJson then returned {}, every text field was scrubbed to '',
+      // and the function reported ok:true with an empty proposal: the supplier's real price was
+      // silently dropped from the customer's comparison. 6000 covers a multi-page quotation.
+      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'quote_extract', max: 6000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }], client_timeout_ms: 100000 }) });
       const jd = await r.json();
       if (!r.ok || jd?.ok === false) { await logRun('error', { quote_extracted: 0, pages: aiPages, ai_ok: 0 }, 'quote_extract could not read a supplier quotation because the vision model call returned an error (' + String(jd?.detail || jd?.error || ('http ' + r.status)).slice(0, 140) + '). The supplier\'s quotation exists but produced no structured quote, so the customer\'s comparison is missing a real price.'); return J({ error: 'ai_error', detail: jd?.detail || jd?.error || JSON.stringify(jd).slice(0,300) }, 502); }
       const _rawContent = jd?.content || '{}';
@@ -80,6 +88,12 @@ Deno.serve(async (req) => {
     else if (!_amountOk) _note = 'quote_extract parsed the model output but no grand-total amount could be read from the supplier quotation (' + ai.line_items.length + ' line items, confidence ' + String(ai.confidence || 'unknown') + '). A quote with no price cannot be ranked or compared, so this supplier effectively drops out of the customer\'s comparison.';
     else _note = 'Supplier quotation extracted and anonymized: total AED ' + String(ai.amount) + ', ' + ai.line_items.length + ' line item(s), ' + ai.masked_terms.length + ' identity-revealing term(s) masked, confidence ' + String(ai.confidence || 'unknown') + '.' + (ai.masked_terms.length === 0 ? ' NOTE: zero terms were masked — verify the anonymisation actually ran, since leaking supplier identity would let the customer bypass the paywall.' : '');
     await logRun(_okRun ? 'ok' : 'error', { quote_extracted: _okRun ? 1 : 0, parse_ok: aiParseOk ? 1 : 0, amount_present: _amountOk ? 1 : 0, line_items: ai.line_items.length, masked_terms: ai.masked_terms.length, pages: aiPages, confidence: ai.confidence || null }, _note);
-    return J({ ok: true, proposal: ai });
+    // 5 Aug 2026. This returned ok:true unconditionally - including when parseJson had returned {}
+    // and every field had just been scrubbed to ''. supplier_api already has the correct fallback
+    // for that case ("Could not read the quotation. Please fill the form instead.") but it is gated
+    // on !jd.ok, so it could never fire: the supplier was handed a blank form with no explanation
+    // and their real price silently left the customer's comparison. Report the outcome truthfully;
+    // an extraction that produced no parseable JSON or no total is a failure, not a success.
+    return J({ ok: _okRun, proposal: ai, error: _okRun ? undefined : (aiParseOk ? 'no_amount' : 'unreadable_quotation'), detail: _okRun ? undefined : _note.slice(0, 200) });
   } catch (e) { await logRun('error', { quote_extracted: 0, unhandled_exception: 1 }, 'quote_extract threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e).slice(0, 200) + ' — a supplier quotation was not converted into a comparable quote and will be missing from the customer\'s comparison.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 });

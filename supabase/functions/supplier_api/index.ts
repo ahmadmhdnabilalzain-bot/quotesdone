@@ -737,7 +737,17 @@ Deno.serve(async (req) => {
       try { await admin.from('quotes').update({ submittable }).eq('id', q!.id); } catch (_e) { /* */ }
       const requireStructured = (await secretVal('require_structured_quotes')) === 'true';
       const pricedItems = items.filter((it: any) => (numOrNull(it.unit_price) || 0) > 0 || (numOrNull(it.amount) || 0) > 0).length;
-      const formComplete = det.source === 'form' && pricedItems >= 1 && !!det.validity && !!det.warranty && !!det.lead_time;
+      // 5 Aug 2026. This required det.source === 'form', so an UPLOADED quotation could never be
+      // complete however complete it actually was. With require_structured_quotes = 'true' (its
+      // value in BOTH staging and production) acceptance then rested entirely on `submittable` -
+      // and as the note above records, the structured scorer says false for every real quote today.
+      // So no supplier who quoted by uploading their own PDF could ever be accepted: the quote was
+      // saved as a draft, the customer was never notified, and quote_compare filters drafts out, so
+      // the price vanished from the comparison. The supplier was told to "add the missing details"
+      // when nothing was missing - proven on staging with an extraction carrying validity, warranty,
+      // lead time and six priced line items. Completeness is a property of the QUOTE, not of the
+      // screen it arrived through; both paths must clear the same commercial bar, so test the bar.
+      const formComplete = pricedItems >= 1 && !!det.validity && !!det.warranty && !!det.lead_time;
       const accept = submittable || formComplete || !requireStructured;
 
       // Preflight (dry_run). Lets the portal confirm what is missing WHILE the supplier is still

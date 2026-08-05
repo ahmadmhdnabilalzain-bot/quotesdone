@@ -164,13 +164,81 @@ for (let i = 0; i < 10; i++) {
 step('AI intake question flow', intakeStatus === 'ready',
   `${turns} turn(s), status=${intakeStatus}, readiness=${readiness}, still missing=${missing.length ? missing.slice(0, 4).join('|') : 'none'}`);
 
+// Journey step 9: FILES AND DRAWINGS. The customer uploads a drawing, we read a draft BOQ off it
+// and redact it before any supplier sees it. The fixture is a synthetic window-schedule elevation
+// generated once with System.Drawing (see fixtures/README.md); its title block deliberately carries
+// a consultant name, a client name, a plot number, a phone, an email and a drawing number, because
+// the output of this step is shown to COMPETING SUPPLIERS and must not identify the customer.
+// In the real app the browser rasterises PDF pages with pdf.js and posts the page images; this
+// posts the same shape.
+const drawingPng = readFileSync(new URL('./fixtures/drawing_windows.png', import.meta.url));
+const drawingB64 = drawingPng.toString('base64');
+r = await call('customer_api', cust.jwt, {
+  action: 'analyze_drawing',
+  drawing_file_name: 'west_elevation_windows.png',
+  mime: 'image/png',
+  hint: 'Aluminium windows for a villa, supply and install.',
+  original_b64: drawingB64,
+  images: [{ b64: drawingB64, mime: 'image/png' }],
+});
+const draw = r.json || {};
+const drawingStoredPath = draw.drawing_file_path || null;
+const boqLines = Array.isArray(draw.boq?.boq) ? draw.boq.boq : [];
+step('customer uploads a drawing (BOQ extracted)',
+  r.status === 200 && draw.ok === true && boqLines.length > 0 && !!draw.drawing_file_path,
+  `HTTP ${r.status} ${boqLines.length} BOQ line(s), category=${draw.boq?.category || '-'}, ` +
+  `confidence=${draw.boq?.confidence || '-'}, stored=${draw.drawing_file_path ? 'yes' : 'NO'}`);
+
+// The privacy claim is the whole point of the redaction step, so assert it rather than trusting it.
+const TITLE_BLOCK_PII = ['al nahda', 'omar bin faisal', '345-8871', '555 1234',
+                         'alnahda-consult', 'an-2026-114', 'villa 42'];
+const boqText = JSON.stringify(draw.boq || {}).toLowerCase();
+const leaked = TITLE_BLOCK_PII.filter((s) => boqText.includes(s));
+step('drawing BOQ carries no identifying detail', leaked.length === 0,
+  leaked.length ? `LEAKED ${leaked.join(', ')}` : `none of ${TITLE_BLOCK_PII.length} title-block strings present`);
+
+// A redaction the server did not RECORD cannot be verified at create_inquiry, so the record is the
+// thing that matters, not the returned paths.
+const redRun = draw.redaction_job_id
+  ? (await mgmtRead(REF, `select status, pages_in, pages_out, pages_verified, verify_failed
+                            from drawing_redaction_runs where id = '${draw.redaction_job_id}'`))[0]
+  : null;
+step('drawing redaction recorded and verified',
+  !!redRun && redRun.status === 'complete' && Number(redRun.pages_out) >= Number(redRun.pages_in)
+    && Number(redRun.verify_failed) === 0 && Number(redRun.pages_verified) >= Number(redRun.pages_in),
+  redRun ? `status=${redRun.status} in=${redRun.pages_in} out=${redRun.pages_out} ` +
+           `verified=${redRun.pages_verified} failed=${redRun.verify_failed}`
+         : 'no redaction run recorded');
+
 r = await call('customer_api', cust.jwt, {
   action: 'create_inquiry',
   intake_id: intakeId,
   text: 'We need 40 aluminium windows supplied and installed for a villa in Dubai Marina.',
+  drawing: {
+    boq: draw.boq || null,
+    drawing_file_path: draw.drawing_file_path || null,
+    drawing_file_name: draw.drawing_file_name || null,
+    drawing_redacted_paths: draw.drawing_redacted_paths || [],
+    redaction_job_id: draw.redaction_job_id || null,
+    brief_source: 'drawing',
+  },
 });
 const inquiryId = r.json?.id ?? r.json?.inquiry_id ?? r.json?.group_id ?? null;
 step('create inquiry', r.status === 200, `HTTP ${r.status} id=${inquiryId ?? 'none'} ${r.text}`);
+
+// create_inquiry re-resolves the redacted paths server-side rather than trusting the body, so this
+// asserts what actually landed on the row, not what the client claimed.
+if (inquiryId) {
+  const row = (await mgmtRead(REF, `select (boq is not null) has_boq,
+      (drawing_file_path is not null) has_file,
+      coalesce(array_length(drawing_redacted_paths, 1), 0) n_red
+      from inquiries where id = '${inquiryId}'`))[0] || {};
+  step('inquiry carries the drawing and its redacted pages',
+    row.has_boq === true && row.has_file === true && Number(row.n_red) > 0,
+    `boq=${row.has_boq} original=${row.has_file} redacted_pages=${row.n_red}`);
+} else {
+  step('inquiry carries the drawing and its redacted pages', false, 'skipped - no inquiry id');
+}
 
 r = await call('customer_api', cust.jwt, { action: 'my_inquiries' });
 const listCount = Array.isArray(r.json) ? r.json.length : (r.json?.inquiries?.length ?? null);
@@ -315,6 +383,63 @@ r = await call('supplier_api', supA.jwt,
   quotePayload(inquiryId, 125000, 'Supply and installation of 40 powder-coated aluminium windows, double glazed.'));
 step('supplier submit quote', r.status === 200, `HTTP ${r.status} ${r.text}`);
 
+// Journey step 9, supplier half: a supplier who quotes by UPLOADING their own PDF rather than
+// typing the form. The fixture is a synthetic quotation on a letterhead carrying a company name,
+// two phone numbers, an email, a website, a TRN and a salesperson's name — because QuotesDone is a
+// marketplace where the customer PAYS to reveal the supplier, so an unanonymised upload would hand
+// the identity over for free and bypass the paywall entirely.
+const quotePng = readFileSync(new URL('./fixtures/quotation_supplier.png', import.meta.url));
+const quoteB64 = quotePng.toString('base64');
+r = await call('supplier_api', supA.jwt, {
+  action: 'extract_quote',
+  inquiry_id: inquiryId,
+  images: [{ b64: quoteB64, mime: 'image/png' }],
+  original: { b64: quoteB64, mime: 'image/png', filename: 'quotation_eaw_2026_0741.png' },
+});
+const prop = r.json?.proposal || {};
+const quoteDocPath = r.json?.original_file_path || null;
+const quoteDocName = r.json?.original_file_name || null;
+const propItems = Array.isArray(prop.line_items) ? prop.line_items : [];
+const masked = Array.isArray(prop.masked_terms) ? prop.masked_terms : [];
+step('supplier uploads a quotation document (read)',
+  r.status === 200 && r.json?.ok === true && Number(prop.amount) > 0 && propItems.length >= 4
+    && !!quoteDocPath,
+  `HTTP ${r.status} total=${prop.amount ?? 'none'} items=${propItems.length} ` +
+  `masked=${masked.length} stored=${quoteDocPath ? 'yes' : 'NO'}`);
+
+// Masking is only real if the identity is absent from what the CUSTOMER would see. masked_terms is
+// shown to the supplier for review; every other field goes to the customer.
+const LETTERHEAD_PII = ['emirates alum', '338 7788', '442 9931', 'sales@emiratesalum',
+                        'emiratesalum.ae', '100234567800003', 'rashid'];
+const customerVisible = JSON.stringify({ ...prop, masked_terms: undefined }).toLowerCase();
+const qLeaked = LETTERHEAD_PII.filter((s) => customerVisible.includes(s));
+step('uploaded quotation is anonymised before the customer sees it',
+  qLeaked.length === 0 && masked.length > 0,
+  qLeaked.length ? `LEAKED ${qLeaked.join(', ')}` : `${masked.length} identity term(s) masked, 0 leaked`);
+
+// The upload path must produce a real, comparable quote — not a draft. It is the same completeness
+// contract as the form path: a priced items array, validity, warranty and lead time.
+if (inquiryId && Number(prop.amount) > 0) {
+  r = await call('supplier_api', supA.jwt, {
+    action: 'submit_quote', inquiry_id: inquiryId, source: 'upload',
+    amount: prop.amount, currency: 'AED',
+    items: propItems.map((li) => ({ description: li.description, qty: li.qty, unit_price: li.amount })),
+    lead_time: prop.lead_time, validity: prop.validity, warranty: prop.warranty,
+    payment_terms: prop.payment_terms, scope: prop.scope,
+    conditions: prop.conditions, exclusions: prop.exclusions,
+    notes: prop.description_anonymized,
+    original_file_path: quoteDocPath, original_file_name: quoteDocName,
+  });
+  const upQ = (await mgmtRead(REF, `select source, status, (original_file_path is not null) has_doc
+      from quotes where inquiry_id = '${inquiryId}' and source = 'upload' limit 1`))[0] || {};
+  step('quote submitted from the uploaded document',
+    r.status === 200 && upQ.source === 'upload' && upQ.status !== 'draft' && upQ.has_doc === true,
+    `HTTP ${r.status} source=${upQ.source || 'none'} status=${upQ.status || '-'} ` +
+    `document_attached=${upQ.has_doc === true}`);
+} else {
+  step('quote submitted from the uploaded document', false, 'skipped - extraction produced no amount');
+}
+
 // A comparison needs something to compare. Stand up a second approved, capable supplier the same
 // way as the first, dispatch to it, and have it quote - so step 20 exercises the real comparison
 // path rather than the "needs at least two quotes" guard.
@@ -455,7 +580,25 @@ if (!KEEP) {
      , m as (delete from public.inquiry_matches where supplier_id in (select id from doomed))
      , q as (delete from public.quotes where supplier_id in (select id from doomed))
      delete from public.leads where id in (select id from doomed)`, 'cleanup suppliers');
-  console.log(`\ncleaned up ${created.filter(Boolean).length} synthetic user(s) and their supplier rows`);
+  // The upload steps put real objects in storage. Left behind they accumulate one drawing, one
+  // redacted page and one quotation per run forever, and a later fidelity check comparing staging
+  // to production would be reading this test's litter.
+  let objs = 0;
+  for (const [bucket, paths] of [
+    ['drawing-files', [drawingStoredPath, ...(Array.isArray(draw.drawing_redacted_paths) ? draw.drawing_redacted_paths : [])]],
+    ['quote-files', [quoteDocPath]],
+  ]) {
+    const keep = paths.filter(Boolean);
+    if (!keep.length) continue;
+    const del = await fetch(`${BASE}/storage/v1/object/${bucket}`, {
+      method: 'DELETE',
+      headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefixes: keep }),
+    });
+    if (del.ok) objs += keep.length;
+  }
+  console.log(`\ncleaned up ${created.filter(Boolean).length} synthetic user(s), their supplier rows` +
+              ` and ${objs} uploaded file(s)`);
 }
 
 const pass = steps.filter(s => s.ok).length;
