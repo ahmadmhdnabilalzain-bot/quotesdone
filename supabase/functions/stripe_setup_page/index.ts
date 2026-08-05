@@ -1,6 +1,6 @@
 // stripe_setup_page - serves the private Stripe key-entry form (public GET). The form posts keys to stripe_setup (token-gated).
 const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
-const FN='https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/stripe_setup';
+const FN=`${Deno.env.get('SUPABASE_URL')}/functions/v1/stripe_setup`;
 const HTML=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Stripe setup — QuotesDone</title>
 <style>body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f4f8f7;color:#0f2f2b;margin:0}.w{max-width:520px;margin:0 auto;padding:24px 16px}.c{background:#fff;border:1px solid #e8efee;border-radius:14px;padding:22px}h1{font-size:20px;margin:0 0 6px}.m{color:#5b6b68;font-size:13px}label{display:block;font-weight:600;font-size:13px;margin:14px 0 4px}input{width:100%;padding:11px 12px;border:1px solid #cdd8d6;border-radius:9px;font-size:14px}button{background:#0d9488;color:#fff;border:0;border-radius:9px;padding:12px 18px;font-weight:700;font-size:14px;cursor:pointer;margin-top:16px}button.s{background:#eef4f3;color:#0f2f2b}#o{margin-top:14px;font-size:13px;white-space:pre-wrap;line-height:1.6}.ok{color:#0a7d68}.err{color:#b42318}</style></head>
 <body><div class="w"><div class="c"><h1>QuotesDone — Stripe live keys</h1>

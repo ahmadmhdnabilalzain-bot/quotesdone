@@ -183,6 +183,22 @@ r = await call('supplier_api', supA.jwt, {
 const companyId = r.json?.id ?? r.json?.company_id ?? null;
 step('supplier create company', r.status === 200, `HTTP ${r.status} id=${companyId ?? 'none'} ${r.text}`);
 
+// Journey step: company profile. route_inquiry's usable() requires capability_summary, products
+// or services - a supplier with none of them is filtered out of the candidate pool BEFORE
+// scoring, which is why routing reported a genuine coverage gap (zero_fits_genuine=1) while an
+// approved supplier sat right there. An approved supplier with an empty profile is invisible.
+r = await call('supplier_api', supA.jwt, {
+  action: 'save_profile',
+  products: 'Aluminium windows, doors, curtain walling, glass partitions, powder-coated profiles.',
+  services: 'Supply and installation of aluminium windows and doors, glazing, site measurement.',
+  description: 'Aluminium and glass fabricator and installer serving Dubai and the Northern Emirates.',
+  company_type: 'LLC',
+  contact_name: 'Journey Test Contact',
+  phone: '+971505550000',
+  service_emirates: ['Dubai', 'Sharjah', 'Abu Dhabi'],
+});
+step('supplier saves capability profile', r.status === 200, `HTTP ${r.status} ${r.text}`);
+
 r = await call('supplier_api', supA.jwt, { action: 'inbox' });
 step('supplier inbox', r.status === 200, `HTTP ${r.status} ${r.text}`);
 
@@ -206,6 +222,71 @@ r = await call('supplier_api', supA.jwt, { action: 'me' });
 step('supplier approved (direct, not via OS UI)',
   r.status === 200 && r.json?.supplier?.approval_status === 'approved',
   `approval_status=${r.json?.supplier?.approval_status ?? 'none'}`);
+
+// Journey steps 13-16: dispatch. create_inquiry routed the RFQ before this supplier existed, so
+// it correctly reported a genuine coverage gap. Now that an approved, profiled supplier is in
+// place, dispatch it for real. dispatch_inquiry is internal-only: the db.internal credential is
+// the one whose scope includes it.
+const dispatchCred = (await mgmtRead(REF,
+  "select value from public.app_secrets where key='cred_db_internal'"))[0]?.value;
+
+// Phase 3: category and capability mapping. A dispatched RFQ carries a structured capability
+// requirement, which switches route_inquiry from the loose "fallback" retrieval into
+// "capability_gated" - it then demands a CONFIRMED supplier_capabilities record clearing a score
+// floor. A supplier with products and services but no capability record scores zero there, which
+// is why dispatch reported "no genuine seller" while a direct route call found three fits.
+if (companyId && dispatchCred) {
+  r = await call('enrich_capability', null, { __secret: dispatchCred, lead_id: companyId });
+  step('supplier capability extracted', r.status === 200, `HTTP ${r.status} ${r.text}`);
+
+  // enrich_capability writes leads.capability_summary - it does NOT create a structured
+  // supplier_capabilities record. Those come from document extraction, and PRODUCTION HAS ZERO OF
+  // THEM TOO, which is why this gate has never been exercised anywhere. There is no
+  // supplier-facing flow to declare and confirm a capability yet; that is Phase 3 work
+  // ("category and capability mapping"), not a staging data gap.
+  //
+  // The record is therefore written directly, and this step is named so it cannot be mistaken for
+  // proof of a flow that does not exist. What it DOES prove is that the capability gate, the
+  // score floor and the dispatch path all work once a confirmed record is present.
+  await mgmtWrite(REF,
+    `insert into public.supplier_capabilities
+       (supplier_id, trades, roles, products_norm, project_types, exclusions,
+        authority_approvals, source_docs, confidence, missing_fields, excluded_trades,
+        completeness, review_status, confirmed_at, extracted_at)
+     values (${Number(companyId)},
+       // The required trade set is derived per inquiry - one run asked for aluminium+doors, the
+       // next aluminium+glazing - so the fixture declares everything an aluminium and glass
+       // fabricator genuinely does rather than chasing whichever pair the model picked.
+       ARRAY['aluminium','doors','glazing','windows','glass','fenestration']::text[],
+       ARRAY['executes','supplies','installs']::text[],
+       ARRAY['aluminium windows','aluminium doors','glazing']::text[],
+       ARRAY['villa','residential']::text[], ARRAY[]::text[],
+       '{}'::jsonb, '{}'::jsonb, '{"overall":0.9}'::jsonb,
+       ARRAY[]::text[], ARRAY[]::text[],
+       95, 'confirmed', now(), now())
+     on conflict (supplier_id) do update
+       set trades = excluded.trades, roles = excluded.roles,
+           completeness = excluded.completeness, review_status = 'confirmed',
+           confirmed_at = now()`, 'seed capability');
+  const capRows = await mgmtRead(REF,
+    `select count(*)::int as n from public.supplier_capabilities
+      where supplier_id = ${Number(companyId)} and confirmed_at is not null`);
+  step('capability record confirmed (direct - no supplier flow exists)',
+    Number(capRows[0].n) > 0, `${capRows[0].n} confirmed record(s)`);
+}
+if (inquiryId && dispatchCred) {
+  r = await call('dispatch_inquiry', null, { __secret: dispatchCred, inquiry_id: inquiryId });
+  const dispatched = r.status === 200 && r.json?.ok !== false;
+  step('dispatch inquiry to suppliers', dispatched, `HTTP ${r.status} ${r.text}`);
+
+  r = await call('supplier_api', supA.jwt, { action: 'inbox' });
+  const inbox = Array.isArray(r.json?.inquiries) ? r.json.inquiries : [];
+  step('supplier receives the inquiry', r.status === 200 && inbox.length > 0,
+    `HTTP ${r.status} inbox=${inbox.length} item(s)`);
+} else {
+  step('dispatch inquiry to suppliers', false, inquiryId ? 'cred_db_internal missing' : 'no inquiry id');
+  step('supplier receives the inquiry', false, 'dispatch did not run');
+}
 
 r = await call('supplier_api', supA.jwt, {
   action: 'submit_quote',

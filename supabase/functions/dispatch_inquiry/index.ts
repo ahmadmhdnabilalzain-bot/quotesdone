@@ -173,7 +173,12 @@ Deno.serve(async (req) => {
     // 1) run the sharp adjudicator (reuse route_inquiry)
     let route: any = null;
     try {
-      const r = await fetch('https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/route_inquiry', {
+      // SELF, not a hardcoded project. This called the production URL, so a dispatch running on
+      // any other project adjudicated its RFQ against PRODUCTION's supplier base - which has no
+      // such inquiry - got zero fits back, and then flagged a coverage gap saying no seller
+      // exists for the trade. On staging that produced "no genuine seller for aluminium / Dubai"
+      // while route_inquiry, called directly, returned a perfectly good fit for that same RFQ.
+      const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/route_inquiry`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ __secret: inbound, inquiry_id: inquiryId })
       });
