@@ -1,6 +1,6 @@
 # START HERE — QuotesDone, 5 August 2026, end of session 9
 
-`9472879` on **`repair/finish-quotesdone`** (branched from `repair/package-conformance-batch-0`).
+`f6936dd` on **`repair/finish-quotesdone`** (branched from `repair/package-conformance-batch-0`).
 **Pushed. Not merged. Production unchanged.**
 
 Staging **`pglpqrhvozwepymcuunn`** · production **`htdblwldjkcgjvmqkbeh`** (read-only, never deployed to).
