@@ -1,21 +1,28 @@
-# START HERE — QuotesDone, 5 August 2026, end of session 8
+# START HERE — QuotesDone, 5 August 2026, end of session 9
 
-`7fbff23` on **`repair/finish-quotesdone`** (branched from `repair/package-conformance-batch-0`).
+`2d25588` on **`repair/finish-quotesdone`** (branched from `repair/package-conformance-batch-0`).
 **Pushed. Not merged. Production unchanged.**
 
 Staging **`pglpqrhvozwepymcuunn`** · production **`htdblwldjkcgjvmqkbeh`** (read-only, never deployed to).
 
-Run these first. All three should be green before you touch anything:
+Run these first. All five should be green before you touch anything:
 
 ```
-node scripts/staging/verify_phase1.mjs      # 12/12  deployed, isolated, in sync
-node scripts/staging/smoke_staging.mjs      # 15/15  auth, storage, postgrest, 10 functions
-node scripts/staging/journey_test.mjs       # 37/37  signup -> upload -> quotation comparison
+node scripts/staging/verify_phase1.mjs        # 12/12  deployed, isolated, in sync
+node scripts/staging/smoke_staging.mjs        # 15/15  auth, storage, postgrest, 10 functions
+node scripts/staging/verify_cost.mjs          #  7/7   pricing, routing, monitoring — zero spend
+node scripts/staging/demo_factory.mjs         # 14/14  factory selftest, ~40 s, cleans up after itself
+node scripts/staging/journey_test.mjs         # 37/37  signup -> upload -> quotation comparison
 ```
 
-The journey takes ~7.5 minutes (464 s measured) and produces 34 `agent_runs`. If a step fails, read
-`agent_runs` for that function **before** assuming the model is at fault — five of session 8's
-defects presented as "the model returned nothing" and none of them were.
+`verify_cost.mjs` and the factory selftest are new and fast; run them on every commit. The journey
+takes ~7.5 minutes (464 s measured) and produces 34 `agent_runs`. If a step fails, read `agent_runs`
+for that function **before** assuming the model is at fault — five of session 8's defects presented
+as "the model returned nothing" and none of them were.
+
+`node scripts/staging/verify_cost.mjs --live` adds 4 more checks and spends about 0.0001 AED: it
+puts one real inference through the deployed gateway and asserts the meter moved. Run it when you
+touch anything in the pricing or budget path, not on every commit.
 
 ---
 
@@ -77,51 +84,88 @@ Nothing else creates journey data. `supabase/seeds/` is 2,390 rows of agent know
 `npm test` (`scripts/checks/run.mjs`) runs 16 static source-analysis tests that never open a
 database connection.
 
-### 2.2 What staging is carrying right now (measured, 5 Aug)
+### 2.2 What staging was carrying — CLEARED in session 9
 
-The cleanup deletes auth users, `Journey Test %` leads and a hand-listed set of storage paths —
-**and nothing else**:
+Purged with `demo_factory.mjs --purge`. Measured before and after:
 
-| leftover | rows |
-|---|--:|
-| `customers` (all synthetic: `qd-cust+`, `qd-smoke+`, `qd-probe+`) | 62 |
-| `inquiries` | 41 |
-| `inquiry_intake` | 57 |
-| `email_verifications` | 51 |
-| `drawing_redaction_runs` | 29 |
-| `documents` (fully dangling) | 24 |
-| `signed-terms` objects (`Journey_Test_*` PDFs) | 114 |
-| `agent-docs` objects (comparison PDFs) | 19 |
-| orphaned `qd-%@example.com` auth users | 15 |
+| leftover | brief said | actually removed |
+|---|--:|--:|
+| `customers` | 62 | **65 — every single one an orphan** (0 of 65 had a surviving `auth.users` row) |
+| `inquiries` | 41 | 42 |
+| `inquiry_intake` | 57 | 59 |
+| `email_verifications` | 51 | 52 |
+| `drawing_redaction_runs` | 29 | 31 |
+| `documents` (dangling) | 24 | 26 |
+| `doc_versions` | not listed | **601** |
+| `notifications` (dangling) | not listed | **481** |
+| `company_event` (dangling) | not listed | **177** |
+| `signed-terms` objects | 114 | 118 |
+| `agent-docs` objects | 19 | 20 |
+| `drawing-files` objects | 2 (session-8 probe) | 2 |
+| orphaned auth users | 15 | 15 |
 
-**23 of those inquiries are marked `quoted` with zero quotes** — because cleanup takes the quotes
-away with the supplier rows but leaves the inquiry behind. That is a state the portal will render
-wrongly, sitting in the database waiting for Phase 5.
+Staging now holds **0 customers, 0 inquiries, 0 quotes, 0 leads, 0 documents** and 26 objects, all
+of them in `brand` — the fonts `pdf_native` needs, which the purge protects by name.
 
-The script is also a bare linear file with **no `try/finally`**, so a mid-run throw leaks
-everything. The 15 orphaned auth users are the proof that has already happened.
+Two of those rows were on nobody's list and are worth understanding, because they are the same
+class of bug as the 23 `quoted` inquiries with zero quotes:
 
-### 2.3 The factory to build first
+- **66 `company_event` `supplier.applied` rows** pointing at leads that no longer existed.
+- **66 queued `supplier_registered` notifications** addressed to `management@quotesdone.com`.
+  `notifications` is a **queue, not a log**. `email_enabled` is `false` on staging today, so they
+  sat there harmlessly — but §6 plans to turn it on behind a recipient allowlist to prove
+  notification, and the moment that happened all 66 would have fired at once.
 
-Before any phase below, extract a `scripts/staging/demo_factory.mjs`:
+Two rows survive on purpose: `rfq_not_dispatched` notifications carrying no `lead_id` and no
+`inquiry_id`. Nothing ties them to a deleted parent, and a rule broad enough to catch them would
+also delete a genuine unreferenced system alert. Left deliberately; decide if you disagree.
 
-- **An importable module**, not inline script. Export `makeCustomer()`, `makeSupplier()`,
-  `makeInquiry()`, `makeQuote()`, `makeBulkCorpus()`.
-- **Return the whole identity** — id, email, JWT — so a caller can act as the thing it made.
-- **A per-run tag** (e.g. `QD_RUN=<uuid>`) written into every row the run creates, and a
-  **teardown ledger** that deletes by that tag. `customers` and `inquiries` have no surviving
-  marker today: `customers.full_name` is `'Journey Test Customer'` for journey rows but **null**
-  for smoke rows, which is exactly why 62 of them survive.
-- **A `try/finally`** so teardown runs on a mid-test throw.
-- **Two speeds.** An API path (real HTTP, real models — for the handful of cases actually being
-  asserted) and a **zero-LLM SQL path** for bulk. Standing one supplier up through the API costs
-  **2 billable model calls** (`profile_ai` + `enrich_capability`; `supplier_review` resolves to
-  `use_llm:false` and is a free no-op). 100 suppliers that way is ~200 inference calls.
-- **Parameterise the capability profile by trade.** `standUpSupplier()` hardcodes
-  `ARRAY['aluminium','doors','glazing','windows','glass','fenestration']`, so every demo supplier
-  is identical and every taxonomy test is impossible.
+### 2.3 The factory — BUILT
 
-**Then purge the existing litter** (§2.2) as a one-off, and add a `--purge` mode for future drift.
+`scripts/staging/demo_factory.mjs` exists. `node scripts/staging/demo_factory.mjs` runs its
+selftest (14/14, ~40 s, tears itself down).
+
+```js
+import { withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, makeBulkCorpus } from './demo_factory.mjs';
+await withRun(async (run) => {
+  const cust = await makeCustomer(run);                          // { id, email, jwt, customerId }
+  const sup  = await makeSupplier(run, { trade: 'aluminium' });   // { leadId, email, jwt, profile }
+  const inq  = await makeInquiry(run, { customer: cust });
+  await makeQuote(run, { inquiry: inq, supplier: sup, amount: 125000 });
+});                                                              // teardown runs even on a throw
+```
+
+- **Tagging.** Emails carry `qd-<tag>-…@example.com`, `leads.tags` carries `qd_run:<tag>`,
+  `inquiries.provenance->>'qd_run'` carries the tag. Everything else is reached through those.
+- **Storage teardown is DERIVED FROM THE DATABASE** (`inquiries.drawing_file_path`,
+  `drawing_redacted_paths`, `quotes.original_file_path`, `customers/leads.signed_terms_path`,
+  `documents.bucket|path`, `drawing_redaction_runs.output_paths`) — not from a hand-maintained list.
+  The hand-maintained list is exactly why 118 `signed-terms` objects accumulated.
+- **`withRun()` tears down in a `finally`.**
+- **Two speeds.** `mode:'sql'` (auth-admin identity + direct INSERT, zero model calls) and
+  `mode:'api'` (the deployed functions, real models). `makeBulkCorpus` builds 100 suppliers in
+  **2 management-API round trips**.
+- **`capability: 'agent'`** confirms through `capability_agent` instead of the raw INSERT — see §3.1.
+- **`makeLicenceGatedSupplier()`** produces a supplier the licence gate has refused.
+- **`--purge`** for drift, `--purge --dry-run` to look first. The dry run is a **lower bound**: the
+  orphan sweeps only become true once their parents are gone (it predicted 13 dangling documents
+  and 382 notifications; the real run removed 26 and 415).
+
+**The selftest's last check is the one that matters:** it snapshots 20 row counters plus every
+storage bucket before the run and asserts they are identical after teardown. That check is how
+`company_event`, `doc_versions`, `notifications` and `supplier_capability_confirmation` were found —
+none of them were on any list of things a demo run touches.
+
+**Two fixture traps found by building it**, both of which produced a green-looking wrong answer:
+
+1. **Vary the score dial, hold the gates still.** The first cut varied `roles` "for realism", which
+   is a *gate* in `fn_match_capability`, not a score term — the zero-overlap decoy landed on
+   `supplies_only` and was dropped by the role gate before it could be discarded by the relevance
+   floor it existed to test. Vary `products_norm`; leave roles, trades and authorities uniform
+   unless a test is specifically about them.
+2. **`p_value` is not optional.** `w_size` scores 10 only when `p_value is not null` **and** the
+   supplier states a range containing it; otherwise every candidate gets 5 and the whole ladder
+   shifts down. Omitting it made variant 0 score 45, not 50.
 
 ### 2.4 Traps that specifically break demo data — read before writing a fixture
 
@@ -194,16 +238,25 @@ task_class `supplier_matching` (tier none, model none, max_tokens 0). This is th
 `inquiry_intake → missing_fields_detection` trap. The capability flow is dead at the model layer,
 not merely missing a UI.
 
-**But the confirm half is not blocked.** `capability_agent` action `confirm` (`index.ts:145-193`)
-makes **no model call at all** — the only model call is at :100, reached solely from `analyze`. It
-upserts `supplier_capabilities` with `review_status='confirmed'` and inserts the
-`supplier_capability_confirmation` ledger row. It is strictly better than the duplicated 18-column
-raw INSERT in `journey_test`. The only thing stopping it: **no `internal_credential` in either
-project scopes `capability_agent`.**
+**The confirm half is now WIRED AND PROVEN (session 9).** `capability_agent` action `confirm` makes
+**no model call at all** — the only model call is on the `analyze` path. `seed_staging_secrets.mjs`
+now adds `capability_agent` to the `db.internal` credential scope (the credential that already
+carries its siblings `enrich_capability` and `dispatch_inquiry`), and
+`makeSupplier(run, { capability: 'agent' })` drives it. Measured: `review_status='confirmed'`,
+`confirmed_version=1`, one `supplier_capability_confirmation` ledger row, and a 400
+`need_at_least_one_trade_and_role` for a trade code outside the controlled vocabulary — which is the
+reason to prefer the endpoint over the raw INSERT, since an INSERT will happily store a trade code
+`fn_match_capability` can never match.
 
-> **Demo data:** add `capability_agent` to one `internal_credential` scope array, then build the
-> confirmed-capability fixture by POSTing `{__secret, action:'confirm', supplier_id, trades, roles,
-> products}`. Zero model calls, zero code changes. Only `analyze` needs the task_class remap.
+**This had never run in either project.** Still outstanding:
+
+- `analyze` remains dead — it needs the `supplier_matching` task-class remap.
+- `journey_test.mjs` still writes the duplicated 18-column raw INSERT twice (:399-416 and :522-536).
+  Replacing both with `capability_agent` confirm is now a small, safe change.
+- **`confirm` does not write `min_project_value` / `max_project_value`**, so a supplier confirmed
+  this way scores `w_size*0.5` instead of `w_size` in `fn_match_capability`. Either the endpoint
+  should accept them or the scorer should stop rewarding their mere presence.
+- **Production still has no credential scoping `capability_agent`** — see §8.
 
 **(c) Configuration missing from staging.** `pricing_config` is not in
 `sync_staging_reference.mjs`'s TABLES array (18 entries, :27-52), so `auto_approve_suppliers` is
@@ -302,24 +355,47 @@ Three monitoring views are blind because they read the dead table: `v_llm_model_
 count of 2 was wrong: `kb_research_test:43` *reads* `task_class` back off the response into its own
 JSON output; its request at :32 sends none.)
 
-> **Demo data:**
-> - A **zero-cost gate**, ~15 lines of SQL in `verify_phase1.mjs` or a new `verify_cost.mjs`: every
->   active `model_policy` row with `tier<>'none'` must have its `model_primary` present in **both**
->   `model_registry` **and** `model_rate`. Costs nothing, should gate every run.
-> - Seed `model_rate` in staging (6 rows, derived from `model_registry` USD at the 3.6725 AED/USD
->   rate production already uses) and `department_budget` (13 production rows). Add `model_rate` and
->   `department_budget` to the reference-sync allowlist.
-> - **One real inference through the deployed gateway passing `dept`**, then assert four things: a
->   new `ai_cost_log` row with the probe's `fn`, `cost_aed > 0`, `prompt_tokens+output_tokens > 0`,
->   and `department_budget.spent_aed` increased by exactly the logged cost. Tag the `fn` so cleanup
->   can find it.
-> - A **synthetic low-ceiling department** (`monthly_aed=0.01`, `halt_at_pct=95`) so one real call
->   trips the budget halt and the next returns `outcome:'budget_halted'`. Delete it in teardown.
-> - A **`dry_run:true` routing sweep** over the ~70 call sites' `fn` literals, asserting each
->   resolves through `fn_task_class` rather than the UNMAPPED fallback. `ai_gateway` supports
->   `dry_run` at :268 for exactly this — zero spend, so it can run on every commit.
+**DONE in session 9.** `verify_cost.mjs` measured it (2/7 red), `seed_cost_config.mjs` fixed it, and
+the live probe proved it. All applied **directly, not as migrations** — a migration breaks the
+712-vs-712 ledger parity `verify_phase1.mjs` asserts.
 
-`resend_inbound/index.ts:262` still calls OpenRouter directly, outside the budget halt.
+- `model_rate` seeded with 6 rows **derived from `model_registry`** at 3.6725 AED/USD. Deriving one
+  table from the other is the actual fix: the two disagreeing is the root defect, and a hand-written
+  `model_rate` is what let production lose every `google/*` row in the first place.
+- `department_budget` seeded with production's 13 `dept_key`s and thresholds, `spent_aed` at 0.
+- `fn_task_class` row added for **`drawing_redact_verify`**, which was the only 1 of 34 gateway call
+  sites falling through to `UNMAPPED -> general_drafting` (medium, **900** `max_tokens`) while its
+  siblings `drawing_redact` and `drawing_boq` both get `document_extraction` at 8000. It is the
+  function that verifies a drawing redaction actually landed — the check the journey asserts privacy
+  on. **Production is missing this row too.**
+- `v_llm_model_mix`, `v_llm_calls_without_task_class` and `v_llm_offpolicy` repointed off the dead
+  `llm_calls` onto `ai_cost_log`, grants restored.
+- 601 `ai_cost_log` rows removed: every one recorded 0.00 because `model_rate` was empty, so they
+  measure a broken meter rather than a cost. The 80 that remain are cache hits and `model_used='none'`.
+
+**Measured end to end with `--live`:** one real `google/gemini-3.1-flash-lite` call billed
+**0.000045 AED**, `department_budget.spent_aed` moved by **exactly** that, and the next call to an
+over-budget department returned `outcome:'budget_halted'` with `used_llm:false` — without reaching a
+provider.
+
+Three notes for whoever picks this up:
+
+1. **The brief's own halt fixture was wrong.** `monthly_aed=0.01` with `halt_at_pct=95` never fires:
+   `fn_ai_route` computes `100 * month_spend / monthly_aed`, and a flash-lite call costs ~0.000045
+   AED, which is 0.45% of that ceiling. The ceiling must be set relative to what was actually spent.
+   `verify_cost.mjs` sets it to the logged cost, putting the department at exactly 100%.
+2. **Column count is part of schema parity.** The first cut of the repointed views added three
+   columns and turned `verify_phase1`'s 5,237-column check red. `v_llm_model_mix` now swaps the
+   dead `cached_tokens` for `cost_aed` rather than adding it.
+3. **`v_llm_offpolicy` was repointed further than the brief said.** Fixing only its parent would
+   have left it joining `llm_policy`, which has 3 rows in production and **0 in staging** and is not
+   what `fn_ai_route` consults — turning a silent all-clear into a loud false alarm. It now asks:
+   was a model used that no active `model_policy` can select?
+
+Still open: **`resend_inbound/index.ts:262` calls OpenRouter directly**, outside the gateway, so it
+is outside routing, logging and the budget halt. Adding `model_rate` and `department_budget` to
+`sync_staging_reference.mjs`'s allowlist is still not done — `seed_cost_config.mjs` covers a rebuild
+instead, and derives rather than copies, which is better.
 
 ### 3.5 Phase 7 — workflow and autonomy
 
@@ -409,6 +485,20 @@ its built bundle, not by driving it. There is no browser test harness in the rep
 | `capability_requirement` | No such object. The table is **`inquiry_requirement`** (33 staging rows) |
 | "216 of 589 production calls billed at zero" | **238** of 589, across **6** model groups including `model_used='none'` |
 
+### Corrections found in session 9 — including to this brief
+
+| earlier claim | truth |
+|---|---|
+| "62 synthetic `customers` rows" | **65, and every one of them an orphan.** 0 of 65 had a surviving `auth.users` row, so none could ever log in. The count was the smaller finding |
+| §2.2's litter list | Missed **601 `doc_versions`**, **481 `notifications`** and **177 `company_event`** rows — more rows than everything it did list, combined |
+| "the cleanup leaves `signed-terms` and `agent-docs` behind" | True, and the cause generalises: any hand-maintained path list rots. Teardown now derives paths from the database |
+| "a low-ceiling department `monthly_aed=0.01, halt_at_pct=95` trips the halt" | It does not. That is 0.45% of the ceiling for a real flash-lite call. `fn_ai_route` halts on `100*spend/monthly_aed >= halt_at_pct` |
+| "`p_limit 12` / trades are the corpus constraint" (already corrected) | Confirmed again, and the **real** fixture trap is different: `roles` is a hard gate, so varying it "for realism" silently removes candidates from scoring |
+| "2 of ~70 gateway call sites pass `task_class`" | The count that matters is different: **34** distinct `fn` literals reach the gateway, and **1** (`drawing_redact_verify`) had no `fn_task_class` row at all — in staging **or production** |
+| "`fn_task_class` mapping" | `fn_task_class` is a **table**, not a function. `fn_ai_route` reads it and falls back to `general_drafting` with `UNMAPPED` in the `why` string |
+| `capability_requirement` → `inquiry_requirement` (already corrected) | Still right. Also: `supplier_capability_confirmation` is a real table and `capability_agent confirm` is its only writer |
+| "`seed_staging_secrets.mjs` can be re-run" | It could not. The `internal_credential` INSERT had no `ON CONFLICT` and the table has no unique key on `context`, so a second run would **double all 74 credentials** and leave `fn_internal_auth` choosing between duplicates. Fixed: it now skips the bulk copy when the table is non-empty |
+
 ---
 
 ## 5. Traps that cost real time (sessions 7-8)
@@ -491,6 +581,21 @@ leads, so every one is **prospective damage, not damage already done** — which
   AV-scanned inline; `sanitizeUpload`'s structural sniffing is the inline gate and VirusTotal is a
   nightly sweep. A design, not a gap — but know it before claiming uploads are scanned.
 - **`quote_reviews` has no writer anywhere** and 0 rows.
+- **`drawing_redact_verify` has no `fn_task_class` row**, so `fn_ai_route` reports
+  `UNMAPPED function` and routes it to `general_drafting` — medium tier at **900 `max_tokens`**,
+  against `document_extraction`'s 8000 for its two siblings. This is the function that verifies a
+  drawing redaction actually removed the customer's identity before competing suppliers see it, and
+  §5 records four separate defects caused by a ceiling sitting inside the output's natural range.
+  *(Fixed in staging.)*
+- **No `internal_credential` in production scopes `capability_agent`**, so its `confirm` action —
+  the only writer of a confirmed `supplier_capabilities` row and its
+  `supplier_capability_confirmation` ledger entry, and one that makes no model call — is
+  unreachable. Combined with `supplier_capabilities` having 0 rows, capability-gated dispatch
+  cannot ever have run. *(Fixed in staging.)*
+- **`department_budget.spent_aed` never moves in production for the unpriced models.** `fn_llm_log`
+  updates the budget only `if p_dept is not null and v_cost > 0`, and `v_cost` is 0 whenever
+  `model_rate` has no row — so the budget halt cannot fire for `google/*` traffic no matter how much
+  of it there is.
 
 ---
 
@@ -514,6 +619,22 @@ parity `verify_phase1.mjs` asserts):
 - `storage.buckets.allowed_mime_types` for `drawing-files` += `image/vnd.dwg`, `image/vnd.dxf`
 - **`model_rate` rows for the `google/*` models** (new — see §3.4)
 
+*Added in session 9 — all reproducible by re-running the scripts named:*
+- **`model_rate` rows for every active `model_registry` model**, derived at 3.6725 AED/USD
+  (`seed_cost_config.mjs`). Production currently prices 0 of its 2 Gemini models, which is why 238
+  of 589 calls bill at zero
+- **`fn_task_class` row for `drawing_redact_verify` → `document_extraction`** (`seed_cost_config.mjs`).
+  Missing in production; it is currently routed to `general_drafting` at 900 `max_tokens`
+- **`v_llm_model_mix` / `v_llm_calls_without_task_class` / `v_llm_offpolicy` repointed** off
+  `llm_calls` onto `ai_cost_log` (`seed_cost_config.mjs`). Note these are DROP + CREATE, and the
+  grants must be reapplied — `postgres` and `service_role` hold the full set on all three
+- **`internal_credential` `db.internal` scope += `capability_agent`** (`seed_staging_secrets.mjs`).
+  Without it the only non-blocked half of the capability flow is unreachable
+
+*Code added in session 9 (no production effect until deployed):* `scripts/staging/demo_factory.mjs`,
+`scripts/staging/verify_cost.mjs`, `scripts/staging/seed_cost_config.mjs`, and the idempotency fix
+in `scripts/staging/seed_staging_secrets.mjs`.
+
 ---
 
 ## 9. Tooling (all in `scripts/staging/`)
@@ -529,7 +650,9 @@ parity `verify_phase1.mjs` asserts):
 | `sync_staging_grants.mjs` | restores table privileges in production's shape after a schema rebuild |
 | `apply_missing_objects.mjs` | catalogue diff: enums, sequences, columns, tables, views, routines. Does **not** diff constraints — which is why staging's `org_action_executor` lost production's NOT NULLs and CHECKs |
 | `fixtures/` | the two synthetic upload documents + `README.md` |
-| **`demo_factory.mjs`** | **does not exist yet — build it first (§2.3)** |
+| **`demo_factory.mjs`** | the demo-data factory (§2.3). `--selftest` (default) 14/14, `--purge`, `--purge --dry-run`, `--corpus N [--customers N] [--keep]` |
+| **`verify_cost.mjs`** | 7 zero-spend checks over pricing, routing and monitoring; `--live` adds 4 that put one real inference through the gateway |
+| **`seed_cost_config.mjs`** | `model_rate` (derived from `model_registry`), `department_budget`, the missing `fn_task_class` row, and the three repointed views. Idempotent; `--reset-telemetry` also clears `ai_cost_log` rows written while the meter was broken |
 
 `sync_staging_reference.mjs` still leaves `field_definition` and `field_definition_source` unloaded
 (FK to a parent outside the allowlist). Neither is on the journey path.

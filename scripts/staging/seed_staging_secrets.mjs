@@ -132,10 +132,41 @@ const credVals = creds.map(c => `(${[
   c.expires_at === null ? 'null' : lit(c.expires_at),
 ].join(',')})`).join(',');
 
-if (credVals) {
+// This INSERT has no ON CONFLICT and internal_credential has no unique key on context, so running
+// the script twice would DOUBLE every credential and leave fn_internal_auth choosing between
+// duplicate rows. Only load into an empty table; the scope additions below are the supported way to
+// change an existing one.
+const credExisting = Number((await mgmtRead(STAGING,
+  'select count(*)::int as n from public.internal_credential'))[0].n);
+if (credVals && credExisting === 0) {
   await mgmtWrite(STAGING,
     `insert into public.internal_credential (context, label, secret_hash, scope, is_legacy, active, expires_at)
      values ${credVals}`, 'seed internal_credential');
+} else if (credExisting > 0) {
+  console.log(`internal_credential already holds ${credExisting} row(s) - skipping the bulk copy ` +
+              '(re-inserting would duplicate every credential)');
 }
 const credAfter = await mgmtRead(STAGING, 'select count(*) as n from public.internal_credential');
 console.log(`staging internal_credential now: ${credAfter[0].n} rows (production has ${creds.length})`);
+
+// ---- scope additions staging is AHEAD of production on -------------------------------------------
+// Applied after the copy so a staging rebuild reapplies them. Each one must also be promoted to
+// production, and is listed in docs/sessions/NEXT_SESSION_BRIEF.md §8 for exactly that reason.
+//
+// capability_agent: its `confirm` action is the only real writer of a confirmed
+// supplier_capabilities row plus its supplier_capability_confirmation ledger entry, and it makes NO
+// model call - the single model call in that function is on the `analyze` path. But no credential
+// in EITHER project scopes capability_agent, so the one half of the capability flow that is not
+// blocked by fn_ai_route's supplier_matching tier=none policy was unreachable anyway. Scoped to
+// db.internal, which already carries its sibling enrich_capability and dispatch_inquiry.
+const SCOPE_ADDITIONS = [
+  ['db.internal', 'capability_agent'],
+];
+for (const [context, scope] of SCOPE_ADDITIONS) {
+  const r = await mgmtWrite(STAGING,
+    `update public.internal_credential
+        set scope = (select array(select distinct unnest(coalesce(scope,'{}'::text[]) || ${lit(scope)}::text)))
+      where context = ${lit(context)} and not (${lit(scope)} = any(coalesce(scope,'{}'::text[])))
+      returning context`, 'scope addition');
+  console.log(`scope addition: ${context} += ${scope} ${r.length ? '(added)' : '(already present)'}`);
+}

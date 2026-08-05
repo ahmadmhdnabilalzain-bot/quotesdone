@@ -446,7 +446,8 @@ export async function makeSupplier(run, opts = {}) {
     if (!leadId) throw new Error(`leads insert returned no id for ${companyName}`);
   }
 
-  if (opts.capability !== false) await mgmtWrite(REF, capabilityInsert(leadId, profile), 'demo capability');
+  if (opts.capability === 'agent') await confirmCapability(leadId, profile);
+  else if (opts.capability !== false) await mgmtWrite(REF, capabilityInsert(leadId, profile), 'demo capability');
   // The API path stamps the tag in its approval UPDATE; the SQL path stamps it in the INSERT.
   // Belt and braces for the api path where create_company may have raced the update.
   await mgmtWrite(REF,
@@ -476,6 +477,39 @@ export async function makeLicenceGatedSupplier(run, opts = {}) {
   const row = (await mgmtRead(REF,
     `select approval_status, licence_gate_reason from public.leads where id=${num(s.leadId)}`))[0];
   return { ...s, approval_status: row?.approval_status, licence_gate_reason: row?.licence_gate_reason };
+}
+
+/**
+ * Confirm a capability through the PRODUCT, not through a raw INSERT.
+ *
+ * capability_agent's `confirm` action makes no model call at all - the single model call in that
+ * function sits on the `analyze` path - so this costs nothing, and unlike the 18-column INSERT that
+ * journey_test writes out twice it also validates trades and roles against the controlled
+ * vocabulary and records a supplier_capability_confirmation ledger row with a version. That ledger
+ * is the thing that matters the day a supplier disputes a match.
+ *
+ * It needs `capability_agent` in a credential scope; seed_staging_secrets.mjs adds it to
+ * db.internal. Until session 9 no credential in EITHER project scoped it, which is why the half of
+ * the capability flow that is NOT blocked by fn_ai_route's supplier_matching tier=none policy had
+ * still never run.
+ *
+ * NOTE it does not write min_project_value / max_project_value: fn_match_capability's size term
+ * therefore scores w_size*0.5 rather than w_size for a supplier confirmed this way.
+ */
+export async function confirmCapability(leadId, profile, opts = {}) {
+  const cred = await internalCred();
+  if (!cred) throw new Error('cred_db_internal missing from staging app_secrets');
+  const r = await call('capability_agent', null, {
+    __secret: cred, action: 'confirm', supplier_id: Number(leadId),
+    trades: profile.trades, roles: profile.roles, products: profile.products_norm,
+    brands: profile.brands, project_types: profile.project_types,
+    coverage_emirates: profile.coverage_emirates, exclusions: profile.exclusions || [],
+    confirmed_via: opts.confirmed_via || 'demo_factory',
+  });
+  if (r.status !== 200 || r.json?.ok !== true) {
+    throw new Error(`capability_agent confirm failed: HTTP ${r.status} ${r.text}`);
+  }
+  return r.json;
 }
 
 let _cred = null;
@@ -847,6 +881,7 @@ export async function teardown(run) {
     ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${LEAD}`],
     ['supplier_negotiation_policy', `delete from public.supplier_negotiation_policy where supplier_id in ${LEAD}`],
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${LEAD}`],
+    ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${LEAD}`],
     ['leads', `delete from public.leads where id in ${LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id in ${CUST} or owner_email like 'qd-${tag}-%@example.com'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${CUST}`],
@@ -917,6 +952,7 @@ export async function purge(opts = {}) {
     ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${P_LEAD}`],
     ['supplier_negotiation_policy', `delete from public.supplier_negotiation_policy where supplier_id in ${P_LEAD}`],
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${P_LEAD}`],
+    ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${P_LEAD} or supplier_id not in (select id from public.leads)`],
     ['leads', `delete from public.leads where id in ${P_LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id is null or customer_id not in (select id from public.customers) or owner_email like 'qd-%@example.com'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${P_CUST}`],
@@ -1002,6 +1038,7 @@ export async function purge(opts = {}) {
  * found this way.
  */
 export const EXACT_TABLES = ['customers', 'leads', 'inquiries', 'quotes', 'supplier_capabilities',
+  'supplier_capability_confirmation',
   'inquiry_matches', 'inquiry_intake', 'inquiry_requirement', 'inquiry_supplier_brief',
   'email_verifications', 'drawing_redaction_runs', 'documents', 'transactions', 'notifications',
   'company_event', 'doc_versions', 'comparison_run_v2', 'comparison_candidate_v2'];
@@ -1109,6 +1146,31 @@ export async function selftest() {
       ok('makeBulkCorpus builds a trade-spread corpus with zero model calls',
         corpus.suppliers.length === 8,
         `${corpus.suppliers.length} supplier(s) across ${corpus.trades.length} trade(s), 2 round trips`);
+
+      // The capability flow through the PRODUCT rather than a raw INSERT. Zero model calls: the
+      // only model call in capability_agent is on the `analyze` path, which is separately blocked
+      // by fn_ai_route routing supplier_matching to tier=none.
+      const supAgent = await makeSupplier(run, { trade: 'hvac', capability: 'agent' });
+      const confirmed = (await mgmtRead(REF, `
+        select c.review_status, c.confirmed_version, c.trades, c.roles,
+               (select count(*)::int from public.supplier_capability_confirmation f
+                 where f.supplier_id = c.supplier_id) as ledger
+          from public.supplier_capabilities c where c.supplier_id = ${supAgent.leadId}`))[0] || {};
+      ok('capability_agent confirm writes the real record',
+        confirmed.review_status === 'confirmed' && Number(confirmed.ledger) === 1
+          && Array.isArray(confirmed.trades) && confirmed.trades.includes('hvac'),
+        `review_status=${confirmed.review_status} version=${confirmed.confirmed_version} ` +
+        `ledger_rows=${confirmed.ledger} trades=${(confirmed.trades || []).join('+')}`);
+
+      // The vocabulary gate is the reason to prefer the endpoint over an INSERT: a raw INSERT will
+      // happily store a trade code that fn_match_capability can never match.
+      const junk = await call('capability_agent', null, {
+        __secret: await internalCred(), action: 'confirm', supplier_id: Number(supAgent.leadId),
+        trades: ['not_a_real_trade'], roles: ['contractor'], products: ['x'],
+      });
+      ok('confirm refuses codes outside the controlled vocabulary',
+        junk.status === 400 && junk.json?.error === 'need_at_least_one_trade_and_role',
+        `HTTP ${junk.status} ${junk.json?.error ?? junk.text}`);
 
       const gated = await makeLicenceGatedSupplier(run, { trade: 'steel' });
       ok('the licence gate fixture actually opens the gate',
