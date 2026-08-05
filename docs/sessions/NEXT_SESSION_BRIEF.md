@@ -433,8 +433,17 @@ second verification.
 > a test that back-dates only `exception_opened_at` gets reminder 1 and then silently gets nothing —
 > and would report the ladder as working. Back-date `exception_last_reminder_at` with it.
 
-**Quotation history** has no table and no writer. Decide whether it is wanted; if not, close the
-item as *"by design: quotes are mutable, one row per supplier per inquiry"*.
+**Quotation history — CLOSED, it was already built.** The premise was wrong in both directions: it
+has a table *and* a writer, both live. The table is `doc_versions` (`entity_type='quote'`), the
+writer is trigger `version_quote AFTER INSERT OR UPDATE ON public.quotes` running
+`trg_version_quote()`, and the readers are `fn_doc_history()` / `fn_doc_diff()` plus `archive_rfq`.
+Production holds **136** quote-history rows. Building a `quote_revisions` table would have
+duplicated a working mechanism.
+
+Pinned by journey step 34, which asserts **recovery** rather than mere existence: after a revision
+the previous amount must still be readable (`125000 -> … -> 118500`). Note the trigger fires on
+every UPDATE, including status changes, so one revised quote produces many versions — noisy, not
+wrong.
 
 ### 3.2 Phase 4 — taxonomy
 
@@ -1078,7 +1087,26 @@ leads, so every one is **prospective damage, not damage already done** — which
   swallows it and **no quote is ever marked revealed**. A customer pays the reveal fee and the
   portal keeps showing `supplier_ref: null` and a banded rating. This is the paywall failing open in
   the customer's face after they have paid. *(Fixed in staging; one line.)*
-- **`quote_reviews` has no writer anywhere** and 0 rows.
+- ~~**`quote_reviews` has no writer anywhere** and 0 rows.~~ **CLOSED — retired schema, not a gap.**
+  `quote_reviews` / `quote_review_messages` / `quote_committed_items` were built, shipped, proven
+  unused and deliberately deleted: their only writer, `quote_review_api`, was removed in `d79b28e`
+  (22 Jul 2026, *"proven dead across frontend/functions/SQL/cron/triggers"*). Nothing references
+  them. The one review path that exists is `fn_quote_structured_score` → `quotes.quality`.
+  `journey_test` was counting `quote_reviews` in a `reviewRows > 0 || scored > 0` assertion — a
+  **vacuous** half that could only ever be 0, so the step passed entirely on the other side. Worse
+  than a red gate, because nobody looks at green. Removed.
+- **THE `copied_quote` FRAUD RULE COULD NEVER FIRE — now fixed.** `fn_fraud_scan` groups `quotes` by
+  `committed_hash` having more than one distinct supplier, to catch the same quotation filed by two
+  suppliers. **Nothing wrote `committed_hash`**: its only writer was the same deleted
+  `quote_review_api`, and 0 of 0 production quotes carry one. A fraud control the founder believes
+  exists has never been capable of raising a single flag.
+  Trigger `quote_committed_hash` now writes it from the *words the supplier wrote* — deliberately
+  **not** `quote_amount`, because identical amounts on one RFQ are already caught by the
+  `identical_bids` rule directly above it, and folding the amount in would make `copied_quote` a
+  noisy duplicate rather than an independent signal. A 40-character floor keeps boilerplate
+  one-liners from colliding across honest suppliers. Applied to **both** projects (routines 739 →
+  740 in each, so `verify_phase1` parity holds). Proven by `verify_fraud_hash.mjs` 5/5: identical
+  prose at *different* amounts raises `copied_quote` at severity `high` naming both suppliers.
 - **63 Edge Functions hard-code a `max` that can only lower the policy ceiling.** `ai_gateway` takes
   `min(caller, policy)`, so `model_policy.max_tokens` is decorative wherever a caller sets its own —
   and 11 of them sit below their task class today. Raising a policy ceiling in production, as

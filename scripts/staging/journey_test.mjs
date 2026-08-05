@@ -605,13 +605,36 @@ if (inquiryId) {
   // extraction and lands a row in quote_reviews; a quote typed into the structured FORM is judged
   // by fn_quote_structured_score, which writes quotes.quality and quotes.submittable. Asserting
   // only on quote_reviews reports "no review" for a form quote that was in fact fully scored.
-  const reviewRows = Number((await mgmtRead(REF,
-    `select count(*)::int as n from public.quote_reviews where inquiry_id = '${inquiryId}'`))[0].n);
+  // CORRECTED 5 Aug 2026. This counted public.quote_reviews and passed on
+  // `reviewRows > 0 || scored > 0`. quote_reviews can only ever return 0 — its sole writer,
+  // quote_review_api, was deleted in d79b28e (22 Jul 2026) as proven-dead across
+  // frontend/functions/SQL/cron/triggers — so half of this assertion was VACUOUS and the step
+  // passed entirely on `scored`. Not a red gate, which would at least have been noticed: a green
+  // one measuring something that cannot exist.
+  //
+  // There is ONE review path: fn_quote_structured_score writes quotes.quality and
+  // quotes.submittable. quote_reviews / quote_review_messages / quote_committed_items are retired
+  // schema (0 rows in production, no reader, no writer), not a missing subsystem.
   const scored = Number((await mgmtRead(REF,
     `select count(*)::int as n from public.quotes
-      where inquiry_id = '${inquiryId}' and (quality is not null or review_id is not null)`))[0].n);
-  step('quotation reviewed before the customer sees it', reviewRows > 0 || scored > 0,
-    `${reviewRows} upload review(s), ${scored} quote(s) scored`);
+      where inquiry_id = '${inquiryId}' and quality is not null`))[0].n);
+  step('quotation scored before the customer sees it', scored > 0,
+    `${scored} quote(s) carry a structured score`);
+
+  // Journey step 19b: quotation HISTORY. Also recorded as "no table and no writer" — also wrong.
+  // doc_versions + trigger version_quote have been keeping a jsonb snapshot per revision all along
+  // (136 rows in production), with fn_doc_history / fn_doc_diff as readers. Asserting RECOVERY, not
+  // merely that a row exists: the previous amount must still be readable after a revision.
+  const vers = await mgmtRead(REF, `
+    select v.version, v.snapshot->>'quote_amount' as amount
+      from public.doc_versions v
+      join public.quotes q on q.id::text = v.entity_id
+     where v.entity_type = 'quote' and q.inquiry_id = '${inquiryId}'
+     order by v.version`);
+  step('a revised quotation keeps its previous version recoverable',
+    vers.length >= 2 && vers.some((v) => Number(v.amount) === 125000) && vers.some((v) => Number(v.amount) === 118500),
+    vers.length ? `${vers.length} version(s): ${vers.map((v) => v.amount).join(' -> ')}`
+                : 'no doc_versions rows for this inquiry');
 
   // Journey step 20: comparison. The end of the journey the whole system exists for.
   // A 200 carrying {ok:false,error:'need_two'} is a refusal, not a comparison.
