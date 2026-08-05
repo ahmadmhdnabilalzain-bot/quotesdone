@@ -113,6 +113,62 @@ step('every gateway call site has a task class', unmapped.length === 0,
     ? `${unmapped.length}/${sites.length} UNMAPPED -> general_drafting: ${unmapped.join(', ')}`
     : `${sites.length} call site(s), 0 falling through to general_drafting`);
 
+// ---- 2b. caller-side max overrides -------------------------------------------------------------
+// ai_gateway computes maxTok = min(body.max ?? route.max_tokens, route.max_tokens), so a hard-coded
+// `max` in a calling function can only ever LOWER the policy ceiling, never raise it. That makes
+// model_policy.max_tokens decorative wherever a caller sets its own - including the raises made in
+// session 8. doc_extract's max:2000 was measured at 1,996-2,170 actual output tokens and returned
+// extraction_null; that is this pattern biting, not a model problem.
+//
+// The pairing is a heuristic: a file that mentions ai_gateway and contains exactly one `fn:'…'`
+// literal has its `max:` values attributed to that fn. Files with several fn literals are skipped
+// and named, so the check never claims coverage it does not have.
+function callerMaxes(dir) {
+  const found = [];
+  const skipped = [];
+  const walk = (d) => {
+    for (const e of readdirSync(d)) {
+      const p = join(d, e);
+      if (statSync(p).isDirectory()) { walk(p); continue; }
+      if (!/\.ts$/.test(e)) continue;
+      const raw = readFileSync(p, 'utf8');
+      if (!raw.includes('ai_gateway')) continue;
+      // Strip comments first. Without this the scan reads the prose EXPLAINING a removed override
+      // as the override itself - doc_extract's fix documents the old `max:2000` in a comment, and
+      // the audit duly reported it as still present.
+      const src = raw.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+      const fns = [...new Set([...src.matchAll(/\bfn\s*:\s*['"]([a-z0-9_][a-z0-9_.-]*)['"]/g)].map((m) => m[1]))];
+      const maxes = [...new Set([...src.matchAll(/[^_a-zA-Z]max\s*:\s*(\d+)/g)].map((m) => Number(m[1])))];
+      if (!maxes.length) continue;
+      if (fns.length !== 1) { skipped.push(`${e}(${fns.length} fn literals)`); continue; }
+      for (const mx of maxes) found.push({ fn: fns[0], max: mx });
+    }
+  };
+  walk(dir);
+  return { found, skipped };
+}
+const { found: callerMax, skipped: ambiguous } = callerMaxes('supabase/functions');
+const capValues = callerMax.map((c) => `('${c.fn.replace(/'/g, "''")}',${c.max})`).join(',');
+const overrides = capValues ? await mgmtRead(REF, `
+  with sites(fn, caller_max) as (values ${capValues})
+  select s.fn, s.caller_max, p.task_class, p.max_tokens policy_max
+    from sites s
+    join public.fn_task_class t on t.fn = s.fn and t.active
+    join public.model_policy p on p.task_class = t.task_class and coalesce(p.active,true)
+   where p.tier <> 'none' and s.caller_max < p.max_tokens
+   order by (s.caller_max::numeric / p.max_tokens), s.fn`) : [];
+
+// This is a catalogue, not a pass/fail on each site: a caller may legitimately want a tighter budget
+// than its class allows. What is asserted is that the LIST HAS NOT GROWN - a new override, or an
+// existing one dropping further below its policy, is a deliberate decision that should show up here.
+const KNOWN_OVERRIDES = 11;
+step('no new caller-side max override below its policy ceiling',
+  overrides.length <= KNOWN_OVERRIDES,
+  `${overrides.length} of ${callerMax.length} call-site max values sit below their task class ` +
+  `(known ${KNOWN_OVERRIDES}). Tightest: ` +
+  overrides.slice(0, 3).map((o) => `${o.fn} ${o.caller_max}/${o.policy_max}`).join(', ') +
+  (ambiguous.length ? `. Unattributed: ${ambiguous.length} file(s)` : ''));
+
 // ---- 3. the monitoring views must read the table that is actually written ----------------------
 // llm_calls is dead legacy with one writer left in the repo (site_assistant/index.ts:25). A view
 // over it returns zero rows forever and reads as "no off-policy calls" rather than "not measured".

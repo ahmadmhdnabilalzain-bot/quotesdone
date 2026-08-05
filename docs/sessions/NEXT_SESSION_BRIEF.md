@@ -14,6 +14,7 @@ node scripts/staging/verify_cost.mjs          #  7/7   pricing, routing, monitor
 node scripts/staging/verify_matching.mjs      # 12/12  floor, fan-out and the hard gates — zero spend
 node scripts/staging/verify_taxonomy.mjs      # 11/11  the operational router + crosswalk — zero spend
 node scripts/staging/verify_doc_extract.mjs   #  7/7   the document queue — 1 model call, ~0.075 AED
+node scripts/staging/verify_license_extract.mjs # 12/12 licence reading — 4 model calls, ~0.2 AED
 node scripts/staging/demo_factory.mjs         # 15/15  factory selftest, ~40 s, cleans up after itself
 node scripts/staging/journey_test.mjs         # 37/37  signup -> upload -> quotation comparison
 ```
@@ -285,10 +286,25 @@ Fixed by **deleting the caller-side `max`** so the task class decides — which 
 is for. Deployed to staging (`verify_jwt=false`, parity intact). After it: `status=done`, 1,179
 chars extracted, 9 specifications, 5 quantities, indexed into `kb_chunks`, 26% of the 8000 ceiling.
 
-> **Still to build:** the synthetic **UAE trade licence** fixture (legal name, licence number,
-> authority, emirate, expiry) plus **expired** and **illegible** variants, to cover the
-> `supplier-docs` branch and `license_extract` — whose own `max:1500` is the next suspect and can
-> now be measured the same way. `supplier-docs` still has 0 objects.
+**The licence fixture exists too (`verify_license_extract.mjs`, 12/12, 4 model calls ~0.2 AED).**
+`fixtures/licence_pdf.mjs` generates a real one-page PDF from a data table rather than checking in
+another opaque binary — so the four variants (plain, 15-activity, expired, illegible) are all edits
+to one object, and it exercises `buildContent`'s **PDF passthrough** branch, which the two PNG
+fixtures never touched. Measured: legal name, licence number, authority, emirate, TRN, both dates
+normalised from DD/MM/YYYY, and 15 of 15 activities. The expired variant reads its past expiry
+rather than the issue date. The illegible page returns `confidence: 'low'` with empty fields —
+it does not invent a licence number.
+
+**`license_extract`'s `max:1500` was the right suspect for the wrong reason.** It had not truncated:
+a plain licence uses 777–860 output tokens and a realistic 15-activity one 1,116–1,171. But that is
+**74–78% of the old cap**, and the failure mode is invisible — `parseJson` returns `{}` on a
+truncated response and every field is then scrubbed to `''`, so the caller gets HTTP 200
+`{ok:true, doc:{legal_name:'', license_number:'', confidence:'low'}}`, **indistinguishable from a
+genuinely unreadable scan**. Removed and deployed to staging; the task class gives it 8000.
+
+> **Still to build:** nothing writes to `supplier-docs` yet (0 objects) — the fixtures go through
+> `license_extract` directly rather than through `supplier_api process_docs`, so the storage branch
+> and the licence-gate write-back are still unexercised end to end.
 
 **(b) Switched off by the routing policy.** `fn_ai_route` returns `use_llm:false, tier:'none'` for
 **both `capability_agent` and `supplier_review`** in staging *and* production — both map to
@@ -516,6 +532,24 @@ nobody chose.
 > it: not the cost gate, which stayed 7/7 green, and not the model call, which reported success —
 > the journey did. A routing change is a behaviour change; re-run the journey after one.
 
+#### `model_policy.max_tokens` is largely decorative — 11 call sites override it downward
+
+`ai_gateway` computes `maxTok = min(body.max ?? route.max_tokens, route.max_tokens)`, so a
+hard-coded `max` in a calling function can only ever **lower** the policy ceiling, never raise it.
+**63 such literals exist across the Edge Functions.** Session 8 raised `quote_comparison` to 10,000
+and `document_extraction` to 8,000 — and `doc_extract` went on capping itself at 2,000,
+`license_extract` at 1,500, `drawing_redact` at 2,000.
+
+`verify_cost.mjs` now catalogues them: **11 attributable call sites sit below their task class**,
+pinned so a new one fails the gate. Tightest today: `agent_brain` 160/1700, `quote_review`
+2600/10000, `site_assistant` 320/800. Two files carry several `fn` literals and are reported
+unattributed rather than guessed at.
+
+> Do **not** bulk-remove the remaining 11. A tight budget can be deliberate — `agent_brain`'s 160 is
+> a classifier, not a truncation. The two that were removed were removed on measurement:
+> `doc_extract` had failed, `license_extract` was at 74–78% of its cap. Measure before touching the
+> rest; `verify_doc_extract.mjs` and `verify_license_extract.mjs` are the pattern.
+
 Still open: **`resend_inbound/index.ts:262` calls OpenRouter directly**, outside the gateway, so it
 is outside routing, logging and the budget halt. Adding `model_rate` and `department_budget` to
 `sync_staging_reference.mjs`'s allowlist is still not done — `seed_cost_config.mjs` covers a rebuild
@@ -634,6 +668,8 @@ its built bundle, not by driving it. There is no browser test harness in the rep
 | "`fn_task_class` mapping" | `fn_task_class` is a **table**, not a function. `fn_ai_route` reads it and falls back to `general_drafting` with `UNMAPPED` in the `why` string |
 | `capability_requirement` → `inquiry_requirement` (already corrected) | Still right. Also: `supplier_capability_confirmation` is a real table and `capability_agent confirm` is its only writer |
 | "`seed_staging_secrets.mjs` can be re-run" | It could not. The `internal_credential` INSERT had no `ON CONFLICT` and the table has no unique key on `context`, so a second run would **double all 74 credentials** and leave `fn_internal_auth` choosing between duplicates. Fixed: it now skips the bulk copy when the table is non-empty |
+| "`license_extract` at `max:1500` is the next suspect" | Right to suspect it, wrong about why. It had **not** truncated: 777–860 output tokens for a plain licence, 1,116–1,171 for a realistic 15-activity one. But that is 74–78% of the cap, and the failure would have been invisible — `parseJson` returns `{}` and every field is scrubbed to `''`, so a truncated licence is byte-identical to an unreadable one. Removed on the measurement, not on the suspicion |
+| "the token-ceiling problem is a handful of functions" | **63 caller-side `max` literals** exist across the Edge Functions, and `ai_gateway` takes `min(caller, policy)` — so every one of them can only lower the policy. 11 attributable sites still sit below their task class. Session 8's raises to `quote_comparison` and `document_extraction` did nothing for the callers that override them |
 | "map `drawing_redact_verify` to `document_extraction`, like its siblings" | **Breaks it.** `document_extraction` is `google/gemini-3.5-flash` and the verifier cannot parse that model's output — journey 35/37, `verify_unparseable`, while the model call itself returned `ok=true`. Mapped to `general_drafting` instead; see §3.4 |
 | "journey_test's cleanup leaves the customer row behind" | Confirmed and now **fixed**: it takes a run tag and calls `demo_factory`'s `teardown()`. Two runs under the old cleanup left 4 `customers`, 2 `inquiries`, 26 `notifications`, 10 `company_event` and 9 storage objects behind — measured by purging immediately after them |
 | "the corpus constraints are `match_relevance_floor` and `MAX_FANOUT`" | Both confirmed, but there is a **third**: `min_project_value` / `max_project_value` are a hard gate in the `cand` CTE, not the `w_size` score term. The same 8 suppliers yield 8 candidates for a 300,000 job and 6 for a 150,000 one — the two declaring a 250,000 minimum are absent, not low-ranked |
@@ -729,6 +765,14 @@ leads, so every one is **prospective damage, not damage already done** — which
   AV-scanned inline; `sanitizeUpload`'s structural sniffing is the inline gate and VirusTotal is a
   nightly sweep. A design, not a gap — but know it before claiming uploads are scanned.
 - **`quote_reviews` has no writer anywhere** and 0 rows.
+- **63 Edge Functions hard-code a `max` that can only lower the policy ceiling.** `ai_gateway` takes
+  `min(caller, policy)`, so `model_policy.max_tokens` is decorative wherever a caller sets its own —
+  and 11 of them sit below their task class today. Raising a policy ceiling in production, as
+  session 8 did for `quote_comparison` and `document_extraction`, changes nothing for those callers.
+- **`license_extract` caps itself at 1,500** against a task class of 8,000, and a realistic
+  15-activity licence uses 1,116–1,171 tokens — 74–78% of it. A truncated licence returns HTTP 200
+  with every field blank and `confidence:'low'`, identical to an unreadable scan, so nobody would
+  know. *(Fixed in staging.)*
 - **`doc_extract` caps itself at 2,000 output tokens** by passing `max:2000` to a gateway that
   computes `min(body.max, policy)`, so `model_policy.document_extraction`'s 8000 never applies.
   Measured natural output for one drawing page: 1,996 / 2,170 / 2,051 across three runs. Production's
@@ -755,6 +799,10 @@ leads, so every one is **prospective damage, not damage already done** — which
 
 Do not prepare one yet; the acceptance suite (Phase 8) does not exist. When it does, the sequence
 must cover **both code and configuration**, because several session-8 fixes live in the database:
+
+*Code (session 9):* **`license_extract`** — the caller-side `max:1500` removed. It had not truncated,
+but a realistic 15-activity licence sits at 74–78% of it, and a truncated licence returns HTTP 200
+with an entirely empty `doc` that cannot be told apart from an unreadable scan.
 
 *Code (session 9):* **`doc_extract`** — the caller-side `max:2000` removed so
 `model_policy.document_extraction`'s 8000 applies. Without this, production's document queue returns
@@ -808,7 +856,8 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | `sync_staging_grants.mjs` | restores table privileges in production's shape after a schema rebuild |
 | `apply_missing_objects.mjs` | catalogue diff: enums, sequences, columns, tables, views, routines. Does **not** diff constraints — which is why staging's `org_action_executor` lost production's NOT NULLs and CHECKs |
 | **`verify_doc_extract.mjs`** | drives the document queue end to end: upload → trigger → `doc_extract` → `status='done'` with real content, and measures the output against the live task-class ceiling |
-| `fixtures/` | the two synthetic upload documents + `README.md` |
+| **`verify_license_extract.mjs`** | reads a valid, a 15-activity, an expired and an illegible UAE trade licence, asserting content rather than `ok:true`, and measures each against the live ceiling |
+| `fixtures/` | the two synthetic upload PNGs, **`licence_pdf.mjs`** (generates 4 licence variants as real PDFs from a data table) + `README.md` |
 | **`demo_factory.mjs`** | the demo-data factory (§2.3). `--selftest` (default) 14/14, `--purge`, `--purge --dry-run`, `--corpus N [--customers N] [--keep]` |
 | **`verify_cost.mjs`** | 7 zero-spend checks over pricing, routing and monitoring; `--live` adds 4 that put one real inference through the gateway |
 | **`seed_cost_config.mjs`** | `model_rate` (derived from `model_registry`), `department_budget`, the missing `fn_task_class` row, and the three repointed views. Idempotent; `--reset-telemetry` also clears `ai_cost_log` rows written while the meter was broken |

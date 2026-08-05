@@ -58,7 +58,16 @@ Deno.serve(async (req) => {
     const sys = mode === 'license' ? SYS_LICENSE : mode === 'cert' ? SYS_CERT : SYS_PROFILE;
     let ai: any = {};
     try {
-      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'license_extract', max: 1500, temperature: 0.1, sys, input: [{ role: 'user', content }] }) });
+      // NO caller-side `max`. ai_gateway computes min(body.max ?? route.max_tokens,
+      // route.max_tokens), so a number here can only LOWER model_policy.document_extraction's 8000,
+      // never raise it. Measured on deployed staging 5 Aug 2026 against synthetic DED licences: a
+      // plain licence uses 811-860 output tokens (54-57% of the old 1500) and a realistic
+      // 15-activity one uses 1,116 (74%). It had not truncated yet, but a two-page licence or one
+      // with partner and manager blocks would, and the failure is invisible: parseJson returns {}
+      // on a truncated response and every field below is then scrubbed to '', so the caller gets
+      // HTTP 200 {ok:true, doc:{legal_name:'', license_number:'', confidence:'low'}} - identical to
+      // a genuinely unreadable scan. doc_extract carried the same pattern at max:2000 and DID fail.
+      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'license_extract', temperature: 0.1, sys, input: [{ role: 'user', content }] }) });
       const jd = await r.json();
       if (!r.ok || jd?.ok === false) return J({ error: 'ai_error', detail: jd?.detail || jd?.error || JSON.stringify(jd).slice(0, 300) }, 502);
       ai = parseJson(jd?.content || '{}');
