@@ -193,9 +193,30 @@ Deno.serve(async (req) => {
       }
       specialistKB = parts.join('\n\n').slice(0, 3800);
       if (!specialistKB) {
-        const catKeys = tradeSlugsForChecklist.map((s) => 'cat:' + s);
-        const { data: kbRows } = await admin.from('agent_knowledge').select('agent_key,content').in('agent_key', catKeys).order('priority', { ascending: false });
-        if (kbRows && kbRows.length) specialistKB = tradeSlugsForChecklist.map((s) => { const rows = (kbRows as any[]).filter((r) => r.agent_key === 'cat:' + s).map((r) => String(r.content || '').trim()).filter(Boolean); return rows.length ? (s + ':\n' + rows.join('\n').slice(0, 1400)) : ''; }).filter(Boolean).join('\n\n').slice(0, 2800);
+        // 6 Aug 2026. THIS FALLBACK COULD NOT FIRE FOR 53 OF 56 CATEGORIES, AND THAT WAS INVISIBLE.
+        // It used to read agent_knowledge directly with `'cat:' + s`, where s is a LEGACY
+        // category_specs slug ('glass', 'hvac', 'fitout'). agent_knowledge is keyed by CATALOGUE
+        // slug ('cat:aluminium-and-glass-suppliers'), and the measured overlap between the two
+        // vocabularies is EXACTLY ZERO — so `cat:glass` matched no row, the query returned [], and
+        // the specialist went into the conversation with its checklist and none of its Industry,
+        // Technical, UAE-authority or Supplier knowledge. The customer got a generic interrogation
+        // from an agent that had 15 modules of expertise sitting one join away.
+        //
+        // Nothing failed. No error, no empty-result log — the `if (kbRows && kbRows.length)` guard
+        // simply skipped, and FIELD EXPERTISE was omitted from the prompt. A silently absent prompt
+        // section reads exactly like a category that has no knowledge yet.
+        //
+        // fn_category_knowledge accepts EITHER vocabulary and resolves through lead_trade_map, so
+        // the caller does not have to know which one it is holding.
+        const catParts: string[] = [];
+        for (const s of tradeSlugsForChecklist.slice(0, 2)) {
+          try {
+            const { data: mods } = await admin.rpc('fn_category_knowledge', { p_category: s });
+            const rows = ((mods as any[]) || []).map((r: any) => String(r.content || '').trim()).filter(Boolean);
+            if (rows.length) catParts.push(s + ':\n' + rows.join('\n').slice(0, 1400));
+          } catch (_e) { /* knowledge is an enhancement, never a gate on intake */ }
+        }
+        specialistKB = catParts.join('\n\n').slice(0, 2800);
       }
     }
 
