@@ -62,26 +62,34 @@ const changed = execSync('git diff --name-only main...HEAD -- supabase/functions
   .filter(Boolean);
 const slugs = [...new Set(changed)].filter(s => s !== '_shared').sort();
 
-// Content check, not a version check. The deployed bundle embeds each module's source verbatim
-// (confirmed 5 Aug 2026: production's customer_api bundle contains its .select(...) call and
-// doc_extract's contains its comments, both byte-for-byte). So "is the repo's current source a
-// substring of the deployed bundle?" is a real answer to "is this deployed?", where a version
-// number only tells you something was deployed at some point.
-const norm = s => s.replace(/\r\n/g, '\n');
-const drifted = [];
+// A WHOLE-FILE SUBSTRING CHECK WAS TRIED HERE AND IT NEVER WORKED. It asked whether the repo's
+// index.ts appears verbatim inside the deployed bundle, on the evidence that some source lines do.
+// They do — but only the ones that survive transpilation. The bundle is transpiled JavaScript, not
+// TypeScript: measured 5 Aug 2026, the longest matching prefix of doc_extract was 432 chars of
+// 17,317 and of customer_api 211 of 81,594, both diverging at the import statements, and a mid-file
+// 300-char slice was absent from both. String literals and comments survive; type annotations,
+// non-null assertions and rewritten imports do not.
+//
+// So that check reported "differs" for all 16 functions BOTH BEFORE AND AFTER a clean 16/16
+// deploy. It happened to give the right answer before the deploy, by coincidence, which is the
+// most dangerous kind of wrong. A gate that can only ever fail is worse than no gate.
+//
+// What is left is honest: git tells us WHAT needs deploying, the deployed version number shows
+// movement, and the per-defect signatures below are the real assertion that a fix landed.
+const deployedVer = new Map();
 for (const slug of slugs) {
-  let src;
-  try { src = norm(readFileSync(`supabase/functions/${slug}/index.ts`, 'utf8')); }
-  catch { continue; }                                     // no index.ts: not a deployable entry point
-  const r = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/functions/${slug}/body`, { headers: H });
-  if (!r.ok) { drifted.push(`${slug}(not deployed)`); continue; }
-  if (!norm(await r.text()).includes(src)) drifted.push(slug);
+  const r = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/functions/${slug}`, { headers: H });
+  deployedVer.set(slug, r.ok ? `v${(await r.json()).version}` : 'NOT DEPLOYED');
 }
-item('code', 'every function this branch changed is deployed to production', drifted.length === 0,
-  drifted.length ? `${drifted.length} of ${slugs.length} changed function(s) differ from the deployed bundle: ${drifted.join(' ')}`
-                 : `all ${slugs.length} changed function(s) are live`,
-  drifted.length ? `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\deploy_functions.ps1 \`\n` +
-                   `           -ProjectRef ${PROD_REF} -IMeanProduction ${drifted.map(s => s.replace(/\(.*/, '')).join(' ')}` : null);
+const missing = slugs.filter(s => deployedVer.get(s) === 'NOT DEPLOYED');
+item('code', 'every function this branch changed exists in production', missing.length === 0,
+  missing.length ? `${missing.length} never deployed: ${missing.join(' ')}`
+                 : `${slugs.length} function(s), deployed versions: ` +
+                   slugs.map(s => `${s} ${deployedVer.get(s)}`).join(', '),
+  `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\deploy_functions.ps1 \`\n` +
+  `           -ProjectRef ${PROD_REF} -IMeanProduction ${slugs.join(' ')}\n` +
+  `-- Version numbers only prove SOMETHING was deployed. The signature checks below are what\n` +
+  `-- prove the FIX landed; treat those as the gate.`);
 
 // The three §8 priority fixes, asserted against the shipped bundle rather than the directory.
 // Each `bad` string was read out of production's own /functions/<slug>/body on 5 Aug 2026.
@@ -93,9 +101,16 @@ const SIGNATURES = [
   ['license_extract', /max\s*:\s*1500/,
    'caller-side max:1500 under an 8000 task class. A realistic 15-activity licence uses 1,116–1,171 tokens (74–78%), and a truncated licence returns HTTP 200 with every field blank — byte-identical to an unreadable scan.'],
 ];
+// COMMENTS ARE STRIPPED BEFORE MATCHING, and forgetting that produced a false alarm on the very
+// first run after deploying. doc_extract's fix is explained by a comment that quotes the defect it
+// removed ("...can only ever LOWER the policy ceiling, never raise it. `max:2000`"), and the
+// signature matched that comment: 2 hits in the raw bundle, 0 with comment lines removed. A
+// detector that trips on its own explanation would have sent the next session to re-fix something
+// already fixed.
+const codeOnly = (s) => s.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
 for (const [slug, bad, why] of SIGNATURES) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/functions/${slug}/body`, { headers: H });
-  const txt = r.ok ? await r.text() : '';
+  const txt = r.ok ? codeOnly(await r.text()) : '';
   const hit = bad.test(txt);
   item('code', `${slug}: the defect is gone from the deployed bundle`, !hit,
     hit ? `STILL LIVE — ${why}` : `signature ${bad} absent from ${txt.length} chars of deployed bundle`,

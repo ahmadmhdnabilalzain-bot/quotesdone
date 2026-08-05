@@ -1,7 +1,31 @@
 # START HERE — QuotesDone, 5 August 2026, end of session 9
 
-`16b8c9c` on **`repair/finish-quotesdone`** (branched from `repair/package-conformance-batch-0`).
-**Pushed. Not merged. Production unchanged.**
+On **`repair/finish-quotesdone`** (branched from `repair/package-conformance-batch-0`).
+**Pushed. Not merged.**
+
+> ## ⚠ PRODUCTION IS NO LONGER UNCHANGED — 5 August 2026, session 10
+>
+> Every previous revision of this brief said "Production unchanged." **That is now false.** On the
+> founder's explicit instruction, overriding the standing staging-only rule, session 10 deployed
+> **16 Edge Functions** and applied **9 configuration items** to `htdblwldjkcgjvmqkbeh`.
+>
+> - **The reveal is fixed in production.** `customer_api` no longer selects the non-existent
+>   `transactions.created_at`, so a customer who pays now actually sees the supplier. Confirmed
+>   absent from the deployed bundle, not merely committed.
+> - `doc_extract` and `license_extract` ship without their caller-side ceilings.
+> - All 6 active models are priced in `model_rate` — the 3 that were missing (both Gemini models and
+>   `qwen/qwen3.7-plus`) are the reason 247 of 603 calls billed at zero. **Historical rows stay at
+>   zero**; only new calls are metered.
+> - `quote_comparison` and `rfq_routing` moved to staging's **full** verified rows — tier, primary,
+>   fallback *and* ceiling, not just `max_tokens` as §8 used to claim.
+> - **16/16 production functions boot-checked** afterwards (read-only, no data created).
+> - Schema parity held throughout: 403/161/739/5,237 and ledger 712@20260804182051 on both.
+>
+> **Deployed from an unmerged branch.** `main` does not contain what production is running. Merging
+> is now a correctness matter, not housekeeping.
+>
+> `node scripts/verify_prod_readiness.mjs` → **12/13**. The one outstanding item is withheld
+> deliberately; see §8.
 
 Staging **`pglpqrhvozwepymcuunn`** · production **`htdblwldjkcgjvmqkbeh`** (read-only, never deployed to).
 
@@ -1043,7 +1067,37 @@ leads, so every one is **prospective damage, not damage already done** — which
 
 ---
 
-## 8. Production deployment sequence — NOT READY
+## 8. Production deployment — APPLIED 5 August 2026 (12/13)
+
+**The one item deliberately NOT applied**, and why it should stay unapplied until someone decides
+what it should become:
+
+> `capability_agent`, `category_reqs`, `inquiry_intake` and `supplier_review` all map to task
+> classes with `tier=none, max_tokens=0` — dead at the model layer. §8 listed "`inquiry_intake`
+> task-class remap off `missing_fields_detection`" as a deployment item, but **it never said what to
+> remap it TO**, and **staging has the identical switched-off state**, so there is no verified
+> counterpart to ship. Applying a guess would turn on model spend on four paths that no gate has
+> ever exercised. `verify_prod_readiness.mjs` keeps reporting it so it cannot be forgotten.
+
+**Two defects in the readiness checker itself, found by running it immediately after deploying** —
+both recorded because a future session will otherwise trust a broken gate:
+
+1. **A signature matched its own explanation.** `doc_extract` reported STILL LIVE after a clean
+   deploy, because the regex `/max\s*:\s*2000/` matched the *comment* documenting the removal
+   ("…never raise it. `max:2000`"). 2 hits in the raw bundle, **0** with comment lines stripped.
+   A detector that trips on its own explanation would have sent the next session to re-fix
+   something already fixed. Comments are now stripped before matching.
+2. **The whole-file content check never worked.** It asked whether the repo's `index.ts` appears
+   verbatim in the deployed bundle. The bundle is **transpiled JavaScript**, not TypeScript:
+   longest matching prefix was **432 of 17,317** chars for `doc_extract` and **211 of 81,594** for
+   `customer_api`, both diverging at the imports, with mid-file slices absent. It reported "differs"
+   for all 16 functions *both before and after* a successful 16/16 deploy — right beforehand purely
+   by coincidence, which is the most dangerous kind of wrong. Replaced: git says what to deploy,
+   version numbers show movement, and **the per-defect signatures are the gate**.
+
+*The original planning section follows, kept for the reasoning rather than the status.*
+
+## 8b. Production deployment sequence — the original plan (superseded)
 
 Do not prepare one yet; the acceptance suite (Phase 8) does not exist. When it does, the sequence
 must cover **both code and configuration**, because several session-8 fixes live in the database:
