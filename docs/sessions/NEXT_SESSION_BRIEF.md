@@ -47,7 +47,7 @@ node scripts/staging/verify_fraud_hash.mjs       #   5/5  copied_quote can now f
 node scripts/staging/verify_doc_extract.mjs      #   7/7  the document queue — 1 model call, ~0.075 AED
 node scripts/staging/verify_license_extract.mjs  # 12/12  licence reading — 4 calls, ~0.2 AED
 node scripts/staging/verify_supplier_docs.mjs    # 13/13  supplier-docs end to end — 2 calls, ~0.1 AED
-node scripts/staging/demo_factory.mjs            # 17/17  factory selftest, ~40 s, cleans up after itself
+node scripts/staging/demo_factory.mjs            # 18/18  factory selftest, ~40 s, cleans up after itself
 node scripts/staging/journey_test.mjs            # 39/39  signup -> upload -> quotation comparison
 node scripts/verify_prod_readiness.mjs           # 13/13  §8 against PRODUCTION, read-only
 ```
@@ -1002,6 +1002,27 @@ Staging returned to baseline afterwards (factory selftest 15/15, no drift in 23 
 | "`max: 2000` on `drawing_redact` detection is fine, the journey passes" | The journey uses a **one-page** drawing. Measured: one page costs 535–790 output tokens, so 2000 begins truncating at ~3 pages. A ceiling that scales with input size cannot be cleared by a fixture that never varies the input size |
 | "compare deployed vs repo by version or commit date" | Both are wrong instruments. A commit-timestamp diff reported **118** functions behind the repo (including `_shared`, `home`, `faq`) because this repo was built by pulling *from* production. Content comparison against the deployed bundle, scoped to `git diff main...HEAD`, gives **14** |
 
+### Corrections found in session 11
+
+All fifteen gates were re-run and **all fifteen were green on the first pass** — no regression, no drift.
+The one defect found came from the step *after* the gates: a `--purge --dry-run` drift check.
+
+| earlier claim | truth |
+|---|--:|
+| §4 (session 9): "`agent_actions` … now torn down, swept by `--purge`, and added to the factory's baseline counters" | **Two of its three branches could never fire.** The tagged teardown step sat below `quotes` (:1036) and `inquiries` (:1044), so `${QUO_T}` and `${INQ_T}` were already-empty subqueries by the time it ran; only the `leads` branch worked, because leads are deleted one step *later*. `route_inquiry` writes a `coverage_gap` row against `inquiries` on every dispatch that finds no capable supplier — which `journey_test` produces **every run**, because it creates the inquiry before the supplier exists. **14 dangling rows had accumulated, one per run**, while teardown reported success |
+| "the baseline counter check would have caught it — that is what it is for" | It counts `agent_actions` and still missed this for two sessions. **The selftest never generates the row**: it dispatches into a populated corpus, so no coverage gap is ever recorded, so the counter never moves. A counter only catches what something wrote. The fix therefore includes making the fixture write all three shapes — check 17, `the teardown rule for agent_actions is actually exercised` |
+| "an exception-window run showed `agent_actions 1`, so the sweep works" | That is the **one** reachable branch (`target_table='leads'`). A rule that fires on one of three inputs looks identical in the output to a rule that fires on all three |
+
+The file states the rule it broke, twenty lines above the break: *"they key off the quote/inquiry id as TEXT, so
+they must go before the row they name … That ordering mistake is exactly what left 452 doc_versions and 186
+company_event rows in staging."* Every other step in the list obeys it; `agent_actions` was the sole violator,
+so this is one fix and not a pattern needing a sweep — the whole list was re-checked step by step.
+
+> **After the journey, run `node scripts/staging/demo_factory.mjs --purge --dry-run`.** The gates were all
+> green while this was leaking; a passing suite is not the same measurement as a clean database. The only
+> thing it should report is `1 storage/signed-terms` — the rolling `registers/customers-register.xlsx`
+> register that `kyc accept_terms` regenerates, documented in §2.3 and not per-run litter.
+
 ---
 
 ## 5. Traps that cost real time (sessions 7-8)
@@ -1272,7 +1293,7 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | **`verify_exception_window.mjs`** | the 14-day licence exception end to end — open, the 3/7/12 reminder ladder, auto-rejection, recovery after auto-rejection, and the founding cohort |
 | **`verify_portal.mjs`** | four inquiries across four states with 2–3 quotes each and one revealed; asserts the paywall by what is ABSENT pre-reveal, plus the no-customers-row and Arabic cases |
 | `fixtures/` | the two synthetic upload PNGs, **`licence_pdf.mjs`** (generates 4 licence variants as real PDFs from a data table) + `README.md` |
-| **`demo_factory.mjs`** | the demo-data factory (§2.3). `--selftest` (default) 14/14, `--purge`, `--purge --dry-run`, `--corpus N [--customers N] [--keep]` |
+| **`demo_factory.mjs`** | the demo-data factory (§2.3). `--selftest` (default) 18/18, `--purge`, `--purge --dry-run`, `--corpus N [--customers N] [--keep]`. Check 17 seeds `agent_actions` against the run's own inquiry, quote and lead, because the baseline counter can only catch a row something actually wrote |
 | **`verify_cost.mjs`** | 7 zero-spend checks over pricing, routing and monitoring; `--live` adds 4 that put one real inference through the gateway |
 | **`seed_cost_config.mjs`** | `model_rate` (derived from `model_registry`), `department_budget`, the missing `fn_task_class` row, and the three repointed views. Idempotent; `--reset-telemetry` also clears `ai_cost_log` rows written while the meter was broken |
 | **`verify_matching.mjs`** | builds the 100-supplier corpus and asserts the score ladder, the relevance floor, the fan-out cap and the four hard gates. `--live` adds one real dispatch |

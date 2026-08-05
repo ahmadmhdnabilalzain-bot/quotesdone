@@ -1026,10 +1026,21 @@ export async function teardown(run) {
     ['notifications', `delete from public.notifications where inquiry_id in ${INQ} or lead_id in ${LEAD} or quote_id in ${QUO} or to_email like 'qd-${tag}-%@example.com'`],
     ['comparison_candidate_v2', `delete from public.comparison_candidate_v2 where quote_id in ${QUO}`],
     ['comparison_run_v2', `delete from public.comparison_run_v2 where inquiry_id in ${INQ}`],
-    // doc_versions, documents and company_event key off the quote/inquiry id as TEXT, so they must
-    // go before the row they name: once the quote is deleted the subquery finds nothing and the
-    // log row survives as litter. That ordering mistake is exactly what left 452 doc_versions and
-    // 186 company_event rows in staging.
+    // doc_versions, documents, company_event and agent_actions key off the quote/inquiry/lead id as
+    // TEXT, so they must go before the row they name: once the quote is deleted the subquery finds
+    // nothing and the log row survives as litter. That ordering mistake is exactly what left 452
+    // doc_versions and 186 company_event rows in staging.
+    //
+    // agent_actions carries three such branches and only ONE of them used to be reachable. The step
+    // sat below both 'quotes' and 'inquiries', so those two branches matched an already-empty
+    // subquery every time; only 'leads' fired, because leads are deleted one step later - which is
+    // why an exception-window run looked like it swept correctly. route_inquiry writes a
+    // 'coverage_gap' row against 'inquiries' whenever a dispatch finds no capable supplier, and
+    // journey_test produces one on every run because it creates the inquiry before the supplier
+    // exists. 14 dangling rows had accumulated by 6 Aug 2026, one per run, while teardown reported
+    // success and the baseline counter check stayed green - the factory's own selftest never
+    // dispatches into an empty corpus, so it never generates the row it fails to clean up.
+    ['agent_actions', `delete from public.agent_actions where (target_table='leads' and target_id in ${LEAD_T}) or (target_table='inquiries' and target_id in ${INQ_T}) or (target_table='quotes' and target_id in ${QUO_T})`],
     ['doc_versions', `delete from public.doc_versions where entity_type='quote' and entity_id in ${QUO_T}`],
     ['documents', `delete from public.documents where ${DOCS_W}`],
     ['company_event (quote)', `delete from public.company_event where entity_type='quote' and entity_id in ${QUO_T}`],
@@ -1048,10 +1059,6 @@ export async function teardown(run) {
     ['supplier_negotiation_policy', `delete from public.supplier_negotiation_policy where supplier_id in ${LEAD}`],
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${LEAD}`],
-    // fn_supplier_exception_sweep records its auto-rejections here as telemetry, keyed by
-    // target_table/target_id text rather than a foreign key - so nothing cascades and nothing
-    // complained when a run left one behind pointing at a lead that no longer existed.
-    ['agent_actions', `delete from public.agent_actions where (target_table='leads' and target_id in ${LEAD_T}) or (target_table='inquiries' and target_id in ${INQ_T}) or (target_table='quotes' and target_id in ${QUO_T})`],
     ['leads', `delete from public.leads where id in ${LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id in ${CUST} or owner_email like 'qd-${tag}-%@example.com'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${CUST}`],
@@ -1389,6 +1396,23 @@ export async function selftest() {
       ok('the licence gate fixture actually opens the gate',
         gated.approval_status === 'action_required' && !!gated.licence_gate_reason,
         `approval_status=${gated.approval_status} reason=${gated.licence_gate_reason ?? 'none'}`);
+
+      // agent_actions is counted by the baseline check but nothing here ever GENERATED one, so the
+      // teardown rule for it went two sessions without being exercised - and two of its three
+      // branches were dead, because the step ran after the quotes and inquiries it names had already
+      // been deleted. A counter can only catch a row that something wrote. Write all three shapes:
+      // 'leads' is what fn_supplier_exception_sweep records, 'inquiries' is the coverage_gap
+      // route_inquiry writes when a dispatch finds no capable supplier, 'quotes' completes the set.
+      const seeded = await mgmtWrite(REF, `with i as (
+          insert into public.agent_actions (agent, kind, target_table, target_id) values
+            ('operations_ai', 'coverage_gap',  'inquiries', ${q(String(inq.id))}),
+            ('operations_ai', 'selftest_probe','quotes',    ${q(String(qa.id))}),
+            ('operations_ai', 'selftest_probe','leads',     ${q(String(supA.leadId))})
+          returning 1) select count(*)::int n from i`, 'selftest seed agent_actions');
+      ok('the teardown rule for agent_actions is actually exercised',
+        Number(seeded?.[0]?.n ?? 0) === 3,
+        `${seeded?.[0]?.n ?? 0} telemetry row(s) written against this run's inquiry, quote and lead ` +
+        `- the baseline check below is what proves teardown removes them`);
 
       return { tag: run.tag };
     });
