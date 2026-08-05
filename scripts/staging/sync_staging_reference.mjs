@@ -30,7 +30,7 @@ const _colCache = new Map();
 // vector per row, so 500 of them is megabytes and the management API answers 413 "request entity
 // too large" - which the multi-pass loop then reported as "deferred" forever. Size the batch by
 // what a table's rows actually weigh, not by a number that happened to suit taxonomy tables.
-const BATCH_FOR = { kb_chunks: 20 };
+const BATCH_FOR = { kb_chunks: 20, kb_revisions: 40 };
 const batchOf = (t) => BATCH_FOR[t] ?? BATCH;
 
 // Taxonomy and policy only. Nothing here identifies a real customer or a real supplier.
@@ -66,6 +66,37 @@ const TABLES = [
   // would cost real model spend to reproduce vectors that already exist and must match production's
   // anyway for a staging result to predict a production one.
   'kb_chunks',
+  // The rest of the knowledge estate. Every one of these was 0 in staging against a populated
+  // production table, so any behaviour that consults them could only ever be tested in production.
+  // Deliberately EXCLUDED as telemetry or work-queue state rather than knowledge, and correctly
+  // empty on a project with no history: knowledge_exam_results (outcomes of running the exams),
+  // knowledge_kpi_snapshots (point-in-time measurements), spec_backlog (a work queue),
+  // mep_subcategory_review (review workflow state). Also excluded: lead_category and
+  // lead_subcategory - 17k and 25k rows keyed to the 20,464 real supplier leads, which is business
+  // data and must not be copied to a branch.
+  'category_agent_map',            // 84: which specialist owns which catalogue category
+  'category_licence_activity',     // 20: the licence activities a category legally requires
+  'employee_knowledge_standard',   // 12: what an employee must know before acting
+  'employee_knowledge',            // 900
+  'kb_category_aliases',
+  'kb_operational_route_test',     // 344: the routing regression fixtures
+  'qualification_playbooks',       // 29: per-category qualification play
+  'knowledge_exam_questions',      // 336: how a desk is examined on its own knowledge
+  'os_knowledge_domain',           // 380: which OS owns which knowledge, and which it queries
+  'reg_catalog',
+  'regulations',
+  'mdm_standards',
+  'quality_standard',
+  'scenario_library',
+  'seo_categories',
+  'marketing_library',
+  'subcategory_trade_contribution',
+  // kb_revisions (7,842) is deliberately NOT here. It is the revision HISTORY of knowledge edits
+  // made in production - a log of what happened there, not knowledge a branch needs to reason
+  // with - so it belongs with knowledge_exam_results and knowledge_kpi_snapshots on the excluded
+  // side of the same line. It also refuses to copy: each row carries a full content snapshot, so
+  // even 40 per request answers 413. A partial 1,869-row slice of production's history sitting in
+  // staging is worse than none, because it looks like staging's own history and is not.
   // Parents the children below FK to. field_definition and field_definition_source were listed for
   // two sessions and silently deferred on every run because mep_trade was never in the list; the
   // multi-pass loop reported them as "deferred" and the summary line reported a total that looked
