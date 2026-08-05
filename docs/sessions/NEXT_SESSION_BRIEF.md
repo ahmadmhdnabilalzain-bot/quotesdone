@@ -11,7 +11,8 @@ Run these first. All five should be green before you touch anything:
 node scripts/staging/verify_phase1.mjs        # 12/12  deployed, isolated, in sync
 node scripts/staging/smoke_staging.mjs        # 15/15  auth, storage, postgrest, 10 functions
 node scripts/staging/verify_cost.mjs          #  7/7   pricing, routing, monitoring — zero spend
-node scripts/staging/demo_factory.mjs         # 14/14  factory selftest, ~40 s, cleans up after itself
+node scripts/staging/verify_matching.mjs      # 12/12  floor, fan-out and the hard gates — zero spend
+node scripts/staging/demo_factory.mjs         # 15/15  factory selftest, ~40 s, cleans up after itself
 node scripts/staging/journey_test.mjs         # 37/37  signup -> upload -> quotation comparison
 ```
 
@@ -495,21 +496,33 @@ Treat the corpus size as a working figure, not a spec.
 **Replaying `journey_test` 100 times is not viable:** 464 s and 34 agent runs per run → ~12.9 hours
 and ~3,400 agent runs.
 
-> **Demo data — the corpus design:**
-> - **205 identities via SQL + auth-admin, zero model calls.** Reserve the API path (2 billable
->   calls per supplier) for the 2-3 "deep" cases actually being asserted end to end.
-> - **100 suppliers spread 4-per-trade across the 25 taxonomy trades**, with `products_norm`
->   overlap — not rating — as the score dial (§2.4). Vary brands, `project_types`,
->   `min/max_project_value`, `coverage_emirates`.
-> - **Leave `license_doc_path` NULL on bulk INSERT** or all 100 land on `action_required` and the
->   corpus is invisible (§2.4).
-> - **100 customers** with `customers` row, `email_verified`, accepted terms and a pre-canned
->   inquiry each; only 2-3 run the real AI intake.
-> - Torn down **as a set**, by run tag.
->
-> Then assert the things a corpus is actually for: `match_relevance_floor` 35 and `MAX_FANOUT` 5
-> behaviour, a supplier with zero `products_norm` overlap scoring 5 and being correctly discarded,
-> and dispatch fanning out to a *different* five for a *different* trade.
+**The corpus and its assertions exist: `scripts/staging/verify_matching.mjs`, 14/14.** 12 checks are
+pure SQL against the deployed `fn_match_capability` over a 100-supplier corpus (4 per trade × 25
+trades, two round trips, zero model calls); `--live` adds two that cost one `rfq_routing` call.
+Measured:
+
+| claim | measured |
+|---|---|
+| `products_norm` overlap is the score dial | 8/6/4/0 product hits → **50 / 40 / 30 / 5**, exactly what the weights predict |
+| `match_relevance_floor` 35 discards the weak | 2 of 4 kept (50, 40); 30 and 5 discarded |
+| a zero-overlap supplier scores 5 | `score=5.0 hits=0` — `w_size*0.5` with min/max null |
+| `track` is 0 on a fresh corpus | 0.000 for all — the spread is reproducible, unlike a rating spread |
+| `p_limit 12` never binds | 4 candidates reach a limit of 12. Trades are a **gate** |
+| a different trade reaches different suppliers | hvac returned 4, **0** shared with the aluminium set |
+| a missing mandatory authority | electrical 4 → **3** after dropping `electrical_utility`. It does not score low, it **disappears** |
+| the role gate | a `supplies_only` supplier is excluded for `p_need='executes'` and found for `'supplies'` |
+| `MAX_FANOUT` 5 binds | 8 candidates above the floor → dispatch `notified=5, capped=true` |
+| every supplier contacted declares the trade | 5 matches, 0 outside the trade |
+
+**A gate the brief never mentioned: `min_project_value`.** `p_value is null or (p_value >= min and
+p_value <= max)` runs in the `cand` CTE, so a supplier whose declared minimum exceeds the job value
+is removed **before scoring** — it does not rank low, it is absent. The same 8 suppliers return 8
+candidates for a 300,000 job and **6** for a 150,000 one. Any corpus that varies
+`min/max_project_value` silently varies eligibility too.
+
+> Still to do for Phase 8: the 100 **customers** half, and driving the deployed Vercel preview URL.
+> Nothing has yet run against the frontend — it was verified by reading its built bundle, and there
+> is still no browser test harness in the repo.
 
 Nothing has yet run against the deployed Vercel preview URL. The frontend was verified by reading
 its built bundle, not by driving it. There is no browser test harness in the repo.
@@ -548,6 +561,8 @@ its built bundle, not by driving it. There is no browser test harness in the rep
 | "`seed_staging_secrets.mjs` can be re-run" | It could not. The `internal_credential` INSERT had no `ON CONFLICT` and the table has no unique key on `context`, so a second run would **double all 74 credentials** and leave `fn_internal_auth` choosing between duplicates. Fixed: it now skips the bulk copy when the table is non-empty |
 | "map `drawing_redact_verify` to `document_extraction`, like its siblings" | **Breaks it.** `document_extraction` is `google/gemini-3.5-flash` and the verifier cannot parse that model's output — journey 35/37, `verify_unparseable`, while the model call itself returned `ok=true`. Mapped to `general_drafting` instead; see §3.4 |
 | "journey_test's cleanup leaves the customer row behind" | Confirmed and now **fixed**: it takes a run tag and calls `demo_factory`'s `teardown()`. Two runs under the old cleanup left 4 `customers`, 2 `inquiries`, 26 `notifications`, 10 `company_event` and 9 storage objects behind — measured by purging immediately after them |
+| "the corpus constraints are `match_relevance_floor` and `MAX_FANOUT`" | Both confirmed, but there is a **third**: `min_project_value` / `max_project_value` are a hard gate in the `cand` CTE, not the `w_size` score term. The same 8 suppliers yield 8 candidates for a 300,000 job and 6 for a 150,000 one — the two declaring a 250,000 minimum are absent, not low-ranked |
+| "a demo inquiry can be inserted and dispatched" | Not without satisfying the **category checklist**. `rfq_ready` is computed by `trg_rfq_complete` and cannot be set by hand; `fn_rfq_required_check` demands an answer for every `category_specs` field marked required. A hand-written spec scores 85/70 generic and still fails, and the only symptom is `dispatch_inquiry` returning `{"ok":true,"skip":"not_rfq_ready"}` — a 200 that contacted nobody. `makeInquiry` now builds the spec from `category_specs` in SQL and throws if the row comes back not ready |
 
 ---
 
@@ -708,6 +723,7 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | **`demo_factory.mjs`** | the demo-data factory (§2.3). `--selftest` (default) 14/14, `--purge`, `--purge --dry-run`, `--corpus N [--customers N] [--keep]` |
 | **`verify_cost.mjs`** | 7 zero-spend checks over pricing, routing and monitoring; `--live` adds 4 that put one real inference through the gateway |
 | **`seed_cost_config.mjs`** | `model_rate` (derived from `model_registry`), `department_budget`, the missing `fn_task_class` row, and the three repointed views. Idempotent; `--reset-telemetry` also clears `ai_cost_log` rows written while the meter was broken |
+| **`verify_matching.mjs`** | builds the 100-supplier corpus and asserts the score ladder, the relevance floor, the fan-out cap and the four hard gates. `--live` adds one real dispatch |
 
 `sync_staging_reference.mjs` still leaves `field_definition` and `field_definition_source` unloaded
 (FK to a parent outside the allowlist). Neither is on the journey path.

@@ -313,14 +313,17 @@ export function capabilityProfile(trade, variant = 0, variants = 1, opts = {}) {
   const t = TRADES[trade];
   if (!t) throw new Error(`unknown trade ${trade} (expected one of taxonomy_trade.code)`);
   const decoyTrade = TRADE_CODES[(TRADE_CODES.indexOf(trade) + 7) % TRADE_CODES.length];
-  const isDecoy = variants >= 3 && variant === variants - 1;
+  // `flat` gives every supplier the full product list, so they all clear match_relevance_floor.
+  // That is what a fan-out test needs: the ladder deliberately puts only 2 of 4 above the floor,
+  // which can never exercise a cap of 5.
+  const isDecoy = !opts.flat && variants >= 3 && variant === variants - 1;
 
   // Two products dropped per rung, and the last rung of a 3+ ladder is a zero-overlap decoy. With
   // the default 8 products and 4 variants that is 8, 6, 4 and 0 matching products, so a query using
   // all 8 scores 50, 40, 30 and 5 - two clearly above the match_relevance_floor of 35, one clearly
   // below it, and one on the w_size*0.5 floor. No rung lands ON 35, so a floor test never depends
   // on whether the comparison is > or >=.
-  const keep = Math.max(1, t.products.length - variant * 2);
+  const keep = opts.flat ? t.products.length : Math.max(1, t.products.length - variant * 2);
   const products = isDecoy ? TRADES[decoyTrade].products.slice(0, 4) : t.products.slice(0, keep);
   const auth = AUTHORITY[trade];
   return {
@@ -566,11 +569,88 @@ export async function makeInquiry(run, opts = {}) {
              ${q(status)}, ${num(opts.budget ?? null)}, ${q(opts.scope_type || 'single')},
              ${q(opts.brief_source || 'chat')}, ${q(opts.urgency || 'normal')},
              ${jb({ qd_run: run.tag, source: 'demo_factory' })},
-             ${jb(opts.spec || { products: t.products.slice(0, 4), quantity: opts.quantity ?? 40 })})
+             ${rfqReadySpec(trade, opts)})
      returning id`, 'demo inquiry');
   const id = ins?.[0]?.id;
   if (!id) throw new Error('inquiries insert returned no id');
+
+  // An inquiry that is not rfq_ready cannot be dispatched, and dispatch_inquiry says so with
+  // {"ok":true,"skip":"not_rfq_ready"} - a 200 that did nothing. Fail loudly here instead.
+  if (opts.rfqReady !== false) {
+    const row = (await mgmtRead(REF,
+      `select rfq_ready, completeness->>'score' score,
+              completeness->'category_check'->>'missing' cat_missing
+         from public.inquiries where id=${q(id)}`))[0] || {};
+    if (row.rfq_ready !== true) {
+      throw new Error(`demo inquiry ${id} is not rfq_ready (score ${row.score}, ` +
+        `category_specs still missing ${row.cat_missing}) - dispatch would answer ` +
+        '{"ok":true,"skip":"not_rfq_ready"} and contact nobody');
+    }
+  }
   return { id, customerId: cust.customerId, category: trade, trades: [trade], status };
+}
+
+/**
+ * The structured capability requirement `route_inquiry` gates on. Without a row here
+ * `capabilityRetrieve` calls `inquiry_parse` to build one - a model call - and returns null if it
+ * still cannot, dropping routing back to the loose legacy path. Writing it directly keeps a
+ * matching test deterministic and free.
+ *
+ * Note `route_inquiry` calls fn_match_capability with a hardcoded `p_limit: 12` and applies
+ * `match_relevance_floor` AFTER that limit, so the limit binds before the floor does.
+ */
+export async function makeRequirement(run, opts = {}) {
+  const { inquiry } = opts;
+  if (!inquiry) throw new Error('makeRequirement needs { inquiry }');
+  const trade = opts.trade || inquiry.category || 'aluminium';
+  const t = TRADES[trade] || TRADES.aluminium;
+  await mgmtWrite(REF,
+    `insert into public.inquiry_requirement
+       (inquiry_id, trades_required, role_required, emirate, authority_required, products_norm,
+        brands_specified, project_type, value_band, scope_type, confidence, missing_fields,
+        parsed_at, parser_version)
+     values (${q(inquiry.id)}, ${arr(opts.trades || [trade])}, ${q(opts.role || 'executes')},
+             ${q(opts.emirate ?? null)}, ${arr(opts.authority || [])},
+             ${arr(opts.products || t.products)}, ${arr(opts.brands || [])},
+             ${q(opts.project_type ?? null)}, ${num(opts.value_band ?? 150000)},
+             ${q(opts.scope_type || 'single')}, '{"overall":0.9}'::jsonb, '{}'::text[],
+             now(), 'demo_factory')
+     on conflict (inquiry_id) do update
+       set trades_required=excluded.trades_required, role_required=excluded.role_required,
+           products_norm=excluded.products_norm, value_band=excluded.value_band,
+           emirate=excluded.emirate, project_type=excluded.project_type`, 'demo requirement');
+  return { inquiry_id: inquiry.id, trades: opts.trades || [trade] };
+}
+
+/**
+ * A spec that satisfies the category's OWN checklist.
+ *
+ * `trg_rfq_complete` runs `fn_rfq_score` on every insert and update, so `rfq_ready` cannot be set
+ * by hand - it is computed. It needs 70 generic points AND `fn_rfq_required_check` to find an
+ * answer for every field `category_specs` marks required. A hand-written spec satisfies the first
+ * and fails the second, and the only symptom is dispatch_inquiry returning
+ * {"ok":true,"skip":"not_rfq_ready"}: an ok:true that contacted nobody.
+ *
+ * So the required keys are read out of category_specs IN SQL rather than hard-coded. A field with
+ * `options` gets its first option (which is also what the option-token fallback scans the blob
+ * for); everything else gets its own question echoed back, which is enough for `_rfq_answered` -
+ * that only rejects null, empty, '[]', '{}', '-', '?', 'null', 'not sure', 'unknown', 'tbd',
+ * 'n/a' and 'na'. Reading the checklist instead of copying it means a new required field starts
+ * being answered the day it is added.
+ */
+function rfqReadySpec(trade, opts) {
+  const base = opts.spec || { products: (TRADES[trade] || TRADES.aluminium).products.slice(0, 4),
+                              quantity: opts.quantity ?? 40 };
+  if (opts.rfqReady === false) return jb(base);
+  return `(coalesce((
+      select jsonb_object_agg(lower(f->>'key'),
+               coalesce((select o from jsonb_array_elements_text(f->'options') o limit 1),
+                        'Demo answer: ' || coalesce(f->>'question', f->>'key')))
+        from public.category_specs cs, jsonb_array_elements(cs.fields) f
+       where lower(cs.category) = lower(${q(trade)})
+         and coalesce((f->>'required')::boolean, false)
+         and nullif(btrim(lower(coalesce(f->>'key',''))), '') is not null
+    ), '{}'::jsonb) || ${jb(base)})`;
 }
 
 const tagInquiry = (run, id) => mgmtWrite(REF,
@@ -682,11 +762,13 @@ export async function makeBulkCorpus(run, opts = {}) {
   const specs = [];
   for (const trade of trades) {
     for (let v = 0; v < perTrade; v++) {
-      const profile = capabilityProfile(trade, v, perTrade);
+      const profile = capabilityProfile(trade, v, perTrade, { flat: opts.flat, roleSet: opts.roleSet });
       const t = TRADES[trade];
       specs.push({
         trade, variant: v, profile,
-        email: `qd-${run.tag}-corp${specs.length}@example.com`,
+        // run.seq, not specs.length: leads carries a unique index on lower(email), and a second
+        // makeBulkCorpus call in the same run would restart the numbering and collide on corp0.
+        email: `qd-${run.tag}-corp${run.seq++}@example.com`,
         companyName: `QD Demo ${t.name} ${String(v + 1).padStart(2, '0')} ${run.tag.slice(0, 4)}`,
         emirate: profile.coverage_emirates[0] || 'Dubai',
       });
@@ -1148,6 +1230,18 @@ export async function selftest() {
       const tagged = (await mgmtRead(REF,
         `select provenance->>'qd_run' t from public.inquiries where id=${q(inq.id)}`))[0]?.t;
       ok('every row carries the run tag', tagged === run.tag, `provenance.qd_run=${tagged}`);
+
+      // rfq_ready is computed by trg_rfq_complete and cannot be set by hand. An inquiry that is not
+      // ready cannot be dispatched, and dispatch_inquiry reports that as {"ok":true,
+      // "skip":"not_rfq_ready"} - a 200 that contacted nobody.
+      const ready = (await mgmtRead(REF,
+        `select rfq_ready, completeness->>'score' score,
+                completeness->'category_check'->>'required_total' req
+           from public.inquiries where id=${q(inq.id)}`))[0] || {};
+      ok('the inquiry satisfies the category checklist and is dispatchable',
+        ready.rfq_ready === true,
+        `rfq_ready=${ready.rfq_ready} score=${ready.score}/70 ` +
+        `category_specs required fields answered=${ready.req}`);
 
       const qa = await makeQuote(run, { inquiry: inq, supplier: supA, amount: 125000 });
       const qb = await makeQuote(run, { inquiry: inq, supplier: supB, amount: 131750 });
