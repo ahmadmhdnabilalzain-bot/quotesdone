@@ -273,6 +273,27 @@ step('customer reference photos redacted and stored',
   r.status === 200 && r.json?.ok === true && photoPaths.length > 0,
   `HTTP ${r.status} ${photoPaths.length} redacted photo path(s)`);
 
+// REDACTION PROVENANCE (5 Aug 2026). attach_photos sent drawing_redact no owner at all, so this
+// row landed with customer_id AND owner_email both NULL - a PRIVACY control whose record could not
+// be attributed to the customer whose photos it redacted, and which `--purge` could only sweep as
+// unattributable. drawing_redact's recordRun had always read both fields off the request body;
+// nothing ever sent them. Asserted here rather than in a new fixture because this is the only path
+// that calls attach_photos, and it already runs.
+//
+// The expected id is looked up by EMAIL: customer_api's `me` gives the public.customers row a
+// FRESH uuid rather than the auth uid, so asserting against cust.id would pass for the wrong reason.
+const prov = (await mgmtRead(REF, `
+  select r.customer_id, r.owner_email, r.caller_ref,
+         (select id from public.customers where lower(email) = lower('${cust.email}')) as expected_customer
+    from public.drawing_redaction_runs r
+   where lower(coalesce(r.owner_email,'')) = lower('${cust.email}')
+     and coalesce(r.caller_ref,'') like 'refphoto/%'
+   order by r.created_at desc limit 1`))[0];
+step('the reference-photo redaction records WHO caused it',
+  !!prov && !!prov.customer_id && !!prov.expected_customer && prov.customer_id === prov.expected_customer,
+  prov ? `owner_email=${prov.owner_email} customer_id=${prov.customer_id} expected=${prov.expected_customer} caller_ref=${String(prov.caller_ref).slice(0, 28)}`
+       : 'no drawing_redaction_runs row names this customer as owner - provenance is NULL');
+
 r = await call('customer_api', cust.jwt, {
   action: 'create_inquiry',
   intake_id: intakeId,

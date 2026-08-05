@@ -29,9 +29,21 @@ Deno.serve(async (req) => {
     if (!images.length) return J({ ok: true, paths: [] });
     const secret = await sec('cred_fn_attach_photos');
     const prefix = `refphoto/${uid}/${Date.now()}`;
+    // REDACTION PROVENANCE (5 Aug 2026). drawing_redact's recordRun already reads
+    // `owner_customer_id` and `owner_email` off the request body - this caller simply never sent
+    // them, so every drawing_redaction_runs row produced by the reference-photo path carried BOTH
+    // as NULL. A redaction is a PRIVACY control, and its record could not be attributed to the
+    // customer whose photos were redacted; `--purge` could only sweep such rows as unattributable,
+    // and a single run could not clean up after itself at all.
+    //
+    // Resolved by EMAIL, not by user.id. customer_api's `me` creates the public.customers row with
+    // a FRESH uuid rather than reusing the auth uid (§2.2 - the mechanism behind the 65 orphaned
+    // customers), so user.id is NOT customers.id, and stamping it would record provenance against
+    // a customer that does not exist - worse than recording none.
+    const { data: cust } = await admin.from('customers').select('id').ilike('email', user.email).maybeSingle();
     let paths: string[] = [];
     try {
-      const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images, prefix }) });
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images, prefix, owner_customer_id: cust?.id || null, owner_email: user.email }) });
       const j = await r.json();
       if (j?.ok && Array.isArray(j.paths)) paths = j.paths.map((p: any) => String(p)).slice(0, 24);
     } catch (_e) { /* redaction best-effort */ }

@@ -20,7 +20,7 @@ node scripts/staging/verify_portal.mjs        # 13/13  what the portal is served
 node scripts/staging/verify_supplier_docs.mjs #  13/13 supplier-docs end to end — 2 model calls, ~0.1 AED
 node scripts/staging/verify_constraints.mjs   #   2/2  NOT NULL + CHECK parity — zero spend, read-only
 node scripts/staging/demo_factory.mjs         # 15/15  factory selftest, ~40 s, cleans up after itself
-node scripts/staging/journey_test.mjs         # 37/37  signup -> upload -> quotation comparison
+node scripts/staging/journey_test.mjs         # 38/38  signup -> upload -> quotation comparison
 node scripts/verify_prod_readiness.mjs        #  0/13  §8 against PRODUCTION, read-only. Non-zero is EXPECTED
 ```
 
@@ -190,11 +190,16 @@ none of them were on any list of things a demo run touches.
    the `.dxf` the customer actually uploaded is stored and then referenced by nothing. `journey_test`
    deletes it by name; **in production it would be unreachable litter**, and worse, a supplier
    asked to quote from a CAD drawing has no path to it.
-3. **The reference photos.** `attach_photos` returns their paths and writes them to no row, and its
-   `drawing_redaction_runs` row carries `customer_id` NULL **and** `owner_email` NULL — so a
-   redaction record cannot be attributed to the customer who caused it. `--purge` sweeps
-   unattributable rows; a single run cannot. Making `attach_photos` stamp the owner is a small fix
-   and a real one: this is redaction provenance for a privacy control.
+3. **The reference photos.** `attach_photos` returns their paths and writes them to no row. Its
+   `drawing_redaction_runs` row used to carry `customer_id` NULL **and** `owner_email` NULL — so a
+   redaction record could not be attributed to the customer who caused it.
+   **FIXED in session 10, and it was one line on the caller.** `drawing_redact`'s `recordRun` had
+   *always* read `owner_customer_id` and `owner_email` off the request body; `attach_photos` simply
+   never sent them. The owner is resolved by **email**, not `user.id`, because `customer_api`'s `me`
+   gives the `public.customers` row a fresh uuid — stamping the auth uid would have recorded
+   provenance against a customer that does not exist, which is worse than recording none.
+   Pinned by journey step 12, which is why the journey is now **38/38**.
+   *Still true: the photo paths themselves are written to no row.*
 
 A clean `journey_test` run now leaves **zero** rows and zero objects behind, except
 `signed-terms/registers/customers-register.xlsx` — a rolling register `kyc accept_terms` maintains
