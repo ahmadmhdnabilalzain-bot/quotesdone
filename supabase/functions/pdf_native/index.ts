@@ -26,7 +26,7 @@ function parseHtml(frag:string){ const blocks:any[]=[]; const re=/<(h2|h3|p|ul|o
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
-    const body = await req.json().catch(()=>({} as any));
+    let body = await req.json().catch(()=>({} as any));
     if (!(await authed(req, body))) return J({ error:'forbidden' }, 403);
     const lang = ['en','ar','bi'].includes(String(body.lang)) ? String(body.lang) : 'en';
     let L = lang==='bi' ? 'en' : lang;
@@ -34,17 +34,64 @@ Deno.serve(async (req) => {
     let font = await pdf.embedFont(StandardFonts.Helvetica);
     let bold = await pdf.embedFont(StandardFonts.HelveticaBold);
     const ital = await pdf.embedFont(StandardFonts.HelveticaOblique);
-    try { const sr = await fetchBytes('qd_sora_regular.ttf'); const sb = await fetchBytes('qd_sora_bold.ttf'); if (sr) font = await pdf.embedFont(sr, { subset: true }); if (sb) bold = await pdf.embedFont(sb, { subset: true }); } catch (_e) { }
+    let latinFull = false, arFull = false;
+    try { const sr = await fetchBytes('qd_sora_regular.ttf'); const sb = await fetchBytes('qd_sora_bold.ttf'); if (sr) { font = await pdf.embedFont(sr, { subset: true }); latinFull = true; } if (sb) bold = await pdf.embedFont(sb, { subset: true }); } catch (_e) { }
     const PW=595.28, PH=841.89, M=48; const CW=PW-2*M; const BAND=92, BANDSLIM=42;
     const opt = body.options||{};
     const letterhead = !!opt.letterhead, doSign = !!opt.sign, doStamp = !!opt.stamp;
     const isQuote = !!body.quote;
-    const title = String(body.title||'Document');
-    const refText = body.ref? String(body.ref):'';
-    const probe = JSON.stringify(body.quote||'') + JSON.stringify(body.quote_ar||'') + String(body.body_html||'') + JSON.stringify(body.blocks||'') + title;
+    const probe = JSON.stringify(body.quote||'') + JSON.stringify(body.quote_ar||'') + String(body.body_html||'') + JSON.stringify(body.blocks||'') + String(body.title||'');
     const needAr = lang!=='en' || hasAr(probe);
     let arReg=font, arBold=bold;
-    if (needAr){ const rb=await fetchBytes('qd_ar_regular.ttf'); const bb=await fetchBytes('qd_ar_bold.ttf'); if(rb) arReg=await pdf.embedFont(rb,{subset:true}); if(bb) arBold=await pdf.embedFont(bb,{subset:true}); }
+    if (needAr){ const rb=await fetchBytes('qd_ar_regular.ttf'); const bb=await fetchBytes('qd_ar_bold.ttf'); if(rb){ arReg=await pdf.embedFont(rb,{subset:true}); arFull=true; } if(bb) arBold=await pdf.embedFont(bb,{subset:true}); }
+
+    // 5 Aug 2026. The fonts above are embedded from the brand bucket; when a fetch returns nothing
+    // we silently keep StandardFonts.Helvetica, which is WinAnsi-encoded and can represent NOTHING
+    // above U+00FF. pdf-lib does not skip such a character, it THROWS - so one glyph fails the
+    // entire document. Staging's brand bucket was empty, so every PDF ran on that fallback, and the
+    // moment quote_compare started returning real output a single "≠" in the model's prose turned
+    // the customer's quotation comparison into a 502. This text is model-written prose about money
+    // and specifications: typographic characters are routine here, not exotic. Normalise them to
+    // ASCII always (it costs nothing when the real fonts ARE loaded and it reads better), and drop
+    // only what the font actually in force cannot encode.
+    const NORM: Record<string,string> = { '≠':'!=','≈':'~','≥':'>=','≤':'<=','±':'+/-','—':'-','–':'-','−':'-','‑':'-','→':'->','←':'<-','×':'x','÷':'/','·':'-','•':'-','…':'...','“':'"','”':'"','„':'"','‘':"'",'’':"'",'′':"'",'″':'"','‚':',','€':'EUR','£':'GBP','™':'(TM)','®':'(R)','©':'(C)','½':'1/2','¼':'1/4','¾':'3/4',' ':' ','​':'','‎':'','‏':'','‪':'','‫':'','‬':'' };
+    function safeText(s: string): string {
+      let out = '';
+      for (const ch of String(s == null ? '' : s)) {
+        const rep = NORM[ch];
+        if (rep !== undefined) { out += rep; continue; }
+        const cp = ch.codePointAt(0) || 0;
+        if (cp > 0xff) {
+          // Arabic needs the Arabic TTF; everything else above Latin-1 needs Sora.
+          if (isArCode(cp)) { if (arFull) out += ch; continue; }
+          if (latinFull) out += ch;
+          continue;
+        }
+        out += ch;
+      }
+      return out;
+    }
+    // deno-lint-ignore no-explicit-any
+    function safeDeep(v: any): any {
+      if (typeof v === 'string') return safeText(v);
+      if (Array.isArray(v)) return v.map(safeDeep);
+      // deno-lint-ignore no-explicit-any
+      if (v && typeof v === 'object') { const o: any = {}; for (const k of Object.keys(v)) o[k] = safeDeep(v[k]); return o; }
+      return v;
+    }
+    body = safeDeep(body);
+
+    // safeDeep only cleans the CALLER's text. The letterhead, footer and Arabic signer block are
+    // our own constants and never pass through it, so on the fallback font they could still throw
+    // and lose the whole PDF. Losing one glyph is acceptable; losing the customer's document is not.
+    // deno-lint-ignore no-explicit-any
+    function armPage(p: any){ const orig = p.drawText.bind(p);
+      // deno-lint-ignore no-explicit-any
+      p.drawText = (t: any, o: any) => { try { orig(String(t), o); } catch (_e) { try { orig(safeText(String(t)), o); } catch (_e2) { /* skip the glyph, keep the document */ } } };
+      return p; }
+
+    const title = String(body.title||'Document');
+    const refText = body.ref? String(body.ref):'';
     const dateEn = body.date ? String(body.date) : new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
     const dateAr = body.date_ar ? String(body.date_ar) : new Date().toLocaleDateString('ar-AE',{day:'2-digit',month:'long',year:'numeric'});
     function dateFor(){ return L==='ar'?dateAr:dateEn; }
@@ -53,7 +100,7 @@ Deno.serve(async (req) => {
     const sig = doSign ? await (async()=>{ const b=await fetchBytes('qd_signature.png'); return b?await pdf.embedPng(b):null; })() : null;
     const stamp = doStamp ? await (async()=>{ const b=await fetchBytes('qd_stamp.png'); return b?await pdf.embedPng(b):null; })() : null;
 
-    let page = pdf.addPage([PW, PH]); let y = PH - M; let pageNo = 1;
+    let page = armPage(pdf.addPage([PW, PH])); let y = PH - M; let pageNo = 1;
     function fontFor(s:any, b:boolean){ return hasAr(s) ? (b?arBold:arReg) : (b?bold:font); }
     function W(text:string,f:any,s:number){ try{ return f.widthOfTextAtSize(text,s); }catch(_e){ return text.length*s*0.5; } }
     function measRTL(s:string,f:any,size:number){ let w=0; for(const r of bidiRuns(s)) w+=W(r.t,f,size); return w; }
@@ -65,8 +112,8 @@ Deno.serve(async (req) => {
     function headerBand(slim:boolean){ const h = slim?BANDSLIM:BAND; page.drawRectangle({ x:0, y:PH-h, width:PW, height:h, color:NAVY }); page.drawRectangle({ x:0, y:PH-h, width:PW, height:2.6, color:GOLD }); page.drawRectangle({ x:0, y:PH-h+2.6, width:PW, height:1, color:TEAL }); const lg = logoLightImg || logoImg; if (lg){ const w = slim?92:128; const hh=lg.height*(w/lg.width); page.drawImage(lg, { x:M, y:PH-(h/2)-(hh/2)+(slim?0:2), width:w, height:hh }); } if (!slim && letterhead){ const lines=[CO.name, CO.licence, CO.email+' · '+CO.phone]; let ly=PH-26; lines.forEach((ln,i)=>{ const f=i===0?bold:font; const s=i===0?11:8.5; page.drawText(ln,{ x:PW-M-(f.widthOfTextAtSize(ln,s)), y:ly-s, size:s, font:f, color:i===0?WHITE:BANDTXT }); ly-=(i===0?15:11.5); }); } return PH-h; }
     function quoteHeader(){ const by=headerBand(false); y=by-22; if(L==='ar'){ putLine('عرض أسعار', 22, true, NAVY, 'r', y-16, M, CW); if(refText) putLine('الرقم المرجعي: '+refText, 10, false, MUT, 'r', y-32, M, CW); putLine('التاريخ: '+dateFor(), 10, false, MUT, 'r', y-46, M, CW); } else { page.drawText('QUOTATION',{x:M,y:y-16,size:22,font:bold,color:NAVY}); if(refText) page.drawText('Ref: '+refText,{x:M,y:y-32,size:10,font,color:MUT}); page.drawText('Date: '+dateFor(),{x:M,y:y-46,size:10,font,color:MUT}); } y=y-64; drawFooter(); }
     function docHeader(){ const by=headerBand(false); y=by-24; const tAr=hasAr(title); putLine(title, 20, true, NAVY, tAr?'r':'l', y-18); y-=24; const meta = (L==='ar'? CO_AR.city : CO.city)+' · '+dateFor(); putLine(meta, 10, false, MUT, hasAr(meta)?'r':'l', y-10); y-=22; drawFooter(); }
-    function newSection(){ page = pdf.addPage([PW,PH]); pageNo++; y=PH-M; }
-    function ensure(h:number){ if (y - h < 70){ page = pdf.addPage([PW,PH]); pageNo++; const by=headerBand(true); drawFooter(); y=by-18; } }
+    function newSection(){ page = armPage(pdf.addPage([PW,PH])); pageNo++; y=PH-M; }
+    function ensure(h:number){ if (y - h < 70){ page = armPage(pdf.addPage([PW,PH])); pageNo++; const by=headerBand(true); drawFooter(); y=by-18; } }
     function wrap(t:string, f:any, s:number, w:number){ const isAr=hasAr(t); const meas=(str:string)=> isAr?measRTL(str,f,s):W(str,f,s); const words=String(t==null?'':t).split(/\s+/); const lines:string[]=[]; let cur=''; for(const wd0 of words){ const test=cur?cur+' '+wd0:wd0; if(meas(test)>w && cur){ lines.push(cur); cur=wd0; } else cur=test; } if(cur)lines.push(cur); return lines.length?lines:['']; }
     function para(t:string, s=11, b=false, color=INK, lh=1.45, x0=M, w=CW){ const isAr=hasAr(t); const f=fontFor(t,b); for(const ln of wrap(t,f,s,w)){ ensure(s*lh); if(isAr) drawRTL(ln,s,f,color,y-s,x0+w); else page.drawText(ln,{x:x0,y:y-s,size:s,font:f,color}); y-=s*lh; } }
     function bullet(t:string, s=11){ const isAr=hasAr(t); if(isAr){ para(t+' •',s,false,INK,1.4,M,CW-4); } else { para('•  '+t,s,false,INK,1.4,M+10,CW-12); } }

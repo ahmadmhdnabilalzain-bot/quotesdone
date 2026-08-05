@@ -319,6 +319,14 @@ Deno.serve(async (req) => {
     // deno-lint-ignore no-explicit-any
     let outMsg: any = null;
     let used = model, usage: Record<string, number> = {}, lastErr = '';
+    // 5 Aug 2026. The gateway read choices[0].message and threw away choices[0].finish_reason, so a
+    // reply cut off at max_tokens arrived at the caller as ordinary content. Every caller that
+    // expects JSON then reports "unparseable output" and the real cause - the budget in
+    // model_policy is smaller than the output contract the caller asked for - is invisible. That
+    // misdiagnosis has now cost three separate investigations: quote_comparison at haiku/1500,
+    // rfq_routing at 300 with 12 candidates, and quote_comparison again at sonnet/3000. Carry the
+    // reason out so a too-small budget says so instead of looking like a bad model.
+    let finishReason = '';
     for (const m of ladder) {
       for (let attempt = 0; attempt < 2; attempt++) {
         // An attempt needs a few seconds to be worth starting at all.
@@ -334,7 +342,16 @@ Deno.serve(async (req) => {
         // as a model failure. 45s lets one attempt actually finish inside the 55s wall. The ladder
         // gets fewer retries on slow calls, which is the right trade: one complete answer beats two
         // truncated ones.
-        const budgetMs = (hasBinary || (body.plugins && body.plugins.length)) ? 55000 : 45000;
+        // 5 Aug 2026. This per-attempt cap was tuned on 29 Jul against the then-fixed 55s wall and
+        // stayed hardcoded when the wall became caller-declared. So a caller that declared
+        // client_timeout_ms=100000 still had EVERY attempt aborted at 45s: raising the wall only
+        // bought more doomed retries, never one attempt that could finish. quote_compare generating
+        // ~4000 tokens needs 45-90s and failed every time with "The signal has been aborted", which
+        // reads as a model error rather than our own stopwatch. Derive the cap from the wall that is
+        // actually in force - the wall already guarantees we never exceed the caller's patience, and
+        // as the 29 Jul note itself says, one complete answer beats two truncated ones.
+        const floorMs = (hasBinary || (body.plugins && body.plugins.length)) ? 55000 : 45000;
+        const budgetMs = Math.max(floorMs, deadlineAt - Date.now());
         const to = setTimeout(() => ac.abort(), Math.min(budgetMs, deadlineAt - Date.now()));
         try {
           const payload: Record<string, unknown> = {
@@ -387,6 +404,8 @@ Deno.serve(async (req) => {
               // deno-lint-ignore no-explicit-any
               : (Array.isArray(c) ? c.map((p: any) => p?.text || '').join('') : '');
             outMsg = msg; used = m; usage = j?.usage || {};
+            finishReason = String(j?.choices?.[0]?.finish_reason
+                                  || j?.choices?.[0]?.native_finish_reason || '');
             break;
           }
           lastErr = JSON.stringify(j?.error || j).slice(0, 200);
@@ -418,7 +437,12 @@ Deno.serve(async (req) => {
       p_task_class: route.task_class ?? null, p_model: used,
       p_because: route.why + (used !== model ? ' [fell back from ' + model + ']' : '')
                  + (caps.length ? ' | caps: ' + caps.join('+') : '')
-                 + (useCache ? ' | prompt cache on, ' + cachedIn + ' input tokens read from cache' : ''),
+                 + (useCache ? ' | prompt cache on, ' + cachedIn + ' input tokens read from cache' : '')
+                 + (finishReason === 'length'
+                    ? ' | TRUNCATED: the model stopped at the ' + maxTok + '-token ceiling for task_class '
+                      + String(route.task_class) + ', so the reply is cut off mid-output. A caller that '
+                      + 'expects JSON will report unparseable output; raise max_tokens in model_policy.'
+                    : ''),
       p_tier: route.tier ?? null, p_prompt_tokens: inTok, p_output_tokens: outTok,
       p_cached: cachedIn > 0, p_cache_key: cacheKey, p_latency_ms: Date.now() - t0, p_ok: !!outMsg,
     });
@@ -442,6 +466,8 @@ Deno.serve(async (req) => {
                tool_calls: outMsg?.tool_calls ?? undefined,
                annotations: outMsg?.annotations ?? undefined,
                tier: route.tier, task_class: route.task_class, caps,
+               finish_reason: finishReason || undefined,
+               truncated: finishReason === 'length', max_tokens: maxTok,
                prompt_tokens: inTok, output_tokens: outTok, cached_input_tokens: cachedIn,
                cost_usd: costUsd, latency_ms: Date.now() - t0 });
   } catch (e) {
