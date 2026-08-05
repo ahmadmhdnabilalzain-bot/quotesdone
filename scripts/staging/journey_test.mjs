@@ -248,22 +248,29 @@ if (companyId && dispatchCred) {
   // The record is therefore written directly, and this step is named so it cannot be mistaken for
   // proof of a flow that does not exist. What it DOES prove is that the capability gate, the
   // score floor and the dispatch path all work once a confirmed record is present.
+  // trades: the required set is derived per inquiry - one run asked for aluminium+doors, the next
+  // aluminium+glazing - so declare everything an aluminium and glass fabricator genuinely does
+  // rather than chasing whichever pair the model picked that run.
+  //
+  // roles: these are CODES from taxonomy_role, not the need. fn_match_capability requires a
+  // taxonomy_role row whose code appears here AND whose column for the requested need is true -
+  // for 'executes' that is contractor, installer, maintenance or turnkey_fitout. The fixture
+  // previously listed 'executes' itself, which is not a code, so the role gate silently excluded
+  // a supplier that passed confirmed_at, trade overlap, excluded_trades and fn_is_matchable.
   await mgmtWrite(REF,
     `insert into public.supplier_capabilities
        (supplier_id, trades, roles, products_norm, project_types, exclusions,
         authority_approvals, source_docs, confidence, missing_fields, excluded_trades,
-        completeness, review_status, confirmed_at, extracted_at)
+        completeness, review_status, confirmed_at, extracted_at,
+        min_project_value, max_project_value, coverage_emirates)
      values (${Number(companyId)},
-       // The required trade set is derived per inquiry - one run asked for aluminium+doors, the
-       // next aluminium+glazing - so the fixture declares everything an aluminium and glass
-       // fabricator genuinely does rather than chasing whichever pair the model picked.
        ARRAY['aluminium','doors','glazing','windows','glass','fenestration']::text[],
-       ARRAY['executes','supplies','installs']::text[],
-       ARRAY['aluminium windows','aluminium doors','glazing']::text[],
+       ARRAY['contractor','installer','supplier','manufacturer']::text[],
+       ARRAY['aluminium','windows','doors','glazing','glass','mesh','handles','powder-coated','double glazed']::text[],
        ARRAY['villa','residential']::text[], ARRAY[]::text[],
        '{}'::jsonb, '{}'::jsonb, '{"overall":0.9}'::jsonb,
        ARRAY[]::text[], ARRAY[]::text[],
-       95, 'confirmed', now(), now())
+       95, 'confirmed', now(), now(), 1000, 5000000, ARRAY['Dubai','Sharjah','Abu Dhabi']::text[])
      on conflict (supplier_id) do update
        set trades = excluded.trades, roles = excluded.roles,
            completeness = excluded.completeness, review_status = 'confirmed',
