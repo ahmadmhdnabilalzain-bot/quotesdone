@@ -676,7 +676,14 @@ Deno.serve(async (req) => {
         if (ch && ch.length) { row.is_combined = true; row.child_count = ch.length; row.children = []; for (const c of ch) row.children.push(await mapRow(c)); }
         out.push(row);
       }
-      return J({ inquiries: out, promo: !!cfg.promo_until && new Date() <= new Date(cfg.promo_until) });
+      // `locale` added 5 Aug 2026. customers.locale was stored and, from the portal's point of
+      // view, never served: the brief called it "stored and never served", which measurement shows
+      // is not quite right - `me` returns the whole customer row via select('*'), locale included.
+      // But THE PORTAL NEVER CALLS `me`. It calls `kyc state` and this action, so the field was on
+      // the wire only where nothing was listening, and CustomerPortal fell back to
+      // localStorage['qd-lang'] and the NEXT_LOCALE cookie. A customer who set Arabic on one device
+      // got English on the next, and the Arabic journey exercised a path the portal could not reach.
+      return J({ inquiries: out, locale: cust.locale || null, promo: !!cfg.promo_until && new Date() <= new Date(cfg.promo_until) });
     }
 
     if (action === 'compare_pdf') {

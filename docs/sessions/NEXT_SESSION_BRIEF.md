@@ -527,11 +527,20 @@ showing hope; a signed-in user with no `customers` row is served, not crashed (a
 `customer_api` then creates carries a **fresh uuid, not the auth uid** — the mechanism behind the 65
 orphans); and Arabic summaries and quote notes survive the round trip.
 
-**`customers.locale` is stored and never served — still true, now asserted.** `my_inquiries` returns
-no `locale` field at all, so the portal *cannot* honour a customer's stored language; it falls back
-to `localStorage['qd-lang']` and the `NEXT_LOCALE` cookie (`CustomerPortal.tsx:16`). An Arabic
-journey therefore exercises a code path the portal cannot reach. Either serve the field or drop the
-column.
+**~~`customers.locale` is stored and never served~~ — HALF FIXED, and the claim was imprecise.**
+Measured 5 Aug 2026: `me` **does** serve it — `customer_api` builds the row with `select('*')` and
+returns it whole, and the key comes back with value `'ar'`. So "never served" was wrong. What is
+true, and worse, is that **the portal never calls `me`**: it calls `kyc state` and `my_inquiries`.
+The field was on the wire only where nothing was listening.
+
+`my_inquiries` now returns `locale` (deployed to staging, `verify_portal` 14/14). **The consuming
+half is deliberately not done**: `CustomerPortal` still decides language from
+`localStorage['qd-lang']` and the `NEXT_LOCALE` cookie, and wiring the served value needs `lang`
+threaded `CustomerPortal()` → `Authed` → `Dashboard`, because `Dashboard` receives it as a read-only
+prop. That is a blind edit to language switching with **no browser harness to verify it** (§3.6,
+itself blocked on a staging-pointed preview URL), which is not a trade worth making for a field that
+is now available. `verify_portal` check 14 pins the remaining half so it cannot be quietly forgotten
+— **flip that check when the wiring lands.**
 
 > **Still to do here:** the remaining original asks —
 > - A demo customer with **3-4 inquiries spanning statuses** (`sent` / `quoted` / `completed` /

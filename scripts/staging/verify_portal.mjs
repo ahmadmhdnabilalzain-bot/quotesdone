@@ -19,6 +19,7 @@
 // Zero model calls: every inquiry, quote and reveal is built through the factory's SQL path.
 //
 //     node scripts/staging/verify_portal.mjs
+import { readFileSync } from 'node:fs';
 import { mgmtRead } from './qd_guard.mjs';
 import {
   REF, withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, makeReveal,
@@ -183,18 +184,30 @@ await withRun(async (run) => {
       && /[؀-ۿ]/.test(arNote),
     `summary "${String(arRow.summary || '').slice(0, 34)}…", quote note carries Arabic=${/[؀-ۿ]/.test(arNote)}`);
 
-  // The finding the brief records, asserted rather than repeated: customers.locale is stored and
-  // then nobody reads it. my_inquiries returns no locale field at all, so the portal cannot honour
-  // a customer's stored language even if it wanted to - it falls back to localStorage['qd-lang']
-  // and the NEXT_LOCALE cookie (CustomerPortal.tsx:16).
+  // FIXED 5 Aug 2026, and the brief's framing was not quite right. "customers.locale is stored and
+  // never served" is false as stated: `me` returns the whole customer row via select('*'), locale
+  // included - MEASURED, the key is present with value 'ar'. But THE PORTAL NEVER CALLS `me`. It
+  // calls `kyc state` and `my_inquiries`, so the field was on the wire only where nothing was
+  // listening. my_inquiries now serves it.
   const stored = (await mgmtRead(REF,
     `select locale from public.customers where id=${q(ar.customerId)}`))[0]?.locale;
-  const served = Object.prototype.hasOwnProperty.call(arRow, 'locale')
-    || Object.prototype.hasOwnProperty.call(arRows.json || {}, 'locale');
-  step('customers.locale is stored but never served — still true',
-    stored === 'ar' && served === false,
-    `customers.locale='${stored}' in the database, and my_inquiries returns no locale field ` +
-    '— the Arabic journey tests a code path the portal cannot reach');
+  const servedHere = Object.prototype.hasOwnProperty.call(arRows.json || {}, 'locale');
+  step('the customer\'s stored language is served where the portal actually looks',
+    stored === 'ar' && servedHere && arRows.json.locale === 'ar',
+    `customers.locale='${stored}', my_inquiries returns locale=${JSON.stringify(arRows.json?.locale)} ` +
+    '(me already served it via select(*), but the portal calls kyc state + my_inquiries, never me)');
+
+  // The half that is NOT done, pinned so it cannot be quietly forgotten: CustomerPortal still
+  // decides language from localStorage['qd-lang'] and the NEXT_LOCALE cookie. `lang` lives in
+  // CustomerPortal() while loadInq lives in Dashboard(), which receives lang as a read-only prop,
+  // so consuming the served value needs it threaded through Authed -> Dashboard. Not done here:
+  // there is still no browser harness (§3.6, itself blocked on a staging-pointed preview URL), and
+  // a blind edit to language switching is not worth the risk for a field that is now available.
+  const portalSrc = readFileSync('src/components/me/CustomerPortal.tsx', 'utf8');
+  step('the portal still ignores it — the remaining half, stated not assumed',
+    /qd-lang/.test(portalSrc) && !/\blocale\b\s*[,)]/.test(portalSrc.slice(portalSrc.indexOf('loadInq'), portalSrc.indexOf('loadInq') + 400)),
+    'CustomerPortal still reads localStorage[qd-lang] + NEXT_LOCALE; wiring it needs lang threaded ' +
+    'CustomerPortal -> Authed -> Dashboard. Flip this check when that lands');
 });
 
 const pass = checks.filter((c) => c.ok).length;
