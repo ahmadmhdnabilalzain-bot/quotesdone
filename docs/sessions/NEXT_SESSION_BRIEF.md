@@ -17,9 +17,15 @@ node scripts/staging/verify_doc_extract.mjs   #  7/7   the document queue — 1 
 node scripts/staging/verify_license_extract.mjs # 12/12 licence reading — 4 model calls, ~0.2 AED
 node scripts/staging/verify_exception_window.mjs # 14/14 the 14-day licence exception — zero spend
 node scripts/staging/verify_portal.mjs        # 13/13  what the portal is served, incl. the reveal
+node scripts/staging/verify_supplier_docs.mjs #  13/13 supplier-docs end to end — 2 model calls, ~0.1 AED
+node scripts/staging/verify_constraints.mjs   #   2/2  NOT NULL + CHECK parity — zero spend, read-only
 node scripts/staging/demo_factory.mjs         # 15/15  factory selftest, ~40 s, cleans up after itself
 node scripts/staging/journey_test.mjs         # 37/37  signup -> upload -> quotation comparison
+node scripts/verify_prod_readiness.mjs        #  0/13  §8 against PRODUCTION, read-only. Non-zero is EXPECTED
 ```
+
+The last one is not a staging gate and its failure is the point: it reports how much of §8 is still
+outstanding in production. It is read-only by construction and cannot deploy or apply.
 
 `verify_cost.mjs` and the factory selftest are new and fast; run them on every commit. The journey
 takes ~7.5 minutes (464 s measured) and produces 34 `agent_runs`. If a step fails, read `agent_runs`
@@ -304,9 +310,41 @@ truncated response and every field is then scrubbed to `''`, so the caller gets 
 `{ok:true, doc:{legal_name:'', license_number:'', confidence:'low'}}`, **indistinguishable from a
 genuinely unreadable scan**. Removed and deployed to staging; the task class gives it 8000.
 
-> **Still to build:** nothing writes to `supplier-docs` yet (0 objects) — the fixtures go through
-> `license_extract` directly rather than through `supplier_api process_docs`, so the storage branch
-> and the licence-gate write-back are still unexercised end to end.
+**DONE in session 10 — `verify_supplier_docs.mjs`, 13/13, 2 model calls (~0.1 AED).** A claimed
+supplier holding its own JWT uploads real PDF bytes through the deployed function into the real
+bucket, and the licence gate re-evaluates on what the model returned. Measured: the object lands at
+`licenses/<lead>/<ts>_<name>.pdf`; `license_doc_path` names it exactly; licence number, authority,
+expiry, emirate and TRN are written **back to the row**; the legal name corrects `company_name` and
+stamps `name_corrected_from`; a readable licence does **not** open the gate; an unreadable one is
+still **stored** (the evidence is kept), invents no licence number, and **does** open the gate; and a
+file whose bytes contradict its declared type is refused 415 with nothing stored and the row
+untouched.
+
+> **Every assertion is on the ROW, never the response — and that is what found the defect.**
+> `process_docs` **discarded the result of its only database write.** The storage uploads twenty
+> lines above check `up.error` and return 502; `await admin.from('leads').update(upd).eq('id',
+> sup.id)` did not. A failure there returned `{ok:true, extracted:{…}}` — a complete, plausible
+> payload describing a licence that was never saved. The supplier is told their trade licence is on
+> file; the document review queue never sees it.
+>
+> **Two siblings share the shape.** `save_profile` is worse: the three lines above it put
+> `approval_status`, `verified` and `licence_gate_reason` into the same object, so that write **is
+> the approval decision** — a silent failure leaves a supplier who should be approved sitting
+> unapproved with the failure recorded nowhere, while the exception window immediately below opens a
+> 14-day clock against a state that was never persisted. `supplier_portal save_documents` reported
+> every file as `saved` while no path ever reached the row. All three fixed and deployed to staging.
+>
+> The other two sites of this pattern (`inbound_email:149`, `supplier_api:118`) are background
+> enrichment that promises a user nothing. **Left alone deliberately** — a bulk sweep would have
+> been the wrong fix.
+
+**Also found: `demo_factory`'s teardown had no rule for `supplier-docs` at all.** It derives
+`drawing-files`, `quote-files`, `signed-terms` and `agent-docs` from the rows that name them and
+stopped there. Nothing noticed because the bucket held 0 objects — the first real run would have
+leaked every licence, profile and catalogue, the same class as the 118 `signed-terms` objects in
+§2.2, caught before it accumulated rather than after. Two path shapes are now swept: the
+bucket-relative one `process_docs` writes and the bucket-prefixed fake one the older licence
+fixtures write.
 
 **(b) Switched off by the routing policy.** `fn_ai_route` returns `use_llm:false, tier:'none'` for
 **both `capability_agent` and `supplier_review`** in staging *and* production — both map to
@@ -657,6 +695,46 @@ but records to `org_tasks` / `org_memory` / `agent_runs` / `agent_actions`. `orc
 > dispatches through `org_action_executor` into `action_execution` and writes `decision_trace`
 > **does not exist**. Decide explicitly whether Phase 7 means building it or seeding it.
 
+### DECIDED IN SESSION 10: SEED THE CONFIG, DO NOT BUILD THE ORCHESTRATOR.
+
+The brief asked for this decision explicitly and before any fixture. It was made on a measurement,
+not a preference. Session 9 counted **writers**; the missing number was **readers**. Across all four
+tables, in production:
+
+| | `workflow_run` | `workflow_step_run` | `action_execution` | `decision_trace` |
+|---|--:|--:|--:|--:|
+| routines mentioning it (read **or** write) | 0 | 0 | 0 | 0 |
+| triggers | 0 | 0 | 0 | 0 |
+| views mentioning it | 0 | 0 | 1 | 1 |
+| rows | 0 | 0 | 0 | 0 |
+| Edge Function files referencing it | 0 | 0 | 0 | 0 |
+
+Those two view entries are **one view**, `v_executions_without_decision_trace` — an audit that lists
+executions with no matching trace — and **nothing reads it**: 0 views, 0 routines. So the four
+tables have exactly one consumer, which is itself unread, and zero producers.
+
+That is not a broken integration. It is an **unbuilt subsystem with its schema and its compliance
+view pre-placed**, and building an orchestrator to populate tables nothing reads fails the first
+question worth asking: does this need to exist at all? Nothing on the revenue path — customer →
+inquiry → dispatch → quote → reveal — touches any of them.
+
+**And do not write the data-only fixture either.** The brief is right that it "proves the schema, not
+the system", which is precisely the argument against writing it: four hand-written rows would
+manufacture the *appearance* of a working autonomy layer and a green check to go with it. That is
+the §5 failure mode — a green suite over a subsystem that never ran — installed deliberately.
+
+**What was worth doing, and is done:** the constraint drift. `apply_missing_objects.mjs` does not
+diff constraints, so staging had lost production's NOT NULLs and CHECKs — and that is a real parity
+defect regardless of Phase 7, because staging silently accepted rows production rejects while every
+gate in the repo read identical. `verify_constraints.mjs` now measures it: CHECK 145 vs 143, NOT NULL
+1,812 vs 1,807, with FK/PK/UNIQUE matching exactly. Six of the seven were the predicted
+`org_action_executor` constraints; **the seventh was on nobody's list — `company_event.event_version`,
+a table the journey writes on the live path.** Applied; parity is 2/2.
+
+The org-layer *data* copy (`workflow`, `workflow_step`, `org_departments`, `org_agents`,
+`org_authority`, the 55 executors) is left **undone on purpose**. It is only useful to somebody
+building the orchestrator, and it should be loaded by whoever does, in the same change.
+
 `v_executor_registry_gaps` returning 0 in staging still means nothing until the 55 rows are loaded.
 `cos_execute` correctly stays off.
 
@@ -702,6 +780,31 @@ candidates for a 300,000 job and **6** for a 150,000 one. Any corpus that varies
 Nothing has yet run against the deployed Vercel preview URL. The frontend was verified by reading
 its built bundle, not by driving it. There is no browser test harness in the repo.
 
+**SESSION 10 FOUND OUT WHY THAT IS DANGEROUS, NOT MERELY MISSING.** Five frontend modules each
+carried `process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://htdblwldjkcgjvmqkbeh.supabase.co'`
+**inline**, four of them duplicating the anon key with it. `osClient.ts` resolved it *and* warned on
+the console when the variable was unset. The four customer- and supplier-facing components —
+`CustomerPortal`, `SupplierPortal`, `ContactInner`, `ChatWidget` — re-declared the fallback
+themselves and inherited **neither** the warning nor the single point of change.
+
+So a preview deployment missing one environment variable signs real customers in against
+**production**, and lets suppliers upload trade licences into it, in silence. This is the defect
+decision D1 already fixed once in the deploy tooling — which "was pinned to the production ref in
+three places" — surviving in the frontend.
+
+Now resolved once in `src/lib/supaEnv.ts`, which every consumer imports. The fallback is **kept
+deliberately**: an unconfigured production build must behave exactly as it does today, and removing
+it converts a silent wrong target into a hard outage. typecheck clean, `npm test` 16/16,
+`next build` exit 0.
+
+> **This is the blocker on driving the deployed URL, and it is not a tooling gap.** Until a preview
+> deployment is provably pointed at staging, any write flow driven through it — signup, inquiry,
+> quote, reveal — lands in **production**, which the standing rule forbids. Two things are needed
+> before a browser harness is worth writing, and neither is code: **the preview URL**, and
+> **confirmation that its `NEXT_PUBLIC_SUPABASE_URL` is set to `pglpqrhvozwepymcuunn`**. Read-only
+> page loads would still reach production's `site_assistant` and contact endpoints, so even those
+> are not free. Ask for both rather than guessing a URL.
+
 ---
 
 ## 4. Corrections to earlier briefs — do not re-inherit these
@@ -745,6 +848,20 @@ its built bundle, not by driving it. There is no browser test harness in the rep
 | "zero of the 19 short slugs exist in `catalog_supplier_categories.slug`, so a wiring PR must build the crosswalk" | **The crosswalk already exists.** `lead_trade_map(trade_key, catalog_slug)` bridges `taxonomy_trade.code` to the catalogue, 24 rows, all 22 non-null slugs resolving. The real gaps are narrower: `wallpaper` absent, `elevators`/`signage` deliberately unmapped, and 4 `kb_operational_route` slugs missing their parenthetical |
 | "`field_definition` / `field_definition_source` are unloaded (FK to a parent outside the allowlist)" | True, and it had been true silently for two sessions: the parent is `mep_trade`, 5 rows, and nothing reported the tables as never-loaded because the multi-pass loop printed "deferred" and moved on. Both now load |
 | "a demo inquiry can be inserted and dispatched" | Not without satisfying the **category checklist**. `rfq_ready` is computed by `trg_rfq_complete` and cannot be set by hand; `fn_rfq_required_check` demands an answer for every `category_specs` field marked required. A hand-written spec scores 85/70 generic and still fails, and the only symptom is `dispatch_inquiry` returning `{"ok":true,"skip":"not_rfq_ready"}` — a 200 that contacted nobody. `makeInquiry` now builds the spec from `category_specs` in SQL and throws if the row comes back not ready |
+
+### Corrections found in session 10
+
+| earlier claim | truth |
+|---|---|
+| §8: "`fn_task_class` mapping for `quote_compare` (absent in production)" | **Present**, mapped to `quote_comparison`. Acting on that line is a no-op dressed up as a fix |
+| §8: "`model_policy.quote_comparison.max_tokens` 3000 → 10000" | Production is at **1500** — the original `~anthropic/claude-haiku-latest` ceiling that is the *first* of §5's four truncations. The gap is twice what the brief claimed |
+| "238 of 589 production calls billed at zero" (session 9's own correction) | Now **247 of 603**, and still moving. `google/gemini-3.1-flash-lite` alone is **219 calls, every one unpriced**. `qwen/qwen3.7-plus` is in the registry, unpriced, 0 calls — a landmine. Three `model_rate` rows are stale the other way (priced, no longer in the registry) |
+| "the Phase 7 tables have no **writers**" | True, and the number that decides it is **readers**: 0 routines, 0 triggers, 0 rows, 0 Edge Function references, and **one** view — `v_executions_without_decision_trace` — which nothing reads. One unread consumer, zero producers. See the decision in §3.5 |
+| "`org_action_executor` lost production's NOT NULLs and CHECKs" | True, and **incomplete**: the drift is 5 NOT NULL columns and 2 CHECKs, and the fifth NOT NULL is **`company_event.event_version`** — a table on the live journey path, not the dormant org layer. FK/PK/UNIQUE match exactly |
+| "the fixtures go through `license_extract` directly, so the storage branch is unexercised" | Correct, and it hid **three** defects, not one: `process_docs`, `save_profile` and `supplier_portal save_documents` all discarded the result of the database write they promised the user. `save_profile`'s carries `approval_status` and `verified` — it *is* the approval decision |
+| "teardown derives storage paths from the database" | For four buckets. **`supplier-docs` had no rule at all**, and nothing noticed because it held 0 objects — the leak was pre-armed, not absent |
+| "the frontend was verified by reading its built bundle" | And the bundle contained the problem: four customer-facing components each hard-coded a **production** fallback for `NEXT_PUBLIC_SUPABASE_URL`, without `osClient`'s warning. A preview missing one env var drives the live database. This is why no browser harness exists yet — see §3.6 |
+| "compare deployed vs repo by version or commit date" | Both are wrong instruments. A commit-timestamp diff reported **118** functions behind the repo (including `_shared`, `home`, `faq`) because this repo was built by pulling *from* production. Content comparison against the deployed bundle, scoped to `git diff main...HEAD`, gives **14** |
 
 ---
 
@@ -971,6 +1088,9 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | **`verify_cost.mjs`** | 7 zero-spend checks over pricing, routing and monitoring; `--live` adds 4 that put one real inference through the gateway |
 | **`seed_cost_config.mjs`** | `model_rate` (derived from `model_registry`), `department_budget`, the missing `fn_task_class` row, and the three repointed views. Idempotent; `--reset-telemetry` also clears `ai_cost_log` rows written while the meter was broken |
 | **`verify_matching.mjs`** | builds the 100-supplier corpus and asserts the score ladder, the relevance floor, the fan-out cap and the four hard gates. `--live` adds one real dispatch |
+| **`verify_supplier_docs.mjs`** | `supplier_api process_docs` end to end: real PDF bytes into `supplier-docs` through the deployed function, the licence-gate write-back, the unreadable-licence path and the sanitiser. Asserts the ROW, never the response |
+| **`verify_constraints.mjs`** | the parity dimension nothing measured: NOT NULL columns and CHECK constraints against production. Report-only; `--apply` fixes staging through `qd_guard` |
+| **`verify_prod_readiness.mjs`** (in `scripts/`, not `scripts/staging/`) | §8 as a measurement against **production**, read-only by construction. Reports each item APPLIED/OUTSTANDING with its measured value and the exact statement, exits non-zero. Deploy list derived from `git diff main...HEAD`, drift checked by bundle **content** |
 
 `sync_staging_reference.mjs` still leaves `field_definition` and `field_definition_source` unloaded
 (FK to a parent outside the allowlist). Neither is on the journey path.
