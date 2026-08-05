@@ -36,9 +36,19 @@ async function llmJSON(apiKey:string, content:unknown):Promise<any>{
   // a direct OpenRouter call - the model ladder lives in the gateway.
   const key = apiKey || GW;
   try{
+    // NO `max` HERE ON PURPOSE. ai_gateway computes
+    //   maxTok = min(body.max ?? route.max_tokens, route.max_tokens)
+    // so a caller-supplied max can only ever LOWER the policy ceiling, never raise it. `max:2000`
+    // therefore overrode model_policy.document_extraction's 8000 and capped this function at 2000.
+    // Measured on deployed staging 5 Aug 2026, first time doc_extract had ever run there: a single
+    // drawing page produced 1,222 prompt + 1,996 output tokens against that 2,000 ceiling and
+    // returned extraction_null - the same 1,996 recorded for quote_extract in session 8, because
+    // gemini-3.5-flash spends most of its output budget on reasoning tokens and emits little
+    // visible JSON. Sizing this from expected JSON length is wrong by an order of magnitude on that
+    // model. Let the task class decide; that is what the task class is for.
     const payload = (typeof content==='string')
-      ? {__secret:key,fn:'doc_extract',sys,input:content,max:2000,temperature:0}
-      : {__secret:key,fn:'doc_extract',sys,input:[{role:'user',content}],max:2000,temperature:0};
+      ? {__secret:key,fn:'doc_extract',sys,input:content,temperature:0}
+      : {__secret:key,fn:'doc_extract',sys,input:[{role:'user',content}],temperature:0};
     const r=await fetch(Deno.env.get('SUPABASE_URL')!+'/functions/v1/ai_gateway',{method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify(payload)});

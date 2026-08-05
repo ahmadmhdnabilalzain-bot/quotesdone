@@ -563,11 +563,13 @@ export async function makeInquiry(run, opts = {}) {
   const ins = await mgmtWrite(REF,
     `insert into public.inquiries
        (customer_id, category, emirate, role_needed, raw_input, summary, keywords, trades,
-        status, budget, scope_type, brief_source, urgency, provenance, spec)
+        status, budget, scope_type, brief_source, urgency, drawing_file_path, drawing_file_name,
+        provenance, spec)
      values (${q(cust.customerId)}, ${q(trade)}, ${q(emirate)}, ${q(opts.role_needed || 'executes')},
              ${q(rawInput)}, ${q(summary)}, ${arr(t.products.slice(0, 4))}, ${arr([trade])},
              ${q(status)}, ${num(opts.budget ?? null)}, ${q(opts.scope_type || 'single')},
              ${q(opts.brief_source || 'chat')}, ${q(opts.urgency || 'normal')},
+             ${q(opts.drawing_file_path ?? null)}, ${q(opts.drawing_file_name ?? null)},
              ${jb({ qd_run: run.tag, source: 'demo_factory' })},
              ${rfqReadySpec(trade, opts)})
      returning id`, 'demo inquiry');
@@ -897,6 +899,22 @@ const BUCKET_SOURCES = (s) => [
                          and o.name like '%QD-' || upper(left(i.id::text, 8)) || '-CMP%')`,
   },
 ];
+
+/**
+ * Put a real object in a real bucket. Teardown finds it again through whichever row names it
+ * (`inquiries.drawing_file_path`, `documents.path`, …), so callers must attach the returned path to
+ * something - an orphan object is exactly the litter this module exists to stop.
+ */
+export async function uploadObject(bucket, path, bytes, mime = 'application/octet-stream') {
+  const { SERVICE } = await keys();
+  const r = await fetch(`${BASE}/storage/v1/object/${bucket}/${path}`, {
+    method: 'POST',
+    headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': mime, 'x-upsert': 'true' },
+    body: bytes,
+  });
+  if (!r.ok) throw new Error(`upload to ${bucket}/${path} failed: HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
+  return path;
+}
 
 async function deleteObjects(bucket, paths) {
   const clean = [...new Set(paths.filter(Boolean))];

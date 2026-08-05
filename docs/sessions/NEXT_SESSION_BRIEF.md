@@ -13,6 +13,7 @@ node scripts/staging/smoke_staging.mjs        # 15/15  auth, storage, postgrest,
 node scripts/staging/verify_cost.mjs          #  7/7   pricing, routing, monitoring — zero spend
 node scripts/staging/verify_matching.mjs      # 12/12  floor, fan-out and the hard gates — zero spend
 node scripts/staging/verify_taxonomy.mjs      # 11/11  the operational router + crosswalk — zero spend
+node scripts/staging/verify_doc_extract.mjs   #  7/7   the document queue — 1 model call, ~0.075 AED
 node scripts/staging/demo_factory.mjs         # 15/15  factory selftest, ~40 s, cleans up after itself
 node scripts/staging/journey_test.mjs         # 37/37  signup -> upload -> quotation comparison
 ```
@@ -248,11 +249,34 @@ entry point.
 `reg_lead_docs` on `leads`, `reg_inquiry_doc` on `inquiries`, `reg_quote_doc` on `quotes`. All 24
 staging rows (12 `drawing`, 12 `quote`) came from the latter two — created for free by journey runs.
 
-> **Demo data:** a `doc_extract` drain test needs **no new upload** — POST `doc_extract` with one of
-> the 24 existing `document_id`s and assert `status='done'` plus real extracted content, capturing
-> the output-token count. Separately, build a synthetic **UAE trade licence** fixture (legal name,
-> licence number, authority, emirate, expiry) plus an **expired** variant and an **illegible**
-> variant, to cover the `supplier-docs` branch and the licence gate. `supplier-docs` has 0 objects.
+**DONE in session 9 — and it was broken.** `verify_doc_extract.mjs`, 7/7 after a fix.
+
+The fixture costs one model call: a real object into `drawing-files`, an inquiry carrying its path,
+and `trg_reg_inquiry_doc` registering the `documents` row through the real trigger — so the queue
+entry arrives exactly as a customer's upload would, with no model call at all. Only the extraction
+is billed. (The 24 pre-existing `documents` rows the brief suggested reusing were purged, and would
+not have worked anyway: their storage objects went with them.)
+
+**The first time doc_extract ever ran, it returned `extraction_null` and HTTP 500.** `doc_extract`
+passed `max:2000` to the gateway, and `ai_gateway` computes
+`maxTok = min(body.max ?? route.max_tokens, route.max_tokens)` — so a caller-supplied `max` can only
+ever **lower** the policy ceiling, never raise it. `model_policy.document_extraction` is 8000; the
+caller silently capped itself at 2000.
+
+Measured output for one drawing page across three runs: **1,996 / 2,170 / 2,051 tokens.** Straddling
+the 2,000 ceiling — which is precisely §5's "a cap mid-distribution fails roughly one run in three
+and reads exactly like model flakiness". The 1,996 is the same figure session 8 recorded for
+`quote_extract`, for the same reason: gemini-3.5-flash spends most of its output budget on reasoning
+tokens, so sizing a ceiling from expected JSON length is wrong by an order of magnitude.
+
+Fixed by **deleting the caller-side `max`** so the task class decides — which is what the task class
+is for. Deployed to staging (`verify_jwt=false`, parity intact). After it: `status=done`, 1,179
+chars extracted, 9 specifications, 5 quantities, indexed into `kb_chunks`, 26% of the 8000 ceiling.
+
+> **Still to build:** the synthetic **UAE trade licence** fixture (legal name, licence number,
+> authority, emirate, expiry) plus **expired** and **illegible** variants, to cover the
+> `supplier-docs` branch and `license_extract` — whose own `max:1500` is the next suspect and can
+> now be measured the same way. `supplier-docs` still has 0 objects.
 
 **(b) Switched off by the routing policy.** `fn_ai_route` returns `use_llm:false, tier:'none'` for
 **both `capability_agent` and `supplier_review`** in staging *and* production — both map to
@@ -693,6 +717,11 @@ leads, so every one is **prospective damage, not damage already done** — which
   AV-scanned inline; `sanitizeUpload`'s structural sniffing is the inline gate and VirusTotal is a
   nightly sweep. A design, not a gap — but know it before claiming uploads are scanned.
 - **`quote_reviews` has no writer anywhere** and 0 rows.
+- **`doc_extract` caps itself at 2,000 output tokens** by passing `max:2000` to a gateway that
+  computes `min(body.max, policy)`, so `model_policy.document_extraction`'s 8000 never applies.
+  Measured natural output for one drawing page: 1,996 / 2,170 / 2,051 across three runs. Production's
+  document queue therefore fails on roughly one page in three with `extraction_null`, and
+  `documents.status` is set to `'error'` with the attempt counted. *(Fixed in staging.)*
 - **`drawing_redact_verify` has no `fn_task_class` row**, so `fn_ai_route` reports
   `UNMAPPED function` and routes it to `general_drafting`. It happens to work there, but nobody
   chose it and nothing records that the choice matters — and it matters a lot: routing it to
@@ -714,6 +743,11 @@ leads, so every one is **prospective damage, not damage already done** — which
 
 Do not prepare one yet; the acceptance suite (Phase 8) does not exist. When it does, the sequence
 must cover **both code and configuration**, because several session-8 fixes live in the database:
+
+*Code (session 9):* **`doc_extract`** — the caller-side `max:2000` removed so
+`model_policy.document_extraction`'s 8000 applies. Without this, production's document queue returns
+`extraction_null` on roughly one page in three and marks the row `status='error'`. Deployed to
+staging only.
 
 *Code:* the 4 Edge Functions whose production URL was replaced with `SUPABASE_URL`,
 `inquiry_intake`, `ai_gateway` (finish_reason + per-attempt deadline), `quote_compare`,
@@ -761,6 +795,7 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | **`verify_taxonomy.mjs`** | the operational router in English and Arabic, its paired negative and ambiguous cases, and the `taxonomy_trade` ↔ catalogue crosswalk with its known gaps pinned |
 | `sync_staging_grants.mjs` | restores table privileges in production's shape after a schema rebuild |
 | `apply_missing_objects.mjs` | catalogue diff: enums, sequences, columns, tables, views, routines. Does **not** diff constraints — which is why staging's `org_action_executor` lost production's NOT NULLs and CHECKs |
+| **`verify_doc_extract.mjs`** | drives the document queue end to end: upload → trigger → `doc_extract` → `status='done'` with real content, and measures the output against the live task-class ceiling |
 | `fixtures/` | the two synthetic upload documents + `README.md` |
 | **`demo_factory.mjs`** | the demo-data factory (§2.3). `--selftest` (default) 14/14, `--purge`, `--purge --dry-run`, `--corpus N [--customers N] [--keep]` |
 | **`verify_cost.mjs`** | 7 zero-spend checks over pricing, routing and monitoring; `--live` adds 4 that put one real inference through the gateway |
