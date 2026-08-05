@@ -606,7 +606,47 @@ Three notes for whoever picks this up:
    what `fn_ai_route` consults — turning a silent all-clear into a loud false alarm. It now asks:
    was a model used that no active `model_policy` can select?
 
-#### `drawing_redact_verify` cannot parse gemini output — REAL, UNFIXED
+#### ~~`drawing_redact_verify` cannot parse gemini output~~ — WRONG DIAGNOSIS. FIXED IN SESSION 10.
+
+**It reads gemini fine.** The experiment changed one variable — same image, same prompt, same
+model, only the ceiling:
+
+| caller `max` | output_tokens | finish_reason | truncated | content | parses |
+|---|--:|---|---|--:|---|
+| **400** (what shipped) | 396 | **`length`** | **true** | 36 chars, cut mid-JSON at `"found` | **NO** |
+| none — task class decides | 724 | `stop` | false | 423 chars | **YES** |
+
+At 724 tokens it correctly named the consultant, the client, the project and the plot number.
+`max: 400` was the whole defect — the **fifth** instance of §5's "a token ceiling inside the
+output's natural range", on the one model §5 already records as spending most of its budget on
+reasoning tokens. **`ai_gateway` was returning `truncated=true` and `finish_reason='length'` the
+entire time**, and the function discarded both, so a ceiling problem and a shape problem produced
+the identical string `verify_unparseable`. §5 says "Use it." Nothing did.
+
+**The detection call in the same file had it too, and was invisible to the cost gate.**
+`drawing_redact/index.ts` carries two `fn` literals, so `verify_cost`'s attribution heuristic put it
+in the *unattributed* bucket and never pinned either ceiling. Its `max: 2000` sat under
+`document_extraction`'s 8000 on a call whose output **scales with page count**. Measured across two
+journey runs, a single page costs **535 and 790** output tokens — so that ceiling would have begun
+truncating at roughly **three pages**, failing a privacy control intermittently by drawing size. The
+journey uses a one-page drawing, which is exactly why it never crossed it: the same blind spot that
+hid `doc_extract`'s ceiling until a real page was measured.
+
+Both ceilings removed. Truncation now reports `verify_truncated` / `detect_truncated` instead of
+being laundered into `verify_unparseable` / `detect_failed` — both still fail **closed**, nothing
+unverified is ever published, but "raise the ceiling" and "the model misbehaved" are no longer the
+same string. `drawing_redact_verify` is therefore mapped to **`document_extraction`** alongside its
+siblings, which is where session 9 wanted it. Journey **37/37** with it there — the configuration
+that produced 35/37 — and step 9 reports `status=complete verified=1 failed=0`.
+
+> **PRODUCTION ORDERING.** Deploy `drawing_redact` **before** applying the `fn_task_class` row
+> there. In the other order the old `max: 400` meets gemini and redaction stops publishing —
+> which is precisely what session 9 observed.
+
+The original session-9 note is kept below, because the reasoning it records is sound and only its
+conclusion was wrong.
+
+#### ~~`drawing_redact_verify` cannot parse gemini output — REAL, UNFIXED~~ (superseded)
 
 The obvious mapping for `drawing_redact_verify` is `document_extraction`, matching its siblings
 `drawing_redact` and `drawing_boq`. **That mapping was applied and it broke the journey**, which
@@ -861,6 +901,9 @@ it converts a silent wrong target into a hard outage. typecheck clean, `npm test
 | "the fixtures go through `license_extract` directly, so the storage branch is unexercised" | Correct, and it hid **three** defects, not one: `process_docs`, `save_profile` and `supplier_portal save_documents` all discarded the result of the database write they promised the user. `save_profile`'s carries `approval_status` and `verified` — it *is* the approval decision |
 | "teardown derives storage paths from the database" | For four buckets. **`supplier-docs` had no rule at all**, and nothing noticed because it held 0 objects — the leak was pre-armed, not absent |
 | "the frontend was verified by reading its built bundle" | And the bundle contained the problem: four customer-facing components each hard-coded a **production** fallback for `NEXT_PUBLIC_SUPABASE_URL`, without `osClient`'s warning. A preview missing one env var drives the live database. This is why no browser harness exists yet — see §3.6 |
+| "`drawing_redact_verify` cannot parse gemini output — the parser is the real defect" | **Wrong, and it cost session 9 a routing decision.** It parses gemini fine. The caller's own `max: 400` truncated it: 396 tokens, `finish_reason=length`, `truncated=true`, 36 characters cut mid-JSON. With the ceiling removed: 724 tokens, parses, correctly names the consultant and client. Fifth instance of the §5 ceiling pattern, and `ai_gateway` was reporting `truncated` all along |
+| "the token-ceiling problem is down to 11 attributable call sites" | The count that matters is the **unattributable** one. `drawing_redact` carries two `fn` literals, so the cost gate's heuristic never pinned either of its ceilings — and both were defects. A file the gate cannot attribute is not a file without a problem |
+| "`max: 2000` on `drawing_redact` detection is fine, the journey passes" | The journey uses a **one-page** drawing. Measured: one page costs 535–790 output tokens, so 2000 begins truncating at ~3 pages. A ceiling that scales with input size cannot be cleared by a fixture that never varies the input size |
 | "compare deployed vs repo by version or commit date" | Both are wrong instruments. A commit-timestamp diff reported **118** functions behind the repo (including `_shared`, `home`, `faq`) because this repo was built by pulling *from* production. Content comparison against the deployed bundle, scoped to `git diff main...HEAD`, gives **14** |
 
 ---
