@@ -67,6 +67,22 @@ async function call(slug, jwt, body) {
 
 const created = [];
 
+// A quote is only ACCEPTED (status submitted, not draft) when the structured scorer passes or the
+// form is complete: source 'form', at least one priced item, and validity, warranty and lead_time
+// all present. Sending amount + notes alone leaves it a draft with submittable=false, while the
+// API response still reports status "submitted" - so comparison then reports "needs at least two
+// complete quotes" for an RFQ that has two.
+const quotePayload = (inquiry_id, amount, note) => ({
+  action: 'submit_quote', inquiry_id, amount, currency: 'AED', source: 'form',
+  items: [{ description: 'Aluminium windows supply and install', qty: 40, unit_price: Math.round(amount / 40) }],
+  lead_time: '8 weeks', validity: '30 days', warranty: '12 months',
+  payment_terms: '50% advance, 50% on completion',
+  scope: 'Supply, delivery and installation of 40 aluminium windows including removal of existing units.',
+  conditions: 'Access to site during working hours.',
+  exclusions: 'Civil works, painting, scaffolding.',
+  notes: note,
+});
+
 // ---- customer -------------------------------------------------------------------------------
 const cust = await mkUser('cust');
 created.push(cust.id);
@@ -295,16 +311,97 @@ if (inquiryId && dispatchCred) {
   step('supplier receives the inquiry', false, 'dispatch did not run');
 }
 
-r = await call('supplier_api', supA.jwt, {
-  action: 'submit_quote',
-  inquiry_id: inquiryId,
-  amount: 125000,          // the field is `amount`; `total` reads as 0 and is refused
-  currency: 'AED',
-  lead_time_days: 56,
-  notes: 'Supply and installation of 40 powder-coated aluminium windows, double glazed.',
-  lines: [{ description: 'Aluminium windows supply and install', qty: 40, unit_price: 3125 }],
-});
+r = await call('supplier_api', supA.jwt,
+  quotePayload(inquiryId, 125000, 'Supply and installation of 40 powder-coated aluminium windows, double glazed.'));
 step('supplier submit quote', r.status === 200, `HTTP ${r.status} ${r.text}`);
+
+// A comparison needs something to compare. Stand up a second approved, capable supplier the same
+// way as the first, dispatch to it, and have it quote - so step 20 exercises the real comparison
+// path rather than the "needs at least two quotes" guard.
+async function standUpSupplier(tag, companyName, amount) {
+  const s = await mkUser(tag);
+  created.push(s.id);
+  let x = await call('supplier_api', s.jwt, {
+    action: 'create_company', company_name: companyName, emirate: 'Dubai', role: 'supplier',
+  });
+  const cid = x.json?.id ?? null;
+  if (!cid) return { ok: false, detail: `create_company HTTP ${x.status}` };
+  await call('supplier_api', s.jwt, {
+    action: 'save_profile',
+    products: 'Aluminium windows, doors, curtain walling, glazing.',
+    services: 'Supply and installation of aluminium windows and doors, glazing.',
+    description: 'Aluminium and glass fabricator and installer in Dubai.',
+    company_type: 'LLC', contact_name: tag + ' contact', phone: '+971505550001',
+    service_emirates: ['Dubai', 'Sharjah'],
+  });
+  await call('kyc', s.jwt, { action: 'accept_terms', user_kind: 'supplier', email: s.email });
+  await mgmtWrite(REF,
+    `update public.leads set approval_status='approved', verified=true
+      where lower(claimed_by) = lower('${s.email}')`, 'approve supplier');
+  await call('enrich_capability', null, { __secret: dispatchCred, lead_id: cid });
+  await mgmtWrite(REF,
+    `insert into public.supplier_capabilities
+       (supplier_id, trades, roles, products_norm, project_types, exclusions,
+        authority_approvals, source_docs, confidence, missing_fields, excluded_trades,
+        completeness, review_status, confirmed_at, extracted_at,
+        min_project_value, max_project_value, coverage_emirates)
+     values (${Number(cid)},
+       ARRAY['aluminium','doors','glazing','windows','glass','fenestration']::text[],
+       ARRAY['contractor','installer','supplier','manufacturer']::text[],
+       ARRAY['aluminium','windows','doors','glazing','glass','mesh','handles','powder-coated','double glazed']::text[],
+       ARRAY['villa','residential']::text[], ARRAY[]::text[],
+       '{}'::jsonb, '{}'::jsonb, '{"overall":0.9}'::jsonb,
+       ARRAY[]::text[], ARRAY[]::text[],
+       95, 'confirmed', now(), now(), 1000, 5000000, ARRAY['Dubai','Sharjah']::text[])
+     on conflict (supplier_id) do nothing`, 'seed capability');
+  if (inquiryId) await call('dispatch_inquiry', null, { __secret: dispatchCred, inquiry_id: inquiryId, force: false });
+  x = await call('supplier_api', s.jwt,
+    quotePayload(inquiryId, amount, 'Second competing quotation for the same scope.'));
+  return { ok: x.status === 200, detail: `HTTP ${x.status} ${x.text}` };
+}
+
+const supC = inquiryId
+  ? await standUpSupplier('supC', 'Journey Test Glass & Facade LLC', 131750)
+  : { ok: false, detail: 'skipped - no inquiry id' };
+step('second supplier quotes the same RFQ', supC.ok, supC.detail);
+
+// Journey step 18: quotation revision. A supplier re-submitting against the same RFQ must revise
+// the existing quote, not create a second one competing with itself.
+if (inquiryId) {
+  const countQuotes = async (extra = '') => Number((await mgmtRead(REF,
+    `select count(*)::int as n from public.quotes where inquiry_id = '${inquiryId}'${extra}`))[0].n);
+  const quotesBefore = await countQuotes();
+  r = await call('supplier_api', supA.jwt,
+    quotePayload(inquiryId, 118500, 'Revised: tighter lead time and a small discount on the same scope.'));
+  const quotesAfter = await countQuotes();
+  const nonDraft = await countQuotes(" and status <> 'draft'");
+  step('supplier revises quote (no duplicate)',
+    r.status === 200 && quotesAfter === quotesBefore,
+    `HTTP ${r.status} quotes ${quotesBefore}->${quotesAfter}, ${nonDraft} non-draft`);
+
+  // Journey step 19: the quotation is reviewed before the customer sees it. There are TWO review
+  // paths and they record in different places. A quote UPLOADED as a document goes through
+  // extraction and lands a row in quote_reviews; a quote typed into the structured FORM is judged
+  // by fn_quote_structured_score, which writes quotes.quality and quotes.submittable. Asserting
+  // only on quote_reviews reports "no review" for a form quote that was in fact fully scored.
+  const reviewRows = Number((await mgmtRead(REF,
+    `select count(*)::int as n from public.quote_reviews where inquiry_id = '${inquiryId}'`))[0].n);
+  const scored = Number((await mgmtRead(REF,
+    `select count(*)::int as n from public.quotes
+      where inquiry_id = '${inquiryId}' and (quality is not null or review_id is not null)`))[0].n);
+  step('quotation reviewed before the customer sees it', reviewRows > 0 || scored > 0,
+    `${reviewRows} upload review(s), ${scored} quote(s) scored`);
+
+  // Journey step 20: comparison. The end of the journey the whole system exists for.
+  // A 200 carrying {ok:false,error:'need_two'} is a refusal, not a comparison.
+  r = await call('customer_api', cust.jwt, { action: 'compare_pdf', inquiry_id: inquiryId, lang: 'en' });
+  step('customer quotation comparison', r.status === 200 && r.json?.ok !== false && !r.json?.error,
+    `HTTP ${r.status} ${r.text}`);
+} else {
+  step('supplier revises quote (no duplicate)', false, 'skipped - no inquiry id');
+  step('quotation review recorded', false, 'skipped - no inquiry id');
+  step('customer quotation comparison', false, 'skipped - no inquiry id');
+}
 
 // ---- cross-account isolation (Phase 3 / Phase 8) --------------------------------------------
 const supB = await mkUser('supB');
@@ -345,7 +442,20 @@ if (!KEEP) {
       method: 'DELETE', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE },
     });
   }
-  console.log(`\ncleaned up ${created.filter(Boolean).length} synthetic user(s)`);
+  // Delete the supplier rows too, not just the auth users. fn_match_capability is called with
+  // p_limit 12 and breaks ties by ascending supplier_id, so once twelve identically-scored demo
+  // suppliers exist the OLDEST twelve always win and every newer supplier is structurally
+  // invisible to matching. Leaving journey suppliers behind therefore breaks the next run - the
+  // RFQ dispatches to a dozen suppliers from previous runs and the current one never hears of it.
+  const wiped = await mgmtWrite(REF,
+    `with doomed as (
+       select id from public.leads where company_name like 'Journey Test %'
+     )
+     , c as (delete from public.supplier_capabilities where supplier_id in (select id from doomed))
+     , m as (delete from public.inquiry_matches where supplier_id in (select id from doomed))
+     , q as (delete from public.quotes where supplier_id in (select id from doomed))
+     delete from public.leads where id in (select id from doomed)`, 'cleanup suppliers');
+  console.log(`\ncleaned up ${created.filter(Boolean).length} synthetic user(s) and their supplier rows`);
 }
 
 const pass = steps.filter(s => s.ok).length;

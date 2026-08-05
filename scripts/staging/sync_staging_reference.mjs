@@ -47,6 +47,12 @@ const TABLES = [
   // turn as HTTP 200.
   'model_registry',
   'model_policy',
+  // ai_gateway maps a calling function to its task_class through this table. With it empty EVERY
+  // function falls through to the default tier, so the routing policy above is loaded and then
+  // never consulted. quote_compare - the customer's decision step - was answered by the cheapest
+  // model at 1500 output tokens, truncated its JSON, failed to parse twice, and returned HTTP 200
+  // with nothing to compare.
+  'fn_task_class',
 ];
 
 const lit = (s) => `'${String(s).replace(/'/g, "''")}'`;
