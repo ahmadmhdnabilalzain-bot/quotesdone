@@ -269,9 +269,13 @@ r = await call('attach_photos', cust.jwt, {
   images: [{ data: drawingB64, mime: 'image/png' }],
 });
 const photoPaths = Array.isArray(r.json?.paths) ? r.json.paths : [];
+// The job id is what lets create_inquiry ATTACH these photos: resolveRedactedPaths refuses any
+// path it cannot trace to a drawing_redaction_runs row. attach_photos had the id and discarded it,
+// so the photos were redacted, stored and recorded — and then reached no supplier.
+const photoJob = r.json?.redaction_job_id || null;
 step('customer reference photos redacted and stored',
-  r.status === 200 && r.json?.ok === true && photoPaths.length > 0,
-  `HTTP ${r.status} ${photoPaths.length} redacted photo path(s)`);
+  r.status === 200 && r.json?.ok === true && photoPaths.length > 0 && !!photoJob,
+  `HTTP ${r.status} ${photoPaths.length} redacted photo path(s) job=${photoJob || 'NOT RETURNED'}`);
 
 // REDACTION PROVENANCE (5 Aug 2026). attach_photos sent drawing_redact no owner at all, so this
 // row landed with customer_id AND owner_email both NULL - a PRIVACY control whose record could not
@@ -302,8 +306,12 @@ r = await call('customer_api', cust.jwt, {
     boq: draw.boq || null,
     drawing_file_path: draw.drawing_file_path || null,
     drawing_file_name: draw.drawing_file_name || null,
-    drawing_redacted_paths: draw.drawing_redacted_paths || [],
+    // The reference photos ride the SAME channel as the redacted drawing pages —
+    // inquiries.drawing_redacted_paths is what supplier_api signs for the supplier. Both halves are
+    // required: the paths, and the run id that proves the customer owns them.
+    drawing_redacted_paths: [...(draw.drawing_redacted_paths || []), ...photoPaths],
     redaction_job_id: draw.redaction_job_id || null,
+    redaction_job_ids: photoJob ? [photoJob] : [],
     brief_source: 'drawing',
   },
 });

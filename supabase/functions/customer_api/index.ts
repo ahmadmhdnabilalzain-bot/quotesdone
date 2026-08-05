@@ -221,7 +221,7 @@ function yearsBand(v: unknown): string | null { if (v == null) return null; cons
 // an embedded /Launch action all stored cleanly as "a drawing". It also stored phone photos with
 // their EXIF intact, which on an anonymous marketplace means the supplier receives the customer's
 // GPS coordinates attached to the "masked" site photo.
-async function storeOriginal(custId: string, name: string, mime: string, b64: string): Promise<string | null> {
+async function storeOriginal(custId: string, email: string, name: string, mime: string, b64: string): Promise<string | null> {
   try {
     // 5 Aug 2026. The allow-list was SAFE_UPLOAD (PDF + jpeg/png/webp), which excludes CAD - on the
     // one path in the system that explicitly SUPPORTS CAD. analyze_drawing detects .dwg/.dxf and
@@ -246,6 +246,20 @@ async function storeOriginal(custId: string, name: string, mime: string, b64: st
     // both layers returned the same null: the caller could not tell "we would not accept this" from
     // "the bucket would not accept this" from "the network failed".
     if (up.error) { console.warn(`[9.1] drawing accepted by the sanitizer as ${s.mime} but REJECTED by storage: ${up.error.message}`); return null; }
+    // 5 Aug 2026. THE ORPHAN WINDOW. At this point the object exists and the ONLY record of it is
+    // the path about to be returned to the client. If the customer never submits, swaps the
+    // attachment, or create_inquiry refuses, no row anywhere names it — and both pdpl_erase and
+    // retention_purge walk `inquiries`, so an abandoned upload is not merely litter, it is a
+    // customer's drawing that cannot be found and therefore cannot be ERASED on request.
+    // A ledger row makes it findable by owner. status='original_stored' distinguishes it from a
+    // real redaction run; resolveRedactedPaths filters it out (see the .neq there) because it
+    // carries no output_paths and would otherwise consume that query's 60-row window.
+    try {
+      await admin.from('drawing_redaction_runs').insert({
+        customer_id: custId, owner_email: email, source_path: path,
+        output_paths: [], pages_in: 0, pages_out: 0, status: 'original_stored',
+      });
+    } catch (_e) { /* never fail an accepted upload on its own bookkeeping */ }
     return path;
   } catch { return null; }
 }
@@ -425,6 +439,12 @@ async function resolveRedactedPaths(custId: string, authUserId: string, drawing:
   const { data: runs, error: rerr } = await admin.from('drawing_redaction_runs')
     .select('id,customer_id,caller_ref,output_paths,pages_in,pages_out,status')
     .or(`customer_id.eq.${custId},caller_ref.like.${photoRef}%`)
+    // NOT optional. storeOriginal now writes one 'original_stored' row per upload so an abandoned
+    // drawing stays erasable. Those rows carry no output_paths and contribute nothing here, but
+    // this query keeps only the 60 most recent runs — so without this filter a customer who
+    // uploads repeatedly would push their own REAL redaction runs out of the window, and
+    // create_inquiry would answer redaction_job_not_found (403) on a perfectly good drawing.
+    .neq('status', 'original_stored')
     .order('created_at', { ascending: false }).limit(60);
   if (rerr) return { err: { error: 'redaction_lookup_failed', message: 'We could not verify the redacted drawing pages just now. Please try again in a moment.' }, status: 503 };
   const mine = (runs || []).filter((r: any) => (r.customer_id && String(r.customer_id) === String(custId)) || (r.caller_ref && String(r.caller_ref).startsWith(photoRef)));
@@ -484,7 +504,7 @@ Deno.serve(async (req) => {
       const name = String(body.drawing_file_name || 'drawing').slice(0, 180);
       const mime = String(body.mime || 'application/octet-stream');
       const hint = String(body.hint || '').slice(0, 400);
-      const path = body.original_b64 ? await storeOriginal(cust.id, name, mime, String(body.original_b64)) : null;
+      const path = body.original_b64 ? await storeOriginal(cust.id, email, name, mime, String(body.original_b64)) : null;
       const secret = await getSecret('cred_fn_customer_api');
       const isCad = /\.(dwg|dxf)$/i.test(name) || /dwg|dxf|autocad|acad/i.test(mime);
       if (!images.length && isCad && body.original_b64) {

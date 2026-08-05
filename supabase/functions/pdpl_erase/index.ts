@@ -45,8 +45,27 @@ Deno.serve(async (req) => {
     if (cust) {
       const { data: inqs } = await admin.from('inquiries').select('drawing_file_path,drawing_redacted_paths').eq('customer_id', cust.id);
       for (const i of inqs || []) { if (i.drawing_file_path) drawings.push(String(i.drawing_file_path)); if (Array.isArray(i.drawing_redacted_paths)) for (const p of i.drawing_redacted_paths) if (p) drawings.push(String(p)); }
+      // 5 Aug 2026. Erasure walked `inquiries` ONLY, so any drawing a customer uploaded and never
+      // submitted — an abandoned attachment, a swapped file, an inquiry create_inquiry refused —
+      // was invisible here and survived a right-to-erasure request. drawing_redaction_runs is the
+      // ledger that names those objects by owner (storeOriginal writes one row per upload,
+      // drawing_redact writes one per redaction), so this closes erasure for every drawing object
+      // the customer caused, not only the ones that reached an inquiry.
+      const { data: runs } = await admin.from('drawing_redaction_runs')
+        .select('id,source_path,output_paths').eq('customer_id', cust.id);
+      for (const rr of runs || []) {
+        if (rr.source_path) drawings.push(String(rr.source_path));
+        if (Array.isArray(rr.output_paths)) for (const p of rr.output_paths) if (p) drawings.push(String(p));
+      }
     }
     const removed = { 'supplier-docs': await rm('supplier-docs', supDocs), 'drawing-files': await rm('drawing-files', drawings), 'quote-files': await rm('quote-files', quoteFiles) };
+    // The ledger rows themselves carry owner_email — the subject's own address — and fn_pdpl_redact
+    // does not scrub this table. Deleting them after the objects are gone completes the erasure;
+    // failing here must not fail the request, because the files are already removed.
+    if (cust) {
+      try { await admin.from('drawing_redaction_runs').delete().eq('customer_id', cust.id); }
+      catch (_e) { /* file removal already succeeded; do not fail the erasure on bookkeeping */ }
+    }
 
     // DB PII redaction (also flips request to completed + logs security_event)
     const { data: red, error: rerr } = await admin.rpc('fn_pdpl_redact', { p_request_id: reqId });
