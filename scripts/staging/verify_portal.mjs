@@ -203,11 +203,25 @@ await withRun(async (run) => {
   // so consuming the served value needs it threaded through Authed -> Dashboard. Not done here:
   // there is still no browser harness (§3.6, itself blocked on a staging-pointed preview URL), and
   // a blind edit to language switching is not worth the risk for a field that is now available.
+  // FLIPPED 5 Aug 2026. This used to assert 'the portal still ignores it', which is the shape of
+  // gate that keeps a defect green. The wiring landed: onServedLocale is threaded
+  // CustomerPortal -> Authed -> Dashboard, and loadInq applies j.locale.
+  //
+  // Still a GREP, not a render. There is no eslint, no jsx-a11y, no axe and no browser runner in
+  // this repo (npm test is scripts/checks/run.mjs), so this proves the wiring EXISTS, not that it
+  // works. It was hand-verified in a browser against a staging-pointed build. Do not report this
+  // as proof the portal renders Arabic.
   const portalSrc = readFileSync('src/components/me/CustomerPortal.tsx', 'utf8');
-  step('the portal still ignores it — the remaining half, stated not assumed',
-    /qd-lang/.test(portalSrc) && !/\blocale\b\s*[,)]/.test(portalSrc.slice(portalSrc.indexOf('loadInq'), portalSrc.indexOf('loadInq') + 400)),
-    'CustomerPortal still reads localStorage[qd-lang] + NEXT_LOCALE; wiring it needs lang threaded ' +
-    'CustomerPortal -> Authed -> Dashboard. Flip this check when that lands');
+  const wired = /onServedLocale/.test(portalSrc)
+    && /Dashboard\(\{[^)]*onServedLocale/.test(portalSrc)
+    && /j\.locale/.test(portalSrc);
+  const precedence = /localStorage\.getItem\('qd-lang'\)\)\s*return/.test(portalSrc);
+  step('the portal consumes the served locale, and an explicit choice still wins',
+    wired && precedence,
+    wired
+      ? (precedence ? 'onServedLocale threaded to Dashboard; applied from j.locale only when qd-lang is unset'
+                    : 'WIRED but the explicit-choice guard is missing — a stored locale would override a toggle')
+      : 'CustomerPortal does not consume j.locale');
 });
 
 const pass = checks.filter((c) => c.ok).length;
