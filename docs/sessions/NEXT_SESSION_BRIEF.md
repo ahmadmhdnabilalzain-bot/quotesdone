@@ -894,10 +894,13 @@ staging only.
 
 *Configuration, applied directly and NOT as a migration* (a migration breaks the 712-vs-712 ledger
 parity `verify_phase1.mjs` asserts):
-- `model_policy.quote_comparison.max_tokens` 3000 → **10000**
+- `model_policy.quote_comparison.max_tokens` **1500** → **10000** — *not* 3000. Measured in
+  production 5 Aug 2026: it is still on the original `~anthropic/claude-haiku-latest` / 1500, which
+  is the first of the four truncations §5 records. The gap is twice what this line used to claim.
 - `model_policy.document_extraction.max_tokens` 4000 → **8000**
-- `model_policy.rfq_routing.max_tokens` → **2500**
-- `fn_task_class` mapping for `quote_compare` (absent in production)
+- `model_policy.rfq_routing.max_tokens` 300 → **2500**
+- ~~`fn_task_class` mapping for `quote_compare` (absent in production)~~ — **WRONG, retired.** It is
+  **present** in production, mapped to `quote_comparison`. Do not "fix" it.
 - `inquiry_intake` task-class remap off `missing_fields_detection`
 - `storage.buckets.allowed_mime_types` for `drawing-files` += `image/vnd.dwg`, `image/vnd.dxf`
 - **`model_rate` rows for the `google/*` models** (new — see §3.4)
@@ -913,6 +916,32 @@ parity `verify_phase1.mjs` asserts):
   grants must be reapplied — `postgres` and `service_role` hold the full set on all three
 - **`internal_credential` `db.internal` scope += `capability_agent`** (`seed_staging_secrets.mjs`).
   Without it the only non-blocked half of the capability flow is unreachable
+
+**The sequence is now a measurement, not a list: `node scripts/verify_prod_readiness.mjs`.**
+Read-only against production by construction (every database read goes through `qd_guard`'s
+`mgmtRead`, which refuses write verbs; every function read is a GET). It reports each item above as
+APPLIED or OUTSTANDING with its measured production value, prints the exact statement for the
+outstanding ones in dependency order, and exits non-zero — so it is the gate after deploying, not a
+changelog. **13/13 outstanding as of 5 Aug 2026.**
+
+Three things it establishes that this section had wrong or missing:
+
+1. **The deploy list is derived from `git diff main...HEAD`, not transcribed.** 14 functions, and
+   four were never named here: `dispatch_inquiry`, `match_eval`, `route_inquiry`,
+   `stripe_setup_page`.
+2. **Drift is checked by content, not by version.** The deployed bundle embeds each module's source
+   verbatim, so the check is "is the repo's current `index.ts` a substring of the deployed bundle?"
+   All 14 differ. A version number only says something was deployed once.
+3. **A commit-timestamp comparison is the wrong instrument and was tried first.** It reported *118*
+   functions behind the repo, including `_shared`, `home` and `faq` — an artefact of a repo built by
+   pulling FROM production, where mass-import commits touch every directory at once.
+
+Also measured on production the same day: `ai_cost_log` is now **247 of 603** rows billing at zero,
+up from the 238/589 recorded above — the meter is still drifting further out while this sits
+undeployed. `google/gemini-3.1-flash-lite` alone is **219 calls, every one of them unpriced**.
+`qwen/qwen3.7-plus` is in the registry, unpriced, and has 0 calls — a landmine, not yet damage.
+Three `model_rate` rows are stale in the other direction (`claude-fable-5`,
+`claude-opus-4.7-fast`, `claude-opus-4.8-fast`: priced, no longer in the registry, 0 calls).
 
 *Code added in session 9 (no production effect until deployed):* `scripts/staging/demo_factory.mjs`,
 `scripts/staging/verify_cost.mjs`, `scripts/staging/seed_cost_config.mjs`, and the idempotency fix
