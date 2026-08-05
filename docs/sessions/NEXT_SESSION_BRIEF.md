@@ -16,6 +16,7 @@ node scripts/staging/verify_taxonomy.mjs      # 11/11  the operational router + 
 node scripts/staging/verify_doc_extract.mjs   #  7/7   the document queue — 1 model call, ~0.075 AED
 node scripts/staging/verify_license_extract.mjs # 12/12 licence reading — 4 model calls, ~0.2 AED
 node scripts/staging/verify_exception_window.mjs # 14/14 the 14-day licence exception — zero spend
+node scripts/staging/verify_portal.mjs        # 13/13  what the portal is served, incl. the reveal
 node scripts/staging/demo_factory.mjs         # 15/15  factory selftest, ~40 s, cleans up after itself
 node scripts/staging/journey_test.mjs         # 37/37  signup -> upload -> quotation comparison
 ```
@@ -434,11 +435,62 @@ actually reads, or move `kb_stage` off the management-API transport entirely.
 
 ### 3.3 Phase 5 — portals and API actions
 
-**The "29 package API actions" list does not exist anywhere in the repo or its git history.** The
-number survives only as an unsourced count carried between brief revisions. **Find the spec or
-retire the number** before planning against it.
+**"29 package API actions" — RETIRED.** Counted from the dispatchers (all three functions use a
+single `action === '…'` form; there are no `case` or aliased branches): **`customer_api` 14,
+`supplier_api` 11, `kyc` 7.** So the customer/supplier package is **25** actions, or **32** with
+`kyc`. `os_api` is the admin console and a different package at 41. Nothing is 29. Use the real
+inventory:
 
-> **Demo data — this is the section that most needs it:**
+```
+customer_api  analyze_drawing brief_pdf cancel_inquiry compare_pdf complete_inquiry create_inquiry
+              edit_inquiry me my_inquiries quote_pdf rate_supplier request_refund reveal
+              supplier_history
+supplier_api  claim create_company extract_quote inbox me pay_registration process_docs projects
+              save_profile search submit_quote
+kyc           accept_terms save_customer send_email send_sms state verify_email verify_sms
+```
+
+### THE REVEAL WAS BROKEN. A customer could pay and see nothing change.
+
+`verify_portal.mjs` (13/13, zero spend) was the first fixture ever to create a `transactions` row —
+the journey produces one inquiry with two quotes and never reveals — and it found this immediately:
+
+```js
+// customer_api/index.ts:654, before
+await admin.from('transactions').select('id,quote_id,revealed_at,created_at').eq('customer_id', cust.id)
+```
+
+**`public.transactions` has no `created_at` column, in staging or in production.** PostgREST answers
+400, `txs` comes back **null**, `for (const t of txs || [])` iterates nothing, and `revealedQ` stays
+empty — so **no quote is ever marked revealed**. The customer pays the reveal fee, `reveal` writes
+the row, and `my_inquiries` goes on returning `supplier_ref: null`, `revealed: false`, a banded
+rating and no emirate. Forever.
+
+It is the single line in the whole file that names a column that does not exist; the other seven
+`transactions` reads are all correct. Fixed, deployed to staging, and the read now logs `txErr`
+instead of discarding it. **This is live in production.**
+
+> That is the shape §5 keeps warning about, in its purest form: no exception, no 500, no failed
+> assertion — a `|| []` turning a hard schema error into an empty list, on the one path the paying
+> customer cares about. A green 37/37 journey said nothing about it because the journey never pays.
+
+**What else `verify_portal.mjs` pins.** Four inquiries spanning `sent`/`quoted`/`completed`/
+`cancelled`, 2–3 quotes each at different prices, one revealed. Asserted: drafts never reach the
+customer; quotes arrive cheapest first with anonymous `Supplier A/B/C` labels and a reveal fee;
+pre-reveal payloads **omit** `emirate`, `rating_source` and `win_rate` as keys rather than sending
+nulls, and band the rating, review count and years; the revealed one carries the real `supplier_ref`
+and exact figures; `matched_suppliers: 0` lets the portal say "this reached nobody" instead of
+showing hope; a signed-in user with no `customers` row is served, not crashed (and the row
+`customer_api` then creates carries a **fresh uuid, not the auth uid** — the mechanism behind the 65
+orphans); and Arabic summaries and quote notes survive the round trip.
+
+**`customers.locale` is stored and never served — still true, now asserted.** `my_inquiries` returns
+no `locale` field at all, so the portal *cannot* honour a customer's stored language; it falls back
+to `localStorage['qd-lang']` and the `NEXT_LOCALE` cookie (`CustomerPortal.tsx:16`). An Arabic
+journey therefore exercises a code path the portal cannot reach. Either serve the field or drop the
+column.
+
+> **Still to do here:** the remaining original asks —
 > - A demo customer with **3-4 inquiries spanning statuses** (`sent` / `quoted` / `completed` /
 >   `cancelled`), each with **2-3 quotes at different prices**, at least one revealed via a
 >   `transactions` row. Today the journey produces exactly one inquiry with two quotes and then
@@ -658,7 +710,8 @@ its built bundle, not by driving it. There is no browser test harness in the rep
 |---|---|
 | "`llm_calls` is 0, so cost is not recorded — `fn_llm_log` is swallowed by `rpcSafe`" | `fn_llm_log` writes **`ai_cost_log`** (643 staging rows, working). `llm_calls` is dead legacy with one writer. The real defect is `cost_aed=0` from the `model_rate` vs `model_registry` split |
 | "`quote_reviews` row is created by an uploaded quote" | `quote_reviews` has **no writer anywhere** and 0 rows in production. The subsystem does not exist |
-| "29 package API actions" | **No such list exists** in the repo or its git history |
+| "29 package API actions" | **No such list exists**, and the real count is not 29: `customer_api` 14 + `supplier_api` 11 = **25**, or **32** with `kyc`'s 7. Retired; the inventory is in §3.3 |
+| "the journey passing 37/37 covers the customer portal" | It covers everything except the step the business runs on. The journey never creates a `transactions` row, so **the reveal had never once been exercised** — and it was broken in production the whole time (§3.3) |
 | "`p_limit 12` makes a 100-supplier corpus mostly invisible" | Trades are a hard **gate**, not a score term. A trade-spread corpus never binds the tie-break. The real limits are `match_relevance_floor` 35 and `MAX_FANOUT` 5 |
 | "spread corpus score with `leads.rating`" | `supplier_perf` prefers `app_rating`; and `quote_rate` overrides `perf_score` once `matched>0`, collapsing the spread on run 2. Use `products_norm` overlap |
 | "standing up a supplier costs 3 model calls" | **2.** `supplier_review` resolves to `use_llm:false` — a free no-op |
@@ -780,6 +833,11 @@ leads, so every one is **prospective damage, not damage already done** — which
 - 149 cron jobs armed, including `vt_scan_daily` (03:00, `fn_run_vt()`). Uploads are **not**
   AV-scanned inline; `sanitizeUpload`'s structural sniffing is the inline gate and VirusTotal is a
   nightly sweep. A design, not a gap — but know it before claiming uploads are scanned.
+- **THE REVEAL DOES NOT WORK.** `customer_api my_inquiries` selects `created_at` from
+  `public.transactions`, which has no such column, so PostgREST 400s, the result is null, `|| []`
+  swallows it and **no quote is ever marked revealed**. A customer pays the reveal fee and the
+  portal keeps showing `supplier_ref: null` and a banded rating. This is the paywall failing open in
+  the customer's face after they have paid. *(Fixed in staging; one line.)*
 - **`quote_reviews` has no writer anywhere** and 0 rows.
 - **63 Edge Functions hard-code a `max` that can only lower the policy ceiling.** `ai_gateway` takes
   `min(caller, policy)`, so `model_policy.max_tokens` is decorative wherever a caller sets its own —
@@ -815,6 +873,10 @@ leads, so every one is **prospective damage, not damage already done** — which
 
 Do not prepare one yet; the acceptance suite (Phase 8) does not exist. When it does, the sequence
 must cover **both code and configuration**, because several session-8 fixes live in the database:
+
+*Code (session 9), HIGHEST PRIORITY:* **`customer_api`** — `my_inquiries` no longer selects the
+non-existent `transactions.created_at`. Until this ships, every reveal a production customer pays
+for is invisible to them.
 
 *Code (session 9):* **`license_extract`** — the caller-side `max:1500` removed. It had not truncated,
 but a realistic 15-activity licence sits at 74–78% of it, and a truncated licence returns HTTP 200
@@ -874,6 +936,7 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | **`verify_doc_extract.mjs`** | drives the document queue end to end: upload → trigger → `doc_extract` → `status='done'` with real content, and measures the output against the live task-class ceiling |
 | **`verify_license_extract.mjs`** | reads a valid, a 15-activity, an expired and an illegible UAE trade licence, asserting content rather than `ok:true`, and measures each against the live ceiling |
 | **`verify_exception_window.mjs`** | the 14-day licence exception end to end — open, the 3/7/12 reminder ladder, auto-rejection, recovery after auto-rejection, and the founding cohort |
+| **`verify_portal.mjs`** | four inquiries across four states with 2–3 quotes each and one revealed; asserts the paywall by what is ABSENT pre-reveal, plus the no-customers-row and Arabic cases |
 | `fixtures/` | the two synthetic upload PNGs, **`licence_pdf.mjs`** (generates 4 licence variants as real PDFs from a data table) + `README.md` |
 | **`demo_factory.mjs`** | the demo-data factory (§2.3). `--selftest` (default) 14/14, `--purge`, `--purge --dry-run`, `--corpus N [--customers N] [--keep]` |
 | **`verify_cost.mjs`** | 7 zero-spend checks over pricing, routing and monitoring; `--live` adds 4 that put one real inference through the gateway |

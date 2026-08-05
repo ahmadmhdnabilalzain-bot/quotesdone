@@ -742,6 +742,31 @@ export async function makeQuote(run, opts = {}) {
   return { id: row.id, status: row.status, amount: Number(row.quote_amount) };
 }
 
+/**
+ * Reveal a quote — the paid step the whole marketplace turns on.
+ *
+ * `customer_api my_inquiries` decides what a customer may see about a supplier purely by whether a
+ * `transactions` row exists for that quote_id: pre-reveal it returns `supplier_ref: null`, banded
+ * rating/review/years figures, and OMITS `emirate`, `rating_source` and `win_rate` entirely rather
+ * than sending nulls. So a transactions row is not bookkeeping here, it is the switch.
+ */
+export async function makeReveal(run, opts = {}) {
+  const { quote, inquiry, supplier, customer } = opts;
+  if (!quote || !inquiry || !supplier || !customer) {
+    throw new Error('makeReveal needs { quote, inquiry, supplier, customer }');
+  }
+  const fee = opts.reveal_fee ?? 150;
+  const ins = await mgmtWrite(REF,
+    `insert into public.transactions
+       (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee,
+        customer_price, fee_status, revealed_at, paid_by, payment_ref)
+     values (${q(quote.id)}, ${q(inquiry.id)}, ${num(supplier.leadId)}, ${q(customer.customerId)},
+             ${num(quote.amount)}, ${num(fee)}, ${num(quote.amount)}, ${q(opts.fee_status || 'paid')},
+             now(), ${q(opts.paid_by || 'customer')}, ${q(opts.payment_ref || `demo-${run.tag}`)})
+     returning id`, 'demo reveal');
+  return { id: ins?.[0]?.id, reveal_fee: fee };
+}
+
 // ---- bulk corpus -----------------------------------------------------------------------------
 /**
  * makeBulkCorpus(run, opts) -> { suppliers: [...], customers: [...], trades: [...] }
