@@ -1,7 +1,9 @@
 # START HERE — QuotesDone, 5 August 2026, end of session 9
 
-On **`repair/finish-quotesdone`** (branched from `repair/package-conformance-batch-0`).
-**Pushed. Not merged.**
+**MERGED to `main` on 5 August 2026** — [PR #3](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/3),
+merge commit `ea13ffb`. `main` now describes what production runs; it did not before.
+Merging also triggered a Vercel rebuild, so **quotesdone.com is live with the frontend changes**
+(verified afterwards: HTTP 200, all controls present, zero console errors).
 
 > ## ⚠ PRODUCTION IS NO LONGER UNCHANGED — 5 August 2026, session 10
 >
