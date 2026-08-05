@@ -500,8 +500,11 @@ export async function makeLicenceGatedSupplier(run, opts = {}) {
  * the capability flow that is NOT blocked by fn_ai_route's supplier_matching tier=none policy had
  * still never run.
  *
- * NOTE it does not write min_project_value / max_project_value: fn_match_capability's size term
- * therefore scores w_size*0.5 rather than w_size for a supplier confirmed this way.
+ * Since 5 Aug 2026 the endpoint accepts and writes min_project_value / max_project_value, so this
+ * path and the raw SQL INSERT now produce an IDENTICAL row from an identical profile — which is
+ * what makes replacing the journey's hand-written 18-column INSERT with this call safe. Before
+ * that, a supplier confirmed here scored w_size*0.5 instead of w_size in fn_match_capability and
+ * ranked below an otherwise identical supplier created by a fixture.
  */
 export async function confirmCapability(leadId, profile, opts = {}) {
   const cred = await internalCred();
@@ -511,6 +514,8 @@ export async function confirmCapability(leadId, profile, opts = {}) {
     trades: profile.trades, roles: profile.roles, products: profile.products_norm,
     brands: profile.brands, project_types: profile.project_types,
     coverage_emirates: profile.coverage_emirates, exclusions: profile.exclusions || [],
+    min_project_value: profile.min_project_value ?? null,
+    max_project_value: profile.max_project_value ?? null,
     confirmed_via: opts.confirmed_via || 'demo_factory',
   });
   if (r.status !== 200 || r.json?.ok !== true) {
@@ -1334,6 +1339,7 @@ export async function selftest() {
       const supAgent = await makeSupplier(run, { trade: 'hvac', capability: 'agent' });
       const confirmed = (await mgmtRead(REF, `
         select c.review_status, c.confirmed_version, c.trades, c.roles,
+               c.min_project_value, c.max_project_value,
                (select count(*)::int from public.supplier_capability_confirmation f
                  where f.supplier_id = c.supplier_id) as ledger
           from public.supplier_capabilities c where c.supplier_id = ${supAgent.leadId}`))[0] || {};
@@ -1342,6 +1348,32 @@ export async function selftest() {
           && Array.isArray(confirmed.trades) && confirmed.trades.includes('hvac'),
         `review_status=${confirmed.review_status} version=${confirmed.confirmed_version} ` +
         `ledger_rows=${confirmed.ledger} trades=${(confirmed.trades || []).join('+')}`);
+
+      // min/max_project_value are a HARD GATE in fn_match_capability's cand CTE, not a score term:
+      // a job outside the range removes the supplier before scoring. The endpoint never wrote them,
+      // so a supplier confirmed this way scored w_size*0.5 and ranked below an identical supplier
+      // created by a raw INSERT. Asserted against the PROFILE so both creation paths must agree.
+      ok('confirm persists the supplier-declared project-value range',
+        Number(confirmed.min_project_value) === Number(supAgent.profile.min_project_value)
+          && Number(confirmed.max_project_value) === Number(supAgent.profile.max_project_value),
+        `row ${confirmed.min_project_value}..${confirmed.max_project_value} vs profile ` +
+        `${supAgent.profile.min_project_value}..${supAgent.profile.max_project_value}`);
+
+      // The negative case for the new trust boundary. An inverted range would silently make the
+      // supplier unmatchable for every job, so it must be refused rather than stored.
+      const badRange = await call('capability_agent', null, {
+        __secret: await internalCred(), action: 'confirm', supplier_id: Number(supAgent.leadId),
+        trades: ['hvac'], roles: ['contractor'], products: ['x', 'y'],
+        min_project_value: 5000000, max_project_value: 1000,
+      });
+      const afterBad = (await mgmtRead(REF,
+        `select min_project_value, max_project_value from public.supplier_capabilities
+          where supplier_id = ${supAgent.leadId}`))[0] || {};
+      ok('confirm refuses an inverted project-value range and leaves the stored range intact',
+        badRange.status === 400 && badRange.json?.error === 'invalid_project_value_range'
+          && Number(afterBad.min_project_value) === Number(supAgent.profile.min_project_value),
+        `HTTP ${badRange.status} ${badRange.json?.error || ''}; stored range still ` +
+        `${afterBad.min_project_value}..${afterBad.max_project_value}`);
 
       // The vocabulary gate is the reason to prefer the endpoint over an INSERT: a raw INSERT will
       // happily store a trade code that fn_match_capability can never match.

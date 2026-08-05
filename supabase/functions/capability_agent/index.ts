@@ -161,12 +161,29 @@ Deno.serve(async (req) => {
       const brands = strArr(body.brands, 40, 60);
       const projectTypes = strArr(body.project_types, 12, 60);
 
+      // 5 Aug 2026. min/max_project_value had NO writer anywhere - not here, not in the portal,
+      // nowhere in src/. Only the raw SQL fixtures set them, so a supplier confirmed through the
+      // only real endpoint scored w_size*0.5 instead of w_size in fn_match_capability and ranked
+      // below an identical supplier created by a test.
+      //
+      // SUPPLIER-DECLARED ONLY, never model-extracted. These feed a HARD GATE in
+      // fn_match_capability's cand CTE: a job outside the range removes the supplier from the
+      // candidate set entirely rather than ranking it low. A wrong number is therefore far more
+      // damaging than a missing one, and null stays null and stays permissive.
+      const nv = (v: unknown) => (v === null || v === undefined || v === '') ? null : (Number.isFinite(Number(v)) ? Number(v) : null);
+      const minVal = nv(body.min_project_value);
+      const maxVal = nv(body.max_project_value);
+      if ((minVal !== null && minVal < 0) || (maxVal !== null && maxVal < 0) ||
+          (minVal !== null && maxVal !== null && minVal > maxVal)) {
+        return J({ error: 'invalid_project_value_range', message: 'The project value range is not valid. The minimum cannot be negative or greater than the maximum.', min_project_value: minVal, max_project_value: maxVal }, 400);
+      }
+
       const { data: prev } = await admin.from('supplier_capability_confirmation')
         .select('version').eq('supplier_id', supplierId).order('version', { ascending: false }).limit(1).maybeSingle();
       const version = Number(prev?.version || 0) + 1;
       const now = new Date().toISOString();
 
-      const { error: upErr } = await admin.from('supplier_capabilities').upsert({
+      const capRow: Record<string, unknown> = {
         supplier_id: supplierId,
         trades, roles, products_norm: products, brands, project_types: projectTypes, exclusions,
         services: strArr(body.services, 25),
@@ -180,13 +197,24 @@ Deno.serve(async (req) => {
         extracted_at: now,
         extractor_version: AGENT_VERSION,
         updated_at: now,
-      }, { onConflict: 'supplier_id' });
+      };
+      // CONDITIONAL, not unconditional. supabase-js upserts with Prefer: resolution=merge-duplicates
+      // and PostgREST builds DO UPDATE SET only for columns PRESENT in the payload. Including these
+      // keys always would NULL an existing range on any confirm that omits them - e.g. a re-confirm
+      // from a portal screen that does not collect them yet - silently widening that supplier's
+      // eligibility back to "anything".
+      if (minVal !== null) capRow.min_project_value = minVal;
+      if (maxVal !== null) capRow.max_project_value = maxVal;
+
+      const { error: upErr } = await admin.from('supplier_capabilities').upsert(capRow, { onConflict: 'supplier_id' });
       if (upErr) return J({ error: 'capability_write_failed', detail: upErr.message }, 500);
 
       await admin.from('supplier_capability_confirmation').insert({
         supplier_id: supplierId, version,
         proposed: body.proposed && typeof body.proposed === 'object' ? body.proposed : {},
-        confirmed: { trades, roles, products, brands, project_types: projectTypes },
+        // The declared range is now a hard gate on what this supplier is ever shown, so it belongs
+        // in the confirmation ledger - that row is the dispute record.
+        confirmed: { trades, roles, products, brands, project_types: projectTypes, min_project_value: minVal, max_project_value: maxVal },
         supplier_added: body.supplier_added && typeof body.supplier_added === 'object' ? body.supplier_added : {},
         exclusions,
         source_docs: body.source_docs && typeof body.source_docs === 'object' ? body.source_docs : {},
