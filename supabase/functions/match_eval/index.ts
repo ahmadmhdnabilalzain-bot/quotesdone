@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     for (const c of CASES) {
       let fits: any[] = [];
       try {
-        const r = await fetch('https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/route_inquiry', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret: inbound, inquiry: c.job }) });
+        const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/route_inquiry`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret: inbound, inquiry: c.job }) });
         const jd = await r.json(); fits = Array.isArray(jd.fits) ? jd.fits : [];
       } catch (_e) { routeFails.push(c.name+':'+String((_e as Error)?.message || _e)); /* treat as no fits */ }
       // only score fits that are our fixtures (ignore any incidental real seller)

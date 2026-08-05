@@ -17,7 +17,10 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const PROJECT_REF = 'htdblwldjkcgjvmqkbeh';
+// Production remains the default so regeneration keeps producing the committed config.toml.
+// QD_TARGET_REF lets --check compare against a staging branch, which is the only way to deploy
+// functions anywhere other than production.
+const PROJECT_REF = process.env.QD_TARGET_REF || 'htdblwldjkcgjvmqkbeh';
 const TOKEN_PATH = 'C:/Users/Opera/.supabase/access-token';
 const REPO = process.cwd();
 const OUT = join(REPO, 'supabase', 'config.toml');
@@ -63,15 +66,32 @@ if (process.argv.includes('--check')) {
     if (!committed.has(f.slug)) drift.push(`${f.slug}: live=${f.verify_jwt} but ABSENT from config.toml`);
     else if (committed.get(f.slug) !== f.verify_jwt) drift.push(`${f.slug}: config=${committed.get(f.slug)} live=${f.verify_jwt}`);
   }
-  for (const slug of committed.keys()) if (!deployed.has(slug)) drift.push(`${slug}: in config.toml but NOT DEPLOYED`);
+  // "In config.toml but not deployed" is a real finding on production: something was removed
+  // without review. On a staging project being populated in batches it is simply the state
+  // between batches, and treating it as drift blocks every deploy after the first - which is
+  // exactly what happened when 38 of 190 functions were live. Absent is not drifted.
+  const isProduction = PROJECT_REF === 'htdblwldjkcgjvmqkbeh';
+  if (isProduction) {
+    for (const slug of committed.keys()) if (!deployed.has(slug)) drift.push(`${slug}: in config.toml but NOT DEPLOYED`);
+  } else {
+    const undeployed = [...committed.keys()].filter((s) => !deployed.has(s));
+    if (undeployed.length) console.log(`note: ${undeployed.length} function(s) in config.toml not yet deployed to ${PROJECT_REF} (not drift)`);
+  }
   if (drift.length) {
     console.error(`VERIFY_JWT DRIFT (${drift.length}):`);
     for (const d of drift) console.error('  ' + d);
-    process.exit(1);
+    process.exitCode = 1;
+  } else {
+    console.log(`verify_jwt drift check: OK (${sorted.length} functions, ${jwtTrue.length} require a JWT)`);
+    process.exitCode = 0;
   }
-  console.log(`verify_jwt drift check: OK (${sorted.length} functions, ${jwtTrue.length} require a JWT)`);
-  process.exit(0);
-}
+  // Deliberately NOT process.exit(). On Node 24 for Windows, calling exit() while undici's
+  // keep-alive socket is still closing aborts the process with
+  //   Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), src\win\async.c line 94
+  // which returns non-zero AFTER the check has already printed OK - so a passing drift check
+  // read as a failing one and refused a 152-function deploy. Setting exitCode lets Node drain
+  // its handles and exit on its own with the status we asked for.
+} else {
 
 const lines = [];
 lines.push('# GENERATED FILE - do not hand-edit. Regenerate with:');
@@ -99,3 +119,5 @@ console.log(`wrote ${OUT}`);
 console.log(`functions=${sorted.length} verify_jwt_true=${jwtTrue.length} verify_jwt_false=${sorted.length - jwtTrue.length}`);
 console.log(`deployed-but-not-in-repo (${onlyDeployed.length}): ${onlyDeployed.join(' ') || '-'}`);
 console.log(`in-repo-but-not-deployed (${onlyRepo.length}): ${onlyRepo.join(' ') || '-'}`);
+
+}

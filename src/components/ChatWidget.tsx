@@ -3,8 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
-const FN = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/site_assistant';
+// Was an inline `process.env.NEXT_PUBLIC_SUPABASE_URL || '<production ref>'`, which meant a
+// preview deployment missing the variable pointed the public chat widget at the LIVE database
+// with no warning anywhere. supaEnv resolves it once and warns when it falls back.
+import { SUPA_ANON as ANON, SUPA_FN } from '@/lib/supaEnv';
+const FN = `${SUPA_FN}/site_assistant`;
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 

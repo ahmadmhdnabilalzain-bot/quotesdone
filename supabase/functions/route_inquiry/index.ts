@@ -163,7 +163,7 @@ async function capabilityRetrieve(inquiryId: string, secret: string, diag: any):
     let { data: reqRow } = await admin.from('inquiry_requirement').select('*').eq('inquiry_id', inquiryId).maybeSingle();
     if (!reqRow) {
       try {
-        await fetch('https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/inquiry_parse', {
+        await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/inquiry_parse`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ __secret: secret, inquiry_id: inquiryId }) });
         ({ data: reqRow } = await admin.from('inquiry_requirement').select('*').eq('inquiry_id', inquiryId).maybeSingle());

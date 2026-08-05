@@ -32,3 +32,5 @@ knowledge-import/.tok
 # The 67 knowledge packages: 27 MB of source archives, re-downloadable, not repo content.
 knowledge-import/all86/
 
+knowledge-import/all86_full/
+knowledge-import/__pycache__/

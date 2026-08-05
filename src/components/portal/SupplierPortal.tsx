@@ -9,9 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { BrandMark } from '@/components/BrandMark';
 
-const URL = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
-const FN = URL + '/functions/v1';
+// Same as the customer portal: an inline production fallback meant an unconfigured preview let
+// suppliers upload trade licences into the LIVE database. See supaEnv.
+import { SUPA_URL as URL, SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
 const SB = createClient(URL, ANON, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'qd-portal-auth' } });
 
 async function call(path, body, token) {

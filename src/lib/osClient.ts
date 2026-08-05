@@ -1,7 +1,16 @@
 'use client';
 import { createClient } from '@supabase/supabase-js';
-export const SUPA_URL = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
-export const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
+// The project ref and anon key used to be compiled in, so a preview deployment talked to
+// PRODUCTION regardless of what was configured for it - and setting Vercel env vars did nothing,
+// because nothing read them. Both now resolve from the environment; the production literals remain
+// only as a fallback so an unconfigured production build behaves exactly as before.
+//
+// Moved to src/lib/supaEnv.ts on 5 Aug 2026: this module had the resolution AND the warning, but
+// the customer portal, supplier portal, contact form and chat widget each re-declared the fallback
+// inline and inherited neither. Re-exported here so existing importers are unaffected.
+export { SUPA_URL, SUPA_ANON, SUPA_FN } from './supaEnv';
+import { SUPA_URL, SUPA_ANON } from './supaEnv';
+
 export const supa = createClient(SUPA_URL, SUPA_ANON, { auth: { persistSession: true, autoRefreshToken: true } });
 // LLM-backed actions can legitimately take a while (agent reasoning on Opus, question generation,
 // knowledge regeneration). Give those a long budget so a working-but-slow call isn't killed at 25s;

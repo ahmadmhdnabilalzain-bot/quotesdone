@@ -4,8 +4,9 @@ import { useLocale } from 'next-intl';
 import mk from '@/content/marketing.json';
 import css from '@/content/marketingCss.json';
 import { SERVICES_CSS } from '@/content/servicesCss';
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
-const FN = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1';
+// See supaEnv: the contact form posted to whatever this inline fallback resolved to, which on an
+// unconfigured preview deployment was production.
+import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
 export function ContactInner() {
   const locale = useLocale();
   const entry = (mk as any).contact; const d = entry[locale] || entry.en;

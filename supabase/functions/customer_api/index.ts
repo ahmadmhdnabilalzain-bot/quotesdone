@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment.ts';
+import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD } from '../_shared/attachment.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -223,7 +223,17 @@ function yearsBand(v: unknown): string | null { if (v == null) return null; cons
 // GPS coordinates attached to the "masked" site photo.
 async function storeOriginal(custId: string, name: string, mime: string, b64: string): Promise<string | null> {
   try {
-    const s = sanitizeUpload({ input: b64, declaredMime: mime, filename: name, allow: SAFE_UPLOAD, maxBytes: 25 * 1024 * 1024 });
+    // 5 Aug 2026. The allow-list was SAFE_UPLOAD (PDF + jpeg/png/webp), which excludes CAD - on the
+    // one path in the system that explicitly SUPPORTS CAD. analyze_drawing detects .dwg/.dxf and
+    // routes it through cad_convert to get page images, so the drawing was converted, read and
+    // turned into a BOQ, while storeOriginal rejected the original and returned null behind a
+    // console.warn. The customer saw a successful upload; the inquiry got no drawing_file_path, so
+    // the actual CAD file the supplier needs to quote from was gone and nothing reported it.
+    // SAFE_CAD already exists for exactly this and was simply never wired to its only caller. The
+    // sniffer validates both formats structurally (DWG by its AC10xx magic, ASCII DXF by its
+    // SECTION/HEADER shape, and it prefers the dangerous reading on ambiguity), so this widens the
+    // accepted set without trusting the caller's declared type.
+    const s = sanitizeUpload({ input: b64, declaredMime: mime, filename: name, allow: [...SAFE_UPLOAD, ...SAFE_CAD], maxBytes: 25 * 1024 * 1024 });
     if (!s.ok) {
       console.warn(`[9.1] drawing rejected: ${s.error} - ${s.detail}${s.mime ? ` (sniffed ${s.mime}, declared ${mime})` : ''}`);
       return null;
@@ -231,7 +241,12 @@ async function storeOriginal(custId: string, name: string, mime: string, b64: st
     if (s.declaredMismatch) console.warn(`[9.1] drawing declared ${mime} but is ${s.mime}; stored as ${s.mime}`);
     const path = `drawings/${custId}/${Date.now()}_${safeFilename(name, s.mime)}`;
     const up = await admin.storage.from('drawing-files').upload(path, s.bytes, { contentType: s.mime, upsert: false });
-    return up.error ? null : path;
+    // The sanitizer's rejection is logged above but the STORAGE rejection was not, and the bucket
+    // carries its own allowed_mime_types. A CAD upload was therefore refused twice, silently, and
+    // both layers returned the same null: the caller could not tell "we would not accept this" from
+    // "the bucket would not accept this" from "the network failed".
+    if (up.error) { console.warn(`[9.1] drawing accepted by the sanitizer as ${s.mime} but REJECTED by storage: ${up.error.message}`); return null; }
+    return path;
   } catch { return null; }
 }
 async function translateQuoteAr(q: any): Promise<any|null> {
@@ -636,7 +651,14 @@ Deno.serve(async (req) => {
       const supMeta: Record<string, any> = {};
       if (supIds.length) { const { data: ls } = await admin.from('leads').select('id,rating,rating_maps,reviews,reviews_maps,app_rating,app_reviews,emirate,verified,founded_year').in('id', supIds); const { data: perf } = await admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds); const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), emirate: l.emirate, verified: !!l.verified, years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null }; }
       const revealedQ = new Set<string>(); const txByQuote: Record<string, string> = {}; const revealAtByQuote: Record<string, string | null> = {};
-      if (ids.length) { const { data: txs } = await admin.from('transactions').select('id,quote_id,revealed_at,created_at').eq('customer_id', cust.id); for (const t of txs || []) { revealedQ.add(String(t.quote_id)); txByQuote[String(t.quote_id)] = String(t.id); revealAtByQuote[String(t.quote_id)] = (t.revealed_at || t.created_at) || null; } }
+      // public.transactions HAS NO created_at COLUMN - in staging or in production. Selecting it
+      // made PostgREST answer 400, so `txs` came back null, `for (const t of txs || [])` iterated
+      // nothing, and revealedQ stayed empty: NO QUOTE WAS EVER MARKED REVEALED. The customer paid
+      // the reveal fee, `reveal` wrote the transactions row, and the portal went on showing
+      // "Supplier A" with banded ratings and supplier_ref null, forever. Found 5 Aug 2026 by the
+      // first fixture that ever created a transactions row - the journey never reveals, so a green
+      // 37/37 said nothing about it. revealed_at is the column that exists; there is no fallback.
+      if (ids.length) { const { data: txs, error: txErr } = await admin.from('transactions').select('id,quote_id,revealed_at').eq('customer_id', cust.id); if (txErr) console.error('my_inquiries: transactions read failed —', txErr.message); for (const t of txs || []) { revealedQ.add(String(t.quote_id)); txByQuote[String(t.quote_id)] = String(t.id); revealAtByQuote[String(t.quote_id)] = t.revealed_at || null; } }
       const { data: revs } = await admin.from('reviews').select('transaction_id').eq('customer_id', cust.id); const ratedTx = new Set((revs || []).map((r) => String(r.transaction_id)));
       const now = new Date();
       // Pre-reveal quote rows carry BANDS only (see ratingBand/reviewCountBand/yearsBand above);
@@ -654,7 +676,14 @@ Deno.serve(async (req) => {
         if (ch && ch.length) { row.is_combined = true; row.child_count = ch.length; row.children = []; for (const c of ch) row.children.push(await mapRow(c)); }
         out.push(row);
       }
-      return J({ inquiries: out, promo: !!cfg.promo_until && new Date() <= new Date(cfg.promo_until) });
+      // `locale` added 5 Aug 2026. customers.locale was stored and, from the portal's point of
+      // view, never served: the brief called it "stored and never served", which measurement shows
+      // is not quite right - `me` returns the whole customer row via select('*'), locale included.
+      // But THE PORTAL NEVER CALLS `me`. It calls `kyc state` and this action, so the field was on
+      // the wire only where nothing was listening, and CustomerPortal fell back to
+      // localStorage['qd-lang'] and the NEXT_LOCALE cookie. A customer who set Arabic on one device
+      // got English on the next, and the Arabic journey exercised a path the portal could not reach.
+      return J({ inquiries: out, locale: cust.locale || null, promo: !!cfg.promo_until && new Date() <= new Date(cfg.promo_until) });
     }
 
     if (action === 'compare_pdf') {

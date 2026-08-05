@@ -358,7 +358,18 @@ Deno.serve(async (req) => {
           } else out.profile_error = jd?.error || 'extract_failed';
         } catch (e) { out.profile_error = String((e as Error)?.message || e); }
       }
-      await admin.from('leads').update(upd).eq('id', sup.id);
+      // 5 Aug 2026. This is the ONLY database write in process_docs, and it carries the storage
+      // path, every extracted licence field and the company-name correction. Its result was
+      // discarded, so a failed write returned `{ok:true, extracted:{…}}` — a complete, plausible
+      // payload describing a licence that was never saved. The supplier is told their trade licence
+      // is on file when it is not, and the document review queue never sees it. The storage uploads
+      // twenty lines above already check `up.error` and return 502; this now matches them.
+      // Found by verify_supplier_docs.mjs, which asserts the ROW rather than the response.
+      const { error: updErr } = await admin.from('leads').update(upd).eq('id', sup.id);
+      if (updErr) {
+        console.error('process_docs: leads update failed —', updErr.message);
+        return J({ error: 'save_failed', detail: updErr.message, message: 'We read your documents but could not save them to your profile. Please try again.' }, 502);
+      }
       // DOUBLE CONFIRMATION (spec, 29 Jul 2026). The typed services box exists so the supplier's
       // own description can be checked AGAINST the documents; until now the two were never
       // compared, so no mismatch could ever be flagged. Compare them, record the outcome in
@@ -469,7 +480,16 @@ Deno.serve(async (req) => {
       if (autoApproved) { upd.approval_status = 'approved'; upd.verified = true; upd.licence_gate_reason = null; }
       else if (String(sup.approval_status || '') !== 'approved' && !sup.verified) { upd.approval_status = autoApprove ? 'action_required' : 'pending'; upd.licence_gate_reason = autoApprove ? licenceReason : null; }
       if (firstSubmit) upd.registration_submitted_at = new Date().toISOString();
-      await admin.from('leads').update(upd).eq('id', sup.id);
+      // 5 Aug 2026. Same discarded-result defect as process_docs, and worse here: the three lines
+      // above put approval_status, verified and licence_gate_reason into `upd`, so this write IS
+      // the approval decision. Discarding its result meant a supplier who should have been approved
+      // could be left unapproved with the failure recorded nowhere — and the exception window below
+      // would then open a 14-day clock against a state that was never persisted.
+      const { error: updErr } = await admin.from('leads').update(upd).eq('id', sup.id);
+      if (updErr) {
+        console.error('save_profile: leads update failed —', updErr.message);
+        return J({ error: 'save_failed', detail: updErr.message, message: 'We could not save your profile. Please try again.' }, 502);
+      }
       // EXCEPTION WINDOW (2 Aug 2026, Phase 1.3). 'action_required' with no deadline is not
       // automation, it is a queue with the label removed: the account sits there forever, holding a
       // company name and an email, and neither the supplier nor the founder can tell whether it is
@@ -737,7 +757,17 @@ Deno.serve(async (req) => {
       try { await admin.from('quotes').update({ submittable }).eq('id', q!.id); } catch (_e) { /* */ }
       const requireStructured = (await secretVal('require_structured_quotes')) === 'true';
       const pricedItems = items.filter((it: any) => (numOrNull(it.unit_price) || 0) > 0 || (numOrNull(it.amount) || 0) > 0).length;
-      const formComplete = det.source === 'form' && pricedItems >= 1 && !!det.validity && !!det.warranty && !!det.lead_time;
+      // 5 Aug 2026. This required det.source === 'form', so an UPLOADED quotation could never be
+      // complete however complete it actually was. With require_structured_quotes = 'true' (its
+      // value in BOTH staging and production) acceptance then rested entirely on `submittable` -
+      // and as the note above records, the structured scorer says false for every real quote today.
+      // So no supplier who quoted by uploading their own PDF could ever be accepted: the quote was
+      // saved as a draft, the customer was never notified, and quote_compare filters drafts out, so
+      // the price vanished from the comparison. The supplier was told to "add the missing details"
+      // when nothing was missing - proven on staging with an extraction carrying validity, warranty,
+      // lead time and six priced line items. Completeness is a property of the QUOTE, not of the
+      // screen it arrived through; both paths must clear the same commercial bar, so test the bar.
+      const formComplete = pricedItems >= 1 && !!det.validity && !!det.warranty && !!det.lead_time;
       const accept = submittable || formComplete || !requireStructured;
 
       // Preflight (dry_run). Lets the portal confirm what is missing WHILE the supplier is still

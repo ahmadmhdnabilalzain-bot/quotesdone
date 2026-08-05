@@ -98,6 +98,17 @@ Deno.serve(async (req) => {
     if (b.intake_id) { const { data } = await admin.from('inquiry_intake').select('*').eq('id', b.intake_id).maybeSingle(); if (data && (data.email === email)) draft = data; }
     if (!draft) { const { data, error: draftErr } = await admin.from('inquiry_intake').insert({ customer_id: cust?.id || null, email, status: 'needs_info', turns: [] }).select('*').single(); draft = data; if (draftErr || !draft) { await logRun('error', { intake_persisted: 0 }, 'A customer-submitted inquiry failed to persist: insert into inquiry_intake returned ' + String(draftErr?.message || 'no row') + ' — this RFQ is lost at the front door, it will never be routed and no supplier will ever quote it.'); } }
 
+    // The insert above logs a precise diagnostic when it fails - "this RFQ is lost at the front
+    // door" - and then execution used to continue straight into draft.turns, so the caller got
+    // "Cannot read properties of null (reading 'turns')" and the real reason stayed in a log
+    // nobody was reading. Fail here, with the reason, in the response.
+    if (!draft) {
+      return J({
+        error: 'intake_unavailable',
+        message: 'Your request could not be saved. Nothing has been submitted - please try again.',
+      }, 503);
+    }
+
     const turns: any[] = Array.isArray(draft.turns) ? draft.turns : [];
     if (text) turns.push({ role: 'user', text });
     const allText = turns.filter((t) => t.role === 'user').map((t) => t.text).join(' \n ') + ' ' + (draft.raw_input || '');
@@ -124,7 +135,9 @@ Deno.serve(async (req) => {
       if (!checklist.length && perTradeChecklists.length) checklist = perTradeChecklists[0].fields;
     }
     const multiTrade = perTradeChecklists.length > 1;
-    const fmtFields = (fields: any[]) => fields.map((f: any) => `- ${f.question}${f.required ? ' (REQUIRED)' : ' (optional)'}${f.options ? ' [options: ' + f.options.join(', ') + ']' : ''}`).join('\n');
+    // The key is rendered because rule 3b makes it a contract: dispatch is gated on these exact
+    // keys, and a brief that answers under a different name scores as not answering at all.
+    const fmtFields = (fields: any[]) => fields.map((f: any) => `- [${f.key}] ${f.question}${f.required ? ' (REQUIRED)' : ' (optional)'}${f.options ? ' [options: ' + f.options.join(', ') + ']' : ''}`).join('\n');
     const checklistText = multiTrade
       ? perTradeChecklists.map((c) => `Trade \"${c.slug}\" (${c.label}) — essentials its suppliers need:\n${fmtFields((c.fields || []).filter((f: any) => f.required))}`).join('\n\n')
       : (checklist.length ? fmtFields(checklist) : '(no fixed checklist for this category — use professional judgement for what a supplier needs to quote accurately)');
@@ -208,6 +221,7 @@ RULES:
 1. If the message is gibberish, a test, empty, spam, or NOT a genuine request for a construction / fit-out / maintenance / supply / trade service in the UAE, set status \"rejected\" and politely ask them to describe an actual job.
 2. If genuine but missing REQUIRED details, set status \"needs_info\" and ask ONLY the most important missing questions — at most 4 total. CRITICAL ANTI-REPETITION RULE: first re-read the ENTIRE conversation and populate \"already_provided\" with every fact the customer has already given (per trade). You MUST NOT ask about — or list in \"missing\" — anything already covered in \"already_provided\". Re-asking a question the customer already answered is a serious error. Offer sensible options where helpful. Never ask for their name, phone or email (already collected).
 3. If enough detail exists for an accurate quote (all REQUIRED items known, or a drawing/BOQ covers them), set status \"ready\" and produce a clean supplier-ready brief.
+3b. CANONICAL KEYS — this is a hard contract, not a preference. Every REQUIRED checklist item above has a key in square brackets. Put that item's answer in \"brief\".\"details\" under EXACTLY that key, spelled exactly as given. Do not rename it, do not invent your own key, do not split it across two keys. A brief that answers the question under a different name is treated as not answering it at all: dispatch is gated on these exact keys, so the request is created and then silently never sent to a supplier. If the customer has given the information anywhere in the conversation, it belongs under the canonical key even if they phrased it differently.
 4. Be warm, concise and professional. ${ar ? 'Reply in Arabic.' : 'Reply in English.'}
 5. Do NOT invent details the customer did not give; if something is unknown and they say \"not sure\", either offer to recommend a standard or mark it as a supplier decision.
 6. The \"category\" you return MUST be exactly one of these canonical slugs: ${slugList}. Pick the closest match; only use \"general\" if truly none fits. For a broad multi-trade renovation/turnkey job, use \"fitout\".
@@ -275,14 +289,46 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       if (out.status === 'needs_info' && (!out.questions || out.questions.length === 0) && provKeys.length >= 5) { out.readiness = Math.max(Number(out.readiness) || 0, 80); }
     } catch (_e) { /* guard best-effort */ }
 
+    // SEMANTIC INTERPRETER IN SHADOW MODE.
+    // The model's category used to override the deterministic one unconditionally. Measured on
+    // staging: "Aluminium windows: supply and install 40 units, 1200 x 1500 mm, villa in Dubai
+    // Marina, powder coated, double glazed" was classified `flooring`. That loaded the flooring
+    // checklist, so the intake asked "Which flooring?" and "Remove existing floor / need subfloor
+    // levelling?" - questions this customer can never answer. readiness stuck at 40 across ten
+    // turns and the inquiry could never be created. The customer was trapped.
+    //
+    // The keyword layer had it right the whole time (aluminium-and-glass-suppliers, weights 3
+    // and 2, zero flooring matches) and was simply discarded. So: when deterministic evidence
+    // exists and the model's category has none of it, the deterministic answer stands. The
+    // disagreement is returned as classifier_override rather than swallowed, because a
+    // suggestion that silently wins is not a suggestion.
+    const kwCategory = detectCat(allText);
+    let classifierOverride: { model: string; kept: string } | null = null;
+    let requiredGate: { category: string; missing_keys: string[] } | null = null;
     let cat = out.category || category;
+    if (out.category && kwTrades.length && !kwTrades.includes(out.category) && out.category !== kwCategory) {
+      const kept = kwCategory || kwTrades[0];
+      if (kept) { classifierOverride = { model: String(out.category), kept: String(kept) }; cat = kept; }
+    }
     if (!cat || (!validSlugs.includes(cat) && cat !== 'general')) { cat = detectCat(allText) || (validSlugs.includes(String(draft.category)) ? draft.category : null) || 'general'; }
     category = cat;
-    const status = ['rejected', 'needs_info', 'ready'].includes(out.status) ? out.status : 'needs_info';
+    let status = ['rejected', 'needs_info', 'ready'].includes(out.status) ? out.status : 'needs_info';
     // Stamp the answering agent on the turn so the next turn knows the specialist has already introduced itself.
     turns.push({ role: 'assistant', text: out.assistant_message || '', agent: specialist ? specialist.slug : null });
 
     let trades = Array.isArray(out.trades) ? out.trades.map((s: any) => String(s)).filter((s: string) => validSlugs.includes(s)) : [];
+    // Same rule for the trade list. A hallucinated extra trade is not harmless: every trade adds
+    // its own checklist, so one invented trade can hold a complete request at needs_info forever.
+    // When the keyword layer found anything at all, a model trade it did not corroborate is
+    // dropped. When there is no keyword evidence, the model is all we have and is trusted.
+    if (kwTrades.length) {
+      const supported = trades.filter((s: string) => kwTrades.includes(s) || s === kwCategory);
+      if (supported.length !== trades.length) {
+        classifierOverride = classifierOverride
+          ?? { model: trades.filter((s: string) => !supported.includes(s)).join(','), kept: supported.join(',') || kwTrades.join(',') };
+      }
+      trades = supported;
+    }
     if (!trades.length) trades = kwTrades.slice();
     if (category && validSlugs.includes(category) && !trades.includes(category)) trades.unshift(category);
     if (trades.includes('flooring') && trades.includes('tiling')) trades = trades.filter((c: string) => c !== 'tiling');
@@ -290,6 +336,40 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     const urgency = ['emergency', 'urgent', 'normal'].includes(out.urgency) ? out.urgency : detectUrgency(allText);
     const plausibility = (out.plausibility && typeof out.plausibility === 'object') ? out.plausibility : null;
     const provenance = (out.provenance && typeof out.provenance === 'object') ? out.provenance : null;
+
+    // ONE DEFINITION OF READY.
+    // The intake used to declare 'ready' on the model's own say-so. dispatch is gated by
+    // inquiries.rfq_ready, which the rfq_complete trigger computes from fn_rfq_score against the
+    // CANONICAL keys in category_specs.fields. The model answered in its own vocabulary -
+    // window_type, finish, accessories - while the scorer looked for element and dimensions_qty,
+    // so a request the customer had fully answered scored 3 of 4 and the RFQ was created and then
+    // never dispatched. dispatch_inquiry reports that as {skip:'not_rfq_ready'} and nothing
+    // surfaces it: the customer sees their inquiry listed and simply never hears from a supplier.
+    //
+    // Required fields are now checked deterministically, under the same keys the scorer reads.
+    // The model does not get to vote itself ready.
+    if (status === 'ready' && category) {
+      const { data: specRow } = await admin.from('category_specs').select('fields').eq('category', category).maybeSingle();
+      const required = Array.isArray(specRow?.fields)
+        ? specRow.fields.filter((f: any) => f && f.required && f.key)
+        : [];
+      const b = (out.brief && typeof out.brief === 'object') ? out.brief : {};
+      const det = (b.details && typeof b.details === 'object') ? b.details : {};
+      const absent = required.filter((f: any) => {
+        const v = b[f.key] ?? det[f.key];
+        return v === undefined || v === null || String(v).trim() === '';
+      });
+      if (absent.length) {
+        status = 'needs_info';
+        out.status = 'needs_info';
+        out.missing = absent.map((f: any) => String(f.question || f.key));
+        out.questions = absent.slice(0, 4).map((f: any) => String(f.question || f.key));
+        out.readiness = Math.min(Number(out.readiness) || 0, 80);
+        // The brief exists but is not canonical; say which keys were wanted so the next turn can
+        // ask for them by name instead of re-asking the whole checklist.
+        requiredGate = { category, missing_keys: absent.map((f: any) => String(f.key)) };
+      }
+    }
 
     const brief = status === 'ready' ? (out.brief || null) : null;
     if (brief) {
@@ -309,6 +389,6 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     if (!saveErr) { await logRun(llmCallOk && llmParseOk ? 'ok' : 'error', { intake_saved: 1, status_computed: status, readiness: Number(out.readiness) || 0, trades: trades.length, questions: Array.isArray(out.questions) ? out.questions.length : 0, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0, llm_parse_ok: llmParseOk ? 1 : 0, category_specs_loaded: validSlugs.length, specialist: specialist ? specialist.slug : null }, (llmCallOk && llmParseOk) ? ('Intake turn completed normally: status=' + status + ', category=' + String(category) + ', trades=' + trades.length + ', agent=' + String(specialist ? specialist.slug : 'generic') + '. ' + (status === 'ready' ? 'Brief is supplier-ready and can be dispatched.' : 'RFQ is NOT yet dispatchable — it stays parked until the customer replies.')) : ('Intake turn completed but only via the keyword fallback (LLM unavailable/unparseable): status=' + status + ', category=' + String(category) + ' — this brief was not written by the model, so a request that is actually complete may be wrongly held at needs_info and never reach a supplier.'));
     }
 
-    return J({ ok: true, intake_id: draft.id, category, trades, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], readiness: Number(out.readiness) || 0, missing: out.missing || [], brief, agent: specialist ? specialist.slug : null, agent_name: specialist ? specialist.name : null });
+    return J({ ok: true, intake_id: draft.id, category, trades, classifier_override: classifierOverride, required_gate: requiredGate, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], readiness: Number(out.readiness) || 0, missing: out.missing || [], brief, agent: specialist ? specialist.slug : null, agent_name: specialist ? specialist.name : null });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 });

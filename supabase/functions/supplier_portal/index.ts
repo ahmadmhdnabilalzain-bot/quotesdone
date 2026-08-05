@@ -226,7 +226,17 @@ Deno.serve(async (req) => {
         const existing: string[] = Array.isArray(cur?.catalog_doc_paths) ? (cur!.catalog_doc_paths as string[]) : [];
         upd.catalog_doc_paths = [...existing, ...catAppend].slice(0, 20);
       }
-      if (Object.keys(upd).length > 1) await admin.from('leads').update(upd).eq('id', sup.id);
+      // 5 Aug 2026. The uploads above report per-file outcomes in `saved`/`failed`, but THIS write
+      // is what attaches any of them to the supplier. Its result was discarded, so a failed write
+      // reported every file as saved while no path ever reached the row — the same defect as
+      // supplier_api's process_docs and save_profile.
+      if (Object.keys(upd).length > 1) {
+        const { error: updErr } = await admin.from('leads').update(upd).eq('id', sup.id);
+        if (updErr) {
+          console.error('save_documents: leads update failed —', updErr.message);
+          return J({ error:'save_failed', detail: updErr.message, saved, failed, message:'Your files were uploaded but could not be attached to your profile. Please try again.' }, 502);
+        }
+      }
       return J({ ok:true, saved, failed });
     }
 

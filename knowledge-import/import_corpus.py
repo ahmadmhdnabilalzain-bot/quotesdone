@@ -28,12 +28,44 @@ Design notes that matter:
 import argparse, hashlib, io, json, os, re, sys, time, zipfile, csv
 from datetime import datetime, timezone
 import urllib.request, urllib.error
+from kb_idempotency import (canonical_rule_key, digests, fetch_rule_keys, classify, gate,
+                            reconcile, UpsertKeyChanged, StaleKeysPresent)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 CORPUS = os.path.join(BASE, 'all86', 'QuotesDone_ALL_KNOWLEDGE_86_CATEGORIES_v2026.07.31')
 PKG_DIR = os.path.join(CORPUS, '01_CATEGORY_KNOWLEDGE_PACKAGES')
-FN_URL = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/kb_corpus_import'
-TOKEN = open(os.path.join(BASE, '.tok')).read().strip()
+# The endpoint used to be a production literal, so this importer could only ever write to
+# production - which is also why the 4 Aug re-import could not have been rehearsed anywhere first.
+# It is now resolved from --project-ref / KB_PROJECT_REF, and production requires an explicit flag.
+PROD_REF = 'htdblwldjkcgjvmqkbeh'
+PROJECT_REF = (os.environ.get('KB_PROJECT_REF') or PROD_REF).strip()
+FN_URL = f'https://{PROJECT_REF}.supabase.co/functions/v1/kb_corpus_import'
+# The import token is minted per run and revoked after, so .tok is absent between imports. Reading
+# it at module import time made every invocation - including --help and every guard test - die with
+# a FileNotFoundError instead of doing its job. It is read on first use.
+_TOKEN = None
+
+
+def token():
+    global _TOKEN
+    if _TOKEN is None:
+        p = os.path.join(BASE, '.tok')
+        if not os.path.exists(p):
+            sys.exit(f'no import token at {p}. Mint one into app_secrets(kb_import_token) and write it here; '
+                     f'revoke it when the run finishes.')
+        _TOKEN = open(p).read().strip()
+    return _TOKEN
+
+
+def set_target(ref, allow_production):
+    global PROJECT_REF, FN_URL
+    if not re.fullmatch(r'[a-z]{20}', ref or ''):
+        sys.exit(f'refusing: {ref!r} is not a valid project ref')
+    if ref == PROD_REF and not allow_production:
+        sys.exit('refusing: target is production. Pass --i-mean-production to override.')
+    PROJECT_REF = ref
+    FN_URL = f'https://{ref}.supabase.co/functions/v1/kb_corpus_import'
+    return ref
 BATCH = 1000   # kb_corpus_import's MAX_ROWS; halves the number of round trips
 
 MODULE_FILES = [
@@ -51,7 +83,7 @@ SLUG_RE = re.compile(r'^[a-z0-9-]+$')
 
 # ---------------------------------------------------------------------------- transport
 def call(action, **kw):
-    payload = dict(kw); payload['__token'] = TOKEN; payload['action'] = action
+    payload = dict(kw); payload['__token'] = token(); payload['action'] = action
     data = json.dumps(payload).encode('utf-8')
     req = urllib.request.Request(FN_URL, data=data, headers={'Content-Type': 'application/json'})
     for attempt in range(5):
@@ -242,9 +274,15 @@ def rule_shape(r):
 
 
 def rule_row(r, run_id, shape):
+    # THE KEY IS canonical_rule_key(), NOT the shape's own identifier. 4 Aug 2026, finding A-01:
+    # writing r['rule_id'] for flat and r['record_id'] for wrapped means the SAME rule changes key
+    # when the shape detector's verdict changes, and an upsert on a changed key is an insert.
+    # The source rule id exists in both shapes, so it is the key; the envelope's own id is kept
+    # in record_id for provenance, where it cannot affect matching.
+    key = canonical_rule_key(r, shape)
     if shape == 'flat':
         return {
-            'rule_id': r['rule_id'], 'source_rule_id': r['rule_id'], 'record_id': None,
+            'rule_id': key, 'source_rule_id': r['rule_id'], 'record_id': None,
             'category_slug': r['category_slug'], 'subcategory_slug': r['subcategory_slug'],
             'rule_type': r.get('rule_type'), 'priority': r.get('priority'),
             'when_json': r.get('when'), 'then_json': r.get('then'),
@@ -254,7 +292,7 @@ def rule_row(r, run_id, shape):
         }
     sd = r.get('structured_data') or {}
     return {
-        'rule_id': r['record_id'], 'source_rule_id': sd.get('rule_id'), 'record_id': r['record_id'],
+        'rule_id': key, 'source_rule_id': sd.get('rule_id'), 'record_id': r['record_id'],
         'category_slug': r['category_slug'], 'subcategory_slug': r['subcategory_slug'],
         'rule_type': sd.get('rule_type') or r.get('record_type'),
         'priority': sd.get('priority'),
@@ -442,8 +480,53 @@ def import_package(zpath, dry, report, force=False):
         print(f'  {pkg_file:70s} rows={total:>6} rejected={len(rejected):>4} errs={len(w.errors)}', flush=True)
 
 
+def scan_expected(zips):
+    """Walk the archives WITHOUT writing and return exactly what a correct database would hold.
+
+    This is the number the 4 Aug run never computed. It reported 52,697 "rows", which was lines
+    read from files - a quantity that is identical whether the writes updated 12,929 rows or
+    inserted 3,325 extra ones.
+    """
+    rules, records = {}, set()
+    for z in zips:
+        with zipfile.ZipFile(os.path.join(PKG_DIR, z)) as zf:
+            names = zf.namelist(); root = names[0].split('/')[0]
+            for fn in MODULE_FILES:
+                m = f'{root}/{fn}'
+                if m not in names: continue
+                for line in io.TextIOWrapper(io.BytesIO(zf.read(m)), 'utf-8'):
+                    line = line.strip()
+                    if not line: continue
+                    try: rec = json.loads(line)
+                    except Exception: continue                      # noqa: BLE001
+                    if not validate(rec, 'record') and rec.get('record_id'):
+                        records.add(rec['record_id'])
+            m = f'{root}/{RULES_FILE}'
+            if m in names:
+                for line in io.TextIOWrapper(io.BytesIO(zf.read(m)), 'utf-8'):
+                    line = line.strip()
+                    if not line: continue
+                    try: r = json.loads(line)
+                    except Exception: continue                      # noqa: BLE001
+                    shape = rule_shape(r)
+                    if not shape or validate(r, 'rule'): continue
+                    key = canonical_rule_key(r, shape)
+                    sd = r.get('structured_data') or {}
+                    rules[key] = {'source_rule_id': (r['rule_id'] if shape == 'flat' else sd.get('rule_id')),
+                                  'record_id': (r.get('record_id') if shape == 'wrapped' else None)}
+                    if shape == 'wrapped' and not validate(r, 'record') and r.get('record_id'):
+                        records.add(r['record_id'])
+    return rules, records
+
+
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument('--project-ref', default=None, help='target Supabase project ref')
+    ap.add_argument('--i-mean-production', action='store_true')
+    ap.add_argument('--preflight-only', action='store_true',
+                    help='measure the database against the archives and exit; writes nothing')
+    ap.add_argument('--allow-stale', action='store_true')
+    ap.add_argument('--no-preflight', action='store_true', help='escape hatch; recorded in the report')
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--force', action='store_true')
     ap.add_argument('--only', default=None, help='substring filter on the package filename')
@@ -454,11 +537,39 @@ def main():
                          'package is always handled start-to-finish by one worker.')
     a = ap.parse_args()
 
+    if a.project_ref: set_target(a.project_ref, a.i_mean_production)
+    elif PROJECT_REF == PROD_REF and not a.i_mean_production and not a.dry_run:
+        sys.exit('refusing: no --project-ref given and the default is production. '
+                 'Pass --project-ref <staging> or --i-mean-production.')
+
     zips = sorted(z for z in os.listdir(PKG_DIR) if z.endswith('.zip'))
     if a.only: zips = [z for z in zips if a.only in z]
     report = {'started_at': datetime.now(timezone.utc).isoformat(), 'dry_run': a.dry_run,
-              'package_count': len(zips), 'packages': []}
-    print(f'{"DRY RUN" if a.dry_run else "IMPORT"}: {len(zips)} packages')
+              'project_ref': PROJECT_REF, 'package_count': len(zips), 'packages': []}
+    print(f'{"DRY RUN" if a.dry_run else "IMPORT"}: {len(zips)} packages -> {PROJECT_REF}')
+
+    # ---- PRE-FLIGHT. Before a single row is written.
+    before = expected_rules = expected_records = None
+    if not a.dry_run and not a.no_preflight:
+        print('preflight: scanning archives...', flush=True)
+        exp_rules, exp_records = scan_expected(zips)
+        expected_rules, expected_records = len(exp_rules), len(exp_records)
+        present = fetch_rule_keys(PROJECT_REF)
+        verdict = classify(exp_rules, present)
+        before = digests(PROJECT_REF)
+        report['preflight'] = verdict
+        print('preflight: ' + json.dumps({k: v for k, v in verdict.items() if not k.endswith('sample')}))
+        try:
+            gate(verdict, allow_stale=a.allow_stale)
+        except (UpsertKeyChanged, StaleKeysPresent) as e:
+            report['preflight_refused'] = str(e)
+            json.dump(report, open(a.out or os.path.join(BASE, 'preflight_report.json'), 'w'), indent=1)
+            sys.exit(f'\nPREFLIGHT REFUSED\n{e}')
+        if a.preflight_only:
+            json.dump(report, open(a.out or os.path.join(BASE, 'preflight_report.json'), 'w'), indent=1)
+            print('preflight only — nothing written.'); return
+    elif a.no_preflight:
+        report['preflight'] = 'SKIPPED via --no-preflight'
     if a.workers > 1:
         from concurrent.futures import ThreadPoolExecutor
         lock = __import__('threading').Lock()
@@ -477,10 +588,32 @@ def main():
     report['total_rows'] = sum(p.get('rows', 0) for p in report['packages'])
     report['total_rejected'] = sum(p.get('rejected', 0) for p in report['packages'])
     report['total_write_errors'] = sum(len(p.get('write_errors') or []) for p in report['packages'])
+
+    # ---- RECONCILE. Measured from the database, not asserted by the writer.
+    # "rows=52,697 rejected=0 write_errors=0" is what a 3,325-row duplication looked like.
+    # A report that cannot print `inserted=` cannot describe an idempotent run.
+    if before is not None:
+        after = digests(PROJECT_REF)
+        rec = reconcile(before, after, expected_rules, expected_records, report['total_rejected'])
+        report['reconciliation'] = rec
+        print('\nreconciliation: ' + json.dumps(rec, indent=1))
+        if not rec['count_matches_archive']:
+            report['verdict'] = 'MISMATCH'
+            print(f"\nCOUNT MISMATCH — rules {rec['rules_after']} vs expected {rec['rules_expected']}, "
+                  f"records {rec['records_after']} vs expected {rec['records_expected']}")
+        else:
+            report['verdict'] = 'OK'
+
     out = a.out or os.path.join(BASE, 'dry_run_report.json' if a.dry_run else 'import_report.json')
     json.dump(report, open(out, 'w'), indent=1)
-    print(f'\nrows={report["total_rows"]:,} rejected={report["total_rejected"]:,} '
-          f'write_errors={report["total_write_errors"]}  -> {out}')
+    r = report.get('reconciliation') or {}
+    print(f'\nseen={report["total_rows"]:,} rejected={report["total_rejected"]:,} '
+          f'write_errors={report["total_write_errors"]} '
+          f'inserted={r.get("rules_inserted", "n/a")} '
+          f'rules={r.get("rules_after", "n/a")}/{r.get("rules_expected", "n/a")} '
+          f'records={r.get("records_after", "n/a")}/{r.get("records_expected", "n/a")}  -> {out}')
+    if report.get('verdict') == 'MISMATCH':
+        sys.exit(1)
 
 
 if __name__ == '__main__':
