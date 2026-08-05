@@ -376,8 +376,12 @@ const capabilityInsert = (leadId, p) => `insert into public.supplier_capabilitie
  * mode 'sql' (default): auth-admin identity + one leads INSERT + one supplier_capabilities INSERT.
  *                       Zero model calls.
  * mode 'api'          : create_company -> save_profile -> accept_terms -> approve -> enrich_capability.
- *                       Costs 2 billable model calls (profile_ai on save_profile, enrich_capability);
- *                       supplier_review resolves to use_llm:false and is a free no-op.
+ *                       Costs 3 billable model calls (profile_ai on save_profile,
+ *                       enrich_capability, supplier_review). It was 2 until 5 Aug 2026, when
+ *                       supplier_review was moved off supplier_matching (tier=none) onto
+ *                       json_extraction: it had been resolving to use_llm:false and LAUNDERING that
+ *                       refusal into severity='clean', so every demo supplier - and every real one -
+ *                       was certified clean by a model that never ran.
  *
  * license_doc_path is left NULL on the SQL path ON PURPOSE. trg_leads_a_licence_gate fires BEFORE
  * INSERT, and a row inserted as approved/verified carrying a license_doc_path with a null

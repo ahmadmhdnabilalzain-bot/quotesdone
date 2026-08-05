@@ -12,12 +12,22 @@ async function sec(k: string) { const { data } = await admin.from('app_secrets')
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
-const llm = makeLlm(SONNET_FIRST, { max: 1400, temperature: 0.2 }); // shared OpenRouter client (Sonnet-first + 25s timeout)
+// NOT an OpenRouter client - the comment here used to say so and it was wrong since the 9.5 audit.
+// _shared/llm.ts:27,140 posts to ai_gateway, which classifies by CALLING FUNCTION NAME via
+// fn_task_class and treats the caller's ladder as a hint. So this file's ceilings DO reach the
+// gateway and DO get clamped by policy - the stale comment is what made it look exempt.
+// The `max: 1400` default is dead: every call passes an explicit third argument.
+const llm = makeLlm(SONNET_FIRST, { max: 1400, temperature: 0.2 });
 function parseJson(s: string): any { if (!s) return null; const m = s.match(/\{[\s\S]*\}/); if (!m) return null; try { return JSON.parse(m[0]); } catch { return null; } }
 
 async function genOne(category: string, label: string): Promise<boolean> {
   const sys = 'You define onboarding standards for a UAE B2B services marketplace. For the given service category, produce (1) SUPPLIER REQUIREMENTS: what a legitimate supplier in this trade must have to be approved and to quote credibly in the UAE (licences, trade-licence activity, certifications, insurances, technical staff/tickets, equipment, portfolio, approvals from authorities), and (2) a COMPLIANCE CHECKLIST: the UAE regulatory / safety / documentation items relevant to delivering this service (e.g. Dubai Municipality, Civil Defence, DEWA, ADDC, ESMA, HACCP, third-party inspections, warranties, insurances, permits). Be specific and realistic to the UAE. Return ONLY JSON: {"supplier_requirements":[{"item":string,"why":string,"mandatory":boolean}],"compliance_checklist":[{"item":string,"authority":string|null,"notes":string|null}]}.';
-  const raw = await llm(sys, 'Category: ' + category + (label ? ' (' + label + ')' : ''), 1500);
+  // 1500 -> 2000, the knowledge_research ceiling, so the natural output can be measured rather
+  // than clamped. This function AUTHORS supplier requirements plus a compliance checklist per
+  // category - the same job as gen_category_knowledge / gen_category_personas / kb_deepen, which
+  // all sit in knowledge_research. It was filed under missing_fields_detection (tier=none) on a
+  // note describing a required-field comparison it has never done.
+  const raw = await llm(sys, 'Category: ' + category + (label ? ' (' + label + ')' : ''), 2000);
   const out = parseJson(raw || '');
   if (!out || !Array.isArray(out.supplier_requirements)) return false;
   const { error } = await admin.from('category_specs').update({

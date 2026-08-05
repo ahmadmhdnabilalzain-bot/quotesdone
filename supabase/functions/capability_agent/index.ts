@@ -97,7 +97,13 @@ async function callModel(key: string, content: any[]) {
   try {
     const r = await fetch(GW, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: key, fn: 'capability_agent', max: 2500, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }] })
+      // `max: 2500` removed 5 Aug 2026. This function reads up to five supplier documents (trade
+      // licence, company profile, three catalogues) as base64 vision parts and returns a 13-key JSON
+      // with up to 40 products. Its peers on the same class and model measure 1,799-3,249 output
+      // tokens (doc_extract / drawing_boq / quote_extract), so 2,500 sat MID-DISTRIBUTION - the §5
+      // pattern that has now produced five separate defects. ai_gateway takes min(caller, policy),
+      // so this could only ever lower document_extraction's 8000, never raise it.
+      body: JSON.stringify({ __secret: key, fn: 'capability_agent', temperature: 0.1, sys: SYS, input: [{ role: 'user', content }] })
     });
     const jd = await r.json();
     if (!r.ok || jd?.ok === false) { last = 'http ' + r.status + ' ' + clip(jd?.detail || jd?.error, 140); }

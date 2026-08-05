@@ -46,10 +46,26 @@ Deno.serve(async (req) => {
       body: JSON.stringify({ __secret: sec.value, fn: 'supplier_review', sys: SYS, input: userMsg, max: 800, temperature: 0.1 }),
     });
     const d = await r.json();
-    if (!r.ok) return J({ ok: true, severity: 'clean', issues: [], summary: 'AI review failed; manual check advised.', fallback: true });
+    if (!r.ok) return J({ ok: true, severity: 'review', issues: ['ai_review_unavailable'], summary: 'AI review failed; manual check advised.', fallback: true });
+    // THE LAUNDERED REFUSAL (found 5 Aug 2026). This read `parseJson(d?.content || '{}')`, and the
+    // `catch` below is the ONLY branch that sets fallback:true. But `'{}'` is VALID JSON - it does
+    // not throw - so whenever the gateway returned no `content` at all, review became {}, issues
+    // became [], and this function answered severity:'clean' WITH NO FALLBACK FLAG. supplier_api
+    // then wrote that into leads.ai_review_notes and emailed the founder "AI check: clean".
+    //
+    // For months that was every single registration: supplier_review resolved to a task class with
+    // tier='none', so fn_ai_route returned use_llm:false and ai_gateway answered 200 with no body.
+    // Re-routing it to json_extraction fixes the cause, but NOT this: a budget halt, a rate limit or
+    // a deterministic refusal all still produce an empty content and would read as "clean" forever.
+    //
+    // So absence of an answer is now 'review', never 'clean'. It still does not BLOCK registration -
+    // the founder wants full automation and supplier_api only records flags - but a human is told
+    // the machine did not look, instead of being told it looked and found nothing.
+    const content = typeof d?.content === 'string' ? d.content.trim() : '';
+    if (!content) return J({ ok: true, severity: 'review', issues: ['ai_review_did_not_run'], summary: 'The automated check did not run for this registration (no model response), so nothing has been verified. Please review manually.', fallback: true });
     let review;
-    try { review = parseJson(d?.content || '{}'); }
-    catch { return J({ ok: true, severity: 'clean', issues: [], summary: 'AI review unreadable; manual check advised.', fallback: true }); }
+    try { review = parseJson(content); }
+    catch { return J({ ok: true, severity: 'review', issues: ['ai_review_unreadable'], summary: 'AI review unreadable; manual check advised.', fallback: true }); }
     if (!Array.isArray(review.issues)) review.issues = [];
     return J({ ok: review.ok !== false, severity: review.severity || (review.issues.length ? 'review' : 'clean'), issues: review.issues, summary: review.summary || '' });
   } catch (e) {

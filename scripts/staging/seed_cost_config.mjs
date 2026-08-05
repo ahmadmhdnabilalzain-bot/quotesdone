@@ -132,6 +132,54 @@ const tc = await mgmtWrite(REF, `
   returning fn, task_class`, 'seed fn_task_class');
 say('fn_task_class', `${tc[0].fn} -> ${tc[0].task_class}`);
 
+// ---- 3b. the four functions that were DEAD AT THE MODEL LAYER ----------------------------------
+// capability_agent, category_reqs, inquiry_intake and supplier_review all resolved to task classes
+// with tier='none' and max_tokens=0, so fn_ai_route returned use_llm:false BEFORE budget, cache or
+// any model, and ai_gateway answered HTTP 200 with no `content`.
+//
+// This was NOT a founder decision, which is how the brief had it. It was a mis-labelling: the
+// 20260728204939 migration filed these four by GUESSING what they do, and every guess is wrong
+// against the source. Then 20260804182051 switched missing_fields_detection and supplier_matching
+// off - correct for the tasks those class NAMES describe, fatal for four functions wrongly filed
+// under them. The fix is to file each under the class matching what it actually asks the model for.
+//
+// WHY EACH, from the source rather than the old note:
+//   capability_agent  reads up to 5 supplier documents as vision parts and returns a 13-key JSON
+//                     -> document_extraction, with license_extract / doc_extract / quote_extract.
+//   category_reqs     AUTHORS UAE supplier requirements + a compliance checklist into
+//                     category_specs -> knowledge_research, with gen_category_knowledge / kb_deepen.
+//   inquiry_intake    runs the entire customer conversation and writes the supplier brief
+//                     -> agent_reasoning. Already applied to staging and MEASURED: 65 calls on
+//                     sonnet-5, 194-1178 output tokens (max 69% of the 1700 ceiling), 0 truncations.
+//   supplier_review   grades a registration against fixed format rules, small fixed JSON
+//                     -> json_extraction, with canon_eval / knowledge_exam.
+//
+// THE WORST OF THE FOUR IS supplier_review, and it is a live production defect: with no `content`
+// its parser reads '{}' and returns {ok:true, severity:'clean', issues:[], summary:''} WITHOUT the
+// fallback:true flag its other failure branches set. supplier_api writes that into
+// leads.ai_review_notes and emails the founder "AI check: clean". Every supplier registration ever
+// made has been certified clean by a model that never ran.
+//
+// Recorded HERE, not only as a hand-applied row, because rebuild_staging.mjs drops schema public and
+// sync_staging_reference.mjs then re-copies fn_task_class FROM PRODUCTION, which still holds the
+// dead mapping. The current staging inquiry_intake remap survives a sync only because copyTable
+// skips when the staging row count already matches production's (67 = 67); it would NOT survive a
+// rebuild.
+const dead = await mgmtWrite(REF, `
+  insert into public.fn_task_class (fn, task_class, note, active, updated_at) values
+   ('capability_agent','document_extraction',
+    'Reads a supplier''s own trade licence, company profile and catalogues (PDF/image) as vision parts and returns the capability JSON. Filed with its siblings license_extract, doc_extract, quote_extract, drawing_boq. Was supplier_matching (tier=none) on a note describing tie-ranking it never did.', true, now()),
+   ('category_reqs','knowledge_research',
+    'Authors UAE supplier requirements and a compliance checklist per category into category_specs. Same job as gen_category_knowledge / gen_category_personas / kb_deepen. Was missing_fields_detection (tier=none) on a note describing a required-field comparison it never did.', true, now()),
+   ('inquiry_intake','agent_reasoning',
+    'Runs the whole customer conversation in a category specialist persona and writes the supplier brief. Was missing_fields_detection (tier=none): the model was off, the crude keyword fallback answered, and readiness froze at 40. Measured on staging: 65 calls, 194-1178 output tokens against a 1700 ceiling, zero truncations.', true, now()),
+   ('supplier_review','json_extraction',
+    'Grades a submitted registration against explicit format rules and returns a small fixed JSON. Same shape as canon_eval and knowledge_exam. Was supplier_matching (tier=none), and the refusal was LAUNDERED into severity=clean with no fallback flag - so every registration was certified clean by a model that never ran.', true, now())
+  on conflict (fn) do update set task_class = excluded.task_class, active = true,
+                                 note = excluded.note, updated_at = now()
+  returning fn, task_class`, 'seed fn_task_class (four switched-off functions)');
+for (const r of dead) say('', `  ${r.fn.padEnd(20)} -> ${r.task_class}`);
+
 // ---- 4. repoint the monitoring views off the dead table -----------------------------------------
 // ai_cost_log has no `fell_back` column, so "fallback" is derived from what the policy would have
 // chosen: a call whose model is not the active policy's model_primary for its task class. That is a
