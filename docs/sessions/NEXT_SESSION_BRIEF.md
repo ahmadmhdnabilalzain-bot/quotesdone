@@ -875,7 +875,47 @@ deliberately**: an unconfigured production build must behave exactly as it does 
 it converts a silent wrong target into a hard outage. typecheck clean, `npm test` 16/16,
 `next build` exit 0.
 
-> **This is the blocker on driving the deployed URL, and it is not a tooling gap.** Until a preview
+### THE FRONTEND HAS NOW BEEN DRIVEN. §3.6's browser half is closed for the customer portal.
+
+Not against the Vercel URL — against **the branch built locally with `NEXT_PUBLIC_SUPABASE_URL`
+pointed at staging**, which is strictly safer and tests the same thing: real browser, real staging
+backend, and the `supaEnv` fix included (which the deployed site does *not* have). Confirmed on the
+loaded page: **1 staging ref, 0 production refs** in the JavaScript the portal actually executes.
+
+Driven end to end, by clicking, with `scripts/staging/browser_fixture.mjs` supplying the data:
+
+| step | result |
+|---|---|
+| OTP sign-in | typed the email, clicked **Send me a code**, entered the seeded code, signed in |
+| profile gate | typed name / mobile / DOB and saved — **landed in `public.customers` in staging**, proving UI → `kyc save_customer` → database |
+| terms | accepted through the real checkbox |
+| dashboard | "Browser Fixture Customer", 1 Request · 1 Open · 2 Quotes received · 0 Hired · AED 0 Spend |
+| **the paywall, rendered** | **Supplier A** AED 118,500 "Best value" ✓ verified, **Supplier B** AED 132,000 — anonymous labels, cheapest first, **Reveal fee AED 250**, no identity leaked |
+
+That last row is what `verify_portal` asserts at the API level, now confirmed in the **rendered UI**.
+Stopped short of **Reveal & contact**: that is a payment action and needs the Stripe test keys (§6).
+
+**Three findings from driving it that no API test could produce:**
+
+1. **`form_input` on a React checkbox silently does nothing.** Setting the property left the
+   controlled state untouched and the form answered "Please accept the terms." It must be *clicked*.
+   Any future harness will hit this on every checkbox and radio.
+2. **"Open project" is not in the accessibility tree.** It is a bare `<span>` with a click handler —
+   no `role`, no `tabindex`, not focusable, not a button. Keyboard and screen-reader users cannot
+   reach the control that opens a request. That is an a11y defect, found only by trying to click it.
+3. **Mobile verification cannot be exercised at all in staging** — Twilio is withheld on purpose, so
+   `phone_verified` had to be set directly. The SMS path remains genuinely untested.
+
+Teardown is a named command, not an implicit one, because a browser session needs its rows to
+outlive the script that made them: `node scripts/staging/browser_fixture.mjs teardown <tag>`.
+Staging returned to baseline afterwards (factory selftest 15/15, no drift in 23 counters).
+
+> **One piece of pre-existing litter, not from this session:** auth user
+> `probe+msfa009g@example.com`, created 4 Aug 23:15 — an ad-hoc probe that never got a teardown,
+> which is §2.4's own warning coming true. Left in place rather than silently deleted; remove it if
+> you agree.
+
+> **Still true for the DEPLOYED URL, and it is not a tooling gap.** Until a preview
 > deployment is provably pointed at staging, any write flow driven through it — signup, inquiry,
 > quote, reveal — lands in **production**, which the standing rule forbids. Two things are needed
 > before a browser harness is worth writing, and neither is code: **the preview URL**, and
