@@ -156,6 +156,26 @@ storage bucket before the run and asserts they are identical after teardown. Tha
 `company_event`, `doc_versions`, `notifications` and `supplier_capability_confirmation` were found —
 none of them were on any list of things a demo run touches.
 
+**Three outputs the database does not record**, found by watching what survived a clean run:
+
+1. **The comparison PDF.** `comparison_run_v2` has no path column and the signed URL is only ever
+   returned to the caller, so nothing in the database knows the object exists — which is how 20 of
+   them accumulated in `agent-docs`. Teardown now derives it from the filename convention
+   (`QD-<first 8 of the inquiry id, uppercased>-CMP.pdf`).
+2. **The CAD original.** `create_inquiry` carries `drawing_file_path` for the raster upload only, so
+   the `.dxf` the customer actually uploaded is stored and then referenced by nothing. `journey_test`
+   deletes it by name; **in production it would be unreachable litter**, and worse, a supplier
+   asked to quote from a CAD drawing has no path to it.
+3. **The reference photos.** `attach_photos` returns their paths and writes them to no row, and its
+   `drawing_redaction_runs` row carries `customer_id` NULL **and** `owner_email` NULL — so a
+   redaction record cannot be attributed to the customer who caused it. `--purge` sweeps
+   unattributable rows; a single run cannot. Making `attach_photos` stamp the owner is a small fix
+   and a real one: this is redaction provenance for a privacy control.
+
+A clean `journey_test` run now leaves **zero** rows and zero objects behind, except
+`signed-terms/registers/customers-register.xlsx` — a rolling register `kyc accept_terms` maintains
+and regenerates, not per-run litter. `--purge` does delete it; that is harmless but worth knowing.
+
 **Two fixture traps found by building it**, both of which produced a green-looking wrong answer:
 
 1. **Vary the score dial, hold the gates still.** The first cut varied `roles` "for realism", which
@@ -363,11 +383,9 @@ the live probe proved it. All applied **directly, not as migrations** — a migr
   table from the other is the actual fix: the two disagreeing is the root defect, and a hand-written
   `model_rate` is what let production lose every `google/*` row in the first place.
 - `department_budget` seeded with production's 13 `dept_key`s and thresholds, `spent_aed` at 0.
-- `fn_task_class` row added for **`drawing_redact_verify`**, which was the only 1 of 34 gateway call
-  sites falling through to `UNMAPPED -> general_drafting` (medium, **900** `max_tokens`) while its
-  siblings `drawing_redact` and `drawing_boq` both get `document_extraction` at 8000. It is the
-  function that verifies a drawing redaction actually landed — the check the journey asserts privacy
-  on. **Production is missing this row too.**
+- `fn_task_class` row added for **`drawing_redact_verify`**, the only 1 of 34 gateway call sites
+  falling through to `UNMAPPED -> general_drafting`. **Production is missing this row too.**
+  Read the next subsection before you touch this one.
 - `v_llm_model_mix`, `v_llm_calls_without_task_class` and `v_llm_offpolicy` repointed off the dead
   `llm_calls` onto `ai_cost_log`, grants restored.
 - 601 `ai_cost_log` rows removed: every one recorded 0.00 because `model_rate` was empty, so they
@@ -391,6 +409,36 @@ Three notes for whoever picks this up:
    have left it joining `llm_policy`, which has 3 rows in production and **0 in staging** and is not
    what `fn_ai_route` consults — turning a silent all-clear into a loud false alarm. It now asks:
    was a model used that no active `model_policy` can select?
+
+#### `drawing_redact_verify` cannot parse gemini output — REAL, UNFIXED
+
+The obvious mapping for `drawing_redact_verify` is `document_extraction`, matching its siblings
+`drawing_redact` and `drawing_boq`. **That mapping was applied and it broke the journey**, which
+went 37/37 → 35/37:
+
+```
+FAIL  9 drawing redaction recorded and verified   status=failed in=1 out=0 verified=0 failed=1
+FAIL 13 inquiry carries the drawing and its redacted pages   redacted_pages=0
+verify_detail: [{"page": 0, "found": ["verify_unparseable"]}]
+```
+
+The model call **succeeded** — `ok=true`, 396 output tokens, `cost_aed` 0.0203. `document_extraction`
+resolves to `google/gemini-3.5-flash`, and `drawing_redact_verify` cannot parse what that model
+returns. It then fails closed and publishes **no redacted page at all**, which is the correct
+refusal and the wrong routing. `drawing_redact` was already on gemini and is fine; only the verifier
+cannot read it.
+
+It is therefore mapped to **`general_drafting`** — the same medium tier,
+`~anthropic/claude-haiku-latest` and 900-token ceiling the UNMAPPED fallback was already giving it,
+its measured output being 295-396 tokens — but as a decision on the record instead of a fallback
+nobody chose.
+
+> **Two things for the next session.** First, the parser is the real defect: this is the fourth
+> gemini output-shape problem in the log (§5), and `ai_gateway` already returns `finish_reason` and
+> `truncated`. Fix `drawing_redact_verify` to read gemini, then move it to `document_extraction`
+> where it belongs. **Until then it must not be routed to a google model.** Second, note what caught
+> it: not the cost gate, which stayed 7/7 green, and not the model call, which reported success —
+> the journey did. A routing change is a behaviour change; re-run the journey after one.
 
 Still open: **`resend_inbound/index.ts:262` calls OpenRouter directly**, outside the gateway, so it
 is outside routing, logging and the budget halt. Adding `model_rate` and `department_budget` to
@@ -498,6 +546,8 @@ its built bundle, not by driving it. There is no browser test harness in the rep
 | "`fn_task_class` mapping" | `fn_task_class` is a **table**, not a function. `fn_ai_route` reads it and falls back to `general_drafting` with `UNMAPPED` in the `why` string |
 | `capability_requirement` → `inquiry_requirement` (already corrected) | Still right. Also: `supplier_capability_confirmation` is a real table and `capability_agent confirm` is its only writer |
 | "`seed_staging_secrets.mjs` can be re-run" | It could not. The `internal_credential` INSERT had no `ON CONFLICT` and the table has no unique key on `context`, so a second run would **double all 74 credentials** and leave `fn_internal_auth` choosing between duplicates. Fixed: it now skips the bulk copy when the table is non-empty |
+| "map `drawing_redact_verify` to `document_extraction`, like its siblings" | **Breaks it.** `document_extraction` is `google/gemini-3.5-flash` and the verifier cannot parse that model's output — journey 35/37, `verify_unparseable`, while the model call itself returned `ok=true`. Mapped to `general_drafting` instead; see §3.4 |
+| "journey_test's cleanup leaves the customer row behind" | Confirmed and now **fixed**: it takes a run tag and calls `demo_factory`'s `teardown()`. Two runs under the old cleanup left 4 `customers`, 2 `inquiries`, 26 `notifications`, 10 `company_event` and 9 storage objects behind — measured by purging immediately after them |
 
 ---
 
@@ -568,7 +618,13 @@ leads, so every one is **prospective damage, not damage already done** — which
 - **`ai_cost_log.cost_aed` is 0 on 238 of 589 calls**, including 100% of both `google/*` models,
   because `model_rate` has no `google/*` rows. Cost reporting understates real spend today.
 - **CAD originals would be discarded** — `drawing-files` `allowed_mime_types` is still
-  `pdf, jpeg, jpg, png, webp`, and `customer_api` still passes `SAFE_UPLOAD`.
+  `pdf, jpeg, jpg, png, webp`, and `customer_api` still passes `SAFE_UPLOAD`. And once that is
+  fixed, a second gap sits behind it: `create_inquiry` records `drawing_file_path` for the raster
+  upload only, so **the stored CAD original is referenced by no row at all** — the supplier asked to
+  quote from it has no path to it, and nothing can ever clean it up.
+- **`attach_photos` records no owner.** Its `drawing_redaction_runs` row carries `customer_id` NULL
+  and `owner_email` NULL, so a redaction — a privacy control — cannot be attributed to the customer
+  whose photos were redacted.
 - **`quote_extract` at 2000 output tokens** would return empty proposals, hidden by `ok:true`.
 - **`inquiry_intake`, `capability_agent` and `supplier_review` all map to switched-off task classes.**
 - **`quote_comparison` capped at 3000** and **`document_extraction` at 4000** while `drawing_boq`
@@ -582,11 +638,10 @@ leads, so every one is **prospective damage, not damage already done** — which
   nightly sweep. A design, not a gap — but know it before claiming uploads are scanned.
 - **`quote_reviews` has no writer anywhere** and 0 rows.
 - **`drawing_redact_verify` has no `fn_task_class` row**, so `fn_ai_route` reports
-  `UNMAPPED function` and routes it to `general_drafting` — medium tier at **900 `max_tokens`**,
-  against `document_extraction`'s 8000 for its two siblings. This is the function that verifies a
-  drawing redaction actually removed the customer's identity before competing suppliers see it, and
-  §5 records four separate defects caused by a ceiling sitting inside the output's natural range.
-  *(Fixed in staging.)*
+  `UNMAPPED function` and routes it to `general_drafting`. It happens to work there, but nobody
+  chose it and nothing records that the choice matters — and it matters a lot: routing it to
+  `document_extraction` like its siblings silently disables drawing redaction entirely (§3.4).
+  *(Mapped deliberately in staging.)*
 - **No `internal_credential` in production scopes `capability_agent`**, so its `confirm` action —
   the only writer of a confirmed `supplier_capabilities` row and its
   `supplier_capability_confirmation` ledger entry, and one that makes no model call — is
@@ -643,7 +698,7 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 |---|---|
 | `verify_phase1.mjs` | 12 measurements: repo clean+pushed, functions deployed, jwt parity, schema parity, isolation, ledger |
 | `smoke_staging.mjs` | real Auth user, storage, PostgREST, 10 functions |
-| `journey_test.mjs` | the 37-step journey; cleanup is **incomplete** — see §2.2 |
+| `journey_test.mjs` | the 37-step journey. Cleanup now takes a run tag and calls `demo_factory`'s `teardown()`; only the reference photos are deleted explicitly, because `attach_photos` returns their paths and nothing writes them to a row |
 | `sync_staging_assets.mjs` | copies the `brand` bucket; refuses every bucket holding real data |
 | `seed_staging_secrets.mjs` | copies `app_secrets` + `internal_credential`, withholds by name and by live-key prefix |
 | `sync_staging_reference.mjs` | 18-table allowlist copy; **pagination is unsafe above 500 rows** — see §3.2 |

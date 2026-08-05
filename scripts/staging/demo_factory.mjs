@@ -802,6 +802,18 @@ const BUCKET_SOURCES = (s) => [
       `select signed_terms_path p from public.customers where ${s.cust} and signed_terms_path is not null
        union select signed_terms_path from public.leads where ${s.lead} and signed_terms_path is not null`,
   },
+  {
+    // The comparison PDF is the one output whose path NOTHING records: comparison_run_v2 has no
+    // path column and the signed URL is only ever returned to the caller. It is derivable from the
+    // filename convention instead - QD-<first 8 of the inquiry id, uppercased>-CMP.pdf - which is
+    // how 20 of them accumulated in agent-docs without appearing on anybody's cleanup list.
+    bucket: 'agent-docs', sql:
+      `select o.name p from storage.objects o
+        where o.bucket_id = 'agent-docs'
+          and exists (select 1 from public.inquiries i
+                       where ${s.inq}
+                         and o.name like '%QD-' || upper(left(i.id::text, 8)) || '-CMP%')`,
+  },
 ];
 
 async function deleteObjects(bucket, paths) {
@@ -1183,10 +1195,15 @@ export async function selftest() {
     ok('factory body completed', false, String(e.message).slice(0, 160));
   }
 
+  // This check compares absolute counts, so it assumes nothing else is writing to staging while it
+  // runs. Running it alongside journey_test.mjs will fail it on the journey's rows, not on a
+  // teardown defect - read the named counters before believing the failure.
   const after = await snapshot();
   const drift = diffSnapshots(before, after);
   ok('teardown returned the database to its baseline', drift.length === 0,
-    drift.length ? drift.map((d) => `${d.t} ${d.before}->${d.after}`).join(', ') : 'no drift in 20 counters');
+    drift.length
+      ? drift.map((d) => `${d.t} ${d.before}->${d.after}`).join(', ') + '  (another writer running?)'
+      : `no drift in ${Object.keys(after).length} counters`);
 
   const pass = checks.filter((c) => c.pass).length;
   console.log(`\nDEMO FACTORY SELFTEST ${pass}/${checks.length} on ${REF}`);

@@ -8,8 +8,9 @@
 //
 //   node scripts/staging/journey_test.mjs [--keep]
 import { assertNotProduction, mgmtRead, mgmtWrite } from './qd_guard.mjs';
+import { teardown } from './demo_factory.mjs';
 import { readFileSync } from 'node:fs';
-import { createHmac } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 
 const REF = assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'journey test');
 const BASE = `https://${REF}.supabase.co`;
@@ -30,8 +31,15 @@ const step = (name, ok, detail) => {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${String(n).padStart(2)} ${name.padEnd(34)} ${detail}`);
 };
 
+// One tag per run, embedded in every email this run creates, so demo_factory's teardown can find
+// everything by tag instead of by the hand-maintained list this file used to carry. That list is
+// why staging accumulated 65 orphaned `customers` rows: cleanup deleted the auth users and the
+// `Journey Test %` leads and nothing else, so every run left its customer row, its inquiry, its
+// intake, its verifications and its redaction runs behind.
+const RUN = randomBytes(4).toString('hex');
+
 async function mkUser(tag) {
-  const email = `qd-${tag}+${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}@example.com`;
+  const email = `qd-${RUN}-${tag}${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}@example.com`;
   const password = 'Journey-' + Math.random().toString(36).slice(2) + 'A1!';
   const c = await fetch(`${BASE}/auth/v1/admin/users`, {
     method: 'POST',
@@ -354,7 +362,9 @@ step('supplier accepts terms', r.status === 200, `HTTP ${r.status} ${r.text}`);
 // exact-match update on the mixed-case address silently touched zero rows and the step failed
 // with approval_status=none while the UPDATE itself reported success.
 await mgmtWrite(REF,
-  `update public.leads set approval_status = 'approved', verified = true
+  `update public.leads set approval_status = 'approved', verified = true,
+       tags = (select array(select distinct unnest(coalesce(tags,'{}'::text[])
+                || ARRAY['qd_demo', 'qd_run:${RUN}']::text[])))
    where lower(claimed_by) = lower('${supA.email}')`,
   'approve supplier');
 r = await call('supplier_api', supA.jwt, { action: 'me' });
@@ -516,7 +526,9 @@ async function standUpSupplier(tag, companyName, amount) {
   });
   await call('kyc', s.jwt, { action: 'accept_terms', user_kind: 'supplier', email: s.email });
   await mgmtWrite(REF,
-    `update public.leads set approval_status='approved', verified=true
+    `update public.leads set approval_status='approved', verified=true,
+       tags = (select array(select distinct unnest(coalesce(tags,'{}'::text[])
+                || ARRAY['qd_demo', 'qd_run:${RUN}']::text[])))
       where lower(claimed_by) = lower('${s.email}')`, 'approve supplier');
   await call('enrich_capability', null, { __secret: dispatchCred, lead_id: cid });
   await mgmtWrite(REF,
@@ -617,45 +629,41 @@ step('customer sees quotation state', r.status === 200, `HTTP ${r.status} ${r.te
 
 // ---- cleanup -----------------------------------------------------------------------------------
 if (!KEEP) {
-  for (const id of created.filter(Boolean)) {
-    await fetch(`${BASE}/auth/v1/admin/users/${id}`, {
-      method: 'DELETE', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE },
-    });
-  }
-  // Delete the supplier rows too, not just the auth users. fn_match_capability is called with
-  // p_limit 12 and breaks ties by ascending supplier_id, so once twelve identically-scored demo
-  // suppliers exist the OLDEST twelve always win and every newer supplier is structurally
-  // invisible to matching. Leaving journey suppliers behind therefore breaks the next run - the
-  // RFQ dispatches to a dozen suppliers from previous runs and the current one never hears of it.
-  const wiped = await mgmtWrite(REF,
-    `with doomed as (
-       select id from public.leads where company_name like 'Journey Test %'
-     )
-     , c as (delete from public.supplier_capabilities where supplier_id in (select id from doomed))
-     , m as (delete from public.inquiry_matches where supplier_id in (select id from doomed))
-     , q as (delete from public.quotes where supplier_id in (select id from doomed))
-     delete from public.leads where id in (select id from doomed)`, 'cleanup suppliers');
-  // The upload steps put real objects in storage. Left behind they accumulate one drawing, one
-  // redacted page and one quotation per run forever, and a later fidelity check comparing staging
-  // to production would be reading this test's litter.
+  // Two objects this run creates are recorded on NO row, so teardown cannot derive them and they
+  // have to be named here:
+  //   - the reference photos. attach_photos returns their paths and writes them nowhere. Its
+  //     drawing_redaction_runs row carries customer_id NULL and owner_email NULL, so even the
+  //     redaction record cannot be attributed to the customer who caused it - `--purge` sweeps
+  //     those unattributable rows, but a single run cannot.
+  //   - the CAD original. create_inquiry carries drawing_file_path for the raster upload only, so
+  //     the .dxf the customer uploaded is stored and then referenced by nothing.
   let objs = 0;
-  for (const [bucket, paths] of [
-    ['drawing-files', [drawingStoredPath, cadPath, ...photoPaths,
-                       ...(Array.isArray(draw.drawing_redacted_paths) ? draw.drawing_redacted_paths : []),
-                       ...(Array.isArray(cad.drawing_redacted_paths) ? cad.drawing_redacted_paths : [])]],
-    ['quote-files', [quoteDocPath]],
-  ]) {
-    const keep = paths.filter(Boolean);
-    if (!keep.length) continue;
-    const del = await fetch(`${BASE}/storage/v1/object/${bucket}`, {
+  const orphanPaths = [...photoPaths, cadPath,
+                       ...(Array.isArray(cad.drawing_redacted_paths) ? cad.drawing_redacted_paths : [])]
+    .filter(Boolean);
+  if (orphanPaths.length) {
+    const del = await fetch(`${BASE}/storage/v1/object/drawing-files`, {
       method: 'DELETE',
       headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prefixes: keep }),
+      body: JSON.stringify({ prefixes: orphanPaths }),
     });
-    if (del.ok) objs += keep.length;
+    if (del.ok) objs += orphanPaths.length;
   }
-  console.log(`\ncleaned up ${created.filter(Boolean).length} synthetic user(s), their supplier rows` +
-              ` and ${objs} uploaded file(s)`);
+  // The reference-photo redaction runs, matched on the output paths this run knows.
+  if (photoPaths.filter(Boolean).length) {
+    await mgmtWrite(REF,
+      `delete from public.drawing_redaction_runs
+        where customer_id is null and owner_email is null
+          and output_paths && ARRAY[${photoPaths.filter(Boolean).map((p) => `'${p.replace(/'/g, "''")}'`).join(',')}]::text[]`,
+      'cleanup photo redaction runs');
+  }
+
+  // Everything else by run tag. This replaces a hand-maintained list that deleted auth users,
+  // 'Journey Test %' leads and six named storage paths - and left the customers row, the inquiry,
+  // the intake, the email verifications, the redaction runs, the documents, the notifications, the
+  // company_event rows and the doc_versions behind on every single run.
+  const t = await teardown({ tag: RUN });
+  console.log(`\ncleaned up ${objs} unreferenced photo(s) + ${t.summary}`);
 }
 
 const pass = steps.filter(s => s.ok).length;

@@ -91,12 +91,29 @@ say('department_budget', `${budgets.length} department(s), degrade 70% / halt 95
 // to general_drafting gave it 900. §5 of the brief records four separate defects caused by a token
 // ceiling sitting inside the output's natural range, so a 900-token ceiling on a vision check is
 // the same shape of bug waiting to happen.
+// MEASURED, NOT ASSUMED. The obvious mapping is document_extraction, to match its siblings
+// drawing_redact and drawing_boq. That mapping was applied, and the journey immediately dropped to
+// 35/37: drawing_redaction_runs came back status=failed, pages_out=0, verify_failed=1, with
+// verify_detail [{"page":0,"found":["verify_unparseable"]}].
+//
+// The model call itself SUCCEEDED - ok=true, 396 output tokens. document_extraction resolves to
+// google/gemini-3.5-flash, and drawing_redact_verify cannot parse what that model returns, so it
+// fails closed and publishes no redacted page. That is the correct refusal and the wrong routing.
+//
+// So it is mapped to general_drafting: the same medium tier and the same
+// ~anthropic/claude-haiku-latest the UNMAPPED fallback was already giving it, and the same
+// 900-token ceiling its measured 295-396 token output fits inside - but now a decision on the
+// record rather than a fallback nobody chose. The parser's inability to read gemini output is a
+// real defect and is filed in the brief; until it is fixed, this function must not be routed to a
+// google model.
 const tc = await mgmtWrite(REF, `
   insert into public.fn_task_class (fn, task_class, note, active, updated_at)
-  values ('drawing_redact_verify', 'document_extraction',
-          'Vision check that a redaction landed. Was UNMAPPED and fell through to general_drafting '
-          || '(medium, 900 max_tokens); its siblings drawing_redact and drawing_boq are both '
-          || 'document_extraction. Added by seed_cost_config.mjs. MISSING IN PRODUCTION TOO.',
+  values ('drawing_redact_verify', 'general_drafting',
+          'Vision check that a redaction landed. Was UNMAPPED and fell THROUGH to general_drafting; '
+          || 'now mapped there deliberately. NOT document_extraction: that routes to '
+          || 'google/gemini-3.5-flash, whose output this function cannot parse - measured 5 Aug 2026, '
+          || 'journey 35/37 with verify_detail [{"page":0,"found":["verify_unparseable"]}] while the '
+          || 'model call itself returned ok=true. MISSING IN PRODUCTION TOO.',
           true, now())
      on conflict (fn) do update set task_class = excluded.task_class, active = true,
                                     note = excluded.note, updated_at = now()
