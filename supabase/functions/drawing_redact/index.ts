@@ -40,11 +40,31 @@ If you cannot read the image, or you are unsure, answer {"clean": false, "found"
 async function verifyPage(key: string, jpgB64: string): Promise<{ clean: boolean; found: string[] }> {
   try {
     const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: key, fn: 'drawing_redact_verify', max: 400, temperature: 0, sys: VERIFY_SYS,
+      // `max: 400` was here, and it was the whole defect. MEASURED 5 Aug 2026, same image, same
+      // prompt, same model, only the ceiling changed:
+      //
+      //   max 400  -> output_tokens 396, finish_reason 'length', truncated TRUE,  36 chars,
+      //              cut off mid-JSON at `"found` — parseJson returns null
+      //   no max   -> output_tokens 724, finish_reason 'stop',   truncated FALSE, 423 chars,
+      //              parses, and correctly names the consultant, client, project and plot number
+      //
+      // Session 9 read the failure as "the verifier cannot parse what gemini returns" and pinned
+      // the function to general_drafting to keep it off google. That diagnosis was wrong: it reads
+      // gemini fine. This is the FIFTH instance of §5's "a token ceiling inside the output's
+      // natural range", and gemini spends most of its budget on reasoning tokens, so a 400-token
+      // ceiling on a vision check never had room for the answer.
+      body: JSON.stringify({ __secret: key, fn: 'drawing_redact_verify', temperature: 0, sys: VERIFY_SYS,
         input: [{ role: 'user', content: [
           { type: 'text', text: 'Check this redacted page. Return the JSON.' },
           { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + jpgB64 } }] }] }) });
     const jd = await r.json();
+    // A TRUNCATION IS NOT A PARSE FAILURE, and calling it one cost a session. ai_gateway has
+    // returned `truncated` and `finish_reason` all along (§5: "Use it."), and this function threw
+    // both away, so a ceiling problem and a model-output-shape problem produced the identical
+    // symptom `verify_unparseable`. Both still fail CLOSED — an unverified page is never published
+    // — but the reason is now distinguishable in verify_detail, which is what makes the difference
+    // between raising a ceiling and rewriting a parser.
+    if (jd?.truncated === true || jd?.finish_reason === 'length') return { clean: false, found: ['verify_truncated'] };
     const parsed = parseJson(jd?.content || '');
     if (!parsed || typeof parsed.clean !== 'boolean') return { clean: false, found: ['verify_unparseable'] };
     return { clean: parsed.clean === true, found: Array.isArray(parsed.found) ? parsed.found.map(String).slice(0, 8) : [] };
@@ -122,8 +142,22 @@ Deno.serve(async (req) => {
     const regionsByPage: Record<number, {x:number;y:number;w:number;h:number}[]> = {};
     const identityByPage: Record<number, boolean> = {};
     try {
-      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'drawing_redact', max: 2000, temperature: 0, sys: SYS, input: [{ role: 'user', content }] }) });
+      // `max: 2000` removed 5 Aug 2026, same reasoning as the verify call above and the same
+      // reasoning that fixed doc_extract and license_extract: ai_gateway takes min(caller, policy),
+      // so a caller literal can only ever LOWER document_extraction's 8000, never raise it.
+      //
+      // This one is the more dangerous of the two, because its output scales with PAGE COUNT: one
+      // object per page, each carrying a regions array. A single-page drawing fits inside 2,000
+      // comfortably, which is precisely why the journey never crossed it — the same blind spot that
+      // hid doc_extract's ceiling until a real page was measured at 1,996 / 2,170 / 2,051. A
+      // six-page drawing set is a different distribution entirely, and the failure lands as
+      // `detect_failed` on a PRIVACY control.
+      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'drawing_redact', temperature: 0, sys: SYS, input: [{ role: 'user', content }] }) });
       const jd = await r.json();
+      // Fails closed either way — nothing is published — but `detect_truncated` says "raise the
+      // ceiling" where `detect_failed` says "the model misbehaved", and session 9 lost a day to
+      // exactly that confusion on the verify call.
+      if (jd?.truncated === true || jd?.finish_reason === 'length') { const recorded = await recordRun(job_id, body, { status: 'detect_truncated', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_truncated', job_id, recorded }, 200); }
       const parsed = parseJson(jd?.content || '');
       if (!parsed || !Array.isArray(parsed.pages)) { const recorded = await recordRun(job_id, body, { status: 'detect_failed', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_failed', job_id, recorded }, 200); }
       for (const p of parsed.pages) { const i = Number(p?.i); if (!Number.isFinite(i)) continue; identityByPage[i] = p?.has_identity !== false; regionsByPage[i] = Array.isArray(p?.regions) ? p.regions.map((g:any)=>({x:Number(g.x)||0,y:Number(g.y)||0,w:Number(g.w)||0,h:Number(g.h)||0})).filter((g:any)=>g.w>0&&g.h>0) : []; }

@@ -106,14 +106,26 @@ say('department_budget', `${budgets.length} department(s), degrade 70% / halt 95
 // record rather than a fallback nobody chose. The parser's inability to read gemini output is a
 // real defect and is filed in the brief; until it is fixed, this function must not be routed to a
 // google model.
+// CORRECTED 5 Aug 2026 (session 10). The note below used to say document_extraction was refused
+// because "this function cannot parse google/gemini-3.5-flash output". That was a misdiagnosis, and
+// the experiment that settled it changed one variable: the same image, prompt and model at the
+// caller's own `max: 400` returned output_tokens 396, finish_reason 'length', truncated TRUE and 36
+// characters cut off mid-JSON; with the ceiling removed it returned 724 tokens, finish_reason
+// 'stop', 423 characters that parse, correctly naming the consultant, client, project and plot
+// number. The verifier reads gemini fine. `max: 400` was the defect — the fifth instance of §5's
+// token-ceiling pattern. Removed from drawing_redact/index.ts, which now also reports a truncation
+// as `verify_truncated` instead of laundering it into `verify_unparseable`.
+//
+// So it now goes where its siblings drawing_redact and drawing_boq already are.
 const tc = await mgmtWrite(REF, `
   insert into public.fn_task_class (fn, task_class, note, active, updated_at)
-  values ('drawing_redact_verify', 'general_drafting',
-          'Vision check that a redaction landed. Was UNMAPPED and fell THROUGH to general_drafting; '
-          || 'now mapped there deliberately. NOT document_extraction: that routes to '
-          || 'google/gemini-3.5-flash, whose output this function cannot parse - measured 5 Aug 2026, '
-          || 'journey 35/37 with verify_detail [{"page":0,"found":["verify_unparseable"]}] while the '
-          || 'model call itself returned ok=true. MISSING IN PRODUCTION TOO.',
+  values ('drawing_redact_verify', 'document_extraction',
+          'Vision check that a redaction landed. Mapped alongside its siblings drawing_redact and '
+          || 'drawing_boq. Session 9 pinned it to general_drafting believing it could not parse '
+          || 'gemini output; measured 5 Aug 2026, that was the caller-side max:400 truncating it '
+          || '(396 tokens, finish_reason=length). With the ceiling removed it parses at 724 tokens. '
+          || 'MISSING IN PRODUCTION - and production still ships the max:400, so deploy '
+          || 'drawing_redact BEFORE applying this row there.',
           true, now())
      on conflict (fn) do update set task_class = excluded.task_class, active = true,
                                     note = excluded.note, updated_at = now()
