@@ -1,6 +1,6 @@
 # START HERE — QuotesDone, 5 August 2026, end of session 9
 
-`16f156b` on **`repair/finish-quotesdone`** (branched from `repair/package-conformance-batch-0`).
+`9472879` on **`repair/finish-quotesdone`** (branched from `repair/package-conformance-batch-0`).
 **Pushed. Not merged. Production unchanged.**
 
 Staging **`pglpqrhvozwepymcuunn`** · production **`htdblwldjkcgjvmqkbeh`** (read-only, never deployed to).
@@ -122,6 +122,18 @@ class of bug as the 23 `quoted` inquiries with zero quotes:
 Two rows survive on purpose: `rfq_not_dispatched` notifications carrying no `lead_id` and no
 `inquiry_id`. Nothing ties them to a deleted parent, and a rule broad enough to catch them would
 also delete a genuine unreferenced system alert. Left deliberately; decide if you disagree.
+
+**Both leaking scripts are fixed, and the fix is verified by measurement, not by reading the diff.**
+Run `journey_test.mjs` then `smoke_staging.mjs` and every domain table is back to 0 with only the 26
+`brand` objects in storage.
+
+- `journey_test.mjs` — takes a run tag, calls `teardown()`.
+- `smoke_staging.mjs` — deleted its auth user and nothing else. It now deletes by **email**, which
+  matters: `customer_api`'s `me` creates a `public.customers` row with a **fresh uuid** rather than
+  reusing the auth uid, so `delete where id = userId` matched nothing *and still reported success*.
+  That is why **0 of the 65** orphaned customers rows had a surviving `auth.users` row. The smoke run
+  also leaves an `inquiry_intake` row from its `inquiry_intake` check; neither cascades from
+  `auth.users`.
 
 ### 2.3 The factory — BUILT
 
@@ -787,7 +799,7 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | file | what it does |
 |---|---|
 | `verify_phase1.mjs` | 12 measurements: repo clean+pushed, functions deployed, jwt parity, schema parity, isolation, ledger |
-| `smoke_staging.mjs` | real Auth user, storage, PostgREST, 10 functions |
+| `smoke_staging.mjs` | real Auth user, storage, PostgREST, 10 functions. Cleanup now deletes its `customers`, `inquiry_intake` and `email_verifications` rows **by email**, because `customer_api me` gives the customers row a fresh uuid |
 | `journey_test.mjs` | the 37-step journey. Cleanup now takes a run tag and calls `demo_factory`'s `teardown()`; only the reference photos are deleted explicitly, because `attach_photos` returns their paths and nothing writes them to a row |
 | `sync_staging_assets.mjs` | copies the `brand` bucket; refuses every bucket holding real data |
 | `seed_staging_secrets.mjs` | copies `app_secrets` + `internal_credential`, withholds by name and by live-key prefix |

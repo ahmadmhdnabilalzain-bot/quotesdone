@@ -10,7 +10,7 @@
 //   node scripts/staging/smoke_staging.mjs [--keep]
 //
 // --keep leaves the synthetic user behind for follow-up work; the default deletes it.
-import { assertNotProduction } from './qd_guard.mjs';
+import { assertNotProduction, mgmtWrite } from './qd_guard.mjs';
 import { readFileSync } from 'node:fs';
 
 const REF = assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'smoke test');
@@ -119,12 +119,35 @@ for (const [slug, body] of FNS) {
 }
 
 // ---- cleanup ---------------------------------------------------------------------------------
+// Deleting the auth user is not deleting the customer. customer_api's `me` creates a public.customers
+// row for whoever calls it, and that row does not cascade from auth.users - so every smoke run used
+// to leave one behind, with `full_name` NULL and no auth user to log in as. Those `qd-smoke+` rows
+// were a share of the 65 orphaned customers purged in session 9; each of them was unreachable and
+// permanent. Delete the row first, then the identity.
+// Key the cleanup on the EMAIL, not the auth id. customer_api's `me` creates a public.customers row
+// with a FRESH uuid rather than reusing the auth uid - of the 65 orphaned customers rows purged in
+// session 9, zero matched an auth.users id - so deleting `where id = userId` matches nothing and
+// still reports success. The smoke run also leaves an inquiry_intake row behind, from the
+// inquiry_intake edge-function check; neither cascades from auth.users.
 if (userId && !KEEP) {
+  let removed = -1;
+  try {
+    const n = await mgmtWrite(REF, `
+      with c as (delete from public.customers where lower(email) = lower('${email}') returning 1),
+           i as (delete from public.inquiry_intake where lower(email) = lower('${email}') returning 1),
+           v as (delete from public.email_verifications where lower(email) = lower('${email}') returning 1)
+      select (select count(*) from c) + (select count(*) from i) + (select count(*) from v) as n`,
+      'smoke cleanup');
+    removed = Number(n?.[0]?.n ?? 0);
+  } catch (e) {
+    console.log(`  row cleanup failed: ${String(e.message).slice(0, 120)}`);
+  }
   const r = await fetch(`${BASE}/auth/v1/admin/users/${userId}`, {
     method: 'DELETE',
     headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE },
   });
-  record('auth', 'delete synthetic user', r.ok, `HTTP ${r.status}`);
+  record('auth', 'delete synthetic user and its rows', r.ok && removed >= 0,
+    `HTTP ${r.status}, ${removed} row(s) removed by email`);
 }
 
 const pass = results.filter(r => r.ok).length;
