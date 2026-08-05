@@ -65,6 +65,30 @@ const TABLES = [
   // which is precisely the case the `order by 1` pagination above used to corrupt.
   'kb_operational_alias',
   'kb_operational_route_map',
+  // ---- the org / autonomy layer (added 5 Aug 2026) ---------------------------------------------
+  // DEFINITIONS, not business records: which action classes exist, which executor runs each, which
+  // RPCs are allowed, the workflow shapes and the org chart they hang off. No customer, supplier,
+  // inquiry or quote data is copied, so this script's own no-real-data rule is not breached.
+  //
+  // Staging held 0 rows in all eight against production's 55 / 16 / 14 / 117 / 10 / 15 / 67 / 196,
+  // which made every Phase 7 measurement meaningless: v_executor_registry_gaps returning 0 in
+  // staging meant "the registry is empty", not "there are no gaps".
+  //
+  // NOTE what this deliberately does NOT do. The orchestrator that would LEASE a workflow_run, walk
+  // workflow_step into workflow_step_run, dispatch through org_action_executor into
+  // action_execution and write decision_trace still does not exist, and this does not build one.
+  // All four of those tables already EXIST in both projects and are empty - measured 5 Aug 2026, so
+  // "build the four missing tables" is stale too; they were never missing. Loading the config is
+  // what makes building an orchestrator possible for whoever does it; writing rows into those four
+  // by hand would only manufacture the appearance of a working autonomy layer.
+  'operating_system',              // parent of workflow / org_departments
+  'org_departments',
+  'org_agents',
+  'org_authority',
+  'workflow',                      // parent of workflow_step
+  'workflow_step',
+  'org_action_executor',           // parent of org_action_executor_rpc_allowed
+  'org_action_executor_rpc_allowed',
 ];
 
 const lit = (s) => `'${String(s).replace(/'/g, "''")}'`;
@@ -150,11 +174,27 @@ async function copyTable(t) {
        from (select * from public.${t} order by ${order} limit ${BATCH} offset ${off}) x`);
     const json = rows[0]?.data ?? '[]';
     if (json === '[]') break;
+    // org_authority is protected by trg_org_authority_guard, which REFUSES any insert or update
+    // that widens authority - a higher max_tier or a higher threshold_aed - unless
+    // app.change_reason is set. Loading 196 rows into an empty table is a widening by definition,
+    // so the copy failed with SQLSTATE 23514 until a reason was supplied.
+    //
+    // That guard is correct and must not be worked around: it exists so nobody can quietly grant an
+    // agent more autonomy without recording why. The right response is to STATE the reason, which
+    // is what this does. It is set transaction-locally (set_config third argument true) so it
+    // cannot leak into any later statement on the same connection.
+    const reason = t === 'org_authority'
+      ? `select set_config('app.change_reason', ` +
+        lit('Reference sync: copying production org_authority verbatim into an empty staging table '
+          + 'so Phase 7 measurements mean something. No tier or threshold is raised ABOVE production '
+          + '- staging is being brought up to it. sync_staging_reference.mjs, 5 Aug 2026.') +
+        `, true);\n`
+      : '';
     await mgmtWrite(REF,
       // OVERRIDING SYSTEM VALUE: several of these tables have GENERATED ALWAYS identity keys, and
       // the ids must survive the copy because the reference tables point at each other by id.
       // Letting Postgres re-issue them would silently rewire the taxonomy.
-      `insert into public.${t} overriding system value
+      `${reason}insert into public.${t} overriding system value
        select * from jsonb_populate_recordset(null::public.${t}, ${lit(json)}::jsonb)${onConflict}`,
       `copy ${t}`);
     fetched += JSON.parse(json).length;
