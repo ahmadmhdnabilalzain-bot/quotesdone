@@ -38,6 +38,12 @@ const TABLES = [
   'decision_policy',
   'category_keyword',
   'subcategory_keyword',
+  // Parents the children below FK to. field_definition and field_definition_source were listed for
+  // two sessions and silently deferred on every run because mep_trade was never in the list; the
+  // multi-pass loop reported them as "deferred" and the summary line reported a total that looked
+  // fine. A table that is in the allowlist but never loads is worse than one that is absent.
+  'mep_trade',                     // 5 rows, parent of field_definition.trade_key
+  'kb_operational_route',          // 86 rows, parent of both kb_operational_* tables below
   'field_definition',
   'field_definition_source',
   // Without these the AI gateway has no model to route to, so EVERY LLM call fails and
@@ -53,6 +59,12 @@ const TABLES = [
   // model at 1500 output tokens, truncated its JSON, failed to parse twice, and returned HTTP 200
   // with nothing to compare.
   'fn_task_class',
+  // fn_kb_route_decide's own inputs. Without them it returns top_score 0 for every string in
+  // staging, so the operational router is not merely unwired - it has nothing to route against.
+  // kb_operational_alias is 4,212 rows and its first column (catalog_num) is massively non-unique,
+  // which is precisely the case the `order by 1` pagination above used to corrupt.
+  'kb_operational_alias',
+  'kb_operational_route_map',
 ];
 
 const lit = (s) => `'${String(s).replace(/'/g, "''")}'`;
@@ -77,18 +89,65 @@ for (let pass = 1; pass <= 5 && pending.length; pass++) {
 if (pending.length) console.log(`\nSTILL FAILING: ${pending.join(', ')}`);
 console.log(`\ntotal rows now in staging across these tables: ${totalCopied}`);
 
+// A function declaration, not a const: copyTable runs inside the pass loop ABOVE this point, and a
+// const here would still be in its temporal dead zone when the first table is copied.
+function qi(c) { return `"${String(c).replace(/"/g, '""')}"`; }
+
+// LIMIT/OFFSET pagination is only meaningful over a TOTAL order. `order by 1` orders by the first
+// column, which for most of these tables is not unique - kb_operational_alias's is catalog_num,
+// whose primary key is (catalog_num, language, alias) across 4,212 rows. Postgres is free to return
+// tied rows in any order per query, so batches both duplicate and drop rows: the duplicate violates
+// the primary key and the INSERT throws, leaving the table half-loaded. Order by the whole primary
+// key instead, and where there is no primary key, by every column.
+async function orderCols(t) {
+  const pk = await mgmtRead(PROD_REF, `
+    select a.attname
+      from pg_index i
+      join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey)
+     where i.indrelid = 'public.${t}'::regclass and i.indisprimary
+     order by array_position(i.indkey, a.attnum)`);
+  if (pk.length) return { cols: pk.map((r) => r.attname), hasPk: true };
+  const all = await mgmtRead(PROD_REF, `
+    select column_name from information_schema.columns
+     where table_schema='public' and table_name=${lit(t)} order by ordinal_position`);
+  return { cols: all.map((r) => r.column_name), hasPk: false };
+}
+
 async function copyTable(t) {
   const [{ n: prodRows }] = await mgmtRead(PROD_REF, `select count(*)::int as n from public.${t}`);
   const [{ n: stageRows }] = await mgmtRead(REF, `select count(*)::int as n from public.${t}`);
   if (!prodRows) { console.log(`${t.padEnd(26)} production is empty - skipped`); return; }
-  if (stageRows) { console.log(`${t.padEnd(26)} staging already has ${stageRows} row(s) - skipped`); return; }
-  if (!APPLY) { console.log(`${t.padEnd(26)} would copy ${prodRows} row(s)`); return; }
+  // The old guard was `if (stageRows) skip`, which made a HALF-LOADED table skip forever: the
+  // pagination bug above would abort a large copy partway through and every later run would then
+  // report "staging already has N rows - skipped" and never finish it. Skip only when the table is
+  // actually complete; otherwise resume.
+  if (stageRows >= prodRows) {
+    console.log(`${t.padEnd(26)} staging already has ${stageRows} of ${prodRows} - skipped`);
+    totalCopied += stageRows; return;
+  }
+  if (!APPLY) {
+    console.log(`${t.padEnd(26)} would copy ${prodRows} row(s)` +
+      (stageRows ? ` (resuming: staging has ${stageRows})` : ''));
+    return;
+  }
 
-  let copied = 0;
+  const { cols, hasPk } = await orderCols(t);
+  const order = cols.map(qi).join(', ');
+  // ON CONFLICT DO NOTHING makes a resume idempotent: rows already present are skipped instead of
+  // aborting the batch. It needs a unique constraint to conflict on, so a table without a primary
+  // key still has to be all-or-nothing.
+  const onConflict = hasPk ? ' on conflict do nothing' : '';
+  if (stageRows) {
+    console.log(`${t.padEnd(26)} resuming: staging has ${stageRows} of ${prodRows}` +
+      (hasPk ? '' : ' (NO PRIMARY KEY - cannot resume safely, reloading from empty)'));
+    if (!hasPk) await mgmtWrite(REF, `delete from public.${t}`, `reset ${t}`);
+  }
+
+  let fetched = 0;
   for (let off = 0; off < prodRows; off += BATCH) {
     const rows = await mgmtRead(PROD_REF,
       `select coalesce(jsonb_agg(to_jsonb(x)), '[]'::jsonb)::text as data
-       from (select * from public.${t} order by 1 limit ${BATCH} offset ${off}) x`);
+       from (select * from public.${t} order by ${order} limit ${BATCH} offset ${off}) x`);
     const json = rows[0]?.data ?? '[]';
     if (json === '[]') break;
     await mgmtWrite(REF,
@@ -96,11 +155,14 @@ async function copyTable(t) {
       // the ids must survive the copy because the reference tables point at each other by id.
       // Letting Postgres re-issue them would silently rewire the taxonomy.
       `insert into public.${t} overriding system value
-       select * from jsonb_populate_recordset(null::public.${t}, ${lit(json)}::jsonb)`,
+       select * from jsonb_populate_recordset(null::public.${t}, ${lit(json)}::jsonb)${onConflict}`,
       `copy ${t}`);
-    copied += Math.min(BATCH, prodRows - off);
+    fetched += JSON.parse(json).length;
   }
   const [{ n: after }] = await mgmtRead(REF, `select count(*)::int as n from public.${t}`);
-  console.log(`${t.padEnd(26)} copied ${copied}, staging now ${after} (production ${prodRows})`);
+  // A count that does not match production means pagination lost or duplicated rows. Say so rather
+  // than reporting a number that looks like a success.
+  const verdict = after === prodRows ? '' : `  *** MISMATCH: staging ${after} vs production ${prodRows} ***`;
+  console.log(`${t.padEnd(26)} fetched ${fetched}, staging now ${after} (production ${prodRows})${verdict}`);
   totalCopied += after;
 }

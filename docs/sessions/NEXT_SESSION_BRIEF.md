@@ -12,6 +12,7 @@ node scripts/staging/verify_phase1.mjs        # 12/12  deployed, isolated, in sy
 node scripts/staging/smoke_staging.mjs        # 15/15  auth, storage, postgrest, 10 functions
 node scripts/staging/verify_cost.mjs          #  7/7   pricing, routing, monitoring — zero spend
 node scripts/staging/verify_matching.mjs      # 12/12  floor, fan-out and the hard gates — zero spend
+node scripts/staging/verify_taxonomy.mjs      # 11/11  the operational router + crosswalk — zero spend
 node scripts/staging/demo_factory.mjs         # 15/15  factory selftest, ~40 s, cleans up after itself
 node scripts/staging/journey_test.mjs         # 37/37  signup -> upload -> quotation comparison
 ```
@@ -308,13 +309,51 @@ staging. There are **five** hardcoded lists, not four, and **zero of their 19 sh
 `catalog_supplier_categories.slug`** — so any wiring PR must also crosswalk the trade vocabulary
 `fn_match_capability(p_trades text[])` matches against, or dispatch silently returns nothing.
 
-**Do not scope the sync as "one line added to TABLES".** `copyTable()` paginates with
-`select * from public.${t} order by 1 limit 500 offset N`. `kb_operational_alias` is 4,212 rows and
-its column 1 (`catalog_num`) is massively non-unique (PK is `(catalog_num, language, alias)`).
-LIMIT/OFFSET over a non-unique ORDER BY has no stable row order in Postgres, so batches will both
-duplicate and drop rows; a duplicate violates the PK and the INSERT throws. Worse, the guard at :84
-(`if (stageRows) … skipped`) then makes a half-loaded table **skip forever**. Fix the ORDER BY to
-the full primary key and make the guard resume, before adding anything large.
+**DONE in session 9 — the router works, in both languages.** `verify_taxonomy.mjs`, 11/11, zero spend.
+
+The pagination diagnosis was right and is fixed. `copyTable()` now orders by the **full primary key**
+(or every column where there is none), the skip-guard resumes instead of skipping
+(`stageRows >= prodRows`, not `stageRows`), the INSERT carries `on conflict do nothing` so a resume
+is idempotent, and a count that does not match production prints `*** MISMATCH ***` instead of a
+number that looks like success. Proof it worked is not the row count — a duplicate-and-drop bug can
+preserve the count — but an md5 over all 4,212 `(catalog_num, language, alias)` keys, which matches
+production exactly.
+
+Loaded: `kb_operational_route` 86, `kb_operational_alias` 4,212, `kb_operational_route_map` 426.
+
+**Two tables had been in the allowlist for two sessions and never once loaded.**
+`field_definition` (552) and `field_definition_source` (880) FK to `mep_trade`, which was not in the
+list, so every run deferred them and the summary printed a total that looked fine. Both parents
+(`mep_trade`, `kb_operational_route`) are now in the list and all four load.
+
+Measured routing:
+
+| input | result |
+|---|---|
+| `supply and install fire alarm system with smoke detectors` | catalog **13** Fire Alarm & Life Safety, score 6, confidence 1 |
+| `نحتاج توريد وتركيب نوافذ ألمنيوم لفيلا` | catalog **19** Aluminium & Glass, matched the `ar` alias `نوافذ ألمنيوم` |
+| `zzz nonsense …` | `top_score 0`, `ask_clarifying_question`, and a written clarification — it asks, it does not guess |
+| `We need aluminium windows …` | **ambiguous**: matches the single word "Windows" in 2 categories at weight 2, so it asks which |
+
+**The crosswalk exists — correct §3.2's claim that it does not.** `lead_trade_map(trade_key,
+catalog_slug)` bridges `taxonomy_trade.code` (what `fn_match_capability` gates on) to
+`catalog_supplier_categories.slug` (what a route resolves to), and `kb_operational_route` carries
+`expected_catalog_slug` to complete the chain. All 22 non-null slugs resolve to a real category.
+
+Two real gaps remain, pinned by the gate so that closing one or opening a new one both fail it:
+
+- **3 of 25 trades cannot be reached from a catalogue route.** `wallpaper` is absent from
+  `lead_trade_map` entirely; `elevators` and `signage` are present with `catalog_slug` NULL and
+  `confidence: 'none'` — the rows themselves say "NO CATALOGUE CATEGORY".
+- **4 `kb_operational_route.expected_catalog_slug` values point at categories that do not exist.**
+  Each is the category name slugified **without its parenthetical**, so the fix is unambiguous:
+  `renewable-energy-companies` → `renewable-energy-companies-solar-ev-battery`,
+  `domestic-services-companies` → `…-maids-care`, `gas-systems-suppliers` → `…-lpg-medical-gas-industrial-gas`,
+  `utility-contractors` → `…-dewa-sewa-fewa-approved`. **Not fixed here: this is production
+  reference data, and patching only staging's copy would hide it.**
+
+`kb_stage.*` remains a bulk-load problem and is untouched (production: `decision_rules` 16,254,
+`categories` 67, `questions` 16,588 / 29 MB).
 
 `kb_stage.*` is a **bulk-load problem, not a schema-prefix problem**: `kb_stage.questions` alone is
 16,588 rows / 29 MB of `to_jsonb` text. Either restrict the copy to the columns `fn_kb_next_question`
@@ -542,7 +581,7 @@ its built bundle, not by driving it. There is no browser test harness in the rep
 | "`doc_extract` is fed only by `trg_reg_lead_docs`" | `fn_register_document` has **three** trigger callers (`reg_lead_docs`, `reg_inquiry_doc`, `reg_quote_doc`). All 24 staging rows came from the latter two |
 | "`license_extract` has two callers" | **Three** — `resend_inbound/index.ts:77` is an inbound-email entry point that writes the same licence columns |
 | "2 of ~70 call sites pass `task_class`" | **1** (`agent_brain:33`). `kb_research_test:43` reads it back into its response |
-| "add `kb_operational_alias` to TABLES — one line" | Its 4,212 rows break `copyTable`'s non-unique `order by 1` pagination, and the skip-guard makes a half-load permanent |
+| "add `kb_operational_alias` to TABLES — one line" | Right about the bug, wrong about the count: it is **three** lines, because both `kb_operational_*` tables FK to `kb_operational_route`, which was also absent. Fixed and loaded — see §3.2 |
 | `capability_requirement` | No such object. The table is **`inquiry_requirement`** (33 staging rows) |
 | "216 of 589 production calls billed at zero" | **238** of 589, across **6** model groups including `model_used='none'` |
 
@@ -562,6 +601,8 @@ its built bundle, not by driving it. There is no browser test harness in the rep
 | "map `drawing_redact_verify` to `document_extraction`, like its siblings" | **Breaks it.** `document_extraction` is `google/gemini-3.5-flash` and the verifier cannot parse that model's output — journey 35/37, `verify_unparseable`, while the model call itself returned `ok=true`. Mapped to `general_drafting` instead; see §3.4 |
 | "journey_test's cleanup leaves the customer row behind" | Confirmed and now **fixed**: it takes a run tag and calls `demo_factory`'s `teardown()`. Two runs under the old cleanup left 4 `customers`, 2 `inquiries`, 26 `notifications`, 10 `company_event` and 9 storage objects behind — measured by purging immediately after them |
 | "the corpus constraints are `match_relevance_floor` and `MAX_FANOUT`" | Both confirmed, but there is a **third**: `min_project_value` / `max_project_value` are a hard gate in the `cand` CTE, not the `w_size` score term. The same 8 suppliers yield 8 candidates for a 300,000 job and 6 for a 150,000 one — the two declaring a 250,000 minimum are absent, not low-ranked |
+| "zero of the 19 short slugs exist in `catalog_supplier_categories.slug`, so a wiring PR must build the crosswalk" | **The crosswalk already exists.** `lead_trade_map(trade_key, catalog_slug)` bridges `taxonomy_trade.code` to the catalogue, 24 rows, all 22 non-null slugs resolving. The real gaps are narrower: `wallpaper` absent, `elevators`/`signage` deliberately unmapped, and 4 `kb_operational_route` slugs missing their parenthetical |
+| "`field_definition` / `field_definition_source` are unloaded (FK to a parent outside the allowlist)" | True, and it had been true silently for two sessions: the parent is `mep_trade`, 5 rows, and nothing reported the tables as never-loaded because the multi-pass loop printed "deferred" and moved on. Both now load |
 | "a demo inquiry can be inserted and dispatched" | Not without satisfying the **category checklist**. `rfq_ready` is computed by `trg_rfq_complete` and cannot be set by hand; `fn_rfq_required_check` demands an answer for every `category_specs` field marked required. A hand-written spec scores 85/70 generic and still fails, and the only symptom is `dispatch_inquiry` returning `{"ok":true,"skip":"not_rfq_ready"}` — a 200 that contacted nobody. `makeInquiry` now builds the spec from `category_specs` in SQL and throws if the row comes back not ready |
 
 ---
@@ -716,7 +757,8 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | `journey_test.mjs` | the 37-step journey. Cleanup now takes a run tag and calls `demo_factory`'s `teardown()`; only the reference photos are deleted explicitly, because `attach_photos` returns their paths and nothing writes them to a row |
 | `sync_staging_assets.mjs` | copies the `brand` bucket; refuses every bucket holding real data |
 | `seed_staging_secrets.mjs` | copies `app_secrets` + `internal_credential`, withholds by name and by live-key prefix |
-| `sync_staging_reference.mjs` | 18-table allowlist copy; **pagination is unsafe above 500 rows** — see §3.2 |
+| `sync_staging_reference.mjs` | 22-table allowlist copy. Pagination now orders by the full primary key, the guard resumes instead of skipping, inserts are `on conflict do nothing`, and a row-count mismatch is printed as one |
+| **`verify_taxonomy.mjs`** | the operational router in English and Arabic, its paired negative and ambiguous cases, and the `taxonomy_trade` ↔ catalogue crosswalk with its known gaps pinned |
 | `sync_staging_grants.mjs` | restores table privileges in production's shape after a schema rebuild |
 | `apply_missing_objects.mjs` | catalogue diff: enums, sequences, columns, tables, views, routines. Does **not** diff constraints — which is why staging's `org_action_executor` lost production's NOT NULLs and CHECKs |
 | `fixtures/` | the two synthetic upload documents + `README.md` |
