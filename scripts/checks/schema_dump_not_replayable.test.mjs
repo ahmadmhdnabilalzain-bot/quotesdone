@@ -43,7 +43,7 @@ test('a dump that still wires callers to the shared secret says so at the top', 
   assert.match(dump.slice(0, 3000), /STALE\. DO NOT REPLAY THIS FILE\./,
     'full_schema.sql contains ' + dangerous.length + ' line(s) that fetch inbound_secret from app_secrets, but ' +
     'carries no banner saying so. Anyone rebuilding from it would silently undo the credential separation.');
-  assert.match(dump.slice(0, 3000), /replay supabase\/migrations\/ in order/,
+  assert.match(dump.slice(0, 3000), /managed backups \/ PITR/,
     'the banner does not name the correct way to rebuild, so it warns without helping.');
 });
 
@@ -57,13 +57,21 @@ test('the banner names the specific damage, not just "may be out of date"', () =
     'the banner does not say which work item replaying it would undo.');
 });
 
-test('the live migration set is the thing that can be replayed', () => {
-  // The claim the header makes has to be true, or it is just moving the trap. final_sync_check.mjs
-  // asserts every applied migration has a file; this asserts the directory it points at is real.
+test('the header does not point a rebuild at the migration set', () => {
+  // REWRITTEN 5 Aug 2026. This used to assert `files.length > 100`, which passes at 285 while 466
+  // of the 712 applied migrations are absent and 272 of 403 tables are never created by the set.
+  // It could only fail if someone deleted four fifths of the directory, so it measured nothing and
+  // read as evidence that the rebuild claim had been checked.
+  //
+  // The load-bearing claim is the opposite one: the header must NOT send a reader to
+  // supabase/migrations/ for a rebuild, because that set cannot do it.
+  assert.doesNotMatch(dump.slice(0, 3000), /replay supabase\/migrations\/ in order/,
+    'full_schema.sql directs rebuilds at supabase/migrations/, which holds 285 of 712 applied ' +
+    'migrations and creates 131 of 403 tables. Measure with scripts/verify_repo_production_parity.mjs.');
+  // And the directory must not silently shrink either - that would be a different defect.
   const files = readdirSync(join(root, 'supabase', 'migrations')).filter((f) => f.endsWith('.sql'));
-  assert.ok(files.length > 100,
-    'supabase/migrations contains only ' + files.length + ' files, so the header is directing a rebuild at a set ' +
-    'that cannot possibly be complete.');
+  assert.ok(files.length >= 285,
+    'supabase/migrations dropped to ' + files.length + ' files from 285; migrations are append-only history.');
 });
 
 test('the dump says when it was captured and where the real rebuild path is', () => {
@@ -75,7 +83,10 @@ test('the dump says when it was captured and where the real rebuild path is', ()
   assert.match(head, /Captured \d{4}-\d{2}-\d{2}T[\d:.]+Z/,
     'full_schema.sql does not state its capture time, so nobody can tell whether it is current. ' +
     'Regenerate with: node C:/Users/Opera/qd-check/regen_schema.mjs --apply');
-  assert.match(head, /replay supabase\/migrations\/ in order/,
-    'full_schema.sql does not name the supported rebuild path, so a reader who needs to restore a ' +
-    'database is left pointing at this file - which is exactly the failure this guard exists for.');
+  // Was /replay supabase\/migrations\/ in order/ until 5 Aug 2026 — this ratchet REQUIRED the false
+  // claim to be present, so correcting the header turned npm test red. A guard that pins a lie in
+  // place is worse than no guard: it makes the honest fix look like the regression.
+  assert.match(head, /managed backups \/ PITR/,
+    'full_schema.sql does not name a restore path that actually works, so a reader who needs to ' +
+    'restore a database is left pointing at a file or a directory that cannot do it.');
 });
