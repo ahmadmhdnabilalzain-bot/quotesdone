@@ -1,4 +1,4 @@
-# START HERE — QuotesDone, 5 August 2026, end of session 9
+# START HERE — QuotesDone, 6 August 2026, end of session 10
 
 **MERGED to `main` on 5 August 2026** — [PR #3](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/3),
 merge commit `ea13ffb`. `main` now describes what production runs; it did not before.
@@ -31,27 +31,34 @@ Merging also triggered a Vercel rebuild, so **quotesdone.com is live with the fr
 
 Staging **`pglpqrhvozwepymcuunn`** · production **`htdblwldjkcgjvmqkbeh`** (read-only, never deployed to).
 
-Run these first. All five should be green before you touch anything:
+Run these first. **All fifteen were green at the end of session 10** — anything red is a regression
+you introduced or drift someone else caused, not a known state:
 
 ```
-node scripts/staging/verify_phase1.mjs        # 12/12  deployed, isolated, in sync
-node scripts/staging/smoke_staging.mjs        # 15/15  auth, storage, postgrest, 10 functions
-node scripts/staging/verify_cost.mjs          #  7/7   pricing, routing, monitoring — zero spend
-node scripts/staging/verify_matching.mjs      # 12/12  floor, fan-out and the hard gates — zero spend
-node scripts/staging/verify_taxonomy.mjs      # 11/11  the operational router + crosswalk — zero spend
-node scripts/staging/verify_doc_extract.mjs   #  7/7   the document queue — 1 model call, ~0.075 AED
-node scripts/staging/verify_license_extract.mjs # 12/12 licence reading — 4 model calls, ~0.2 AED
-node scripts/staging/verify_exception_window.mjs # 14/14 the 14-day licence exception — zero spend
-node scripts/staging/verify_portal.mjs        # 13/13  what the portal is served, incl. the reveal
-node scripts/staging/verify_supplier_docs.mjs #  13/13 supplier-docs end to end — 2 model calls, ~0.1 AED
-node scripts/staging/verify_constraints.mjs   #   2/2  NOT NULL + CHECK parity — zero spend, read-only
-node scripts/staging/demo_factory.mjs         # 15/15  factory selftest, ~40 s, cleans up after itself
-node scripts/staging/journey_test.mjs         # 38/38  signup -> upload -> quotation comparison
-node scripts/verify_prod_readiness.mjs        #  0/13  §8 against PRODUCTION, read-only. Non-zero is EXPECTED
+node scripts/staging/verify_phase1.mjs           # 12/12  deployed, isolated, in sync
+node scripts/staging/smoke_staging.mjs           # 15/15  auth, storage, postgrest, 10 functions
+node scripts/staging/verify_cost.mjs             #  8/8   pricing, routing, monitoring — zero spend
+node scripts/staging/verify_matching.mjs         # 12/12  floor, fan-out and the hard gates — zero spend
+node scripts/staging/verify_taxonomy.mjs         # 11/11  the router + crosswalk, gaps CLOSED — zero spend
+node scripts/staging/verify_constraints.mjs      #   2/2  NOT NULL + CHECK parity — zero spend
+node scripts/staging/verify_exception_window.mjs # 14/14  the 14-day licence exception — zero spend
+node scripts/staging/verify_portal.mjs           # 14/14  what the portal is served, incl. the reveal
+node scripts/staging/verify_fraud_hash.mjs       #   5/5  copied_quote can now fire — zero spend
+node scripts/staging/verify_doc_extract.mjs      #   7/7  the document queue — 1 model call, ~0.075 AED
+node scripts/staging/verify_license_extract.mjs  # 12/12  licence reading — 4 calls, ~0.2 AED
+node scripts/staging/verify_supplier_docs.mjs    # 13/13  supplier-docs end to end — 2 calls, ~0.1 AED
+node scripts/staging/demo_factory.mjs            # 17/17  factory selftest, ~40 s, cleans up after itself
+node scripts/staging/journey_test.mjs            # 39/39  signup -> upload -> quotation comparison
+node scripts/verify_prod_readiness.mjs           # 13/13  §8 against PRODUCTION, read-only
 ```
 
-The last one is not a staging gate and its failure is the point: it reports how much of §8 is still
-outstanding in production. It is read-only by construction and cannot deploy or apply.
+`verify_prod_readiness.mjs` is not a staging gate — it measures **production** read-only and cannot
+deploy or apply. It reached 13/13 in session 10, so unlike every previous session, a non-zero exit
+here now means something drifted.
+
+**Do not run the journey concurrently with `demo_factory` or `verify_portal`.** The factory's last
+check compares absolute row counts before and after, and any other writer fails it for the wrong
+reason.
 
 `verify_cost.mjs` and the factory selftest are new and fast; run them on every commit. The journey
 takes ~7.5 minutes (464 s measured) and produces 34 `agent_runs`. If a step fails, read `agent_runs`
