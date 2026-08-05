@@ -161,7 +161,19 @@ const overrides = capValues ? await mgmtRead(REF, `
 // This is a catalogue, not a pass/fail on each site: a caller may legitimately want a tighter budget
 // than its class allows. What is asserted is that the LIST HAS NOT GROWN - a new override, or an
 // existing one dropping further below its policy, is a deliberate decision that should show up here.
-const KNOWN_OVERRIDES = 11;
+// 11 -> 9 on 5 Aug 2026. Two of the eleven were measured and removed:
+//   extract_text  4000/8000 — the prompt says "Extract ALL readable text... Do not summarise" and
+//                 the caller declared a 16,000-char result buffer, ~4,000 tokens, EXACTLY the
+//                 ceiling it imposed on the model. Any document filling the buffer was cut and
+//                 returned ok:true.
+//   route_inquiry 1800/2500 — output grows with the candidate pool; measured max 1591 = 88% of its
+//                 own cap, and a truncation there makes parseJson falsy, so the retry loop bills
+//                 TWICE and both attempts truncate identically.
+// The nine that remain were each read and judged deliberate — agent_brain's 160 is a classifier,
+// not a truncation. quote_review 2600/10000 stays on the list untouched ON PURPOSE: it looks like
+// the worst offender at 26% of its class, but the function has NO CALLER anywhere in the repo, so
+// raising it would be maintenance on dead code. Measure before removing the rest.
+const KNOWN_OVERRIDES = 9;
 step('no new caller-side max override below its policy ceiling',
   overrides.length <= KNOWN_OVERRIDES,
   `${overrides.length} of ${callerMax.length} call-site max values sit below their task class ` +

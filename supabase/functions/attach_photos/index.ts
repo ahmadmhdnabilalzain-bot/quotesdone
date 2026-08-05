@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     const images = (Array.isArray(body.images) ? body.images : [])
       .map((im: any) => (im && !im.data && im.b64) ? { ...im, data: im.b64 } : im)
       .filter((im: any) => im && im.data && im.mime).slice(0, 24);
-    if (!images.length) return J({ ok: true, paths: [] });
+    if (!images.length) return J({ ok: true, paths: [], redaction_job_id: null });
     const secret = await sec('cred_fn_attach_photos');
     const prefix = `refphoto/${uid}/${Date.now()}`;
     // REDACTION PROVENANCE (5 Aug 2026). drawing_redact's recordRun already reads
@@ -41,12 +41,20 @@ Deno.serve(async (req) => {
     // customers), so user.id is NOT customers.id, and stamping it would record provenance against
     // a customer that does not exist - worse than recording none.
     const { data: cust } = await admin.from('customers').select('id').ilike('email', user.email).maybeSingle();
-    let paths: string[] = [];
+    let paths: string[] = []; let jobId: string | null = null;
     try {
       const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images, prefix, owner_customer_id: cust?.id || null, owner_email: user.email }) });
       const j = await r.json();
       if (j?.ok && Array.isArray(j.paths)) paths = j.paths.map((p: any) => String(p)).slice(0, 24);
+      // 5 Aug 2026. THE PATHS ALONE CANNOT REACH A SUPPLIER. create_inquiry does not trust a path
+      // it is handed: resolveRedactedPaths only attaches one it can trace back to a
+      // drawing_redaction_runs row, and listing a job id is how a caller proves ownership. This
+      // function had the id — drawing_redact returns it — and threw it away, so the customer's
+      // reference photos were redacted, stored, recorded, and then never attached to the inquiry
+      // the suppliers actually receive. `recorded` is checked because an id for a run that failed
+      // to persist would be worse than none: create_inquiry would 403 on a job it cannot find.
+      if (j?.ok && j.recorded && j.job_id) jobId = String(j.job_id);
     } catch (_e) { /* redaction best-effort */ }
-    return J({ ok: true, paths });
+    return J({ ok: true, paths, redaction_job_id: jobId });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 });

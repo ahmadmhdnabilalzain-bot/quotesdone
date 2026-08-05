@@ -376,8 +376,12 @@ const capabilityInsert = (leadId, p) => `insert into public.supplier_capabilitie
  * mode 'sql' (default): auth-admin identity + one leads INSERT + one supplier_capabilities INSERT.
  *                       Zero model calls.
  * mode 'api'          : create_company -> save_profile -> accept_terms -> approve -> enrich_capability.
- *                       Costs 2 billable model calls (profile_ai on save_profile, enrich_capability);
- *                       supplier_review resolves to use_llm:false and is a free no-op.
+ *                       Costs 3 billable model calls (profile_ai on save_profile,
+ *                       enrich_capability, supplier_review). It was 2 until 5 Aug 2026, when
+ *                       supplier_review was moved off supplier_matching (tier=none) onto
+ *                       json_extraction: it had been resolving to use_llm:false and LAUNDERING that
+ *                       refusal into severity='clean', so every demo supplier - and every real one -
+ *                       was certified clean by a model that never ran.
  *
  * license_doc_path is left NULL on the SQL path ON PURPOSE. trg_leads_a_licence_gate fires BEFORE
  * INSERT, and a row inserted as approved/verified carrying a license_doc_path with a null
@@ -496,8 +500,11 @@ export async function makeLicenceGatedSupplier(run, opts = {}) {
  * the capability flow that is NOT blocked by fn_ai_route's supplier_matching tier=none policy had
  * still never run.
  *
- * NOTE it does not write min_project_value / max_project_value: fn_match_capability's size term
- * therefore scores w_size*0.5 rather than w_size for a supplier confirmed this way.
+ * Since 5 Aug 2026 the endpoint accepts and writes min_project_value / max_project_value, so this
+ * path and the raw SQL INSERT now produce an IDENTICAL row from an identical profile — which is
+ * what makes replacing the journey's hand-written 18-column INSERT with this call safe. Before
+ * that, a supplier confirmed here scored w_size*0.5 instead of w_size in fn_match_capability and
+ * ranked below an otherwise identical supplier created by a fixture.
  */
 export async function confirmCapability(leadId, profile, opts = {}) {
   const cred = await internalCred();
@@ -507,6 +514,8 @@ export async function confirmCapability(leadId, profile, opts = {}) {
     trades: profile.trades, roles: profile.roles, products: profile.products_norm,
     brands: profile.brands, project_types: profile.project_types,
     coverage_emirates: profile.coverage_emirates, exclusions: profile.exclusions || [],
+    min_project_value: profile.min_project_value ?? null,
+    max_project_value: profile.max_project_value ?? null,
     confirmed_via: opts.confirmed_via || 'demo_factory',
   });
   if (r.status !== 200 || r.json?.ok !== true) {
@@ -1017,10 +1026,21 @@ export async function teardown(run) {
     ['notifications', `delete from public.notifications where inquiry_id in ${INQ} or lead_id in ${LEAD} or quote_id in ${QUO} or to_email like 'qd-${tag}-%@example.com'`],
     ['comparison_candidate_v2', `delete from public.comparison_candidate_v2 where quote_id in ${QUO}`],
     ['comparison_run_v2', `delete from public.comparison_run_v2 where inquiry_id in ${INQ}`],
-    // doc_versions, documents and company_event key off the quote/inquiry id as TEXT, so they must
-    // go before the row they name: once the quote is deleted the subquery finds nothing and the
-    // log row survives as litter. That ordering mistake is exactly what left 452 doc_versions and
-    // 186 company_event rows in staging.
+    // doc_versions, documents, company_event and agent_actions key off the quote/inquiry/lead id as
+    // TEXT, so they must go before the row they name: once the quote is deleted the subquery finds
+    // nothing and the log row survives as litter. That ordering mistake is exactly what left 452
+    // doc_versions and 186 company_event rows in staging.
+    //
+    // agent_actions carries three such branches and only ONE of them used to be reachable. The step
+    // sat below both 'quotes' and 'inquiries', so those two branches matched an already-empty
+    // subquery every time; only 'leads' fired, because leads are deleted one step later - which is
+    // why an exception-window run looked like it swept correctly. route_inquiry writes a
+    // 'coverage_gap' row against 'inquiries' whenever a dispatch finds no capable supplier, and
+    // journey_test produces one on every run because it creates the inquiry before the supplier
+    // exists. 14 dangling rows had accumulated by 6 Aug 2026, one per run, while teardown reported
+    // success and the baseline counter check stayed green - the factory's own selftest never
+    // dispatches into an empty corpus, so it never generates the row it fails to clean up.
+    ['agent_actions', `delete from public.agent_actions where (target_table='leads' and target_id in ${LEAD_T}) or (target_table='inquiries' and target_id in ${INQ_T}) or (target_table='quotes' and target_id in ${QUO_T})`],
     ['doc_versions', `delete from public.doc_versions where entity_type='quote' and entity_id in ${QUO_T}`],
     ['documents', `delete from public.documents where ${DOCS_W}`],
     ['company_event (quote)', `delete from public.company_event where entity_type='quote' and entity_id in ${QUO_T}`],
@@ -1039,10 +1059,6 @@ export async function teardown(run) {
     ['supplier_negotiation_policy', `delete from public.supplier_negotiation_policy where supplier_id in ${LEAD}`],
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${LEAD}`],
-    // fn_supplier_exception_sweep records its auto-rejections here as telemetry, keyed by
-    // target_table/target_id text rather than a foreign key - so nothing cascades and nothing
-    // complained when a run left one behind pointing at a lead that no longer existed.
-    ['agent_actions', `delete from public.agent_actions where (target_table='leads' and target_id in ${LEAD_T}) or (target_table='inquiries' and target_id in ${INQ_T}) or (target_table='quotes' and target_id in ${QUO_T})`],
     ['leads', `delete from public.leads where id in ${LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id in ${CUST} or owner_email like 'qd-${tag}-%@example.com'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${CUST}`],
@@ -1330,6 +1346,7 @@ export async function selftest() {
       const supAgent = await makeSupplier(run, { trade: 'hvac', capability: 'agent' });
       const confirmed = (await mgmtRead(REF, `
         select c.review_status, c.confirmed_version, c.trades, c.roles,
+               c.min_project_value, c.max_project_value,
                (select count(*)::int from public.supplier_capability_confirmation f
                  where f.supplier_id = c.supplier_id) as ledger
           from public.supplier_capabilities c where c.supplier_id = ${supAgent.leadId}`))[0] || {};
@@ -1338,6 +1355,32 @@ export async function selftest() {
           && Array.isArray(confirmed.trades) && confirmed.trades.includes('hvac'),
         `review_status=${confirmed.review_status} version=${confirmed.confirmed_version} ` +
         `ledger_rows=${confirmed.ledger} trades=${(confirmed.trades || []).join('+')}`);
+
+      // min/max_project_value are a HARD GATE in fn_match_capability's cand CTE, not a score term:
+      // a job outside the range removes the supplier before scoring. The endpoint never wrote them,
+      // so a supplier confirmed this way scored w_size*0.5 and ranked below an identical supplier
+      // created by a raw INSERT. Asserted against the PROFILE so both creation paths must agree.
+      ok('confirm persists the supplier-declared project-value range',
+        Number(confirmed.min_project_value) === Number(supAgent.profile.min_project_value)
+          && Number(confirmed.max_project_value) === Number(supAgent.profile.max_project_value),
+        `row ${confirmed.min_project_value}..${confirmed.max_project_value} vs profile ` +
+        `${supAgent.profile.min_project_value}..${supAgent.profile.max_project_value}`);
+
+      // The negative case for the new trust boundary. An inverted range would silently make the
+      // supplier unmatchable for every job, so it must be refused rather than stored.
+      const badRange = await call('capability_agent', null, {
+        __secret: await internalCred(), action: 'confirm', supplier_id: Number(supAgent.leadId),
+        trades: ['hvac'], roles: ['contractor'], products: ['x', 'y'],
+        min_project_value: 5000000, max_project_value: 1000,
+      });
+      const afterBad = (await mgmtRead(REF,
+        `select min_project_value, max_project_value from public.supplier_capabilities
+          where supplier_id = ${supAgent.leadId}`))[0] || {};
+      ok('confirm refuses an inverted project-value range and leaves the stored range intact',
+        badRange.status === 400 && badRange.json?.error === 'invalid_project_value_range'
+          && Number(afterBad.min_project_value) === Number(supAgent.profile.min_project_value),
+        `HTTP ${badRange.status} ${badRange.json?.error || ''}; stored range still ` +
+        `${afterBad.min_project_value}..${afterBad.max_project_value}`);
 
       // The vocabulary gate is the reason to prefer the endpoint over an INSERT: a raw INSERT will
       // happily store a trade code that fn_match_capability can never match.
@@ -1353,6 +1396,23 @@ export async function selftest() {
       ok('the licence gate fixture actually opens the gate',
         gated.approval_status === 'action_required' && !!gated.licence_gate_reason,
         `approval_status=${gated.approval_status} reason=${gated.licence_gate_reason ?? 'none'}`);
+
+      // agent_actions is counted by the baseline check but nothing here ever GENERATED one, so the
+      // teardown rule for it went two sessions without being exercised - and two of its three
+      // branches were dead, because the step ran after the quotes and inquiries it names had already
+      // been deleted. A counter can only catch a row that something wrote. Write all three shapes:
+      // 'leads' is what fn_supplier_exception_sweep records, 'inquiries' is the coverage_gap
+      // route_inquiry writes when a dispatch finds no capable supplier, 'quotes' completes the set.
+      const seeded = await mgmtWrite(REF, `with i as (
+          insert into public.agent_actions (agent, kind, target_table, target_id) values
+            ('operations_ai', 'coverage_gap',  'inquiries', ${q(String(inq.id))}),
+            ('operations_ai', 'selftest_probe','quotes',    ${q(String(qa.id))}),
+            ('operations_ai', 'selftest_probe','leads',     ${q(String(supA.leadId))})
+          returning 1) select count(*)::int n from i`, 'selftest seed agent_actions');
+      ok('the teardown rule for agent_actions is actually exercised',
+        Number(seeded?.[0]?.n ?? 0) === 3,
+        `${seeded?.[0]?.n ?? 0} telemetry row(s) written against this run's inquiry, quote and lead ` +
+        `- the baseline check below is what proves teardown removes them`);
 
       return { tag: run.tag };
     });

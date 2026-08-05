@@ -33,13 +33,30 @@ Deno.serve(async (req) => {
     let content: any; let plugins: any = undefined;
     if (isImage) content = [{ type:'text', text:PROMPT }, { type:'image_url', image_url:{ url:dataUrl } }];
     else { content = [{ type:'text', text:PROMPT }, { type:'file', file:{ filename, file_data:dataUrl } }]; plugins = [{ id:'file-parser', pdf:{ engine:'pdf-text' } }]; }
-    let text=''; let last='';
+    let text=''; let last=''; let modelTruncated = false;
     try{
-      const payload: any = { __secret: secret, fn: 'extract_text', max: 4000, input: [{ role:'user', content }] }; if(plugins) payload.plugins = plugins;
+      // `max: 4000` removed 5 Aug 2026 against a document_extraction ceiling of 8000. This one was
+      // self-defeating on its face: the PROMPT says "Extract ALL readable text and content from
+      // this document faithfully... Do not summarise", and the caller then declared a result buffer
+      // (text.slice(0, 16000) below, ~4,000 tokens) EXACTLY the size of the ceiling it imposed on
+      // the model. Any document big enough to fill the buffer was cut mid-sentence and returned as
+      // ok:true - the same shape as doc_extract and license_extract.
+      const payload: any = { __secret: secret, fn: 'extract_text', input: [{ role:'user', content }] }; if(plugins) payload.plugins = plugins;
       const r = await fetch(GW, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-      const jd = await r.json(); const c = jd?.content; if(c && String(c).trim().length>5){ text = String(c).trim(); } else last = jd?.detail || jd?.error || jd?.why || 'empty:gateway';
+      const jd = await r.json();
+      // Removing the ceiling alone would only MOVE the silent truncation from the model to the
+      // buffer below, which is not closing the defect. ai_gateway reports both signals; use them.
+      if (jd?.truncated === true || jd?.finish_reason === 'length') modelTruncated = true;
+      const c = jd?.content; if(c && String(c).trim().length>5){ text = String(c).trim(); } else last = jd?.detail || jd?.error || jd?.why || 'empty:gateway';
     }catch(e){ last='exc:gateway:'+String((e as Error)?.message||e).slice(0,80); }
     if(!text) return J({ ok:false, error:'extract_failed', detail:last }, 200);
-    return J({ ok:true, text: text.slice(0, 16000), filename });
+    // The buffer stays - a caller asking for a document's text should not be handed an unbounded
+    // string - but a truncated result is now LABELLED. "Extract ALL text" returning a silently
+    // clipped document is a wrong answer wearing a right answer's clothes.
+    const clipped = text.length > 16000;
+    return J({ ok:true, text: text.slice(0, 16000), filename,
+      truncated: clipped || modelTruncated,
+      truncated_by: modelTruncated ? 'model_token_ceiling' : (clipped ? 'result_buffer_16000_chars' : null),
+      full_length: text.length });
   } catch (e) { return J({ error: String((e as Error)?.message||e) }, 500); }
 });

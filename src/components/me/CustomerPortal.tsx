@@ -129,6 +129,20 @@ export function CustomerPortal() {
     SB.auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-cust-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-cust-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); } }).catch(() => {});
   }, []);
   const setLang = (l) => { try { localStorage.setItem('qd-lang', l); } catch (_e) {} setLangState(l); };
+  // THE STORED PROFILE LOCALE. customers.locale has existed all along and the portal could not
+  // honour it: my_inquiries did not serve it (fixed 5 Aug 2026) and this component decided language
+  // from localStorage['qd-lang'] and the NEXT_LOCALE cookie alone. An Arabic customer who set their
+  // language once got English on every new device, and the Arabic journey exercised a code path the
+  // portal could never reach.
+  //
+  // PRECEDENCE MATTERS: an explicit choice on THIS device wins. setLang writes qd-lang, so if that
+  // key exists the customer has chosen, and a profile field must not override a preference they set
+  // seconds ago. Only when they have chosen nothing here does the stored locale apply.
+  const onServedLocale = (l) => {
+    if (l !== 'ar' && l !== 'en') return;
+    try { if (localStorage.getItem('qd-lang')) return; } catch (_e) { return; }
+    setLangState(l);
+  };
   const onAuth = (access, refresh) => { try { localStorage.setItem('qd-cust-token', access || ''); if (refresh) localStorage.setItem('qd-cust-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} } };
   const doSignOut = () => { try { localStorage.removeItem('qd-cust-token'); localStorage.removeItem('qd-cust-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB.auth.signOut().catch(() => {}); } catch (_e) {} };
   const rtl = lang === 'ar';
@@ -144,7 +158,7 @@ export function CustomerPortal() {
     </header>
     {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
       {phase === 'login' && <Login onAuth={onAuth} lang={lang} />}
-      {phase === 'app' && <Authed token={token} lang={lang} onSignOut={doSignOut} />}
+      {phase === 'app' && <Authed token={token} lang={lang} onSignOut={doSignOut} onServedLocale={onServedLocale} />}
     </>)}
   </div>);
 }
@@ -166,7 +180,7 @@ function Login({ onAuth, lang }) {
     {msg && <div className={S.err}>{msg}</div>}
   </Card></div>);
 }
-function Authed({ token, lang, onSignOut }) {
+function Authed({ token, lang, onSignOut, onServedLocale }) {
   const [k, setK] = useState(null); const [err, setErr] = useState('');
   const load = () => { setErr(''); call('kyc', { action: 'state' }, token).then((j) => { if (j && j.error === 'unauthorized') setErr('unauth'); else setK(j || {}); }).catch(() => setErr('net')); };
   useEffect(() => { load(); }, [token]);
@@ -175,7 +189,7 @@ function Authed({ token, lang, onSignOut }) {
   if (!k) return <div className={S.center}>{t(lang, 'loading')}</div>;
   const complete = k.full_name && k.phone_verified && k.email_verified && k.terms_signed;
   if (!complete) return <ProfileGate token={token} lang={lang} onDone={load} />;
-  return <Dashboard token={token} lang={lang} />;
+  return <Dashboard token={token} lang={lang} onServedLocale={onServedLocale} />;
 }
 function ProfileGate({ token, lang, onDone }) {
   const [st, setSt] = useState(null);
@@ -215,9 +229,16 @@ function ProfileGate({ token, lang, onDone }) {
     {msg && <div className={S.err}>{msg}</div>}
   </Card></div>);
 }
-function Dashboard({ token, lang }) {
+function Dashboard({ token, lang, onServedLocale }) {
   const [ov, setOv] = useState(null); const [data, setData] = useState(null); const [err, setErr] = useState(''); const [note, setNote] = useState(''); const [showNew, setShowNew] = useState(false); const [view, setView] = useState('home');
-  const loadInq = () => call('customer_api', { action: 'my_inquiries' }, token).then((j) => setData(j));
+  // my_inquiries carries the customer's stored locale (customer_api, 5 Aug 2026). This is the only
+  // call the portal makes that has it — `me` serves it too, but the portal never calls `me`, which
+  // is why the field was on the wire for months with nothing listening. The handler upstream
+  // decides whether it applies; an explicit choice on this device still wins.
+  const loadInq = () => call('customer_api', { action: 'my_inquiries' }, token).then((j) => {
+    setData(j);
+    if (j && j.locale && onServedLocale) onServedLocale(j.locale);
+  });
   const loadOv = () => call('customer_portal', { action: 'overview', lang }, token).then((j) => { if (j && j.ok) setOv(j); else setErr((j && (j.error || j.hint)) || ''); });
   const refresh = () => { loadInq(); loadOv(); };
   useEffect(() => {
@@ -264,7 +285,16 @@ function InquiryCard({ inq, token, onChange, lang }) {
   const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!confirm('Cancel this request? Suppliers will stop quoting.')) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr((j && (j.message || j.error)) || 'Could not cancel. Please try again.'); setCanceling(false); } } catch (_e) { setErr('Could not cancel. Please check your connection and try again.'); setCanceling(false); } };
   const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr((j && (j.message || j.error)) || 'Could not save changes.'); } } catch (_e) { setErr('Could not save changes. Please try again.'); } setSaving(false); };
   return (<Card className="p-5">
-    <div className="flex justify-between items-center gap-2.5 cursor-pointer" onClick={() => setOpen(!open)}>
+    {/* A11Y (5 Aug 2026). This was a bare <div onClick> - no role, no tabindex, not focusable. It is
+        the control that opens a request, so a keyboard or screen-reader user could not open ANY of
+        their own quotes: the core journey was unreachable without a mouse. Found by trying to click
+        it in a browser; the accessibility tree simply had no node for it.
+        role+tabIndex+onKeyDown rather than a real <button> because this element wraps <div>
+        children, and <div> inside <button> is an invalid content model - with nothing in this repo
+        rendering JSX in a test, that swap is the riskier fix. */}
+    <div className="flex justify-between items-center gap-2.5 cursor-pointer" onClick={() => setOpen(!open)}
+      role="button" tabIndex={0} aria-expanded={open}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); } }}>
       <div><b className="capitalize">{inq.category || 'Request'}</b> - {inq.emirate || ''}{inq.boq && inq.boq.boq ? ' - BOQ ' + inq.boq.boq.length + ' items' : ''}
         <div className={S.sub}>{quotes.length} quote{quotes.length === 1 ? '' : 's'} - <span className="capitalize">{inq.status}</span>{inq.editable ? ' - editable ' + inq.edit_minutes_left + 'm' : ''}</div></div>
       <div className="text-right"><span className="text-primary font-semibold">{open ? (lang === 'ar' ? 'إخفاء التفاصيل' : 'Hide details') : (quotes.length ? (lang === 'ar' ? 'العروض والتفاصيل' : 'Open project') : (lang === 'ar' ? 'عرض التفاصيل' : 'Open project'))}</span></div>
@@ -387,7 +417,11 @@ function Contact({ c, q, token, onChange, lang, won }) {
     </div>
     {c.file_url && <div className="mt-1.5"><a href={c.file_url} target="_blank" rel="noopener" className="text-primary font-semibold">Download their quotation{c.file_name ? ' (' + c.file_name + ')' : ''}</a></div>}
     <div className="flex gap-4 items-center mt-2.5 flex-wrap">
-      {!rated ? <span className="cursor-pointer text-lg tracking-widest text-muted-foreground/50" title="Rate this supplier">{[1, 2, 3, 4, 5].map((n) => <span key={n} onClick={() => rate(n)} className={cn('cursor-pointer', n <= rating && 'text-amber-400')}>★</span>)}</span> : <span className={S.sub}>★ Rated</span>}
+      {/* A11Y (5 Aug 2026). Five <span onClick> stars: rating a supplier was mouse-only and the
+          control announced nothing. Each star is now a real <button> carrying its value in an
+          aria-label, wrapped in a labelled group. Stars contain only text, so unlike the card
+          header above there is no content-model obstacle to using a real button. */}
+      {!rated ? <span role="group" aria-label="Rate this supplier" className="text-lg tracking-widest text-muted-foreground/50">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" onClick={() => rate(n)} aria-label={`Rate ${n} star${n === 1 ? '' : 's'}`} className={cn('cursor-pointer bg-transparent border-0 p-0 leading-none', n <= rating && 'text-amber-400')}>★</button>)}</span> : <span className={S.sub}>★ Rated</span>}
       <Button variant="link" className="px-0 h-auto" onClick={hire}>I hired this supplier</Button>
       <Button variant="link" className="px-0 h-auto" onClick={refund}>Request refund</Button>
     </div>

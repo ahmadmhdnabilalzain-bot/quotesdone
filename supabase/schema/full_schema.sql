@@ -5,9 +5,13 @@
 -- Regenerate:  node C:/Users/Opera/qd-check/regen_schema.mjs --apply
 --              (calls public.fn_schema_export(); refuses to overwrite with a thinner dump)
 --
--- This is a READING aid. To rebuild a database, replay supabase/migrations/ in order - that set
--- is complete, and final_sync_check.mjs proves every applied migration has a file. This dump is
--- ordered best-effort and carries no row data, so it is not a supported restore path.
+-- This is a READING aid, and so is supabase/migrations/. NEITHER can rebuild this database.
+-- Measured 5 Aug 2026 by scripts/verify_repo_production_parity.mjs: 712 migrations are applied in
+-- production and 285 files exist here, so 466 have no file at all; the set issues CREATE TABLE for
+-- 131 of production's 403 tables and ALTERs 15 it never creates (including inquiries, leads,
+-- pricing_config). 36 files also carry an 8-digit version with no time component, so they replay
+-- alphabetically rather than in dependency order.
+-- The supported restore path is Supabase managed backups / PITR. This dump carries no row data.
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT (generated from live DB, project htdblwldjkcgjvmqkbeh)
 -- Excludes: secret VALUES (key names listed below), and table ROW DATA (PII).

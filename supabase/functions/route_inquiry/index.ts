@@ -310,7 +310,17 @@ Deno.serve(async (req) => {
     let ai:any = null;
     let aiLastErr: any = null;
     let aiAttempts = 0;
-    for(let at=0; at<2 && !ai; at++){ try{ aiAttempts++; const r=await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway',{ method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: inbound, fn: 'route_inquiry', sys: SYS, input: user, max:1800, temperature:0.1 }) }); const jd=await r.json(); if(!r.ok) aiLastErr = 'http ' + r.status + ' ' + clip(jd?.error?.message || '', 120); const c=jd?.content; if(c){ const p=parseJson(c); if(p && Object.keys(p).length){ ai=p; break; } else if (r.ok) aiLastErr = 'unparseable model output'; } else if (r.ok) aiLastErr = 'empty model response'; }catch(_e){ aiLastErr = clip((_e as Error)?.message || _e, 140); } }
+    // `max:1800` removed 5 Aug 2026 against an rfq_routing ceiling of 2500. This adjudicator returns
+    // a verdict and a reason PER CANDIDATE, so its output grows with the candidate pool - measured
+    // in staging at n=17, max 1591 output tokens, which is 88% of the cap it set for itself. One
+    // busier RFQ crosses it.
+    //
+    // And the failure mode here is expensive as well as silent: a truncated body makes parseJson
+    // falsy, which sets aiLastErr='unparseable model output' and RETRIES - so the loop bills two
+    // calls, both of which truncate for the same reason, then returns ai_exception. Downstream that
+    // is indistinguishable from a supply coverage gap, per the log line immediately below.
+    // Truncation is now named rather than reported as unparseable output.
+    for(let at=0; at<2 && !ai; at++){ try{ aiAttempts++; const r=await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway',{ method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: inbound, fn: 'route_inquiry', sys: SYS, input: user, temperature:0.1 }) }); const jd=await r.json(); if(!r.ok) aiLastErr = 'http ' + r.status + ' ' + clip(jd?.error?.message || '', 120); if(jd?.truncated === true || jd?.finish_reason === 'length'){ aiLastErr = 'model output TRUNCATED at the task-class ceiling - raise rfq_routing.max_tokens, this is not a model failure'; continue; } const c=jd?.content; if(c){ const p=parseJson(c); if(p && Object.keys(p).length){ ai=p; break; } else if (r.ok) aiLastErr = 'unparseable model output'; } else if (r.ok) aiLastErr = 'empty model response'; }catch(_e){ aiLastErr = clip((_e as Error)?.message || _e, 140); } }
     if (!ai) { await logRun('error', { fits: 0, evaluated: pool.length, zero_fits_genuine: 0, ai_attempts: aiAttempts, ai_ok: 0, retrieval, ...diag }, 'RFQ produced no supplier fits because the adjudicator call failed after ' + aiAttempts + ' attempts (' + clip(aiLastErr || 'unknown', 120) + '), not because no supplier exists — ' + pool.length + ' viable candidates were never judged. Downstream this is indistinguishable from a supply coverage gap and the customer\'s RFQ silently goes nowhere.'); return J({ error:'ai_exception', detail:'no model returned parseable output' }, 502); }
 
     const byId = new Map(pool.map((c:any)=>[Number(c.id), c]));
