@@ -912,6 +912,26 @@ const BUCKET_SOURCES = (s) => [
        union select signed_terms_path from public.leads where ${s.lead} and signed_terms_path is not null`,
   },
   {
+    // supplier-docs had NO teardown rule until 5 Aug 2026, and nothing noticed because the bucket
+    // held 0 objects: every licence fixture to date wrote a FAKE license_doc_path and never put
+    // bytes anywhere. The first run of supplier_api process_docs against real storage would have
+    // leaked every licence, profile and catalogue it stored - the same class as the 118
+    // signed-terms objects in §2.2, caught this time before it accumulated rather than after.
+    //
+    // Two path shapes exist and both are swept. process_docs writes a bucket-relative path
+    // (`licenses/<lead>/<ts>_<name>.pdf`), while makeLicenceGatedSupplier and
+    // verify_exception_window write a bucket-PREFIXED one (`supplier-docs/demo/<tag>/licence.pdf`)
+    // for a row that names an object that was never uploaded. Stripping the prefix makes one rule
+    // cover both; deleting an object that does not exist is a no-op.
+    bucket: 'supplier-docs', sql:
+      `select regexp_replace(license_doc_path, '^supplier-docs/', '') p from public.leads
+        where ${s.lead} and license_doc_path is not null
+       union select regexp_replace(company_profile_doc_path, '^supplier-docs/', '') from public.leads
+        where ${s.lead} and company_profile_doc_path is not null
+       union select regexp_replace(unnest(coalesce(catalog_doc_paths, '{}'::text[])), '^supplier-docs/', '')
+         from public.leads where ${s.lead}`,
+  },
+  {
     // The comparison PDF is the one output whose path NOTHING records: comparison_run_v2 has no
     // path column and the signed URL is only ever returned to the caller. It is derivable from the
     // filename convention instead - QD-<first 8 of the inquiry id, uppercased>-CMP.pdf - which is
@@ -1058,7 +1078,7 @@ export async function teardown(run) {
 // useless precisely because it counted buckets and not objects: an empty brand bucket made
 // pdf_native fall back to WinAnsi Helvetica, which throws on any character above U+00FF, and one
 // '≠' from a model 502'd a customer's comparison PDF.
-export const PURGE_BUCKETS = ['drawing-files', 'quote-files', 'signed-terms', 'agent-docs'];
+export const PURGE_BUCKETS = ['drawing-files', 'quote-files', 'signed-terms', 'agent-docs', 'supplier-docs'];
 export const PROTECTED_BUCKETS = ['brand', 'site', 'demo-assets', 'social-media', 'kb-import-assets', 'backups'];
 
 const P_CUST = `(select id from public.customers where email like 'qd-%@example.com' or email is null or id not in (select id from auth.users))`;
