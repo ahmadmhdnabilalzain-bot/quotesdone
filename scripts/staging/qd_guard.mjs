@@ -89,6 +89,44 @@ export async function mgmtWrite(ref, sql, where = 'statement') {
   return post(ref, sql);
 }
 
+// DATA WRITE: the same refusal on the TARGET, but the production ref is permitted inside a value.
+//
+// The literal check above exists because a ref in an EXECUTABLE position - a cron command, a
+// function body - makes branch code call production, which is exactly what happened for eighteen
+// hours on 3-4 Aug. A row of knowledge whose CONTENT mentions the production ref is a different
+// thing entirely: it is inert text, and refusing it stopped the agent_knowledge copy at 1,500 of
+// 1,869 rows, leaving staging with a knowledge base that was silently 20% short.
+//
+// So this is a separate door with its own lock rather than a weakening of the existing one:
+// the statement must be a plain INSERT, and anything that could execute is refused outright.
+// Use mgmtWrite for everything else.
+const EXECUTABLE = /\b(create\s+(or\s+replace\s+)?(function|procedure|view|trigger|rule)|alter\s+function|cron\.(schedule|alter_job)|do\s*\$\$|execute\s+format|net\.http_)/i;
+
+export async function mgmtWriteData(ref, sql, where = 'data copy') {
+  assertNotProduction(ref, 'write');
+  // org_authority's guard trigger refuses a widening insert unless app.change_reason is set, so a
+  // legitimate copy is prefixed with one transaction-local set_config. Allow exactly that prefix
+  // and nothing else - it is the only non-INSERT statement a data copy is permitted to carry.
+  const body = sql.replace(/^\s*select\s+set_config\(\s*'app\.change_reason'[\s\S]*?,\s*true\s*\)\s*;/i, '');
+  if (!/^\s*insert\s+into\b/i.test(body)) {
+    throw new ProductionRefusal(
+      `${where} is not a plain INSERT. mgmtWriteData only carries row data; use mgmtWrite.`);
+  }
+  // CHECK THE SKELETON, NOT THE PAYLOAD. The rows travel as one quoted ::jsonb literal, and this
+  // corpus is a company's own engineering knowledge - it discusses `create or replace function`,
+  // `net.http_post` and cron because that is what the IT and security desks know about. Matching
+  // the raw statement refused 369 of 1,869 agent_knowledge rows for containing the word, which is
+  // censorship of the data rather than protection of the database. Strip quoted literals first
+  // (Postgres doubles an embedded quote), then judge what is left - that is the part that executes.
+  const skeleton = body.replace(/'(?:[^']|'')*'/g, "''");
+  if (EXECUTABLE.test(skeleton)) {
+    throw new ProductionRefusal(
+      `${where} contains an executable construct outside a quoted value. ` +
+      `Row data cannot define behaviour; use mgmtWrite.`);
+  }
+  return post(ref, sql);
+}
+
 // READ: production permitted, writes refused.
 const WRITE_RE = /\b(insert|update|delete|truncate|drop|alter|create|grant|revoke|comment\s+on|refresh\s+materialized|vacuum|reindex|call|do)\b/i;
 export async function mgmtRead(ref, sql, where = 'read') {
