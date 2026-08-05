@@ -15,6 +15,7 @@ node scripts/staging/verify_matching.mjs      # 12/12  floor, fan-out and the ha
 node scripts/staging/verify_taxonomy.mjs      # 11/11  the operational router + crosswalk — zero spend
 node scripts/staging/verify_doc_extract.mjs   #  7/7   the document queue — 1 model call, ~0.075 AED
 node scripts/staging/verify_license_extract.mjs # 12/12 licence reading — 4 model calls, ~0.2 AED
+node scripts/staging/verify_exception_window.mjs # 14/14 the 14-day licence exception — zero spend
 node scripts/staging/demo_factory.mjs         # 15/15  factory selftest, ~40 s, cleans up after itself
 node scripts/staging/journey_test.mjs         # 37/37  signup -> upload -> quotation comparison
 ```
@@ -341,13 +342,26 @@ That blocks the exception window *through supplier_api* — but not the fixture.
 `license_doc_path` with a null `trade_license_no` opens a real licence gate with `pricing_config`
 still empty.
 
-> **Demo data:** a supplier refused by the licence gate, carried through the 14-day exception window
-> — opened, reminded at day 3/7/12 (back-date `exception_opened_at`), auto-rejected at expiry, then
-> recovered by uploading a valid licence. `fn_supplier_exception_open/_close/_sweep` and
-> `fn_supplier_exception_days` all exist in staging. Also: a founding-cohort supplier
-> (`founding_rank` assigned, exempt) **and** a non-exempt one past the charging date — note
-> `fn_assign_founding_rank` only fires when `verified` flips true, which `save_profile` never does
-> on staging.
+**DONE in session 9 (`verify_exception_window.mjs`, 14/14, zero spend).** The whole lifecycle now
+runs, and none of it ever had: staging has 0 crons so `fn_supplier_exception_sweep` — which sends
+every reminder and performs every auto-rejection — had never been called, and production has no
+supplier in the state to call it on.
+
+Driven by back-dating `exception_opened_at` / `exception_due_at`, which is legitimate because the
+sweep reads no other clock. Measured, in order: the gate puts an unreadable licence in
+`action_required`; the exception opens with a 14-day due date; **a repeat failure does not restart
+the clock** (`fn_supplier_exception_open` returns `reopened:false`); reminders fire on days 3, 7 and
+12 and then stop; past the due date the registration auto-closes with `expired_auto_rejected`, a
+closure email and an `agent_actions` telemetry row; `fn_is_matchable` returns false for it; and
+uploading a readable licence **reactivates it with no approval queue**, stamping
+`recovered_after_auto_reject`. `founding_rank` is assigned on verification and
+`subscription_exempt` follows `rank <= founding_free_limit`, stamped once and not recalculated on a
+second verification.
+
+> **The 48-hour throttle is the trap here.** The sweep requires
+> `exception_last_reminder_at < now() - interval '48 hours'` as well as the day-3/7/12 condition, so
+> a test that back-dates only `exception_opened_at` gets reminder 1 and then silently gets nothing —
+> and would report the ladder as working. Back-date `exception_last_reminder_at` with it.
 
 **Quotation history** has no table and no writer. Decide whether it is wanted; if not, close the
 item as *"by design: quotes are mutable, one row per supplier per inquiry"*.
@@ -672,6 +686,8 @@ its built bundle, not by driving it. There is no browser test harness in the rep
 | "the token-ceiling problem is a handful of functions" | **63 caller-side `max` literals** exist across the Edge Functions, and `ai_gateway` takes `min(caller, policy)` — so every one of them can only lower the policy. 11 attributable sites still sit below their task class. Session 8's raises to `quote_comparison` and `document_extraction` did nothing for the callers that override them |
 | "map `drawing_redact_verify` to `document_extraction`, like its siblings" | **Breaks it.** `document_extraction` is `google/gemini-3.5-flash` and the verifier cannot parse that model's output — journey 35/37, `verify_unparseable`, while the model call itself returned `ok=true`. Mapped to `general_drafting` instead; see §3.4 |
 | "journey_test's cleanup leaves the customer row behind" | Confirmed and now **fixed**: it takes a run tag and calls `demo_factory`'s `teardown()`. Two runs under the old cleanup left 4 `customers`, 2 `inquiries`, 26 `notifications`, 10 `company_event` and 9 storage objects behind — measured by purging immediately after them |
+| "`fn_assign_founding_rank` only fires when `verified` flips true, which `save_profile` never does" | True for the API path, but the factory's SQL path inserts `verified=true`, and the trigger fires on INSERT as well — so a demo supplier is ranked immediately. The rank self-heals after teardown because it is `max(founding_rank)+1`, not a sequence |
+| "teardown covers everything a run touches" | It did not cover `public.agent_actions`, which `fn_supplier_exception_sweep` writes as telemetry keyed by `target_table`/`target_id` **text**, so nothing cascades. All 46 rows in staging were dangling. Now torn down, swept by `--purge`, and — more importantly — added to the factory's baseline counters, which is the check that would have caught it in the first place |
 | "the corpus constraints are `match_relevance_floor` and `MAX_FANOUT`" | Both confirmed, but there is a **third**: `min_project_value` / `max_project_value` are a hard gate in the `cand` CTE, not the `w_size` score term. The same 8 suppliers yield 8 candidates for a 300,000 job and 6 for a 150,000 one — the two declaring a 250,000 minimum are absent, not low-ranked |
 | "zero of the 19 short slugs exist in `catalog_supplier_categories.slug`, so a wiring PR must build the crosswalk" | **The crosswalk already exists.** `lead_trade_map(trade_key, catalog_slug)` bridges `taxonomy_trade.code` to the catalogue, 24 rows, all 22 non-null slugs resolving. The real gaps are narrower: `wallpaper` absent, `elevators`/`signage` deliberately unmapped, and 4 `kb_operational_route` slugs missing their parenthetical |
 | "`field_definition` / `field_definition_source` are unloaded (FK to a parent outside the allowlist)" | True, and it had been true silently for two sessions: the parent is `mep_trade`, 5 rows, and nothing reported the tables as never-loaded because the multi-pass loop printed "deferred" and moved on. Both now load |
@@ -857,6 +873,7 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | `apply_missing_objects.mjs` | catalogue diff: enums, sequences, columns, tables, views, routines. Does **not** diff constraints — which is why staging's `org_action_executor` lost production's NOT NULLs and CHECKs |
 | **`verify_doc_extract.mjs`** | drives the document queue end to end: upload → trigger → `doc_extract` → `status='done'` with real content, and measures the output against the live task-class ceiling |
 | **`verify_license_extract.mjs`** | reads a valid, a 15-activity, an expired and an illegible UAE trade licence, asserting content rather than `ok:true`, and measures each against the live ceiling |
+| **`verify_exception_window.mjs`** | the 14-day licence exception end to end — open, the 3/7/12 reminder ladder, auto-rejection, recovery after auto-rejection, and the founding cohort |
 | `fixtures/` | the two synthetic upload PNGs, **`licence_pdf.mjs`** (generates 4 licence variants as real PDFs from a data table) + `README.md` |
 | **`demo_factory.mjs`** | the demo-data factory (§2.3). `--selftest` (default) 14/14, `--purge`, `--purge --dry-run`, `--corpus N [--customers N] [--keep]` |
 | **`verify_cost.mjs`** | 7 zero-spend checks over pricing, routing and monitoring; `--live` adds 4 that put one real inference through the gateway |

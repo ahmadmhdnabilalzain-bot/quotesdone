@@ -994,6 +994,10 @@ export async function teardown(run) {
     ['supplier_negotiation_policy', `delete from public.supplier_negotiation_policy where supplier_id in ${LEAD}`],
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${LEAD}`],
+    // fn_supplier_exception_sweep records its auto-rejections here as telemetry, keyed by
+    // target_table/target_id text rather than a foreign key - so nothing cascades and nothing
+    // complained when a run left one behind pointing at a lead that no longer existed.
+    ['agent_actions', `delete from public.agent_actions where (target_table='leads' and target_id in ${LEAD_T}) or (target_table='inquiries' and target_id in ${INQ_T}) or (target_table='quotes' and target_id in ${QUO_T})`],
     ['leads', `delete from public.leads where id in ${LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id in ${CUST} or owner_email like 'qd-${tag}-%@example.com'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${CUST}`],
@@ -1082,6 +1086,7 @@ export async function purge(opts = {}) {
     ['notifications (dangling)', `delete from public.notifications where to_email like 'qd-%@example.com' or (inquiry_id is not null and inquiry_id not in (select id from public.inquiries)) or (lead_id is not null and lead_id not in (select id from public.leads)) or (quote_id is not null and quote_id not in (select id from public.quotes))`],
     ['company_event (dangling)', `delete from public.company_event where (entity_type in ('inquiry','quote') and entity_id not in (select id::text from public.inquiries union all select id::text from public.quotes)) or (entity_type='lead' and entity_id not in (select id::text from public.leads))`],
     ['inquiry_supplier_brief (dangling)', `delete from public.inquiry_supplier_brief where inquiry_id not in (select id from public.inquiries)`],
+    ['agent_actions (dangling)', `delete from public.agent_actions where (target_table='leads' and target_id not in (select id::text from public.leads)) or (target_table='inquiries' and target_id not in (select id::text from public.inquiries)) or (target_table='quotes' and target_id not in (select id::text from public.quotes))`],
   ];
 
   const counts = {};
@@ -1153,7 +1158,10 @@ export const EXACT_TABLES = ['customers', 'leads', 'inquiries', 'quotes', 'suppl
   'supplier_capability_confirmation',
   'inquiry_matches', 'inquiry_intake', 'inquiry_requirement', 'inquiry_supplier_brief',
   'email_verifications', 'drawing_redaction_runs', 'documents', 'transactions', 'notifications',
-  'company_event', 'doc_versions', 'comparison_run_v2', 'comparison_candidate_v2'];
+  'company_event', 'doc_versions', 'comparison_run_v2', 'comparison_candidate_v2',
+  // Added after an exception-window run left a dangling row here: the baseline check can only catch
+  // what it counts, and this table was not on the list.
+  'agent_actions'];
 
 export async function snapshot() {
   const exact = await mgmtRead(REF, EXACT_TABLES.map((t) =>
