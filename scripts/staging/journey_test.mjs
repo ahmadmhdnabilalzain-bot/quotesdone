@@ -210,6 +210,61 @@ step('drawing redaction recorded and verified',
            `verified=${redRun.pages_verified} failed=${redRun.verify_failed}`
          : 'no redaction run recorded');
 
+// A CAD upload takes a different branch: the browser cannot rasterise DWG/DXF, so analyze_drawing
+// gets original_b64 with NO images and must route through cad_convert (CloudConvert) to get page
+// images before it can read anything. DXF is plain text, so this needs no binary fixture.
+const dxfEnt = [];
+const dxfPush = (...a) => dxfEnt.push(...a.map(String));
+const dxfLine = (x1, y1, x2, y2) => dxfPush(0, 'LINE', 8, '0', 10, x1, 20, y1, 30, 0, 11, x2, 21, y2, 31, 0);
+const dxfText = (x, y, h, s) => dxfPush(0, 'TEXT', 8, '0', 10, x, 20, y, 30, 0, 40, h, 1, s);
+dxfLine(0, 0, 400, 0); dxfLine(400, 0, 400, 300); dxfLine(400, 300, 0, 300); dxfLine(0, 300, 0, 0);
+dxfLine(50, 50, 150, 50); dxfLine(150, 50, 150, 200); dxfLine(150, 200, 50, 200); dxfLine(50, 200, 50, 50);
+dxfText(50, 220, 14, 'WINDOW W1 1200 x 1500 mm');
+dxfText(50, 250, 14, 'QTY 40 NOS DOUBLE GLAZED');
+dxfText(50, 20, 12, 'SCALE 1:50');
+const dxfB64 = Buffer.from([
+  '0', 'SECTION', '2', 'HEADER',
+  '9', '$ACADVER', '1', 'AC1009',
+  '9', '$EXTMIN', '10', '0.0', '20', '0.0', '30', '0.0',
+  '9', '$EXTMAX', '10', '400.0', '20', '300.0', '30', '0.0',
+  '0', 'ENDSEC',
+  '0', 'SECTION', '2', 'ENTITIES', ...dxfEnt, '0', 'ENDSEC', '0', 'EOF',
+].join('\n'), 'utf8').toString('base64');
+r = await call('customer_api', cust.jwt, {
+  action: 'analyze_drawing',
+  drawing_file_name: 'floor_plan.dxf',
+  mime: 'image/vnd.dxf',
+  hint: 'Aluminium windows, CAD plan.',
+  original_b64: dxfB64,
+});
+const cad = r.json || {};
+const cadPath = cad.drawing_file_path || null;
+// What this asserts is the half that is OURS: that .dxf is recognised as CAD and that the original
+// the customer uploaded is actually STORED. Until 5 Aug it was not - customer_api allowed only
+// SAFE_UPLOAD (PDF + images) and the drawing-files bucket's own allowed_mime_types excluded CAD
+// too, so a DXF was refused at both layers and both returned the same silent null. The drawing was
+// converted and read while the file the supplier needs to quote from was quietly dropped.
+//
+// Two things are deliberately NOT asserted. BOQ content: a DXF written by hand renders as a nearly
+// blank raster unless it also carries LAYER and STYLE tables, so an empty BOQ here would measure
+// the fixture, not the product (the BOQ read is already proven on the raster path above). And
+// whether CloudConvert finished: cad_convert polls for 56s and then honestly returns a timeout,
+// which analyze_drawing honestly reports as 'cad_not_converted'. Failing on a third party's queue
+// latency would make this suite flaky, and both outcomes are correct behaviour.
+step('CAD upload is recognised and the original is kept',
+  r.status === 200 && cad.ok === true && !!cadPath,
+  `HTTP ${r.status} stored=${cadPath ? 'yes' : 'NO'} ` +
+  `conversion=${cad.note === 'cad_not_converted' ? 'not this run (CloudConvert queue)' : 'converted'}`);
+
+// Reference photos are a separate, redact-only path (no BOQ) with its own credential.
+r = await call('attach_photos', cust.jwt, {
+  images: [{ data: drawingB64, mime: 'image/png' }],
+});
+const photoPaths = Array.isArray(r.json?.paths) ? r.json.paths : [];
+step('customer reference photos redacted and stored',
+  r.status === 200 && r.json?.ok === true && photoPaths.length > 0,
+  `HTTP ${r.status} ${photoPaths.length} redacted photo path(s)`);
+
 r = await call('customer_api', cust.jwt, {
   action: 'create_inquiry',
   intake_id: intakeId,
@@ -585,7 +640,9 @@ if (!KEEP) {
   // to production would be reading this test's litter.
   let objs = 0;
   for (const [bucket, paths] of [
-    ['drawing-files', [drawingStoredPath, ...(Array.isArray(draw.drawing_redacted_paths) ? draw.drawing_redacted_paths : [])]],
+    ['drawing-files', [drawingStoredPath, cadPath, ...photoPaths,
+                       ...(Array.isArray(draw.drawing_redacted_paths) ? draw.drawing_redacted_paths : []),
+                       ...(Array.isArray(cad.drawing_redacted_paths) ? cad.drawing_redacted_paths : [])]],
     ['quote-files', [quoteDocPath]],
   ]) {
     const keep = paths.filter(Boolean);

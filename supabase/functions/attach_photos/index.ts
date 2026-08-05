@@ -16,7 +16,16 @@ Deno.serve(async (req) => {
     if (!user || !user.email) return J({ error: 'Not signed in' }, 401);
     const uid = (user.id || user.email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 24) || 'anon';
     const body = await req.json().catch(() => ({}));
-    const images = (Array.isArray(body.images) ? body.images : []).filter((im: any) => im && im.data && im.mime).slice(0, 24);
+    // Accept either key. Every sibling on this path (drawing_boq, drawing_redact, customer_api's
+    // analyze_drawing) reads `im.b64 || im.data`, and cad_convert emits `data` while the portal's
+    // own drawing upload posts `b64`. This filtered on `data` alone, so a caller using the shape
+    // the rest of the pipeline accepts would drop every photo and still return ok:true with an
+    // empty paths array - the customer's reference photos would simply never reach the suppliers,
+    // with nothing anywhere reporting a failure. No caller sends `b64` today; this is one word so
+    // that none ever can.
+    const images = (Array.isArray(body.images) ? body.images : [])
+      .map((im: any) => (im && !im.data && im.b64) ? { ...im, data: im.b64 } : im)
+      .filter((im: any) => im && im.data && im.mime).slice(0, 24);
     if (!images.length) return J({ ok: true, paths: [] });
     const secret = await sec('cred_fn_attach_photos');
     const prefix = `refphoto/${uid}/${Date.now()}`;

@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment.ts';
+import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD } from '../_shared/attachment.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -223,7 +223,17 @@ function yearsBand(v: unknown): string | null { if (v == null) return null; cons
 // GPS coordinates attached to the "masked" site photo.
 async function storeOriginal(custId: string, name: string, mime: string, b64: string): Promise<string | null> {
   try {
-    const s = sanitizeUpload({ input: b64, declaredMime: mime, filename: name, allow: SAFE_UPLOAD, maxBytes: 25 * 1024 * 1024 });
+    // 5 Aug 2026. The allow-list was SAFE_UPLOAD (PDF + jpeg/png/webp), which excludes CAD - on the
+    // one path in the system that explicitly SUPPORTS CAD. analyze_drawing detects .dwg/.dxf and
+    // routes it through cad_convert to get page images, so the drawing was converted, read and
+    // turned into a BOQ, while storeOriginal rejected the original and returned null behind a
+    // console.warn. The customer saw a successful upload; the inquiry got no drawing_file_path, so
+    // the actual CAD file the supplier needs to quote from was gone and nothing reported it.
+    // SAFE_CAD already exists for exactly this and was simply never wired to its only caller. The
+    // sniffer validates both formats structurally (DWG by its AC10xx magic, ASCII DXF by its
+    // SECTION/HEADER shape, and it prefers the dangerous reading on ambiguity), so this widens the
+    // accepted set without trusting the caller's declared type.
+    const s = sanitizeUpload({ input: b64, declaredMime: mime, filename: name, allow: [...SAFE_UPLOAD, ...SAFE_CAD], maxBytes: 25 * 1024 * 1024 });
     if (!s.ok) {
       console.warn(`[9.1] drawing rejected: ${s.error} - ${s.detail}${s.mime ? ` (sniffed ${s.mime}, declared ${mime})` : ''}`);
       return null;
@@ -231,7 +241,12 @@ async function storeOriginal(custId: string, name: string, mime: string, b64: st
     if (s.declaredMismatch) console.warn(`[9.1] drawing declared ${mime} but is ${s.mime}; stored as ${s.mime}`);
     const path = `drawings/${custId}/${Date.now()}_${safeFilename(name, s.mime)}`;
     const up = await admin.storage.from('drawing-files').upload(path, s.bytes, { contentType: s.mime, upsert: false });
-    return up.error ? null : path;
+    // The sanitizer's rejection is logged above but the STORAGE rejection was not, and the bucket
+    // carries its own allowed_mime_types. A CAD upload was therefore refused twice, silently, and
+    // both layers returned the same null: the caller could not tell "we would not accept this" from
+    // "the bucket would not accept this" from "the network failed".
+    if (up.error) { console.warn(`[9.1] drawing accepted by the sanitizer as ${s.mime} but REJECTED by storage: ${up.error.message}`); return null; }
+    return path;
   } catch { return null; }
 }
 async function translateQuoteAr(q: any): Promise<any|null> {
