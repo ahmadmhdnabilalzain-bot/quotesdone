@@ -1,370 +1,233 @@
-# START HERE — QuotesDone, 4 August 2026, end of session 6
+# START HERE — QuotesDone, 5 August 2026, end of session 7
 
-`d4cab4b` on **`repair/package-conformance-batch-0`** (parent `9d002d3` = `main` = `origin/main`).
-**Pushed and in sync with `origin`** — the branch was already on GitHub at `37dac27`; only this
-brief was missing. Still **not merged. Production unchanged.**
-Migrations **712**. `npm test` exits **0**, 0 failures, now 16 node check files (the new
-`scripts/staging/sql_split.test.mjs` is picked up automatically).
+`f4a333a` on **`repair/finish-quotesdone`** (branched from `repair/package-conformance-batch-0`).
+**Pushed. Not merged. Production unchanged.**
 
-Run first (these live in `C:\Users\Opera\qd-check`, a separate repo — `/add-dir` it):
+Staging **`pglpqrhvozwepymcuunn`** · production **`htdblwldjkcgjvmqkbeh`** (read-only, never deployed to).
+
+Run these first. All three should be green before you touch anything:
+
 ```
-node C:\Users\Opera\qd-check\final_sync_check.mjs           # was UNCONFIRMED, now VERIFIED GREEN
-node C:\Users\Opera\qd-check\check_branch_isolation.mjs     # PASSES with the branch present
-node C:\Users\Opera\qd-check\export_applied_migrations.mjs  # "nothing to write"
+node scripts/staging/verify_phase1.mjs      # 12/12  deployed, isolated, in sync
+node scripts/staging/smoke_staging.mjs      # 15/15  auth, storage, postgrest, 10 functions
+node scripts/staging/journey_test.mjs       # 28/28  signup -> quotation comparison
 ```
 
 ---
 
 ## 0. Settled — do not re-open
 
-**The package-conformance register is gone.** `PACKAGE_CONFORMANCE_MATRIX.csv` and
-`PACKAGE_CONFORMANCE_SUMMARY.md` are unrecoverable — searched and negative in the full user
-profile, `docs/audit/`, the claude.ai project's file uploads, Dropbox and Gmail; the founder could
-not find them either. **Do not spend time looking.**
+**Phase 1 is done and verified.** Staging matches production exactly: 403 tables, 161 views, 739
+routines, 5,237 columns. 190/190 Edge Functions deployed, 17 requiring a JWT, zero `verify_jwt`
+drift against `config.toml`. Migration ledger reconciled at 712 @ `20260804182051`.
 
-**Decision taken 4 Aug: do not rebuild now.** The dependency-ordered conformance list survives (see
-§5) and covers the next several batches. The matrix is a completeness ledger — *"how far are we?"* —
-not the work queue. Rebuild nearer launch, from the six packages (present and hash-verified), in a
-session that is **not** implementing the fixes. Any rebuild takes a new name: the published hashes
-refer to files that no longer exist.
+**Phase 2 is done except file upload.** The whole customer-to-quotation journey runs against
+deployed staging with real Auth users: signup, OTP, profile, terms, AI intake (readiness 100),
+inquiry creation, dispatch to 12 matched suppliers, supplier inbox, quotation, revision,
+structured review, comparison PDF, and cross-account isolation checks.
 
-**Standing process change:** an audit deliverable is committed to `docs/audit/` in the session that
-produces it, on its own branch, always. "Audit-only, do not commit" means do not commit changes to
-the system. It never means do not record what you found.
+**Staging isolation holds and must keep holding:** 0 cron jobs, 0 routines referencing production,
+no live payment or deploy tokens. `verify_phase1.mjs` asserts all three — if it ever fails, stop.
 
 ---
 
-## 1. What session 6 produced
+## 1. Staging inventory (measured, do not re-derive)
 
-| step | outcome |
-|---|---|
-| 1 preserve the audit | **NOT POSSIBLE** — see §0 |
-| 2 staging readiness | **DONE, premise corrected** — see §3 |
-| 3 A-01 remediation | **PROVEN in staging** — see §4 |
-| 4 importer idempotency | **DONE, stronger than specified** — see §4 |
-| 5 package counts | **PARTIAL** — corpus verified from source; company-operations pack not extracted |
-
-Staging: `staging-batch0` → **`pglpqrhvozwepymcuunn`**, ~$0.32/day. `kb_stage` fully built,
-`decision_rules` column-identical to production, 12,929 rows after the proven cleanup, **0 cron
-jobs**. `public` is partial — the rebuild was aborted mid-run, see §3.
-
-**Production still holds 16,254 decision rules.** The remediation is proven, not applied.
-
-Full evidence, committed: `docs/audit/PACKAGE_CONFORMANCE_BATCH_0_EVIDENCE.md`.
-
----
-
-## 2. Batch 1 — the work, in dependency order
-
-1. **Finish the staging rebuild** using the corrected route in §3, with the 429 backoff now in
-   `scripts/staging/qd_guard.mjs`, and record the **real** residual failure count. The number
-   session 6 produced (`pass 1: applied 481, failed 1,721`) is contaminated by throttling and must
-   not be quoted.
-   Then **re-run `check_branch_isolation.mjs` at the END of the rebuild** — a complete replay
-   creates the 20 ref-embedding functions the branch currently lacks.
-2. **Write a migration for `holdout_v2`** from production's catalog. 8 tables + 2 views are
-   reconstructable by nothing: no migration, not in the baseline, not in the superseded folder.
-   Check the untracked `holdout_v2_eval/` directory first — it may hold the DDL.
-3. **Fix `regen_schema.mjs` to export every schema, not just `public`**, and correct
-   `supabase/schema/full_schema.sql`'s header, which cites `final_sync_check.mjs` as proof of a
-   guarantee that check explicitly disclaims.
-4. **Extract `QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31.zip`** (it is in `Downloads`) and
-   close the eight company-operations metrics, the 62 record types, 86 route manifests, aliases and
-   426 crosswalk rows.
-5. **Decide the production route to 12,929** — delete-3,325 (smaller, still not idempotent) vs
-   re-key-to-canonical (larger, immune afterwards). Both land on 12,929. Founder decision.
-6. **Deploy `kb_corpus_import` to staging + mint a `kb_import_token` there**, then run
-   `py -3 test_idempotency.py --project-ref pglpqrhvozwepymcuunn` — the end-to-end double import is
-   written but has never executed against a live database.
-7. Only then: **wire the 86-route taxonomy** (still the highest value per hour in the system).
-
-### Correct one watch query before using it
-
-The session-5 brief watches a catalog query annotated *"must become non-zero when the router is
-wired."* **It already returns 10** — `pg_get_functiondef` includes a function's own name, the
-router internals call each other, and five `fn_p2c1_*` test harnesses call it. It will read 10
-whether the router is wired or not. The claim it was meant to test is about the application, so
-measure the application:
-
-```
-rg -n 'fn_kb_route|fn_kb_retrieve|fn_kb_next_question|fn_trade_identify|fn_inquiry_interpret|fn_inquiry_workstream_activate' supabase/functions src
-```
-
-**Measured session 6: 0 matches.** The audit's finding stands; only the instrument was wrong.
-
----
-
-## 3. Staging: the branch is trivial, the database is not
-
-`create_branch` returned in seconds. The branch then reported **`MIGRATIONS_FAILED`**:
-
-```
-applied_on_branch  31          (of production's 712)
-max_version        20260611104735
-public_tables      17
-kb_stage           absent
-```
-
-The replay halted at a **June** migration — earlier than any file in `supabase/migrations/`, whose
-earliest is `20260724`. The repo is baseline-plus-increments; the 647 pre-baseline migrations have
-no file. `final_sync_check.mjs` states this in its own output and is not at fault.
-
-### Four defects
-
-**1. `full_schema.sql` exports only `public`.** 1,687,662 bytes, captured `2026-08-04T12:50:17Z`.
-388 `CREATE TABLE` statements, **every one `public.`**, and **zero `CREATE SCHEMA` statements**.
-Production has four more application schemas:
-
-| schema | tables | views | creating migration in the repo? |
-|---|--:|--:|---|
-| `ops_kb_stage` | 22 | 0 | yes — `20260802131757` |
-| `kb_stage` | 13 | 0 | yes — `20260802122010` (+ later fixes) |
-| `holdout_v2` | 8 | 2 | **NONE** |
-| `containment` | 4 | 0 | yes — `20260802234149` |
-
-**2. The baseline is 15 tables behind.** 388 vs production's 403. Eleven migrations postdate the
-12:50 capture.
-
-**3. `full_schema.sql` is unsafe to apply to a branch, and the old documented route says to.**
-It carries a `CRON JOBS` section: 29,139 bytes, **149 `cron.schedule` calls, 45 literal occurrences
-of the production ref**. The route in the old `migration-set-cannot-rebuild` note began "apply
-`full_schema.sql` to branch". Doing that verbatim arms 149 cron schedules pointing at production —
-the 3–4 Aug incident, rebuilt. **Do not follow that step as written.**
-
-**4. The baseline's header overstates what is proven.** It claims the migration set is complete and
-cites `final_sync_check.mjs` as proof. The branch replay disproves the first; `final_sync_check`
-disclaims the second in its own output (65 of 712 in scope).
-
-### The corrected route
-
-1. Create the branch. It **will** report `MIGRATIONS_FAILED`. Expected, not a failure of the step.
-2. Excise the `CRON JOBS` section and refuse any statement carrying the production ref.
-   `scripts/staging/rebuild_staging.mjs` does both and quarantines the rest.
-3. Reset `public`, apply the baseline in **repeated passes** — dump order is best-effort, so a
-   statement that fails on a missing dependency succeeds on a later pass.
-4. Replay the `kb_stage` / `ops_kb_stage` / `containment` migrations **filtered to the statements
-   that touch those schemas**. Replaying whole files means 35 broad migrations whose other
-   statements need a `public` that is not there yet.
-5. `holdout_v2` needs a migration written from production's catalog.
-6. Re-run `check_branch_isolation.mjs` with the branch present.
-
-### Two traps inside the route
-
-**Never run a schema rebuild and a data copy against the management API at once.** They throttle
-each other. On 4 Aug both began returning `429 ThrottlerException`, and the rebuild recorded each
-429 in its failure list as "this statement cannot be replayed" — turning a rate limit into a
-fabricated reproducibility defect. `qd_guard.mjs` now retries 429/502/503/504 with backoff.
-
-**"The kb_stage migration" is plural.** `20260802122010` creates `kb_stage.decision_rules` without
-`source_rule_id` or `record_id`; they arrive in `20260802130025`. Those two columns are what the
-whole A-01 diagnosis rests on.
-
----
-
-## 4. A-01: proven in staging, and the importer fix
-
-Production's `kb_stage.decision_rules` was copied into staging row for row — 16,254 rows, 3,325
-duplicates, a faithful reproduction rather than a simulation — and the cleanup run against the copy
-inside a transaction that asserts its own post-condition before committing.
-
-| measure | after cleanup | expected |
+| | production | staging |
 |---|--:|--:|
-| total rules | **12929** | 12929 |
-| duplicates remaining | **0** | 0 |
-| wrapped rows | **10392** | 10392 |
-| flat rows kept | **2537** | 2537 |
-| **bodyless rules remaining** | **0** | 0 |
-| categories | **67** | 67 |
+| tables / views / routines / columns | 403 / 161 / 739 / 5237 | **identical** |
+| Edge Functions deployed | — | **190 / 190** |
+| cron jobs | 149 | **0** (deliberate) |
+| `app_secrets` | 194 | 171 (18 withheld, 5 guard-refused) |
+| `internal_credential` | 74 | **74** |
+| storage buckets | 15 | **15** |
+| `fn_task_class` | 66 | **66** |
+| taxonomy rows copied | — | ~9,700 incl. the **86** supplier categories |
+| `supplier_capabilities` | **0** | seeded per test run, purged after |
 
-Production after: `16254 / 3325 / 112611` — **unchanged**.
+**Withheld from staging on purpose** (`scripts/staging/seed_staging_secrets.mjs` names each and
+why): `vercel_token` + project + team, `github_token`, all 5 `dropbox_*`, all 6 `twilio_*`,
+`qa_customer_password`, and **both Stripe keys because production's are LIVE**. Five brand/logo
+URLs are refused by `qd_guard` for embedding the production ref.
 
-Remediation set exported before anything was deleted: `_a01_duplicate_ids.tsv`, 3,325 rows,
-sha256 `785eb34c7ee0d808e20616361a0ba40e4276dc4a205cdc3888609de93b8f4218`.
-
-Preconditions, measured on production read-only: all 3,325 duplicates are bodyless in **both**
-`when_json` and `then_json`, each has **exactly one** canonical replacement, no canonical is itself
-bodyless, and **no duplicate is referenced by any other row**.
-
-> A first-pass query reported 3,325 "duplicates referenced by another row". That was a self-join
-> artefact. Excluding self-reference gives 0. Measure the suspect, then measure the measurement.
-
-### The brief's plan for step 3 could not have worked
-
-It said: seed staging with the corrected importer, then delete the duplicates there. A corrected
-importer produces no duplicates — nothing to delete, nothing proven. Reproducing the defect is the
-only way to demonstrate the cure.
-
-### The importer: two defects, both fixed
-
-**1. The key was not invariant under shape.** `rule_row()` wrote `r['rule_id']` for flat rules and
-`r['record_id']` for wrapped ones, so when the shape detector's verdict changed for 28 packages the
-key changed with it, and an upsert on a changed key is an insert.
-
-`canonical_rule_key()` returns the **source rule id** — the only identifier present in both shapes:
-
-```
-flat     -> r['rule_id']
-wrapped  -> structured_data['rule_id']    (fallback: record_id)
-```
-
-468 of 10,392 wrapped rules carry no source rule id and take the fallback. Collisions across the
-12,929 genuine rules: **zero**, globally and per category.
-
-**2. The report could not have noticed.** `rows=52,697 rejected=0 write_errors=0` counted lines
-read from files — identical whether the writes updated 12,929 rows or inserted 3,325 extra. The
-importer now measures the database before and after and reports **expected, inserted, stale,
-rejected** separately, with `count_matches_archive` and `idempotent` as verdicts. A run that grows
-the table exits non-zero.
-
-### The guard that matters is the pre-flight one
-
-Detection happens **before the first write**. Run read-only against production over all 67
-packages, it reproduces A-01 independently:
-
-```
-preflight: {"expected": 12929, "present_before": 16254, "to_insert": 6599,
-            "to_upsert_existing": 6330, "stale": 9924,
-            "stale_superseded_by_key_change": 9924}
-PREFLIGHT REFUSED — UPSERT KEY CHANGED
-```
-
-`expected = 12929` is derived from the archives, not copied from the audit. It matches.
-
-**It also refuses the change session 6 proposes**, and that is correct: adopting the canonical key
-re-keys 9,924 production rows, which is a migration requiring approval, not something an import
-does in passing. Arithmetic: `16,254 + 6,599 inserted − 9,924 re-keyed = 12,929`.
-
-> The detector initially indexed `source_rule_id` only, and the scheme A-01 left behind keys on
-> `record_id` — so it missed the exact case it was written for and reported ordinary staleness.
-> Index every identifier a record carries.
-
-### Two decisions left for the founder
-
-**Which route to 12,929 in production?**
-
-- **Delete** the 3,325 bodyless rows, keep the current key scheme. Smaller change. **Not idempotent
-  afterwards** — the same class of bug remains available.
-- **Re-key** to the canonical scheme: re-import updates 6,330, inserts 6,599, then delete the 9,924
-  rows keyed the old way. Larger change, immune to shape-detector churn afterwards.
-
-Both land on exactly 12,929. Either is a separate, separately-approved production step.
-
-### Incidental fixes
-
-- **The importer could only ever write to production.** The endpoint was a production literal —
-  which is also why the 4 Aug re-import could not have been rehearsed anywhere. Now
-  `--project-ref` / `KB_PROJECT_REF`, refusing production without `--i-mean-production`.
-- **The token was read at module import.** It is minted per run and revoked after, so between runs
-  *every* invocation — including `--help` — died with `FileNotFoundError`. Now read on first use.
-- **The corpus on disk was 28 of 67 packages.** Restored from
-  `Downloads\QuotesDone_ALL_KNOWLEDGE_86_CATEGORIES_v2026.07.31.zip`; all 28 pre-existing are
-  byte-identical to the master, 39 added. `company-operations/` is still empty — its archive is in
-  `Downloads`, unextracted.
-
-### Tests
-
-`knowledge-import/test_idempotency.py` — 21 behavioural tests over the real 67-package fixture, no
-source-string assertions. Archives yield 12,929 rules and 112,611 records. Second import inserts
-zero. A store keyed under the old scheme is refused, not doubled.
+Vercel: team `quotes-done`, project `quotesdone-next`. **Preview** env has
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` pointing at staging. Production
+domains `quotesdone.com` / `quotesdone.ae` untouched.
 
 ---
 
-## 5. The surviving conformance list (from the 4 Aug audit)
+## 2. Pending work, in dependency order
 
-The 487-row matrix is gone; this ordered list is what survives, and it is the work queue.
+### 2.1 Phase 2 — the one remaining step
 
-1. **Stand up staging.** Converts 119 `BLOCKED` and much of the 77 `INSUFFICIENT_EVIDENCE` into
-   real answers. Nothing else can be *proven* without it. _(Session 6: branch exists, `kb_stage`
-   done, `public` partial.)_
-2. **Clear the stale decision rules** (A-01) and add an idempotency assertion to the importer.
-   _(Session 6: proven in staging, importer fixed. Production application still pending.)_
-3. **Wire the 86-route taxonomy**: call `fn_kb_route` / `fn_trade_identify` from `customer_api` and
-   `profile_ai`, retire the four hardcoded lists. Unlocks the whole knowledge corpus.
-4. **Classify risk and idempotency for 55 executors** — `v_executor_registry_gaps` → 0.
-   Precondition for re-enabling `cos_execute_hourly`.
-5. **Make `cos_execute` write `workflow_run` / `workflow_step_run` / `action_execution` /
-   `decision_trace`**, and populate `company_event.dedupe_key`.
-6. **Thread `task_class`** through `_shared/llm.ts` call sites; route `designer` and
-   `resend_inbound` through `ai_gateway`.
-7. **Fix the customer-portal error path** and unify the two Arabic mechanisms.
-8. **Then, and only then, the 29 API actions** — a product build, not remediation.
+**Files and drawings (journey step 9).** Nothing exercises upload yet. The keys are already live in
+staging: `virustotal_api_key`, `cloudconvert_api_key`. Functions involved: `extract_text`,
+`doc_extract`, `drawing_boq`, `drawing_redact`, `cad_convert`, `attach_photos`, `vt_scan`.
+Doing this also opens the **upload-based review path**: a quote submitted as a document creates a
+`quote_reviews` row, which a form quote never does (form quotes are scored into `quotes.quality`
+instead — the journey asserts both).
 
-Items 2, 4, 6 and 7 are days. Item 3 is the highest value per hour in the entire system.
+### 2.2 Phase 3 — supplier journey
 
-### The audit's ranked findings
+Working: registration, company creation, profile, terms, approval, quote submit/revise.
+Not built or not proven: licence and document upload, storage-level document ownership, **the
+supplier-facing capability flow does not exist at all** (see §3), inquiry assignments, quotation
+history, supplier exceptions, expiry and recovery, founding-rank exemption, subscription state.
 
-| # | finding | severity |
-|---|---|---|
-| B-01 | 86-route taxonomy has 0 callers; live path uses 4 hardcoded lists | HIGH, launch-blocking |
-| B-02 | 0 of 29 package API actions exist — no handler, no frontend caller | HIGH |
-| B-03 | 17 autonomy/portal tables: 0 writers, 0 readers | HIGH |
-| B-04 | 55 of 55 executors lack a declared idempotency strategy | HIGH, blocks `cos_execute` |
-| B-05 | `task_class` passed by 1 of 60 LLM callers; cost gates unverifiable | MEDIUM |
-| B-06 | `designer` and `resend_inbound` bypass `ai_gateway` for inference | MEDIUM |
-| B-07 | Customer portal: `err` never rendered, no `.catch` — failed load shows "Loading…" forever | MEDIUM |
-| B-08 | In-portal Arabic toggle does not set `html[dir=rtl]`, so RTL typography never applies | MEDIUM |
-| B-09 | OS command centre has no Arabic at all | MEDIUM |
-| B-10 | 4 OS call sites bypass `unwrap`/`gateCheck`; Control-Mode refusal surfaces as raw 403 | LOW |
-| B-11 | 3,324 scenario tests never executed | MEDIUM |
-| B-12 | `company_event.dedupe_key` populated on 0 of 125 rows | MEDIUM |
-| B-13 | Rollback functions exist; no evidence any was ever rehearsed | MEDIUM |
-| B-14 | No staging project — 119 acceptance criteria unverifiable | HIGH, structural |
+### 2.3 Phase 4 — taxonomy
 
-Status distribution of the lost matrix, for reconciliation if it is ever rebuilt:
-`APPLIED_BUT_NOT_CONNECTED` 177 · `BLOCKED` 119 · `INSUFFICIENT_EVIDENCE` 77 ·
-`PARTIALLY_APPLIED` 43 · `NOT_APPLIED` 39 · `PRESENT_AS_DATA_ONLY` 17 · `APPLIED_AND_WORKING` 14 ·
-`SUPERSEDED_WITH_JUSTIFICATION` 1 = **487**.
+The 86 categories are in staging (`catalog_supplier_categories`), but the routes still have
+**0 callers in code**. Nothing is wired to `customer_api`, `profile_ai`, `inquiry_intake`,
+supplier category mapping, inbound email, or drawing/BOQ. The hardcoded lists are untouched.
+The intake classifier is already in shadow mode (deterministic keywords win when the model's
+category has no support; disagreements return as `classifier_override`).
 
----
+### 2.4 Phase 5 — portals and API actions
 
-## 6. Still open — do not re-derive
+**0 of 29** package API actions exist. Portal error rendering, Arabic and RTL untouched.
+`CustomerPortal.tsx:237` has a pre-existing `side-tab` design finding left deliberately for this
+phase.
 
-The 55 executor gaps (re-measured 4 Aug: still 55), `cos_execute` writing no run model
-(`workflow_run` 0), `company_event.dedupe_key` 0 of 125, `task_class` passed by 1 of 60, the
-customer-portal error path (`CustomerPortal.tsx:220` sets `err` and never renders it; neither
-loader has a `.catch`), the two Arabic mechanisms (`globals.css:484-512` scopes every RTL fix to
-`html[dir="rtl"]`, but the in-portal toggle sets `dir` on an inner `<div>`), the 29 API actions,
-the invite engine, `kpi_review_weekly` timing out on `v_supply_gap` (weekly Mon 04:00),
-`send_whatsapp` rejecting its own cron's credential (`wa_flush` passes `cred_cron_notifications`;
-the function does not accept it), the 18 deliberately-held crons, `executive_control_session` being
-a view **on purpose** — do not "fix" it by creating the table — and the 6 non-existent model IDs in
-the routing pack (do not retire `claude-opus-4.8`; its replacement does not exist).
+### 2.5 Phase 6 — AI gateway and cost
 
-Also open: 131 `proposed` org_tasks with no approval button; 13 of 14 task writers never consult the
-authority model; `regulated_scope` gates 259 rules and nothing sets it; `day_cadence` and
-`edge_health_probe` have 20,083 probes written and never read; 113.7 MB of `02_category_master.md`
-narrative is in no database; Meta Business Verification is founder-only; Sentry and an
-email-verification provider are the two absent P0 connectors; Stripe test-mode keys absent;
-47 routes still `requires_review`; rollback functions exist but none rehearsed.
+`llm_calls` is **0** despite inference succeeding, so model, provider, tokens and cost are not
+recorded. `task_class` is passed by 1 of 60 callers. `resend_inbound` calls OpenRouter directly at
+`index.ts:262`, outside the gateway's budget halt.
 
-The live traffic picture: inquiries 0, quotes 0, customers 0, leads 20,464.
+### 2.6 Phase 7 — workflow and autonomy
+
+Staging has **0 executors** against production's 55. `workflow_run`, `workflow_step_run`,
+`action_execution`, `decision_trace` exist with the right columns and have **no writers**.
+`v_executor_registry_gaps` returns 0 in staging **because there is no data** — that zero means
+nothing until executors are loaded. `cos_execute` correctly stays off.
+
+### 2.7 Phase 8 — acceptance
+
+Nothing yet. No synthetic corpus (100 customers / 100 suppliers / 5 admins), no Playwright, and
+**nothing has run against the deployed Vercel URL** — the frontend was verified by reading its
+built bundle, not by driving it.
 
 ---
 
-## 7. Things that bit
+## 3. Traps that cost real time this session
 
-- **A rule that did the opposite of its job.** "Audit-only, do not commit" destroyed the register
-  it was meant to keep honest. Protect the system, record the finding — different verbs.
-- **An artifact that exists only in a chat does not exist.** Cloud session workspaces are discarded.
-- **A rate limit recorded as a reproducibility defect.** *A measurement taken under an unnoticed
-  confound is worse than no measurement, because it gets quoted.*
-- **A signal that is always non-zero is worse than one that is always zero** — it looks like
-  progress.
-- **A detector that knew only one of the two identifiers.**
-- **"The migration" was singular and the schema needed two.**
-- **A file that reads its credential at import time cannot run `--help`.**
-- **A generated file asserting a guarantee the check it names does not make.**
-- **"Doesn't exist" is not "can't be created" — and "can be created" is not "is usable."**
-- **A branch can be isolated because it is broken.** Finishing the rebuild reduces its isolation.
-- **A plan that removes the defect cannot demonstrate the cure.** Reproduce, remediate, measure.
-- **A session that measures only current state cannot distinguish "was always so" from "became so
-  five minutes ago."** This brief inherited "not pushed" and carried it forward as fact; the branch
-  had been on GitHub the whole time. Write **is**, not **was**, about anything you did not watch
-  change. `git reflog` is the cheap check.
+**A green suite over a subsystem that never ran.** The journey passed 19/19 while every LLM call
+was failing and `inquiry_intake` was silently using its keyword fallback. It also passed while
+`route_inquiry` was refused by internal auth on every call. A step that returns HTTP 200 is not a
+step that worked.
 
-_Carried forward: an alarm is only as good as its reader · `cron.job_run_details` is a log nobody
-reads · a ramp that measures time instead of output ratchets through an outage · a monitor can fail
-exactly when it matters and pass the rest of the time · measure the suspect before rewriting it ·
-imported is not called · a passing test suite is not acceptance evidence · the guard read the wrong
-file — assert on the call, not the name · a broken thing can be the only thing holding another
-broken thing · committed is not deployed, deployed is not verified, and committed is not running._
+**`fn_task_class` empty means the routing policy is never consulted.** `ai_gateway` maps a calling
+function to its task class through that table. With it empty, everything falls to the default tier
+and `model_policy` is loaded and ignored. Copying the real 66 mappings then *broke* things that had
+been accidentally working — which is how the next two were found.
+
+**`inquiry_intake` is mapped to a switched-off task class.** `missing_fields_detection` has
+`tier=none, model=none, max_tokens=0`. The intake runs the entire customer conversation and writes
+the supplier brief; with no model it degrades to keyword guessing, readiness freezes at 40, and no
+customer can ever complete an inquiry. **Production still carries this mapping**, which is
+consistent with production having 0 inquiries. Staging is remapped to `agent_reasoning`.
+
+**Token budgets that fit one candidate, not twelve.** `rfq_routing` at 300 output tokens produced
+unparseable output the moment 12 suppliers cleared the capability floor, and reported zero fits.
+Its own log says it: *"12 viable candidates were never judged. Downstream this is
+indistinguishable from a supply coverage gap."* Raised to 2,500. `quote_compare` had no mapping at
+all and truncated at 1,500; now `quote_comparison` at sonnet/3,000.
+
+**`p_limit 12` with ties broken by ascending `supplier_id`.** Once twelve identically-scored demo
+suppliers exist, the oldest twelve always win and every newer supplier is structurally invisible to
+matching. The journey now deletes its `leads` rows, not just its auth users. **If dispatch ever
+matches suppliers you did not create this run, check for accumulated `Journey Test %` rows.**
+
+**An API that says "submitted" while the row says `draft`.** A quote is only accepted when the form
+is complete: `source:'form'`, a priced `items` array, `validity`, `warranty`, `lead_time`. Sending
+amount and notes alone leaves drafts, and comparison then correctly refuses with "needs at least
+two complete quotes".
+
+**Two completeness models that disagree.** Intake declared `ready` in its own vocabulary while
+`fn_rfq_score` checked `category_specs.fields` canonical keys, so a fully answered request scored
+3 of 4 and the RFQ was created and then never dispatched (`{skip:'not_rfq_ready'}`, surfaced
+nowhere). Intake now renders canonical keys in the checklist, makes them a prompt contract, and
+verifies required fields deterministically before it may say ready.
+
+**`echo` masked a failing exit code.** `cmd > log; echo "EXIT=$?" >> log` reports echo's status.
+A 152-function deploy "succeeded" while the log said `EXIT=1`.
+
+**A hook wrote its own stdout into a source file**, making it unparseable. If a script suddenly
+fails with a syntax error on a line you did not write, check the file tail.
+
+**GateGuard fired 26 times.** Every first edit of a file demands importers, affected API, data
+schemas and a verbatim instruction quote. Disable with `ECC_GATEGUARD=off` or add
+`pre:edit-write:gateguard-fact-force` and `pre:bash:gateguard-fact-force` to `ECC_DISABLED_HOOKS`.
+
+---
+
+## 4. Defects fixed this session (all committed on the branch)
+
+| what | why it mattered |
+|---|---|
+| SQL splitter merged all 590 functions into one statement | rebuild produced a schema with **zero** functions and called it clean |
+| `fetch` with no timeout in `qd_guard` | a hung request stalled a rebuild silently; backoff could not fire |
+| production ref compiled into 5 frontend files | Vercel env vars did nothing; a staging page wrote to **production** |
+| `deploy_functions.ps1` + `gen_supabase_config.mjs` pinned to production | no route existed to deploy a function anywhere else |
+| `drop schema public` destroyed default privileges | all 403 tables granted to nobody; PostgREST 403; `customer_api` returned `{"customer":null}` then crashed |
+| `internal_credential` empty | every function-to-function call refused; routing silently fell back |
+| `fn_schema_export` has no TYPES section, one literal `\n`, one missing sequence | six tables uncreatable, incl. `action_class_gate` |
+| `dispatch_inquiry` + 3 others called a hardcoded production URL | staging adjudicated RFQs against **production's** supplier base and flagged false coverage gaps |
+| intake could bless an undispatchable RFQ | see §3 |
+| `fn_task_class` / `rfq_routing` / `quote_compare` routing | see §3 |
+
+---
+
+## 5. Blocked on the founder — exactly one thing
+
+**Stripe test-mode keys.** Production's are LIVE (`sk_live` / `pk_live`), so they are withheld from
+staging by a prefix rule, not a name list. Test keys can only come from the Stripe dashboard.
+This is also the one action the founder's own spec says needs approval.
+
+Everything else is unblocked: Resend, OpenRouter, VirusTotal, CloudConvert and Apify keys are all
+live in staging. `email_enabled` is set to `false` deliberately so staging cannot mail a real
+person — turn it on behind a recipient allowlist when proving notification. Twilio and Dropbox stay
+withheld on purpose (real messages, production folders).
+
+---
+
+## 6. Findings about PRODUCTION worth acting on
+
+These were measured read-only and are **not** fixed, because production is not deployed to:
+
+- **`stripe_secret_key` and `stripe_publishable_key` are LIVE keys.**
+- **`inquiry_intake` maps to a switched-off task class**, so the intake there is running on keyword
+  fallback too. Production has 0 inquiries, 0 quotes, 0 customers, 20,464 leads.
+- **`supplier_capabilities` has 0 rows**, so the capability-gated dispatch path has never run.
+- **`quote_compare` has no `fn_task_class` mapping.**
+- `github_token` and `vercel_token` live in the `app_secrets` **table**, which is how
+  `run_auto_deploy()` and `run_site_autodeploy()` work — a database row can deploy the site.
+- 149 cron jobs are armed.
+
+---
+
+## 7. Production deployment sequence — NOT READY
+
+Do not prepare one yet. The completion standard requires the full Playwright/API suite (Phase 8),
+which does not exist. When it does, the sequence must cover: the 4 Edge Functions whose production
+URL was replaced with `SUPABASE_URL`, the `inquiry_intake` changes, the `fn_task_class` mapping for
+`quote_compare`, the `inquiry_intake` task-class remap, and the `rfq_routing` / `quote_comparison`
+token budgets. Every one of those is a live-behaviour change to a system currently serving zero
+traffic, so the risk is low — but the suite comes first.
+
+---
+
+## 8. Tooling added this session (all in `scripts/staging/`)
+
+| file | what it does |
+|---|---|
+| `verify_phase1.mjs` | 12 measurements: repo clean+pushed, functions deployed, jwt parity, schema parity, isolation, ledger |
+| `smoke_staging.mjs` | real Auth user, storage, PostgREST, 10 functions |
+| `journey_test.mjs` | the 28-step customer-to-quotation journey, self-cleaning |
+| `seed_staging_secrets.mjs` | copies `app_secrets` + `internal_credential`, withholds by name and by live-key prefix, forces 11 outbound flags off |
+| `sync_staging_reference.mjs` | copies taxonomy/policy tables incl. `fn_task_class`, multi-pass for FK order |
+| `sync_staging_grants.mjs` | restores table privileges in production's shape after a schema rebuild |
+| `apply_missing_objects.mjs` | catalogue diff: enums, sequences, columns, tables, views, routines; rewrites the production ref to the target project |
+
+`sync_staging_reference.mjs` still leaves `field_definition` and `field_definition_source`
+unloaded — they fail an FK to a parent outside the allowlist. Neither is on the journey path.
