@@ -50,6 +50,30 @@ Baseline at session start: 41 MET / 37 PARTIAL / 32 MISSING. Session 14 closed 6
 - [ ] E. Remainder: comp-06 fn_os_knowledge_query, comp-09 workflow_run, comp-11-*, comp-13-sop,
       ownership mapping, and every PARTIAL.
 
+## THE SCORER EXISTS AND ROW #2 MEASURES 65/110 (59%) ON PRODUCTION
+`node scripts/staging/verify_os_blueprint.mjs` — 110 checks, read-only, ~10 min (throttled).
+Six section modules under `scripts/staging/os_blueprint/`. The runner asserts the denominator
+(30+11+21+21+12+15=110) because a section that silently registers fewer checks RAISES the
+percentage by shrinking the denominator — the most dangerous way for a scorer to be wrong.
+Baseline was ~47. **65 is measured, not assumed.**
+
+### ⚠ THE SCORER ITSELF IS NOT YET TRUSTED — VERIFY THESE BEFORE ACTING ON THEM
+It was built this session and its adversarial review did not complete. Several MISSING verdicts
+look like they measure HISTORY rather than CURRENT CAPABILITY, and acting on them as if they were
+gaps would rebuild things that already work:
+- `xos-14` reads MISSING on "335/335 correlated, **0 caused**". causation_id is NULL for history
+  ON PURPOSE and a chain ROOT legitimately has no cause. The check should assert that a CAUSED
+  event names its cause — verified working in verify_event_contract.mjs check 3 — not that every
+  event has one. **Almost certainly a wrong check, not a gap.**
+- `comp-16-risk` / `quality` / `automation` / `capacity` / `backlog` read MISSING, but all five
+  were wired and measured by hand this session: os_review.metrics now carries open_risks,
+  review_pass_pct, needs_founder_pct, backlog_per_head and capacity_pct on BOTH projects.
+  Re-read what those checks actually touch.
+- `xos-02` / `xos-03` / `xos-05` read MISSING while the fix is deployed and green in the fixture
+  gate. ~97 backlog pairs were still undrained at measurement time, and the checks may be counting
+  the 179 historical NULL task_ids rather than current behaviour.
+**Re-derive nothing. Read the check, then decide whether the check or the system is wrong.**
+
 ## TOOLING FIXED THIS SESSION (do not re-find these)
 - `apply_sql.mjs` gains `--ddl` (identical text to both, public-schema SHAPE digest asserted) and
   **retry/backoff on the production path**, which had NONE. A 429 between two routines in one file

@@ -16,10 +16,12 @@
 // So the Component 16 dimensions are scored on the FIGURE, by name, on a surface something reads —
 // not on "the row is read by someone".
 //
-// TRAP 2 — the live routine. A proc that names the figure is only a reader if the proc itself is
-// reachable: referenced by a cron command or by another routine. v_os_health names four of the eight
-// dimensions and is referenced by nothing at all, so naming a figure inside it proves nothing until
-// the view acquires a reader. That is why every dimension check tests reachability, not existence.
+// TRAP 2 — the live routine, and the store-to-store copy. A proc that names the figure is only a
+// reader if the proc itself is reachable: referenced by a cron command or by another routine. And
+// the report's own writer is never its reader — fn_os_review selects the eight dimensions out of
+// v_os_health and writes them into os_review.metrics, which moves a number from one store into
+// another without anybody opening either. Both are excluded, so every dimension check measures
+// consumption rather than computation.
 export default async function ({ req, READERS }) {
   // A proc is live if a cron command or another routine names it. Views count only when something
   // reads the view. This is the difference between "the figure is computed" and "the figure is read".
@@ -40,6 +42,7 @@ export default async function ({ req, READERS }) {
         and (v.viewname = 'v_os_health' or v.definition ~* '\\yos_review\\y')
         and (exists (select 1 from pg_proc p2 join pg_namespace n2 on n2.oid=p2.pronamespace
                      where n2.nspname='public' and p2.prokind in ('f','p')
+                       and p2.proname <> 'fn_os_review'
                        and pg_get_functiondef(p2.oid) ~* ('\\y'||v.viewname||'\\y'))
           or exists (select 1 from cron.job j2 where j2.command ~* ('\\y'||v.viewname||'\\y'))))
     + (select count(*) from cron.job j3 where j3.command ~* '${rx}'
@@ -51,19 +54,28 @@ export default async function ({ req, READERS }) {
   // that view already computes four of the dimensions per OS and needs only a reader.
   const OS_COUNT = `(select count(*) from public.operating_system where active)`;
   const FRESH = `(select max(created_at) from public.os_review) > now() - interval '21 days'`;
+  // fn_os_review reads v_os_health and copies its eight figures into os_review.metrics. That makes
+  // fn_os_review a reader of the VIEW (which is what comp-16-fn-os-health asks about) but not a
+  // consumer of the FIGURE: it is the writer of the report. Counting it here would let a number
+  // travel from one store nothing opens into another and call itself reported.
+  const VIEW_READ = `((select count(*) from pg_proc p3 join pg_namespace n3 on n3.oid=p3.pronamespace
+        where n3.nspname='public' and p3.prokind in ('f','p') and p3.proname <> 'fn_os_review'
+          and pg_get_functiondef(p3.oid) ~* '\\yv_os_health\\y')
+    + (select count(*) from pg_views v3 where v3.schemaname='public' and v3.definition ~* '\\yv_os_health\\y')
+    + (select count(*) from cron.job j4 where j4.command ~* '\\yv_os_health\\y'))`;
   const DIM = (rx, keys) => `select coalesce((
       (select count(*) from public.os_review r
         where r.period = (select max(period) from public.os_review)
           and (${keys.map(k => `r.metrics ? '${k}'`).join(' or ')})) >= ${OS_COUNT}
       and ${FRESH} and ${FIGURE_READERS(rx)} > 0)
     or ((select count(*) from pg_views v where v.schemaname='public' and v.viewname='v_os_health'
-          and v.definition ~* '${rx}') > 0 and ${READERS('v_os_health')} > 0), false)`;
+          and v.definition ~* '${rx}') > 0 and ${VIEW_READ} > 0), false)`;
   const DIM_EV = (rx, keys) => `select
       (select count(*) from public.os_review r where r.period=(select max(period) from public.os_review)
         and (${keys.map(k => `r.metrics ? '${k}'`).join(' or ')}))||' of '||${OS_COUNT}
       ||' OS carry it in os_review.metrics ('||(select max(period) from public.os_review)||'), '
       ||${FIGURE_READERS(rx)}||' live reader(s) of the figure, v_os_health has '
-      ||${READERS('v_os_health')}||' reader(s)'`;
+      ||${VIEW_READ}||' reader(s) other than the report writer'`;
 
   const HAS_FN = (n) => `exists (select 1 from pg_proc p join pg_namespace n2 on n2.oid=p.pronamespace
       where n2.nspname='public' and p.proname='${n}')`;
