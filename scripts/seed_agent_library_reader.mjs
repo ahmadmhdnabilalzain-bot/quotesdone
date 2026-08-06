@@ -82,7 +82,14 @@ begin
     select o.record_id, o.title, o.content, o.record_type, o.authority_tier,
            o.implementation_status, ts_rank(o.tsv, q_or) as rank
       from ops_knowledge o
-     where (p_dept is null or o.dept_key = p_dept or o.scope_type = 'company')
+     where (p_dept is null
+            or o.dept_key = p_dept
+            -- company principles and the UAE source registry apply to every department, and a
+            -- cross-department workflow that names no single owner belongs to all of them by
+            -- definition. Without these three branches 884 of 3,959 records were reachable by
+            -- nothing at all — the same defect as the corpus itself, one level down.
+            or o.scope_type in ('company','external_source')
+            or (o.scope_type = 'workflow' and o.dept_key is null))
        and o.tsv @@ q_or
      order by ts_rank(o.tsv, q_or) desc, o.record_id
      limit greatest(1, least(coalesce(p_limit,5),20));

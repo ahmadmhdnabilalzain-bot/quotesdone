@@ -96,7 +96,25 @@ async function planDept(deptKey: string) {
   // The department head plans WITH its management discipline (_global) + its own domain expertise
   // (the lead agent's knowledge): reversibility, ruthless prioritization, and role-specific know-how.
   let expertise = '';
-  try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: d.lead_agent || null, p_max_chars: 5000 }); expertise = data ? String(data).slice(0, 4500) : ''; } catch (_e) { /* optional */ }
+  // THE DAILY PLANNER IS THE READER THAT MOST NEEDS ITS DEPARTMENT'S OWN RULES, and it was the one
+  // that could not see them. fn_agent_context only emits LAYER 2b (dept_library) and LAYER 2c
+  // (ops_knowledge — the department's SOPs, decision rules and exception playbooks) when the caller
+  // supplies the question it is reasoning about; this passed none. And the 4,500-char slice cut the
+  // context off inside layer 2 regardless, so even a query would have been thrown away.
+  //
+  // The query is the charter plus the north star plus what is actually open — which is precisely
+  // what this function is about to plan against, so the retrieval is scoped to the real task rather
+  // than to a keyword. The slice is raised to 11,000: measured 6 Aug 2026, the widest department
+  // (legal) renders 34,191 chars with a query against 28,014 without, so 11,000 keeps identity,
+  // layer 2 and the retrieved sections while still bounding what reaches the prompt.
+  const planQuery = [d.charter, d.north_star, ...(openItems || []).map((o: any) => o.title)]
+    .filter(Boolean).join(' ').slice(0, 600);
+  try {
+    const { data } = await admin.rpc('fn_agent_context', {
+      p_agent_key: d.lead_agent || null, p_max_chars: 12000, p_query: planQuery,
+    });
+    expertise = data ? String(data).slice(0, 11000) : '';
+  } catch (_e) { /* optional */ }
 
   const recentTxt = (recent || []).map((r: any) => '- [' + r.status + '] ' + (r.title || '') + (r.result ? (' → ' + (typeof r.result === 'string' ? r.result : JSON.stringify(r.result)).slice(0, 200)) : '')).join('\n') || '(no recent work)';
   const memTxt = (mem || []).map((m: any) => '- ' + (m.content || '').slice(0, 200)).join('\n') || '(no notes)';

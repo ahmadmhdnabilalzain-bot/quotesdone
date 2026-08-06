@@ -188,13 +188,38 @@ step('ops_knowledge is row-for-row identical to production',
   `staging ${so.n} rows / ${so.mapped} mapped, production ${po.n} / ${po.mapped}, md5 ${String(so.h).slice(0, 10)}…`);
 step('the exception playbooks are present', so.playbooks === 240, `${so.playbooks} exception_playbook record(s)`);
 
+// IMPORTING IT AND LEAVING PART OF IT UNREACHABLE IS THE SAME DEFECT, ONE LEVEL DOWN. The first
+// cut resolved dept_key from scope_key only, so all 96 agent records, all 340 workflow records and
+// the 21 external sources were returned by no search at all — 884 of 3,959. Agent and workflow
+// records name their department in structured_data.department_key instead; company principles, the
+// UAE source registry and ownerless cross-department workflows apply to everyone.
+const reach = await one(REF, `select count(*)::int total,
+    count(*) filter (where dept_key is not null or scope_type in ('company','external_source')
+                        or (scope_type='workflow' and dept_key is null))::int reachable,
+    (select string_agg(scope_key||' '||n, ', ' order by n desc) from (
+       select scope_key, count(*) n from public.ops_knowledge
+        where dept_key is null and scope_type not in ('company','external_source','workflow')
+        group by 1) z) orphans
+  from public.ops_knowledge`);
+step('every record is reachable except the departments that do not exist',
+  Number(reach.total) - Number(reach.reachable) === 439,
+  `${reach.reachable}/${reach.total} reachable; orphaned: ${reach.orphans}`);
+
 // The spec's FIRST named exception scenario is "OpenAI is unavailable / Anthropic is unavailable".
 // The founder shipped a playbook for it per department. This asserts the retrieval finds it.
+// Assert PRESENCE, not position. The first cut demanded the department playbook rank first, and
+// broke the moment cross-department workflows became reachable: the company-wide "External provider
+// outage and continuity" workflow now outranks it, which is the better answer, with HR's own
+// playbook, scenario and decision rule at 2, 3 and 5. A rank assertion would keep failing every
+// time retrieval improved.
 const outage = await one(REF, `select count(*)::int n,
+    count(*) filter (where record_type='exception_playbook')::int playbooks,
+    count(*) filter (where title ilike '%HR%provider unavailable%')::int own_playbook,
     (select title from public.fn_ops_knowledge_search('hr','external AI provider unavailable',1)) t
   from public.fn_ops_knowledge_search('hr','external AI provider unavailable',5)`);
-step('an AI-provider outage retrieves its playbook', outage.n > 0 && /provider unavailable/i.test(String(outage.t || '')),
-  `${outage.n} hit(s), top "${String(outage.t || '').slice(0, 52)}"`);
+step('an AI-provider outage retrieves the department\'s own playbook',
+  outage.n > 0 && outage.own_playbook > 0 && outage.playbooks > 0,
+  `${outage.n} hit(s), ${outage.playbooks} playbook(s), own=${outage.own_playbook}, top "${String(outage.t || '').slice(0, 44)}"`);
 
 // hr, intelligence and knowledge_eng each held 0 agent_knowledge AND 0 dept_library rows.
 const zeros = await one(REF, `select count(*)::int still_empty from public.org_departments d

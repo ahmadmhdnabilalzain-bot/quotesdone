@@ -110,10 +110,15 @@ const rl = createInterface({ input: createReadStream(RECORDS, 'utf8'), crlfDelay
 for await (const line of rl) {
   if (!line.trim()) continue;
   const r = JSON.parse(line);
-  // Only department-scoped records carry a scope_key that is a department. company/workflow/agent/
-  // external_source records keep dept_key NULL by construction, which is correct, not a gap.
-  const dept = r.scope_type === 'department' ? (DEPT_MAP[r.scope_key] ?? null) : null;
-  if (r.scope_type === 'department' && dept === null) bump(unmapped, r.scope_key);
+  // A department-scoped record names its department in scope_key. An `agent` or `workflow` record
+  // names it in structured_data.department_key instead — 96 of 96 agent records and 100 of 340
+  // workflow records carry one. Resolving only scope_key left 884 of 3,959 records reachable by
+  // nothing, which is this project's signature defect reproduced inside its own fix.
+  const packKey = r.scope_type === 'department'
+    ? r.scope_key
+    : (r.structured_data && r.structured_data.department_key) || null;
+  const dept = packKey ? (DEPT_MAP[packKey] ?? null) : null;
+  if (packKey && dept === null) bump(unmapped, packKey);
   bump(byScope, r.scope_type);
   bump(byType, r.record_type);
   rows.push(`(${[
