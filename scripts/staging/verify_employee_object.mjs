@@ -92,9 +92,14 @@ try {
     layers.every(l => ctx.includes(l)),
     layers.filter(l => ctx.includes(l)).length + `/${layers.length} present, total ${ctx.length} chars`);
 
+  // The numeric bound tracks fn_agent_context's own `left(v_emp, N)`, raised 3,000 -> 4,200 -> 6,200
+  // as the OS block (spec #2 components 1-4) and the escalation rules were added. The REAL
+  // protection is the check above — all four knowledge layers must still be present — because a
+  // byte count cannot tell you whether anything was crowded out. This one exists so the block
+  // cannot grow without someone deciding it should.
   const empBlock = ctx.slice(ctx.indexOf('# YOUR EMPLOYEE RECORD'), ctx.indexOf('# LAYER 2'));
   step('the employee record is bounded and cannot crowd out the rest',
-    empBlock.length <= 3100, `${empBlock.length} chars against a 3,000 cap`);
+    empBlock.length <= 6300, `${empBlock.length} chars against the 6,200 cap in fn_agent_context`);
 
   // An agent with no personal grant must fall back to the department grant, not print nothing.
   const noGrant = await mgmtRead(STAGE,

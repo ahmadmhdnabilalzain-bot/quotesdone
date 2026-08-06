@@ -113,6 +113,28 @@ begin
         ||'Anything not on that list is GATED: propose it, do not do it.'||E'\n';
     end if;
 
+    -- ---- ESCALATION RULES (blueprint component 5) ----------------------------------------------
+    -- The spec requires every employee to have Escalation Rules alongside Role, Authority, KPIs,
+    -- Knowledge and Decision Rights. There is no escalation table — only escalations_archive — but
+    -- ops_knowledge.escalation_rule carries a real one on 1,206 of its 3,959 records, shaped
+    -- {"when": ..., "action": ...}. Its only reader was fn_kb_retrieve, which has ZERO callers
+    -- anywhere, so the rules reached nobody.
+    --
+    -- Read here rather than by widening fn_ops_knowledge_search: that function's return type would
+    -- have to change, which needs a DROP, and fn_agent_context itself depends on it. An additive
+    -- read is the smaller and safer diff.
+    select string_agg(distinct '- when ' || replace(e.escalation_rule->>'when','_',' ')
+                             || ' -> ' || replace(e.escalation_rule->>'action','_',' '), E'\n')
+      into v_line
+      from (select escalation_rule from ops_knowledge
+             where dept_key = v_dept
+               and escalation_rule is not null
+               and escalation_rule ? 'when' and escalation_rule ? 'action'
+             limit 40) e;
+    if v_line is not null then
+      v_emp := v_emp || E'\n'||'# WHEN TO ESCALATE (your department''s recorded rules)'||E'\n'||left(v_line, 700)||E'\n';
+    end if;
+
     -- ---- KPIs: how this employee's work is judged ----------------------------------------------
     select string_agg(z.kpi||' — target '||coalesce(z.target_value::text,'?')||' '||coalesce(z.unit,'')
              ||' ('||coalesce(z.cadence,'ongoing')
