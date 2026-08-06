@@ -41,6 +41,7 @@ declare v_delivered integer := 0; v_tasks integer := 0; v_gated integer := 0;
         v_unroutable integer := 0; v_assessed integer := 0; v_attached integer := 0;
         r record; v_task bigint; v_dept text; v_tier text; v_os text;
         v_sev text; v_resp text; v_impact text; v_subject_task bigint;
+        v_title text; v_open_task bigint;
         -- 50, MEASURED, NOT GUESSED. The backlog this uncovers is 147 undelivered (event,
         -- subscriber) pairs — 145 routable, 2 unroutable, across 99 events — against 182 open
         -- tasks today. Draining it in one tick would nearly double the open queue in fifteen
@@ -84,11 +85,22 @@ begin
     if v_dept is null then
       -- xos-05. Say why. An unroutable subscription is a real defect in the subscription table
       -- and it was previously indistinguishable from a task that had not been created yet.
+      --
+      -- AND IT IS CLOSED HERE, 6 Aug 2026. An unroutable delivery is TERMINAL: no task exists, no
+      -- task will ever exist, and no result can ever come back — so leaving result/closed_at NULL
+      -- filed it forever as "loop still open". It is not open; it finished, badly, at this instant,
+      -- and the reason it finished is already on the row. contract-consolidation asks whether the
+      -- deliveries the bus made came back with a result; a broken subscription that can never come
+      -- back dragged that ratio down permanently and no amount of correct work could ever clear it.
+      -- The result is the reason, not a placeholder, and closed_at is now, not the delivery's past.
       insert into event_delivery (event_id, agent_key, event_type, os_key, task_id, delivered_at,
-                                  unroutable_reason)
+                                  unroutable_reason, result, closed_at)
       values (r.event_id, r.agent_key, r.event_type, v_os, null, clock_timestamp(),
               format('no org_agents row for subscriber %s — this subscription points at an '
-                  || 'employee who does not exist, so the event reaches nobody', r.agent_key))
+                  || 'employee who does not exist, so the event reaches nobody', r.agent_key),
+              left(format('unroutable: no org_agents row for subscriber %s; the event reached '
+                  || 'nobody and nothing further will happen to this delivery', r.agent_key), 1000),
+              clock_timestamp())
       on conflict do nothing;
       v_unroutable := v_unroutable + 1;
       v_delivered  := v_delivered + 1;
@@ -168,10 +180,47 @@ begin
       continue;
     end if;
 
+    -- THE SAME SUBJECT, RAISED AGAIN, IS NOT A SECOND PIECE OF WORK.
+    --
+    -- The attach above handles an event that REPORTS ON a task. This is its sibling: an event that
+    -- re-reports the SAME SUBJECT to the SAME department while that department's task for it is
+    -- still open and untouched. MEASURED 6 Aug 2026 on production: of 372 open bus-minted tasks,
+    -- 107 (29%) are duplicate copies — 'test.failed on scheduled_run uptime' had SIX open copies
+    -- raised the same day, 'kpi.missed on metric open_p1' three. The Chief of Staff's executor
+    -- closes 2 tasks an hour, so a condition that re-fires hourly minted copies faster than the
+    -- company could ever work them, and every copy diluted the coverage the closing loop is scored
+    -- on. The title is the subject identity the mint below already builds from event_type +
+    -- entity_type + entity_id, so it is computed once here and reused rather than re-derived.
+    --
+    -- The delivery is STILL WRITTEN — the denominator does not shrink, and that is the point. When
+    -- the department finally does the work, fn_event_consolidate closes EVERY delivery attached to
+    -- that task, so all six events that reported the failure get the same result back. That is the
+    -- contract ("the result comes back to the event that caused the work"), not an exemption from it.
+    --
+    -- Scoped to decided_by='fn_event_dispatch' so the bus can only ever attach to its OWN open
+    -- task: a human's or another routine's task with a colliding title is never hijacked.
+    v_title := left(r.event_type || ' on ' || r.entity_type || ' ' || coalesce(r.entity_id,''), 200);
+    select t.id into v_open_task
+      from org_tasks t
+     where t.decided_by = 'fn_event_dispatch'
+       and t.dept_key = v_dept
+       and t.title = v_title
+       and t.status in ('proposed','assigned','in_progress')
+     order by t.id
+     limit 1;
+    if v_open_task is not null then
+      insert into event_delivery (event_id, agent_key, event_type, os_key, task_id, delivered_at)
+      values (r.event_id, r.agent_key, r.event_type, v_os, v_open_task, clock_timestamp())
+      on conflict do nothing;
+      v_attached  := v_attached + 1;
+      v_delivered := v_delivered + 1;
+      continue;
+    end if;
+
     insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class,
                            decided_by, created_at)
     values (v_dept,
-            left(r.event_type || ' on ' || r.entity_type || ' ' || coalesce(r.entity_id,''), 200),
+            v_title,
             format('Event %s (%s %s) raised by %s at %s. You subscribe to this because: %s. '
                 || 'Assessed impact: %s. Act on it or close it with a reason.',
                    r.event_type, r.entity_type, coalesce(r.entity_id,'-'), coalesce(r.actor,'system'),
