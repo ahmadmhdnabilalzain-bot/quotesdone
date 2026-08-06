@@ -148,7 +148,27 @@ async function flagCoverageGap(inqId: string, category: string, emirate: string 
 }
 async function matchAndNotify(inqId: string, opts: { category: string; emirate: string | null; keywords: string[]; summary: string; budget: string | null; extra: string; useRouter: boolean; multi: boolean }): Promise<{ matches: number; routing: Record<string, any> }> {
   const { category, emirate, keywords, summary, budget, extra, useRouter, multi } = opts;
-  let fits: { id: number; company_name?: string; reason?: string }[] = [];
+  // THE MATCH PERCENTAGE, PERSISTED. Both matchers behind this function return a rank score and
+  // this writer used to throw it away with the literal null, so inquiry_matches.similarity was null
+  // on every row in every environment and the portal had no stored number to show. Each source is
+  // normalised against the maximum ITS OWN scorer can award, so the stored value is a 0..1 fraction
+  // and not a raw score on an undeclared scale:
+  //   * route_inquiry fit.score  — fn_match_capability's weighted score. Its weights come from
+  //     decision_policy (product 40 + brand 20 + project_type 15 + track_record 15 + size_fit 10)
+  //     and sum to 100 by construction, so the denominator is 100.
+  //   * match_suppliers_kw match_score — least(strong_hits,6)*2 + least(name_hits,2) + 3 category
+  //     + 5 turnkey + 1 app-reviews, maximum 23. Frozen in migration
+  //     20260803181845_matching_paths_delegate_to_predicate.sql; change the formula there and this
+  //     denominator moves with it.
+  // NOT MEASURED STAYS NULL. route_inquiry only scores on the structured capability path; on the
+  // legacy AI-adjudicator path the verdict is a binary fit/no with a free-text reason and no number
+  // exists at all. Deriving a percentage from rank position or fanout size would be inventing one.
+  const sim01 = (raw: unknown, max: number): number | null => {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || max <= 0) return null;
+    return Math.round(Math.min(1, Math.max(0, n / max)) * 1000) / 1000;
+  };
+  let fits: { id: number; company_name?: string; reason?: string; sim?: number | null }[] = [];
   let routing: Record<string, any> = {};
   let routerAnswered = false;
   if (useRouter) {
@@ -156,7 +176,7 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
       const secret = await getSecret('cred_fn_customer_api');
       const rr = await fetch(`${SUPABASE_URL}/functions/v1/route_inquiry`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, inquiry_id: inqId }) });
       const rj = await rr.json();
-      if (rj?.ok) { routerAnswered = true; routing = { job_type: rj.job_type, primary_trade: rj.primary_trade, reasoning: rj.reasoning, evaluated: rj.evaluated, note: rj.note || null, needs_detail: rj.needs_detail === true, missing: Array.isArray(rj.missing) ? rj.missing.slice(0, 6) : null, at: new Date().toISOString() }; fits = Array.isArray(rj.fits) ? rj.fits : []; }
+      if (rj?.ok) { routerAnswered = true; routing = { job_type: rj.job_type, primary_trade: rj.primary_trade, reasoning: rj.reasoning, evaluated: rj.evaluated, note: rj.note || null, needs_detail: rj.needs_detail === true, missing: Array.isArray(rj.missing) ? rj.missing.slice(0, 6) : null, at: new Date().toISOString() }; fits = (Array.isArray(rj.fits) ? rj.fits : []).map((f: any) => ({ ...f, sim: sim01(f?.score, 100) })); }
       else routing = { error: rj?.error || 'route_failed', at: new Date().toISOString() };
     } catch (e) { routing = { error: String((e as Error)?.message || e), at: new Date().toISOString() }; }
   }
@@ -170,7 +190,7 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   // A successful zero-fit answer is respected — coverage gap path, router's reason persisted.
   if (!useRouter || routing.error || !routerAnswered) {
     const { data: sups } = await admin.rpc('match_suppliers_kw', { p_keywords: keywords, p_category: category, p_emirate: emirate, p_limit: 8, p_multi: multi });
-    fits = (sups || []).map((s: { id: number; company_name?: string }) => ({ id: s.id, company_name: s.company_name, reason: useRouter ? 'keyword fallback (router unavailable)' : (multi ? 'turnkey / combined match' : 'trade specialist match') }));
+    fits = (sups || []).map((s: { id: number; company_name?: string; match_score?: number }) => ({ id: s.id, company_name: s.company_name, reason: useRouter ? 'keyword fallback (router unavailable)' : (multi ? 'turnkey / combined match' : 'trade specialist match'), sim: sim01(s.match_score, 23) }));
     if (useRouter) routing.fallback = true; else routing = { mode: multi ? 'turnkey' : 'trade', at: new Date().toISOString() };
   }
   if (routerAnswered && fits.length === 0) { routing.router_verdict = String(routing.note || (routing.needs_detail ? 'needs_detail' : 'adjudicated_no_fit')); routing.keyword_fallback_suppressed = true; }
@@ -178,7 +198,7 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   let supRows: Record<string, any>[] = [];
   if (fitIds.length) { const { data: ls } = await admin.from('leads').select('id,company_name,email').in('id', fitIds); supRows = ls || []; }
   const supById = new Map(supRows.map((s: any) => [Number(s.id), s]));
-  const matchRows = fits.filter((f) => supById.has(Number(f.id))).map((f) => ({ inquiry_id: inqId, supplier_id: Number(f.id), similarity: null, match_reason: String(f.reason || '').slice(0, 400) }));
+  const matchRows = fits.filter((f) => supById.has(Number(f.id))).map((f) => ({ inquiry_id: inqId, supplier_id: Number(f.id), similarity: f.sim ?? null, match_reason: String(f.reason || '').slice(0, 400) }));
   if (matchRows.length) await admin.from('inquiry_matches').insert(matchRows);
   routing.outcome = matchRows.length ? 'dispatched' : 'no_fit';
   routing.fanout = matchRows.length;
@@ -653,7 +673,9 @@ Deno.serve(async (req) => {
 
     if (action === 'my_inquiries') {
       const cfg = await getCfg();
-      const cols = 'id,category,emirate,summary,spec,status,created_at,budget,scope_type,brief_source,drawing_file_path,drawing_file_name,boq,boq_confidence,hired_supplier_id,outcome,parent_inquiry_id,trades';
+      // rfq_no is the human reference (spec §8, "RFQ #88291"). The primary key is a uuid, which is
+      // not a number a customer can read out on the phone or quote in an email to a supplier.
+      const cols = 'id,rfq_no,category,emirate,summary,spec,status,created_at,budget,scope_type,brief_source,drawing_file_path,drawing_file_name,boq,boq_confidence,hired_supplier_id,outcome,parent_inquiry_id,trades';
       const { data: tops } = await admin.from('inquiries').select(cols).eq('customer_id', cust.id).is('parent_inquiry_id', null).order('created_at', { ascending: false }).limit(25);
       const topIds = (tops || []).map((i) => i.id);
       let kids: any[] = [];
@@ -676,11 +698,26 @@ Deno.serve(async (req) => {
       // candidate, so a reason may name the supplier outright. Emitting it pre-reveal would hand
       // over the identity the reveal fee exists to sell.
       //
-      // similarity is deliberately NOT served. Line 181 above inserts it as a literal null and no
-      // other writer touches the column, so every row is null in every environment — a "% match"
-      // figure here would be invented, not surfaced.
+      // THE MATCH PERCENTAGE IS NOW SERVED. It used not to be, and the reason was correct at the
+      // time: both writer sites passed the literal null, so every row held null in every
+      // environment and a "% match" here would have been invented rather than surfaced. Both
+      // writers now store the score their matcher actually computed, normalised to 0..1 (see
+      // matchAndNotify above), so there is a real number to serve.
+      //
+      // NOT REVEAL-GATED, unlike match_reason. A percentage names nobody — it is a number about the
+      // fit between a brief and an anonymous quote — so it costs the reveal fee nothing. The reason
+      // text is gated because route_inquiry builds its candidate list as `#<id> — <Company Name>`
+      // (route_inquiry/index.ts) and asks the model for free-text per candidate, so a reason may
+      // name the supplier outright and emitting it pre-reveal would hand over the identity the
+      // reveal fee exists to sell.
+      //
+      // NULL MEANS NOT SCORED AND MUST RENDER AS ABSENT. A match written on the legacy
+      // AI-adjudicator path carries no number at all; serving 0 there would tell the customer this
+      // supplier is a 0% fit, which is a different and false claim. null travels as null.
       const reasonBySup: Record<string, string> = {};
-      if (ids.length) { try { const { data: ms } = await admin.from('inquiry_matches').select('inquiry_id,supplier_id,match_reason').in('inquiry_id', ids); for (const m of (ms || [])) { matchedBy[String(m.inquiry_id)] = (matchedBy[String(m.inquiry_id)] || 0) + 1; if (m.match_reason) reasonBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = String(m.match_reason); } } catch (_e) { /* */ } }
+      const pctBySup: Record<string, number> = {};
+      const bestPct: Record<string, number> = {};
+      if (ids.length) { try { const { data: ms } = await admin.from('inquiry_matches').select('inquiry_id,supplier_id,similarity,match_reason').in('inquiry_id', ids); for (const m of (ms || [])) { matchedBy[String(m.inquiry_id)] = (matchedBy[String(m.inquiry_id)] || 0) + 1; if (m.match_reason) reasonBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = String(m.match_reason); const sim = m.similarity == null ? null : Number(m.similarity); if (sim != null && Number.isFinite(sim)) { const pct = Math.round(sim * 100); pctBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = pct; if (pct > (bestPct[String(m.inquiry_id)] ?? -1)) bestPct[String(m.inquiry_id)] = pct; } } } catch (_e) { /* */ } }
       const supIds = [...new Set(quotes.map((q) => q.supplier_id))];
       const supMeta: Record<string, any> = {};
       if (supIds.length) { const { data: ls } = await admin.from('leads').select('id,rating,rating_maps,reviews,reviews_maps,app_rating,app_reviews,emirate,verified,founded_year').in('id', supIds); const { data: perf } = await admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds); const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), emirate: l.emirate, verified: !!l.verified, years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null }; }
@@ -699,7 +736,7 @@ Deno.serve(async (req) => {
       // rating_source, emirate and win_rate are set to undefined so JSON.stringify omits the keys
       // outright rather than shipping a null the client could still reason about. Revealed quotes
       // — a transactions row exists for that quote_id — keep the exact values, unchanged.
-      const mapRow = async (i: any) => ({ id: i.id, category: i.category, emirate: i.emirate, summary: i.summary, spec: i.spec, status: i.status, created_at: i.created_at, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx) => { const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: 'Supplier ' + supplierLabel(idx), price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined }; }) });
+      const mapRow = async (i: any) => ({ id: i.id, rfq_no: i.rfq_no ?? null, category: i.category, emirate: i.emirate, summary: i.summary, spec: i.spec, status: i.status, created_at: i.created_at, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx) => { const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: 'Supplier ' + supplierLabel(idx), price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined }; }) });
       const out = [] as any[];
       for (const i of (tops || [])) {
         // mapRow returns an object literal, so its inferred type has no is_combined / child_count /

@@ -400,6 +400,38 @@ button,a{touch-action:manipulation;-webkit-tap-highlight-color:rgba(20,184,166,.
   background: hsl(var(--background));
   color: hsl(var(--foreground));
 }
+/* ══ THE LIGHT BRANCH. Dark was not an option, it was the only thing on offer: the root forces
+   color-scheme:dark and nothing in this file answered a theme selector, so §21's "dark mode is an
+   option the customer can toggle" had nothing to toggle to. Every surface in the customer portal
+   draws through these tokens (bg-background / bg-card / text-foreground / border-border), so
+   re-pointing them is a real light theme rather than a class that changes one header. Set by
+   data-theme on the portal root; the customer's choice is remembered per device. ══ */
+.osx[data-theme="light"]{
+  color-scheme: light;
+  --background: 180 30% 97%;
+  --foreground: 205 46% 13%;
+  --card: 0 0% 100%;
+  --card-foreground: 205 46% 13%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 205 46% 13%;
+  --primary: 172 79% 30%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 186 30% 92%;
+  --secondary-foreground: 205 46% 16%;
+  --muted-foreground: 200 14% 38%;
+  --accent: 38 74% 38%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 68% 44%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 195 20% 82%;
+  --input: 195 20% 76%;
+  --ring: 172 79% 34%;
+}
+/* The dark theme's lift is a navy glow on near-black and disappears on paper; light surfaces need a
+   plain drop shadow, and the inset key light has to go or cards read as embossed. */
+.osx[data-theme="light"] .rounded-lg.border,
+.osx[data-theme="light"] .rounded-xl.border{ box-shadow: 0 10px 26px -22px rgba(6,18,27,.55); }
+.osx[data-theme="light"] ::-webkit-scrollbar-thumb{ background: rgba(6,18,27,.22); }
 .osx ::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.14); border-radius: 8px; }
 .osx ::selection{ background: hsl(173 80% 33% / .18); color: inherit; }
 /* Give raised surfaces (shadcn Card = rounded + border + bg-card) a soft, modern
