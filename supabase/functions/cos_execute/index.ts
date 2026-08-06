@@ -8,6 +8,12 @@
 // Either way it records to the ledger + organizational memory, advances the task by its authority tier,
 // and rolls each objective up to done.
 //
+// EVERY DELIVERABLE IS REVIEWED BEFORE IT COUNTS AS DONE (6 Aug 2026). fn_task_review runs the
+// department head (fn_pick_reviewer, honouring delegation_rule and seniority), then the Chief of
+// Staff, against the org_task quality standard, then the cross-department challenge from
+// collaboration_rule. A rejection returns the task for revision with its reason; the attempt
+// counter below is the loop guard. Before this, the entire gate was `deliverable.length > 60`.
+//
 // SAFETY (Tier-0 discipline, permanent gates) — the tier IS the gate:
 //   - Only works tasks the permission model already cleared: status='assigned' (advisory/supervised/
 //     autonomous), plus stale 'in_progress' reclaimed from a killed run. GATED tasks are status='proposed'
@@ -28,7 +34,28 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 // 29 Jul 2026: this waited 25s (makeLlm's default) while ai_gateway allows a two-model ladder up to
 // 55s. Six analyses today finished at 50-60s, were billed, and were thrown away by this caller,
 // then escalated to the founder as empty. This function's own budget is 110s, so waiting is free.
-const llm = makeLlm(SONNET_FIRST, { max: 500, temperature: 0.2, timeoutMs: 75000 });
+// THE SEVENTH TOKEN CEILING, AND IT WAS TOTAL. Measured on production 6 Aug 2026: of the 45
+// cos_execute model calls ever made, **45 returned output_tokens EXACTLY 1200** — min 1200, max
+// 1200, mean 1200. Not a distribution with a tail on the ceiling: every single deliverable this
+// company has produced through the Chief of Staff was cut off mid-sentence. It shows up in the
+// stored work — "…**Closing this item** with reason: *New standalone incident — `day_conduct" —
+// and it is why 61 of 95 completed deliverables carry no RESULT: line: the line the work order
+// asks for is the LAST thing written, so truncation removes it first.
+//
+// The ceiling was set TWICE, the documented shape: makeLlm({max:500}) here AND llm(sys,user,1200)
+// at the dispatch call site, whose per-call third argument overrides this one. Raising only one
+// changes nothing. Deleting it outright is worse — llm.ts falls back to `def.max ?? 700` and always
+// sends a number — so both are set DELIBERATELY ABOVE model_policy.agent_reasoning so that
+// ai_gateway's min(caller, policy) always yields the policy. Same fix as dept_plan's 1200.
+//
+// This SAVES money. A truncated deliverable now fails the review and is retried up to three times,
+// so the old ceiling bought a cut-off answer and then paid for it twice more.
+//
+// AND THE STORAGE SLICE IS A CEILING TOO. `result.deliverable` was cut at 6,000 characters, which
+// is roughly 1,500 tokens — under the old ceiling, so it never bit, and it would have become the
+// next one the moment the model ceiling was lifted. Raised to 20,000 in the same change; jsonb has
+// no width limit, so the only reason for a bound here is sanity, not schema.
+const llm = makeLlm(SONNET_FIRST, { max: 8000, temperature: 0.2, timeoutMs: 75000 });
 
 // A department that cannot reach its specialist returns a courteous sentence, not a deliverable.
 // Those sentences are 60-90 characters, which sailed past a bare length check and marked the task
@@ -100,7 +127,9 @@ async function dispatch(deptName: string, brainKey: string, objective: string, t
     } catch (_e) { /* fall through to generic */ }
   }
   // Generic department-head fallback (analytics, procurement, or brain unreachable).
-  const out = await llm('You are the head of the ' + deptName + ' department at QuotesDone, a UAE B2B anonymous quotation marketplace. You are a seasoned professional. Produce concrete, practical deliverables. Never invent numbers.', instruction, 1200);
+  // 8000 is above model_policy.agent_reasoning on purpose — see the ceiling note on `llm` above.
+  // This is "let the task class decide", expressed through a signature that will not accept undefined.
+  const out = await llm('You are the head of the ' + deptName + ' department at QuotesDone, a UAE B2B anonymous quotation marketplace. You are a seasoned professional. Produce concrete, practical deliverables. Never invent numbers.', instruction, 8000);
   return out || '';
 }
 function resultLine(deliverable: string): string {
@@ -236,19 +265,64 @@ Deno.serve(async (req) => {
         try { await admin.from('org_memory').insert({ scope: t.dept_key, kind: 'deliverable', content: (t.title + ' — ' + oneLine).slice(0, 500) + '\n\n' + deliverable.slice(0, 2500), source: 'cos' }); } catch (_e) {}
       }
 
-      // Disposition by tier — the permission model already decided what's allowed.
+      // THE REVIEW CHAIN. Until 6 Aug 2026 the whole quality gate was the line above —
+      // `deliverable.length > 60` — and the department head, the Chief of Staff, the challenge
+      // heuristics and the ten collaboration rules were all built, populated, and called by NOTHING.
+      // Spec file #1 devotes two sections to this: "Every Task Has a Review Process" and "Employees
+      // Challenge Each Other". fn_task_review runs fn_review_submit (department head resolved live
+      // through fn_pick_reviewer + delegation_rule, then Chief of Staff, against the org_task
+      // quality standard) and then the cross-department challenge, which is deterministic SQL and
+      // therefore free on every task rather than rationed.
+      //
+      // fn_task_review reads the deliverable OFF THE ROW, so the result has to be stored before the
+      // review runs, not after.
+      let review: any = null;
+      if (hasWork) {
+        await admin.from('org_tasks').update({
+          updated_at: nowIso(),
+          result: { deliverable: deliverable.slice(0, 20000), summary: oneLine, mode, brain: dept.brain_agent || dept.lead_agent || 'dept_head', at: nowIso() },
+        }).eq('id', t.id);
+        try {
+          const { data, error } = await admin.rpc('fn_task_review', { p_task_id: t.id });
+          review = error ? null : data;
+        } catch (_e) { review = null; }
+      }
+
+      // Disposition. FAIL CLOSED, deliberately: a review that could not run is not an approval.
+      // That is fn_review_submit's own rule for an uncheckable critical criterion, and applying a
+      // weaker one here would restore the 60-character bar silently whenever the RPC is unreachable.
+      // An escalation gets looked at; a false success never does.
       let newStatus: string;
+      let reviewNote = '';
       if (!hasWork) {
         newStatus = attempts >= MAX_ATTEMPTS ? 'escalated' : 'in_progress'; // couldn't produce work → retry, then hand up
-      } else {
+        reviewNote = 'no usable deliverable';
+      } else if (review?.outcome === 'published') {
         newStatus = 'done';
+        reviewNote = 'approved by ' + String(review.reviewer || 'the department head') + ' and the Chief of Staff'
+          + ((review.dissents || []).length ? ' over ' + (review.dissents || []).length + ' recorded dissent(s)' : '');
+      } else if (review?.outcome === 'reject' || review?.outcome === 'request_revision') {
+        // Returned for revision. The existing attempt counter is the loop guard: three tries and it
+        // goes to the founder rather than cycling forever.
+        newStatus = attempts >= MAX_ATTEMPTS ? 'escalated' : 'in_progress';
+        reviewNote = String(review.outcome) + ' — '
+          + ((review.violations || []).map((v: any) => v.rule + '/' + v.severity).join(', ')
+             || (review.dissents || []).map((d: any) => d.by + ':' + d.stance).join(', ')
+             || 'see review_chain');
+      } else {
+        newStatus = 'escalated';
+        reviewNote = review ? ('review outcome ' + String(review.outcome)) : 'the review chain could not be reached';
       }
       if (newStatus === 'done') done++; else if (newStatus === 'escalated') escalated++; else working++;
 
       const review_pending = newStatus === 'done' && t.tier === 'supervised';
       await admin.from('org_tasks').update({
         status: newStatus, decided_by: 'cos', updated_at: nowIso(),
-        result: { deliverable: deliverable.slice(0, 6000), summary: oneLine, mode, review_pending, brain: dept.brain_agent || dept.lead_agent || 'dept_head', at: nowIso() },
+        result: { deliverable: deliverable.slice(0, 20000), summary: oneLine, mode, review_pending, brain: dept.brain_agent || dept.lead_agent || 'dept_head', at: nowIso(),
+                  review: review ? { outcome: review.outcome, reviewer: review.reviewer, delegated_from: review.delegated_from,
+                                     violations: review.violations, dissents: review.dissents, rules_applied: review.rules_applied,
+                                     blocked: review.blocked } : { outcome: 'unavailable' },
+                  review_note: reviewNote },
       }).eq('id', t.id);
 
       if (newStatus === 'escalated') {
@@ -256,12 +330,12 @@ Deno.serve(async (req) => {
           await admin.from('agent_actions').insert({
             agent: t.dept_key, kind: 'objective_step', status: 'pending', risk: 'low',
             title: ('Objective step needs you — ' + t.title).slice(0, 200),
-            recommendation: ('The ' + dept.name + ' department could not complete this autonomously after ' + attempts + ' tries. Review and advise.').slice(0, 400),
-            detail: { objective_id: t.objective_id, task_id: t.id, dept: t.dept_key, action_class: t.action_class, tier: t.tier },
+            recommendation: ('The ' + dept.name + ' department could not clear this after ' + attempts + ' tries: ' + reviewNote + '. Review and advise.').slice(0, 400),
+            detail: { objective_id: t.objective_id, task_id: t.id, dept: t.dept_key, action_class: t.action_class, tier: t.tier, review: reviewNote },
           });
         } catch (_e) {}
       }
-      summary.push({ task_id: t.id, dept: t.dept_key, tier: t.tier, status: newStatus, mode, summary: oneLine });
+      summary.push({ task_id: t.id, dept: t.dept_key, tier: t.tier, status: newStatus, mode, summary: oneLine, review: reviewNote });
     }
 
     // Roll up each touched objective. Open = anything still needing work or the founder (incl. gated 'proposed').

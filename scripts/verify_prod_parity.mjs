@@ -64,7 +64,31 @@ console.log(`     note: ${refOnly.length} routine(s) differ ONLY by project ref 
 // `AS text` is stripped as well: pg_get_viewdef renders a UNION branch's column alias on one
 // project and omits it on the other for the SAME view. v_supplier_coi, v_audit_coverage and
 // v_department_health all "differed" by exactly that and are identical definitions.
-const VIEWS = `select viewname, md5(regexp_replace(${NORM('definition')}, ' AS text,', ',', 'g')) h
+//
+// 6 Aug 2026: THE STRIP ONLY MATCHED ' AS text,' — WITH A TRAILING COMMA — so it cleaned every
+// column of a UNION branch except the LAST one, where the alias is followed by a newline before
+// UNION ALL. v_audit_coverage and v_department_health therefore stayed red after their definitions
+// were made identical, and the two projects were reported as drifted for a difference of
+// punctuation. Verified before changing this: both views expose byte-identical column signatures on
+// both projects — store/covers/rows_held/last_write/state and
+// dept_key/department/score/basis/status. An alias spelled the same as the cast it labels cannot
+// change behaviour, so '::text AS text' is normalised wherever it appears.
+//
+// Two cases, both PROVABLY redundant, both listed explicitly rather than swept up by a wildcard:
+//   '::text AS text'                                  -> '::text'
+//   'timestamp with time zone AS timestamptz'         -> 'timestamp with time zone'
+// In each the alias is simply the name of the type being cast to, which is the name the column
+// would carry anyway. A blanket ' AS \w+' strip would also hide a genuine rename, so it is not used.
+//
+// This LOOSENS the comparison, so state what still catches a real change: any alias that renames a
+// column to anything other than its own type still differs here, and check 6 below compares every
+// column of every view and table by name and type independently of this text.
+const VIEWS = `select viewname, md5(
+    regexp_replace(
+      regexp_replace(
+        regexp_replace(${NORM('definition')}, '::text AS text', '::text', 'g'),
+        'timestamp with time zone AS timestamptz', 'timestamp with time zone', 'g'),
+      ' AS text,', ',', 'g')) h
   from pg_views where schemaname='public' order by 1`;
 const [sv, pv] = await Promise.all([mgmtRead(STAGE_REF, VIEWS), mgmtRead(PROD_REF, VIEWS)]);
 const SV = new Map(sv.map((r) => [r.viewname, r.h]));
@@ -111,7 +135,16 @@ console.log(`     note: ${behind.length} table(s) where staging is BEHIND — no
 const KNOW = [
   ['agent_knowledge', `md5(string_agg(agent_key||'|'||coalesce(topic,'')||'|'||md5(coalesce(content,'')), E'\\n' order by id))`],
   ['dept_library', `md5(string_agg(department||'|'||coalesce(title,'')||'|'||md5(coalesce(content,'')), E'\\n' order by id))`],
-  ['kb_chunks', `md5(string_agg(id::text||'|'||coalesce(category,'')||'|'||md5(coalesce(content,'')), E'\\n' order by id))`],
+  // kb_chunks is compared WITHOUT its surrogate id, and that is a deliberate loosening.
+  //
+  // Measured 6 Aug 2026: 1,858 of 4,956 ids exist only on staging and 1,858 only on production —
+  // the two projects assigned their identity columns independently, long before this session. No
+  // foreign key anywhere references kb_chunks (checked: zero), nothing joins the two projects, and
+  // the id is never quoted to a user. Keeping it in the digest asserted a difference that cannot
+  // change behaviour and can never be reconciled without renumbering 1,858 rows — the same class of
+  // false red as the `AS text` aliases above. Content, category and row count still all have to
+  // match exactly, which is what the check claims to measure.
+  ['kb_chunks', `md5(string_agg(coalesce(category,'')||'|'||md5(coalesce(content,'')), E'\\n' order by coalesce(category,'')||'|'||md5(coalesce(content,''))))`],
   ['ops_knowledge', `md5(string_agg(record_id||'|'||coalesce(dept_key,'')||'|'||md5(content), E'\\n' order by record_id))`],
   ['kb_operational_alias', `md5(string_agg(catalog_num::text||'|'||language||'|'||alias, E'\\n' order by catalog_num, language, alias))`],
 ];
@@ -123,6 +156,24 @@ for (const [t, expr] of KNOW) {
 }
 step('the knowledge estate is row-for-row identical', kDiff.length === 0,
   kDiff.length ? kDiff.join(' · ') : `${KNOW.length} corpora identical by content hash`);
+
+// ---- retrieval is only as good as the vectors behind it ------------------------------------------
+// ADDED 6 Aug 2026, and it is the reason the id was dropped from the kb_chunks digest rather than
+// the whole check being relaxed. Chasing that false red surfaced a real one: staging carries 4,944
+// embeddings against production's 3,438 — PRODUCTION IS MISSING 1,506. Identical content and an
+// identical row count say nothing about whether a chunk can be found, because semantic retrieval
+// runs on embedding_gte and a NULL vector is simply invisible to it. The live system had the worse
+// corpus and every count in the repo agreed.
+//
+// This is asserted on PRODUCTION in absolute terms, not as staging-vs-production: staging being
+// ahead here is not the defect, production being short is.
+const EMB = `select count(*)::int n, count(embedding_gte)::int e from public.kb_chunks`;
+const [se, pe] = await Promise.all([mgmtRead(STAGE_REF, EMB), mgmtRead(PROD_REF, EMB)]);
+const pPct = Math.round(100 * pe[0].e / Math.max(pe[0].n, 1));
+const sPct = Math.round(100 * se[0].e / Math.max(se[0].n, 1));
+step('production kb_chunks are embedded, so retrieval can find them', pe[0].e >= se[0].e,
+  `production ${pe[0].e}/${pe[0].n} (${pPct}%) · staging ${se[0].e}/${se[0].n} (${sPct}%)`
+  + (pe[0].e < se[0].e ? ` — PRODUCTION IS SHORT BY ${se[0].e - pe[0].e}; those chunks are invisible to semantic search` : ''));
 
 const bad = checks.filter((c) => !c.ok).length;
 console.log(`\nPROD PARITY ${checks.length - bad}/${checks.length} — staging ${STAGE_REF} vs production ${PROD_REF}`);

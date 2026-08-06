@@ -29,7 +29,17 @@ async function cntT(t:string, mod?:(q:any)=>any){ let q=admin.from(t).select('id
 // This walked away from its own answer mid-generation, returned "could not reach the AI service",
 // and left the gateway billing for 25 more seconds. An inner caller must outlast the layer it
 // depends on. 70s sits above the gateway's 55s wall and below cos_execute's 75s patience.
-const llm = makeLlm(OPUS_FIRST, { max: 1600, timeoutMs: 70000 });
+// TRUNCATION, MEASURED. 53 of the 114 agent_brain calls on production returned output_tokens
+// EXACTLY 1700 — the ceiling on the line below and, until 6 Aug 2026, model_policy.agent_reasoning
+// itself. An output landing precisely on the ceiling is truncation, not a coincidence. agent_brain
+// IS the department specialist: its reply is the deliverable cos_execute stores, reviews and files
+// as the company's work, so a cut-off reply is a cut-off work product.
+//
+// Set above the policy on purpose so ai_gateway's min(caller, policy) always yields the policy;
+// deleting it is worse, because llm.ts falls back to `def.max ?? 700`. The policy moved 1700 -> 4000
+// on both projects in the same change. `llmFast` below deliberately keeps max:160 against
+// memory_retrieval's 400 — measured 1-93 output tokens, nothing near its ceiling.
+const llm = makeLlm(OPUS_FIRST, { max: 8000, timeoutMs: 70000 });
 async function llmFast(sys:string, user:string){ try{ const secret=await sec('cred_fn_agent_brain'); if(!secret) return ''; const r=await fetch(SUPA+'/functions/v1/ai_gateway',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:secret,fn:'agent_brain',task_class:'memory_retrieval',sys,input:user,max:160,temperature:0}),signal:AbortSignal.timeout(20000)}); const j=await r.json(); return j?.content||''; }catch(_e){ return ''; } }
 
 // Lint gate: a candidate memory that matches any active forbidden-language rule is refused.
@@ -175,7 +185,7 @@ Deno.serve(async (req)=>{
     const persona=(m as any).persona?('\n\n'+(m as any).persona):'';
     const [layered, instr, kb] = await Promise.all([layeredContext(key, msg), instructions(key), retrieve(key, msg)]);
     const sys=base+persona+layered+instr+kb+'\n\nLIVE DATA SNAPSHOT (read-only, captured just now):\n'+JSON.stringify(ctx).slice(0,9000);
-    const rawReply=await llm(sys,[...history,{role:'user',content:msg}],1700)||'I could not reach the AI service just now — please try again in a moment.';
+    const rawReply=await llm(sys,[...history,{role:'user',content:msg}],8000)||'I could not reach the AI service just now — please try again in a moment.';
     let [clean,acts]=splitActions(rawReply); let finalReply=clean||rawReply; const notes:string[]=[];
     if(acts&&Array.isArray(acts.handoffs)){
       for(const h of acts.handoffs.slice(0,5)){
