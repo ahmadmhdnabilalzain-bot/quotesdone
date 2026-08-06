@@ -180,24 +180,59 @@ export default async function ({ req }) {
   // ══ SECTION 1 — CUSTOMER ENTRY EXPERIENCE ═════════════════════════════════════════════════════
   const alertRegion = cnt(/ov\.alerts/, DASH);
   const alertKinds = [...new Set([...CPORTAL.matchAll(/kind:\s*'([a-z0-9_]+)'/g)].map(m => m[1]))].sort();
+
+  // ── ONE WORKSPACE TEST, SHARED BY SECTION 1 AND SECTION 4 ─────────────────────────────────────
+  // THE DEFECT THIS REPLACES. entry-not-login-dashboard used to require `figureTiles >= 3` — it
+  // counted KPI tiles as PROOF of a workspace — while its sibling cc-workspace-not-dashboard is
+  // named 'a workspace, not a page of KPI tiles' and scored MISSING on the same component in the
+  // same run. Two checks, one file, opposite verdicts, and the MET one was reading the counter-
+  // evidence as evidence. The spec states the idea twice, so the two checks now share the panel
+  // leg and can no longer disagree; each keeps legs the other does not, so neither is decided by
+  // the shared number alone. Tiles are still counted — and printed as the thing that is NOT the
+  // verdict.
+  //
+  // A PANEL IS WHAT IT RENDERS, NOT A WORD. `cnt(/project/i, DASH) > 0` certified a Projects panel
+  // on any occurrence of the word, which is a spelling, not a surface — the same shape as the
+  // "we matched you with suitable suppliers" empty state this row exists to stop. Each panel is
+  // now a figure or a collection the panel could not exist without, and every one of the four is
+  // a single component away from satisfiable.
+  const NET = /suppliers?_(available|total|count|network)|network_size/i;
+  const panels = {
+    projects: cnt(/projects?\.map\(|\brfq_count\b|\brfq_open\b|\bpipeline_value\b|project_summary/i, DASH) > 0 ? 1 : 0,
+    procurement: cnt(/s\.open_inquiries/, DASH) > 0 ? 1 : 0,
+    financial: cnt(/budget_total|budget_used|budget_remaining|role="progressbar"|<Progress\b/i, DASH) > 0 ? 1 : 0,
+    'supplier-network': cnt(NET, DASH) > 0 ? 1 : 0,
+  };
+  const present = Object.keys(panels).filter(k => panels[k]);
+  const figureTiles = cnt(/<Kpi\b/, DASH);
+  const workList = cnt(/inqs\.map\(/, DASH);
+  // Work you can act on WITHOUT leaving the surface — the difference between a workspace and a
+  // page of links. Measured on the work-item component generically (a control, and detail that
+  // opens in the same component), never on this implementation's handler names.
+  const itemControls = cnt(/onClick=|onKeyDown=/, CARD);
+  const opensInPlace = cnt(/aria-expanded|\{open\s*&&|\{expanded\s*&&/, CARD);
   {
-    // A workspace is a surface carrying live work; a login dashboard is a page of links. Both halves
-    // are measured on the post-auth root itself: what it renders, and what it does not.
+    // A workspace is a surface carrying live work you act on in place; a login dashboard is a page
+    // of figures and links. Both halves are measured on the post-auth root and its work item.
     const postAuthRoot = cnt(/return <Dashboard\b/, AUTHED);
-    const figureTiles = cnt(/<Kpi\b/, DASH);
-    const workList = cnt(/inqs\.map\(/, DASH);
     const anchors = cnt(/<a\s+href/, DASH);
     const tables = cnt(/<table\b/, DASH);
+    const itemLinksOut = cnt(/<a\s+href|router\.push|location\.href/, CARD);
     const feeds = [...new Set([...DASH.matchAll(/call\(\s*'([a-z0-9_]+)'/g)].map(m => m[1]))].sort();
     await req(S1, 'entry-not-login-dashboard',
       'After auth the customer lands in a workspace, not a login dashboard',
-      `select ${postAuthRoot} > 0 and ${alertRegion} > 0 and ${figureTiles} >= 3
-          and ${workList} > 0 and ${anchors} = 0 and ${tables} = 0`,
+      `select ${postAuthRoot} > 0 and ${alertRegion} > 0 and ${workList} > 0
+          and ${itemControls} > 0 and ${opensInPlace} > 0 and ${present.length} >= 3`,
       `select 'Authed() returns Dashboard=' || ${postAuthRoot}
         || '; the post-auth root renders alert region=' || ${alertRegion}
-        || ', figure tiles=' || ${figureTiles} || ', work-item list=' || ${workList}
-        || ', fed by ' || ${LIST(feeds)}
-        || '; links-page markup: anchors=' || ${anchors} || ', tables=' || ${tables}
+        || ', work-item list=' || ${workList} || ', fed by ' || ${LIST(feeds)}
+        || '; the work item carries ' || ${itemControls} || ' in-place control(s) and opens its detail '
+        || 'in the same component=' || ${opensInPlace} || ' (link-outs on the item=' || ${itemLinksOut} || ')'
+        || '; of the four workspace panels section 4 names, present=' || ${present.length}
+        || ' (' || ${LIST(present)} || ') — the SAME leg cc-workspace-not-dashboard scores, so the two'
+        || ' checks cannot return opposite verdicts on this component'
+        || '; NOT counted as evidence of a workspace: ' || ${figureTiles}
+        || ' figure tile(s), anchors=' || ${anchors} || ', tables=' || ${tables}
         || '; inquiries on this target=' || ${ROWS('inquiries')}
         || ' so the list renders empty here and the surface, not the data, is what is scored'`);
 
@@ -226,14 +261,19 @@ export default async function ({ req }) {
     const HEAD = /\b(headline|assistant_line|attention_line|today_line|daily_brief|briefing)\b/i;
     const headKey = cnt(/\b(headline|assistant_line|attention_line|today_line|daily_brief|briefing)\s*:/i, CUST_SRC);
     const headMentions = cnt(HEAD, CUST_SRC);
-    const headRender = cnt(HEAD, PORTAL);
+    // THE RENDER LEG IS AN INTERPOLATION, FOR THE SAME REASON THE EMIT LEG IS A KEY POSITION. A bare
+    // word scan over the portal would let the sentence be scored on the word "briefing" appearing in
+    // a heading — a spelling, not a line of text the server wrote.
+    const headRender = cnt(/\{[^{}]{0,140}(headline|assistant_line|attention_line|today_line|daily_brief|briefing)[^{}]{0,140}\}/i, PORTAL);
+    const headWord = cnt(HEAD, PORTAL);
     await req(S1, 'entry-assistant-headline',
       'A persistent AI assistant line states what needs attention today',
       `select ${headKey} > 0 and ${headRender} > 0`,
       `select 'customer-reachable edge functions=' || ${CUST_FNS.length}
         || '; headline-shaped payload key emitted by them=' || ${headKey}
         || ' of ' || ${headMentions} || ' raw mention(s) of the word anywhere in that set'
-        || ', rendered in CustomerPortal.tsx=' || ${headRender}
+        || ', rendered inside a JSX interpolation in CustomerPortal.tsx=' || ${headRender}
+        || ' of ' || ${headWord} || ' raw mention(s) of those words in that file'
         || '; what the entry screen shows instead: ' || ${alertRegion}
         || ' render site(s) mapping ov.alerts of kind ' || ${LIST(alertKinds)}`);
 
@@ -370,7 +410,12 @@ export default async function ({ req }) {
         || ' — the card shows one inquiry.category per request, which is not a pattern'`);
 
     const polInCustEdge = cnt(/procurement_approval_policy|procurement_approval_request/, CUST_SRC);
-    const polInPortal = cnt(/approval|approver/i, PORTAL);
+    // A RENDERED CHAIN, NOT THE WORD. `cnt(/approval|approver/i, PORTAL)` is satisfiable by typing
+    // the word once — a spelling, not a surface, and the same shape as the empty state this row
+    // exists to stop. The render leg is the token inside a JSX interpolation; the raw word count is
+    // printed beside it so the narrower verdict shows the wider figure it rejected.
+    const polWord = cnt(/approval|approver/i, PORTAL);
+    const polInPortal = cnt(/\{[^{}]{0,160}(approval|approver|current_step|decisions)[^{}]{0,160}\}/i, PORTAL);
     await req(S2, 'twin-approval-chain', "Twin renders the customer's approval chain",
       `select ${COLN('procurement_approval_policy', '^steps$')} > 0
           and ${CONSUMERS('procurement_approval_policy')} > 0 and ${polInCustEdge} > 0 and ${polInPortal} > 0`,
@@ -379,7 +424,8 @@ export default async function ({ req }) {
         || '; consumers excluding writers=' || ${CONSUMERS('procurement_approval_policy')}
         || ' (' || ${CONSUMER_NAMES('procurement_approval_policy')} || ')'
         || '; references in the customer-reachable edge set=' || ${polInCustEdge}
-        || '; approval wording in CustomerPortal.tsx=' || ${polInPortal}`);
+        || '; an approval field inside a JSX interpolation in CustomerPortal.tsx=' || ${polInPortal}
+        || ' of ' || ${polWord} || ' raw mention(s) of the word in that file'`);
 
     // The render leg matches a confidence FIGURE, not the word. A bare /completeness/ scan reads 1
     // on this file and the hit is the word inside a tooltip explaining the Value score
@@ -405,18 +451,44 @@ export default async function ({ req }) {
 
   // ══ SECTION 3 — AI PROCUREMENT ASSISTANT ══════════════════════════════════════════════════════
   {
+    // THE CHECK THIS REPLACES WAS UNSATISFIABLE, and that is a worse defect than a false MET: it
+    // clamped the assistant's view coverage to `cnt(...) > 0 ? 1 : 0` and then demanded it be
+    // `>= views.length`. With two top-level views the requirement could only be met by DELETING a
+    // view, and every view the product gains makes it harder. No implementation could satisfy it,
+    // so it measured nothing.
+    //
+    // WHAT "AVAILABLE FROM EVERY SURFACE" ACTUALLY MEANS, MEASURED. A view-switching component
+    // reaches its assistant iff the mount is not stranded behind an earlier whole-surface return.
+    // So: the mount exists, and EITHER it sits in a floating container (rendered over whatever the
+    // view is) OR no view branch returns before the code reaches it. Both shapes are one edit away
+    // — hoist the mount above the guards, or wrap it in a fixed container — and either one keeps
+    // satisfying the check for every view added afterwards, which is the property the old form
+    // inverted.
     const mounts = cnt(/<NewRequest\b/, PORTAL);
     const guarded = cnt(/showNew\s*&&\s*<NewRequest/, PORTAL);
     const floating = cnt(/fixed\s+(bottom|right|inset|z-)/, PORTAL);
     const views = [...new Set([...PORTAL.matchAll(/setView\('([a-z]+)'\)/g)].map(m => m[1]))].sort();
-    const assistantViews = cnt(/<NewRequest\b/, DASH) > 0 ? 1 : 0;
+    // A whole-surface early return keyed on NAVIGATION state. Loading and error early-returns are
+    // deliberately out: every React component has them, and counting them would rebuild the
+    // unsatisfiable check in a new disguise.
+    const viewGuards = [...DASH.matchAll(/if\s*\(\s*view\s*===\s*'([a-z0-9_]+)'\s*\)\s*return/g)];
+    const mountAt = [...DASH.matchAll(/<NewRequest\b/g)].map(m => m.index);
+    const firstMount = mountAt.length ? Math.min(...mountAt) : Number.POSITIVE_INFINITY;
+    const stranded = viewGuards.filter(m => m.index < firstMount).map(m => m[1]);
+    // The mount inside a floating container: a fixed/overlay wrapper within 400 characters of it.
+    const floatingMount = nearCount(PORTAL, /<NewRequest\b/, /fixed\s+(bottom|right|inset|z-)|role="dialog"|<Dialog[\s>]|<Sheet[\s>]/, 400);
     await req(S3, 'assistant-floating-persistent',
       'A floating AI assistant is available from every surface, not buried in one flow',
-      `select (${mounts - guarded} > 0 or ${floating} > 0) and ${assistantViews} >= ${views.length}`,
+      `select ${mounts} > 0 and (${floatingMount} > 0 or ${stranded.length} = 0)`,
       `select 'NewRequest mount site(s)=' || ${mounts} || ', of which behind the showNew toggle=' || ${guarded}
-        || ', unguarded=' || ${mounts - guarded} || ', inside a floating/fixed container=' || ${floating}
+        || ', unguarded=' || ${mounts - guarded}
+        || '; inside a floating/overlay container (measured at the mount, not anywhere in the file)='
+        || ${floatingMount} || ' of ' || ${floating} || ' fixed-position container(s) in the file'
         || '; portal top-level views=' || ${views.length} || ' (' || ${LIST(views)}
-        || '), views carrying an assistant mount=' || ${assistantViews}`);
+        || '), view branch(es) that return before the code reaches the assistant, so cannot render it='
+        || ${stranded.length} || ' (' || ${LIST(stranded)}
+        || '); either a floating mount or zero stranded branches satisfies this, and both stay satisfied'
+        || ' as views are added'`);
 
     // The brief contract is taken from the fallback brief the intake builds when the model is
     // unavailable — the one shape that is guaranteed, not a shape the model might return.
@@ -450,16 +522,28 @@ export default async function ({ req }) {
         || '; project_api link action=' || ${cnt(/action === 'link'/, PAPI)}
         || ' with ' || ${cnt(/project_api/, ALL_SRC)} || ' caller(s) in src/'`);
 
+    // THE RENDER LEG WAS MISSING AND ITS TWO SIBLINGS BOTH HAVE ONE. assistant-required-documents and
+    // assistant-recommends-supplier-count are each scored on what the ready-brief card SHOWS before
+    // Send; this one was scored on the intake contract alone and returned MET while the card renders
+    // nine brief fields and quantity is not among them — an estimate the customer is never shown, on
+    // a spec whose subject is what the customer is shown. It is also the same figure section 7's
+    // rfq-quantity-extraction scores MISSING because create_inquiry drops it, so the two checks were
+    // returning opposite verdicts about one number. One edit satisfies both.
     const qtyKey = briefKeys.filter(k => /quantity|qty|area/.test(k)).length;
     const qtyInContract = cnt(/quantity/i, INTAKE);
     const inferred = cnt(/inferred/i, INTAKE);
     const boqQty = cnt(/\bqty\b/, CAPI);
+    const qtyInCard = cnt(/\{brief\.(quantity|qty|area)/, NEWREQ);
+    const briefFieldsShown = [...new Set([...NEWREQ.matchAll(/\{brief\.([a-z_]+)/g)].map(m => m[1]))].sort();
     await req(S3, 'assistant-estimates-quantity', 'Assistant estimates quantity from the described scope',
-      `select ${qtyKey} > 0 and ${qtyInContract} > 0 and ${inferred} > 0`,
+      `select ${qtyKey} > 0 and ${qtyInContract} > 0 and ${inferred} > 0 and ${qtyInCard} > 0`,
       `select 'quantity key on the text-only brief path, with no drawing and no BOQ upload=' || ${qtyKey}
         || ' of ' || ${briefKeys.length} || ' key(s): ' || ${LIST(briefKeys)}
         || '; quantity mentions in the intake contract=' || ${qtyInContract}
         || '; the brief marks each value stated vs inferred=' || ${inferred}
+        || '; the estimate rendered in the ready-brief card before Send=' || ${qtyInCard}
+        || ', of the ' || ${briefFieldsShown.length} || ' brief field(s) that card does render ('
+        || ${LIST(briefFieldsShown)} || ')'
         || '; the separate uploaded-BOQ path in customer_api carries line-item qty=' || ${boqQty}`);
 
     const reqsFnPresent = EDGE.has('category_reqs') ? 1 : 0;
@@ -570,7 +654,6 @@ export default async function ({ req }) {
         || '; a budget figure rendered in CustomerPortal.tsx=' || ${budgetRender}
         || ', bar/meter element(s) of any kind in that file=' || ${bar}`);
 
-    const NET = /suppliers?_(available|total|count|network)|network_size/i;
     const netEmit = cnt(NET, CUST_SRC);
     const netRender = cnt(NET, PORTAL);
     await req(S4, 'cc-supplier-network-count',
@@ -582,18 +665,14 @@ export default async function ({ req }) {
         || ' (' || ${CUST_FNS.length} || ' function(s)); rendered in CustomerPortal.tsx=' || ${netRender}`);
 
     // The section names four panels. Each is looked for by the content that would have to be on
-    // screen for it to exist, and the ones that are present are named in the evidence.
-    const panels = {
-      projects: cnt(/project/i, DASH) > 0 ? 1 : 0,
-      procurement: cnt(/s\.open_inquiries/, DASH) > 0 ? 1 : 0,
-      financial: cnt(/budget|progress/i, DASH) > 0 ? 1 : 0,
-      'supplier-network': cnt(NET, DASH) > 0 ? 1 : 0,
-    };
-    const present = Object.keys(panels).filter(k => panels[k]);
+    // screen for it to exist (hoisted above section 1, because entry-not-login-dashboard scores the
+    // SAME panel leg — the spec states the workspace idea twice and two checks on one component may
+    // not return opposite verdicts). The ones present are named in the evidence.
     await req(S4, 'cc-workspace-not-dashboard', 'The main interface is a workspace, not a page of KPI tiles',
       `select ${present.length} >= 3`,
-      `select 'the post-auth root renders ' || ${cnt(/<Kpi\b/, DASH)} || ' figure tile(s) and '
-        || ${cnt(/inqs\.map\(/, DASH)} || ' vertical work-item list(s); of the four panels this section'
-        || ' names, present=' || ${present.length} || ' (' || ${LIST(present)} || ')'`);
+      `select 'the post-auth root renders ' || ${figureTiles} || ' figure tile(s) and '
+        || ${workList} || ' vertical work-item list(s) whose item carries ' || ${itemControls}
+        || ' in-place control(s); of the four panels this section names, present=' || ${present.length}
+        || ' (' || ${LIST(present)} || ') — the same leg entry-not-login-dashboard scores'`);
   }
 }

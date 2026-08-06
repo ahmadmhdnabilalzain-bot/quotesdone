@@ -188,8 +188,14 @@ export default async function (H) {
           join pg_namespace n on n.oid = p.pronamespace
          where n.nspname='public' and p.prokind in ('f','p')
       ), edges as materialized (
+        -- b.proname is CATALOG CONTENT being spliced into a regex. Postgres allows a quoted
+        -- identifier to contain '.', '*', '(' and every other metacharacter, and one such routine
+        -- would silently widen this pattern and pull unrelated functions into the customer's
+        -- reachable closure — inflating the reachability leg of every check that uses it. The
+        -- identifier is constrained to the unquoted form before it is used as a pattern.
         select distinct a.proname src, b.proname dst from defs a join defs b
-          on b.proname <> a.proname and a.d ~* ('\\y'||b.proname||'\\y')
+          on b.proname <> a.proname and b.proname ~ '^[a-z_][a-z0-9_]*$'
+         and a.d ~* ('\\y'||b.proname||'\\y')
       ), reach(proname, depth) as (
         select distinct proname, 1 from defs where proname = any(${ARR(ROOT_FNS)})
         union
@@ -352,10 +358,19 @@ export default async function (H) {
   const PRED_HORIZON = `(select count(distinct p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
       where n.nspname='public' and p.prokind in ('f','p') and ${SCOPED}
         and pg_get_functiondef(p.oid) ~* ${FUTURE_RX} and pg_get_functiondef(p.oid) ~* ${HORIZON_RX})`;
+  // THE COMMENT ABOVE SAID "same population as pred-future-requirement" AND THE VERDICT DID NOT.
+  // The old form scored on `PRED_HORIZON > 0` alone: a backend-only leg, on a spec whose subject is
+  // what the CUSTOMER SEES, and loose enough that any customer-scoped routine containing the word
+  // forecast and the word days satisfied it. Its sibling one requirement above demands the routine
+  // be customer-reachable AND rendered; two checks about one prediction may not be scored at two
+  // bars. The horizon leg is now conjoined to the same reachability and render legs, so a time
+  // window on a prediction the customer never sees is not a time window the customer was shown.
   await req(S20, 'pred-time-window', 'The prediction carries a time window ("within 45 days")',
-    `select ${PRED_HORIZON} > 0`,
-    `select ${PRED_ALL} || ' customer-scoped forward-looking routine(s), of which ' || ${PRED_HORIZON}
-       || ' also emit a horizon (horizon/within/days/due_at/expected_at/window_days/lead_days) — same population as pred-future-requirement'`);
+    closureErr ? 'select false' : `select ${PRED_HORIZON} > 0 and ${PRED_REACHABLE} > 0 and ${B(PRED_RENDERERS.length > 0)}`,
+    closureErr ? ERRSQL('customer-reachable forward-looking routines carrying a horizon')
+      : `select ${PRED_ALL} || ' customer-scoped forward-looking routine(s), of which ' || ${PRED_HORIZON}
+       || ' also emit a horizon (horizon/within/days/due_at/expected_at/window_days/lead_days) and ' || ${PRED_REACHABLE}
+       || ' are reachable by a customer; ' || ${Q(`portal component(s) rendering a prediction: ${PRED_RENDERERS.length} of ${MOUNTED.length} mounted — the same reachability and render legs as pred-future-requirement, scored at the same bar`)}`);
 
   // "The prediction recommends an action." The customer's own alert builder is where such a
   // recommendation would land, so its alert KINDS are extracted from the reachable edge source and

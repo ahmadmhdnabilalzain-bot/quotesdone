@@ -188,13 +188,20 @@ export default async function ({ req }) {
   const nlEdge = custEdge(/fn_memory_search|kb_search|kb_match/);
   const nlOpen = nlEdge.filter(k => !guarded(k));
   const nlAll = edge(/fn_memory_search|kb_search|kb_match/);
+  // "THE CUSTOMER CAN ASK" NEEDS SOMETHING TO ASK WITH. The old verdict was satisfied by an EXECUTE
+  // grant alone — one GRANT statement would have turned this MET with nothing on the customer's
+  // screen changing, which is defect class 4 exactly, and a permission is not a delivery on a spec
+  // whose subject is what the customer sees. The grant and the customer-authed caller stay as the
+  // REACHABILITY leg; a control in the portal that asks is now conjoined to it.
+  const nlUi = N(PORTAL, /type="search"|role="search(box)?"|placeholder=[^>]{0,60}[Ss]earch|action:\s*'(search|nl_search|ask|find_documents)'|fn_memory_search/g);
   await req(S14, 'doc-nl-search', 'Customer can ask in natural language ("Find warranty documents for HVAC")',
     `select coalesce(${HAS_FN('fn_memory_search')} and (
         (select bool_or(has_function_privilege('authenticated', p.oid, 'EXECUTE')) from pg_proc p
           join pg_namespace n on n.oid=p.pronamespace
          where n.nspname='public' and p.prokind in ('f','p') and p.proname='fn_memory_search')
-        or ${nlOpen.length > 0}), false)`,
-    `select 'fn_memory_search exists: '||${HAS_FN('fn_memory_search')}
+        or ${nlOpen.length > 0}) and ${nlUi > 0}, false)`,
+    `select 'a control in the customer portal that asks: '||${lit(String(nlUi))}
+       ||'; fn_memory_search exists: '||${HAS_FN('fn_memory_search')}
        ||', EXECUTE granted to '||coalesce((select string_agg(distinct r.rolname,',') from pg_proc p
             join pg_namespace n on n.oid=p.pronamespace, pg_roles r
            where n.nspname='public' and p.prokind in ('f','p') and p.proname='fn_memory_search'
@@ -367,11 +374,20 @@ export default async function ({ req }) {
        ||'); on the same quote path it calls quote_compare '||${lit(String(compareCalls))}||' time(s)'`);
 
   // …and the surface itself, measured as a rendered thing rather than a request.
+  // A SPELLING IS NOT A SURFACE. `B(negUi > 0)` was satisfiable by typing the word "Negotiation"
+  // into a heading — this file already refuses that reasoning for doc-store-six-kinds ("a path, not
+  // a spelling") and then accepted it here. The bar is now the one the comparison assistant clears
+  // on the same screen: the portal FETCHES a negotiation payload and RENDERS a value out of it. The
+  // raw word count is printed as the figure the verdict deliberately does not use.
   const negUi = N(PORTAL, /[Nn]egotiat/g);
+  const negFetch = N(PORTAL, /call\('[a-z_]*negoti[a-z_]*'|action:\s*'[a-z_]*negoti[a-z_]*'/g);
+  const negRender = N(PORTAL, /\{[^{}]{0,140}negoti[^{}]{0,140}\}/gi);
   const compUi = N(PORTAL, /function Comparison|<Comparison/g);
   await req(S15, 'neg-customer-ui', 'Negotiation assistant is rendered in the customer portal',
-    B(negUi > 0),
-    `select ${lit(String(negUi))}||' negotiation reference(s) in '||${lit(PORTAL_PATH)}
+    B(negFetch > 0 && negRender > 0),
+    `select ${lit(String(negFetch))}||' negotiation fetch(es) and '||${lit(String(negRender))}
+       ||' rendered negotiation value(s) — out of '||${lit(String(negUi))}
+       ||' raw mention(s) of the word, which is not the verdict — in '||${lit(PORTAL_PATH)}
        ||'; for contrast the comparison assistant is declared and mounted '||${lit(String(compUi))}
        ||' time(s) in the same file, and supplier_negotiation_policy has '
        ||${ROWS('supplier_negotiation_policy')}||' row(s) and '
@@ -594,16 +610,26 @@ export default async function ({ req }) {
   // SEE AND CORRECT. fn_ws_customer_360 does surface the remembered profile — to STAFF. This asks
   // for a customer-authed reader and a portal surface, and prints who the existing reader's callers
   // actually are so the MISSING verdict names the audience rather than the capability.
+  // SEE **AND CORRECT** — two verbs, and the old verdict scored neither: `memUi > 0` counted the
+  // word "preference" or "remember" anywhere in the file, so a tooltip saying "your preferences
+  // matter to us" would have carried the delivery leg. Three legs now, one per verb plus the
+  // reader: a customer-authed endpoint that serves the memory, a portal fetch that asks for it, and
+  // a control that writes a correction back. Each is one action away from satisfiable.
   const memEdge = custEdge(/customer_preference|fn_ws_customer_360/);
   const c360Edge = edge(/fn_ws_customer_360/).sort();
   const memUi = N(portal(), /preference|remember/gi);
+  const memFetch = N(portal(), /action:\s*'(preferences|my_preferences|memory|remembered|what_we_know)'|customer_preference/g);
+  const memCorrect = N(portal(), /action:\s*'(save_prefs|save_preferences|set_preference|update_preferences|forget|correct_preference)'/g);
   await req(S17, 'mem-customer-visible', 'The customer can see and correct what the system remembers',
-    B(memEdge.length > 0 && memUi > 0),
+    B(memEdge.length > 0 && memFetch > 0 && memCorrect > 0),
     `select ${lit(String(memEdge.length))}||' customer-authed edge function(s) read the memory ('
        ||${lit(memEdge.join(',') || 'none')}||') of '||${lit(String(CUST.length))}
        ||' customer-authed function(s); fn_ws_customer_360 exposes it and is called by '
-       ||${lit(c360Edge.join(',') || 'no edge function')}||'; the customer portal mentions a preference '
-       ||${lit(String(memUi))}||' time(s); SQL readers of the store: '||${READER_NAMES('customer_preference')}`);
+       ||${lit(c360Edge.join(',') || 'no edge function')}||'; the customer portal fetches the memory '
+       ||${lit(String(memFetch))}||' time(s) (see) and writes a correction back '||${lit(String(memCorrect))}
+       ||' time(s) (correct), out of '||${lit(String(memUi))}
+       ||' raw mention(s) of the word, which is not the verdict; SQL readers of the store: '
+       ||${READER_NAMES('customer_preference')}`);
 
   // ============ 18. CUSTOMER MOBILE APP =======================================================
 

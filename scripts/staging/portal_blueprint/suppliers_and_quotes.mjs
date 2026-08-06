@@ -357,8 +357,19 @@ export default async function ({ req }) {
 
   // PER DIMENSION, and each of the three named dimensions is asked separately — a global "is there
   // any score" would be satisfied by the single blended figure the portal already shows.
-  const DIMS = [['price', /\bprice_(score|rating)\b/], ['delivery', /\b(delivery|lead_time)_(score|rating)\b/], ['quality', /\bquality_(score|rating)\b/]];
-  const dimsScored = DIMS.filter(([, re]) => re1(re).test(qcs) || K('scores').test(qcs)).map(([d]) => d);
+  // ONE FACT MAY NOT SCORE THREE DIMENSIONS. The `|| K('scores').test(qcs)` disjunct was applied
+  // identically to every entry, so a single key named "scores" anywhere in the contract would have
+  // marked price, delivery AND quality as carrying an explicit per-quote score — three requirements'
+  // worth of coverage from one token, and none of them evidenced. That is the third defect class in
+  // miniature. A `scores` object still counts, but only for the dimension whose own key appears
+  // INSIDE it, so each dimension is asserted separately and the block that decides it is printed.
+  const DIMS = [
+    ['price', /\bprice_(score|rating)\b/, /price/i],
+    ['delivery', /\b(delivery|lead_time)_(score|rating)\b/, /(delivery|lead_?time)/i],
+    ['quality', /\bquality_(score|rating)\b/, /quality/i],
+  ];
+  const scoresBlock = (/\\?"scores\\?"\s*:\s*\{([\s\S]{0,500}?)\}/.exec(qcs) || [, ''])[1];
+  const dimsScored = DIMS.filter(([, re, keyRe]) => re1(re).test(qcs) || keyRe.test(scoresBlock)).map(([d]) => d);
   const compositeUi = surf(/\bvscore\b/);
   // The per-quote key list is READ OUT OF THE CONTRACT, not recited. A recited list stays true-looking
   // after someone adds a price_score to the schema, at which point the evidence actively misleads.
@@ -366,7 +377,7 @@ export default async function ({ req }) {
   const qKeys = [...new Set([...qBlock.matchAll(/\\?"(\w+)\\?"\s*:/g)].map(m => m[1]))];
   await req(S10, 'qc-per-dimension-scores', 'Each supplier is scored per dimension (price, delivery, quality)',
     `select ${B(dimsScored.length === DIMS.length)}`,
-    `select ${EV(`${dimsScored.length} of ${DIMS.length} dimensions carry an explicit per-quote score key in the quote_compare response contract (${dimsScored.join(',') || 'none'}); the contract's ${qKeys.length} per-quote key(s) are [${qKeys.join(',') || 'unparsed'}]; ${compositeUi.length} customer-surface file(s) instead render ONE composite "Value n/100" blended in the browser from price, rating and quote completeness${NOTE}`)}`);
+    `select ${EV(`${dimsScored.length} of ${DIMS.length} dimensions carry an explicit per-quote score key of their OWN in the quote_compare response contract (${dimsScored.join(',') || 'none'}); the contract's ${qKeys.length} per-quote key(s) are [${qKeys.join(',') || 'unparsed'}] and its "scores" object parses to [${scoresBlock.replace(/\s+/g, ' ').trim().slice(0, 120) || 'no scores object'}]; ${compositeUi.length} customer-surface file(s) instead render ONE composite "Value n/100" blended in the browser from price, rating and quote completeness${NOTE}`)}`);
 
   const top3Contract = new RegExp(`\\\\?"top3\\\\?"\\s*:\\s*\\[\\s*\\{\\s*\\\\?"rank\\\\?"`).test(qcs) && K('label').test(qcs);
   const top3Guard = /_top3\s*>\s*0\s*&&\s*_shown\s*>\s*0/.test(qcs);

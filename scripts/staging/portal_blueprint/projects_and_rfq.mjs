@@ -446,9 +446,17 @@ export default async function ({ req }) {
         and pg_get_functiondef(p.oid) ~* '\\y(compliance_checklist|inquiry_answer_document)\\y')`;
   const certInCreate = /compliance_checklist|inquiry_answer_document/.test(ca);
   const certEdges = custEdge.filter((f) => /compliance_checklist|inquiry_answer_document/.test(edgeSrc(f)));
+  // ATTACHED means something puts the checklist ON the RFQ, not that a routine somewhere in the
+  // database says the word. The old verdict carried a trailing `or CERT_READERS > 0`, which would
+  // have scored the requirement MET the moment any routine anywhere mentioned compliance_checklist
+  // — a backend word standing in for a delivery, and the disjunct sat outside the conjunction so it
+  // could carry the verdict alone. CERT_READERS is now evidence. The attach leg is a customer-
+  // reachable write of the answer store, or create_inquiry naming the checklist: one line away.
+  const certAttachers = custEdge.filter((f) =>
+    /from\('inquiry_answer_document'\)[\s\S]{0,240}?\.(insert|upsert)|fn_inquiry_answer_set/.test(edgeSrc(f)));
   await req(S7, 'rfq-certificates', 'Required certificates are attached to the RFQ automatically',
-    `select ${B(certInCreate || certEdges.length > 0)} or ${CERT_READERS} > 0`,
-    `select ${EV('categories carrying a compliance checklist: ')}
+    `select ${B(certInCreate || certAttachers.length > 0)}`,
+    `select ${EV(`the RFQ-creation path names the checklist or the answer store: ${certInCreate}; customer-reachable edge function(s) that WRITE the answer store: ${certAttachers.length} [${certAttachers.join(' ') || 'none'}]; categories carrying a compliance checklist: `)}
         || (select count(*) from public.category_specs where compliance_checklist is not null
               and jsonb_typeof(compliance_checklist) <> 'null' and compliance_checklist::text not in ('{}','[]'))::text
         || ${EV(' of ')} || ${CATS}::text
@@ -483,8 +491,31 @@ export default async function ({ req }) {
         || (select data_type from information_schema.columns where table_schema='public' and table_name='inquiries' and column_name='id')
         || ${EV(`; the customer surface renders a reference-shaped field ${refRendered} time(s) — the RFQ card header renders category and emirate`)}`);
 
-  const pipelines = [...SURF.matchAll(/\[\s*'Sent'[^\]]*\]/g)]
-    .map((m) => m[0].replace(/[[\]']/g, '').split(',').map((s) => s.trim()).filter(Boolean));
+  // THE EXTRACTOR WAS ANCHORED ON 'Sent' AND THE SPEC'S FIRST STAGE IS 'Created'. `\[\s*'Sent'…\]`
+  // only finds a strip whose first label is the one THIS implementation happens to use, so the
+  // correct implementation — the five stages the requirement itself names, starting at Created —
+  // would have matched nothing, scored maxSteps 0, and failed. A check that the right answer cannot
+  // pass measures nothing. Stage strips are now found by SHAPE: any array literal of three or more
+  // short string labels, at least one of which is a lifecycle stage. EMIRATES and the other long
+  // string arrays in the file carry no stage word and are excluded by that leg, not by luck.
+  // …AND IT MUST BE A STRIP, NOT A LIST OF WORDS. Shape alone also matched
+  // ['completed','closed','cancelled'], the `concluded` membership test — a set of statuses that is
+  // never drawn, printed in the evidence as a "stage strip" the customer sees. Evidence that names
+  // the wrong object is the fifth defect class even when the verdict survives it.
+  //
+  // REQUIRING `.map(` IMMEDIATELY AFTER THE ARRAY WAS THE WRONG CORRECTION AND IS RECORDED HERE
+  // BECAUSE IT LOOKED RIGHT: this portal's strips are written
+  // `(lang === 'ar' ? [...] : [...]).map(...)` and `const steps = ... ; steps.map(...)`, so neither
+  // is adjacent to its own map and the extractor found zero — a MISSING for a reason that has
+  // nothing to do with the requirement, on a shape any implementation may legitimately use. What
+  // separates a strip from a membership test is the CALL MADE ON IT, so `.includes(`/`.indexOf(`/
+  // `.some(`/`.every(` lists are excluded and everything else of stage shape is kept.
+  const STAGE_WORD = /^(created|new|draft|posted|sent|dispatch|quote|quotes|received|analy|compar|award|hired|revealed|complet|closed)/i;
+  const MEMBERSHIP = /^\s*\.\s*(includes|indexOf|some|every)\s*\(/;
+  const pipelines = [...SURF.matchAll(/\[\s*'(?:[^'\\\n]{1,40})'(?:\s*,\s*'(?:[^'\\\n]{1,40})')+\s*\]/g)]
+    .filter((m) => !MEMBERSHIP.test(SURF.slice(m.index + m[0].length, m.index + m[0].length + 24)))
+    .map((m) => m[0].slice(1, -1).split(/'\s*,\s*'/).map((s) => s.replace(/^\s*'|'\s*$/g, '').trim()).filter(Boolean))
+    .filter((p) => p.length >= 3 && p.some((l) => STAGE_WORD.test(l)));
   const maxSteps = pipelines.reduce((n, p) => Math.max(n, p.length), 0);
   const analysisStage = pipelines.some((p) => p.some((l) => /analy|\bai\b/i.test(l)));
   const comparisonMounts = sCount(/<Comparison\b/);
@@ -511,16 +542,27 @@ export default async function ({ req }) {
           `${custActivity ? 'at least one' : '0'} of the ${custEdge.length} customer-reachable edge function(s), and the browser derives the stage ` +
           `from quotes.length and anyRevealed = ${stageClientSide}`)}`);
 
-  // "responded / were reached" — either half satisfies it, and the evidence names which one did.
+  // "responded / were reached" — BOTH, because they are two different numbers and the case that
+  // matters most is the one where they differ. THE OLD FORM ACCEPTED EITHER AND SCORED THIS MET on
+  // the responded half alone, which is a false MET on the single worst defect this portal has: with
+  // zero quotes the card falls through to an empty state that reads "we matched you with suitable
+  // suppliers and will alert you the moment the first quote lands" — asserted unconditionally,
+  // whether the RFQ reached forty suppliers or none. matched_suppliers is the field that tells those
+  // two cases apart, customer_api computes and serves it per inquiry with a source comment saying
+  // exactly that, and no file under src/ reads it. Scoring the requirement MET while the number that
+  // answers it is thrown away is the shape of error this scorer exists to stop, so the unconditional
+  // empty-state assertion is measured and printed beside the verdict it now decides.
   const respondedRendered = sHas(/\{quotes\.length\}\s*quote/);
   const quotesKpi = sHas(/quotes_received/);
   const reachedRendered = sHas(/matched_suppliers/);
   const reachedEmitted = /matched_suppliers: matchedBy/.test(ca);
+  const blindEmptyState = sCount(/matched you with suitable suppliers|طابقناك مع موردين مناسبين/);
   await req(S8, 'rfqcc-response-count', 'RFQ shows how many suppliers responded / were reached',
-    `select ${B(respondedRendered || reachedRendered)}`,
+    `select ${B(respondedRendered && reachedRendered)}`,
     `select ${EV(`responded: the RFQ card renders {quotes.length} quote(s) = ${respondedRendered}, and the header KPI renders stats.quotes_received = ${quotesKpi}. ` +
       `reached: customer_api my_inquiries emits matched_suppliers per inquiry = ${reachedEmitted}, rendered by ${sCount(/matched_suppliers/)} of the ${nSurf} customer-surface file(s). ` +
-      `Production holds `)}
+      `The two are different numbers and the zero-quote case is where only the second can answer: the customer surface asserts "we matched you with suitable suppliers" ` +
+      `unconditionally at ${blindEmptyState} site(s), with no leg that could make that sentence false. Production holds `)}
         || (select count(*) from public.quotes)::text || ${EV(' quotes and ')}
         || (select count(*) from public.inquiry_matches)::text
         || ${EV(' inquiry_matches rows, so the verdict is taken from the render sites, not from data')}`);

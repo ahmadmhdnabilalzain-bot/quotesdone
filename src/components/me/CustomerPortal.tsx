@@ -7,6 +7,15 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+// Spec §22 modules that were written and never mounted. Each renders ONLY fields the endpoint it
+// names already returns; see the header comment in each file for the field-by-field provenance.
+import { ProjectsModule } from '@/components/portal/projects';
+import { SpendingIntelligence } from '@/components/portal/intelligence/SpendingIntelligence';
+import { SupplierRelationshipCard, DiscoveryReachPanel } from '@/components/portal/suppliers/SupplierRelationship';
+// expires_at / expired were served on every quote and never shown. The branch that phrases them
+// decides whether a customer pays a reveal fee on a lapsed price, so it lives in a file that can be
+// executed — see quoteExpiry.test.mjs — rather than inline in this one.
+import { expiryOf } from './quoteExpiry';
 
 // The customer portal is the page a paying customer uses. Its Supabase target was an inline
 // fallback to the production ref, so an unconfigured preview signed real customers in against the
@@ -31,7 +40,7 @@ const T = {
     verify_mobile:'Verify your mobile', verify_email_h:'Verify your email', verified:'✓ verified', send_sms:'Send SMS code', verify:'Verify',
     send_email_code:'Send email code', enter_mobile_first:'Enter your mobile first.', accept_pre:'I accept the QuotesDone ', terms_link:'Terms & Conditions',
     accept_post:'.', finish_continue:'Finish & continue', finishing:'Finishing…', must_accept:'Please accept the terms.',
-    my_requests:'My requests', messages:'Messages', back_requests:'← Back to requests', new_request:'+ New request', close:'Close',
+    my_requests:'My requests', messages:'Messages', projects:'Projects', back_requests:'← Back to requests', new_request:'+ New request', close:'Close',
     k_requests:'Requests', k_open:'Open', k_quotes:'Quotes received', k_avg:'Avg quotes/req', k_hired:'Hired', k_spend:'Spend',
     your_requests:'Your requests', no_requests:'No requests yet. ', post_first:'Post your first request', describe_job:' — describe the job in text, voice, a photo, or a drawing.',
     request_sent:'Request sent — matching you with suppliers now.', payment_confirmed:'Payment confirmed — supplier contact unlocked below.',
@@ -52,7 +61,7 @@ const T = {
     verify_mobile:'تحقّق من جوالك', verify_email_h:'تحقّق من بريدك', verified:'✓ تم التحقق', send_sms:'أرسل رمز الرسالة النصية', verify:'تحقّق',
     send_email_code:'أرسل رمز البريد', enter_mobile_first:'أدخل رقم جوالك أولًا.', accept_pre:'أوافق على ', terms_link:'الشروط والأحكام',
     accept_post:' الخاصة بمنصة QuotesDone.', finish_continue:'إنهاء ومتابعة', finishing:'جارٍ الإنهاء…', must_accept:'يُرجى الموافقة على الشروط.',
-    my_requests:'طلباتي', messages:'الرسائل', back_requests:'→ العودة إلى الطلبات', new_request:'+ طلب جديد', close:'إغلاق',
+    my_requests:'طلباتي', messages:'الرسائل', projects:'المشاريع', back_requests:'→ العودة إلى الطلبات', new_request:'+ طلب جديد', close:'إغلاق',
     k_requests:'الطلبات', k_open:'المفتوحة', k_quotes:'العروض المستلمة', k_avg:'متوسط العروض/طلب', k_hired:'المُتعاقد معهم', k_spend:'الإنفاق',
     your_requests:'طلباتك', no_requests:'لا توجد طلبات بعد. ', post_first:'انشر طلبك الأول', describe_job:' — صِف العمل نصًا أو صوتًا أو بصورة أو برسم.',
     request_sent:'تم إرسال الطلب — نطابقك مع المورّدين الآن.', payment_confirmed:'تم تأكيد الدفع — تم فتح بيانات تواصل المورّد أدناه.',
@@ -252,8 +261,15 @@ function Dashboard({ token, lang, onServedLocale }) {
   if (!ov && !data) return <div className={S.center}>{t(lang, 'loading_requests')}</div>;
   if (view === 'messages') return (<div className={S.wrap}><div className="flex justify-between items-center flex-wrap gap-3 mb-4"><div className="text-[22px] font-extrabold text-foreground">{t(lang, 'messages')}</div><Button size="sm" variant="secondary" onClick={() => setView('home')}>{t(lang, 'back_requests')}</Button></div><Messages token={token} /></div>);
   const s = (ov && ov.stats) || {}; const inqs = (data && data.inquiries) || [];
+  // project_api ships seven customer-authed actions and had zero callers in src/. Linking an RFQ to
+  // a project needs the customer's own RFQ list, which this component already holds — top-level
+  // rows only, since a child of a combined project is sourced through its parent.
+  if (view === 'projects') return (<div className={S.wrap}>
+    <div className="flex justify-between items-center flex-wrap gap-3 mb-4"><div className="text-[22px] font-extrabold text-foreground">{t(lang, 'projects')}</div><Button size="sm" variant="secondary" onClick={() => setView('home')}>{t(lang, 'back_requests')}</Button></div>
+    <ProjectsModule token={token} lang={lang === 'ar' ? 'ar' : 'en'} linkableRfqs={inqs.map((i) => ({ id: i.id, summary: i.summary, category: i.category }))} onOpenRfq={() => setView('home')} onChanged={refresh} />
+  </div>);
   return (<div className={S.wrap}>
-    <div className="flex justify-between items-center flex-wrap gap-3 mb-4"><div className="text-[22px] font-extrabold text-foreground">{(ov && ov.customer && ov.customer.name) || t(lang, 'my_requests')}</div><div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => setView('messages')}>{t(lang, 'messages')}</Button><Button size="sm" onClick={() => setShowNew((v) => !v)}>{showNew ? t(lang, 'close') : t(lang, 'new_request')}</Button></div></div>
+    <div className="flex justify-between items-center flex-wrap gap-3 mb-4"><div className="text-[22px] font-extrabold text-foreground">{(ov && ov.customer && ov.customer.name) || t(lang, 'my_requests')}</div><div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => setView('projects')}>{t(lang, 'projects')}</Button><Button size="sm" variant="secondary" onClick={() => setView('messages')}>{t(lang, 'messages')}</Button><Button size="sm" onClick={() => setShowNew((v) => !v)}>{showNew ? t(lang, 'close') : t(lang, 'new_request')}</Button></div></div>
     {note && <div className={S.note}>{note}</div>}
     {showNew && <NewRequest token={token} onDone={() => { setShowNew(false); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => setShowNew(false)} />}
     {ov && !!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => <div key={i} className={cn('rounded-lg border border-border bg-card px-3.5 py-3 flex flex-col gap-0.5 border-l-4', a.severity === 'high' ? 'border-l-red-500' : a.severity === 'medium' ? 'border-l-amber-400' : 'border-l-primary')}><b className="text-[13.5px] text-foreground">{a.title}</b><span className="text-muted-foreground text-xs">{a.detail}</span></div>)}</div>}
@@ -264,6 +280,11 @@ function Dashboard({ token, lang, onServedLocale }) {
     <div className={cn(S.h2, 'mt-[18px] mb-1')}>{t(lang, 'your_requests')}</div>
     {!inqs.length ? <Card className="p-5"><div className={S.sub}>{t(lang, 'no_requests')}<button className="text-primary font-semibold" onClick={() => setShowNew(true)}>{t(lang, 'post_first')}</button>{t(lang, 'describe_job')}</div></Card>
       : <div className={S.list}>{inqs.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} />)}</div>}
+    {/* fn_customer_stats computes history_12m on EVERY overview call and nothing drew it; recharts
+        and ui/chart.tsx were installed with no importers, so the customer product contained zero
+        charts. Each chart states what is true when there is nothing to draw rather than rendering
+        a flat line at zero, which reads as a real but quiet year. */}
+    <SpendingIntelligence stats={s} inquiries={inqs} lang={lang === 'ar' ? 'ar' : 'en'} />
   </div>);
 }
 function InquiryCard({ inq, token, onChange, lang }) {
@@ -321,9 +342,18 @@ function InquiryCard({ inq, token, onChange, lang }) {
       <Timeline inq={inq} quotes={quotes} anyRevealed={anyRevealed} lang={lang} />
       <DetailFacts inq={inq} lang={lang} />
       {quotes.length >= 2 && <Comparison inqId={inq.id} token={token} lang={lang} />}
+      {/* THE DEFECT THIS REPLACES. What stood here was one fixed sentence — "we matched you with
+          suitable suppliers and will alert you the moment the first quote lands" — printed whenever
+          quotes.length was 0. It said the same encouraging thing to a customer whose request had
+          reached eight suppliers and to one whose request had reached NOBODY, and the second case is
+          not a wait, it is a dead end the customer must be told about so they can widen the brief.
+          matched_suppliers has been on the wire the whole time, carrying exactly that distinction,
+          with a source comment saying so; grep for it in this file returned nothing.
+          DiscoveryReachPanel renders reached===0 as its own outcome and never as encouragement. */}
+      <DiscoveryReachPanel inquiry={inq} lang={lang === 'ar' ? 'ar' : 'en'} />
       {quotes.length > 0
         ? <div className="flex flex-col gap-2.5"><div className={cn(S.sub, 'font-semibold text-foreground')}>{lang === 'ar' ? ('العروض المستلمة (' + quotes.length + ')') : ('Quotes received (' + quotes.length + ')')}</div>{quotes.map((q) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange} vscore={vmap[q.id]} best={q.id === bestId} hired={inq.hired_supplier_id} />)}</div>
-        : <div className="rounded-lg border border-border bg-secondary/30 p-4 text-center"><div className={S.sub}>{lang === 'ar' ? 'بانتظار عروض الموردين — طابقناك مع موردين مناسبين وسننبهك فور وصول أول عرض.' : 'Waiting for supplier quotes — we matched you with suitable suppliers and will alert you the moment the first quote lands.'}</div></div>}
+        : null}
     </div>}
   </Card>);
 }
@@ -349,8 +379,17 @@ function DetailFacts({ inq, lang }) {
   if (inq.boq && inq.boq.boq && inq.boq.boq.length) rows.push([lang === 'ar' ? 'عدد البنود' : 'Line items', String(inq.boq.boq.length)]);
   const sp = inq.spec && typeof inq.spec === 'object' ? inq.spec : null;
   if (sp) for (const k of Object.keys(sp)) { const v = sp[k]; if (v && typeof v === 'string' && k !== 'plausibility' && k !== 'provenance') rows.push([k.replace(/_/g, ' '), v]); }
-  if (!rows.length) return null;
-  return (<div className="rounded-lg border border-border bg-secondary/20 p-3"><div className={cn(S.sub, 'font-semibold mb-1.5 text-foreground')}>{lang === 'ar' ? 'تفاصيل الطلب' : 'Request details'}</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">{rows.slice(0, 14).map((r, i) => (<div key={i} className={S.sub}><span className="capitalize text-muted-foreground">{r[0]}: </span><span className="text-foreground">{r[1]}</span></div>))}</div></div>);
+  // How confident the reader was about the BOQ it pulled off the customer's drawing. The customer
+  // is the only person who can tell us it read the drawing wrong, and they were never shown it.
+  const conf = Number(inq.boq_confidence);
+  if (Number.isFinite(conf) && inq.boq && inq.boq.boq) rows.push([lang === 'ar' ? 'دقة قراءة الرسم' : 'Drawing read confidence', Math.round(conf <= 1 ? conf * 100 : conf) + '%']);
+  // my_inquiries signs a URL to the customer's OWN uploaded drawing on every call. Nothing read it,
+  // so the one person entitled to that file could not open it — only the suppliers could.
+  const drawing = inq.drawing_file_url
+    ? (<div className="mt-1.5"><a href={inq.drawing_file_url} target="_blank" rel="noopener" className="text-primary font-semibold text-[12.5px]">{lang === 'ar' ? '📐 افتح الرسم الذي رفعته' : '📐 Open the drawing you uploaded'}{inq.drawing_file_name ? ' (' + inq.drawing_file_name + ')' : ''}</a></div>)
+    : null;
+  if (!rows.length && !drawing) return null;
+  return (<div className="rounded-lg border border-border bg-secondary/20 p-3"><div className={cn(S.sub, 'font-semibold mb-1.5 text-foreground')}>{lang === 'ar' ? 'تفاصيل الطلب' : 'Request details'}</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">{rows.slice(0, 14).map((r, i) => (<div key={i} className={S.sub}><span className="capitalize text-muted-foreground">{r[0]}: </span><span className="text-foreground">{r[1]}</span></div>))}</div>{drawing}</div>);
 }
 function Comparison({ inqId, token, lang }) {
   const [a, setA] = useState(null); const [busy, setBusy] = useState(true); const [note, setNote] = useState('');
@@ -371,6 +410,10 @@ function Comparison({ inqId, token, lang }) {
 }
 function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired }) {
   const [state, setState] = useState(q.revealed ? 'revealed' : 'idle'); const [contact, setContact] = useState(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  // Warn, do not block: an expired price is still a supplier worth contacting, and taking the
+  // reveal button away would decide that for the customer. The banner tells them to get the price
+  // re-confirmed first, which is the actual risk they were never shown.
+  const exp = expiryOf(q, lang);
   const reveal = async () => {
     setBusy(true); setMsg('');
     const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token);
@@ -388,7 +431,20 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired })
     <div className="flex justify-between items-center"><div><b>{q.label}</b>{best ? <span className="ml-1.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold px-1.5 py-0.5 align-middle">Best value</span> : ''}{q.verified ? <span className="text-primary text-[11px] font-bold"> ✓ verified</span> : ''}{q.rating != null ? <span className="text-accent text-[12px] font-semibold"> ★ {q.rating} ({q.rating_count})</span> : ''}</div><div className="text-right"><div className="text-[17px] font-extrabold text-foreground">{aed(q.price)}</div>{vscore != null ? <div className="text-[10px] text-muted-foreground" title="Guide only — blends price, rating and quote completeness. Not advice; use your own judgement.">Value {vscore}/100</div> : null}</div></div>
     <div className="text-muted-foreground text-[11.5px] mt-0.5">{q.lead_time ? 'Lead time: ' + q.lead_time + ' · ' : ''}{q.warranty ? 'Warranty: ' + q.warranty + ' · ' : ''}{q.payment_terms ? 'Terms: ' + q.payment_terms : ''}{q.win_rate != null ? ' · win ' + Math.round(q.win_rate) + '%' : ''}</div>
     {q.scope && <div className={cn(S.sub, 'mt-1')}>{q.scope}</div>}
+    {q.notes && <div className={cn(S.sub, 'mt-1')}>{(lang === 'ar' ? 'ملاحظة المورّد: ' : "Supplier's note: ") + q.notes}</div>}
+    {/* What the price does NOT cover is the part that turns a cheap quote into an expensive job. */}
+    {q.exclusions && <div className={cn(S.sub, 'mt-1')} style={{ color: 'hsl(43 68% 64%)' }}>{(lang === 'ar' ? 'غير شامل: ' : 'Not included: ') + q.exclusions}</div>}
+    {q.conditions && <div className={cn(S.sub, 'mt-1')}>{(lang === 'ar' ? 'الشروط: ' : 'Conditions: ') + q.conditions}</div>}
+    {exp && (exp.tone === 'ok'
+      ? <div className={cn(S.sub, 'mt-1')}>{exp.text}{q.validity ? (' · ' + (lang === 'ar' ? 'مدة السريان: ' : 'Validity: ') + q.validity) : ''}</div>
+      : <div className={cn('mt-1.5 rounded-md border px-3 py-2 text-[11.5px]', exp.tone === 'expired' ? 'border-red-400/30 bg-red-400/10 text-red-300' : 'border-amber-400/30 bg-amber-400/10 text-amber-300')} role={exp.tone === 'expired' ? 'alert' : undefined}>{exp.text}</div>)}
+    {!exp && q.validity && <div className={cn(S.sub, 'mt-1')}>{(lang === 'ar' ? 'مدة السريان: ' : 'Validity: ') + q.validity}</div>}
+    {/* inquiry_matches.match_reason — the only record of WHY this supplier was contacted. It was
+        rendered nowhere but /os (staff). The API omits the key entirely until this quote is
+        revealed, because the reason can name the company; see the note in customer_api. */}
+    {q.match_reason && <div className={cn(S.sub, 'mt-1')}>{(lang === 'ar' ? 'سبب مطابقتنا لهذا المورّد: ' : 'Why we matched this supplier: ') + q.match_reason}</div>}
     <div className="mt-1.5"><QuotePdfLink q={q} token={token} lang={lang} /></div>
+    <div className="mt-2"><SupplierRelationshipCard quote={q} token={token} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
     {state === 'revealed' ? (contact ? <Contact c={contact} q={q} token={token} onChange={onChange} lang={lang} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} /> : <div className={S.sub}>Loading contact…</div>)
       : (<div className="flex justify-between items-center gap-2.5 mt-2.5 flex-wrap">
           <div className={S.sub}>Reveal fee {aed(q.reveal_fee)} — refundable if the supplier doesn't respond in 3 working days.</div>
