@@ -15,13 +15,30 @@
 
 // One employee per OS, picked deterministically. "Does this reach the employees?" is a claim about
 // all ten Operating Systems; asking cfo alone would prove it for Finance and assume the rest.
+//
+// HARDENED 6 Aug 2026 — both of these joined os_department/org_agents with NO active filter on
+// operating_system, while every comparison they feed is against ACTIVE_OS. A staffed INACTIVE OS
+// therefore counted on the left of `= ACTIVE_OS` and could substitute for an unstaffed active one.
+// Inert on production today (10 operating_system rows, all active, all staffed) and repaired
+// anyway: a denominator that is only correct because a column happens to be uniform is not a
+// measurement, and deactivating one OS is a one-row write.
 const ONE_PER_OS = `(select distinct on (d.os_key) d.os_key, a.agent_key
      from public.os_department d
+     join public.operating_system o on o.os_key = d.os_key and coalesce(o.active,true)
      join public.org_agents a on a.department = d.dept_key and a.active
     order by d.os_key, a.agent_key)`;
 const OS_WITH_STAFF = `(select count(distinct d.os_key) from public.os_department d
+     join public.operating_system o on o.os_key = d.os_key and coalesce(o.active,true)
      join public.org_agents a on a.department = d.dept_key and a.active)`;
 const ACTIVE_OS = `(select count(*) from public.operating_system where coalesce(active,true))`;
+
+// Every active OS satisfies <cond>, an expression over the operating_system row `o`. Written as a
+// per-row NOT EXISTS because "every OS" is a universal: `count(distinct os_key) = ACTIVE_OS` is
+// satisfied by ten keys that are not the ten ACTIVE keys, and says nothing about which OS is missing.
+const EVERY_ACTIVE_OS = (cond) => `(select count(*) from public.operating_system o
+     where coalesce(o.active,true) and not (${cond})) = 0`;
+const MISSING_ACTIVE_OS = (cond) => `coalesce((select string_agg(o.os_key, ', ' order by o.os_key)
+     from public.operating_system o where coalesce(o.active,true) and not (${cond})), 'none')`;
 
 // The assembled prompt of one employee per OS, computed once per statement.
 const PROMPTS = `(select z.os_key, z.agent_key, public.fn_agent_context(z.agent_key, 20000) as t
@@ -54,20 +71,43 @@ const reachCheck = (expr) => `select ${REACHED(expr)} = ${OS_WITH_STAFF}`;
 const reachEv = (expr, what) =>
   `select ${REACHED(expr)}::text||' of '||${OS_WITH_STAFF}::text||' OS: ${what}'`;
 
-// A reader that is not a writer. READERS() self-excludes only a proc whose NAME equals the object's
-// name, so a table's own engine — the function that INSERTs or UPDATEs it — counts as its reader.
-// This excludes by write SHAPE rather than by a name list, so a writer added later is excluded too.
-// (The write keywords are split so qd_guard does not refuse the read.)
+// A reader that is not a writer. The harness's READERS() self-excludes only a proc whose NAME
+// equals the object's name — which never fires for a real table, because no routine is called
+// org_tasks — so a table's own engine, the function that INSERTs or UPDATEs it, counted as its
+// reader. This excludes by write SHAPE rather than by a name list, so a writer added later is
+// excluded too. (The write keywords are split so qd_guard does not refuse the read.)
+//
+// APPLIED EVERYWHERE 6 Aug 2026. This helper existed and was wired to exactly two tables
+// (workflow_run, event_delivery) while ten other reader legs still called READERS(). None of them
+// manufactured a MET on that day — measured non-writer readers: org_tasks 16, agent_actions 36,
+// company_event 8, decision_log 8, kb_revisions 4, employee_authority 3, employee_kpi 10,
+// os_review 3, os_department 7, os_knowledge_domain 3 — but none of them COULD have failed the way
+// this file's own rule demands, and a rule applied to two of twelve cases is a comment.
+//
+// Two further corrections in the same pass:
+//  * count(DISTINCT p.proname). pg_proc holds one row per OVERLOAD, and fn_agent_context has two
+//    on production — (text,int) and (text,int,text) — so every reader count that included it was
+//    inflated by one. A table whose only reader is a two-overload function scored 2.
+//  * a TRIGGER FUNCTION attached to the table is not a consumer of it. trg_declog_immutable reads
+//    decision_log only to refuse a write to decision_log; counting it as a reader is the writer
+//    problem wearing a different hat. Excluded by pg_trigger, not by name.
 const W = `('(ins'||'ert|upd'||'ate|del'||'ete)\\s+(into\\s+|from\\s+)?"?(public"?\\.)?"?`;
 const NON_WRITER_READERS = (t, alsoExclude = []) => `(
-    (select count(*) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+    (select count(distinct p.proname) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
       where ns.nspname='public' and p.prokind in ('f','p') and p.proname <> '${t}'
         ${alsoExclude.length ? `and p.proname not in (${alsoExclude.map(n => `'${n}'`).join(',')})` : ''}
         and pg_get_functiondef(p.oid) ~* '\\y${t}\\y'
-        and pg_get_functiondef(p.oid) !~* (${W}${t}\\y')))
+        and pg_get_functiondef(p.oid) !~* (${W}${t}\\y'))
+        and not exists (select 1 from pg_trigger tg
+                         where tg.tgfoid = p.oid and tg.tgrelid = to_regclass('public.${t}')))
   + (select count(*) from pg_views v where v.schemaname='public' and v.definition ~* '\\y${t}\\y'))`;
 
-export default async function ({ req, READERS }) {
+// A routine that is reached by an ACTIVE cron job. A proc nobody calls is not a reader, and
+// cron.job.active is the weakest form of "runs" this file accepts anywhere.
+const ON_ACTIVE_CRON = `exists (select 1 from cron.job j
+     where j.active and j.command ~* ('\\y'||p.proname||'\\y'))`;
+
+export default async function ({ req }) {
   // ---- Component 1: Purpose -------------------------------------------------------------------
   // charter+mandate were 10/10 populated and exposed only by v_operating_manual, which had no
   // reader of its own. The check therefore ignores the table's row count as proof of anything.
@@ -123,11 +163,30 @@ export default async function ({ req, READERS }) {
   //      multiplication — `2 * resolved >= active` — because bigint division silently makes
   //      `resolved >= active/2` vacuous at low volume, plus freshness against the clock so a
   //      resolver that stopped running fails instead of coasting on old values.
-  const OBJ_RESOLVER = `(select count(*) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+  //
+  // HARDENED AGAIN 6 Aug 2026 — the check confirmed the number was WRITTEN and never asked who
+  // READS it, which is the one question this whole file exists to ask. Measured at the time: the
+  // only routines naming os_objective were fn_agent_context and the resolver (its writer), and the
+  // only view exposing it was v_operating_manual, which has no reader of its own — so 46 of 50
+  // objectives were being resolved to a number daily and consumed by nothing.
+  //
+  // fn_agent_context's TAIL block does read it — `# YOUR OS OBJECTIVES, MEASURED`, appended after
+  // layer 4, rendering `<horizon>: <objective> — reads <actual_value> (measured <date>)`. The gap
+  // was in the SCORER, not in the system: nothing asserted that block. It is asserted now, and
+  // asserted on the VALUE rather than on the heading — the heading renders `no value` when
+  // actual_value is null, so matching it would pass with all 50 unresolved. The needle is the
+  // stored number itself, for one employee per OS. Measured after the change: 10 of 10.
+  const OBJ_RESOLVER = `(select count(distinct p.proname) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
        where ns.nspname='public' and p.prokind in ('f','p') and p.proname <> 'os_objective'
          and pg_get_functiondef(p.oid) ~* '\\yos_objective\\y'
          and pg_get_functiondef(p.oid) ~* '\\ymeasure_sql\\y'
-         and exists (select 1 from cron.job j where j.active and j.command ~* ('\\y'||p.proname||'\\y')))`;
+         and ${ON_ACTIVE_CRON})`;
+  const OBJ_VALUE_REACHED = `(select count(*) from ${PROMPTS} c
+       where exists (select 1 from public.os_objective y
+                      where y.os_key = c.os_key and coalesce(y.active,true)
+                        and y.actual_value is not null
+                        and position(y.horizon||': '||y.objective||' — reads '||y.actual_value::text
+                                     in c.t) > 0))`;
   await req('comp', 'comp-03-objectives-measured', 'Objectives carry a computable measure, not prose',
     `select (select count(*) from public.os_objective where coalesce(active,true) and coalesce(measure_sql,'') <> '')
             = (select count(*) from public.os_objective where coalesce(active,true))
@@ -137,30 +196,37 @@ export default async function ({ req, READERS }) {
              and measured_at > now() - interval '8 days')
            = (select count(*) from public.os_objective where coalesce(active,true))
        and 2 * (select count(*) from public.os_objective where coalesce(active,true) and actual_value is not null)
-           >= (select count(*) from public.os_objective where coalesce(active,true))`,
+           >= (select count(*) from public.os_objective where coalesce(active,true))
+       and ${OBJ_VALUE_REACHED} = ${OS_WITH_STAFF}`,
     `select (select count(*) from public.os_objective where coalesce(active,true) and coalesce(measure_sql,'') <> '')::text
        ||' of '||(select count(*)::text from public.os_objective where coalesce(active,true))
        ||' ACTIVE objectives carry a computable measure, '
        ||(select count(*) from public.os_objective where coalesce(active,true) and actual_value is not null)::text
        ||' resolved to an actual value, last measured '
        ||coalesce((select max(measured_at)::date::text from public.os_objective),'never')
-       ||'; live resolvers on an active cron: '||coalesce((select string_agg(p.proname,', ')
+       ||'; live resolvers on an active cron: '||coalesce((select string_agg(distinct p.proname,', ')
             from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
            where ns.nspname='public' and p.prokind in ('f','p') and p.proname <> 'os_objective'
              and pg_get_functiondef(p.oid) ~* '\\yos_objective\\y'
              and pg_get_functiondef(p.oid) ~* '\\ymeasure_sql\\y'
-             and exists (select 1 from cron.job j where j.active and j.command ~* ('\\y'||p.proname||'\\y'))),'none')`);
+             and ${ON_ACTIVE_CRON}),'none')
+       ||'; '||${OBJ_VALUE_REACHED}::text||' of '||${OS_WITH_STAFF}::text
+       ||' OS have the resolved NUMBER (not the heading) in an employee''s prompt'`);
 
   // ---- Component 4: Responsibilities -----------------------------------------------------------
+  // The population leg was `count(distinct os_key) from os_responsibility = ACTIVE_OS`, which is
+  // satisfied by ten os_keys that are not the ten ACTIVE ones. Per-active-OS NOT EXISTS instead.
+  const RESP_COND = `exists (select 1 from public.os_responsibility r where r.os_key = o.os_key)`;
   await req('comp', 'comp-04-responsibilities', 'Responsibilities replace departments as the ownership unit',
-    `select (select count(distinct os_key) from public.os_responsibility) = ${ACTIVE_OS}
+    `select ${EVERY_ACTIVE_OS(RESP_COND)}
        and ${REACHED(`select string_agg(x.responsibility, ', ' order by x.responsibility)
                         from (select responsibility from public.os_responsibility
                                where os_key = o.os_key order by responsibility limit 12) x`)} = ${OS_WITH_STAFF}`,
-    reachEv(`select string_agg(x.responsibility, ', ' order by x.responsibility)
+    `select ${REACHED(`select string_agg(x.responsibility, ', ' order by x.responsibility)
                from (select responsibility from public.os_responsibility
-                      where os_key = o.os_key order by responsibility limit 12) x`,
-      'employee prompt lists what their OS owns'));
+                      where os_key = o.os_key order by responsibility limit 12) x`)}::text
+       ||' of '||${OS_WITH_STAFF}::text||' OS: employee prompt lists what their OS owns; '
+       ||'active OS with NO responsibility row: '||${MISSING_ACTIVE_OS(RESP_COND)}`);
 
   // "No other OS can own these" must be structural, not a convention. A PK on responsibility alone
   // makes a second owner unrepresentable; a composite PK would not.
@@ -174,14 +240,18 @@ export default async function ({ req, READERS }) {
        ||' over '||(select count(*)::text from public.os_responsibility)||' rows'`);
 
   // ---- Component 5: the Employee Object --------------------------------------------------------
+  const LINK_COND = `exists (select 1 from public.os_department d
+       join public.org_agents a on a.department = d.dept_key and a.active
+      where d.os_key = o.os_key)`;
   await req('comp', 'comp-05-linkage', 'os_department links each OS to real org_agents rows',
-    `select (select count(distinct os_key) from public.os_department) = ${ACTIVE_OS}
+    `select ${EVERY_ACTIVE_OS(LINK_COND)}
        and ${OS_WITH_STAFF} = ${ACTIVE_OS}
-       and ${READERS('os_department')} > 0`,
-    `select ${OS_WITH_STAFF}::text||' of '||${ACTIVE_OS}::text||' OS reach active staff; '
+       and ${NON_WRITER_READERS('os_department')} > 0`,
+    `select ${OS_WITH_STAFF}::text||' of '||${ACTIVE_OS}::text||' OS reach active staff (missing: '
+       ||${MISSING_ACTIVE_OS(LINK_COND)}||'); '
        ||(select count(*)::text from public.org_agents a
             join public.os_department d on d.dept_key = a.department where a.active)
-       ||' staffed employees; '||${READERS('os_department')}::text||' reader(s)'`);
+       ||' staffed employees; '||${NON_WRITER_READERS('os_department')}::text||' non-writer reader(s)'`);
 
   // The prompt leg was `fn_agent_context('cfo',...)` here and in the three checks below — one agent
   // standing in for "each employee", in the file that builds ONE_PER_OS specifically to refuse that.
@@ -211,27 +281,37 @@ export default async function ({ req, READERS }) {
     `select (select count(*) from public.org_agents a where a.active
               and not exists (select 1 from public.employee_authority e where e.agent_key = a.agent_key)) = 0
        and ${PROMPT_ALL(`c.t like '%# YOUR AUTHORITY (granted to you personally)%'`)} = ${OS_WITH_STAFF}
-       and ${READERS('employee_authority')} > 0`,
+       and ${NON_WRITER_READERS('employee_authority')} > 0`,
     `select (select count(*) from public.org_agents a where a.active
               and not exists (select 1 from public.employee_authority e where e.agent_key = a.agent_key))::text
        ||' active employees with no personal authority row; '
        ||(select count(*)::text from public.employee_authority)||' rows; '
        ||${PROMPT_ALL(`c.t like '%# YOUR AUTHORITY (granted to you personally)%'`)}::text
        ||' of '||${OS_WITH_STAFF}::text||' OS see a PERSONAL authority block, not a delegated one; '
-       ||${READERS('employee_authority')}::text||' reader(s)'`);
+       ||${NON_WRITER_READERS('employee_authority')}::text||' non-writer reader(s)'`);
 
   // HARDENED 6 Aug 2026 — "Each employee has KPIs" was scored by a global
   // `(count from employee_kpi where active) > 0`: one active KPI anywhere in the company satisfied
   // it and an employee with none was invisible. comp-05-authority and comp-05-escalation both carry
   // a per-employee not-exists; this one now does too.
+  //
+  // HARDENED AGAIN 6 Aug — the delivery leg matched the static heading '# YOUR KPIs' against a file
+  // header that promises the opposite ("not for a hard-coded heading, which would pass even if the
+  // column were empty"). fn_agent_context guards that heading with `if v_line is not null`, and the
+  // population leg above already asserts v_line is non-null for every active employee, so the
+  // delivery leg proved only that the block survived truncation — never that a KPI arrived. It now
+  // matches the employee's OWN stored kpi text. Measured after the change: 10 of 10.
+  const KPI_TEXT_REACHED = PROMPT_ALL(`exists (select 1 from public.employee_kpi k
+                where k.agent_key = c.agent_key and k.active
+                  and coalesce(k.kpi,'') <> '' and position(k.kpi in c.t) > 0)`);
   await req('comp', 'comp-05-kpis', 'Each employee has KPIs that reach a prompt',
     `select (select count(*) from public.employee_kpi where active and coalesce(measure_sql,'') <> '')
             = (select count(*) from public.employee_kpi where active)
        and (select count(*) from public.org_agents a where a.active
              and not exists (select 1 from public.employee_kpi e
                               where e.agent_key = a.agent_key and e.active)) = 0
-       and ${PROMPT_ALL(`c.t like '%# YOUR KPIs%'`)} = ${OS_WITH_STAFF}
-       and ${READERS('employee_kpi')} > 0`,
+       and ${KPI_TEXT_REACHED} = ${OS_WITH_STAFF}
+       and ${NON_WRITER_READERS('employee_kpi')} > 0`,
     `select (select count(*)::text from public.employee_kpi where active)||' active KPIs, '
        ||(select count(*)::text from public.employee_kpi where active and coalesce(measure_sql,'') <> '')
        ||' with measure_sql; '
@@ -239,8 +319,9 @@ export default async function ({ req, READERS }) {
            and not exists (select 1 from public.employee_kpi e
                             where e.agent_key = a.agent_key and e.active))::text
        ||' active employees with NO active KPI; '
-       ||${PROMPT_ALL(`c.t like '%# YOUR KPIs%'`)}::text||' of '||${OS_WITH_STAFF}::text
-       ||' OS render the block; '||${READERS('employee_kpi')}::text||' reader(s)'`);
+       ||${KPI_TEXT_REACHED}::text||' of '||${OS_WITH_STAFF}::text
+       ||' OS carry their own stored KPI text into the prompt; '
+       ||${NON_WRITER_READERS('employee_kpi')}::text||' non-writer reader(s)'`);
 
   // TIGHTENED 6 Aug 2026, and the old assertion is quoted below because it was wrong in an
   // instructive way. It resolved fn_agent_context's OWN WHERE clause, dept-mate fallback included,
@@ -300,33 +381,82 @@ export default async function ({ req, READERS }) {
        ||' reach NO profession knowledge even after the dept-mate fallback'`);
 
   // Decision rights are only rights if something refuses. Both gate functions must read the grant.
+  //
+  // HARDENED 6 Aug 2026, two defects, both of which this file had already fixed elsewhere and then
+  // repeated here verbatim.
+  //  (a) The population leg was `(count from employee_authority where action_class<>'' and
+  //      max_tier<>'') > 0` — ONE row out of 285 satisfying a requirement whose text is "EACH
+  //      employee". Its two siblings written for the same component, comp-05-authority and
+  //      comp-05-kpis, both carry a per-employee NOT EXISTS. So does this one now.
+  //  (b) The delivery leg matched '%Anything not on that list is GATED%'. In the deployed
+  //      fn_agent_context that sentence is emitted AFTER the if/else, guarded only by
+  //      `if v_line is not null`, so it renders identically under
+  //      '# YOUR AUTHORITY (granted to you personally)' and under
+  //      '# YOUR AUTHORITY (delegated to <dept>, no personal grant on file)' — where v_line comes
+  //      from org_authority, not employee_authority. That is exactly what comp-05-authority was
+  //      hardened against 90 lines above. It now requires the personal heading AND the employee's
+  //      OWN grant rendered as fn_agent_context renders it, `<action_class> -> <max_tier>`, so a
+  //      department grant that happens to read the same cannot stand in for a personal one.
+  //      Measured after the change: 10 of 10, 0 active employees without a usable grant.
+  const RIGHTS_REACHED = PROMPT_ALL(`c.t like '%# YOUR AUTHORITY (granted to you personally)%'
+              and exists (select 1 from public.employee_authority e
+                           where e.agent_key = c.agent_key
+                             and coalesce(e.action_class,'') <> '' and coalesce(e.max_tier,'') <> ''
+                             and position(e.action_class||' -> '||e.max_tier in c.t) > 0)`);
   await req('comp', 'comp-05-decision-rights', 'Each employee has Decision Rights, enforced at runtime',
-    `select (select count(*) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+    `select (select count(distinct p.proname) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
               where ns.nspname='public' and p.proname in ('fn_decision_gate','fn_check_spend')
                 and pg_get_functiondef(p.oid) ~* '\\yemployee_authority\\y') = 2
-       and (select count(*) from public.employee_authority
-             where coalesce(action_class,'') <> '' and coalesce(max_tier,'') <> '') > 0
-       and ${PROMPT_ALL(`c.t like '%Anything not on that list is GATED%'`)} = ${OS_WITH_STAFF}`,
-    `select (select string_agg(p.proname, ', ' order by p.proname)
+       and (select count(*) from public.org_agents a where a.active
+             and not exists (select 1 from public.employee_authority e
+                              where e.agent_key = a.agent_key
+                                and coalesce(e.action_class,'') <> ''
+                                and coalesce(e.max_tier,'') <> '')) = 0
+       and ${RIGHTS_REACHED} = ${OS_WITH_STAFF}`,
+    `select coalesce((select string_agg(distinct p.proname, ', ')
        from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
        where ns.nspname='public' and p.proname in ('fn_decision_gate','fn_check_spend')
-         and pg_get_functiondef(p.oid) ~* '\\yemployee_authority\\y')
-       ||' enforce '||(select count(*)::text from public.employee_authority)||' authority rows'`);
+         and pg_get_functiondef(p.oid) ~* '\\yemployee_authority\\y'),'no gate reads it')
+       ||' enforce '||(select count(*)::text from public.employee_authority)||' authority rows; '
+       ||(select count(*) from public.org_agents a where a.active
+           and not exists (select 1 from public.employee_authority e
+                            where e.agent_key = a.agent_key
+                              and coalesce(e.action_class,'') <> ''
+                              and coalesce(e.max_tier,'') <> ''))::text
+       ||' of '||(select count(*)::text from public.org_agents where active)
+       ||' active employees have NO usable employee_authority row; '||${RIGHTS_REACHED}::text
+       ||' of '||${OS_WITH_STAFF}::text
+       ||' OS see their OWN action_class -> max_tier text under the PERSONAL heading'`);
 
   // 1,206 escalation rules existed on ops_knowledge and their only reader, fn_kb_retrieve, had no
   // caller anywhere. Existence of the column is therefore worthless evidence; the prompt is the test.
   // escalation_rule is jsonb and non-null on all 3,959 records, but only 1,206 carry the
   // {when, action} pair the prompt actually renders — counting non-nulls would score 3,959.
+  //
+  // HARDENED 6 Aug 2026 — the delivery leg matched the static heading 'WHEN TO ESCALATE', and this
+  // is the sharpest possible place to have done that: escalation_rule is the ONE requirement whose
+  // content fn_agent_context TRANSFORMS on the way out —
+  // `replace(escalation_rule->>'when','_',' ')` — and the transformation is the very reason the
+  // REACHED comment above gives for matching literals rather than patterns. The needle is now the
+  // rule as rendered, underscores replaced, for one employee per OS. Measured: 10 of 10.
+  const ESC_RULE_REACHED = PROMPT_ALL(`exists (
+                select 1 from public.org_agents a
+                  join public.ops_knowledge o on o.dept_key = a.department
+                 where a.agent_key = c.agent_key
+                   and o.escalation_rule ? 'when' and o.escalation_rule ? 'action'
+                   and position('- when '||replace(o.escalation_rule->>'when','_',' ')
+                                ||' -> '||replace(o.escalation_rule->>'action','_',' ')
+                                in c.t) > 0)`);
   await req('comp', 'comp-05-escalation', 'Each employee has Escalation Rules that reach them',
     `select (select count(*) from public.org_agents a where a.active
               and not exists (select 1 from public.ops_knowledge o
                                where o.dept_key = a.department
                                  and o.escalation_rule->>'when' is not null
                                  and o.escalation_rule->>'action' is not null)) = 0
-       and (select count(*) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+       and (select count(distinct p.proname) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
              where ns.nspname='public' and p.proname='fn_agent_context'
                and pg_get_functiondef(p.oid) ~* '\\yescalation_rule\\y') > 0
-       and ${PROMPT_ALL(`c.t like '%WHEN TO ESCALATE%'`)} = ${OS_WITH_STAFF}`,
+       and ${ESC_RULE_REACHED} = ${OS_WITH_STAFF}`,
     `select (select count(*) filter (where escalation_rule->>'when' is not null
                                        and escalation_rule->>'action' is not null)
               from public.ops_knowledge)::text
@@ -337,50 +467,95 @@ export default async function ({ req, READERS }) {
                           and o.escalation_rule->>'when' is not null
                           and o.escalation_rule->>'action' is not null))::text
        ||' of '||(select count(*)::text from public.org_agents where active)
-       ||' employees in a department that has one'`);
+       ||' employees in a department that has one; '||${ESC_RULE_REACHED}::text
+       ||' of '||${OS_WITH_STAFF}::text||' OS have a stored rule rendered VERBATIM in the prompt'`);
 
   // ---- Component 6: Knowledge ------------------------------------------------------------------
   await req('comp', 'comp-06-knowledge-independent', 'Every OS has independent knowledge',
-    `select (select count(distinct os_key) from public.os_knowledge_domain) = ${ACTIVE_OS}
-       and (select count(*) from public.operating_system os2 where coalesce(os2.active,true)
-             and not exists (select 1 from public.os_knowledge_domain k
-                              where k.os_key = os2.os_key and k.ownership='owns')) = 0
-       and ${READERS('os_knowledge_domain')} > 0`,
-    `select (select count(distinct os_key)::text from public.os_knowledge_domain)||' of '
-       ||${ACTIVE_OS}::text||' OS have knowledge domains ('
+    `select ${EVERY_ACTIVE_OS(`exists (select 1 from public.os_knowledge_domain k
+                where k.os_key = o.os_key and k.ownership='owns')`)}
+       and ${NON_WRITER_READERS('os_knowledge_domain')} > 0`,
+    `select 'active OS with no OWNED knowledge domain: '
+       ||${MISSING_ACTIVE_OS(`exists (select 1 from public.os_knowledge_domain k
+                where k.os_key = o.os_key and k.ownership='owns')`)}||'; '
        ||(select count(*)::text from public.os_knowledge_domain)||' rows, '
-       ||(select count(*)::text from public.os_knowledge_domain where ownership='owns')||' owned); '
-       ||${READERS('os_knowledge_domain')}::text||' reader(s)'`);
+       ||(select count(*)::text from public.os_knowledge_domain where ownership='owns')||' owned; '
+       ||${NON_WRITER_READERS('os_knowledge_domain')}::text||' non-writer reader(s)'`);
 
   // "Leadership does not duplicate Finance's knowledge, it queries it" needs a routine that takes an
   // os_key and resolves the owner — and that routine needs a caller, or it is fn_kb_retrieve again.
-  await req('comp', 'comp-06-cross-os-query', 'Leadership does not duplicate knowledge; it queries the owning OS',
-    `select exists (
-       select 1 from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
-        where ns.nspname='public' and p.prokind in ('f','p')
+  //
+  // HARDENED 6 Aug 2026, two defects.
+  //  (a) The caller leg counted any proc whose body MENTIONS the name, plus any cron.job row with
+  //      no `j.active` filter. A routine called only by another orphan routine passed — the
+  //      fn_kb_retrieve failure moved up one level, which is not a fix. A call site is
+  //      `name(`, not the name; both sibling liveness tests in this file (OBJ_RESOLVER,
+  //      HS_LIVE_READERS) already require an ACTIVE cron. Both corrections applied.
+  //  (b) The evidence string_agg'd EVERY proc that merely mentions os_knowledge_domain — measured
+  //      fn_agent_context, fn_knowledge_gaps, fn_os_knowledge_query — while dropping both filters
+  //      the verdict applies (the os_key argument, and the caller). A printed MET therefore did not
+  //      prove the claim. The evidence now computes the qualifying set with the verdict's own
+  //      filters and names each resolver's callers. Measured: fn_os_knowledge_query(p_os_key text,
+  //      p_topic text) <- fn_agent_context.
+  const XOS_QUALIFIES = `p.prokind in ('f','p')
           and pg_get_functiondef(p.oid) ~* '\\yos_knowledge_domain\\y'
           and pg_get_function_identity_arguments(p.oid) ~* 'os_key'
-          and ((select count(*) from pg_proc q join pg_namespace m on m.oid=q.pronamespace
+          and ((select count(distinct q.proname) from pg_proc q join pg_namespace m on m.oid=q.pronamespace
                  where m.nspname='public' and q.prokind in ('f','p') and q.proname <> p.proname
-                   and pg_get_functiondef(q.oid) ~* ('\\y'||p.proname||'\\y'))
-             + (select count(*) from cron.job j where j.command ~* ('\\y'||p.proname||'\\y'))) > 0)`,
-    `select coalesce((select string_agg(p.proname||'('||pg_get_function_identity_arguments(p.oid)||')', ', ')
+                   and pg_get_functiondef(q.oid) ~* ('\\y'||p.proname||'\\s*\\('))
+             + (select count(*) from cron.job j
+                 where j.active and j.command ~* ('\\y'||p.proname||'\\s*\\('))) > 0`;
+  await req('comp', 'comp-06-cross-os-query', 'Leadership does not duplicate knowledge; it queries the owning OS',
+    `select exists (select 1 from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+        where ns.nspname='public' and ${XOS_QUALIFIES})`,
+    `select coalesce((select string_agg(distinct p.proname||'('||pg_get_function_identity_arguments(p.oid)||') <- '
+         ||coalesce((select string_agg(distinct q.proname, '+') from pg_proc q join pg_namespace m on m.oid=q.pronamespace
+                      where m.nspname='public' and q.prokind in ('f','p') and q.proname <> p.proname
+                        and pg_get_functiondef(q.oid) ~* ('\\y'||p.proname||'\\s*\\(')),'no caller')
+         ||coalesce(' + active cron '||(select string_agg(j.jobname,'/') from cron.job j
+              where j.active and j.command ~* ('\\y'||p.proname||'\\s*\\(')), ''), ', ')
        from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
-       where ns.nspname='public' and p.prokind in ('f','p')
-         and pg_get_functiondef(p.oid) ~* '\\yos_knowledge_domain\\y'),
-       'no routine reads os_knowledge_domain')`);
+       where ns.nspname='public' and ${XOS_QUALIFIES}),
+       'no CALLED routine takes an os_key and resolves os_knowledge_domain')`);
 
   // ---- Component 7: Inputs ---------------------------------------------------------------------
   // The bus itself works. The requirement is that EVERY OS is on it, which is a different claim.
+  //
+  // REAL SYSTEM GAP, FOUND AND FIXED 6 Aug 2026. This scored MET on two legs that could not see the
+  // failure: leg 1 counted OSes holding a subscription ROW with active=true (a flag, not traffic),
+  // and leg 2 was a single global `(deliveries in 7d) > 0`. Measured underneath it: 470 deliveries
+  // in 7 days across only EIGHT distinct os_key. finance and legal_gov had never received one, ever
+  // — finance with 5 active employees and 4 active subscriptions, legal_gov with 4 and 4 — because
+  // every event type they subscribed to (invoice.received, budget.exceeded, invoice.flagged,
+  // regulation.changed) has never been emitted. event_delivery has carried an os_key column the
+  // whole time and this check ignored it.
+  //
+  // The scorer now measures per active OS, as a NOT EXISTS, from event_delivery.os_key. The system
+  // was fixed to match in scripts/sql/os_inputs_reach_every_os.sql: finance subscribes to
+  // kpi.missed and legal_gov to security.event — both flowing, both genuinely theirs — with the
+  // matching os_interface declarations, and the backlog was dispatched. Re-measured afterwards:
+  // 10 of 10 OSes have deliveries, finance 18, legal_gov 12.
+  //
+  // 30 days per OS, 7 days for the bus: a low-traffic OS may legitimately be quiet for a week
+  // (marketplace took 1 delivery in the last 7 days), but a month of silence on a declared input is
+  // the thing this requirement is about. Both windows are copied from siblings in this file.
+  const OS_RECEIVES = `exists (select 1 from public.event_delivery d
+       where d.os_key = o.os_key and d.delivered_at > now() - interval '30 days')`;
   await req('comp', 'comp-07-inputs', 'Every OS receives events (Inputs)',
-    `select (select count(distinct d.os_key) from public.os_department d
+    `select ${EVERY_ACTIVE_OS(`exists (select 1 from public.os_department d
               join public.org_agents a on a.department = d.dept_key and a.active
-              join public.event_subscription s on s.agent_key = a.agent_key and s.active) = ${ACTIVE_OS}
+              join public.event_subscription s on s.agent_key = a.agent_key and s.active
+             where d.os_key = o.os_key)`)}
+       and ${EVERY_ACTIVE_OS(OS_RECEIVES)}
        and (select count(*) from public.event_delivery where delivered_at > now() - interval '7 days') > 0`,
     `select (select count(distinct d.os_key) from public.os_department d
               join public.org_agents a on a.department = d.dept_key and a.active
               join public.event_subscription s on s.agent_key = a.agent_key and s.active)::text
        ||' of '||${ACTIVE_OS}::text||' OS have an active subscriber; '
+       ||(select count(distinct os_key)::text from public.event_delivery
+           where delivered_at > now() - interval '30 days')
+       ||' distinct os_key actually received an event in 30d (active OS receiving NOTHING: '
+       ||${MISSING_ACTIVE_OS(OS_RECEIVES)}||'); '
        ||(select count(*)::text from public.event_delivery where delivered_at > now() - interval '7 days')
        ||' deliveries in 7d'`);
 
@@ -396,95 +571,135 @@ export default async function ({ req, READERS }) {
   //   3. every planned row states WHY in planned_reason — an unexplained flag is a green button;
   //   4. the excuse expires: a planned kind whose events already flow is a defect, and at least one
   //      non-planned input must be flowing, so the entire declaration cannot be excused at once.
-  // Measured today: 17 active inputs, 11 planned (all with a reason), 6 live and all 6 flowing,
-  // 0 planned kinds whose events already flow.
-  //
-  // The evidence used to end with the literal string 'and none is marked planned' — hardcoded prose
-  // that printed verbatim however many rows were planned, beside a filter that (unlike the verdict)
-  // omitted `active`. Both now come from the query.
+  // HARDENED AGAIN 6 Aug 2026, two residual defects.
+  //  (a) NO COVERAGE. The only bound on the flag was "at least ONE non-planned input is flowing",
+  //      so 16 of 17 declarations could be excused at once and 6 of 17 flowing — 35% — scored
+  //      "declared inputs correspond to events that actually flow" MET. The bound is now per active
+  //      OS, written as a NOT EXISTS: every active OS must hold at least one input declaration that
+  //      is not marked planned and has actually carried an event. An OS cannot excuse its whole
+  //      declaration. Measured before the fix: 5 of 10 OSes had one (evolution, intelligence,
+  //      knowledge, leadership, operations); commercial, marketplace and technology were RECEIVING
+  //      events through subscriptions they had never declared, and finance and legal_gov were
+  //      receiving nothing at all. Those five declarations were added in
+  //      scripts/sql/os_inputs_reach_every_os.sql — declaring what already flows, not inventing
+  //      traffic. Re-measured: 22 active inputs, 11 planned, 11 flowing, 10 of 10 OSes covered.
+  //  (b) THE EXPIRY WAS ENFORCED BY NOTHING. The comment above claimed "the excuse expires" while
+  //      os_interface had no planned_since/planned_until at all — leg 4 only forbids a planned kind
+  //      whose events already flow, which is a consistency check, not an expiry. The two columns
+  //      now exist, every planned row carries them, a CHECK constraint makes an undated excuse
+  //      unrepresentable, and this check fails a planned row whose planned_until has passed. A
+  //      renewal is then a decision somebody has to take again, which is the point.
+  const IFACE_IN = `from public.os_interface i where i.direction='input' and coalesce(i.active,true)`;
+  const OS_DECLARES_FLOWING = `exists (select 1 from public.os_interface i
+       where i.os_key = o.os_key and i.direction='input' and coalesce(i.active,true)
+         and not coalesce(i.planned,false)
+         and exists (select 1 from public.company_event e where e.event_type = i.kind))`;
   await req('comp', 'comp-07-inputs-coverage', 'Declared inputs correspond to events that actually flow',
-    `select (select count(*) from public.os_interface i
-              where i.direction='input' and coalesce(i.active,true)) > 0
-       and (select count(*) from public.os_interface i
-             where i.direction='input' and coalesce(i.active,true) and not coalesce(i.planned,false)
+    `select (select count(*) ${IFACE_IN}) > 0
+       and (select count(*) ${IFACE_IN} and not coalesce(i.planned,false)
                and not exists (select 1 from public.company_event e where e.event_type = i.kind)) = 0
-       and (select count(*) from public.os_interface i
-             where i.direction='input' and coalesce(i.active,true) and coalesce(i.planned,false)
+       and (select count(*) ${IFACE_IN} and coalesce(i.planned,false)
                and coalesce(i.planned_reason,'') = '') = 0
-       and (select count(*) from public.os_interface i
-             where i.direction='input' and coalesce(i.active,true) and coalesce(i.planned,false)
+       and (select count(*) ${IFACE_IN} and coalesce(i.planned,false)
                and exists (select 1 from public.company_event e where e.event_type = i.kind)) = 0
-       and (select count(*) from public.os_interface i
-             where i.direction='input' and coalesce(i.active,true) and not coalesce(i.planned,false)
-               and exists (select 1 from public.company_event e where e.event_type = i.kind)) > 0`,
-    `select (select count(*) from public.os_interface i
-              where i.direction='input' and coalesce(i.active,true) and not coalesce(i.planned,false)
+       and (select count(*) ${IFACE_IN} and coalesce(i.planned,false)
+               and (i.planned_until is null or i.planned_until <= now())) = 0
+       and ${EVERY_ACTIVE_OS(OS_DECLARES_FLOWING)}`,
+    `select (select count(*) ${IFACE_IN} and not coalesce(i.planned,false)
                 and not exists (select 1 from public.company_event e where e.event_type = i.kind))::text
-       ||' of '||(select count(*)::text from public.os_interface
-                   where direction='input' and coalesce(active,true))
+       ||' of '||(select count(*)::text ${IFACE_IN})
        ||' active declared input kinds have never appeared in company_event; '
-       ||(select count(*)::text from public.os_interface
-           where direction='input' and coalesce(active,true) and coalesce(planned,false))
+       ||(select count(*)::text ${IFACE_IN} and coalesce(i.planned,false))
        ||' are marked planned ('
-       ||(select count(*)::text from public.os_interface
-           where direction='input' and coalesce(active,true) and coalesce(planned,false)
-             and coalesce(planned_reason,'') = '')
-       ||' with no reason given, '
-       ||(select count(*)::text from public.os_interface i
-           where i.direction='input' and coalesce(i.active,true) and coalesce(i.planned,false)
+       ||(select count(*)::text ${IFACE_IN} and coalesce(i.planned,false)
+             and coalesce(i.planned_reason,'') = '')
+       ||' with no reason, '
+       ||(select count(*)::text ${IFACE_IN} and coalesce(i.planned,false)
+             and (i.planned_until is null or i.planned_until <= now()))
+       ||' undated or expired, next expiry '
+       ||coalesce((select min(i.planned_until)::date::text ${IFACE_IN} and coalesce(i.planned,false)),'n/a')
+       ||', '
+       ||(select count(*)::text ${IFACE_IN} and coalesce(i.planned,false)
              and exists (select 1 from public.company_event e where e.event_type = i.kind))
        ||' whose events already flow); '
-       ||(select count(*)::text from public.os_interface i
-           where i.direction='input' and coalesce(i.active,true) and not coalesce(i.planned,false)
+       ||(select count(*)::text ${IFACE_IN} and not coalesce(i.planned,false)
              and exists (select 1 from public.company_event e where e.event_type = i.kind))
-       ||' live kinds actually flowing'`);
+       ||' live kinds actually flowing; active OS with NO flowing declared input: '
+       ||${MISSING_ACTIVE_OS(OS_DECLARES_FLOWING)}`);
 
   // ---- Component 8: Outputs --------------------------------------------------------------------
+  // HARDENED 6 Aug 2026 — three of these eight outputs (tasks, approvals, recommendations) were
+  // bare `> 0` existence tests with no recency bound and no coverage ratio, so one seed row made
+  // each output permanently MET however long the output had since stopped. The other five in this
+  // same block already bounded recency (decisions 7d, reports 21d, alerts 7d, knowledge-updates
+  // 30d); those windows are what is used here. agent_actions.decided_at was the sharpest case: it
+  // last moved on 2026-08-02 and could never have moved again without the check noticing.
+  // Measured after the change: 290 dispatcher tasks in 7d, 64 approvals decided in 7d,
+  // 73 recommendations in 30d of which 62 are decided.
   await req('comp', 'comp-08-out-tasks', 'Output: Tasks',
     `select (select count(*) from public.org_tasks) > 0
-       and (select count(*) from public.org_tasks where decided_by='fn_event_dispatch') > 0
-       and ${READERS('org_tasks')} > 0`,
+       and (select count(*) from public.org_tasks where decided_by='fn_event_dispatch'
+             and created_at > now() - interval '7 days') > 0
+       and ${NON_WRITER_READERS('org_tasks')} > 0`,
     `select (select count(*)::text from public.org_tasks)||' tasks, '
        ||(select count(*)::text from public.org_tasks where decided_by='fn_event_dispatch')
-       ||' authored by the dispatcher; '||${READERS('org_tasks')}::text||' reader(s)'`);
+       ||' authored by the dispatcher ('
+       ||(select count(*)::text from public.org_tasks where decided_by='fn_event_dispatch'
+           and created_at > now() - interval '7 days')||' in 7d, last '
+       ||coalesce((select max(created_at)::date::text from public.org_tasks
+                    where decided_by='fn_event_dispatch'),'never')
+       ||'); '||${NON_WRITER_READERS('org_tasks')}::text||' non-writer reader(s)'`);
 
+  // Coverage and freshness were decoupled: `count(distinct os_key) = ACTIVE_OS` over ALL TIME plus
+  // ONE review anywhere in 21 days, so nine of ten OSes could go permanently stale on a MET.
+  // Both are now the same per-active-OS clause. Measured: 0 active OS without a review in 21d.
+  const OS_REVIEWED_21D = `exists (select 1 from public.os_review r
+       where r.os_key = o.os_key and r.created_at > now() - interval '21 days')`;
   await req('comp', 'comp-08-out-reports', 'Output: Reports',
-    `select (select count(distinct os_key) from public.os_review) = ${ACTIVE_OS}
-       and (select count(*) from public.os_review where created_at > now() - interval '21 days') > 0
-       and ${READERS('os_review')} > 0`,
+    `select ${EVERY_ACTIVE_OS(OS_REVIEWED_21D)}
+       and ${NON_WRITER_READERS('os_review')} > 0`,
     `select (select count(*)::text from public.os_review)||' reviews over '
        ||(select count(distinct os_key)::text from public.os_review)||' OS, last '
-       ||coalesce((select max(created_at)::date::text from public.os_review),'never')||'; '
-       ||${READERS('os_review')}::text||' reader(s)'`);
+       ||coalesce((select max(created_at)::date::text from public.os_review),'never')
+       ||'; active OS with NO review in 21d: '||${MISSING_ACTIVE_OS(OS_REVIEWED_21D)}||'; '
+       ||${NON_WRITER_READERS('os_review')}::text||' non-writer reader(s)'`);
 
   await req('comp', 'comp-08-out-decisions', 'Output: Decisions',
     `select (select count(*) from public.decision_log) > 0
        and (select max(created_at) from public.decision_log) > now() - interval '7 days'
-       and ${READERS('decision_log')} > 0`,
+       and ${NON_WRITER_READERS('decision_log')} > 0`,
     `select (select count(*)::text from public.decision_log)||' decisions, last '
        ||coalesce((select max(created_at)::date::text from public.decision_log),'never')||'; '
-       ||${READERS('decision_log')}::text||' reader(s); os_key on decision_log: '
+       ||${NON_WRITER_READERS('decision_log')}::text||' non-writer reader(s); os_key on decision_log: '
        ||(select exists (select 1 from information_schema.columns where table_schema='public'
             and table_name='decision_log' and column_name='os_key'))::text`);
 
   await req('comp', 'comp-08-out-approvals', 'Output: Approvals',
     `select (select count(*) from public.agent_actions) > 0
-       and (select count(*) from public.agent_actions where decided_at is not null) > 0
-       and ${READERS('agent_actions')} > 0`,
+       and (select count(*) from public.agent_actions
+             where decided_at > now() - interval '7 days') > 0
+       and ${NON_WRITER_READERS('agent_actions')} > 0`,
     `select (select count(*)::text from public.agent_actions)||' actions, '
-       ||(select count(*)::text from public.agent_actions where decided_at is not null)||' decided, '
-       ||(select count(*)::text from public.org_tasks where needs_founder and status <> 'done')
-       ||' open founder approvals; '||${READERS('agent_actions')}::text||' reader(s)'`);
+       ||(select count(*)::text from public.agent_actions where decided_at is not null)||' decided ('
+       ||(select count(*)::text from public.agent_actions where decided_at > now() - interval '7 days')
+       ||' in 7d, last '||coalesce((select max(decided_at)::date::text from public.agent_actions),'never')
+       ||'), '||(select count(*)::text from public.org_tasks where needs_founder and status <> 'done')
+       ||' open founder approvals; '||${NON_WRITER_READERS('agent_actions')}::text||' non-writer reader(s)'`);
 
+  // A recommendation nobody rules on is a note. The decided leg is a majority, not a `> 0`:
+  // bigint division would make `decided >= total/2` vacuous at low volume, so it is a multiplication
+  // — the same form comp-03-objectives-measured uses. Measured: 62 of 73 in 30d.
+  const REC_30D = `from public.org_tasks where action_class='recommend'
+             and created_at > now() - interval '30 days'`;
   await req('comp', 'comp-08-out-recommendations', 'Output: Recommendations',
-    `select (select count(*) from public.org_tasks where action_class='recommend') > 0
-       and (select count(*) from public.org_tasks where action_class='recommend'
-             and decided_by is not null) > 0
-       and ${READERS('org_tasks')} > 0`,
+    `select (select count(*) ${REC_30D}) > 0
+       and 2 * (select count(*) ${REC_30D} and decided_by is not null) >= (select count(*) ${REC_30D})
+       and ${NON_WRITER_READERS('org_tasks')} > 0`,
     `select (select count(*)::text from public.org_tasks where action_class='recommend')
-       ||' recommendations, '
+       ||' recommendations ever, '||(select count(*)::text ${REC_30D})||' in 30d of which '
+       ||(select count(*)::text ${REC_30D} and decided_by is not null)||' are decided, over '
        ||(select count(distinct dept_key)::text from public.org_tasks where action_class='recommend')
-       ||' departments; '||${READERS('org_tasks')}::text||' reader(s) of org_tasks'`);
+       ||' departments; '||${NON_WRITER_READERS('org_tasks')}::text||' non-writer reader(s) of org_tasks'`);
 
   // An alert nobody raised is not an output. fn_emit_metric_alerts is the only emitter and it has
   // no scheduler, so this asks whether an alert has actually fired recently.
@@ -493,7 +708,7 @@ export default async function ({ req, READERS }) {
               where event_type in ('kpi.missed','goal.at_risk','metric.alert','health.degraded',
                                    'sla.breached','budget.exceeded','incident.opened')
                 and occurred_at > now() - interval '7 days') > 0
-       and ${READERS('company_event')} > 0`,
+       and ${NON_WRITER_READERS('company_event')} > 0`,
     `select 'last alert-class event '
        ||coalesce((select max(occurred_at)::date::text from public.company_event
                     where event_type in ('kpi.missed','goal.at_risk','metric.alert','health.degraded',
@@ -504,23 +719,43 @@ export default async function ({ req, READERS }) {
        ||' ever; fn_emit_metric_alerts schedulers: '
        ||(select count(*)::text from cron.job where command ~* '\\yfn_emit_metric_alerts\\y')`);
 
+  // HARDENED 6 Aug 2026, two defects.
+  //  (a) THE EVIDENCE ASSERTED A RELATIONSHIP NOTHING COMPUTED. It ended
+  //      `(count from cron.job where active and command ~* fn_os_review) || ' active cron(s)
+  //      consuming it'` — a count of crons running fn_os_review, captioned as consumption of
+  //      v_os_scoreboard, while the verdict's two legs were independent and nothing tied them. True
+  //      on production only by coincidence. The reader leg now requires ONE routine that both names
+  //      v_os_scoreboard and is reached by an active cron, which is the claim itself.
+  //  (b) The population leg was a bare `(count from employee_kpi where active) > 0` for a
+  //      requirement that reads "Output: KPIs" across ten OSes. The output IS the scoreboard, so
+  //      the coverage is measured on the scoreboard: every active OS resolves a row carrying at
+  //      least one KPI, and none of those KPIs is unmeasurable. Measured: 10 of 10 OSes,
+  //      0 unmeasurable, reader fn_os_review on cron os_review_weekly.
+  const SB_LIVE_READERS = `(select count(distinct p.proname) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+       where ns.nspname='public' and p.prokind in ('f','p')
+         and pg_get_functiondef(p.oid) ~* '\\yv_os_scoreboard\\y' and ${ON_ACTIVE_CRON})`;
+  const SB_COVERS = `exists (select 1 from public.v_os_scoreboard s
+       where s.os_key = o.os_key and s.kpis > 0 and coalesce(s.kpis_unmeasurable,0) = 0)`;
   await req('comp', 'comp-08-out-kpis', 'Output: KPIs',
-    `select (select count(*) from public.employee_kpi where active) > 0
-       and (select count(*) from pg_views where schemaname='public' and viewname='v_os_scoreboard') = 1
-       and ${READERS('v_os_scoreboard')} > 0
-       and (select count(*) from cron.job where active and command ~* '\\yfn_os_review\\y') > 0`,
+    `select (select count(*) from pg_views where schemaname='public' and viewname='v_os_scoreboard') = 1
+       and ${EVERY_ACTIVE_OS(SB_COVERS)}
+       and ${SB_LIVE_READERS} > 0`,
     `select (select count(*)::text from public.employee_kpi where active)||' active KPIs; '
-       ||${READERS('v_os_scoreboard')}::text||' reader(s) of v_os_scoreboard; '
-       ||(select count(*)::text from cron.job where active and command ~* '\\yfn_os_review\\y')
-       ||' active cron(s) consuming it'`);
+       ||'active OS whose scoreboard row is empty or unmeasurable: '||${MISSING_ACTIVE_OS(SB_COVERS)}
+       ||'; v_os_scoreboard reader(s) reached by an ACTIVE cron: '
+       ||coalesce((select string_agg(distinct p.proname||' ('||(select string_agg(j.jobname,'/')
+              from cron.job j where j.active and j.command ~* ('\\y'||p.proname||'\\y'))||')', ', ')
+            from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+           where ns.nspname='public' and p.prokind in ('f','p')
+             and pg_get_functiondef(p.oid) ~* '\\yv_os_scoreboard\\y' and ${ON_ACTIVE_CRON}),'NONE')`);
 
   await req('comp', 'comp-08-out-knowledge-updates', 'Output: Knowledge Updates',
     `select (select count(*) from public.kb_revisions where created_at > now() - interval '30 days') > 0
-       and ${READERS('kb_revisions')} > 0`,
+       and ${NON_WRITER_READERS('kb_revisions')} > 0`,
     `select (select count(*)::text from public.kb_revisions where created_at > now() - interval '30 days')
        ||' revisions in 30d, last '
        ||coalesce((select max(created_at)::date::text from public.kb_revisions),'never')||'; '
-       ||${READERS('kb_revisions')}::text||' reader(s); knowledge.updated events: '
+       ||${NON_WRITER_READERS('kb_revisions')}::text||' non-writer reader(s); knowledge.updated events: '
        ||(select count(*)::text from public.company_event where event_type='knowledge.updated')`);
 
   // ---- Component 9: Workflows ------------------------------------------------------------------
@@ -593,16 +828,46 @@ export default async function ({ req, READERS }) {
   // ---- The OS layer must reach the people who serve it -----------------------------------------
   // fn_agent_context is the sole prompt assembler. This asks whether the OS block survives the
   // 6,200-character employee section for every staffed OS, not just for the one agent tested first.
+  //
+  // REAL DEFECT, REPAIRED 6 Aug 2026. The check matched '%YOUR OPERATING SYSTEM%' — a HARD-CODED
+  // HEADING, which this file's own header explicitly forbids ("not for a hard-coded heading, which
+  // would pass even if the column were empty"). fn_agent_context emits that heading from
+  // `'# YOUR OPERATING SYSTEM — '||coalesce(r.name, r.os_key)` the moment an employee's department
+  // maps to an active OS, while every attribute after it is individually wrapped in
+  // `case when r.<x> is not null then … else '' end`. So the requirement "OS-layer ATTRIBUTES reach
+  // the employees who serve that OS" scored MET with charter, mission, mandate, responsibilities
+  // and objectives ALL NULL. It tested that the OS names itself.
+  //
+  // All five attributes are now asserted, each as the stored value rendered exactly as
+  // fn_agent_context renders it (`left(charter,300)`, `left(mission,240)`, `left(mandate,240)`, the
+  // 12-row responsibility aggregate, the horizon-labelled objective). mandate is the one this file
+  // asserted NOWHERE else — comp-01 checks charter, comp-02 mission, comp-04 responsibilities,
+  // comp-03 objectives — so deleting one line from fn_agent_context would have left every check
+  // green with a populated, unread column. Measured after the change: 10 of 10 on all five.
+  const OS_ATTRS = [
+    ['left(o.charter,300)', 'purpose'],
+    ['left(o.mission,240)', 'mission'],
+    ['left(o.mandate,240)', 'mandate'],
+    [`(select string_agg(x.responsibility, ', ' order by x.responsibility)
+         from (select responsibility from public.os_responsibility where os_key = o.os_key
+                order by responsibility limit 12) x)`, 'responsibilities'],
+    [`(select y.horizon||': '||y.objective from public.os_objective y
+        where y.os_key = o.os_key and coalesce(y.active,true)
+        order by case y.horizon when 'strategic' then 1 when 'annual' then 2
+                                when 'quarterly' then 3 when 'weekly' then 4 else 5 end limit 1)`,
+      'objectives'],
+  ];
   await req('comp', 'os-layer-prompt-reach', 'OS-layer attributes reach the employees who serve that OS',
-    `select (select count(*) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+    `select (select count(distinct p.proname) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
               where ns.nspname='public' and p.proname='fn_agent_context'
                 and pg_get_functiondef(p.oid) ~* '\\yoperating_system\\y') > 0
        and (select count(*) from ${ONE_PER_OS} z
              where public.fn_agent_context(z.agent_key, 20000) like '%YOUR OPERATING SYSTEM%')
-           = ${OS_WITH_STAFF}`,
-    `select (select count(*) from ${ONE_PER_OS} z
-              where public.fn_agent_context(z.agent_key, 20000) like '%YOUR OPERATING SYSTEM%')::text
-       ||' of '||${OS_WITH_STAFF}::text||' staffed OS name themselves in their employees'' prompt'`);
+           = ${OS_WITH_STAFF}
+       ${OS_ATTRS.map(([e]) => `and ${REACHED(e)} = ${OS_WITH_STAFF}`).join('\n       ')}`,
+    `select ${OS_WITH_STAFF}::text||' staffed OS; attributes that actually travel: '
+       ||${OS_ATTRS.map(([e, w]) => `'${w} '||${REACHED(e)}::text`).join(`||', '||`)}
+       ||' (each of '||${OS_WITH_STAFF}::text||')'`);
 
   // ---- The cross-OS contract closes ------------------------------------------------------------
   // Dispatch ends at one task per subscriber. The contract requires the loop to come back: results
@@ -679,33 +944,45 @@ export default async function ({ req, READERS }) {
   //     a reader could not tell apart — including these two, which disagreed about whether the
   //     writer counts as a reader. Renamed to comp-16-health-score-column: this row owns
   //     operating_system.health_score, the sibling owns the os_review.health figure.
-  const HS_LIVE_READERS = `(select count(*) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+  // (3) HARDENED AGAIN 6 Aug 2026, two soft spots in the population legs.
+  //     `max(period)` is a LEXICOGRAPHIC max over a TEXT column — correct today only because ISO
+  //     weeks happen to be zero-padded ('2026-W31','2026-W32') — and the freshness leg
+  //     `max(created_at) from os_review > now()-8d` was taken over the WHOLE table rather than over
+  //     the rows of the period being scored, so one review filed under an older period satisfied
+  //     freshness for an arbitrarily stale current period. The scored period is now the period of
+  //     the most RECENTLY WRITTEN row, and freshness is measured on that period's own rows, so the
+  //     two legs can no longer disagree about which week they are talking about. Measured after the
+  //     change: period 2026-W32, 10 of 10, written today.
+  const LATEST_PERIOD = `(select r2.period from public.os_review r2
+       order by r2.created_at desc nulls last limit 1)`;
+  const HS_LIVE_READERS = `(select count(distinct p.proname) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
        where ns.nspname='public' and p.prokind in ('f','p') and p.proname <> 'fn_os_review'
          and pg_get_functiondef(p.oid) ~* '\\yhealth_score\\y'
          and pg_get_functiondef(p.oid) ~* '\\y(os_review|operating_system)\\y'
-         and exists (select 1 from cron.job j where j.active and j.command ~* ('\\y'||p.proname||'\\y')))`;
+         and ${ON_ACTIVE_CRON})`;
   await req('comp', 'comp-16-health-score-column', 'Per-OS health score is computed and read',
     `select (select count(*) from public.operating_system
               where coalesce(active,true) and health_score is not null) = ${ACTIVE_OS}
-       and (select count(*) from public.os_review r
-             where r.period = (select max(period) from public.os_review)
-               and coalesce(r.metrics->>'health_score','') <> '') = ${ACTIVE_OS}
-       and (select max(created_at) from public.os_review) > now() - interval '8 days'
+       and ${EVERY_ACTIVE_OS(`exists (select 1 from public.os_review r
+                where r.os_key = o.os_key and r.period = ${LATEST_PERIOD}
+                  and coalesce(r.metrics->>'health_score','') <> '')`)}
+       and (select max(r.created_at) from public.os_review r
+             where r.period = ${LATEST_PERIOD}) > now() - interval '8 days'
        and ${HS_LIVE_READERS} > 0`,
     `select (select count(*)::text from public.operating_system
               where coalesce(active,true) and health_score is not null)
-       ||' of '||${ACTIVE_OS}::text||' OS carry a health_score column; '
-       ||(select count(*)::text from public.os_review r
-           where r.period = (select max(period) from public.os_review)
-             and coalesce(r.metrics->>'health_score','') <> '')
-       ||' of '||${ACTIVE_OS}::text||' carry the figure in os_review period '
-       ||coalesce((select max(period) from public.os_review),'none')||' (written '
-       ||coalesce((select max(created_at)::date::text from public.os_review),'never')
-       ||'); live reader(s) other than the writer fn_os_review: '
-       ||coalesce((select string_agg(p.proname,', ') from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+       ||' of '||${ACTIVE_OS}::text||' OS carry a health_score column; latest period '
+       ||coalesce(${LATEST_PERIOD},'none')||' written '
+       ||coalesce((select max(r.created_at)::date::text from public.os_review r
+                    where r.period = ${LATEST_PERIOD}),'never')
+       ||', active OS with NO health_score figure in it: '
+       ||${MISSING_ACTIVE_OS(`exists (select 1 from public.os_review r
+                where r.os_key = o.os_key and r.period = ${LATEST_PERIOD}
+                  and coalesce(r.metrics->>'health_score','') <> '')`)}
+       ||'; live reader(s) other than the writer fn_os_review: '
+       ||coalesce((select string_agg(distinct p.proname,', ') from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
             where ns.nspname='public' and p.prokind in ('f','p') and p.proname <> 'fn_os_review'
               and pg_get_functiondef(p.oid) ~* '\\yhealth_score\\y'
               and pg_get_functiondef(p.oid) ~* '\\y(os_review|operating_system)\\y'
-              and exists (select 1 from cron.job j where j.active
-                           and j.command ~* ('\\y'||p.proname||'\\y'))),'NONE')`);
+              and ${ON_ACTIVE_CRON}),'NONE')`);
 }

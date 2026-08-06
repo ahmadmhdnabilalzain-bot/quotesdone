@@ -51,7 +51,12 @@ begin
   for r in
     select o.num, o.name, r2.health, r2.owner_agent, r2.findings,
            h.open_risks, h.kpi_gaps, h.backlog_per_head, h.stale_tasks,
-           h.review_pass_pct, h.budget_pct, h.needs_founder_pct
+           h.review_pass_pct, h.budget_pct, h.needs_founder_pct,
+           -- CAPACITY IS THE ONE DIMENSION v_os_health DOES NOT COMPUTE (6 Aug 2026). It is
+           -- resource_pool committed/capacity and it exists only in os_review.metrics, so it
+           -- was the one of the eight figures with no reader outside its own writer. Taken off
+           -- the report row the meeting is already reading.
+           r2.metrics->>'capacity_pct' capacity_pct
     from os_review r2 join operating_system o on o.os_key = r2.os_key
     left join v_os_health h on h.os_key = r2.os_key
     where r2.period = v_period and r2.health <> 'green' order by
@@ -59,6 +64,7 @@ begin
   loop
     v_drivers := 'open_risks '||coalesce(r.open_risks::text,'?')
       ||', kpi_gaps '||coalesce(r.kpi_gaps::text,'?')
+      ||', capacity_pct '||coalesce(r.capacity_pct,'?')
       ||', backlog_per_head '||coalesce(r.backlog_per_head::text,'?')
       ||', stale_tasks '||coalesce(r.stale_tasks::text,'?')
       ||', review_pass_pct '||coalesce(r.review_pass_pct::text,'?')

@@ -14,10 +14,13 @@
 //                    an owner_agent that resolves to a live employee.
 //   2. POPULATED   — >=1 os_responsibility, all five os_objective horizons, >=1 active employee
 //                    reachable through os_department.
-//   3. READ        — that OS's own purpose, mission, every one of its responsibilities and every
-//                    one of its objectives are present, verbatim, IN THAT OS'S OWN BLOCK of the
-//                    prompt fn_agent_context builds for an employee of that OS. Text in a table is
-//                    not text an employee was told; this spec file is entirely about the difference.
+//   3. READ        — that OS's own purpose (charter AND mandate), mission and every one of its
+//                    objectives are present, verbatim, IN THAT OS'S OWN BLOCK of the prompt
+//                    fn_agent_context builds for an employee of that OS, and every one of its
+//                    responsibilities is present on the OWNS LINE inside that block. Text in a table
+//                    is not text an employee was told; this spec file is entirely about the
+//                    difference. And a word occurring somewhere in the block is not that OS's
+//                    responsibility arriving — see the second anchor below.
 //
 // The read leg is per-OS on purpose. A single global "fn_agent_context mentions operating_system"
 // probe would have passed all ten off one OS's data.
@@ -52,18 +55,52 @@ const AGENT = (k) => `(select a.agent_key from public.org_agents a
 // production: 746-1060 characters per OS, and all ten still carry 100% of their responsibilities,
 // objectives, purpose and mission inside it. If the block is absent the slice is '' and every
 // needle fails, which is the intended verdict.
+//
+// THE SECOND ANCHOR. Even inside the OS block, "the responsibility reached the employee" is not the
+// same claim as "the word occurs somewhere in the block": fn_agent_context renders responsibilities
+// on exactly ONE line ('Your OS OWNS, and no other OS may own: a, b, c') and caps it at `limit 12`,
+// while Purpose: and Mission: prose sit above it in the same block. So an OS's 13th responsibility
+// genuinely never reaches the employee, yet scored read whenever the bare word also occurred in that
+// OS's own charter or mission.
+//
+// This is not latent. Measured on production over all 90 OS/foreign-responsibility pairs: ONE
+// responsibility belonging to another OS already matches somewhere inside a block — leadership's
+// block contains 'suppliers', which marketplace owns — and ZERO match on the OWNS line. The
+// block-wide test therefore accepts a claim that is false today; the anchored one does not.
+// os-exclusive-ownership in this same file already anchors to that line, and scoring the same fact
+// two ways in one file is how two checks come to disagree about it.
 const CTX = (k) => `with ctx as materialized (
        select public.fn_agent_context(${AGENT(k)}, 22000) t),
      head as (select case when position('# YOUR OPERATING SYSTEM' in t) = 0 then ''
                      else substring(t from position('# YOUR OPERATING SYSTEM' in t)) end x from ctx),
      blk as (select substring(x from 1 for
-                 coalesce(nullif(position(E'\\n# ' in x), 0) - 1, length(x))) b from head)`;
+                 coalesce(nullif(position(E'\\n# ' in x), 0) - 1, length(x))) b from head),
+     ownl as (select coalesce(substring(b from E'no other OS may own[^\\n]*'), '') l from blk)`;
 
-// fn_agent_context emits left(charter,300) / left(mission,240), so the needle must be truncated the
-// same way or a long mission would look absent when it is in fact there. The length guards stop a
-// blank column from passing trivially: strpos(anything, '') returns 1. The same guard is folded
-// into the responsibility and objective clauses — a blank row must not satisfy its own read test.
-const osCheck = (k, extra = 'true') => `${CTX(k)},
+// fn_agent_context emits left(charter,300) / left(mission,240) / left(mandate,240), so the needle
+// must be truncated the same way or a long mission would look absent when it is in fact there. The
+// length guards stop a blank column from passing trivially: strpos(anything, '') returns 1. The same
+// guard is folded into the responsibility and objective clauses — a blank row must not satisfy its
+// own read test.
+//
+// MANDATE IS NEEDLE-TESTED, NOT MERELY POPULATED. This file's header defines "purpose" as
+// charter+mandate, and the check required length(mandate) > 10 while testing only charter and
+// mission against the prompt. Every attribute in fn_agent_context's OS block is individually wrapped
+// in `case when r.<x> is not null then ... else '' end`, so deleting the one Mandate line
+// (fn_agent_context_os_layer.sql:181) left all ten checks MET with a populated, unread column —
+// the exact failure this whole spec file is about. Measured: 85-186 chars per OS, all ten present.
+//
+// THE RESPONSIBILITY LEG IS A FLOOR, NOT `> 0`. minResp is the count the blueprint NAMES for that
+// OS — the seed at supabase/migrations/20260728191802_os_blueprint_mission_objectives_ownership_io
+// .sql:32-57, plus 'automation' for operations. A bare `> 0` scored "<name> OS ... responsibilities"
+// MET with one row: nine of the ten OSes could have been reduced to a single responsibility and the
+// evidence would have printed 'resp 1/1'. The floor is >= rather than = so the blueprint can grow;
+// it fails on deletion, which is the failure it exists to catch. Production is exactly at the floor
+// on all ten today, so this is measured, not padded.
+//
+// The STAFF leg is deliberately left at `> 0`: unlike responsibilities and objectives, the blueprint
+// names no headcount per OS, and any floor invented here would be a number no requirement asks for.
+const osCheck = (k, minResp, extra = 'true') => `${CTX(k)},
      o as (select * from public.operating_system where os_key = '${k}')
 select
       (select count(*) from o where active
@@ -74,15 +111,16 @@ select
   and (select count(*) from public.org_agents a
          join public.os_department d on d.dept_key = a.department
         where d.os_key = '${k}' and a.active) > 0
-  and (select count(*) from public.os_responsibility where os_key = '${k}') > 0
+  and (select count(*) from public.os_responsibility where os_key = '${k}') >= ${minResp}
   and (select count(distinct horizon) from public.os_objective
         where os_key = '${k}' and coalesce(active,true)) = 5
   and (select strpos((select b from blk), left(mission,240)) > 0
-            and strpos((select b from blk), left(charter,300)) > 0 from o)
+            and strpos((select b from blk), left(charter,300)) > 0
+            and strpos((select b from blk), left(mandate,240)) > 0 from o)
   and (select count(*) from public.os_responsibility r
         where r.os_key = '${k}'
           and (length(trim(coalesce(r.responsibility,''))) < 2
-               or strpos((select b from blk), r.responsibility) = 0)) = 0
+               or strpos((select l from ownl), r.responsibility) = 0)) = 0
   and (select count(*) from public.os_objective j
         where j.os_key = '${k}' and coalesce(j.active,true)
           and (length(trim(coalesce(j.objective,''))) < 2
@@ -93,19 +131,25 @@ select
 // an employee's prompt, which employee was asked, and how large the slice searched was — a reader
 // who does not see the block size cannot tell an anchored match from a 28,000-character haystack.
 // Both sides of the objective ratio filter on active; mixing the filters is how a check prints
-// 'obj 4/5' beside a MET verdict the moment one objective is deactivated.
-const osEvidence = (k, extra = `''`) => `${CTX(k)}
+// 'obj 4/5' beside a MET verdict the moment one objective is deactivated. For the same reason the
+// resp numerator is counted on the OWNS LINE, the population the verdict scores, and the purpose
+// figure now includes mandate: evidence measured over a wider population than the verdict is how a
+// MISSING row comes to print the number that contradicts it.
+const osEvidence = (k, minResp, extra = `''`) => `${CTX(k)}
 select (select count(*) from public.org_agents a
           join public.os_department d on d.dept_key = a.department
          where d.os_key = '${k}' and a.active) || ' staff; prompt of ' || ${AGENT(k)}
-    || ' (OS block ' || (select length(b) from blk) || ' of '
-    || (select length(t) from ctx) || ' chars)'
-    || ': purpose+mission ' || (select case when strpos((select b from blk), left(o.mission,240)) > 0
-             and strpos((select b from blk), left(o.charter,300)) > 0 then 'yes' else 'no' end
+    || ' (OS block ' || (select length(b) from blk) || ' chars of '
+    || (select length(t) from ctx) || ', OWNS line ' || (select length(l) from ownl) || ')'
+    || ': purpose(charter+mandate)+mission '
+    || (select case when strpos((select b from blk), left(o.mission,240)) > 0
+             and strpos((select b from blk), left(o.charter,300)) > 0
+             and strpos((select b from blk), left(o.mandate,240)) > 0 then 'yes' else 'no' end
            from public.operating_system o where o.os_key = '${k}')
-    || ', resp ' || (select count(*) from public.os_responsibility r where r.os_key = '${k}'
-           and strpos((select b from blk), r.responsibility) > 0)
+    || ', resp on OWNS line ' || (select count(*) from public.os_responsibility r
+           where r.os_key = '${k}' and strpos((select l from ownl), r.responsibility) > 0)
     || '/' || (select count(*) from public.os_responsibility where os_key = '${k}')
+    || ' declared (blueprint names ${minResp})'
     || ', obj ' || (select count(*) from public.os_objective j where j.os_key = '${k}'
            and coalesce(j.active,true) and strpos((select b from blk), j.objective) > 0)
     || '/' || (select count(*) from public.os_objective
@@ -117,33 +161,81 @@ select (select count(*) from public.org_agents a
 const AUTOMATION = `(select count(*) from public.os_responsibility
    where responsibility = 'automation' and os_key = 'operations') = 1`;
 
+// The trailing number is minResp: how many responsibilities the BLUEPRINT names for that OS, counted
+// off the seed insert in supabase/migrations/20260728191802_os_blueprint_mission_objectives_
+// ownership_io.sql:32-57 (71 rows), plus 'automation' for operations, which the AUTOMATION clause
+// below names separately. It is not today's row count copied back as its own test: 71 + 1 = 72 is
+// what os_responsibility holds, and this is the list that produced it.
 const TEN = [
-  ['os-leadership', 'leadership', 'Leadership OS'],
-  ['os-commercial', 'commercial', 'Commercial OS'],
-  ['os-marketplace', 'marketplace', 'Marketplace OS'],
-  ['os-operations', 'operations', 'Operations OS'],
-  ['os-technology', 'technology', 'Technology OS'],
-  ['os-finance', 'finance', 'Finance OS'],
-  ['os-legal-governance', 'legal_gov', 'Legal & Governance OS'],
-  ['os-knowledge', 'knowledge', 'Knowledge OS'],
-  ['os-intelligence', 'intelligence', 'Intelligence OS'],
-  ['os-evolution', 'evolution', 'Evolution OS'],
+  ['os-leadership', 'leadership', 'Leadership OS', 9],
+  ['os-commercial', 'commercial', 'Commercial OS', 6],
+  ['os-marketplace', 'marketplace', 'Marketplace OS', 8],
+  ['os-operations', 'operations', 'Operations OS', 7],
+  ['os-technology', 'technology', 'Technology OS', 7],
+  ['os-finance', 'finance', 'Finance OS', 7],
+  ['os-legal-governance', 'legal_gov', 'Legal & Governance OS', 7],
+  ['os-knowledge', 'knowledge', 'Knowledge OS', 6],
+  ['os-intelligence', 'intelligence', 'Intelligence OS', 8],
+  ['os-evolution', 'evolution', 'Evolution OS', 7],
 ];
 
-// A reader of operating_system that is neither its writer nor a dead reference. READERS() counts
-// three things it must not: fn_os_review, which is the only routine that WRITES the table (measured:
-// it is the sole match for an update/insert against operating_system); the literal string
-// 'operating_system'::text inside v_operating_manual's own definition; and v_operating_manual itself,
-// the view this file's header records as having no readers. Requiring the routine to be named by an
-// ACTIVE cron job is what makes it a live consumer rather than a mention. Measured on production: 5
-// qualify — fn_company_snapshot, fn_exec_meeting, fn_graph_rebuild, fn_os_health_brief, fn_os_improve.
-const LIVE_OS_READERS = `(select count(*) from pg_proc p
+// WRITER, STRUCTURALLY. The writer exclusion used to be the hardcoded name `not in ('fn_os_review')`
+// — correct on the day it was written and silently wrong the day a second writer is added, at which
+// point that writer counts as its own table's reader. This derives it from the body instead, so it
+// holds for whoever writes the table and whenever. (The write keywords are split around `||` because
+// qd_guard refuses any read whose text contains one — the guard is doing its job.)
+const WRITER_OF = (t) => `pg_get_functiondef(p.oid) ~*
+        ('(ins'||'ert\\s+into|upd'||'ate|del'||'ete\\s+from)\\s+(public\\.)?${t}\\y')`;
+
+// A JOB ROW IS A CLAIM; cron.job_run_details IS THE FACT — scripts/sql/kpi_schedule_prove.sql:7, and
+// the form every sibling file in this suite already uses (components_11_13.mjs:223, component_10.mjs
+// :213, components_14_17.mjs:82, cross_os.mjs:111). cron.job.active is a boolean somebody set: a job
+// that has never fired once satisfies it, and production has exactly that case — job 185
+// (os_health_brief_weekly, schedule '50 4 * * 1') is active with 0 runs ever, because it was created
+// after the last Monday. That is not a broken job, and it is exactly why the distinction matters:
+// fn_os_health_brief reads BOTH operating_system and os_review, and under the old clause it was
+// certifying a read that has not yet happened once. It starts counting on 10 Aug, when it runs.
+//
+// Ten days is one weekly period plus margin, the same window this file already applies to os_review,
+// and it does not lapse for a healthy weekly job (measured: exec_meeting_weekly and os_review_weekly
+// both fire Mondays, a 7-day gap). Under it the reader counts drop from 5 to 4 and from 3 to 2.
+//
+// The proname is escaped before it enters the regex. It is a catalog identifier so today every name
+// is [a-z0-9_], but an identifier carrying a metacharacter would either change what matches or raise
+// an invalid-regex error — and verify_os_blueprint.mjs:102-105 counts an ERROR as UNMEASURED, not as
+// MISSING, so an injected pattern would remove the requirement from the scorecard rather than fail it.
+const CRON_SUCCEEDED = (nameExpr, days = 10) => `exists (
+        select 1 from cron.job j
+          join cron.job_run_details d on d.jobid = j.jobid
+         where j.active and d.status = 'succeeded'
+           and d.end_time > now() - interval '${days} days'
+           and j.command ~* ('\\y' || regexp_replace(${nameExpr}, '([^[:alnum:]_])', '\\\\&', 'g') || '\\y'))`;
+
+// A reader of <t> that is neither one of its writers nor a dead reference. READERS() in the harness
+// counts things it must not: the table's own writer (its self-exclusion `proname <> '<table>'` never
+// fires, because no routine is named after a table); the literal string 'operating_system'::text
+// inside v_operating_manual's own definition; and v_operating_manual itself, the view this file's
+// header records as having no readers. count(DISTINCT proname) because pg_proc holds one row per
+// OVERLOAD — fn_agent_context has two on production — and an overload set is one reader, not two.
+//
+// Measured on production today: operating_system 4 (fn_company_snapshot, fn_exec_meeting,
+// fn_graph_rebuild, fn_os_improve — fn_os_health_brief drops out on the never-run job above, and
+// fn_os_review is the writer), os_review 2 (fn_company_snapshot, fn_exec_meeting). Note '\yos_review\y'
+// does not match inside 'fn_os_review': '_' is a word character, so the writer's NAME is not a
+// spurious hit on the TABLE — the exclusion above is doing the work, not the boundary.
+const LIVE_READERS = (t, days = 10) => `(select count(distinct p.proname) from pg_proc p
      join pg_namespace ns on ns.oid = p.pronamespace
     where ns.nspname = 'public' and p.prokind in ('f','p')
-      and p.proname not in ('fn_os_review')
-      and pg_get_functiondef(p.oid) ~* '\\yoperating_system\\y'
-      and exists (select 1 from cron.job j
-                   where j.active and j.command ~* ('\\y' || p.proname || '\\y')))`;
+      and pg_get_functiondef(p.oid) ~* '\\y${t}\\y'
+      and not ${WRITER_OF(t)}
+      and ${CRON_SUCCEEDED('p.proname', days)})`;
+
+const LIVE_READER_NAMES = (t, days = 10) => `coalesce((select string_agg(distinct p.proname, ', ')
+       from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+      where ns.nspname = 'public' and p.prokind in ('f','p')
+        and pg_get_functiondef(p.oid) ~* '\\y${t}\\y'
+        and not ${WRITER_OF(t)}
+        and ${CRON_SUCCEEDED('p.proname', days)}), 'none')`;
 
 // The department -> OS resolution every read leg in this file depends on. os_department's PRIMARY
 // KEY is (os_key, dept_key), which permits one department to belong to several OSes; fn_agent_context
@@ -155,11 +247,11 @@ const DEPT_UNIQUE = `exists (select 1 from pg_indexes
       and indexdef ~* 'unique index .* \\(dept_key\\)$')`;
 
 export default async function ({ req }) {
-  for (const [id, key, label] of TEN) {
+  for (const [id, key, label, minResp] of TEN) {
     const isOps = key === 'operations';
     await req('os-', id, `${label}: row, purpose, mission, owner, responsibilities, objectives, staff`,
-      osCheck(key, isOps ? AUTOMATION : 'true'),
-      osEvidence(key, isOps
+      osCheck(key, minResp, isOps ? AUTOMATION : 'true'),
+      osEvidence(key, minResp, isOps
         ? `'; automation owned by ' || coalesce((select os_key from public.os_responsibility
              where responsibility = 'automation'), 'NO os')`
         : `''`));
@@ -172,6 +264,14 @@ export default async function ({ req }) {
   // now bounded on created_at against a 10-day window, one weekly period plus margin, so a dead
   // os_review_weekly turns this MISSING inside ten days. Measured: 20 rows / 10 OSes in 9 days,
   // latest 2026-08-06 07:09.
+  //
+  // BUT RECENCY IS NOT A READER, and this file's header claimed os_review is "asserted ONCE, with
+  // both [recency and a reader], in os-all-ten-active" while the only reader clause matched
+  // `\yoperating_system\y` — a DIFFERENT object, whose name does not contain the substring
+  // 'os_review'. The reader leg structurally could not cover the table it was said to cover; it read
+  // true only because fn_os_health_brief happens to touch both, and deleting its `join os_review`
+  // (scripts/sql/fn_os_health_brief.sql:32) would not have moved the verdict. os_review now carries
+  // its own reader leg. That is the whole subject of this spec file applied to this file's own claim.
   await req('os-', 'os-all-ten-active', 'All ten named Operating Systems exist and are active', `
     select (select count(*) from public.operating_system where active) = 10
        and (select count(distinct num) from public.operating_system) = 10
@@ -180,22 +280,19 @@ export default async function ({ req }) {
               on a.agent_key = o.owner_agent and a.active) = 10
        and (select count(distinct os_key) from public.os_review
              where created_at > now() - interval '10 days') = 10
-       and ${LIVE_OS_READERS} > 0
+       and ${LIVE_READERS('operating_system')} > 0
+       and ${LIVE_READERS('os_review')} > 0
        and ${DEPT_UNIQUE}`, `
     select (select count(*) from public.operating_system where active) || '/10 active, '
         || (select count(*) from public.operating_system o join public.org_agents a
               on a.agent_key = o.owner_agent and a.active) || ' owners live, os_review '
         || (select count(distinct os_key) from public.os_review
              where created_at > now() - interval '10 days') || '/10 OS within 10 days (latest '
-        || coalesce((select max(period) from public.os_review), 'never') || '), '
-        || ${LIVE_OS_READERS} || ' cron-live non-writer reader(s): '
-        || coalesce((select string_agg(p.proname, ', ' order by p.proname) from pg_proc p
-              join pg_namespace ns on ns.oid = p.pronamespace
-             where ns.nspname = 'public' and p.prokind in ('f','p')
-               and p.proname not in ('fn_os_review')
-               and pg_get_functiondef(p.oid) ~* '\\yoperating_system\\y'
-               and exists (select 1 from cron.job j
-                            where j.active and j.command ~* ('\\y' || p.proname || '\\y'))), 'none')
+        || coalesce((select max(period) from public.os_review), 'never') || '); '
+        || 'operating_system read by ' || ${LIVE_READERS('operating_system')} || ' ('
+        || ${LIVE_READER_NAMES('operating_system')} || '), os_review read by '
+        || ${LIVE_READERS('os_review')} || ' (' || ${LIVE_READER_NAMES('os_review')}
+        || ') — non-writer routines on a cron that SUCCEEDED within 10 days'
         || '; os_department.dept_key unique: ' || ${DEPT_UNIQUE}`);
 
   // "No duplicated ownership" has to hold for BOTH ownership tables the blueprint defines, and the
@@ -218,6 +315,16 @@ export default async function ({ req }) {
   // someone else's list. (fn_agent_context caps that line at 12 responsibilities; the largest OS
   // declares 9, so the cap is not what is being measured — if an OS ever declares a 13th, the 13th
   // genuinely does not reach the employee and this correctly fails.)
+  //
+  // TWO REPAIRS HERE. (1) The index predicate is pinned to `where (ownership = 'owns'`, not merely
+  // `where (ownership`: the loose form is satisfied by a partial unique index on (domain_key) WHERE
+  // ownership <> 'owns', which permits exactly the duplicated ownership this requirement forbids
+  // while matching the regex. Production's index reads WHERE (ownership = 'owns'::text), so the
+  // pinned form is what is actually deployed. (2) The evidence no longer prints 'under PRIMARY KEY
+  // (responsibility)' as a literal. That sentence IS the first scored leg, evidence prints on MISSING
+  // as well as MET (verify_os_blueprint.mjs:37,40), and dropping the PK — the precise failure this
+  // check exists to detect — would have produced a MISSING row still asserting the constraint it had
+  // just lost. It now prints pg_get_constraintdef, i.e. whatever is actually there.
   await req('os-', 'os-exclusive-ownership',
     `No responsibility or knowledge domain is owned by two OSes`, `
     select exists (select 1 from pg_constraint
@@ -226,7 +333,7 @@ export default async function ({ req }) {
        and exists (select 1 from pg_indexes
                     where schemaname = 'public' and tablename = 'os_knowledge_domain'
                       and indexdef ~* 'unique index' and indexdef ~* '\\(domain_key\\)'
-                      and indexdef ~* 'where \\(ownership')
+                      and indexdef ~* 'where \\(ownership = ''owns''')
        and (select count(*) from public.operating_system o
               cross join lateral (select public.fn_agent_context(
                   (select a.agent_key from public.org_agents a
@@ -241,8 +348,11 @@ export default async function ({ req }) {
                     or exists (select 1 from public.os_responsibility r
                                 where r.os_key = o.os_key
                                   and strpos(l.line, r.responsibility) = 0))) = 0`, `
-    select (select count(*) from public.os_responsibility) || ' responsibilities under PRIMARY KEY '
-        || '(responsibility); ' || (select count(distinct domain_key) from public.os_knowledge_domain)
+    select (select count(*) from public.os_responsibility) || ' responsibilities under '
+        || coalesce((select pg_get_constraintdef(oid) from pg_constraint
+                      where conrelid = 'public.os_responsibility'::regclass and contype = 'p'),
+                    'NO PRIMARY KEY — a responsibility can be owned twice')
+        || '; ' || (select count(distinct domain_key) from public.os_knowledge_domain)
         || ' knowledge domains, ' || (select count(*) from public.os_knowledge_domain
               where ownership = 'owns') || ' owned, '
         || (select count(*) from (select domain_key from public.os_knowledge_domain
@@ -250,7 +360,7 @@ export default async function ({ req }) {
         || ' owned by none, unique-owns index: '
         || (select count(*) from pg_indexes where schemaname = 'public'
              and tablename = 'os_knowledge_domain' and indexdef ~* 'unique index'
-             and indexdef ~* '\\(domain_key\\)' and indexdef ~* 'where \\(ownership')
+             and indexdef ~* '\\(domain_key\\)' and indexdef ~* 'where \\(ownership = ''owns''')
         || '; OSes whose exclusivity line carries their own responsibilities: '
         || (select count(*) from public.operating_system o
               cross join lateral (select public.fn_agent_context(

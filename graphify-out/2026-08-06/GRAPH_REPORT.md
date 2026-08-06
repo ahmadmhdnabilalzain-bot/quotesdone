@@ -1,11 +1,11 @@
 # Graph Report - quotesdone  (2026-08-06)
 
 ## Corpus Check
-- 869 files · ~2,270,458 words
+- 870 files · ~2,271,605 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 6444 nodes · 8075 edges · 746 communities (577 shown, 169 thin omitted)
+- 6448 nodes · 8080 edges · 759 communities (583 shown, 176 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 29 edges (avg confidence: 0.59)
 - Token cost: 0 input · 0 output
 
@@ -511,12 +511,25 @@
 - public.fn_autonomy_status
 - public._kb_next_ver
 - seeds/README.md
+- doc_extract/index.ts
+- pdpl_erase/index.ts
+- quote_pdf/index.ts
+- reflect/index.ts
+- retention_purge/index.ts
+- sync_routines_from_production.mjs
+- export_all_knowledge/index.ts
+- kb_research_test/index.ts
+- meta_ads/index.ts
+- prompt_improve/index.ts
+- supplier_review/index.ts
+- vercel_status/index.ts
+- wa_template_setup/index.ts
 
 ## God Nodes (most connected - your core abstractions)
 1. `2. Edge functions` - 189 edges
 2. `requireInternal()` - 140 edges
 3. `Every failing case, individually` - 100 edges
-4. `mgmtRead()` - 95 edges
+4. `mgmtRead()` - 96 edges
 5. `3. Database migrations` - 89 edges
 6. `cn()` - 75 edges
 7. `4. Frontend` - 64 edges
@@ -525,6 +538,8 @@
 10. `REF` - 35 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `NodeField()` --indirect_call--> `W()`  [INFERRED]
+  src/components/NodeField.tsx → supabase/functions/pdf_native/index.ts
 - `Knowledge()` --indirect_call--> `cat()`  [INFERRED]
   src/components/osx/OsxShell.tsx → supabase/functions/_shared/attachment.test.ts
 - `ControlModePanel()` --references--> `react`  [EXTRACTED]
@@ -533,21 +548,19 @@
   src/components/osx/ControlMode.tsx → package.json
 - `useControlMode()` --references--> `react`  [EXTRACTED]
   src/components/osx/ControlMode.tsx → package.json
-- `AutomationPanel()` --references--> `react`  [EXTRACTED]
-  src/components/osx/OsxShell.tsx → package.json
 
 ## Import Cycles
 - None detected.
 
-## Communities (746 total, 169 thin omitted)
+## Communities (759 total, 176 thin omitted)
 
 ### Community 0 - "OsxShell.tsx"
 Cohesion: 0.04
 Nodes (54): metadata, metadata, AnalyticsApp(), AutomationPanel(), bringToTop(), CatalogPanel(), catSlug(), CH_LABEL (+46 more)
 
 ### Community 1 - "pdf_native/index.ts"
-Cohesion: 0.06
-Nodes (62): body, head, metadata, mono, tajawal, viewport, ChatWidget(), Msg (+54 more)
+Cohesion: 0.10
+Nodes (50): admin, armPage(), authed(), BANDTXT, bidi, bidiRuns(), blockBadge(), blockKV() (+42 more)
 
 ### Community 2 - "CustomerPortal.tsx"
 Cohesion: 0.06
@@ -610,8 +623,8 @@ Cohesion: 0.12
 Nodes (17): class-variance-authority, cmdk, lucide-react, dependencies, class-variance-authority, cmdk, lucide-react, @radix-ui/react-dialog (+9 more)
 
 ### Community 17 - "buildMeta"
-Cohesion: 0.14
-Nodes (16): generateMetadata(), generateStaticParams(), generateMetadata(), generateMetadata(), blogMeta(), BlogPost(), blogSlugs(), fmt() (+8 more)
+Cohesion: 0.13
+Nodes (17): generateMetadata(), generateStaticParams(), generateMetadata(), generateMetadata(), blogMeta(), BlogPost(), blogSlugs(), fmt() (+9 more)
 
 ### Community 18 - "ServiceDoc.tsx"
 Cohesion: 0.21
@@ -638,8 +651,8 @@ Cohesion: 0.10
 Nodes (17): admin, aiReview(), aiSummarize(), companyRe(), CONCLUDED, cors, crossCheckServices(), ID_PATTERNS (+9 more)
 
 ### Community 25 - "MarketingDoc.tsx"
-Cohesion: 0.20
-Nodes (9): generateMetadata(), generateMetadata(), generateMetadata(), CSS, Doc, M, MarketingDoc(), mkMeta() (+1 more)
+Cohesion: 0.22
+Nodes (8): generateMetadata(), generateMetadata(), generateMetadata(), CSS, Doc, M, MarketingDoc(), mkMeta()
 
 ### Community 26 - "agent_act/index.ts"
 Cohesion: 0.13
@@ -670,8 +683,8 @@ Cohesion: 0.14
 Nodes (5): admin, logRun(), logThrottled(), NOTE: the row is deliberately left 'queued' so it can go out once templates are, T0
 
 ### Community 33 - "SiteHeader.tsx"
-Cohesion: 0.21
-Nodes (8): LangSwitch(), Item, MobileNav(), ScrollProgress(), { Link, usePathname, useRouter }, routing, config, NOTE: individual blog posts (/blog/:slug) are now native pages, so they
+Cohesion: 0.16
+Nodes (11): BrandMark(), BrandMarkProps, LangSwitch(), Item, MobileNav(), SpringHover(), SOCIALS, { Link, usePathname, useRouter } (+3 more)
 
 ### Community 34 - "kyc/index.ts"
 Cohesion: 0.15
@@ -698,8 +711,8 @@ Cohesion: 0.27
 Nodes (9): admin, caseHtml(), demandHtml(), esc(), fmtD(), money(), REF(), renderPdf() (+1 more)
 
 ### Community 40 - "crm_pipeline/index.ts"
-Cohesion: 0.03
-Nodes (55): REF, BRIDGE, REF, values, MAP, REF, rows, REF (+47 more)
+Cohesion: 0.04
+Nodes (49): REF, BRIDGE, REF, values, MAP, REF, rows, REF (+41 more)
 
 ### Community 41 - "finance_ingest/index.ts"
 Cohesion: 0.29
@@ -818,12 +831,12 @@ Cohesion: 0.18
 Nodes (6): storeOriginal(), safeFilename(), admin, cors, DOC_KINDS, DOC_ORDER
 
 ### Community 75 - "yello_scrape/index.ts"
-Cohesion: 0.04
-Nodes (18): admin, auth(), admin, FIXED, admin, admin, admin, authed() (+10 more)
+Cohesion: 0.06
+Nodes (13): admin, admin, auth(), admin, admin, admin, authed(), CORS (+5 more)
 
 ### Community 76 - "portal/page.tsx"
-Cohesion: 0.08
-Nodes (61): hash, run, arr(), AUTHORITY, BUCKET_SOURCES(), call(), capabilityInsert(), capabilityProfile() (+53 more)
+Cohesion: 0.09
+Nodes (52): hash, run, arr(), AUTHORITY, call(), capabilityInsert(), capabilityProfile(), confirmCapability() (+44 more)
 
 ### Community 77 - "admin_detail/index.ts"
 Cohesion: 0.03
@@ -878,8 +891,8 @@ Cohesion: 0.32
 Nodes (4): admin, genOne(), llm, parseJson()
 
 ### Community 95 - "doc_extract/index.ts"
-Cohesion: 0.04
-Nodes (18): cors, INDEX_KINDS, logRun(), logThrottled(), admin, admin, admin, admin (+10 more)
+Cohesion: 0.06
+Nodes (10): admin, admin, COLS, admin, admin, T0, admin, Admin (+2 more)
 
 ### Community 96 - "dr_drill/index.ts"
 Cohesion: 0.25
@@ -934,20 +947,24 @@ Cohesion: 0.05
 Nodes (42): 0. THE RULE FOR THIS SESSION — demo data, always, 1. Settled — do not re-open, 2.1 What exists today, 2.2 What staging was carrying — CLEARED in session 9, 2.3 The factory — BUILT, 2.4 Traps that specifically break demo data — read before writing a fixture, 2. Demo data: what exists, what is rotting, what to build, 3.1 Phase 3 — supplier journey (+34 more)
 
 ### Community 117 - "exec_board/index.ts"
-Cohesion: 0.07
-Nodes (25): defs(), ROUTINES, [S, P], VIEWS, EDITS, live, audit(), STATEMENTS (+17 more)
+Cohesion: 0.06
+Nodes (29): defs(), ROUTINES, [S, P], VIEWS, EDITS, live, audit(), STATEMENTS (+21 more)
 
 ### Community 118 - "extract_text/index.ts"
 Cohesion: 0.18
 Nodes (6): admin, authed(), CORS, sec(), admin, SAFE_UPLOAD
+
+### Community 119 - "kb_autofill_gaps/index.ts"
+Cohesion: 0.14
+Nodes (12): body, head, metadata, mono, tajawal, viewport, ChatWidget(), Msg (+4 more)
 
 ### Community 120 - "legal_draft/index.ts"
 Cohesion: 0.14
 Nodes (33): answer_document_append_only, conflict_value_append_only, corroboration_append_only, inquiry_answer_value_immutable, inquiry_state_audit_append_only, public.field_definition, public.field_definition_source, public.field_definition_trade (+25 more)
 
 ### Community 121 - "make_xlsx/index.ts"
-Cohesion: 0.06
-Nodes (22): COSMETIC_VIEWS, DDL, names, PROMOTE, sql, token, uniq, both (+14 more)
+Cohesion: 0.05
+Nodes (21): both, onlyP, onlyS, [s, p], SHOW, VIEWS_ONLY, cols, inList (+13 more)
 
 ### Community 122 - "ops_live/index.ts"
 Cohesion: 0.06
@@ -993,6 +1010,10 @@ Nodes (25): 0. Architecture at a glance, 1. Routes, 2. Frontend — `src/compone
 Cohesion: 0.07
 Nodes (26): 0. How to use this brief, 10. Prohibited actions for the authoring session, 1. Hard constraints on the authoring session, 2.1 Trades, 2.2 Dispositions, 2.3 Scope components, 2.4 Precedence and conflict resolution, 2.5 Sentence and clause boundaries (+18 more)
 
+### Community 136 - "ai_health/index.ts"
+Cohesion: 0.12
+Nodes (8): admin, authed(), CORS, llm, sec(), admin, _llm, SONNET_FIRST
+
 ### Community 138 - "20260802165328_p2_c1_stage_a_mep_model.sql"
 Cohesion: 0.15
 Nodes (24): answer_document_append_only, conflict_value_append_only, corroboration_append_only, inquiry_answer_value_immutable, inquiry_state_audit_append_only, public.field_definition, public.field_definition_source, public.field_definition_trade (+16 more)
@@ -1006,12 +1027,20 @@ Cohesion: 0.40
 Nodes (3): admin, deployAuth(), sec()
 
 ### Community 143 - "email_triage/index.ts"
-Cohesion: 0.03
-Nodes (39): admin, authed(), CORS, llm, sec(), admin, authed(), CORS (+31 more)
+Cohesion: 0.09
+Nodes (17): admin, authed(), CORS, llm, sec(), admin, llm, admin (+9 more)
+
+### Community 144 - "export_leads_csv/index.ts"
+Cohesion: 0.17
+Nodes (8): capValues, checks, { found: callerMax, skipped: ambiguous }, LIVE, REF, sites, siteValues, unmapped
 
 ### Community 145 - "finance_doc/index.ts"
 Cohesion: 0.14
 Nodes (23): archive_record_version, ops_kb_stage.decision_rules, ops_kb_stage.department_crosswalk, ops_kb_stage.departments, ops_kb_stage.event_subscriptions, ops_kb_stage.exception_playbooks, ops_kb_stage.handoffs, ops_kb_stage.hard_gates (+15 more)
+
+### Community 150 - "pending_digest/index.ts"
+Cohesion: 0.18
+Nodes (7): COSMETIC_VIEWS, DDL, names, PROMOTE, sql, token, uniq
 
 ### Community 152 - "prompt_improve/index.ts"
 Cohesion: 0.09
@@ -1258,8 +1287,8 @@ Cohesion: 0.17
 Nodes (8): byCaller, calleeCount, dirs, dynamic, hops, KNOWN, out, unattached
 
 ### Community 258 - "promote_rows_to_production.mjs"
-Cohesion: 0.17
-Nodes (8): cols, inList, json, ph, setList, sh, [table, keyCol, ...keys], token
+Cohesion: 0.28
+Nodes (5): admin, llm, OFFICERS, parseJson(), runOfficer()
 
 ### Community 259 - "os_blueprint_schema.sql"
 Cohesion: 0.20
@@ -1330,8 +1359,8 @@ Cohesion: 0.18
 Nodes (8): APPLY, checks, extraCK, extraNN, missCK, missNN, set(), stmts
 
 ### Community 276 - "SiteFooter.tsx"
-Cohesion: 0.25
-Nodes (8): BrandMark(), BrandMarkProps, fmt(), LiveMatch(), LiveMatchLabels, Quote, QUOTES, SOCIALS
+Cohesion: 0.47
+Nodes (5): fmt(), LiveMatch(), LiveMatchLabels, Quote, QUOTES
 
 ### Community 277 - "marketing_image/index.ts"
 Cohesion: 0.24
@@ -1510,20 +1539,16 @@ Cohesion: 0.29
 Nodes (4): APPLY, out, results, TARGETS
 
 ### Community 321 - "gate_decision_chain.mjs"
-Cohesion: 0.33
-Nodes (5): decs, ids, one(), sql(), token
+Cohesion: 0.15
+Nodes (14): BUCKET_SOURCES(), delCount(), deleteAuthUsersByTag(), deleteObjects(), PROTECTED_BUCKETS, purge(), scopeForRun(), scopeSql() (+6 more)
 
 ### Community 322 - "verify_review_chain.mjs"
-Cohesion: 0.29
-Nodes (3): CASES, checks, cleanup()
+Cohesion: 0.22
+Nodes (3): admin, CORS, llm
 
 ### Community 323 - "verify_taxonomy.mjs"
-Cohesion: 0.38
-Nodes (5): checks, decide(), digest(), one(), [ph, sh]
-
-### Community 324 - "boost_recommend/index.ts"
-Cohesion: 0.33
-Nodes (5): admin, authed(), CORS, llm, sec()
+Cohesion: 0.29
+Nodes (5): admin, authed(), CORS, judge, sec()
 
 ### Community 325 - "content_revise/index.ts"
 Cohesion: 0.33
@@ -1849,24 +1874,36 @@ Nodes (3): _cand, _src, _verdict
 Cohesion: 0.50
 Nodes (3): public.field_definition, public.inquiry_gate, public.mep_trade
 
+### Community 746 - "doc_extract/index.ts"
+Cohesion: 0.29
+Nodes (4): cors, INDEX_KINDS, logRun(), logThrottled()
+
+### Community 749 - "reflect/index.ts"
+Cohesion: 0.29
+Nodes (4): admin, AGENTS, llm, RUNMAP
+
+### Community 751 - "sync_routines_from_production.mjs"
+Cohesion: 0.33
+Nodes (5): bad, DRY, results, ROUTINES, VIEWS
+
 ## Knowledge Gaps
-- **3039 isolated node(s):** `npx`, `@playwright/mcp`, `holdout_v2.failure_analysis`, `holdout_v2.root_cause`, `files` (+3034 more)
+- **3040 isolated node(s):** `npx`, `@playwright/mcp`, `holdout_v2.failure_analysis`, `holdout_v2.root_cause`, `files` (+3035 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **169 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **176 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `get()` connect `customer_api/index.ts` to `make_xlsx/index.ts`, `exec_board/index.ts`?**
   _High betweenness centrality (0.066) - this node is a cross-community bridge._
-- **Why does `mgmtRead()` connect `exec_board/index.ts` to `promote_rows_to_production.mjs`, `customer_api/index.ts`, `verify_os_knowledge_cluster.mjs`, `verify_constraints.mjs`, `prompt_improve/index.ts`, `backfill_production_embeddings.mjs`, `verify_event_contract.mjs`, `verify_spec_architecture.mjs`, `crm_pipeline/index.ts`, `meta_ads/index.ts`, `prove_a01_remediation.mjs`, `sync_staging_assets.mjs`, `sync_org_config_to_staging.mjs`, `export_cat_knowledge/index.ts`, `verify_review_chain.mjs`, `verify_taxonomy.mjs`, `verify_phase1.mjs`, `portal/page.tsx`, `import_ops_knowledge.mjs`, `verify_agent_knowledge.mjs`, `quote_pdf/index.ts`, `sync_staging_reference.mjs`, `verify_prod_readiness.mjs`, `make_xlsx/index.ts`, `pdpl_erase/index.ts`, `retention_purge/index.ts`?**
-  _High betweenness centrality (0.064) - this node is a cross-community bridge._
+- **Why does `mgmtRead()` connect `exec_board/index.ts` to `customer_api/index.ts`, `verify_os_knowledge_cluster.mjs`, `export_leads_csv/index.ts`, `verify_constraints.mjs`, `pending_digest/index.ts`, `prompt_improve/index.ts`, `backfill_production_embeddings.mjs`, `verify_event_contract.mjs`, `verify_spec_architecture.mjs`, `crm_pipeline/index.ts`, `meta_ads/index.ts`, `prove_a01_remediation.mjs`, `sync_staging_assets.mjs`, `sync_org_config_to_staging.mjs`, `export_cat_knowledge/index.ts`, `gate_decision_chain.mjs`, `verify_phase1.mjs`, `portal/page.tsx`, `import_ops_knowledge.mjs`, `verify_agent_knowledge.mjs`, `quote_pdf/index.ts`, `sync_routines_from_production.mjs`, `sync_staging_reference.mjs`, `verify_prod_readiness.mjs`, `make_xlsx/index.ts`, `pdpl_erase/index.ts`, `retention_purge/index.ts`?**
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
 - **What connects `npx`, `@playwright/mcp`, `holdout_v2.failure_analysis` to the rest of the system?**
-  _3039 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _3040 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `OsxShell.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.04225352112676056 - nodes in this community are weakly interconnected._
 - **Should `pdf_native/index.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.061815336463223784 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09796806966618288 - nodes in this community are weakly interconnected._
 - **Should `CustomerPortal.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.06448979591836734 - nodes in this community are weakly interconnected._
 - **Should `cn` be split into smaller, more focused modules?**

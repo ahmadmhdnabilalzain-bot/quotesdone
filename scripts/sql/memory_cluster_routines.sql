@@ -20,6 +20,11 @@
 -- lifted it into the column, so the next employee to miss the same target starts from zero.
 -- The guard CAPTURES first and only refuses when there is genuinely no cause anywhere — demanding
 -- a retype of something already written would just get worked around.
+--
+-- The needle is 'root[-_ ]?cause', not 'root cause'. Measured 6 Aug 2026: org_tasks #163 closed
+-- with an empty column while its deliverable carried a paragraph headed "Root-cause hypothesis,
+-- evidence-linked:" — one hyphen was the whole difference between a diagnosis captured and a
+-- diagnosis lost, and it is the only KPI-miss task in the system that closed without a cause.
 create or replace function public.fn_org_task_root_cause_guard()
 returns trigger
 language plpgsql
@@ -32,7 +37,7 @@ begin
 
     v_rc := nullif(btrim(regexp_replace(
               coalesce(substring(coalesce(new.result ->> 'deliverable', '')
-                                 from '(?i)root cause[^\n]{0,250}'), ''),
+                                 from '(?i)root[-_ ]?cause[^\n]{0,250}'), ''),
               '\s+', ' ', 'g')), '');
 
     if v_rc is null then
@@ -154,6 +159,15 @@ $function$;
 -- The created_at window is gone too. It admitted only the last seven days, and since the function
 -- had never written a row that excluded the entire backlog. The `not exists` clause is what
 -- actually prevents rework, and it does so permanently rather than for a week.
+--
+-- os_runbooks.os_key is written. It was 0 of 31 rows while this function held the value in hand and
+-- dropped it into `category` instead — one of the five columns spec file #2 names as "added but
+-- never written to", and the only one of them this section owns. institutional_memory.os_key is
+-- null on 70 of 100 rows, so the lesson's own task resolves the rest through the department that
+-- did the work, and the department that recorded it after that. All 83 graded rows on production
+-- resolve through one of the three. A lesson that resolves through none of them writes a null, and
+-- comp-12-best-practices goes red on it — deliberately: the remedy is a department-to-OS mapping,
+-- and a runbook nobody can route to an operating system is a runbook nobody will be handed.
 create or replace function public.fn_sop_update()
 returns jsonb
 language plpgsql
@@ -163,7 +177,11 @@ as $function$
 declare r record; n_new int := 0; v_slug text;
 begin
   for r in
-    select m.id, m.os_key, m.headline, m.detail, m.outcome
+    select m.id, m.headline, m.detail, m.outcome,
+           coalesce(m.os_key,
+                    (select d.os_key from org_tasks o join os_department d on d.dept_key = o.dept_key
+                      where m.subject_type = 'org_task' and o.id::text = m.subject_id limit 1),
+                    (select d.os_key from os_department d where d.dept_key = m.learned_by limit 1)) as os_key
     from institutional_memory m
     where m.outcome in ('worse', 'improved', 'success', 'success_over_dissent')
       and not exists (select 1 from os_runbooks b where b.slug = 'lesson-' || m.id)
@@ -171,13 +189,13 @@ begin
     limit 25
   loop
     v_slug := 'lesson-' || r.id;
-    insert into os_runbooks (slug, title, category, when_to_use, steps, sort)
+    insert into os_runbooks (slug, title, category, when_to_use, steps, sort, os_key)
     values (v_slug, left(coalesce(r.headline, 'Lesson ' || r.id), 120),
             coalesce(r.os_key, 'operations'),
             case when r.outcome = 'worse'
               then 'Before repeating this change. It was tried and it made things worse.'
               else 'When this situation recurs. This approach was measured and it worked.' end,
-            coalesce(r.detail, ''), 100);
+            coalesce(r.detail, ''), 100, r.os_key);
     n_new := n_new + 1;
   end loop;
 
@@ -265,6 +283,46 @@ begin
                             'with_a_plan', v_written, 'nothing_on_record', v_cleared);
 end
 $function$;
+
+-- ---------------------------------------------------------------------------------------------
+-- 5a. Promotion refuses a memory that is already long-term.
+--
+-- agent_memory.horizon was the fourth of the five columns that exist and mean nothing: 233 rows
+-- carried a value, 184 short and 49 long, and the ONLY routine that consulted it was
+-- fn_promote_memory_sweep — which also sets it. A distinction maintained solely by its own
+-- maintainer is decorative, and comp-12-short-term scored MISSING on exactly that, correctly.
+--
+-- This is the moment in the system where short and long have to mean different things: promotion IS
+-- the short-to-long transition. Promoting a memory that is already long-term is not a no-op, it
+-- writes a second kb_chunk for content already in the knowledge base, and the ledger's own
+-- "already promoted" guard misses it whenever the earlier promotion came from another path.
+-- Signature unchanged (bigint, text, text) — a different argument list would create an OVERLOAD and
+-- leave fn_promote_memory_sweep calling the old body.
+create or replace function public.fn_promote_memory(p_memory_id bigint, p_category text, p_by text default 'founder')
+returns bigint
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $function$
+declare m record; v_chunk_id bigint;
+begin
+  select * into m from public.agent_memory where id = p_memory_id;
+  if not found then raise exception 'memory % not found', p_memory_id; end if;
+  if coalesce(m.horizon, 'short') <> 'short' then
+    raise exception 'memory % is already long-term (horizon=%): promotion is the short-to-long transition and there is nothing left to promote', p_memory_id, m.horizon;
+  end if;
+  if exists (select 1 from public.memory_promotions where memory_id = p_memory_id) then
+    raise exception 'memory % already promoted', p_memory_id;
+  end if;
+  insert into public.kb_chunks(source_kind, source_id, category, title, content, citation, effective_date)
+  values('memory', p_memory_id::text, coalesce(nullif(p_category,''),'general'),
+         left(m.content, 80), m.content,
+         'agent_memory #'||p_memory_id||' ('||coalesce(m.agent_key,'?')||')', current_date)
+  returning id into v_chunk_id;
+  insert into public.memory_promotions(memory_id, kb_chunk_id, category, promoted_by)
+  values(p_memory_id, v_chunk_id, coalesce(nullif(p_category,''),'general'), p_by);
+  return v_chunk_id;
+end $function$;
 
 -- ---------------------------------------------------------------------------------------------
 -- 5. The sweeper that gives fn_promote_memory a caller.

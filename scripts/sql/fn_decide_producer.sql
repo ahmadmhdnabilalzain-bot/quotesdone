@@ -33,7 +33,7 @@ declare
   v_q text; v_cands text[]; v_hits jsonb := '[]'::jsonb; v_evidence jsonb;
   v_options jsonb; v_amount numeric; v_dept text;
   v_problem text; v_imp_bus text; v_imp_fin text; v_imp_leg text; v_imp_cus text;
-  v_escalates boolean; v_status text; v_approver text;
+  v_escalates boolean; v_status text; v_approver text; v_authorised boolean;
   v_dr_id bigint; v_dr_status text; v_verdict text; v_gate_reason text;
   v_corr uuid; v_trace uuid;
 begin
@@ -152,9 +152,26 @@ begin
   -- STEP 7. Whether this is the engine's to take. Escalating decisions stay 'proposed' and never
   -- reach the gate; autonomous ones are written as 'approved' so trg_decision_gate must inspect
   -- them, and it is free to refuse — 'blocked_by_gate' coming back out is a working gate, not a bug.
+  --
+  -- THE ACTOR MUST HAVE AUTHORITY ON FILE. fn_decision_gate only consults employee_authority when
+  -- financial_aed > 0, so before this clause any string handed in as p_actor could have a decision
+  -- written straight to 'approved' and stamped gate_verdict='passed' with no authority checked at
+  -- all — measured on production: three passed rows decided by 'operations_ai', which has no
+  -- employee_authority row and no org_agents row either. The blueprint's rule is that anything not
+  -- on the list is GATED, so an actor with no recorded authority escalates instead of approving.
+  -- 'founder' is the one identity fn_decision_gate itself treats as top authority without an
+  -- employee_authority row, so it resolves here too; every other actor must be on the list.
+  v_authorised := p_actor = 'founder'
+                  or exists (select 1 from public.employee_authority ea where ea.agent_key = p_actor);
+  if not v_authorised then
+    reasons := coalesce(reasons,'[]'::jsonb) || jsonb_build_array(
+      format('%s has no employee_authority record, so this decision is escalated rather than taken autonomously', p_actor));
+  end if;
+
   v_escalates := decision in ('escalate','human_review','unsupported_kind')
                  or conf < 0.7
-                 or jsonb_array_length(v_evidence) = 0;
+                 or jsonb_array_length(v_evidence) = 0
+                 or not v_authorised;
   v_status   := case when v_escalates then 'proposed' else 'approved' end;
   v_approver := case when v_escalates then null else p_actor end;
 
@@ -170,7 +187,12 @@ begin
              conf, coalesce(v_alt_score, round(1 - conf, 2))),
       format('Benefit: the %s step is taken now instead of waiting for a person, on %s retrieved reference(s).',
              p_kind, jsonb_array_length(v_hits)),
-      format('%s (confidence %s, route %s)', decision, conf, coalesce(route,'none')),
+      -- recommendation is the ONE decision_record field fn_agent_context actually emits to an
+      -- employee ('# DECISIONS ALREADY ON RECORD FOR YOUR DEPARTMENT', left(...,150)). The step-3
+      -- retrieval was landing on evidence, which travels nowhere, so the count of references the
+      -- engine consulted is carried here instead of being computed and thrown away.
+      format('%s (confidence %s, route %s, %s reference(s) retrieved)',
+             decision, conf, coalesce(route,'none'), jsonb_array_length(v_hits)),
       conf,
       format('Expected: %s is carried out and the outcome recorded against decision_record.', decision),
       case when v_escalates then 'Rollback: nothing executed; the decision sits at proposed until a human takes it.'

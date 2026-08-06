@@ -1370,8 +1370,8 @@
     "semantic_hash": ""
   },
   ".claude-flow/neural/stats.json": {
-    "mtime": 1786003281.1552446,
-    "ast_hash": "71c0485a36de5806da37f70e4a7582df",
+    "mtime": 1786003466.8654573,
+    "ast_hash": "4c84a6fa92b7f0b256d4423b4922da9c",
     "semantic_hash": ""
   },
   ".claude/proven-config.json": {
@@ -2150,8 +2150,8 @@
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/cross_os.mjs": {
-    "mtime": 1786003308.2639925,
-    "ast_hash": "39a53eda7f614ba0c31a9ead278774bd",
+    "mtime": 1786003326.5500796,
+    "ast_hash": "a982617b8fb4eb2996d0a6a68128d727",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/the_ten_oses.mjs": {
@@ -4402,6 +4402,11 @@
   "src/app/icon.png": {
     "mtime": 1785671428.546021,
     "ast_hash": "f9482c1b96bd1b767581f595ad75f841",
+    "semantic_hash": ""
+  },
+  "scripts/staging/verify_bus_contract.mjs": {
+    "mtime": 1786003398.8211346,
+    "ast_hash": "a6b5a65ba56b6241424afa11425cc599",
     "semantic_hash": ""
   }
 }

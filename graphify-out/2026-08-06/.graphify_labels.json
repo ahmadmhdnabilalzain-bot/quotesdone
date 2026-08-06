@@ -744,5 +744,18 @@
   "742": "brand_assets.seed.sql",
   "743": "canon_eval_questions.seed.sql",
   "744": "dept_library.seed.sql",
-  "745": "marketing_library.seed.sql"
+  "745": "marketing_library.seed.sql",
+  "746": "doc_extract/index.ts",
+  "747": "pdpl_erase/index.ts",
+  "748": "quote_pdf/index.ts",
+  "749": "reflect/index.ts",
+  "750": "retention_purge/index.ts",
+  "751": "sync_routines_from_production.mjs",
+  "752": "export_all_knowledge/index.ts",
+  "753": "kb_research_test/index.ts",
+  "754": "meta_ads/index.ts",
+  "755": "prompt_improve/index.ts",
+  "756": "supplier_review/index.ts",
+  "757": "vercel_status/index.ts",
+  "758": "wa_template_setup/index.ts"
 }
