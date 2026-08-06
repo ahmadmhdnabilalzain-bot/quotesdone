@@ -144,6 +144,43 @@ begin
       if v_line is not null then v_emp := v_emp || v_line || E'\n'; end if;
     end if;
 
+    -- ---- WHICH OPERATING SYSTEM YOU BELONG TO (spec file #2) ------------------------------------
+    -- The Universal OS Blueprint's first four components — Purpose, Mission, Objectives,
+    -- Responsibilities — were all POPULATED and read by NOTHING: operating_system.charter/mandate
+    -- and .mission 10/10, os_objective 50 rows (all five horizons for all ten OSes),
+    -- os_responsibility 71 rows whose only reader was fn_graph_rebuild. The single view that
+    -- exposed them, v_operating_manual, has zero readers itself.
+    --
+    -- An employee belongs to an OS through org_agents.department -> os_department -> operating_system.
+    -- Emitting it here is the same fix that closed row #1: the company knew all of this and never
+    -- told the people doing the work.
+    for r in
+      select o.os_key, o.name, o.charter, o.mandate, o.mission,
+             (select string_agg(x.responsibility, ', ' order by x.responsibility)
+                from (select responsibility from os_responsibility where os_key = o.os_key
+                       order by responsibility limit 12) x) resp,
+             (select string_agg(y.horizon || ': ' || y.objective, E'\n- '
+                       order by case y.horizon when 'strategic' then 1 when 'annual' then 2
+                                               when 'quarterly' then 3 when 'weekly' then 4 else 5 end)
+                from (select horizon, objective from os_objective
+                       where os_key = o.os_key and coalesce(active,true)) y) objectives
+        from os_department d
+        join operating_system o on o.os_key = d.os_key and coalesce(o.active,true)
+       where d.dept_key = v_dept
+       limit 1
+    loop
+      v_emp := v_emp || E'\n'||'# YOUR OPERATING SYSTEM — '||coalesce(r.name, r.os_key)||E'\n'
+        ||case when r.charter is not null then 'Purpose: '||left(r.charter,300)||E'\n' else '' end
+        ||case when r.mission is not null then 'Mission: '||left(r.mission,240)||E'\n' else '' end
+        ||case when r.mandate is not null then 'Mandate: '||left(r.mandate,240)||E'\n' else '' end
+        ||case when r.resp is not null
+               then 'Your OS OWNS, and no other OS may own: '||r.resp||E'\n'
+                 ||'If work belongs to another OS, hand it over — do not duplicate it.'||E'\n'
+               else '' end
+        ||case when r.objectives is not null
+               then 'Your OS objectives by horizon:'||E'\n- '||r.objectives||E'\n' else '' end;
+    end loop;
+
     -- ---- WHAT THE COMPANY IS TRYING TO ACHIEVE ---------------------------------------------------
     -- company_goals was read by dept_plan:79 and by nothing an ordinary employee ever saw. The spec
     -- opens with "Every employee works toward the same business objectives" and "Every decision made
@@ -228,7 +265,7 @@ begin
       end if;
     end if;
 
-    out := out || left(v_emp, 4600) || E'\n\n';
+    out := out || left(v_emp, 6200) || E'\n\n';
   end if;
   if p_agent_key is not null then
     out := out || '# LAYER 2 - YOUR PROFESSIONAL EXPERTISE'||E'\n\n';

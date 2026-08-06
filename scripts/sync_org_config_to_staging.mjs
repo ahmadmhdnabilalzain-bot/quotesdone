@@ -42,6 +42,17 @@ const TABLES = [
   // exception_playbooks …): they are the same corpus as public.ops_knowledge, which is already on
   // both projects and already digest-identical, and nothing in the authority path reads them.
   // hard_gates is the one fn_ops_authority_check actually consults.
+  // The OS layer (spec file #2). operating_system had 10 rows on staging and its three CHILD
+  // tables had ZERO — os_department 0/13, os_responsibility 0/71, os_objective 0/50 — so the
+  // parent looked present, every count that anybody checks agreed, and no OS could be resolved
+  // from an employee's department. Exactly the shape that made the authority model answer
+  // "gated" to everything: a populated parent is not a populated layer.
+  // operating_system itself is NOT re-synced: its 10 rows already match (verify_prod_parity check 7
+  // covers it and is green), and os_knowledge_domain's 380 rows have a foreign key into it, so
+  // clearing the parent to re-add identical rows would only risk the children.
+  'os_department',
+  'os_responsibility',
+  'os_objective',
   'ops_kb_stage.ingestion_runs',
   'ops_kb_stage.records',
   'ops_kb_stage.hard_gates',
