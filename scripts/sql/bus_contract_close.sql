@@ -197,6 +197,11 @@ end $function$;
 --     second emission for that chain forever, on this run and every later one;
 --   * a chain whose ROOT is itself a priority.updated is skipped outright, as a second defence.
 -- Both are needed: the first stops the loop, the second stops it from ever starting.
+--
+-- SUPERSEDED — the current definition of fn_event_consolidate lives in
+-- scripts/sql/bus_contract_read.sql, which adds the two reads that were missing here: the
+-- event_assessment each OS wrote before acting (link 4, previously written and read by nothing)
+-- and the consolidation backlog off v_event_backbone. Apply that file after this one.
 create or replace function public.fn_event_consolidate()
  returns jsonb
  language plpgsql
