@@ -53,6 +53,25 @@ const TABLES = [
   'os_department',
   'os_responsibility',
   'os_objective',
+  // AND THE SAME DEFECT AGAIN, ONE LAYER OVER — measured 6 Aug 2026, session 15. Fixing the three
+  // child tables above made os_department/os_responsibility/os_objective rehearsable and left the
+  // rest of the OS layer empty on staging: os_interface 0/32, event_subscription 0/48,
+  // resource_pool 0/10, os_runbooks 0/10. The cross-OS event contract is the part of spec file #2
+  // that most needs rehearsing and it is exactly the part staging could not run — a gate for the
+  // bus had to create its own subscriptions to have anything to dispatch, which tests the fixture
+  // rather than the configuration.
+  //
+  // These four are DECLARATIVE: the founder wrote them and they do not change by being read.
+  // Deliberately NOT synced: agent_reputation (66), os_review (20), outcome_record (50),
+  // decision_record (3), event_delivery (274), agent_memory (219), risk_register (19),
+  // os_incidents (11). Those are COMPUTED — they are what the routines produce — and copying an
+  // output to staging would let a reader look wired while its producer was never exercised. When
+  // staging needs them it runs the producer (fn_reputation_recompute, fn_os_review), which is the
+  // stronger test anyway.
+  'os_interface',
+  'event_subscription',
+  'resource_pool',
+  'os_runbooks',
   'ops_kb_stage.ingestion_runs',
   'ops_kb_stage.records',
   'ops_kb_stage.hard_gates',
