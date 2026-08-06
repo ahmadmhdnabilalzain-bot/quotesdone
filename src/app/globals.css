@@ -360,6 +360,12 @@ button,a{touch-action:manipulation;-webkit-tap-highlight-color:rgba(20,184,166,.
     --input: 200 26% 24%;
     --ring: 172 79% 45%;
     --radius: 0.65rem;
+    /* chart series — brand teal/gold ramp, consumed by components/ui/chart.tsx */
+    --chart-1: 172 79% 40%;
+    --chart-2: 43 68% 64%;
+    --chart-3: 169 71% 67%;
+    --chart-4: 174 84% 28%;
+    --chart-5: 196 15% 56%;
   }
 }
 .osx { background: transparent; color: hsl(var(--foreground)); }
