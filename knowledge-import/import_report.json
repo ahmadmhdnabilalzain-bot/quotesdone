@@ -1,6 +1,7 @@
 {
- "started_at": "2026-08-02T12:38:49.622339+00:00",
+ "started_at": "2026-08-05T22:54:01.572548+00:00",
  "dry_run": false,
+ "project_ref": "pglpqrhvozwepymcuunn",
  "package_count": 67,
  "packages": [
   {
@@ -8,7 +9,7 @@
    "package_id": "QD-KB-001-construction-civil-building-materials-v2026.07.31",
    "version": "1.0.0",
    "sha256": "a72e2c1b51a73855",
-   "run_id": "e8b1501c-4fad-4484-bbd4-4be7153fa97f",
+   "run_id": "e8b3ee0d-0124-465e-aca5-e9cd3656f550",
    "rows": 4743,
    "by_file": {
     "04_glossary_en_ar.jsonl": 943,
@@ -32,7 +33,7 @@
     "subcategories": 17,
     "sources": 50,
     "knowledge_gaps": 12,
-    "records": 4275,
+    "records": 4743,
     "questions": 494,
     "validation_rules": 239,
     "scenario_tests": 136,
@@ -47,7 +48,7 @@
    "package_id": "QD-KB-002-mep-mechanical-electrical-plumbing-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "a26d8cf3871b6922",
-   "run_id": "61310f74-d0aa-4a70-afb4-fd7c62b7f5eb",
+   "run_id": "62cbea7c-4b93-425e-bef4-fad735db5c3c",
    "rows": 4301,
    "by_file": {
     "04_glossary_en_ar.jsonl": 670,
@@ -83,15 +84,49 @@
   },
   {
    "package": "QD-KB-003-utilities-v2026.07.31.zip",
-   "skipped": "already_completed",
-   "run_id": "7d1399b5-e8c1-494c-b833-f7177d291b0d"
+   "package_id": "QD-KB-003-utilities-v2026.07.31",
+   "version": "2026.07.31",
+   "sha256": "4f8ffc968a056d7b",
+   "run_id": "20f92c28-0704-48de-8ea5-b327062382c5",
+   "rows": 2876,
+   "by_file": {
+    "04_glossary_en_ar.jsonl": 490,
+    "05_products_services.jsonl": 100,
+    "06_technical_knowledge.jsonl": 103,
+    "07_brands_manufacturers.jsonl": 32,
+    "08_supplier_ecosystem.jsonl": 182,
+    "09_quotation_knowledge.jsonl": 103,
+    "10_document_requirements.jsonl": 168,
+    "11_uae_regulations_authorities.jsonl": 18,
+    "12_inquiry_questions.jsonl": 689,
+    "14_validation_rules.jsonl": 39,
+    "15_pricing_cost_drivers.jsonl": 238,
+    "16_risks_common_mistakes.jsonl": 161,
+    "17_troubleshooting.jsonl": 84,
+    "18_scenarios_tests.jsonl": 70,
+    "13_decision_rules.jsonl": 399
+   },
+   "written": {
+    "categories": 1,
+    "subcategories": 7,
+    "sources": 43,
+    "knowledge_gaps": 12,
+    "records": 2477,
+    "questions": 689,
+    "validation_rules": 39,
+    "scenario_tests": 70,
+    "decision_rules": 399
+   },
+   "rejected": 0,
+   "rejected_detail": [],
+   "write_errors": []
   },
   {
    "package": "QD-KB-004-gas-systems-v2026.07.31.zip",
    "package_id": "QD-KB-004-gas-systems-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "e9fe736e7246f84f",
-   "run_id": "ea3a5fa7-9706-4edf-9596-807ad302ec85",
+   "run_id": "141b3fa4-270c-4eec-b008-a1648664039e",
    "rows": 1684,
    "by_file": {
     "04_glossary_en_ar.jsonl": 258,
@@ -130,7 +165,7 @@
    "package_id": "QD-KB-005-wastewater-drainage-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "308e236fda69ab78",
-   "run_id": "21d5c3c6-6052-4fd3-97bd-24c107e00c28",
+   "run_id": "260c9253-4af3-4194-acaf-82268fc49c00",
    "rows": 1119,
    "by_file": {
     "04_glossary_en_ar.jsonl": 190,
@@ -169,7 +204,7 @@
    "package_id": "QD-KB-006-firefighting-life-safety-and-security-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "56543c046a680035",
-   "run_id": "5caa8ffa-c7f6-4120-9cf0-d29ca76adb09",
+   "run_id": "c2ca24c1-2850-4dc8-aff9-31883f08ee9c",
    "rows": 3119,
    "by_file": {
     "04_glossary_en_ar.jsonl": 473,
@@ -208,7 +243,7 @@
    "package_id": "QD-KB-007-elv-smart-systems-home-automation-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "7dc252cb4e77c3e7",
-   "run_id": "6fd8c07b-ff10-49a4-bafe-f970cc6a7f13",
+   "run_id": "0de8e7f5-3ed3-4568-abaa-750c0e8c6672",
    "rows": 3999,
    "by_file": {
     "04_glossary_en_ar.jsonl": 549,
@@ -247,7 +282,7 @@
    "package_id": "QD-KB-008-interior-fit-out-finishes-and-joinery-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "1e264f4b42919000",
-   "run_id": "28f182dc-743d-4374-acbf-0564fb1aa93f",
+   "run_id": "66eac69b-94ab-4dc7-836b-d2875205f9bc",
    "rows": 2724,
    "by_file": {
     "04_glossary_en_ar.jsonl": 324,
@@ -286,7 +321,7 @@
    "package_id": "QD-KB-009-luxury-fit-out-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "538456a1cc6f373c",
-   "run_id": "e2a914fe-b740-454d-a568-aa704c964004",
+   "run_id": "c94d81fb-38a3-4793-84cd-bc580f86c1e6",
    "rows": 908,
    "by_file": {
     "04_glossary_en_ar.jsonl": 108,
@@ -325,7 +360,7 @@
    "package_id": "QD-KB-010-interior-decoration-and-styling-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "80450073f09f1348",
-   "run_id": "30475282-4b83-4a90-9ce7-d17248a79ae2",
+   "run_id": "eec4a08d-7d04-42dc-a22e-fa1814fd0860",
    "rows": 1596,
    "by_file": {
     "04_glossary_en_ar.jsonl": 189,
@@ -364,7 +399,7 @@
    "package_id": "QD-KB-011-furniture-ff-and-e-and-loose-items-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "1a12d974c25a1abd",
-   "run_id": "d220d548-5ceb-4913-9163-514073ce6283",
+   "run_id": "759ed243-bff0-484e-ad97-a3537a88bf62",
    "rows": 1589,
    "by_file": {
     "04_glossary_en_ar.jsonl": 189,
@@ -403,7 +438,7 @@
    "package_id": "QD-KB-012-swimming-pools-spas-and-water-features-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "c980f05e292c7a78",
-   "run_id": "0914e1cf-51e4-4667-a603-a95afd2c70d7",
+   "run_id": "d213f4cf-e00a-493f-b4ab-9ceb30fe8c28",
    "rows": 1368,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -442,7 +477,7 @@
    "package_id": "QD-KB-013-cold-rooms-refrigeration-and-cold-chain-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "21e37d9d729fab37",
-   "run_id": "aee0118a-150c-4ea8-a420-38ff6994fbb8",
+   "run_id": "eba7266d-504b-4a64-ad88-8ee0eed8dd47",
    "rows": 1422,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -481,7 +516,7 @@
    "package_id": "QD-KB-014-catering-f-and-b-and-hospitality-services-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "06d946c7f78e1ae7",
-   "run_id": "235e7e24-3dd1-442e-ae15-90f26bbbe2e1",
+   "run_id": "46da49c6-60b7-4c2b-a53d-a5bcf8153dce",
    "rows": 1624,
    "by_file": {
     "04_glossary_en_ar.jsonl": 189,
@@ -520,7 +555,7 @@
    "package_id": "QD-KB-015-hospitality-supplies-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "0f4e6140f01e20e5",
-   "run_id": "627096b5-ffd6-4f27-ac6e-71f27d4fc541",
+   "run_id": "57e7288b-b097-454f-bd73-e11d9841601b",
    "rows": 920,
    "by_file": {
     "04_glossary_en_ar.jsonl": 108,
@@ -559,7 +594,7 @@
    "package_id": "QD-KB-016-bakery-and-food-processing-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "9c7dcda01deadb8d",
-   "run_id": "ded1098d-e5a3-496c-90c5-55984da30113",
+   "run_id": "873d1867-524c-4b1a-a981-492bcd8aa421",
    "rows": 1150,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -598,7 +633,7 @@
    "package_id": "QD-KB-017-media-av-production-and-creative-equipment-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "2d8259338258a557",
-   "run_id": "2da4655c-612a-4635-a962-adc31cc6cc5a",
+   "run_id": "b1a56732-e6ef-4987-bc85-b6f416943224",
    "rows": 2079,
    "by_file": {
     "04_glossary_en_ar.jsonl": 243,
@@ -637,7 +672,7 @@
    "package_id": "QD-KB-018-marketing-media-events-and-creative-services-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "2774c3f53ad91bad",
-   "run_id": "0a1e3d85-505b-4965-9887-aba7e467746f",
+   "run_id": "2a71313b-106f-4001-90c5-507caa4a6bb1",
    "rows": 2300,
    "by_file": {
     "04_glossary_en_ar.jsonl": 270,
@@ -676,7 +711,7 @@
    "package_id": "QD-KB-019-exhibition-industry-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "cb3b6a45d0960851",
-   "run_id": "c1624f1d-9f9f-4d7b-877f-421deb7c1b96",
+   "run_id": "e4c42cb8-5e3b-452f-863f-5543187239cd",
    "rows": 1155,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -715,7 +750,7 @@
    "package_id": "QD-KB-020-temporary-event-infrastructure-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "075099f218ce9b39",
-   "run_id": "d320ce3e-1347-4e6c-af0a-17b63ced9141",
+   "run_id": "592fad3c-aa7f-4326-8539-908b5d5ce345",
    "rows": 2079,
    "by_file": {
     "04_glossary_en_ar.jsonl": 243,
@@ -754,7 +789,7 @@
    "package_id": "QD-KB-021-it-technology-and-digital-services-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "e79368dbca5d7f9e",
-   "run_id": "3531fbe6-1b7e-4528-90f5-9bc7883a7af5",
+   "run_id": "493955ad-f37d-4d8d-b273-e2435e541d87",
    "rows": 2350,
    "by_file": {
     "04_glossary_en_ar.jsonl": 270,
@@ -793,7 +828,7 @@
    "package_id": "QD-KB-022-data-centres-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "d49394e52a4d7255",
-   "run_id": "28829b77-378d-4dad-9c8c-cc88b66dedb6",
+   "run_id": "7776c72a-166c-430e-b07e-efd20b7eb50d",
    "rows": 1422,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -832,7 +867,7 @@
    "package_id": "QD-KB-023-telecommunications-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "09a37b8dc58111fc",
-   "run_id": "6904063c-63a8-40ac-bbca-f380e9a581bb",
+   "run_id": "feb39edb-b4cd-4035-a93e-fd43e759df36",
    "rows": 1410,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -871,7 +906,7 @@
    "package_id": "QD-KB-024-accounting-finance-and-corporate-services-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "c82f1207abb7426b",
-   "run_id": "6c84fde1-b156-4922-bcb5-f210c27886e6",
+   "run_id": "75dfa25a-0f3a-4d73-ae52-5b35eeea02d7",
    "rows": 1888,
    "by_file": {
     "04_glossary_en_ar.jsonl": 216,
@@ -910,7 +945,7 @@
    "package_id": "QD-KB-025-banking-and-financial-products-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "aa8f1a6090f2fcac",
-   "run_id": "a5e7d5a9-5c2d-4077-baab-7374886668b8",
+   "run_id": "953517c7-4f61-476c-84c0-a232e59a5b1d",
    "rows": 1185,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -949,7 +984,7 @@
    "package_id": "QD-KB-026-insurance-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "a950da45d3d9a6b5",
-   "run_id": "44902a37-9efd-4c3d-90b8-06391fecc654",
+   "run_id": "3dfd5ce7-0a82-496f-9165-74174d0f3491",
    "rows": 1422,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -988,7 +1023,7 @@
    "package_id": "QD-KB-027-legal-and-compliance-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "8dd054ace522e01a",
-   "run_id": "a1cb3590-e9b7-41a2-b345-6493630110af",
+   "run_id": "ba2a5c44-d140-4c22-b925-39d056f69f9a",
    "rows": 2133,
    "by_file": {
     "04_glossary_en_ar.jsonl": 243,
@@ -1027,7 +1062,7 @@
    "package_id": "QD-KB-028-business-consulting-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "db3ff9666e880f9e",
-   "run_id": "6e3adbd9-0b7a-48f2-8227-425e415ffcd8",
+   "run_id": "6555c877-cbcd-445d-a3f9-e21c04ab5a4c",
    "rows": 2832,
    "by_file": {
     "04_glossary_en_ar.jsonl": 324,
@@ -1066,7 +1101,7 @@
    "package_id": "QD-KB-029-human-resources-and-recruitment-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "4fb89f5269469243",
-   "run_id": "98103713-9db3-42ae-9f85-f6502459a803",
+   "run_id": "c6f2e5dd-48ab-4c2c-ad29-a163b6e69073",
    "rows": 1659,
    "by_file": {
     "04_glossary_en_ar.jsonl": 189,
@@ -1105,7 +1140,7 @@
    "package_id": "QD-KB-030-facilities-management-and-support-services-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "83b0e3837813d6dc",
-   "run_id": "f5d3ca81-7bf1-4eac-84af-613b45a13499",
+   "run_id": "2f81c8e6-8471-4b47-828e-80ed63d753e1",
    "rows": 1832,
    "by_file": {
     "04_glossary_en_ar.jsonl": 216,
@@ -1144,7 +1179,7 @@
    "package_id": "QD-KB-031-business-centres-and-coworking-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "1ba37aff4abc667c",
-   "run_id": "f9b1a553-86f7-4199-8c34-03839fc887f0",
+   "run_id": "28fc8a3a-32f1-433d-9ff3-a8f55aa0b90c",
    "rows": 952,
    "by_file": {
     "04_glossary_en_ar.jsonl": 108,
@@ -1183,7 +1218,7 @@
    "package_id": "QD-KB-032-logistics-transport-and-supply-chain-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "c5badc9f514c2ea0",
-   "run_id": "9b80a0a1-f681-4c6e-8912-87b6733e3cc2",
+   "run_id": "28f83597-973a-4164-85f6-bd3a1c785f0f",
    "rows": 3068,
    "by_file": {
     "04_glossary_en_ar.jsonl": 351,
@@ -1222,7 +1257,7 @@
    "package_id": "QD-KB-033-oil-and-gas-energy-and-industrial-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "2a656eca8699aed4",
-   "run_id": "213ca968-b472-4e3f-9d16-53491e210070",
+   "run_id": "399dea08-c83e-4959-aaa8-0196a29e010a",
    "rows": 1872,
    "by_file": {
     "04_glossary_en_ar.jsonl": 216,
@@ -1261,7 +1296,7 @@
    "package_id": "QD-KB-034-renewable-energy-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "9eaf04f76c1bf42f",
-   "run_id": "3266ba0e-7869-4420-8719-88df0b7ac7bf",
+   "run_id": "19037640-6d4e-4789-9bf3-3d32cac12b35",
    "rows": 948,
    "by_file": {
     "04_glossary_en_ar.jsonl": 108,
@@ -1300,7 +1335,7 @@
    "package_id": "QD-KB-035-industrial-automation-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "2f8b493eb50c8aa9",
-   "run_id": "b267d581-2099-45e8-988e-f40ed3aa16e7",
+   "run_id": "5f6cb604-0afd-48af-a72c-b1181df8cba8",
    "rows": 1410,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -1339,7 +1374,7 @@
    "package_id": "QD-KB-036-bearings-power-transmission-and-hydraulics-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "1cffd8166c82e09f",
-   "run_id": "d94284cd-51d4-47c5-812a-621723c33e12",
+   "run_id": "bfa5a414-1cac-4c75-8249-f9f9992c2fdc",
    "rows": 1404,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -1378,7 +1413,7 @@
    "package_id": "QD-KB-037-fasteners-and-fixings-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "255ffcdc7d82c808",
-   "run_id": "358b391e-86e0-4c5f-937f-85e2cea4884d",
+   "run_id": "3ab6a128-da8e-48ae-bbe5-3bdb3f585f73",
    "rows": 1404,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -1417,7 +1452,7 @@
    "package_id": "QD-KB-038-abrasives-tools-and-industrial-consumables-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "46e691f47975a64a",
-   "run_id": "5f83dc78-f520-4d8d-9d08-d3202c105005",
+   "run_id": "1efffd21-b940-4e9f-836c-a9a6270f6f7e",
    "rows": 1404,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -1456,7 +1491,7 @@
    "package_id": "QD-KB-039-air-compressors-and-pneumatics-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "34bcc30b9d0a4608",
-   "run_id": "aac8ed4e-bfdf-4a42-a97f-0ea587f36729",
+   "run_id": "4e9c8773-bfa8-463c-8640-802c51724674",
    "rows": 932,
    "by_file": {
     "04_glossary_en_ar.jsonl": 104,
@@ -1495,7 +1530,7 @@
    "package_id": "QD-KB-040-manufacturing-by-process-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "89f7d77578c11f8b",
-   "run_id": "57f15f1f-54ba-4d74-8aae-1b5c2d9dc472",
+   "run_id": "d1a8710e-3378-4364-9763-1dcc9a667b59",
    "rows": 1638,
    "by_file": {
     "04_glossary_en_ar.jsonl": 189,
@@ -1534,7 +1569,7 @@
    "package_id": "QD-KB-041-chemicals-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "b66e31ac18f566c2",
-   "run_id": "214731f3-67c6-4962-adbb-bf004ecb3be6",
+   "run_id": "e22f1e80-ed19-42a1-b3c0-74795f22ff3c",
    "rows": 1170,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -1573,7 +1608,7 @@
    "package_id": "QD-KB-042-healthcare-medical-and-life-sciences-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "ca5c4b7035a4d5e0",
-   "run_id": "40083230-4980-4bb5-98d5-31f518da236b",
+   "run_id": "510e3771-07c5-43cb-b21d-0239feb721d3",
    "rows": 1410,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -1612,7 +1647,7 @@
    "package_id": "QD-KB-043-laboratory-and-scientific-suppliers-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "ae8cfbcbf28db76f",
-   "run_id": "61634d29-e984-490d-9cce-75fbcdc6337d",
+   "run_id": "36e3232e-a2c4-463c-a771-663cac514c0c",
    "rows": 1410,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -1651,7 +1686,7 @@
    "package_id": "QD-KB-044-cleanrooms-and-controlled-environments-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "10aa64038c6e0a8d",
-   "run_id": "82b7e7af-351e-4b20-a2b0-7de08a2f7e0f",
+   "run_id": "bef56225-c114-46ba-8fb8-8af8acebdab9",
    "rows": 1175,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -1690,7 +1725,7 @@
    "package_id": "QD-KB-045-education-and-training-support-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "21c00c9a1ca69dbb",
-   "run_id": "1d480da4-ad1c-4fb3-b600-2f834624a266",
+   "run_id": "b29cfb44-8faa-44d5-8360-c4df38562d86",
    "rows": 1160,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -1729,7 +1764,7 @@
    "package_id": "QD-KB-046-aviation-maritime-and-offshore-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "b4fb247406862a98",
-   "run_id": "d5c0a035-19eb-4acf-b8e6-42fc7dcf6d81",
+   "run_id": "df909fbc-b24c-4451-9602-df0742b67e1a",
    "rows": 2784,
    "by_file": {
     "04_glossary_en_ar.jsonl": 324,
@@ -1753,7 +1788,7 @@
     "subcategories": 12,
     "sources": 9,
     "knowledge_gaps": 8,
-    "records": 2484,
+    "records": 2784,
     "questions": 348,
     "validation_rules": 120,
     "scenario_tests": 84,
@@ -1768,7 +1803,7 @@
    "package_id": "QD-KB-047-marine-safety-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "aa4d8444583406ae",
-   "run_id": "fe89e41c-3324-4a39-8629-1a3e6d5e7f3a",
+   "run_id": "ef961305-a14d-4038-bc7d-ae70e44aaed6",
    "rows": 928,
    "by_file": {
     "04_glossary_en_ar.jsonl": 108,
@@ -1792,7 +1827,7 @@
     "subcategories": 4,
     "sources": 8,
     "knowledge_gaps": 8,
-    "records": 828,
+    "records": 928,
     "questions": 116,
     "validation_rules": 40,
     "scenario_tests": 28,
@@ -1807,7 +1842,7 @@
    "package_id": "QD-KB-048-agriculture-food-production-and-environment-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "532ca2b279dc3454",
-   "run_id": "dfd433d8-a502-4b7d-bc62-a11b9730cbc4",
+   "run_id": "35583437-557a-46db-bd04-41045124fcb4",
    "rows": 2552,
    "by_file": {
     "04_glossary_en_ar.jsonl": 297,
@@ -1831,7 +1866,7 @@
     "subcategories": 11,
     "sources": 8,
     "knowledge_gaps": 8,
-    "records": 2277,
+    "records": 2552,
     "questions": 319,
     "validation_rules": 110,
     "scenario_tests": 77,
@@ -1846,7 +1881,7 @@
    "package_id": "QD-KB-049-recycling-and-circular-economy-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "b739fae1bfb66659",
-   "run_id": "f455395f-f0dd-48a0-a70d-44519681ef11",
+   "run_id": "7bc39349-d19f-4658-8ea9-9366729642c0",
    "rows": 1160,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -1870,7 +1905,7 @@
     "subcategories": 5,
     "sources": 8,
     "knowledge_gaps": 8,
-    "records": 1035,
+    "records": 1160,
     "questions": 145,
     "validation_rules": 50,
     "scenario_tests": 35,
@@ -1885,7 +1920,7 @@
    "package_id": "QD-KB-050-real-estate-services-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "2d640aafba073871",
-   "run_id": "b6857ba0-8fd6-4094-aa1c-c2e6206ee617",
+   "run_id": "6eb6dae2-521e-4fe7-a356-ce7344e6f034",
    "rows": 1624,
    "by_file": {
     "04_glossary_en_ar.jsonl": 189,
@@ -1909,7 +1944,7 @@
     "subcategories": 7,
     "sources": 7,
     "knowledge_gaps": 8,
-    "records": 1449,
+    "records": 1624,
     "questions": 203,
     "validation_rules": 70,
     "scenario_tests": 49,
@@ -1924,7 +1959,7 @@
    "package_id": "QD-KB-051-textile-uniforms-and-soft-goods-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "ce79353823279a00",
-   "run_id": "c84b5b5e-d9ad-4a3c-852a-54e52999924b",
+   "run_id": "e734eb3f-14a9-4a18-924a-2298929e4601",
    "rows": 1624,
    "by_file": {
     "04_glossary_en_ar.jsonl": 189,
@@ -1948,7 +1983,7 @@
     "subcategories": 7,
     "sources": 7,
     "knowledge_gaps": 8,
-    "records": 1449,
+    "records": 1624,
     "questions": 203,
     "validation_rules": 70,
     "scenario_tests": 49,
@@ -1963,7 +1998,7 @@
    "package_id": "QD-KB-052-beauty-wellness-and-personal-care-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "467a6593d40cd601",
-   "run_id": "c9f24eb9-ef0d-486c-b9e8-8e6e0c539d50",
+   "run_id": "8d97badb-e50c-4cee-b736-7ebe32d3a5d3",
    "rows": 1160,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -1987,7 +2022,7 @@
     "subcategories": 5,
     "sources": 7,
     "knowledge_gaps": 8,
-    "records": 1035,
+    "records": 1160,
     "questions": 145,
     "validation_rules": 50,
     "scenario_tests": 35,
@@ -2002,7 +2037,7 @@
    "package_id": "QD-KB-053-sports-recreation-and-leisure-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "b4221f078c8485f3",
-   "run_id": "e5cf4940-8450-4d62-a461-10f040b7504d",
+   "run_id": "ffdf5a06-b01c-4c5c-bfa7-b72f5f67b5f0",
    "rows": 1160,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -2026,7 +2061,7 @@
     "subcategories": 5,
     "sources": 7,
     "knowledge_gaps": 8,
-    "records": 1035,
+    "records": 1160,
     "questions": 145,
     "validation_rules": 50,
     "scenario_tests": 35,
@@ -2041,7 +2076,7 @@
    "package_id": "QD-KB-054-religious-facilities-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "27fff3cd07fcf318",
-   "run_id": "9062bba7-61be-41ea-9f20-9ff0e97602c7",
+   "run_id": "4385d5e4-0885-4223-97d1-ee6646a318d6",
    "rows": 1160,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -2065,7 +2100,7 @@
     "subcategories": 5,
     "sources": 7,
     "knowledge_gaps": 8,
-    "records": 1035,
+    "records": 1160,
     "questions": 145,
     "validation_rules": 50,
     "scenario_tests": 35,
@@ -2080,7 +2115,7 @@
    "package_id": "QD-KB-055-jewelry-and-luxury-retail-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "eb40855d45f2e0b2",
-   "run_id": "dac10c89-84d8-4df7-b476-2932983349c2",
+   "run_id": "e2ee1183-c57b-4631-aef8-f4b43021c9d5",
    "rows": 1392,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -2104,7 +2139,7 @@
     "subcategories": 6,
     "sources": 8,
     "knowledge_gaps": 8,
-    "records": 1242,
+    "records": 1392,
     "questions": 174,
     "validation_rules": 60,
     "scenario_tests": 42,
@@ -2119,7 +2154,7 @@
    "package_id": "QD-KB-056-luxury-and-concierge-services-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "7c36649187655419",
-   "run_id": "9ab5674d-83a4-4507-b3b9-a7f29c049251",
+   "run_id": "327d25b9-d83b-4899-8778-f8c850bf563a",
    "rows": 1160,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -2143,7 +2178,7 @@
     "subcategories": 5,
     "sources": 8,
     "knowledge_gaps": 8,
-    "records": 1035,
+    "records": 1160,
     "questions": 145,
     "validation_rules": 50,
     "scenario_tests": 35,
@@ -2158,7 +2193,7 @@
    "package_id": "QD-KB-057-retail-and-consumer-goods-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "9b8f8c24e7587ab5",
-   "run_id": "0da7c799-0b07-4745-989d-fe8425389c9b",
+   "run_id": "189e09ad-5c50-4227-8f75-0e14d1fbdde1",
    "rows": 2552,
    "by_file": {
     "04_glossary_en_ar.jsonl": 297,
@@ -2182,7 +2217,7 @@
     "subcategories": 11,
     "sources": 8,
     "knowledge_gaps": 8,
-    "records": 2277,
+    "records": 2552,
     "questions": 319,
     "validation_rules": 110,
     "scenario_tests": 77,
@@ -2197,7 +2232,7 @@
    "package_id": "QD-KB-058-printing-packaging-and-office-supplies-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "ddf06f432436a908",
-   "run_id": "4f5649e3-07c9-4edb-ae3a-850447b3ad3e",
+   "run_id": "4a0e1bfe-eb7a-44eb-8550-cbd15f84809f",
    "rows": 1160,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -2221,7 +2256,7 @@
     "subcategories": 5,
     "sources": 7,
     "knowledge_gaps": 8,
-    "records": 1035,
+    "records": 1160,
     "questions": 145,
     "validation_rules": 50,
     "scenario_tests": 35,
@@ -2236,7 +2271,7 @@
    "package_id": "QD-KB-059-vehicles-automotive-and-equipment-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "5741a1213cdf36c1",
-   "run_id": "2630aeb9-e874-42c6-8ccf-c46b08bafdd7",
+   "run_id": "a32a02d4-60bf-47ad-8816-5591f7d6cd5f",
    "rows": 1392,
    "by_file": {
     "04_glossary_en_ar.jsonl": 162,
@@ -2260,7 +2295,7 @@
     "subcategories": 6,
     "sources": 7,
     "knowledge_gaps": 8,
-    "records": 1242,
+    "records": 1392,
     "questions": 174,
     "validation_rules": 60,
     "scenario_tests": 42,
@@ -2275,7 +2310,7 @@
    "package_id": "QD-KB-060-travel-and-tourism-services-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "65106573f11c3708",
-   "run_id": "a848d8be-903a-4be2-9488-6a7ee02ffd04",
+   "run_id": "99acff1a-8591-4cfe-b100-37df4866a062",
    "rows": 1160,
    "by_file": {
     "04_glossary_en_ar.jsonl": 135,
@@ -2299,7 +2334,7 @@
     "subcategories": 5,
     "sources": 8,
     "knowledge_gaps": 8,
-    "records": 1035,
+    "records": 1160,
     "questions": 145,
     "validation_rules": 50,
     "scenario_tests": 35,
@@ -2314,7 +2349,7 @@
    "package_id": "QD-KB-061-domestic-services-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "45d7a0410df06767",
-   "run_id": "1b4f5ef4-70bd-44f3-ab6a-fe48685fdc74",
+   "run_id": "2110ba7d-6c3e-45d4-900e-c17b1ccb8114",
    "rows": 928,
    "by_file": {
     "04_glossary_en_ar.jsonl": 108,
@@ -2338,7 +2373,7 @@
     "subcategories": 4,
     "sources": 7,
     "knowledge_gaps": 8,
-    "records": 828,
+    "records": 928,
     "questions": 116,
     "validation_rules": 40,
     "scenario_tests": 28,
@@ -2353,7 +2388,7 @@
    "package_id": "QD-KB-062-pet-industry-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "4db57677cb8bb748",
-   "run_id": "483fe48f-650c-4ee9-82a2-8ddc88ade512",
+   "run_id": "87a6c637-a52c-4757-8a0d-6b594a2da8de",
    "rows": 928,
    "by_file": {
     "04_glossary_en_ar.jsonl": 108,
@@ -2377,7 +2412,7 @@
     "subcategories": 4,
     "sources": 7,
     "knowledge_gaps": 8,
-    "records": 828,
+    "records": 928,
     "questions": 116,
     "validation_rules": 40,
     "scenario_tests": 28,
@@ -2392,7 +2427,7 @@
    "package_id": "QD-KB-063-translation-interpretation-and-localization-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "08ec1eedfbe8517f",
-   "run_id": "7c3addf3-7411-4725-a817-9a95df056de8",
+   "run_id": "65713013-f627-4876-ae01-501ff1a9e33f",
    "rows": 696,
    "by_file": {
     "04_glossary_en_ar.jsonl": 81,
@@ -2416,7 +2451,7 @@
     "subcategories": 3,
     "sources": 6,
     "knowledge_gaps": 8,
-    "records": 621,
+    "records": 696,
     "questions": 87,
     "validation_rules": 30,
     "scenario_tests": 21,
@@ -2431,7 +2466,7 @@
    "package_id": "QD-KB-064-government-tenders-and-procurement-support-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "94f93a16f0d47bb8",
-   "run_id": "21b3154d-e775-4acc-867d-64114a690788",
+   "run_id": "78da0487-f578-4009-bbcd-f83039dbf2c4",
    "rows": 928,
    "by_file": {
     "04_glossary_en_ar.jsonl": 108,
@@ -2455,7 +2490,7 @@
     "subcategories": 4,
     "sources": 7,
     "knowledge_gaps": 8,
-    "records": 828,
+    "records": 928,
     "questions": 116,
     "validation_rules": 40,
     "scenario_tests": 28,
@@ -2470,7 +2505,7 @@
    "package_id": "QD-KB-065-testing-inspection-certification-and-technical-services-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "67483d8cd314fa07",
-   "run_id": "893dd6b6-c0a9-4b03-b5dd-7ce2d31a55ca",
+   "run_id": "d39a0ba5-f8c8-4f49-bf76-1a9c1cb00205",
    "rows": 2320,
    "by_file": {
     "04_glossary_en_ar.jsonl": 270,
@@ -2494,7 +2529,7 @@
     "subcategories": 10,
     "sources": 9,
     "knowledge_gaps": 8,
-    "records": 2070,
+    "records": 2320,
     "questions": 290,
     "validation_rules": 100,
     "scenario_tests": 70,
@@ -2509,7 +2544,7 @@
    "package_id": "QD-KB-066-miscellaneous-catch-all-v2026.07.31",
    "version": "2026.07.31",
    "sha256": "3004123763fc77a5",
-   "run_id": "f77929bf-d41b-44e2-ac1c-b887bf3e2b26",
+   "run_id": "dca58db1-7023-42b0-ad5c-46aaa70fde4a",
    "rows": 2088,
    "by_file": {
     "04_glossary_en_ar.jsonl": 243,
@@ -2533,7 +2568,7 @@
     "subcategories": 9,
     "sources": 9,
     "knowledge_gaps": 8,
-    "records": 1863,
+    "records": 2088,
     "questions": 261,
     "validation_rules": 90,
     "scenario_tests": 63,
@@ -2548,7 +2583,7 @@
    "package_id": "QD-KB-086-lifts-and-escalators-v2026.07.31",
    "version": "1.0.0",
    "sha256": "5a3212338727fecb",
-   "run_id": "0d55e232-3aaf-40c0-aea2-b9dc4f68074e",
+   "run_id": "9cbfd4e4-27fe-4e16-96e7-877c97ebdf7f",
    "rows": 2047,
    "by_file": {
     "04_glossary_en_ar.jsonl": 196,
@@ -2583,8 +2618,34 @@
    "write_errors": []
   }
  ],
- "finished_at": "2026-08-02T12:51:27.233340+00:00",
- "total_rows": 112272,
+ "preflight": {
+  "expected": 12929,
+  "present_before": 0,
+  "to_insert": 12929,
+  "to_upsert_existing": 0,
+  "stale": 0,
+  "stale_superseded_by_key_change": 0,
+  "stale_sample": [],
+  "superseded_sample": []
+ },
+ "finished_at": "2026-08-05T23:00:55.711857+00:00",
+ "total_rows": 115148,
  "total_rejected": 0,
- "total_write_errors": 0
+ "total_write_errors": 0,
+ "reconciliation": {
+  "rules_expected": 12929,
+  "rules_before": 0,
+  "rules_after": 12929,
+  "rules_inserted": 12929,
+  "rules_body_changed": true,
+  "rules_keys_changed": true,
+  "records_expected": 112611,
+  "records_before": 0,
+  "records_after": 112611,
+  "records_inserted": 112611,
+  "rejected": 0,
+  "count_matches_archive": true,
+  "idempotent": false
+ },
+ "verdict": "OK"
 }

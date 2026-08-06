@@ -17,11 +17,21 @@
 // jsonb, timestamps, enums - round-trips without hand-built SQL literals.
 //
 //   node scripts/staging/sync_staging_reference.mjs [--apply]
-import { mgmtRead, mgmtWrite, PROD_REF, assertNotProduction } from './qd_guard.mjs';
+import { mgmtRead, mgmtWrite, mgmtWriteData, PROD_REF, assertNotProduction } from './qd_guard.mjs';
 
 const REF = assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'reference sync');
 const APPLY = process.argv.includes('--apply');
 const BATCH = 500;
+// Declared here, not next to insertableCols() below it: the copy loop runs at module top level
+// ABOVE that point, so a `const` beside the helper is still in its temporal dead zone when the
+// first table is copied and every table fails with "Cannot access '_colCache' before initialization".
+const _colCache = new Map();
+// A row count is the wrong unit when the rows are embeddings. kb_chunks carries a 1536-dimension
+// vector per row, so 500 of them is megabytes and the management API answers 413 "request entity
+// too large" - which the multi-pass loop then reported as "deferred" forever. Size the batch by
+// what a table's rows actually weigh, not by a number that happened to suit taxonomy tables.
+const BATCH_FOR = { kb_chunks: 20, kb_revisions: 40 };
+const batchOf = (t) => BATCH_FOR[t] ?? BATCH;
 
 // Taxonomy and policy only. Nothing here identifies a real customer or a real supplier.
 const TABLES = [
@@ -38,6 +48,55 @@ const TABLES = [
   'decision_policy',
   'category_keyword',
   'subcategory_keyword',
+  // THE KNOWLEDGE ITSELF. Every one of these was 0 rows in staging while production held the full
+  // set, so 15 of the 46 requirements in the categories spec read "0 rows in staging" and no
+  // category change could be rehearsed anywhere before it reached production. That is the opposite
+  // of how this repo is supposed to work, and it is what the corpus importer's own header admits:
+  // its endpoint "used to be a production literal, so this importer could only ever write to
+  // production". These are knowledge and standards, not business records - nothing here identifies
+  // a real customer or a real supplier, so the script's no-real-data rule is not breached.
+  'knowledge_module_standard',     // what a category must carry before it is allowed to go live
+  'agent_knowledge',               // 1,869 rows; 1,558 keyed cat:<catalogue-slug> across all 84
+  'category_agents',               // the per-category specialist that takes over the conversation
+  'category_quote_specs',          // what a returned supplier quote must contain, per category
+  'dept_library',
+  // The retrieval corpus. 4,937 rows across 235 categories in production against 4 in staging, so
+  // every semantic lookup at inquiry time returned nothing there and no retrieval behaviour could
+  // be tested. The embeddings copy as data rather than being regenerated: re-embedding 4,937 chunks
+  // would cost real model spend to reproduce vectors that already exist and must match production's
+  // anyway for a staging result to predict a production one.
+  'kb_chunks',
+  // The rest of the knowledge estate. Every one of these was 0 in staging against a populated
+  // production table, so any behaviour that consults them could only ever be tested in production.
+  // Deliberately EXCLUDED as telemetry or work-queue state rather than knowledge, and correctly
+  // empty on a project with no history: knowledge_exam_results (outcomes of running the exams),
+  // knowledge_kpi_snapshots (point-in-time measurements), spec_backlog (a work queue),
+  // mep_subcategory_review (review workflow state). Also excluded: lead_category and
+  // lead_subcategory - 17k and 25k rows keyed to the 20,464 real supplier leads, which is business
+  // data and must not be copied to a branch.
+  'category_agent_map',            // 84: which specialist owns which catalogue category
+  'category_licence_activity',     // 20: the licence activities a category legally requires
+  'employee_knowledge_standard',   // 12: what an employee must know before acting
+  'employee_knowledge',            // 900
+  'kb_category_aliases',
+  'kb_operational_route_test',     // 344: the routing regression fixtures
+  'qualification_playbooks',       // 29: per-category qualification play
+  'knowledge_exam_questions',      // 336: how a desk is examined on its own knowledge
+  'os_knowledge_domain',           // 380: which OS owns which knowledge, and which it queries
+  'reg_catalog',
+  'regulations',
+  'mdm_standards',
+  'quality_standard',
+  'scenario_library',
+  'seo_categories',
+  'marketing_library',
+  'subcategory_trade_contribution',
+  // kb_revisions (7,842) is deliberately NOT here. It is the revision HISTORY of knowledge edits
+  // made in production - a log of what happened there, not knowledge a branch needs to reason
+  // with - so it belongs with knowledge_exam_results and knowledge_kpi_snapshots on the excluded
+  // side of the same line. It also refuses to copy: each row carries a full content snapshot, so
+  // even 40 per request answers 413. A partial 1,869-row slice of production's history sitting in
+  // staging is worse than none, because it looks like staging's own history and is not.
   // Parents the children below FK to. field_definition and field_definition_source were listed for
   // two sessions and silently deferred on every run because mep_trade was never in the list; the
   // multi-pass loop reported them as "deferred" and the summary line reported a total that looked
@@ -137,6 +196,22 @@ async function orderCols(t) {
   return { cols: all.map((r) => r.column_name), hasPk: false };
 }
 
+// Columns that can actually be written. Excludes GENERATED ALWAYS AS (expr) STORED, which Postgres
+// derives and refuses a value for; identity columns stay in, because OVERRIDING SYSTEM VALUE lets
+// us preserve the ids these tables reference each other by. Cached: one lookup per table, not one
+// per 500-row batch.
+async function insertableCols(t) {
+  if (_colCache.has(t)) return _colCache.get(t);
+  const rows = await mgmtRead(PROD_REF, `
+    select column_name from information_schema.columns
+     where table_schema='public' and table_name=${lit(t)}
+       and is_generated <> 'ALWAYS'
+     order by ordinal_position`);
+  const cols = rows.map((r) => r.column_name);
+  _colCache.set(t, cols);
+  return cols;
+}
+
 async function copyTable(t) {
   const [{ n: prodRows }] = await mgmtRead(PROD_REF, `select count(*)::int as n from public.${t}`);
   const [{ n: stageRows }] = await mgmtRead(REF, `select count(*)::int as n from public.${t}`);
@@ -168,10 +243,11 @@ async function copyTable(t) {
   }
 
   let fetched = 0;
-  for (let off = 0; off < prodRows; off += BATCH) {
+  const batch = batchOf(t);
+  for (let off = 0; off < prodRows; off += batch) {
     const rows = await mgmtRead(PROD_REF,
       `select coalesce(jsonb_agg(to_jsonb(x)), '[]'::jsonb)::text as data
-       from (select * from public.${t} order by ${order} limit ${BATCH} offset ${off}) x`);
+       from (select * from public.${t} order by ${order} limit ${batch} offset ${off}) x`);
     const json = rows[0]?.data ?? '[]';
     if (json === '[]') break;
     // org_authority is protected by trg_org_authority_guard, which REFUSES any insert or update
@@ -190,12 +266,18 @@ async function copyTable(t) {
           + '- staging is being brought up to it. sync_staging_reference.mjs, 5 Aug 2026.') +
         `, true);\n`
       : '';
-    await mgmtWrite(REF,
-      // OVERRIDING SYSTEM VALUE: several of these tables have GENERATED ALWAYS identity keys, and
-      // the ids must survive the copy because the reference tables point at each other by id.
-      // Letting Postgres re-issue them would silently rewire the taxonomy.
-      `${reason}insert into public.${t} overriding system value
-       select * from jsonb_populate_recordset(null::public.${t}, ${lit(json)}::jsonb)${onConflict}`,
+    // COMPUTED COLUMNS CANNOT BE INSERTED AT ALL, and `select *` tries to. OVERRIDING SYSTEM VALUE
+    // covers GENERATED ALWAYS AS IDENTITY - an id we must preserve, because these tables point at
+    // each other by id and letting Postgres re-issue them would silently rewire the taxonomy. It
+    // does NOT cover GENERATED ALWAYS AS (expr) STORED: Postgres derives those and rejects any
+    // supplied value outright. dept_library.tsv is one (a tsvector search column), and it failed
+    // the whole 1,456-row table with SQLSTATE 428C9 while every other table copied fine.
+    // Naming the columns is the fix; the computed ones are recomputed on arrival, as intended.
+    const cols = await insertableCols(t);
+    const colList = cols.map((c) => `"${c}"`).join(', ');
+    await mgmtWriteData(REF,
+      `${reason}insert into public.${t} (${colList}) overriding system value
+       select ${colList} from jsonb_populate_recordset(null::public.${t}, ${lit(json)}::jsonb)${onConflict}`,
       `copy ${t}`);
     fetched += JSON.parse(json).length;
   }
