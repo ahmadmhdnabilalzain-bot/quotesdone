@@ -122,7 +122,55 @@ step('fn_knowledge_gaps attributes each agent to its owning OS component',
   gs.owned === gs.truth && gs.owned > 0 && gs.owned + gs.unowned === gs.total,
   `${gs.owned} owned, ${gs.unowned} unowned, ${gs.total} total`);
 
-// ---- 6. both projects carry the overload — verify_phase1 asserts the routine COUNT ---------------
+// ---- 6. layer 2 falls back to the DEPARTMENT, and only where the employee has nothing -----------
+// The spec's architectural recommendation is one sentence long — "Don't create 20 isolated
+// knowledge bases" — and layer 2 is DEPARTMENT knowledge. Keying it to the individual left 52 of
+// 66 active employees with an empty "# LAYER 2 - YOUR PROFESSIONAL EXPERTISE" heading, 8 of them
+// department leads, on a path dept_plan runs daily.
+const l2 = await one(REF, `
+  with a as (select agent_key, department from public.org_agents where active),
+       own as (select a.agent_key,
+         exists (select 1 from public.agent_knowledge k where k.agent_key = a.agent_key
+                   and coalesce(k.layer,'profession') in ('profession','state')) hasown,
+         exists (select 1 from public.agent_knowledge k
+                   join public.org_agents b on b.agent_key = k.agent_key and b.active
+                  where b.department = a.department
+                    and coalesce(k.layer,'profession') in ('profession','state')) hasdept
+         from a)
+  select count(*)::int agents, count(*) filter (where hasown)::int own_l2,
+         count(*) filter (where hasown or hasdept)::int reachable,
+         count(*) filter (where not hasown and not hasdept)::int still_empty
+    from own`);
+
+// Rendered, not inferred: the CEO Office AI is requirement #1 of this spec file and had zero.
+const l2topics = async (key) => await one(REF, `
+  with c as (select public.fn_agent_context(${lit(key)}, 24000) t)
+  select coalesce((select count(*)::int from unnest(string_to_array(
+           substring(t from '# LAYER 2 - YOUR PROFESSIONAL EXPERTISE(.*?)# LAYER 1'), E'\\n')) l
+           where l like '## %'), 0) topics,
+         coalesce((select count(*)::int from unnest(string_to_array(
+           substring(t from '# LAYER 2 - YOUR PROFESSIONAL EXPERTISE(.*?)# LAYER 1'), E'\\n')) l
+           where l like '## %'
+             and exists (select 1 from public.agent_knowledge k
+                          where k.agent_key = ${lit(key)} and '## '||k.topic = l)), 0) own_topics
+    from c`);
+
+const ceo = await l2topics((await one(REF, `select lead_agent k from public.org_departments where dept_key='exec'`)).k);
+step('an employee with no knowledge of their own inherits the department\'s',
+  ceo.topics > 0 && l2.reachable > l2.own_l2,
+  `exec lead renders ${ceo.topics} topic(s); ${l2.own_l2} of ${l2.agents} have their own, ${l2.reachable} can reach one`);
+
+// THE NEGATIVE THAT MATTERS: own rows must still win outright, or this silently widened the
+// context of the 14 agents that were already correct.
+const legalAgent = await l2topics('legal');
+step('an employee with their own knowledge is unaffected',
+  legalAgent.topics > 0 && legalAgent.own_topics === legalAgent.topics,
+  `legal renders ${legalAgent.topics} topic(s), ${legalAgent.own_topics} of them its own`);
+
+step('employees with no knowledge anywhere are counted, not hidden', l2.still_empty >= 0,
+  `${l2.still_empty} employee(s) have neither their own nor a department library — a corpus gap, not a wiring one`);
+
+// ---- 7. both projects carry the overload — verify_phase1 asserts the routine COUNT ---------------
 const sig = async (ref) => (await one(ref, `select count(*)::int n from pg_proc p
   join pg_namespace ns on ns.oid = p.pronamespace
  where ns.nspname='public' and p.proname='fn_agent_context'

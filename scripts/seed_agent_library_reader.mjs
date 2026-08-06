@@ -132,13 +132,70 @@ as $fn$
   );
 $fn$;`;
 
+// THE SPEC SAYS IT IN ONE LINE: "Don't create 20 isolated knowledge bases."
+//
+// AGENTS_AND_KNOWLEDGE_BLUEPRINT.txt's architectural recommendation is a four-layer stack, and
+// layer 2 is "DEPARTMENT Knowledge", not per-employee knowledge. fn_agent_context built layer 2
+// from agent_knowledge rows keyed to the individual — which is the isolated-knowledge-base shape
+// the spec rejects — and measured 6 Aug 2026 it leaves **52 of 66 active employees with nothing
+// under the heading "# LAYER 2 - YOUR PROFESSIONAL EXPERTISE"**. Of the 15 department leads, 8 are
+// in that state, including `exec` — the CEO Office AI, requirement #1 of the whole file — whose own
+// department holds 12 rows it could not reach. `it` is the sharpest case: 0 personal rows against
+// 41 department rows and a 318-row library.
+//
+// This is not dormant. dept_plan/index.ts:81 calls fn_agent_context(d.lead_agent, 5000) for every
+// department on a DAILY production cron, and 4 of the empty agents have already been chatted with.
+//
+// THE FIX IS ONE WHERE CLAUSE: an employee with no professional knowledge of their own inherits
+// their department's. Own rows still win outright wherever they exist, so the 14 agents that have
+// them see no change at all. A cat:<slug> specialist has no org_agents row, so v_dept is null and
+// the fallback is disabled — same output as before, by construction.
+//
+// PATCHED BY REWRITING pg_get_functiondef, NOT BY RETYPING THE BODY. The function is ~100 lines
+// including a 900-character doctrine string; transcribing it to change one line is how a body
+// silently drifts. Taking the server's own definition, replacing an exact substring and executing
+// the result preserves every attribute — defaults, STABLE, SECURITY DEFINER, search_path — and the
+// `raise exception` makes a missed match fail loudly instead of silently doing nothing.
+export const SQL_L2_FALLBACK = `
+do $do$
+declare def text; newdef text;
+begin
+  select pg_get_functiondef(p.oid) into def
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = 'fn_agent_context' and p.pronargs = 2;
+  if def is null then raise exception 'fn_agent_context(text,integer) not found'; end if;
+  -- idempotent: the patch removes its own anchor, so a second run must recognise its own work
+  -- rather than raising the "body changed" alarm at itself.
+  if def like '%b.department = v_dept%' then return; end if;
+
+  newdef := replace(def,
+$old$where agent_key=p_agent_key and coalesce(layer,'profession') in ('profession','state')$old$,
+$new$where coalesce(layer,'profession') in ('profession','state')
+               and (agent_key = p_agent_key
+                    or (v_dept is not null
+                        and not exists (select 1 from agent_knowledge k2
+                                         where k2.agent_key = p_agent_key
+                                           and coalesce(k2.layer,'profession') in ('profession','state'))
+                        and agent_key in (select b.agent_key from org_agents b
+                                           where b.active and b.department = v_dept
+                                             and b.agent_key <> p_agent_key)))$new$);
+
+  if newdef = def then
+    raise exception 'layer-2 department fallback did not match — the body changed, re-read it before patching';
+  end if;
+  execute newdef;
+end
+$do$;`;
+
 if (process.argv.includes('--print-sql')) {
   console.log(SQL_CONTEXT);
   console.log(SQL_GAPS);
+  console.log(SQL_L2_FALLBACK);
   process.exit(0);
 }
 
 const REF = resolveStagingRef(process.argv[2]);
+await mgmtWrite(REF, SQL_L2_FALLBACK, 'fn_agent_context layer-2 department fallback');
 await mgmtWrite(REF, SQL_CONTEXT, 'fn_agent_context library overload');
 await mgmtWrite(REF, SQL_GAPS, 'fn_knowledge_gaps owner attribution');
 
@@ -160,10 +217,40 @@ const g = (await mgmtRead(REF, `select
     (select count(*)::int from jsonb_array_elements(public.fn_knowledge_gaps()->'agents') a
       where a->>'owner_os' is not null) owned`))[0];
 
+// The layer-2 fallback is measured on the DATA (how many employees can reach professional
+// knowledge at all) plus one rendered spot check on `exec` — the CEO Office AI, requirement #1.
+const l2 = (await mgmtRead(REF, `
+  with a as (select agent_key, department from public.org_agents where active),
+       own as (select a.agent_key, exists (select 1 from public.agent_knowledge k
+                 where k.agent_key = a.agent_key
+                   and coalesce(k.layer,'profession') in ('profession','state')) hasown,
+               exists (select 1 from public.agent_knowledge k
+                 join public.org_agents b on b.agent_key = k.agent_key and b.active
+                 where b.department = a.department
+                   and coalesce(k.layer,'profession') in ('profession','state')) hasdept
+          from a)
+  select count(*)::int agents,
+         count(*) filter (where hasown)::int own_l2,
+         count(*) filter (where hasown or hasdept)::int reachable_l2,
+         count(*) filter (where not hasown and not hasdept)::int still_empty
+    from own`))[0];
+
+const exec = (await mgmtRead(REF, `
+  with d as (select lead_agent k from public.org_departments where dept_key='exec'),
+       c as (select public.fn_agent_context((select k from d), 24000) t)
+  select (select k from d) lead,
+         (select count(*)::int from unnest(string_to_array(
+            substring(t from '# LAYER 2 - YOUR PROFESSIONAL EXPERTISE(.*?)# LAYER 1'), E'\\n')) l
+            where l like '## %') topics
+    from c`))[0];
+
+console.log(`layer 2: ${l2.own_l2} of ${l2.agents} employees have their own, ${l2.reachable_l2} can now reach one, ${l2.still_empty} still have nothing`);
+console.log(`exec lead "${exec.lead}" renders ${exec.topics} professional-expertise topic(s)`);
 console.log(`dept_library ${m.lib_rows} rows, ${m.hits} hits for the legal probe`);
 console.log(`fn_agent_context(${m.lead_agent}) ${m.plain_len} chars without a query -> ${m.with_lib_len} with one, LAYER 2b ${m.has_section ? 'present' : 'ABSENT'}`);
 console.log(`fn_knowledge_gaps: ${g.total} category agents, ${g.owned} with an owning OS component, ${g.unowned} unowned`);
 
-const ok = m.hits > 0 && m.has_section && m.with_lib_len > m.plain_len && g.owned > 0;
+const ok = m.hits > 0 && m.has_section && m.with_lib_len > m.plain_len && g.owned > 0
+  && l2.reachable_l2 > l2.own_l2 && exec.topics > 0;
 if (!ok) { console.log('INCOMPLETE — the library is still not reaching the employee context'); process.exitCode = 1; }
 else console.log('OK — dept_library and os_knowledge_domain both have a reader on a path that runs');
