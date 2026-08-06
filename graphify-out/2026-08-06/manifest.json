@@ -1325,8 +1325,8 @@
     "semantic_hash": ""
   },
   ".claude-flow/daemon-state.json": {
-    "mtime": 1786002493.0211778,
-    "ast_hash": "cab6867639f1a280789ba0032808c61a",
+    "mtime": 1786007786.2942488,
+    "ast_hash": "dab009bef251a162e2a10acc096c488a",
     "semantic_hash": ""
   },
   ".claude-flow/harness-active-policy.json": {
@@ -1340,38 +1340,38 @@
     "semantic_hash": ""
   },
   ".claude-flow/metrics/codebase-map.json": {
-    "mtime": 1786002253.2622235,
-    "ast_hash": "7e5c12f96d6c181ea155a2cf1fd457af",
+    "mtime": 1786007786.2909517,
+    "ast_hash": "489ef605b302364c8ab5790ea957a0df",
     "semantic_hash": ""
   },
   ".claude-flow/metrics/consolidation.json": {
-    "mtime": 1786000932.7665443,
-    "ast_hash": "87b1953d46caa521a24964cbf9001310",
+    "mtime": 1786006212.9135582,
+    "ast_hash": "9343a445628fc156f3991f9c5385a86b",
     "semantic_hash": ""
   },
   ".claude-flow/metrics/harness-loop.json": {
-    "mtime": 1785983352.6094506,
-    "ast_hash": "dbd00caeab2e6ec7fd62351367eaee84",
+    "mtime": 1786006094.0533555,
+    "ast_hash": "ac5e9a8f876c22dafc2103e777607247",
     "semantic_hash": ""
   },
   ".claude-flow/metrics/performance.json": {
-    "mtime": 1786002493.0200202,
-    "ast_hash": "782b613878be1446174b0b7ea56951bc",
+    "mtime": 1786006993.3677359,
+    "ast_hash": "5357cb769f156e8278cfb18664818c34",
     "semantic_hash": ""
   },
   ".claude-flow/metrics/security-audit.json": {
-    "mtime": 1786002385.8850071,
-    "ast_hash": "52ef4d94ef87e9ea86ca845e9194a64e",
+    "mtime": 1786007786.2848299,
+    "ast_hash": "06b12e94d9d8040901646ede3ef14358",
     "semantic_hash": ""
   },
   ".claude-flow/metrics/test-gaps.json": {
-    "mtime": 1786002132.7906747,
-    "ast_hash": "ccfc186dbf97d01ac64f911e436c6812",
+    "mtime": 1786006993.385309,
+    "ast_hash": "5553cfef5172bb107a2797e17aa57e22",
     "semantic_hash": ""
   },
   ".claude-flow/neural/stats.json": {
-    "mtime": 1786003466.8654573,
-    "ast_hash": "4c84a6fa92b7f0b256d4423b4922da9c",
+    "mtime": 1786007809.6428688,
+    "ast_hash": "8f7ac2cd1849fd3fa6ec01b92fdc5673",
     "semantic_hash": ""
   },
   ".claude/proven-config.json": {
@@ -1890,8 +1890,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/bus_contract_close.sql": {
-    "mtime": 1786003169.801268,
-    "ast_hash": "397a53ce3105c71411cdfc10f4692c12",
+    "mtime": 1786004938.8499238,
+    "ast_hash": "2455d938e3100dabb438954a01686b46",
     "semantic_hash": ""
   },
   "scripts/sql/bus_contract_seed.sql": {
@@ -1935,8 +1935,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/fn_decide_producer.sql": {
-    "mtime": 1786002370.6472592,
-    "ast_hash": "99d5cac7091ff8c7aa21c6fff74adeac",
+    "mtime": 1786007604.1952868,
+    "ast_hash": "fc01556bf0699a49ae1137a8d228ad3b",
     "semantic_hash": ""
   },
   "scripts/sql/fn_decision_gate_employee_limit.sql": {
@@ -2130,33 +2130,33 @@
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/component_10.mjs": {
-    "mtime": 1786002543.7252042,
-    "ast_hash": "41fbf2b7abb8a901d6ebcc433a0ed434",
+    "mtime": 1786007782.1101346,
+    "ast_hash": "6791268fd4443f8276e04cc5065b3e48",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/components_11_13.mjs": {
-    "mtime": 1786002800.1177266,
-    "ast_hash": "cb9336e2fd57e2cc9a98f9412d0bdd83",
+    "mtime": 1786005025.1217086,
+    "ast_hash": "f8830b7a5d626b2f90bcd7b8bda04ae5",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/components_14_17.mjs": {
-    "mtime": 1786000270.0264144,
-    "ast_hash": "c5f103120c02f9335972fb44546ab261",
+    "mtime": 1786005151.9605014,
+    "ast_hash": "e843f79191701ce9836ce74f2717cb0d",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/components_1_9.mjs": {
-    "mtime": 1786003158.1886818,
-    "ast_hash": "9462f2e7f1e7fd3f61a69b1bab5181d5",
+    "mtime": 1786007713.9222205,
+    "ast_hash": "d717bf46e9dc8a7d4f236f2f8b2547f0",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/cross_os.mjs": {
-    "mtime": 1786003326.5500796,
-    "ast_hash": "a982617b8fb4eb2996d0a6a68128d727",
+    "mtime": 1786007727.3732803,
+    "ast_hash": "6deab16b90fffa9414c86b98dd1e19ec",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/the_ten_oses.mjs": {
-    "mtime": 1785998755.919309,
-    "ast_hash": "0226cc5ec76f7ef959e8f5ffcf30cd5f",
+    "mtime": 1786007715.161142,
+    "ast_hash": "bcb7210295ac8afaff7cb7ac3ddc753b",
     "semantic_hash": ""
   },
   "scripts/staging/prove_a01_remediation.mjs": {
@@ -4407,6 +4407,91 @@
   "scripts/staging/verify_bus_contract.mjs": {
     "mtime": 1786003398.8211346,
     "ast_hash": "a6b5a65ba56b6241424afa11425cc599",
+    "semantic_hash": ""
+  },
+  "scripts/sql/bus_contract_read.sql": {
+    "mtime": 1786004921.649863,
+    "ast_hash": "46255127e7afdcc540f3da25e2839825",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_emit_metric_alerts.sql": {
+    "mtime": 1786007340.3001697,
+    "ast_hash": "fe330f5cb4c9467e793ab3791bd2c9f9",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_exec_meeting_reads_v_os_health.sql": {
+    "mtime": 1786004676.3895817,
+    "ast_hash": "9f9aac4465665a1eb1b37747800c2b50",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_execution_sweep.sql": {
+    "mtime": 1786007462.742939,
+    "ast_hash": "3e4dcce47df510a662de65254851f412",
+    "semantic_hash": ""
+  },
+  "scripts/sql/os_inputs_reach_every_os.sql": {
+    "mtime": 1786007283.6354315,
+    "ast_hash": "09ca89cfe6d5cfdab98ce44bc84eeda5",
+    "semantic_hash": ""
+  },
+  "scripts/sql/os_ownership_structural.sql": {
+    "mtime": 1786004224.9193633,
+    "ast_hash": "478f611b496b62304ae2da3448d5d7e7",
+    "semantic_hash": ""
+  },
+  "scripts/staging/_c10_probe1.sql": {
+    "mtime": 1786006845.9520397,
+    "ast_hash": "c50ceeb97dafa349d0f340de42c4eec0",
+    "semantic_hash": ""
+  },
+  "scripts/staging/_c10_probe2.sql": {
+    "mtime": 1786006875.239499,
+    "ast_hash": "e766bf8ecd4c48611c01c7737053fc71",
+    "semantic_hash": ""
+  },
+  "scripts/staging/_c10_probe3.sql": {
+    "mtime": 1786007088.3399093,
+    "ast_hash": "3357204d36aa96bc1b6727003c8f1b24",
+    "semantic_hash": ""
+  },
+  "scripts/staging/_c10_probe4.sql": {
+    "mtime": 1786007140.4924102,
+    "ast_hash": "dc7fe751cdb4ae27b4deea3a0a7c1b6f",
+    "semantic_hash": ""
+  },
+  "scripts/staging/_c10_probe5.sql": {
+    "mtime": 1786007248.0578454,
+    "ast_hash": "37cdf3521ba3d18581e6468bcb2f0ec8",
+    "semantic_hash": ""
+  },
+  "scripts/staging/_c10_probe6.sql": {
+    "mtime": 1786007317.1955812,
+    "ast_hash": "764dd06530feabbb9551c041a1270381",
+    "semantic_hash": ""
+  },
+  "scripts/staging/_c10_run1.sql": {
+    "mtime": 1786007526.2420769,
+    "ast_hash": "686b14db682dbf6d2d905bca1b2c3ee0",
+    "semantic_hash": ""
+  },
+  "scripts/staging/_c10_run2.sql": {
+    "mtime": 1786007537.2678597,
+    "ast_hash": "5eab61ee683179028d1a3c158edc649e",
+    "semantic_hash": ""
+  },
+  "scripts/staging/_c10_run3.sql": {
+    "mtime": 1786007563.3092146,
+    "ast_hash": "e145bc24f070eea59f4690e6079049b4",
+    "semantic_hash": ""
+  },
+  "scripts/staging/_c10_run4.sql": {
+    "mtime": 1786007575.4862285,
+    "ast_hash": "68de3bce4141b898d89b46a43d9e3971",
+    "semantic_hash": ""
+  },
+  "docs/sessions/SCORER_DEFECTS_ROUND2.md": {
+    "mtime": 1786006580.6414964,
+    "ast_hash": "ecd0b6c1da256061ef3b286f5cf34e6d",
     "semantic_hash": ""
   }
 }

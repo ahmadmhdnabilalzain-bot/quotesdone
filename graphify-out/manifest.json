@@ -1325,8 +1325,8 @@
     "semantic_hash": ""
   },
   ".claude-flow/daemon-state.json": {
-    "mtime": 1786007786.2942488,
-    "ast_hash": "dab009bef251a162e2a10acc096c488a",
+    "mtime": 1786023193.9086897,
+    "ast_hash": "be754b60e53c9e9075f616229c20ed91",
     "semantic_hash": ""
   },
   ".claude-flow/harness-active-policy.json": {
@@ -1340,13 +1340,13 @@
     "semantic_hash": ""
   },
   ".claude-flow/metrics/codebase-map.json": {
-    "mtime": 1786007786.2909517,
-    "ast_hash": "489ef605b302364c8ab5790ea957a0df",
+    "mtime": 1786022954.1896172,
+    "ast_hash": "ee122472c7d709d6bd1bd3040264f3d5",
     "semantic_hash": ""
   },
   ".claude-flow/metrics/consolidation.json": {
-    "mtime": 1786006212.9135582,
-    "ast_hash": "9343a445628fc156f3991f9c5385a86b",
+    "mtime": 1786022413.3147573,
+    "ast_hash": "753576b96d006e5f03544dd9aef1bae7",
     "semantic_hash": ""
   },
   ".claude-flow/metrics/harness-loop.json": {
@@ -1355,23 +1355,23 @@
     "semantic_hash": ""
   },
   ".claude-flow/metrics/performance.json": {
-    "mtime": 1786006993.3677359,
-    "ast_hash": "5357cb769f156e8278cfb18664818c34",
+    "mtime": 1786023193.9034371,
+    "ast_hash": "b7ee82065a288cd27449db1c70e9fbee",
     "semantic_hash": ""
   },
   ".claude-flow/metrics/security-audit.json": {
-    "mtime": 1786007786.2848299,
-    "ast_hash": "06b12e94d9d8040901646ede3ef14358",
+    "mtime": 1786022787.0298707,
+    "ast_hash": "2f34d5943805c1def687d1daa49f5d72",
     "semantic_hash": ""
   },
   ".claude-flow/metrics/test-gaps.json": {
-    "mtime": 1786006993.385309,
-    "ast_hash": "5553cfef5172bb107a2797e17aa57e22",
+    "mtime": 1786022533.7846596,
+    "ast_hash": "5c0e7b5de8211191598454a44b626c3d",
     "semantic_hash": ""
   },
   ".claude-flow/neural/stats.json": {
-    "mtime": 1786007809.6428688,
-    "ast_hash": "8f7ac2cd1849fd3fa6ec01b92fdc5673",
+    "mtime": 1786022594.596017,
+    "ast_hash": "9a3d310f086eeed717fbeda79760ddd4",
     "semantic_hash": ""
   },
   ".claude/proven-config.json": {
@@ -1925,18 +1925,13 @@
     "semantic_hash": ""
   },
   "scripts/sql/fn_agent_context_os_layer.sql": {
-    "mtime": 1786002492.1034138,
-    "ast_hash": "1207a01670eb9545ee410233ebdb5385",
+    "mtime": 1786014812.404107,
+    "ast_hash": "73149a8d8c9f1ba5b97b7cfec1079818",
     "semantic_hash": ""
   },
   "scripts/sql/fn_customer_preference.sql": {
     "mtime": 1785993811.5885155,
     "ast_hash": "629a2173cae1095805b9954e8cb5d3bd",
-    "semantic_hash": ""
-  },
-  "scripts/sql/fn_decide_producer.sql": {
-    "mtime": 1786007604.1952868,
-    "ast_hash": "fc01556bf0699a49ae1137a8d228ad3b",
     "semantic_hash": ""
   },
   "scripts/sql/fn_decision_gate_employee_limit.sql": {
@@ -1950,8 +1945,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/fn_event_dispatch.sql": {
-    "mtime": 1785999104.6592793,
-    "ast_hash": "8b4e098a9006660c924e00e486b9940a",
+    "mtime": 1786020052.010442,
+    "ast_hash": "41187ec21d2f10509b7e5589417a7d7a",
     "semantic_hash": ""
   },
   "scripts/sql/fn_improvement_plan.sql": {
@@ -1965,8 +1960,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/fn_os_health_brief.sql": {
-    "mtime": 1786002027.125843,
-    "ast_hash": "76f1d3c89f605a0354c5f1eba4ee70bf",
+    "mtime": 1786008023.9369538,
+    "ast_hash": "ca633b45fa822068a2ff6ea4a5de95c9",
     "semantic_hash": ""
   },
   "scripts/sql/fn_os_knowledge_query.sql": {
@@ -2020,8 +2015,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/memory_cluster_routines.sql": {
-    "mtime": 1786002341.359578,
-    "ast_hash": "68d5bc886ea7951706a8faba1aa3e278",
+    "mtime": 1786007946.8537486,
+    "ast_hash": "c42bee5853a3ed3c9f6a551c9811b466",
     "semantic_hash": ""
   },
   "scripts/sql/memory_cluster_run.sql": {
@@ -2130,33 +2125,33 @@
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/component_10.mjs": {
-    "mtime": 1786007782.1101346,
-    "ast_hash": "6791268fd4443f8276e04cc5065b3e48",
+    "mtime": 1786014196.3369343,
+    "ast_hash": "f98679094b8288205906acf0568ba600",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/components_11_13.mjs": {
-    "mtime": 1786005025.1217086,
-    "ast_hash": "f8830b7a5d626b2f90bcd7b8bda04ae5",
+    "mtime": 1786013898.721164,
+    "ast_hash": "50d4aa8a92ebb8abd26509c65d968df2",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/components_14_17.mjs": {
-    "mtime": 1786005151.9605014,
-    "ast_hash": "e843f79191701ce9836ce74f2717cb0d",
+    "mtime": 1786014018.21129,
+    "ast_hash": "2e9c198fd370f512bcd56866bdf3d7b8",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/components_1_9.mjs": {
-    "mtime": 1786007713.9222205,
-    "ast_hash": "d717bf46e9dc8a7d4f236f2f8b2547f0",
+    "mtime": 1786013329.1737165,
+    "ast_hash": "8b725e37bea06b1a7a94320163709f25",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/cross_os.mjs": {
-    "mtime": 1786007727.3732803,
-    "ast_hash": "6deab16b90fffa9414c86b98dd1e19ec",
+    "mtime": 1786017769.157821,
+    "ast_hash": "681596f1d583617e605f8478c877d936",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/the_ten_oses.mjs": {
-    "mtime": 1786007715.161142,
-    "ast_hash": "bcb7210295ac8afaff7cb7ac3ddc753b",
+    "mtime": 1786012698.564919,
+    "ast_hash": "92d1f8b2a939224e31ea987a9c182e98",
     "semantic_hash": ""
   },
   "scripts/staging/prove_a01_remediation.mjs": {
@@ -4420,8 +4415,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/fn_exec_meeting_reads_v_os_health.sql": {
-    "mtime": 1786004676.3895817,
-    "ast_hash": "9f9aac4465665a1eb1b37747800c2b50",
+    "mtime": 1786008039.763105,
+    "ast_hash": "361b137fdda8bbf1f6a671ad2d2231dd",
     "semantic_hash": ""
   },
   "scripts/sql/fn_execution_sweep.sql": {
@@ -4439,59 +4434,119 @@
     "ast_hash": "478f611b496b62304ae2da3448d5d7e7",
     "semantic_hash": ""
   },
-  "scripts/staging/_c10_probe1.sql": {
-    "mtime": 1786006845.9520397,
-    "ast_hash": "c50ceeb97dafa349d0f340de42c4eec0",
-    "semantic_hash": ""
-  },
-  "scripts/staging/_c10_probe2.sql": {
-    "mtime": 1786006875.239499,
-    "ast_hash": "e766bf8ecd4c48611c01c7737053fc71",
-    "semantic_hash": ""
-  },
-  "scripts/staging/_c10_probe3.sql": {
-    "mtime": 1786007088.3399093,
-    "ast_hash": "3357204d36aa96bc1b6727003c8f1b24",
-    "semantic_hash": ""
-  },
-  "scripts/staging/_c10_probe4.sql": {
-    "mtime": 1786007140.4924102,
-    "ast_hash": "dc7fe751cdb4ae27b4deea3a0a7c1b6f",
-    "semantic_hash": ""
-  },
-  "scripts/staging/_c10_probe5.sql": {
-    "mtime": 1786007248.0578454,
-    "ast_hash": "37cdf3521ba3d18581e6468bcb2f0ec8",
-    "semantic_hash": ""
-  },
-  "scripts/staging/_c10_probe6.sql": {
-    "mtime": 1786007317.1955812,
-    "ast_hash": "764dd06530feabbb9551c041a1270381",
-    "semantic_hash": ""
-  },
-  "scripts/staging/_c10_run1.sql": {
-    "mtime": 1786007526.2420769,
-    "ast_hash": "686b14db682dbf6d2d905bca1b2c3ee0",
-    "semantic_hash": ""
-  },
-  "scripts/staging/_c10_run2.sql": {
-    "mtime": 1786007537.2678597,
-    "ast_hash": "5eab61ee683179028d1a3c158edc649e",
-    "semantic_hash": ""
-  },
-  "scripts/staging/_c10_run3.sql": {
-    "mtime": 1786007563.3092146,
-    "ast_hash": "e145bc24f070eea59f4690e6079049b4",
-    "semantic_hash": ""
-  },
-  "scripts/staging/_c10_run4.sql": {
-    "mtime": 1786007575.4862285,
-    "ast_hash": "68de3bce4141b898d89b46a43d9e3971",
-    "semantic_hash": ""
-  },
   "docs/sessions/SCORER_DEFECTS_ROUND2.md": {
     "mtime": 1786006580.6414964,
     "ast_hash": "ecd0b6c1da256061ef3b286f5cf34e6d",
+    "semantic_hash": ""
+  },
+  "prod_def.sql": {
+    "mtime": 1786012452.13477,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/action_gate_records_sources.sql": {
+    "mtime": 1786012909.9589949,
+    "ast_hash": "485999f9b1510b84d19e103a3e97c3b2",
+    "semantic_hash": ""
+  },
+  "scripts/sql/ai_gate_records_sources.sql": {
+    "mtime": 1786018018.1667373,
+    "ast_hash": "deb468553a06564fc8b774a98b9527d4",
+    "semantic_hash": ""
+  },
+  "scripts/sql/close_unroutable_deliveries.sql": {
+    "mtime": 1786020234.6014059,
+    "ast_hash": "9f439a62f914461ff667db885fe452d1",
+    "semantic_hash": ""
+  },
+  "scripts/sql/collaboration_rule_named_parties.sql": {
+    "mtime": 1786013442.6467135,
+    "ast_hash": "0e4dc8f546eeef77b0e6884bc828cd91",
+    "semantic_hash": ""
+  },
+  "scripts/sql/cron_improvement_handover.sql": {
+    "mtime": 1786013859.2954066,
+    "ast_hash": "d2cb03f5c6dc5b9e3735993fd01bbac8",
+    "semantic_hash": ""
+  },
+  "scripts/sql/decide_routes_to_a_party.sql": {
+    "mtime": 1786017853.951033,
+    "ast_hash": "026080542e52ba2d29d2120a5c24e23d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/escalation_names_a_party.sql": {
+    "mtime": 1786021036.1055534,
+    "ast_hash": "62f3e48839e1aa2260772182cbb5e4cc",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_decision_gate_authority_register.sql": {
+    "mtime": 1786013004.731837,
+    "ast_hash": "887f9890448129331ef550ad094d661d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_emit_task_assigned.sql": {
+    "mtime": 1786017948.5827198,
+    "ast_hash": "d6e8b97e115114cb0f984fd4f15f1d40",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_execution_run.sql": {
+    "mtime": 1786014154.970724,
+    "ast_hash": "d38f4139968d0b120ecf5493479811cf",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_improvement_handover.sql": {
+    "mtime": 1786013718.3914523,
+    "ast_hash": "5edd8f1b06c7a16a04b44493258e2d06",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_learning_loop_backstop.sql": {
+    "mtime": 1786013677.8200498,
+    "ast_hash": "a0772fa057e59d665db2af5fdd1861cb",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_should_escalate_named_party.sql": {
+    "mtime": 1786013371.9029045,
+    "ast_hash": "9eb2b00105dcce56c23476fc57e6006f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_task_review_ownership_routing.sql": {
+    "mtime": 1786013531.4632733,
+    "ast_hash": "436f1235332f31c9263c8187ed9aa199",
+    "semantic_hash": ""
+  },
+  "scripts/sql/memory_cluster_backfill.sql": {
+    "mtime": 1786008085.5371847,
+    "ast_hash": "420031964e6f7f0159d911dedde3d332",
+    "semantic_hash": ""
+  },
+  "scripts/sql/repair_event_delivery_taskless.sql": {
+    "mtime": 1786013157.5188086,
+    "ast_hash": "b6f20e4cf88ae70929230a943d79b154",
+    "semantic_hash": ""
+  },
+  "scripts/sql/rollback_task_assigned_backdate.sql": {
+    "mtime": 1786017917.6775177,
+    "ast_hash": "ef834f3d41f4387bcb73e1afa26d5fe2",
+    "semantic_hash": ""
+  },
+  "scripts/sql/workflow_trigger_events.sql": {
+    "mtime": 1786013117.936417,
+    "ast_hash": "6f3a39882a774958072ef60fa0643936",
+    "semantic_hash": ""
+  },
+  "scripts/staging/sprobe.mjs": {
+    "mtime": 1786021002.571393,
+    "ast_hash": "092dfa27ce42015889a278b74c723930",
+    "semantic_hash": ""
+  },
+  "scripts/staging/ssql.mjs": {
+    "mtime": 1786019796.3636165,
+    "ast_hash": "bd83bac3d58090c02412fe82c0857355",
+    "semantic_hash": ""
+  },
+  "docs/sessions/SCORER_DEFECTS_ROUND3.md": {
+    "mtime": 1786011412.0712178,
+    "ast_hash": "4fc368263af0d65f27363f8a0a3af8e9",
     "semantic_hash": ""
   }
 }

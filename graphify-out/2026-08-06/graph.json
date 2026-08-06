@@ -3575,8 +3575,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_diff_schema_shape",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 152,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "diff_schema_shape.mjs"
     },
     {
@@ -3586,8 +3586,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "scripts_diff_schema_shape_views_only",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 152,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "views_only"
     },
     {
@@ -3597,8 +3597,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "scripts_diff_schema_shape_show",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 152,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "show"
     },
     {
@@ -3619,8 +3619,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "scripts_diff_schema_shape_s_p",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 152,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "[s, p]"
     },
     {
@@ -3630,8 +3630,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "scripts_diff_schema_shape_onlys",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 152,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "onlys"
     },
     {
@@ -3641,8 +3641,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "scripts_diff_schema_shape_onlyp",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 152,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "onlyp"
     },
     {
@@ -3652,8 +3652,8 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "scripts_diff_schema_shape_nameof",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 152,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "nameof()"
     },
     {
@@ -3663,8 +3663,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "scripts_diff_schema_shape_both",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 152,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "both"
     },
     {
@@ -4637,8 +4637,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_promote_rows_to_production",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 748,
+      "community_name": "quote_pdf/index.ts",
       "norm_label": "promote_rows_to_production.mjs"
     },
     {
@@ -4648,8 +4648,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "scripts_promote_rows_to_production_table_keycol_keys",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 748,
+      "community_name": "quote_pdf/index.ts",
       "norm_label": "[table, keycol, ...keys]"
     },
     {
@@ -4659,8 +4659,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "scripts_promote_rows_to_production_q",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 748,
+      "community_name": "quote_pdf/index.ts",
       "norm_label": "q()"
     },
     {
@@ -4670,8 +4670,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "scripts_promote_rows_to_production_one",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 748,
+      "community_name": "quote_pdf/index.ts",
       "norm_label": "one()"
     },
     {
@@ -4681,8 +4681,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "scripts_promote_rows_to_production_inlist",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 748,
+      "community_name": "quote_pdf/index.ts",
       "norm_label": "inlist"
     },
     {
@@ -4692,8 +4692,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "scripts_promote_rows_to_production_token",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 748,
+      "community_name": "quote_pdf/index.ts",
       "norm_label": "token"
     },
     {
@@ -4703,8 +4703,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "scripts_promote_rows_to_production_prodpost",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 748,
+      "community_name": "quote_pdf/index.ts",
       "norm_label": "prodpost()"
     },
     {
@@ -4714,8 +4714,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "scripts_promote_rows_to_production_json",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 748,
+      "community_name": "quote_pdf/index.ts",
       "norm_label": "json"
     },
     {
@@ -4725,8 +4725,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "scripts_promote_rows_to_production_cols",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 748,
+      "community_name": "quote_pdf/index.ts",
       "norm_label": "cols"
     },
     {
@@ -4736,8 +4736,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "scripts_promote_rows_to_production_setlist",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 748,
+      "community_name": "quote_pdf/index.ts",
       "norm_label": "setlist"
     },
     {
@@ -4747,8 +4747,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "scripts_promote_rows_to_production_sh",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 748,
+      "community_name": "quote_pdf/index.ts",
       "norm_label": "sh"
     },
     {
@@ -4758,8 +4758,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "scripts_promote_rows_to_production_ph",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 748,
+      "community_name": "quote_pdf/index.ts",
       "norm_label": "ph"
     },
     {
@@ -5679,7 +5679,7 @@
       "label": "public.fn_event_consolidate()",
       "file_type": "code",
       "source_file": "scripts/sql/bus_contract_close.sql",
-      "source_location": "L200",
+      "source_location": "L205",
       "_origin": "ast",
       "id": "scripts_sql_bus_contract_close_public_fn_event_consolidate",
       "community": 347,
@@ -5690,7 +5690,7 @@
       "label": "public.fn_company_reflect()",
       "file_type": "code",
       "source_file": "scripts/sql/bus_contract_close.sql",
-      "source_location": "L346",
+      "source_location": "L351",
       "_origin": "ast",
       "id": "scripts_sql_bus_contract_close_public_fn_company_reflect",
       "community": 347,
@@ -5701,7 +5701,7 @@
       "label": "public.fn_emit_metric_alerts()",
       "file_type": "code",
       "source_file": "scripts/sql/bus_contract_close.sql",
-      "source_location": "L419",
+      "source_location": "L424",
       "_origin": "ast",
       "id": "scripts_sql_bus_contract_close_public_fn_emit_metric_alerts",
       "community": 347,
@@ -5712,12 +5712,45 @@
       "label": "public.fn_budget_rollup()",
       "file_type": "code",
       "source_file": "scripts/sql/bus_contract_close.sql",
-      "source_location": "L481",
+      "source_location": "L486",
       "_origin": "ast",
       "id": "scripts_sql_bus_contract_close_public_fn_budget_rollup",
       "community": 347,
       "community_name": "bus_contract_close.sql",
       "norm_label": "public.fn_budget_rollup()"
+    },
+    {
+      "label": "bus_contract_read.sql",
+      "file_type": "code",
+      "source_file": "scripts/sql/bus_contract_read.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_sql_bus_contract_read",
+      "community": 763,
+      "community_name": "bus_contract_read.sql",
+      "norm_label": "bus_contract_read.sql"
+    },
+    {
+      "label": "public.v_event_backbone",
+      "file_type": "code",
+      "source_file": "scripts/sql/bus_contract_read.sql",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "scripts_sql_bus_contract_read_public_v_event_backbone",
+      "community": 763,
+      "community_name": "bus_contract_read.sql",
+      "norm_label": "public.v_event_backbone"
+    },
+    {
+      "label": "public.fn_event_consolidate()",
+      "file_type": "code",
+      "source_file": "scripts/sql/bus_contract_read.sql",
+      "source_location": "L67",
+      "_origin": "ast",
+      "id": "scripts_sql_bus_contract_read_public_fn_event_consolidate",
+      "community": 763,
+      "community_name": "bus_contract_read.sql",
+      "norm_label": "public.fn_event_consolidate()"
     },
     {
       "label": "bus_contract_seed.sql",
@@ -5929,6 +5962,28 @@
       "norm_label": "public.fn_os_review()"
     },
     {
+      "label": "fn_emit_metric_alerts.sql",
+      "file_type": "code",
+      "source_file": "scripts/sql/fn_emit_metric_alerts.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_sql_fn_emit_metric_alerts",
+      "community": 764,
+      "community_name": "fn_emit_metric_alerts.sql",
+      "norm_label": "fn_emit_metric_alerts.sql"
+    },
+    {
+      "label": "public.fn_emit_metric_alerts()",
+      "file_type": "code",
+      "source_file": "scripts/sql/fn_emit_metric_alerts.sql",
+      "source_location": "L16",
+      "_origin": "ast",
+      "id": "scripts_sql_fn_emit_metric_alerts_public_fn_emit_metric_alerts",
+      "community": 764,
+      "community_name": "fn_emit_metric_alerts.sql",
+      "norm_label": "public.fn_emit_metric_alerts()"
+    },
+    {
       "label": "fn_event_dispatch.sql",
       "file_type": "code",
       "source_file": "scripts/sql/fn_event_dispatch.sql",
@@ -5949,6 +6004,50 @@
       "community": 536,
       "community_name": "fn_event_dispatch.sql",
       "norm_label": "public.fn_event_dispatch()"
+    },
+    {
+      "label": "fn_exec_meeting_reads_v_os_health.sql",
+      "file_type": "code",
+      "source_file": "scripts/sql/fn_exec_meeting_reads_v_os_health.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_sql_fn_exec_meeting_reads_v_os_health",
+      "community": 765,
+      "community_name": "fn_exec_meeting_reads_v_os_health.sql",
+      "norm_label": "fn_exec_meeting_reads_v_os_health.sql"
+    },
+    {
+      "label": "public.fn_exec_meeting()",
+      "file_type": "code",
+      "source_file": "scripts/sql/fn_exec_meeting_reads_v_os_health.sql",
+      "source_location": "L17",
+      "_origin": "ast",
+      "id": "scripts_sql_fn_exec_meeting_reads_v_os_health_public_fn_exec_meeting",
+      "community": 765,
+      "community_name": "fn_exec_meeting_reads_v_os_health.sql",
+      "norm_label": "public.fn_exec_meeting()"
+    },
+    {
+      "label": "fn_execution_sweep.sql",
+      "file_type": "code",
+      "source_file": "scripts/sql/fn_execution_sweep.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_sql_fn_execution_sweep",
+      "community": 766,
+      "community_name": "fn_execution_sweep.sql",
+      "norm_label": "fn_execution_sweep.sql"
+    },
+    {
+      "label": "public.fn_execution_sweep()",
+      "file_type": "code",
+      "source_file": "scripts/sql/fn_execution_sweep.sql",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "scripts_sql_fn_execution_sweep_public_fn_execution_sweep",
+      "community": 766,
+      "community_name": "fn_execution_sweep.sql",
+      "norm_label": "public.fn_execution_sweep()"
     },
     {
       "label": "fn_improvement_plan.sql",
@@ -6457,6 +6556,28 @@
       "norm_label": "public.resource_pool"
     },
     {
+      "label": "os_inputs_reach_every_os.sql",
+      "file_type": "code",
+      "source_file": "scripts/sql/os_inputs_reach_every_os.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_sql_os_inputs_reach_every_os",
+      "community": 767,
+      "community_name": "os_inputs_reach_every_os.sql",
+      "norm_label": "os_inputs_reach_every_os.sql"
+    },
+    {
+      "label": "public.os_interface",
+      "file_type": "code",
+      "source_file": "scripts/sql/os_inputs_reach_every_os.sql",
+      "source_location": "L32",
+      "_origin": "ast",
+      "id": "scripts_sql_os_inputs_reach_every_os_public_os_interface",
+      "community": 767,
+      "community_name": "os_inputs_reach_every_os.sql",
+      "norm_label": "public.os_interface"
+    },
+    {
       "label": "os_knowledge_ownership.sql",
       "file_type": "code",
       "source_file": "scripts/sql/os_knowledge_ownership.sql",
@@ -6488,6 +6609,17 @@
       "community": 543,
       "community_name": "os_objective_measures.sql",
       "norm_label": "public.fn_os_objective_measure()"
+    },
+    {
+      "label": "os_ownership_structural.sql",
+      "file_type": "code",
+      "source_file": "scripts/sql/os_ownership_structural.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_sql_os_ownership_structural",
+      "community": 768,
+      "community_name": "os_ownership_structural.sql",
+      "norm_label": "os_ownership_structural.sql"
     },
     {
       "label": "replay_verify.sql",
@@ -6631,6 +6763,116 @@
       "community": 661,
       "community_name": "vocabularies.sql",
       "norm_label": "vocabularies.sql"
+    },
+    {
+      "label": "_c10_probe1.sql",
+      "file_type": "code",
+      "source_file": "scripts/staging/_c10_probe1.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_staging_c10_probe1",
+      "community": 769,
+      "community_name": "_c10_probe1.sql",
+      "norm_label": "_c10_probe1.sql"
+    },
+    {
+      "label": "_c10_probe2.sql",
+      "file_type": "code",
+      "source_file": "scripts/staging/_c10_probe2.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_staging_c10_probe2",
+      "community": 770,
+      "community_name": "_c10_probe2.sql",
+      "norm_label": "_c10_probe2.sql"
+    },
+    {
+      "label": "_c10_probe3.sql",
+      "file_type": "code",
+      "source_file": "scripts/staging/_c10_probe3.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_staging_c10_probe3",
+      "community": 771,
+      "community_name": "_c10_probe3.sql",
+      "norm_label": "_c10_probe3.sql"
+    },
+    {
+      "label": "_c10_probe4.sql",
+      "file_type": "code",
+      "source_file": "scripts/staging/_c10_probe4.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_staging_c10_probe4",
+      "community": 772,
+      "community_name": "_c10_probe4.sql",
+      "norm_label": "_c10_probe4.sql"
+    },
+    {
+      "label": "_c10_probe5.sql",
+      "file_type": "code",
+      "source_file": "scripts/staging/_c10_probe5.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_staging_c10_probe5",
+      "community": 773,
+      "community_name": "_c10_probe5.sql",
+      "norm_label": "_c10_probe5.sql"
+    },
+    {
+      "label": "_c10_probe6.sql",
+      "file_type": "code",
+      "source_file": "scripts/staging/_c10_probe6.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_staging_c10_probe6",
+      "community": 774,
+      "community_name": "_c10_probe6.sql",
+      "norm_label": "_c10_probe6.sql"
+    },
+    {
+      "label": "_c10_run1.sql",
+      "file_type": "code",
+      "source_file": "scripts/staging/_c10_run1.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_staging_c10_run1",
+      "community": 775,
+      "community_name": "_c10_run1.sql",
+      "norm_label": "_c10_run1.sql"
+    },
+    {
+      "label": "_c10_run2.sql",
+      "file_type": "code",
+      "source_file": "scripts/staging/_c10_run2.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_staging_c10_run2",
+      "community": 776,
+      "community_name": "_c10_run2.sql",
+      "norm_label": "_c10_run2.sql"
+    },
+    {
+      "label": "_c10_run3.sql",
+      "file_type": "code",
+      "source_file": "scripts/staging/_c10_run3.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_staging_c10_run3",
+      "community": 777,
+      "community_name": "_c10_run3.sql",
+      "norm_label": "_c10_run3.sql"
+    },
+    {
+      "label": "_c10_run4.sql",
+      "file_type": "code",
+      "source_file": "scripts/staging/_c10_run4.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_staging_c10_run4",
+      "community": 778,
+      "community_name": "_c10_run4.sql",
+      "norm_label": "_c10_run4.sql"
     },
     {
       "label": "apply_missing_objects.mjs",
@@ -6881,8 +7123,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_staging_apply_taxonomy_fix",
-      "community": 117,
-      "community_name": "exec_board/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "apply_taxonomy_fix.mjs"
     },
     {
@@ -6892,8 +7134,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "scripts_staging_apply_taxonomy_fix_trades",
-      "community": 117,
-      "community_name": "exec_board/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "trades"
     },
     {
@@ -6903,8 +7145,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "scripts_staging_apply_taxonomy_fix_statements",
-      "community": 117,
-      "community_name": "exec_board/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "statements"
     },
     {
@@ -6914,8 +7156,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "scripts_staging_apply_taxonomy_fix_audit",
-      "community": 117,
-      "community_name": "exec_board/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "audit()"
     },
     {
@@ -7178,8 +7420,8 @@
       "source_location": "L224",
       "_origin": "ast",
       "id": "scripts_staging_demo_factory_deleteauthusersbytag",
-      "community": 321,
-      "community_name": "gate_decision_chain.mjs",
+      "community": 76,
+      "community_name": "portal/page.tsx",
       "norm_label": "deleteauthusersbytag()"
     },
     {
@@ -7387,8 +7629,8 @@
       "source_location": "L886",
       "_origin": "ast",
       "id": "scripts_staging_demo_factory_scopeforrun",
-      "community": 321,
-      "community_name": "gate_decision_chain.mjs",
+      "community": 76,
+      "community_name": "portal/page.tsx",
       "norm_label": "scopeforrun()"
     },
     {
@@ -7398,8 +7640,8 @@
       "source_location": "L896",
       "_origin": "ast",
       "id": "scripts_staging_demo_factory_scopesql",
-      "community": 321,
-      "community_name": "gate_decision_chain.mjs",
+      "community": 76,
+      "community_name": "portal/page.tsx",
       "norm_label": "scopesql()"
     },
     {
@@ -7409,8 +7651,8 @@
       "source_location": "L906",
       "_origin": "ast",
       "id": "scripts_staging_demo_factory_bucket_sources",
-      "community": 321,
-      "community_name": "gate_decision_chain.mjs",
+      "community": 76,
+      "community_name": "portal/page.tsx",
       "norm_label": "bucket_sources()"
     },
     {
@@ -7431,8 +7673,8 @@
       "source_location": "L973",
       "_origin": "ast",
       "id": "scripts_staging_demo_factory_deleteobjects",
-      "community": 321,
-      "community_name": "gate_decision_chain.mjs",
+      "community": 76,
+      "community_name": "portal/page.tsx",
       "norm_label": "deleteobjects()"
     },
     {
@@ -7442,8 +7684,8 @@
       "source_location": "L990",
       "_origin": "ast",
       "id": "scripts_staging_demo_factory_delcount",
-      "community": 321,
-      "community_name": "gate_decision_chain.mjs",
+      "community": 76,
+      "community_name": "portal/page.tsx",
       "norm_label": "delcount()"
     },
     {
@@ -7453,8 +7695,8 @@
       "source_location": "L999",
       "_origin": "ast",
       "id": "scripts_staging_demo_factory_teardown",
-      "community": 321,
-      "community_name": "gate_decision_chain.mjs",
+      "community": 76,
+      "community_name": "portal/page.tsx",
       "norm_label": "teardown()"
     },
     {
@@ -7475,8 +7717,8 @@
       "source_location": "L1105",
       "_origin": "ast",
       "id": "scripts_staging_demo_factory_protected_buckets",
-      "community": 321,
-      "community_name": "gate_decision_chain.mjs",
+      "community": 76,
+      "community_name": "portal/page.tsx",
       "norm_label": "protected_buckets"
     },
     {
@@ -7486,8 +7728,8 @@
       "source_location": "L1112",
       "_origin": "ast",
       "id": "scripts_staging_demo_factory_purge",
-      "community": 321,
-      "community_name": "gate_decision_chain.mjs",
+      "community": 76,
+      "community_name": "portal/page.tsx",
       "norm_label": "purge()"
     },
     {
@@ -8085,6 +8327,149 @@
       "norm_label": "component_10.mjs"
     },
     {
+      "label": "WRITES()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L43",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_writes",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "writes()"
+    },
+    {
+      "label": "PRODUCES()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L50",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_produces",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "produces()"
+    },
+    {
+      "label": "CMD_WRITES()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L55",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_cmd_writes",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "cmd_writes()"
+    },
+    {
+      "label": "TRIGFN()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L60",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_trigfn",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "trigfn()"
+    },
+    {
+      "label": "LIVE_READS()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L71",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_live_reads",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "live_reads()"
+    },
+    {
+      "label": "TABLE_READS()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L92",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_table_reads",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "table_reads()"
+    },
+    {
+      "label": "DR_READS",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L94",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_dr_reads",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "dr_reads"
+    },
+    {
+      "label": "DL_READS",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L95",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_dl_reads",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "dl_reads"
+    },
+    {
+      "label": "AE_READS",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L96",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_ae_reads",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "ae_reads"
+    },
+    {
+      "label": "DT_READS",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L97",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_dt_reads",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "dt_reads"
+    },
+    {
+      "label": "OR_READS",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L98",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_or_reads",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "or_reads"
+    },
+    {
+      "label": "EA_READS",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L99",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_ea_reads",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "ea_reads"
+    },
+    {
+      "label": "DR_EV_ELEMENTS()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L242",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_component_10_dr_ev_elements",
+      "community": 662,
+      "community_name": "component_10.mjs",
+      "norm_label": "dr_ev_elements()"
+    },
+    {
       "label": "components_11_13.mjs",
       "file_type": "code",
       "source_file": "scripts/staging/os_blueprint/components_11_13.mjs",
@@ -8118,10 +8503,43 @@
       "norm_label": "components_1_9.mjs"
     },
     {
+      "label": "EVERY_ACTIVE_OS()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
+      "source_location": "L38",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_components_1_9_every_active_os",
+      "community": 422,
+      "community_name": "components_1_9.mjs",
+      "norm_label": "every_active_os()"
+    },
+    {
+      "label": "MISSING_ACTIVE_OS()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
+      "source_location": "L40",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_components_1_9_missing_active_os",
+      "community": 422,
+      "community_name": "components_1_9.mjs",
+      "norm_label": "missing_active_os()"
+    },
+    {
+      "label": "PROMPT_ALL()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
+      "source_location": "L50",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_components_1_9_prompt_all",
+      "community": 422,
+      "community_name": "components_1_9.mjs",
+      "norm_label": "prompt_all()"
+    },
+    {
       "label": "REACHED()",
       "file_type": "code",
       "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
-      "source_location": "L29",
+      "source_location": "L66",
       "_origin": "ast",
       "id": "scripts_staging_os_blueprint_components_1_9_reached",
       "community": 422,
@@ -8132,7 +8550,7 @@
       "label": "reachCheck()",
       "file_type": "code",
       "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
-      "source_location": "L33",
+      "source_location": "L70",
       "_origin": "ast",
       "id": "scripts_staging_os_blueprint_components_1_9_reachcheck",
       "community": 422,
@@ -8143,12 +8561,23 @@
       "label": "reachEv()",
       "file_type": "code",
       "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
-      "source_location": "L34",
+      "source_location": "L71",
       "_origin": "ast",
       "id": "scripts_staging_os_blueprint_components_1_9_reachev",
       "community": 422,
       "community_name": "components_1_9.mjs",
       "norm_label": "reachev()"
+    },
+    {
+      "label": "NON_WRITER_READERS()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
+      "source_location": "L95",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_components_1_9_non_writer_readers",
+      "community": 422,
+      "community_name": "components_1_9.mjs",
+      "norm_label": "non_writer_readers()"
     },
     {
       "label": "cross_os.mjs",
@@ -8162,10 +8591,32 @@
       "norm_label": "cross_os.mjs"
     },
     {
+      "label": "RD()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L33",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_cross_os_rd",
+      "community": 382,
+      "community_name": "cross_os.mjs",
+      "norm_label": "rd()"
+    },
+    {
+      "label": "WR()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L34",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_cross_os_wr",
+      "community": 382,
+      "community_name": "cross_os.mjs",
+      "norm_label": "wr()"
+    },
+    {
       "label": "rdSql()",
       "file_type": "code",
       "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
-      "source_location": "L20",
+      "source_location": "L44",
       "_origin": "ast",
       "id": "scripts_staging_os_blueprint_cross_os_rdsql",
       "community": 382,
@@ -8173,10 +8624,43 @@
       "norm_label": "rdsql()"
     },
     {
+      "label": "rdCronOk()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_cross_os_rdcronok",
+      "community": 382,
+      "community_name": "cross_os.mjs",
+      "norm_label": "rdcronok()"
+    },
+    {
+      "label": "hasCols()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L81",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_cross_os_hascols",
+      "community": 382,
+      "community_name": "cross_os.mjs",
+      "norm_label": "hascols()"
+    },
+    {
+      "label": "guarded()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L90",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_cross_os_guarded",
+      "community": 382,
+      "community_name": "cross_os.mjs",
+      "norm_label": "guarded()"
+    },
+    {
       "label": "cnt()",
       "file_type": "code",
       "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
-      "source_location": "L37",
+      "source_location": "L95",
       "_origin": "ast",
       "id": "scripts_staging_os_blueprint_cross_os_cnt",
       "community": 382,
@@ -8184,21 +8668,10 @@
       "norm_label": "cnt()"
     },
     {
-      "label": "cntCol()",
-      "file_type": "code",
-      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
-      "source_location": "L42",
-      "_origin": "ast",
-      "id": "scripts_staging_os_blueprint_cross_os_cntcol",
-      "community": 382,
-      "community_name": "cross_os.mjs",
-      "norm_label": "cntcol()"
-    },
-    {
       "label": "UNDELIVERED()",
       "file_type": "code",
       "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
-      "source_location": "L58",
+      "source_location": "L113",
       "_origin": "ast",
       "id": "scripts_staging_os_blueprint_cross_os_undelivered",
       "community": 382,
@@ -8220,7 +8693,7 @@
       "label": "AGENT()",
       "file_type": "code",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L27",
+      "source_location": "L42",
       "_origin": "ast",
       "id": "scripts_staging_os_blueprint_the_ten_oses_agent",
       "community": 349,
@@ -8231,7 +8704,7 @@
       "label": "CTX()",
       "file_type": "code",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L32",
+      "source_location": "L72",
       "_origin": "ast",
       "id": "scripts_staging_os_blueprint_the_ten_oses_ctx",
       "community": 349,
@@ -8242,7 +8715,7 @@
       "label": "osCheck()",
       "file_type": "code",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L37",
+      "source_location": "L103",
       "_origin": "ast",
       "id": "scripts_staging_os_blueprint_the_ten_oses_oscheck",
       "community": 349,
@@ -8253,7 +8726,7 @@
       "label": "osEvidence()",
       "file_type": "code",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L63",
+      "source_location": "L138",
       "_origin": "ast",
       "id": "scripts_staging_os_blueprint_the_ten_oses_osevidence",
       "community": 349,
@@ -8264,12 +8737,56 @@
       "label": "TEN",
       "file_type": "code",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L84",
+      "source_location": "L169",
       "_origin": "ast",
       "id": "scripts_staging_os_blueprint_the_ten_oses_ten",
       "community": 349,
       "community_name": "the_ten_oses.mjs",
       "norm_label": "ten"
+    },
+    {
+      "label": "WRITER_OF()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
+      "source_location": "L187",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_the_ten_oses_writer_of",
+      "community": 349,
+      "community_name": "the_ten_oses.mjs",
+      "norm_label": "writer_of()"
+    },
+    {
+      "label": "CRON_SUCCEEDED()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
+      "source_location": "L207",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_the_ten_oses_cron_succeeded",
+      "community": 349,
+      "community_name": "the_ten_oses.mjs",
+      "norm_label": "cron_succeeded()"
+    },
+    {
+      "label": "LIVE_READERS()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
+      "source_location": "L226",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_the_ten_oses_live_readers",
+      "community": 349,
+      "community_name": "the_ten_oses.mjs",
+      "norm_label": "live_readers()"
+    },
+    {
+      "label": "LIVE_READER_NAMES()",
+      "file_type": "code",
+      "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
+      "source_location": "L233",
+      "_origin": "ast",
+      "id": "scripts_staging_os_blueprint_the_ten_oses_live_reader_names",
+      "community": 349,
+      "community_name": "the_ten_oses.mjs",
+      "norm_label": "live_reader_names()"
     },
     {
       "label": "prove_a01_remediation.mjs",
@@ -8476,8 +8993,8 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "scripts_staging_qd_guard_mgmtwrite",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "mgmtwrite()"
     },
     {
@@ -9169,8 +9686,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_staging_sync_staging_assets",
-      "community": 303,
-      "community_name": "sync_staging_assets.mjs",
+      "community": 40,
+      "community_name": "crm_pipeline/index.ts",
       "norm_label": "sync_staging_assets.mjs"
     },
     {
@@ -9180,8 +9697,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "scripts_staging_sync_staging_assets_ref",
-      "community": 303,
-      "community_name": "sync_staging_assets.mjs",
+      "community": 40,
+      "community_name": "crm_pipeline/index.ts",
       "norm_label": "ref"
     },
     {
@@ -9191,8 +9708,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "scripts_staging_sync_staging_assets_dry",
-      "community": 303,
-      "community_name": "sync_staging_assets.mjs",
+      "community": 40,
+      "community_name": "crm_pipeline/index.ts",
       "norm_label": "dry"
     },
     {
@@ -9202,8 +9719,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "scripts_staging_sync_staging_assets_mgmt",
-      "community": 303,
-      "community_name": "sync_staging_assets.mjs",
+      "community": 40,
+      "community_name": "crm_pipeline/index.ts",
       "norm_label": "mgmt"
     },
     {
@@ -9213,8 +9730,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "scripts_staging_sync_staging_assets_keys",
-      "community": 303,
-      "community_name": "sync_staging_assets.mjs",
+      "community": 40,
+      "community_name": "crm_pipeline/index.ts",
       "norm_label": "keys"
     },
     {
@@ -9224,8 +9741,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "scripts_staging_sync_staging_assets_have",
-      "community": 303,
-      "community_name": "sync_staging_assets.mjs",
+      "community": 40,
+      "community_name": "crm_pipeline/index.ts",
       "norm_label": "have"
     },
     {
@@ -9235,8 +9752,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "scripts_staging_sync_staging_assets_fonts",
-      "community": 303,
-      "community_name": "sync_staging_assets.mjs",
+      "community": 40,
+      "community_name": "crm_pipeline/index.ts",
       "norm_label": "fonts"
     },
     {
@@ -9246,8 +9763,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "scripts_staging_sync_staging_assets_now",
-      "community": 303,
-      "community_name": "sync_staging_assets.mjs",
+      "community": 40,
+      "community_name": "crm_pipeline/index.ts",
       "norm_label": "now"
     },
     {
@@ -9609,8 +10126,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_staging_verify_approval_path",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "verify_approval_path.mjs"
     },
     {
@@ -9620,8 +10137,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "scripts_staging_verify_approval_path_checks",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "checks"
     },
     {
@@ -9631,8 +10148,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "scripts_staging_verify_approval_path_step",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "step()"
     },
     {
@@ -9642,8 +10159,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "scripts_staging_verify_approval_path_one",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "one()"
     },
     {
@@ -9653,8 +10170,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "scripts_staging_verify_approval_path_cases",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "cases"
     },
     {
@@ -9664,8 +10181,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "scripts_staging_verify_approval_path_cleanup",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "cleanup()"
     },
     {
@@ -9719,8 +10236,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_staging_verify_company_goals",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "verify_company_goals.mjs"
     },
     {
@@ -9730,8 +10247,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "scripts_staging_verify_company_goals_checks",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "checks"
     },
     {
@@ -9741,8 +10258,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "scripts_staging_verify_company_goals_step",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "step()"
     },
     {
@@ -9752,8 +10269,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "scripts_staging_verify_company_goals_one",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "one()"
     },
     {
@@ -9763,8 +10280,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "scripts_staging_verify_company_goals_spec_goals",
-      "community": 121,
-      "community_name": "make_xlsx/index.ts",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "spec_goals"
     },
     {
@@ -10071,8 +10588,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "scripts_staging_verify_customer_preference_cleanup",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "cleanup()"
     },
     {
@@ -10137,8 +10654,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_staging_verify_employee_authority",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "verify_employee_authority.mjs"
     },
     {
@@ -10148,8 +10665,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "scripts_staging_verify_employee_authority_checks",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "checks"
     },
     {
@@ -10159,8 +10676,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "scripts_staging_verify_employee_authority_step",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "step()"
     },
     {
@@ -10170,8 +10687,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "scripts_staging_verify_employee_authority_one",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "one()"
     },
     {
@@ -10181,8 +10698,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "scripts_staging_verify_employee_authority_cleanup",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "cleanup()"
     },
     {
@@ -10192,8 +10709,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "scripts_staging_verify_employee_authority_decide",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "decide()"
     },
     {
@@ -10346,8 +10863,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_staging_verify_exception_window",
-      "community": 117,
-      "community_name": "exec_board/index.ts",
+      "community": 754,
+      "community_name": "meta_ads/index.ts",
       "norm_label": "verify_exception_window.mjs"
     },
     {
@@ -10357,8 +10874,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "scripts_staging_verify_exception_window_checks",
-      "community": 117,
-      "community_name": "exec_board/index.ts",
+      "community": 754,
+      "community_name": "meta_ads/index.ts",
       "norm_label": "checks"
     },
     {
@@ -10368,8 +10885,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "scripts_staging_verify_exception_window_step",
-      "community": 117,
-      "community_name": "exec_board/index.ts",
+      "community": 754,
+      "community_name": "meta_ads/index.ts",
       "norm_label": "step()"
     },
     {
@@ -10379,8 +10896,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "scripts_staging_verify_exception_window_one",
-      "community": 117,
-      "community_name": "exec_board/index.ts",
+      "community": 754,
+      "community_name": "meta_ads/index.ts",
       "norm_label": "one()"
     },
     {
@@ -10390,8 +10907,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "scripts_staging_verify_exception_window_lead",
-      "community": 117,
-      "community_name": "exec_board/index.ts",
+      "community": 754,
+      "community_name": "meta_ads/index.ts",
       "norm_label": "lead()"
     },
     {
@@ -10401,8 +10918,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "scripts_staging_verify_exception_window_backdate",
-      "community": 117,
-      "community_name": "exec_board/index.ts",
+      "community": 754,
+      "community_name": "meta_ads/index.ts",
       "norm_label": "backdate()"
     },
     {
@@ -10412,8 +10929,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "scripts_staging_verify_exception_window_sweep",
-      "community": 117,
-      "community_name": "exec_board/index.ts",
+      "community": 754,
+      "community_name": "meta_ads/index.ts",
       "norm_label": "sweep()"
     },
     {
@@ -10676,8 +11193,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_staging_verify_memory_cluster",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "verify_memory_cluster.mjs"
     },
     {
@@ -10687,8 +11204,8 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "scripts_staging_verify_memory_cluster_lines",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "lines"
     },
     {
@@ -11820,8 +12337,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_sync_knowledge_delta_to_staging",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "sync_knowledge_delta_to_staging.mjs"
     },
     {
@@ -11831,8 +12348,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "scripts_sync_knowledge_delta_to_staging_dry",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "dry"
     },
     {
@@ -11842,8 +12359,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "scripts_sync_knowledge_delta_to_staging_one",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "one()"
     },
     {
@@ -11853,8 +12370,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "scripts_sync_knowledge_delta_to_staging_tables",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "tables"
     },
     {
@@ -11864,8 +12381,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "scripts_sync_knowledge_delta_to_staging_results",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "results"
     },
     {
@@ -11875,8 +12392,8 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "scripts_sync_knowledge_delta_to_staging_bad",
-      "community": 40,
-      "community_name": "crm_pipeline/index.ts",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "bad"
     },
     {
@@ -12018,8 +12535,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_sync_routines_from_production",
-      "community": 751,
-      "community_name": "sync_routines_from_production.mjs",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "sync_routines_from_production.mjs"
     },
     {
@@ -12029,8 +12546,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "scripts_sync_routines_from_production_dry",
-      "community": 751,
-      "community_name": "sync_routines_from_production.mjs",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "dry"
     },
     {
@@ -12040,8 +12557,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "scripts_sync_routines_from_production_routines",
-      "community": 751,
-      "community_name": "sync_routines_from_production.mjs",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "routines"
     },
     {
@@ -12051,8 +12568,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "scripts_sync_routines_from_production_views",
-      "community": 751,
-      "community_name": "sync_routines_from_production.mjs",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "views"
     },
     {
@@ -12062,8 +12579,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "scripts_sync_routines_from_production_results",
-      "community": 751,
-      "community_name": "sync_routines_from_production.mjs",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "results"
     },
     {
@@ -12073,8 +12590,8 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "scripts_sync_routines_from_production_bad",
-      "community": 751,
-      "community_name": "sync_routines_from_production.mjs",
+      "community": 121,
+      "community_name": "make_xlsx/index.ts",
       "norm_label": "bad"
     },
     {
@@ -12557,8 +13074,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "verify_prod_readiness.mjs"
     },
     {
@@ -12568,8 +13085,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness_token",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "token"
     },
     {
@@ -12579,8 +13096,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness_h",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "h"
     },
     {
@@ -12590,8 +13107,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness_out",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "out"
     },
     {
@@ -12601,8 +13118,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness_item",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "item()"
     },
     {
@@ -12612,8 +13129,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness_changed",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "changed"
     },
     {
@@ -12623,8 +13140,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness_slugs",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "slugs"
     },
     {
@@ -12634,8 +13151,8 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness_deployedver",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "deployedver"
     },
     {
@@ -12645,8 +13162,8 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness_missing",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "missing"
     },
     {
@@ -12656,8 +13173,8 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness_signatures",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "signatures"
     },
     {
@@ -12667,8 +13184,8 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness_codeonly",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "codeonly()"
     },
     {
@@ -12678,8 +13195,8 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness_one",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "one()"
     },
     {
@@ -12689,8 +13206,8 @@
       "source_location": "L239",
       "_origin": "ast",
       "id": "scripts_verify_prod_readiness_todo",
-      "community": 247,
-      "community_name": "verify_prod_readiness.mjs",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "todo"
     },
     {
@@ -15296,8 +15813,8 @@
       "source_location": "L117",
       "_origin": "ast",
       "id": "src_components_osx_osxshell_usewindows",
-      "community": 86,
-      "community_name": "SONNET_FIRST",
+      "community": 0,
+      "community_name": "OsxShell.tsx",
       "norm_label": "usewindows()"
     },
     {
@@ -15483,8 +16000,8 @@
       "source_location": "L744",
       "_origin": "ast",
       "id": "src_components_osx_osxshell_logincard",
-      "community": 86,
-      "community_name": "SONNET_FIRST",
+      "community": 0,
+      "community_name": "OsxShell.tsx",
       "norm_label": "logincard()"
     },
     {
@@ -17991,8 +18508,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "supabase_functions_shared_llm_sonnet_first",
-      "community": 136,
-      "community_name": "ai_health/index.ts",
+      "community": 322,
+      "community_name": "verify_review_chain.mjs",
       "norm_label": "sonnet_first"
     },
     {
@@ -19234,8 +19751,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_ai_health_index",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 760,
+      "community_name": "ai_health/index.ts",
       "norm_label": "ai_health/index.ts"
     },
     {
@@ -19245,8 +19762,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "supabase_functions_ai_health_index_admin",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 760,
+      "community_name": "ai_health/index.ts",
       "norm_label": "admin"
     },
     {
@@ -19256,8 +19773,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "supabase_functions_ai_health_index_j",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 760,
+      "community_name": "ai_health/index.ts",
       "norm_label": "j()"
     },
     {
@@ -19267,8 +19784,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "supabase_functions_ai_health_index_sec",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 760,
+      "community_name": "ai_health/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -19278,8 +19795,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "supabase_functions_ai_health_index_secretok",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 760,
+      "community_name": "ai_health/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -19289,8 +19806,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "supabase_functions_ai_health_index_setsec",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 760,
+      "community_name": "ai_health/index.ts",
       "norm_label": "setsec()"
     },
     {
@@ -19377,8 +19894,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_analytics_recommend_index",
-      "community": 136,
-      "community_name": "ai_health/index.ts",
+      "community": 755,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "analytics_recommend/index.ts"
     },
     {
@@ -19388,8 +19905,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "supabase_functions_analytics_recommend_index_admin",
-      "community": 136,
-      "community_name": "ai_health/index.ts",
+      "community": 755,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "admin"
     },
     {
@@ -19399,8 +19916,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "supabase_functions_analytics_recommend_index_cors",
-      "community": 136,
-      "community_name": "ai_health/index.ts",
+      "community": 755,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "cors"
     },
     {
@@ -19410,8 +19927,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "supabase_functions_analytics_recommend_index_j",
-      "community": 136,
-      "community_name": "ai_health/index.ts",
+      "community": 755,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "j()"
     },
     {
@@ -19421,8 +19938,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "supabase_functions_analytics_recommend_index_llm",
-      "community": 136,
-      "community_name": "ai_health/index.ts",
+      "community": 755,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "llm"
     },
     {
@@ -19432,8 +19949,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "supabase_functions_analytics_recommend_index_sec",
-      "community": 136,
-      "community_name": "ai_health/index.ts",
+      "community": 755,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -19443,8 +19960,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "supabase_functions_analytics_recommend_index_authed",
-      "community": 136,
-      "community_name": "ai_health/index.ts",
+      "community": 755,
+      "community_name": "prompt_improve/index.ts",
       "norm_label": "authed()"
     },
     {
@@ -20070,8 +20587,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_boost_recommend_index",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 322,
+      "community_name": "verify_review_chain.mjs",
       "norm_label": "boost_recommend/index.ts"
     },
     {
@@ -20081,8 +20598,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "supabase_functions_boost_recommend_index_admin",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 322,
+      "community_name": "verify_review_chain.mjs",
       "norm_label": "admin"
     },
     {
@@ -20092,8 +20609,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "supabase_functions_boost_recommend_index_cors",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 322,
+      "community_name": "verify_review_chain.mjs",
       "norm_label": "cors"
     },
     {
@@ -20103,8 +20620,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "supabase_functions_boost_recommend_index_j",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 322,
+      "community_name": "verify_review_chain.mjs",
       "norm_label": "j()"
     },
     {
@@ -20114,8 +20631,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "supabase_functions_boost_recommend_index_llm",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 322,
+      "community_name": "verify_review_chain.mjs",
       "norm_label": "llm"
     },
     {
@@ -20125,8 +20642,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "supabase_functions_boost_recommend_index_sec",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 322,
+      "community_name": "verify_review_chain.mjs",
       "norm_label": "sec()"
     },
     {
@@ -20136,8 +20653,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "supabase_functions_boost_recommend_index_authed",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 322,
+      "community_name": "verify_review_chain.mjs",
       "norm_label": "authed()"
     },
     {
@@ -23689,8 +24206,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_email_fix_index",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "email_fix/index.ts"
     },
     {
@@ -23700,8 +24217,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "supabase_functions_email_fix_index_admin",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "admin"
     },
     {
@@ -23711,8 +24228,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_email_fix_index_j",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "j()"
     },
     {
@@ -24085,8 +24602,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_export_all_knowledge_index",
-      "community": 752,
-      "community_name": "export_all_knowledge/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "export_all_knowledge/index.ts"
     },
     {
@@ -24096,8 +24613,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "supabase_functions_export_all_knowledge_index_admin",
-      "community": 752,
-      "community_name": "export_all_knowledge/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "admin"
     },
     {
@@ -24107,8 +24624,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_export_all_knowledge_index_sec",
-      "community": 752,
-      "community_name": "export_all_knowledge/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -24118,8 +24635,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "supabase_functions_export_all_knowledge_index_secretok",
-      "community": 752,
-      "community_name": "export_all_knowledge/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -24129,8 +24646,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "supabase_functions_export_all_knowledge_index_fixed",
-      "community": 752,
-      "community_name": "export_all_knowledge/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "fixed"
     },
     {
@@ -24140,8 +24657,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_export_cat_knowledge_index",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "export_cat_knowledge/index.ts"
     },
     {
@@ -24151,8 +24668,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "supabase_functions_export_cat_knowledge_index_admin",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "admin"
     },
     {
@@ -24162,8 +24679,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_export_cat_knowledge_index_sec",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -24173,8 +24690,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "supabase_functions_export_cat_knowledge_index_secretok",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -24184,8 +24701,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_export_leads_csv_index",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "export_leads_csv/index.ts"
     },
     {
@@ -24195,8 +24712,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "supabase_functions_export_leads_csv_index_admin",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "admin"
     },
     {
@@ -24206,8 +24723,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_export_leads_csv_index_sec",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -24217,8 +24734,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "supabase_functions_export_leads_csv_index_cols",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "cols"
     },
     {
@@ -24228,8 +24745,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "supabase_functions_export_leads_csv_index_csvcell",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "csvcell()"
     },
     {
@@ -25504,8 +26021,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 759,
+      "community_name": "kb_autofill_gaps/index.ts",
       "norm_label": "kb_autofill_gaps/index.ts"
     },
     {
@@ -25515,8 +26032,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index_admin",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 759,
+      "community_name": "kb_autofill_gaps/index.ts",
       "norm_label": "admin"
     },
     {
@@ -25526,8 +26043,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index_t0",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 759,
+      "community_name": "kb_autofill_gaps/index.ts",
       "norm_label": "t0"
     },
     {
@@ -25537,8 +26054,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index_logrun",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 759,
+      "community_name": "kb_autofill_gaps/index.ts",
       "norm_label": "logrun()"
     },
     {
@@ -25548,8 +26065,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index_j",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 759,
+      "community_name": "kb_autofill_gaps/index.ts",
       "norm_label": "j()"
     },
     {
@@ -25559,8 +26076,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index_sec",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 759,
+      "community_name": "kb_autofill_gaps/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -25570,8 +26087,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index_secretok",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 759,
+      "community_name": "kb_autofill_gaps/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -26296,8 +26813,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_knowledge_exam_index",
-      "community": 45,
-      "community_name": "doc_render/index.ts",
+      "community": 749,
+      "community_name": "reflect/index.ts",
       "norm_label": "knowledge_exam/index.ts"
     },
     {
@@ -26307,8 +26824,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "supabase_functions_knowledge_exam_index_admin",
-      "community": 45,
-      "community_name": "doc_render/index.ts",
+      "community": 749,
+      "community_name": "reflect/index.ts",
       "norm_label": "admin"
     },
     {
@@ -26318,8 +26835,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "supabase_functions_knowledge_exam_index_t0",
-      "community": 45,
-      "community_name": "doc_render/index.ts",
+      "community": 749,
+      "community_name": "reflect/index.ts",
       "norm_label": "t0"
     },
     {
@@ -26329,8 +26846,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "supabase_functions_knowledge_exam_index_deepkb",
-      "community": 45,
-      "community_name": "doc_render/index.ts",
+      "community": 749,
+      "community_name": "reflect/index.ts",
       "norm_label": "deepkb()"
     },
     {
@@ -26340,8 +26857,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "supabase_functions_knowledge_exam_index_examiner",
-      "community": 45,
-      "community_name": "doc_render/index.ts",
+      "community": 749,
+      "community_name": "reflect/index.ts",
       "norm_label": "examiner"
     },
     {
@@ -26351,8 +26868,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "supabase_functions_knowledge_exam_index_grader",
-      "community": 45,
-      "community_name": "doc_render/index.ts",
+      "community": 749,
+      "community_name": "reflect/index.ts",
       "norm_label": "grader"
     },
     {
@@ -26362,8 +26879,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "supabase_functions_knowledge_exam_index_examinee",
-      "community": 45,
-      "community_name": "doc_render/index.ts",
+      "community": 749,
+      "community_name": "reflect/index.ts",
       "norm_label": "examinee"
     },
     {
@@ -26373,8 +26890,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "supabase_functions_knowledge_exam_index_logrun",
-      "community": 45,
-      "community_name": "doc_render/index.ts",
+      "community": 749,
+      "community_name": "reflect/index.ts",
       "norm_label": "logrun()"
     },
     {
@@ -26384,8 +26901,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "supabase_functions_knowledge_exam_index_sec",
-      "community": 45,
-      "community_name": "doc_render/index.ts",
+      "community": 749,
+      "community_name": "reflect/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -26395,8 +26912,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "supabase_functions_knowledge_exam_index_secretok",
-      "community": 45,
-      "community_name": "doc_render/index.ts",
+      "community": 749,
+      "community_name": "reflect/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -26406,8 +26923,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "supabase_functions_knowledge_exam_index_j",
-      "community": 45,
-      "community_name": "doc_render/index.ts",
+      "community": 749,
+      "community_name": "reflect/index.ts",
       "norm_label": "j()"
     },
     {
@@ -26417,8 +26934,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "supabase_functions_knowledge_exam_index_parsejson",
-      "community": 45,
-      "community_name": "doc_render/index.ts",
+      "community": 749,
+      "community_name": "reflect/index.ts",
       "norm_label": "parsejson()"
     },
     {
@@ -28089,8 +28606,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_meta_ads_index",
-      "community": 754,
-      "community_name": "meta_ads/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "meta_ads/index.ts"
     },
     {
@@ -28100,8 +28617,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "supabase_functions_meta_ads_index_admin",
-      "community": 754,
-      "community_name": "meta_ads/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "admin"
     },
     {
@@ -28111,8 +28628,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "supabase_functions_meta_ads_index_j",
-      "community": 754,
-      "community_name": "meta_ads/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "j()"
     },
     {
@@ -28122,8 +28639,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "supabase_functions_meta_ads_index_sec",
-      "community": 754,
-      "community_name": "meta_ads/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -28133,8 +28650,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "supabase_functions_meta_ads_index_secretok",
-      "community": 754,
-      "community_name": "meta_ads/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -29849,8 +30366,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_pending_digest_index",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 761,
+      "community_name": "pending_digest/index.ts",
       "norm_label": "pending_digest/index.ts"
     },
     {
@@ -29860,8 +30377,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_pending_digest_index_admin",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 761,
+      "community_name": "pending_digest/index.ts",
       "norm_label": "admin"
     },
     {
@@ -29871,8 +30388,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "supabase_functions_pending_digest_index_j",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 761,
+      "community_name": "pending_digest/index.ts",
       "norm_label": "j()"
     },
     {
@@ -29882,8 +30399,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "supabase_functions_pending_digest_index_sec",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 761,
+      "community_name": "pending_digest/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -29893,8 +30410,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "supabase_functions_pending_digest_index_secretok",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 761,
+      "community_name": "pending_digest/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -29904,8 +30421,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "supabase_functions_pending_digest_index_dt",
-      "community": 75,
-      "community_name": "yello_scrape/index.ts",
+      "community": 761,
+      "community_name": "pending_digest/index.ts",
       "norm_label": "dt()"
     },
     {
@@ -30388,8 +30905,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_prompt_improve_index",
-      "community": 755,
-      "community_name": "prompt_improve/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "prompt_improve/index.ts"
     },
     {
@@ -30399,8 +30916,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "supabase_functions_prompt_improve_index_admin",
-      "community": 755,
-      "community_name": "prompt_improve/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "admin"
     },
     {
@@ -30410,8 +30927,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "supabase_functions_prompt_improve_index_j",
-      "community": 755,
-      "community_name": "prompt_improve/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "j()"
     },
     {
@@ -30421,8 +30938,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "supabase_functions_prompt_improve_index_sec",
-      "community": 755,
-      "community_name": "prompt_improve/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -30432,8 +30949,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "supabase_functions_prompt_improve_index_secretok",
-      "community": 755,
-      "community_name": "prompt_improve/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -30663,8 +31180,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_qa_mint_index",
-      "community": 173,
-      "community_name": "qa_mint/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "qa_mint/index.ts"
     },
     {
@@ -30674,8 +31191,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "supabase_functions_qa_mint_index_admin",
-      "community": 173,
-      "community_name": "qa_mint/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "admin"
     },
     {
@@ -30685,8 +31202,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_qa_mint_index_j",
-      "community": 173,
-      "community_name": "qa_mint/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "j()"
     },
     {
@@ -30696,8 +31213,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "supabase_functions_qa_mint_index_sec",
-      "community": 173,
-      "community_name": "qa_mint/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -30707,8 +31224,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "supabase_functions_qa_mint_index_secretok",
-      "community": 173,
-      "community_name": "qa_mint/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -31026,8 +31543,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_quote_pdf_index",
-      "community": 748,
-      "community_name": "quote_pdf/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "quote_pdf/index.ts"
     },
     {
@@ -31037,8 +31554,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "supabase_functions_quote_pdf_index_admin",
-      "community": 748,
-      "community_name": "quote_pdf/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "admin"
     },
     {
@@ -31048,8 +31565,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "supabase_functions_quote_pdf_index_cors",
-      "community": 748,
-      "community_name": "quote_pdf/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "cors"
     },
     {
@@ -31059,8 +31576,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "supabase_functions_quote_pdf_index_sec",
-      "community": 748,
-      "community_name": "quote_pdf/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -31070,8 +31587,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "supabase_functions_quote_pdf_index_esc",
-      "community": 748,
-      "community_name": "quote_pdf/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "esc()"
     },
     {
@@ -31081,8 +31598,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "supabase_functions_quote_pdf_index_money",
-      "community": 748,
-      "community_name": "quote_pdf/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "money()"
     },
     {
@@ -31092,8 +31609,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "supabase_functions_quote_pdf_index_fmtdate",
-      "community": 748,
-      "community_name": "quote_pdf/index.ts",
+      "community": 95,
+      "community_name": "doc_extract/index.ts",
       "norm_label": "fmtdate()"
     },
     {
@@ -31290,8 +31807,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_reflect_index",
-      "community": 749,
-      "community_name": "reflect/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "reflect/index.ts"
     },
     {
@@ -31301,8 +31818,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_reflect_index_admin",
-      "community": 749,
-      "community_name": "reflect/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "admin"
     },
     {
@@ -31312,8 +31829,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "supabase_functions_reflect_index_sec",
-      "community": 749,
-      "community_name": "reflect/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -31323,8 +31840,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "supabase_functions_reflect_index_secretok",
-      "community": 749,
-      "community_name": "reflect/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -31334,8 +31851,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "supabase_functions_reflect_index_llm",
-      "community": 749,
-      "community_name": "reflect/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "llm"
     },
     {
@@ -31345,8 +31862,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "supabase_functions_reflect_index_runmap",
-      "community": 749,
-      "community_name": "reflect/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "runmap"
     },
     {
@@ -31356,8 +31873,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "supabase_functions_reflect_index_agents",
-      "community": 749,
-      "community_name": "reflect/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "agents"
     },
     {
@@ -31730,8 +32247,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "supabase_functions_resend_inbound_index_addr",
-      "community": 6,
-      "community_name": "secretary_act/index.ts",
+      "community": 176,
+      "community_name": "reg_fetch/index.ts",
       "norm_label": "addr()"
     },
     {
@@ -35085,8 +35602,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_translate_html_index",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 762,
+      "community_name": "translate_html/index.ts",
       "norm_label": "translate_html/index.ts"
     },
     {
@@ -35096,8 +35613,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "supabase_functions_translate_html_index_admin",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 762,
+      "community_name": "translate_html/index.ts",
       "norm_label": "admin"
     },
     {
@@ -35107,8 +35624,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_translate_html_index_j",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 762,
+      "community_name": "translate_html/index.ts",
       "norm_label": "j()"
     },
     {
@@ -35118,8 +35635,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "supabase_functions_translate_html_index_sec",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 762,
+      "community_name": "translate_html/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -35129,8 +35646,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "supabase_functions_translate_html_index_secretok",
-      "community": 95,
-      "community_name": "doc_extract/index.ts",
+      "community": 762,
+      "community_name": "translate_html/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -35745,8 +36262,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_wa_optin_set_index",
-      "community": 180,
-      "community_name": "wa_optin_set/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "wa_optin_set/index.ts"
     },
     {
@@ -35756,8 +36273,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_wa_optin_set_index_admin",
-      "community": 180,
-      "community_name": "wa_optin_set/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "admin"
     },
     {
@@ -35767,8 +36284,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "supabase_functions_wa_optin_set_index_cors",
-      "community": 180,
-      "community_name": "wa_optin_set/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "cors"
     },
     {
@@ -35778,8 +36295,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "supabase_functions_wa_optin_set_index_j",
-      "community": 180,
-      "community_name": "wa_optin_set/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "j()"
     },
     {
@@ -35789,8 +36306,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "supabase_functions_wa_optin_set_index_sec",
-      "community": 180,
-      "community_name": "wa_optin_set/index.ts",
+      "community": 75,
+      "community_name": "yello_scrape/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -69795,6 +70312,875 @@
       "norm_label": "[xos-06]"
     },
     {
+      "label": "SCORER_DEFECTS_ROUND2.md",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2",
+      "community": 751,
+      "community_name": "sync_routines_from_production.mjs",
+      "norm_label": "scorer_defects_round2.md"
+    },
+    {
+      "label": "components_1_9.mjs - sound=False, 14 defects",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "components_1_9.mjs - sound=false, 14 defects"
+    },
+    {
+      "label": "[comp-07-inputs]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_07_inputs",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[comp-07-inputs]"
+    },
+    {
+      "label": "[comp-03-objectives-measured]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L12",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_03_objectives_measured",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[comp-03-objectives-measured]"
+    },
+    {
+      "label": "[comp-05-decision-rights (a)]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L15",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_05_decision_rights_a",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[comp-05-decision-rights (a)]"
+    },
+    {
+      "label": "[comp-05-decision-rights (b)]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L18",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_05_decision_rights_b",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[comp-05-decision-rights (b)]"
+    },
+    {
+      "label": "[comp-08-out-tasks / comp-08-out-approvals / comp-08-out-recommendations]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L21",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_08_out_tasks_comp_08_out_approvals_comp_08_out_recommendations",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[comp-08-out-tasks / comp-08-out-approvals / comp-08-out-recommendations]"
+    },
+    {
+      "label": "[comp-05-linkage / comp-05-authority / comp-05-kpis / comp-06-knowledge-independent / comp-08-out-tasks / -reports / -decisions / -approvals / -recommendations / -alerts / -knowledge-updates]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_05_linkage_comp_05_authority_comp_05_kpis_comp_06_knowledge_independent_comp_08_out_tasks_reports_decisions_approvals_recommendations_alerts_knowledge_updates",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[comp-05-linkage / comp-05-authority / comp-05-kpis / comp-06-knowledge-independent / comp-08-out-tasks / -reports / -decisions / -approvals / -recommendations / -alerts / -knowledge-updates]"
+    },
+    {
+      "label": "[os-layer-prompt-reach]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L27",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_os_layer_prompt_reach",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[os-layer-prompt-reach]"
+    },
+    {
+      "label": "[comp-07-inputs-coverage]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L30",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_07_inputs_coverage",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[comp-07-inputs-coverage]"
+    },
+    {
+      "label": "[comp-06-cross-os-query]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L33",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_06_cross_os_query",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[comp-06-cross-os-query]"
+    },
+    {
+      "label": "[comp-08-out-kpis]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L36",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_08_out_kpis",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[comp-08-out-kpis]"
+    },
+    {
+      "label": "[comp-05-escalation / comp-05-kpis]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L39",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_05_escalation_comp_05_kpis",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[comp-05-escalation / comp-05-kpis]"
+    },
+    {
+      "label": "[comp-01..comp-05 / comp-04-responsibilities / comp-05-linkage / os-layer-prompt-reach (ONE_PER_OS, OS_WITH_STAFF, REACHED)]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L42",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_01_comp_05_comp_04_responsibilities_comp_05_linkage_os_layer_prompt_reach_one_per_os_os_with_staff_reached",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[comp-01..comp-05 / comp-04-responsibilities / comp-05-linkage / os-layer-prompt-reach (one_per_os, os_with_staff, reached)]"
+    },
+    {
+      "label": "[comp-08-out-reports / comp-16-health-score-column]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L45",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_08_out_reports_comp_16_health_score_column",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[comp-08-out-reports / comp-16-health-score-column]"
+    },
+    {
+      "label": "[class 5 and class 7 \u00e2\u20ac\u201d checked, not found]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L48",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_class_5_and_class_7_\u00e2_checked_not_found",
+      "community": 180,
+      "community_name": "wa_optin_set/index.ts",
+      "norm_label": "[class 5 and class 7 a\u20ac\u201d checked, not found]"
+    },
+    {
+      "label": "component_10.mjs - sound=False, 9 defects",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L51",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_component_10_mjs_sound_false_9_defects",
+      "community": 752,
+      "community_name": "export_all_knowledge/index.ts",
+      "norm_label": "component_10.mjs - sound=false, 9 defects"
+    },
+    {
+      "label": "[comp-10-10-outcome]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L53",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_10_10_outcome",
+      "community": 752,
+      "community_name": "export_all_knowledge/index.ts",
+      "norm_label": "[comp-10-10-outcome]"
+    },
+    {
+      "label": "[comp-10-chain]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L62",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_10_chain",
+      "community": 752,
+      "community_name": "export_all_knowledge/index.ts",
+      "norm_label": "[comp-10-chain]"
+    },
+    {
+      "label": "[comp-10-09-execution]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L65",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_10_09_execution",
+      "community": 752,
+      "community_name": "export_all_knowledge/index.ts",
+      "norm_label": "[comp-10-09-execution]"
+    },
+    {
+      "label": "[comp-10-09-execution]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_10_09_execution_68",
+      "community": 752,
+      "community_name": "export_all_knowledge/index.ts",
+      "norm_label": "[comp-10-09-execution]"
+    },
+    {
+      "label": "[comp-10-05-risk]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L71",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_10_05_risk",
+      "community": 752,
+      "community_name": "export_all_knowledge/index.ts",
+      "norm_label": "[comp-10-05-risk]"
+    },
+    {
+      "label": "[comp-10-05-risk]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L74",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_10_05_risk_74",
+      "community": 752,
+      "community_name": "export_all_knowledge/index.ts",
+      "norm_label": "[comp-10-05-risk]"
+    },
+    {
+      "label": "[comp-10-07-authority]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L77",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_10_07_authority",
+      "community": 752,
+      "community_name": "export_all_knowledge/index.ts",
+      "norm_label": "[comp-10-07-authority]"
+    },
+    {
+      "label": "[comp-10-07-authority]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L80",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_10_07_authority_80",
+      "community": 752,
+      "community_name": "export_all_knowledge/index.ts",
+      "norm_label": "[comp-10-07-authority]"
+    },
+    {
+      "label": "[comp-10-03-knowledge-retrieval]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L83",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_10_03_knowledge_retrieval",
+      "community": 752,
+      "community_name": "export_all_knowledge/index.ts",
+      "norm_label": "[comp-10-03-knowledge-retrieval]"
+    },
+    {
+      "label": "components_11_13.mjs - sound=False, 15 defects",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L86",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "components_11_13.mjs - sound=false, 15 defects"
+    },
+    {
+      "label": "[comp-13-sop-update]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L88",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_13_sop_update",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-13-sop-update]"
+    },
+    {
+      "label": "[comp-13-sop-update]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L91",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_13_sop_update_91",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-13-sop-update]"
+    },
+    {
+      "label": "[comp-11-improvement-plan]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L94",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_11_improvement_plan",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-11-improvement-plan]"
+    },
+    {
+      "label": "[comp-11-variance]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L97",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_11_variance",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-11-variance]"
+    },
+    {
+      "label": "[comp-11-root-cause]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L100",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_11_root_cause",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-11-root-cause]"
+    },
+    {
+      "label": "[comp-12-successes]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L103",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_12_successes",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-12-successes]"
+    },
+    {
+      "label": "[comp-12-failures]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L106",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_12_failures",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-12-failures]"
+    },
+    {
+      "label": "[comp-12-best-practices]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L109",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_12_best_practices",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-12-best-practices]"
+    },
+    {
+      "label": "[comp-12-best-practices]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L112",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_12_best_practices_112",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-12-best-practices]"
+    },
+    {
+      "label": "[comp-12-successes]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L115",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_12_successes_115",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-12-successes]"
+    },
+    {
+      "label": "[comp-13-task]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L118",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_13_task",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-13-task]"
+    },
+    {
+      "label": "[comp-13-lessons]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L121",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_13_lessons",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-13-lessons]"
+    },
+    {
+      "label": "[comp-11-root-cause]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L124",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_11_root_cause_124",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-11-root-cause]"
+    },
+    {
+      "label": "[comp-12-short-term]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L127",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_12_short_term",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-12-short-term]"
+    },
+    {
+      "label": "[comp-11-objectives]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L130",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_11_objectives",
+      "community": 173,
+      "community_name": "qa_mint/index.ts",
+      "norm_label": "[comp-11-objectives]"
+    },
+    {
+      "label": "components_14_17.mjs - sound=False, 12 defects",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L133",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "components_14_17.mjs - sound=false, 12 defects"
+    },
+    {
+      "label": "[comp-15-who-can-help]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L135",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_15_who_can_help",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "[comp-15-who-can-help]"
+    },
+    {
+      "label": "[comp-15-who-reviews]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L138",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_15_who_reviews",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "[comp-15-who-reviews]"
+    },
+    {
+      "label": "[comp-14-who-reviews]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L141",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_14_who_reviews",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "[comp-14-who-reviews]"
+    },
+    {
+      "label": "[comp-14-can-spend]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L144",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_14_can_spend",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "[comp-14-can-spend]"
+    },
+    {
+      "label": "[comp-15-who-approves]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L147",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_15_who_approves",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "[comp-15-who-approves]"
+    },
+    {
+      "label": "[comp-16-risk / comp-16-performance / comp-16-backlog / comp-16-quality / comp-16-cost / comp-16-automation]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L150",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_16_risk_comp_16_performance_comp_16_backlog_comp_16_quality_comp_16_cost_comp_16_automation",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "[comp-16-risk / comp-16-performance / comp-16-backlog / comp-16-quality / comp-16-cost / comp-16-automation]"
+    },
+    {
+      "label": "[comp-16-capacity]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L153",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_16_capacity",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "[comp-16-capacity]"
+    },
+    {
+      "label": "[comp-17-questions-read]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L156",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_17_questions_read",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "[comp-17-questions-read]"
+    },
+    {
+      "label": "[comp-16-health-score / comp-16-risk / performance / backlog / quality / cost / automation / capacity (FRESH helper)]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L159",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_16_health_score_comp_16_risk_performance_backlog_quality_cost_automation_capacity_fresh_helper",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "[comp-16-health-score / comp-16-risk / performance / backlog / quality / cost / automation / capacity (fresh helper)]"
+    },
+    {
+      "label": "[LIVE() helper (gates FIGURE_READERS, VIEW_READ and all eight comp-16 checks)]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L162",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_live_helper_gates_figure_readers_view_read_and_all_eight_comp_16_checks",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "[live() helper (gates figure_readers, view_read and all eight comp-16 checks)]"
+    },
+    {
+      "label": "[comp-16-health-score / comp-15-who-owns (evidence SQL)]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L165",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_16_health_score_comp_15_who_owns_evidence_sql",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "[comp-16-health-score / comp-15-who-owns (evidence sql)]"
+    },
+    {
+      "label": "[comp-14-can-decide / comp-15-who-approves (READERS residue)]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L168",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_comp_14_can_decide_comp_15_who_approves_readers_residue",
+      "community": 303,
+      "community_name": "sync_staging_assets.mjs",
+      "norm_label": "[comp-14-can-decide / comp-15-who-approves (readers residue)]"
+    },
+    {
+      "label": "the_ten_oses.mjs - sound=False, 8 defects",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L171",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_the_ten_oses_mjs_sound_false_8_defects",
+      "community": 751,
+      "community_name": "sync_routines_from_production.mjs",
+      "norm_label": "the_ten_oses.mjs - sound=false, 8 defects"
+    },
+    {
+      "label": "[os-all-ten-active]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L173",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_os_all_ten_active",
+      "community": 751,
+      "community_name": "sync_routines_from_production.mjs",
+      "norm_label": "[os-all-ten-active]"
+    },
+    {
+      "label": "[os-all-ten-active]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L176",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_os_all_ten_active_176",
+      "community": 751,
+      "community_name": "sync_routines_from_production.mjs",
+      "norm_label": "[os-all-ten-active]"
+    },
+    {
+      "label": "[os-exclusive-ownership]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L179",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_os_exclusive_ownership",
+      "community": 751,
+      "community_name": "sync_routines_from_production.mjs",
+      "norm_label": "[os-exclusive-ownership]"
+    },
+    {
+      "label": "[os-leadership, os-commercial, os-marketplace, os-operations, os-technology, os-finance, os-legal-governance, os-knowledge, os-intelligence, os-evolution (all ten per-OS checks)]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L182",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_os_leadership_os_commercial_os_marketplace_os_operations_os_technology_os_finance_os_legal_governance_os_knowledge_os_intelligence_os_evolution_all_ten_per_os_checks",
+      "community": 751,
+      "community_name": "sync_routines_from_production.mjs",
+      "norm_label": "[os-leadership, os-commercial, os-marketplace, os-operations, os-technology, os-finance, os-legal-governance, os-knowledge, os-intelligence, os-evolution (all ten per-os checks)]"
+    },
+    {
+      "label": "[os-leadership, os-commercial, os-marketplace, os-technology, os-finance, os-legal-governance, os-knowledge, os-intelligence, os-evolution (nine of ten per-OS checks)]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L185",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_os_leadership_os_commercial_os_marketplace_os_technology_os_finance_os_legal_governance_os_knowledge_os_intelligence_os_evolution_nine_of_ten_per_os_checks",
+      "community": 751,
+      "community_name": "sync_routines_from_production.mjs",
+      "norm_label": "[os-leadership, os-commercial, os-marketplace, os-technology, os-finance, os-legal-governance, os-knowledge, os-intelligence, os-evolution (nine of ten per-os checks)]"
+    },
+    {
+      "label": "[os-leadership .. os-evolution (per-OS responsibility read leg, line 82-85)]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L188",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_os_leadership_os_evolution_per_os_responsibility_read_leg_line_82_85",
+      "community": 751,
+      "community_name": "sync_routines_from_production.mjs",
+      "norm_label": "[os-leadership .. os-evolution (per-os responsibility read leg, line 82-85)]"
+    },
+    {
+      "label": "[os-exclusive-ownership (minor)]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L191",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_os_exclusive_ownership_minor",
+      "community": 751,
+      "community_name": "sync_routines_from_production.mjs",
+      "norm_label": "[os-exclusive-ownership (minor)]"
+    },
+    {
+      "label": "[os-all-ten-active (minor)]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L194",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_os_all_ten_active_minor",
+      "community": 751,
+      "community_name": "sync_routines_from_production.mjs",
+      "norm_label": "[os-all-ten-active (minor)]"
+    },
+    {
+      "label": "cross_os.mjs - sound=False, 14 defects",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L197",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "cross_os.mjs - sound=false, 14 defects"
+    },
+    {
+      "label": "[xos-13]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L199",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_13",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-13]"
+    },
+    {
+      "label": "[xos-07]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L202",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_07",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-07]"
+    },
+    {
+      "label": "[xos-09]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L205",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_09",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-09]"
+    },
+    {
+      "label": "[xos-11]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L208",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_11",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-11]"
+    },
+    {
+      "label": "[xos-14]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L211",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_14",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-14]"
+    },
+    {
+      "label": "[xos-13]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L214",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_13_214",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-13]"
+    },
+    {
+      "label": "[xos-13]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L217",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_13_217",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-13]"
+    },
+    {
+      "label": "[xos-09]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L220",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_09_220",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-09]"
+    },
+    {
+      "label": "[xos-04]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L223",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_04",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-04]"
+    },
+    {
+      "label": "[xos-06]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L226",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_06",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-06]"
+    },
+    {
+      "label": "[xos-11]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L229",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_11_229",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-11]"
+    },
+    {
+      "label": "[xos-12]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L232",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_12",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-12]"
+    },
+    {
+      "label": "[xos-02]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L235",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_02",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-02]"
+    },
+    {
+      "label": "[xos-13]",
+      "file_type": "document",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L238",
+      "_origin": "ast",
+      "id": "docs_sessions_scorer_defects_round2_xos_13_238",
+      "community": 247,
+      "community_name": "verify_prod_readiness.mjs",
+      "norm_label": "[xos-13]"
+    },
+    {
       "label": "SESSION15_PROGRESS.md",
       "file_type": "document",
       "source_file": "docs/sessions/SESSION15_PROGRESS.md",
@@ -78261,7 +79647,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/sql/bus_contract_close.sql",
-      "source_location": "L481",
+      "source_location": "L486",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_sql_bus_contract_close",
@@ -78272,7 +79658,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/sql/bus_contract_close.sql",
-      "source_location": "L346",
+      "source_location": "L351",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_sql_bus_contract_close",
@@ -78283,7 +79669,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/sql/bus_contract_close.sql",
-      "source_location": "L419",
+      "source_location": "L424",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_sql_bus_contract_close",
@@ -78294,7 +79680,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/sql/bus_contract_close.sql",
-      "source_location": "L200",
+      "source_location": "L205",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_sql_bus_contract_close",
@@ -78310,6 +79696,28 @@
       "_origin": "ast",
       "source": "scripts_sql_bus_contract_close",
       "target": "scripts_sql_bus_contract_close_public_fn_task_lesson",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/sql/bus_contract_read.sql",
+      "source_location": "L67",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_sql_bus_contract_read",
+      "target": "scripts_sql_bus_contract_read_public_fn_event_consolidate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/sql/bus_contract_read.sql",
+      "source_location": "L35",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_sql_bus_contract_read",
+      "target": "scripts_sql_bus_contract_read_public_v_event_backbone",
       "confidence_score": 1.0
     },
     {
@@ -78414,12 +79822,45 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "scripts/sql/fn_emit_metric_alerts.sql",
+      "source_location": "L16",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_sql_fn_emit_metric_alerts",
+      "target": "scripts_sql_fn_emit_metric_alerts_public_fn_emit_metric_alerts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "scripts/sql/fn_event_dispatch.sql",
       "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_sql_fn_event_dispatch",
       "target": "scripts_sql_fn_event_dispatch_public_fn_event_dispatch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/sql/fn_exec_meeting_reads_v_os_health.sql",
+      "source_location": "L17",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_sql_fn_exec_meeting_reads_v_os_health",
+      "target": "scripts_sql_fn_exec_meeting_reads_v_os_health_public_fn_exec_meeting",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/sql/fn_execution_sweep.sql",
+      "source_location": "L24",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_sql_fn_execution_sweep",
+      "target": "scripts_sql_fn_execution_sweep_public_fn_execution_sweep",
       "confidence_score": 1.0
     },
     {
@@ -78761,6 +80202,17 @@
       "_origin": "ast",
       "source": "scripts_sql_os_blueprint_schema_public_event_rollup",
       "target": "scripts_sql_os_blueprint_schema_public_company_event",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/sql/os_inputs_reach_every_os.sql",
+      "source_location": "L32",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_sql_os_inputs_reach_every_os",
+      "target": "scripts_sql_os_inputs_reach_every_os_public_os_interface",
       "confidence_score": 1.0
     },
     {
@@ -83809,8 +85261,243 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L96",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_ae_reads",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L55",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_cmd_writes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L95",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_dl_reads",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L242",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_dr_ev_elements",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L94",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_dr_reads",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L97",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_dt_reads",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L99",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_ea_reads",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L71",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_live_reads",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L98",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_or_reads",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L50",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_produces",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L92",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_table_reads",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L60",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_trigfn",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L43",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10",
+      "target": "scripts_staging_os_blueprint_component_10_writes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L92",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10_table_reads",
+      "target": "scripts_staging_os_blueprint_component_10_produces",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L77",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10_live_reads",
+      "target": "scripts_staging_os_blueprint_component_10_cmd_writes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L92",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10_table_reads",
+      "target": "scripts_staging_os_blueprint_component_10_trigfn",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/component_10.mjs",
+      "source_location": "L92",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_component_10_table_reads",
+      "target": "scripts_staging_os_blueprint_component_10_live_reads",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
-      "source_location": "L33",
+      "source_location": "L38",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_components_1_9",
+      "target": "scripts_staging_os_blueprint_components_1_9_every_active_os",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
+      "source_location": "L40",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_components_1_9",
+      "target": "scripts_staging_os_blueprint_components_1_9_missing_active_os",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
+      "source_location": "L95",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_components_1_9",
+      "target": "scripts_staging_os_blueprint_components_1_9_non_writer_readers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
+      "source_location": "L50",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_components_1_9",
+      "target": "scripts_staging_os_blueprint_components_1_9_prompt_all",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
+      "source_location": "L70",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_components_1_9",
@@ -83821,7 +85508,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
-      "source_location": "L29",
+      "source_location": "L66",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_components_1_9",
@@ -83832,7 +85519,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
-      "source_location": "L34",
+      "source_location": "L71",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_components_1_9",
@@ -83844,7 +85531,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
-      "source_location": "L33",
+      "source_location": "L70",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_components_1_9_reachcheck",
@@ -83856,7 +85543,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/components_1_9.mjs",
-      "source_location": "L35",
+      "source_location": "L72",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_components_1_9_reachev",
@@ -83867,7 +85554,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
-      "source_location": "L37",
+      "source_location": "L95",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_cross_os",
@@ -83878,18 +85565,51 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
-      "source_location": "L42",
+      "source_location": "L90",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_cross_os",
-      "target": "scripts_staging_os_blueprint_cross_os_cntcol",
+      "target": "scripts_staging_os_blueprint_cross_os_guarded",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
-      "source_location": "L20",
+      "source_location": "L81",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_cross_os",
+      "target": "scripts_staging_os_blueprint_cross_os_hascols",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_cross_os",
+      "target": "scripts_staging_os_blueprint_cross_os_rd",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L68",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_cross_os",
+      "target": "scripts_staging_os_blueprint_cross_os_rdcronok",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L44",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_cross_os",
@@ -83900,7 +85620,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
-      "source_location": "L58",
+      "source_location": "L113",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_cross_os",
@@ -83910,8 +85630,79 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L34",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_cross_os",
+      "target": "scripts_staging_os_blueprint_cross_os_wr",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L71",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_cross_os_rdcronok",
+      "target": "scripts_staging_os_blueprint_cross_os_rd",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L53",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_cross_os_rdsql",
+      "target": "scripts_staging_os_blueprint_cross_os_rd",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L72",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_cross_os_rdcronok",
+      "target": "scripts_staging_os_blueprint_cross_os_wr",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L54",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_cross_os_rdsql",
+      "target": "scripts_staging_os_blueprint_cross_os_wr",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/cross_os.mjs",
+      "source_location": "L95",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_cross_os_cnt",
+      "target": "scripts_staging_os_blueprint_cross_os_guarded",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L27",
+      "source_location": "L42",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_the_ten_oses",
@@ -83922,7 +85713,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L32",
+      "source_location": "L207",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_the_ten_oses",
+      "target": "scripts_staging_os_blueprint_the_ten_oses_cron_succeeded",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
+      "source_location": "L72",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_the_ten_oses",
@@ -83933,7 +85735,29 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L37",
+      "source_location": "L233",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_the_ten_oses",
+      "target": "scripts_staging_os_blueprint_the_ten_oses_live_reader_names",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
+      "source_location": "L226",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_the_ten_oses",
+      "target": "scripts_staging_os_blueprint_the_ten_oses_live_readers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
+      "source_location": "L103",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_the_ten_oses",
@@ -83944,7 +85768,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L63",
+      "source_location": "L138",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_the_ten_oses",
@@ -83955,7 +85779,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L84",
+      "source_location": "L169",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_the_ten_oses",
@@ -83963,11 +85787,22 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
+      "source_location": "L187",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_the_ten_oses",
+      "target": "scripts_staging_os_blueprint_the_ten_oses_writer_of",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L32",
+      "source_location": "L73",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_the_ten_oses_ctx",
@@ -83979,7 +85814,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L66",
+      "source_location": "L141",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_the_ten_oses_osevidence",
@@ -83991,7 +85826,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L37",
+      "source_location": "L103",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_the_ten_oses_oscheck",
@@ -84003,11 +85838,59 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
-      "source_location": "L63",
+      "source_location": "L138",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_staging_os_blueprint_the_ten_oses_osevidence",
       "target": "scripts_staging_os_blueprint_the_ten_oses_ctx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
+      "source_location": "L237",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_the_ten_oses_live_reader_names",
+      "target": "scripts_staging_os_blueprint_the_ten_oses_writer_of",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
+      "source_location": "L230",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_the_ten_oses_live_readers",
+      "target": "scripts_staging_os_blueprint_the_ten_oses_writer_of",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
+      "source_location": "L238",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_the_ten_oses_live_reader_names",
+      "target": "scripts_staging_os_blueprint_the_ten_oses_cron_succeeded",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/staging/os_blueprint/the_ten_oses.mjs",
+      "source_location": "L231",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_staging_os_blueprint_the_ten_oses_live_readers",
+      "target": "scripts_staging_os_blueprint_the_ten_oses_cron_succeeded",
       "confidence_score": 1.0
     },
     {
@@ -161015,6 +162898,864 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L51",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2",
+      "target": "docs_sessions_scorer_defects_round2_component_10_mjs_sound_false_9_defects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L86",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2",
+      "target": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L133",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2",
+      "target": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2",
+      "target": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L197",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2",
+      "target": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L171",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2",
+      "target": "docs_sessions_scorer_defects_round2_the_ten_oses_mjs_sound_false_8_defects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L48",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_class_5_and_class_7_\u00e2_checked_not_found",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L42",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_01_comp_05_comp_04_responsibilities_comp_05_linkage_os_layer_prompt_reach_one_per_os_os_with_staff_reached",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_03_objectives_measured",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L15",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_05_decision_rights_a",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L18",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_05_decision_rights_b",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L39",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_05_escalation_comp_05_kpis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L24",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_05_linkage_comp_05_authority_comp_05_kpis_comp_06_knowledge_independent_comp_08_out_tasks_reports_decisions_approvals_recommendations_alerts_knowledge_updates",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_06_cross_os_query",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_07_inputs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L30",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_07_inputs_coverage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L36",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_08_out_kpis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L45",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_08_out_reports_comp_16_health_score_column",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L21",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_08_out_tasks_comp_08_out_approvals_comp_08_out_recommendations",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L27",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_1_9_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_os_layer_prompt_reach",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L83",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_component_10_mjs_sound_false_9_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_10_03_knowledge_retrieval",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L71",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_component_10_mjs_sound_false_9_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_10_05_risk",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L74",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_component_10_mjs_sound_false_9_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_10_05_risk_74",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L77",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_component_10_mjs_sound_false_9_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_10_07_authority",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L80",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_component_10_mjs_sound_false_9_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_10_07_authority_80",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L65",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_component_10_mjs_sound_false_9_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_10_09_execution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L68",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_component_10_mjs_sound_false_9_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_10_09_execution_68",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L53",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_component_10_mjs_sound_false_9_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_10_10_outcome",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L62",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_component_10_mjs_sound_false_9_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_10_chain",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L94",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_11_improvement_plan",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L130",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_11_objectives",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L100",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_11_root_cause",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L124",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_11_root_cause_124",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L97",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_11_variance",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L109",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_12_best_practices",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L112",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_12_best_practices_112",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L106",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_12_failures",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L127",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_12_short_term",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L103",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_12_successes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L115",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_12_successes_115",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L121",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_13_lessons",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L88",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_13_sop_update",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L91",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_13_sop_update_91",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L118",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_11_13_mjs_sound_false_15_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_13_task",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L168",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_14_can_decide_comp_15_who_approves_readers_residue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L144",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_14_can_spend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L141",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_14_who_reviews",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L147",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_15_who_approves",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L135",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_15_who_can_help",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L138",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_15_who_reviews",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L153",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_16_capacity",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L165",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_16_health_score_comp_15_who_owns_evidence_sql",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L159",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_16_health_score_comp_16_risk_performance_backlog_quality_cost_automation_capacity_fresh_helper",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L150",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_16_risk_comp_16_performance_comp_16_backlog_comp_16_quality_comp_16_cost_comp_16_automation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L156",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "target": "docs_sessions_scorer_defects_round2_comp_17_questions_read",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L162",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_components_14_17_mjs_sound_false_12_defects",
+      "target": "docs_sessions_scorer_defects_round2_live_helper_gates_figure_readers_view_read_and_all_eight_comp_16_checks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L173",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_the_ten_oses_mjs_sound_false_8_defects",
+      "target": "docs_sessions_scorer_defects_round2_os_all_ten_active",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L176",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_the_ten_oses_mjs_sound_false_8_defects",
+      "target": "docs_sessions_scorer_defects_round2_os_all_ten_active_176",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L194",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_the_ten_oses_mjs_sound_false_8_defects",
+      "target": "docs_sessions_scorer_defects_round2_os_all_ten_active_minor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L179",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_the_ten_oses_mjs_sound_false_8_defects",
+      "target": "docs_sessions_scorer_defects_round2_os_exclusive_ownership",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L191",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_the_ten_oses_mjs_sound_false_8_defects",
+      "target": "docs_sessions_scorer_defects_round2_os_exclusive_ownership_minor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L182",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_the_ten_oses_mjs_sound_false_8_defects",
+      "target": "docs_sessions_scorer_defects_round2_os_leadership_os_commercial_os_marketplace_os_operations_os_technology_os_finance_os_legal_governance_os_knowledge_os_intelligence_os_evolution_all_ten_per_os_checks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L185",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_the_ten_oses_mjs_sound_false_8_defects",
+      "target": "docs_sessions_scorer_defects_round2_os_leadership_os_commercial_os_marketplace_os_technology_os_finance_os_legal_governance_os_knowledge_os_intelligence_os_evolution_nine_of_ten_per_os_checks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L188",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_the_ten_oses_mjs_sound_false_8_defects",
+      "target": "docs_sessions_scorer_defects_round2_os_leadership_os_evolution_per_os_responsibility_read_leg_line_82_85",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L235",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_02",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L223",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_04",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L226",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_06",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L202",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_07",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L205",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_09",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L220",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_09_220",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L208",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_11",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L229",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_11_229",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L232",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_12",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L199",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_13",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L214",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_13_214",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L217",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_13_217",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L238",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_13_238",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/sessions/SCORER_DEFECTS_ROUND2.md",
+      "source_location": "L211",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docs_sessions_scorer_defects_round2_cross_os_mjs_sound_false_14_defects",
+      "target": "docs_sessions_scorer_defects_round2_xos_14",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "docs/sessions/SESSION15_PROGRESS.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -162059,5 +164800,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "f80d67b56bb77f9fd26567626d5fa4d04683ea1f"
+  "built_at_commit": "0c2bef30e4c1c0f7c0486e7074c655040c24c843"
 }
