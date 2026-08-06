@@ -132,20 +132,34 @@ for (const t of TABLES) {
 }
 
 if (!DRY) {
-  // Resync identity sequences so staging's next insert cannot collide with a copied id.
+  // Resync sequences so staging's next insert cannot collide with a copied id.
+  //
+  // pg_get_serial_sequence ALONE IS NOT ENOUGH, and the first run said so in a line I read past:
+  // it printed "sequences resynced: (none)" while six of these tables carry a
+  // `nextval('x_id_seq'::regclass)` column default whose sequence is NOT OWNED by the column.
+  // pg_get_serial_sequence reports only OWNED sequences, so it returned null for every one and the
+  // resync did nothing at all. institutional_memory then held ids up to 40 with its sequence still
+  // at 13, and the first insert after the copy died on a duplicate primary key — which is exactly
+  // what happened the first time anything tried to write a task lesson.
+  //
+  // So the sequence is recovered from the column DEFAULT wherever it is not owned. A copy that
+  // leaves every sequence behind its own data is not a copy, it is a delayed outage.
+  const SEQ_EXPR = `coalesce(
+      pg_get_serial_sequence(n.nspname || '.' || c.relname, a.attname),
+      substring(pg_get_expr(ad.adbin, ad.adrelid) from 'nextval..([^'']+)'))`;
   const seqRows = await mgmtRead(STAGE,
-    `select n.nspname || '.' || c.relname t, a.attname col
+    `select n.nspname || '.' || c.relname t, a.attname col, ${SEQ_EXPR} seq
        from pg_class c
        join pg_namespace n on n.oid = c.relnamespace
        join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+       left join pg_attrdef ad on ad.adrelid = c.oid and ad.adnum = a.attnum
       where n.nspname || '.' || c.relname in (${TABLES.map(t => `'${q(t)}'`).join(',')})
-        and pg_get_serial_sequence(n.nspname || '.' || c.relname, a.attname) is not null`);
-  for (const { t, col } of seqRows) {
+        and ${SEQ_EXPR} is not null`);
+  for (const { t, col, seq } of seqRows) {
     await mgmtWrite(STAGE,
-      `select setval(pg_get_serial_sequence('${q(t)}','${col}'),
-                     greatest(coalesce((select max(${col}) from ${q(t)}),0),1))`, `seq ${t}`);
+      `select setval('${seq}', greatest(coalesce((select max(${col}) from ${t}), 0), 1))`, `seq ${t}`);
   }
-  console.log(`sequences resynced: ${seqRows.map(s => s.t + '.' + s.col).join(', ') || '(none)'}`);
+  console.log(`sequences resynced: ${seqRows.map(s => `${s.t}.${s.col}->${s.seq}`).join(', ') || '(NONE — suspicious, check the derivation)'}`);
 }
 
 console.table(results);

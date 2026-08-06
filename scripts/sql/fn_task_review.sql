@@ -179,6 +179,17 @@ begin
             || 'challenged and the challenge recommended against it. ' || v_blocker, 1.0);
   end if;
 
+  -- "Every completed task should generate learning." Written here, by the reviewer, at the moment
+  -- the verdict is known — the review already establishes what was wrong, so the lesson costs
+  -- nothing. Never let recording the lesson fail the review itself.
+  begin
+    perform fn_task_lesson(p_task_id, v_outcome,
+      jsonb_build_object('violations', coalesce(v_chain->'violations','[]'::jsonb),
+                         'dissents',   v_dissents,
+                         'reviewer',   v_chain->>'reviewer'));
+  exception when others then null;
+  end;
+
   return jsonb_build_object(
     'task_id',        p_task_id,
     'outcome',        v_outcome,

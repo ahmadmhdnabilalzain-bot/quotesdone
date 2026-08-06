@@ -45,8 +45,23 @@ const json = String(one(await mgmtRead(STAGE,
 const n = JSON.parse(json).length;
 if (!n) { console.error(`no rows matched ${where} on staging`); process.exit(1); }
 
-await prodPost(`delete from ${q(table)} where ${where};
-  insert into ${q(table)} select * from jsonb_populate_recordset(null::${q(table)}, '${json.replace(/'/g, "''")}'::jsonb);`);
+// UPSERT, not delete-then-insert. company_goals.key is referenced by employee_kpi.serves_goal and
+// department_objective.goal_key, so clearing a row to re-add it raises 23503 — the row is the same
+// row, and deleting it is not a detail of "replacing" it.
+//
+// `on conflict DO UPDATE`, never `do nothing`: a no-op upsert preserves a key set exactly the way a
+// duplicate-and-drop bug preserves a count, so a corrected value would silently never arrive while
+// the row count and key digest still matched.
+const cols = (await mgmtRead(STAGE,
+  `select column_name from information_schema.columns
+    where table_schema = '${table.includes('.') ? table.split('.')[0] : 'public'}'
+      and table_name = '${table.includes('.') ? table.split('.')[1] : table}'
+    order by ordinal_position`)).map(r => r.column_name);
+const setList = cols.filter(c => c !== keyCol).map(c => `"${c}" = excluded."${c}"`).join(', ');
+
+await prodPost(
+  `insert into ${q(table)} select * from jsonb_populate_recordset(null::${q(table)}, '${json.replace(/'/g, "''")}'::jsonb)
+   on conflict ("${keyCol}") do update set ${setList};`);
 
 const DIGEST = `select md5(coalesce(string_agg(x, '|' order by x), '')) from
   (select md5(to_jsonb(z)::text) x from ${q(table)} z where ${where}) s`;

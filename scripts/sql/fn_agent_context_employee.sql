@@ -148,11 +148,20 @@ begin
     -- company_goals was read by dept_plan:79 and by nothing an ordinary employee ever saw. The spec
     -- opens with "Every employee works toward the same business objectives" and "Every decision made
     -- by every AI employee should support these objectives".
+    -- goal_period held 183 rows, refreshed daily by fn_goal_period_refresh, and was read by NOTHING
+    -- but its own refresher. It carries the only actual-versus-target the company computes, so a
+    -- goal without it is an aspiration and a goal with it is a number someone can act on.
     select string_agg(z.goal||' ('||coalesce(z.metric,'no metric')
-             ||case when z.target_value is not null then '; target '||z.target_value||' '||coalesce(z.unit,'') else '' end||')', E'\n- '
+             ||case when z.target_value is not null then '; target '||z.target_value||' '||coalesce(z.unit,'') else '' end
+             ||case when z.actual_value is not null
+                    then '; CURRENTLY '||z.actual_value||coalesce(' ('||z.status||')','') else '; not yet measured' end||')', E'\n- '
              order by z.sort nulls last)
       into v_line
-      from (select g.goal, g.metric, g.target_value, g.unit, g.sort from company_goals g
+      from (select g.goal, g.metric, g.target_value, g.unit, g.sort, gp.actual_value, gp.status
+              from company_goals g
+              left join lateral (select p.actual_value, p.status from goal_period p
+                                  where p.goal_key = g.key
+                                  order by p.updated_at desc nulls last limit 1) gp on true
              where g.active and (g.owner_dept is null or g.owner_dept = v_dept or g.owner_dept = 'exec')
              order by g.sort nulls last limit 8) z;
     if v_line is not null then
@@ -167,7 +176,46 @@ begin
       v_emp := v_emp || E'\n'||'# YOUR DEPARTMENT''S OBJECTIVES'||E'\n'||v_line||E'\n';
     end if;
 
-    out := out || left(v_emp, 3000) || E'\n\n';
+    -- ---- THE IMPROVEMENT LOOP, WHICH WROTE WHERE NOTHING READ -------------------------------
+    -- Of the seven self-optimisation loops, four wrote into tables nobody consulted:
+    -- self_review 31 rows, evolution_proposal 32 (31 proposed, 1 ever implemented), decision_record
+    -- 3, company_reflection 9 — each read by nothing but its own writer. The spec's "Continuous
+    -- Improvement" section is what they implement, so the department they concern is the reader.
+    -- Bounded hard: this is context, not a report.
+    select string_agg(z.line, E'\n' order by z.ord, z.line)
+      into v_line
+      from (
+        select 1 ord, '- OPEN FINDING ('||s.review_type||'): '||left(s.finding, 160)
+               ||coalesce(' — proposed: '||left(s.proposal,120), '') line
+          from self_review s
+         where coalesce(s.status,'open') not in ('done','implemented','rejected')
+         order by s.created_at desc limit 3
+      ) z;
+    if v_line is not null then
+      v_emp := v_emp || E'\n'||'# WHAT THIS ORGANISATION IS TRYING TO FIX'||E'\n'||v_line||E'\n';
+    end if;
+
+    select string_agg('- PROPOSED CHANGE ('||e.change_class||'): '||left(e.proposal, 170), E'\n' order by e.id desc)
+      into v_line
+      from (select id, change_class, proposal from evolution_proposal
+             where status = 'proposed' order by id desc limit 3) e;
+    if v_line is not null then
+      v_emp := v_emp || v_line || E'\n';
+    end if;
+
+    -- decision_record carries serves_goal and the reasoning behind past calls. 3 rows, 0 readers.
+    -- "Learn from results" cannot happen if the record of what was decided reaches nobody.
+    select string_agg('- '||coalesce(d.decided_by,'someone')||' decided: '||left(d.recommendation, 150)
+             ||coalesce(' (serves '||d.serves_goal||')','')
+             ||coalesce(' — outcome: '||left(d.actual_outcome,80), ' — outcome not yet recorded'), E'\n' order by d.id desc)
+      into v_line
+      from (select id, decided_by, recommendation, serves_goal, actual_outcome from decision_record
+             where dept_key = v_dept or dept_key is null order by id desc limit 2) d;
+    if v_line is not null then
+      v_emp := v_emp || E'\n'||'# DECISIONS ALREADY ON RECORD FOR YOUR DEPARTMENT'||E'\n'||v_line||E'\n';
+    end if;
+
+    out := out || left(v_emp, 4200) || E'\n\n';
   end if;
   if p_agent_key is not null then
     out := out || '# LAYER 2 - YOUR PROFESSIONAL EXPERTISE'||E'\n\n';

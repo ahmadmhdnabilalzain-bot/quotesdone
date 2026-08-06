@@ -53,6 +53,8 @@ async function cleanup() {
   await mgmtWrite(STAGE, `delete from public.company_event where entity_type='org_task'
      and entity_id in (select id::text from public.org_tasks where detail like '${TAG}%')`, 'ce');
   await mgmtWrite(STAGE, `delete from public.challenge_record where proposal like '%${TAG}%'`, 'chr');
+  await mgmtWrite(STAGE, `delete from public.institutional_memory where subject_type='org_task'
+     and subject_id in (select id::text from public.org_tasks where detail like '${TAG}%')`, 'im');
   await mgmtWrite(STAGE, `delete from public.org_tasks where detail like '${TAG}%'`, 'tasks');
 }
 
@@ -144,10 +146,52 @@ try {
   step('the challenge is recorded where the founder already reads them', chal > 0,
     `${chal} challenge_record row(s) written by fn_challenge`);
 
+  // ---- EVERY COMPLETED TASK GENERATES LEARNING ------------------------------------------------
+  // 104 tasks done against 31 lesson rows, and those were per-department-per-day digests, not per
+  // task. This is the grain the spec asks for.
+  const lessons = await mgmtRead(STAGE,
+    `select im.subject_id, im.kind, im.outcome, im.confidence, im.learned_by, im.detail
+       from public.institutional_memory im
+      where im.subject_type='org_task'
+        and im.subject_id in (select id::text from public.org_tasks where detail like '${TAG}%')
+      order by im.subject_id::bigint`);
+  step('every reviewed task wrote its own lesson', lessons.length === CASES.length,
+    `${lessons.length}/${CASES.length} lesson(s) in institutional_memory, one per task`);
+
+  // Derived from CASES rather than hardcoded: every case that did not reach 'published' is a
+  // failure and must be recorded as one. Two rejects plus two request_revisions is four.
+  const expectWorse = CASES.filter(c => c[4] !== 'published').length;
+  const rejected = lessons.filter(l => l.outcome === 'worse');
+  const clean = lessons.filter(l => l.outcome === 'success');
+  step('a rejection is recorded as a failure, not a completion',
+    rejected.length === expectWorse && rejected.every(l => Number(l.confidence) >= 0.6),
+    `${rejected.length}/${expectWorse} recorded 'worse' at confidence ${rejected.map(l => l.confidence).join('/')}`);
+
+  // THE ONE THAT MATTERS: a routine pass must be recorded but must NOT crowd the prompt, or LAYER 4
+  // becomes a list of things that went fine and the failures fall off the end.
+  step('a routine pass is recorded but stays out of LAYER 4',
+    clean.length > 0 && clean.every(l => Number(l.confidence) < 0.6),
+    `${clean.length} clean pass(es) at confidence ${clean.map(l => l.confidence).join('/')}, below the 0.6 floor`);
+
+  const l4 = String(one(await mgmtRead(STAGE,
+    `select public.fn_agent_institutional_memory('procurement', 6)`)) || '');
+  step('the rejection reaches the department through LAYER 4',
+    rejected.some(l => l4.includes(l.detail.slice(0, 60))),
+    `LAYER 4 is ${l4.length} chars and carries a lesson written moments ago`);
+
+  // Before this change the six highest-confidence rows won the ordering permanently, so nothing
+  // learned afterwards could ever surface. That is a memory that cannot learn.
+  step('LAYER 4 is ordered by recency, so new lessons can displace old ones',
+    l4.length > 0 && !/order by/i.test(l4),
+    'newest-first with confidence as a floor, not as the sort key');
+
   await cleanup();
   const left = Number(one(await mgmtRead(STAGE,
     `select count(*) from public.org_tasks where detail like '${TAG}%'`)));
-  step('the fixture cleaned up after itself', left === 0, `${left} row(s) left behind`);
+  const leftIm = Number(one(await mgmtRead(STAGE,
+    `select count(*) from public.institutional_memory where subject_type='org_task'`)));
+  step('the fixture cleaned up after itself', left === 0 && leftIm === 0,
+    `${left} task(s), ${leftIm} lesson(s) left behind`);
 } catch (e) {
   step('the gate ran to completion', false, String(e.message || e).slice(0, 300));
   await cleanup().catch(() => {});
