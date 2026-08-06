@@ -287,6 +287,58 @@ the two departments that actually failed: `legal` in=6204 → **1725 out, 3 task
 production run measured 1725, **86% of 2000** — a worse mid-distribution position than
 `license_extract`'s 74–78%, and that one was fixed before it ever failed.
 
+**DISASTER RECOVERY WAS ASSERTED BY ONE ROW, AND THE ASSERTION WAS GREEN.** `dr_drill`'s pass
+condition was `restored_rows === backup_rows && key_ok`, and for an empty backup `key_ok` is forced
+true and `0===0` — so a backup file containing the two-byte string `[]` scored `ok`. Production has
+0 customers / 0 inquiries / 0 quotes / 0 transactions, so **five of its six tables passed vacuously
+and the sixth holds one row**: the 1 Aug run reported `{tables_checked:6, tables_failed:0,
+total_restored:1}`. Measured: **215 of the 1,075 objects in the `backups` bucket are ≤2 bytes.**
+
+> Asserting `backup_rows > 0` outright would fail every genuinely-empty table and be muted within a
+> week. The distinction is `live_rows`: an empty backup of an **empty** table is correct, an empty
+> backup of a **populated** table is a lost backup.
+
+And the tables that hold the value were neither drilled nor backed up. Proven on production one
+variable at a time:
+
+| | tables | rows restored | failed |
+|---|--:|--:|---|
+| before | 6 | **1** | 0 — green and meaningless |
+| fixed assertion, old snapshot | 11 | 22,332 | 3 — `kb_chunks`, `dept_library`, `ops_knowledge` named as having no backup |
+| after adding them to `backup` | 11 | **32,686** | 0 |
+
+`kb_chunks.json` 40.8 MB · `ops_knowledge.json` 9.0 MB · `dept_library.json` 3.4 MB now exist.
+`customers` stays green throughout — backup 0, live 0, correctly not a false alarm.
+
+**`dropbox_backup` — the only copy held OFF Supabase — reports 1,754 consecutive cron successes and
+has not actually run since 27 July.** `pg_net` success means the POST was queued, not that the
+function completed: the identical defect that made `cos_execute_hourly` look healthy for 237 runs.
+It was absent from the 30-row `edge_expectation` set, so nothing watched it. Added on both projects
+with `dr_drill` alongside; `fn_edge_health_scan` now returns **`(dropbox_backup, STALE, 13852.1, t)`**
+— 9.6 days, incident raised — against ALIVE for all 31 others.
+
+### The audit's remaining queue, ranked — start here next session
+
+A 13-agent adversarial audit of file #7 ran at the end of this session; it **refuted ~13 claimed
+gaps** (supplier-website crawling, Arabic supplier email, the 24/48h nudge ladder, quote version
+history, duplicate-quotation detection, model autoswitch, record claiming — all already built; do
+not rebuild them). What survived, in its order:
+
+1. ~~`dr_drill` empty-backup pass~~ · ~~`dropbox_backup` expectation~~ — **done above.**
+2. **`cron.job` 126: `fn_company_brief(1800)` → `4000`.** One number, same shape as `dept_plan`'s
+   1200. The org chart every agent reads is cut mid-word at `"...lead knowledge_directo"`, silently
+   omitting Marketing, Marketplace & Procurement, Sales and Technology while printing
+   `Totals: 13 departments` against 15. It sits at priority 95 inside a 22,000-char budget.
+3. **Two `agent_knowledge` UPDATEs: `UAE legal framework` and `UAE Civil Code update - 2026`,
+   priority 10 → 90.** 1,502 chars that currently reach **none** of the 66 agents' Layer 1 — a UAE
+   construction marketplace serving zero UAE legal text to any agent, including `legal`.
+4. **The autonomy-gate chain, and it has a FIXED ORDER.** `trg_action_gate` holds 1,048 of 1,079
+   rows; `fn_autonomy_dispose` sweeps exactly that status set and re-dispositions with no threshold,
+   overwriting the gate; and cron 64 `autonomy_dispose_hourly` is `active=false`, which is the only
+   thing currently preventing that. **Enabling cron 64 first would auto-clear 1,048 held rows.**
+   Sequence: `fn_autonomy_dispose` binding → confidence lift in `trg_action_gate` →
+   `agent_autonomy_enabled` → then cron 64.
+
 **`graph_nodes` is measured and deliberately NOT wired here.** 323 nodes and 300 edges rebuilt every
 night by an active production cron, read by **zero** routines, views, Edge Functions and frontend
 modules. Its consumer is the company graph in the executive UI — spec file **#3**, which is
