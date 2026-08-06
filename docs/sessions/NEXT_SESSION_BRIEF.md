@@ -131,6 +131,44 @@ is genuinely fresh, not because it is broken. Worth re-checking after 24 Oct 202
 > the review metadata is an older snapshot. Harmless today — staging has 0 crons so decay never runs
 > there — but it means a staging test of the decay engine would exercise a state production is not in.
 
+**OBSERVABILITY: THE SUPPLIER HAD A TEN-STEP TIMELINE, THE RFQ HAD NONE.** The blueprint's
+Observability requirement is a worked RFQ trace — created → BOQ analysed → qualified → 12 suppliers
+selected → invitations sent → 7 quotations → ranked → award — and it says "every step should be
+logged with timestamps **and reasons**". `fn_entity_activity` is already reachable (`os_api`'s
+`activity` action) and had exactly one specialised branch, `if p_entity = 'supplier'`. For an
+inquiry it returned comments plus `os_audit_log`, and the RFQ lifecycle is written to neither.
+
+Nothing new was recorded. Every step already sat in a table: `inquiries`' own timestamps,
+`documents`, **`inquiry_matches` — which carries `match_reason` and `similarity`, the only place the
+system records WHY a supplier was contacted** — `quotes`, `comparison_run_v2`, `transactions`,
+`company_event` and `agent_actions`. Assembly, not instrumentation. `verify_rfq_trace.mjs` 10/10:
+7 entries across decision/event/match/milestone/quote, **2 of 2 matches carrying their reason**,
+nothing undated, the supplier branch unaffected, and a non-uuid id refused rather than thrown.
+
+> **THE FIXTURE FOUND THREE BUGS THE PATCH REPORTED AS SUCCESS**, all reachable only at call time:
+> `left join public.leads l` collided with the function's declared `l public.leads%rowtype` (42702);
+> `', quality '||q.quality` — `quotes.quality` is **jsonb**, so `text||jsonb` resolves to
+> `jsonb||jsonb` and the literal is parsed as JSON; and `coalesce(c.explanation_en,'')` — jsonb too.
+> The second is the same shape as the `text[] || 'literal'` bug already documented inside
+> `run_health_check`. A DO block that rewrites `pg_get_functiondef` reports success for all three.
+> **Build the fixture in the same change, not after it.**
+
+**THE CRON HEALTH VIEW CANNOT SAY WHAT IS FAILING NOW.** `v_cron_failing` is production's only
+cron-health signal, and it is `HAVING count(*) FILTER (WHERE status <> 'succeeded') > 0` over a
+7-day window — so a job that failed once last Tuesday and has succeeded every run since is still
+listed. It reports 3 jobs; measured, **2 have recovered** (`health_check` last failed 4 Aug and last
+succeeded 6 Aug 00:30; `supplier_invites_daily` last failed 4 Aug, succeeded 5 Aug) and 1 is
+genuinely unproven (`kpi_review_weekly`, 1 run 1 failure, next run Monday). Nothing reads it —
+0 views, and its single routine reader (`fn_invite_ramp`) uses it for something else. A monitor that
+never clears is a monitor nobody reads. **Not fixed here**; it needs a `state` column
+(failing-now vs recovered) and a reader, and that is a small, well-defined next job.
+
+> **`run_health_check` was already fixed — read before you re-fix it.** `v_cron_failing` shows 78 of
+> 336 runs failing with `malformed array literal`, and the deployed source already carries `::text`
+> casts on every branch plus a comment recording the diagnosis: `text[] || 'a bare literal'` resolves
+> to `anyarray||anyarray` because an unadorned literal is type `unknown`. The monitor crashed
+> **precisely when it had something to report** and took the other checks down with it. Historic.
+
 **`graph_nodes` is measured and deliberately NOT wired here.** 323 nodes and 300 edges rebuilt every
 night by an active production cron, read by **zero** routines, views, Edge Functions and frontend
 modules. Its consumer is the company graph in the executive UI — spec file **#3**, which is
@@ -148,7 +186,8 @@ All fifteen gates were green on the first pass. Every defect below was found *af
 ```
 node scripts/verify_deploy_parity.mjs --since=HEAD~40   # is the repo's code actually RUNNING, both projects
 node scripts/staging/verify_intake_routing.mjs          # 10/10 Arabic routing + ordered interview + knowledge
-node scripts/staging/verify_agent_knowledge.mjs         # 13/13 the department library reaches the employee — zero spend
+node scripts/staging/verify_agent_knowledge.mjs         # 16/16 the department library reaches the employee — zero spend
+node scripts/staging/verify_rfq_trace.mjs               # 10/10 the RFQ lifecycle trace — 1 rfq_routing call, ~0.01 AED
 node scripts/staging/demo_factory.mjs --purge --dry-run # run AFTER the journey; only the register should appear
 ```
 
@@ -1174,6 +1213,10 @@ The one defect found came from the step *after* the gates: a `--purge --dry-run`
 | "`dept_library` … read by zero Edge Functions and zero UI" | Right, and understated: read by zero **anything**. `fn_dept_library_search` — correct, indexed, five hits per real query — had no caller in any routine, view, Edge Function, cron job or frontend module. Fixed; see the session 12 block |
 | "`fn_knowledge_decay` runs and decays nothing" (the shape of session 11's `kpi_review_weekly`) | **Not the same defect.** 1,734 of 1,869 `agent_knowledge` rows carry `review_due` and in production **none is past it** — the earliest bulk stamp is 2026-10-24. The engine is idle because the corpus is fresh. Re-check after 24 Oct 2026 rather than "fixing" it now |
 | "staging holds the entire knowledge estate, 40 tables, 0 empty" | True for the rows. **Not true for the review metadata**: the `(agent_key\|topic)` md5 over all 1,869 `agent_knowledge` rows matches production exactly, while `review_due` does not — staging carries 168 rows already past due against production's 0. A key-set digest is not a row digest |
+| "the eight founder spec files are not in the repo" | **They are on disk.** `C:\Users\Opera\OneDrive\Desktop\*.txt`, mirrored in `C:\Users\Opera\qd-packs\QuotesDone_COMPLETE_OS_PORTALS_AUTONOMY_UPDATE_PACKAGE_v2026.07.31\…\SOURCE_PLANS\`. File #7 is `quotesdone agents and knowledge.txt` = `AGENTS_AND_KNOWLEDGE_BLUEPRINT.txt`; #6 `suppliers categories.txt`; #3 `OS 2.txt` = `OS_COMMAND_CENTER_VISION.txt`; #8 `open router.txt`. **Read the file you are working, not the brief's summary of it** — the summary said "AI Governor, AI Scheduler…", the file says what each must actually do, and its one-line architectural recommendation ("Don't create 20 isolated knowledge bases") is what located the layer-2 defect |
+| "`fn_agent_context` implements the spec's four layers" | It implements four layers, but its layer 2 is keyed to the **individual**, and the spec's layer 2 is **DEPARTMENT** knowledge. That distinction is the whole defect: 52 of 66 employees had nothing under the heading |
+| "52 employees with no knowledge is a roster that was never invoked" | Half right, and the half that is wrong is the live half: 0 of them ever ran or acted, but **4 have been chatted with**, **8 are department leads**, and `dept_plan` calls `fn_agent_context(lead_agent)` for every department on a **daily production cron**. An unpopulated roster is not the same thing as an unused code path |
+| "`v_cron_failing` reports what is failing" | It reports what has failed **at any point in 7 days** and never clears. 2 of its 3 current rows have long since recovered. Nothing reads it |
 | "`graph_nodes` (323) … read by zero Edge Functions and zero UI" | Confirmed, and its **writer is fine** — an active nightly cron rebuilds 323 nodes and 300 edges. The gap is entirely on the read side, and the reader belongs to spec file #3 (executive UI), not #7. Building one inside #7 would build it twice |
 
 The file states the rule it broke, twenty lines above the break: *"they key off the quote/inquiry id as TEXT, so
@@ -1463,7 +1506,8 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | **`verify_supplier_docs.mjs`** | `supplier_api process_docs` end to end: real PDF bytes into `supplier-docs` through the deployed function, the licence-gate write-back, the unreadable-licence path and the sanitiser. Asserts the ROW, never the response |
 | **`verify_constraints.mjs`** | the parity dimension nothing measured: NOT NULL columns and CHECK constraints against production. Report-only; `--apply` fixes staging through `qd_guard` |
 | **`verify_agent_knowledge.mjs`** | whether an employee can actually see the 1,456-row department library. Asserts the NEGATIVES: a query-less call is byte-identical to the old two-argument one, every emitted excerpt matches a real `dept_library` row by title, and the `cat:<slug>` branch (no `org_agents` row, so `v_dept` is null) is not silently dead. Zero spend |
-| **`seed_agent_library_reader.mjs`** (in `scripts/`) | the `fn_agent_context` overload and `fn_knowledge_gaps`' `owner_os`. Idempotent, measures after applying; `--print-sql` emits both statements for production |
+| **`verify_rfq_trace.mjs`** | the blueprint's Observability requirement, measured against a real RFQ: one inquiry built by the factory, really dispatched, quoted twice, then asserted **by kind** — because a trace that grew is not a trace that is right. Pins that every supplier contacted carries the REASON it was chosen. 1 model call |
+| **`seed_agent_library_reader.mjs`** (in `scripts/`) | the four knowledge-layer changes: the `fn_agent_context` overload, its layer-2 department fallback, `fn_knowledge_gaps`' `owner_os`, and `fn_entity_activity`'s RFQ branch. Every one re-appliable; the two body patches rewrite `pg_get_functiondef` and **raise** if their anchor has moved. `--print-sql` emits all four for production |
 | **`verify_prod_readiness.mjs`** (in `scripts/`, not `scripts/staging/`) | §8 as a measurement against **production**, read-only by construction. Reports each item APPLIED/OUTSTANDING with its measured value and the exact statement, exits non-zero. Deploy list derived from `git diff main...HEAD`, drift checked by bundle **content** |
 
 `sync_staging_reference.mjs` still leaves `field_definition` and `field_definition_source` unloaded
