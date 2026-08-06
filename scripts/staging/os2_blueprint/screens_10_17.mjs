@@ -41,8 +41,10 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { closure, UI_READS, UI_READ_NAMES, UI_EMITS, UI_EMIT_NAMES, ALL_READS, sqlArr } from './ui_closure.mjs';
 
-export const expected = 32;
+export const EXPECTED = 32;
+export const expected = 32;   // both spellings: the runner's contract was renamed mid-flight
 export const label = 'screens 10-17 (Executive Reports .. Voice) + design principles';
 
 const S = 'screens-10-17';
@@ -71,8 +73,12 @@ function components(text) {
   }));
 }
 
-export default async function ({ req, ui, ROOT }) {
+export default async function ({ req, one, ROOT }) {
   const root = ROOT || fileURLToPath(new URL('../../../', import.meta.url));
+  // The UI closure — which routines a logged-in founder can cause to run — is computed once per
+  // process by ui_closure.mjs and memoised, so asking for it here costs nothing if another section
+  // already did.
+  const C = await closure(one);
 
   // ---- FRONTEND SCAN -------------------------------------------------------------------------
   const SHELLP = join(root, 'src', 'components', 'osx', 'OsxShell.tsx');
@@ -96,12 +102,24 @@ export default async function ({ req, ui, ROOT }) {
   const T = (s) => `'${String(s).replace(/'/g, "''")}'`;
   const B = (v) => (v ? 'true' : 'false');
   const N = (t, w = 'true') => `(select count(*) from public.${t} where ${w})`;
-  const UIR = ui.UI_READERS, UIN = ui.UI_READER_NAMES;
-  // Reachable routines and views whose body matches a pattern — "is anything the browser can run
-  // even capable of emitting this?", asked separately from "is any of it on screen".
-  const EMITS = (rx) => `(select count(distinct nm) from (${ui.RSET}) s where s.def ~* '${rx}')`;
-  const EMIT_NAMES = (rx) => `coalesce((select string_agg(distinct nm, ',') from (${ui.RSET}) s where s.def ~* '${rx}'), 'none')`;
-  const REACHABLE = (n) => ui.routines.includes(n) || ui.views.includes(n);
+  // Readers of an object, restricted to the browser closure, with the object's own WRITERS removed
+  // and pg_proc overloads collapsed — the two exclusions row #2 learned the hard way.
+  const UIR = (t) => UI_READS(C, t);
+  const UIN = (t) => UI_READ_NAMES(C, t);
+  // "Is anything the browser can run even capable of emitting this?", asked separately from "is any
+  // of it on screen", because reachability is not delivery.
+  const EMITS = (rx) => UI_EMITS(C, `'${rx}'`);
+  const EMIT_NAMES = (rx) => UI_EMIT_NAMES(C, `'${rx}'`);
+  const EMITS_BOTH = (rx1, rx2) => `(select count(distinct p.proname) from pg_proc p
+      join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prokind in ('f','p')
+        and p.proname = any(${C.UI})
+        and pg_get_functiondef(p.oid) ~* '${rx1}' and pg_get_functiondef(p.oid) ~* '${rx2}')`;
+  // One NAMED reachable routine's body against a pattern: "does the surface the founder opens carry
+  // this at all", asked of that surface rather than of the schema in general.
+  const FN_MATCHES = (fn, rx) => `(select count(distinct p.proname) from pg_proc p
+      join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prokind in ('f','p')
+        and p.proname='${fn}' and p.proname = any(${C.UI}) and pg_get_functiondef(p.oid) ~* '${rx}')`;
+  const REACHABLE = (n) => C.fns.includes(n);
   const ARGS_OF = (n) => `coalesce((select pg_get_function_arguments(p.oid) from pg_proc p
       join pg_namespace ns on ns.oid=p.pronamespace where ns.nspname='public' and p.proname='${n}' limit 1), '(absent)')`;
 
@@ -130,7 +148,7 @@ export default async function ({ req, ui, ROOT }) {
       `board_reports=${bodyServesBoard} exec_reports=${bodyServesExec}`)}
        || ' | db: ' || (select count(*) from public.exec_reports
             where jsonb_typeof(findings) in ('object','array'))
-       || ' of ' || ${N('exec_reports')} || ' exec_reports carry structured findings, reachable only through '
+       || ' of ' || ${N('exec_reports')} || ' exec_reports carry structured findings; browser-reachable routines naming exec_reports: '
        || ${EMIT_NAMES('\\yexec_reports\\y')}`);
 
   // "Click a number → why it moved and who contributed." Two halves: a clickable figure, and a
@@ -140,7 +158,7 @@ export default async function ({ req, ui, ROOT }) {
   const kpiClickable = hits(kpiBlock, /onClick=/g);
   const drillActions = actions.filter((a) => /drill|contribut|explain|why/i.test(a)).length;
   const METRIC_ARG = `(select count(distinct p.proname) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
-      where ns.nspname='public' and p.proname = any(${ui.lit(ui.routines)})
+      where ns.nspname='public' and p.proname = any(${C.UI})
         and pg_get_function_arguments(p.oid) ~* '(metric|figure|kpi|measure|contribut)')`;
   await req(S, 'exec-reports-drilldown', 'Clicking a number in a report drills into why it moved and who contributed',
     `select coalesce(${B(kpiClickable > 0 && drillActions > 0)} and ${METRIC_ARG} > 0, false)`,
@@ -238,20 +256,20 @@ export default async function ({ req, ui, ROOT }) {
 
   await intel('intel-supplier-health', 'Intelligence Center shows supplier health', 'supplier_health',
     `${UIR('supplier_health')} > 0 or ${UIR('supply_health_snapshots')} > 0`,
-    `supplier_health view read by ' || ${UIN('supplier_health')} || ', supply_health_snapshots ('
+    `'supplier_health view read by ' || ${UIN('supplier_health')} || ', supply_health_snapshots ('
       || ${N('supply_health_snapshots')} || ' row(s), latest period_end '
       || coalesce((select max(period_end)::text from public.supply_health_snapshots), 'never')
-      || ') read by ' || ${UIN('supply_health_snapshots')} || '`);
+      || ') read by ' || ${UIN('supply_health_snapshots')}`);
 
   await intel('intel-customer-behavior', 'Intelligence Center shows customer behaviour', 'customer_behavior',
     `${UIR('customer_health')} > 0 or ${UIR('customer_preference')} > 0`,
-    `customer_health read by ' || ${UIN('customer_health')} || '; customer_preference holds '
+    `'customer_health read by ' || ${UIN('customer_health')} || '; customer_preference holds '
       || ${N('customer_preference')} || ' row(s) and customer_score ' || ${N('customer_score')}
-      || ' row(s), read by ' || ${UIN('customer_score')} || '`);
+      || ' row(s), read by ' || ${UIN('customer_score')}`);
 
   await intel('intel-ai-spending', 'Intelligence Center shows AI spending', 'ai_spending',
-    `${UIR('ai_cost_log')} > 0 and ${N('ai_cost_log', "created_at > now() - interval '30 days'")} > 0`,
-    `${N('ai_cost_log')} || ' ai_cost_log row(s), ' || ${N('ai_cost_log', "created_at > now() - interval '30 days'")}
+    `${UIR('ai_cost_log')} > 0 and ${N('ai_cost_log', "occurred_at > now() - interval '30 days'")} > 0`,
+    `${N('ai_cost_log')} || ' ai_cost_log row(s), ' || ${N('ai_cost_log', "occurred_at > now() - interval '30 days'")}
       || ' in the last 30 days, read by ' || ${UIN('ai_cost_log')}
       || '; llm_calls ' || ${N('llm_calls')} || ' row(s) read by ' || ${UIN('llm_calls')}`);
 
@@ -272,14 +290,14 @@ export default async function ({ req, ui, ROOT }) {
   const CORPORA = ['kb_chunks', 'institutional_memory', 'org_memory', 'agent_memory', 'decision_log',
                    'documents', 'customers', 'inquiries', 'leads'];
   const SEARCH_DEF = `(select pg_get_functiondef(p.oid) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
-      where ns.nspname='public' and p.proname='fn_os_search' limit 1)`;
-  const SEARCH_SPAN = `(select count(*) from unnest(${ui.lit(CORPORA)}) c(n) where ${SEARCH_DEF} ~* ('\\y'||c.n||'\\y'))`;
-  const SEARCH_NAMES = `coalesce((select string_agg(c.n, ',') from unnest(${ui.lit(CORPORA)}) c(n)
+      where ns.nspname='public' and p.prokind in ('f','p') and p.proname='fn_os_search' limit 1)`;
+  const SEARCH_SPAN = `(select count(*) from unnest(${sqlArr(CORPORA)}) c(n) where ${SEARCH_DEF} ~* ('\\y'||c.n||'\\y'))`;
+  const SEARCH_NAMES = `coalesce((select string_agg(c.n, ',') from unnest(${sqlArr(CORPORA)}) c(n)
       where ${SEARCH_DEF} ~* ('\\y'||c.n||'\\y')), 'none')`;
   const searchCallSites = hits(allSrc, /osApi\(\s*['"]search['"]/g);
   await req(S, 'company-memory-search-anything', 'One search box that searches everything the company knows',
     `select coalesce(${B(searchCallSites > 0)} and ${SEARCH_SPAN} >= 6, false)`,
-    `select ${T(`ui: ${searchCallSites} call site(s) for the search action in src/`)}
+    `select ${T(`ui: ${searchCallSites} reference(s) to the search action anywhere in src/`)}
        || ' | db: fn_os_search spans ' || ${SEARCH_SPAN} || ' of ' || ${CORPORA.length} || ' corpora (' || ${SEARCH_NAMES}
        || '); unsearched: kb_chunks ' || ${N('kb_chunks')} || ', institutional_memory ' || ${N('institutional_memory')}
        || ', org_memory ' || ${N('org_memory')} || ', agent_memory ' || ${N('agent_memory')} || ' row(s)'`);
@@ -287,7 +305,7 @@ export default async function ({ req, ui, ROOT }) {
   // "Show every decision about Marketing" needs a reader that takes a subject. fn_ws_exec returns
   // the last ten by recency and takes no arguments, so the question cannot be asked at all.
   const DL_PARAM_READERS = `(select count(distinct p.proname) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
-      where ns.nspname='public' and p.proname = any(${ui.lit(ui.routines)})
+      where ns.nspname='public' and p.prokind in ('f','p') and p.proname = any(${C.UI})
         and pg_get_functiondef(p.oid) ~* '\\ydecision_log\\y'
         and pg_get_function_arguments(p.oid) <> '')`;
   const uiTopicControl = hits(osSrc, /(topic|subject)[^\n]{0,140}(osApi|osOps)\(/gi);
@@ -299,8 +317,7 @@ export default async function ({ req, ui, ROOT }) {
        || (select count(distinct actor) from public.decision_log) || ' actor(s); browser-reachable readers '
        || ${UIN('decision_log')} || ', of which ' || ${DL_PARAM_READERS} || ' take any argument'`);
 
-  const SUP360_RATIONALE = `(select count(distinct nm) from (${ui.RSET}) s
-      where s.nm='fn_ws_supplier_360' and s.def ~* '(reject|decision_record|decision_trace)')`;
+  const SUP360_RATIONALE = FN_MATCHES('fn_ws_supplier_360', '(reject|decision_record|decision_trace)');
   const uiRejectionReason = hits(osSrc, /rejection_reason|reject_reason|why_rejected/gi);
   await req(S, 'company-memory-why-rejected', "'Why did we reject Supplier X?' returns the reasoning for a past decision",
     `select coalesce(${B(uiRejectionReason > 0)}
@@ -314,10 +331,8 @@ export default async function ({ req, ui, ROOT }) {
   // "When did AI change pricing?" — undo_log is the change history (3,810 rows, trg_undo_capture)
   // and os_audit_log is the action history. The founder's Audit log renders the second with dates;
   // neither can be asked about a SUBJECT such as pricing_config.
-  const ACTIVITY_CHANGE = `(select count(distinct nm) from (${ui.RSET}) s
-      where s.nm='fn_entity_activity' and s.def ~* '\\y(undo_log|os_audit_log)\\y')`;
-  const ACTIVITY_CONFIG = `(select count(distinct nm) from (${ui.RSET}) s
-      where s.nm='fn_entity_activity' and s.def ~* '\\y(pricing_config|model_policy|prompts)\\y')`;
+  const ACTIVITY_CHANGE = FN_MATCHES('fn_entity_activity', '\\y(undo_log|os_audit_log)\\y');
+  const ACTIVITY_CONFIG = FN_MATCHES('fn_entity_activity', '\\y(pricing_config|model_policy|prompts)\\y');
   const auditComp = body('AuditLog');
   const uiChangeDates = hits(auditComp, /toLocaleString\(\)|r\.at/g);
   const uiChangeSubjectFilter = hits(auditComp, /<input|<select|onChange=/gi);
@@ -331,8 +346,7 @@ export default async function ({ req, ui, ROOT }) {
        || '; fn_entity_activity reads a change history: ' || ${ACTIVITY_CHANGE}
        || ', covers config subjects: ' || ${ACTIVITY_CONFIG}`);
 
-  const IM_PERIOD = `(select count(distinct nm) from (${ui.RSET}) s
-      where s.def ~* '\\yinstitutional_memory\\y' and s.def ~* '\\yoccurred_at\\y')`;
+  const IM_PERIOD = EMITS_BOTH('\\yinstitutional_memory\\y', '\\yoccurred_at\\y');
   const uiLessons = hits(osSrc, /institutional_memory|\blessons?\b/gi);
   await req(S, 'company-memory-lessons-by-period', "'Find lessons from February' returns lessons scoped to a time period",
     `select coalesce(${B(uiLessons > 0)} and ${UIR('institutional_memory')} > 0 and ${IM_PERIOD} > 0, false)`,
@@ -365,7 +379,7 @@ export default async function ({ req, ui, ROOT }) {
     `select coalesce(${B(paletteEntitySearch > 0 && paletteVerbs >= 3)}
        and ${N('customers')} + ${N('leads')} > 0, false)`,
     `select ${T(`ui: the palette lists ${paletteFromModules} module(s) plus ${paletteItems - (paletteFromModules ? 1 : 0)} ` +
-      `fixed item(s); ${paletteEntitySearch} entity-search call(s); ${paletteVerbs} of ${VERBS.length} spec verbs ` +
+      `fixed item(s); ${paletteEntitySearch} entity-search reference(s); ${paletteVerbs} of ${VERBS.length} spec verbs ` +
       `(${VERBS.join(', ')}) reachable from it`)}
        || ' | db: ' || ${N('customers')} || ' customer(s) and ' || ${N('leads')}
        || ' supplier(s) exist to be found, fn_os_search is ' || case when ${B(REACHABLE('fn_os_search'))}
@@ -377,11 +391,12 @@ export default async function ({ req, ui, ROOT }) {
   const bell = body('NotificationsBell');
   const TIERS = ['Critical', 'Important', 'Suggested', 'Completed Today'];
   const tiersRendered = TIERS.filter((t) => new RegExp(t.replace(/ /g, '\\s*'), 'i').test(bell)).length;
-  const tierCounts = hits(bell, /\{(?:[a-z]+\.)?count[A-Za-z]*\}/g);
+  const tierCounts = hits(bell, /\bcount\b/g);
   const SEV_COL = `(select count(*) from information_schema.columns
       where table_schema='public' and table_name='notifications' and column_name in ('severity','priority','level','tier'))`;
-  const TIER_EMITTER = `(select count(distinct nm) from (${ui.RSET}) s
-      where s.def ~* '''critical''' and s.def ~* '\\y(notifications|founder_alerts)\\y')`;
+  // A tiered grouping means the routine carries the tier NAME beside the notification store, not
+  // merely a severity column somewhere in the schema.
+  const TIER_EMITTER = EMITS_BOTH("''critical''", '\\y(notifications|founder_alerts)\\y');
   await req(S, 'notifications-grouped-four-tiers', 'Notifications are grouped into Critical / Important / Suggested / Completed Today with counts',
     `select coalesce(${B(tiersRendered === 4 && tierCounts > 0)} and ${TIER_EMITTER} > 0, false)`,
     `select ${T(`ui: NotificationsBell renders ${tiersRendered} of 4 named tiers and ${tierCounts} tier count(s)`)}
@@ -393,8 +408,7 @@ export default async function ({ req, ui, ROOT }) {
   const uiAutoShare = hits(osSrc, /auto[_ ]?(handled|resolved|cleared)|handled\s*\d+\s*%/gi);
   const AUTO_SHARE = `(select round(100.0 * count(*) filter (where coalesce(escalated,false) = false)
       / greatest(count(*),1)) from public.agent_actions where created_at > now() - interval '30 days')`;
-  const SHARE_EMITTER = `(select count(distinct nm) from (${ui.RSET}) s
-      where s.def ~* '\\y(auto_cleared_24h|auto_handled|auto_resolved|auto_share)\\y')`;
+  const SHARE_EMITTER = EMITS('\\y(auto_cleared_24h|auto_handled|auto_resolved|auto_share)\\y');
   await req(S, 'notifications-auto-handled-share', 'The share the AI handled without the founder is stated',
     `select coalesce(${B(uiAutoShare > 0)} and ${SHARE_EMITTER} > 0, false)`,
     `select ${T(`ui: ${uiAutoShare} rendered auto-handled share(s) in the OS surface`)}
@@ -442,7 +456,7 @@ export default async function ({ req, ui, ROOT }) {
                    where ns.nspname='public' and p.proname in ('fn_what_if','fn_simulate')), false)`,
     `select ${T(`ui: ${simActions} simulation action(s) among os_api's ${actions.length} routable actions, ` +
       `${uiScenarioInput} scenario input(s) in the OS console`)}
-       || ' | db: fn_what_if' || ${ARGS_OF('fn_what_if')} || ', fn_simulate' || ${ARGS_OF('fn_simulate')}
+       || ' | db: fn_what_if(' || ${ARGS_OF('fn_what_if')} || '), fn_simulate(' || ${ARGS_OF('fn_simulate')} || ')'
        || '; browser-reachable: ' || ${B(REACHABLE('fn_what_if') || REACHABLE('fn_simulate'))}`);
 
   // EVERY simulation, not one of them: a per-row universal over the whole table, non-vacuous
@@ -464,7 +478,7 @@ export default async function ({ req, ui, ROOT }) {
     `select coalesce(${SIM_CONF} = ${N('simulations')} and ${N('simulations')} > 0, false)`,
     `select ${SIM_CONF} || ' of ' || ${N('simulations')} || ' simulation(s) carry a non-null confidence; '
        || (select count(*) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
-            where ns.nspname='public' and p.proname in ('fn_what_if','fn_simulate')
+            where ns.nspname='public' and p.prokind in ('f','p') and p.proname in ('fn_what_if','fn_simulate')
               and pg_get_functiondef(p.oid) ~* '''confidence''')
        || ' of the 2 simulators emit a confidence key'`);
 
@@ -486,11 +500,12 @@ export default async function ({ req, ui, ROOT }) {
   const allVoiceIn = hits(allSrc, VOICE_IN);
   const osTranscribe = hits(osSrc, /transcribe/gi);
   const allTranscribe = hits(allSrc, /transcribe/gi);
+  const transcribeFn = existsSync(join(root, 'supabase', 'functions', 'transcribe')) ? 1 : 0;
   await req(S, 'voice-input', 'The founder can speak to the OS',
-    `select coalesce(${B(osVoiceIn > 0 && osTranscribe > 0)}
-       and exists (select 1 from public.app_secrets where key ~* 'x'), false)`,
-    `select ${T(`ui: ${osVoiceIn} microphone capture site(s) and ${osTranscribe} transcribe call(s) in the OS ` +
-      `console, versus ${allVoiceIn} and ${allTranscribe} across all of src/ (the customer portal)`)}`);
+    `select ${B(osVoiceIn > 0 && osTranscribe > 0 && transcribeFn > 0)}`,
+    `select ${T(`ui: ${osVoiceIn} microphone capture site(s) and ${osTranscribe} transcribe reference(s) in the OS ` +
+      `console, versus ${allVoiceIn} and ${allTranscribe} across all of src/ (the customer portal); ` +
+      `${transcribeFn} transcribe edge function deployed`)}`);
 
   const osTts = hits(osSrc, /speechSynthesis|SpeechSynthesisUtterance|text_to_speech|\btts\b/gi);
   const uiBriefRendered = hits(osSrc, /founder_alerts|morning[_ ]brief|overnight/gi);
@@ -514,8 +529,11 @@ export default async function ({ req, ui, ROOT }) {
   // ================================================================================================
   const uiChallenge = hits(osSrc, /challenge_record|recommend_against|violates_principle/gi);
   const CHAL_AGAINST = N('challenge_record', "stance='recommend_against'");
+  // prokind in ('f','p') is not decoration: pg_get_functiondef() raises on an aggregate, and
+  // public.avg exists on this database — without the filter this check ERRORs, which would leave
+  // the requirement unmeasured rather than answered.
   const CHAL_CALLERS = `(select count(distinct p.proname) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
-      where ns.nspname='public' and p.proname <> 'fn_challenge'
+      where ns.nspname='public' and p.prokind in ('f','p') and p.proname <> 'fn_challenge'
         and pg_get_functiondef(p.oid) ~* '\\yfn_challenge\\s*\\(')`;
   await req(S, 'ai-may-disagree', 'The AI may recommend AGAINST a founder instruction, with reasoning and evidence',
     `select coalesce(${B(uiChallenge > 0)} and ${UIR('challenge_record')} > 0 and ${CHAL_AGAINST} > 0, false)`,
@@ -533,7 +551,7 @@ export default async function ({ req, ui, ROOT }) {
   const CHAL_NO_ALT = N('challenge_record',
     "stance='recommend_against' and (alternatives is null or alternatives::text in ('','[]','{}','null'))");
   const RESPONSE_PATH = `(select count(distinct p.proname) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
-      where ns.nspname='public' and p.proname = any(${ui.lit(ui.routines)})
+      where ns.nspname='public' and p.prokind in ('f','p') and p.proname = any(${C.UI})
         and pg_get_functiondef(p.oid) ~* '\\yfounder_response\\y')`;
   await req(S, 'ai-offers-alternatives', 'When it disagrees, the AI supplies lower-risk alternatives',
     `select coalesce(${B(uiAlternatives > 0)} and ${CHAL_NO_ALT} = 0 and ${CHAL_AGAINST} > 0
