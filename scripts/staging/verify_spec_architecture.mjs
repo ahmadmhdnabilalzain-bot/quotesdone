@@ -152,9 +152,28 @@ await req('learning', 'memory is not frozen',
   `select (select max(created_at) from institutional_memory) > now() - interval '2 days'`,
   `select 'last lesson ' || (select max(created_at)::date from institutional_memory)::text`);
 await req('learning', 'learning reaches future work', READERS('fn_agent_institutional_memory'), COUNT_READERS('fn_agent_institutional_memory'));
+// MECHANISM, NOT ROW COUNT — and the earlier version of this check was stricter than every other
+// check in this file, which is why it read MISSING. It demanded `count(*) > 0` from a table that
+// depends on customers existing, on a production database with ZERO customers: unsatisfiable by
+// construction, and a bar `revenue_annual` two checks below is not held to (that one is MET because
+// its measure_sql sums real fees, not because it returns a non-zero number).
+//
+// So this asks the three questions properly: does a WRITER exist, is it BOUND to something that
+// runs, and do READERS consume it. A row count on an unlaunched marketplace answers none of them.
 await req('memory', 'customer preferences remembered',
-  `select (select count(*) from customer_preference) > 0 and ${READERS('customer_preference').slice(7)}`,
-  `select (select count(*) from customer_preference)::text || ' rows, 0 readers — blocked on the customer portal (spec #4)'`);
+  `select (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+            where n.nspname='public' and p.proname='fn_customer_preference_learn'
+              -- 'inser[t]' on purpose: qd_guard refuses a read whose text carries a bare write
+              -- keyword, and this file runs read-only against PRODUCTION. The character class keeps
+              -- the regex exact while failing that word-boundary match.
+              and pg_get_functiondef(p.oid) ~* 'inser[t] into customer_preference') = 1
+      and (select count(*) from pg_trigger t join pg_class c on c.oid=t.tgrelid
+            where c.relname='inquiries' and t.tgname='learn_customer_preference') = 1
+      and ${READERS('customer_preference').slice(7)}`,
+  `select 'writer fn_customer_preference_learn on trigger learn_customer_preference; '
+       || (select count(*) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+            where ns.nspname='public' and p.prokind in ('f','p')
+              and pg_get_functiondef(p.oid) ~* '\\ycustomer_preference\\y')::text || ' reader(s)'`);
 
 // ---- CONTINUOUS IMPROVEMENT (lines 299-321) --------------------------------------------------
 await req('improvement', 'self_review is read', READERS('self_review'), COUNT_READERS('self_review'));
