@@ -13,7 +13,7 @@
 > one `quality_standard` row through a SQL literal this session turned the regex `\y` into `\\y` and
 > produced a digest that differed from staging's while looking identical in every JSON display.
 
-## ROW #1 — quotesdone architecture — IS AT 47/48 (98%), MEASURED SYMMETRICALLY ON PRODUCTION
+## ROW #1 — quotesdone architecture — IS CLOSED. 48/48 (100%), MEASURED ON PRODUCTION
 
 ```
 node scripts/staging/verify_spec_architecture.mjs      # read-only, production, zero spend
@@ -28,15 +28,37 @@ READ its output. "No caller" is measured over `pg_proc` **and** `pg_views` **and
 **Baseline was 14/56 = 25%, reached independently twice. It is now 47/48 on a 48-item enumeration
 of the same file.** Do not compare those denominators — compare statuses, and re-run the scorer.
 
-### THE ONE REQUIREMENT STILL MISSING, AND IT CANNOT BE CLOSED IN ROW #1
+### THE LAST ONE WAS NOT BLOCKED ON THE PORTAL — I HAD ASSUMED IT WAS, AND MEASURING SAID OTHERWISE
 
-**`customer_preference` — 0 rows, 0 readers.** The Company Memory section names customer
-preferences, and *nothing can capture one until the customer portal exists*. That is spec file #4.
-Giving the table a reader now would build a reader for nobody — the exact inverse of the defect this
-session spent itself closing. **It is carried to row #4, not scored as done.** This is the honest
-reason row #1 reads 98% and not 100%, and it is a fact about the spec's dependency order rather than
-a shortcut. If the founder wants 100% on #1 before #2, the only route is to build the portal's
-preference capture out of order.
+I reported `customer_preference` (0 rows, 0 readers) as structurally blocked on spec file #4, on the
+reasoning that nothing can capture a customer preference until the portal exists. **That was wrong.**
+`fn_ws_customer_360` was ALREADY deriving each customer's categories and emirates from their inquiry
+history on every call. The company was computing the memory live and discarding it — the same defect
+as everything else in this row, one table over. It needed a writer, not a portal.
+
+- **Writer** `fn_customer_preference_learn`, on an `AFTER INSERT` trigger on `inquiries`. A trigger
+  because there is no TypeScript chokepoint: `customers` rows are created at four unrelated call
+  sites, and `inquiries.urgency` is the standing proof of a signal computed in an Edge Function and
+  lost in transit.
+- **Reader A (behaviour)** `trg_inquiry_enrich` fills a *missing* emirate from memory. Load-bearing,
+  not decorative: `route_inquiry` matches suppliers on that value.
+- **Reader B (memory)** `fn_ws_customer_360` consults the stored profile before its live derivation,
+  so `os_api`'s `ws.customer` and `secretary_act` hand an agent a remembered preference.
+- **`stated` over `inferred`** is what stops spec #4 having to replace this: the portal's settings
+  screen calls the same function with `p_stated`, so a nightly inference can never overwrite a typed
+  choice. Keys with no consumer (`payment terms`, `ISO-certified`) are deliberately absent.
+- **Consent, and the fixture caught a real bug in my first design.** Clearing
+  `customer_preference.consented_at` did not withdraw consent — the next inquiry re-learned and
+  restored the copy, because consent lives on `customers.tos_accepted_at`. Both readers now gate on
+  where it actually lives, and the writer DELETES the profile when consent is absent. `fn_pdpl_redact`
+  enumerates its tables by name and did not know this one existed; it deletes it now, and
+  `fn_pdpl_export` lists it.
+
+**The scorer was also wrong, and stricter than itself.** It demanded `count(*) > 0` from a table that
+depends on customers existing, against a production database with **zero** customers — unsatisfiable
+by construction, and a bar `revenue_annual` is not held to two checks below (that one is MET because
+its `measure_sql` sums real fees, not because it returns a non-zero number). If a requirement looks
+structurally blocked, check whether the CHECK is the thing that is wrong.
 
 ### WHAT CLOSED THIS SESSION, ALL DEPLOYED TO PRODUCTION AND MEASURED THERE
 
@@ -113,12 +135,13 @@ node scripts/staging/verify_review_chain.mjs       # 20/20  NEW — zero spend
 node scripts/staging/verify_employee_object.mjs    # 14/14  NEW — zero spend
 node scripts/staging/verify_company_goals.mjs      #  7/7   NEW — zero spend
 node scripts/staging/verify_employee_authority.mjs #  9/9   NEW — zero spend
-node scripts/staging/verify_spec_architecture.mjs  # 47/48  NEW — scores row #1 on PRODUCTION
+node scripts/staging/verify_customer_preference.mjs#  9/9   NEW — zero spend
+node scripts/staging/verify_spec_architecture.mjs  # 48/48  NEW — scores row #1 on PRODUCTION
 node scripts/staging/verify_portal.mjs             # 14/14
 node scripts/staging/verify_doc_extract.mjs        #  7/7   ~0.075 AED
 node scripts/staging/verify_license_extract.mjs    # 12/12  ~0.2 AED
 node scripts/staging/verify_supplier_docs.mjs      # 13/13  ~0.1 AED
-node scripts/verify_prod_parity.mjs                #  5/8   ⚠ SEE BELOW
+node scripts/verify_prod_parity.mjs                #  9/9   green, +1 embedding check
 node scripts/verify_prod_readiness.mjs             # 13/13  against PRODUCTION, read-only
 node scripts/staging/demo_factory.mjs              # 18/18  RUN IT ALONE
 node scripts/staging/journey_test.mjs              # 39/39  ~4.3 min
@@ -129,29 +152,38 @@ node scripts/staging/demo_factory.mjs --purge --dry-run   # AFTER the journey
 scored it 17/18 purely because another gate was running beside it. Re-run alone: 18/18. That is not
 a defect, it is the documented conflict, and it will catch you the same way.
 
-## TWO THINGS OPEN THAT ARE NOT ROW #1's — CARRY THEM, DON'T ABSORB THEM
+## `verify_prod_parity` IS 9/8 — GREEN FOR THE FIRST TIME, WITH ONE MORE CHECK THAN IT HAD
 
-**`verify_prod_parity` 5/8, and none of it is mine.** Every routine promoted this session matched on
-`md5(prosrc)`. The drift is **pre-existing and bidirectional**, and it needs a decision per object
-rather than a sweep:
+All seven "drifted" objects are resolved and the gate gained a check that matters more than any of
+them. **Chasing what looked cosmetic found the real defect:** `kb_chunks` held identical content and
+identical row counts on both projects, and semantic retrieval runs on `embedding_gte` where a NULL
+vector is simply invisible. Production had **3,453 embeddings against staging's 4,944 — the LIVE
+system was searching 70% of its own knowledge base.** The vectors already existed and were already
+paid for, so it was a copy, not a re-embed: production is now 4,949/4,956 at zero model spend.
 
-| object | staging | production | direction |
-|---|--:|--:|---|
-| `run_health_check` | 2,938 | 3,060 | production newer — it carries the `::text` casts that fixed `malformed array literal` |
-| `fn_invite_ramp` | 2,253 | 3,034 | production newer |
-| `fn_control_mode_open` | 4,240 | 4,504 | production newer |
-| `enqueue_supplier_invites` | 5,213 | 5,239 | production newer |
-| `fn_schema_export` | 3,890 | 1,241 | **staging newer — production's is a third the size, check this one first** |
-| `v_audit_coverage`, `v_department_health` | longer | shorter | staging newer |
+> **Had I taken the obvious route** and replaced staging's `kb_chunks` from production to make the
+> gate agree, I would have destroyed 1,506 embeddings and made the worse corpus the template.
 
-Check 8 (`agent_knowledge` 1869 vs 1876, `kb_chunks` 4938 vs 4956) is live production drift from
-`kb_deepen`/`kb_fill_gap` runs, not a copy defect.
+Three of the five routines carried real fixes that only ever reached production — the
+`MATERIALIZED` CTEs in `enqueue_supplier_invites` (without them a 19,632-row aggregate re-runs per
+candidate, ~220 s), `fn_control_mode_open`'s extra declarations, `fn_invite_ramp`'s newer ramp
+state. Staging mirrors production on all five now, project ref rewritten as it travels.
+`fn_schema_export` was **never drift**: staging has a real newline where production has the two
+characters `\n` inside an `E''` string. My first normaliser called it "a third the size" because it
+stripped `--` comments with a regex — and that function BUILDS a schema dump full of `'-- ====='`
+literals. *The comment-stripper ate the data.* Diff raw before believing a normalised size.
 
-**The purge dry-run now reports `2 doc_versions (quote)` alongside the expected
-`1 storage/signed-terms`.** Measured: they are orphans (ids 1237/1238, their quotes deleted), and
-**`doc_versions` has ZERO foreign keys** — `entity_id` is a polymorphic text column, so deleting a
-quote cascades to nothing. The journey's teardown removes the quotes and leaves these. Pre-existing;
-the purge already catches them, so it is a stale expectation in this brief rather than a growing leak.
+Two gate loosenings, both bounded and both stated in the source: redundant `::text AS text` /
+`timestamp with time zone AS timestamptz` aliases are normalised (an alias spelled as its own type
+cannot change behaviour; a blanket ` AS \w+` strip would hide a real rename and is deliberately not
+used), and `kb_chunks` is compared without its surrogate `id` — 1,858 of 4,956 ids exist on only one
+project, assigned independently long ago, **zero** foreign keys reference the table, and nothing
+joins the two projects.
+
+**The purge dry-run reports `2 doc_versions (quote)` alongside the expected `1
+storage/signed-terms`.** Measured: orphans whose quotes are deleted, and **`doc_versions` has ZERO
+foreign keys** — `entity_id` is a polymorphic text column, so deleting a quote cascades to nothing.
+Pre-existing, and the purge already catches them; this is a stale expectation, not a growing leak.
 
 ## STILL OPEN FROM EARLIER SESSIONS
 
