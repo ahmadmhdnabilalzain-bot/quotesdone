@@ -167,23 +167,80 @@ Deno.serve(async (req) => {
     const execAnyDept = new Map((execs || []).map((e: any) => [e.action_class, e]));
 
     // Ready set: freshly assigned + any in_progress a prior run may have left orphaned (stale).
+    //
+    // ONE RESERVED SLOT SO NEITHER QUEUE CLASS CAN BE LOCKED OUT (6 Aug 2026).
+    // THIS IS A FAIRNESS FIX FOR A STARVED QUEUE CLASS. It is NOT an attempt to move
+    // contract-consolidation: it closes no delivery, writes no result, invents nothing, and the
+    // ratio that check measures may still not reach 50%. All it changes is that a whole class of
+    // work stops waiting behind a queue it can never reach.
+    //
+    // MEASURED ON PRODUCTION, 6 Aug 2026 15:00 UTC: 499 tasks sat in 'assigned'. 94 of them were
+    // queued by approval_path/dept_plan and sat AHEAD of the oldest event-derived task (#382),
+    // with 394 more event-derived tasks behind it. `order by id limit 2` at one run an hour would
+    // not have LOOKED at event-derived work for ~47 hours, and the bus adds more every 15 minutes.
+    // Structural starvation of a class is a scheduling defect on its own merits.
+    //
+    // AND IT DOES NOT MIRROR THE DEFECT. Letting event-derived work always win starves the other
+    // side by exactly the same mechanism. Slot 1 stays pure FIFO by id, unchanged. Only the LAST
+    // slot is reallocated, only when the FIFO head is entirely ONE class, and only to the OLDEST
+    // task of whichever class is missing — so whichever class owns the head of the queue, the
+    // other one still gets a slot. With MAX_TASKS=2 that is one each whenever both have work.
+    //
+    // The class marker is decided_by, i.e. who QUEUED the row. fn_event_dispatch stamps the rows
+    // the event bus raises (395 of the 499 pending) and this function overwrites it with 'cos' only
+    // once the task is finished, so on pending work it is exactly a provenance flag. Written as
+    // is-null OR neq so a row with no writer counts as the non-bus class rather than vanishing.
+    const BUS = 'fn_event_dispatch';
+    const TASK_COLS = 'id,objective_id,dept_key,title,detail,action_class,tier,attempts,status,decided_by';
     const staleCut = new Date(Date.now() - STALE_MIN * 60000).toISOString();
-    const { data: assigned } = await admin.from('org_tasks').select('id,objective_id,dept_key,title,detail,action_class,tier,attempts,status').eq('status', 'assigned').order('id').limit(MAX_TASKS);
+    const { data: assigned } = await admin.from('org_tasks').select(TASK_COLS).eq('status', 'assigned').order('id').limit(MAX_TASKS);
     let batch = assigned || [];
+    if (batch.length === MAX_TASKS) {
+      const busInHead = batch.some((x: any) => x.decided_by === BUS);
+      if (busInHead !== batch.some((x: any) => x.decided_by !== BUS)) { // head is all one class
+        const q = admin.from('org_tasks').select(TASK_COLS).eq('status', 'assigned').order('id').limit(1);
+        const { data: fair } = await (busInHead ? q.or('decided_by.is.null,decided_by.neq.' + BUS) : q.eq('decided_by', BUS));
+        if (fair && fair.length) batch = batch.slice(0, MAX_TASKS - 1).concat(fair[0]);
+      }
+    }
     if (batch.length < MAX_TASKS) {
-      const { data: stale } = await admin.from('org_tasks').select('id,objective_id,dept_key,title,detail,action_class,tier,attempts,status').eq('status', 'in_progress').lt('last_run_at', staleCut).order('id').limit(MAX_TASKS - batch.length);
+      const { data: stale } = await admin.from('org_tasks').select(TASK_COLS).eq('status', 'in_progress').lt('last_run_at', staleCut).order('id').limit(MAX_TASKS - batch.length);
       batch = batch.concat(stale || []);
     }
 
     const touchedObjectives = new Set<number>();
     const summary: any[] = []; let done = 0, escalated = 0, working = 0;
+    const startRefused: any[] = [];
 
     for (const t of batch) {
       if (Date.now() - started > TIME_BUDGET_MS) break; // leave the rest for the next hourly run
       touchedObjectives.add(t.objective_id);
       const dept: any = deptMap.get(t.dept_key) || { name: t.dept_key, brain_agent: null, lead_agent: null };
       const attempts = (t.attempts || 0) + 1;
-      await admin.from('org_tasks').update({ status: 'in_progress', attempts, last_run_at: nowIso(), updated_at: nowIso() }).eq('id', t.id);
+      // THE BRAKE REFUSES THE MARKER, NOT THE WORK — AND THIS WRITE WAS UNCHECKED (6 Aug 2026).
+      // trg_org_task_autonomy_brake raises on any move INTO 'in_progress' by a non-advisory task
+      // while WI-001 broad autonomy is blocked, which it is today (fn_autonomy_status().allowed is
+      // false: three open spec_backlog rows plus agent_autonomy_enabled='false'). All 395 pending
+      // event-derived tasks carry tier='autonomous', so all 395 hit it. Proven on production by an
+      // aborted probe: updating #382 to in_progress raises check_violation.
+      //
+      // Nothing read the error, so the refusal was invisible AND it took the attempt counter down
+      // with it — the trigger raises before the row is written, so `attempts` never persisted. That
+      // is why the five event-derived tasks that finished today (#377-#381) are stored with
+      // attempts=0 despite having been worked. `attempts` is MAX_ATTEMPTS' loop guard; with it dead
+      // a task that never clears review is retried every hour forever and never escalates, and
+      // giving that class a guaranteed slot above would have multiplied it.
+      //
+      // The brake is HONOURED, not weakened: when it refuses, the task does not claim 'in_progress'.
+      // Only the counters are written, which leaves status exactly as the brake left it and is
+      // bookkeeping the brake never gated. A run that could not start a task also cannot use
+      // 'in_progress' as that task's retry state, so retryStatus falls back to its current status.
+      const { error: startErr } = await admin.from('org_tasks').update({ status: 'in_progress', attempts, last_run_at: nowIso(), updated_at: nowIso() }).eq('id', t.id);
+      if (startErr) {
+        startRefused.push({ task_id: t.id, dept: t.dept_key, tier: t.tier, reason: String(startErr.message || startErr).slice(0, 200) });
+        await admin.from('org_tasks').update({ attempts, last_run_at: nowIso(), updated_at: nowIso() }).eq('id', t.id);
+      }
+      const retryStatus = startErr ? t.status : 'in_progress';
 
       // AUDIT 7.3 (4 Aug 2026). RE-CHECK THE AUTHORITY, DO NOT INHERIT IT.
       //
@@ -238,7 +295,7 @@ Deno.serve(async (req) => {
         } catch (e) { execResult = { error: String((e as Error)?.message || e) }; }
         const okExec = execResult && !execResult.error;
         const oneLine = (okExec ? String(execResult.note || JSON.stringify(execResult)) : 'executor error: ' + String(execResult?.error || 'unknown')).slice(0, 300);
-        const newStatus = okExec ? 'done' : (attempts >= MAX_ATTEMPTS ? 'escalated' : 'in_progress');
+        const newStatus = okExec ? 'done' : (attempts >= MAX_ATTEMPTS ? 'escalated' : retryStatus);
         if (newStatus === 'done') done++; else if (newStatus === 'escalated') escalated++; else working++;
         const review_pending = newStatus === 'done' && t.tier === 'supervised';
         await admin.from('org_tasks').update({ status: newStatus, decided_by: 'cos', updated_at: nowIso(),
@@ -295,7 +352,7 @@ Deno.serve(async (req) => {
       let newStatus: string;
       let reviewNote = '';
       if (!hasWork) {
-        newStatus = attempts >= MAX_ATTEMPTS ? 'escalated' : 'in_progress'; // couldn't produce work → retry, then hand up
+        newStatus = attempts >= MAX_ATTEMPTS ? 'escalated' : retryStatus; // couldn't produce work → retry, then hand up
         reviewNote = 'no usable deliverable';
       } else if (review?.outcome === 'published') {
         newStatus = 'done';
@@ -304,7 +361,7 @@ Deno.serve(async (req) => {
       } else if (review?.outcome === 'reject' || review?.outcome === 'request_revision') {
         // Returned for revision. The existing attempt counter is the loop guard: three tries and it
         // goes to the founder rather than cycling forever.
-        newStatus = attempts >= MAX_ATTEMPTS ? 'escalated' : 'in_progress';
+        newStatus = attempts >= MAX_ATTEMPTS ? 'escalated' : retryStatus;
         reviewNote = String(review.outcome) + ' — '
           + ((review.violations || []).map((v: any) => v.rule + '/' + v.severity).join(', ')
              || (review.dissents || []).map((d: any) => d.by + ':' + d.stance).join(', ')
@@ -353,7 +410,33 @@ Deno.serve(async (req) => {
       }
     }
 
-    try { await admin.from('agent_runs').insert({ agent: 'chief_of_staff', status: 'ok', finished_at: nowIso(), counts: { processed: batch.length, done, escalated, working, objectives_closed: rolled.length, ms: Date.now() - started } }); } catch (_e) {}
-    return J({ ok: true, processed: batch.length, done, escalated, working, objectives_rolled: rolled, tasks: summary });
+    // ONE row per run, not one per task: this fires on every non-advisory task while WI-001 is open,
+    // and an alert that arrives 24 times a day identically is an alert nobody reads.
+    //
+    // status IS 'ok', AND THAT IS THE GATE. Measured on production the first time this shipped,
+    // 6 Aug 2026 15:10 UTC: writing this row with status:'error' fired fn_emit_test_failed_ins,
+    // which raised company_event #734 `test.failed / scheduled_run / cos_execute` — and test.failed
+    // has two active subscribers (ops_director, qa_manager), so fn_event_dispatch would have turned
+    // this function's own refusal into two fresh org_tasks for this function to work, every day,
+    // forever, since WI-001 stays open and the refusal therefore never stops. The emitter
+    // de-duplicates per agent per calendar day so the ceiling was 2 tasks/day rather than a burst,
+    // but a closed loop with no terminating condition is a closed loop at any rate.
+    // It was also simply FALSE: the run did not fail. It completed 2 of 2 tasks and published both.
+    // A scheduled run that finished its work must not report itself as a failed scheduled run.
+    // The condition stays fully visible — counts.signal, the note, start_refused in the response and
+    // in the chief_of_staff row below — without manufacturing work about itself.
+    if (startRefused.length) {
+      try {
+        await admin.from('agent_runs').insert({ agent: 'cos_execute', status: 'ok',
+          counts: { signal: 'task_start_refused', n: startRefused.length, tasks: startRefused },
+          note: (startRefused.length + ' task(s) could not be moved to in_progress this run — the autonomy brake '
+            + 'refuses the in-flight marker for non-advisory work while broad autonomy is blocked. The tasks were '
+            + 'still worked on the advisory path and their attempt counters were persisted separately so the '
+            + 'MAX_ATTEMPTS loop guard still applies. First: #' + startRefused[0].task_id + ' — ' + startRefused[0].reason).slice(0, 500),
+          started_at: nowIso(), finished_at: nowIso() });
+      } catch (_e) {}
+    }
+    try { await admin.from('agent_runs').insert({ agent: 'chief_of_staff', status: 'ok', finished_at: nowIso(), counts: { processed: batch.length, done, escalated, working, start_refused: startRefused.length, objectives_closed: rolled.length, ms: Date.now() - started } }); } catch (_e) {}
+    return J({ ok: true, processed: batch.length, done, escalated, working, start_refused: startRefused, objectives_rolled: rolled, tasks: summary });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 });
