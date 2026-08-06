@@ -185,6 +185,44 @@ try {
     l4.length > 0 && !/order by/i.test(l4),
     'newest-first with confidence as a floor, not as the sort key');
 
+  // ---- THE FEEDBACK LOOP THIS CHAIN CREATED, AND THE GUARD THAT STOPS IT --------------------
+  // review_chain has an AFTER INSERT trigger emitting company_event('review.step'), and
+  // fn_event_dispatch turns every such event into an org_task for each subscriber. So wiring the
+  // review chain in made each reviewed task write 4-6 audit rows, each of which became a NEW task,
+  // each of which would be reviewed. Measured on production: 169 tasks in one hour against 2 in the
+  // hour before, and the 150-row approval backfill fired it 150 times in a single statement.
+  //
+  // The trigger now carries a WHEN clause: an event is emitted for a PUBLICATION or a REFUSAL —
+  // the two things a subscriber should act on — and never for the audit rows that record how the
+  // decision was reached. Asserted in both directions, because "no events" would also pass if the
+  // trigger were simply dropped.
+  const evBefore = Number(one(await mgmtRead(STAGE,
+    `select count(*) from public.company_event where event_type='review.step'`)));
+  await mgmtWrite(STAGE,
+    `insert into public.review_chain (subject_type, subject_id, dept_key, author_agent, stage, decision, reason)
+     values ('org_task','qd_evt_probe','exec','probe','approval','approve','audit row, must not raise an event'),
+            ('org_task','qd_evt_probe','exec','probe','drafted',null,'audit row, must not raise an event'),
+            ('org_task','qd_evt_probe','exec','probe','collaboration','required','audit row, must not raise an event')`,
+    'quiet stages');
+  const evQuiet = Number(one(await mgmtRead(STAGE,
+    `select count(*) from public.company_event where event_type='review.step'`)));
+  step('audit rows raise no event, so the chain cannot feed itself', evQuiet === evBefore,
+    `3 audit rows -> ${evQuiet - evBefore} event(s); before this guard each one became a new org_task`);
+
+  await mgmtWrite(STAGE,
+    `insert into public.review_chain (subject_type, subject_id, dept_key, author_agent, stage, decision, reason)
+     values ('org_task','qd_evt_probe','exec','probe','published','approve','terminal: must raise an event'),
+            ('org_task','qd_evt_probe','exec','probe','dept_review','reject','terminal: must raise an event')`,
+    'loud stages');
+  const evLoud = Number(one(await mgmtRead(STAGE,
+    `select count(*) from public.company_event where event_type='review.step'`)));
+  step('a publication and a refusal still raise theirs', evLoud - evQuiet === 2,
+    `publish + reject -> ${evLoud - evQuiet} event(s); the watcher still sees outcomes`);
+
+  await mgmtWrite(STAGE, `delete from public.review_chain where subject_id='qd_evt_probe'`, 'probe rc');
+  await mgmtWrite(STAGE, `delete from public.company_event where entity_type='review'
+     and payload->>'subject_id' = 'qd_evt_probe'`, 'probe ce');
+
   await cleanup();
   const left = Number(one(await mgmtRead(STAGE,
     `select count(*) from public.org_tasks where detail like '${TAG}%'`)));
