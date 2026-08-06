@@ -29,13 +29,17 @@
 //
 // EXPECT IT TO BE SLOW. Every check is a sequential management-API read and the API rate-limits
 // hard; qd_guard retries with exponential backoff. Several minutes is normal. It is not a hang.
-import { readdirSync, existsSync } from 'node:fs';
+import { readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { mgmtRead, PROD_REF } from './qd_guard.mjs';
 import { REF as STAGE } from './demo_factory.mjs';
 
 const TARGET = process.argv.includes('--staging') ? STAGE : PROD_REF;
 const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7);
+// The console line clips evidence at 96 characters, and the clipped half is where a MISSING verdict
+// says WHICH leg failed. --json writes every row whole so a verdict can be acted on without a
+// second run. It changes no check and no verdict.
+const JSON_OUT = (process.argv.find(a => a.startsWith('--json=')) || '').slice(7);
 const TOTAL = 147;
 
 const rows = [];
@@ -130,6 +134,7 @@ if (shortfall) console.log(`\n  !! ${shortfall} section(s) registered the wrong 
   ` the denominator is wrong, so the percentage below is NOT trustworthy.`);
 if (!ONLY && rows.length !== TOTAL) console.log(`  !! ${rows.length} checks ran, the spec has ${TOTAL}` +
   ` — ${TOTAL - rows.length} requirement(s) have no section module yet and are NOT scored below.`);
+if (JSON_OUT) { writeFileSync(JSON_OUT, JSON.stringify({ target: TARGET, total: TOTAL, met, rows }, null, 1)); console.log(`\n  full evidence written to ${JSON_OUT}`); }
 console.log(`\nSPEC FILE #4 (customer portal) on ${TARGET}: ${met}/${rows.length}` +
             ` (${(100 * met / (rows.length || 1)).toFixed(0)}%) of ${TOTAL} requirement(s)`);
 process.exit(met === rows.length && !shortfall && !errs.length && (ONLY || rows.length === TOTAL) ? 0 : 1);
