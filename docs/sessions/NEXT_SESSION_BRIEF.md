@@ -1,4 +1,94 @@
-# START HERE — QuotesDone, 6 August 2026, end of session 10
+# START HERE — SESSION 13. TWO RULES, BOTH FROM THE FOUNDER, BOTH ABSOLUTE.
+
+> ## 1. ONE ROW AT A TIME, TO 100%. DO NOT START THE NEXT FILE.
+> *"we close them row by row. so we wont move to the next row unless we reach 100%. all of them
+> have to become 100%."* — 6 Aug 2026.
+> Breadth-first is now forbidden. A file at 96% is an open file. Finish it.
+>
+> ## 2. EVERYTHING DEPLOYS TO PRODUCTION. NOTHING STOPS AT STAGING.
+> *"nothing is for staging. all for deploy."* — 6 Aug 2026.
+> Staging is a rehearsal surface, not a destination. Every routine, table, Edge Function, reference
+> load and config change goes to `htdblwldjkcgjvmqkbeh` in the turn it is verified. This also
+> overrides "import into staging only" notes inside founder knowledge packs — those predate 5 Aug,
+> when production became a live target. `qd_guard` still refuses production writes **by design**;
+> promote by reading staging's verified definition back and posting it verbatim, then assert
+> `md5(prosrc)` matches. Do not retype a body. `scripts/verify_prod_parity.mjs` is the check.
+
+## THE ROW YOU ARE ON: #7 agents and knowledge. It is NOT finished.
+
+64% strict (82/129). **9 MISSING · 34 PARTIAL · 4 BUILT_BUT_UNREAD.** Session 12 took it from 28%
+and stopped mid-file. Under rule 1 that is the only thing to work until it reads 100%.
+
+**The itemised list is on disk** — do not re-derive it:
+`C:\Users\Opera\.claude\projects\C--Users-Opera-quotesdone\44929eb5-f98f-4608-8a3b-5dc2f37d6fc1\subagents\workflows\wf_f5161532-05f\journal.jsonl`
+one `{"type":"result"}` line per spec file, each with every requirement, its status and its evidence.
+The companion audit `wf_d6848866-ec5` carries the ranked fixes and the refutations.
+
+## THE SCORECARD — measured 6 Aug, two bars, because one bar hid the problem
+
+| # | spec file | MET (strict) | MET+PARTIAL | unread | MISSING |
+|---|---|--:|--:|--:|--:|
+| 6 | suppliers categories | 44% | **93%** | 3 | **0** |
+| 7 | **agents and knowledge ← YOU ARE HERE** | **64%** | 90% | 4 | 9 |
+| 2 | OS (blueprint) | 65% | 82% | 12 | 2 |
+| 1 | quotesdone architecture | 41% | 75% | 11 | 3 |
+| 3 | OS 2 (executive UI) | 8% | 59% | **21** | 3 |
+| 5 | supplier portal | 18% | 58% | 13 | 25 |
+| 8 | open router | 25% | 58% | 6 | 33 |
+| 4 | customer portal | 17% | 39% | 11 | 35 |
+| | **total** | **37% (230/620)** | **69%** | **81** | **110** |
+
+> **The denominator is 620, not 411.** Eight independent readings of the real spec text. Do not
+> compare a percentage to an older brief's — compare statuses. And the previous card's
+> *"categories 17% → 87%"* is on the MET+PARTIAL bar, where it now reads **93%**; it is not in
+> conflict with the 44%.
+
+**SUGGESTED ORDER AFTER #7, cheapest first: 6 → 2 → 1 → 3 → 5 → 8 → 4.** #6 has **zero missing** —
+it is complete and half-finished, which is 23 finishing items and no building. #3 looks worst at 8%
+and is the biggest bargain in the table: **21 of its 59 requirements are BUILT_BUT_UNREAD.**
+Production computes an autonomous company every night and shows the founder none of it. That file
+is wiring, not building.
+
+## THE DEFINING STATE OF THIS CODEBASE: 81 requirements built, correct, and read by nothing
+
+13% of the whole spec. Larger than the customer and supplier portals' missing items combined, and
+the cheapest work in the project. **Never score BUILT_BUT_UNREAD as done** — that is precisely the
+lie three consecutive sessions kept uncovering. For every requirement ask three questions and never
+conflate them: does the mechanism EXIST · is it POPULATED and does it RUN · does anything READ it.
+
+Six were closed in session 12: `dept_library` (1,456), `os_knowledge_domain` (380), the RFQ
+lifecycle trace, `fn_os_health`'s failing-cron signal, layer-2 department knowledge, and the
+3,959-record operations corpus — wired in the same change that imported it.
+
+## MEASURE "no caller" PROPERLY, AND VERIFY BEFORE RECORDING "MISSING"
+
+Counting `pg_proc` and `pg_views` misses `cron.job`, which is where most agent functions are
+invoked from — that error made a whole governance layer look unbuilt when it runs 1,266 times with
+zero failures. Two adversarial audits refuted **~33 "missing" findings** that were already built.
+Already refuted, do not rebuild: supplier-website crawling, Arabic supplier email, the 24/48h nudge
+ladder, quote version history, duplicate-quotation detection, model autoswitch, optimistic record
+claiming, supplier brief immutability.
+
+## STATE AT SESSION 12 CLOSE
+
+`main` **18 behind — PR #7 is open and unmerged.** Schema **405 tables / 745 routines**, identical.
+Gates: phase1 12/12 · taxonomy 11/11 · intake-routing 10/10 · factory 18/18 · journey 39/39 ·
+prod-readiness 13/13 · **agent-knowledge 25/25** · **rfq-trace 10/10** · purge clean.
+`verify_prod_parity`: nothing staging-only across 20 config tables. Backups now provably restorable
+— 11 tables / 32,686 rows, where the drill previously passed on 1 row and scored empty files green.
+
+**Carry these two first, both measured and both real:**
+1. **`dropbox_backup` has not run since 27 July** despite 1,754 consecutive "successful" cron
+   entries — `pg_net` success means the POST was queued, not that the function ran. It now raises
+   an incident; the off-site copy is still stale.
+2. **The autonomy-gate chain has a FIXED ORDER.** `trg_action_gate` holds 1,048 of 1,079 rows;
+   `fn_autonomy_dispose` sweeps that exact status set with no threshold; cron 64 is `active=false`
+   and is the only thing preventing it. **Enabling cron 64 first auto-clears 1,048 held rows.**
+   Sequence: bind `fn_autonomy_dispose` → lift the confidence gate → `agent_autonomy_enabled` → cron 64.
+
+---
+
+# Previous — QuotesDone, 6 August 2026, end of session 10
 
 **MERGED to `main` on 5 August 2026** — [PR #3](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/3),
 merge commit `ea13ffb`. `main` now describes what production runs; it did not before.
