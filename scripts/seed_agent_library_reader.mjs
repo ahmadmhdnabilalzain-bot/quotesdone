@@ -301,11 +301,72 @@ $new$-- QD_RFQ_TRACE: the inquiry lifecycle, assembled from the rows that alread
 end
 $do$;`;
 
+// CONTINUOUS MONITORING: THE SIGNAL WAS COMPUTED CORRECTLY AND NOBODY ASKED FOR IT.
+//
+// The blueprint rates this five stars: "The OS should constantly monitor itself … If something
+// degrades, the OS should respond automatically before users notice."
+//
+// fn_os_health() already computes the right thing. Its `failing_crons` uses
+// `JOIN LATERAL (… ORDER BY start_time DESC LIMIT 1) WHERE lr.status='failed'` — the most recent
+// run, which is the only definition of "failing now" that is any use. Measured 6 Aug 2026 it
+// returns `[]`, correctly: of the three jobs v_cron_failing lists, two have recovered.
+//
+// It has exactly one caller, fn_os_selftest, and fn_os_selftest has NONE: not a cron, not a
+// routine, not an os_api action. Built, correct, and never invoked — the sixth asset of this shape.
+//
+// DO NOT "FIX" v_cron_failing. It is a different, cruder signal (anything that failed at any point
+// in 7 days, never clears) and its one consumer is fn_invite_ramp's advisory message, where
+// "here is what has been flaky" is the right question. Two signals, two questions.
+//
+// The reader is fn_exception_alerts, which already runs hourly, already writes founder_alerts and
+// already dedupes — so this is one more check in an existing loop rather than a new cron, a new
+// table or a new alerting path. Six-hour dedupe: a failing job should nag harder than a stale
+// backup's 24 hours and less than hourly.
+export const SQL_CRON_ALERT = `
+do $do$
+declare def text; newdef text;
+begin
+  select pg_get_functiondef(p.oid) into def
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = 'fn_exception_alerts';
+  if def is null then raise exception 'fn_exception_alerts not found'; end if;
+
+  if position('-- QD_CRON_HEALTH:' in def) > 0 then
+    def := left(def, position('-- QD_CRON_HEALTH:' in def) - 1)
+        || substring(def from position('-- surface criticals as founder notifications too' in def));
+  end if;
+
+  newdef := replace(def,
+$old$-- surface criticals as founder notifications too$old$,
+$new$-- QD_CRON_HEALTH: fn_os_health computes the failing-now cron signal; nothing asked for it.
+  if jsonb_array_length(coalesce(public.fn_os_health()->'failing_crons','[]'::jsonb)) > 0 then
+    if not exists(select 1 from founder_alerts
+                   where event='cron_failing' and created_at > now()-interval '6 hours') then
+      insert into founder_alerts(level,event,detail,channel)
+      select 'critical','cron_failing',
+             'Scheduled job(s) failed on their most recent run: '||
+             (select string_agg(distinct (e->>'job')||' — '||left(coalesce(e->>'message',''),120), '; ')
+                from jsonb_array_elements(public.fn_os_health()->'failing_crons') e),
+             'email';
+      fired := array_append(fired,'cron_failing');
+    end if;
+  end if;
+
+  -- surface criticals as founder notifications too$new$);
+
+  if newdef = def then
+    raise exception 'fn_exception_alerts cron-health check did not match its anchor';
+  end if;
+  execute newdef;
+end
+$do$;`;
+
 if (process.argv.includes('--print-sql')) {
   console.log(SQL_CONTEXT);
   console.log(SQL_GAPS);
   console.log(SQL_L2_FALLBACK);
   console.log(SQL_RFQ_TRACE);
+  console.log(SQL_CRON_ALERT);
   process.exit(0);
 }
 
@@ -314,6 +375,7 @@ await mgmtWrite(REF, SQL_L2_FALLBACK, 'fn_agent_context layer-2 department fallb
 await mgmtWrite(REF, SQL_CONTEXT, 'fn_agent_context library overload');
 await mgmtWrite(REF, SQL_GAPS, 'fn_knowledge_gaps owner attribution');
 await mgmtWrite(REF, SQL_RFQ_TRACE, 'fn_entity_activity rfq trace');
+await mgmtWrite(REF, SQL_CRON_ALERT, 'fn_exception_alerts cron health');
 
 // MEASURE THE READER, NOT THE DEPLOY. The question is whether a real employee question now comes
 // back carrying real library text — and whether the query-less call is still byte-identical.

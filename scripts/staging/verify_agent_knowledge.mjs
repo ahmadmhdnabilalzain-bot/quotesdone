@@ -170,7 +170,32 @@ step('an employee with their own knowledge is unaffected',
 step('employees with no knowledge anywhere are counted, not hidden', l2.still_empty >= 0,
   `${l2.still_empty} employee(s) have neither their own nor a department library — a corpus gap, not a wiring one`);
 
-// ---- 7. both projects carry the overload — verify_phase1 asserts the routine COUNT ---------------
+// ---- 7. continuous monitoring: the failing-cron signal now has a reader -------------------------
+// fn_os_health()'s `failing_crons` uses JOIN LATERAL … ORDER BY start_time DESC LIMIT 1 WHERE
+// status='failed' — the most recent run, the only definition of "failing now" that is any use. It
+// had one caller (fn_os_selftest) which itself had none: not a cron, not a routine, not an os_api
+// action. fn_exception_alerts — hourly, already writing founder_alerts, already deduped — now asks.
+for (const [env, ref] of [['staging', REF], ['production', PROD_REF]]) {
+  const h = await one(ref, `select
+    (select count(*)::int from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+      where ns.nspname='public' and p.proname='fn_exception_alerts' and p.prosrc like '%QD_CRON_HEALTH%') marker,
+    jsonb_array_length(coalesce(public.fn_os_health()->'failing_crons','[]'::jsonb)) failing_now`);
+  step(`the cron-health check is deployed on ${env}`, h.marker === 1,
+    `marker ${h.marker}, ${h.failing_now} job(s) failing on their most recent run`);
+}
+
+// STAGING HAS 0 CRONS, SO THE BRANCH CANNOT EXECUTE HERE — which is exactly how the two jsonb
+// concatenation bugs in the RFQ trace hid until a fixture ran them. The alert text is therefore
+// built against a synthetic failing_crons array, including the null-message row.
+const detail = await one(REF, `select 'Scheduled job(s) failed on their most recent run: '||
+  (select string_agg(distinct (e->>'job')||' — '||left(coalesce(e->>'message',''),120), '; ')
+     from jsonb_array_elements('[{"job":"kpi_review_weekly","message":"ERROR: statement timeout"},
+                                 {"job":"health_check","message":null}]'::jsonb) e) d`);
+step('the alert text builds, including a null message',
+  String(detail.d || '').includes('kpi_review_weekly') && String(detail.d || '').includes('health_check'),
+  `"${String(detail.d || '').slice(0, 72)}…"`);
+
+// ---- 8. both projects carry the overload — verify_phase1 asserts the routine COUNT ---------------
 const sig = async (ref) => (await one(ref, `select count(*)::int n from pg_proc p
   join pg_namespace ns on ns.oid = p.pronamespace
  where ns.nspname='public' and p.proname='fn_agent_context'
