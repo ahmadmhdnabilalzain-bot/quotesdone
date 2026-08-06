@@ -14,12 +14,46 @@
 > promote by reading staging's verified definition back and posting it verbatim, then assert
 > `md5(prosrc)` matches. Do not retype a body. `scripts/verify_prod_parity.mjs` is the check.
 
-## THE ROW YOU ARE ON: #7 agents and knowledge. It is NOT finished.
+## THE ROW YOU ARE ON: #1 quotesdone architecture. TAKE IT TO 100%.
 
-64% strict (82/129). **9 MISSING · 34 PARTIAL · 4 BUILT_BUT_UNREAD.** Session 12 took it from 28%
-and stopped mid-file. Under rule 1 that is the only thing to work until it reads 100%.
+> ## 3. THE ORDER IS THE FILE ORDER: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8.
+> *"we start next session with quotesdone architecture row. it was 25% done and it has to hit 100%
+> then we move to OS blue print, then OS 2 then,,,etc."* — 6 Aug 2026.
+> Not cheapest-first. Not "#7 is already in flight". **#1, to 100%, then #2.** An earlier revision
+> of this brief suggested 6 → 2 → 1 → 3 → 5 → 8 → 4; that suggestion is withdrawn.
 
-**The itemised list is on disk** — do not re-derive it:
+**Baseline: 9 of 36 = 25%** (the trusted 411-enumeration). Session 12 did **not** work this file.
+
+### What a rigorous read of #1 already found — start here, do not re-derive it
+
+The spec's *organisation* is built and running. Its *quality half is inert*: the department-head and
+Chief-of-Staff review chain, the challenge heuristics, the culture principles and the collaboration
+rules all exist and hold real rows, and **nothing calls any of them — so work ships whenever a
+deliverable exceeds 60 characters.** That single sentence is most of this row.
+
+| finding | evidence |
+|---|---|
+| `collaboration_rule` **10 rows** with `must_involve` / `must_review` / `may_challenge` and a blocking flag | **0 readers.** `cos_execute:229` dispatches each task to exactly one department's brain, with no second participant |
+| `org_agents.title` populated **67/67** | `fn_agent_context` selects only `department, role` — **the job title never enters any prompt** |
+| `org_agents.responsibilities` populated **55/67** | not selected by `fn_agent_context`; 0 readers anywhere |
+| `org_agents.manager_key` valid for **66/67**, every one resolving | **traversed by nothing.** Routing uses `brain_agent`/`lead_agent`, so the reporting line is never walked. `v_org_chart` exists with 0 readers |
+| `department_objective` **44 rows**, all `horizon='year_1'` | only `trg_goal_cascade` touches it. **`dept_plan` does not read it** |
+| `goal_period` **183 rows**, refreshed daily | **0 readers** — the only proc that touches it is its own refresher |
+| `decision_record` 3 rows carrying `serves_goal` | 0 readers; its consumers `v_decision_intelligence` and `v_audit_coverage` are themselves unread |
+| only **5 of 63** `company_goals` carry a `measure_sql` | `goal_period` holds 183 targets and **9** actual values, 6 non-zero. `fn_goal_period_refresh` is 8/8 green because it has almost nothing to compute |
+| no per-employee **short-horizon** objective store exists | `department_objective` is year_1 only; `org_tasks` is a work queue standing in for it |
+
+Genuinely MET already, do not touch: `company_goals` 63 rows read by `dept_plan:79` · `org_authority`
+196 + `employee_authority` 285, enforced live at `cos_execute:170` (it re-resolves `fn_dept_authority`
+and logs `tier_claim_exceeds_grant`) · `employee_kpi` 94 active read by 8 procs · `agent_memory` 208 /
+`org_memory` 173 / `institutional_memory` 30 in LAYER 4 · `dept_plan_daily` 10/10 · `dept_learn_daily`
+13/13 · `org_agents.max_open_tasks` 67/67.
+
+**The shape of this row is wiring, not building.** Almost every gap above is a populated table with
+no caller — the same defect this project has hit seven times. Expect `fn_agent_context`,
+`cos_execute` and `dept_plan` to be where most of the fixes land.
+
+**The itemised list for every file is on disk** — do not re-derive it:
 `C:\Users\Opera\.claude\projects\C--Users-Opera-quotesdone\44929eb5-f98f-4608-8a3b-5dc2f37d6fc1\subagents\workflows\wf_f5161532-05f\journal.jsonl`
 one `{"type":"result"}` line per spec file, each with every requirement, its status and its evidence.
 The companion audit `wf_d6848866-ec5` carries the ranked fixes and the refutations.
@@ -74,11 +108,12 @@ returned exactly 1200 output tokens on 40 of 61 calls · the DR drill went from 
 > *"categories 17% → 87%"* is on the MET+PARTIAL bar, where it now reads **93%**; it is not in
 > conflict with the 44%.
 
-**SUGGESTED ORDER AFTER #7, cheapest first: 6 → 2 → 1 → 3 → 5 → 8 → 4.** #6 has **zero missing** —
-it is complete and half-finished, which is 23 finishing items and no building. #3 looks worst at 8%
-and is the biggest bargain in the table: **21 of its 59 requirements are BUILT_BUT_UNREAD.**
-Production computes an autonomous company every night and shows the founder none of it. That file
-is wiring, not building.
+~~SUGGESTED ORDER, cheapest first: 6 → 2 → 1 → 3 → 5 → 8 → 4.~~ **WITHDRAWN — the founder set the
+order on 6 Aug: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8, each to 100% before the next.** Two observations
+from the cheapest-first analysis survive as *facts about the rows*, not as an argument to reorder:
+#6 has **zero MISSING** — complete and half-finished, finishing work only — and #3, which reads
+worst on any bar, carries **21 BUILT_BUT_UNREAD**: production computes an autonomous company every
+night and shows the founder none of it. Both are wiring when their turn comes.
 
 ## THE DEFINING STATE OF THIS CODEBASE: 81 requirements built, correct, and read by nothing
 
