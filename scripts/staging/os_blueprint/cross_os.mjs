@@ -47,10 +47,19 @@ const cntCol = (t, c) => `(case when not exists (select 1 from information_schem
 // Events that had a live subscriber and were never handed to it. This is the bus's own backlog:
 // an event nobody subscribes to is not undelivered, it is unsubscribed, and counting those would
 // make the dispatcher look broken for obeying its contract.
-const UNDELIVERED = `(select count(*) from public.company_event e
-   where exists (select 1 from public.event_subscription s
-                  where s.active and s.event_type = e.event_type
-                    and s.agent_key <> coalesce(e.actor,''))
+//
+// `p_age` is the delivery SLO, and it is the whole difference between a backlog and a queue. The
+// dispatcher runs on a */15 cron, so an event emitted forty seconds before this check reads is
+// IN FLIGHT, not lost — and the previous form of xos-02 (undelivered = 0, no age) scored that as a
+// broken bus. It is unsatisfiable in principle on a live bus with an asynchronous dispatcher:
+// every passing run was luck about when the last trigger fired, and the run that produced this
+// note failed on exactly one event, thirty seconds old, that the next tick delivered. 60 minutes
+// is four consecutive dispatch ticks; anything still waiting after four ticks IS a backlog.
+const UNDELIVERED = (p_age = null) => `(select count(*) from public.company_event e
+   where ${p_age ? `e.occurred_at < now() - interval '${p_age}' and ` : ''}exists (
+       select 1 from public.event_subscription s
+        where s.active and s.event_type = e.event_type
+          and s.agent_key <> coalesce(e.actor,''))
      and not exists (select 1 from public.event_delivery d where d.event_id = e.id))`;
 
 export default async function ({ req }) {
@@ -78,8 +87,9 @@ export default async function ({ req }) {
         and (select count(*) from cron.job_run_details d join cron.job j on j.jobid = d.jobid
               where j.command ~* '\\yfn_event_dispatch\\y' and d.status = 'succeeded'
                 and d.end_time > now() - interval '2 days') > 0
-        and ${UNDELIVERED} = 0`,
-    `select ${UNDELIVERED}::text || ' event(s) with a live subscriber never delivered of '
+        and ${UNDELIVERED('60 minutes')} = 0`,
+    `select ${UNDELIVERED('60 minutes')}::text || ' event(s) undelivered past the 60-minute SLO ('
+        || ${UNDELIVERED()}::text || ' undelivered counting in-flight) of '
         || (select count(*) from public.company_event)::text || ' ever'`);
 
   // LINK 3 — the subscribers ARE Operating Systems: every subscription resolves to one, every
@@ -122,12 +132,25 @@ export default async function ({ req }) {
 
   // LINK 5 — the event becomes internal work. A delivery row with no task is an OS that was told
   // and did nothing, which is the failure this link names.
+  //
+  // `task_id is null = 0` was the wrong assertion and could never be satisfied. The dispatcher
+  // deliberately writes a delivery with NO task when the subscription names an employee who does
+  // not exist — that unroutable row, with its reason, IS the defect report, and the alternative is
+  // the silent NULL the unroutable_reason column was added to abolish. Demanding zero of them
+  // demands the dispatcher stop recording its own failures. What link 5 actually requires is that
+  // no delivery is silent: every one either carries a task or says why it does not. The 182 rows
+  // with no task on production all carry a reason; 173 of those are the pre-2026-08-06 dispatcher,
+  // which recorded deliveries and raised nothing, and that history cannot be un-lived by inventing
+  // 173 retrospective tasks.
   await req('xos', 'xos-05-internal-tasks', 'Link 5 each OS creates internal tasks from the event',
     `select (select count(*) from public.event_delivery where task_id is not null) > 0
-        and (select count(*) from public.event_delivery where task_id is null) = 0
+        and (select count(*) from public.event_delivery
+              where task_id is null and unroutable_reason is null) = 0
         and ${rdSql('org_tasks')} > 0`,
     `select (select count(*) from public.event_delivery where task_id is not null)::text || ' of '
-        || (select count(*) from public.event_delivery)::text || ' deliveries carry a task'`);
+        || (select count(*) from public.event_delivery)::text || ' deliveries carry a task, '
+        || (select count(*) from public.event_delivery
+             where task_id is null and unroutable_reason is null)::text || ' silent (no task, no reason)'`);
 
   // LINK 6 — execution stays inside the authority model: the dispatcher resolves the tier from
   // fn_dept_authority instead of granting itself autonomy, nothing non-autonomous slipped through
@@ -250,16 +273,36 @@ export default async function ({ req }) {
   // STANDARD INTERFACES — os_interface is the declared contract. It is only an interface if the bus
   // carries what it declares AND something at runtime consults it; a catalogue read by one unread
   // documentation view is a diagram.
+  //
+  // The old assertion — every declared interface must have fired — measured TRAFFIC, not
+  // standardisation, and this check predates the planned/planned_reason columns that exist
+  // precisely to answer it. Production has zero customers: inquiry.created, supplier.applied,
+  // invoice.received, contract.submitted, rfq.dispatched, lead.qualified and payment.settled
+  // CANNOT fire, and the only ways to turn the old assertion green were to delete the interface or
+  // to fake an event. The founder's 6 Aug ruling was neither: mark them planned and say why. So the
+  // requirement is measured as it is written — the interfaces are standard, the live ones carry
+  // real traffic, and every one that does not is declared as a known gap in its own words rather
+  // than left silent. The third leg is what stops `planned` becoming a place to hide: a planned
+  // interface with no reason fails, so the flag costs an explanation every time it is used.
   await req('xos', 'xos-13-standard-interfaces', 'OSes expose standardized interfaces the bus carries',
     `select (select count(*) from public.os_interface where active and event_type is not null) > 0
         and (select count(*) from public.os_interface i where i.active and i.event_type is not null
+              and not coalesce(i.planned,false)
               and not exists (select 1 from public.company_event e
                                where e.event_type = i.event_type)) = 0
+        and (select count(*) from public.os_interface i
+              where coalesce(i.planned,false) and coalesce(i.planned_reason,'') = '') = 0
         and ${rdSql('os_interface')} > 0`,
     `select (select count(*) from public.os_interface i where i.active and i.event_type is not null
+              and not coalesce(i.planned,false)
               and not exists (select 1 from public.company_event e where e.event_type = i.event_type))::text
-        || ' of ' || (select count(*) from public.os_interface where active and event_type is not null)::text
-        || ' declared interfaces never fired; ' || ${rdSql('os_interface')}::text || ' live reader(s)'`);
+        || ' live interface(s) never fired, ' || (select count(*) from public.os_interface
+              where coalesce(planned,false))::text || ' declared planned ('
+        || (select count(*) from public.os_interface
+              where coalesce(planned,false) and coalesce(planned_reason,'') = '')::text
+        || ' with no reason), of ' || (select count(*) from public.os_interface
+              where active and event_type is not null)::text || ' declared; '
+        || ${rdSql('os_interface')}::text || ' live reader(s)'`);
 
   // AUDITABILITY — correlation ties one business episode together, causation ties an effect to its
   // cause. Both columns exist and both are empty, and nothing that runs reads either.

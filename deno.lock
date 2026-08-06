@@ -1,0 +1,60 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@std/assert@1": "1.0.19",
+    "jsr:@std/internal@^1.0.12": "1.0.14",
+    "jsr:@supabase/supabase-js@2": "2.111.0"
+  },
+  "jsr": {
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/internal@1.0.14": {
+      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
+    },
+    "@supabase/supabase-js@2.111.0": {
+      "integrity": "92cd1d4c2933f6a62099f7d3b2b91908b70a9d110ee6098e1b2d3db2e6b7ef1b"
+    }
+  },
+  "redirects": {
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.111.0"
+  },
+  "remote": {
+    "https://esm.sh/@supabase/supabase-js@2.111.0": "276104e20b7318fac2be1c67eb9be93f4280f5ec9f2fc5ac7b32e1f0ed6f31ba"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@radix-ui/react-dialog@1.1.1",
+        "npm:@radix-ui/react-scroll-area@1.1.0",
+        "npm:@radix-ui/react-separator@1.1.0",
+        "npm:@radix-ui/react-slot@1.1.0",
+        "npm:@radix-ui/react-tabs@1.1.0",
+        "npm:@radix-ui/react-tooltip@1.1.2",
+        "npm:@supabase/supabase-js@2.110.8",
+        "npm:@types/node@20.14.0",
+        "npm:@types/react-dom@19.2.3",
+        "npm:@types/react@19.2.17",
+        "npm:autoprefixer@10.4.19",
+        "npm:class-variance-authority@0.7.0",
+        "npm:clsx@2.1.1",
+        "npm:cmdk@1.1.1",
+        "npm:lucide-react@0.417.0",
+        "npm:motion@^12.42.2",
+        "npm:next-intl@4.13.4",
+        "npm:next@16.2.11",
+        "npm:postcss@8.5.22",
+        "npm:react-dom@19.2.8",
+        "npm:react@19.2.8",
+        "npm:tailwind-merge@2.5.2",
+        "npm:tailwindcss-animate@1.0.7",
+        "npm:tailwindcss@3.4.7",
+        "npm:typescript@5.5.4",
+        "npm:wavesurfer.js@7.8.6"
+      ]
+    }
+  }
+}

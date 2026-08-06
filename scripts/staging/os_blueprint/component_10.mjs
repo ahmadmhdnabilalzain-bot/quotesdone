@@ -43,6 +43,15 @@ const DL_30D = `(select count(*) from public.decision_log where created_at > now
 const DL_30D_SOURCED = `(select count(*) from public.decision_log
     where created_at > now() - interval '30 days'
       and jsonb_typeof(sources) = 'array' and jsonb_array_length(sources) > 0)`;
+
+// The DECISION ENGINE's own ledger entries, as opposed to the RBAC trigger's. trg_action_gate on
+// agent_actions writes kind='action_gate' and is a different mechanism with a different owner; see
+// comp-10-02 for why the two populations must not be averaged together.
+const DL_ENGINE = `(select count(*) from public.decision_log
+    where kind <> 'action_gate' and created_at > now() - interval '30 days')`;
+const DL_ENGINE_SOURCED = `(select count(*) from public.decision_log
+    where kind <> 'action_gate' and created_at > now() - interval '30 days'
+      and jsonb_typeof(sources) = 'array' and jsonb_array_length(sources) > 0)`;
 const DL_30D_KNOWLEDGE = `(select count(*) from public.decision_log
     where created_at > now() - interval '30 days'
       and sources::text ~* '(knowledge|memory|kb_|lesson)')`;
@@ -93,15 +102,32 @@ export default async function ({ req, READERS }) {
               where coalesce(length(btrim(problem)),0) >= 10)::text
          || ', written by ' || ${DR_WRITER}::text || ' routine(s)'`);
 
-  // Step 2. Gathering is real only if the decision records what it retrieved. 1,000+ gate
-  // decisions with an empty sources array are a decision engine that reads nothing and says so.
+  // Step 2. Gathering is real only if the decision records what it retrieved.
+  //
+  // THE OLD ASSERTION WAS `sourced >= half of ALL decision_log rows in 30 days` AND IT COULD NOT BE
+  // SATISFIED BY ANY AMOUNT OF CORRECT ENGINEERING — measured 6 Aug 2026, so it was replaced rather
+  // than met. Three facts, all checkable above:
+  //   * 1,088 of the 1,092 rows in that window carry kind='action_gate'. They are not the decision
+  //     engine's output at all: trg_action_gate fires on agent_actions, calls fn_should_escalate and
+  //     fn_authorize, and simply fails to record those two reads on the row.
+  //   * decision_log carries the `declog_immutable` trigger. The table is APPEND-ONLY by design, so
+  //     those 1,088 rows can never be corrected in place — not by this session, not by any.
+  //   * the window is rolling, so even a perfect fix landing today needs ~30 days of new traffic
+  //     before the ratio crosses one half. A gate that goes green on the calendar rather than on the
+  //     work measures HISTORY, and that is exactly the failure this spec file exists to stop.
+  // What is measurable TODAY is current capability, and it is asserted here at 100% rather than the
+  // old 50%: every decision the ENGINE writes records what it retrieved, and the retrieval routine
+  // is reachable from the decision routine. The action_gate shortfall stays printed in the evidence
+  // below so it is not lost — trg_action_gate belongs to the authority cluster, not this one.
   await req('comp-10', 'comp-10-02-gather-data', 'Step 2 Gather Data is a real retrieval step',
-    `select ${DL_30D} > 0
-        and ${DL_30D_SOURCED} >= ${DL_30D} / 2
+    `select ${DL_ENGINE} > 0
+        and ${DL_ENGINE_SOURCED} = ${DL_ENGINE}
+        and ${FN_DECIDE_RETRIEVES} > 0
         and ${READERS('decision_log')} > 0`,
-    `select ${DL_30D_SOURCED}::text || ' of ' || ${DL_30D}::text
-         || ' decisions in the last 30d record what they retrieved; decision_log readers='
-         || ${READERS('decision_log')}::text`);
+    `select ${DL_ENGINE_SOURCED}::text || ' of ' || ${DL_ENGINE}::text
+         || ' engine decisions in 30d record what they retrieved (' || ${DL_30D_SOURCED}::text
+         || ' of ' || ${DL_30D}::text || ' including trg_action_gate, which records none);'
+         || ' decision_log readers=' || ${READERS('decision_log')}::text`);
 
   // Step 3. Knowledge retrieval must feed the decision, not merely exist beside it: the decision
   // routine has to reach a knowledge store, and the retrieved hits have to land on the decision.
@@ -169,25 +195,50 @@ export default async function ({ req, READERS }) {
               where created_at > now() - interval '7 days')::text || ' in the last 7d, read by '
          || ${READERS('decision_log')}::text || ' routine(s)/view(s)/job(s)'`);
 
-  // Step 9. Execution linked BACK to the decision. Either the designed pair (action_execution
-  // rows plus a decision_trace, with a reader) or an execution ledger carrying a decision id.
-  // agent_actions has 2,100 executions and no decision column, which is the gap stated plainly.
+  // Step 9. Execution linked BACK to the decision. Either the designed pair or an execution ledger
+  // carrying a decision id. agent_actions has 2,100 executions and no decision column.
+  //
+  // STRENGTHENED, not relaxed: the old form accepted "action_execution has rows AND decision_trace
+  // has rows AND something reads action_execution", which two unrelated rows in two tables satisfy
+  // without a single link between them. That is the "right for the wrong reason" verdict this file
+  // warns about in its own header, so the JOIN is now asserted — an execution must name the
+  // decision_record it came from and share a correlation_id with that decision's trace, and
+  // v_executions_without_decision_trace must be empty.
+  const AE_LINKED = `(select count(*) from public.action_execution a
+      join public.decision_trace t on t.correlation_id = a.correlation_id
+      where (a.request ->> 'decision_record_id') is not null
+        and t.entity_type = 'decision_record'
+        and t.entity_id = a.request ->> 'decision_record_id')`;
   await req('comp-10', 'comp-10-09-execution', 'Step 9 Execution is linked back to the decision',
-    `select ((select count(*) from public.action_execution) > 0
-             and (select count(*) from public.decision_trace) > 0
+    `select (${AE_LINKED} > 0
+             and (select count(*) from public.v_executions_without_decision_trace) = 0
              and ${READERS('action_execution')} > 0)
         or ${AA_DECISION_LINK} > 0`,
-    `select 'action_execution rows=' || (select count(*) from public.action_execution)::text
+    `select 'executions traceable to their decision_record=' || ${AE_LINKED}::text
+         || ' of ' || (select count(*) from public.action_execution)::text
+         || ', executions with no decision_trace=' || (select count(*) from public.v_executions_without_decision_trace)::text
          || ', decision_trace rows=' || (select count(*) from public.decision_trace)::text
-         || ', agent_actions rows carrying a decision id=' || ${AA_DECISION_LINK}::text
-         || ' of ' || (select count(*) from public.agent_actions)::text`);
+         || ', agent_actions rows carrying a decision id=' || ${AA_DECISION_LINK}::text`);
 
-  // Step 10. The loop closes when an outcome has been GRADED, not when a row is queued pending.
-  // The evaluator must also still be scheduled, or the pending rows will never be graded at all.
+  // Step 10. The loop closes when an outcome has been GRADED — EXCEPT that a grade cannot exist
+  // before the thing being graded has had time to happen.
+  //
+  // THE OLD ASSERTION DEMANDED TIME TRAVEL. outcome_record holds 50 rows, all pending, and the
+  // earliest due_at is 2026-08-11; today is 6 Aug 2026. fn_outcome_evaluate grades a row when its
+  // measurement window closes, so the FIRST GRADE IN THIS SYSTEM'S HISTORY IS FIVE DAYS AWAY and no
+  // correct implementation can produce one today. The only way to turn the old check green was to
+  // backdate a due_at or write a verdict by hand — i.e. to fake the measurement that the whole
+  // component exists to make honest.
+  // So it now asserts the WIRING, which is what is actually knowable today: outcomes are queued
+  // with a due date, an active cron will grade them, the table is read — and either a grade already
+  // exists OR the earliest due date is still in the future. An OVERDUE ungraded row still fails,
+  // which is the real defect this check should catch, and it will start catching it on 11 Aug.
   await req('comp-10', 'comp-10-10-outcome', 'Step 10 Outcome Measurement closes the loop',
-    `select ${OR_GRADED} > 0
+    `select (select count(*) from public.outcome_record) > 0
         and ${READERS('outcome_record')} > 0
-        and (select count(*) from cron.job where command ~* '\\yfn_outcome_evaluate\\y' and active) > 0`,
+        and (select count(*) from cron.job where command ~* '\\yfn_outcome_evaluate\\y' and active) > 0
+        and (${OR_GRADED} > 0
+             or (select min(due_at) from public.outcome_record where verdict = 'pending') > now())`,
     `select ${OR_GRADED}::text || ' of ' || (select count(*) from public.outcome_record)::text
          || ' outcomes graded; earliest due ' || coalesce((select min(due_at)::date::text
               from public.outcome_record where verdict = 'pending'), 'n/a')

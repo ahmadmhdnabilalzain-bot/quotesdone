@@ -153,22 +153,27 @@ export default async function ({ req, READERS }) {
        ||(select count(*)::text from public.employee_kpi where active and coalesce(measure_sql,'') <> '')
        ||' with measure_sql; '||${READERS('employee_kpi')}::text||' reader(s)'`);
 
-  // The prompt falls back to a DEPT-MATE's profession knowledge when an employee has none of their
-  // own, so "the block is present" proves nothing. This resolves the function's own WHERE clause
-  // and counts the employees for whom it yields at least one row.
+  // TIGHTENED 6 Aug 2026, and the old assertion is quoted below because it was wrong in an
+  // instructive way. It resolved fn_agent_context's OWN WHERE clause, dept-mate fallback included,
+  // and asked whether each employee reaches at least one profession row. That accepts the fallback
+  // as satisfying "each employee has Knowledge" — and the fallback is precisely what hid the gap:
+  // 52 of 66 employees had NO profession knowledge of their own and were being handed a colleague's,
+  // so the Accounts Payable Specialist was reading the CFO's expertise and the block always
+  // rendered. Measuring the function's behaviour is not the same as measuring the requirement.
+  //
+  //   old: ... or (a.department is not null and not exists (<no own rows>) and k.agent_key in
+  //              (select b.agent_key from org_agents b where b.department = a.department ...))
+  //
+  // Personal is the claim the spec makes ("Each employee has ... Knowledge"), so personal is what
+  // is asserted. The 52 were backfilled in scripts/sql/agent_knowledge_profession_backfill.sql; the
+  // fallback stays in the function as a safety net for a newly hired employee, which is what a
+  // fallback is for.
   await req('comp', 'comp-05-knowledge', 'Each employee has Knowledge that reaches a prompt',
     `select (select count(*) from public.org_agents a where a.active
               and not exists (
                 select 1 from public.agent_knowledge k
-                 where coalesce(k.layer,'profession') in ('profession','state')
-                   and (k.agent_key = a.agent_key
-                        or (a.department is not null
-                            and not exists (select 1 from public.agent_knowledge k2
-                                             where k2.agent_key = a.agent_key
-                                               and coalesce(k2.layer,'profession') in ('profession','state'))
-                            and k.agent_key in (select b.agent_key from public.org_agents b
-                                                 where b.active and b.department = a.department
-                                                   and b.agent_key <> a.agent_key))))) = 0`,
+                 where k.agent_key = a.agent_key
+                   and coalesce(k.layer,'profession') in ('profession','state'))) = 0`,
     `select (select count(*) from public.org_agents a where a.active
               and exists (select 1 from public.agent_knowledge k
                            where k.agent_key = a.agent_key

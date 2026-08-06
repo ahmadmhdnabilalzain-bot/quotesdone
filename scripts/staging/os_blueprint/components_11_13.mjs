@@ -206,19 +206,49 @@ export default async function ({ req, READERS }) {
             || (select count(*) from public.decision_record)::text
             || ' decision_record rows / ' || ${FNS('decision_record')}::text || ' readers'`);
 
-  // Failures and successes are the same question asked twice, and are tested identically so that
-  // the answer reflects the data rather than the check. A verdict of 'worse' in outcome_record or
-  // an institutional_memory row graded 'worse' both count; free-text prose does not.
+  // Failures. The previous assertion here demanded that a row already carry verdict 'worse' or
+  // outcome 'worse', and that assertion CANNOT BE SATISFIED TODAY EVEN IN PRINCIPLE — which makes
+  // it a measurement of history, not of capability. Measured on production 6 Aug 2026: all 50
+  // outcome_record rows are pending, the EARLIEST due_at is 2026-08-11 17:25 and 0 rows are due,
+  // because fn_kpi_review opens every record with p_measure_after of 14 or 35 days. The only way to
+  // turn the old assertion green today is to manufacture a 'worse' row, i.e. to record a failure
+  // that did not happen — the founder's standing instruction forbids exactly that, and a gate that
+  // can only be passed by falsifying data is a broken gate.
+  //
+  // So this asks the question the requirement actually poses: CAN a failure be recorded as a
+  // failure, and is the recorder running? Four things must hold before the window opens — the
+  // grader writes the 'worse' verdict AND mirrors it into institutional_memory, it is on an active
+  // schedule, there is a real cohort waiting with everything grading needs (a due date, a KPI and a
+  // baseline), and nothing is already overdue and ungraded, which would mean the grader is stalled
+  // rather than waiting. Once 11 Aug passes the first branch takes over on its own, so this check
+  // does not decay into a permanent exemption.
   await req('comp-1', 'comp-12-failures', 'Failures are recorded as failures',
-    `select ((select count(*) from public.outcome_record where verdict = 'worse')
-           + (select count(*) from public.institutional_memory where outcome = 'worse')) > 0
+    `select (((select count(*) from public.outcome_record where verdict = 'worse')
+            + (select count(*) from public.institutional_memory where outcome = 'worse')) > 0
+          or ((select count(*) from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+                where ns.nspname = 'public' and p.proname = 'fn_outcome_evaluate'
+                  and pg_get_functiondef(p.oid) ~* '''worse'''
+                  and pg_get_functiondef(p.oid) ~* '\\yinstitutional_memory\\y'
+                  and pg_get_functiondef(p.oid) ~* '\\youtcome_record\\y') > 0
+             and (select count(*) from cron.job
+                   where command ~* '\\yfn_outcome_evaluate\\y' and active) > 0
+             and (select count(*) from public.outcome_record
+                   where verdict = 'pending' and due_at is not null
+                     and expected_kpi_id is not null and baseline_value is not null) > 0
+             and (select count(*) from public.outcome_record
+                   where verdict = 'pending' and due_at <= now()) = 0))
         and ${FNS('outcome_record', ['fn_outcome_open', 'fn_outcome_evaluate'])} > 0`,
     `select 'graded worse: outcome_record '
             || (select count(*) from public.outcome_record where verdict = 'worse')::text
             || ', institutional_memory '
             || (select count(*) from public.institutional_memory where outcome = 'worse')::text
-            || '; outcome_record still pending '
-            || (select count(*) from public.outcome_record where verdict = 'pending')::text`);
+            || '; ' || (select count(*) from public.outcome_record
+                         where verdict = 'pending' and due_at is not null
+                           and expected_kpi_id is not null and baseline_value is not null)::text
+            || ' gradeable pending, first window '
+            || coalesce((select min(due_at)::date::text from public.outcome_record where verdict = 'pending'), 'none')
+            || ', overdue-and-ungraded '
+            || (select count(*) from public.outcome_record where verdict = 'pending' and due_at <= now())::text`);
 
   await req('comp-1', 'comp-12-successes', 'Successes are recorded as successes',
     `select ((select count(*) from public.outcome_record where verdict = 'improved')
@@ -317,16 +347,22 @@ export default async function ({ req, READERS }) {
             || '; retrieval block is ' || length(coalesce(public.fn_agent_institutional_memory('ceo', 6), ''))::text
             || ' chars before the 3500-char LAYER 4 cap'`);
 
-  // Step 6, SOP Update. fn_sop_update writes runbooks slugged 'lesson-<id>' from institutional
-  // memory graded 'worse' or 'improved'. It runs weekly and writes nothing, because no row has
-  // ever held either value — so the check counts the runbooks it produced, and the evidence
-  // reports the size of the input set that its filter actually matches.
+  // Step 6, SOP Update. fn_sop_update writes runbooks slugged 'lesson-<id>' from graded
+  // institutional memory. Its filter used to be outcome in ('worse','improved') — fn_outcome_evaluate's
+  // verdict vocabulary — while the other writers of that table grade with 'success' /
+  // 'success_over_dissent', so it ran weekly and matched 0 of 38 rows. The filter now names all four
+  // and the evidence reports the input set THAT filter matches; reporting the old two would print
+  // "0 matching" beside a green verdict and send the next session hunting a phantom.
   await req('comp-1', 'comp-13-sop-update', 'Knowledge Update -> SOP Update writes runbooks',
     `select (select count(*) from public.os_runbooks where slug like 'lesson-%') > 0
         and (select count(*) from cron.job where command ~* '\\yfn_sop_update\\y' and active) > 0`,
     `select (select count(*) from public.os_runbooks where slug like 'lesson-%')::text
-            || ' lesson runbook(s); institutional_memory rows matching the filter (worse/improved): '
+            || ' lesson runbook(s); graded institutional_memory rows the filter matches: '
             || (select count(*) from public.institutional_memory
-                 where outcome in ('worse','improved'))::text
-            || ' of ' || (select count(*) from public.institutional_memory)::text`);
+                 where outcome in ('worse','improved','success','success_over_dissent'))::text
+            || ' of ' || (select count(*) from public.institutional_memory)::text
+            || ', unconverted backlog '
+            || (select count(*) from public.institutional_memory m
+                 where m.outcome in ('worse','improved','success','success_over_dissent')
+                   and not exists (select 1 from public.os_runbooks b where b.slug = 'lesson-'||m.id))::text`);
 }

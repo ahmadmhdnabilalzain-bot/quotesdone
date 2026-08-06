@@ -1,0 +1,51 @@
+[2m
+📦 Repomix v1.17.0
+[22m
+[K[?25l⠋ Initializing...
+[K[1A[K[?25l⠙ Searching for files...
+[K[1A[K[?25l⠹ Searching for files...
+[K[1A[K[?25l⠸ Collect file... (453/587) [2msupabase/migrations/20260728214210_fn_agent_context_honour_cap.sql[22m
+[K[1A[K[?25l⠼ Processing file... (581/581) [2mtsconfig.json[22m
+[K[1A[K[?25l⠴ Processing file... (581/581) [2mtsconfig.json[22m
+[K[1A[K[?25l⠦ Running security check... (50/581) [2msrc/app/[locale]/privacy/page.tsx[22m
+[K[1A[K[?25l⠧ Running security check... (500/581) [2msupabase/migrations/20260802150755_p1h_02_control_mode_purpose_bound_challenge.sql[22m
+[K[1A[K[?25l⠇ Running security check... (581/581) [2msupabase/migrations/20260802182107_p2_c1_stage_b6_fix_regex_aware_term_position.sql[22m
+[K[1A[K[?25l⠏ Writing output file...
+[K[1A[K[?25l⠋ Calculating metrics... (581/581) [2mrepomix.config.json[22m
+[K[1A[K[?25l⠙ Calculating metrics... (581/581) [2mrepomix.config.json[22m
+[K[1A[K[?25l✔ Packing completed successfully!
+[?25h
+📈 Top 5 Files by Token Count:
+[2m──────────────────────────────[22m
+1.  src/components/osx/OsxShell.tsx [2m(80,148 tokens, 272,001 chars, 5.3%)[22m
+2.  src/content/services.json [2m(75,059 tokens, 264,584 chars, 5%)[22m
+3.  src/content/marketing.json [2m(68,047 tokens, 233,321 chars, 4.5%)[22m
+4.  docs/OS.md [2m(49,780 tokens, 195,092 chars, 3.3%)[22m
+5.  src/content/blog.json [2m(38,927 tokens, 141,345 chars, 2.6%)[22m
+
+🔎 Security Check:
+[2m──────────────────[22m
+[32m✔[39m No suspicious files detected.
+
+📄 Binary Files Detected:
+[2m─────────────────────────[22m
+[33m3 files detected as binary by content inspection:[39m
+1. supabase/functions/kb_ingest/index.ts
+2. supabase/functions/kb_ingest_text/index.ts
+3. QUOTESDONE_CODEBASE.md
+[33m
+These files have been excluded from the output.[39m
+[33mPlease review these files if you expected them to contain text content.[39m
+
+📊 Pack Summary:
+[2m────────────────[22m
+  Total Files: 581 files
+ Total Tokens: 1,500,719 tokens
+  Total Chars: 5,623,810 chars
+       Output: repomix-src.xml
+     Security: ✔ No suspicious files detected
+
+[32m🎉 All Done![39m
+Your repository has been successfully packed.
+
+💡 Repomix is now available in your browser! Try it at [4mhttps://repomix.com[24m
