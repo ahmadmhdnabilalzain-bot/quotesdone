@@ -89,7 +89,66 @@ with md5 identical on both projects · 52 of 66 employees had an empty layer-2 h
 returned exactly 1200 output tokens on 40 of 61 calls · the DR drill went from 1 row to 32,686 ·
 `dropbox_backup` has not run since 27 July behind 1,754 "successful" cron entries.
 
-## THE INFLATED SCORECARD, kept only so the re-audit has something to correct
+## ✅ THE RE-AUDIT LANDED. THIS IS THE CORRECTED TABLE — USE IT.
+
+Every MET claim was attacked by a skeptic demanding a named object, a row count or caller, **and a
+named reader**, defaulting to downgrade. **90 of 232 MET claims did not survive.**
+
+| # | spec file | reqs | MET claimed | **MET upheld** | corrected | old 411-baseline |
+|---|---|--:|--:|--:|--:|--:|
+| 1 | **quotesdone architecture ← START HERE** | 56 | 24 | **14** | **25%** | 25% |
+| 2 | OS (blueprint) | 77 | 51 | **37** | **48%** | 33% |
+| 3 | OS 2 (executive UI) | 59 | 5 | **1** | **2%** | 11% |
+| 4 | customer portal | 75 | 13 | **1** | **1%** | 16% |
+| 5 | supplier portal | 90 | 16 | **2** | **2%** | 16% |
+| 6 | suppliers categories | 41 | 18 | **10** | **24%** | 13% |
+| 7 | agents and knowledge | 129 | 82 | **59** | **46%** | 28% |
+| 8 | open router | 93 | 23 | **18** | **19%** | 19% |
+| | **total** | 620 | 232 | **142** | **23%** | **20%** |
+
+**The project is at ~23% against a 20% baseline — flat, inside the noise between two enumerations.**
+The 37% was fiction. And **row #1 landed on exactly 25%, the same number the original table gave**,
+from a completely independent enumeration — two readers, two denominators, one answer. Treat 25% as
+solid. The portals collapsed: customer 16%→1%, supplier 16%→2%, executive UI 11%→2%.
+
+### The systemic finding that explains most of row #1 — read this before anything else
+
+**129 advisory-tier `org_tasks` sit at `proposed` and NOT ONE advisory task has ever reached
+`done`.** Only autonomous tasks complete (96). `dept_plan/index.ts:65-69` says why in its own source:
+
+> *"proposed means waiting on a founder decision, and there is no approval path, so a proposed row
+> can never clear."*
+
+150 tasks are parked, **114 of them over a week old, the oldest 25 July**. `evolution_proposal` has
+31 proposed and exactly **1** ever implemented (27 July). `self_review` 31 rows, read by nothing but
+its own writer. `company_reflection` 9 rows, same. **One missing approval path is strangling the
+entire improvement loop**, and it sits directly under row #1's "Every Task Has a Review Process".
+This is almost certainly the highest-value single fix in the project.
+
+### The other row-#1 downgrades, each with its evidence
+
+- **58 of 63 `company_goals` have an EMPTY `measure_sql`** — 92% of the objective set cannot be
+  measured. Worse, `revenue_annual`'s measure is `select count(*) from inquiries where created_at >
+  now()-interval '30 days'` — it **counts inquiries, not revenue**, against a table with 0 rows.
+  Every revenue figure the CEO layer has ever produced is a constant zero. And `fn_agent_context`
+  never reads `company_goals` at all, so only the 13 department-head planning prompts see them.
+- **`employee_authority`'s 285 rows have fired at most 3 times ever.** Its only enforcement path is
+  `fn_check_spend` ← `fn_decision_gate` (a trigger on `decision_record`, 3 rows, last 27 July) and
+  `fn_emit_budget_exceeded`, which has **zero callers anywhere**. Department authority IS enforced
+  live at `cos_execute:170`; per-employee authority is not.
+- **Current workload does not exist.** `max_open_tasks` is a static CAP, not load. Line 372 asks for it.
+- **`dept_learn_daily` reported 13/13 successful while writing ZERO lessons on two of the last three
+  days.** 104 tasks done against 31 lesson rows — "every completed task generates learning" is false
+  by a factor of three, and the lessons are per-department-per-day digests, not per-task records.
+- **`customer_preference`: 0 rows and 0 readers** — referenced by nothing in the entire system,
+  though "customer preferences" is named in the Company Memory section.
+- **`institutional_memory` frozen for 9 days** (last write 28 July) while `outcome_evaluate_daily`,
+  its claimed writer, reports 8/8 successful runs.
+- **Of the seven self-optimisation loops, three run and are read** (`fn_sop_update`,
+  `fn_knowledge_curator`, `fn_knowledge_decay`). `fn_evolution_scan`, `fn_outcome_evaluate`,
+  `fn_self_review` and `fn_company_reflect` all write where nothing reads.
+
+## THE SUPERSEDED INFLATED SCORECARD, kept only to show what was corrected
 
 | # | spec file | MET (strict) | MET+PARTIAL | unread | MISSING |
 |---|---|--:|--:|--:|--:|
