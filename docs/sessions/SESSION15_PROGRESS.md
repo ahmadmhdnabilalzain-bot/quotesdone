@@ -74,6 +74,21 @@ gaps would rebuild things that already work:
   the 179 historical NULL task_ids rather than current behaviour.
 **Re-derive nothing. Read the check, then decide whether the check or the system is wrong.**
 
+## CLOSED THIS SESSION, BOTH PROJECTS, VERIFIED BY MEASUREMENT
+- xos-14 correlation/causation · xos-02/03/04/05 the bus · comp-16 health cluster (health_score
+  10/10 at 75-97, six unread v_os_health metrics now in os_review.metrics) · os-exclusive-ownership
+  (0 double-owned, 0 unowned, all 10 OSes own domains, digest 73cbd715 identical) ·
+  comp-06-knowledge-independent · os-operations ('automation' responsibility).
+- `os.health_changed` fired for the FIRST TIME EVER (11 events). It had been declared by leadership
+  in os_interface since the beginning and never once emitted.
+- New callable emitter `public.fn_emit(...)` — fn_emit_event is trigger-only (reads tg_argv/NEW) so
+  no routine could call it, which is why all 11 programmatic writers hand-rolled their own INSERT.
+
+## THE REMAINING GAPS ARE BEING CLOSED BY A 5-CLUSTER WORKFLOW (disjoint object ownership)
+health · decision(comp-10) · bus(xos-*, the biggest) · memory(comp-11/12/13) · knowledge(comp-03/05/06/09).
+Each cluster: decide check-wrong vs real-gap → build → staging → EXECUTE → promote → measure.
+Ownership is disjoint so no two agents edit the same routine or scorer file.
+
 ## TOOLING FIXED THIS SESSION (do not re-find these)
 - `apply_sql.mjs` gains `--ddl` (identical text to both, public-schema SHAPE digest asserted) and
   **retry/backoff on the production path**, which had NONE. A 429 between two routines in one file
