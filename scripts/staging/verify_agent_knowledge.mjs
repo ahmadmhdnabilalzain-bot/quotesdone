@@ -81,9 +81,12 @@ step('a query-less call is byte-identical to the old two-argument one',
   `${plain.a} chars, null=${plain.b} empty=${plain.c}, no LAYER 2b`);
 
 // ---- 4. with a query, the section is present AND built from dept_library -------------------------
+// The 2b span must STOP at 2c. `'# LAYER 2b.*$'` runs to the end of the string, so once the
+// operations corpus added a 2c section this measured both and reported 9 excerpts and 5,650 chars
+// for a 4-excerpt, 3,137-char section — a gate failing on its own extractor, not on the code.
 const titles = async (key, q) => await one(REF, `
   with ctx as (select public.fn_agent_context(${lit(key)}, 24000, ${lit(q)}) t),
-       sect as (select substring(t from '# LAYER 2b.*$') s from ctx),
+       sect as (select split_part(substring(t from '# LAYER 2b.*$'), '# LAYER 2c', 1) s from ctx),
        lines as (select trim(substring(l from 4)) title from sect, unnest(string_to_array(s, E'\\n')) l where l like '## %')
   select (select length(s) from sect)::int seclen,
          count(*)::int n,
@@ -169,6 +172,54 @@ step('an employee with their own knowledge is unaffected',
 
 step('employees with no knowledge anywhere are counted, not hidden', l2.still_empty >= 0,
   `${l2.still_empty} employee(s) have neither their own nor a department library — a corpus gap, not a wiring one`);
+
+// ---- 6b. the operations corpus, and the departments that had NOTHING ----------------------------
+// 3,959 founder-supplied records (240 exception playbooks, 240 decision rules, 236 SOPs, 216 KPI
+// definitions) that neither project had a table for. Imported and wired in one change, because an
+// imported corpus with no reader is the exact defect this whole line of work exists to prevent.
+const opsDigest = async (ref) => (await one(ref,
+  `select count(*)::int n, count(dept_key)::int mapped,
+          md5(string_agg(record_id, E'\\n' order by record_id)) h,
+          count(*) filter (where record_type='exception_playbook')::int playbooks
+     from public.ops_knowledge`));
+const [po, so] = [await opsDigest(PROD_REF), await opsDigest(REF)];
+step('ops_knowledge is row-for-row identical to production',
+  so.n === po.n && so.n > 0 && so.h === po.h,
+  `staging ${so.n} rows / ${so.mapped} mapped, production ${po.n} / ${po.mapped}, md5 ${String(so.h).slice(0, 10)}…`);
+step('the exception playbooks are present', so.playbooks === 240, `${so.playbooks} exception_playbook record(s)`);
+
+// The spec's FIRST named exception scenario is "OpenAI is unavailable / Anthropic is unavailable".
+// The founder shipped a playbook for it per department. This asserts the retrieval finds it.
+const outage = await one(REF, `select count(*)::int n,
+    (select title from public.fn_ops_knowledge_search('hr','external AI provider unavailable',1)) t
+  from public.fn_ops_knowledge_search('hr','external AI provider unavailable',5)`);
+step('an AI-provider outage retrieves its playbook', outage.n > 0 && /provider unavailable/i.test(String(outage.t || '')),
+  `${outage.n} hit(s), top "${String(outage.t || '').slice(0, 52)}"`);
+
+// hr, intelligence and knowledge_eng each held 0 agent_knowledge AND 0 dept_library rows.
+const zeros = await one(REF, `select count(*)::int still_empty from public.org_departments d
+  where d.active
+    and not exists (select 1 from public.ops_knowledge o where o.dept_key = d.dept_key)
+    and not exists (select 1 from public.dept_library l where l.department = d.dept_key)
+    and not exists (select 1 from public.agent_knowledge k join public.org_agents a
+                     on a.agent_key = k.agent_key and a.active where a.department = d.dept_key)`);
+step('no active department is left with zero knowledge', Number(zeros.still_empty) === 0,
+  `${zeros.still_empty} department(s) with nothing`);
+
+// The authority tier must travel WITH the excerpt. An agent reading a `gated` procedure that does
+// not say it is gated will act on it, which is worse than not retrieving it at all.
+const l2c = await one(REF, `
+  with c as (select public.fn_agent_context('hr_director', 24000,
+                    'external AI provider unavailable during onboarding') t)
+  -- NOTE: the probe text avoids the word "do". qd_guard's read-only regex includes \\bdo\\b for
+  -- anonymous DO blocks, so a natural-sounding question ("what do we do when...") is refused as a
+  -- write. The guard is right; the probe was careless.
+  select (t like '%LAYER 2c%') has_2c,
+         (t ~ 'authority: (advisory|supervised|gated|autonomous)') has_tier,
+         (t ~ '(implemented|partial|target_state)') has_status from c`);
+step('layer 2c carries the authority tier and implementation status',
+  l2c.has_2c && l2c.has_tier && l2c.has_status,
+  `section=${l2c.has_2c} tier=${l2c.has_tier} status=${l2c.has_status}`);
 
 // ---- 7. continuous monitoring: the failing-cron signal now has a reader -------------------------
 // fn_os_health()'s `failing_crons` uses JOIN LATERAL … ORDER BY start_time DESC LIMIT 1 WHERE

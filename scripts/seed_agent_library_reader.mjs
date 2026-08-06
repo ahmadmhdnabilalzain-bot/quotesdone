@@ -48,6 +48,48 @@
 //   node scripts/seed_agent_library_reader.mjs --print-sql  # emit the statements for production
 import { mgmtRead, mgmtWrite, resolveStagingRef } from './staging/qd_guard.mjs';
 
+// LAYER 2c — the operations corpus, wired in the SAME change that imported it.
+//
+// scripts/import_ops_knowledge.mjs loads 3,959 founder-supplied records into public.ops_knowledge,
+// of which 3,005 resolve to a production department. Importing it and stopping there would have
+// made it the SEVENTH complete-and-unread asset in three sessions, which is the one outcome this
+// whole line of work exists to prevent. `fn_ops_knowledge_search` is the sibling of
+// `fn_dept_library_search` and the overload below reads both.
+//
+// It is a SEPARATE section from 2b on purpose. dept_library is external domain reference (UAE law,
+// standards, market practice); ops_knowledge is how THIS company operates — SOPs, decision rules,
+// exception playbooks, KPI definitions. Merging them would let an agent cite a generic UAE
+// regulation where the company's own gated procedure applies, which is the wrong way round.
+//
+// authority_tier and implementation_status travel WITH the excerpt. An agent reading a `gated`
+// procedure must see that it is gated, and one reading a `target_state` record must know the
+// company has not built it yet — a plan that assumes an unbuilt capability is worse than no plan.
+export const SQL_OPS_SEARCH = `
+create or replace function public.fn_ops_knowledge_search(p_dept text, p_query text, p_limit integer default 5)
+returns table(record_id text, title text, content text, record_type text, authority_tier text,
+              implementation_status text, rank real)
+language plpgsql
+stable
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare q_or tsquery; words text[];
+begin
+  words := array(select w from unnest(regexp_split_to_array(lower(regexp_replace(coalesce(p_query,''),'[^a-z0-9 ]',' ','g')),'\\s+')) w where length(w)>2);
+  if array_length(words,1) is null then return; end if;
+  begin q_or := to_tsquery('english', array_to_string(words,' | ')); exception when others then return; end;
+  return query
+    select o.record_id, o.title, o.content, o.record_type, o.authority_tier,
+           o.implementation_status, ts_rank(o.tsv, q_or) as rank
+      from ops_knowledge o
+     where (p_dept is null or o.dept_key = p_dept or o.scope_type = 'company')
+       and o.tsv @@ q_or
+     order by ts_rank(o.tsv, q_or) desc, o.record_id
+     limit greatest(1, least(coalesce(p_limit,5),20));
+end $fn$;
+revoke execute on function public.fn_ops_knowledge_search(text,text,integer) from public;
+grant execute on function public.fn_ops_knowledge_search(text,text,integer) to postgres, service_role;`;
+
 // The overload. `distinct on (id)` matters only when v_dept is null, where the unscoped pass can
 // already return the same `company` row the second pass asks for.
 export const SQL_CONTEXT = `
@@ -58,7 +100,7 @@ stable
 security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-declare out text; v_dept text; lib text := ''; r record;
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
 begin
   out := public.fn_agent_context(p_agent_key, p_max_chars);
   if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
@@ -76,10 +118,31 @@ begin
     exit when length(lib) > 2600;
     lib := lib || '## ' || coalesce(r.title,'') || E'\\n' || left(coalesce(r.content,''), 700) || E'\\n\\n';
   end loop;
-  if lib = '' then return out; end if;
-  return out || E'\\n' ||
-    '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-    E'\\n\\n' || lib;
+  if lib <> '' then
+    out := out || E'\\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\\n\\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\\n' || left(coalesce(r2.content,''), 700) || E'\\n\\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\\n\\n' || ops;
+  end if;
+  return out;
 end
 $fn$;
 revoke execute on function public.fn_agent_context(text,integer,text) from public;
@@ -362,6 +425,7 @@ end
 $do$;`;
 
 if (process.argv.includes('--print-sql')) {
+  console.log(SQL_OPS_SEARCH);
   console.log(SQL_CONTEXT);
   console.log(SQL_GAPS);
   console.log(SQL_L2_FALLBACK);
@@ -372,6 +436,7 @@ if (process.argv.includes('--print-sql')) {
 
 const REF = resolveStagingRef(process.argv[2]);
 await mgmtWrite(REF, SQL_L2_FALLBACK, 'fn_agent_context layer-2 department fallback');
+await mgmtWrite(REF, SQL_OPS_SEARCH, 'fn_ops_knowledge_search');
 await mgmtWrite(REF, SQL_CONTEXT, 'fn_agent_context library overload');
 await mgmtWrite(REF, SQL_GAPS, 'fn_knowledge_gaps owner attribution');
 await mgmtWrite(REF, SQL_RFQ_TRACE, 'fn_entity_activity rfq trace');
