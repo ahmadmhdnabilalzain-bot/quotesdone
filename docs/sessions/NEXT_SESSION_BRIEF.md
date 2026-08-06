@@ -54,6 +54,91 @@ node scripts/verify_prod_readiness.mjs           # 13/13  §8 against PRODUCTION
 
 ---
 
+## SESSION 12 (6 Aug 2026) — the fifth unread asset, and a governance layer that was already running
+
+**All seventeen gates green on the first pass**, journey 39/39 (275 s), and `--purge --dry-run`
+after it reported exactly `1 storage/signed-terms` — the rolling register, nothing else. No
+regression, no drift, no leak. Every defect below came from the work after the gates.
+
+**FILE #7, agents and knowledge — dept_library and os_knowledge_domain now have readers.**
+
+`public.dept_library` holds **1,456 rows in both projects** — legal 451, procurement 361, it 318,
+finance 290, and a cross-cutting `company` 36 — with a `tsvector` column and a search function,
+`fn_dept_library_search(p_dept, p_query, p_limit)`, that **works**: measured, five relevant hits
+for a real question in each of the five. It had **zero callers**. Not one routine, view, Edge
+Function, cron job or frontend module named it. The fifth instance of the shape.
+
+The reader is an **overload, not a rewrite**. `fn_agent_context(text,integer,text)` *calls*
+`fn_agent_context(text,integer)` and appends one section, so the 100-line four-layer body is not
+copied and cannot drift, the existing signature is not dropped and its grants survive, and its
+**thirteen call sites across ten Edge Functions** keep working byte-identically. Both parameters of
+the old signature carry defaults, so a two-argument call still resolves to exactly one function.
+
+> **Without a query it would have been a dump, not retrieval.** `fn_agent_context` has no message
+> parameter, which is why the library could not simply be pasted into layer 2 — legal alone is 451
+> rows averaging 1,390 characters against a 22,000-character budget. The section is emitted **only**
+> when a caller supplies the real question, and is capped at ~2,600 characters. `agent_brain` passes
+> it today (staging v2, production v26, `p_query` confirmed present in both deployed bundles with
+> comment lines stripped). **The other twelve call sites are unchanged until they pass one too** —
+> `agent_act:41`, `dept_plan:81` and `secretary_act:287` are the next ones with a real task string.
+
+Second orphan, same change: **`os_knowledge_domain`, 380 rows, had zero readers AND zero writers.**
+`fn_knowledge_gaps` — already exposed by `os_api`'s `knowledge_gaps` action — reported per-agent
+gaps with nobody to route them to. It now carries `owner_os`. Measured *before* wiring, because the
+six-vocabularies rule applies here too: of **110** active `category_agents`, **84** have a domain
+row at `cat:<slug>` and only **53** have one with `ownership='owns'`. The join is real but
+**partial**, so the summary reports `unowned` (57) as a number rather than letting the report imply
+full coverage.
+
+`verify_agent_knowledge.mjs`, **13/13, zero spend**. The checks that matter are the negative ones:
+
+- a **query-less call is byte-identical** to the old two-argument one (28,014 chars, no section) —
+  without that assertion this is a silent behaviour change to ten Edge Functions;
+- every emitted excerpt must **match a real `dept_library` row by title** (4 of 4), so "the output
+  grew" can never be mistaken for "the library was read";
+- a `cat:<slug>` specialist has **no `org_agents` row**, so `v_dept` is null and the search falls
+  through to "any department" — the branch most likely to be silently dead. Without this check all
+  110 category specialists would get an empty section and nothing would say so;
+- and it states the corpus gap instead of hiding it: **4 of 13 staffed departments have a library**,
+  and a department without one returns nothing rather than borrowing another's.
+
+Routines **743 → 744 in each project**; applied directly, not as a migration.
+
+**THE GOVERNANCE LAYER IS NOT UNBUILT AND NOT UNWIRED — correct the previous brief.** "AI Governor,
+AI Scheduler, AI Auditor, AI Memory Manager, exception handling and self-healing … several have
+routines with no callers" measured routine-to-routine and view references only. **All seven run on
+active production crons and all succeed**, and their output lands:
+
+| cron (production, all `active`) | routine | runs / ok | output, measured |
+|---|---|--:|---|
+| `policy_consistency_weekly` | `fn_policy_consistency_check` | 3 / 3 | the Governor |
+| `autonomy_audit_weekly` | `fn_autonomy_audit_run` | 2 / 2 | `org_memory` 2 rows |
+| `knowledge_curator_daily` | `fn_knowledge_curator` | 18 / 18 | `knowledge_kpi_snapshots` 28 rows |
+| `knowledge_decay_daily` | `fn_knowledge_decay` | 8 / 8 | **0 decayed — correctly** (see below) |
+| `edge_health_scan_15min` | `fn_edge_health_scan` | 785 / 785 | 30 active `edge_expectation` rows |
+| `exception_alerts_hourly` | `fn_exception_alerts` | 432 / 432 | `founder_alerts` 108 rows |
+| `graph_rebuild_daily` | `fn_graph_rebuild` | 18 / 18 | `graph_nodes` 323 / `graph_edges` 300 |
+
+`fn_knowledge_decay` decaying nothing looked exactly like session 11's `kpi_review_weekly` — eight
+"successful" runs measuring nothing — and it is **not** that. Measured: 1,869 `agent_knowledge`
+rows, 1,734 carrying `review_due`, and in production **0 are past it** (earliest bucket 2026-10-24;
+seven bulk stamps at ~90 days and ~12 months from the import). The engine is idle because the corpus
+is genuinely fresh, not because it is broken. Worth re-checking after 24 Oct 2026.
+
+> **A parity difference nothing measures.** The `(agent_key|topic)` md5 over all 1,869 rows is
+> **identical** on both projects, but `review_due` is not: staging's earliest is **2026-08-05** with
+> **168 rows already past due**, production's is **2026-10-24** with none. The row keys were copied;
+> the review metadata is an older snapshot. Harmless today — staging has 0 crons so decay never runs
+> there — but it means a staging test of the decay engine would exercise a state production is not in.
+
+**`graph_nodes` is measured and deliberately NOT wired here.** 323 nodes and 300 edges rebuilt every
+night by an active production cron, read by **zero** routines, views, Edge Functions and frontend
+modules. Its consumer is the company graph in the executive UI — spec file **#3**, which is
+scheduled last — and inventing a different consumer inside #7 would build the same thing twice.
+`decision_trace` stays closed per §3.5: seeded config, no orchestrator, no data-only fixture.
+
+---
+
 ## SESSION 11 (6 Aug 2026) — the knowledge existed, nothing read it
 
 All fifteen gates were green on the first pass. Every defect below was found *after* them.
@@ -63,6 +148,7 @@ All fifteen gates were green on the first pass. Every defect below was found *af
 ```
 node scripts/verify_deploy_parity.mjs --since=HEAD~40   # is the repo's code actually RUNNING, both projects
 node scripts/staging/verify_intake_routing.mjs          # 10/10 Arabic routing + ordered interview + knowledge
+node scripts/staging/verify_agent_knowledge.mjs         # 13/13 the department library reaches the employee — zero spend
 node scripts/staging/demo_factory.mjs --purge --dry-run # run AFTER the journey; only the register should appear
 ```
 
@@ -1080,6 +1166,16 @@ The one defect found came from the step *after* the gates: a `--purge --dry-run`
 | "the baseline counter check would have caught it — that is what it is for" | It counts `agent_actions` and still missed this for two sessions. **The selftest never generates the row**: it dispatches into a populated corpus, so no coverage gap is ever recorded, so the counter never moves. A counter only catches what something wrote. The fix therefore includes making the fixture write all three shapes — check 17, `the teardown rule for agent_actions is actually exercised` |
 | "an exception-window run showed `agent_actions 1`, so the sweep works" | That is the **one** reachable branch (`target_table='leads'`). A rule that fires on one of three inputs looks identical in the output to a rule that fires on all three |
 
+### Corrections found in session 12
+
+| earlier claim | truth |
+|---|---|
+| "AI Governor, AI Scheduler, AI Auditor, AI Memory Manager, exception handling and self-healing — several have routines with no callers" | **All seven have callers and all seven are running.** The count was taken over routine-to-routine and view references, which is the one place these never appear: their callers are `cron.job`. `policy_consistency_weekly`, `autonomy_audit_weekly`, `knowledge_curator_daily`, `knowledge_decay_daily`, `edge_health_scan_15min`, `exception_alerts_hourly` and `graph_rebuild_daily` are all `active=true` in production with **1,266 runs and zero failures between them**, and every one of them writes rows that are there to count. "Zero callers" must name the instrument that measured it |
+| "`dept_library` … read by zero Edge Functions and zero UI" | Right, and understated: read by zero **anything**. `fn_dept_library_search` — correct, indexed, five hits per real query — had no caller in any routine, view, Edge Function, cron job or frontend module. Fixed; see the session 12 block |
+| "`fn_knowledge_decay` runs and decays nothing" (the shape of session 11's `kpi_review_weekly`) | **Not the same defect.** 1,734 of 1,869 `agent_knowledge` rows carry `review_due` and in production **none is past it** — the earliest bulk stamp is 2026-10-24. The engine is idle because the corpus is fresh. Re-check after 24 Oct 2026 rather than "fixing" it now |
+| "staging holds the entire knowledge estate, 40 tables, 0 empty" | True for the rows. **Not true for the review metadata**: the `(agent_key\|topic)` md5 over all 1,869 `agent_knowledge` rows matches production exactly, while `review_due` does not — staging carries 168 rows already past due against production's 0. A key-set digest is not a row digest |
+| "`graph_nodes` (323) … read by zero Edge Functions and zero UI" | Confirmed, and its **writer is fine** — an active nightly cron rebuilds 323 nodes and 300 edges. The gap is entirely on the read side, and the reader belongs to spec file #3 (executive UI), not #7. Building one inside #7 would build it twice |
+
 The file states the rule it broke, twenty lines above the break: *"they key off the quote/inquiry id as TEXT, so
 they must go before the row they name … That ordering mistake is exactly what left 452 doc_versions and 186
 company_event rows in staging."* Every other step in the list obeys it; `agent_actions` was the sole violator,
@@ -1366,6 +1462,8 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | **`verify_matching.mjs`** | builds the 100-supplier corpus and asserts the score ladder, the relevance floor, the fan-out cap and the four hard gates. `--live` adds one real dispatch |
 | **`verify_supplier_docs.mjs`** | `supplier_api process_docs` end to end: real PDF bytes into `supplier-docs` through the deployed function, the licence-gate write-back, the unreadable-licence path and the sanitiser. Asserts the ROW, never the response |
 | **`verify_constraints.mjs`** | the parity dimension nothing measured: NOT NULL columns and CHECK constraints against production. Report-only; `--apply` fixes staging through `qd_guard` |
+| **`verify_agent_knowledge.mjs`** | whether an employee can actually see the 1,456-row department library. Asserts the NEGATIVES: a query-less call is byte-identical to the old two-argument one, every emitted excerpt matches a real `dept_library` row by title, and the `cat:<slug>` branch (no `org_agents` row, so `v_dept` is null) is not silently dead. Zero spend |
+| **`seed_agent_library_reader.mjs`** (in `scripts/`) | the `fn_agent_context` overload and `fn_knowledge_gaps`' `owner_os`. Idempotent, measures after applying; `--print-sql` emits both statements for production |
 | **`verify_prod_readiness.mjs`** (in `scripts/`, not `scripts/staging/`) | §8 as a measurement against **production**, read-only by construction. Reports each item APPLIED/OUTSTANDING with its measured value and the exact statement, exits non-zero. Deploy list derived from `git diff main...HEAD`, drift checked by bundle **content** |
 
 `sync_staging_reference.mjs` still leaves `field_definition` and `field_definition_source` unloaded
