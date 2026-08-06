@@ -1042,6 +1042,13 @@ export async function teardown(run) {
     // dispatches into an empty corpus, so it never generates the row it fails to clean up.
     ['agent_actions', `delete from public.agent_actions where (target_table='leads' and target_id in ${LEAD_T}) or (target_table='inquiries' and target_id in ${INQ_T}) or (target_table='quotes' and target_id in ${QUO_T})`],
     ['doc_versions', `delete from public.doc_versions where entity_type='quote' and entity_id in ${QUO_T}`],
+    // quote_items keys off quote_id as TEXT, so like its neighbours above it must go BEFORE the
+    // quotes row it names. It was never swept at all: measured 6 Aug 2026, staging held 109 rows
+    // across 109 distinct quote_ids against 0 surviving quotes — every one an orphan, the oldest
+    // from 5 Aug and the newest written during that morning's own gate run. The baseline counter
+    // could not catch it because quote_items was not in EXACT_TABLES either, which is the same
+    // pair of holes that let agent_actions leak for two sessions.
+    ['quote_items', `delete from public.quote_items where quote_id::text in ${QUO_T}`],
     ['documents', `delete from public.documents where ${DOCS_W}`],
     ['company_event (quote)', `delete from public.company_event where entity_type='quote' and entity_id in ${QUO_T}`],
     ['quotes', `delete from public.quotes where id in ${QUO}`],
@@ -1220,6 +1227,10 @@ export const EXACT_TABLES = ['customers', 'leads', 'inquiries', 'quotes', 'suppl
   'inquiry_matches', 'inquiry_intake', 'inquiry_requirement', 'inquiry_supplier_brief',
   'email_verifications', 'drawing_redaction_runs', 'documents', 'transactions', 'notifications',
   'company_event', 'doc_versions', 'comparison_run_v2', 'comparison_candidate_v2',
+  // quote_items: 109 orphans had accumulated by 6 Aug 2026 with 0 quotes alive. A counter only
+  // catches what something wrote, and this counter did not exist while the teardown rule did not
+  // either — so the selftest read 18/18 through every leaking run.
+  'quote_items',
   // Added after an exception-window run left a dangling row here: the baseline check can only catch
   // what it counts, and this table was not on the list.
   'agent_actions'];

@@ -75,10 +75,15 @@ async function meta(key:string){
   if(oa) return { name: oa.role || key };
   return null;
 }
-// FOUR-LAYER EMPLOYEE CONTEXT (identity+posture, company, profession, live state, experience).
-async function layeredContext(key:string){
+// FOUR-LAYER EMPLOYEE CONTEXT (identity+posture, company, profession, live state, experience),
+// PLUS layer 2b: the employee's own department reference library, retrieved for this question.
+// dept_library carries 1,456 rows (legal 451, procurement 361, it 318, finance 290, company 36)
+// and fn_dept_library_search had zero callers anywhere — complete, indexed and unread. Passing the
+// message is what turns it from a dump into retrieval: fn_agent_context emits the section only
+// when a query arrives, so the twelve other call sites are unchanged until they pass one too.
+async function layeredContext(key:string, msg:string){
   try{
-    const { data, error } = await admin.rpc('fn_agent_context', { p_agent_key: key, p_max_chars: 24000 });
+    const { data, error } = await admin.rpc('fn_agent_context', { p_agent_key: key, p_max_chars: 24000, p_query: msg });
     if(error || !data) return '';
     return '\n\n'+String(data);
   }catch(_e){ return ''; }
@@ -168,7 +173,7 @@ Deno.serve(async (req)=>{
     const teammates=VALID_AGENTS.filter(a=>a!==key).map(a=>a+' ('+(NAMES[a]||a)+')').join(', ');
     const base='You are '+m.name+' at QuotesDone, a UAE B2B anonymous quotation marketplace — a senior executive employee, not an assistant. Your full employment context follows (identity, company canon, your professional expertise, live operational state, organizational experience) — it governs how you think and act. DOCTRINE: default to action within your delegated authority — complete work and report results; prepare and route gated work (money, publishing, legal action, security) for approval rather than abandoning it; never ask permission you already have. Be specific, practical and concise. Never invent numbers — operational figures come only from the LIVE OPERATIONAL STATE and LIVE DATA SNAPSHOT.\n\nTEAMWORK: You can hand a task to a colleague specialist when it clearly belongs to them. Your colleagues: '+teammates+'.\n\nKNOWLEDGE (your window to the world): if answering this well needs domain knowledge you do not have, you may RESEARCH THE INTERNET to fill the gap permanently — real UAE sources are pulled, verified and saved into the relevant specialist\'s knowledge so it is there for everyone next time. Use this for genuine gaps in durable domain knowledge (materials, standards, authorities, methods, market facts) — NOT for live/one-off data. Prefer answering from what you already know; reach for research only when there is a real gap worth closing.\n\nTo act, AFTER your normal reply append on a NEW LINE exactly @@ACTIONS@@ followed by compact JSON. You may include either or both keys: {"handoffs":[{"to":"<agent_key>","title":"<short task title>","details":"<what to do and why>"}],"research":[{"agent":"<specialist_slug_or_your_own_key>","topics":["<specific sub-topic to research>","<another>"]}]}. Only request real, specific, useful work. Omit the @@ACTIONS@@ line entirely if there is nothing to do. Never mention this mechanism or the word @@ACTIONS@@ in your visible reply.';
     const persona=(m as any).persona?('\n\n'+(m as any).persona):'';
-    const [layered, instr, kb] = await Promise.all([layeredContext(key), instructions(key), retrieve(key, msg)]);
+    const [layered, instr, kb] = await Promise.all([layeredContext(key, msg), instructions(key), retrieve(key, msg)]);
     const sys=base+persona+layered+instr+kb+'\n\nLIVE DATA SNAPSHOT (read-only, captured just now):\n'+JSON.stringify(ctx).slice(0,9000);
     const rawReply=await llm(sys,[...history,{role:'user',content:msg}],1700)||'I could not reach the AI service just now — please try again in a moment.';
     let [clean,acts]=splitActions(rawReply); let finalReply=clean||rawReply; const notes:string[]=[];

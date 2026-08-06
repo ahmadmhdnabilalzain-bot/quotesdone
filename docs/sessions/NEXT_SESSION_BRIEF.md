@@ -1,4 +1,160 @@
-# START HERE — QuotesDone, 6 August 2026, end of session 10
+# START HERE — SESSION 13. TWO RULES, BOTH FROM THE FOUNDER, BOTH ABSOLUTE.
+
+> ## 1. ONE ROW AT A TIME, TO 100%. DO NOT START THE NEXT FILE.
+> *"we close them row by row. so we wont move to the next row unless we reach 100%. all of them
+> have to become 100%."* — 6 Aug 2026.
+> Breadth-first is now forbidden. A file at 96% is an open file. Finish it.
+>
+> ## 2. EVERYTHING DEPLOYS TO PRODUCTION. NOTHING STOPS AT STAGING.
+> *"nothing is for staging. all for deploy."* — 6 Aug 2026.
+> Staging is a rehearsal surface, not a destination. Every routine, table, Edge Function, reference
+> load and config change goes to `htdblwldjkcgjvmqkbeh` in the turn it is verified. This also
+> overrides "import into staging only" notes inside founder knowledge packs — those predate 5 Aug,
+> when production became a live target. `qd_guard` still refuses production writes **by design**;
+> promote by reading staging's verified definition back and posting it verbatim, then assert
+> `md5(prosrc)` matches. Do not retype a body. `scripts/verify_prod_parity.mjs` is the check.
+
+## THE ROW YOU ARE ON: #1 quotesdone architecture. TAKE IT TO 100%.
+
+> ## 3. THE ORDER IS THE FILE ORDER: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8.
+> *"we start next session with quotesdone architecture row. it was 25% done and it has to hit 100%
+> then we move to OS blue print, then OS 2 then,,,etc."* — 6 Aug 2026.
+> Not cheapest-first. Not "#7 is already in flight". **#1, to 100%, then #2.** An earlier revision
+> of this brief suggested 6 → 2 → 1 → 3 → 5 → 8 → 4; that suggestion is withdrawn.
+
+**Baseline: 9 of 36 = 25%** (the trusted 411-enumeration). Session 12 did **not** work this file.
+
+### What a rigorous read of #1 already found — start here, do not re-derive it
+
+The spec's *organisation* is built and running. Its *quality half is inert*: the department-head and
+Chief-of-Staff review chain, the challenge heuristics, the culture principles and the collaboration
+rules all exist and hold real rows, and **nothing calls any of them — so work ships whenever a
+deliverable exceeds 60 characters.** That single sentence is most of this row.
+
+| finding | evidence |
+|---|---|
+| `collaboration_rule` **10 rows** with `must_involve` / `must_review` / `may_challenge` and a blocking flag | **0 readers.** `cos_execute:229` dispatches each task to exactly one department's brain, with no second participant |
+| `org_agents.title` populated **67/67** | `fn_agent_context` selects only `department, role` — **the job title never enters any prompt** |
+| `org_agents.responsibilities` populated **55/67** | not selected by `fn_agent_context`; 0 readers anywhere |
+| `org_agents.manager_key` valid for **66/67**, every one resolving | **traversed by nothing.** Routing uses `brain_agent`/`lead_agent`, so the reporting line is never walked. `v_org_chart` exists with 0 readers |
+| `department_objective` **44 rows**, all `horizon='year_1'` | only `trg_goal_cascade` touches it. **`dept_plan` does not read it** |
+| `goal_period` **183 rows**, refreshed daily | **0 readers** — the only proc that touches it is its own refresher |
+| `decision_record` 3 rows carrying `serves_goal` | 0 readers; its consumers `v_decision_intelligence` and `v_audit_coverage` are themselves unread |
+| only **5 of 63** `company_goals` carry a `measure_sql` | `goal_period` holds 183 targets and **9** actual values, 6 non-zero. `fn_goal_period_refresh` is 8/8 green because it has almost nothing to compute |
+| no per-employee **short-horizon** objective store exists | `department_objective` is year_1 only; `org_tasks` is a work queue standing in for it |
+
+Genuinely MET already, do not touch: `company_goals` 63 rows read by `dept_plan:79` · `org_authority`
+196 + `employee_authority` 285, enforced live at `cos_execute:170` (it re-resolves `fn_dept_authority`
+and logs `tier_claim_exceeds_grant`) · `employee_kpi` 94 active read by 8 procs · `agent_memory` 208 /
+`org_memory` 173 / `institutional_memory` 30 in LAYER 4 · `dept_plan_daily` 10/10 · `dept_learn_daily`
+13/13 · `org_agents.max_open_tasks` 67/67.
+
+**The shape of this row is wiring, not building.** Almost every gap above is a populated table with
+no caller — the same defect this project has hit seven times. Expect `fn_agent_context`,
+`cos_execute` and `dept_plan` to be where most of the fixes land.
+
+**The itemised list for every file is on disk** — do not re-derive it:
+`C:\Users\Opera\.claude\projects\C--Users-Opera-quotesdone\44929eb5-f98f-4608-8a3b-5dc2f37d6fc1\subagents\workflows\wf_f5161532-05f\journal.jsonl`
+one `{"type":"result"}` line per spec file, each with every requirement, its status and its evidence.
+The companion audit `wf_d6848866-ec5` carries the ranked fixes and the refutations.
+
+## ⚠ THE SCORECARD BELOW IS INFLATED AND UNDER RE-AUDIT. DO NOT PLAN AGAINST IT.
+
+The founder rejected it on sight and was right. Two defects, both mine, both structural:
+
+1. **Verification was one-directional.** Three skeptics attacked every `MISSING` verdict and
+   **refuted 30 of 110**. Nobody ever challenged a `MET` verdict. That can only move requirements
+   *out* of MISSING and never out of MET, so the table is biased upward by construction.
+2. **The denominator was decomposed, not discovered.** 411 → 620 happened because the new scorers
+   split the specs' capability lists into individual requirements — file #1's scorer says so
+   outright: *"I count 56 rather than 36 because the file states five explicit capability lists
+   (12 employee attributes, 9 employee-object fields, 8 department-head duties, 6 Chief-of-Staff
+   duties, 10 CEO duties) that a prior pass most likely collapsed into one requirement each."*
+   Splitting one requirement into twelve moves numerator and denominator together and shifts the
+   percentage for free.
+
+Third, smaller: each scorer was handed a list of ~20 items to "count as MET" so it would not
+re-report closed work. That pre-loaded the numerator too.
+
+**The tell the founder used, and the right one:** seven of the eight files had NO work done on them
+in the session that produced this table, and every one of them scored higher. Work moved exactly
+one row — **#7** — and nothing else.
+
+**Until the re-audit lands, the trustworthy baseline is the ORIGINAL table**: 36/9, 45/15, 54/6,
+44/7, 51/8, 45/6, 64/18, 72/14 across files 1–8 on the 411-requirement enumeration. Use it.
+
+What IS trustworthy from session 12, because each was measured directly rather than judged:
+`dept_library` 1,456 rows had zero callers and now has a reader · 3,959 operations records imported
+with md5 identical on both projects · 52 of 66 employees had an empty layer-2 heading · `dept_plan`
+returned exactly 1200 output tokens on 40 of 61 calls · the DR drill went from 1 row to 32,686 ·
+`dropbox_backup` has not run since 27 July behind 1,754 "successful" cron entries.
+
+## THE INFLATED SCORECARD, kept only so the re-audit has something to correct
+
+| # | spec file | MET (strict) | MET+PARTIAL | unread | MISSING |
+|---|---|--:|--:|--:|--:|
+| 6 | suppliers categories | 44% | **93%** | 3 | **0** |
+| 7 | **agents and knowledge ← YOU ARE HERE** | **64%** | 90% | 4 | 9 |
+| 2 | OS (blueprint) | 65% | 82% | 12 | 2 |
+| 1 | quotesdone architecture | 41% | 75% | 11 | 3 |
+| 3 | OS 2 (executive UI) | 8% | 59% | **21** | 3 |
+| 5 | supplier portal | 18% | 58% | 13 | 25 |
+| 8 | open router | 25% | 58% | 6 | 33 |
+| 4 | customer portal | 17% | 39% | 11 | 35 |
+| | **total** | **37% (230/620)** | **69%** | **81** | **110** |
+
+> **The denominator is 620, not 411.** Eight independent readings of the real spec text. Do not
+> compare a percentage to an older brief's — compare statuses. And the previous card's
+> *"categories 17% → 87%"* is on the MET+PARTIAL bar, where it now reads **93%**; it is not in
+> conflict with the 44%.
+
+~~SUGGESTED ORDER, cheapest first: 6 → 2 → 1 → 3 → 5 → 8 → 4.~~ **WITHDRAWN — the founder set the
+order on 6 Aug: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8, each to 100% before the next.** Two observations
+from the cheapest-first analysis survive as *facts about the rows*, not as an argument to reorder:
+#6 has **zero MISSING** — complete and half-finished, finishing work only — and #3, which reads
+worst on any bar, carries **21 BUILT_BUT_UNREAD**: production computes an autonomous company every
+night and shows the founder none of it. Both are wiring when their turn comes.
+
+## THE DEFINING STATE OF THIS CODEBASE: 81 requirements built, correct, and read by nothing
+
+13% of the whole spec. Larger than the customer and supplier portals' missing items combined, and
+the cheapest work in the project. **Never score BUILT_BUT_UNREAD as done** — that is precisely the
+lie three consecutive sessions kept uncovering. For every requirement ask three questions and never
+conflate them: does the mechanism EXIST · is it POPULATED and does it RUN · does anything READ it.
+
+Six were closed in session 12: `dept_library` (1,456), `os_knowledge_domain` (380), the RFQ
+lifecycle trace, `fn_os_health`'s failing-cron signal, layer-2 department knowledge, and the
+3,959-record operations corpus — wired in the same change that imported it.
+
+## MEASURE "no caller" PROPERLY, AND VERIFY BEFORE RECORDING "MISSING"
+
+Counting `pg_proc` and `pg_views` misses `cron.job`, which is where most agent functions are
+invoked from — that error made a whole governance layer look unbuilt when it runs 1,266 times with
+zero failures. Two adversarial audits refuted **~33 "missing" findings** that were already built.
+Already refuted, do not rebuild: supplier-website crawling, Arabic supplier email, the 24/48h nudge
+ladder, quote version history, duplicate-quotation detection, model autoswitch, optimistic record
+claiming, supplier brief immutability.
+
+## STATE AT SESSION 12 CLOSE
+
+`main` **18 behind — PR #7 is open and unmerged.** Schema **405 tables / 745 routines**, identical.
+Gates: phase1 12/12 · taxonomy 11/11 · intake-routing 10/10 · factory 18/18 · journey 39/39 ·
+prod-readiness 13/13 · **agent-knowledge 25/25** · **rfq-trace 10/10** · purge clean.
+`verify_prod_parity`: nothing staging-only across 20 config tables. Backups now provably restorable
+— 11 tables / 32,686 rows, where the drill previously passed on 1 row and scored empty files green.
+
+**Carry these two first, both measured and both real:**
+1. **`dropbox_backup` has not run since 27 July** despite 1,754 consecutive "successful" cron
+   entries — `pg_net` success means the POST was queued, not that the function ran. It now raises
+   an incident; the off-site copy is still stale.
+2. **The autonomy-gate chain has a FIXED ORDER.** `trg_action_gate` holds 1,048 of 1,079 rows;
+   `fn_autonomy_dispose` sweeps that exact status set with no threshold; cron 64 is `active=false`
+   and is the only thing preventing it. **Enabling cron 64 first auto-clears 1,048 held rows.**
+   Sequence: bind `fn_autonomy_dispose` → lift the confidence gate → `agent_autonomy_enabled` → cron 64.
+
+---
+
+# Previous — QuotesDone, 6 August 2026, end of session 10
 
 **MERGED to `main` on 5 August 2026** — [PR #3](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/3),
 merge commit `ea13ffb`. `main` now describes what production runs; it did not before.
@@ -54,6 +210,299 @@ node scripts/verify_prod_readiness.mjs           # 13/13  §8 against PRODUCTION
 
 ---
 
+## SESSION 12 (6 Aug 2026) — the fifth unread asset, and a governance layer that was already running
+
+**All seventeen gates green on the first pass**, journey 39/39 (275 s), and `--purge --dry-run`
+after it reported exactly `1 storage/signed-terms` — the rolling register, nothing else. No
+regression, no drift, no leak. Every defect below came from the work after the gates.
+
+**FILE #7, agents and knowledge — dept_library and os_knowledge_domain now have readers.**
+
+`public.dept_library` holds **1,456 rows in both projects** — legal 451, procurement 361, it 318,
+finance 290, and a cross-cutting `company` 36 — with a `tsvector` column and a search function,
+`fn_dept_library_search(p_dept, p_query, p_limit)`, that **works**: measured, five relevant hits
+for a real question in each of the five. It had **zero callers**. Not one routine, view, Edge
+Function, cron job or frontend module named it. The fifth instance of the shape.
+
+The reader is an **overload, not a rewrite**. `fn_agent_context(text,integer,text)` *calls*
+`fn_agent_context(text,integer)` and appends one section, so the 100-line four-layer body is not
+copied and cannot drift, the existing signature is not dropped and its grants survive, and its
+**thirteen call sites across ten Edge Functions** keep working byte-identically. Both parameters of
+the old signature carry defaults, so a two-argument call still resolves to exactly one function.
+
+> **Without a query it would have been a dump, not retrieval.** `fn_agent_context` has no message
+> parameter, which is why the library could not simply be pasted into layer 2 — legal alone is 451
+> rows averaging 1,390 characters against a 22,000-character budget. The section is emitted **only**
+> when a caller supplies the real question, and is capped at ~2,600 characters. `agent_brain` passes
+> it today (staging v2, production v26, `p_query` confirmed present in both deployed bundles with
+> comment lines stripped). **The other twelve call sites are unchanged until they pass one too** —
+> `agent_act:41`, `dept_plan:81` and `secretary_act:287` are the next ones with a real task string.
+
+Second orphan, same change: **`os_knowledge_domain`, 380 rows, had zero readers AND zero writers.**
+`fn_knowledge_gaps` — already exposed by `os_api`'s `knowledge_gaps` action — reported per-agent
+gaps with nobody to route them to. It now carries `owner_os`. Measured *before* wiring, because the
+six-vocabularies rule applies here too: of **110** active `category_agents`, **84** have a domain
+row at `cat:<slug>` and only **53** have one with `ownership='owns'`. The join is real but
+**partial**, so the summary reports `unowned` (57) as a number rather than letting the report imply
+full coverage.
+
+`verify_agent_knowledge.mjs`, **13/13, zero spend**. The checks that matter are the negative ones:
+
+- a **query-less call is byte-identical** to the old two-argument one (28,014 chars, no section) —
+  without that assertion this is a silent behaviour change to ten Edge Functions;
+- every emitted excerpt must **match a real `dept_library` row by title** (4 of 4), so "the output
+  grew" can never be mistaken for "the library was read";
+- a `cat:<slug>` specialist has **no `org_agents` row**, so `v_dept` is null and the search falls
+  through to "any department" — the branch most likely to be silently dead. Without this check all
+  110 category specialists would get an empty section and nothing would say so;
+- and it states the corpus gap instead of hiding it: **4 of 13 staffed departments have a library**,
+  and a department without one returns nothing rather than borrowing another's.
+
+Routines **743 → 744 in each project**; applied directly, not as a migration.
+
+**THE GOVERNANCE LAYER IS NOT UNBUILT AND NOT UNWIRED — correct the previous brief.** "AI Governor,
+AI Scheduler, AI Auditor, AI Memory Manager, exception handling and self-healing … several have
+routines with no callers" measured routine-to-routine and view references only. **All seven run on
+active production crons and all succeed**, and their output lands:
+
+| cron (production, all `active`) | routine | runs / ok | output, measured |
+|---|---|--:|---|
+| `policy_consistency_weekly` | `fn_policy_consistency_check` | 3 / 3 | the Governor |
+| `autonomy_audit_weekly` | `fn_autonomy_audit_run` | 2 / 2 | `org_memory` 2 rows |
+| `knowledge_curator_daily` | `fn_knowledge_curator` | 18 / 18 | `knowledge_kpi_snapshots` 28 rows |
+| `knowledge_decay_daily` | `fn_knowledge_decay` | 8 / 8 | **0 decayed — correctly** (see below) |
+| `edge_health_scan_15min` | `fn_edge_health_scan` | 785 / 785 | 30 active `edge_expectation` rows |
+| `exception_alerts_hourly` | `fn_exception_alerts` | 432 / 432 | `founder_alerts` 108 rows |
+| `graph_rebuild_daily` | `fn_graph_rebuild` | 18 / 18 | `graph_nodes` 323 / `graph_edges` 300 |
+
+`fn_knowledge_decay` decaying nothing looked exactly like session 11's `kpi_review_weekly` — eight
+"successful" runs measuring nothing — and it is **not** that. Measured: 1,869 `agent_knowledge`
+rows, 1,734 carrying `review_due`, and in production **0 are past it** (earliest bucket 2026-10-24;
+seven bulk stamps at ~90 days and ~12 months from the import). The engine is idle because the corpus
+is genuinely fresh, not because it is broken. Worth re-checking after 24 Oct 2026.
+
+> **A parity difference nothing measures.** The `(agent_key|topic)` md5 over all 1,869 rows is
+> **identical** on both projects, but `review_due` is not: staging's earliest is **2026-08-05** with
+> **168 rows already past due**, production's is **2026-10-24** with none. The row keys were copied;
+> the review metadata is an older snapshot. Harmless today — staging has 0 crons so decay never runs
+> there — but it means a staging test of the decay engine would exercise a state production is not in.
+
+**OBSERVABILITY: THE SUPPLIER HAD A TEN-STEP TIMELINE, THE RFQ HAD NONE.** The blueprint's
+Observability requirement is a worked RFQ trace — created → BOQ analysed → qualified → 12 suppliers
+selected → invitations sent → 7 quotations → ranked → award — and it says "every step should be
+logged with timestamps **and reasons**". `fn_entity_activity` is already reachable (`os_api`'s
+`activity` action) and had exactly one specialised branch, `if p_entity = 'supplier'`. For an
+inquiry it returned comments plus `os_audit_log`, and the RFQ lifecycle is written to neither.
+
+Nothing new was recorded. Every step already sat in a table: `inquiries`' own timestamps,
+`documents`, **`inquiry_matches` — which carries `match_reason` and `similarity`, the only place the
+system records WHY a supplier was contacted** — `quotes`, `comparison_run_v2`, `transactions`,
+`company_event` and `agent_actions`. Assembly, not instrumentation. `verify_rfq_trace.mjs` 10/10:
+7 entries across decision/event/match/milestone/quote, **2 of 2 matches carrying their reason**,
+nothing undated, the supplier branch unaffected, and a non-uuid id refused rather than thrown.
+
+> **THE FIXTURE FOUND THREE BUGS THE PATCH REPORTED AS SUCCESS**, all reachable only at call time:
+> `left join public.leads l` collided with the function's declared `l public.leads%rowtype` (42702);
+> `', quality '||q.quality` — `quotes.quality` is **jsonb**, so `text||jsonb` resolves to
+> `jsonb||jsonb` and the literal is parsed as JSON; and `coalesce(c.explanation_en,'')` — jsonb too.
+> The second is the same shape as the `text[] || 'literal'` bug already documented inside
+> `run_health_check`. A DO block that rewrites `pg_get_functiondef` reports success for all three.
+> **Build the fixture in the same change, not after it.**
+
+**CONTINUOUS MONITORING (⭐⭐⭐⭐⭐ in the blueprint): the signal was computed correctly every time and
+nobody asked for it.** This started as "fix `v_cron_failing`" and that would have been the wrong
+fix. `fn_os_health()`'s `failing_crons` already uses `JOIN LATERAL (… ORDER BY start_time DESC LIMIT
+1) WHERE status='failed'` — the most recent run, the only definition of "failing now" that is any
+use — and it correctly returns **`[]`** today. Its one caller is `fn_os_selftest`, which has **none**:
+not a cron, not a routine, not an `os_api` action. Sixth asset of this shape.
+
+`fn_exception_alerts` — hourly, already writing `founder_alerts`, already deduped — now asks it, and
+raises `cron_failing` naming the jobs. One check in an existing loop; no new cron, table or channel.
+
+> **Do NOT "fix" `v_cron_failing`.** It is a different, cruder signal — anything that failed at any
+> point in 7 days, never clearing — and its one consumer is `fn_invite_ramp`'s advisory message,
+> where "what has been flaky" is the right question. It lists 3 jobs; **2 recovered days ago**
+> (`health_check` last failed 4 Aug, succeeded 6 Aug 00:30; `supplier_invites_daily` last failed
+> 4 Aug, succeeded 5 Aug) and `kpi_review_weekly` has run once, ever, and fails outside the window.
+> Two signals, two questions. The defect was the missing reader, not the view.
+>
+> **Staging has 0 crons, so the new branch cannot execute there** — exactly how the two jsonb
+> concatenation bugs above hid. The alert text is asserted against a synthetic `failing_crons` array
+> including a null message, which is the only part that could carry that landmine. The INSERT itself
+> first runs when a production cron actually fails; that is stated, not claimed as exercised.
+
+> **`run_health_check` was already fixed — read before you re-fix it.** `v_cron_failing` shows 78 of
+> 336 runs failing with `malformed array literal`, and the deployed source already carries `::text`
+> casts on every branch plus a comment recording the diagnosis: `text[] || 'a bare literal'` resolves
+> to `anyarray||anyarray` because an unadorned literal is type `unknown`. The monitor crashed
+> **precisely when it had something to report** and took the other checks down with it. Historic.
+
+**3,959 OPERATIONAL RECORDS THE FOUNDER SHIPPED, AND NEITHER PROJECT HAD A TABLE FOR THEM.**
+
+`C:\Users\Opera\qd-packs\QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31\`. Its own
+`START_HERE.md` says in line 5 that it is **separate** from the 86-category supplier corpus that
+sessions 10–11 imported — which is why "the knowledge corpus is now in both projects" was true and
+still left this entirely unloaded. Measured contents:
+
+| record_type | n | closes |
+|---|--:|---|
+| `exception_playbook` | **240** | Exception Handling ⭐⭐⭐ — the spec's 16 named scenarios |
+| `decision_rule` | **240** | the Decision Engine ⭐ |
+| `live_data_binding` | 268 | Layer 3 |
+| `standard_operating_procedure` · `metric_definition` · `department_scenario` | 236 · 216 · 192 | SOPs, KPIs, QA |
+| `agent_role` · `workflow_handoff` · `operational_template` · `event_subscription` | 96 · 132 · 120 · 100 | the agent registry, cross-department flow |
+| `hard_gate` · `audit_requirement` · `memory_policy` · `model_routing_policy` | 10 · 8 · 6 · 5 | Governor / Auditor / Memory Manager |
+
+> The **first HR playbook is titled "External AI provider unavailable"** — the literal first
+> scenario the blueprint names. This was never content that needed writing.
+
+**Not into `dept_library`, though that would have been free** (it gained a reader the same day).
+`dept_library` has 7 columns; these records have **19**, and the pack's own instruction 5 is
+*"Preserve every record's implementation_status, validation_status, authority tier, sources and
+review date."* Those are the most useful fields in it: `authority_tier` is
+advisory/supervised/gated/autonomous (**2,633 supervised, 139 gated**) and `implementation_status`
+is the founder auditing his own spec — **1,325 implemented / 1,317 partial / 1,317 target_state**.
+New table `public.ops_knowledge`, on both projects.
+
+> **THE DEPARTMENT MAPPING IS THE FOUNDER'S, NOT MINE — and I was one command from inventing one.**
+> A seventh vocabulary was exactly the trap to expect, and `START_HERE.md` pointed at a crosswalk he
+> had already written: `04_AGENT_RUNTIME_AND_GOVERNANCE/07_PRODUCTION_TO_TARGET_DEPARTMENT_CROSSWALK.csv`.
+> Transcribed verbatim with `mapping_type` preserved, plus **two corrections stated rather than
+> silently applied**: it lists `hr_people` and `sales_crm` as having no confirmed production
+> department, and `org_departments` carries an active `hr` (4 agents) and `sales` (5 agents) today.
+> The pack is dated 31 July; both were added after. Leaving them unmapped would strand 284 records.
+
+**Wired in the same change**, because an imported corpus with no reader is the seventh instance of
+this defect. `fn_ops_knowledge_search` is the sibling of `fn_dept_library_search`, and
+`fn_agent_context` emits **LAYER 2c** beside 2b — kept separate on purpose: `dept_library` is
+external domain reference, `ops_knowledge` is how *this company* operates, and merging them lets an
+agent cite a generic UAE regulation where the company's own gated procedure applies. **The authority
+tier and implementation status travel with each excerpt** — an agent reading a `gated` procedure
+that does not say it is gated will act on it, and one reading `target_state` must know the
+capability is not built.
+
+Measured on both projects: **3,959 rows, 3,005 mapped to 14 departments, md5 identical.** `hr`,
+`intelligence` and `knowledge_eng` each held 0 `agent_knowledge` **and** 0 `dept_library` rows and
+now hold 142 / 144 / 144. **Every active department now has knowledge.** 427 records
+(`qa_testing` 143, `business_development` 142, `communications` 142) import with `dept_key` NULL —
+the crosswalk's own "unmapped_target", and there is still no production department for them.
+
+> **AND THEN 884 OF THE 3,959 WERE REACHABLE BY NOTHING — the same defect, one level down, inside
+> its own fix.** The first cut resolved `dept_key` from `scope_key` alone, which is right for the
+> 3,432 department records and wrong for everything else: all **96 agent** records, all **340
+> workflow** records and the **21 external sources** were returned by no search. Agent and workflow
+> records name their department in `structured_data.department_key` instead; company principles, the
+> source registry and ownerless cross-department workflows apply to everyone. **Reachable is now
+> 3,520 of 3,959**, and the 439 that are not are exactly the three departments the crosswalk marks
+> `unmapped_target` (qa_testing 147, communications 146, business_development 146).
+>
+> **Two pieces of my own tooling lied while I fixed it.** The re-import reported 24 of an expected
+> 168 rows remapped because `node import.mjs | Select-Object -First 4` **terminates the upstream
+> command in PowerShell** — the import was killed after ~1,000 rows and said nothing. And the
+> production promoter used `on conflict do nothing`, which would have left production on the old
+> mapping silently; its digest now covers `record_id||dept_key`, because **a no-op upsert preserves
+> a key set exactly the way a duplicate-and-drop bug preserves a count.**
+
+**`dept_plan` now reads all of it.** It is the reader that most needs its department's decision rules
+and exception playbooks and it was the one that could not see them: `fn_agent_context` emits 2b and
+2c only when the caller supplies the question, `dept_plan` passed none, and its 4,500-char slice cut
+the context off inside layer 2 regardless. It now passes charter + north star + open task titles —
+what it is about to plan against — and takes 11,000 chars. Measured: `hr`, which had **zero**
+knowledge this morning, planned 3 tasks with input tokens up **2,898 → 4,716**, which is the
+retrieved sections arriving.
+
+> **One thing to put to the founder:** the pack's instruction 4 says *"Import into staging only."*
+> That predates production becoming a deploy target on 5 Aug, and the standing rule since is both
+> projects plus "I don't want to see the number zero". It was loaded to both; reversing it is one
+> `delete from public.ops_knowledge` on production.
+
+**A SIXTH TOKEN CEILING, AND IT WAS FAILING IN PRODUCTION THE DAY IT WAS FOUND.** `dept_plan` set
+its ceiling **twice** — `makeLlm({max:1200})` *and* `llm(sys,user,1200)`, the per-call third
+argument overriding the factory one — against `model_policy.chief_of_staff_decision`'s 2000.
+
+> Of the **61 `dept_plan` calls ever made, 40 returned `output_tokens` EXACTLY 1200.** An output
+> landing precisely on the ceiling is truncation, not a coincidence. The plan JSON was cut
+> mid-string, the function reported **`output_did_not_parse`** — §5's laundered string — and fell
+> through to the opus-4.8 fallback at roughly twice the cost. 5.498 AED since 27 July, much of it
+> spent twice. `dept_plan: 2 failure(s)` fired at **01:15 on 6 Aug** for `legal` and
+> `customer_success`; both had planned **nothing**, on a daily cron.
+
+Proven by changing one variable against the same prompt. Staging (in=2898): 1200 → **exactly 1200
+out**, `output_did_not_parse`, planned 0; at the policy → 822 out, parsed, planned 3. Production,
+the two departments that actually failed: `legal` in=6204 → **1725 out, 3 tasks**;
+`customer_success` in=5293 → **1378 out, 2 tasks**. Both natural outputs sit **above 1200**.
+
+> **Two things that would have made this fix wrong, both caught by measuring rather than reading.**
+> Removing only the `makeLlm` ceiling changed nothing — still exactly 1200 — because the call site
+> passes its own. And deleting the ceiling outright makes it **worse**: `llm.ts` falls back to
+> `def.max ?? 700` and always sends a number, so "no ceiling" cannot be expressed through that
+> signature. The caller is now set deliberately **above** the policy (8000) so `min()` always yields
+> the policy. **Any other fix to one of the remaining caller ceilings must check the call site too.**
+
+`model_policy.chief_of_staff_decision` raised **2000 → 4000 on both projects**: the first fixed
+production run measured 1725, **86% of 2000** — a worse mid-distribution position than
+`license_extract`'s 74–78%, and that one was fixed before it ever failed.
+
+**DISASTER RECOVERY WAS ASSERTED BY ONE ROW, AND THE ASSERTION WAS GREEN.** `dr_drill`'s pass
+condition was `restored_rows === backup_rows && key_ok`, and for an empty backup `key_ok` is forced
+true and `0===0` — so a backup file containing the two-byte string `[]` scored `ok`. Production has
+0 customers / 0 inquiries / 0 quotes / 0 transactions, so **five of its six tables passed vacuously
+and the sixth holds one row**: the 1 Aug run reported `{tables_checked:6, tables_failed:0,
+total_restored:1}`. Measured: **215 of the 1,075 objects in the `backups` bucket are ≤2 bytes.**
+
+> Asserting `backup_rows > 0` outright would fail every genuinely-empty table and be muted within a
+> week. The distinction is `live_rows`: an empty backup of an **empty** table is correct, an empty
+> backup of a **populated** table is a lost backup.
+
+And the tables that hold the value were neither drilled nor backed up. Proven on production one
+variable at a time:
+
+| | tables | rows restored | failed |
+|---|--:|--:|---|
+| before | 6 | **1** | 0 — green and meaningless |
+| fixed assertion, old snapshot | 11 | 22,332 | 3 — `kb_chunks`, `dept_library`, `ops_knowledge` named as having no backup |
+| after adding them to `backup` | 11 | **32,686** | 0 |
+
+`kb_chunks.json` 40.8 MB · `ops_knowledge.json` 9.0 MB · `dept_library.json` 3.4 MB now exist.
+`customers` stays green throughout — backup 0, live 0, correctly not a false alarm.
+
+**`dropbox_backup` — the only copy held OFF Supabase — reports 1,754 consecutive cron successes and
+has not actually run since 27 July.** `pg_net` success means the POST was queued, not that the
+function completed: the identical defect that made `cos_execute_hourly` look healthy for 237 runs.
+It was absent from the 30-row `edge_expectation` set, so nothing watched it. Added on both projects
+with `dr_drill` alongside; `fn_edge_health_scan` now returns **`(dropbox_backup, STALE, 13852.1, t)`**
+— 9.6 days, incident raised — against ALIVE for all 31 others.
+
+### The audit's remaining queue, ranked — start here next session
+
+A 13-agent adversarial audit of file #7 ran at the end of this session; it **refuted ~13 claimed
+gaps** (supplier-website crawling, Arabic supplier email, the 24/48h nudge ladder, quote version
+history, duplicate-quotation detection, model autoswitch, record claiming — all already built; do
+not rebuild them). What survived, in its order:
+
+1. ~~`dr_drill` empty-backup pass~~ · ~~`dropbox_backup` expectation~~ — **done above.**
+2. **`cron.job` 126: `fn_company_brief(1800)` → `4000`.** One number, same shape as `dept_plan`'s
+   1200. The org chart every agent reads is cut mid-word at `"...lead knowledge_directo"`, silently
+   omitting Marketing, Marketplace & Procurement, Sales and Technology while printing
+   `Totals: 13 departments` against 15. It sits at priority 95 inside a 22,000-char budget.
+3. **Two `agent_knowledge` UPDATEs: `UAE legal framework` and `UAE Civil Code update - 2026`,
+   priority 10 → 90.** 1,502 chars that currently reach **none** of the 66 agents' Layer 1 — a UAE
+   construction marketplace serving zero UAE legal text to any agent, including `legal`.
+4. **The autonomy-gate chain, and it has a FIXED ORDER.** `trg_action_gate` holds 1,048 of 1,079
+   rows; `fn_autonomy_dispose` sweeps exactly that status set and re-dispositions with no threshold,
+   overwriting the gate; and cron 64 `autonomy_dispose_hourly` is `active=false`, which is the only
+   thing currently preventing that. **Enabling cron 64 first would auto-clear 1,048 held rows.**
+   Sequence: `fn_autonomy_dispose` binding → confidence lift in `trg_action_gate` →
+   `agent_autonomy_enabled` → then cron 64.
+
+**`graph_nodes` is measured and deliberately NOT wired here.** 323 nodes and 300 edges rebuilt every
+night by an active production cron, read by **zero** routines, views, Edge Functions and frontend
+modules. Its consumer is the company graph in the executive UI — spec file **#3**, which is
+scheduled last — and inventing a different consumer inside #7 would build the same thing twice.
+`decision_trace` stays closed per §3.5: seeded config, no orchestrator, no data-only fixture.
+
+---
+
 ## SESSION 11 (6 Aug 2026) — the knowledge existed, nothing read it
 
 All fifteen gates were green on the first pass. Every defect below was found *after* them.
@@ -63,6 +512,8 @@ All fifteen gates were green on the first pass. Every defect below was found *af
 ```
 node scripts/verify_deploy_parity.mjs --since=HEAD~40   # is the repo's code actually RUNNING, both projects
 node scripts/staging/verify_intake_routing.mjs          # 10/10 Arabic routing + ordered interview + knowledge
+node scripts/staging/verify_agent_knowledge.mjs         # 25/25 spec file #7's knowledge + monitoring wiring — zero spend
+node scripts/staging/verify_rfq_trace.mjs               # 10/10 the RFQ lifecycle trace — 1 rfq_routing call, ~0.01 AED
 node scripts/staging/demo_factory.mjs --purge --dry-run # run AFTER the journey; only the register should appear
 ```
 
@@ -1080,6 +1531,28 @@ The one defect found came from the step *after* the gates: a `--purge --dry-run`
 | "the baseline counter check would have caught it — that is what it is for" | It counts `agent_actions` and still missed this for two sessions. **The selftest never generates the row**: it dispatches into a populated corpus, so no coverage gap is ever recorded, so the counter never moves. A counter only catches what something wrote. The fix therefore includes making the fixture write all three shapes — check 17, `the teardown rule for agent_actions is actually exercised` |
 | "an exception-window run showed `agent_actions 1`, so the sweep works" | That is the **one** reachable branch (`target_table='leads'`). A rule that fires on one of three inputs looks identical in the output to a rule that fires on all three |
 
+### Corrections found in session 12
+
+| earlier claim | truth |
+|---|---|
+| "AI Governor, AI Scheduler, AI Auditor, AI Memory Manager, exception handling and self-healing — several have routines with no callers" | **All seven have callers and all seven are running.** The count was taken over routine-to-routine and view references, which is the one place these never appear: their callers are `cron.job`. `policy_consistency_weekly`, `autonomy_audit_weekly`, `knowledge_curator_daily`, `knowledge_decay_daily`, `edge_health_scan_15min`, `exception_alerts_hourly` and `graph_rebuild_daily` are all `active=true` in production with **1,266 runs and zero failures between them**, and every one of them writes rows that are there to count. "Zero callers" must name the instrument that measured it |
+| "`dept_library` … read by zero Edge Functions and zero UI" | Right, and understated: read by zero **anything**. `fn_dept_library_search` — correct, indexed, five hits per real query — had no caller in any routine, view, Edge Function, cron job or frontend module. Fixed; see the session 12 block |
+| "`fn_knowledge_decay` runs and decays nothing" (the shape of session 11's `kpi_review_weekly`) | **Not the same defect.** 1,734 of 1,869 `agent_knowledge` rows carry `review_due` and in production **none is past it** — the earliest bulk stamp is 2026-10-24. The engine is idle because the corpus is fresh. Re-check after 24 Oct 2026 rather than "fixing" it now |
+| "staging holds the entire knowledge estate, 40 tables, 0 empty" | True for the rows. **Not true for the review metadata**: the `(agent_key\|topic)` md5 over all 1,869 `agent_knowledge` rows matches production exactly, while `review_due` does not — staging carries 168 rows already past due against production's 0. A key-set digest is not a row digest |
+| "staging holds the entire knowledge estate — 40 tables, 0 empty" | True of the **86-category supplier** corpus and blind to a second one. `QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31` in `qd-packs\` is a **different** corpus — its own START_HERE.md says so in line 5 — carrying 3,959 records including the 240 exception playbooks and 240 decision rules that spec file #7 asks for by name. Neither project had a table for it. Now `public.ops_knowledge` on both |
+| "hr / intelligence / knowledge_eng have no department knowledge — a corpus gap, not a wiring one" (written earlier the same session) | **Wrong, and it was my own line.** The corpus existed on disk the whole time; the gap was an unimported pack, not unwritten content. Every active department now has knowledge. The lesson generalises: before calling something a content gap, look in `C:\Users\Opera\qd-packs\` and on the Desktop |
+| "the eight founder spec files are not in the repo" | **They are on disk.** `C:\Users\Opera\OneDrive\Desktop\*.txt`, mirrored in `C:\Users\Opera\qd-packs\QuotesDone_COMPLETE_OS_PORTALS_AUTONOMY_UPDATE_PACKAGE_v2026.07.31\…\SOURCE_PLANS\`. File #7 is `quotesdone agents and knowledge.txt` = `AGENTS_AND_KNOWLEDGE_BLUEPRINT.txt`; #6 `suppliers categories.txt`; #3 `OS 2.txt` = `OS_COMMAND_CENTER_VISION.txt`; #8 `open router.txt`. **Read the file you are working, not the brief's summary of it** — the summary said "AI Governor, AI Scheduler…", the file says what each must actually do, and its one-line architectural recommendation ("Don't create 20 isolated knowledge bases") is what located the layer-2 defect |
+| "`fn_agent_context` implements the spec's four layers" | It implements four layers, but its layer 2 is keyed to the **individual**, and the spec's layer 2 is **DEPARTMENT** knowledge. That distinction is the whole defect: 52 of 66 employees had nothing under the heading |
+| "52 employees with no knowledge is a roster that was never invoked" | Half right, and the half that is wrong is the live half: 0 of them ever ran or acted, but **4 have been chatted with**, **8 are department leads**, and `dept_plan` calls `fn_agent_context(lead_agent)` for every department on a **daily production cron**. An unpopulated roster is not the same thing as an unused code path |
+| "`v_cron_failing` reports what is failing" | It reports what has failed **at any point in 7 days** and never clears — 2 of its 3 current rows recovered days ago. But it is not the defect and must not be "fixed": `fn_os_health()` already computes failing-now correctly and returns `[]`. **The missing piece was a reader, and the wrong fix was one view away** |
+| "11 attributable call sites sit below their task class" (session 9) | The count is right and the **instrument is not**: it reads `makeLlm`'s options object. `dept_plan` set its ceiling in **two** places and the one that binds is the per-call third argument of `llm(sys, input, max)`. Removing only the `makeLlm` value changed the measured output by exactly nothing. Check both before calling a ceiling fixed |
+| "removing a caller-side `max` lets the task class decide" | Not through `llm.ts`. Its signature is `max: number = dMax` with `dMax = def.max ?? 700`, so a number is **always** sent and deleting the ceiling silently drops it to **700**. The way to defer to the policy is to pass something deliberately **above** it, since `ai_gateway` takes `min(caller, policy)` |
+| "`node script.mjs \| Select-Object -First N` just truncates the output" | **It kills the script.** PowerShell's `Select-Object -First` throws `StopUpstreamCommandsException`, so a 3,959-row import died after ~1,000 rows and reported nothing wrong — the mapping looked applied and 144 rows were silently missing. Use `$out = node …; $out \| Where-Object …` when the command must finish |
+| "a re-run of an idempotent importer proves both projects agree" | Only if the upsert actually writes. `on conflict do nothing` is a no-op on a second pass, so a corrected `dept_key` never reaches the other project while every row count and key digest still matches. Digest what the fix CHANGED, not just what identifies a row |
+| "the factory selftest is a reliable regression signal" | Only when it runs **alone**. It went 17/18 with `company_event 71->72 (another writer running?)` because a `dept_plan` probe fired one row mid-window. Its own message named the cause. Re-run alone: 18/18. Also worth knowing: **13 `company_event` rows of `entity_type='scheduled_run'` have accumulated in staging since 4 Aug** and neither teardown nor `--purge` sweeps them — they key off a function name, not a run tag, which is the same shape as session 11's `agent_actions` leak |
+| "the AI Scheduler is a gap" | 149 cron jobs, 130 active, and `fn_os_automation_reschedule` can re-time any of them through `cron.alter_job` with an `os_audit_log` entry. The scheduler is built. What was missing was the **health feedback loop**, now closed |
+| "`graph_nodes` (323) … read by zero Edge Functions and zero UI" | Confirmed, and its **writer is fine** — an active nightly cron rebuilds 323 nodes and 300 edges. The gap is entirely on the read side, and the reader belongs to spec file #3 (executive UI), not #7. Building one inside #7 would build it twice |
+
 The file states the rule it broke, twenty lines above the break: *"they key off the quote/inquiry id as TEXT, so
 they must go before the row they name … That ordering mistake is exactly what left 452 doc_versions and 186
 company_event rows in staging."* Every other step in the list obeys it; `agent_actions` was the sole violator,
@@ -1366,6 +1839,10 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | **`verify_matching.mjs`** | builds the 100-supplier corpus and asserts the score ladder, the relevance floor, the fan-out cap and the four hard gates. `--live` adds one real dispatch |
 | **`verify_supplier_docs.mjs`** | `supplier_api process_docs` end to end: real PDF bytes into `supplier-docs` through the deployed function, the licence-gate write-back, the unreadable-licence path and the sanitiser. Asserts the ROW, never the response |
 | **`verify_constraints.mjs`** | the parity dimension nothing measured: NOT NULL columns and CHECK constraints against production. Report-only; `--apply` fixes staging through `qd_guard` |
+| **`verify_agent_knowledge.mjs`** | whether an employee can actually see the 1,456-row department library. Asserts the NEGATIVES: a query-less call is byte-identical to the old two-argument one, every emitted excerpt matches a real `dept_library` row by title, and the `cat:<slug>` branch (no `org_agents` row, so `v_dept` is null) is not silently dead. Zero spend |
+| **`verify_rfq_trace.mjs`** | the blueprint's Observability requirement, measured against a real RFQ: one inquiry built by the factory, really dispatched, quoted twice, then asserted **by kind** — because a trace that grew is not a trace that is right. Pins that every supplier contacted carries the REASON it was chosen. 1 model call |
+| **`import_ops_knowledge.mjs`** (in `scripts/`) | loads the 3,959-record company/department operations pack into `public.ops_knowledge`, resolving `dept_key` through the **pack's own** production→target crosswalk. `--dry-run` maps and reports without writing. Idempotent on `record_id` |
+| **`seed_agent_library_reader.mjs`** (in `scripts/`) | the knowledge-layer changes: the `fn_agent_context` overload, its layer-2 department fallback, `fn_knowledge_gaps`' `owner_os`, and `fn_entity_activity`'s RFQ branch. Every one re-appliable; the two body patches rewrite `pg_get_functiondef` and **raise** if their anchor has moved. `--print-sql` emits all four for production |
 | **`verify_prod_readiness.mjs`** (in `scripts/`, not `scripts/staging/`) | §8 as a measurement against **production**, read-only by construction. Reports each item APPLIED/OUTSTANDING with its measured value and the exact statement, exits non-zero. Deploy list derived from `git diff main...HEAD`, drift checked by bundle **content** |
 
 `sync_staging_reference.mjs` still leaves `field_definition` and `field_definition_source` unloaded

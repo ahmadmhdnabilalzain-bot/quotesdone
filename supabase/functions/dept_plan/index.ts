@@ -15,7 +15,25 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const SELF = Deno.env.get('SUPABASE_URL')! + '/functions/v1/dept_plan';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
-const llm = makeLlm(SONNET_FIRST, { max: 1200, temperature: 0.35 });
+// THE CEILING WAS 1200 AGAINST A POLICY OF 2000, AND IT WAS SET TWICE.
+// ai_gateway computes min(body.max, route.max_tokens), so a caller ceiling can only ever LOWER
+// model_policy.chief_of_staff_decision's 2000. Measured in production 6 Aug 2026: 40 of the 61
+// dept_plan calls ever made returned output_tokens EXACTLY 1200. An output that lands precisely on
+// the ceiling is truncation, not a coincidence — the JSON plan was cut mid-string, the function
+// reported `output_did_not_parse` (§5's laundered string), and it fell through to the opus fallback
+// at roughly twice the cost. legal and customer_success failed outright on 6 Aug at 01:00.
+//
+// It is set here and NOT at the call site, because llm(sys, input, max) takes a per-call third
+// argument that overrides this one — dept_plan passed 1200 there too, so removing only this had no
+// effect at all (measured: still exactly 1200). And `makeLlm`'s own fallback is `def.max ?? 700`,
+// so deleting the ceiling outright makes it WORSE, not absent — llm.ts always sends a number.
+//
+// 8000 is DELIBERATELY ABOVE THE POLICY so that min(caller, policy) always yields the policy: this
+// is "let the task class decide" expressed through a signature that will not accept undefined.
+// model_policy.chief_of_staff_decision was raised 2000 -> 4000 on both projects at the same time,
+// because the first fixed production run measured 1,725 output tokens — 86% of 2000, which is the
+// same mid-distribution position that made license_extract (74-78%) worth fixing before it failed.
+const llm = makeLlm(SONNET_FIRST, { max: 8000, temperature: 0.35 });
 
 // CEILING, NOT A GRANT. This set can only REFUSE autonomy; it can never confer it. The tier itself
 // comes from fn_dept_authority (see planDept). Until 4 Aug 2026 this same set WAS the decision, and
@@ -78,7 +96,25 @@ async function planDept(deptKey: string) {
   // The department head plans WITH its management discipline (_global) + its own domain expertise
   // (the lead agent's knowledge): reversibility, ruthless prioritization, and role-specific know-how.
   let expertise = '';
-  try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: d.lead_agent || null, p_max_chars: 5000 }); expertise = data ? String(data).slice(0, 4500) : ''; } catch (_e) { /* optional */ }
+  // THE DAILY PLANNER IS THE READER THAT MOST NEEDS ITS DEPARTMENT'S OWN RULES, and it was the one
+  // that could not see them. fn_agent_context only emits LAYER 2b (dept_library) and LAYER 2c
+  // (ops_knowledge — the department's SOPs, decision rules and exception playbooks) when the caller
+  // supplies the question it is reasoning about; this passed none. And the 4,500-char slice cut the
+  // context off inside layer 2 regardless, so even a query would have been thrown away.
+  //
+  // The query is the charter plus the north star plus what is actually open — which is precisely
+  // what this function is about to plan against, so the retrieval is scoped to the real task rather
+  // than to a keyword. The slice is raised to 11,000: measured 6 Aug 2026, the widest department
+  // (legal) renders 34,191 chars with a query against 28,014 without, so 11,000 keeps identity,
+  // layer 2 and the retrieved sections while still bounding what reaches the prompt.
+  const planQuery = [d.charter, d.north_star, ...(openItems || []).map((o: any) => o.title)]
+    .filter(Boolean).join(' ').slice(0, 600);
+  try {
+    const { data } = await admin.rpc('fn_agent_context', {
+      p_agent_key: d.lead_agent || null, p_max_chars: 12000, p_query: planQuery,
+    });
+    expertise = data ? String(data).slice(0, 11000) : '';
+  } catch (_e) { /* optional */ }
 
   const recentTxt = (recent || []).map((r: any) => '- [' + r.status + '] ' + (r.title || '') + (r.result ? (' → ' + (typeof r.result === 'string' ? r.result : JSON.stringify(r.result)).slice(0, 200)) : '')).join('\n') || '(no recent work)';
   const memTxt = (mem || []).map((m: any) => '- ' + (m.content || '').slice(0, 200)).join('\n') || '(no notes)';
@@ -96,7 +132,7 @@ async function planDept(deptKey: string) {
     + (expertise ? ('\n\nHOW YOU THINK (management discipline + your domain expertise — plan by this):\n' + expertise) : '');
   const user = 'RECENT WORK & OUTCOMES:\n' + recentTxt + '\n\nLEARNED NOTES:\n' + memTxt + '\n\nLIVE NUMBERS:\n' + (kpi || '(no KPI feed)') + '\n\nALREADY OPEN (do not duplicate):\n' + openTxt + '\n\nDecide your next moves and return the JSON.';
 
-  const raw = (await llm(sys, user, 1200) || '').trim();
+  const raw = (await llm(sys, user) || '').trim();   // budget set once, on makeLlm above
   if (!raw) return { dept: deptKey, error: 'llm_unavailable' };
   let parsed: any = null;
   try { parsed = JSON.parse(raw.replace(/^```(json)?/i, '').replace(/```$/, '').trim()); } catch (_e) { const m = raw.match(/\{[\s\S]*\}/); if (m) { try { parsed = JSON.parse(m[0]); } catch (_e2) { /* noop */ } } }
