@@ -231,6 +231,30 @@ now hold 142 / 144 / 144. **Every active department now has knowledge.** 427 rec
 (`qa_testing` 143, `business_development` 142, `communications` 142) import with `dept_key` NULL —
 the crosswalk's own "unmapped_target", and there is still no production department for them.
 
+> **AND THEN 884 OF THE 3,959 WERE REACHABLE BY NOTHING — the same defect, one level down, inside
+> its own fix.** The first cut resolved `dept_key` from `scope_key` alone, which is right for the
+> 3,432 department records and wrong for everything else: all **96 agent** records, all **340
+> workflow** records and the **21 external sources** were returned by no search. Agent and workflow
+> records name their department in `structured_data.department_key` instead; company principles, the
+> source registry and ownerless cross-department workflows apply to everyone. **Reachable is now
+> 3,520 of 3,959**, and the 439 that are not are exactly the three departments the crosswalk marks
+> `unmapped_target` (qa_testing 147, communications 146, business_development 146).
+>
+> **Two pieces of my own tooling lied while I fixed it.** The re-import reported 24 of an expected
+> 168 rows remapped because `node import.mjs | Select-Object -First 4` **terminates the upstream
+> command in PowerShell** — the import was killed after ~1,000 rows and said nothing. And the
+> production promoter used `on conflict do nothing`, which would have left production on the old
+> mapping silently; its digest now covers `record_id||dept_key`, because **a no-op upsert preserves
+> a key set exactly the way a duplicate-and-drop bug preserves a count.**
+
+**`dept_plan` now reads all of it.** It is the reader that most needs its department's decision rules
+and exception playbooks and it was the one that could not see them: `fn_agent_context` emits 2b and
+2c only when the caller supplies the question, `dept_plan` passed none, and its 4,500-char slice cut
+the context off inside layer 2 regardless. It now passes charter + north star + open task titles —
+what it is about to plan against — and takes 11,000 chars. Measured: `hr`, which had **zero**
+knowledge this morning, planned 3 tasks with input tokens up **2,898 → 4,716**, which is the
+retrieved sections arriving.
+
 > **One thing to put to the founder:** the pack's instruction 4 says *"Import into staging only."*
 > That predates production becoming a deploy target on 5 Aug, and the standing rule since is both
 > projects plus "I don't want to see the number zero". It was loaded to both; reversing it is one
@@ -280,7 +304,7 @@ All fifteen gates were green on the first pass. Every defect below was found *af
 ```
 node scripts/verify_deploy_parity.mjs --since=HEAD~40   # is the repo's code actually RUNNING, both projects
 node scripts/staging/verify_intake_routing.mjs          # 10/10 Arabic routing + ordered interview + knowledge
-node scripts/staging/verify_agent_knowledge.mjs         # 24/24 spec file #7's knowledge + monitoring wiring — zero spend
+node scripts/staging/verify_agent_knowledge.mjs         # 25/25 spec file #7's knowledge + monitoring wiring — zero spend
 node scripts/staging/verify_rfq_trace.mjs               # 10/10 the RFQ lifecycle trace — 1 rfq_routing call, ~0.01 AED
 node scripts/staging/demo_factory.mjs --purge --dry-run # run AFTER the journey; only the register should appear
 ```
@@ -1315,6 +1339,8 @@ The one defect found came from the step *after* the gates: a `--purge --dry-run`
 | "`v_cron_failing` reports what is failing" | It reports what has failed **at any point in 7 days** and never clears — 2 of its 3 current rows recovered days ago. But it is not the defect and must not be "fixed": `fn_os_health()` already computes failing-now correctly and returns `[]`. **The missing piece was a reader, and the wrong fix was one view away** |
 | "11 attributable call sites sit below their task class" (session 9) | The count is right and the **instrument is not**: it reads `makeLlm`'s options object. `dept_plan` set its ceiling in **two** places and the one that binds is the per-call third argument of `llm(sys, input, max)`. Removing only the `makeLlm` value changed the measured output by exactly nothing. Check both before calling a ceiling fixed |
 | "removing a caller-side `max` lets the task class decide" | Not through `llm.ts`. Its signature is `max: number = dMax` with `dMax = def.max ?? 700`, so a number is **always** sent and deleting the ceiling silently drops it to **700**. The way to defer to the policy is to pass something deliberately **above** it, since `ai_gateway` takes `min(caller, policy)` |
+| "`node script.mjs \| Select-Object -First N` just truncates the output" | **It kills the script.** PowerShell's `Select-Object -First` throws `StopUpstreamCommandsException`, so a 3,959-row import died after ~1,000 rows and reported nothing wrong — the mapping looked applied and 144 rows were silently missing. Use `$out = node …; $out \| Where-Object …` when the command must finish |
+| "a re-run of an idempotent importer proves both projects agree" | Only if the upsert actually writes. `on conflict do nothing` is a no-op on a second pass, so a corrected `dept_key` never reaches the other project while every row count and key digest still matches. Digest what the fix CHANGED, not just what identifies a row |
 | "the factory selftest is a reliable regression signal" | Only when it runs **alone**. It went 17/18 with `company_event 71->72 (another writer running?)` because a `dept_plan` probe fired one row mid-window. Its own message named the cause. Re-run alone: 18/18. Also worth knowing: **13 `company_event` rows of `entity_type='scheduled_run'` have accumulated in staging since 4 Aug** and neither teardown nor `--purge` sweeps them — they key off a function name, not a run tag, which is the same shape as session 11's `agent_actions` leak |
 | "the AI Scheduler is a gap" | 149 cron jobs, 130 active, and `fn_os_automation_reschedule` can re-time any of them through `cron.alter_job` with an `os_audit_log` entry. The scheduler is built. What was missing was the **health feedback loop**, now closed |
 | "`graph_nodes` (323) … read by zero Edge Functions and zero UI" | Confirmed, and its **writer is fine** — an active nightly cron rebuilds 323 nodes and 300 edges. The gap is entirely on the read side, and the reader belongs to spec file #3 (executive UI), not #7. Building one inside #7 would build it twice |
