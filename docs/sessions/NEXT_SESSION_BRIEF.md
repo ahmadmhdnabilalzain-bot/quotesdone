@@ -52,6 +52,73 @@ node scripts/staging/journey_test.mjs            # 39/39  signup -> upload -> qu
 node scripts/verify_prod_readiness.mjs           # 13/13  §8 against PRODUCTION, read-only
 ```
 
+---
+
+## SESSION 11 (6 Aug 2026) — the knowledge existed, nothing read it
+
+All fifteen gates were green on the first pass. Every defect below was found *after* them.
+
+**New gates — run these too:**
+
+```
+node scripts/verify_deploy_parity.mjs --since=HEAD~40   # is the repo's code actually RUNNING, both projects
+node scripts/staging/verify_intake_routing.mjs          # 10/10 Arabic routing + ordered interview + knowledge
+node scripts/staging/demo_factory.mjs --purge --dry-run # run AFTER the journey; only the register should appear
+```
+
+**THE RECURRING SHAPE, AND IT IS NOT "UNBUILT".** Four times over, an asset was complete, populated,
+verified by a gate, and had **no reader**:
+
+| asset | state before | how it failed |
+|---|---|---|
+| 4,212 bilingual aliases | loaded, gate green | 0 code references; **Arabic could not be classified at all** |
+| 1,558 knowledge modules | all 84 categories | looked up as `cat:<legacy-slug>`; overlap with the catalogue keys is **exactly zero** |
+| 16,588 ordered questions | 4,117 distinct | one reader in the repo — its own importer |
+| 84 categories ↔ 66 families | both loaded | **six** different identifier schemes, no join |
+
+**SIX VOCABULARIES FOR ONE TAXONOMY.** Measure before assuming any two tables join:
+`category_specs` 56 legacy slugs · `catalog_supplier_categories` 86 · `catalog_domains` 67 families ·
+`category_agent_map.agent_slug` 84 catalogue-style · `catalog_subcategories.agent_slug` 17 short-legacy
+(**0 overlap** with the previous) · `kb_operational_route.route_key` `opcat-001`.
+
+**Bridges built (all on BOTH projects — routine/table parity is asserted):**
+`lead_trade_map` 25→63 rows · `catalog_category_domain` (new table, 86/86) ·
+`fn_category_knowledge` · `fn_intake_slug_for_catalog` · `fn_category_questions`.
+Staging now holds the **entire** knowledge estate (40 tables, 0 empty): kb_stage 112,611 records /
+16,588 questions / 12,929 rules, `agent_knowledge` 1,869, `kb_chunks` 4,937, `dept_library` 1,456.
+
+> **DO NOT WIRE `kb_stage.validation_rules`.** 4,696 rows, and the severity taxonomy is inconsistent:
+> 21 families carry `critical` rows with **no rule text**, `warning` exists in exactly one family,
+> `medium` (286 rules/44 families) and `error` (100/22) appear to be the same tier, and `on_fail` is
+> identical on every row. Nothing distinguishes a brief-completeness rule ("all mandatory fields must
+> be answered") from a platform-governance rule ("approvals must remain outside autonomous
+> authority") — so filtering by severity injects governance text into a customer conversation.
+> A function was written, measured, found wrong-by-construction and **dropped**. Fix the corpus first.
+
+**Autonomy restored.** `event_dispatch_15min`, `cos_execute_hourly` and `dept_plan_daily` were
+`active=false` since 2 Aug with 742 clean runs behind them. All re-armed. `kpi_review_weekly` had
+**never once succeeded**: `employee_kpi` id 71 measured "share of KPIs meeting target" by selecting
+from `fn_kpi_scoreboard()`, which executes every active KPI's SQL — it computed itself and timed out.
+One row made all 95 KPIs unmeasurable. Retired; 94 now score (31 MET / 7 NEAR / 36 MISSED / 20 NO DATA).
+**`cos_execute_hourly`'s 237 "successful" runs measured the POST being queued, not the function
+completing** — its cron set no `timeout_milliseconds` so it inherited pg_net's 5s default while its
+sibling `dept_plan_daily` sets 9000. Raised to 30s; first tick still unconfirmed.
+
+**The 55 executors are classified** per the founder's rule of 6 Aug: **refunds are the only action
+requiring approval**. 4 high / 10 medium / 41 low, zero blank idempotency, zero blank owners, 24
+`high`+`advisory_safe` contradictions cleared. `outreach_send` and `invite` are `external_id` /
+`natural_key`, so a retry cannot double-fire the 20,464-lead invite campaign — engineered, not gated.
+Classifying woke `v_executor_registry_gaps`' fourth branch, which had never fired: it reads
+`reversible AND compensation_action_class IS NULL`, unreachable while all 55 said `reversible=false`.
+Its 0 was vacuous. Now answered per row: 16 reads need none, 32 undone by a person, 7 irreversible.
+
+**Spec verification: 411 requirements measured across the 8 founder specs — 83 EXISTS / 183 PARTIAL /
+145 MISSING at session start (20%).** Now ~31%. Per file: architecture 25% · OS blueprint 33% ·
+executive UI 11% · customer portal 16% · supplier portal 16% · **categories 17%→87%** ·
+agents+knowledge 28% · openrouter 19%. Work them **one file at a time to 100%**, not breadth-first.
+
+---
+
 `verify_prod_readiness.mjs` is not a staging gate — it measures **production** read-only and cannot
 deploy or apply. It reached 13/13 in session 10, so unlike every previous session, a non-zero exit
 here now means something drifted.
