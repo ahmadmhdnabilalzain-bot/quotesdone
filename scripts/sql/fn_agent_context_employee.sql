@@ -215,7 +215,20 @@ begin
       v_emp := v_emp || E'\n'||'# DECISIONS ALREADY ON RECORD FOR YOUR DEPARTMENT'||E'\n'||v_line||E'\n';
     end if;
 
-    out := out || left(v_emp, 4200) || E'\n\n';
+    -- company_reflection: 9 rows, written nightly by fn_company_reflect, read by nothing but its
+    -- own writer. It is the company asking itself what is going wrong, which is the "Continuous
+    -- Improvement" section in one table — and the exec department is who it is for.
+    if v_dept = 'exec' then
+      select '- '||to_char(c.reflected_on,'DD Mon')||': '||c.concerns||' concern(s), '||c.actions
+             ||' action(s) — '||left(coalesce(c.answers->>'biggest_risk', c.answers::text), 200)
+        into v_line
+        from company_reflection c order by c.reflected_on desc limit 1;
+      if v_line is not null then
+        v_emp := v_emp || E'\n'||'# THE COMPANY''S OWN LATEST REFLECTION'||E'\n'||v_line||E'\n';
+      end if;
+    end if;
+
+    out := out || left(v_emp, 4600) || E'\n\n';
   end if;
   if p_agent_key is not null then
     out := out || '# LAYER 2 - YOUR PROFESSIONAL EXPERTISE'||E'\n\n';

@@ -11,7 +11,7 @@
 // "the record was read".
 //
 //   node scripts/staging/verify_employee_object.mjs      # zero spend
-import { mgmtRead } from './qd_guard.mjs';
+import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
 import { REF as STAGE } from './demo_factory.mjs';
 
 const checks = [];
@@ -110,6 +110,22 @@ try {
     step('an agent with no personal grant falls back to its department\'s', true,
       'skipped: every active agent has a personal grant');
   }
+
+  // company_reflection is written nightly by fn_company_reflect and was read by nothing but its own
+  // writer. It is production operational history, deliberately NOT synced to staging, so this uses
+  // its own fixture rather than borrowing production's 9 rows.
+  await mgmtWrite(STAGE,
+    `insert into public.company_reflection (reflected_on, answers, concerns, actions)
+     values (current_date, '{"biggest_risk":"qd_fixture_reflection_probe"}'::jsonb, 3, 2)`, 'refl');
+  const execCtx = String(one(await mgmtRead(STAGE, `select public.fn_agent_context('ceo', 22000)`)));
+  const nonExecCtx = String(one(await mgmtRead(STAGE, `select public.fn_agent_context('cfo', 22000)`)));
+  step('the company\'s own reflection reaches the exec layer it is written for',
+    /THE COMPANY'S OWN LATEST REFLECTION/.test(execCtx)
+      && execCtx.includes('qd_fixture_reflection_probe')
+      && !/THE COMPANY'S OWN LATEST REFLECTION/.test(nonExecCtx),
+    'present for ceo (exec), absent for cfo (finance) — scoped, not broadcast');
+  await mgmtWrite(STAGE,
+    `delete from public.company_reflection where answers->>'biggest_risk' = 'qd_fixture_reflection_probe'`, 'refl cleanup');
 
   // No agent may be handed an empty record: that is the state this change exists to end.
   const empty = await mgmtRead(STAGE,
