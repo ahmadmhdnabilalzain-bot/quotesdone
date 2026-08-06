@@ -83,6 +83,29 @@ await withRun(async (run) => {
     !!row.category && row.category !== 'general',
     `inquiry_intake.category=${row.category ?? 'null'} (English-only detectCat left this null before 6 Aug 2026)`);
 
+  // THE ORDERED INTERVIEW. category_specs.fields is a flat list with a required flag and no
+  // sequence; the corpus carries 16,588 questions with an explicit ask-order and a supplier-facing
+  // key, and had exactly one reader in the whole repo — its own importer.
+  const q = await mgmtRead(REF, `
+    select field_key, ask_order, mandatory, left(question, 40) q
+      from public.fn_category_questions('glass') order by ask_order`);
+  ok('the category has an ORDERED qualification sequence, not a flat list',
+    q.length >= 10 && Number(q[0].ask_order) < Number(q[q.length - 1].ask_order),
+    `${q.length} question(s), ask_order ${q[0]?.ask_order}→${q[q.length - 1]?.ask_order}, first=[${q[0]?.field_key}]`);
+
+  // The spec's own worked example (Agent 19, Aluminium & Glass) lists what to collect. Assert the
+  // sequence actually covers it rather than trusting that a large row count means good coverage.
+  const keys = new Set(q.map((r) => String(r.field_key)));
+  const want = ['quantity-unit', 'area-dimensions', 'scope-mode', 'installation-access', 'required-date', 'project-emirate'];
+  const have = want.filter((w) => keys.has(w));
+  ok("the sequence covers the spec's Agent 19 collect-list",
+    have.length >= 5, `${have.length}/${want.length} present: ${have.join(', ')}`);
+
+  const qAr = await mgmtRead(REF, `select question from public.fn_category_questions('glass','ar') limit 3`);
+  ok('the same sequence is served in Arabic',
+    qAr.length > 0 && /[؀-ۿ]/.test(String(qAr[0].question)),
+    `first Arabic question: "${String(qAr[0]?.question || '').slice(0, 46)}…"`);
+
   const kn = (await mgmtRead(REF,
     `select count(*)::int n from public.fn_category_knowledge(${JSON.stringify(String(row.category || 'general')).replace(/"/g, "'")})`))[0];
   ok('that classification reaches real category knowledge',
