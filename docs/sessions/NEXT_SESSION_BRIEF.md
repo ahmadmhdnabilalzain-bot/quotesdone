@@ -181,6 +181,33 @@ raises `cron_failing` naming the jobs. One check in an existing loop; no new cro
 > to `anyarray||anyarray` because an unadorned literal is type `unknown`. The monitor crashed
 > **precisely when it had something to report** and took the other checks down with it. Historic.
 
+**A SIXTH TOKEN CEILING, AND IT WAS FAILING IN PRODUCTION THE DAY IT WAS FOUND.** `dept_plan` set
+its ceiling **twice** — `makeLlm({max:1200})` *and* `llm(sys,user,1200)`, the per-call third
+argument overriding the factory one — against `model_policy.chief_of_staff_decision`'s 2000.
+
+> Of the **61 `dept_plan` calls ever made, 40 returned `output_tokens` EXACTLY 1200.** An output
+> landing precisely on the ceiling is truncation, not a coincidence. The plan JSON was cut
+> mid-string, the function reported **`output_did_not_parse`** — §5's laundered string — and fell
+> through to the opus-4.8 fallback at roughly twice the cost. 5.498 AED since 27 July, much of it
+> spent twice. `dept_plan: 2 failure(s)` fired at **01:15 on 6 Aug** for `legal` and
+> `customer_success`; both had planned **nothing**, on a daily cron.
+
+Proven by changing one variable against the same prompt. Staging (in=2898): 1200 → **exactly 1200
+out**, `output_did_not_parse`, planned 0; at the policy → 822 out, parsed, planned 3. Production,
+the two departments that actually failed: `legal` in=6204 → **1725 out, 3 tasks**;
+`customer_success` in=5293 → **1378 out, 2 tasks**. Both natural outputs sit **above 1200**.
+
+> **Two things that would have made this fix wrong, both caught by measuring rather than reading.**
+> Removing only the `makeLlm` ceiling changed nothing — still exactly 1200 — because the call site
+> passes its own. And deleting the ceiling outright makes it **worse**: `llm.ts` falls back to
+> `def.max ?? 700` and always sends a number, so "no ceiling" cannot be expressed through that
+> signature. The caller is now set deliberately **above** the policy (8000) so `min()` always yields
+> the policy. **Any other fix to one of the remaining caller ceilings must check the call site too.**
+
+`model_policy.chief_of_staff_decision` raised **2000 → 4000 on both projects**: the first fixed
+production run measured 1725, **86% of 2000** — a worse mid-distribution position than
+`license_extract`'s 74–78%, and that one was fixed before it ever failed.
+
 **`graph_nodes` is measured and deliberately NOT wired here.** 323 nodes and 300 edges rebuilt every
 night by an active production cron, read by **zero** routines, views, Edge Functions and frontend
 modules. Its consumer is the company graph in the executive UI — spec file **#3**, which is
@@ -1229,6 +1256,9 @@ The one defect found came from the step *after* the gates: a `--purge --dry-run`
 | "`fn_agent_context` implements the spec's four layers" | It implements four layers, but its layer 2 is keyed to the **individual**, and the spec's layer 2 is **DEPARTMENT** knowledge. That distinction is the whole defect: 52 of 66 employees had nothing under the heading |
 | "52 employees with no knowledge is a roster that was never invoked" | Half right, and the half that is wrong is the live half: 0 of them ever ran or acted, but **4 have been chatted with**, **8 are department leads**, and `dept_plan` calls `fn_agent_context(lead_agent)` for every department on a **daily production cron**. An unpopulated roster is not the same thing as an unused code path |
 | "`v_cron_failing` reports what is failing" | It reports what has failed **at any point in 7 days** and never clears — 2 of its 3 current rows recovered days ago. But it is not the defect and must not be "fixed": `fn_os_health()` already computes failing-now correctly and returns `[]`. **The missing piece was a reader, and the wrong fix was one view away** |
+| "11 attributable call sites sit below their task class" (session 9) | The count is right and the **instrument is not**: it reads `makeLlm`'s options object. `dept_plan` set its ceiling in **two** places and the one that binds is the per-call third argument of `llm(sys, input, max)`. Removing only the `makeLlm` value changed the measured output by exactly nothing. Check both before calling a ceiling fixed |
+| "removing a caller-side `max` lets the task class decide" | Not through `llm.ts`. Its signature is `max: number = dMax` with `dMax = def.max ?? 700`, so a number is **always** sent and deleting the ceiling silently drops it to **700**. The way to defer to the policy is to pass something deliberately **above** it, since `ai_gateway` takes `min(caller, policy)` |
+| "the factory selftest is a reliable regression signal" | Only when it runs **alone**. It went 17/18 with `company_event 71->72 (another writer running?)` because a `dept_plan` probe fired one row mid-window. Its own message named the cause. Re-run alone: 18/18. Also worth knowing: **13 `company_event` rows of `entity_type='scheduled_run'` have accumulated in staging since 4 Aug** and neither teardown nor `--purge` sweeps them — they key off a function name, not a run tag, which is the same shape as session 11's `agent_actions` leak |
 | "the AI Scheduler is a gap" | 149 cron jobs, 130 active, and `fn_os_automation_reschedule` can re-time any of them through `cron.alter_job` with an `os_audit_log` entry. The scheduler is built. What was missing was the **health feedback loop**, now closed |
 | "`graph_nodes` (323) … read by zero Edge Functions and zero UI" | Confirmed, and its **writer is fine** — an active nightly cron rebuilds 323 nodes and 300 edges. The gap is entirely on the read side, and the reader belongs to spec file #3 (executive UI), not #7. Building one inside #7 would build it twice |
 
