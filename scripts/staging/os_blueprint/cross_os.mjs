@@ -110,11 +110,26 @@ const cnt = (t, w = 'true', cols = []) => guarded(t, `public.${t} where ${w}`, c
 //
 // An event nobody subscribes to is not undelivered, it is unsubscribed, and counting those would
 // make the dispatcher look broken for obeying its contract.
+//
+// (3) A RECORDED NON-DELIVERY IS NOT A DELIVERY (round 3, real-system-gap). The pair test was
+// `exists (select 1 from event_delivery …)` — so a row whose whole content was an
+// unroutable_reason saying the event reached nobody and raised nothing counted as the event having
+// been delivered. Measured then: 179 of the 516 deliveries in seven days were such rows, a third
+// of the bus's recent traffic, and `UNDELIVERED = 0` was true throughout while no leg of the check
+// looked at task_id or unroutable_reason at all.
+//
+// A delivery now COUNTS only if it landed: it carries a task, or the subscriber it was addressed
+// to resolves to no org_agents row — and that second case is not an escape, because "everyone
+// listening" cannot include an agent_key with no employee behind it. That is the same predicate
+// the dispatcher branches on and the same one xos-05 excuses by, so the two checks cannot disagree
+// about what a delivery is. Measured after the system repair: 0 past the SLO, and 0 unbounded.
 const UNDELIVERED = (p_age = null) => `(select count(*) from public.company_event e
    join public.event_subscription s on s.active and s.event_type = e.event_type
      and s.agent_key <> coalesce(e.actor,'')
    where ${p_age ? `e.occurred_at < now() - interval '${p_age}' and ` : ''}not exists (
-     select 1 from public.event_delivery d where d.event_id = e.id and d.agent_key = s.agent_key))`;
+     select 1 from public.event_delivery d where d.event_id = e.id and d.agent_key = s.agent_key
+       and (d.task_id is not null
+            or not exists (select 1 from public.org_agents a where a.agent_key = s.agent_key))))`;
 
 // Trigger functions that emit onto the bus. Kept out of the reader test by construction: an
 // emitter matches `insert into company_event` and therefore fails RD/WR, which is what makes
@@ -153,7 +168,11 @@ export default async function ({ req }) {
         || ' succeeded run(s) in 2d; ' || ${UNDELIVERED('60 minutes')}::text
         || ' (event,subscriber) pair(s) undelivered past the '
         || '60-minute SLO (' || ${UNDELIVERED()}::text || ' counting in-flight) of '
-        || (select count(*) from public.event_delivery)::text || ' deliveries ever'`);
+        || (select count(*) from public.event_delivery where task_id is not null)::text
+        || ' delivery(ies) that raised work, out of '
+        || (select count(*) from public.event_delivery)::text || ' rows in the ledger ('
+        || (select count(*) from public.event_delivery where task_id is null)::text
+        || ' record a non-delivery)'`);
 
   // LINK 3 — the subscribers ARE Operating Systems: every subscription resolves to one, every
   // active OS holds at least one, and the DISPATCHER routes on that resolution rather than on a
@@ -225,23 +244,46 @@ export default async function ({ req }) {
   // object — global readership of the company task table says nothing about whether event-derived
   // work reaches anyone. It is now readership of the delivery ledger itself, which is the object
   // this link creates, with the dispatcher excluded as its writer. That number was genuinely 0
-  // before v_event_backbone was consumed, so it can fail. Leg 1 is bounded to 7 days: one delivery
-  // with a task from July is not evidence that the bus raises work now.
+  // before v_event_backbone was consumed, so it can fail.
+  //
+  // HARDENED 6 Aug 2026, after round 3 found the leg was MET only because a TEXT COLUMN had been
+  // retro-stamped onto the failures. `unroutable_reason is null` made any sentence an excuse, and
+  // 173 rows inside the 24-hour window carried one backfilled that morning reading "Delivered by
+  // the pre-2026-08-06 dispatcher…". 171 of them went to knowledge_director, an agent that EXISTS
+  // and is actively subscribed: the event reached a live employee and produced no work. Strip the
+  // string and the leg read 173, not 0.
+  //
+  // THE EXCUSE IS NOW A FACT THE DATABASE CAN CHECK, not prose. A delivery may carry no task only
+  // if its subscriber resolves to NO org_agents row — which is the one situation the dispatcher's
+  // own unroutable branch exists for, and the only one where "the event reaches nobody" is true
+  // rather than asserted. No sentence can satisfy this leg; a subscription pointing at a real
+  // employee must produce work. Measured after the system repair: 11 task-less deliveries, all 11
+  // to cybersecurity_mgr, which has no org_agents row; 0 to an agent that exists.
+  //
+  // AND LEG 1 IS A COVERAGE RATIO, not `> 0`. One delivery with a task made "each OS creates
+  // internal tasks" MET for a bus that had stopped raising any. Same 2*x >= y form as
+  // comp-03-objectives-measured and comp-08-out-recommendations.
+  const D7 = `(select count(*) from public.event_delivery where delivered_at > now() - interval '7 days')`;
+  const D7_TASK = `(select count(*) from public.event_delivery
+              where task_id is not null and delivered_at > now() - interval '7 days')`;
+  const DEL_UNROUTABLE_BUT_REAL = `(select count(*) from public.event_delivery d
+             where d.task_id is null
+               and exists (select 1 from public.org_agents a where a.agent_key = d.agent_key))`;
   await req('xos', 'xos-05-internal-tasks', 'Link 5 each OS creates internal tasks from the event',
-    `select (select count(*) from public.event_delivery
-              where task_id is not null and delivered_at > now() - interval '7 days') > 0
+    `select ${D7_TASK} > 0
+        and 2 * ${D7_TASK} >= ${D7}
+        and ${DEL_UNROUTABLE_BUT_REAL} = 0
         and (select count(*) from public.event_delivery
-              where task_id is null and unroutable_reason is null
-                and delivered_at > now() - interval '24 hours') = 0
+              where task_id is null and unroutable_reason is null) = 0
         and ${rdSql('event_delivery')} > 0`,
     `select (select count(*) from public.event_delivery where task_id is not null)::text || ' of '
         || (select count(*) from public.event_delivery)::text || ' deliveries carry a task ('
+        || ${D7_TASK}::text || ' of ' || ${D7}::text || ' in 7d), '
+        || ${DEL_UNROUTABLE_BUT_REAL}::text
+        || ' task-less delivery(ies) to a subscriber that DOES exist, '
         || (select count(*) from public.event_delivery
-              where task_id is not null and delivered_at > now() - interval '7 days')::text
-        || ' in 7d), ' || (select count(*) from public.event_delivery
-             where task_id is null and unroutable_reason is null
-               and delivered_at > now() - interval '24 hours')::text
-        || ' silent in 24h (no task, no reason), ' || ${rdSql('event_delivery')}::text
+              where task_id is null and unroutable_reason is null)::text
+        || ' silent (no task, no reason), ' || ${rdSql('event_delivery')}::text
         || ' reader(s) of the delivery ledger, writers excluded'`);
 
   // LINK 6 — execution stays inside the authority model: the dispatcher resolves the tier from

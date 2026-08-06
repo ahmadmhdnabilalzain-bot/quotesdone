@@ -38,9 +38,9 @@ create or replace function public.fn_event_dispatch(p_lookback_minutes integer d
  set search_path to 'public'
 as $function$
 declare v_delivered integer := 0; v_tasks integer := 0; v_gated integer := 0;
-        v_unroutable integer := 0; v_assessed integer := 0;
+        v_unroutable integer := 0; v_assessed integer := 0; v_attached integer := 0;
         r record; v_task bigint; v_dept text; v_tier text; v_os text;
-        v_sev text; v_resp text; v_impact text;
+        v_sev text; v_resp text; v_impact text; v_subject_task bigint;
         -- 50, MEASURED, NOT GUESSED. The backlog this uncovers is 147 undelivered (event,
         -- subscriber) pairs — 145 routable, 2 unroutable, across 99 events — against 182 open
         -- tasks today. Draining it in one tick would nearly double the open queue in fifteen
@@ -54,7 +54,7 @@ begin
   -- event, however old", which is the setting the cron uses.
   for r in
     select e.id as event_id, e.event_type, e.entity_type, e.entity_id, e.actor, e.occurred_at,
-           e.correlation_id, s.agent_key, s.reason
+           e.correlation_id, e.payload, s.agent_key, s.reason
     from company_event e
     join event_subscription s on s.active and s.event_type = e.event_type
     left join event_delivery d on d.event_id = e.id and d.agent_key = s.agent_key
@@ -124,6 +124,40 @@ begin
       v_assessed := v_assessed + 1;
     end if;
 
+    -- xos-05 / contract-consolidation. THE EVENT THAT REPORTS ON WORK IS NOT NEW WORK.
+    --
+    -- MEASURED 6 Aug 2026, and it is a divergent feedback loop, not an inefficiency. Closing one
+    -- task runs fn_task_review, which writes 3-4 review_chain rows; trg_event_review emits one
+    -- review.step per row; knowledge_director subscribes to review.step; and this loop minted a
+    -- fresh org_task for every one of them. review.step was 183 of the ~300 events of the last
+    -- seven days and 217 of 576 deliveries all time. The Chief of Staff's executor closes 2 tasks
+    -- an hour, so every closure created 3-4 new tasks and the queue grew by working it — 336 open
+    -- event-derived tasks against 58 ever closed, and no coverage ratio for "the loop closes"
+    -- could ever be satisfied while that held.
+    --
+    -- The row already says what the event is about: fn_emit_event copies the whole source row into
+    -- payload, so a review_chain event carries subject_type='org_task' and subject_id. When the
+    -- event REPORTS ON a task that exists, the work is that task. The delivery is attached to it,
+    -- so the result that comes back is that task's own result and the loop closes on the work
+    -- itself rather than on a duplicate of it. Nothing is dropped: the delivery, its os_key and
+    -- its assessment (above) are all still written.
+    --
+    -- Scoped by the payload, not by an event-type list: any future emitter whose row names an
+    -- org_task subject gets the same treatment, and one that does not still raises a task.
+    v_subject_task := null;
+    if r.payload->>'subject_type' = 'org_task' and coalesce(r.payload->>'subject_id','') ~ '^[0-9]+$' then
+      select t.id into v_subject_task
+        from org_tasks t where t.id = (r.payload->>'subject_id')::bigint;
+    end if;
+    if v_subject_task is not null then
+      insert into event_delivery (event_id, agent_key, event_type, os_key, task_id)
+      values (r.event_id, r.agent_key, r.event_type, v_os, v_subject_task)
+      on conflict do nothing;
+      v_attached  := v_attached + 1;
+      v_delivered := v_delivered + 1;
+      continue;
+    end if;
+
     insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, decided_by)
     values (v_dept,
             left(r.event_type || ' on ' || r.entity_type || ' ' || coalesce(r.entity_id,''), 200),
@@ -148,6 +182,7 @@ begin
   perform set_config('app.causation_event_id', '', true);
 
   return jsonb_build_object('delivered', v_delivered, 'tasks_created', v_tasks,
+                            'attached_to_existing_task', v_attached,
                             'tasks_awaiting_a_human', v_gated,
                             'unroutable', v_unroutable, 'assessed', v_assessed,
                             'lookback_minutes', p_lookback_minutes,

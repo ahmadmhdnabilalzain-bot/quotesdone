@@ -1,24 +1,186 @@
--- fn_decide, given the producer it never had.
+-- STEP 9 (Execution), given the thing it never had: something that actually executes.
 --
--- Before this change the ten-step chain was a table with three hand-typed rows: fn_decide appended
--- to decision_log (1,099 rows) and NOTHING ever wrote decision_record, so steps 1/4/6/9 had a
--- column each and no engine, trg_decision_gate had never fired once, and fn_memory_search — the
--- knowledge-retrieval step — had zero callers in the entire database.
+-- MEASURED DEFECT, production, 6 Aug 2026: action_execution held 4 rows, all 'stalled', and the
+-- table has never contained a single success in its history. That is not bad luck, it is
+-- structural. fn_decide writes the row 'queued'; fn_execution_sweep is the only other routine that
+-- touches it, and the sweep does not perform anything — its 'succeeded' branch fires only
+-- `when d.status = 'executed'`, and NOTHING in the database has ever set decision_record.status to
+-- 'executed'. So the queue's only possible fate was to be relabelled 'stalled' sixty minutes after
+-- it was written. Step 9 was being scored complete by the routine that gives up on it.
 --
--- The signature is UNCHANGED on purpose: (p_kind text, p_ctx jsonb, p_actor text DEFAULT 'agent').
--- CREATE OR REPLACE with a different argument list makes an OVERLOAD, not a replacement, and the
--- old body would keep running under every existing caller.
+-- WHAT "EXECUTE" MEANS HERE, STATED PLAINLY. fn_decide's decisions are routing and approval
+-- rulings; the work they commit the company to is that the party the decision names is actually
+-- given the item. Nothing was doing that: the engine decided, queued an action_execution row, and
+-- no one was ever told. So execution is delivery — an agent_actions row addressed to the actor the
+-- decision named, carrying the decision it came from — and the execution row records the id of the
+-- artefact it created, so the claim "this ran" is checkable against a row rather than a status.
 --
--- What is added, in blueprint step order:
---   step 3  a real fn_memory_search retrieval whose hits are attached to decision_log.sources and
---           to decision_record.evidence — the retrieval marker is written even on zero hits, because
---           "we looked and found nothing" is a different claim from "we never looked"
---   step 4  the four impact fields, each derived from what the branch actually computed
---   step 6  two SCORED options, the selected one and the alternative it beat, never one
---   step 7  trg_decision_gate is now actually reached: a decision within autonomous thresholds is
---           inserted as 'approved' so the gate inspects it, and a decision that escalates is not
---   step 9  a passing decision writes decision_trace + action_execution on ONE correlation_id, so
---           the execution points back at the decision_record that caused it
+-- A row this routine cannot honestly execute is settled honestly instead: a decision the gate
+-- refused is 'cancelled', and a decision naming a party that resolves to no actor is 'failed' with
+-- the unresolved name in the response. Nothing is left queued to be relabelled by the sweep.
+create or replace function public.fn_execution_run(p_limit integer default 25)
+ returns jsonb
+ language plpgsql
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $function$
+declare r record; v_agent text; v_aa bigint; v_queue jsonb;
+        v_done integer := 0; v_failed integer := 0; v_cancelled integer := 0;
+begin
+  for r in
+    select a.id, a.correlation_id, a.action_class, a.risk_tier, a.request,
+           d.id as dr_id, d.status as dr_status, d.gate_verdict as dr_verdict,
+           d.recommendation, d.problem, d.decided_by
+      from public.action_execution a
+      left join public.decision_record d on d.id::text = a.request ->> 'decision_record_id'
+     where a.status in ('queued','stalled')
+     order by a.created_at
+     limit greatest(coalesce(p_limit, 25), 1)
+  loop
+    -- NOT EXECUTABLE. The gate refused it, or it never reached the gate, or the decision is gone.
+    if r.dr_id is null or coalesce(r.dr_verdict,'') <> 'passed'
+       or coalesce(r.dr_status,'') not in ('approved','executed') then
+      update public.action_execution
+         set status      = 'cancelled',
+             attempts    = coalesce(attempts,0) + 1,
+             started_at  = coalesce(started_at, now()),
+             finished_at = now(),
+             response    = coalesce(response,'{}'::jsonb) || jsonb_build_object(
+                             'ran_at', now(), 'outcome', 'cancelled',
+                             'reason', case when r.dr_id is null
+                                            then 'the decision this action came from no longer exists'
+                                            else format('decision_record %s is %s and the gate said %s — not executable',
+                                                        r.dr_id, coalesce(r.dr_status,'?'),
+                                                        coalesce(r.dr_verdict,'nothing')) end)
+       where id = r.id;
+      v_cancelled := v_cancelled + 1;
+      continue;
+    end if;
+
+    -- WHO THE DECISION NAMED. route_to is the party the engine chose, and it is a real identity in
+    -- two different registers: an employee (org_agents) or a category desk (agent_knowledge, where
+    -- 'cat:signage' carries 8 rows of its own knowledge). Failing that, the decider carries it.
+    v_agent := coalesce(
+      (select o.agent_key from public.org_agents o
+        where o.agent_key = nullif(btrim(r.request ->> 'route_to'),'') and o.active limit 1),
+      (select k.agent_key from public.agent_knowledge k
+        where k.agent_key = nullif(btrim(r.request ->> 'route_to'),'') limit 1),
+      (select o2.agent_key from public.org_agents o2
+        where o2.agent_key = nullif(btrim(r.decided_by),'') and o2.active limit 1));
+
+    if v_agent is null then
+      update public.action_execution
+         set status      = 'failed',
+             attempts    = coalesce(attempts,0) + 1,
+             started_at  = coalesce(started_at, now()),
+             finished_at = now(),
+             response    = coalesce(response,'{}'::jsonb) || jsonb_build_object(
+                             'ran_at', now(), 'outcome', 'failed',
+                             'reason', format('route_to %L resolves to no active employee and no category desk, and decider %L is not an active employee either',
+                                              r.request ->> 'route_to', r.decided_by))
+       where id = r.id;
+      v_failed := v_failed + 1;
+      continue;
+    end if;
+
+    -- PERFORM IT: the decision is handed to the actor it named.
+    insert into public.agent_actions(agent, kind, title, recommendation, detail, risk, status, decided_by)
+    values (v_agent, r.action_class,
+            left(coalesce(nullif(btrim(r.problem),''), 'decision_record ' || r.dr_id::text), 180),
+            coalesce(nullif(btrim(r.recommendation),''), 'carry out the decision on record'),
+            jsonb_build_object('decision_record_id', r.dr_id, 'correlation_id', r.correlation_id,
+                               'execution_id', r.id, 'route_to', r.request ->> 'route_to',
+                               'source', 'fn_execution_run'),
+            coalesce(r.risk_tier, 'low'), 'pending', r.decided_by)
+    returning id into v_aa;
+
+    -- A BEFORE trigger on agent_actions may swallow the row (dedupe_it_incident returns NULL for a
+    -- duplicate open incident). No artefact means nothing was delivered, so it is not a success.
+    if v_aa is null then
+      update public.action_execution
+         set status      = 'failed',
+             attempts    = coalesce(attempts,0) + 1,
+             started_at  = coalesce(started_at, now()),
+             finished_at = now(),
+             response    = coalesce(response,'{}'::jsonb) || jsonb_build_object(
+                             'ran_at', now(), 'outcome', 'failed',
+                             'reason', format('delivery to %L was refused by a trigger on agent_actions', v_agent))
+       where id = r.id;
+      v_failed := v_failed + 1;
+      continue;
+    end if;
+
+    update public.action_execution
+       set status      = 'succeeded',
+           attempts    = coalesce(attempts,0) + 1,
+           started_at  = coalesce(started_at, now()),
+           finished_at = now(),
+           response    = coalesce(response,'{}'::jsonb) || jsonb_build_object(
+                           'ran_at', now(), 'outcome', 'succeeded',
+                           'agent_action_id', v_aa, 'delivered_to', v_agent,
+                           'decision_record_id', r.dr_id)
+     where id = r.id;
+
+    update public.decision_record
+       set status = 'executed'
+     where id = r.dr_id and status = 'approved';
+
+    v_done := v_done + 1;
+  end loop;
+
+  select jsonb_object_agg(status, n) into v_queue
+    from (select status, count(*) n from public.action_execution group by 1) z;
+
+  return jsonb_build_object('executed', v_done, 'failed', v_failed, 'cancelled', v_cancelled,
+                            'queue', coalesce(v_queue,'{}'::jsonb), 'ran_at', now());
+end $function$;
+
+-- THE CONSUMER decision_trace NEVER HAD.
+--
+-- Round 3's finding, verbatim: the only non-producer routine naming decision_trace was
+-- fn_execution_sweep, and its single read of the table is `coalesce(t.outcome_status,'') is
+-- distinct from a.status` — reading back the column it writes, purely to skip a no-op UPDATE.
+-- Nothing anywhere consumed outcome_status, outcome or evaluated_at, so step 9's second artefact
+-- was written-and-unread, which is the one thing this whole spec file exists to catch.
+--
+-- This function reads them and writes nothing, and fn_decide calls it BEFORE it decides: the track
+-- record of past decisions of the same kind is retrieved, attached to the new decision's sources
+-- and evidence, and — when it is bad — pulls the confidence below the autonomy threshold so the
+-- decision escalates instead of being taken. An outcome that changes the next decision is a
+-- consumed outcome.
+create or replace function public.fn_decision_outcomes(p_kind text, p_days integer default 90)
+ returns jsonb
+ language sql
+ stable
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $function$
+  -- 'cancelled' is counted and reported but is NOT a failure: it means the decision was withdrawn
+  -- or refused before it ran, which the authority gate has already ruled on and which says nothing
+  -- about whether decisions OF THIS KIND work when they are carried out. Folding it in would make
+  -- three gate refusals suppress a whole decision kind for ninety days, which is a punishment, not
+  -- a measurement.
+  select jsonb_build_object(
+           'decision_type', p_kind,
+           'window_days',   greatest(coalesce(p_days, 90), 1),
+           'traced',        count(*),
+           'graded',        count(*) filter (where t.outcome_status is not null),
+           'succeeded',     count(*) filter (where t.outcome_status = 'succeeded'),
+           'failed',        count(*) filter (where t.outcome_status in ('failed','stalled')),
+           'cancelled',     count(*) filter (where t.outcome_status = 'cancelled'),
+           'last_evaluated_at', max(t.evaluated_at))
+    from public.decision_trace t
+   where t.decision_type = p_kind
+     and t.created_at > now() - make_interval(days => greatest(coalesce(p_days, 90), 1));
+$function$;
+
+-- fn_decide, with the outcome feedback wired in. THE SIGNATURE IS UNCHANGED: CREATE OR REPLACE with
+-- a different argument list makes an OVERLOAD, not a replacement, and every existing caller would
+-- keep running the old body.
+--
+-- THIS FILE SUPERSEDES scripts/sql/fn_decide_producer.sql, which was deleted rather than left
+-- beside it. Two files defining one routine is how a deployed repair gets silently reverted by
+-- someone re-applying the older of the pair; the producer file's history is in git.
 create or replace function public.fn_decide(p_kind text, p_ctx jsonb, p_actor text default 'agent'::text)
 returns jsonb
 language plpgsql
@@ -35,7 +197,7 @@ declare
   v_problem text; v_imp_bus text; v_imp_fin text; v_imp_leg text; v_imp_cus text;
   v_escalates boolean; v_status text; v_approver text; v_authorised boolean;
   v_dr_id bigint; v_dr_status text; v_verdict text; v_gate_reason text;
-  v_corr uuid; v_trace uuid;
+  v_corr uuid; v_trace uuid; v_prior jsonb;
 begin
   begin v_amount := nullif(coalesce(v_ctx->>'amount_aed', v_ctx->>'amount'), '')::numeric;
   exception when others then v_amount := null; end;
@@ -123,6 +285,23 @@ begin
 
   sources := sources || jsonb_build_array(jsonb_build_object(
                'kind', 'memory_search', 'q', v_q, 'hits', jsonb_array_length(v_hits))) || v_hits;
+
+  -- HOW THE LAST DECISIONS OF THIS KIND TURNED OUT. decision_trace.outcome_status was written by
+  -- fn_execution_sweep and read by nobody; it is retrieved here, recorded as a source, and it
+  -- BITES: a kind whose executions have failed more often than they succeeded loses the confidence
+  -- it needs to be taken autonomously and escalates instead. That is the difference between a
+  -- measured outcome and a stored one.
+  v_prior := public.fn_decision_outcomes(p_kind, 90);
+  sources := sources || jsonb_build_array(jsonb_build_object(
+               'kind', 'prior_outcomes', 'ref', 'decision_trace', 'result', v_prior));
+  if coalesce((v_prior->>'graded')::int, 0) >= 3
+     and coalesce((v_prior->>'failed')::int, 0) > coalesce((v_prior->>'succeeded')::int, 0) then
+    conf := least(conf, 0.65);
+    reasons := coalesce(reasons,'[]'::jsonb) || jsonb_build_array(format(
+      'the last %s graded %s decisions went %s failed against %s succeeded, so this one is not taken autonomously',
+      v_prior->>'graded', p_kind, v_prior->>'failed', v_prior->>'succeeded'));
+  end if;
+
   v_evidence := sources;
 
   -- STEP 6. Two scored alternatives, always. One "option" is a conclusion, not a choice.
@@ -153,14 +332,12 @@ begin
   -- reach the gate; autonomous ones are written as 'approved' so trg_decision_gate must inspect
   -- them, and it is free to refuse — 'blocked_by_gate' coming back out is a working gate, not a bug.
   --
-  -- THE ACTOR MUST HAVE AUTHORITY ON FILE. fn_decision_gate only consults employee_authority when
-  -- financial_aed > 0, so before this clause any string handed in as p_actor could have a decision
-  -- written straight to 'approved' and stamped gate_verdict='passed' with no authority checked at
-  -- all — measured on production: three passed rows decided by 'operations_ai', which has no
-  -- employee_authority row and no org_agents row either. The blueprint's rule is that anything not
-  -- on the list is GATED, so an actor with no recorded authority escalates instead of approving.
-  -- 'founder' is the one identity fn_decision_gate itself treats as top authority without an
-  -- employee_authority row, so it resolves here too; every other actor must be on the list.
+  -- THE ACTOR MUST HAVE AUTHORITY ON FILE. This is now belt AND braces: fn_decision_gate consults
+  -- the register itself for every writer (scripts/sql/fn_decision_gate_authority_register.sql), and
+  -- the engine declines to even propose an autonomous decision for an actor it cannot find there —
+  -- an escalation is a better answer than a refusal for something the engine could see coming.
+  -- 'founder' is the one identity the gate treats as top authority without an employee_authority
+  -- row, so it resolves here too; every other actor must be on the list.
   v_authorised := p_actor = 'founder'
                   or exists (select 1 from public.employee_authority ea where ea.agent_key = p_actor);
   if not v_authorised then
@@ -209,8 +386,9 @@ begin
   -- STEP 9. Execution linked BACK to the decision. One correlation_id ties the trace to the
   -- action, and the action carries the decision_record id it came from, so
   -- v_executions_without_decision_trace stays empty for anything this engine produced.
-  -- ponytail: the action is written 'queued' because nothing drains action_execution yet —
-  -- marking it 'succeeded' here would be a claim the system cannot back.
+  -- The row is written 'queued' and public.fn_execution_run (cron execution_run_hourly) performs
+  -- it: it delivers the decision to the actor the decision named and settles the row against the
+  -- artefact it created. Claiming 'succeeded' here would be claiming an outcome before the act.
   if v_verdict = 'passed' then
     begin v_corr := nullif(current_setting('app.correlation_id', true), '')::uuid;
     exception when others then v_corr := null; end;
@@ -245,5 +423,10 @@ begin
                             'route_to',route,'sources',sources,'detail',res,
                             'decision_record_id',v_dr_id,'status',v_dr_status,
                             'gate_verdict',v_verdict,'gate_reason',v_gate_reason,
-                            'options',v_options,'knowledge_hits',jsonb_array_length(v_hits));
+                            'options',v_options,'knowledge_hits',jsonb_array_length(v_hits),
+                            'prior_outcomes',v_prior);
 end $function$;
+
+-- Ten minutes before execution_sweep_hourly (:20), so the sweep finds a settled queue and mirrors
+-- the outcome onto the trace rather than relabelling an undrained one 'stalled'.
+select cron.schedule('execution_run_hourly', '10 * * * *', 'select public.fn_execution_run();');

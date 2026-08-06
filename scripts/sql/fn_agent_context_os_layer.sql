@@ -7,9 +7,26 @@
 -- 1. os_objective.actual_value / measured_at — 50 objectives whose 'measure' was a prose label.
 -- 2. fn_os_knowledge_query(os_key) — 315 os_knowledge_domain 'queries' rows that routed nothing.
 -- 3. workflow_run — 0 rows, 0 readers, under 14 active workflows and 117 defined steps.
+-- 4. operating_system.owner_agent — 10/10 populated, read by fn_os_improve on a cron and by no
+--    employee: the OS block named six of the blueprint's seven per-OS attributes and not the owner.
 --
--- All three are appended AFTER layer 4. v_emp is cut at 6,200 characters and LAYER 2 is budgeted
--- against length(out), so anything inserted earlier deletes something that already passes a check.
+-- The first three are appended AFTER layer 4. v_emp is cut at 6,200 characters and LAYER 2 is
+-- budgeted against length(out), so anything inserted earlier deletes something that already passes
+-- a check. The owner line is the one exception and it has to be: it belongs to the OS block, whose
+-- boundary ('# YOUR OPERATING SYSTEM' up to the next '\n# ') is what the ten per-OS checks search,
+-- and an owner emitted outside that slice would not be the OS's owner arriving. Measured before
+-- deploying, the longest employee record on production was cpo at 6,065 of the 6,200 cut; measured
+-- after, the longest is 6,135 and 0 of 66 employees are truncated, so nothing already proven to
+-- reach an employee was displaced by the 6,200 cut. That leaves 65 characters of headroom on the
+-- worst record: the next thing added to v_emp has to be measured the same way, or it will cut the
+-- tail of cpo's record (company goals, department objectives, the improvement loop) to make room.
+--
+-- The 6,200 cut was not the only budget it had to clear, and the first deploy proved it: LAYER 1
+-- and LAYER 2 are budgeted against length(out), which already carries the employee record, so the
+-- owner line came straight off the end of LAYER 1 and 19 employees each silently lost a global
+-- knowledge topic. The line now buys its own space back (cap/own_cap bump after the OS loop), and
+-- all 19 topics were measured returning. A prompt has three separate ceilings and adding anything
+-- means measuring against all three.
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
@@ -21,7 +38,7 @@ declare out text := ''; r record; piece text; cap int; own_cap int;
         v_dept text; v_role text; v_charter text; v_north text; v_health_fn text;
         v_status text; v_state jsonb; v_l4 text := '';
         v_emp text := ''; v_title text; v_resp text; v_mgr text; v_sen text; v_plan text;
-        v_cap_tasks int; v_line text; v_n int; v_os text;
+        v_cap_tasks int; v_line text; v_n int; v_os text; v_pad int := 0;
 begin
   cap := greatest(coalesce(p_max_chars,9000), 22000);
   own_cap := least(cap/2, 6000);
@@ -159,8 +176,19 @@ begin
     -- An employee belongs to an OS through org_agents.department -> os_department -> operating_system.
     -- Emitting it here is the same fix that closed row #1: the company knew all of this and never
     -- told the people doing the work.
+    --
+    -- 4. THE OWNER. 'owner' is one of the seven attributes the blueprint names per OS
+    --    (operating_system.owner_agent, 10/10 populated, all ten resolving to a live employee) and
+    --    it was the one attribute of the seven that never left the table: fn_os_improve read the
+    --    column on a cron, but the block below emitted name/Purpose/Mission/Mandate/OWNS/objectives
+    --    and no owner line, so measured across all 66 active employees not one could name who owns
+    --    their OS. A responsibility an employee cannot escalate is a responsibility with no route
+    --    out, which is what makes this the same defect as the other three: known by the company,
+    --    never told to the person doing the work.
     for r in
-      select o.os_key, o.name, o.charter, o.mandate, o.mission,
+      select o.os_key, o.name, o.charter, o.mandate, o.mission, o.owner_agent,
+             (select coalesce(w.title, w.role) from org_agents w
+               where w.agent_key = o.owner_agent and w.active) owner_title,
              (select string_agg(x.responsibility, ', ' order by x.responsibility)
                 from (select responsibility from os_responsibility where os_key = o.os_key
                        order by responsibility limit 12) x) resp,
@@ -175,10 +203,20 @@ begin
        limit 1
     loop
       v_os := r.os_key;
+      -- Emitted and measured from ONE expression. The line's length is what compensates the layer
+      -- budgets below, so a second copy of the text is a copy that can be edited alone and leave
+      -- the compensation quietly wrong.
+      v_line := case when r.owner_agent is not null
+                     then 'Your OS is owned by: '||r.owner_agent
+                       ||coalesce(' — '||left(r.owner_title,60), '')
+                       ||'. Escalate OS-level decisions there.'||E'\n'
+                     else '' end;
+      v_pad := length(v_line);
       v_emp := v_emp || E'\n'||'# YOUR OPERATING SYSTEM — '||coalesce(r.name, r.os_key)||E'\n'
         ||case when r.charter is not null then 'Purpose: '||left(r.charter,300)||E'\n' else '' end
         ||case when r.mission is not null then 'Mission: '||left(r.mission,240)||E'\n' else '' end
         ||case when r.mandate is not null then 'Mandate: '||left(r.mandate,240)||E'\n' else '' end
+        ||v_line
         ||case when r.resp is not null
                then 'Your OS OWNS, and no other OS may own: '||r.resp||E'\n'
                  ||'If work belongs to another OS, hand it over — do not duplicate it.'||E'\n'
@@ -186,6 +224,20 @@ begin
         ||case when r.objectives is not null
                then 'Your OS objectives by horizon:'||E'\n- '||r.objectives||E'\n' else '' end;
     end loop;
+
+    -- THE OWNER LINE IS NOT PAID FOR OUT OF THE KNOWLEDGE BUDGET. LAYER 2 admits a piece while
+    -- length(out) + length(piece) <= own_cap + 2200 and LAYER 1 while <= cap, and `out` already
+    -- carries the employee record — so 70-97 characters added here come straight off the end of
+    -- LAYER 1. Measured on production the first time this line was deployed WITHOUT this
+    -- compensation: 19 employees lost a global knowledge topic each, including 'Penalty &
+    -- collections model' (priority 94), 'Escalation policy' (93) and 'canon:supplier_status' (93).
+    -- That is the file header's own rule — anything inserted before the layers deletes something
+    -- already proven to reach an employee — and the owner line is the one insertion that cannot be
+    -- moved to the end, because it has to land inside the OS block. So it buys its own space
+    -- instead: both budgets grow by exactly the characters it used, which leaves every other
+    -- inclusion decision bit-for-bit where it was. v_pad is 0 when no OS block was emitted.
+    cap := cap + v_pad;
+    own_cap := own_cap + v_pad;
 
     -- ---- WHAT THE COMPANY IS TRYING TO ACHIEVE ---------------------------------------------------
     -- company_goals was read by dept_plan:79 and by nothing an ordinary employee ever saw. The spec

@@ -14,13 +14,25 @@
 //                    an owner_agent that resolves to a live employee.
 //   2. POPULATED   — >=1 os_responsibility, all five os_objective horizons, >=1 active employee
 //                    reachable through os_department.
-//   3. READ        — that OS's own purpose (charter AND mandate), mission and every one of its
-//                    objectives are present, verbatim, IN THAT OS'S OWN BLOCK of the prompt
+//   3. READ        — that OS's own purpose (charter AND mandate), mission, its OWNER and every one
+//                    of its objectives are present, verbatim, IN THAT OS'S OWN BLOCK of the prompt
 //                    fn_agent_context builds for an employee of that OS, and every one of its
 //                    responsibilities is present on the OWNS LINE inside that block. Text in a table
 //                    is not text an employee was told; this spec file is entirely about the
 //                    difference. And a word occurring somewhere in the block is not that OS's
 //                    responsibility arriving — see the second anchor below.
+//
+// OWNER WAS THE ONE OF THE SEVEN THAT DID NOT TRAVEL, AND THIS HEADER USED TO ADMIT IT BY OMISSION:
+// leg 3 enumerated purpose/mission/objectives/responsibilities and silently dropped owner, so the
+// requirement string named seven attributes and the check asked all three of its questions about
+// six of them. owner_agent was populated 10/10, resolved 10/10, and was read by fn_os_improve on a
+// cron — but fn_agent_context's OS block emitted name, Purpose, Mission, Mandate, the OWNS line and
+// the objectives and NO owner line, and measured across all 66 active employees on production not
+// one could name who owns their OS. The system was fixed first (fn_agent_context_os_layer.sql now
+// emits 'Your OS is owned by: <agent> — <title>. Escalate OS-level decisions there.' inside the
+// block, deployed to both projects, 66/66 employees measured carrying it), and only then did this
+// leg go in. A populated column with a live cron reader that no employee ever sees is precisely the
+// thing this spec file was written to catch; it was sitting inside the file's own subject.
 //
 // The read leg is per-OS on purpose. A single global "fn_agent_context mentions operating_system"
 // probe would have passed all ten off one OS's data.
@@ -75,7 +87,8 @@ const CTX = (k) => `with ctx as materialized (
                      else substring(t from position('# YOUR OPERATING SYSTEM' in t)) end x from ctx),
      blk as (select substring(x from 1 for
                  coalesce(nullif(position(E'\\n# ' in x), 0) - 1, length(x))) b from head),
-     ownl as (select coalesce(substring(b from E'no other OS may own[^\\n]*'), '') l from blk)`;
+     ownl as (select coalesce(substring(b from E'no other OS may own[^\\n]*'), '') l from blk),
+     ownr as (select coalesce(substring(b from E'Your OS is owned by[^\\n]*'), '') w from blk)`;
 
 // fn_agent_context emits left(charter,300) / left(mission,240) / left(mandate,240), so the needle
 // must be truncated the same way or a long mission would look absent when it is in fact there. The
@@ -89,6 +102,15 @@ const CTX = (k) => `with ctx as materialized (
 // in `case when r.<x> is not null then ... else '' end`, so deleting the one Mandate line
 // (fn_agent_context_os_layer.sql:181) left all ten checks MET with a populated, unread column —
 // the exact failure this whole spec file is about. Measured: 85-186 chars per OS, all ten present.
+//
+// OWNER IS LINE-ANCHORED, LIKE RESPONSIBILITIES AND UNLIKE THE BLOCK-WIDE NEEDLES. `ownr` is the
+// 'Your OS is owned by ...' line and nothing else, because an owner_agent is a short identifier —
+// 'legal', 'cpo', 'procurement', 'ceo' — and those words occur in charters, mandates and on the OWNS
+// line of the very OS that owns them. Measured on production before the anchor existed: marketplace
+// already scored owner-read block-wide off the word 'procurement' sitting on its OWNS line, with no
+// owner line anywhere in the prompt. That is a check reading true from the absence it exists to
+// detect, so the leg is pinned to the line that names an owner and to nothing else. The length guard
+// is the strpos(anything, '') = 1 trap again: an owner_agent of '' would otherwise match any line.
 //
 // THE RESPONSIBILITY LEG IS A FLOOR, NOT `> 0`. minResp is the count the blueprint NAMES for that
 // OS — the seed at supabase/migrations/20260728191802_os_blueprint_mission_objectives_ownership_io
@@ -108,6 +130,8 @@ select
          and length(coalesce(mission,'')) > 10) = 1
   and (select count(*) from o join public.org_agents a
          on a.agent_key = o.owner_agent and a.active) = 1
+  and (select length(trim(coalesce(o.owner_agent,''))) > 1
+            and strpos((select w from ownr), o.owner_agent) > 0 from o)
   and (select count(*) from public.org_agents a
          join public.os_department d on d.dept_key = a.department
         where d.os_key = '${k}' and a.active) > 0
@@ -145,6 +169,11 @@ select (select count(*) from public.org_agents a
     || (select case when strpos((select b from blk), left(o.mission,240)) > 0
              and strpos((select b from blk), left(o.charter,300)) > 0
              and strpos((select b from blk), left(o.mandate,240)) > 0 then 'yes' else 'no' end
+           from public.operating_system o where o.os_key = '${k}')
+    || ', owner ' || (select coalesce(o.owner_agent,'NONE') from public.operating_system o
+           where o.os_key = '${k}')
+    || (select case when strpos((select w from ownr), o.owner_agent) > 0
+             then ' named on the block''s owner line' else ' NOT in the block' end
            from public.operating_system o where o.os_key = '${k}')
     || ', resp on OWNS line ' || (select count(*) from public.os_responsibility r
            where r.os_key = '${k}' and strpos((select l from ownl), r.responsibility) > 0)

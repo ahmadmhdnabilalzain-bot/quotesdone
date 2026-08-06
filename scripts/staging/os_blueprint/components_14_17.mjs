@@ -168,6 +168,20 @@ export default async function ({ req }) {
          and pg_get_functiondef(p.oid) !~* ('(inse'||'rt\\s+into|upd'||'ate|del'||'ete\\s+from)\\s+(public\\.)?${t}\\y')
          and ${LIVE('p')}),'none')`;
 
+  // A PARTY THE ORG MODEL CONTAINS: an ACTIVE employee, or a department with at least one active
+  // employee in it. Written once and used by every leg in this file that claims a name "resolves",
+  // because the alternative is what was measured on 6 Aug 2026 — comp-14-who-reviews demanded
+  // `org_agents.active`, the escalation leg demanded only `is not null`, and comp-15's UNRESOLVED
+  // demanded mere EXISTENCE of a row. Under the weakest of those three, 'supplier_success' passed
+  // as a helper and as an owner while org_agents held ZERO employees in it, and 1,101 of 1,101
+  // escalations routed to 'Secretary', a string that matches no agent_key, no title and no
+  // dept_key. An unstaffed department is the same nobody a missing one is.
+  const IS_PARTY = (expr) => `(exists (select 1 from public.org_agents a
+        where a.agent_key = ${expr} and a.active)
+      or exists (select 1 from public.org_departments d where d.dept_key = ${expr}
+                 and exists (select 1 from public.org_agents a2
+                              where a2.department = d.dept_key and a2.active)))`;
+
   // Every check below registers section 'comp-14-17'. 'comp-14-17'.startsWith('comp-1') is true, so
   // --only=comp-1 keeps working.
   const S = 'comp-14-17';
@@ -276,6 +290,36 @@ export default async function ({ req }) {
   // `-- superseded by fn_should_escalate` comment used to satisfy the only mechanism-exists clause
   // this step has. Measured 6 Aug 2026: all three namers (fn_ai_gate, fn_decide, trg_action_gate)
   // do call it, so this hardening does not move the verdict — it removes the way it could be faked.
+  //
+  // A NAMED PARTY, NOT A NON-NULL COLUMN (6 Aug 2026). The routing leg was
+  // `decision_log where route_to is not null > 0` and it was MET while being 100% wrong: all 1,101
+  // escalations of the last 30 days carried route_to='Secretary', a label that resolves to no
+  // org_agent and no org_departments row, so every escalation the company raised this month was
+  // addressed to nobody. Three legs replace it, and none of them can be satisfied by a string.
+  //
+  //   ESC_LIVE_PARTY  — the ROUTER itself is executed and its answer must resolve to a party. This
+  //                     is the only leg that cannot be satisfied by history at all: it is the
+  //                     mechanism answering the question now, and it goes false the moment
+  //                     decision_policy.review_owner is repointed at a ghost.
+  //   ESC_UNRESOLVED  — a per-row universal over the LEDGER, so a router that answers correctly
+  //                     when asked but writes something else is caught.
+  //   ESC_ROUTED      — non-emptiness, so the universal above is never a zero over nothing.
+  //
+  // THE WINDOW ON THE UNIVERSAL IS 24 HOURS AND IT IS NOT A GRANDFATHER CLAUSE. The 1,101 legacy
+  // rows cannot be un-written and no future work can make them resolve, so a universal over 30 days
+  // would be a requirement no implementation can satisfy — the defect comp-17's own comment names.
+  // A window excuses nothing by name, by flag, by content or by a repair timestamp: it measures the
+  // live system, and production writes ~36 routed escalations a day, so it bites within hours of
+  // any regression and is asserted non-empty by ESC_ROUTED on the same window.
+  const ESC_ROUTED = (win) => `(select count(*) from public.decision_log
+      where route_to is not null and created_at > now() - interval '${win}')`;
+  const ESC_UNRESOLVED = (win) => `(select count(*) from public.decision_log l
+      where l.route_to is not null and l.created_at > now() - interval '${win}'
+        and not ${IS_PARTY('l.route_to')})`;
+  const ESC_LIVE_PARTY = `(select ${IS_PARTY('z.r')} from
+      (select public.fn_should_escalate('{}'::jsonb)->>'route_to' r) z)`;
+  const ESC_LIVE_NAME = `coalesce((select z.r from
+      (select public.fn_should_escalate('{}'::jsonb)->>'route_to' r) z), '(null)')`;
   const ESC_CALLERS = `(select count(distinct p.proname) from pg_proc p
         join pg_namespace n on n.oid=p.pronamespace
        where n.nspname='public' and p.prokind in ('f','p') and p.proname <> 'fn_should_escalate'
@@ -289,13 +333,24 @@ export default async function ({ req }) {
          and pg_get_functiondef(p.oid) ~* '\\ydecision_log\\y')`;
   await req(S, 'comp-14-should-escalate', 'Should I escalate? routes to a named party',
     `select coalesce(${HAS_FN('fn_should_escalate')} and ${ESC_CALLERS} > 0
-       and (select count(*) from public.decision_log
-             where route_to is not null and created_at > now() - interval '30 days') > 0
+       and ${ESC_LIVE_PARTY}
+       and ${ESC_ROUTED('24 hours')} > 0
+       and ${ESC_UNRESOLVED('24 hours')} = 0
        and ${ESC_SURFACES} > 0, false)`,
-    `select (select count(*) from public.decision_log where route_to is not null
-              and created_at > now() - interval '30 days')||' routed escalation(s)/30d to "'
-       ||coalesce((select value #>> '{}' from public.decision_policy where key='review_owner'),'nobody')
-       ||'", called by '||${ESC_CALLERS}||' routine(s), read by '||${ESC_SURFACES}
+    // The party is taken FROM THE ROWS COUNTED, never from decision_policy. The old evidence read
+    // the label out of decision_policy.review_owner and rendered it as `1100 routed escalation(s)
+    // to "Secretary"` — a sentence that stayed true-looking however the ledger was rewritten, and
+    // that was already false for the 9 rows routed to 'cat:*' values.
+    `select ${ESC_ROUTED('24 hours')}||' routed escalation(s)/24h of which '
+       ||${ESC_UNRESOLVED('24 hours')}||' name no active employee and no staffed department; '
+       ||'over 30d that is '||${ESC_UNRESOLVED('30 days')}||' of '||${ESC_ROUTED('30 days')}
+       ||' unresolvable; the router answers "'||${ESC_LIVE_NAME}||'" which resolves to a party: '
+       ||${ESC_LIVE_PARTY}||'; top routes/24h: '
+       ||coalesce((select string_agg(t.rt||' x'||t.n, ', ' order by t.n desc) from
+            (select l.route_to rt, count(*) n from public.decision_log l
+              where l.route_to is not null and l.created_at > now() - interval '24 hours'
+              group by l.route_to order by count(*) desc limit 4) t),'none')
+       ||'; called by '||${ESC_CALLERS}||' routine(s), read by '||${ESC_SURFACES}
        ||' surface(s) beyond the writers'`);
 
   // "Who must review?" — RESOLUTION, not existence, and the resolver must have RUN.
@@ -369,10 +424,19 @@ export default async function ({ req }) {
        where n.nspname='public' and p.prokind in ('f','p') and p.proname <> 'fn_review_submit'
          and pg_get_functiondef(p.oid) ~* '\\yfn_review_submit\\s*\\('
          and pg_get_functiondef(p.oid) !~* '\\ycollaboration_rule\\y')`;
+  // A DECLARED HELPER MUST BE SOMEBODY. This asked only that the name EXISTED in org_departments or
+  // org_agents — not that the agent is ACTIVE or the department STAFFED, which is exactly the
+  // distinction comp-14-who-reviews makes sixty lines earlier. Measured 6 Aug 2026 under the old
+  // form: 0 unresolvable, while collaboration_rule #5 and #8 both named 'supplier_success' as a
+  // helper and `select count(*) from org_agents where department='supplier_success'` was 0 — not
+  // inactive, ZERO ROWS. Two of the nine rules that "name helpers" summoned a department with no
+  // employees at all and the check read them as resolved.
   const UNRESOLVED = (col) => `(select count(*) from public.collaboration_rule c,
       unnest(coalesce(c.${col},'{}'::text[])) x
-      where not exists (select 1 from public.org_departments d where d.dept_key = x)
-        and not exists (select 1 from public.org_agents a where a.agent_key = x))`;
+      where not ${IS_PARTY('x')})`;
+  const UNRESOLVED_NAMES = (col) => `coalesce((select string_agg(distinct x, ', ')
+      from public.collaboration_rule c, unnest(coalesce(c.${col},'{}'::text[])) x
+      where not ${IS_PARTY('x')}), 'none')`;
   // When a rule DID fire, fn_task_review records it as `collaboration_rule #<id> applies ("...")`.
   // position() against a needle built from the id, never LIKE: the pattern would otherwise carry
   // the '_' in 'collaboration_rule' as a single-character wildcard.
@@ -393,7 +457,8 @@ export default async function ({ req }) {
        and ${REVIEW_DRIVERS} > 0 and ${REVIEW_DRIVERS_BLIND} = 0
        and ${COLLAB_ORPHAN} = 0, false)`,
     `select (select count(*) from public.collaboration_rule where coalesce(array_length(must_involve,1),0) > 0)
-       ||' rule(s) name helpers, '||${UNRESOLVED('must_involve')}||' unresolvable, read by '
+       ||' rule(s) name helpers, '||${UNRESOLVED('must_involve')}||' naming no active employee and '
+       ||'no staffed department ('||${UNRESOLVED_NAMES('must_involve')}||'), read by '
        ||${CONSUMERS('collaboration_rule')}||' non-writing routine(s)/view(s) ('
        ||coalesce((select string_agg(distinct p.proname,',') from pg_proc p
             join pg_namespace n on n.oid=p.pronamespace
@@ -464,7 +529,8 @@ export default async function ({ req }) {
        and ${REVIEW_DRIVERS} > 0 and ${REVIEW_DRIVERS_BLIND} = 0
        and ${MUSTREV_MISMATCH} = 0, false)`,
     `select (select count(*) from public.collaboration_rule where coalesce(array_length(must_review,1),0) > 0)
-       ||' rule(s) name reviewers, '||${UNRESOLVED('must_review')}||' unresolvable; fn_task_review '
+       ||' rule(s) name reviewers, '||${UNRESOLVED('must_review')}||' naming nobody staffed ('
+       ||${UNRESOLVED_NAMES('must_review')}||'); fn_task_review '
        ||'selects must_review: '||coalesce((select (pg_get_functiondef(p.oid) ~* '\\ymust_review\\y')::text
             from pg_proc p join pg_namespace n on n.oid=p.pronamespace
            where n.nspname='public' and p.proname='fn_task_review' limit 1),'absent')
@@ -474,30 +540,56 @@ export default async function ({ req }) {
   // "Who owns this process?" — 72 declared owners are worth nothing if the only reader is the graph
   // builder. The consumer count is over os_responsibility with writers removed AND narrowed to
   // reachable routines (fn_event_dispatch on event_dispatch_15min, fn_graph_rebuild on
-  // graph_rebuild_daily). Ownership must also ROUTE work: collaboration_rule.owner_dept has to
-  // resolve to a real department, and the router that reads it has to have run — the old clause
-  // asked only that fn_task_review's TEXT contains the words owner_dept, and its evidence then
-  // asserted "resolved by fn_task_review" as prose while the function had no visible caller.
+  // graph_rebuild_daily).
+  //
+  // TWO GLOBAL COUNTS STOOD IN FOR TWO UNIVERSALS, AND A DECLARATION ROUTED NOTHING (6 Aug 2026).
+  //
+  //  (a) The ownership leg was `count(*) from collaboration_rule where owner_dept is not null and
+  //      exists(dept) > 0` — ONE resolvable owner among any number of rules made it MET for ever,
+  //      and "resolves" meant a row existed: rule #2's owner_dept was 'supplier_success', a
+  //      department with zero employees, so one of the ten situations was owned by nobody and
+  //      scored as owned. It is now the per-row NOT EXISTS this file already uses for
+  //      AUTH_UNCOVERED: every rule must name a STAFFED department.
+  //
+  //  (b) "drives behaviour" was `fn_task_review's definition contains the word owner_dept` — a
+  //      mention test, and the wrong object besides: os_responsibility is what declares who owns
+  //      what, and its 72 rows drove nothing at all. fn_task_review now resolves the task's subject
+  //      against those declarations and addresses the review to the OWNING OS's own accountable
+  //      employee, recorded as review_chain stage='ownership'. The leg is those ROWS: they exist in
+  //      the window, and every one of them names a party — which is the requirement, and which no
+  //      amount of text in a function body can fake.
+  const OWNER_UNSTAFFED = `(select count(*) from public.collaboration_rule c
+      where c.owner_dept is null or not exists (select 1 from public.org_departments d
+              where d.dept_key = c.owner_dept
+                and exists (select 1 from public.org_agents a
+                             where a.department = d.dept_key and a.active)))`;
+  const OWN_ROUTED = `(select count(*) from public.review_chain r
+      where r.stage='ownership' and r.created_at > now() - interval '7 days')`;
+  const OWN_UNRESOLVED = `(select count(*) from public.review_chain r
+      where r.stage='ownership' and r.created_at > now() - interval '7 days'
+        and not ${IS_PARTY('r.reviewer_agent')})`;
+  const OWN_FROM_DECLARATION = `(select count(*) from public.review_chain r
+      where r.stage='ownership' and r.created_at > now() - interval '7 days'
+        and exists (select 1 from public.os_responsibility s
+                     where position('responsibility "'||s.responsibility||'"' in r.reason) > 0))`;
   await req(S, 'comp-15-who-owns', 'Who owns this process? drives behaviour',
     `select coalesce((select count(distinct r.os_key) from public.os_responsibility r
              join public.operating_system o on o.os_key=r.os_key and o.active) = ${OS_COUNT}
        and ${LIVE_CONSUMERS('os_responsibility')} > 0
-       and (select count(*) from public.collaboration_rule c where c.owner_dept is not null
-             and exists (select 1 from public.org_departments d where d.dept_key=c.owner_dept)) > 0
-       and exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-                   where n.nspname='public' and p.proname='fn_task_review'
-                     and pg_get_functiondef(p.oid) ~* '\\yowner_dept\\y')
+       and ${OWNER_UNSTAFFED} = 0
+       and ${OWN_ROUTED} > 0 and ${OWN_UNRESOLVED} = 0
        and ${REVIEWER_RAN} > 0, false)`,
     `select (select count(*) from public.os_responsibility)||' owned responsibilit(ies) across '
        ||(select count(distinct r.os_key) from public.os_responsibility r
             join public.operating_system o on o.os_key=r.os_key and o.active)||' of '||${OS_COUNT}
        ||' ACTIVE OS, consumed by '||${CONSUMERS('os_responsibility')}||' non-writing routine(s)/view(s) '
        ||'of which '||${LIVE_CONSUMERS('os_responsibility')}||' reachable ('
-       ||${LIVE_CONSUMER_NAMES('os_responsibility')}||'); '
-       ||(select count(*) from public.collaboration_rule c where c.owner_dept is not null
-            and exists (select 1 from public.org_departments d where d.dept_key=c.owner_dept))
-       ||' situation owner(s) resolve to a real department, and the routine that reads owner_dept '
-       ||'ran '||${REVIEWER_RAN}||' time(s) in 7d'`);
+       ||${LIVE_CONSUMER_NAMES('os_responsibility')}||'); '||${OWNER_UNSTAFFED}||' of '
+       ||(select count(*) from public.collaboration_rule)
+       ||' situation(s) owned by a department with no active employee; the declaration routed '
+       ||${OWN_ROUTED}||' review(s) to an owning OS in 7d ('||${OWN_FROM_DECLARATION}
+       ||' of them matched to a named responsibility), '||${OWN_UNRESOLVED}
+       ||' of which reached nobody; the reviewer ran '||${REVIEWER_RAN}||' time(s) in 7d'`);
 
   // "No duplicated ownership" is a STRUCTURAL claim. Both halves are asserted at the level they are
   // actually enforced — os_responsibility by its single-column primary key, os_knowledge_domain by
@@ -676,21 +768,57 @@ export default async function ({ req }) {
   // active employee. A requirement no future work can satisfy is not a measurement. The window is
   // the same 21 days the "raised recently" clause uses, so the check still bites within a fortnight
   // of the batch stopping and still recovers when the backlog is worked.
+  // A STATUS IS NOT A RECIPIENT (6 Aug 2026). "Picked up" was `status <> 'proposed' > 0`, and all
+  // 13 rows that satisfied it had status='assigned' AND decided_by='approval_path' — moved by
+  // fn_task_approve's hourly sweep, which resolves the department's authority tier and reads
+  // nothing whatever about the question. Six questions raised on 2026-07-28 sat at 'proposed' for
+  // nine days and were flipped at the identical timestamp 2026-08-06 03:59:06. Nobody received
+  // them; a column changed value.
+  //
+  // Nor did the question travel by itself: fn_agent_context's workload block is
+  // `order by t.id limit 6` over the department's open tasks, so a question raised into a
+  // department with a backlog is never in anybody's prompt. Measured across the 15 questions of the
+  // last 21 days, 2 reached any employee and 13 reached nobody.
+  //
+  // The leg is now a per-row universal on DELIVERY: every improvement question raised in the window
+  // must sit in a NAMED ACTIVE EMPLOYEE's own queue — an agent_actions row keyed to that task,
+  // whose `agent` resolves to an active employee. agent_actions is the queue an employee actually
+  // reads (supabase/functions/agent_brain/index.ts:139 selects it by `.eq('agent', key)` into the
+  // context that employee reasons over), and fn_improvement_handover on improvement_handover_hourly
+  // is what puts it there. The `> 0` it replaces could be satisfied by one row out of fifteen; this
+  // cannot be satisfied while a single question is undelivered, and it goes false again the hour
+  // after the sweep stops.
   const IMP = `public.org_tasks t where t.title like '% improvement: %'`;
   const IMP_RECENT = `and t.created_at > now() - interval '21 days'`;
   const IMP_STALE = `(select count(*) from ${IMP} ${IMP_RECENT}
       and t.created_at < now() - interval '7 days' and t.status = 'proposed')`;
   const IMP_UNSTAFFED = `(select count(*) from ${IMP} ${IMP_RECENT}
       and not exists (select 1 from public.org_agents a where a.department = t.dept_key and a.active))`;
+  const IMP_UNDELIVERED = `(select count(*) from ${IMP} ${IMP_RECENT}
+      and not exists (select 1 from public.agent_actions q
+                       where q.kind = 'improvement_question' and q.target_table = 'org_tasks'
+                         and q.target_id = t.id::text
+                         and exists (select 1 from public.org_agents g
+                                      where g.agent_key = q.agent and g.active)))`;
+  const IMP_RECIPIENTS = `(select count(distinct q.agent) from public.agent_actions q
+      where q.kind = 'improvement_question'
+        and exists (select 1 from public.org_tasks t2 where t2.id::text = q.target_id
+                     and t2.title like '% improvement: %'
+                     and t2.created_at > now() - interval '21 days'))`;
   await req(S, 'comp-17-questions-read', 'The improvement questions reach someone',
     `select coalesce((select count(*) from ${IMP} ${IMP_RECENT}) > 0
-       and (select count(*) from ${IMP} ${IMP_RECENT} and t.status <> 'proposed') > 0
+       and ${IMP_UNDELIVERED} = 0
        and ${IMP_STALE} = 0
        and ${IMP_UNSTAFFED} = 0, false)`,
     `select (select count(*) from ${IMP})||' improvement question(s) in '
        ||(select count(distinct dept_key) from public.org_tasks where title like '% improvement: %')
        ||' department(s), '||(select count(*) from ${IMP} ${IMP_RECENT})
-       ||' raised in the last 21d, '||(select count(*) from ${IMP} ${IMP_RECENT} and t.status <> 'proposed')
-       ||' picked up; '||${IMP_STALE}||' still ''proposed'' after 7 days, '
-       ||${IMP_UNSTAFFED}||' filed to a department with no active employee'`);
+       ||' raised in the last 21d, of which '||${IMP_UNDELIVERED}
+       ||' are in no active employee''s queue; the rest are held by '||${IMP_RECIPIENTS}
+       ||' named employee(s); '||${IMP_STALE}||' still ''proposed'' after 7 days, '
+       ||${IMP_UNSTAFFED}||' filed to a department with no active employee; handover cron last ok '
+       ||coalesce((select max(d.end_time)::timestamp(0)::text from cron.job_run_details d
+            join cron.job j on j.jobid=d.jobid
+           where j.active and j.command ~* '\\yfn_improvement_handover\\y'
+             and d.status='succeeded'),'never')`);
 }

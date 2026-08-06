@@ -546,6 +546,20 @@ export default async function ({ req, READERS }) {
   // themselves. The 0.6 clause stays and is the one that stops this passing on unreadable records —
   // fn_agent_institutional_memory retrieves only `coalesce(confidence,1) >= 0.6`, so a success
   // recorded below the floor is a success recorded where nobody will read it.
+  //
+  // ROUND 3, and the reason this was a SYSTEM defect rather than an instrument one: every clause
+  // above was carried by labels nothing had graded. fn_task_lesson's p_outcome='event_closed'
+  // branch set 'success' with confidence 0.6 for EVERY closed event-bus task — 58 of the 81 rows in
+  // window — so the requirement was MET on a writer that could not record anything else, with the
+  // grader's heartbeat standing in as proof. That branch now grades against the row (the reviewer's
+  // verdict where there was one, the executor's recorded error, and 'no_change' at 0.4 when the
+  // task closed having recorded nothing), and institutional_memory carries 7 'worse' rows inside
+  // the window where it had never carried one.
+  //
+  // Clause 4 is what the finding needs and no more: at least one success in the window must be
+  // attested by a REVIEW rather than auto-stamped by the bus. It is not "more than one distinct
+  // outcome" — a month in which every task genuinely succeeded is a healthy month, and a check no
+  // healthy system can satisfy is the over-hardening this file has to refuse.
   await req('comp-1', 'comp-12-successes', 'Successes are recorded as successes',
     `select ((select count(*) from public.outcome_record where verdict = 'improved')
            + (select count(*) from public.institutional_memory
@@ -554,6 +568,11 @@ export default async function ({ req, READERS }) {
               where outcome in ('success','success_over_dissent','improved')
                 and coalesce(confidence, 1) >= 0.6
                 and created_at > now() - interval '30 days') > 0
+        and (select count(*) from public.institutional_memory
+              where outcome in ('success','success_over_dissent','improved')
+                and coalesce(confidence, 1) >= 0.6
+                and created_at > now() - interval '30 days'
+                and evidence_ref like 'review_chain:%') > 0
         and ${CRON_OK('fn_outcome_evaluate', 2)}
         and ${RD('institutional_memory')} > 0`,
     `select 'graded better: outcome_record improved '
@@ -565,7 +584,18 @@ export default async function ({ req, READERS }) {
                  where outcome in ('success','success_over_dissent','improved')
                    and coalesce(confidence, 1) >= 0.6
                    and created_at > now() - interval '30 days')::text
-            || ' were written in the last 30 days and clear the 0.6 retrieval floor; grader alive: '
+            || ' were written in the last 30 days and clear the 0.6 retrieval floor, '
+            || (select count(*) from public.institutional_memory
+                 where outcome in ('success','success_over_dissent','improved')
+                   and coalesce(confidence, 1) >= 0.6
+                   and created_at > now() - interval '30 days'
+                   and evidence_ref like 'review_chain:%')::text
+            || ' of those attested by a review rather than auto-stamped by the bus; the same store '
+            || 'holds ' || (select count(*) from public.institutional_memory
+                 where outcome = 'worse' and created_at > now() - interval '30 days')::text
+            || ' graded worse and ' || (select count(*) from public.institutional_memory
+                 where outcome = 'no_change' and created_at > now() - interval '30 days')::text
+            || ' no_change in the same window, so the recorder discriminates; grader alive: '
             || (${CRON_OK('fn_outcome_evaluate', 2)})::text
             || '; read, writers excluded, by ' || ${RD_NAMES('institutional_memory')}`);
 
@@ -677,29 +707,65 @@ export default async function ({ req, READERS }) {
   // Measured 6 Aug: 12 of the 70 org_task lessons in the window carry it, and the other 58 carry
   // 'event_delivery:...' — they came from the event bus, not from this loop, and the old join
   // counted them.
+  //
+  // ROUND 3: that left the verdict a bare `> 0` on a requirement whose own title is "automatic",
+  // and one lesson a week kept it green. fn_task_review calls fn_task_lesson inside
+  // `begin ... exception when others then null`, so a lesson that fails to write is lost silently
+  // and PERMANENTLY — nothing ever came back for it. Measured before the repair: 4 of the 18
+  // org_tasks reviewed in the window (49, 50, 51, 157) carried no lesson at all, and no mechanism
+  // existed that would ever produce one. So this is now the per-row NOT EXISTS form comp-13-task
+  // uses two checks earlier, over the REVIEWED population, and fn_learning_loop_sweep (cron
+  // learning_loop_sweep_hourly) is the retry that makes it satisfiable: it re-writes any lesson
+  // that never landed, from the reviewer's own verdict in review_chain.
+  //
+  // The population is the stages fn_review_submit/fn_task_review write — published, cos_review,
+  // dept_review. stage='approval' is NOT in it, and that is a decision rather than an oversight:
+  // those 162 rows are fn_task_approve routing a task ONTO an approval path before anyone works it
+  // (it sets status='assigned'), not a verdict on completed work, and fn_task_approve does not call
+  // the lesson writer. Demanding a lesson for a task nobody has done yet is a requirement no future
+  // work can satisfy. The evidence prints that excluded count so the choice is auditable.
   await req('comp-1', 'comp-13-lessons', 'Performance -> Lessons is automatic',
-    `select (select count(*) from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+    `with rev as (select distinct c.subject_id sid from public.review_chain c
+                   where c.subject_type = 'org_task'
+                     and c.stage in ('published','cos_review','dept_review')
+                     and c.created_at > now() - interval '7 days'
+                     and exists (select 1 from public.org_tasks o where o.id::text = c.subject_id))
+     select (select count(*) from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
               where ns.nspname = 'public' and p.proname = 'fn_task_review'
                 and pg_get_functiondef(p.oid) ~* '\\yfn_task_lesson\\s*\\(') > 0
-        and (select count(*) from public.institutional_memory m
-              where m.created_at > now() - interval '7 days'
-                and m.subject_type = 'org_task' and m.kind in ('lesson','lesson_learned')
-                and m.evidence_ref = 'review_chain:org_task:' || m.subject_id
-                and exists (select 1 from public.review_chain r
-                             where r.subject_type = 'org_task' and r.subject_id = m.subject_id
-                               and r.created_at <= m.created_at)) > 0`,
-    `select (select count(*) from public.institutional_memory m
-              where m.created_at > now() - interval '7 days'
-                and m.subject_type = 'org_task' and m.kind in ('lesson','lesson_learned')
-                and m.evidence_ref = 'review_chain:org_task:' || m.subject_id
-                and exists (select 1 from public.review_chain r
-                             where r.subject_type = 'org_task' and r.subject_id = m.subject_id
-                               and r.created_at <= m.created_at))::text
-            || ' lesson(s) in the last 7 days cite the review that produced them and were written '
-            || 'after it, of ' || (select count(*) from public.institutional_memory
+        and (select count(*) from rev) > 0
+        and (select count(*) from rev v where not exists (
+              select 1 from public.institutional_memory m
+               where m.subject_type = 'org_task' and m.subject_id = v.sid
+                 and m.kind in ('lesson','lesson_learned')
+                 and m.evidence_ref = 'review_chain:org_task:' || m.subject_id
+                 and exists (select 1 from public.review_chain r
+                              where r.subject_type = 'org_task' and r.subject_id = m.subject_id
+                                and r.created_at <= m.created_at))) = 0`,
+    `with rev as (select distinct c.subject_id sid from public.review_chain c
+                   where c.subject_type = 'org_task'
+                     and c.stage in ('published','cos_review','dept_review')
+                     and c.created_at > now() - interval '7 days'
+                     and exists (select 1 from public.org_tasks o where o.id::text = c.subject_id))
+     select (select count(*) from rev v where exists (
+              select 1 from public.institutional_memory m
+               where m.subject_type = 'org_task' and m.subject_id = v.sid
+                 and m.kind in ('lesson','lesson_learned')
+                 and m.evidence_ref = 'review_chain:org_task:' || m.subject_id
+                 and exists (select 1 from public.review_chain r
+                              where r.subject_type = 'org_task' and r.subject_id = m.subject_id
+                                and r.created_at <= m.created_at)))::text
+            || ' of ' || (select count(*) from rev)::text
+            || ' task(s) reviewed in the last 7 days carry a lesson citing that review and written '
+            || 'after it; ' || (select count(distinct c.subject_id) from public.review_chain c
+                 where c.subject_type = 'org_task' and c.stage = 'approval'
+                   and c.created_at > now() - interval '7 days')::text
+            || ' further task(s) were only routed onto an approval path and are outside this '
+            || 'population; the window holds '
+            || (select count(*) from public.institutional_memory
                  where created_at > now() - interval '7 days'
                    and subject_type = 'org_task' and kind in ('lesson','lesson_learned'))::text
-            || ' org_task lessons in that window (sources: '
+            || ' org_task lessons in all (sources: '
             || coalesce((select string_agg(e || '=' || n::text, '/' order by e) from
                  (select coalesce(split_part(evidence_ref, ':', 1), '-') e, count(*) n
                     from public.institutional_memory

@@ -788,20 +788,42 @@ export default async function ({ req }) {
   // every run is tracked by at least one step run; and the reader must not be the writer.
   // fn_workflow_start_due is named as well as write-shape-excluded: it selects workflow_run only to
   // drive the engine forward, which is part of running the workflow, not a consumer of the record.
-  // Measured today: 37 runs / 235 step runs in 7d, 4 of 4 eligible workflows covered, 10 of 14
-  // active workflows have a trigger_event that has never fired, 0 runs without a step run,
-  // 1 non-writer reader (fn_agent_context).
+  // HARDENED AGAIN 6 Aug 2026 — THE DENOMINATOR DELETED ITS OWN FAILURES. Coverage was scored over
+  // "active workflows whose trigger_event has ever appeared in company_event", so the 10 of 14
+  // whose trigger had never fired were removed from the population BEFORE it was measured. The
+  // verdict printed "4 of 4 eligible" and MET while 71% of the company's workflows had never run
+  // and, for the five carrying English prose in trigger_event, could not. comp-07-inputs-coverage
+  // forces exactly this population to carry a planned flag with a written reason and a dated
+  // expiry; comp-09 granted the identical excuse silently, so nothing ever came back to it.
+  //
+  // The denominator is now EVERY active workflow. A workflow may be uncovered ONLY if its
+  // trigger_event carries a live entry in the os_interface register — active, planned, a non-empty
+  // written reason, and a planned_until still in the future. That is the same escape hatch comp-07
+  // uses, and it expires, so an unfired trigger comes back on the date its reason claimed it would.
+  // A workflow with no trigger at all can never be excused: nothing declares it, so nothing dates it.
+  //
+  // Measured on production after the trigger_event repair: 14 active workflows, 4 covered by runs
+  // (metric_lifecycle 19, strategic_review 12, improvement_lifecycle 6, knowledge_lifecycle 1),
+  // 9 covered by a dated exemption expiring 2026-11-04, and employee_task uncovered with none —
+  // it is the canonical per-task employee loop, nothing announces a task assignment on the bus,
+  // and the vocabulary has no token for one. That last one is why this scores MISSING.
   const WR_READERS = NON_WRITER_READERS('workflow_run',
     ['fn_workflow_start', 'fn_workflow_start_due', 'fn_workflow_step_done']);
+  // Uncovered = active, has no run, and has no live dated written exemption for its trigger.
+  const UNCOVERED = `(select count(*) from public.workflow w where coalesce(w.active,true)
+             and not exists (select 1 from public.workflow_run r where r.workflow_key = w.workflow_key)
+             and not exists (select 1 from public.os_interface i
+                              where coalesce(i.active,true) and i.planned
+                                and coalesce(i.planned_reason,'') <> ''
+                                and i.planned_until > now()
+                                and (i.kind = w.trigger_event or i.event_type = w.trigger_event)))`;
+  const COVERED_BY_RUN = `(select count(*) from public.workflow w where coalesce(w.active,true)
+             and exists (select 1 from public.workflow_run r where r.workflow_key = w.workflow_key))`;
   await req('comp', 'comp-09-workflow-execution', 'Workflows execute and are tracked',
     `select (select count(*) from public.workflow_run
               where started_at > now() - interval '7 days') > 0
-       and (select count(*) from public.workflow w where coalesce(w.active,true)
-             and exists (select 1 from public.company_event e where e.event_type = w.trigger_event)
-             and not exists (select 1 from public.workflow_run r
-                              where r.workflow_key = w.workflow_key)) = 0
-       and (select count(*) from public.workflow w where coalesce(w.active,true)
-             and exists (select 1 from public.company_event e where e.event_type = w.trigger_event)) > 0
+       and ${UNCOVERED} = 0
+       and ${COVERED_BY_RUN} > 0
        and (select count(*) from public.workflow_run r
              where not exists (select 1 from public.workflow_step_run s
                                 where s.workflow_run_id = r.id)) = 0
@@ -809,18 +831,19 @@ export default async function ({ req }) {
     `select (select count(*)::text from public.workflow_run)||' run(s) ('
        ||(select count(*)::text from public.workflow_run where started_at > now() - interval '7 days')
        ||' in 7d), '||(select count(*)::text from public.workflow_step_run)||' step run(s); '
-       ||(select count(*) from public.workflow w where coalesce(w.active,true)
-           and exists (select 1 from public.company_event e where e.event_type = w.trigger_event)
-           and exists (select 1 from public.workflow_run r where r.workflow_key = w.workflow_key))::text
-       ||' of '||(select count(*) from public.workflow w where coalesce(w.active,true)
-                   and exists (select 1 from public.company_event e
-                                where e.event_type = w.trigger_event))::text
-       ||' active workflows whose trigger has ever fired have a run ('
-       ||(select count(*) from public.workflow w where coalesce(w.active,true)
-           and not exists (select 1 from public.company_event e where e.event_type = w.trigger_event))::text
-       ||' of '||(select count(*)::text from public.workflow where coalesce(active,true))
-       ||' active workflows have a trigger_event that has never fired); '
-       ||(select count(*) from public.workflow_run r where not exists
+       ||${COVERED_BY_RUN}::text||' of '
+       ||(select count(*)::text from public.workflow where coalesce(active,true))
+       ||' active workflows have a run, '||${UNCOVERED}::text
+       ||' uncovered with no dated exemption'
+       ||coalesce((select ' ('||string_agg(w.workflow_key||' trigger='||coalesce(w.trigger_event,'NONE'), ', ')||')'
+             from public.workflow w where coalesce(w.active,true)
+              and not exists (select 1 from public.workflow_run r where r.workflow_key = w.workflow_key)
+              and not exists (select 1 from public.os_interface i
+                               where coalesce(i.active,true) and i.planned
+                                 and coalesce(i.planned_reason,'') <> ''
+                                 and i.planned_until > now()
+                                 and (i.kind = w.trigger_event or i.event_type = w.trigger_event))),'')
+       ||'; '||(select count(*) from public.workflow_run r where not exists
             (select 1 from public.workflow_step_run s where s.workflow_run_id = r.id))::text
        ||' run(s) with no step run; '||${WR_READERS}::text
        ||' non-writer reader(s) of workflow_run'`);
@@ -884,11 +907,26 @@ export default async function ({ req }) {
   // does not write it — fn_event_dispatch and fn_event_consolidate are the writers.
   // Measured today: 58 deliveries with a result / 58 closed (last close 2026-08-06 03:50), 9
   // priority.updated in 7d, 9 of them delivered, 1 non-writer reader (fn_task_lesson).
+  //
+  // HARDENED AGAIN 6 Aug 2026 — RECENCY WITHOUT A RATIO ONLY PROVES THE LOOP CLOSED ONCE. Legs 1
+  // and 2 were `count(...) > 0` inside a window, so ONE closed delivery scored the whole
+  // consolidation loop MET. Measured at the time: 568 deliveries in 21 days, 58 with a result, 58
+  // closed; in the last SEVEN days, 516 delivered and 9 closed — 1.7%. The two siblings that make
+  // the same shape of claim, comp-03-objectives-measured and comp-08-out-recommendations, both use
+  // `2 * x >= y` for exactly this reason and this check did not.
+  //
+  // ONE POPULATION, ONE RATIO: of the deliveries the bus made in the window, at least half must
+  // have come back with a result AND a closed_at. `result is not null` and `closed_at is not null`
+  // are written by the same UPDATE in fn_event_consolidate, so they are asserted together rather
+  // than as two independent existence tests that a single row satisfied twice.
+  const CD21 = `(select count(*) from public.event_delivery
+              where delivered_at > now() - interval '21 days')`;
+  const CD21_CLOSED = `(select count(*) from public.event_delivery
+              where delivered_at > now() - interval '21 days'
+                and result is not null and closed_at is not null)`;
   await req('comp', 'contract-consolidation', 'Chief of Staff consolidates, CEO re-prioritises, the loop closes',
-    `select (select count(*) from public.event_delivery
-              where result is not null and delivered_at > now() - interval '21 days') > 0
-       and (select count(*) from public.event_delivery
-             where closed_at > now() - interval '21 days') > 0
+    `select ${CD21_CLOSED} > 0
+       and 2 * ${CD21_CLOSED} >= ${CD21}
        and (select count(*) from public.company_event
              where event_type='priority.updated'
                and occurred_at > now() - interval '7 days') > 0
@@ -898,12 +936,10 @@ export default async function ({ req }) {
               and e.occurred_at > now() - interval '7 days') > 0
        and ${NON_WRITER_READERS('event_delivery')} > 0`,
     `select (select count(*)::text from public.event_delivery)||' deliveries, '
-       ||(select count(*)::text from public.event_delivery
-           where result is not null and delivered_at > now() - interval '21 days')
-       ||' with a result in 21d, '
-       ||(select count(*)::text from public.event_delivery where closed_at > now() - interval '21 days')
-       ||' closed in 21d (last '
-       ||coalesce((select max(closed_at)::date::text from public.event_delivery),'never')||'); '
+       ||${CD21_CLOSED}::text||' of '||${CD21}::text
+       ||' delivered in 21d came back with a result AND a closed_at ('
+       ||round(100.0 * ${CD21_CLOSED} / greatest(${CD21},1))::text||'%, needs 50%), last close '
+       ||coalesce((select max(closed_at)::date::text from public.event_delivery),'never')||'; '
        ||(select count(*)::text from public.company_event where event_type='priority.updated'
            and occurred_at > now() - interval '7 days')
        ||' priority.updated in 7d of '

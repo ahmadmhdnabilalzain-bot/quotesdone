@@ -268,13 +268,26 @@ const DR_REACHES_PROMPT = `(select count(*) from
 
 // ── step 7, the authority gate ───────────────────────────────────────────────────────────────
 // Not "any non-internal trigger exists" — an updated_at stamper satisfies that. The trigger's
-// function must be the authority gate: it consults employee_authority and it stamps the verdict.
+// function must be the authority gate: it QUERIES employee_authority and it stamps the verdict.
+//
+// `~* '\yemployee_authority\y'` WAS A MENTION TEST AND THE MENTION WAS AN ERROR MESSAGE. Measured
+// on production before this repair: fn_decision_gate contained the token exactly once, inside a
+// format() string ("...personal authority limit of AED %s recorded in employee_authority..."), and
+// `pg_get_functiondef(...) ~* 'from\s+(public\.)?employee_authority'` was FALSE — the gate had
+// never read the register in its life. This is the same mention-vs-use hole ESC_CALLERS was
+// hardened for, and it is tightened here only because the gate now genuinely runs
+// `select count(*) from public.employee_authority ea where ea.agent_key = v_actor`
+// (scripts/sql/fn_decision_gate_authority_register.sql). The FROM form is asserted, not the token.
+// tgenabled is asserted too: a trigger row survives `ALTER TABLE ... DISABLE TRIGGER` with
+// tgenabled='D', so without this the gate could be switched off by one statement and still score
+// as present — the same j.active rule LIVE_READS applies to cron jobs.
 const DR_AUTH_TRIGGER = `(select count(*) from pg_trigger t
     join pg_class c on c.oid = t.tgrelid
     join pg_namespace ns on ns.oid = c.relnamespace
     join pg_proc fp on fp.oid = t.tgfoid
     where ns.nspname = 'public' and c.relname = 'decision_record' and not t.tgisinternal
-      and pg_get_functiondef(fp.oid) ~* '\\yemployee_authority\\y'
+      and t.tgenabled <> 'D'
+      and pg_get_functiondef(fp.oid) ~* '\\yfrom\\s+("?public"?\\s*\\.\\s*)?"?employee_authority\\y'
       and pg_get_functiondef(fp.oid) ~* '\\ygate_verdict\\y')`;
 
 // THE COVERAGE THE AUTHORITY REGISTER ACTUALLY OWES. `(count from employee_authority) > 0` is one
@@ -312,6 +325,35 @@ const AE_LINKED = `(select count(distinct a.id) from public.action_execution a
 // it true forever once execution stopped.
 const AE_7D = `(select count(*) from public.action_execution where created_at > now() - interval '7 days')`;
 const AE_NO_TRACE = `(select count(*) from public.v_executions_without_decision_trace)`;
+
+// DID ANYTHING ACTUALLY RUN? Round 3's finding, and it was right: every clause above asks whether
+// the execution row EXISTS, resolves and is recent, and none of them asks whether an execution ever
+// happened. Measured at the time: queued=1, stalled=3, and zero successes in the table's entire
+// history — not by accident but structurally, because fn_execution_sweep's 'succeeded' branch fires
+// only `when d.status = 'executed'` and nothing in the database had ever set that value. Step 9 was
+// being scored complete by the routine that gives up on it.
+//
+// Both legs are needed and neither is the other. AE_SUCCEEDED_7D asks that the mechanism produced a
+// result inside the same window the rest of this check uses. AE_UNSETTLED asks the opposite
+// question — that nothing is being left behind — because one success beside a growing pile of
+// undrained rows is what "a drainer that half works" looks like. Two hours is deliberately loose:
+// the drainer runs hourly, so a row written at :11 is legitimately queued for 59 minutes, and a
+// tighter bound would fail a perfectly healthy system between ticks.
+const AE_SUCCEEDED_7D = `(select count(*) from public.action_execution
+    where status = 'succeeded' and finished_at > now() - interval '7 days')`;
+const AE_UNSETTLED = `(select count(*) from public.action_execution
+    where status in ('queued','stalled') and created_at < now() - interval '2 hours')`;
+
+// A READER THAT IS NOT READING ITS OWN WRITE-BACK. DT_READS excludes producers but deliberately
+// admits routines that UPDATE, because a settler must read a row to settle it — and round 3 showed
+// what that admits: fn_execution_sweep was decision_trace's ONLY counted reader, and its single
+// read of the table is `coalesce(t.outcome_status,'') is distinct from a.status`, i.e. reading back
+// the column it writes to skip a no-op UPDATE. Nothing consumed outcome_status, outcome or
+// evaluated_at anywhere. So this leg demands at least one reader that writes the table in no way at
+// all. It is a WRITE-SHAPE exclusion, not a name list, so the routine that settles the trace
+// tomorrow is excluded on the same rule as the one that settles it today.
+const DT_CONSUMED = LIVE_READS('decision_trace',
+  a => `${WRITES('decision_trace', a)} or ${TRIGFN('decision_trace', a)}`);
 
 // ── step 10, outcome ─────────────────────────────────────────────────────────────────────────
 const OR_ROWS = `(select count(*) from public.outcome_record)`;
@@ -396,6 +438,18 @@ export default async function ({ req }) {
   //     work; a 24-hour window measures what the writers are doing NOW and clears one day after
   //     they are fixed. Production writes ~26-36 decisions a day, so it is never vacuous.
   // The failing writer is named in the evidence rather than excluded from the population.
+  //
+  // THE WRITER WAS REPAIRED ON 6 AUG AT 10:45 UTC AND THIS CHECK STILL READS MISSING TODAY. That is
+  // the window working as designed, not an unfixed writer, and the distinction is worth spelling
+  // out so the next session does not "fix" it twice. trg_action_gate hard-coded sources='[]' on
+  // every row it wrote while deciding entirely on what fn_should_escalate and fn_authorize returned
+  // to it; it now records those two verdicts, and records nothing when the calls raise, so a
+  // silently broken assessor becomes an unsourced decision instead of an invisible one
+  // (scripts/sql/action_gate_records_sources.sql). Measured after deployment: every action_gate row
+  // written since carries 2 sources; the 31 that do not are all older than the repair, decision_log
+  // carries declog_immutable and cannot be corrected, and the last of them leaves the 24-hour
+  // window at 2026-08-07 10:15:03 UTC. Correcting them, or widening the window past them, would be
+  // the falsification this component exists to prevent.
   await req('comp-10', 'comp-10-02-gather-data', 'Step 2 Gather Data is a real retrieval step',
     `select ${DL_24H} > 0
         and ${DL_24H_SOURCED} = ${DL_24H}
@@ -535,21 +589,35 @@ export default async function ({ req }) {
   // outcome_status/outcome/evaluated_at columns, which nothing had ever written. It is counted as a
   // reader because it UPDATEs rows fn_decide created rather than creating them itself; the old
   // insert|update|delete exclusion would have disqualified the only fix that could work.
+  //
+  // WHAT ROUND 3 ADDED, AND WHY IT IS NOT A LOOSENING OF ANYTHING: the three legs below all had to
+  // be earned by building the missing half of step 9 — public.fn_execution_run (cron
+  // execution_run_hourly) actually performs the decision by delivering it to the actor the decision
+  // named and settles the row against the agent_actions id it created, and
+  // public.fn_decision_outcomes reads the trace's outcome back into the next decision. Before that
+  // work no correct implementation could have passed them, which is why they were not added first.
   await req('comp-10', 'comp-10-09-execution', 'Step 9 Execution is linked back to the decision',
     `select ${AE_ROWS} > 0
         and ${AE_LINKED} = ${AE_ROWS}
         and ${AE_7D} > 0
         and ${AE_NO_TRACE} = 0
+        and ${AE_SUCCEEDED_7D} > 0
+        and ${AE_UNSETTLED} = 0
         and ${AE_READS} > 0
-        and ${DT_READS} > 0`,
+        and ${DT_READS} > 0
+        and ${DT_CONSUMED} > 0`,
     `select 'executions resolving to their decision_record=' || ${AE_LINKED}::text
          || ' of ' || ${AE_ROWS}::text || ' (' || ${AE_7D}::text || ' written in 7d)'
          || ', executions with no decision_trace=' || ${AE_NO_TRACE}::text
+         || ', succeeded in 7d=' || ${AE_SUCCEEDED_7D}::text
+         || ', undrained beyond 2h=' || ${AE_UNSETTLED}::text
          || ', decision_trace rows=' || (select count(*) from public.decision_trace)::text
+         || ' of which graded=' || (select count(*) from public.decision_trace where outcome_status is not null)::text
          || ', queue: ' || coalesce((select string_agg(status || '=' || n::text, ', ' order by status)
               from (select status, count(*) n from public.action_execution group by 1) z), 'empty')
          || ', readers excluding the producer: action_execution=' || ${AE_READS}::text
-         || ' decision_trace=' || ${DT_READS}::text`);
+         || ' decision_trace=' || ${DT_READS}::text
+         || ' of which write it in no way=' || ${DT_CONSUMED}::text`);
 
   // Step 10. The loop closes when an outcome has been GRADED — except that a grade cannot exist
   // before the thing being graded has had time to happen.
