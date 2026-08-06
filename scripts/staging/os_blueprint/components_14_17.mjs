@@ -37,11 +37,13 @@ export default async function ({ req, READERS }) {
           and pg_get_functiondef(p.oid) ~* '\\y(os_review|v_os_health)\\y'
           and ${LIVE_PROC})
     + (select count(*) from pg_views v where v.schemaname='public' and v.definition ~* '${rx}'
+        and (v.viewname = 'v_os_health' or v.definition ~* '\\yos_review\\y')
         and (exists (select 1 from pg_proc p2 join pg_namespace n2 on n2.oid=p2.pronamespace
                      where n2.nspname='public' and p2.prokind in ('f','p')
                        and pg_get_functiondef(p2.oid) ~* ('\\y'||v.viewname||'\\y'))
           or exists (select 1 from cron.job j2 where j2.command ~* ('\\y'||v.viewname||'\\y'))))
-    + (select count(*) from cron.job j3 where j3.command ~* '${rx}'))`;
+    + (select count(*) from cron.job j3 where j3.command ~* '${rx}'
+        and j3.command ~* '\\y(os_review|v_os_health)\\y'))`;
 
   // Component 16's report is os_review, one row per active OS per ISO week. A dimension is reported
   // when EVERY active OS carries it in the newest report, that report is recent, and a live reader
@@ -286,16 +288,16 @@ export default async function ({ req, READERS }) {
        ||(select count(*) from public.resource_pool)||' row(s) keyed to an OS'`);
 
   await req('comp-1', 'comp-16-backlog', 'Each OS reports Backlog that is read',
-    DIM('\\y(stale_tasks|backlog|backlog_per_head)\\y', ['stale_tasks', 'open_tasks', 'backlog']),
-    DIM_EV('\\y(stale_tasks|backlog|backlog_per_head)\\y', ['stale_tasks', 'open_tasks', 'backlog']));
+    DIM('\\y(stale_tasks|backlog_per_head|backlog_pct)\\y', ['stale_tasks', 'open_tasks', 'backlog']),
+    DIM_EV('\\y(stale_tasks|backlog_per_head|backlog_pct)\\y', ['stale_tasks', 'open_tasks', 'backlog']));
 
   await req('comp-1', 'comp-16-quality', 'Each OS reports Quality that is read',
-    DIM('\\y(review_pass_pct|quality_pct|quality)\\y', ['review_pass_pct', 'quality_pct', 'quality']),
-    DIM_EV('\\y(review_pass_pct|quality_pct|quality)\\y', ['review_pass_pct', 'quality_pct', 'quality']));
+    DIM('\\y(review_pass_pct|quality_pct)\\y', ['review_pass_pct', 'quality_pct', 'quality']),
+    DIM_EV('\\y(review_pass_pct|quality_pct)\\y', ['review_pass_pct', 'quality_pct', 'quality']));
 
   await req('comp-1', 'comp-16-cost', 'Each OS reports Cost that is read',
-    DIM('\\y(budget_pct|cost_aed|spend_pct)\\y', ['budget_pct', 'cost_aed', 'spend_pct']),
-    DIM_EV('\\y(budget_pct|cost_aed|spend_pct)\\y', ['budget_pct', 'cost_aed', 'spend_pct']));
+    DIM('\\y(budget_pct|spend_pct|cost_pct)\\y', ['budget_pct', 'cost_aed', 'spend_pct']),
+    DIM_EV('\\y(budget_pct|spend_pct|cost_pct)\\y', ['budget_pct', 'cost_aed', 'spend_pct']));
 
   await req('comp-1', 'comp-16-automation', 'Each OS reports Automation that is read',
     DIM('\\y(needs_founder_pct|automation_pct|automated_pct)\\y',

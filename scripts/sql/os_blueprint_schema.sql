@@ -124,5 +124,14 @@ alter table public.os_objective add column if not exists actual_value numeric;
 alter table public.os_objective add column if not exists measured_at timestamptz;
 
 -- ── comp-16 · capacity per OS ─────────────────────────────────────────────────────────────────
+-- resource_pool was company-wide (v_resource_pressure -> fn_company_situation), so no OS could
+-- report its own capacity. os_key is DERIVED from owner_dept through the same os_department link
+-- the rest of the blueprint uses rather than assigned by hand — the mapping already exists and a
+-- second hand-written one would be a seventh vocabulary for the same thing.
 alter table public.resource_pool add column if not exists os_key text
   references public.operating_system(os_key);
+
+update public.resource_pool rp
+   set os_key = od.os_key
+  from public.os_department od
+ where od.dept_key = rp.owner_dept and rp.os_key is null;

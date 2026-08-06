@@ -30,15 +30,43 @@ Baseline at session start: 41 MET / 37 PARTIAL / 32 MISSING. Session 14 closed 6
   table (line 90-94) BEFORE measuring `before` (line 105). Not data loss. Misleading label.
 
 ## ORDER OF WORK (dependency-correct)
+- [x] **B. xos-14 DONE, DEPLOYED BOTH, MERGED-PENDING** — commit d2d5d61. correlation_id via a
+      column DEFAULT reading `app.correlation_id` (catches all 11 writers + 7 triggers + future
+      ones). 320/320 populated, 296 chains. causation_id NULL for history ON PURPOSE.
+- [x] **xos-02/03/04/05 DONE, DEPLOYED BOTH** — fn_event_dispatch. Default 1440→0 is the actual
+      xos-02 fix (cron 141 passes no arg). Signature UNCHANGED deliberately: a 2nd param would
+      create an OVERLOAD and leave the cron on the old body. Batch cap 50 (constant, not a param).
+      First production batch: 50 delivered / 50 assessed / 50 tasks / 0 unroutable. ~97 pairs
+      remain, draining over 2 more cron ticks.
+- [x] Gate `scripts/staging/verify_event_contract.mjs` 15/15 on staging.
+- [x] Sync now carries 23 config tables (was 19): +os_interface, event_subscription, resource_pool,
+      os_runbooks. Computed tables deliberately NOT synced.
 - [ ] A. Cheap wiring: health_score, os_review.metrics(risk/quality/automation), agent_reputation
       → fn_pick_reviewer, fn_memory_search → fn_decide, fn_promote_memory cron-or-delete,
       v_event_backbone reader, fn_task_lesson on event task close, os_objective↔company_goals JOIN.
-- [ ] B. **xos-14 correlation_id/causation_id in fn_emit_event — MUST PRECEDE C.**
-- [ ] C. Cross-OS chain: xos-04, xos-07, xos-08, xos-09, contract-consolidation, xos-12, xos-13,
-      comp-07, xos-11.
+- [ ] C. Rest of cross-OS: xos-07 (result/closed_at written on task close), xos-08 (event_rollup),
+      xos-09, contract-consolidation, xos-12 (ENFORCE all six), xos-13, comp-07, xos-11.
 - [ ] D. Decision engine: comp-10-chain, comp-10-06-options, comp-10-01, comp-10-02.
 - [ ] E. Remainder: comp-06 fn_os_knowledge_query, comp-09 workflow_run, comp-11-*, comp-13-sop,
       ownership mapping, and every PARTIAL.
+
+## TOOLING FIXED THIS SESSION (do not re-find these)
+- `apply_sql.mjs` gains `--ddl` (identical text to both, public-schema SHAPE digest asserted) and
+  **retry/backoff on the production path**, which had NONE. A 429 between two routines in one file
+  would have left the projects differing.
+- `qsql.mjs` gains the same backoff. A bare 429 reads exactly like a broken query.
+- `scripts/diff_schema_shape.mjs` — names WHICH column/view drifted, and `--show=<view>` diffs it
+  line by line.
+- **Three views differ cosmetically and are BASELINED BY NAME, not levelled**: v_audit_coverage,
+  v_department_health, v_supplier_coi. Both projects PG 17.6; staging's parse tree carries an
+  explicit `AS text` alias where production's is implicit, and for `'x'::text` the inferred column
+  name IS text. Semantically identical, neither side wrong. A FOURTH drifting view still fails.
+
+## SCHEMA ADDED (both projects, digest-identical) — scripts/sql/os_blueprint_schema.sql
+event_delivery.{os_key,unroutable_reason,result,closed_at} · event_assessment(new) ·
+event_rollup(new) · org_tasks.root_cause · os_interface.{planned,planned_reason,severity} ·
+agent_memory.horizon · os_runbooks.os_key · employee_kpi.serves_objective ·
+os_objective.{measure_sql,actual_value,measured_at} · resource_pool.os_key
 
 ## STANDING TRAPS (verified, do not relearn)
 - Throttling: a 9s gate can take 102s. NOT a hang.
