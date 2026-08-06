@@ -19,6 +19,11 @@
 --          Measured: 171 of the 179 are review.step -> knowledge_director between 28 Jul and 6 Aug,
 --          from before that row existed, and exactly ONE subscriber is unresolvable today
 --          (cybersecurity_mgr, 8 deliveries, subscribed to security.event and reaching nobody).
+--  BACKPR  THE BUS OVER-PRODUCED. Measured 6 Aug 2026: 395 tasks minted by this routine, ZERO
+--          ever closed, against an organisation that closes 4.4 org_tasks a day from all authors
+--          combined. A queue that grows ~100x faster than it drains is broken regardless of any
+--          scorer. See c_max_open_per_dept below: over the cap the delivery and the assessment are
+--          still written and the event attaches to the department's standing back-pressure task.
 --  xos-14  correlation_id/causation_id were 0 of 316. The column default now supplies them, but a
 --          default cannot know that THIS event caused THAT one — only the dispatcher knows, and
 --          only while it holds both.
@@ -40,8 +45,31 @@ as $function$
 declare v_delivered integer := 0; v_tasks integer := 0; v_gated integer := 0;
         v_unroutable integer := 0; v_assessed integer := 0; v_attached integer := 0;
         r record; v_task bigint; v_dept text; v_tier text; v_os text;
-        v_sev text; v_resp text; v_impact text; v_subject_task bigint;
-        v_title text; v_open_task bigint;
+        v_impact text; v_subject_task bigint;
+        v_title text; v_detail text; v_open_task bigint;
+        v_open_bus integer; v_capped boolean; v_backpressured integer := 0;
+        -- BACK-PRESSURE. 25 OPEN BUS TASKS PER DEPARTMENT, MEASURED 6 Aug 2026 ON PRODUCTION.
+        --
+        -- The queue grows ~100x faster than it drains. The dispatcher mints up to 50 (event,
+        -- subscriber) pairs per */15 tick — 329 events arrived in the last 24 hours — while the
+        -- whole organisation closed 132 org_tasks in 30 days, 4.4 a day. Of those 132, ZERO were
+        -- bus-minted: all 395 tasks this routine has ever authored are still open, none has ever
+        -- reached 'done'. 395 pieces of work nobody will ever reach is the same built-and-never-
+        -- read defect the blueprint exists to catch, one level up.
+        --
+        -- 25 is the cap because it is generous against the MEASURED drain of every department.
+        -- Closures in 30d, by department: knowledge 41, exec 32, it 14, procurement 8,
+        -- knowledge_eng 7, finance 7, marketing 6, legal 5, evolution 4, intelligence 4,
+        -- supplier_success 2, hr 1, sales 1. At the FASTEST of those, 25 open bus tasks is
+        -- eighteen days of queue; at the median (5/30d) it is five months. A department holding
+        -- more than 25 is not busy, it is unreachable, and minting a 26th is writing into a
+        -- surface with no reader.
+        --
+        -- Open bus queue when this cap was chosen: knowledge 102, exec 97, knowledge_eng 46,
+        -- sales 36, marketing 32 (over) — finance 19, evolution 19, intelligence 19, legal 12,
+        -- it 12, procurement 1 (under). So the bus keeps minting per-event work for six of the
+        -- eleven departments and stops piling it onto the five that are already buried.
+        c_max_open_per_dept constant integer := 25;
         -- 50, MEASURED, NOT GUESSED. The backlog this uncovers is 147 undelivered (event,
         -- subscriber) pairs — 145 routable, 2 unroutable, across 99 events — against 182 open
         -- tasks today. Draining it in one tick would nearly double the open queue in fifteen
@@ -50,6 +78,75 @@ declare v_delivered integer := 0; v_tasks integer := 0; v_gated integer := 0;
         -- loop still delivers every pair.
         c_max_batch constant integer := 50;
 begin
+  -- ── PASS 1 · ASSESS EVERYTHING PENDING, BEFORE ACTING ON ANY OF IT ──────────────────────────
+  -- xos-04. The severity is the OS's own declared reading of this input from os_interface; the
+  -- impact names which of the OS's declared responsibilities the event touches. Both come from
+  -- tables the founder populated, so this is a JOIN, not a judgement. A NULL severity is itself
+  -- the finding: the OS received an event it never declared it consumes, which is exactly the
+  -- os_interface/event_subscription drift comp-07 measures.
+  --
+  -- HOISTED OUT OF THE LOOP 6 Aug 2026, AND IT IS A CORRECTNESS FIX, NOT A TIDY-UP. It used to sit
+  -- inside the loop, one insert per iteration, which made "assessed before acting" true PER EVENT
+  -- and false ACROSS THE BATCH. Any branch that ATTACHES event j to a task minted for event i
+  -- earlier in the same run stamps assessed_at(j) AFTER created_at(i's task) — and when that task
+  -- was raised after event j occurred, that reads exactly like acting before assessing. MEASURED
+  -- on staging with the back-pressure branch in the loop: 56 deliveries assessed after the task
+  -- they attached to, 50 of them on a back-pressure task, from a production baseline of 0. The
+  -- latent form of the same hazard was already there in the duplicate-subject attach.
+  --
+  -- One statement, before any org_tasks row in this run exists, so every assessment strictly
+  -- precedes every task and every delivery this run creates. The order is real, not asserted.
+  --
+  -- DELIBERATELY UNBOUNDED, where the delivery loop below takes 50. The two queries are separate
+  -- and the invariant between them is "pass 1 is a SUPERSET of pass 2", not "identical" — a much
+  -- weaker thing to keep true. Assessing an event this tick that gets delivered three ticks later
+  -- is free (the insert is idempotent on (event_id, os_key)) and still correct: it was assessed
+  -- before it was acted on. Sharing a LIMIT, by contrast, could cut the two batches differently on
+  -- an e.id tie and leave a delivered pair unassessed, which is the one outcome xos-04 forbids.
+  --
+  -- The inner joins to org_agents/os_department are the v_os test from the old inline form: a
+  -- subscription pointing at an employee who does not exist, or a department belonging to no OS,
+  -- produces no assessment here and is handled as unroutable in the loop, exactly as before.
+  with pending as (
+    select distinct on (e.id, od.os_key)
+           e.id as event_id, e.event_type, od.os_key, s.agent_key, s.reason
+      from company_event e
+      join event_subscription s on s.active and s.event_type = e.event_type
+                               and s.agent_key <> coalesce(e.actor, '')
+      join org_agents a         on a.agent_key = s.agent_key
+      join os_department od     on od.dept_key = a.department
+      left join event_delivery d on d.event_id = e.id and d.agent_key = s.agent_key
+     where d.id is null
+       and (p_lookback_minutes <= 0
+            or e.occurred_at > now() - make_interval(mins => p_lookback_minutes))
+     order by e.id, od.os_key, s.agent_key
+  )
+  insert into event_assessment (event_id, os_key, agent_key, severity, impact, proposed_action,
+                                assessed_at)
+  select p.event_id, p.os_key, p.agent_key, coalesce(i.severity, 'medium'),
+         format('%s affects %s: %s', p.event_type, p.os_key,
+                coalesce(rs.resp, 'no declared responsibilities')),
+         case when i.severity is null
+              then 'UNDECLARED INPUT: os_interface does not list this event type for this OS'
+              else coalesce(p.reason, 'act on the subscription') end,
+         -- clock_timestamp(), NOT the column default. "BEFORE acting" was UNMEASURABLE while every
+         -- timestamp here came from now(): now() is TRANSACTION start, so the assessment, the task
+         -- and the delivery all carried the identical value and `assessed_at > created_at` read 0
+         -- whatever order the statements ran in. clock_timestamp() is statement time, so the
+         -- ordering below is stored rather than assumed. Move this block after the loop and
+         -- xos-04 fails, which is the property that makes it a measurement.
+         clock_timestamp()
+    from pending p
+    left join lateral (select i2.severity from os_interface i2
+                        where i2.os_key = p.os_key and i2.event_type = p.event_type
+                          and i2.direction = 'input' limit 1) i on true
+    left join lateral (select string_agg(x.responsibility, ', ') as resp
+                         from (select responsibility from os_responsibility
+                                where os_key = p.os_key order by responsibility limit 3) x) rs on true
+  on conflict (event_id, os_key) do nothing;
+  get diagnostics v_assessed = row_count;
+
+  -- ── PASS 2 · ROUTE, RAISE WORK, DELIVER ─────────────────────────────────────────────────────
   -- p_lookback_minutes is KEPT and now means what its name says: an optional narrowing for a
   -- manual catch-up run, not a wall that silently drops events. <= 0 means "every undelivered
   -- event, however old", which is the setting the cron uses.
@@ -112,39 +209,12 @@ begin
     v_tier := coalesce(public.fn_dept_authority(v_dept, 'analysis')->>'tier', 'gated');
     if v_tier <> 'autonomous' then v_gated := v_gated + 1; end if;
 
-    -- xos-04. ASSESS BEFORE ACTING. The severity is the OS's own declared reading of this input
-    -- from os_interface; the impact names which of the OS's declared responsibilities the event
-    -- touches. Both come from tables the founder populated, so this is a JOIN, not a judgement.
-    -- A NULL severity is itself the finding: the OS received an event it never declared it
-    -- consumes, which is exactly the os_interface/event_subscription drift comp-07 measures.
-    if v_os is not null then
-      select i.severity into v_sev
-        from os_interface i
-       where i.os_key = v_os and i.event_type = r.event_type and i.direction = 'input'
-       limit 1;
-      select string_agg(x.responsibility, ', ')
-        into v_resp
-        from (select responsibility from os_responsibility
-               where os_key = v_os order by responsibility limit 3) x;
-      v_impact := format('%s affects %s: %s',
-                         r.event_type, v_os, coalesce(v_resp, 'no declared responsibilities'));
-      -- clock_timestamp(), NOT the column default. "BEFORE acting" was UNMEASURABLE while every
-      -- timestamp in this loop came from now(): now() is TRANSACTION start, so the assessment, the
-      -- task and the delivery all carried the identical value and `assessed_at > created_at` was 0
-      -- whatever order the statements ran in — reordering this block BELOW the task insert, i.e.
-      -- committing the exact violation the requirement forbids, left the measurement at 0.
-      -- clock_timestamp() is STATEMENT time, so the three writes below are now strictly ordered and
-      -- the order is what gets stored. Move this insert after the org_tasks insert and xos-04 fails.
-      insert into event_assessment (event_id, os_key, agent_key, severity, impact, proposed_action,
-                                    assessed_at)
-      values (r.event_id, v_os, r.agent_key, coalesce(v_sev, 'medium'), v_impact,
-              case when v_sev is null
-                   then 'UNDECLARED INPUT: os_interface does not list this event type for this OS'
-                   else coalesce(r.reason, 'act on the subscription') end,
-              clock_timestamp())
-      on conflict (event_id, os_key) do nothing;
-      v_assessed := v_assessed + 1;
-    end if;
+    -- xos-04. The assessment for this (event, OS) was written in PASS 1, before this loop began
+    -- and therefore before any task in this run exists. Read the impact back for the task detail
+    -- below rather than recomputing it, so the sentence the employee reads is the same sentence
+    -- the OS recorded. NULL when the department resolves to no OS, which coalesce() handles.
+    select a.impact into v_impact
+      from event_assessment a where a.event_id = r.event_id and a.os_key = v_os;
 
     -- xos-05 / contract-consolidation. THE EVENT THAT REPORTS ON WORK IS NOT NEW WORK.
     --
@@ -162,7 +232,7 @@ begin
     -- event REPORTS ON a task that exists, the work is that task. The delivery is attached to it,
     -- so the result that comes back is that task's own result and the loop closes on the work
     -- itself rather than on a duplicate of it. Nothing is dropped: the delivery, its os_key and
-    -- its assessment (above) are all still written.
+    -- its assessment (pass 1) are all still written.
     --
     -- Scoped by the payload, not by an event-type list: any future emitter whose row names an
     -- org_task subject gets the same treatment, and one that does not still raises a task.
@@ -199,13 +269,69 @@ begin
     --
     -- Scoped to decided_by='fn_event_dispatch' so the bus can only ever attach to its OWN open
     -- task: a human's or another routine's task with a colliding title is never hijacked.
-    v_title := left(r.event_type || ' on ' || r.entity_type || ' ' || coalesce(r.entity_id,''), 200);
+    -- ── BACK-PRESSURE ─────────────────────────────────────────────────────────────────────────
+    -- THE BUS MUST NOT MINT NEW WORK INTO A DEPARTMENT WHOSE BUS QUEUE IS NOT DRAINING.
+    --
+    -- The two attach branches above stop the bus DUPLICATING work. Neither of them stops it
+    -- OUTPACING the company: 395 bus tasks minted, 0 ever closed, against an organisation that
+    -- closes 4.4 tasks a day across every department and every author. Deduplication cannot fix
+    -- a rate mismatch — every one of those 395 is a distinct subject.
+    --
+    -- So the department's own open bus queue is the signal. Over the cap, this event does not get
+    -- its own task; it is collapsed onto the department's single standing back-pressure task by
+    -- rewriting v_title to a per-department constant. That makes the attach lookup immediately
+    -- below do the work — the first over-cap event mints the standing task, every later one
+    -- attaches to it — instead of adding a third near-identical branch beside the two above.
+    --
+    -- WHAT IS NOT SKIPPED, AND BOTH ARE THE POINT:
+    --  * THE DELIVERY IS STILL WRITTEN, below, exactly as in every other branch. Skipping it would
+    --    make the event permanently undeliverable again — the xos-02 defect at the top of this
+    --    file — and would SHRINK the denominator of contract-consolidation, flattering that ratio
+    --    while fixing nothing. Back-pressure regulates work, never the ledger.
+    --  * THE ASSESSMENT IS ALREADY WRITTEN, in PASS 1, before this loop began — so it cannot be
+    --    reached by any decision taken here. xos-04 says nothing is acted on unassessed, and no
+    --    reordering of the branches in this loop can lose one or stamp one late.
+    -- And when the department finally drains the standing task, fn_event_consolidate closes EVERY
+    -- delivery attached to it, so all the queued events get their result back. Same contract as
+    -- the duplicate-subject attach, one level up.
+    select count(*) into v_open_bus
+      from org_tasks t
+     where t.decided_by = 'fn_event_dispatch'
+       and t.dept_key = v_dept
+       and t.status not in ('done','closed','cancelled');
+    v_capped := v_open_bus >= c_max_open_per_dept;
+
+    if v_capped then
+      v_title  := left('bus.backpressure on department ' || v_dept, 200);
+      v_detail := format('BUS BACK-PRESSURE — %s holds %s open task(s) raised by the event bus and '
+                      || 'the bus has stopped minting more into it (cap %s). Events still arrive: '
+                      || 'each one is delivered and assessed as normal and attached to THIS task '
+                      || 'instead of raising its own, so nothing is lost and the queue stops '
+                      || 'growing. Drain %s below %s open bus tasks and per-event tasks resume by '
+                      || 'themselves. Close this one when the backlog is worked; every event '
+                      || 'queued behind it gets that result back. Latest arrival: %s (%s %s) at %s.',
+                         v_dept, v_open_bus, c_max_open_per_dept, v_dept, c_max_open_per_dept,
+                         r.event_type, r.entity_type, coalesce(r.entity_id,'-'), r.occurred_at);
+    else
+      v_title  := left(r.event_type || ' on ' || r.entity_type || ' ' || coalesce(r.entity_id,''), 200);
+      v_detail := format('Event %s (%s %s) raised by %s at %s. You subscribe to this because: %s. '
+                      || 'Assessed impact: %s. Act on it or close it with a reason.',
+                         r.event_type, r.entity_type, coalesce(r.entity_id,'-'),
+                         coalesce(r.actor,'system'), r.occurred_at,
+                         coalesce(r.reason,'subscription'), coalesce(v_impact,'not assessed'));
+    end if;
+
+    -- `status not in ('done','closed','cancelled')` rather than the old
+    -- `in ('proposed','assigned','in_progress')`: the two lists disagreed about 'escalated', so an
+    -- escalated task was open for the count above and closed for this lookup — which would mint a
+    -- SECOND standing back-pressure task the moment the first one escalated, and had already been
+    -- duplicating escalated subject tasks. One definition of open, used by both.
     select t.id into v_open_task
       from org_tasks t
      where t.decided_by = 'fn_event_dispatch'
        and t.dept_key = v_dept
        and t.title = v_title
-       and t.status in ('proposed','assigned','in_progress')
+       and t.status not in ('done','closed','cancelled')
      order by t.id
      limit 1;
     if v_open_task is not null then
@@ -213,6 +339,7 @@ begin
       values (r.event_id, r.agent_key, r.event_type, v_os, v_open_task, clock_timestamp())
       on conflict do nothing;
       v_attached  := v_attached + 1;
+      if v_capped then v_backpressured := v_backpressured + 1; end if;
       v_delivered := v_delivered + 1;
       continue;
     end if;
@@ -221,14 +348,15 @@ begin
                            decided_by, created_at)
     values (v_dept,
             v_title,
-            format('Event %s (%s %s) raised by %s at %s. You subscribe to this because: %s. '
-                || 'Assessed impact: %s. Act on it or close it with a reason.',
-                   r.event_type, r.entity_type, coalesce(r.entity_id,'-'), coalesce(r.actor,'system'),
-                   r.occurred_at, coalesce(r.reason,'subscription'), coalesce(v_impact,'not assessed')),
+            v_detail,
             case when v_tier = 'autonomous' then 'assigned' else 'proposed' end,
             v_tier, v_tier <> 'autonomous', 'analysis', 'fn_event_dispatch', clock_timestamp())
     returning id into v_task;
     v_tasks := v_tasks + 1;
+    -- The standing task counts as back-pressured too: it is the one task the cap allows, not a
+    -- per-event task that slipped through. Counted so `backpressured` in the return value is the
+    -- full number of events the cap handled, and never silently one short.
+    if v_capped then v_backpressured := v_backpressured + 1; end if;
 
     insert into event_delivery (event_id, agent_key, event_type, os_key, task_id, delivered_at)
     values (r.event_id, r.agent_key, r.event_type, v_os, v_task, clock_timestamp())
@@ -243,8 +371,10 @@ begin
 
   return jsonb_build_object('delivered', v_delivered, 'tasks_created', v_tasks,
                             'attached_to_existing_task', v_attached,
+                            'backpressured', v_backpressured,
                             'tasks_awaiting_a_human', v_gated,
                             'unroutable', v_unroutable, 'assessed', v_assessed,
                             'lookback_minutes', p_lookback_minutes,
-                            'max_batch', c_max_batch);
+                            'max_batch', c_max_batch,
+                            'max_open_per_dept', c_max_open_per_dept);
 end; $function$;
