@@ -1,0 +1,158 @@
+// THE REVIEW CHAIN — built, correct, and called by nothing until now.
+//
+// Every assertion here is reachable only AT CALL TIME. The last patch of this shape reported
+// success from a DO block that rewrites pg_get_functiondef while carrying three errors that only
+// surfaced when the function actually ran (a rowtype/alias collision, and two text||jsonb
+// concatenations that resolve to jsonb||jsonb and parse the literal as JSON). So the fixture is
+// built in the same change, not after it.
+//
+//   node scripts/staging/verify_review_chain.mjs      # zero spend — fn_challenge is deterministic
+import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
+import { REF as STAGE } from './demo_factory.mjs';
+
+const checks = [];
+const step = (name, ok, detail) => {
+  checks.push({ name, ok, detail });
+  console.log(`${ok ? 'PASS' : 'FAIL'} ${String(checks.length).padStart(2)} ${name.padEnd(60)} ${detail}`);
+};
+const one = (r) => (r && r[0]) ? Object.values(r[0])[0] : null;
+const TAG = 'qd_fixture_review_chain';
+const q = (s) => s.replace(/'/g, "''");
+
+const GOOD = 'Q3 supplier coverage analysis for QuotesDone. We reviewed the 86 catalogue categories '
+  + 'against approved supply in the UAE market and found 14 with fewer than three approved suppliers, '
+  + 'concentrated in Abu Dhabi rather than Dubai. Recommended action is to prioritise invitations in '
+  + 'those 14 categories at the existing daily cap, and to re-measure coverage after two weeks before '
+  + 'committing any further AED spend on acquisition. Risk: invitation fatigue in categories that '
+  + 'already carry marginal suppliers, mitigated by the existing three-strike rule.\nRESULT: 14 '
+  + 'under-covered categories identified and an invitation order proposed.';
+
+// (dept, title, detail, deliverable, expected outcome, what it proves)
+const CASES = [
+  ['procurement', 'Quarterly supplier coverage analysis', 'Analyse category coverage',
+   GOOD, 'published', 'a good deliverable clears both stages'],
+  ['procurement', 'Coverage analysis', 'Analyse coverage',
+   'The department could not reach the AI service, please try again in a moment.',
+   'reject', 'an apology is refused as a critical breach, not stored as work'],
+  ['procurement', 'Coverage analysis', 'Analyse coverage',
+   'Done. Coverage looks fine overall and we should keep going as we are.',
+   'reject', 'a 68-character answer no longer ships (the old bar was 60)'],
+  ['procurement', 'Coverage analysis', 'Analyse coverage',
+   GOOD.replace(/\nRESULT:[\s\S]*$/, ''), 'request_revision',
+   'a missing RESULT: line is a major issue, returned not rejected'],
+  ['it', 'Bypass the model routing approval gate', 'Disable the review check on the routing rule',
+   GOOD, 'request_revision', 'a BLOCKING collaboration rule + recommend_against stops the work'],
+  ['knowledge', 'Bypass the approval review for knowledge modules employees rely on',
+   'Revise the knowledge modules', GOOD, 'published',
+   'a NON-blocking rule records the dissent and lets the work proceed'],
+];
+
+async function cleanup() {
+  await mgmtWrite(STAGE, `delete from public.review_chain where subject_type='org_task'
+     and subject_id in (select id::text from public.org_tasks where detail like '${TAG}%')`, 'rc');
+  await mgmtWrite(STAGE, `delete from public.company_event where entity_type='org_task'
+     and entity_id in (select id::text from public.org_tasks where detail like '${TAG}%')`, 'ce');
+  await mgmtWrite(STAGE, `delete from public.challenge_record where proposal like '%${TAG}%'`, 'chr');
+  await mgmtWrite(STAGE, `delete from public.org_tasks where detail like '${TAG}%'`, 'tasks');
+}
+
+try {
+  await cleanup();
+
+  const values = CASES.map(([d, title, detail, deliv]) =>
+    `('${d}','${q(title)}','${TAG} ${q(detail)}','assigned','advisory','analysis',` +
+    `jsonb_build_object('deliverable','${q(deliv)}'))`).join(',');
+  await mgmtWrite(STAGE,
+    `insert into public.org_tasks (dept_key, title, detail, status, tier, action_class, result)
+     values ${values}`, 'fixture');
+
+  const rows = await mgmtRead(STAGE,
+    `select id, dept_key, title from public.org_tasks where detail like '${TAG}%' order by id`);
+  step('the fixture loaded', rows.length === CASES.length, `${rows.length} task(s) with a deliverable`);
+
+  // Run each one through the reviewer and compare against the expected verdict.
+  const got = [];
+  for (const r of rows) {
+    const res = one(await mgmtRead(STAGE, `select public.fn_task_review(${r.id})`));
+    got.push(typeof res === 'string' ? JSON.parse(res) : res);
+  }
+
+  const wrong = got.map((g, i) => g.outcome === CASES[i][4] ? null
+    : `${CASES[i][0]}/"${CASES[i][1].slice(0, 28)}" expected ${CASES[i][4]} got ${g.outcome}`)
+    .filter(Boolean);
+  step('every case landed on its expected outcome', wrong.length === 0,
+    wrong.length ? wrong.join(' | ') : `${got.length}/${got.length}: ` + got.map(g => g.outcome).join(', '));
+
+  // ---- the negative checks -----------------------------------------------------------------
+  step('the 60-character bar is gone', got[2].outcome === 'reject',
+    `68-char deliverable -> ${got[2].outcome}, violations: ` +
+    (got[2].violations || []).map(v => v.rule).join(',') || '(none)');
+
+  step('an unreachable-AI apology is a CRITICAL breach', got[1].outcome === 'reject',
+    (got[1].violations || []).map(v => `${v.rule}/${v.severity}`).join(', ') || '(no violation recorded)');
+
+  step('a major issue is RETURNED, not rejected outright', got[3].outcome === 'request_revision',
+    (got[3].violations || []).map(v => `${v.rule}/${v.severity}`).join(', ') || '(none)');
+
+  // ---- the chain actually walked the hierarchy ----------------------------------------------
+  const stages = await mgmtRead(STAGE,
+    `select stage, count(*) n from public.review_chain
+      where subject_type='org_task'
+        and subject_id in (select id::text from public.org_tasks where detail like '${TAG}%')
+      group by 1 order by 1`);
+  const byStage = Object.fromEntries(stages.map(s => [s.stage, Number(s.n)]));
+  step('all four spec stages were written',
+    ['drafted', 'dept_review', 'cos_review', 'published'].every(s => byStage[s] > 0),
+    Object.entries(byStage).map(([k, v]) => `${k}=${v}`).join(' '));
+
+  const reviewer = await mgmtRead(STAGE,
+    `select distinct reviewer_agent from public.review_chain
+      where stage='dept_review' and reviewer_agent is not null
+        and subject_id in (select id::text from public.org_tasks where detail like '${TAG}%')`);
+  step('a real department head reviewed, resolved through fn_pick_reviewer',
+    reviewer.length > 0 && reviewer.every(r => r.reviewer_agent && r.reviewer_agent !== 'brief'),
+    reviewer.map(r => r.reviewer_agent).join(', ') || '(none)');
+
+  // ---- collaboration_rule went from 0 readers to a reader ------------------------------------
+  step('collaboration_rule is read and its rule is named',
+    got[4].rules_applied > 0 && got[5].rules_applied > 0,
+    `blocking case matched ${got[4].rules_applied} rule(s), non-blocking ${got[5].rules_applied}`);
+
+  const collab = Number(one(await mgmtRead(STAGE,
+    `select count(*) from public.review_chain where stage='collaboration'
+      and subject_id in (select id::text from public.org_tasks where detail like '${TAG}%')`)));
+  step('the departments the rule requires are recorded', collab >= 2,
+    `${collab} collaboration row(s) naming must_involve / must_review`);
+
+  // THE ONE THAT MATTERS: blocking and non-blocking must behave DIFFERENTLY on the same dissent.
+  step('blocking stops the work, non-blocking only records the dissent',
+    got[4].blocked === true && got[5].blocked === false
+      && (got[5].dissents || []).length > 0 && got[5].outcome === 'published',
+    `blocking: blocked=${got[4].blocked} outcome=${got[4].outcome} | ` +
+    `non-blocking: blocked=${got[5].blocked} outcome=${got[5].outcome} dissents=${(got[5].dissents || []).length}`);
+
+  const noReason = await mgmtRead(STAGE,
+    `select count(*) n from public.review_chain
+      where subject_id in (select id::text from public.org_tasks where detail like '${TAG}%')
+        and (reason is null or length(trim(reason)) < 20)`);
+  step('no decision or dissent is recorded without a reason', Number(noReason[0].n) === 0,
+    `${noReason[0].n} row(s) with no usable reason`);
+
+  const chal = Number(one(await mgmtRead(STAGE,
+    `select count(*) from public.challenge_record where challenged_by is not null
+       and created_at > now() - interval '10 minutes'`)));
+  step('the challenge is recorded where the founder already reads them', chal > 0,
+    `${chal} challenge_record row(s) written by fn_challenge`);
+
+  await cleanup();
+  const left = Number(one(await mgmtRead(STAGE,
+    `select count(*) from public.org_tasks where detail like '${TAG}%'`)));
+  step('the fixture cleaned up after itself', left === 0, `${left} row(s) left behind`);
+} catch (e) {
+  step('the gate ran to completion', false, String(e.message || e).slice(0, 300));
+  await cleanup().catch(() => {});
+}
+
+const pass = checks.filter(c => c.ok).length;
+console.log(`\nREVIEW CHAIN ${pass}/${checks.length} on ${STAGE} (zero spend)`);
+process.exit(pass === checks.length ? 0 : 1);
