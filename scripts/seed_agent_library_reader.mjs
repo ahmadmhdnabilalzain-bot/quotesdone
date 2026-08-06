@@ -187,10 +187,125 @@ $new$where coalesce(layer,'profession') in ('profession','state')
 end
 $do$;`;
 
+// OBSERVABILITY: THE SUPPLIER HAS A TIMELINE. THE RFQ — THE CORE PRODUCT — HAD NONE.
+//
+// The blueprint's Observability requirement is a worked RFQ trace: "RFQ #4582 → Created → Document
+// AI analyzed BOQ → HVAC Agent qualified inquiry → Supplier Matching Agent selected 12 suppliers →
+// Notification Agent sent invitations → 7 quotations received → Comparison AI ranked quotations →
+// Award recommendation generated. Every step should be logged with timestamps AND REASONS."
+//
+// fn_entity_activity — already reachable, os_api exposes it as the `activity` action — returns
+// comments plus os_audit_log for every entity, and then has exactly one specialised branch:
+// `if p_entity = 'supplier'`, which builds a ten-step milestone timeline off the leads row. For an
+// inquiry it returns comments and audit rows only, and the RFQ lifecycle is not written to
+// os_audit_log — so the trace of the thing the business runs on came back empty.
+//
+// Nothing here is new data. Every step already exists in a table: inquiries' own timestamps,
+// documents (registered by fn_register_document's three triggers), inquiry_matches — which carries
+// `match_reason` and `similarity`, the "reasons" half the spec asks for and the part a timestamp
+// log cannot give you — quotes, comparison_run_v2, transactions, company_event and agent_actions.
+// This is assembly, not instrumentation.
+//
+// Patched the same way as the layer-2 fallback: rewrite pg_get_functiondef, anchored on the final
+// `return coalesce(...)` so the insert lands after the supplier branch, and raise if the anchor is
+// gone. The uuid guard matters — p_id is text and `p_id::uuid` on a supplier id would throw 22P02
+// and take the comments and audit rows down with it.
+//
+// THE LEADS ALIAS IS `ld`, NOT `l`, AND THAT COST A ROUND TRIP. The function declares
+// `l public.leads%rowtype` for the supplier branch, so `left join public.leads l` inside the new
+// block raises 42702 "column reference l.id is ambiguous: it could refer to either a PL/pgSQL
+// variable or a table column" — at CALL time, not at patch time, which is why the DO block
+// reported success and the first trace read blew up instead. Caught by verify_rfq_trace, which is
+// the argument for building the fixture in the same change rather than after it.
+export const SQL_RFQ_TRACE = `
+do $do$
+declare def text; newdef text;
+begin
+  select pg_get_functiondef(p.oid) into def
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = 'fn_entity_activity';
+  if def is null then raise exception 'fn_entity_activity not found'; end if;
+
+  -- Re-appliable, not one-shot. A marker that only ever says "already done" turns every fix to the
+  -- block into a restore-from-the-other-project dance; this strips any previous block first, so a
+  -- corrected version can simply be re-run. The block runs from its own marker to the shared
+  -- final return, and contains no second copy of that return.
+  if position('-- QD_RFQ_TRACE:' in def) > 0 then
+    def := left(def, position('-- QD_RFQ_TRACE:' in def) - 1)
+        || substring(def from position('return coalesce((select jsonb_agg(e) from' in def));
+  end if;
+
+  newdef := replace(def,
+$old$return coalesce((select jsonb_agg(e) from$old$,
+$new$-- QD_RFQ_TRACE: the inquiry lifecycle, assembled from the rows that already record it.
+  if p_entity in ('rfq','inquiry') and p_id ~ '^[0-9a-fA-F-]{36}$' then
+    out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','milestone','title',v.label,'actor','system','at',v.ts))
+      from public.inquiries i cross join lateral (values
+             ('Inquiry created', i.created_at),
+             ('Moved to stage: '||coalesce(i.pipeline_stage,'(none)'), i.stage_changed_at),
+             ('Completed'||coalesce(' — '||i.outcome,''), i.completed_at)
+           ) v(label, ts)
+     where i.id = p_id::uuid and v.ts is not null),'[]'::jsonb);
+
+    out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','decision',
+        'title','Routed to category '||coalesce(i.category,'(none)')||
+                case when coalesce(i.rfq_ready,false) then ' — brief complete' else ' — brief NOT complete' end,
+        'actor','route_inquiry','body',left(coalesce(i.routing::text,''),400),'at',i.created_at))
+      from public.inquiries i where i.id = p_id::uuid and i.routing is not null),'[]'::jsonb);
+
+    out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','document',
+        'title',coalesce(d.kind,'document')||' '||coalesce(d.file_name,''),'actor','doc_extract',
+        'body','status '||coalesce(d.status,'?')||case when coalesce(d.indexed,false) then ', indexed' else '' end,
+        'at',coalesce(d.processed_at,d.created_at)))
+      from public.documents d where d.ref_table='inquiries' and d.ref_id::text = p_id),'[]'::jsonb);
+
+    out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','match',
+        'title','Dispatched to supplier #'||m.supplier_id||coalesce(' ('||ld.company_name||')',''),
+        'actor','dispatch_inquiry',
+        'body',coalesce(m.match_reason,'')||coalesce(' score '||m.similarity,''),'at',m.sent_at))
+      from public.inquiry_matches m left join public.leads ld on ld.id = m.supplier_id
+     where m.inquiry_id = p_id::uuid),'[]'::jsonb);
+
+    out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','quote',
+        'title','Quotation AED '||q.quote_amount||' from supplier #'||q.supplier_id,
+        'actor',coalesce(q.source,'form'),
+        'body','status '||coalesce(q.status,'?')||coalesce(', quality '||q.quality::text,''),
+        'at',q.created_at,'status',q.status))
+      from public.quotes q where q.inquiry_id = p_id::uuid),'[]'::jsonb);
+
+    out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','comparison',
+        'title','Quotation comparison produced','actor','quote_compare',
+        'body',left(coalesce(c.explanation_en::text,''),400),'at',c.created_at))
+      from public.comparison_run_v2 c where c.inquiry_id = p_id::uuid),'[]'::jsonb);
+
+    out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','reveal',
+        'title','Supplier revealed to the customer for AED '||t.reveal_fee,'actor','customer','at',t.revealed_at))
+      from public.transactions t where t.inquiry_id = p_id::uuid and t.revealed_at is not null),'[]'::jsonb);
+
+    out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','event','title',e.event_type,
+        'actor',coalesce(e.actor,'system'),'at',e.occurred_at))
+      from public.company_event e where e.entity_type in ('inquiry','inquiries') and e.entity_id = p_id),'[]'::jsonb);
+
+    out := out || coalesce((select jsonb_agg(jsonb_build_object('kind','agent',
+        'title',coalesce(nullif(btrim(aa.title),''), aa.kind),'actor',aa.agent,
+        'body',aa.recommendation,'at',aa.created_at,'status',aa.status))
+      from public.agent_actions aa where aa.target_table='inquiries' and aa.target_id::text = p_id),'[]'::jsonb);
+  end if;
+
+  return coalesce((select jsonb_agg(e) from$new$);
+
+  if newdef = def then
+    raise exception 'fn_entity_activity rfq trace did not match — the final return moved, re-read it before patching';
+  end if;
+  execute newdef;
+end
+$do$;`;
+
 if (process.argv.includes('--print-sql')) {
   console.log(SQL_CONTEXT);
   console.log(SQL_GAPS);
   console.log(SQL_L2_FALLBACK);
+  console.log(SQL_RFQ_TRACE);
   process.exit(0);
 }
 
@@ -198,6 +313,7 @@ const REF = resolveStagingRef(process.argv[2]);
 await mgmtWrite(REF, SQL_L2_FALLBACK, 'fn_agent_context layer-2 department fallback');
 await mgmtWrite(REF, SQL_CONTEXT, 'fn_agent_context library overload');
 await mgmtWrite(REF, SQL_GAPS, 'fn_knowledge_gaps owner attribution');
+await mgmtWrite(REF, SQL_RFQ_TRACE, 'fn_entity_activity rfq trace');
 
 // MEASURE THE READER, NOT THE DEPLOY. The question is whether a real employee question now comes
 // back carrying real library text — and whether the query-less call is still byte-identical.
