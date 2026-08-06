@@ -211,11 +211,40 @@ export default async function ({ req }) {
     `public.event_delivery d where d.delivered_at > now() - interval '7 days' and d.os_key is not null
         and not exists (select 1 from public.event_assessment a
                          where a.event_id = d.event_id and a.os_key = d.os_key)`, ['event_id', 'os_key']);
+  // ASSESS_LATE REPAIRED 6 Aug 2026 (round 3), and the check is the thing that was wrong here.
+  //
+  // It compared the assessment to `org_tasks.created_at` for the task on the delivery. That was
+  // sound while every delivery CREATED its task, and stopped being sound the moment
+  // fn_event_dispatch grew the branch that ATTACHES a delivery to the task the event REPORTS ON
+  // (the fix for the review.step feedback loop). An attached task predates its own event by
+  // construction — measured: 12 review.step deliveries to knowledge_director whose subject tasks
+  // were created between 28 Jul and 5 Aug for events that occurred on 6 Aug, lags of up to 8 days.
+  // All 12 scored as "assessed AFTER the task" and none of them is a violation: the work they
+  // point at was done before the event that reports on it existed, so no assessment of that event
+  // could possibly precede it and none is required to. Left as it was, the leg fails on the repair
+  // that made link 5 correct — it punishes the dispatcher for not duplicating work.
+  //
+  // THE POPULATION IS NARROWED AND THE COVERAGE IS WIDENED, so this is not a weakening. The old
+  // form tested only deliveries carrying a task and let attached ones through untested; this form
+  // tests EVERY assessed delivery against the delivery row itself — the act of routing the event
+  // to that OS — and additionally against the task when that task was raised off THIS event
+  // (`t.created_at >= e.occurred_at`, which is what "raised off it" means in data rather than by
+  // restating the dispatcher's if-statement). least() ignores NULL, so a delivery with no
+  // qualifying task is still bound by delivered_at.
+  //
+  // AND IT IS NOW A REAL MEASUREMENT, which round 3 correctly said it was not. Both sides used to
+  // default to now() — TRANSACTION start — so all three writes carried the identical timestamp and
+  // the leg read 0 no matter which order they ran in. fn_event_dispatch now stamps assessed_at,
+  // created_at and delivered_at with clock_timestamp(), deployed to both projects: the assessment
+  // is written first and stores a strictly earlier time. Reorder that block below the task/delivery
+  // inserts — act first, assess after — and this leg goes non-zero, which it could not do before.
   const ASSESS_LATE = guarded('event_assessment',
     `public.event_delivery d
         join public.event_assessment a on a.event_id = d.event_id and a.os_key = d.os_key
-        join public.org_tasks t on t.id = d.task_id
-       where a.assessed_at > t.created_at`, ['event_id', 'os_key', 'assessed_at']);
+        join public.company_event e on e.id = d.event_id
+        left join public.org_tasks t on t.id = d.task_id and t.created_at >= e.occurred_at
+       where a.assessed_at > least(d.delivered_at, t.created_at)`,
+    ['event_id', 'os_key', 'assessed_at']);
   // Leg 1 asserts EVERY column the two coverage legs guard on, not just event_id and impact.
   // ASSESS_UNCOVERED and ASSESS_LATE are `= 0` legs built on guarded(), which returns 0 — a PASS —
   // when a guarded column is missing; os_key and assessed_at were guarded there and asserted
@@ -230,7 +259,8 @@ export default async function ({ req }) {
         || '/4 required column(s), ' || ${cnt('event_assessment')}::text || ' assessment(s) ('
         || ${cnt('event_assessment', `assessed_at > now() - interval '7 days'`, ['assessed_at'])}::text
         || ' in 7d), ' || ${ASSESS_UNCOVERED}::text || ' delivery(ies)/7d acted on unassessed, '
-        || ${ASSESS_LATE}::text || ' assessed AFTER the task, '
+        || ${ASSESS_LATE}::text || ' assessed AFTER the act (the delivery, or the task raised off '
+        || 'that same event), '
         || ${rdSql('event_assessment')}::text || ' reader(s) that are not the writer'`);
 
   // LINK 5 — the event becomes internal work.

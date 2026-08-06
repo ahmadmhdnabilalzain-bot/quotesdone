@@ -84,8 +84,9 @@ begin
     if v_dept is null then
       -- xos-05. Say why. An unroutable subscription is a real defect in the subscription table
       -- and it was previously indistinguishable from a task that had not been created yet.
-      insert into event_delivery (event_id, agent_key, event_type, os_key, task_id, unroutable_reason)
-      values (r.event_id, r.agent_key, r.event_type, v_os, null,
+      insert into event_delivery (event_id, agent_key, event_type, os_key, task_id, delivered_at,
+                                  unroutable_reason)
+      values (r.event_id, r.agent_key, r.event_type, v_os, null, clock_timestamp(),
               format('no org_agents row for subscriber %s — this subscription points at an '
                   || 'employee who does not exist, so the event reaches nobody', r.agent_key))
       on conflict do nothing;
@@ -115,11 +116,20 @@ begin
                where os_key = v_os order by responsibility limit 3) x;
       v_impact := format('%s affects %s: %s',
                          r.event_type, v_os, coalesce(v_resp, 'no declared responsibilities'));
-      insert into event_assessment (event_id, os_key, agent_key, severity, impact, proposed_action)
+      -- clock_timestamp(), NOT the column default. "BEFORE acting" was UNMEASURABLE while every
+      -- timestamp in this loop came from now(): now() is TRANSACTION start, so the assessment, the
+      -- task and the delivery all carried the identical value and `assessed_at > created_at` was 0
+      -- whatever order the statements ran in — reordering this block BELOW the task insert, i.e.
+      -- committing the exact violation the requirement forbids, left the measurement at 0.
+      -- clock_timestamp() is STATEMENT time, so the three writes below are now strictly ordered and
+      -- the order is what gets stored. Move this insert after the org_tasks insert and xos-04 fails.
+      insert into event_assessment (event_id, os_key, agent_key, severity, impact, proposed_action,
+                                    assessed_at)
       values (r.event_id, v_os, r.agent_key, coalesce(v_sev, 'medium'), v_impact,
               case when v_sev is null
                    then 'UNDECLARED INPUT: os_interface does not list this event type for this OS'
-                   else coalesce(r.reason, 'act on the subscription') end)
+                   else coalesce(r.reason, 'act on the subscription') end,
+              clock_timestamp())
       on conflict (event_id, os_key) do nothing;
       v_assessed := v_assessed + 1;
     end if;
@@ -150,15 +160,16 @@ begin
         from org_tasks t where t.id = (r.payload->>'subject_id')::bigint;
     end if;
     if v_subject_task is not null then
-      insert into event_delivery (event_id, agent_key, event_type, os_key, task_id)
-      values (r.event_id, r.agent_key, r.event_type, v_os, v_subject_task)
+      insert into event_delivery (event_id, agent_key, event_type, os_key, task_id, delivered_at)
+      values (r.event_id, r.agent_key, r.event_type, v_os, v_subject_task, clock_timestamp())
       on conflict do nothing;
       v_attached  := v_attached + 1;
       v_delivered := v_delivered + 1;
       continue;
     end if;
 
-    insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, decided_by)
+    insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class,
+                           decided_by, created_at)
     values (v_dept,
             left(r.event_type || ' on ' || r.entity_type || ' ' || coalesce(r.entity_id,''), 200),
             format('Event %s (%s %s) raised by %s at %s. You subscribe to this because: %s. '
@@ -166,12 +177,12 @@ begin
                    r.event_type, r.entity_type, coalesce(r.entity_id,'-'), coalesce(r.actor,'system'),
                    r.occurred_at, coalesce(r.reason,'subscription'), coalesce(v_impact,'not assessed')),
             case when v_tier = 'autonomous' then 'assigned' else 'proposed' end,
-            v_tier, v_tier <> 'autonomous', 'analysis', 'fn_event_dispatch')
+            v_tier, v_tier <> 'autonomous', 'analysis', 'fn_event_dispatch', clock_timestamp())
     returning id into v_task;
     v_tasks := v_tasks + 1;
 
-    insert into event_delivery (event_id, agent_key, event_type, os_key, task_id)
-    values (r.event_id, r.agent_key, r.event_type, v_os, v_task)
+    insert into event_delivery (event_id, agent_key, event_type, os_key, task_id, delivered_at)
+    values (r.event_id, r.agent_key, r.event_type, v_os, v_task, clock_timestamp())
     on conflict do nothing;
     v_delivered := v_delivered + 1;
   end loop;
