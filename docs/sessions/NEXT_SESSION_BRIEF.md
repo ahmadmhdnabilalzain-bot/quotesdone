@@ -153,15 +153,27 @@ nothing undated, the supplier branch unaffected, and a non-uuid id refused rathe
 > `run_health_check`. A DO block that rewrites `pg_get_functiondef` reports success for all three.
 > **Build the fixture in the same change, not after it.**
 
-**THE CRON HEALTH VIEW CANNOT SAY WHAT IS FAILING NOW.** `v_cron_failing` is production's only
-cron-health signal, and it is `HAVING count(*) FILTER (WHERE status <> 'succeeded') > 0` over a
-7-day window — so a job that failed once last Tuesday and has succeeded every run since is still
-listed. It reports 3 jobs; measured, **2 have recovered** (`health_check` last failed 4 Aug and last
-succeeded 6 Aug 00:30; `supplier_invites_daily` last failed 4 Aug, succeeded 5 Aug) and 1 is
-genuinely unproven (`kpi_review_weekly`, 1 run 1 failure, next run Monday). Nothing reads it —
-0 views, and its single routine reader (`fn_invite_ramp`) uses it for something else. A monitor that
-never clears is a monitor nobody reads. **Not fixed here**; it needs a `state` column
-(failing-now vs recovered) and a reader, and that is a small, well-defined next job.
+**CONTINUOUS MONITORING (⭐⭐⭐⭐⭐ in the blueprint): the signal was computed correctly every time and
+nobody asked for it.** This started as "fix `v_cron_failing`" and that would have been the wrong
+fix. `fn_os_health()`'s `failing_crons` already uses `JOIN LATERAL (… ORDER BY start_time DESC LIMIT
+1) WHERE status='failed'` — the most recent run, the only definition of "failing now" that is any
+use — and it correctly returns **`[]`** today. Its one caller is `fn_os_selftest`, which has **none**:
+not a cron, not a routine, not an `os_api` action. Sixth asset of this shape.
+
+`fn_exception_alerts` — hourly, already writing `founder_alerts`, already deduped — now asks it, and
+raises `cron_failing` naming the jobs. One check in an existing loop; no new cron, table or channel.
+
+> **Do NOT "fix" `v_cron_failing`.** It is a different, cruder signal — anything that failed at any
+> point in 7 days, never clearing — and its one consumer is `fn_invite_ramp`'s advisory message,
+> where "what has been flaky" is the right question. It lists 3 jobs; **2 recovered days ago**
+> (`health_check` last failed 4 Aug, succeeded 6 Aug 00:30; `supplier_invites_daily` last failed
+> 4 Aug, succeeded 5 Aug) and `kpi_review_weekly` has run once, ever, and fails outside the window.
+> Two signals, two questions. The defect was the missing reader, not the view.
+>
+> **Staging has 0 crons, so the new branch cannot execute there** — exactly how the two jsonb
+> concatenation bugs above hid. The alert text is asserted against a synthetic `failing_crons` array
+> including a null message, which is the only part that could carry that landmine. The INSERT itself
+> first runs when a production cron actually fails; that is stated, not claimed as exercised.
 
 > **`run_health_check` was already fixed — read before you re-fix it.** `v_cron_failing` shows 78 of
 > 336 runs failing with `malformed array literal`, and the deployed source already carries `::text`
@@ -186,7 +198,7 @@ All fifteen gates were green on the first pass. Every defect below was found *af
 ```
 node scripts/verify_deploy_parity.mjs --since=HEAD~40   # is the repo's code actually RUNNING, both projects
 node scripts/staging/verify_intake_routing.mjs          # 10/10 Arabic routing + ordered interview + knowledge
-node scripts/staging/verify_agent_knowledge.mjs         # 16/16 the department library reaches the employee — zero spend
+node scripts/staging/verify_agent_knowledge.mjs         # 19/19 spec file #7's knowledge + monitoring wiring — zero spend
 node scripts/staging/verify_rfq_trace.mjs               # 10/10 the RFQ lifecycle trace — 1 rfq_routing call, ~0.01 AED
 node scripts/staging/demo_factory.mjs --purge --dry-run # run AFTER the journey; only the register should appear
 ```
@@ -1216,7 +1228,8 @@ The one defect found came from the step *after* the gates: a `--purge --dry-run`
 | "the eight founder spec files are not in the repo" | **They are on disk.** `C:\Users\Opera\OneDrive\Desktop\*.txt`, mirrored in `C:\Users\Opera\qd-packs\QuotesDone_COMPLETE_OS_PORTALS_AUTONOMY_UPDATE_PACKAGE_v2026.07.31\…\SOURCE_PLANS\`. File #7 is `quotesdone agents and knowledge.txt` = `AGENTS_AND_KNOWLEDGE_BLUEPRINT.txt`; #6 `suppliers categories.txt`; #3 `OS 2.txt` = `OS_COMMAND_CENTER_VISION.txt`; #8 `open router.txt`. **Read the file you are working, not the brief's summary of it** — the summary said "AI Governor, AI Scheduler…", the file says what each must actually do, and its one-line architectural recommendation ("Don't create 20 isolated knowledge bases") is what located the layer-2 defect |
 | "`fn_agent_context` implements the spec's four layers" | It implements four layers, but its layer 2 is keyed to the **individual**, and the spec's layer 2 is **DEPARTMENT** knowledge. That distinction is the whole defect: 52 of 66 employees had nothing under the heading |
 | "52 employees with no knowledge is a roster that was never invoked" | Half right, and the half that is wrong is the live half: 0 of them ever ran or acted, but **4 have been chatted with**, **8 are department leads**, and `dept_plan` calls `fn_agent_context(lead_agent)` for every department on a **daily production cron**. An unpopulated roster is not the same thing as an unused code path |
-| "`v_cron_failing` reports what is failing" | It reports what has failed **at any point in 7 days** and never clears. 2 of its 3 current rows have long since recovered. Nothing reads it |
+| "`v_cron_failing` reports what is failing" | It reports what has failed **at any point in 7 days** and never clears — 2 of its 3 current rows recovered days ago. But it is not the defect and must not be "fixed": `fn_os_health()` already computes failing-now correctly and returns `[]`. **The missing piece was a reader, and the wrong fix was one view away** |
+| "the AI Scheduler is a gap" | 149 cron jobs, 130 active, and `fn_os_automation_reschedule` can re-time any of them through `cron.alter_job` with an `os_audit_log` entry. The scheduler is built. What was missing was the **health feedback loop**, now closed |
 | "`graph_nodes` (323) … read by zero Edge Functions and zero UI" | Confirmed, and its **writer is fine** — an active nightly cron rebuilds 323 nodes and 300 edges. The gap is entirely on the read side, and the reader belongs to spec file #3 (executive UI), not #7. Building one inside #7 would build it twice |
 
 The file states the rule it broke, twenty lines above the break: *"they key off the quote/inquiry id as TEXT, so
