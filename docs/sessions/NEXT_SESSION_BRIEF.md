@@ -1,125 +1,105 @@
-﻿# START HERE — SESSION 14. THE THREE FOUNDER RULES STILL GOVERN EVERYTHING.
+﻿# START HERE — SESSION 15. THE THREE FOUNDER RULES STILL GOVERN EVERYTHING.
 
 > ## 1. ONE ROW AT A TIME, TO 100%. DO NOT START THE NEXT FILE.
-> *"we close them row by row. so we wont move to the next row unless we reach 100%."* — 6 Aug 2026.
->
 > ## 2. THE ORDER IS THE FILE ORDER: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8.
->
-> ## 3. EVERYTHING DEPLOYS TO PRODUCTION. Staging is a rehearsal surface, never a destination.
-> `qd_guard` still refuses production writes **by design**. Promote by reading staging's verified
-> definition back and posting it verbatim, then assert `md5(prosrc)` matches — `scripts/apply_sql.mjs
-> <file> --promote` does exactly that for routines, and `scripts/promote_rows_to_production.mjs
-> <table> <key_col> <key…>` does it for config rows. **Never retype a body or a row.** Hand-copying
-> one `quality_standard` row through a SQL literal this session turned the regex `\y` into `\\y` and
-> produced a digest that differed from staging's while looking identical in every JSON display.
+> ## 3. EVERYTHING DEPLOYS TO PRODUCTION, AND IS MERGED.
+> `qd_guard` refuses production writes **by design**. Promote by reading staging's verified
+> definition back and posting it verbatim: `node scripts/apply_sql.mjs <file> --promote` for
+> routines, `node scripts/promote_rows_to_production.mjs <table> <key_col> <key…>` for config rows.
+> **Never retype a body or a row.** For a function too large to hand-edit, write a generator that
+> does ONE exact-match replacement against live `pg_get_functiondef` and refuses unless the anchor
+> matches exactly once — `scripts/gen_customer_360_reader.mjs` is the worked example.
 
-## ROW #1 — quotesdone architecture — IS CLOSED. 48/48 (100%), MEASURED ON PRODUCTION
+## ✅ ROW #1 IS CLOSED AND MERGED. 48/48 (100%) on production, PR #8 → `ab9b28b` on `main`.
 
 ```
-node scripts/staging/verify_spec_architecture.mjs      # read-only, production, zero spend
+node scripts/staging/verify_spec_architecture.mjs      # 48/48, read-only against PRODUCTION
 ```
 
-It scores the file the same way whether the expected answer is yes or no. **That symmetry is the
-whole point** — the 37% scorecard was produced by attacking only the `MISSING` verdicts and never
-the `MET` ones, which can only move requirements one direction. Every check asks all three questions
-and never conflates them: does the mechanism EXIST · is it POPULATED and does it RUN · does anything
-READ its output. "No caller" is measured over `pg_proc` **and** `pg_views` **and** `cron.job`.
+## ▶ YOU ARE ON ROW #2 — the Universal OS Blueprint (`OS.txt`). ~47 of 110.
 
-**Baseline was 14/56 = 25%, reached independently twice. It is now 47/48 on a 48-item enumeration
-of the same file.** Do not compare those denominators — compare statuses, and re-run the scorer.
+**110 requirements, scored against production by four probes that attacked MET and MISSING with
+equal scepticism: 41 MET / 37 PARTIAL / 32 MISSING at session start.** Session 14 closed six.
+Do not re-derive this enumeration — the full per-requirement verdict, evidence and fix is at
+`C:\Users\Opera\AppData\Local\Temp\claude\C--Users-Opera-quotesdone\53a44d8b-ab00-427e-841d-bc1c7cfb8d1e\tasks\w33g339o5.output`
+(read with `ConvertFrom-Json`, `.result.requirements`). If that scratch file is gone, re-run the
+workflow rather than guessing.
 
-### THE LAST ONE WAS NOT BLOCKED ON THE PORTAL — I HAD ASSUMED IT WAS, AND MEASURING SAID OTHERWISE
+### THE DEFECT IS THE SAME ONE, FOR THE NINTH TIME: BUILT, POPULATED, READ BY NOTHING.
 
-I reported `customer_preference` (0 rows, 0 readers) as structurally blocked on spec file #4, on the
-reasoning that nothing can capture a customer preference until the portal exists. **That was wrong.**
-`fn_ws_customer_360` was ALREADY deriving each customer's categories and emirates from their inquiry
-history on every call. The company was computing the memory live and discarding it — the same defect
-as everything else in this row, one table over. It needed a writer, not a portal.
-
-- **Writer** `fn_customer_preference_learn`, on an `AFTER INSERT` trigger on `inquiries`. A trigger
-  because there is no TypeScript chokepoint: `customers` rows are created at four unrelated call
-  sites, and `inquiries.urgency` is the standing proof of a signal computed in an Edge Function and
-  lost in transit.
-- **Reader A (behaviour)** `trg_inquiry_enrich` fills a *missing* emirate from memory. Load-bearing,
-  not decorative: `route_inquiry` matches suppliers on that value.
-- **Reader B (memory)** `fn_ws_customer_360` consults the stored profile before its live derivation,
-  so `os_api`'s `ws.customer` and `secretary_act` hand an agent a remembered preference.
-- **`stated` over `inferred`** is what stops spec #4 having to replace this: the portal's settings
-  screen calls the same function with `p_stated`, so a nightly inference can never overwrite a typed
-  choice. Keys with no consumer (`payment terms`, `ISO-certified`) are deliberately absent.
-- **Consent, and the fixture caught a real bug in my first design.** Clearing
-  `customer_preference.consented_at` did not withdraw consent — the next inquiry re-learned and
-  restored the copy, because consent lives on `customers.tos_accepted_at`. Both readers now gate on
-  where it actually lives, and the writer DELETES the profile when consent is absent. `fn_pdpl_redact`
-  enumerates its tables by name and did not know this one existed; it deletes it now, and
-  `fn_pdpl_export` lists it.
-
-**The scorer was also wrong, and stricter than itself.** It demanded `count(*) > 0` from a table that
-depends on customers existing, against a production database with **zero** customers — unsatisfiable
-by construction, and a bar `revenue_annual` is not held to two checks below (that one is MET because
-its `measure_sql` sums real fees, not because it returns a non-zero number). If a requirement looks
-structurally blocked, check whether the CHECK is the thing that is wrong.
-
-### WHAT CLOSED THIS SESSION, ALL DEPLOYED TO PRODUCTION AND MEASURED THERE
+Session 14 closed the identity half exactly as it did for row #1 — `fn_agent_context` now emits the
+employee's OPERATING SYSTEM, resolved `org_agents.department → os_department → operating_system`.
+All 66 active agents, all 10 OSes. That closed `comp-01/02/03/04`, `os-layer-prompt-reach` and
+`comp-05-escalation`.
 
 | was | now |
 |---|---|
-| 150 tasks parked at `proposed`, 129 advisory, **0 advisory tasks had EVER reached `done`** | `fn_task_approve` promoted 121, held 29, each with a stated cause. **4 advisory tasks done.** cron 183 at :40 |
-| review chain built and called by NOTHING; work shipped at `deliverable.length > 60` | `fn_task_review` runs it. On production: 11 `dept_review`, 8 `cos_review`, 8 `published`, reviewers `legal`/`hr_director`/`ceo`/`marketing` resolved live |
-| `collaboration_rule` 10 rows, 0 readers | read; `blocking` decides block-vs-dissent, proven by making the SAME dissent behave both ways |
-| `org_agents.title` 67/67 and `manager_key` 66/67 never entered a prompt | every one of **66 agents** carries title, manager, direct reports, authority with AED thresholds, KPIs, live workload, goals |
-| `revenue_annual` measured `count(*) from inquiries` | sums real fees from `transactions` over 365 days |
-| `customer_satisfaction` measured the **marketing approval rate** as a % against a 1-5 target, and `goal_period` called 66.67-vs-4.5 "on_track" | `avg(reviews.rating)` on the scale the target uses |
-| `employee_authority` 285 rows fired ≤3 times ever | enforced: `fn_decision_gate` honours `agent_limit_aed`, which it previously computed and threw away |
-| `institutional_memory` frozen 9 days; 104 tasks vs 31 per-day digests | per-task lessons; unfrozen; LAYER 4 reordered by recency so new lessons can displace old |
-| `goal_period` 183 · `department_objective` 44 · `decision_record` 3 · `self_review` 31 · `evolution_proposal` 32 · `company_reflection` 9 — all 0 readers | all read, in the block every agent already receives |
-| `org_agents.improvement_plan` 0/66 | 66/66, derived from returned deliverables, missed KPIs and open findings. NULL where there is no evidence |
-| `fn_emit_budget_exceeded` 0 callers | called by `fn_decision_gate`; a breach now reaches `company_event` |
+| `operating_system.charter`/`mandate`/`mission` 10/10, **0 readers** | in all 66 prompts |
+| `os_objective` 50 rows (5 horizons × 10 OS), **0 readers** | in all 66 prompts |
+| `os_responsibility` 71 rows, one reader (`fn_graph_rebuild`), never a prompt | in all 66 prompts + the no-duplicate-ownership rule |
+| `ops_knowledge.escalation_rule` 1,206 real rules; only reader `fn_kb_retrieve` has **0 callers** | in all 66 prompts |
 
-### THREE DEFECTS FOUND WHILE FIXING THE OTHERS — READ THESE, THEY GENERALISE
+> **STAGING COULD NOT HAVE REHEARSED IT — the same trap as the authority model, one layer up.**
+> `operating_system` had 10 rows on staging while ALL THREE child tables had **zero**:
+> `os_department` 0/13, `os_responsibility` 0/71, `os_objective` 0/50. The parent looked present,
+> every count anybody checks agreed, and no employee could resolve an OS at all. **A populated
+> parent is not a populated layer.** `node scripts/sync_org_config_to_staging.mjs` now carries 19
+> tables, all digest-identical. Run it before you measure anything on staging.
 
-**1. THE SEVENTH TOKEN CEILING, AND IT WAS TOTAL.** Of the 45 `cos_execute` model calls EVER made,
-**45 returned `output_tokens` exactly 1200** — min 1200, max 1200, mean 1200. Not a tail on the
-ceiling: every deliverable the Chief of Staff ever produced was cut off mid-sentence. It is why 61
-of 95 completed deliverables carry no `RESULT:` line — that line is written LAST, so truncation
-takes it first. Set twice (`makeLlm({max:500})` *and* `llm(sys,user,1200)`). `agent_brain` was
-pinned the same way at 1700. Fixed: both callers above the policy, `model_policy.agent_reasoning`
-1700 → 4000 → **8000** (4000 also measured 4000/4000), and `result.deliverable`'s 6,000-char storage
-slice raised to 20,000 — it was under the old ceiling so it never bit, and would have become the
-next one. **Verified after: 2,239 / 2,769 / 4,090 / 4,698 tokens — all below the ceiling.**
+### THE 32 MISSING, WITH THE FIX EACH ONE NEEDS (2 already closed, 30 remain)
 
-**2. I BUILT A FEEDBACK LOOP INTO PRODUCTION.** `review_chain` has an AFTER INSERT trigger emitting
-`company_event('review.step')`, and `fn_event_dispatch` turns every such event into an `org_task`.
-So wiring the review chain in made each reviewed task write 4-6 audit rows, each becoming a NEW
-task. **169 tasks in one hour against 2 the hour before**; the 150-row approval backfill fired it
-150 times in one statement. Fixed with a **WHEN clause on the trigger**, not an edit to
-`fn_emit_event` — that function is generic (`tg_argv`) and shared by triggers on many tables.
-Events now fire for a publication or a refusal and never for audit rows. 163 spurious tasks deleted
-after validating the predicate on the POPULATION (all created 04:00-04:30, all `assigned`, none
-carrying a result). **If you wire anything else into `review_chain` or `company_event`, check this
-first.**
+**Cheap wiring — an existing populated asset to an existing reader. Do these first.**
+- `comp-16-health-score` — `operating_system.health_score` NULL on all 10; `fn_os_review` already
+  computes green/amber/red. Write it. Closes 2 (`comp-16-health-score` twice-listed).
+- `comp-16-risk` / `comp-16-quality` / `comp-16-automation` — `v_os_health` computes `open_risks`,
+  `review_pass_pct`, `needs_founder_pct` per OS and **has 0 readers**. Add them to
+  `os_review.metrics`, which `fn_exec_meeting` and `fn_company_snapshot` already read. Closes 3.
+- `comp-13-performance` — `agent_reputation` 66 rows; only `fn_reputation_recompute` references it.
+  Read it in `fn_agent_context` or `fn_pick_reviewer` so measured performance changes routing.
+- `comp-10-03-knowledge-retrieval` — `fn_memory_search` has **0 callers**. Call it inside `fn_decide`.
+- `comp-12-promotion` — `fn_promote_memory` has 0 callers, `memory_promotions` 0 rows. **Cron it or
+  delete both** — the brief's standing rule is that an unread asset is not a feature.
+- `xos-15-bus-observability` — `v_event_backbone` has 0 readers. Surface or delete.
+- `xos-10-knowledge-lessons` — call `fn_task_lesson` (built in session 13) when an event-derived
+  `org_task` closes, joined via `event_delivery.task_id`.
+- `comp-03-objectives-measured` — **this is a JOIN, not a build.** `os_objective.measure` already
+  holds `company_goals` KEYS (`revenue_annual`, `supplier_coverage_10x86`). Join to
+  `company_goals.measure_sql`. Only the prose measures (`os_review health`, `day_cadence`) need work.
 
-**3. STAGING'S AUTHORITY MODEL ANSWERED `gated` TO EVERYTHING, AND NOTHING SAID SO.**
-`fn_ops_authority_check` reads `org_authority` **and** `action_class_gate` **and**
-`ops_kb_stage.hard_gates`. The last two were **EMPTY on staging**, so its rule "an action class
-nobody has reviewed cannot be autonomous" made staging refuse every (department, action_class) pair
-while production cleared most. `org_authority`'s 196 rows were identical on both, so every count in
-the repo agreed. The same predicate scored **0 of 7 on staging and 121 of 150 on production**.
-`node scripts/sync_org_config_to_staging.mjs` closes it — 16 config tables, 4,573 rows, all
-digest-identical. **`verify_prod_parity` never saw it because it only asks what is STAGING-only.**
+**Genuinely new construction.**
+- `comp-06-cross-os-query` — 318 `os_knowledge_domain` rows say `ownership='queries'` and nothing
+  routes by `os_key`. Add `fn_os_knowledge_query(os_key, topic)` resolving via `ownership='owns'`,
+  call it from `fn_agent_context`. This is the spec's "Leadership queries Finance OS".
+- `xos-14-event-auditability` — `company_event.correlation_id`/`causation_id` are **0 of 316**
+  populated. Set them in `fn_emit_event`. Everything downstream in the contract needs this first.
+- `xos-04` / `xos-07` / `xos-08` / `xos-09` / `contract-consolidation` — the cross-OS chain stops at
+  "insert one task per subscriber". No impact assessment, no result returned, no Chief-of-Staff
+  rollup, no CEO re-prioritisation. **Do `xos-14` first; the rest key off correlation_id.**
+- `comp-10-chain` / `comp-10-06-options` — `decision_record` has 3 rows, all `proposed`,
+  `gate_verdict` NULL. The Decision Engine has never executed once end to end. Give it a producer:
+  `fn_decide` should insert a row per decision, not only append to `decision_log`.
+- `comp-09-workflow-execution` — `workflow_run` and `workflow_step_run` are both **0 rows, 0 readers**.
+- `comp-11-root-cause` — no root-cause column anywhere; the 50 "KPI missed" tasks ask for prose.
 
-> Two traps inside that fix, both general. **The payload must never enter JavaScript as a value** —
-> jsonb renders numerics at their stored scale, so parsing turned `1.00` into `1` and silently
-> rewrote 12 of `institutional_memory`'s 30 rows at an identical row count. And
-> **`pg_get_serial_sequence` alone is not enough**: it reports only OWNED sequences, and six of
-> these tables carry `nextval('x_id_seq')` defaults whose sequences are not owned, so the resync
-> printed "(none)" and did nothing. `institutional_memory` then held ids to 40 with its sequence at
-> 13 and the first lesson ever written died on a duplicate key.
+**Founder decisions, not engineering ones — ASK, do not choose.**
+- `xos-12-no-direct-cross-os` — the spec says *"No OS should call another OS directly for business
+  logic."* Six routines violate it today (`fn_kpi_review`, `fn_budget_rollup`, `fn_os_review`,
+  `fn_os_improve`, `fn_outcome_evaluate`, `fn_company_reflect` all insert `org_tasks` into other
+  departments). Enforcing it means routing that work through the event bus. **That is a real
+  behaviour change to six working routines — confirm before doing it.**
+- `comp-07-inputs-coverage` — `os_interface` declares 30 event kinds; `company_event` has fired
+  **7 distinct types ever**, 4 overlapping. Either emit the 26, or mark them planned. Ask which.
+- `os-exclusive-ownership` — two `os_knowledge_domain` slugs are owned twice and 47 domains are
+  unowned. Assigning them is a founder call.
+- `comp-12-failures` / `comp-10-10-outcome` — **nothing to fix.** `fn_outcome_evaluate`'s first
+  grading window opens **2026-08-11**. Re-measure then; do not manufacture a "worse" row to make a
+  gate go green.
 
-## RUN THESE FIRST. All were green at session 13 close except the two noted.
+### RUN THESE FIRST — all green at session 14 close except where noted
 
 ```
-node scripts/staging/verify_phase1.mjs             # 12/12  (11/12 until you push)
+node scripts/sync_org_config_to_staging.mjs        # 19 config tables, digest-identical. Do this FIRST.
+node scripts/staging/verify_phase1.mjs             # 12/12
 node scripts/staging/smoke_staging.mjs             # 15/15
 node scripts/staging/verify_cost.mjs               #  8/8
 node scripts/staging/verify_matching.mjs           # 12/12
@@ -130,90 +110,80 @@ node scripts/staging/verify_fraud_hash.mjs         #  5/5
 node scripts/staging/verify_intake_routing.mjs     # 10/10
 node scripts/staging/verify_agent_knowledge.mjs    # 25/25
 node scripts/staging/verify_rfq_trace.mjs          # 10/10  ~0.01 AED
-node scripts/staging/verify_approval_path.mjs      # 12/12  NEW — zero spend
-node scripts/staging/verify_review_chain.mjs       # 20/20  NEW — zero spend
-node scripts/staging/verify_employee_object.mjs    # 14/14  NEW — zero spend
-node scripts/staging/verify_company_goals.mjs      #  7/7   NEW — zero spend
-node scripts/staging/verify_employee_authority.mjs #  9/9   NEW — zero spend
-node scripts/staging/verify_customer_preference.mjs#  9/9   NEW — zero spend
-node scripts/staging/verify_spec_architecture.mjs  # 48/48  NEW — scores row #1 on PRODUCTION
+node scripts/staging/verify_approval_path.mjs      # 12/12
+node scripts/staging/verify_review_chain.mjs       # 20/20
+node scripts/staging/verify_employee_object.mjs    # 14/14
+node scripts/staging/verify_company_goals.mjs      #  7/7
+node scripts/staging/verify_employee_authority.mjs #  9/9
+node scripts/staging/verify_customer_preference.mjs#  9/9
+node scripts/staging/verify_spec_architecture.mjs  # 48/48 — row #1, against PRODUCTION
 node scripts/staging/verify_portal.mjs             # 14/14
 node scripts/staging/verify_doc_extract.mjs        #  7/7   ~0.075 AED
 node scripts/staging/verify_license_extract.mjs    # 12/12  ~0.2 AED
 node scripts/staging/verify_supplier_docs.mjs      # 13/13  ~0.1 AED
-node scripts/verify_prod_parity.mjs                #  9/9   green, +1 embedding check
+node scripts/verify_prod_parity.mjs                #  9/9   ⚠ goes amber on its own, see below
 node scripts/verify_prod_readiness.mjs             # 13/13  against PRODUCTION, read-only
 node scripts/staging/demo_factory.mjs              # 18/18  RUN IT ALONE
 node scripts/staging/journey_test.mjs              # 39/39  ~4.3 min
-node scripts/staging/demo_factory.mjs --purge --dry-run   # AFTER the journey
+node scripts/staging/demo_factory.mjs --purge --dry-run
 ```
 
-**`demo_factory` must run ALONE.** Its last check compares absolute row counts, and this session
-scored it 17/18 purely because another gate was running beside it. Re-run alone: 18/18. That is not
-a defect, it is the documented conflict, and it will catch you the same way.
+**`demo_factory` must run ALONE** — its last check compares absolute row counts and session 14
+scored it 17/18 purely because another gate ran beside it. Alone: 18/18.
 
-## `verify_prod_parity` IS 9/8 — GREEN FOR THE FIRST TIME, WITH ONE MORE CHECK THAN IT HAD
+**`verify_prod_parity` check 8 goes amber on its own** and that is not a defect: production runs
+crons and staging runs none, so `kb_deepen`/`kb_fill_gap` move production's corpus. Re-level with
+`node scripts/sync_knowledge_delta_to_staging.mjs`. It reconciles BOTH directions — the count gap
+was 18 and the set difference was 76, because a rewritten row is a different row.
 
-All seven "drifted" objects are resolved and the gate gained a check that matters more than any of
-them. **Chasing what looked cosmetic found the real defect:** `kb_chunks` held identical content and
-identical row counts on both projects, and semantic retrieval runs on `embedding_gte` where a NULL
-vector is simply invisible. Production had **3,453 embeddings against staging's 4,944 — the LIVE
-system was searching 70% of its own knowledge base.** The vectors already existed and were already
-paid for, so it was a copy, not a re-embed: production is now 4,949/4,956 at zero model spend.
+**YOU WILL BE THROTTLED.** The Supabase management API rate-limits hard after a heavy session and
+`qd_guard` retries with exponential backoff, so a 9-second gate can take 102 seconds and the journey
+can take 20 minutes. It is not a hang. Do not kill it. `verify_spec_architecture` makes ~96
+sequential production reads and is the worst affected.
 
-> **Had I taken the obvious route** and replaced staging's `kb_chunks` from production to make the
-> gate agree, I would have destroyed 1,506 embeddings and made the worse corpus the template.
+### WHAT SESSION 14 FOUND THE HARD WAY — these generalise
 
-Three of the five routines carried real fixes that only ever reached production — the
-`MATERIALIZED` CTEs in `enqueue_supplier_invites` (without them a 19,632-row aggregate re-runs per
-candidate, ~220 s), `fn_control_mode_open`'s extra declarations, `fn_invite_ramp`'s newer ramp
-state. Staging mirrors production on all five now, project ref rewritten as it travels.
-`fn_schema_export` was **never drift**: staging has a real newline where production has the two
-characters `\n` inside an `E''` string. My first normaliser called it "a third the size" because it
-stripped `--` comments with a regex — and that function BUILDS a schema dump full of `'-- ====='`
-literals. *The comment-stripper ate the data.* Diff raw before believing a normalised size.
+- **A seventh token ceiling, and it was TOTAL.** Of the 45 `cos_execute` calls ever made, **45
+  returned `output_tokens` exactly 1200** — every deliverable the Chief of Staff ever produced was
+  cut off mid-sentence. Set twice (`makeLlm({max})` *and* `llm(sys,user,max)`). **And check for a
+  storage slice downstream of the model ceiling** — `result.deliverable` was cut at 6,000 chars,
+  under the old ceiling so it never bit, and would have become the next one.
+- **Wiring a chain into `review_chain` creates a feedback loop.** `review_chain` → trigger →
+  `company_event('review.step')` → `fn_event_dispatch` → a task per audit row. 169 tasks in one hour
+  against 2 the hour before. Fixed with a WHEN clause on `trg_event_review` (publication or refusal
+  only) — **not** on `fn_emit_event`, which is generic and shared by many tables. **If you wire
+  anything else into `review_chain` or `company_event`, check this first.**
+- **A measure can return the right number for the wrong reason.** `revenue_annual` counted inquiries
+  and read 0; correct revenue also reads 0. Verify what a measure TOUCHES, not what it returns.
+- **Chasing a false red found a real one.** `kb_chunks` matched on content and row count, and
+  production had 3,453 embeddings against staging's 4,944 — the live system was searching 70% of its
+  own knowledge base. The obvious fix (replace staging from production) would have destroyed 1,506
+  embeddings. Now 100%. **When a parity check is red, ask which side is right before levelling.**
+- **`pg_get_serial_sequence` only reports OWNED sequences.** Six config tables carry
+  `nextval('x_id_seq')` defaults whose sequences are not owned; the resync printed "(none)" and did
+  nothing, and the first insert after the copy died on a duplicate key.
+- **Never let a payload enter JavaScript as a value.** jsonb renders numerics at their stored scale;
+  parsing turned `1.00` into `1` and silently rewrote 12 of 30 rows at an identical row count.
+- `node script.mjs | Select-Object -First N` KILLS the script in PowerShell. Use `$out = node ...`.
+- `qd_guard` refuses any read whose text contains a bare write keyword — write `dele[t]e` /
+  `inser[t]` in an assertion regex. It is right to refuse; do not weaken the guard.
 
-Two gate loosenings, both bounded and both stated in the source: redundant `::text AS text` /
-`timestamp with time zone AS timestamptz` aliases are normalised (an alias spelled as its own type
-cannot change behaviour; a blanket ` AS \w+` strip would hide a real rename and is deliberately not
-used), and `kb_chunks` is compared without its surrogate `id` — 1,858 of 4,956 ids exist on only one
-project, assigned independently long ago, **zero** foreign keys reference the table, and nothing
-joins the two projects.
-
-**The purge dry-run reports `2 doc_versions (quote)` alongside the expected `1
-storage/signed-terms`.** Measured: orphans whose quotes are deleted, and **`doc_versions` has ZERO
-foreign keys** — `entity_id` is a polymorphic text column, so deleting a quote cascades to nothing.
-Pre-existing, and the purge already catches them; this is a stale expectation, not a growing leak.
-
-## STILL OPEN FROM EARLIER SESSIONS
+### STILL OPEN, NOT ROW #2's
 
 - **`dropbox_backup` silent since 27 July** behind 1,754 "successful" cron entries — `pg_net` success
-  means the POST was queued. It is the only off-Supabase copy. `fn_edge_health_scan` now raises it.
+  means the POST was queued. The only off-Supabase copy.
 - **Stripe TEST keys** — the one genuinely founder-only item.
 - **466 of 712 applied migrations have no file**, so production is not reproducible from git.
 - **The autonomy-gate chain has a FIXED ORDER.** `trg_action_gate` holds 1,048 of 1,079 rows;
   `fn_autonomy_dispose` sweeps that exact set with no threshold; cron 64 is `active=false` and is the
   only thing preventing it. **Enabling cron 64 first auto-clears 1,048 held rows.** Sequence: bind
   `fn_autonomy_dispose` → lift the confidence gate → `agent_autonomy_enabled` → cron 64.
+- The purge dry-run reports `doc_versions (quote)` orphans alongside `1 storage/signed-terms`.
+  `doc_versions` has **zero foreign keys** — `entity_id` is polymorphic text, so deleting a quote
+  cascades to nothing. Pre-existing; the purge already catches them.
 
-## MEASUREMENT TRAPS — every one of these cost real time
-
-- A cron reporting success may only mean `pg_net` QUEUED the POST. Check `agent_runs`, not `cron`.
-- A caller-side `max` can be set TWICE: `makeLlm({max})` AND `llm(sys,input,max)`. Removing only one
-  changes nothing; deleting both is WORSE because `llm.ts` falls back to `def.max ?? 700`. Pass a
-  number ABOVE the policy. **And check for a storage slice downstream of the model ceiling.**
-- **An output landing exactly on the ceiling is truncation, not coincidence.** 45/45 at 1200.
-- **A measure can return the right number for the wrong reason.** `revenue_annual` counted inquiries
-  and read 0; correct revenue also reads 0. Only reading it finds that. Verify what a measure
-  TOUCHES, not what it returns.
-- `node script.mjs | Select-Object -First N` KILLS the script in PowerShell. Use `$out = node ...`.
-- `on conflict do nothing` is a no-op on a second pass. Use `do update`, and digest what CHANGED.
-- Validate a delete predicate on the POPULATION, not a sample.
-- `qd_guard`'s read-only regex includes `\bdo\b`, so a probe worded "what do we do when…" is refused.
-
-Schema parity is asserted by `verify_phase1`. Fix defects immediately without asking, deploy to
-both, verify by measurement in the same turn. **Refunds are the ONLY action requiring founder
-approval.** Supabase is the source of truth.
+Fix defects immediately without asking, deploy to both, verify by measurement in the same turn.
+**Refunds are the ONLY action requiring founder approval.** Supabase is the source of truth.
 
 ---
 # Previous — QuotesDone, 6 August 2026, end of session 10
