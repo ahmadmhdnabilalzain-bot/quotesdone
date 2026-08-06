@@ -181,6 +181,61 @@ raises `cron_failing` naming the jobs. One check in an existing loop; no new cro
 > to `anyarray||anyarray` because an unadorned literal is type `unknown`. The monitor crashed
 > **precisely when it had something to report** and took the other checks down with it. Historic.
 
+**3,959 OPERATIONAL RECORDS THE FOUNDER SHIPPED, AND NEITHER PROJECT HAD A TABLE FOR THEM.**
+
+`C:\Users\Opera\qd-packs\QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31\`. Its own
+`START_HERE.md` says in line 5 that it is **separate** from the 86-category supplier corpus that
+sessions 10–11 imported — which is why "the knowledge corpus is now in both projects" was true and
+still left this entirely unloaded. Measured contents:
+
+| record_type | n | closes |
+|---|--:|---|
+| `exception_playbook` | **240** | Exception Handling ⭐⭐⭐ — the spec's 16 named scenarios |
+| `decision_rule` | **240** | the Decision Engine ⭐ |
+| `live_data_binding` | 268 | Layer 3 |
+| `standard_operating_procedure` · `metric_definition` · `department_scenario` | 236 · 216 · 192 | SOPs, KPIs, QA |
+| `agent_role` · `workflow_handoff` · `operational_template` · `event_subscription` | 96 · 132 · 120 · 100 | the agent registry, cross-department flow |
+| `hard_gate` · `audit_requirement` · `memory_policy` · `model_routing_policy` | 10 · 8 · 6 · 5 | Governor / Auditor / Memory Manager |
+
+> The **first HR playbook is titled "External AI provider unavailable"** — the literal first
+> scenario the blueprint names. This was never content that needed writing.
+
+**Not into `dept_library`, though that would have been free** (it gained a reader the same day).
+`dept_library` has 7 columns; these records have **19**, and the pack's own instruction 5 is
+*"Preserve every record's implementation_status, validation_status, authority tier, sources and
+review date."* Those are the most useful fields in it: `authority_tier` is
+advisory/supervised/gated/autonomous (**2,633 supervised, 139 gated**) and `implementation_status`
+is the founder auditing his own spec — **1,325 implemented / 1,317 partial / 1,317 target_state**.
+New table `public.ops_knowledge`, on both projects.
+
+> **THE DEPARTMENT MAPPING IS THE FOUNDER'S, NOT MINE — and I was one command from inventing one.**
+> A seventh vocabulary was exactly the trap to expect, and `START_HERE.md` pointed at a crosswalk he
+> had already written: `04_AGENT_RUNTIME_AND_GOVERNANCE/07_PRODUCTION_TO_TARGET_DEPARTMENT_CROSSWALK.csv`.
+> Transcribed verbatim with `mapping_type` preserved, plus **two corrections stated rather than
+> silently applied**: it lists `hr_people` and `sales_crm` as having no confirmed production
+> department, and `org_departments` carries an active `hr` (4 agents) and `sales` (5 agents) today.
+> The pack is dated 31 July; both were added after. Leaving them unmapped would strand 284 records.
+
+**Wired in the same change**, because an imported corpus with no reader is the seventh instance of
+this defect. `fn_ops_knowledge_search` is the sibling of `fn_dept_library_search`, and
+`fn_agent_context` emits **LAYER 2c** beside 2b — kept separate on purpose: `dept_library` is
+external domain reference, `ops_knowledge` is how *this company* operates, and merging them lets an
+agent cite a generic UAE regulation where the company's own gated procedure applies. **The authority
+tier and implementation status travel with each excerpt** — an agent reading a `gated` procedure
+that does not say it is gated will act on it, and one reading `target_state` must know the
+capability is not built.
+
+Measured on both projects: **3,959 rows, 3,005 mapped to 14 departments, md5 identical.** `hr`,
+`intelligence` and `knowledge_eng` each held 0 `agent_knowledge` **and** 0 `dept_library` rows and
+now hold 142 / 144 / 144. **Every active department now has knowledge.** 427 records
+(`qa_testing` 143, `business_development` 142, `communications` 142) import with `dept_key` NULL —
+the crosswalk's own "unmapped_target", and there is still no production department for them.
+
+> **One thing to put to the founder:** the pack's instruction 4 says *"Import into staging only."*
+> That predates production becoming a deploy target on 5 Aug, and the standing rule since is both
+> projects plus "I don't want to see the number zero". It was loaded to both; reversing it is one
+> `delete from public.ops_knowledge` on production.
+
 **A SIXTH TOKEN CEILING, AND IT WAS FAILING IN PRODUCTION THE DAY IT WAS FOUND.** `dept_plan` set
 its ceiling **twice** — `makeLlm({max:1200})` *and* `llm(sys,user,1200)`, the per-call third
 argument overriding the factory one — against `model_policy.chief_of_staff_decision`'s 2000.
@@ -225,7 +280,7 @@ All fifteen gates were green on the first pass. Every defect below was found *af
 ```
 node scripts/verify_deploy_parity.mjs --since=HEAD~40   # is the repo's code actually RUNNING, both projects
 node scripts/staging/verify_intake_routing.mjs          # 10/10 Arabic routing + ordered interview + knowledge
-node scripts/staging/verify_agent_knowledge.mjs         # 19/19 spec file #7's knowledge + monitoring wiring — zero spend
+node scripts/staging/verify_agent_knowledge.mjs         # 24/24 spec file #7's knowledge + monitoring wiring — zero spend
 node scripts/staging/verify_rfq_trace.mjs               # 10/10 the RFQ lifecycle trace — 1 rfq_routing call, ~0.01 AED
 node scripts/staging/demo_factory.mjs --purge --dry-run # run AFTER the journey; only the register should appear
 ```
@@ -1252,6 +1307,8 @@ The one defect found came from the step *after* the gates: a `--purge --dry-run`
 | "`dept_library` … read by zero Edge Functions and zero UI" | Right, and understated: read by zero **anything**. `fn_dept_library_search` — correct, indexed, five hits per real query — had no caller in any routine, view, Edge Function, cron job or frontend module. Fixed; see the session 12 block |
 | "`fn_knowledge_decay` runs and decays nothing" (the shape of session 11's `kpi_review_weekly`) | **Not the same defect.** 1,734 of 1,869 `agent_knowledge` rows carry `review_due` and in production **none is past it** — the earliest bulk stamp is 2026-10-24. The engine is idle because the corpus is fresh. Re-check after 24 Oct 2026 rather than "fixing" it now |
 | "staging holds the entire knowledge estate, 40 tables, 0 empty" | True for the rows. **Not true for the review metadata**: the `(agent_key\|topic)` md5 over all 1,869 `agent_knowledge` rows matches production exactly, while `review_due` does not — staging carries 168 rows already past due against production's 0. A key-set digest is not a row digest |
+| "staging holds the entire knowledge estate — 40 tables, 0 empty" | True of the **86-category supplier** corpus and blind to a second one. `QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31` in `qd-packs\` is a **different** corpus — its own START_HERE.md says so in line 5 — carrying 3,959 records including the 240 exception playbooks and 240 decision rules that spec file #7 asks for by name. Neither project had a table for it. Now `public.ops_knowledge` on both |
+| "hr / intelligence / knowledge_eng have no department knowledge — a corpus gap, not a wiring one" (written earlier the same session) | **Wrong, and it was my own line.** The corpus existed on disk the whole time; the gap was an unimported pack, not unwritten content. Every active department now has knowledge. The lesson generalises: before calling something a content gap, look in `C:\Users\Opera\qd-packs\` and on the Desktop |
 | "the eight founder spec files are not in the repo" | **They are on disk.** `C:\Users\Opera\OneDrive\Desktop\*.txt`, mirrored in `C:\Users\Opera\qd-packs\QuotesDone_COMPLETE_OS_PORTALS_AUTONOMY_UPDATE_PACKAGE_v2026.07.31\…\SOURCE_PLANS\`. File #7 is `quotesdone agents and knowledge.txt` = `AGENTS_AND_KNOWLEDGE_BLUEPRINT.txt`; #6 `suppliers categories.txt`; #3 `OS 2.txt` = `OS_COMMAND_CENTER_VISION.txt`; #8 `open router.txt`. **Read the file you are working, not the brief's summary of it** — the summary said "AI Governor, AI Scheduler…", the file says what each must actually do, and its one-line architectural recommendation ("Don't create 20 isolated knowledge bases") is what located the layer-2 defect |
 | "`fn_agent_context` implements the spec's four layers" | It implements four layers, but its layer 2 is keyed to the **individual**, and the spec's layer 2 is **DEPARTMENT** knowledge. That distinction is the whole defect: 52 of 66 employees had nothing under the heading |
 | "52 employees with no knowledge is a roster that was never invoked" | Half right, and the half that is wrong is the live half: 0 of them ever ran or acted, but **4 have been chatted with**, **8 are department leads**, and `dept_plan` calls `fn_agent_context(lead_agent)` for every department on a **daily production cron**. An unpopulated roster is not the same thing as an unused code path |
@@ -1550,7 +1607,8 @@ in `scripts/staging/seed_staging_secrets.mjs`.
 | **`verify_constraints.mjs`** | the parity dimension nothing measured: NOT NULL columns and CHECK constraints against production. Report-only; `--apply` fixes staging through `qd_guard` |
 | **`verify_agent_knowledge.mjs`** | whether an employee can actually see the 1,456-row department library. Asserts the NEGATIVES: a query-less call is byte-identical to the old two-argument one, every emitted excerpt matches a real `dept_library` row by title, and the `cat:<slug>` branch (no `org_agents` row, so `v_dept` is null) is not silently dead. Zero spend |
 | **`verify_rfq_trace.mjs`** | the blueprint's Observability requirement, measured against a real RFQ: one inquiry built by the factory, really dispatched, quoted twice, then asserted **by kind** — because a trace that grew is not a trace that is right. Pins that every supplier contacted carries the REASON it was chosen. 1 model call |
-| **`seed_agent_library_reader.mjs`** (in `scripts/`) | the four knowledge-layer changes: the `fn_agent_context` overload, its layer-2 department fallback, `fn_knowledge_gaps`' `owner_os`, and `fn_entity_activity`'s RFQ branch. Every one re-appliable; the two body patches rewrite `pg_get_functiondef` and **raise** if their anchor has moved. `--print-sql` emits all four for production |
+| **`import_ops_knowledge.mjs`** (in `scripts/`) | loads the 3,959-record company/department operations pack into `public.ops_knowledge`, resolving `dept_key` through the **pack's own** production→target crosswalk. `--dry-run` maps and reports without writing. Idempotent on `record_id` |
+| **`seed_agent_library_reader.mjs`** (in `scripts/`) | the knowledge-layer changes: the `fn_agent_context` overload, its layer-2 department fallback, `fn_knowledge_gaps`' `owner_os`, and `fn_entity_activity`'s RFQ branch. Every one re-appliable; the two body patches rewrite `pg_get_functiondef` and **raise** if their anchor has moved. `--print-sql` emits all four for production |
 | **`verify_prod_readiness.mjs`** (in `scripts/`, not `scripts/staging/`) | §8 as a measurement against **production**, read-only by construction. Reports each item APPLIED/OUTSTANDING with its measured value and the exact statement, exits non-zero. Deploy list derived from `git diff main...HEAD`, drift checked by bundle **content** |
 
 `sync_staging_reference.mjs` still leaves `field_definition` and `field_definition_source` unloaded
