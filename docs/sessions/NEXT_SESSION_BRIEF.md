@@ -24,7 +24,38 @@ and stopped mid-file. Under rule 1 that is the only thing to work until it reads
 one `{"type":"result"}` line per spec file, each with every requirement, its status and its evidence.
 The companion audit `wf_d6848866-ec5` carries the ranked fixes and the refutations.
 
-## THE SCORECARD — measured 6 Aug, two bars, because one bar hid the problem
+## ⚠ THE SCORECARD BELOW IS INFLATED AND UNDER RE-AUDIT. DO NOT PLAN AGAINST IT.
+
+The founder rejected it on sight and was right. Two defects, both mine, both structural:
+
+1. **Verification was one-directional.** Three skeptics attacked every `MISSING` verdict and
+   **refuted 30 of 110**. Nobody ever challenged a `MET` verdict. That can only move requirements
+   *out* of MISSING and never out of MET, so the table is biased upward by construction.
+2. **The denominator was decomposed, not discovered.** 411 → 620 happened because the new scorers
+   split the specs' capability lists into individual requirements — file #1's scorer says so
+   outright: *"I count 56 rather than 36 because the file states five explicit capability lists
+   (12 employee attributes, 9 employee-object fields, 8 department-head duties, 6 Chief-of-Staff
+   duties, 10 CEO duties) that a prior pass most likely collapsed into one requirement each."*
+   Splitting one requirement into twelve moves numerator and denominator together and shifts the
+   percentage for free.
+
+Third, smaller: each scorer was handed a list of ~20 items to "count as MET" so it would not
+re-report closed work. That pre-loaded the numerator too.
+
+**The tell the founder used, and the right one:** seven of the eight files had NO work done on them
+in the session that produced this table, and every one of them scored higher. Work moved exactly
+one row — **#7** — and nothing else.
+
+**Until the re-audit lands, the trustworthy baseline is the ORIGINAL table**: 36/9, 45/15, 54/6,
+44/7, 51/8, 45/6, 64/18, 72/14 across files 1–8 on the 411-requirement enumeration. Use it.
+
+What IS trustworthy from session 12, because each was measured directly rather than judged:
+`dept_library` 1,456 rows had zero callers and now has a reader · 3,959 operations records imported
+with md5 identical on both projects · 52 of 66 employees had an empty layer-2 heading · `dept_plan`
+returned exactly 1200 output tokens on 40 of 61 calls · the DR drill went from 1 row to 32,686 ·
+`dropbox_backup` has not run since 27 July behind 1,754 "successful" cron entries.
+
+## THE INFLATED SCORECARD, kept only so the re-audit has something to correct
 
 | # | spec file | MET (strict) | MET+PARTIAL | unread | MISSING |
 |---|---|--:|--:|--:|--:|
