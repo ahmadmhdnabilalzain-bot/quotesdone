@@ -8,7 +8,14 @@ async function sec(k:string){ const {data}=await admin.from('app_secrets').selec
 // value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 // Core tables to snapshot. leads dumped with a column subset (no heavy embedding vectors).
-const FULL=['customers','inquiries','quotes','transactions','supplier_dues','reviews','questions','inquiry_matches','agent_knowledge','agent_memory','agent_chats','pricing_config','category_specs','category_agents','content_drafts','expenses','reveal_invoices'];
+// THE KNOWLEDGE ESTATE WAS NOT BACKED UP. Measured on production 6 Aug 2026, the 5 Aug snapshot
+// held leads.json 11.4 MB and agent_knowledge.json 3.0 MB and NOTHING for kb_chunks (4,937 rows,
+// the deep retrieval corpus every agent reads), dept_library (1,456 rows of UAE domain reference)
+// or ops_knowledge (3,959 founder-supplied operational records). Those three are, today, most of
+// what this company actually owns — production still has 0 customers, 0 inquiries and 0 quotes, so
+// the tables that were backed up are the empty ones. Adding them here is what makes their entry in
+// dr_drill's TABLES mean anything.
+const FULL=['customers','inquiries','quotes','transactions','supplier_dues','reviews','questions','inquiry_matches','agent_knowledge','agent_memory','agent_chats','pricing_config','category_specs','category_agents','content_drafts','expenses','reveal_invoices','kb_chunks','dept_library','ops_knowledge'];
 const LEAD_COLS='id,company_name,email,phone,whatsapp,website,categories,sector,emirate,rating,reviews,app_rating,app_reviews,verified,verification_status,claimed,claimed_by,approval_status,trade_license_no,trn,license_expiry,invite_status,created_at';
 
 async function dumpTable(t:string, cols='*'){

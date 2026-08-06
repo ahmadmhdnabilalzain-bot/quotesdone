@@ -23,9 +23,16 @@ const j=(o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:cors
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 
 // small, business-critical tables + a required key to prove schema integrity
+// THE SIX ORIGINALS ARE THE REVENUE PATH, AND FIVE OF THEM ARE EMPTY IN PRODUCTION. Drilling only
+// those made the report structurally incapable of finding anything: `total_restored: 1`. The
+// tables that actually carry this company's value today are the knowledge estate — leads is
+// 11.4 MB of backup, agent_knowledge 3.0 MB — and none of them was ever drilled. Keep the revenue
+// path (it will matter the day the first customer signs up) and add what exists now.
 const TABLES:[string,string][]=[
   ['pricing_config','id'],['customers','id'],['quotes','id'],
-  ['inquiries','id'],['transactions','id'],['inquiry_matches','inquiry_id']];
+  ['inquiries','id'],['transactions','id'],['inquiry_matches','inquiry_id'],
+  ['leads','id'],['agent_knowledge','id'],['kb_chunks','id'],
+  ['dept_library','id'],['ops_knowledge','record_id']];
 
 Deno.serve(async (req)=>{
   if(req.method==='OPTIONS') return new Response('ok',{headers:cors});
@@ -78,8 +85,21 @@ Deno.serve(async (req)=>{
       const { count:live, error:lcErr } = await sb.from(tbl).select('*',{count:'exact',head:true});
       if(lcErr) failNotes.push('Could not count live rows in '+tbl+', so backup-vs-live drift for that table was not checked: '+String(lcErr.message||lcErr)+'. ');
       row.live_rows=live||0;
-      row.restore_ok = row.restored_rows===row.backup_rows && row.key_ok;
-      row.status = row.restore_ok ? 'ok' : 'mismatch';
+      // AN EMPTY BACKUP USED TO PASS. `backup_rows===0` forced key_ok true and made
+      // restored_rows===backup_rows trivially true, so a table whose backup file is the two-byte
+      // string `[]` scored `ok`. Measured on production 6 Aug 2026: 215 of the 1,075 objects in the
+      // `backups` bucket are <=2 bytes, and the 1 Aug drill still reported
+      // {tables_checked:6, tables_failed:0, total_restored:1} — the only assertion that this
+      // company's backups are restorable, and it was green because five of its six tables are
+      // empty in production and the sixth holds one row.
+      //
+      // The distinction that matters is live_rows: an empty backup of an empty table is correct,
+      // an empty backup of a populated table is a lost backup. Asserting `backup_rows>0` outright
+      // would fail every genuinely-empty table and get muted within a week.
+      const emptyBackupOfLiveTable = row.live_rows>0 && row.backup_rows===0;
+      if(emptyBackupOfLiveTable) failNotes.push('The backup file for '+tbl+' is empty while the live table holds '+row.live_rows+' row(s), so that table has no restorable backup at all. ');
+      row.restore_ok = row.restored_rows===row.backup_rows && row.key_ok && !emptyBackupOfLiveTable;
+      row.status = row.restore_ok ? 'ok' : (emptyBackupOfLiveTable ? 'empty_backup' : 'mismatch');
       if(!row.restore_ok) ok=false;
     }catch(e){ row.status='error'; row.error=String(e).slice(0,160); ok=false; failNotes.push('Drill threw while restoring '+tbl+', so that table is not proven restorable: '+String(e).slice(0,160)+'. '); }
     report.push(row);
