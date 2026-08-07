@@ -148,3 +148,39 @@ name the file or function that satisfied it. An unnamed "endpoint yes" cannot be
 `entry-landing-route` · `entry-bg-animated-network` · `entry-bg-moving-connections` ·
 `onb-freetext-input` · `onb-creates-profile` · `onb-extraction-routine` · `twin-object` ·
 `twin-capabilities-list` · `twin-product-count` · `twin-certifications`
+
+---
+
+## MODULE 2 BUILT AND REFUTED — `command_and_environment.mjs`, §4 §5 §6, EXPECTED 31
+Modules 1+2 register **60/60**, zero errored, no denominator mismatch. Combined: **18/60**.
+§4 = 4/10, §5 = **0/12**, §6 = 4/9 (approx; see run output).
+
+Shared helpers now live in `scripts/staging/supplier_checks.mjs` — **outside** `supplier_blueprint/`,
+because the runner imports every `.mjs` in that directory as a section module and books anything
+without a default export as a shortfall, which invalidates the denominator.
+
+### Refutation round 2 — three more false METs removed in §4
+| check | why it was false |
+|---|---|
+| `cc-verified-badge` | all 13 `/verified/i` matches were `mobile_verified` / `phone_verified` / "Required to get verified" — the **phone-verification flow in a settings form**. A confirmed mobile is not a Verified Supplier. Now matches `approval_status`/`approved` and prints the 15 excluded account-verification tokens. |
+| `cc-assistant-panel` | all 6 matches were the **support chat inside SupplierPortal.tsx** — "Our assistant handles most questions instantly", `assistant_pre:'Assistant: '`. **The chrome fence is file-level and this leak was intra-file** — excluding ChatWidget.tsx was not enough. Now subtracts support-chat vocabulary and requires PROACTIVE guidance. |
+| `cc-perf-quality` | render leg passed on the prose *"it has not reached the quality mark"*. A latent false MET: it would have flipped the moment an endpoint existed. Metric legs now require an identifier shape (`quality_score`), never a bare English word. |
+
+### ⚠ NEW DEFECT CLASS, FOUND IN §4 — worth carrying into every remaining module
+**An intra-file vocabulary leak.** Row #4's lesson was "exclude the marketing chrome", which is a
+FILE-level fence. It does not help when the wrong thing lives in the right file. A 100KB
+`SupplierPortal.tsx` contains the settings form, the support chat AND the command centre, so any
+whole-file scan mixes three different subjects. **Subtract the wrong vocabulary explicitly and print
+both counts**, so the exclusion is auditable rather than invisible.
+
+### PRODUCT FINDING — DEAD UI, not a scorer artefact
+`SupplierPortal.tsx` renders `{s.response_rate != null && <Stat label='Response rate' …/>}`, but
+`response_rate` appears in **none of the 14 reachable edge functions**, and the portal fetches
+**only** through them (31 `call(…)`, **0** `supabase.from(`). The field is never returned, so the
+guard is never true and **the tile can never render**. Same shape as the row's headline defect,
+inverted: a surface with no server behind it.
+
+### MARGINAL VERDICT TO REVISIT
+`cc-assistant-panel` is MET on **1** proactive-guidance token. Thin. Not tightened further because
+demanding many strings risks the inverse failure (a check no correct implementation can reach), but
+it should be re-attacked when §15's assistant is built.
