@@ -220,7 +220,22 @@ export default async function (H) {
 
   // The six destinations, one requirement each — and each must be a NAVIGABLE DESTINATION, which is
   // what setTab('x') expresses, not merely a word rendered somewhere.
-  const dests = [...new Set([...P.matchAll(/set(?:Tab|View|Section|Page)\(\s*['"]([a-z_]+)['"]/gi)].map((m) => m[1].toLowerCase()))];
+  //
+  // ── A DESTINATION LIST IS USUALLY AN ARRAY, NOT A CALL SITE — AND MISSING THAT IS A FALSE MISSING ──
+  // The first version read only `setTab('literal')` and found TWO destinations. The portal actually
+  // declares `const TABS = ['overview','rfqs','documents','profile','projects','messages','billing']`
+  // and renders `TABS.map(k => <button onClick={() => setTab(k)}>)`. SEVEN destinations, and the
+  // scan saw two of them, because the literal never appears at a call site.
+  //
+  // That under-counted §21's six nav legs and §24's nineteen module legs at once — a false MISSING
+  // is as much a defect as a false MET, and this one made the product look worse than it is. The
+  // refutation rule cuts both ways: attack MET and MISSING with equal scepticism.
+  const dests = [...new Set([
+    ...[...P.matchAll(/set(?:Tab|View|Section|Page)\(\s*['"]([a-z_]+)['"]/gi)].map((m) => m[1]),
+    // Declared destination arrays: const TABS = ['a','b',...] / NAV / MENU / SECTIONS / VIEWS.
+    ...[...P.matchAll(/\b(?:TABS|NAV|MENU|SECTIONS|VIEWS|ROUTES)\b\s*=\s*\[([^\]]{0,400})\]/g)]
+      .flatMap((m) => [...m[1].matchAll(/['"]([a-z_]+)['"]/gi)].map((x) => x[1])),
+  ].map((d) => d.toLowerCase()))];
   for (const [id, re, label] of [
     ['mob-nav-command', /^(command|home|dashboard|overview)$/i, 'Command'],
     ['mob-nav-rfqs', /^(rfqs?|opportunit\w*|inbox|requests?)$/i, 'RFQs'],

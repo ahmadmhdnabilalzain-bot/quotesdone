@@ -77,6 +77,47 @@ export const has = (re, t = P) => re.test(String(t));
  *  This is the per-file leg: an unnamed "surface yes" cannot be refuted, a named one can. */
 export const filesMatching = (re, files = FILES) => files.filter((f) => re.test(fileSrc(f)));
 
+/**
+ * The SQL routines the supplier's surface can actually cause to run, via rpc() from a reachable
+ * edge function.
+ *
+ * ── WHY THE SERVING POPULATION HAD TO GROW, AND WHY THIS IS NOT A WEAKENING ────────────────────
+ * §13's legs read "served by [NO fn]" for Quality, Delivery, Response and Overall — AFTER those
+ * values were proven arriving over HTTPS with health {"quality":96,"delivery":88,"response":99}.
+ * The check was searching edge-function TypeScript for `quality_rating`, but supplier_portal serves
+ * the panel with `admin.rpc('fn_supplier_twin')` and the column names live in the Postgres routine.
+ * The fact was real; the scan was looking in a place it could not be.
+ *
+ * That is the same defect as reading only `setTab('literal')` and missing a TABS array: a scan
+ * whose population excludes where the fact lives produces a FALSE MISSING, and a false MISSING is
+ * as much a defect as a false MET — it makes the product look worse than it is.
+ *
+ * This does NOT loosen anything. A field still has to be named by something the supplier's browser
+ * can reach; the reachable set now simply follows the one hop the code actually takes. A routine
+ * nothing rpc()s from the supplier surface is still not a server for the supplier.
+ */
+export const RPC_NAMES = (() => {
+  const out = new Set();
+  for (const f of FNS) {
+    for (const m of fnSrc(f).matchAll(/\.rpc\(\s*['"]([a-z0-9_]+)['"]/gi)) out.add(m[1]);
+  }
+  return [...out].sort();
+})();
+
+/** Build a name->source map for those routines. Needs the runner's `one`, so it is async and the
+ *  caller caches it. Returns [] silently for routines that cannot be read. */
+export async function rpcSources(one) {
+  if (!RPC_NAMES.length) return [];
+  const list = RPC_NAMES.map((n) => `'${n}'`).join(',');
+  // JSON, not a delimiter. A routine body contains arbitrary text including any separator one
+  // might pick, and a split on a delimiter that appears inside a body would silently truncate the
+  // source being scanned — which reads exactly like a field that is not there.
+  const txt = await one(`select coalesce(jsonb_agg(jsonb_build_array(p.proname, pg_get_functiondef(p.oid)))::text, '[]')
+    from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+    where ns.nspname = 'public' and p.prokind in ('f','p') and p.proname in (${list})`);
+  try { return JSON.parse(String(txt || '[]')).map(([n, src]) => [n, strip(src)]); } catch { return []; }
+}
+
 /** Which reachable EDGE FUNCTIONS satisfy `re` — each scored on its OWN text, never on the join.
  *  Optionally restricted to a candidate list, for legs that mean a specific endpoint. */
 export const fnsMatching = (re, candidates = FNS) =>

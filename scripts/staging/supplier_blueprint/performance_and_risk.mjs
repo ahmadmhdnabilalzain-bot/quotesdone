@@ -33,7 +33,7 @@
 //  · Row counts printed beside every verdict, never used as one.
 import {
   S, P, FILES, P_FILES, FNS, fileSrc, fnSrc, n, has, filesMatching, fnsMatching, fnsWithBoth,
-  near, filesNear, fnsNear, delivered, cover, B, Q, READERS_SQL, NROWS_SQL,
+  near, filesNear, fnsNear, delivered, cover, B, Q, READERS_SQL, NROWS_SQL, rpcSources,
 } from '../supplier_checks.mjs';
 
 export const EXPECTED = 39;
@@ -41,6 +41,18 @@ export const EXPECTED = 39;
 export default async function (H) {
   const { req, one } = H;
   const S13 = 'perf', S14 = 'mkt', S15 = 'emp', S16 = 'doc', S17 = 'risk';
+
+  // ── THE SERVING POPULATION INCLUDES THE ROUTINES THE ENDPOINTS rpc() ──────────────────────────
+  // §13 read "served by [NO fn]" for four metrics AFTER those values were proven arriving over
+  // HTTPS as health {"quality":96,"delivery":88,"response":99}. supplier_portal serves the panel
+  // with admin.rpc('fn_supplier_twin'), so the column names live in the Postgres routine and never
+  // in the TypeScript. The scan was looking where the fact could not be — a FALSE MISSING, the same
+  // defect shape as reading only setTab('literal') and missing a TABS array.
+  //
+  // Not a weakening: a field must still be named by something the browser can reach. The reachable
+  // set now follows the one hop the code actually takes.
+  const RPC = await rpcSources(one);
+  const servedBy = (re) => [...fnsMatching(re), ...RPC.filter(([, src]) => re.test(src)).map(([nm]) => nm)];
 
   const scoreRows = await one(NROWS_SQL('supplier_score'));
   const relRows = await one(NROWS_SQL('supplier_score', 'reliability is not null'));
@@ -65,7 +77,12 @@ export default async function (H) {
   // The panel itself: three or more of the five metrics rendered together in ONE file.
   const panelFiles = P_FILES.filter((f) => {
     const src = fileSrc(f);
-    return METRICS.filter(([, re]) => re.test(src)).length >= 3;
+    // '\\b', not '\b' — in a JS string literal '\b' is the BACKSPACE character, so the regex would
+    // have matched nothing and the panel leg would have stayed MISSING for a reason invisible in
+    // its own evidence.
+    return METRICS.filter(([mid, re]) =>
+      re.test(src) || new RegExp('\\b(health|h)\\.' + mid.replace('perf-', '') + '\\b').test(src)
+    ).length >= 3;
   });
   await req(S13, 'perf-health-panel', 'a SUPPLIER HEALTH panel with the five metrics together',
     B(panelFiles.length > 0),
@@ -74,16 +91,24 @@ export default async function (H) {
 
   for (const [id, re, col, label] of METRICS) {
     const colRows = await one(NROWS_SQL('supplier_score', `${col} is not null`));
-    const shown = delivered(re, P);
-    const served = fnsMatching(re);
+    // A UI legitimately RENAMES a database column: the panel renders {h.quality}, not
+    // {quality_rating}. Demanding the column name in JSX would make this unsatisfiable by any
+    // component that maps its payload — which is every well-written one, and is row #4's
+    // unsatisfiable-check defect. The payload path is accepted alongside the column name, still
+    // anchored to a health object rather than the bare English word that let prose pass earlier.
+    const metric = id.replace('perf-', '');
+    const payload = new RegExp('\\b(health|h)\\.' + metric + '\\b');
+    const shown = delivered(re, P) || payload.test(P);
+    const served = servedBy(re);
     await req(S13, id, `the health panel shows ${label}`,
       B(shown && served.length > 0),
       Q(`${label}: rendered ${shown ? 'yes' : 'NO'}, served by [${served.join(' ') || 'NO fn'}]; ` +
         `supplier_score.${col} non-null on ${colRows} of ${scoreRows} row(s) — the data is not the blocker`));
   }
 
-  const overallShown = delivered(/overall[_ ]?(score|rating)|health[_ ]?score|\/\s*100/i, P);
-  const overallServed = fnsMatching(/overall[_ ]?(score|rating)|health[_ ]?score/i);
+  const overallShown = delivered(/overall[_ ]?(score|rating)|health[_ ]?score|\/\s*100/i, P)
+    || /\b(health|h)\.overall\b/.test(P);
+  const overallServed = servedBy(/overall[_ ]?(score|rating)|health[_ ]?score|'overall'/i);
   await req(S13, 'perf-overall', 'an Overall score out of 100',
     B(overallShown && overallServed.length > 0),
     Q(`rendered ${overallShown ? 'yes' : 'NO'}, served by [${overallServed.join(' ') || 'NO fn'}]; ${ESTATE}`));
@@ -111,7 +136,11 @@ export default async function (H) {
     Q(`${scoreCron} active cron(s) recompute a score, ${scoreWriters} routine(s) touch supplier_score, ` +
       `${freshRows} of ${scoreRows} row(s) computed in the last 30d — a score written once is not living`));
 
-  const perfVisible = filesMatching(/supplier_score|health[_ ]?score|performance[_ ]?panel/i, P_FILES);
+  // A component that CONSUMES the twin endpoint is the score store reaching the supplier. Requiring
+  // the table name in JSX would only be satisfiable by a component that queried Postgres directly,
+  // which the portal deliberately never does — it calls edge functions (31 call(), 0 supabase.from).
+  const perfVisible = filesMatching(
+    /supplier_score|health[_ ]?score|performance[_ ]?panel|action:\s*['"]twin['"]/i, P_FILES);
   await req(S13, 'perf-supplier-visible', 'the health panel renders on the supplier surface',
     B(perfVisible.length > 0),
     Q(`${perfVisible.length} of ${P_FILES.length} portal file(s) name the score store ` +
