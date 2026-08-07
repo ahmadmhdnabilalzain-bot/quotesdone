@@ -33,10 +33,12 @@
 -- The relationship is (inquiry, supplier). The supplier is the existing fenced demo fixture —
 -- unverified and unmatchable on two independent legs — so this pairs one fenced row with another
 -- and creates no path to a real company.
-with sup as (
-  select id from public.leads where place_id = 'qd-demo-supplier-001'
-), ins as (
-  insert into public.inquiries (
+-- TWO PLAIN STATEMENTS, NOT ONE CLEVER CTE. The first version wrote the inquiry inside a
+-- data-modifying CTE and cross-joined its RETURNING against the supplier lookup to make the match
+-- row. The inquiry landed and the match did not — measured on staging, 8 Aug 2026 — so the
+-- workspace stayed empty and the fixture proved nothing. Two statements that each re-select what
+-- they need are idempotent, re-runnable, and there is nothing left to be subtle about.
+insert into public.inquiries (
     customer_id, category, emirate, role_needed, summary, raw_input,
     status, brief_source, rfq_ready, scope_type
   )
@@ -52,15 +54,35 @@ with sup as (
                                             -- `is true` test rejects either way, and which reads
                                             -- honestly as "this brief was never completed".
     'supply_only'
-  where not exists (select 1 from public.inquiries where brief_source = 'qd_demo_fixture')
-  returning id
-)
-insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, match_reason)
-select ins.id, sup.id, 0.0,
-       'QuotesDone demo fixture — pairs the fenced demo inquiry with the fenced demo supplier. '
-       || 'similarity 0.0 so no ranking surface can promote it.'
-from ins, sup
-where not exists (
-  select 1 from public.inquiry_matches m
-  where m.inquiry_id = ins.id and m.supplier_id = sup.id
-);
+  where not exists (select 1 from public.inquiries where brief_source = 'qd_demo_fixture');
+
+-- ── THE RELATIONSHIP COMES FROM THE MESSAGE LEG, NOT THE MATCH LEG, AND THAT IS FORCED ──────────
+-- fn_supplier_workspaces opens a workspace for an inquiry the supplier was MATCHED to *or* has
+-- EXCHANGED MESSAGES about. The match leg is unavailable to a fenced fixture, and the reason is a
+-- neat piece of platform coherence rather than an obstacle:
+--
+--     trg_gate_incomplete_match:  if ready is not true then return null;
+--
+-- An incomplete RFQ is not routed to suppliers AND is not matched to them — the same condition,
+-- enforced twice. So the very field that fences this fixture out of dispatch (rfq_ready) also makes
+-- an inquiry_matches row silently vanish: a BEFORE trigger returning NULL, no error, no row.
+-- Measured on staging 8 Aug 2026, which is how this was found rather than assumed.
+--
+-- Forcing it would mean setting rfq_ready = true, and that buys three things nobody asked for:
+-- the dispatch_inquiry call, a queued 'new_inquiry' notification e-mail from
+-- fn_notify_matched_supplier, and a fixture that is no longer fenced.
+--
+-- public.messages has NO triggers at all. One inbound message creates the relationship with no
+-- dispatch, no notification and no event — and it is also the more honest demo, because what the
+-- supplier is meant to do with a workspace is REPLY to it.
+insert into public.messages (inquiry_id, supplier_id, customer_id, sender, body)
+select i.id, s.id, null, 'customer',
+       'ZZ DEMO — Hello, we are looking at curtain walling for a mall atrium in Sharjah. '
+       || 'Could you share indicative rates and your lead time? (QuotesDone demo fixture, not a real customer.)'
+from public.inquiries i
+join public.leads s on s.place_id = 'qd-demo-supplier-001'
+where i.brief_source = 'qd_demo_fixture'
+  and not exists (
+    select 1 from public.messages m
+    where m.inquiry_id = i.id and m.supplier_id = s.id
+  );
