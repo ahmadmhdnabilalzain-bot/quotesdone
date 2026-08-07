@@ -21,6 +21,7 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Html, OrbitControls, RoundedBox, Text } from '@react-three/drei';
 import type { Mesh } from 'three';
+import RendererCapability, { useRenderer } from './RendererCapability';
 
 type Stock = { available?: number; reserved?: number; in_production?: number; skus?: number };
 type Payload = { stock?: Stock; product_count?: number; category_count?: number };
@@ -131,6 +132,7 @@ function Link({ from, to }: { from: [number, number, number]; to: [number, numbe
 export default function SupplierEnvironment({
   token, lang = 'en',
 }: { token?: string | null; lang?: Lang }) {
+  const renderer = useRenderer();
   const [data, setData] = useState<Payload | null>(null);
   const [open, setOpen] = useState<NodeKey | null>(null);
   const [err, setErr] = useState('');
@@ -203,6 +205,10 @@ export default function SupplierEnvironment({
         <span className="text-[10px] opacity-40">{t(lang, 'hint')}</span>
       </div>
 
+      {/* A device that cannot draw gets a sentence, not a black rectangle. Mounting <Canvas> on it
+          renders nothing and explains nothing, which reads as a broken portal rather than an
+          unsupported browser — so the scene is not mounted at all in that case. */}
+      {renderer === 'none' ? <RendererCapability lang={lang} /> : (
       <div className="h-[380px] w-full rounded-xl overflow-hidden bg-[#070b14]">
         <Canvas camera={{ position: [4.5, 0.4, 5.2], fov: 46 }} dpr={[1, 2]}>
           <Suspense fallback={null}>
@@ -244,6 +250,8 @@ export default function SupplierEnvironment({
           </Suspense>
         </Canvas>
       </div>
+      )}
+      {renderer !== 'none' && <div className="mt-1.5"><RendererCapability lang={lang} /></div>}
     </section>
   );
 }
