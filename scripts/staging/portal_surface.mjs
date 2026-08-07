@@ -62,7 +62,21 @@ function importClosure(entries) {
     if (seen.has(p)) continue;
     const text = SRC.get(p); if (text === undefined) continue;
     seen.set(p, text);
+    // STATIC imports...
     for (const m of text.matchAll(/from\s+['"]([^'"]+)['"]/g)) { const r = resolve(p, m[1]); if (r && !seen.has(r)) queue.push(r); }
+    // ...AND DYNAMIC ONES, which have no `from` at all.
+    //
+    // A component loaded with next/dynamic — `dynamic(() => import('./supplier/SupplierEnvironment'))`
+    // — was invisible to this walk, so it dropped out of the surface entirely. That is a FALSE
+    // MISSING for every requirement the component satisfies: row #5's whole §5 read 2/12 and
+    // tech-threejs read "0 usages, dependency INSTALLED" while a React Three Fiber scene was mounted
+    // and shipping in the build.
+    //
+    // It is also the WORST place to have this blind spot. Lazy loading is exactly what a heavy 3D or
+    // charting module should use, so the scan was structurally blind to the most demanding parts of
+    // the spec — the ones most likely to be code-split. A dynamically imported component is on the
+    // user's screen; the loader is an implementation detail of WHEN, not WHETHER.
+    for (const m of text.matchAll(/\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g)) { const r = resolve(p, m[1]); if (r && !seen.has(r)) queue.push(r); }
   }
   return seen;
 }

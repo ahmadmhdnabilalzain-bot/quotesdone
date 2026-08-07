@@ -30,7 +30,7 @@
 // artefact of the empty estate, and so a future run with real stock reads the same verdict.
 import {
   S, P, FILES, FNS, fileSrc, fnSrc, n, has, filesMatching, fnsMatching, fnsWithBoth,
-  delivered, cover, B, Q, READERS_SQL, NROWS_SQL,
+  delivered, cover, B, Q, READERS_SQL, NROWS_SQL, rpcSources,
 } from '../supplier_checks.mjs';
 
 export const EXPECTED = 31;
@@ -38,6 +38,10 @@ export const EXPECTED = 31;
 export default async function (H) {
   const { req, one } = H;
   const SEC4 = 'cc', SEC5 = 'env', SEC6 = 'prof';
+
+  // The serving population follows the rpc hop — the same false MISSING found in §13, §7 and §15.
+  const RPC = await rpcSources(one);
+  const servedBy = (re) => [...fnsMatching(re), ...RPC.filter(([, src]) => re.test(src)).map(([nm]) => nm)];
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════
   // §4 — SUPPLIER COMMAND CENTER UI (10)
@@ -73,7 +77,7 @@ export default async function (H) {
   // "computed and never shown", never "no data". The row count is printed to make that unambiguous.
   const scoreRows = await one(NROWS_SQL('supplier_score'));
   const scoreShown = delivered(/intelligence[_ ]?score|supplier[_ ]?score|overall[_ ]?score/i);
-  const scoreServed = fnsMatching(/supplier_score|intelligence[_ ]?score/i);
+  const scoreServed = servedBy(/supplier_score|intelligence[_ ]?score/i);
   await req(SEC4, 'cc-intelligence-score', 'a Supplier Intelligence Score on the command center',
     B(scoreShown && scoreServed.length > 0),
     Q(`rendered ${scoreShown ? 'yes' : 'NO'}, served by [${scoreServed.join(' ') || 'NO fn'}]; ` +
@@ -100,7 +104,7 @@ export default async function (H) {
     ['cc-perf-quality', /quality[_ ]?(rate|pct|percent|score|mark)|score[_ ]?quality/i, 'Quality %'],
   ]) {
     const shown = delivered(re);
-    const served = fnsMatching(re);
+    const served = servedBy(re);
     await req(SEC4, id, `a ${label} tile on the command center`,
       B(shown && served.length > 0),
       Q(`${label}: rendered ${shown ? 'yes' : 'NO'}, served by [${served.join(' ') || 'NO fn'}] ` +
@@ -191,32 +195,46 @@ export default async function (H) {
     B(whPanel.length > 0),
     Q(`${whPanel.length} file(s) pair a warehouse with inventory content [${whPanel.map(f => f.split('/').pop()).join(' ') || 'none'}]`));
 
-  // The three quantities the spec draws in that panel. Empty relations, so the verdict is delivery
-  // and the row count is printed beside it — never the other way round.
-  const invRows = await one(NROWS_SQL('inv_items'));
-  const moveRows = await one(NROWS_SQL('inv_stock_moves'));
+  // ── THESE CHECKS WERE POINTED AT THE WRONG RELATION ───────────────────────────────────────────
+  // The first version read inv_items / inv_stock_moves, on the assumption that they held supplier
+  // stock. They do not. Measured: inv_items has NO supplier_id at all — its columns are
+  // sku, name, uom, category, inventory_account, cogs_account, reorder_point. Those GL account
+  // columns give it away: it is QuotesDone's OWN accounting inventory ledger, not a per-supplier
+  // stock table. A supplier's warehouse could never appear in it.
+  //
+  // The supplier's actual stock lives in supplier_product_variant.attributes.available_units, which
+  // is where §8's "Available: 120 units" was proven coming from. Scoring §5's warehouse panel
+  // against the company's own COGS ledger would have been unsatisfiable by any correct
+  // implementation — row #4's unsatisfiable-check defect, arriving through a wrong table rather
+  // than a wrong threshold. Both populations are printed so the distinction stays visible.
+  const invRows = await one(NROWS_SQL('supplier_product_variant'));
+  const moveRows = await one(NROWS_SQL('inv_items'));
   for (const [id, re, label] of [
     ['env-inv-available', /\bavailable\b|qty[_ ]?available|on[_ ]?hand/i, 'Available'],
     ['env-inv-reserved', /\breserved\b|qty[_ ]?reserved|allocated/i, 'Reserved'],
     ['env-inv-production', /in[_ ]?production|qty[_ ]?production|being[_ ]?made|wip\b/i, 'In production'],
   ]) {
     const shown = delivered(re);
-    const served = fnsMatching(re);
+    const served = servedBy(re);
     await req(SEC5, id, `the warehouse panel shows ${label}`,
       B(shown && served.length > 0),
       Q(`${label}: rendered ${shown ? 'yes' : 'NO'}, served by [${served.join(' ') || 'NO fn'}]; ` +
-        `inv_items ${invRows} row(s), inv_stock_moves ${moveRows} row(s) — the verdict is delivery, not rows`));
+        `supplier_product_variant ${invRows} row(s) (the supplier stock); inv_items ${moveRows} (the company COGS ledger, a different thing) — the verdict is delivery, not rows`));
   }
 
   // Defect class #1 — a reader that is not the writer. The brief names inv_items/inv_stock_moves as
   // built-but-unread; this measures it rather than repeating it, and requires a SUPPLIER-FACING
   // reader specifically, because a staff-side routine reading stock is not the supplier seeing it.
-  const invReaders = await one(READERS_SQL('inv_items'));
-  const invFnReaders = fnsMatching(/inv_items|inv_stock_moves/i);
+  // The SUPPLIER's stock, not the company's ledger. See the note above the quantity legs.
+  const invReaders = await one(READERS_SQL('supplier_product_variant'));
+  const invFnReaders = [
+    ...fnsMatching(/supplier_product_variant|available_units/i),
+    ...RPC.filter(([, src]) => /supplier_product_variant|available_units/i.test(src)).map(([nm]) => nm),
+  ];
   await req(SEC5, 'env-inventory-reader', 'the panel reads real inventory rows',
     B(invFnReaders.length > 0),
     Q(`${invFnReaders.length} supplier-reachable edge fn(s) read inventory [${invFnReaders.join(' ') || 'none'}]; ` +
-      `${invReaders} non-writer SQL routine(s) read inv_items`));
+      `${invReaders} non-writer SQL routine(s) read supplier_product_variant`));
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════
   // §6 — SUPPLIER PROFILE PAGE (9)
@@ -233,7 +251,7 @@ export default async function (H) {
     ['prof-countries', /countries|service[_ ]?emirates|markets[_ ]?served|\bemirate/i, 'countries served'],
   ]) {
     const shown = delivered(re);
-    const served = fnsMatching(re, ['supplier_portal', 'supplier_api', 'profile_ai']);
+    const served = servedBy(re);
     await req(SEC6, id, `the profile shows ${label}`,
       B(shown && served.length > 0),
       Q(`${label}: rendered ${shown ? 'yes' : 'NO'}, served by [${served.join(' ') || 'NO fn'}]`));
@@ -242,7 +260,7 @@ export default async function (H) {
   // AI CONFIDENCE is not a stored form field — it is the page asserting how well it understands the
   // company. Requires a confidence value, not merely the word AI.
   const confShown = delivered(/ai[_ ]?confidence|confidence[_ ]?(score|pct|percent)|understanding[_ ]?pct/i);
-  const confServed = fnsMatching(/confidence/i);
+  const confServed = servedBy(/confidence/i);
   await req(SEC6, 'prof-ai-confidence', 'an AI Confidence percentage',
     B(confShown && confServed.length > 0),
     Q(`rendered ${confShown ? 'yes' : 'NO'}, served by [${confServed.join(' ') || 'NO fn'}]`));

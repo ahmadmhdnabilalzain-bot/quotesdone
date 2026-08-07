@@ -79,15 +79,16 @@ on conflict (supplier_id, external_key) do update set
 -- Variants carry availability, which is where §8's "Available: 120 units" legitimately lives.
 insert into public.supplier_product_variant (product_id, sku, attributes, price_policy, lead_time_policy, active)
 select p.id, p.external_key || '-STD',
-       jsonb_build_object('available_units', v.avail, 'finish', 'Standard'),
+       jsonb_build_object('available_units', v.avail, 'reserved_units', v.resv,
+                          'in_production_units', v.wip, 'finish', 'Standard'),
        jsonb_build_object('basis', 'on_request', 'currency', 'AED'),
        jsonb_build_object('lead_time_days', v.lead),
        true
 from public.supplier_product p
 join public.leads l on l.id = p.supplier_id and l.place_id = 'qd-demo-supplier-001'
-join (values ('AHU-X500', '120', 45), ('RTU-R200', '40', 60),
-             ('FCU-F80', '600', 21), ('CHL-C1200', '12', 90))
-  as v(ext, avail, lead) on v.ext = p.external_key
+join (values ('AHU-X500', '120', '80', '120', 45), ('RTU-R200', '40', '12', '25', 60),
+             ('FCU-F80', '600', '150', '400', 21), ('CHL-C1200', '12', '4', '8', 90))
+  as v(ext, avail, resv, wip, lead) on v.ext = p.external_key
 on conflict (product_id, sku) do update set
   attributes       = excluded.attributes,
   price_policy     = excluded.price_policy,

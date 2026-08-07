@@ -74,6 +74,25 @@ as $function$
       from base b
     ),
     'searchable', true,
+
+    -- ── §5's WAREHOUSE PANEL: the three quantities, over the SUPPLIER's own stock ────────────────
+    -- inv_items is NOT this, and the distinction matters. Measured: inv_items has no supplier_id at
+    -- all, and carries inventory_account / cogs_account / reorder_point — it is QuotesDone's OWN
+    -- accounting ledger. A supplier's warehouse could never appear in it, so scoring §5 against it
+    -- would have been unsatisfiable by any correct implementation.
+    -- A supplier's stock lives on the variant, which is also where §8's "Available: 120" comes from.
+    'stock', (
+      select jsonb_build_object(
+        'available',     coalesce(sum(nullif(v.attributes ->> 'available_units', '')::numeric), 0),
+        'reserved',      coalesce(sum(nullif(v.attributes ->> 'reserved_units', '')::numeric), 0),
+        'in_production', coalesce(sum(nullif(v.attributes ->> 'in_production_units', '')::numeric), 0),
+        'skus', count(*)
+      )
+      from public.supplier_product_variant v
+      join base b2 on b2.id = v.product_id
+      where v.active
+    ),
+
     'match_count', (select count(*) from filtered),
 
     'catalogs', (
@@ -110,6 +129,14 @@ as $function$
             'price_policy', v.price_policy, 'lead_time_policy', v.lead_time_policy,
             'active', v.active) order by v.sku), '[]'::jsonb)
           from public.supplier_product_variant v where v.product_id = f.id
+        ),
+        'reserved_units', (
+          select sum(nullif(v.attributes ->> 'reserved_units', '')::numeric)
+          from public.supplier_product_variant v where v.product_id = f.id and v.active
+        ),
+        'in_production_units', (
+          select sum(nullif(v.attributes ->> 'in_production_units', '')::numeric)
+          from public.supplier_product_variant v where v.product_id = f.id and v.active
         ),
         'available_units', (
           select sum((v.attributes ->> 'available_units')::numeric)
