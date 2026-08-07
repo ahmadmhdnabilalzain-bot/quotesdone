@@ -331,6 +331,8 @@ function Dashboard({ token, lang, onServedLocale }) {
   // so the KPIs, the alerts and the assistant stay mounted underneath and no module needs a
   // "back to requests" button to undo a navigation that never happened.
   const [view, setView] = useState('');
+  // §21: bound to THIS render's overview so the bar re-sorts when the layout does.
+  const barOrder = (id) => moduleBarOrder(id, ov && ov.layout);
   const [pd, setPd] = useState(null); const [pdFailed, setPdFailed] = useState(false);
   const [qtext, setQtext] = useState('');
   // my_inquiries carries the customer's stored locale (customer_api, 5 Aug 2026). This is the only
@@ -413,12 +415,16 @@ function Dashboard({ token, lang, onServedLocale }) {
         button, and any module the server did not mention is appended in its declared order, so a
         module added to the product later cannot disappear because the layout predates it. */}
     <div className="fixed bottom-0 inset-x-0 z-20 flex gap-1.5 overflow-x-auto border-t border-border bg-card/90 backdrop-blur px-3 py-2 sm:static sm:mb-4 sm:flex-wrap sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" onClick={() => setView('home')}>{t(lang, 'home')}</Button>
-      {orderedModules(ov && ov.layout).map(([id, key]) => (
-        <Button key={id} size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" onClick={() => setView(id)}>
-          {t(lang, key)}{id === 'messages' ? <UnreadBadge token={token} lang={lang} /> : null}
-        </Button>
-      ))}
+      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('home') }} onClick={() => setView('home')}>{t(lang, 'home')}</Button>
+      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('projects') }} onClick={() => setView('projects')}>{t(lang, 'projects')}</Button>
+      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('spatial') }} onClick={() => setView('spatial')}>{t(lang, 'mod_spatial')}</Button>
+      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('documents') }} onClick={() => setView('documents')}>{t(lang, 'mod_documents')}</Button>
+      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('messages') }} onClick={() => setView('messages')}>{t(lang, 'messages')}<UnreadBadge token={token} lang={lang} /></Button>
+      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('orders') }} onClick={() => setView('orders')}>{t(lang, 'mod_orders')}</Button>
+      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('approvals') }} onClick={() => setView('approvals')}>{t(lang, 'mod_approvals')}</Button>
+      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('predict') }} onClick={() => setView('predict')}>{t(lang, 'mod_predict')}</Button>
+      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('profile') }} onClick={() => setView('profile')}>{t(lang, 'mod_profile')}</Button>
+      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('account') }} onClick={() => setView('account')}>{t(lang, 'mod_account')}</Button>
     </div>
     {/* project_api ships seven customer-authed actions and had zero callers in src/. Linking an RFQ
         to a project needs the customer's own RFQ list, which this component already holds —
@@ -860,15 +866,15 @@ function NewRequest({ token, onDone, onCancel }) {
           {brief.scope ? <div className={cn(S.sub, 'mt-1')}>Scope: {brief.scope}</div> : null}
           {/* §3 THE ESTIMATED QUANTITY. The intake has emitted brief.quantity from the start and
               this card rendered seven brief fields without it, so the customer confirmed a brief
-              containing a number they were never shown — and create_inquiry then dropped it. Both
-              halves are fixed together: it is shown here and persisted there. */}
+              containing a number they were never shown — and the RFQ-creation path in customer_api
+              then dropped it. Both halves are fixed together: shown here, persisted there. */}
           {brief.quantity ? <div className={cn(S.sub, 'mt-1')}>Quantity: {brief.quantity}{brief.provenance && brief.provenance.quantity === 'inferred' ? <span className="text-muted-foreground"> (estimated from your description — correct it below if it is wrong)</span> : null}</div> : null}
           {brief.timeline ? <div className={cn(S.sub, 'mt-1')}>Timeline: {brief.timeline}</div> : null}
           {brief.budget ? <div className={cn(S.sub, 'mt-1')}>Budget: {brief.budget}</div> : null}
           {/* §3 REQUIRED DOCUMENTS, before Send. The category's own compliance checklist — the same
-              list create_inquiry copies onto the RFQ — so what the customer agrees to send is what
-              the supplier will be held to. A category with no published checklist shows nothing
-              rather than three invented lines. */}
+              list the RFQ-creation path copies onto the RFQ — so what the customer agrees to send
+              is what the supplier will be held to. A category with no published checklist shows
+              nothing rather than three invented lines. */}
           {Array.isArray(brief.required_documents) && brief.required_documents.length ? (
             <div className="mt-2">
               <div className={cn(S.sub, 'font-semibold text-foreground')}>Required documents and approvals</div>
@@ -933,6 +939,20 @@ function orderedModules(layout) {
   for (const m of MODULES) if (!out.includes(m)) out.push(m);
   return out;
 }
+// THE BUTTONS STAY WRITTEN OUT, AND CSS MOVES THEM.
+//
+// The obvious implementation is to map orderedModules() straight into buttons, and it is worse in
+// two ways that only show up later. Every destination becomes `setView(id)` with no literal
+// anywhere, so nothing — no grep, no reviewer, no route audit — can answer "where can this portal
+// go" without executing it; and the DOM order then follows the layout, which is the tab order a
+// keyboard user gets, so a server-side ranking silently reorders focus. `order` is a flexbox
+// property: it changes the visual order and leaves the DOM, and therefore the tab order, alone.
+// An unranked module sorts after the ranked ones because indexOf returns -1 → 999.
+const moduleBarOrder = (id, layout) => {
+  const ids = orderedModules(layout).map((m) => m[0]);
+  const i = ids.indexOf(id);
+  return i < 0 ? 999 : i;
+};
 // The unread count is the one fact worth knowing BEFORE opening the inbox, so the module bar asks
 // messages_api for it. Failure is silent by design: a badge that cannot load must not put an error
 // where a count goes, and the inbox itself reports its own failure when the customer opens it.

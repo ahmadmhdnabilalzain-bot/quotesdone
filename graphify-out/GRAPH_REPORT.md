@@ -1,16 +1,16 @@
-# Graph Report - quotesdone  (2026-08-06)
+# Graph Report - quotesdone  (2026-08-07)
 
 ## Corpus Check
-- 898 files · ~2,351,265 words
+- 1005 files · ~2,517,866 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 6701 nodes · 8326 edges · 775 communities (609 shown, 166 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 29 edges (avg confidence: 0.59)
+- 7509 nodes · 10100 edges · 835 communities (645 shown, 190 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 74 edges (avg confidence: 0.59)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9ce6deca`
+- Built from commit: `1711fb8a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -521,39 +521,87 @@
 - kb_autofill_gaps/index.ts
 - bus_contract_read.sql
 - os_inputs_reach_every_os.sql
+- components.json
+- entry_and_twin.mjs
+- verify_portal_blueprint.mjs
+- projects_and_rfq.mjs
+- ui_closure.mjs
+- portal_surface.mjs
+- verify_portal_rfq.mjs
+- Vendor evaluation — CAD / OCR / ERP references
+- approvals_and_orders.sql
+- suppliers_and_quotes.mjs
+- verify_approval_chain.mjs
+- verify_constraints.mjs
+- portal_row4_schema.sql
+- verify_portal_inbox.mjs
+- dropbox_sync/index.ts
+- screens_10_17.mjs
+- prove_a01_remediation.mjs
+- content_revise/index.ts
+- customer_documents/index.ts
+- pdpl_erase/index.ts
+- THE SPEC FILES ARE UPGRADES, NOT REPAIR TICKETS
+- verify_portal_entry.mjs
+- customer_intelligence/index.ts
+- pending_digest/index.ts
+- procurement_api/index.ts
+- vt_scan/index.ts
+- PAUSED 2026-08-06 ~16:00 UTC — rows #2 and #3, both resumable without re-deriving anything
+- documents_customer_vault.sql
+- export_all_knowledge/index.ts
+- export_leads_csv/index.ts
+- kb_search/index.ts
+- meta_ads/index.ts
+- negotiation_assistant/index.ts
+- qa_mint/index.ts
+- translate_html/index.ts
+- 20260806200500_documents_customer_vault.sql
+- row4_intelligence_ddl.sql
+- 20260806192000_row4_customer_portal_intelligence_schema.sql
+- ROW4_BUILT_BUT_UNSEEN.md
+- os/page.tsx
+- sonner.tsx
+- cmdk
+- lucide-react
+- @radix-ui/react-accordion
+- @radix-ui/react-avatar
+- @radix-ui/react-dialog
+- @radix-ui/react-dropdown-menu
+- @radix-ui/react-popover
+- @radix-ui/react-progress
+- @radix-ui/react-separator
+- @supabase/supabase-js
+- portal_row4_schema2.sql
 
 ## God Nodes (most connected - your core abstractions)
 1. `2. Edge functions` - 189 edges
-2. `requireInternal()` - 140 edges
-3. `Every failing case, individually` - 100 edges
-4. `mgmtRead()` - 97 edges
-5. `3. Database migrations` - 89 edges
-6. `cn()` - 75 edges
-7. `4. Frontend` - 64 edges
-8. `mgmtWrite()` - 63 edges
-9. `react` - 51 edges
-10. `REF` - 37 edges
+2. `cn()` - 141 edges
+3. `requireInternal()` - 140 edges
+4. `mgmtRead()` - 108 edges
+5. `Every failing case, individually` - 100 edges
+6. `3. Database migrations` - 89 edges
+7. `react` - 70 edges
+8. `mgmtWrite()` - 68 edges
+9. `4. Frontend` - 64 edges
+10. `REF` - 43 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `NodeField()` --indirect_call--> `W()`  [INFERRED]
-  src/components/NodeField.tsx → supabase/functions/pdf_native/index.ts
-- `Knowledge()` --indirect_call--> `cat()`  [INFERRED]
-  src/components/osx/OsxShell.tsx → supabase/functions/_shared/attachment.test.ts
-- `ControlModePanel()` --references--> `react`  [EXTRACTED]
-  src/components/osx/ControlMode.tsx → package.json
-- `ControlModeProvider()` --references--> `react`  [EXTRACTED]
-  src/components/osx/ControlMode.tsx → package.json
-- `useControlMode()` --references--> `react`  [EXTRACTED]
-  src/components/osx/ControlMode.tsx → package.json
+- `AgentStatus()` --indirect_call--> `load()`  [INFERRED]
+  src/components/osx/OsxShell.tsx → scripts/staging/portal_blueprint/projects_and_rfq.mjs
+- `useChart()` --references--> `react`  [EXTRACTED]
+  src/components/ui/chart.tsx → package.json
+- `Console()` --indirect_call--> `shown()`  [INFERRED]
+  src/components/osx/OsxShell.tsx → scripts/staging/os2_blueprint/screens_1_9.mjs
+- `IntakeAudio()` --indirect_call--> `w()`  [INFERRED]
+  src/components/osx/OsxShell.tsx → scripts/staging/verify_row4_intelligence.mjs
+- `OsxShell()` --indirect_call--> `w()`  [INFERRED]
+  src/components/osx/OsxShell.tsx → scripts/staging/verify_row4_intelligence.mjs
 
 ## Import Cycles
 - None detected.
 
-## Communities (775 total, 166 thin omitted)
-
-### Community 0 - "OsxShell.tsx"
-Cohesion: 0.04
-Nodes (54): metadata, metadata, AnalyticsApp(), AutomationPanel(), bringToTop(), CatalogPanel(), catSlug(), CH_LABEL (+46 more)
+## Communities (835 total, 190 thin omitted)
 
 ### Community 1 - "pdf_native/index.ts"
 Cohesion: 0.10
@@ -561,7 +609,7 @@ Nodes (50): admin, armPage(), authed(), BANDTXT, bidi, bidiRuns(), blockBadge(),
 
 ### Community 2 - "CustomerPortal.tsx"
 Cohesion: 0.06
-Nodes (40): metadata, aed(), Authed(), blobToWavB64(), call(), Comparison(), Contact(), CustomerPortal() (+32 more)
+Nodes (47): metadata, AccountSettings(), aed(), Authed(), blobToWavB64(), call(), Comparison(), Contact() (+39 more)
 
 ### Community 3 - "cn"
 Cohesion: 0.08
@@ -584,12 +632,12 @@ Cohesion: 0.08
 Nodes (24): get(), admin, buildBriefPdf(), buildComparePdf(), buildQuotePdf(), BuyerName, buyerNameOf(), Cfg (+16 more)
 
 ### Community 8 - "compilerOptions"
-Cohesion: 0.07
-Nodes (28): dom, dom.iterable, esnext, .next/dev/types/**/*.ts, next-env.d.ts, .next/types/**/*.ts, node_modules, supabase (+20 more)
+Cohesion: 0.06
+Nodes (30): dom, dom.iterable, esnext, .next/dev/types/**/*.ts, next-env.d.ts, .next/types/**/*.ts, node_modules, src/**/*.ts (+22 more)
 
 ### Community 9 - "layout.tsx"
-Cohesion: 0.29
-Nodes (3): admin, dbxAccessToken(), sec()
+Cohesion: 0.22
+Nodes (6): defaultModule(), modules(), admin, dbxAccessToken(), sec(), SHELL()
 
 ### Community 10 - "site_deploy/index.ts"
 Cohesion: 0.17
@@ -597,7 +645,7 @@ Nodes (16): admin, blogHub(), blogPost(), contactPage(), COSTMAP, coverSVG(), EM
 
 ### Community 11 - "[locale]/page.tsx"
 Cohesion: 0.13
-Nodes (22): generateMetadata(), Categories(), Item, toTags(), CtaBand(), Hero(), Proof, HowItWorks() (+14 more)
+Nodes (22): Categories(), Item, toTags(), CtaBand(), Hero(), Proof, HowItWorks(), Step (+14 more)
 
 ### Community 12 - "crm_api/index.ts"
 Cohesion: 0.00
@@ -612,16 +660,16 @@ Cohesion: 0.06
 Nodes (30): §1. Always-on operating disciplines, §2. Building software, §3. Frontend & visual craft, §4. Writing, docs & explaining, §5. Capabilities index (invoke on demand), §A. Conflicts resolved (the filtered decisions), Authoring tools/skills/MCP (tool-design, mcp-builder, skill-creator, writing-skills, eval-harness, evaluation), Code review (requesting-code-review, receiving-code-review, gsd-code-review, babysit) (+22 more)
 
 ### Community 15 - "devDependencies"
-Cohesion: 0.12
-Nodes (17): autoprefixer, devDependencies, autoprefixer, postcss, tailwindcss, tailwindcss-animate, @types/node, @types/react (+9 more)
+Cohesion: 0.11
+Nodes (19): autoprefixer, devDependencies, autoprefixer, postcss, tailwindcss, tailwindcss-animate, @types/node, @types/react (+11 more)
 
 ### Community 16 - "dependencies"
-Cohesion: 0.12
-Nodes (17): class-variance-authority, cmdk, lucide-react, dependencies, class-variance-authority, cmdk, lucide-react, @radix-ui/react-dialog (+9 more)
+Cohesion: 0.11
+Nodes (19): class-variance-authority, clsx, dependencies, class-variance-authority, clsx, @radix-ui/react-scroll-area, @radix-ui/react-slot, recharts (+11 more)
 
 ### Community 17 - "buildMeta"
-Cohesion: 0.13
-Nodes (17): generateMetadata(), generateStaticParams(), generateMetadata(), generateMetadata(), blogMeta(), BlogPost(), blogSlugs(), fmt() (+9 more)
+Cohesion: 0.15
+Nodes (17): generateMetadata(), generateStaticParams(), generateMetadata(), generateMetadata(), generateMetadata(), blogMeta(), BlogPost(), blogSlugs() (+9 more)
 
 ### Community 18 - "ServiceDoc.tsx"
 Cohesion: 0.21
@@ -648,7 +696,7 @@ Cohesion: 0.10
 Nodes (17): admin, aiReview(), aiSummarize(), companyRe(), CONCLUDED, cors, crossCheckServices(), ID_PATTERNS (+9 more)
 
 ### Community 25 - "MarketingDoc.tsx"
-Cohesion: 0.22
+Cohesion: 0.20
 Nodes (8): generateMetadata(), generateMetadata(), generateMetadata(), CSS, Doc, M, MarketingDoc(), mkMeta()
 
 ### Community 26 - "agent_act/index.ts"
@@ -680,16 +728,16 @@ Cohesion: 0.14
 Nodes (5): admin, logRun(), logThrottled(), NOTE: the row is deliberately left 'queued' so it can go out once templates are, T0
 
 ### Community 33 - "SiteHeader.tsx"
-Cohesion: 0.16
-Nodes (11): BrandMark(), BrandMarkProps, LangSwitch(), Item, MobileNav(), SpringHover(), SOCIALS, { Link, usePathname, useRouter } (+3 more)
+Cohesion: 0.21
+Nodes (8): LangSwitch(), Item, MobileNav(), ScrollProgress(), { Link, usePathname, useRouter }, routing, config, NOTE: individual blog posts (/blog/:slug) are now native pages, so they
 
 ### Community 34 - "kyc/index.ts"
 Cohesion: 0.15
 Nodes (7): admin, CORS, otpHash(), otpKey(), sec(), sendEmail(), twilioAuth()
 
 ### Community 35 - "messages_api/index.ts"
-Cohesion: 0.18
-Nodes (5): admin, CORS, llm, ownerEmail(), sec()
+Cohesion: 0.16
+Nodes (9): admin, CHANNELS, clip(), CORS, digits(), llm, otherChannels(), ownerEmail() (+1 more)
 
 ### Community 36 - "wa_inbound/index.ts"
 Cohesion: 0.22
@@ -708,8 +756,8 @@ Cohesion: 0.27
 Nodes (9): admin, caseHtml(), demandHtml(), esc(), fmtD(), money(), REF(), renderPdf() (+1 more)
 
 ### Community 40 - "crm_pipeline/index.ts"
-Cohesion: 0.04
-Nodes (55): REF, BRIDGE, REF, values, MAP, REF, rows, REF (+47 more)
+Cohesion: 0.05
+Nodes (30): REF, BRIDGE, REF, values, MAP, REF, rows, REF (+22 more)
 
 ### Community 41 - "finance_ingest/index.ts"
 Cohesion: 0.29
@@ -728,8 +776,8 @@ Cohesion: 0.23
 Nodes (9): admin, buildService(), FILES, orLLM(), readFile(), READONLY, readPath(), sec() (+1 more)
 
 ### Community 45 - "doc_render/index.ts"
-Cohesion: 0.09
-Nodes (16): admin, authed(), CO, CORS, esc(), llm, sec(), wrap() (+8 more)
+Cohesion: 0.18
+Nodes (7): admin, deepKb(), examinee, examiner, grader, sec(), T0
 
 ### Community 46 - "inquiry_parse/index.ts"
 Cohesion: 0.24
@@ -792,8 +840,8 @@ Cohesion: 0.20
 Nodes (6): admin, b64ToBytes(), CORS, parseJson(), stripB64(), verifyPage()
 
 ### Community 65 - "dropbox_sync/index.ts"
-Cohesion: 0.11
-Nodes (11): admin, escalate(), NOTE: force skips the freshness check but STILL takes the claim below, so a forc, sec(), T0, accessToken(), admin, logRun() (+3 more)
+Cohesion: 0.22
+Nodes (5): admin, escalate(), NOTE: force skips the freshness check but STILL takes the claim below, so a forc, sec(), T0
 
 ### Community 66 - "inbound_email/index.ts"
 Cohesion: 0.20
@@ -808,8 +856,8 @@ Cohesion: 0.25
 Nodes (6): admin, CONTENT, dbxToken(), EDITABLE, READONLY, sec()
 
 ### Community 69 - "@radix-ui/react-separator"
-Cohesion: 0.12
-Nodes (22): ControlModeCtx, ControlModeIndicator(), ControlModePanel(), ControlModeProvider(), Ctx, mmss(), useControlMode(), IntakeAudio() (+14 more)
+Cohesion: 0.08
+Nodes (34): ControlModeCtx, ControlModeIndicator(), ControlModePanel(), ControlModeProvider(), Ctx, mmss(), useControlMode(), CatalogPanel() (+26 more)
 
 ### Community 70 - "resend_webhook/index.ts"
 Cohesion: 0.25
@@ -828,16 +876,20 @@ Cohesion: 0.18
 Nodes (6): storeOriginal(), safeFilename(), admin, cors, DOC_KINDS, DOC_ORDER
 
 ### Community 75 - "yello_scrape/index.ts"
-Cohesion: 0.02
-Nodes (37): ACTIONABLE, admin, admin, SIZE, admin, auth(), admin, admin (+29 more)
+Cohesion: 0.04
+Nodes (19): admin, admin, ALLOW, admin, SIZE, admin, auth(), admin (+11 more)
 
 ### Community 76 - "portal/page.tsx"
-Cohesion: 0.08
-Nodes (61): hash, run, arr(), AUTHORITY, BUCKET_SOURCES(), call(), capabilityInsert(), capabilityProfile() (+53 more)
+Cohesion: 0.07
+Nodes (68): hash, run, arr(), AUTHORITY, BUCKET_SOURCES(), call(), capabilityInsert(), capabilityProfile() (+60 more)
 
 ### Community 77 - "admin_detail/index.ts"
 Cohesion: 0.03
 Nodes (64): 4. Frontend, src/app/globals.css, src/app/[locale]/about/page.tsx, src/app/[locale]/acceptable-use/page.tsx, src/app/[locale]/blog/page.tsx, src/app/[locale]/blog/[slug]/page.tsx, src/app/[locale]/complaints/page.tsx, src/app/[locale]/console/page.tsx (+56 more)
+
+### Community 78 - "agent_learnings_report/index.ts"
+Cohesion: 0.03
+Nodes (17): admin, T0, ACTIONABLE, admin, admin, admin, admin, T0 (+9 more)
 
 ### Community 79 - "cad_convert/index.ts"
 Cohesion: 0.20
@@ -864,8 +916,8 @@ Cohesion: 0.17
 Nodes (7): ACTION_CLASS, ActionClass, admin, BYPASS_DENY, OSAPI_MUTATIONS, READONLY, WS
 
 ### Community 86 - "SONNET_FIRST"
-Cohesion: 0.12
-Nodes (52): react, react, ActivityPanel(), aed(), AgentDrawer(), AgentsApp(), AgentStatus(), AssistantApp() (+44 more)
+Cohesion: 0.05
+Nodes (96): react, react, ActivityPanel(), aed(), AgentDrawer(), AgentsApp(), AgentStatus(), AnalyticsApp() (+88 more)
 
 ### Community 88 - "supplier_pay/index.ts"
 Cohesion: 0.25
@@ -883,13 +935,17 @@ Nodes (47): A — CHECK IS WRONG (fix the check, do not rebuild the system), B �
 Cohesion: 0.32
 Nodes (4): admin, dom(), firstArr(), mapItem()
 
+### Community 92 - "clsx"
+Cohesion: 0.08
+Nodes (62): ApiResult, ENDPOINT, fetchDocuments(), fetchOrders(), fetchProjectDetail(), fetchProjectList(), post(), buildModel() (+54 more)
+
 ### Community 93 - "category_reqs/index.ts"
 Cohesion: 0.32
 Nodes (4): admin, genOne(), llm, parseJson()
 
 ### Community 95 - "doc_extract/index.ts"
-Cohesion: 0.09
-Nodes (5): admin, admin, ALLOW, admin, CORS
+Cohesion: 0.07
+Nodes (63): call(), ChatMessage, ChatStatus, CommsResult, Lang, listThreads(), messagesApi(), openThread() (+55 more)
 
 ### Community 96 - "dr_drill/index.ts"
 Cohesion: 0.25
@@ -949,15 +1005,15 @@ Nodes (42): 0. THE RULE FOR THIS SESSION — demo data, always, 1. Settled — d
 
 ### Community 117 - "exec_board/index.ts"
 Cohesion: 0.05
-Nodes (39): defs(), ROUTINES, [S, P], VIEWS, EDITS, live, audit(), STATEMENTS (+31 more)
+Nodes (30): defs(), ROUTINES, [S, P], VIEWS, EDITS, live, mgmtRead(), token (+22 more)
 
 ### Community 118 - "extract_text/index.ts"
 Cohesion: 0.18
 Nodes (6): admin, authed(), CORS, sec(), admin, SAFE_UPLOAD
 
 ### Community 119 - "kb_autofill_gaps/index.ts"
-Cohesion: 0.14
-Nodes (12): body, head, metadata, mono, tajawal, viewport, ChatWidget(), Msg (+4 more)
+Cohesion: 0.13
+Nodes (13): N(), body, head, metadata, mono, tajawal, viewport, ChatWidget() (+5 more)
 
 ### Community 120 - "legal_draft/index.ts"
 Cohesion: 0.14
@@ -965,7 +1021,7 @@ Nodes (33): answer_document_append_only, conflict_value_append_only, corroborati
 
 ### Community 121 - "make_xlsx/index.ts"
 Cohesion: 0.05
-Nodes (20): REF, checks, SPEC_GOALS, APPLY, checks, extraCK, extraNN, missCK (+12 more)
+Nodes (31): after, before, DRY, keys, need, token, total, both (+23 more)
 
 ### Community 122 - "ops_live/index.ts"
 Cohesion: 0.06
@@ -1037,11 +1093,11 @@ Nodes (15): [comp-11-actual-values] (loose-check), [comp-11-improvement-plan] (l
 
 ### Community 143 - "email_triage/index.ts"
 Cohesion: 0.03
-Nodes (44): admin, authed(), CORS, llm, sec(), admin, authed(), CORS (+36 more)
+Nodes (48): admin, authed(), CORS, llm, sec(), admin, authed(), CORS (+40 more)
 
 ### Community 144 - "export_leads_csv/index.ts"
-Cohesion: 0.17
-Nodes (8): capValues, checks, { found: callerMax, skipped: ambiguous }, LIVE, REF, sites, siteValues, unmapped
+Cohesion: 0.05
+Nodes (29): assertNotProduction(), AED_PER_USD, DEPTS, REF, RESET, FNS, KEEP, keys (+21 more)
 
 ### Community 145 - "finance_doc/index.ts"
 Cohesion: 0.14
@@ -1076,16 +1132,16 @@ Cohesion: 0.40
 Nodes (4): admin, WHY: this wrote attacker-controllable text into app_secrets.voice_otp_last, gate, T0, XML
 
 ### Community 161 - "vt_scan/index.ts"
-Cohesion: 0.15
-Nodes (10): changed, deployedVer, H, missing, one(), out, SIGNATURES, slugs (+2 more)
+Cohesion: 0.10
+Nodes (49): ApiResult, projectApi(), aed(), CLOSED_RFQ_STATUSES, DerivedStats, deriveStats(), elapsedPct(), fmtDate() (+41 more)
 
 ### Community 162 - "badge.tsx"
 Cohesion: 0.06
 Nodes (31): AI reliability & governance, C1. Supplier dues double-charge interest (latent today; 0 dues rows), C2. PDPL right-to-erasure is materially incomplete, Coverage & limits (honesty), 🔴 Critical — fix before the relevant flow is exercised, Data pipelines & alerting, Dead-code sweep — functions (22 Jul 2026), Deferred — need a focused / supervised pass (not auto-applied) (+23 more)
 
 ### Community 163 - "button.tsx"
-Cohesion: 0.15
-Nodes (12): Command, CommandDialog(), CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, DialogContent (+4 more)
+Cohesion: 0.04
+Nodes (41): ContactInner(), CompanyTwin(), Fact(), L(), S, Twin, CustomerMemory(), FIELDS (+33 more)
 
 ### Community 164 - "QuotesDone — Company Canon"
 Cohesion: 0.10
@@ -1260,8 +1316,8 @@ Cohesion: 0.15
 Nodes (9): AR_SURFACES, C, EN_SURFACES, HERE, legal, marketing, portal, ROOT (+1 more)
 
 ### Community 245 - "sync_staging_reference.mjs"
-Cohesion: 0.25
-Nodes (6): both, onlyP, onlyS, [s, p], SHOW, VIEWS_ONLY
+Cohesion: 0.12
+Nodes (37): ApiResult, call(), ApprovalChain(), ApprovalChainProps, PolicyCard(), StepRow(), TONE, ApprovalPolicy (+29 more)
 
 ### Community 246 - "verify_deploy_parity.mjs"
 Cohesion: 0.19
@@ -1384,8 +1440,8 @@ Cohesion: 0.38
 Nodes (5): checks, decide(), digest(), one(), [ph, sh]
 
 ### Community 276 - "SiteFooter.tsx"
-Cohesion: 0.47
-Nodes (5): fmt(), LiveMatch(), LiveMatchLabels, Quote, QUOTES
+Cohesion: 0.31
+Nodes (7): BrandMark(), BrandMarkProps, fmt(), LiveMatch(), LiveMatchLabels, Quote, QUOTES
 
 ### Community 277 - "marketing_image/index.ts"
 Cohesion: 0.24
@@ -1412,8 +1468,8 @@ Cohesion: 0.20
 Nodes (9): 5. Configuration, Architecture at a glance, Contents, .gitignore, next.config.mjs, package.json, QuotesDone — Complete Codebase, Statistics (+1 more)
 
 ### Community 283 - "backfill_production_embeddings.mjs"
-Cohesion: 0.20
-Nodes (7): after, before, DRY, keys, need, token, total
+Cohesion: 0.12
+Nodes (36): ApiResult, call(), aed(), fmtDate(), Forecast, ForecastCategory, Lang, marketComparison (+28 more)
 
 ### Community 284 - "sync_src_from_github/index.ts"
 Cohesion: 0.24
@@ -1492,8 +1548,8 @@ Cohesion: 0.15
 Nodes (13): [comp-14-can-decide / comp-15-who-approves (READERS residue)], [comp-14-can-spend], [comp-14-who-reviews], [comp-15-who-approves], [comp-15-who-can-help], [comp-15-who-reviews], [comp-16-capacity], [comp-16-health-score / comp-15-who-owns (evidence SQL)] (+5 more)
 
 ### Community 304 - "sync_org_config_to_staging.mjs"
-Cohesion: 0.29
-Nodes (6): bad, DIGEST(), DRY, q(), results, TABLES
+Cohesion: 0.09
+Nodes (25): mgmtWriteData(), post(), sleep(), APPLY, BATCH_FOR, batchOf(), _colCache, copyTable() (+17 more)
 
 ### Community 305 - "dept_learn/index.ts"
 Cohesion: 0.32
@@ -1562,6 +1618,14 @@ Nodes (4): APPLY, out, results, TARGETS
 ### Community 321 - "gate_decision_chain.mjs"
 Cohesion: 0.33
 Nodes (5): decs, ids, one(), sql(), token
+
+### Community 322 - "verify_review_chain.mjs"
+Cohesion: 0.10
+Nodes (29): aed(), CategoryMixChart(), CustomerStats, Lang, Panel(), QuoteSpreadChart(), RequestTrendChart(), SpendingIntelligence() (+21 more)
+
+### Community 323 - "verify_taxonomy.mjs"
+Cohesion: 0.10
+Nodes (20): DIR, errs, files, HAS_READER(), helpers, HERE, N_READERS(), one() (+12 more)
 
 ### Community 326 - "intent_router/index.ts"
 Cohesion: 0.33
@@ -1887,6 +1951,14 @@ Nodes (3): _cand, _src, _verdict
 Cohesion: 0.50
 Nodes (3): public.field_definition, public.inquiry_gate, public.mep_trade
 
+### Community 531 - "@radix-ui/react-scroll-area"
+Cohesion: 0.10
+Nodes (18): componentFor(), EDGE_FNS, EDGE_SRC, EDGE_TABLES, FN_DIR, MODULES, nComponents(), renderedKeys() (+10 more)
+
+### Community 532 - "tailwind-merge"
+Cohesion: 0.20
+Nodes (16): ALL_READS(), closure(), componentFor(), COUNT_IF_EXISTS(), NOT_WRITER(), REL_EXISTS(), renderedKeys(), ROOT_FNS (+8 more)
+
 ### Community 662 - "component_10.mjs"
 Cohesion: 0.17
 Nodes (12): AE_READS, CMD_WRITES(), DL_READS, DR_READS, DT_CONSUMED, DT_READS, EA_READS, LIVE_READS() (+4 more)
@@ -1908,28 +1980,120 @@ Cohesion: 0.20
 Nodes (10): [comp-10-03-knowledge-retrieval], [comp-10-05-risk], [comp-10-05-risk], [comp-10-07-authority], [comp-10-07-authority], [comp-10-09-execution], [comp-10-09-execution], [comp-10-10-outcome] (+2 more)
 
 ### Community 754 - "meta_ads/index.ts"
+Cohesion: 0.12
+Nodes (7): CUST, EDGE, FNDIR, NOT_WRITER(), READER_NAMES(), READERS(), ROOT
+
+### Community 759 - "kb_autofill_gaps/index.ts"
+Cohesion: 0.13
+Nodes (18): ar(), call(), DiscoveryReachPanel(), DiscoveryReachPanelProps, HistoryProject, HistoryResponse, HistorySupplier, Lang (+10 more)
+
+### Community 775 - "components.json"
+Cohesion: 0.11
+Nodes (17): aliases, components, hooks, lib, ui, utils, iconLibrary, rsc (+9 more)
+
+### Community 776 - "entry_and_twin.mjs"
+Cohesion: 0.12
+Nodes (13): ALL_EDGE, ALL_SRC, AUTHED, CARD, DASH, EDGE, edgeSrc(), LIST() (+5 more)
+
+### Community 777 - "verify_portal_blueprint.mjs"
+Cohesion: 0.14
+Nodes (12): DIR, errs, HAS_READER(), helpers, JSON_OUT, N_READERS(), one(), ONLY (+4 more)
+
+### Community 778 - "projects_and_rfq.mjs"
+Cohesion: 0.16
+Nodes (11): custEdge, custEdgeText, gRe(), load(), ROOT, sCount(), sHas(), SRC (+3 more)
+
+### Community 779 - "ui_closure.mjs"
+Cohesion: 0.15
+Nodes (9): EDGE_FNS, EDGE_SRC, EDGE_TABLES, edgeClosure(), edgeSrc(), FN_DIR, REPO, SRC_DIR (+1 more)
+
+### Community 780 - "portal_surface.mjs"
+Cohesion: 0.15
+Nodes (9): componentSrc(), CUST_FNS, CUST_SRC, EDGE, PORTAL_FILES, PORTAL_SRC, ROOT, SRC (+1 more)
+
+### Community 781 - "verify_portal_rfq.mjs"
+Cohesion: 0.15
+Nodes (10): act, d, denied, fail, leaked, my, p0, p1 (+2 more)
+
+### Community 782 - "Vendor evaluation — CAD / OCR / ERP references"
+Cohesion: 0.18
+Nodes (10): cad2data-Revit-IFC-DWG-DGN — https://github.com/datadrivenconstruction/cad2data-Revit-IFC-DWG-DGN, cad-viewer — https://github.com/mlightcad/cad-viewer, Configuration required by these clones, MinerU — https://github.com/opendatalab/MinerU, OpenConstructionERP — https://github.com/datadrivenconstruction/OpenConstructionERP, PaddleOCR — https://github.com/PaddlePaddle/PaddleOCR, Summary, The capability that already exists (+2 more)
+
+### Community 783 - "approvals_and_orders.sql"
+Cohesion: 0.25
+Nodes (8): public.fn_approval_list(), public.fn_approval_raise_on_award(), public.fn_customer_orders(), public.fn_po_orders_link(), public.po_orders, public.v_approval_trace, trg_approval_raise_on_award, trg_po_orders_link
+
+### Community 785 - "verify_approval_chain.mjs"
+Cohesion: 0.24
+Nodes (10): actors, eq(), fails, ids, ok(), one(), R(), STEPS (+2 more)
+
+### Community 786 - "verify_constraints.mjs"
+Cohesion: 0.18
+Nodes (8): APPLY, checks, extraCK, extraNN, missCK, missNN, set(), stmts
+
+### Community 787 - "portal_row4_schema.sql"
 Cohesion: 0.33
-Nodes (5): backdate(), checks, lead(), one(), sweep()
+Nodes (8): public.chat_threads, public.customer_calls, public.customer_layout, public.customers, public.inquiries, public.messages, public.project_component, public.shipment_leg
+
+### Community 788 - "verify_portal_inbox.mjs"
+Cohesion: 0.20
+Nodes (7): answers, fail, run, t, v, vBad, vLegacy
+
+### Community 789 - "dropbox_sync/index.ts"
+Cohesion: 0.24
+Nodes (6): accessToken(), admin, logRun(), logThrottled(), sec(), T0
+
+### Community 791 - "prove_a01_remediation.mjs"
+Cohesion: 0.29
+Nodes (7): APPLY, COLS, exportSha, log, one(), REF, say()
+
+### Community 792 - "content_revise/index.ts"
+Cohesion: 0.33
+Nodes (5): admin, authed(), CORS, llm, sec()
+
+### Community 793 - "customer_documents/index.ts"
+Cohesion: 0.29
+Nodes (3): admin, CORS, Doc
+
+### Community 795 - "THE SPEC FILES ARE UPGRADES, NOT REPAIR TICKETS"
+Cohesion: 0.33
+Nodes (5): How this changes the work, The rule, THE SPEC FILES ARE UPGRADES, NOT REPAIR TICKETS, What does NOT change, What triggered it
+
+### Community 796 - "verify_portal_entry.mjs"
+Cohesion: 0.33
+Nodes (4): fail, present, run, TWIN_KEYS
+
+### Community 801 - "PAUSED 2026-08-06 ~16:00 UTC — rows #2 and #3, both resumable without re-deriving anything"
+Cohesion: 0.40
+Nodes (4): PAUSED 2026-08-06 ~16:00 UTC — rows #2 and #3, both resumable without re-deriving anything, ROW #2 (OS.txt) — 107/110 (97%). Baseline at session start was 47/110., ROW #3 (OS 2.txt) — NOT MEASURED. Scorer built but never run to completion., THE FIVE SCORER DEFECT CLASSES — carry these into every future row
+
+### Community 811 - "row4_intelligence_ddl.sql"
+Cohesion: 0.67
+Nodes (3): public.inquiries, public.project_summary, public.supplier_negotiation_policy
+
+### Community 812 - "20260806192000_row4_customer_portal_intelligence_schema.sql"
+Cohesion: 0.67
+Nodes (3): public.inquiries, public.project_summary, public.supplier_negotiation_policy
 
 ## Knowledge Gaps
-- **3214 isolated node(s):** `npx`, `@playwright/mcp`, `holdout_v2.failure_analysis`, `holdout_v2.root_cause`, `files` (+3209 more)
+- **3456 isolated node(s):** `npx`, `@playwright/mcp`, `$schema`, `style`, `rsc` (+3451 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **166 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **190 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `get()` connect `customer_api/index.ts` to `exec_board/index.ts`, `sync_staging_reference.mjs`?**
-  _High betweenness centrality (0.053) - this node is a cross-community bridge._
-- **Why does `mgmtRead()` connect `exec_board/index.ts` to `customer_api/index.ts`, `verify_os_knowledge_cluster.mjs`, `export_leads_csv/index.ts`, `verify_constraints.mjs`, `pending_digest/index.ts`, `prompt_improve/index.ts`, `backfill_production_embeddings.mjs`, `vt_scan/index.ts`, `verify_event_contract.mjs`, `verify_spec_architecture.mjs`, `crm_pipeline/index.ts`, `meta_ads/index.ts`, `sync_org_config_to_staging.mjs`, `export_cat_knowledge/index.ts`, `verify_phase1.mjs`, `portal/page.tsx`, `import_ops_knowledge.mjs`, `verify_agent_knowledge.mjs`, `quote_pdf/index.ts`, `quote_pdf/index.ts`, `meta_ads/index.ts`, `sync_staging_reference.mjs`, `make_xlsx/index.ts`, `pdpl_erase/index.ts`, `retention_purge/index.ts`?**
-  _High betweenness centrality (0.051) - this node is a cross-community bridge._
-- **What connects `npx`, `@playwright/mcp`, `holdout_v2.failure_analysis` to the rest of the system?**
-  _3214 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `OsxShell.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.04225352112676056 - nodes in this community are weakly interconnected._
+- **Why does `w()` connect `exec_board/index.ts` to `@radix-ui/react-separator`, `customer_api/index.ts`, `crm_pipeline/index.ts`, `verify_repo_production_parity.mjs`, `SONNET_FIRST`, `supplier_api/index.ts`, `clsx`, `dropbox_backup/index.ts`?**
+  _High betweenness centrality (0.112) - this node is a cross-community bridge._
+- **Why does `cn()` connect `cn` to `vt_scan/index.ts`, `CustomerPortal.tsx`, `verify_review_chain.mjs`, `button.tsx`, `@radix-ui/react-separator`, `sync_staging_reference.mjs`, `SONNET_FIRST`, `kb_autofill_gaps/index.ts`, `backfill_production_embeddings.mjs`, `clsx`, `doc_extract/index.ts`?**
+  _High betweenness centrality (0.062) - this node is a cross-community bridge._
+- **Why does `mgmtWrite()` connect `crm_pipeline/index.ts` to `verify_event_contract.mjs`, `quote_pdf/index.ts`, `verify_os_knowledge_cluster.mjs`, `portal/page.tsx`, `meta_ads/index.ts`, `import_ops_knowledge.mjs`, `export_leads_csv/index.ts`, `sync_org_config_to_staging.mjs`, `verify_approval_chain.mjs`, `verify_constraints.mjs`, `exec_board/index.ts`, `pending_digest/index.ts`, `prove_a01_remediation.mjs`, `make_xlsx/index.ts`, `pdpl_erase/index.ts`?**
+  _High betweenness centrality (0.044) - this node is a cross-community bridge._
+- **What connects `npx`, `@playwright/mcp`, `$schema` to the rest of the system?**
+  _3456 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `pdf_native/index.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.09796806966618288 - nodes in this community are weakly interconnected._
 - **Should `CustomerPortal.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.06448979591836734 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05909090909090909 - nodes in this community are weakly interconnected._
 - **Should `cn` be split into smaller, more focused modules?**
   _Cohesion score 0.07918367346938776 - nodes in this community are weakly interconnected._

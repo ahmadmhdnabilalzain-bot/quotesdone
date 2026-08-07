@@ -2046,3 +2046,7 @@
 [2026-08-06T23:53:38.955Z] [INFO] Worker optimize deferred: Memory too low: 4.8% free
 [2026-08-06T23:56:28.104Z] [INFO] Worker consolidate deferred: Memory too low: 8.1% free
 [2026-08-06T23:56:39.175Z] [INFO] Worker audit deferred: Memory too low: 7.6% free
+[2026-08-07T00:04:39.038Z] [INFO] Worker map deferred: Memory too low: 4.6% free
+[2026-08-07T00:06:39.183Z] [INFO] Worker audit deferred: Memory too low: 7.5% free
+[2026-08-07T00:08:38.968Z] [INFO] Worker optimize deferred: Memory too low: 7.5% free
+[2026-08-07T00:12:38.881Z] [INFO] Worker testgaps deferred: Memory too low: 8.6% free

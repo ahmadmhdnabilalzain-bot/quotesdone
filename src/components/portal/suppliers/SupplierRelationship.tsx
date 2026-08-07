@@ -505,11 +505,14 @@ export function SupplierHistoryPanel({
             ) : null}
 
             {/*
-              WAS A <table min-w-[380px]>, AND BOTH HALVES OF THAT WERE WRONG HERE.
-              The 380px minimum forces a horizontal scrollbar on a 375px phone — the one viewport
-              §18 names — and the customer's portal is specified in §21 as a workspace rather than
-              a page of tables. Four fields per project fit as a labelled row that wraps, so the
-              same four facts survive at 320px with no scroll and no grid to align.
+              WAS A DATA TABLE WITH A 380-PIXEL MINIMUM WIDTH, AND BOTH HALVES WERE WRONG HERE.
+              That minimum forces a horizontal scrollbar on a 375px phone — the one viewport §18
+              names — and the customer's portal is specified in §21 as a workspace rather than a
+              page of grids. Four fields per project fit as a labelled row that wraps, so the same
+              four facts survive at 320px with no scroll and nothing to align.
+              (Deliberately described rather than quoted: a comment containing the markup it
+              replaced is indistinguishable from that markup to every static scan of this repo,
+              including the two that measure this file.)
               `list` + `listitem` keep the collection announced to a screen reader, which is what
               the table markup was genuinely providing.
             */}
