@@ -43,7 +43,7 @@
 // A COMMENT QUOTING THE MARKUP IT REMOVED IS THAT MARKUP TO A STATIC SCAN. Row #4 lost two
 // requirements to a comment reading `WAS A <table min-w-[380px]>`. Counts that must not be fooled
 // by prose strip block and line comments from the surface first — see SRC_NC below.
-import { SUPPLIER } from '../portal_surface.mjs';
+import { SUPPLIER, srcOf, EDGE } from '../portal_surface.mjs';
 
 export const EXPECTED = 29;
 
@@ -68,8 +68,23 @@ export default async function (H) {
   const S = SUPPLIER.SRC;                 // the supplier's screen, whole import closure
   const FN = SUPPLIER.FN_SRC;             // every edge function that screen can cause to run
   const FILES = SUPPLIER.FILES;
+  const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
   // Comment-stripped surface, for any count a comment could fake. See the trap note above.
-  const SRC_NC = S.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+  const SRC_NC = strip(S);
+
+  // ── THE CHROME IS ON THE SUPPLIER'S PAGE, BUT IT IS NOT THE SUPPLIER PORTAL ────────────────────
+  // ChatWidget.tsx is the MARKETING chat bubble and it is in the closure, so a naive scan for a
+  // conversation shape finds role:'user' five times and certifies an "AI onboarding conversation"
+  // that does not exist. Measured: role:'user'|'assistant' appears 5x in ChatWidget.tsx and 0x
+  // anywhere else on the surface. Row #4's spatial module drew this exact line — a cookie banner
+  // that fades in is not "the portal animates", and a marketing chat bubble is not the portal's AI
+  // assistant module.
+  //
+  // The line is drawn ONLY where it belongs. §1's background legitimately uses the wide surface:
+  // NodeField.tsx IS the animated landing background the supplier genuinely sees. §2's conversation
+  // and assistant legs use ASSIST_NC, which is the surface with the marketing widget removed.
+  const CHROME = ['src/components/ChatWidget.tsx'];
+  const ASSIST_NC = strip(FILES.filter((f) => !CHROME.includes(f)).map((f) => srcOf(f)).join('\n/*FILE*/\n'));
 
   // THE `g` FLAG IS FORCED, AND THIS IS NOT TIDINESS. String.match with a NON-global regex returns
   // the first match plus its capture groups, so `n()` returned 1 (or 1+groups) for every pattern
@@ -128,9 +143,13 @@ export default async function (H) {
   await req(SEC1, 'entry-bg-animated-network', 'an animated supply-network background',
     B(anim > 0), Q(`${anim} animation token(s) on the supplier surface`));
 
+  // MOVING connections is two claims, and one token satisfied neither. The first version passed on
+  // a single match of a loose regex; the spec asks for connections that MOVE, so the animation leg
+  // is required alongside. Both legs are reported so a MISSING names the one that failed.
   const conn = n(/(edge|link|connection|line)s?\b[^;]{0,40}(supplier|project|node)/i);
   await req(SEC1, 'entry-bg-moving-connections', 'moving connections between suppliers and projects',
-    B(conn > 0), Q(`${conn} connection-between-entities token(s)`));
+    B(conn > 0 && anim > 0),
+    Q(`${conn} connection token(s) x ${anim} animation token(s) — the spec says MOVING, so both are required`));
 
   const worldmap = n(/world ?map|<Globe|globe|geoJson|latitude|longitude|mapbox|leaflet/i);
   await req(SEC1, 'entry-bg-world-map', 'a world map visualization',
@@ -147,10 +166,14 @@ export default async function (H) {
   // §2 — AI SUPPLIER ONBOARDING (11)
   // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-  // A conversational surface is a message list plus a free-text composer, not merely the word "AI".
-  const convo = has(/messages?\s*\.map|role:\s*['"](user|assistant)['"]|chat[A-Z_]/);
+  // A conversational ONBOARDING surface is a turn-taking message list inside the portal itself.
+  // Scored over ASSIST_NC so the marketing chat bubble cannot certify it — see the CHROME note.
+  const convoWide = n(/role:\s*['"](user|assistant)['"]/i);
+  const convoReal = n(/role:\s*['"](user|assistant)['"]/i, ASSIST_NC) + n(/messages?\s*\.map/i, ASSIST_NC);
   await req(SEC2, 'onb-ai-conversation', 'a conversational onboarding surface exists instead of a form',
-    B(convo), Q(`conversation shape ${convo ? 'present' : 'ABSENT'}; ${inputs} form control(s) alongside`));
+    B(convoReal > 0),
+    Q(`${convoReal} turn-taking token(s) in the portal; ${convoWide} on the whole surface ` +
+      `(the difference is ChatWidget.tsx, the marketing bubble); ${inputs} form control(s) alongside`));
 
   const askCompany = n(/tell me about your (company|business)|about your company/i);
   await req(SEC2, 'onb-prompt-tell-me', 'the agent opens by asking the supplier about their company',
@@ -170,12 +193,38 @@ export default async function (H) {
     ['capability', /capabilit(y|ies)/i],
     ['markets', /\bmarkets?\b|service[_ ]?emirates|countries/i],
   ];
+  //
+  // ── WHY THE OBVIOUS TWO-LEG TEST IS WRONG HERE, AND WHAT REPLACED IT ──────────────────────────
+  // The first version asked "does the endpoint mention this field AND does the surface mention it".
+  // All six passed. Attribution showed every match came from SupplierPortal.tsx's CRUD FORM —
+  // /\bcategory\b/ matches a <label>, /\blocation\b|\bcity\b/ matched 26 times in address fields.
+  // Six false METs, and the spec's actual claim ("the AI creates the supplier profile
+  // automatically" FROM A SENTENCE) was never tested at all. A field appearing on a form the
+  // supplier types into by hand is the precise OPPOSITE of what §2 asks for.
+  //
+  // The gate is therefore the mechanism, not the vocabulary: there must be a free-text -> structure
+  // path — a prompt naming the field, or an AI endpoint returning it — before any per-field leg can
+  // count. Without one, no amount of field vocabulary can pass, which is the correct behaviour.
+  //
+  // AND THE PROXIMITY SCAN MUST BE PER-FUNCTION, NOT OVER THE CONCATENATION. The second version
+  // searched `field ... within 400 chars ... (prompt|json|schema)` across FN_SRC — which is all
+  // fourteen reachable edge functions joined end to end. A field name in supplier_api could pair
+  // with the word `json` in wa_optin_set and score a MET. All six passed again for that reason.
+  // Windowing across a concatenation is the same error as scoring a route by one file: the join is
+  // an artefact of the scan, not a fact about the product. Each function is scored on its own text.
+  const AI_FNS = ['profile_ai', 'ai_gateway', 'license_extract'].filter((f) => SUPPLIER.FNS.includes(f));
+  const aiSrc = AI_FNS.map((f) => [f, strip(EDGE.get(f) || '')]);
+  const promptish = /prompt|system[_ ]?message|completion|response_format|json[_ ]?schema/i;
   for (const [field, re] of EXTRACT) {
-    const inFn = re.test(FN);          // an endpoint the supplier's page can reach extracts it
-    const onScreen = re.test(SRC_NC);  // and the surface shows the extracted value back
+    // A field is EXTRACTED only if ONE AI function both names it and carries a prompt/schema
+    // construct. The form leg is reported separately so a MISSING says which leg is absent.
+    const hits = aiSrc.filter(([, src]) => re.test(src) && promptish.test(src)).map(([f]) => f);
+    const inPrompt = hits.length > 0;
+    const onForm = re.test(SRC_NC);
     await req(SEC2, `onb-extract-${field.replace(/_/g, '-')}`, `AI extraction yields ${field}`,
-      B(inFn && onScreen),
-      Q(`${field}: endpoint ${inFn ? 'yes' : 'NO'}, surface ${onScreen ? 'yes' : 'NO'} (both legs required)`));
+      B(inPrompt),
+      Q(`${field}: extracted by [${hits.join(' ') || 'NO fn'}], form field ${onForm ? 'yes' : 'no'} ` +
+        `(a form field is NOT extraction); ${AI_FNS.length} AI endpoint(s) reachable, scored per-fn`));
   }
 
   // The profile must be WRITTEN, not merely displayed. Scored over the reachable edge functions,
@@ -221,12 +270,29 @@ export default async function (H) {
     ['best-opportunities', /best[_ ]?opportunit|recommended[_ ]?project|opportunit/i, 'best opportunities'],
     ['risk-level', /risk[_ ]?level|\brisk\b/i, 'risk level'],
   ];
+  //
+  // THE RENDER LEG IS AN INTERPOLATION, NOT AN OCCURRENCE. The first version asked only whether the
+  // field name appeared on the surface, and three passed on SupplierPortal.tsx's CRUD form —
+  // /\bproducts\b/ matched a form label seven times. A field the supplier TYPES is not a twin
+  // DISPLAYING what the AI computed about them; it is the opposite claim. `delivered()` requires
+  // the name inside a JSX interpolation, so an <Input name="products"> cannot satisfy it while
+  // {twin.products} can. This is defect class #2 — population standing in for delivery.
+  //
+  // THE SERVER LEG IS THE TWIN'S OWN ENDPOINT, NOT "ANY OF FOURTEEN". `re.test(FN)` searched all
+  // fourteen reachable functions joined together, so `capability` matching in rfq_flag certified a
+  // twin field. The twin is what the supplier's own profile endpoint returns about them, so the
+  // leg is scored per-function over the endpoints that actually serve it, and the evidence NAMES
+  // the function — an unnamed "endpoint yes" is evidence that does not compute the verdict.
+  const TWIN_FNS = ['supplier_portal', 'supplier_api', 'profile_ai'].filter((f) => SUPPLIER.FNS.includes(f));
+  const twinSrc = TWIN_FNS.map((f) => [f, strip(EDGE.get(f) || '')]);
   for (const [id, re, label] of TWIN) {
-    const onScreen = re.test(SRC_NC);
-    const fromServer = re.test(FN);
+    const shown = delivered(re);       // rendered as a value, not offered as a form field
+    const occurs = re.test(SRC_NC);    // reported so a MISSING says which leg failed
+    const served = twinSrc.filter(([, src]) => re.test(src)).map(([f]) => f);
     await req(SEC3, `twin-${id}`, `the twin shows ${label}`,
-      B(onScreen && fromServer),
-      Q(`${label}: surface ${onScreen ? 'yes' : 'NO'}, endpoint ${fromServer ? 'yes' : 'NO'}; ${scoreRows} supplier_score row(s) exist`));
+      B(shown && served.length > 0),
+      Q(`${label}: rendered ${shown ? 'yes' : 'NO'} (mentioned ${occurs ? 'yes' : 'no'}), served by ` +
+        `[${served.join(' ') || 'NO fn'}]; ${scoreRows} supplier_score row(s) exist so a MISSING is not an empty estate`));
   }
 
   // The whole-section delivery leg: is the twin actually on the supplier's screen as a unit?

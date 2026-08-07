@@ -124,3 +124,27 @@ gate_empty_in_window   17  (was 29; draining as predicted)
 roughly **9h40m after this session started**. No code will change either verdict; re-running before
 those times cannot close them. `contract-consolidation` remains the founder throughput decision
 (19% of 675 closed against a required 50%); unchanged and not code-blocked.
+
+---
+
+## REFUTATION ROUND 1 COMPLETE — MODULE 1 IS `10/29`, AND THAT NUMBER IS QUOTABLE
+Raw run was 17/29. Refutation removed **seven false METs**. Every surviving MET now names the
+function or file that satisfied it, so the evidence computes the verdict.
+
+| defect | checks | cause | fix |
+|---|---|---|---|
+| marketing bubble certifies the portal | `onb-ai-conversation` | `ChatWidget.tsx` is in the supplier closure and supplies **5** `role:'user'` tokens; the portal itself supplies **0** | assistant legs score over `ASSIST_NC` = surface minus the marketing widget |
+| a form field read as AI extraction | 6 × `onb-extract-*` | `/\bcategory\b/` matched a `<label>`; `/\blocation\b\|\bcity\b/` matched **26** address fields. A field the supplier TYPES is the opposite of §2's claim | gate is the mechanism: one AI fn must name the field **and** carry a prompt/schema |
+| proximity scan across a concatenation | 6 × `onb-extract-*` (2nd attempt) | `field … within 400 chars … json` over **14 functions joined end to end** — a field in `supplier_api` paired with `json` in `wa_optin_set` | scored **per function**, never over the join |
+| any-of-14 read as "the twin's endpoint" | 3 × `twin-*` | `re.test(FN)` searched all 14 joined; `capability` matching in `rfq_flag` certified a twin field | scored per-fn over `supplier_portal`/`supplier_api`/`profile_ai`, and the evidence NAMES them |
+| one token read as "MOVING connections" | `entry-bg-moving-connections` | single loose match, no motion leg | requires connection **and** animation tokens |
+
+**Method note for the remaining five modules:** three of the five defects above are the same error —
+*a scan whose population is an artefact of the scan* (a concatenation, a closure joined end to end,
+a widened window). Write every leg per-file or per-function from the start, and make the evidence
+name the file or function that satisfied it. An unnamed "endpoint yes" cannot be refuted.
+
+### Module 1 surviving METs (10) — each with named evidence
+`entry-landing-route` · `entry-bg-animated-network` · `entry-bg-moving-connections` ·
+`onb-freetext-input` · `onb-creates-profile` · `onb-extraction-routine` · `twin-object` ·
+`twin-capabilities-list` · `twin-product-count` · `twin-certifications`
