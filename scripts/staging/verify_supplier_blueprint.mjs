@@ -81,13 +81,36 @@ const one = async (sql) => { const r = await q(sql); return r ? Object.values(r)
 
 // A requirement is MET only when its evidence query returns true. `evidence` prints either way, so
 // a MET verdict carries its proof and a MISSING verdict carries the number that refutes it.
+//
+// ── AN EVIDENCE FAILURE MUST INVALIDATE THE VERDICT, NOT SURVIVE IT ─────────────────────────────
+// Both queries used to share ONE try/catch. When the verdict succeeded and the EVIDENCE threw, `ok`
+// kept the value it had already been assigned and the check printed:
+//
+//     MET     qb-routine     ERROR REFUSED: read is not read-only; use mgmtWrite against a branch
+//
+// A MET whose evidence errored is a claim with nothing behind it — precisely the thing this
+// scorer's evidence discipline exists to prevent, arriving through the error path instead of
+// through a loose regex. It was ALSO double-counted: listed among the errored checks at the bottom
+// while still adding 1 to `met` at the top, so the percentage was inflated by exactly the checks
+// the report said were unmeasured.
+//
+// The two queries are now caught separately and an evidence failure forces ok=false, so the check
+// lands in the ERRORED list as an unmeasured requirement and nowhere near the numerator.
 async function req(section, id, name, sql, evidenceSql) {
   if (ONLY && !section.startsWith(ONLY) && !id.startsWith(ONLY)) return;
   let ok = false, ev = '';
   try {
     ok = String(await one(sql)) === 'true';
-    ev = evidenceSql ? String(await one(evidenceSql)) : '';
-  } catch (e) { ev = 'ERROR ' + String(e.message || e).slice(0, 110); }
+  } catch (e) {
+    ok = false; ev = 'ERROR(verdict) ' + String(e.message || e).slice(0, 100);
+  }
+  if (!String(ev).startsWith('ERROR')) {
+    try {
+      ev = evidenceSql ? String(await one(evidenceSql)) : '';
+    } catch (e) {
+      ok = false; ev = 'ERROR(evidence) ' + String(e.message || e).slice(0, 100);
+    }
+  }
   rows.push({ section, id, name, ok, ev });
   console.log(`${ok ? 'MET    ' : 'MISSING'} ${id.padEnd(30)} ${String(ev).slice(0, 96)}`);
 }

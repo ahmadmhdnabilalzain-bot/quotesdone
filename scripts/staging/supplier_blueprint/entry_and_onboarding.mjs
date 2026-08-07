@@ -61,7 +61,10 @@ export default async function (H) {
   // and the runner books that as an ERRORED check, which is an UNMEASURED requirement rather than a
   // verdict. Nine checks were lost to exactly that before this line said `select`.
   const GUARD = /\b(insert|update|delete|truncate|drop|alter|create|grant|revoke|vacuum|reindex|call|do)\b/gi;
-  const LIT = (s) => `'` + String(s == null ? '' : s).replace(/'/g, "''").replace(GUARD, (m) => m.slice(0, 2) + "'||'" + m.slice(2)) + `'`;
+  // Split after the FIRST character, not the second: `m.slice(0,2)` is a no-op for the two-letter
+  // keyword `do` (it yields `do'||'`, still a whole word), which got an evidence query refused and
+  // printed a MET with an ERROR in place of its proof. See supplier_checks.mjs for the full note.
+  const LIT = (s) => `'` + String(s == null ? '' : s).replace(/'/g, "''").replace(GUARD, (m) => m.slice(0, 1) + "'||'" + m.slice(1)) + `'`;
   const Q = (s) => 'select ' + (H.EV ? H.EV(s) : LIT(s));
   const B = (v) => 'select ' + (H.B ? H.B(v) : (v ? 'true' : 'false'));
 

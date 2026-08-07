@@ -231,3 +231,53 @@ the brief said. Every check written against the monolith is weaker than it looks
 - `prod-count-products` / `-categories` / `-attributes` — rendered NO, served by NO fn.
 - §8 is **0/8** on everything except the (now failing) match routine: no product card component exists.
 - The only product data on production is `leads.products`, a **free-text comma-separated column**.
+
+---
+
+## MODULE 4 BUILT AND REFUTED — `rfq_and_quoting.mjs`, §9 §10 §11 §12, EXPECTED 33
+Modules 1-4 register **116/116** (29+31+23+33), zero errored, no denominator mismatch: **29/116**.
+§9 = 5/9, §10 = 0/8, §11 = 2/9, §12 = 0/7.
+
+### ⚠⚠ RUNNER DEFECT — a MET with an ERROR where its proof should be
+`req()` wrapped the verdict query and the evidence query in ONE try/catch. When the verdict
+succeeded and the EVIDENCE threw, `ok` kept the value it already had and the check printed:
+
+```
+MET     qb-routine     ERROR REFUSED: read is not read-only; use mgmtWrite against a branch
+```
+
+It was **double-counted**: listed among the errored checks at the bottom *and* adding 1 to `met` at
+the top, so the percentage was inflated by exactly the checks the report called unmeasured. The two
+queries are now caught separately and an evidence failure forces `ok=false`.
+
+**Root cause of the refusal, and it is subtle:** `Q()` defused write keywords by inserting `'||'`
+after the **second** character. That works for every keyword of 3+ letters (`create` → `cr'||'eate`)
+and is a **NO-OP for the two-letter keyword `do`** — `do'||'` is still a whole word, because the
+quote is a non-word character and `\bdo\b` still matches. An evidence string reading *"N fn(s) DO
+quote extraction"* was refused by qd_guard. **Split is now after the first character**
+(`d'||'o`), fixed in `supplier_checks.mjs` and in module 1's local copy.
+
+### Refutation round 4 — nine false METs removed
+§9 initially read **7/9**, and the instrument's own evidence gave it away: `rfq-requirement`
+*"served by [kyc login_otp role_guard …]"*, `rfq-deadline` *"served by [login_otp …]"*.
+**login_otp does not serve an RFQ deadline.** The regexes were matching platform plumbing:
+
+| token | what it really matched |
+|---|---|
+| `/scope/` | OAuth/JWT scope in `login_otp`, `role_guard` |
+| `/expires?_at/` | the OTP's own expiry |
+| `/\btitle\b/` | any HTML title attribute |
+| `/\bunits?\b/` | any occurrence of the word |
+| `/requests?/` | HTTP "request" in `layout.tsx` — site chrome with no opportunity list |
+| `/score/ near /limit/` | `ai_gateway`, which ranks nothing |
+| `/ask/` | **ChatWidget.tsx a third time** |
+
+Fix: an `RFQCTX` gate — the field must sit near RFQ subject matter **inside the same function** —
+plus `P_FILES` (portal files, chrome excluded) now exported so the wide list is not the default.
+`qb-routine` additionally now requires the PROPOSAL vocabulary (price / delivery / warranty) rather
+than the word "recommend", which had passed on `messages_api`.
+
+### THE RECURRING NAME: ChatWidget.tsx has produced a false MET in THREE separate sections
+§2 `onb-ai-conversation`, §4 `cc-assistant-panel` (its intra-file twin, the support chat), §11
+`qb-nl-intent`. Every "does the portal converse / assist / accept intent" leg must use `P_FILES`
+or `P`, never `FILES` or `S`. This is now the default-shaped fix rather than a per-check patch.

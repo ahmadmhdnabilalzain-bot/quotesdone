@@ -40,6 +40,10 @@ export const S = strip(SUPPLIER.SRC);
  *  "the portal does X" leg — assistant, modules, navigation, intelligence. */
 export const P = strip(SUPPLIER.FILES.filter((f) => !CHROME.includes(f)).map(srcOf).join('\n/*FILE*/\n'));
 export const FILES = SUPPLIER.FILES;
+/** The portal's own files — FILES minus the marketing chrome. Pass this to filesNear/filesMatching
+ *  for any "the portal does X" leg. Three separate false METs in this row were ChatWidget.tsx
+ *  answering for the portal, and defaulting to the wide list is what let it keep happening. */
+export const P_FILES = SUPPLIER.FILES.filter((f) => !CHROME.includes(f));
 export const FNS = SUPPLIER.FNS;
 
 /** Per-file source, comment-stripped, so a leg can name WHICH file satisfied it. */
@@ -70,6 +74,41 @@ export const fnsMatching = (re, candidates = FNS) =>
 export const fnsWithBoth = (reA, reB, candidates = FNS) =>
   candidates.filter((f) => FNS.includes(f) && reA.test(fnSrc(f)) && reB.test(fnSrc(f)));
 
+/**
+ * Two patterns within `win` characters of each other IN THE SAME TEXT.
+ *
+ * ── WHY THIS EXISTS, AND WHY IT IS NOT THE THING ROUND 1 BANNED ─────────────────────────────────
+ * Round 1 killed a proximity scan because it windowed across a CONCATENATION of fourteen edge
+ * functions — a field in supplier_api paired with a token in wa_optin_set, and the adjacency was an
+ * artefact of the join. That remains banned: never pass a concatenation here.
+ *
+ * Round 3 found the opposite failure. `SupplierPortal.tsx` is 81,811 stripped characters and holds
+ * the settings form, the registration uploader, the help desk, the catalog uploader AND the command
+ * centre. Asking "does this FILE contain both X and Y" is nearly vacuous against it — per-file
+ * scoping, which was the round-1 fix, is too coarse when one file is the whole product.
+ *
+ * So the unit shrinks again: within ONE file's own text, require the two things to be near each
+ * other. Adjacency inside a single file is a real fact about that file; adjacency across a join is
+ * not. Pass a single file's or a single function's source, never `P`, never `FN_SRC`.
+ */
+export const near = (text, reA, reB, win = 400) => {
+  const t = String(text);
+  const ga = new RegExp(reA.source, reA.flags.includes('g') ? reA.flags : reA.flags + 'g');
+  for (const m of t.matchAll(ga)) {
+    if (reB.test(t.slice(Math.max(0, m.index - win), m.index + win))) return true;
+  }
+  return false;
+};
+
+/** Which FILES carry both patterns within `win` chars of each other, scored per file. The
+ *  monolith-safe replacement for `filesMatching(a).filter(f => b.test(fileSrc(f)))`. */
+export const filesNear = (reA, reB, win = 400, files = FILES) =>
+  files.filter((f) => near(fileSrc(f), reA, reB, win));
+
+/** Which reachable FUNCTIONS carry both patterns within `win` chars, each scored on its OWN text. */
+export const fnsNear = (reA, reB, win = 400, candidates = FNS) =>
+  candidates.filter((f) => FNS.includes(f) && near(fnSrc(f), reA, reB, win));
+
 /** DELIVERY, not occurrence — defect class #2. A value is delivered only when it appears inside a
  *  JSX interpolation, so `<Input name="products">` (a field the supplier TYPES) cannot satisfy a
  *  requirement that the portal DISPLAYS what was computed about them. Those are opposite claims. */
@@ -91,10 +130,20 @@ export const cover = (items, t = P) => {
  *  way before this said `select`.
  *  Q also defuses bare write keywords: an evidence string quoting source easily contains `call` or
  *  `create`, qd_guard's read guard then refuses the statement as a write, and the check ERRORs. */
+//
+// ── THE SPLIT IS AT 1, NOT 2, AND THAT IS THE WHOLE POINT ───────────────────────────────────────
+// Defusing by inserting `'||'` after the second character works for every keyword of three or more
+// letters: `create` becomes `cr'||'eate` and `\bcreate\b` no longer matches. It is a NO-OP for the
+// two-letter keyword `do`, which becomes `do'||'` — still a complete word, because the following
+// quote is a non-word character and the boundary still holds.
+//
+// An evidence string reading "N fn(s) DO quote extraction" was therefore refused by qd_guard's read
+// guard, the evidence query threw, and the check printed `MET` with an ERROR where its proof should
+// have been. Splitting after the FIRST character defuses every length: `d'||'o`, `c'||'reate`.
 const GUARD = /\b(insert|update|delete|truncate|drop|alter|create|grant|revoke|vacuum|reindex|call|do)\b/gi;
 export const B = (v) => 'select ' + (v ? 'true' : 'false');
 export const Q = (s) =>
-  "select '" + String(s == null ? '' : s).replace(/'/g, "''").replace(GUARD, (m) => m.slice(0, 2) + "'||'" + m.slice(2)) + "'";
+  "select '" + String(s == null ? '' : s).replace(/'/g, "''").replace(GUARD, (m) => m.slice(0, 1) + "'||'" + m.slice(1)) + "'";
 
 /** Non-writer readers of a relation, overloads collapsed — defect class #1. `count(distinct proname)`
  *  because fn_agent_context has two rows on production and inflated every row #2 count that forgot;
