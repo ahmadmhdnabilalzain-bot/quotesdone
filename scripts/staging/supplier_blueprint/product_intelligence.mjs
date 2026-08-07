@@ -28,7 +28,7 @@
 // that does not exist, which is the single most valuable false MET available in this spec.
 import {
   S, P, FILES, FNS, fileSrc, fnSrc, n, has, filesMatching, fnsMatching, fnsWithBoth,
-  delivered, cover, B, Q, READERS_SQL, NROWS_SQL,
+  near, delivered, cover, B, Q, READERS_SQL, NROWS_SQL, rpcSources,
 } from '../supplier_checks.mjs';
 
 export const EXPECTED = 23;
@@ -45,6 +45,12 @@ export default async function (H) {
 
   const regTok = n(REGDOC, P);
   const prodTok = n(PRODUCTCTX, P);
+
+  // The serving population follows the rpc hop — see the long note in supplier_checks.mjs. §7's
+  // three counts read "served by [NO fn]" while supplier_portal was serving them through
+  // rpc('fn_supplier_products'), where the field names actually live. Same false MISSING §13 had.
+  const RPC = await rpcSources(one);
+  const servedBy = (re) => [...fnsMatching(re), ...RPC.filter(([, src]) => re.test(src)).map(([nm]) => nm)];
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════
   // §7 — PRODUCT INTELLIGENCE SYSTEM (14)
@@ -90,13 +96,29 @@ export default async function (H) {
   // a profile enricher writes a sentence. So the leg requires a reachable function that touches the
   // structured product store, and the free-text path is printed beside it so the evidence shows
   // exactly what exists instead — which is the honest answer to "is this built".
-  const structuredFns = fnsMatching(/supplier_product|supplier_catalog|product_variant/i);
-  const freetextFns = fnsWithBoth(/storage|upload|file|document|base64|arrayBuffer/i, PRODUCTCTX);
+  //
+  // ── READING THE PRODUCT STORE IS NOT CONVERTING A CATALOGUE INTO IT ──────────────────────────
+  // Once fn_supplier_products shipped, this leg read MET on "supplier_portal touches the structured
+  // product store" — and supplier_portal only READS it. §7's requirement is a CONVERSION: a
+  // catalogue goes in, product records come out. A reader satisfying an extraction requirement is
+  // a false MET of the most self-flattering kind, because the same commit that built the reader
+  // would appear to have built the extractor.
+  //
+  // The gate is therefore a WRITE into the product store, paired with file ingestion in the same
+  // function or routine. The reader is printed beside it so the evidence distinguishes "nothing
+  // exists" from "the read path exists and the extractor does not" — which is the true state.
+  const WRITE = /insert\s+into[^;]{0,80}supplier_(product|catalog)|\.from\(\s*['"]supplier_(product|catalog)[^)]*\)\s*\.\s*(insert|upsert)/i;
+  const INGEST = /storage|file_b64|arrayBuffer|base64|ai_gateway|extract/i;
+  const extractorFns = [
+    ...FNS.filter((f) => WRITE.test(fnSrc(f)) && INGEST.test(fnSrc(f))),
+    ...RPC.filter(([, src]) => WRITE.test(src)).map(([nm]) => nm),
+  ];
+  const readerFns = fnsMatching(/supplier_product|supplier_catalog|product_variant/i);
   await req(SEC7, 'prod-ai-extraction', 'a routine converts uploads into products',
-    B(structuredFns.length > 0),
-    Q(`${structuredFns.length} reachable fn(s) write/read the STRUCTURED product store ` +
-      `[${structuredFns.join(' ') || 'none'}]; ${freetextFns.length} fn(s) ingest a file and mention products ` +
-      `[${freetextFns.join(' ')}] but return a free-text list into leads.products — a sentence is not 12,500 attributes`));
+    B(extractorFns.length > 0),
+    Q(`${extractorFns.length} fn(s)/routine(s) WRITE the product store from an ingested file ` +
+      `[${extractorFns.join(' ') || 'none'}]; ${readerFns.length} merely read it [${readerFns.join(' ')}] ` +
+      `— a reader is not an extractor, and ${prodTok} product token(s) on the portal are not either`));
 
   // The three numbers §7's "After" panel draws. Empty tables, so the verdict is delivery and the
   // row count is printed beside it — never instead of it.
@@ -108,7 +130,7 @@ export default async function (H) {
     ['prod-count-attributes', /attribute[_ ]?count|specification[_ ]?count|attributes[_ ]?total|spec[_ ]?count/i, 'attribute count'],
   ]) {
     const shown = delivered(re);
-    const served = fnsMatching(re);
+    const served = servedBy(re);
     await req(SEC7, id, `the ${label} is surfaced to the supplier`,
       B(shown && served.length > 0),
       Q(`${label}: rendered ${shown ? 'yes' : 'NO'}, served by [${served.join(' ') || 'NO fn'}]; ` +
@@ -196,7 +218,25 @@ export default async function (H) {
   // would keep reading MET no matter how long §8 stayed missing. The leg therefore requires the
   // match to involve products, and prints the capability-matching estate beside it so the evidence
   // shows what does exist. Satisfiable: a correct §8 implementation has exactly this routine.
-  const productMatchFn = fnsWithBoth(/match[_ ]?(pct|percent|score)|fn_match|similarity|embedding/i, PRODUCTCTX);
+  // fnsWithBoth is TOO LOOSE for a function the size supplier_portal has grown to: it now serves
+  // nine actions, so an inquiry-level match in one action pairs with the word product in another
+  // and certifies a PRODUCT matcher that does not exist. Windowed within the function instead, and
+  // the rpc'd routines are searched too so a matcher living in SQL still counts.
+  //
+  // AND READING A STORED MATCH IS NOT COMPUTING ONE. The previous version passed on
+  // fn_supplier_products because that routine SELECTS `attributes ->> 'ai_match'` — a passthrough
+  // of whatever an extractor might one day have written. Proven at the same time: 0 of 4 products
+  // carry an ai_match and there are 0 inquiries to match against. A read of an always-null key
+  // cannot be the mechanism §8 asks for.
+  //
+  // A computation leaves a trace a passthrough cannot: vector distance, a similarity call, or
+  // arithmetic producing the score. That is what is required, alongside a product subject.
+  const MATCHRE = /match[_ ]?(pct|percent|score)|ai[_ ]?match/i;
+  const COMPUTES = /similarity\s*\(|<=>|<->|cosine|embedding|\bscore\s*[:=][^;]{0,40}[*+\/]|round\s*\([^)]{0,60}[*+]/i;
+  const productMatchFn = [
+    ...FNS.filter((f) => near(fnSrc(f), MATCHRE, PRODUCTCTX, 200) && COMPUTES.test(fnSrc(f))),
+    ...RPC.filter(([, src]) => near(src, MATCHRE, /product|sku|catalog/i, 200) && COMPUTES.test(src)).map(([nm]) => nm),
+  ];
   const anyMatchFn = fnsMatching(/match[_ ]?(pct|percent|score)|fn_match|similarity|embedding/i);
   const matchSql = await one(`select count(distinct p.proname) from pg_proc p
     join pg_namespace ns on ns.oid=p.pronamespace

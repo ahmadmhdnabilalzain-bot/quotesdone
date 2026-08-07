@@ -102,6 +102,24 @@ Deno.serve(async (req) => {
       return J({ ok: true, twin });
     }
 
+    // ROW #5 §7 §8 — PRODUCT INTELLIGENCE.
+    //
+    // supplier_product, supplier_product_variant and supplier_catalog are a complete schema —
+    // jsonb attributes, certifications, evidence_refs, catalog versioning by source_hash, variants
+    // with price and lead-time policy — that had 0 rows AND 0 readers on production, confirmed by
+    // two independent scans against a control. Built and abandoned. This is the read path.
+    //
+    // `q` searches names, brands, models, categories AND attribute values, so "5000 CFM" finds the
+    // unit whose specification says so rather than only matching a title.
+    if (action === 'products') {
+      const { data: prods, error } = await admin.rpc('fn_supplier_products', {
+        p_lead_id: supId,
+        p_query: typeof b.q === 'string' && b.q.trim() ? b.q.trim().slice(0, 120) : null,
+      });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...prods });
+    }
+
     if (action === 'documents') {
       // Column list is derived from DOC_KINDS so adding a document type here needs no edit below.
       const cols = new Set<string>(['catalog_doc_paths']);
