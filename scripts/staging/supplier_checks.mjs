@@ -23,7 +23,20 @@ import { SUPPLIER, srcOf, EDGE } from './portal_surface.mjs';
 /** Strip block and line comments. A COMMENT QUOTING MARKUP IS THAT MARKUP TO A STATIC SCAN — row #4
  *  lost two requirements to a comment reading `WAS A <table min-w-[380px]>`. Any count a comment
  *  could fake must run over stripped text. */
-export const strip = (t) => String(t || '').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+//
+// ── THE BRAND NAME IS NEUTRALISED, AND IT IS NOT COSMETIC ───────────────────────────────────────
+// The product is called **QuotesDone**, which contains the substring "quote". §24's
+// struct-quote-builder read MET on the page heading "quotesdone — supplier portal": the brand name
+// satisfying a requirement for an AI Quote Builder. Every /quote/ check in §9, §11 and §24 shares
+// the hazard, and the brand appears in titles, meta tags and copy on every single file.
+//
+// A product's own name is not evidence that it has a feature. The token is replaced with a
+// placeholder that matches nothing, in the ONE function every population flows through, so no
+// module can forget it.
+export const strip = (t) => String(t || '')
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/^\s*\/\/.*$/gm, ' ')
+  .replace(/quotesdone/gi, 'BRANDNAME');
 
 /** The site chrome. On the supplier's page, but NOT the supplier portal: a marketing chat bubble is
  *  not the portal's AI assistant and a cookie banner that fades in is not "the portal animates".

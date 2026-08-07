@@ -331,3 +331,72 @@ rendered, never served. And nothing recomputes the score on a schedule — it wa
 crons. `license_expiry` and `iso_expiry` are non-null on **0** of 20,464 rows. Scored **MET on the
 mechanism** with the emptiness in the evidence: failing a working monitor for having no data would
 be unsatisfiable until the business had customers, which is row #4's unsatisfiable-check defect.
+
+---
+
+# THE SCORER IS COMPLETE AND REFUTED — **58/234 (25%)**
+
+`node scripts/staging/verify_supplier_blueprint.mjs` — 234/234 checks register, **zero errored,
+zero denominator warnings, zero module aborts**. Full evidence: `docs/sessions/ROW5_SCORE.json`.
+
+| § | score | § | score | § | score |
+|---|---|---|---|---|---|
+| 1 Entry | 3/9 | 9 RFQ Center | 5/9 | 17 Risk | 4/8 |
+| 2 Onboarding | 3/11 | 10 RFQ Ranking | **0/8** | 18 Collaboration | **0/8** |
+| 3 Digital Twin | 4/9 | 11 Quote Builder | 1/9 | 19 Network Map | 1/7 |
+| 4 Command Center | 4/10 | 12 Negotiation | 1/7 | 20 Gamification | 3/8 |
+| 5 3D Environment | **0/12** | 13 Performance | 1/9 | 21 Mobile | 3/9 |
+| 6 Profile | 4/9 | 14 Market Intel | 1/7 | 22 UI Language | 3/13 |
+| 7 Product Intel | 3/14 | 15 AI Employee | **0/7** | 23 Technology | 6/15 |
+| 8 Product Cards | 1/9 | 16 Documents | 5/8 | 24 Structure | 2/19 |
+
+## MODULE 6 — `collab_map_mobile_ui.mjs`, §18-§24, EXPECTED 79
+Refutation round 6 removed two more false METs:
+- **`tech-r3f`** read MET while its own evidence said *"dependency not installed"* — an incoherent
+  verdict. `/<Canvas\b/i` matched a plain HTML `<canvas>`; the `i` flag made a raw canvas certify
+  React Three Fiber. Now requires an r3f-specific import or hook.
+- **`struct-quote-builder`** matched the page heading *"quotesdone — supplier portal"* — **the brand
+  name satisfying a requirement for an AI Quote Builder**, because *QuotesDone* contains "quote".
+  Fixed in `strip()` so every population in every module is brand-neutralised at one choke point.
+
+## §23 — THE FINDING NO MANIFEST-BASED CHECK COULD PRODUCE
+```
+three   ^0.180.0  INSTALLED   0 usages on the supplier surface
+motion  ^12.42.2  INSTALLED   0 usages
+cmdk      1.1.1   INSTALLED   0 usages
+d3            —   not installed
+```
+Bought and unused. Scoring §23 off `package.json` would have certified a 3D holographic workspace
+that renders as a plain form — and would keep certifying it forever, because nobody uninstalls a
+package. Backend AI is genuinely there: OpenRouter (`ai_gateway`, `messages_api`), pgvector with 5
+vector columns, an agent loop, document AI across 6 functions. **`graph_nodes` holds 324 rows with
+0 supplier-reachable readers** — the brief's BUILT_BUT_UNREAD case, confirmed.
+
+## §24 — THE STRUCTURE IS TWO OF NINETEEN
+The portal has **2 navigable destinations** (`profile`, `documents`) against the spec's nineteen
+modules. That single number is the most compact statement of the row's distance.
+
+## SIX REFUTATION ROUNDS — 24 false METs removed, raw would have read ~82/234
+| round | removed | headline defect |
+|---|---|---|
+| 1 | 7 | marketing chat bubble; form field read as AI extraction; proximity across a 14-function join |
+| 2 | 3 | `mobile_verified` read as Verified Supplier; support chat **inside** the monolith |
+| 3 | 3 (+2 defended) | free-text `leads.products` read as a product store; a UI caption read as a render |
+| 4 | 9 | OAuth `scope` / OTP `expires_at` read as RFQ fields; **runner counted a MET whose evidence errored** |
+| 5 | 2 | OTP expiry read as document expiry; **module abort hid 4 checks from the denominator** |
+| 6 | 2 | HTML `<canvas>` read as React Three Fiber; **the brand name read as a feature** |
+
+## NEXT — BUILD, in dependency order
+Largest gaps first: §24 structure (17), §5 3D environment (12), §7 product intelligence (11),
+§22 UI language (10), §23 technology (9), §8 cards (8), §10 ranking (8), §18 collaboration (8),
+§13 performance (8), §15 AI employee (7).
+
+**Split `SupplierPortal.tsx` (81,811 stripped chars) FIRST.** It holds the settings form, the
+registration uploader, the help desk, the catalog uploader, the RFQ inbox and the command centre,
+and it is the direct cause of three separate refutation rounds. Every check written against it is
+weaker than it looks.
+
+**Cheapest real wins, all measured:** §13 needs an endpoint returning `supplier_score` —
+`reliability` and `response_rate` are non-null on **20,464 of 20,464** rows and reach the supplier
+through no endpoint at all. §3's twin has the same inputs. That is one edge-function change moving
+several requirements at once.
