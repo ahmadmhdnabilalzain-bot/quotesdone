@@ -281,3 +281,53 @@ than the word "recommend", which had passed on `messages_api`.
 §2 `onb-ai-conversation`, §4 `cc-assistant-panel` (its intra-file twin, the support chat), §11
 `qb-nl-intent`. Every "does the portal converse / assist / accept intent" leg must use `P_FILES`
 or `P`, never `FILES` or `S`. This is now the default-shaped fix rather than a per-check patch.
+
+---
+
+## MODULE 5 BUILT AND REFUTED — `performance_and_risk.mjs`, §13-§17, EXPECTED 39
+Modules 1-5 register **155/155** (29+31+23+33+39), zero errored, zero denominator warnings: **40/155**.
+§13 = 1/9, §14 = 1/7, §15 = **0/7**, §16 = 5/8, §17 = 4/8.
+
+### ⚠⚠ THE DENOMINATOR ASSERTION EARNED ITS PLACE — a module ABORT that inflated the score
+`performance_and_risk.mjs registered 35 checks, expected 39`.
+
+The §17 monitor pattern contains the literal word **`drop`** (`performance[_ ]?drop|score[_ ]?drop`),
+so qd_guard's read guard refused the whole SELECT as a write. Those `one()` calls sit **outside**
+`req()`'s try/catch, so the throw did not error a single check — **it aborted the module and the
+last four requirements were never registered at all.**
+
+Without the assertion the run would have printed a clean `38/151` with four requirements silently
+absent from the denominator, which **inflates the percentage**. This is the row #2 lesson exactly:
+a section that quietly registers fewer checks raises the score by shrinking the denominator.
+
+Same root cause as the `do` bug in `Q()`: **a write keyword sitting inside text that is not a
+statement.** Fixed with a `SPLIT()` that defuses the keyword inside the SQL string — and it needed a
+second fix, because `||` binds looser than `~*` in Postgres, so `command ~* 'a' || 'b'` parses as
+`(command ~* 'a') || 'b'` and fails 42804. The expression must be parenthesised.
+
+### Refutation round 5
+`doc-status-valid` and `doc-expiry-date` both listed **`login_otp`** among their servers. Both were
+`email_verifications … expires_at` — **the OTP's own expiry** — sitting coincidentally inside the
+proximity window. §9's plumbing defect in a new costume: nearness to a subject word is not the same
+as being a field *about* that subject. Gates are now identifier-shaped (`license_expiry`,
+`iso_expiry`, `doc_status`), which correctly **kept** `supplier_api`'s genuine `license_expiry`
+while dropping the two false ones.
+
+### §13 — THE ROW'S HEADLINE DEFECT, NOW QUANTIFIED PER COLUMN
+```
+perf-delivery   rendered NO,  served by NO fn   reliability    non-null on 20464 of 20464
+perf-response   rendered YES, served by NO fn   response_rate  non-null on 20464 of 20464
+perf-quality    rendered NO,  served by NO fn   quality_rating non-null on  4477 of 20464
+perf-pricing    rendered NO,  served by NO fn   price_index    non-null on     0 of 20464
+perf-living     0 active crons recompute a score; 20464 of 20464 rows computed within 30d
+```
+`reliability` and `response_rate` are computed for **every single company on production** and reach
+the supplier's screen through **no endpoint at all**. `perf-response` is the dead-UI case again:
+rendered, never served. And nothing recomputes the score on a schedule — it was written once, so
+"a LIVING score" is false by measurement, not by opinion.
+
+### §17 — A REAL MONITOR WITH NOTHING TO MONITOR (scored honestly)
+`doc_expiry_daily` runs `fn_doc_expiry_scan()` nightly at 05:20 and is ACTIVE — 1 of 143 active
+crons. `license_expiry` and `iso_expiry` are non-null on **0** of 20,464 rows. Scored **MET on the
+mechanism** with the emptiness in the evidence: failing a working monitor for having no data would
+be unsatisfiable until the business had customers, which is row #4's unsatisfiable-check defect.
