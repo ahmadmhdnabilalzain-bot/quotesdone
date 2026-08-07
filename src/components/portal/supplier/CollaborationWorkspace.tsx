@@ -18,7 +18,7 @@
 //
 // timeline.pct is NULL before anything has happened, not 0%. A relationship that has not started is
 // not a relationship that is 0% complete.
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 type FileRow = { name?: string | null; kind?: string | null; category?: string; created_at?: string };
 type Workspace = {
@@ -30,6 +30,7 @@ type Workspace = {
   timeline?: { pct?: number | null; stages?: Record<string, number> };
 };
 type Payload = {
+  lead_id?: number;
   count?: number; note?: string | null;
   population?: { inquiries?: number; matches_for_me?: number };
   workspaces?: Workspace[];
@@ -57,7 +58,10 @@ const T = {
     empty: 'No customer relationships yet.',
     emptyWhy: 'A workspace opens when a customer is matched to you or messages you.',
     matched: 'Matched', messaged: 'Messaged', quoted: 'Quoted', awarded: 'Awarded',
-    open: 'Open messages',
+    open: 'Open full thread',
+    send: 'Send', sending: 'Sending…', sendFailed: 'Could not send. Try again.',
+    composerPlaceholder: 'Reply to this customer…',
+    composerBlocked: 'Messaging opens once this relationship has a supplier record.',
   },
   ar: {
     title: 'مساحات عمل العملاء', loading: 'جارٍ فتح مساحات العمل…',
@@ -67,12 +71,68 @@ const T = {
     empty: 'لا توجد علاقات عملاء بعد.',
     emptyWhy: 'تُفتح مساحة العمل عند مطابقتك بعميل أو مراسلته لك.',
     matched: 'مطابَق', messaged: 'مراسَل', quoted: 'مسعَّر', awarded: 'مُرسى',
-    open: 'فتح الرسائل',
+    open: 'فتح المحادثة كاملة',
+    send: 'إرسال', sending: 'جارٍ الإرسال…', sendFailed: 'تعذّر الإرسال. حاول مجددًا.',
+    composerPlaceholder: 'ردّ على هذا العميل…',
+    composerBlocked: 'تُفتح المراسلة بعد إنشاء سجل المورّد لهذه العلاقة.',
   },
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
 
 const STAGES: (keyof typeof T.en)[] = ['matched', 'messaged', 'quoted', 'awarded'];
+
+// ── §18: THE CONVERSATION HAPPENS IN THE WORKSPACE, NOT SOMEWHERE ELSE ──────────────────────────
+// The card used to carry a message COUNT and a button that navigated away to the global messages
+// tab. That is a link to the conversation, not a conversation: the supplier loses the project, the
+// files and the timeline the moment they answer, which is the exact opposite of "every customer
+// relationship gets a workspace". The composer now lives on the card.
+//
+// It posts through `messages_api` `send` — the same action the messages tab uses, with the same
+// moderation and the same warning path. A second send endpoint would be a second set of rules to
+// keep in step, and the one that drifted would be the one nobody was watching.
+function WorkspaceComposer({ token, inquiryId, supplierId, lang, onSent }: {
+  token?: string | null; inquiryId: string; supplierId?: number; lang: Lang; onSent: () => void;
+}) {
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  // Without a supplier id there is nothing to key a thread on. Rendering a dead box would invite
+  // the supplier to type a message that goes nowhere, so the reason is shown instead.
+  if (!supplierId) return <p className="mt-1.5 text-[10.5px] opacity-45">{t(lang, 'composerBlocked')}</p>;
+
+  const send = async () => {
+    const body = text.trim();
+    if (!body || busy) return;
+    setBusy(true); setMsg('');
+    const j = await call('messages_api',
+      { action: 'send', inquiry_id: inquiryId, supplier_id: supplierId, body }, token)
+      .catch(() => null);
+    setBusy(false);
+    if (j && j.ok) { setText(''); onSent(); }
+    else setMsg((j && (j.warning || j.error)) || t(lang, 'sendFailed'));
+  };
+
+  return (
+    <div className="mt-1.5">
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }}
+        placeholder={t(lang, 'composerPlaceholder')}
+        rows={2}
+        className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[11.5px] leading-[1.6] outline-none placeholder:opacity-40 focus:border-white/30"
+      />
+      <button
+        type="button" disabled={busy || !text.trim()} onClick={() => void send()}
+        className="mt-1 rounded-lg border border-white/20 px-2.5 py-1 text-[11px] disabled:opacity-40 hover:bg-white/10"
+      >
+        {busy ? t(lang, 'sending') : t(lang, 'send')}
+      </button>
+      {msg && <p className="mt-1 text-[10.5px] opacity-70">{msg}</p>}
+    </div>
+  );
+}
 
 export default function CollaborationWorkspace({
   token, lang = 'en', goTo,
@@ -80,15 +140,15 @@ export default function CollaborationWorkspace({
   const [d, setD] = useState<Payload | null>(null);
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    let live = true;
-    call('supplier_portal', { action: 'workspaces' }, token).then((j) => {
-      if (!live) return;
-      if (j && j.ok) setD(j);
-      else setErr((j && (j.error || j.hint)) || 'load_err');
-    });
-    return () => { live = false; };
-  }, [token]);
+  // Re-readable, because sending a message from the card changes the message count and can move the
+  // timeline stage. A composer that posts and leaves the card showing the old numbers teaches the
+  // supplier not to trust the card.
+  const load = useCallback(() => call('supplier_portal', { action: 'workspaces' }, token).then((j) => {
+    if (j && j.ok) setD(j);
+    else setErr((j && (j.error || j.hint)) || 'load_err');
+  }).catch(() => setErr('load_err')), [token]);
+
+  useEffect(() => { void load(); }, [load]);
 
   if (err) return <div className="text-xs opacity-60 p-4">{err}</div>;
   if (!d) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
@@ -178,11 +238,17 @@ export default function CollaborationWorkspace({
               <div>
                 <div className="text-[10px] uppercase tracking-wide opacity-50 mb-1">{t(lang, 'messages')}</div>
                 <div className="text-sm tabular-nums">{w.message_count ?? 0}</div>
+                {/* The reply box is IN the workspace. The link out is secondary now, for reading
+                    back a long history — not the only way to answer a customer. */}
+                <WorkspaceComposer
+                  token={token} inquiryId={w.inquiry_id} supplierId={d.lead_id}
+                  lang={lang} onSent={() => { void load(); }}
+                />
                 {goTo && (
                   <button
                     type="button"
                     onClick={() => goTo('messages')}
-                    className="mt-1.5 rounded-lg border border-white/20 px-2.5 py-1 text-[11px] hover:bg-white/10"
+                    className="mt-1.5 text-[10.5px] underline underline-offset-2 opacity-55 hover:opacity-90"
                   >
                     {t(lang, 'open')}
                   </button>

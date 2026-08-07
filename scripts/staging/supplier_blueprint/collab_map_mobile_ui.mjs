@@ -82,13 +82,21 @@ export default async function (H) {
   // both legs read "rendered NO" while the values were on screen. Same shape as §13's column-name
   // problem: demanding one particular spelling of an access path would only be satisfiable by a
   // component that flattened its payload first, which no well-written one does.
-  for (const [id, re, label] of [
-    ['collab-project-identity', /project[_. ?]*(name|title|id)\b/i, 'the project it belongs to'],
-    ['collab-message-count', /message[_. ?]*count|messages?\.length|unread[_. ?]*count/i, 'a message count'],
-    ['collab-timeline-pct', /timeline[_. ?]*(pct|percent|progress)|progress[_. ?]*(pct|percent)|completion/i, 'a timeline percentage'],
+  // ── AND THE SERVED LEG MUST SEE A NESTED KEY ─────────────────────────────────────────────────
+  // Same blind spot as §4's quality tile: the routine does not emit a flat `project_title`, it
+  // emits `'project', jsonb_build_object('title', ...)` — the identity is a SUB-OBJECT, which is
+  // the better payload design and the one a source-grep for a flat identifier cannot see. The
+  // served leg therefore also accepts the container key bound to an expression. A key bound to a
+  // string constant still fails, so a label cannot pass as a payload.
+  for (const [id, re, label, servedRe] of [
+    ['collab-project-identity', /project[_. ?]*(name|title|id)\b/i, 'the project it belongs to',
+      /project[_. ?]*(name|title|id)\b|'project'\s*,\s*[a-z(]/i],
+    ['collab-message-count', /message[_. ?]*count|messages?\.length|unread[_. ?]*count/i, 'a message count', null],
+    ['collab-timeline-pct', /timeline[_. ?]*(pct|percent|progress)|progress[_. ?]*(pct|percent)|completion/i, 'a timeline percentage',
+      /timeline[_. ?]*(pct|percent|progress)|progress[_. ?]*(pct|percent)|completion|'timeline'\s*,\s*[a-z(]/i],
   ]) {
     const shown = delivered(re, P);
-    const served = servedBy(re);
+    const served = servedBy(servedRe || re);
     await req(S18, id, `the workspace shows ${label}`,
       B(shown && served.length > 0),
       Q(`${label}: rendered ${shown ? 'yes' : 'NO'}, served by [${served.join(' ') || 'NO fn'}]`));

@@ -166,8 +166,26 @@ export const fnsNear = (reA, reB, win = 400, candidates = FNS) =>
 /** DELIVERY, not occurrence — defect class #2. A value is delivered only when it appears inside a
  *  JSX interpolation, so `<Input name="products">` (a field the supplier TYPES) cannot satisfy a
  *  requirement that the portal DISPLAYS what was computed about them. Those are opposite claims. */
-export const delivered = (re, t = P) =>
-  re.test(String(t)) && new RegExp('\\{[^{}]*' + re.source + '[^{}]*\\}').test(String(t));
+// ── TWO CONTEXTS COUNT AS DELIVERY, NOT ONE ──────────────────────────────────────────────────────
+// The brace test exists so that PROSE mentioning a word cannot score a render leg, and it is right
+// to keep. But it also demands that the payload path appear literally inside the JSX expression,
+// and a component that binds the field to a local first —
+//
+//     const pct = w.timeline?.pct;        ...later...   {pct == null ? 'not started' : pct + '%'}
+//
+// — renders the value perfectly while failing the test, because the braces contain `pct` and the
+// path lives on the line above. That is good code being marked absent: §18's collab-timeline-pct
+// read "rendered NO" on 8 Aug 2026 while the percentage was on screen with its null case handled.
+// Same family as the §18 header note about optional-chaining punctuation, one level further out.
+//
+// So a BINDING from the payload counts too. It is still code and still not prose: an assignment
+// whose right-hand side carries the payload path cannot be produced by a sentence.
+export const delivered = (re, t = P) => {
+  const s = String(t);
+  if (!re.test(s)) return false;
+  if (new RegExp('\\{[^{}]*' + re.source + '[^{}]*\\}').test(s)) return true;
+  return new RegExp('(?:const|let|var)\\s+[\\w$]+\\s*=\\s*[^;\\n]*' + re.source).test(s);
+};
 
 /** Coverage over an enumerated list — defect class #3. Where the spec enumerates contents, the
  *  verdict is a per-item count over ONE population, never "at least one of them exists".
