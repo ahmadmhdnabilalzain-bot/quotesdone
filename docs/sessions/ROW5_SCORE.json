@@ -1,7 +1,7 @@
 {
  "target": "htdblwldjkcgjvmqkbeh",
  "total": 234,
- "met": 83,
+ "met": 84,
  "rows": [
   {
    "section": "collab",
@@ -1029,8 +1029,8 @@
    "section": "perf",
    "id": "perf-living",
    "name": "the score is recomputed on a schedule, not a static column",
-   "ok": false,
-   "ev": "0 active cron(s) recompute a score, 4 routine(s) touch supplier_score, 20465 of 20465 row(s) computed in the last 30d — a score written once is not living"
+   "ok": true,
+   "ev": "1 active cron(s) recompute a score, 4 routine(s) touch supplier_score, 20465 of 20465 row(s) computed in the last 30d — a score written once is not living"
   },
   {
    "section": "perf",
@@ -1198,7 +1198,7 @@
    "id": "risk-monitor-routine",
    "name": "a monitoring routine runs on a schedule",
    "ok": true,
-   "ev": "1 active cron(s) monitor risk signals of 143 active cron(s) total"
+   "ev": "2 active cron(s) monitor risk signals of 144 active cron(s) total"
   },
   {
    "section": "risk",

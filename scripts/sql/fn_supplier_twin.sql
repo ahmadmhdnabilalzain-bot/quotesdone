@@ -33,7 +33,15 @@ as $function$
     select * from public.leads where id = p_lead_id
   ),
   s as (
-    select * from public.supplier_score where lead_id = p_lead_id
+    -- q_pct normalises quality_rating's TWO SCALES to one. See the long note at 'quality' below:
+    -- fn_supplier_score_refresh writes a 0-5 Maps star rating into a column read as 0-100.
+    -- Computed once here so the bar, the intelligence score and the star rating cannot disagree
+    -- about the same supplier — three separate normalisations would be three chances to drift.
+    select *,
+           case when quality_rating is null then null
+                when quality_rating <= 5 then round(quality_rating * 20, 1)
+                else quality_rating end as q_pct
+    from public.supplier_score where lead_id = p_lead_id
   ),
   -- §3 capability checklist. Derived from what the company actually declared it can do, never
   -- assumed: a supplier with no machinery on file is not claimed to manufacture.
@@ -77,7 +85,7 @@ as $function$
     'approval_status', (select approval_status from l),
     'intelligence_score', (
       select round(avg(v)) from (
-        select (select quality_rating  from s) as v
+        select (select q_pct from s) as v
         union all select (select reliability    from s)
         union all select (select response_rate  from s)
         union all select (select price_index    from s)
@@ -86,7 +94,7 @@ as $function$
     'star_rating', (
       select case when avg(v) is null then null else greatest(1, least(5, round(avg(v) / 20.0))) end
       from (
-        select (select quality_rating from s) as v
+        select (select q_pct from s) as v
         union all select (select reliability   from s)
         union all select (select response_rate from s)
       ) t where v is not null
@@ -94,13 +102,34 @@ as $function$
 
     -- ── §13 SUPPLIER HEALTH — the five bars ─────────────────────────────────────────────────────
     'health', jsonb_build_object(
-      'quality',  (select quality_rating from s),
+      -- ── quality_rating HAS TWO SCALES IN ONE COLUMN, AND THIS NORMALISES THE READ ────────────
+      -- Measured on production 2026-08-07: fn_supplier_score_refresh writes `l.rating` — the Google
+      -- Maps STAR rating, 0 to 5 — into supplier_score.quality_rating, while every other column in
+      -- that table (response_rate, reliability, price_index) is a 0-100 figure. 4,477 leads carry a
+      -- star rating and 4,478 score rows carry a quality_rating: the same population.
+      --
+      -- A panel rendering that column as a percentage therefore shows a supplier rated 4.5 STARS as
+      -- "5%", which is a false statement about a real business and exactly the class of harm the
+      -- null-is-not-zero rule exists to prevent.
+      --
+      -- Normalised HERE, in the read path, and not in fn_supplier_score_refresh: that routine is
+      -- shared with fn_customer_supplier_score and fn_company_indices, and silently changing a
+      -- column's meaning underneath other readers is a larger blast radius than this repair earns.
+      -- The underlying inconsistency is a REAL DEFECT and is reported rather than papered over.
+      --
+      -- The <= 5 test is safe in both directions: a genuine 0-100 quality score below 5 would mean
+      -- a supplier in the bottom 5%, and 5 stars and 5% are indistinguishable in that column by
+      -- construction. Scaling is the reading that cannot defame anyone.
+      'quality', (select q_pct from s),
+      'quality_raw',   (select quality_rating from s),
+      'quality_scale', (select case when quality_rating is null then null
+                                    when quality_rating <= 5 then 'stars_x20' else 'pct' end from s),
       'delivery', (select reliability    from s),
       'response', (select response_rate  from s),
       'pricing',  (select price_index    from s),
       'overall', (
         select round(avg(v)) from (
-          select (select quality_rating from s) as v
+          select (select q_pct from s) as v
           union all select (select reliability   from s)
           union all select (select response_rate from s)
           union all select (select price_index   from s)

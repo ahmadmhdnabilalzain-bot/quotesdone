@@ -105,27 +105,28 @@ on conflict (place_id) do update set
   claimed_by          = excluded.claimed_by,
   tags                = excluded.tags;
 
--- capability_score is deliberately NOT set: the leads trigger supplier_capability computes it via
--- fn_supplier_capability_score (it returned 43 for this profile, not the 92 an earlier draft of this
--- file authored). A fixture must not author a field the platform derives.
+-- ── INPUTS, NOT OUTPUTS. THIS IS THE capability_score LESSON GENERALISED ───────────────────────
+-- An earlier draft authored capability_score = 92 and the leads trigger recomputed it to 43. The
+-- same trap applies to supplier_score: an earlier draft authored quality_rating/reliability/
+-- response_rate directly, and fn_supplier_score_refresh -- the platform's own recompute, now on a
+-- nightly cron -- would overwrite all three the first time it ran.
 --
--- §13's health panel needs a score row. Values are DELIBERATELY not all-excellent: a fixture that
--- scores 100 everywhere would hide exactly the bugs a health panel exists to show — a zero bar, a
--- null bar, and a mid bar all have to render differently. `pricing` is left NULL on purpose,
--- because price_index is null on all 20,464 production rows and the UI must handle that honestly
--- rather than printing 0%.
-insert into public.supplier_score (lead_id, response_rate, avg_response_hours, quotes_submitted,
-                                   quotes_won, rejection_count, price_index, quality_rating,
-                                   reliability, last_active, computed_at)
-select l.id, 99, 3.5, 24, 11, 4, null, 96, 88, now(), now()
-from public.leads l where l.place_id = 'qd-demo-supplier-001'
-on conflict (lead_id) do update set
-  response_rate      = excluded.response_rate,
-  avg_response_hours = excluded.avg_response_hours,
-  quotes_submitted   = excluded.quotes_submitted,
-  quotes_won         = excluded.quotes_won,
-  rejection_count    = excluded.rejection_count,
-  price_index        = excluded.price_index,
-  quality_rating     = excluded.quality_rating,
-  reliability        = excluded.reliability,
-  computed_at        = excluded.computed_at;
+-- A fixture must author the INPUTS a real supplier would have and let the platform derive the rest.
+-- rv_response_rate and rating are inputs (a real supplier accrues them); quality_rating and
+-- reliability are outputs. Deriving them means the demo's health panel shows what the platform
+-- actually computes, which is the only thing worth demonstrating.
+--
+-- Consequence, and it is the honest one: reliability lands near 54, not 88, because the formula is
+-- rv_response_rate*0.55 + win_rate*0.25 + (verified ? 20 : 0) - penalties, and this fixture is
+-- deliberately UNVERIFIED so it can never be matched. The fence costs it 20 points. That is a
+-- truthful number, and a demo showing varied bars -- one high, one mid, one null -- exercises the
+-- panel far better than four nineties would.
+update public.leads set
+  rv_response_rate = 99,       -- input: responds to almost every reveal
+  rv_reveals       = 24,
+  rv_responded     = 24,
+  rating           = 4.8       -- input: the Maps star rating, 0-5. See fn_supplier_twin's q_pct note.
+where place_id = 'qd-demo-supplier-001';
+
+-- Recompute now so the fixture's derived score exists immediately rather than at 03:40 tomorrow.
+select public.fn_supplier_score_refresh();
