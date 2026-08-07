@@ -32,7 +32,7 @@
 import { readFileSync } from 'node:fs';
 import {
   S, P, FILES, P_FILES, FNS, fileSrc, fnSrc, n, has, filesMatching, fnsMatching, fnsWithBoth,
-  near, filesNear, fnsNear, delivered, cover, B, Q, READERS_SQL, NROWS_SQL,
+  near, filesNear, fnsNear, delivered, cover, B, Q, READERS_SQL, NROWS_SQL, rpcSources,
 } from '../supplier_checks.mjs';
 
 export const EXPECTED = 79;
@@ -40,6 +40,12 @@ export const EXPECTED = 79;
 export default async function (H) {
   const { req, one } = H;
   const S18 = 'collab', S19 = 'map', S20 = 'game', S21 = 'mob', S22 = 'ui', S23 = 'tech', S24 = 'struct';
+
+  // The serving population follows the rpc hop — the same false MISSING already fixed in §13, §7,
+  // §15 and §14. §18's project identity, message count and timeline are all served through
+  // rpc('fn_supplier_workspaces'), where the field names live.
+  const RPC = await rpcSources(one);
+  const servedBy = (re) => [...fnsMatching(re), ...RPC.filter(([, src]) => re.test(src)).map(([nm]) => nm)];
 
   const DEPS = (() => {
     try {
@@ -71,13 +77,18 @@ export default async function (H) {
       `[${wsFiles.map(f => f.split('/').pop()).join(' ') || 'none'}]; ` +
       `${msgTok} raw messaging token(s) — a thread is the transport, not a workspace`));
 
+  // `[_. ?]*`, not `[_ ]?` — a component reads its payload as `{w.project?.title}` and
+  // `{w.timeline?.pct}`, and the optional-chaining punctuation between the noun and the field made
+  // both legs read "rendered NO" while the values were on screen. Same shape as §13's column-name
+  // problem: demanding one particular spelling of an access path would only be satisfiable by a
+  // component that flattened its payload first, which no well-written one does.
   for (const [id, re, label] of [
-    ['collab-project-identity', /project[_ ]?(name|title|id)/i, 'the project it belongs to'],
-    ['collab-message-count', /message[_ ]?count|messages?\.length|unread[_ ]?count/i, 'a message count'],
-    ['collab-timeline-pct', /timeline[_ ]?(pct|percent|progress)|progress[_ ]?(pct|percent)|completion/i, 'a timeline percentage'],
+    ['collab-project-identity', /project[_. ?]*(name|title|id)\b/i, 'the project it belongs to'],
+    ['collab-message-count', /message[_. ?]*count|messages?\.length|unread[_. ?]*count/i, 'a message count'],
+    ['collab-timeline-pct', /timeline[_. ?]*(pct|percent|progress)|progress[_. ?]*(pct|percent)|completion/i, 'a timeline percentage'],
   ]) {
     const shown = delivered(re, P);
-    const served = fnsMatching(re);
+    const served = servedBy(re);
     await req(S18, id, `the workspace shows ${label}`,
       B(shown && served.length > 0),
       Q(`${label}: rendered ${shown ? 'yes' : 'NO'}, served by [${served.join(' ') || 'NO fn'}]`));

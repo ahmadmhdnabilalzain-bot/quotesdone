@@ -472,3 +472,135 @@ legs. Proven after the score recompute and after the catalogue landed: 0 rows in
 
 §5 + §19 + §23 share one build: three@0.180 is installed and unused on this surface;
 @react-three/fiber is not installed. That single coherent piece of work is worth ~20 requirements.
+
+---
+
+# BUILD PHASE CONTINUED — **58 → 147+/234**, ten increments, all on BOTH projects
+
+| # | built | proven by |
+|---|---|---|
+| 1 | `fn_supplier_twin` | HTTPS: health {q96 d88 r99} — columns no endpoint reached before |
+| 2 | `action:'twin'` + `SupplierTwin.tsx` | deployed v3/v16, anon refused 401, scoped to caller |
+| 3 | `supplier_score_refresh_daily` cron | 20,465 of 20,465 rows recomputed |
+| 4 | `fn_supplier_products` + `ProductIntelligence.tsx` | 4 products, 28 spec keys, search hits `capacity_cfm` |
+| 5 | `fn_supplier_advisor` + `SupplierAdvisor.tsx` | 3 real gaps; `loss_reasons` EMPTY with its basis |
+| 6 | `SupplierEnvironment.tsx` (R3F) | `next build` green; stock 772 / 246 / 553 |
+| 7 | `fn_supplier_network_map` + globe | Dubai 10,083 == `count(*)`; 865 unplaced reported |
+| 8 | `fn_supplier_market` + `MarketIntelligence.tsx` | 314 competitors, 0 matchable, 3 figures `available:false` |
+| 9 | `fn_supplier_workspaces` + `CollaborationWorkspace.tsx` | empty array WITH population; 0 inquiries untouched |
+
+## WHAT I DECLINED TO DO, AND WHY IT IS THE FOUNDER'S CALL
+
+§18 cannot be proven **with data** without a demo inquiry. One inquiry insert on production fires
+**twelve triggers**, including `fn_emit_event('inquiry','rfq.created')` — injecting a synthetic event
+into **row #2's separately-measured event backbone (107/110)** — plus `trg_autodispatch_inquiry`,
+`trg_inquiry_received` and `trg_learn_customer_preference`.
+
+Matching would find 0 suppliers (none is verified), so no real company would be contacted. The harm
+is narrower than that and still real: it pollutes another row's live measurement. "Never fabricate to
+turn a gate green" applies to a neighbouring row's gate too.
+
+**Mechanism built and provable; data path flagged, not faked.** Say the word and I will seed it.
+
+## THE DOMINANT DEFECT CLASS IS NOW THE FALSE MISSING
+
+Rounds 1–6 removed 24 false METs. Rounds 7–12 were mostly the mirror image, and the same root cause
+recurred **six times**: *a scan whose population excludes where the fact lives.*
+
+| # | blind spot | cost |
+|---|---|---|
+| 1 | `setTab('literal')` missed `const TABS = [...]` | 2 destinations seen, 10 real |
+| 2 | served-leg searched edge TypeScript; fields live in the rpc'd SQL routine | recurred in §13, §7, §15, §14, §18 |
+| 3 | `importClosure` followed only `from`, never `import()` | **14 requirements**; §5 read 2/12 with an R3F scene shipping |
+| 4 | demanded DB column names in JSX | unsatisfiable by any component that maps its payload |
+| 5 | demanded `_` or a space between noun and field | missed `{w.project?.title}` |
+| 6 | checks pointed at the WRONG RELATION (`inv_items`) | unsatisfiable — it has no `supplier_id` at all |
+
+**And fixing a false MISSING is the likeliest moment to create a false MET.** The rpc-hop fix
+over-swung twice: §14 went to 7/7 when the stated ceiling was 4/7, because `fn_supplier_market`
+*names* `demand_trend` inside the very block returning `available:false`. A mention is not a delivery.
+
+## THE FOUR HONESTY RULES EVERY COMPONENT NOW FOLLOWS
+
+1. **Null is not zero.** A null `price_index` renders "not rated yet" and draws no bar. A 0%-wide bar
+   is a claim that the supplier scored zero.
+2. **Absent is not empty.** An empty list carries its POPULATION, so it can never be mistaken for a
+   failed request.
+3. **A mention is not a delivery.** A field the routine marks `available:false` is not "served".
+4. **Estimates are labelled.** `production_capacity` returns `is_estimate:true` with its raw inputs,
+   and NULL when those inputs are absent — it returned null for a real scraped lead.
+
+## STILL OPEN FOR THE FOUNDER
+
+**`supplier_score.quality_rating` holds two scales.** `fn_supplier_score_refresh` writes
+`leads.rating` (Google Maps stars, 0–5) into a column every other consumer treats as 0–100 — a
+4.5-star supplier displayed as **"5%"**. Normalised in the twin's read path with `quality_scale`
+returned so the reading is auditable. **NOT changed in the shared writer**, because
+`fn_customer_supplier_score` and `fn_company_indices` also read that column. Which scale it is meant
+to be is your decision.
+
+---
+
+# BUILD PHASE CONTINUED — **58 → 147+/234**, ten increments, all on BOTH projects
+
+| # | built | proven by |
+|---|---|---|
+| 1 | `fn_supplier_twin` | HTTPS: health {q96 d88 r99} — columns no endpoint reached before |
+| 2 | `action:'twin'` + `SupplierTwin.tsx` | deployed v3/v16, anon refused 401, scoped to caller |
+| 3 | `supplier_score_refresh_daily` cron | 20,465 of 20,465 rows recomputed |
+| 4 | `fn_supplier_products` + `ProductIntelligence.tsx` | 4 products, 28 spec keys, search hits `capacity_cfm` |
+| 5 | `fn_supplier_advisor` + `SupplierAdvisor.tsx` | 3 real gaps; `loss_reasons` EMPTY with its basis |
+| 6 | `SupplierEnvironment.tsx` (R3F) | `next build` green; stock 772 / 246 / 553 |
+| 7 | `fn_supplier_network_map` + globe | Dubai 10,083 == `count(*)`; 865 unplaced reported |
+| 8 | `fn_supplier_market` + `MarketIntelligence.tsx` | 314 competitors, 0 matchable, 3 figures `available:false` |
+| 9 | `fn_supplier_workspaces` + `CollaborationWorkspace.tsx` | empty array WITH population; 0 inquiries untouched |
+
+## WHAT I DECLINED TO DO, AND WHY IT IS THE FOUNDER'S CALL
+
+§18 cannot be proven **with data** without a demo inquiry. One inquiry insert on production fires
+**twelve triggers**, including `fn_emit_event('inquiry','rfq.created')` — injecting a synthetic event
+into **row #2's separately-measured event backbone (107/110)** — plus `trg_autodispatch_inquiry`,
+`trg_inquiry_received` and `trg_learn_customer_preference`.
+
+Matching would find 0 suppliers (none is verified), so no real company would be contacted. The harm
+is narrower than that and still real: it pollutes another row's live measurement. "Never fabricate to
+turn a gate green" applies to a neighbouring row's gate too.
+
+**Mechanism built and provable; data path flagged, not faked.** Say the word and I will seed it.
+
+## THE DOMINANT DEFECT CLASS IS NOW THE FALSE MISSING
+
+Rounds 1–6 removed 24 false METs. Rounds 7–12 were mostly the mirror image, and the same root cause
+recurred **six times**: *a scan whose population excludes where the fact lives.*
+
+| # | blind spot | cost |
+|---|---|---|
+| 1 | `setTab('literal')` missed `const TABS = [...]` | 2 destinations seen, 10 real |
+| 2 | served-leg searched edge TypeScript; fields live in the rpc'd SQL routine | recurred in §13, §7, §15, §14, §18 |
+| 3 | `importClosure` followed only `from`, never `import()` | **14 requirements**; §5 read 2/12 with an R3F scene shipping |
+| 4 | demanded DB column names in JSX | unsatisfiable by any component that maps its payload |
+| 5 | demanded `_` or a space between noun and field | missed `{w.project?.title}` |
+| 6 | checks pointed at the WRONG RELATION (`inv_items`) | unsatisfiable — it has no `supplier_id` at all |
+
+**And fixing a false MISSING is the likeliest moment to create a false MET.** The rpc-hop fix
+over-swung twice: §14 went to 7/7 when the stated ceiling was 4/7, because `fn_supplier_market`
+*names* `demand_trend` inside the very block returning `available:false`. A mention is not a delivery.
+
+## THE FOUR HONESTY RULES EVERY COMPONENT NOW FOLLOWS
+
+1. **Null is not zero.** A null `price_index` renders "not rated yet" and draws no bar. A 0%-wide bar
+   is a claim that the supplier scored zero.
+2. **Absent is not empty.** An empty list carries its POPULATION, so it can never be mistaken for a
+   failed request.
+3. **A mention is not a delivery.** A field the routine marks `available:false` is not "served".
+4. **Estimates are labelled.** `production_capacity` returns `is_estimate:true` with its raw inputs,
+   and NULL when those inputs are absent — it returned null for a real scraped lead.
+
+## STILL OPEN FOR THE FOUNDER
+
+**`supplier_score.quality_rating` holds two scales.** `fn_supplier_score_refresh` writes
+`leads.rating` (Google Maps stars, 0–5) into a column every other consumer treats as 0–100 — a
+4.5-star supplier displayed as **"5%"**. Normalised in the twin's read path with `quality_scale`
+returned so the reading is auditable. **NOT changed in the shared writer**, because
+`fn_customer_supplier_score` and `fn_company_indices` also read that column. Which scale it is meant
+to be is your decision.

@@ -1,7 +1,7 @@
 {
  "target": "htdblwldjkcgjvmqkbeh",
  "total": 234,
- "met": 147,
+ "met": 148,
  "rows": [
   {
    "section": "collab",
@@ -15,21 +15,21 @@
    "id": "collab-project-identity",
    "name": "the workspace shows the project it belongs to",
    "ok": false,
-   "ev": "the project it belongs to: rendered NO, served by [NO fn]"
+   "ev": "the project it belongs to: rendered yes, served by [NO fn]"
   },
   {
    "section": "collab",
    "id": "collab-message-count",
    "name": "the workspace shows a message count",
-   "ok": false,
-   "ev": "a message count: rendered yes, served by [NO fn]"
+   "ok": true,
+   "ev": "a message count: rendered yes, served by [fn_supplier_workspaces]"
   },
   {
    "section": "collab",
    "id": "collab-timeline-pct",
    "name": "the workspace shows a timeline percentage",
    "ok": false,
-   "ev": "a timeline percentage: rendered NO, served by [ai_gateway kyc]"
+   "ev": "a timeline percentage: rendered NO, served by [ai_gateway kyc fn_supplier_workspaces]"
   },
   {
    "section": "collab",
