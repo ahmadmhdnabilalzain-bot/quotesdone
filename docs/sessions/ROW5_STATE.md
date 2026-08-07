@@ -184,3 +184,50 @@ inverted: a surface with no server behind it.
 `cc-assistant-panel` is MET on **1** proactive-guidance token. Thin. Not tightened further because
 demanding many strings risks the inverse failure (a check no correct implementation can reach), but
 it should be re-attacked when §15's assistant is built.
+
+---
+
+## MODULE 3 BUILT AND REFUTED — `product_intelligence.mjs`, §7 §8, EXPECTED 23
+Modules 1+2+3 register **83/83** (29+31+23), zero errored, no denominator mismatch, no module load
+failures. Combined: **22/83**. The runner correctly reports the 151 requirements that have no module
+yet rather than scoring them as zero.
+
+§7 = **3/14**, §8 = **1/9**.
+
+### Refutation round 3 — three more false METs, and TWO TRUE METs defended
+The interesting result of this round is that scepticism cut **both** ways.
+
+**Defended as TRUE (the check was right to pass):** `prod-upload-catalog`, `prod-upload-pdf`,
+`prod-upload-images`. Attribution showed a genuine product-catalog uploader —
+`catalogs_ph:'Product catalogs (up to 5):'` with `<FilePick accept=".pdf,.jpg,.jpeg,.png" multiple>`.
+That is NOT the registration uploader, and the pre-emptive `REGDOC` subtraction correctly let it
+through. Attacking MET and MISSING with equal scepticism means sometimes confirming the MET.
+
+**Removed as FALSE:**
+| check | why |
+|---|---|
+| `prod-ai-extraction` | passed on **7** fns. `license_extract` does read "COMPANY PROFILE and/or PRODUCT CATALOG" but returns `products:[string]` — a comma-separated NAME LIST for the `leads.products` free-text column. `supplier_api`'s `products` is that same column being SELECTed. **None writes a product record.** §7 asks for 245 products / 18 categories / 12,500 attributes: a structured store, not a text field. Leg now requires the structured store as the DESTINATION. |
+| `prod-supplier-visible` | its single hit was the English label `catalogs_ph:'Product catalogs (up to 5):'` inside a translations object. **A caption naming a thing is not the thing being rendered** — defect class #2, the label standing in for the delivery. Leg now requires CODE (`supplier_product`, `products.map(`, `<ProductCard`) and prints the caption count separately. |
+| `card-match-routine` | passed on `fn_match_capability`-style routines, which score a **SUPPLIER** against an inquiry. §8's match is a **PRODUCT** match. Counting an existing unrelated mechanism as evidence for an unbuilt one would have read MET forever regardless of §8's state. Leg now requires the match to involve products; the capability estate is printed beside it. |
+
+### ⚠ DEFECT CLASS SHARPENED — per-file scoping is NOT fine-grained enough here
+Round 2 established that the chrome fence is file-level and misses intra-file leaks. Round 3 shows
+why that matters so much on this surface: **`SupplierPortal.tsx` is 81,811 stripped characters and
+contains the settings form, the registration uploader, the help desk, the product-catalog uploader
+and the command centre.** "1 file pairs the format with a product context" is nearly vacuous when
+that file is the whole portal.
+
+**Mitigation that worked:** subtract the wrong vocabulary by name, print both counts, and where the
+claim is about a component, score over THAT COMPONENT's own source (`CARD` in §8) so an absent
+component yields 0 legitimately. §8's evidence — *"card component ABSENT, so every field leg is 0"* —
+is the row #4 `slice(indexOf(...))` lesson holding: a missing component is now distinguishable from
+a present one with no matches.
+
+**This is a strong argument for splitting `SupplierPortal.tsx` BEFORE building §7/§8**, exactly as
+the brief said. Every check written against the monolith is weaker than it looks.
+
+### CONFIRMED BUILD ORDER (measured, not asserted)
+- `supplier_product` — **0 rows, 0 non-writer SQL routines, 0 reachable edge fns**.
+- `prod-count-products` / `-categories` / `-attributes` — rendered NO, served by NO fn.
+- §8 is **0/8** on everything except the (now failing) match routine: no product card component exists.
+- The only product data on production is `leads.products`, a **free-text comma-separated column**.
