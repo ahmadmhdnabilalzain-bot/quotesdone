@@ -84,6 +84,24 @@ Deno.serve(async (req) => {
       return J({ ok:true, supplier:{ id:sup.id, company_name:sup.company_name, approval_status:sup.approval_status, registration_status:sup.registration_status, license_expiry: sup.license_expiry || null, name_corrected: !!sup.name_corrected_from }, stats, active_matches: activeMatches || 0, alerts, alerts_count: alerts.length });
     }
 
+    // ROW #5 §3 §4 §6 §13 — THE SUPPLIER'S OWN DIGITAL TWIN AND HEALTH PANEL.
+    //
+    // supplier_score holds `reliability` and `response_rate` non-null on 20,464 of 20,464 rows on
+    // production, and until this action existed the supplier surface could reach NEITHER. The
+    // portal already renders `{s.response_rate != null && <Stat …/>}` — a tile whose guard could
+    // never be true, because no endpoint returned the field. This is that missing read path.
+    //
+    // The whole payload comes from ONE routine, fn_supplier_twin, so the numbers a supplier sees
+    // are the numbers the database computed rather than a second derivation that can drift from it.
+    if (action === 'twin') {
+      const { data: twin, error } = await admin.rpc('fn_supplier_twin', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      // A demo fixture must never be presentable as a live account. fn_supplier_twin sets is_demo
+      // from the fence itself (matching_blocked AND a 'demo' tag), so the flag cannot drift from
+      // the thing it describes, and the UI can label the row rather than passing it off as real.
+      return J({ ok: true, twin });
+    }
+
     if (action === 'documents') {
       // Column list is derived from DOC_KINDS so adding a document type here needs no edit below.
       const cols = new Set<string>(['catalog_doc_paths']);

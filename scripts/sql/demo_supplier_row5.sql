@@ -42,7 +42,7 @@ insert into public.leads (
   machinery, brands_carried, certifications, iso_certifications,
   company_type, business_role, scale, lifecycle_stage,
   verified, approval_status, matching_blocked, matching_block_reason, banned,
-  permanently_closed, claimed, tags, locale
+  permanently_closed, claimed, claimed_by, tags, locale
 )
 values (
   'ZZ DEMO — Al Noor HVAC Manufacturing (QuotesDone fixture, not a real company)',
@@ -68,7 +68,12 @@ values (
   'pending',        -- approval_status     → never 'approved'
   true,             -- matching_blocked    → fn_is_matchable fails here too
   'QuotesDone demo fixture — must never be matched, searched or revealed to a real customer',
-  false, false, false,
+  false,            -- banned
+  false,            -- permanently_closed
+  true,             -- claimed: the fixture is claimed so it can actually sign in and be SEEN.
+  -- claimed_by is the login identity. example.invalid is a reserved TLD that can never receive
+  -- mail, so this address cannot reach a real inbox even if something tried to send to it.
+  'demo-supplier@example.invalid',
   array['demo','row5-fixture']::text[],
   'en'
 )
@@ -96,6 +101,8 @@ on conflict (place_id) do update set
   matching_blocked    = true,
   matching_block_reason = excluded.matching_block_reason,
   banned              = false,
+  claimed             = true,
+  claimed_by          = excluded.claimed_by,
   tags                = excluded.tags;
 
 -- capability_score is deliberately NOT set: the leads trigger supplier_capability computes it via
