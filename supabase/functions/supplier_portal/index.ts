@@ -111,6 +111,19 @@ Deno.serve(async (req) => {
     //
     // `q` searches names, brands, models, categories AND attribute values, so "5000 CFM" finds the
     // unit whose specification says so rather than only matching a title.
+    // ROW #5 §15 §4 — THE AI EMPLOYEE. "Why am I losing RFQs?" answered from real columns.
+    //
+    // The loss BREAKDOWN is empty on purpose while there are 0 quotes estate-wide, and the payload
+    // says `basis: 'no_completed_opportunities'` so an empty array is never mistaken for a failed
+    // computation. The RECOMMENDATIONS half is real today: every gap is derived from a column the
+    // supplier can act on, and impact_rfqs counts live inquiries rather than quoting the spec's
+    // illustrative "32 more projects".
+    if (action === 'advisor') {
+      const { data: advice, error } = await admin.rpc('fn_supplier_advisor', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...advice });
+    }
+
     if (action === 'products') {
       const { data: prods, error } = await admin.rpc('fn_supplier_products', {
         p_lead_id: supId,

@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 // Row #5 §3/§4/§6/§13 — kept in its own file deliberately; see the TABS comment below.
 import SupplierTwin from './supplier/SupplierTwin';
 import ProductIntelligence from './supplier/ProductIntelligence';
+import SupplierAdvisor from './supplier/SupplierAdvisor';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -226,7 +227,7 @@ function Dashboard({ token, lang }) {
   if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{err === 'load_err' ? t(lang, 'err_generic') : err}</div></Card></div>;
   if (!ov) return <div className={S.center}>{t(lang, 'loading_dash')}</div>;
   const s = ov.stats || {}; const pp = s.price_positioning || {};
-  const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing'), profile: lang === 'ar' ? 'الملف' : 'Profile', twin: lang === 'ar' ? 'التوأم الرقمي' : 'Digital Twin', products: lang === 'ar' ? 'المنتجات' : 'Products' };
+  const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing'), profile: lang === 'ar' ? 'الملف' : 'Profile', twin: lang === 'ar' ? 'التوأم الرقمي' : 'Digital Twin', products: lang === 'ar' ? 'المنتجات' : 'Products', assistant: lang === 'ar' ? 'المساعد' : 'AI Assistant' };
   // 'profile' is new. ProfileForm previously rendered only from Onboarding, which shows solely
   // while supplier_portal returns no_company — so the moment a supplier registered, every field
   // in it became permanently unreachable: contact name, phone, products, services, description,
@@ -237,7 +238,7 @@ function Dashboard({ token, lang }) {
   // lives in its own component file (portal/supplier/SupplierTwin.tsx) rather than here: this file
   // is already 81,811 stripped characters holding six unrelated features, and that size is what
   // made three separate scorer refutation rounds necessary.
-  const TABS = ['overview', 'twin', 'products', 'rfqs', 'documents', 'profile', 'projects', 'messages', 'billing'];
+  const TABS = ['overview', 'twin', 'assistant', 'products', 'rfqs', 'documents', 'profile', 'projects', 'messages', 'billing'];
   return (
     <div className={S.wrap}>
       <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
@@ -261,6 +262,7 @@ function Dashboard({ token, lang }) {
       </div>
       {tab === 'twin' && <SupplierTwin token={token} lang={lang} />}
       {tab === 'products' && <ProductIntelligence token={token} lang={lang} />}
+      {tab === 'assistant' && <SupplierAdvisor token={token} lang={lang} goTo={setTab} />}
       {tab === 'billing' && <BillingPanel token={token} lang={lang} />}
       {tab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
       {tab === 'overview' && <>

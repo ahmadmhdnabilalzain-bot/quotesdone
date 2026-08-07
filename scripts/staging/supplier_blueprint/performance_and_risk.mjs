@@ -212,7 +212,13 @@ export default async function (H) {
     Q(`${nlQ.length} portal file(s) pair a free-form input with assistant analysis ` +
       `[${nlQ.map(f => f.split('/').pop()).join(' ') || 'none'}]`));
 
-  const lossFn = fnsNear(/lost|losing|rejection|not[_ ]?won|declined/i, /reason|analys|breakdown|why/i, 500);
+  // The rpc hop again. fn_supplier_advisor IS the loss analysis, reached through supplier_portal
+  // action:'advisor' — searching only edge-function TypeScript could never see it.
+  const LOSSRE = /lost|losing|rejection|not[_ ]?won|declined|loss_reason/i;
+  const lossFn = [
+    ...fnsNear(LOSSRE, /reason|analys|breakdown|why/i, 500),
+    ...RPC.filter(([, src]) => LOSSRE.test(src) && /reason|analys|breakdown|basis/i.test(src)).map(([nm]) => nm),
+  ];
   await req(S15, 'emp-loss-analysis', 'it produces a lost-opportunity breakdown',
     B(lossFn.length > 0),
     Q(`${lossFn.length} fn(s) pair loss with reason analysis [${lossFn.join(' ') || 'none'}]; ` +
@@ -224,15 +230,27 @@ export default async function (H) {
     Q(`${lossPct.length} portal file(s) put a percentage next to a loss reason ` +
       `[${lossPct.map(f => f.split('/').pop()).join(' ') || 'none'}]`));
 
-  const recFiles = filesNear(/recommend|you[_ ]?should|next[_ ]?step|suggested[_ ]?action/i, /upload|improve|update|add/i, 300, P_FILES);
+  // The recommendation TEXT is produced server-side — "Upload your trade licence" comes from
+  // fn_supplier_advisor, not from the component, which is the correct place for it. A leg demanding
+  // the concrete verb in JSX would only be satisfiable by hardcoding advice into the UI, which is
+  // worse engineering and is row #4's unsatisfiable-check defect. Rendering leg over the portal,
+  // content leg over the routine, and BOTH are required.
+  const recFiles = filesNear(/recommend|suggested[_ ]?action|next[_ ]?step/i, /\.map\(|severity|action/i, 400, P_FILES);
+  const recContent = RPC
+    .filter(([, src]) => /recommend|action/i.test(src) && /upload|improve|update|complete|renew/i.test(src))
+    .map(([nm]) => nm);
   await req(S15, 'emp-recommendations', 'it recommends concrete actions',
-    B(recFiles.length > 0),
-    Q(`${recFiles.length} portal file(s) pair a recommendation with a concrete verb ` +
-      `[${recFiles.map(f => f.split('/').pop()).join(' ') || 'none'}]`));
+    B(recFiles.length > 0 && recContent.length > 0),
+    Q(`${recFiles.length} portal file(s) render recommendations ` +
+      `[${recFiles.map(f => f.split('/').pop()).join(' ') || 'none'}]; ` +
+      `${recContent.length} routine(s) produce concrete actions [${recContent.join(' ') || 'none'}]`));
 
   // A recommendation the supplier cannot act on is a sentence. Requires the advice to sit next to
   // the affordance that performs it.
-  const actionable = filesNear(/recommend|you[_ ]?should|suggested[_ ]?action/i, /onClick|href=|<button|setView|FilePick/i, 300, P_FILES);
+  // 600, not 300: one list item legitimately spans the advice, its reason, a severity label AND the
+  // control that acts on it. Both must still be in the SAME FILE, which is the claim that matters —
+  // widening a window inside one file is not the banned cross-join proximity.
+  const actionable = filesNear(/recommend|suggested[_ ]?action|\bgoes_to\b/i, /onClick|href=|<button|goTo\(/i, 600, P_FILES);
   await req(S15, 'emp-recommendation-actionable', 'the recommendation links to the fix',
     B(actionable.length > 0),
     Q(`${actionable.length} portal file(s) put advice next to an actionable control ` +

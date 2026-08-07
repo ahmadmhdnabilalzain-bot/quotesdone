@@ -400,3 +400,75 @@ weaker than it looks.
 `reliability` and `response_rate` are non-null on **20,464 of 20,464** rows and reach the supplier
 through no endpoint at all. §3's twin has the same inputs. That is one edge-function change moving
 several requirements at once.
+
+---
+
+# BUILD PHASE — **58 → 112/234 (25% → 48%)**, all deployed to BOTH projects
+
+Every increment: schema → routine → edge function → surface → deploy both → **prove by execution**
+→ re-score. Nothing below was scored without an HTTPS round trip against the deployed artefact.
+
+| built | sections moved |
+|---|---|
+| fn_supplier_twin + SupplierTwin.tsx + action:twin | §3 4→6, §4 4→6, §6 4→8, §13 1→**9/9** |
+| supplier_score_refresh_daily cron + quality-scale fix | §13 perf-living MET |
+| fn_supplier_products + ProductIntelligence.tsx + action:products | §7 3→7, §8 1→**9/9** |
+| fn_supplier_advisor + SupplierAdvisor.tsx + action:advisor | §15 0→**6/7**, §21 →8/9, §24 →9/19 |
+
+New components live in **their own files** (portal/supplier/*.tsx), never in the 81,811-char
+monolith. Typecheck clean; typed properly rather than inheriting @ts-nocheck.
+
+## THREE REAL PRODUCT DEFECTS FOUND WHILE BUILDING
+1. **A 0–5 star rating rendered as a percentage.** fn_supplier_score_refresh writes leads.rating
+   (Google Maps stars, 0–5) into supplier_score.quality_rating, a column every other consumer
+   treats as 0–100. A supplier rated 4.5 stars displayed as **5%**. Normalised in the twin read
+   path (q_pct, computed once in the CTE) with quality_raw and quality_scale returned so the
+   reading is auditable. **NOT fixed in the shared writer** — fn_customer_supplier_score and
+   fn_company_indices also read it. **This still needs a founder decision on which scale that
+   column is meant to be.**
+2. **Dead UI.** The portal rendered {s.response_rate != null && <Stat/>} where no endpoint ever
+   returned the field — a tile whose guard could never be true. Now served.
+3. **avg(reliability) = 0.0 estate-wide.** Non-null on 20,464 was true but the VALUES are
+   uniformly zero: rv_response_rate is set on 2 rows and verified on none.
+
+## WHAT WAS DELIBERATELY NOT BUILT, AND WHY
+- **The AI catalogue extractor** (prod-ai-extraction). Needs ai_gateway credential wiring
+  supplier_portal lacks. The check now requires a WRITE from an ingested file and correctly reads
+  MISSING rather than passing on the read path.
+- **An LLM agent behind the advisor** (emp-agent-routine). Deterministic SQL is honest and useful;
+  it is not an agent, and the check says so.
+- **No ai_match on any product.** 0 inquiries exist to match against.
+- **No invented loss breakdown.** 0 quotes estate-wide, so loss_reasons is [] with
+  basis:no_completed_opportunities.
+
+## REFUTATION ROUNDS 7–8 — the FALSE MISSING is now the dominant defect class
+Rounds 1–6 removed 24 false METs. Rounds 7–8 were mostly the mirror image, and two were
+flattering to the very commit that introduced them:
+- prod-ai-extraction read MET because supplier_portal *touches* the product store — it only READS
+  it. The same commit that built the reader would have appeared to build the extractor.
+- card-match-routine read MET because fn_supplier_products SELECTs attributes->>ai_match.
+- **The rpc-population false MISSING, found THREE times** (§13, §7, §15): checks searched
+  edge-function TypeScript for field names that live in the Postgres routine reached via rpc().
+  servedBy() now follows that one hop in all three modules.
+- **Navigation read as setTab(literal)** found 2 destinations where const TABS = [...] has 10.
+
+**Carry into every future row:** a scan whose population excludes where the fact lives is the same
+defect whether it produces a false MET or a false MISSING. Follow the hop the code actually takes.
+
+## TWO BUGS THE PROOFS CAUGHT THAT REVIEW DID NOT
+- coalesce(category_slug, subcategory_slug) — order backwards; category_slug is hvac across a
+  whole catalogue, so 4 distinct categories collapsed to 1.
+- Product search never reached certifications (a jsonb array), so Eurovent found nothing.
+
+## THE FENCE, RE-PROVEN AFTER EVERY CHANGE
+fn_is_matchable is a pure predicate and the single choke point for fn_match_capability,
+fn_supplier_matchable, match_suppliers, match_suppliers_kw. The demo fails it on TWO independent
+legs. Proven after the score recompute and after the catalogue landed: 0 rows in inquiry_matches,
+0 products belonging to a matchable supplier, and still 0 verified/approved scraped rows.
+
+## NEXT, BY SIZE
+§22 UI 3/13 · §23 Tech 6/15 · §5 3D env 1/12 · §18 Collab 0/8 · §10 Ranking 1/8 · §7 rest 7/14 ·
+§19 Map 1/7 · §24 Structure 9/19 · §20 Game 3/8 · §12 Negotiation 1/7 · §11 Quote Builder 1/9
+
+§5 + §19 + §23 share one build: three@0.180 is installed and unused on this surface;
+@react-three/fiber is not installed. That single coherent piece of work is worth ~20 requirements.
