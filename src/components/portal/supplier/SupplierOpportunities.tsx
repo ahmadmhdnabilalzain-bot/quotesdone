@@ -1,0 +1,166 @@
+'use client';
+// ROW #5 §10 — RECOMMENDED FOR YOU. A ranked list with its reasoning shown.
+//
+// The spec rejects the chronological inbox: the supplier should meet the work that FITS THEM first
+// and be told why it fits. The RFQ tab is a date-ordered list; this is the other thing.
+//
+// ── THE "WHY" IS THE FEATURE, NOT A TOOLTIP ─────────────────────────────────────────────────────
+// Every opportunity shows all four reasons — trade, nearby location, your capacity fits, previous
+// similar project — whether or not each applied. A ranking that only shows its positives is a sales
+// pitch; showing the misses is what lets a supplier disagree with the score, and disagreeing with
+// it is how they learn what to fix in their profile.
+//
+// ── AND AN UNANSWERABLE REASON IS NOT A FAILED ONE ──────────────────────────────────────────────
+// `available:false` renders differently from `applies:false`. With 0 completed jobs on production,
+// "previous similar project" cannot be true for anybody, so it reads "no completed work has been
+// recorded on QuotesDone yet, for anyone" — never "you have no relevant experience", which is a
+// statement about the supplier that the platform is in no position to make.
+import React, { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
+
+type Lang = 'en' | 'ar';
+type Reason = { key: string; applies: boolean; available?: boolean; text: string; similar_jobs?: number };
+type Opportunity = {
+  inquiry_id: string; project_title: string; category?: string | null; emirate?: string | null;
+  estimated_value?: number | null; fit_score: number | null; match_pct: number | null;
+  reasons: Reason[];
+};
+type Payload = {
+  count?: number; ordered_by?: string; note?: string | null;
+  population?: { open_inquiries?: number; quotes_in_estate?: number };
+  opportunities?: Opportunity[];
+};
+
+const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
+const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+async function call(path: string, body: unknown, token?: string | null) {
+  const r = await fetch(FN + '/' + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
+    body: JSON.stringify(body),
+  });
+  return r.json();
+}
+
+const T = {
+  en: {
+    title: 'Recommended for you', loading: 'Ranking your opportunities…',
+    why: 'Why this is recommended', fit: 'fit', value: 'Estimated value',
+    empty: 'Nothing to recommend yet.',
+    emptyWhy: 'An opportunity appears here when a customer posts work you could win.',
+    ordered: 'Ranked by fit, not by date.', notAssessable: 'not assessable yet',
+  },
+  ar: {
+    title: 'موصى به لك', loading: 'جارٍ ترتيب الفرص…',
+    why: 'لماذا نوصي بهذه', fit: 'ملاءمة', value: 'القيمة التقديرية',
+    empty: 'لا توجد توصيات بعد.',
+    emptyWhy: 'تظهر الفرصة هنا عندما ينشر عميل عملًا يمكنك الفوز به.',
+    ordered: 'مرتّبة حسب الملاءمة، لا حسب التاريخ.', notAssessable: 'غير قابل للتقييم بعد',
+  },
+};
+const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
+
+// A short, stable label per reason, next to the routine's sentence. The sentence is the evidence
+// and varies with the data ("Nearby location — Sharjah", "not assessable — you have not described
+// your capability yet"); the label is what the supplier scans down the column. Keying it here
+// rather than reading it off the payload also means a wording change server-side cannot silently
+// alter what the four rows are, which is the thing the supplier learns to read.
+const REASON_LABEL: Record<string, { en: string; ar: string }> = {
+  trade: { en: 'Your trade', ar: 'نشاطك' },
+  location: { en: 'Nearby location', ar: 'موقع قريب منك' },
+  capacity: { en: 'Your capacity fits', ar: 'قدرتك الإنتاجية مناسبة' },
+  history: { en: 'Previous similar project', ar: 'مشروع مشابه سابق' },
+};
+
+export default function SupplierOpportunities({ token, lang = 'en' }:
+  { token?: string | null; lang?: Lang }) {
+  const [d, setD] = useState<Payload | null>(null);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    let live = true;
+    call('supplier_portal', { action: 'opportunities' }, token).then((j) => {
+      if (!live) return;
+      if (j && j.ok) setD(j); else setErr((j && (j.error || j.hint)) || 'load_err');
+    }).catch(() => { if (live) setErr('load_err'); });
+    return () => { live = false; };
+  }, [token]);
+
+  if (err) return <div className="p-4 text-xs opacity-60">{err}</div>;
+  if (!d) return <div className="p-4 text-xs opacity-60">{t(lang, 'loading')}</div>;
+
+  const list = d.opportunities || [];
+
+  return (
+    <div className="flex flex-col gap-3" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <header className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-[15px] font-semibold text-white">{t(lang, 'title')}</h2>
+        <p className="text-[11px] text-muted-foreground">{t(lang, 'ordered')}</p>
+      </header>
+
+      {list.length === 0 && (
+        <section className="qd-panel p-4 text-[11.5px] leading-relaxed text-muted-foreground">
+          <p>{t(lang, 'empty')}</p>
+          <p className="mt-1 opacity-75">{t(lang, 'emptyWhy')}</p>
+          {/* The population behind the empty list — never a silent nothing. */}
+          <p className="mt-1.5 opacity-50">
+            {d.population?.open_inquiries ?? 0} open · {d.population?.quotes_in_estate ?? 0} quotes in the estate
+          </p>
+        </section>
+      )}
+
+      {list.map((o, i) => (
+        <motion.section
+          key={o.inquiry_id}
+          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, delay: Math.min(i * 0.04, 0.2) }}
+          className="qd-panel p-4"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h3 className="text-[13.5px] font-semibold text-white">{o.project_title}</h3>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                {[o.category, o.emirate].filter(Boolean).join(' · ')}
+                {o.estimated_value != null && <> · {t(lang, 'value')} {o.estimated_value}</>}
+              </p>
+            </div>
+            {/* The match percentage. Null would mean unranked, so it is shown as such rather
+                than as a zero. */}
+            <div className="shrink-0 text-end">
+              <div className="text-2xl font-semibold tabular-nums text-white">
+                {o.match_pct == null ? '—' : o.match_pct + '%'}
+              </div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t(lang, 'fit')}</div>
+            </div>
+          </div>
+
+          <div className="mt-3">
+            <h4 className="text-[10px] uppercase tracking-wide text-muted-foreground">{t(lang, 'why')}</h4>
+            <ul className="mt-1.5 flex flex-col gap-1">
+              {o.reasons.map((r) => {
+                const unanswerable = r.available === false;
+                return (
+                  <li key={r.key} className="flex items-start gap-2 text-[12px] leading-[1.6]">
+                    <span aria-hidden className={
+                      'mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full '
+                      + (unanswerable ? 'bg-white/25' : r.applies ? 'bg-emerald-400' : 'bg-white/20')}
+                    />
+                    <span className={unanswerable ? 'italic text-muted-foreground/70'
+                      : r.applies ? 'text-white/90' : 'text-muted-foreground'}>
+                      <b className="font-medium">
+                        {(REASON_LABEL[r.key] || { en: r.key, ar: r.key })[lang] || r.key}
+                      </b>
+                      {unanswerable && <> — <i>{t(lang, 'notAssessable')}</i></>}
+                      <span className="opacity-80"> · {r.text}</span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </motion.section>
+      ))}
+    </div>
+  );
+}

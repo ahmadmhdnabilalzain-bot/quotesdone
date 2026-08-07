@@ -150,6 +150,24 @@ Deno.serve(async (req) => {
       return J({ ok: true, ...map });
     }
 
+    // §10 — RANKED OPPORTUNITIES. "Recommended for you", ordered by fit score and never by date.
+    //
+    // The ranking itself is fn_supplier_opportunities: it is a query over inquiries, leads and
+    // quotes, so it belongs in SQL where the planner can see the indexes, not in a loop here
+    // pulling rows across the wire to sort them. What this action must NOT do is re-sort the
+    // result — a browser or an edge function reordering a list it already holds is not ranking,
+    // and the routine has already ordered by fit_score desc.
+    //
+    // The reasons ride along with each opportunity: trade, location, capacity fits, and previous
+    // similar project — each carrying whether it applied and, when it could not be asked at all,
+    // why. With 0 completed jobs the history reason is unanswerable for EVERY supplier, and it
+    // says so rather than reading as "you have no relevant experience".
+    if (action === 'opportunities') {
+      const { data: opps, error } = await admin.rpc('fn_supplier_opportunities', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...opps });
+    }
+
     if (action === 'advisor') {
       const { data: advice, error } = await admin.rpc('fn_supplier_advisor', { p_lead_id: supId });
       if (error) return J({ error: error.message }, 500);

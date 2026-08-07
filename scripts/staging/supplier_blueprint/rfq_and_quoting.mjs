@@ -25,7 +25,7 @@
 // one function — adjacency inside a single file is a real fact; adjacency across a join is not.
 import {
   S, P, FILES, P_FILES, FNS, fileSrc, fnSrc, n, has, filesMatching, fnsMatching, fnsWithBoth,
-  near, filesNear, fnsNear, delivered, cover, B, Q, READERS_SQL, NROWS_SQL,
+  near, filesNear, fnsNear, delivered, cover, B, Q, READERS_SQL, NROWS_SQL, rpcSources,
 } from '../supplier_checks.mjs';
 
 export const EXPECTED = 33;
@@ -33,6 +33,23 @@ export const EXPECTED = 33;
 export default async function (H) {
   const { req, one } = H;
   const S9 = 'rfq', S10 = 'rank', S11 = 'qb', S12 = 'neg';
+
+  // ── THE SERVING POPULATION FOLLOWS THE RPC HOP ────────────────────────────────────────────────
+  // Already fixed in §13, §7, §15, §14 and §18; §10 and §11 were never updated, and they are the
+  // two sections where it matters most. Ranking and price recommendation are QUERIES — over
+  // inquiries, leads and quotes — so they belong in SQL where the planner can see the indexes, and
+  // an edge function that rpc()s one is a four-line passthrough with none of the field names in it.
+  // Scanning only the edge tier therefore reports "computed by [NO fn]" about logic that is
+  // demonstrably running: fn_supplier_opportunities answers 200 over HTTPS on both projects.
+  //
+  // This loosens nothing. RPC_NAMES is derived from the `.rpc('...')` calls in the reachable edge
+  // functions, so a routine the supplier's browser cannot reach is still not a server for them.
+  const RPC = await rpcSources(one);
+  const servedBy = (re) => [...fnsMatching(re), ...RPC.filter(([, src]) => re.test(src)).map(([nm]) => nm)];
+  const servedNear = (reA, reB, win = 300) => [
+    ...fnsNear(reA, reB, win),
+    ...RPC.filter(([, src]) => near(src, reA, reB, win)).map(([nm]) => nm),
+  ];
 
   // Quote-EXTRACTION vocabulary: reading a price off a document the supplier already produced.
   // Subtracted from every §11 leg.
@@ -133,8 +150,8 @@ export default async function (H) {
 
   // ORDERED BY RANK, not by date. A chronological inbox is the thing §10 rejects, so a created_at
   // sort cannot satisfy it — the ordering key must be a score.
-  const scoreSort = fnsNear(/order[_ ]?by|\.order\(|sort/i, /score|match|rank|similarity|relevance/i, 300);
-  const dateSort = fnsNear(/order[_ ]?by|\.order\(|sort/i, /created_at|updated_at|\bdate\b/i, 300);
+  const scoreSort = servedNear(/order[_ ]?by|\.order\(|sort/i, /score|match|rank|similarity|relevance/i, 300);
+  const dateSort = servedNear(/order[_ ]?by|\.order\(|sort/i, /created_at|updated_at|\bdate\b/i, 300);
   await req(S10, 'rank-ordered', 'ranked ordering, not chronological',
     B(scoreSort.length > 0),
     Q(`${scoreSort.length} fn(s) order by a SCORE [${scoreSort.join(' ') || 'none'}]; ` +
@@ -159,7 +176,7 @@ export default async function (H) {
     ['rank-reason-location', /nearby|near[_ ]?you|proximity|same[_ ]?emirate|distance/i, 'nearby location'],
   ]) {
     const onSurface = has(re, P);
-    const served = fnsMatching(re);
+    const served = servedBy(re);
     await req(S10, id, `the ranking explains "${label}"`,
       B(onSurface && served.length > 0),
       Q(`"${label}": surface ${onSurface ? 'yes' : 'NO'}, computed by [${served.join(' ') || 'NO fn'}]`));
@@ -169,7 +186,7 @@ export default async function (H) {
   // holds is not "AI ranks them".
   // /score/ near /limit/ matched ai_gateway, which ranks nothing — a scoring word beside a SQL
   // keyword is not a ranking. Ranking is ranking OF something, so RFQ subject matter is required.
-  const rankFn = fnsNear(/rank|relevance|match[_ ]?score/i, RFQCTX, 400);
+  const rankFn = servedNear(/rank|relevance|match[_ ]?score/i, RFQCTX, 400);
   await req(S10, 'rank-routine', 'ranking is computed by a routine, not a client-side sort',
     B(rankFn.length > 0),
     Q(`${rankFn.length} server fn(s) rank [${rankFn.join(' ') || 'none'}]; ` +
