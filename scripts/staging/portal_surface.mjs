@@ -79,6 +79,44 @@ export const ENTRY_SRC = SRC.get(ENTRY) || '';
 export const srcOf = (p) => SRC.get(p) || '';
 export const allSrcPaths = () => [...SRC.keys()];
 
+// ── ROW #5: THE SAME COMPUTATION, ROOTED AT A DIFFERENT PAGE ─────────────────────────────────────
+// The brief's instruction was "parameterise the entry list — one implementation, two roots" rather
+// than copy this file to supplier_surface.mjs. The copy is what produced row #4's 104-vs-124 split:
+// two files each holding a definition of "what the user sees", drifting apart silently. One
+// implementation cannot drift from itself.
+//
+// surfaceFor() is the whole of it. The /me exports above are now just its first instantiation kept
+// under their original names so every row #4 module keeps working untouched.
+export function surfaceFor(entries, entryPath = null) {
+  const s = importClosure(entries);
+  const FILES = [...s.keys()].sort();
+  const SURFACE_SRC = [...s.values()].join('\n/*FILE*/\n');
+  // The edge functions THIS surface can cause to run: the ones it names, then the ones those name.
+  const FNS = (() => {
+    const seen = new Set(); const queue = [];
+    for (const m of SURFACE_SRC.matchAll(/(?:call\(\s*|functions\/v1\/)['"]?([a-z0-9_]+)['"]?/g)) queue.push(m[1]);
+    while (queue.length) {
+      const n = queue.shift();
+      if (seen.has(n) || !EDGE.has(n)) continue;
+      seen.add(n);
+      for (const m of EDGE.get(n).matchAll(/(?:BASE\}|functions\/v1)\/([a-z0-9_]+)/g)) if (!seen.has(m[1])) queue.push(m[1]);
+    }
+    return [...seen].sort();
+  })();
+  return {
+    FILES,
+    SRC: SURFACE_SRC,
+    ENTRY_SRC: entryPath ? (SRC.get(entryPath) || '') : '',
+    FNS,
+    FN_SRC: FNS.map((n) => EDGE.get(n)).join('\n/*FILE*/\n'),
+  };
+}
+
+// SUPPLIER is instantiated at the END of this file, below EDGE. surfaceFor() reads EDGE, EDGE is a
+// const, and `export const SUPPLIER = surfaceFor(...)` placed here would run inside EDGE's temporal
+// dead zone and throw a ReferenceError at IMPORT time — which the runner catches per-module, so the
+// symptom would not be an error, it would be all 234 checks silently unmeasured.
+
 // Every edge function's source, and the subset a customer's browser can cause to run: the ones the
 // surface names as call('<n>') or functions/v1/<n>, then the ones THOSE name, transitively.
 export const EDGE = (() => {
@@ -106,6 +144,20 @@ export const CUST_FNS = (() => {
   return [...seen].sort();
 })();
 export const CUST_SRC = CUST_FNS.map((n) => EDGE.get(n)).join('\n/*FILE*/\n');
+
+/**
+ * The supplier's screen — row #5's surface, from the same importClosure the customer's uses.
+ *
+ * There is NO entryPath argument on purpose. A section module that wants "the supplier's surface"
+ * must take SUPPLIER.SRC, which is the whole import closure. Hardcoding SupplierPortal.tsx is the
+ * exact bug that made row #4 report 104/147 against a truth of 124, and the way to make that bug
+ * unwritable is to not export a handle for it.
+ */
+export const SUPPLIER = surfaceFor([
+  'src/app/[locale]/supplier/page.tsx',
+  'src/app/[locale]/layout.tsx',
+  'src/app/layout.tsx',
+]);
 
 /**
  * The source of one component, from `function Name(` to the next top-level declaration.
