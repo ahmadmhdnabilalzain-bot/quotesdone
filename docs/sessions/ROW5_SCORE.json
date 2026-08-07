@@ -1,7 +1,7 @@
 {
  "target": "htdblwldjkcgjvmqkbeh",
  "total": 234,
- "met": 148,
+ "met": 147,
  "rows": [
   {
    "section": "collab",
@@ -602,8 +602,8 @@
    "section": "cc",
    "id": "cc-perf-quality",
    "name": "a Quality % tile on the command center",
-   "ok": true,
-   "ev": "Quality %: rendered yes, served by [fn_supplier_twin] (identifier-shaped only — prose mentioning the word is not a tile)"
+   "ok": false,
+   "ev": "Quality %: rendered yes, served by [NO fn] (identifier-shaped only — prose mentioning the word is not a tile)"
   },
   {
    "section": "cc",
@@ -988,7 +988,7 @@
    "id": "perf-quality",
    "name": "the health panel shows Quality",
    "ok": true,
-   "ev": "Quality: rendered yes, served by [fn_supplier_twin]; supplier_score.quality_rating non-null on 4478 of 20465 row(s) — the data is not the blocker"
+   "ev": "Quality: rendered yes, served by [fn_supplier_twin]; supplier_score.quality_rating non-null on 0 of 20465 row(s) — the data is not the blocker"
   },
   {
    "section": "perf",

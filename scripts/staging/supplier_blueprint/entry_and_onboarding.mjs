@@ -215,7 +215,20 @@ export default async function (H) {
   // with the word `json` in wa_optin_set and score a MET. All six passed again for that reason.
   // Windowing across a concatenation is the same error as scoring a route by one file: the join is
   // an artefact of the scan, not a fact about the product. Each function is scored on its own text.
-  const AI_FNS = ['profile_ai', 'ai_gateway', 'license_extract'].filter((f) => SUPPLIER.FNS.includes(f));
+  // ── THE POPULATION IS NAMED, AND A NAMED POPULATION GOES STALE ────────────────────────────────
+  // This was three hard-coded slugs. On 8 Aug 2026 `supplier_onboard` was built — the first
+  // endpoint in the estate that actually does what §2 asks — and all six legs would have kept
+  // reading "extracted by [NO fn]" because the guess-list predated it. That is the same defect
+  // command_and_environment.mjs already records ("the evidence names NO fn because the guess-list
+  // was too short"), and it is the one that makes a built thing look unbuilt.
+  //
+  // The list is kept explicit rather than derived from "any reachable fn with a prompt in it":
+  // widening the population to every promptish endpoint would let a field name in one function
+  // pair with a prompt in another category of function entirely, which is how six false METs were
+  // scored here the first time. So the fix is the smallest true one — extraction endpoints by
+  // name, plus anything whose slug declares extraction intent, so the next one is not missed.
+  const AI_FNS = SUPPLIER.FNS.filter((f) =>
+    ['profile_ai', 'ai_gateway', 'license_extract', 'supplier_onboard'].includes(f) || /onboard|extract/.test(f));
   const aiSrc = AI_FNS.map((f) => [f, strip(EDGE.get(f) || '')]);
   const promptish = /prompt|system[_ ]?message|completion|response_format|json[_ ]?schema/i;
   for (const [field, re] of EXTRACT) {

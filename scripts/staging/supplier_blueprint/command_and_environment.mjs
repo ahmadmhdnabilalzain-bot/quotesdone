@@ -99,16 +99,32 @@ export default async function (H) {
   // require an identifier-shaped name (`response_rate`, `quality_score`), never a bare English word,
   // and the endpoint leg searches ALL reachable functions so the evidence names the real server
   // instead of reporting NO fn because the guess-list was too short.
-  for (const [id, re, label] of [
-    ['cc-perf-response', /response[_ ]?(rate|pct|percent|score)|responsiveness/i, 'Response %'],
-    ['cc-perf-quality', /quality[_ ]?(rate|pct|percent|score|mark)|score[_ ]?quality/i, 'Quality %'],
+  // ── THE SERVED LEG NEEDS ITS OWN REGEX, BECAUSE A TILE ARRIVES AS A JSON KEY ─────────────────
+  // Scoring the served leg with the RENDER regex greps a routine's source for a COLUMN name, and
+  // the fact does not live there — it lives in the key the routine emits. On 8 Aug 2026
+  // `cc-perf-quality` flipped to MISSING with the serving completely intact: commit ef1d31a
+  // ("a rating is EARNED, not scraped") aliased the column `quality_rating as q_pct`, and
+  // `quality[_ ]?(rate|pct)` stopped matching a routine that still emits
+  // `'quality', (select q_pct from s)`. Executed against production the same day,
+  // fn_supplier_twin(30419) returns health.quality — present, null, quality_scale 'unrated'.
+  // That is honesty rule #1 rendering correctly, not an absent tile.
+  //
+  // So the served leg also accepts a QUOTED PAYLOAD KEY BOUND TO AN EXPRESSION — `'quality', (`
+  // or `'quality', r.foo`. This is narrower than the English word, not looser: prose cannot
+  // produce it, and a key bound to a string constant (`'quality', 'unrated'`) is a label rather
+  // than a metric and still fails. The render leg keeps the identifier-shaped regex untouched.
+  for (const [id, re, label, servedRe] of [
+    ['cc-perf-response', /response[_ ]?(rate|pct|percent|score)|responsiveness/i, 'Response %',
+      /response[_ ]?(rate|pct|percent|score)|responsiveness|'response'\s*,\s*[a-z(]/i],
+    ['cc-perf-quality', /quality[_ ]?(rate|pct|percent|score|mark)|score[_ ]?quality/i, 'Quality %',
+      /quality[_ ]?(rate|pct|percent|score|mark)|score[_ ]?quality|'quality'\s*,\s*[a-z(]/i],
   ]) {
     const shown = delivered(re);
-    const served = servedBy(re);
+    const served = servedBy(servedRe);
     await req(SEC4, id, `a ${label} tile on the command center`,
       B(shown && served.length > 0),
       Q(`${label}: rendered ${shown ? 'yes' : 'NO'}, served by [${served.join(' ') || 'NO fn'}] ` +
-        `(identifier-shaped only — prose mentioning the word is not a tile)`));
+        `(render leg identifier-shaped; served leg also accepts a payload key bound to an expression)`));
   }
 
   // The assistant panel, scored over P so the MARKETING chat bubble cannot certify it. Module 1 lost

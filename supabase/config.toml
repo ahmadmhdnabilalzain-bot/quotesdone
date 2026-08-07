@@ -557,6 +557,9 @@ verify_jwt = false
 [functions.supplier_pay]
 verify_jwt = false
 
+[functions.supplier_onboard]
+verify_jwt = false
+
 [functions.supplier_portal]
 verify_jwt = false
 

@@ -58,7 +58,7 @@ Write-Output '--- verify_jwt drift check ---'
 if ($live.Count -eq 0) {
   Write-Output "SKIPPED: $ProjectRef has no deployed functions yet, so config.toml cannot have drifted from it."
 } else {
-  & node scripts/gen_supabase_config.mjs --check
+  & node scripts/gen_supabase_config.mjs --check "--deploying=$($Slugs -join ',')"
   if ($LASTEXITCODE -ne 0) {
     Write-Output ''
     Write-Output 'REFUSING TO DEPLOY. config.toml and the live project disagree about verify_jwt.'
