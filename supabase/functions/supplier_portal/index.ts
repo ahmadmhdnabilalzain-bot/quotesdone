@@ -118,6 +118,16 @@ Deno.serve(async (req) => {
     // computation. The RECOMMENDATIONS half is real today: every gap is derived from a column the
     // supplier can act on, and impact_rfqs counts live inquiries rather than quoting the spec's
     // illustrative "32 more projects".
+    // ROW #5 §19 — THE SUPPLIER NETWORK MAP. Supplier density by emirate from 20,464 real leads;
+    // demand, projects and shipments return EMPTY with a stated basis, because there are 0
+    // inquiries and no shipments relation at all. A globe speckled with invented demand looks like
+    // market intelligence and is nothing.
+    if (action === 'network_map') {
+      const { data: map, error } = await admin.rpc('fn_supplier_network_map');
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...map });
+    }
+
     if (action === 'advisor') {
       const { data: advice, error } = await admin.rpc('fn_supplier_advisor', { p_lead_id: supId });
       if (error) return J({ error: error.message }, 500);
