@@ -122,6 +122,17 @@ Deno.serve(async (req) => {
     // demand, projects and shipments return EMPTY with a stated basis, because there are 0
     // inquiries and no shipments relation at all. A globe speckled with invented demand looks like
     // market intelligence and is nothing.
+    // ROW #5 §14 — MARKET INTELLIGENCE, with an honest ceiling. Competitor counts and supply
+    // composition are real (20,464 leads with sectors and emirates). Demand trend, most-requested
+    // and average price return available:false with the empty population named, because there are
+    // 0 inquiries and 0 quotes. An arrow reading "HVAC demand up 18%" against zero inquiries is
+    // indistinguishable from real market intelligence on screen, and a supplier could staff up on it.
+    if (action === 'market') {
+      const { data: mkt, error } = await admin.rpc('fn_supplier_market', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...mkt });
+    }
+
     if (action === 'network_map') {
       const { data: map, error } = await admin.rpc('fn_supplier_network_map');
       if (error) return J({ error: error.message }, 500);

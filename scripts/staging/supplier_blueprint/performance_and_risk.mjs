@@ -167,13 +167,39 @@ export default async function (H) {
     ['mkt-competitor-count', /competitor[_ ]?count|competitors|\brivals\b/i, 'a competitor count'],
   ]) {
     const shown = delivered(re, P);
-    const served = fnsNear(re, MKTCTX, 400);
+    // ── A FIELD THE ROUTINE EXPLICITLY MARKS UNAVAILABLE IS NOT SERVED ─────────────────────────
+    // The rpc-hop fix, applied naively, turned three of these MET — because fn_supplier_market
+    // NAMES demand_trend, most_requested and avg_market_price in the very blocks that return
+    // `available: false, value: null`. The supplier sees "not available yet". A mention is not a
+    // delivery, and this is the same defect as a UI caption standing in for a rendered value,
+    // arriving from the server side instead.
+    //
+    // So a field whose key sits within 200 characters of `'available', false` in the routine does
+    // NOT count as served. That is refutable and self-maintaining: the day inquiries exist and the
+    // routine returns a real value, the flag flips and the check passes on its own.
+    const unavailableInRpc = (src) => {
+      const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
+      for (const m of String(src).matchAll(g)) {
+        if (/'available'\s*,\s*false/.test(String(src).slice(m.index, m.index + 200))) return true;
+      }
+      return false;
+    };
+    const served = [
+      ...fnsNear(re, MKTCTX, 400),
+      ...RPC.filter(([, src]) => re.test(src) && MKTCTX.test(src) && !unavailableInRpc(src)).map(([nm]) => nm),
+    ];
     await req(S14, id, `market intelligence shows ${label}`,
       B(shown && served.length > 0),
       Q(`${label}: rendered ${shown ? 'yes' : 'NO'}, served by [${served.join(' ') || 'NO fn'}]`));
   }
 
-  const mktFn = fnsNear(MKTCTX, /count\(|avg\(|sum\(|group by|percentile/i, 500);
+  // The aggregation lives in fn_supplier_market, reached by rpc — the same hop §13, §7 and §15 all
+  // needed. An edge function that calls rpc() does no aggregation itself and never will.
+  const AGG = /count\(|avg\(|sum\(|group by|percentile/i;
+  const mktFn = [
+    ...fnsNear(MKTCTX, AGG, 500),
+    ...RPC.filter(([, src]) => MKTCTX.test(src) && AGG.test(src)).map(([nm]) => nm),
+  ];
   const mktRoutines = await one(`select count(distinct p.proname)::text from pg_proc p
     join pg_namespace ns on ns.oid=p.pronamespace
     where ns.nspname='public' and p.prokind in ('f','p') and p.proname ~* 'market|demand|benchmark'`);
@@ -182,7 +208,21 @@ export default async function (H) {
     Q(`${mktFn.length} reachable fn(s) aggregate market data [${mktFn.join(' ') || 'none'}]; ` +
       `${mktRoutines} market/demand routine(s) in public`));
 
-  const chartFiles = filesNear(MKTCTX, /recharts|<svg|d3-|<path|chart|sparkline/i, 400, P_FILES);
+  // A WIDTH-DRIVEN BAR IS A CHART, and §13's perf-bars-rendered already says so. Demanding SVG or a
+  // charting library here while accepting a CSS bar three sections earlier is the same claim scored
+  // two different ways in one run — the inconsistency this scorer's own headers are written against.
+  // NOT filesNear(MKTCTX, …). That matched SupplierPortal.tsx — the 81,811-char monolith, where the
+  // word "market" and a width style are 400 characters apart by coincidence and nothing charts any
+  // market data at all. §14's chart has to be in the file that actually FETCHES market data, which
+  // is a precise, refutable anchor the monolith cannot satisfy by accident.
+  //
+  // A width-driven bar counts as a chart, because §13's perf-bars-rendered already says so; scoring
+  // the same claim two ways in one run is the inconsistency this scorer is written against.
+  const CHARTRE = /recharts|<svg|d3-|<path|sparkline|width:\s*[^;]*%|w-\[/i;
+  const chartFiles = P_FILES.filter((f) => {
+    const src = fileSrc(f);
+    return /action:\s*['"]market['"]/.test(src) && CHARTRE.test(src);
+  });
   await req(S14, 'mkt-chart', 'the trend renders as a chart',
     B(chartFiles.length > 0),
     Q(`${chartFiles.length} portal file(s) pair market content with chart machinery ` +
