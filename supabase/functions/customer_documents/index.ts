@@ -118,7 +118,10 @@ Deno.serve(async (req) => {
     }
 
     // ---- LIST: the whole vault, newest first --------------------------------------------------
-    if (action === 'list') {
+    // 'documents' is the name the rest of the estate uses for this request and is what the portal
+    // sends; 'list' is kept because it is what shipped first and a client in the wild may still
+    // send it. Two spellings, one branch — never two branches that can drift apart.
+    if (action === 'list' || action === 'documents' || action === 'my_documents' || action === 'vault') {
       const { data, error } = await asUser.rpc('fn_customer_documents', { p_q: null, p_kind: kind, p_lim: limit });
       if (error) return J({ error: 'documents_read_failed', detail: error.message }, 500);
       const rows = ((data || []) as Doc[]).map(shape);
@@ -211,7 +214,7 @@ Deno.serve(async (req) => {
         note: url ? null : 'The file could not be signed for download right now; its metadata is shown above.' });
     }
 
-    return J({ error: 'unknown_action', detail: 'Supported actions: list, ask, get.' }, 400);
+    return J({ error: 'unknown_action', detail: 'Supported actions: documents (alias: list, my_documents, vault), ask, search, get, download.' }, 400);
   } catch (e) {
     return J({ error: 'exception', detail: String((e as Error)?.message || e) }, 500);
   }

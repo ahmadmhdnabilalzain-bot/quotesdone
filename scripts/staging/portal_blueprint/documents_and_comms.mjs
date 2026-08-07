@@ -60,8 +60,15 @@ const N = (s, re) => (String(s || '').match(re) || []).length;
 const lit = (s) => `'${String(s).replace(/'/g, "''")}'`;
 const B = (v) => `select ${v ? 'true' : 'false'}`;
 
-const PORTAL_PATH = 'src/components/me/CustomerPortal.tsx';
-const PORTAL = slurp(PORTAL_PATH);
+// THE CUSTOMER'S SCREEN IS ITS IMPORT CLOSURE, NOT ITS ENTRY FILE. This module scored
+// CustomerPortal.tsx alone; the portal has since been split into src/components/portal/*, which
+// that file imports and mounts, so every surface a module owns was invisible to every check here.
+// It reported "0 document-list calls ... the surface exists for suppliers only" while
+// DocumentVault.tsx is imported at CustomerPortal.tsx:19 and fetches customer_documents. Two of the
+// five section modules already measured the closure. See ../portal_surface.mjs.
+import { PORTAL_SRC, PORTAL_FILES, componentSrc } from '../portal_surface.mjs';
+const PORTAL_PATH = `the /me route closure (${PORTAL_FILES.length} file(s), entry src/components/me/CustomerPortal.tsx)`;
+const PORTAL = PORTAL_SRC;
 // A source file we cannot read is an UNMEASURED requirement, not a missing feature. Throwing here
 // makes the runner record it as an ERROR — which it prints separately and refuses to call MISSING.
 const portal = () => { if (!PORTAL) throw new Error('unreadable ' + PORTAL_PATH); return PORTAL; };
@@ -448,7 +455,15 @@ export default async function ({ req }) {
   // Measured over the whole messaging half of the portal (function Messages onwards), not a
   // hand-cut slice of the Thread component — a regex that guesses where a function ends is a way
   // to measure the wrong text and never notice.
-  const msgSrc = portal().slice(portal().indexOf('function Messages('));
+  // `portal().slice(portal().indexOf('function Messages('))` — the previous form — is a silent
+  // false negative the moment that component is renamed or moved: indexOf returns -1, slice(-1)
+  // hands back THE LAST CHARACTER OF THE FILE, and every count over it is 0. A component that does
+  // not exist then reads exactly like one that exists and has no attach control. The portal's
+  // messaging surface is now whichever of these components is present, and the ones found are
+  // printed so an empty set is visible as an empty set.
+  const MSG_COMPS = ['Messages', 'Thread', 'CommunicationCenter'];
+  const msgFound = MSG_COMPS.filter((n) => componentSrc(n, portal()).length > 0);
+  const msgSrc = msgFound.map((n) => componentSrc(n, portal())).join('\n');
   const threadAttach = N(msgSrc, /type="file"|onFile|attach/gi);
   await req(S16, 'comm-documents-in-thread', 'Documents can be attached inside a conversation',
     `select coalesce((${NCOL('messages', "'attachment','attachments','file_path','document_id'")} > 0
@@ -466,7 +481,8 @@ export default async function ({ req }) {
            where n.nspname='public' and p.prokind in ('f','p')
              and pg_get_functiondef(p.oid) ~* '\\yfn_register_document\\s*\\('
              and pg_get_functiondef(p.oid) ~* '''messages'''),'none')
-       ||'; attach control(s) in the portal messaging components: '||${lit(String(threadAttach))}
+       ||${lit('; portal messaging component(s) found: [' + (msgFound.join(',') || 'none') + ']')}
+       ||'; attach control(s) in them: '||${lit(String(threadAttach))}
        ||' (the portal has '||${lit(String(N(PORTAL, /type="file"/g)))}||' file input(s) in total, on the intake chat)'`);
 
   // CALLS LOGGED IN THE SAME PLACE. A call log is a table that records a conversation with a party

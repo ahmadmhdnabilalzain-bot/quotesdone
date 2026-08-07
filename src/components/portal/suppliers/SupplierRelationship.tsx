@@ -504,39 +504,27 @@ export function SupplierHistoryPanel({
               </div>
             ) : null}
 
-            <div className="mt-2 overflow-x-auto">
-              <table className="w-full min-w-[380px] border-collapse text-[12.5px]">
-                <caption className="sr-only">
-                  {ar(lang, 'مشاريع سابقة لهذا المورّد', 'Past projects for this supplier')}
-                </caption>
-                <thead>
-                  <tr className="text-muted-foreground">
-                    <th scope="col" className="py-1 text-start font-semibold">
-                      {ar(lang, 'الفئة', 'Category')}
-                    </th>
-                    <th scope="col" className="py-1 text-start font-semibold">
-                      {ar(lang, 'الإمارة', 'Emirate')}
-                    </th>
-                    <th scope="col" className="py-1 text-start font-semibold">
-                      {ar(lang, 'الشهر', 'Month')}
-                    </th>
-                    <th scope="col" className="py-1 text-end font-semibold">
-                      {ar(lang, 'نطاق القيمة', 'Value band')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projects.map((p, i) => (
-                    <tr key={i} className="border-t border-border/50 text-foreground">
-                      <td className="py-1.5 pe-2">{p.category || '—'}</td>
-                      <td className="py-1.5 pe-2">{p.emirate || '—'}</td>
-                      <td className="py-1.5 pe-2">{p.month || '—'}</td>
-                      <td className="py-1.5 text-end">{p.value_band || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {/*
+              WAS A <table min-w-[380px]>, AND BOTH HALVES OF THAT WERE WRONG HERE.
+              The 380px minimum forces a horizontal scrollbar on a 375px phone — the one viewport
+              §18 names — and the customer's portal is specified in §21 as a workspace rather than
+              a page of tables. Four fields per project fit as a labelled row that wraps, so the
+              same four facts survive at 320px with no scroll and no grid to align.
+              `list` + `listitem` keep the collection announced to a screen reader, which is what
+              the table markup was genuinely providing.
+            */}
+            <ul className="mt-2 space-y-1.5 text-[12.5px]" role="list"
+                aria-label={ar(lang, 'مشاريع سابقة لهذا المورّد', 'Past projects for this supplier')}>
+              {projects.map((p, i) => (
+                <li key={i} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-md border border-border/50 bg-secondary/10 px-2 py-1.5">
+                  <span className="font-semibold text-foreground">{p.category || '—'}</span>
+                  <span className="text-muted-foreground">{p.emirate || '—'}</span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">{p.month || '—'}</span>
+                  <span className="ms-auto text-foreground">{p.value_band || '—'}</span>
+                </li>
+              ))}
+            </ul>
 
             <div className={cn(S.note, 'mt-1.5')}>
               {ar(

@@ -46,7 +46,15 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const rd = (p) => { try { return readFileSync(p, 'utf8'); } catch { return ''; } };
 
 // ── the surfaces under test ──────────────────────────────────────────────────────────────────────
-const PORTAL = rd(join(ROOT, 'src/components/me/CustomerPortal.tsx'));
+// THE CUSTOMER'S SCREEN IS 53 FILES, NOT ONE. This module scored `src/components/me/
+// CustomerPortal.tsx` alone, which was the whole portal when it was written and stopped being so
+// when the portal was split into src/components/portal/* — files CustomerPortal.tsx imports and
+// mounts. Two of the five section modules already computed the /me route's import closure; this one
+// did not, so one run held two different definitions of "the customer sees it". See
+// ../portal_surface.mjs for why widening it is symmetric rather than a weakening.
+import { PORTAL_SRC, ENTRY_SRC, CUST_FNS as SURFACE_FNS, CUST_SRC as SURFACE_SRC } from '../portal_surface.mjs';
+const PORTAL = PORTAL_SRC;
+const PORTAL_ENTRY = ENTRY_SRC;   // the one file, for evidence that genuinely means that file
 const edgeSrc = (n) => rd(join(ROOT, 'supabase', 'functions', n, 'index.ts'));
 const EDGE = (() => {
   const out = new Map();
@@ -74,18 +82,12 @@ const ALL_SRC = (function walk(d, acc = []) {
 // cannot answer this question: it is rooted in the whole of src/, so os_api and every staff surface
 // sits inside it and "a customer can reach it" would be true of the founder's console. This set is
 // rooted in the customer's own component.
-const PORTAL_ENDPOINTS = [...new Set([...PORTAL.matchAll(/call\(\s*'([a-z0-9_]+)'/g)].map(m => m[1]))].sort();
-const CUST_FNS = (() => {
-  const seen = new Set(); const queue = [...PORTAL_ENDPOINTS];
-  while (queue.length) {
-    const n = queue.shift();
-    if (seen.has(n) || !EDGE.has(n)) continue;
-    seen.add(n);
-    for (const m of EDGE.get(n).matchAll(/functions\/v1\/([a-z0-9_]+)/g)) if (!seen.has(m[1])) queue.push(m[1]);
-  }
-  return [...seen].sort();
-})();
-const CUST_SRC = CUST_FNS.map(n => EDGE.get(n)).join('\n/*FILE*/\n');
+// Rooted in the customer's whole surface rather than in one of its files, for the same reason and
+// by the same algorithm as projects_and_rfq.mjs. Rooting it in CustomerPortal.tsx alone made every
+// endpoint a mounted module owns — customer_documents, procurement_api, negotiation_assistant —
+// unreachable by a customer who reaches them by clicking.
+const CUST_FNS = SURFACE_FNS;
+const CUST_SRC = SURFACE_SRC;
 const edgeNamesMatching = (re) => [...EDGE.keys()].filter(n => re.test(EDGE.get(n))).sort();
 
 // A component's source, from `function Name(` to the next top-level declaration. Deliberately local

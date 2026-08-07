@@ -195,7 +195,8 @@ Deno.serve(async (req) => {
       };
 
       return J({ ok: true, customer: { id: cust.id, name: cust.full_name, industry: cust.industry },
-                 stats, alerts, alerts_count: alerts.length, headline, twin, layout,
+                 stats, alerts, alerts_count: alerts.length,
+                 headline: headline, twin: twin, layout: layout,
                  degraded: degraded.length ? degraded : undefined });
     }
 

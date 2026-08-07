@@ -20,6 +20,10 @@ import { DocumentVault } from '@/components/portal/documents';
 import { CommunicationCenter } from '@/components/portal/comms';
 import { ApprovalChain, OrdersList } from '@/components/portal/approvals';
 import { PredictiveIntelligence, NegotiationAssistant } from '@/components/portal/predict';
+// §2 the Company Digital Twin, §9 Supplier Discovery and §17 Customer AI Memory. fn_twin,
+// v_digital_twin, customer_score and customer_preference were all built and read only by os_api —
+// the staff console — so the customer could not see their own profile or correct it.
+import { CompanyTwin, SupplierDiscovery, CustomerMemory } from '@/components/portal/twin';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 // expires_at / expired were served on every quote and never shown. The branch that phrases them
 // decides whether a customer pays a reveal fee on a lapsed price, so it lives in a file that can be
@@ -56,7 +60,7 @@ const T = {
     payment_pending:'Your payment is still being processed. Please refresh this page in a moment — do not pay again. Keep this page open so we can finish confirming it.',
     payment_failed:"We couldn't confirm your payment yet. Please keep this page link and email management@quotesdone.com if you were charged.",
     mod_spatial:'Project room', mod_documents:'Documents', mod_approvals:'Approvals', mod_orders:'Orders',
-    mod_predict:'What you may need next', mod_account:'Account', open_module:'Open', theme_light:'Light mode', theme_dark:'Dark mode',
+    mod_predict:'What you may need next', mod_profile:'Company profile', mod_account:'Account', open_module:'Open', theme_light:'Light mode', theme_dark:'Dark mode',
     unread_message:'unread message', unread_messages:'unread messages',
     acct_title:'Your account', acct_sub:'What we hold for you, and the preferences this device remembers.',
     acct_name:'Name', acct_email:'Email', acct_phone:'Mobile', acct_locale:'Language on your profile', acct_since:'Customer since',
@@ -94,7 +98,7 @@ const T = {
     payment_pending:'لا تزال عملية الدفع قيد المعالجة. يُرجى تحديث الصفحة بعد قليل — لا تدفع مرة أخرى. أبقِ هذه الصفحة مفتوحة حتى نُكمل التأكيد.',
     payment_failed:'تعذّر تأكيد عملية الدفع حتى الآن. يُرجى الاحتفاظ برابط هذه الصفحة ومراسلتنا على management@quotesdone.com إذا تم خصم المبلغ.',
     mod_spatial:'غرفة المشروع', mod_documents:'المستندات', mod_approvals:'الموافقات', mod_orders:'أوامر الشراء',
-    mod_predict:'ما قد تحتاجه لاحقًا', mod_account:'الحساب', open_module:'فتح', theme_light:'الوضع الفاتح', theme_dark:'الوضع الداكن',
+    mod_predict:'ما قد تحتاجه لاحقًا', mod_profile:'ملف الشركة', mod_account:'الحساب', open_module:'فتح', theme_light:'الوضع الفاتح', theme_dark:'الوضع الداكن',
     unread_message:'رسالة غير مقروءة', unread_messages:'رسائل غير مقروءة',
     acct_title:'حسابك', acct_sub:'ما نحتفظ به لك، والتفضيلات التي يتذكرها هذا الجهاز.',
     acct_name:'الاسم', acct_email:'البريد الإلكتروني', acct_phone:'الجوال', acct_locale:'اللغة في ملفك', acct_since:'عميل منذ',
@@ -391,22 +395,35 @@ function Dashboard({ token, lang, onServedLocale }) {
     <div className={cn('rounded-lg border px-3.5 py-2.5 mb-3 text-[13px] font-semibold', alertsCount > 0 ? 'border-primary/35 bg-primary/10 text-primary' : 'border-border bg-secondary/20 text-muted-foreground')}>
       {alertsCount > 0 ? (alertsCount + ' ' + t(lang, alertsCount === 1 ? 'attention_one' : 'attention_many')) : t(lang, 'attention_none')}
     </div>
-    {/* THE MODULE BAR. A row on a desktop, a bottom-anchored bar on a phone — where a thumb is. */}
+    {/* §1 THE ASSISTANT'S OWN SENTENCE. The count above says HOW MANY; this says WHICH ONE and why
+        it is first. It is written by customer_portal — one line built from the highest-severity
+        alert outstanding — rather than assembled here, so the sentence the customer reads is the
+        sentence the server can be held to. When nothing is outstanding it says so plainly. */}
+    {ov && ov.headline ? (
+      <div className="mb-3 flex items-start gap-2 rounded-lg border border-border bg-card px-3.5 py-2.5">
+        <span aria-hidden className="mt-[1px] text-[13px]">🤖</span>
+        <p className="text-[13.5px] text-foreground">{ov.headline}</p>
+      </div>
+    ) : null}
+    {/* THE MODULE BAR. A row on a desktop, a bottom-anchored bar on a phone — where a thumb is.
+        §21 ORDERS IT PER CUSTOMER. customer_portal returns layout.order, ranked by what this
+        customer actually has outstanding (approvals blocking work first, then live projects), and
+        a panel the customer pinned by hand comes back at the front and is never re-ranked
+        underneath them. An unknown key from the server is IGNORED rather than rendered as a dead
+        button, and any module the server did not mention is appended in its declared order, so a
+        module added to the product later cannot disappear because the layout predates it. */}
     <div className="fixed bottom-0 inset-x-0 z-20 flex gap-1.5 overflow-x-auto border-t border-border bg-card/90 backdrop-blur px-3 py-2 sm:static sm:mb-4 sm:flex-wrap sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
       <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" onClick={() => setView('home')}>{t(lang, 'home')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" onClick={() => setView('projects')}>{t(lang, 'projects')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" onClick={() => setView('spatial')}>{t(lang, 'mod_spatial')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" onClick={() => setView('documents')}>{t(lang, 'mod_documents')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" onClick={() => setView('messages')}>{t(lang, 'messages')}<UnreadBadge token={token} lang={lang} /></Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" onClick={() => setView('orders')}>{t(lang, 'mod_orders')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" onClick={() => setView('approvals')}>{t(lang, 'mod_approvals')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" onClick={() => setView('predict')}>{t(lang, 'mod_predict')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" onClick={() => setView('account')}>{t(lang, 'mod_account')}</Button>
+      {orderedModules(ov && ov.layout).map(([id, key]) => (
+        <Button key={id} size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" onClick={() => setView(id)}>
+          {t(lang, key)}{id === 'messages' ? <UnreadBadge token={token} lang={lang} /> : null}
+        </Button>
+      ))}
     </div>
     {/* project_api ships seven customer-authed actions and had zero callers in src/. Linking an RFQ
         to a project needs the customer's own RFQ list, which this component already holds —
         top-level rows only, since a child of a combined project is sourced through its parent. */}
-    <ModuleWindow id={view} onClose={() => setView('home')} token={token} lang={lang} inqs={inqs} onChanged={refresh} />
+    <ModuleWindow id={view} onClose={() => setView('home')} token={token} lang={lang} inqs={inqs} onChanged={refresh} twin={ov && ov.twin} />
     {note && <div className={S.note}>{note}</div>}
     {showNew && <NewRequest token={token} onDone={() => { setShowNew(false); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => setShowNew(false)} />}
     {ov && !!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => <div key={i} className={cn('rounded-lg border border-border bg-card px-3.5 py-3 flex flex-col gap-0.5 border-l-4', a.severity === 'high' ? 'border-l-red-500' : a.severity === 'medium' ? 'border-l-amber-400' : 'border-l-primary')}><b className="text-[13.5px] text-foreground">{a.title}</b><span className="text-muted-foreground text-xs">{a.detail}</span></div>)}</div>}
@@ -414,6 +431,12 @@ function Dashboard({ token, lang, onServedLocale }) {
       <Kpi label={t(lang, 'k_requests')} v={s.inquiries_total ?? 0} /><Kpi label={t(lang, 'k_open')} v={s.open_inquiries ?? 0} /><Kpi label={t(lang, 'k_quotes')} v={s.quotes_received ?? 0} />
       <Kpi label={t(lang, 'k_avg')} v={s.avg_quotes_per_inquiry ?? 0} /><Kpi label={t(lang, 'k_hired')} v={s.deals ?? 0} /><Kpi label={t(lang, 'k_spend')} v={aed(s.total_spend)} />
     </div>}
+    {/* §2 THE PROFILE, ON THE ENTRY SCREEN. Six KPI tiles say what the customer has DONE; the twin
+        says who they ARE — industry, live projects, the suppliers they keep coming back to, the
+        categories they actually buy, their approval chain, and how much of that profile we hold.
+        It is the same object the Company profile window opens, rendered from the overview payload
+        the dashboard already has, so opening the portal costs no extra call. */}
+    {ov && ov.twin ? <div className="mb-4"><CompanyTwin twin={ov.twin} lang={lang === 'ar' ? 'ar' : 'en'} /></div> : null}
     {/* ── THE PROJECTS / FINANCIAL / SUPPLIER-NETWORK PANELS (§1, §4) ──────────────────────────
         Every figure below is nullable and every one of them says which absence is true rather than
         printing a zero that reads as a measurement. timeline_pct is null for a project with no
@@ -514,6 +537,12 @@ function InquiryCard({ inq, token, onChange, lang }) {
     <div className="flex items-center gap-1.5 mt-2 text-[11px] flex-wrap">{(lang === 'ar' ? RFQ_STAGES.ar : RFQ_STAGES.en).map((s, si) => (<span key={s} className={cn('flex items-center gap-1', si <= stepIdx ? 'text-primary font-semibold' : 'text-muted-foreground/70')}>{si > 0 ? <span className="text-muted-foreground/40">›</span> : null}<span className={cn('inline-block w-1.5 h-1.5 rounded-full', si <= stepIdx ? 'bg-primary' : 'bg-muted-foreground/40')} />{s}</span>))}</div>
     {open && <div className="mt-3 border-t border-border pt-3 flex flex-col gap-3">
       <Timeline inq={inq} quotes={quotes} anyRevealed={anyRevealed} lang={lang} />
+      {/* §3 THE ASSISTANT AFTER THE REQUEST EXISTS. NewRequest unmounts the moment the RFQ is
+          created, and the only other door — a chat thread — is gated on a PAID REVEAL, so a
+          customer with a live RFQ and no revealed quote had no way to ask anything at all. This
+          reopens the same inquiry_intake conversation against this RFQ, which is where a follow-up
+          belongs: the assistant answers with the brief in front of it. */}
+      <RfqAssistant inq={inq} token={token} lang={lang} onChanged={onChange} />
       <DetailFacts inq={inq} lang={lang} />
       {quotes.length >= 2 && <Comparison inqId={inq.id} token={token} lang={lang} />}
       {/* THE DEFECT THIS REPLACES. What stood here was one fixed sentence — "we matched you with
@@ -530,6 +559,50 @@ function InquiryCard({ inq, token, onChange, lang }) {
         : null}
     </div>}
   </Card>);
+}
+
+// §3: the procurement assistant, reachable from a request that already exists.
+//
+// It calls inquiry_intake — the same routine that built the brief — rather than a second, thinner
+// assistant, so the answers a customer gets after sending are answered by the thing that
+// understands the brief. Collapsed by default: this sits inside an already-dense open request, and
+// a chat box that is always expanded pushes the quotes the customer came to read off the screen.
+function RfqAssistant({ inq, token, lang, onChanged }) {
+  const [open2, setOpen2] = useState(false);
+  const [q, setQ] = useState(''); const [busy, setBusy] = useState(false);
+  const [turns, setTurns] = useState([]); const [err, setErr] = useState('');
+  const ask = async () => {
+    const text = q.trim(); if (!text || busy) return;
+    setBusy(true); setErr(''); setQ('');
+    setTurns((t) => [...t, { role: 'user', text }]);
+    try {
+      const j = await call('inquiry_intake', { text, inquiry_id: inq.id, category: inq.category || null }, token);
+      if (j && j.error) setErr(String(j.message || j.error));
+      else setTurns((t) => [...t, { role: 'ai', text: (j && j.assistant_message) || (lang === 'ar' ? 'تم.' : 'Noted.') }]);
+      if (onChanged) onChanged();
+    } catch (e) { setErr((e && e.message) || (lang === 'ar' ? 'تعذّر الإرسال.' : 'Could not send that.')); }
+    setBusy(false);
+  };
+  if (!open2) {
+    return (<Button variant="link" className="px-0 h-auto self-start" onClick={(e) => { e.stopPropagation(); setOpen2(true); }}>
+      {lang === 'ar' ? '🤖 اسأل المساعد عن هذا الطلب' : '🤖 Ask the assistant about this request'}
+    </Button>);
+  }
+  return (<div className="rounded-lg border border-border bg-secondary/20 p-3" onClick={(e) => e.stopPropagation()}>
+    <div className={cn(S.sub, 'font-semibold text-foreground')}>{lang === 'ar' ? 'المساعد' : 'Procurement assistant'}</div>
+    {turns.map((tn, i) => (
+      <div key={i} className={cn(S.sub, 'mt-1', tn.role === 'user' ? 'text-muted-foreground' : 'text-foreground')}>
+        {tn.role === 'user' ? '› ' : '🤖 '}{tn.text}
+      </div>
+    ))}
+    {err ? <div className={cn(S.err, 'mt-1')}>{err}</div> : null}
+    <div className="mt-2 flex items-end gap-2">
+      <Input value={q} onChange={(e) => setQ(e.target.value)} disabled={busy}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); ask(); } }}
+        placeholder={lang === 'ar' ? 'اسأل عن المواصفات أو التوقيت أو الموردين…' : 'Ask about specs, timing or suppliers…'} />
+      <Button size="sm" disabled={busy || !q.trim()} onClick={ask}>{busy ? '…' : (lang === 'ar' ? 'إرسال' : 'Ask')}</Button>
+    </div>
+  </div>);
 }
 
 function QuotePdfLink({ q, token, lang }) {
@@ -576,10 +649,56 @@ function Comparison({ inqId, token, lang }) {
     {a.bottom_line ? <div className={cn(S.sub, 'text-foreground font-semibold mb-1.5')}>{a.bottom_line}</div> : null}
     {a.overview ? <div className={cn(S.sub, 'mb-2')}>{a.overview}</div> : null}
     {arr(a.top3).length ? <div className="mb-2"><div className={cn(S.sub, 'font-semibold text-foreground')}>{lang === 'ar' ? 'أفضل الخيارات' : 'Top picks'}</div>{arr(a.top3).map((r, i) => (<div key={i} className={cn(S.sub, 'mt-0.5')}><span className="text-primary font-semibold">#{r.rank} {r.label}</span> — {r.why}{r.tradeoff ? (' ' + (lang === 'ar' ? '(الاعتبار: ' : '(catch: ') + r.tradeoff + ')') : ''}</div>))}</div> : null}
-    {arr(a.quotes).map((q, i) => (<div key={i} className="mt-2 border-t border-border/60 pt-2"><div className={cn(S.sub, 'font-semibold text-foreground')}>{q.label}{q.price != null ? (' — ' + aed(q.price)) : ''}</div>{q.getting ? <div className={S.sub}>{q.getting}</div> : null}{arr(q.missing_from_request).length ? <div className={S.sub} style={{ color: 'hsl(43 68% 64%)' }}>{(lang === 'ar' ? 'ناقص مما طلبت: ' : 'Missing from your request: ') + arr(q.missing_from_request).join('; ')}</div> : null}{arr(q.spec_deviation).length ? <div className={S.sub} style={{ color: 'hsl(43 68% 64%)' }}>{(lang === 'ar' ? 'اختلاف عن المواصفات: ' : 'Spec differences: ') + arr(q.spec_deviation).join('; ')}</div> : null}{arr(q.flags).length ? <div className={cn(S.sub, 'text-red-400')}>{arr(q.flags).join('; ')}</div> : null}</div>))}
+    {arr(a.quotes).map((q, i) => (<div key={i} className="mt-2 border-t border-border/60 pt-2"><div className={cn(S.sub, 'font-semibold text-foreground')}>{q.label}{q.price != null ? (' — ' + aed(q.price)) : ''}</div>{/* §10 PER-DIMENSION SCORES. The spec compares Price / Delivery / Quality per supplier as stars;
+        the report previously carried one blended "Value n/100" computed in the browser, which is a
+        different claim — it hides WHICH dimension a quote is weak on, and that is the whole point
+        of a comparison. The three are scored server-side, relative to the other shortlisted quotes
+        on this job, and a dimension the quote does not state scores 1 rather than an average. */}
+      {(q.price_score != null || q.delivery_score != null || q.quality_score != null) ? (
+        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5" title={q.score_reason || ''}>
+          {[[lang === 'ar' ? 'السعر' : 'Price', q.price_score], [lang === 'ar' ? 'التسليم' : 'Delivery', q.delivery_score], [lang === 'ar' ? 'الجودة' : 'Quality', q.quality_score]]
+            .filter(([, v]) => v != null)
+            .map(([label, v]) => (
+              <span key={String(label)} className={S.sub}>
+                <span className="text-muted-foreground">{label}: </span>
+                <span className="text-foreground" aria-label={`${v} ${lang === 'ar' ? 'من 5' : 'out of 5'}`}>{'★'.repeat(Math.max(0, Math.min(5, Number(v) || 0)))}{'☆'.repeat(Math.max(0, 5 - Math.max(0, Math.min(5, Number(v) || 0))))}</span>
+              </span>
+            ))}
+        </div>
+      ) : null}
+      {q.score_reason ? <div className={cn(S.sub, 'text-muted-foreground')}>{q.score_reason}</div> : null}
+      {q.getting ? <div className={S.sub}>{q.getting}</div> : null}{arr(q.missing_from_request).length ? <div className={S.sub} style={{ color: 'hsl(43 68% 64%)' }}>{(lang === 'ar' ? 'ناقص مما طلبت: ' : 'Missing from your request: ') + arr(q.missing_from_request).join('; ')}</div> : null}{arr(q.spec_deviation).length ? <div className={S.sub} style={{ color: 'hsl(43 68% 64%)' }}>{(lang === 'ar' ? 'اختلاف عن المواصفات: ' : 'Spec differences: ') + arr(q.spec_deviation).join('; ')}</div> : null}{arr(q.flags).length ? <div className={cn(S.sub, 'text-red-400')}>{arr(q.flags).join('; ')}</div> : null}</div>))}
     {arr(a.watch_outs).length ? <div className={cn(S.sub, 'text-red-400 mt-2')}>{(lang === 'ar' ? 'انتبه: ' : 'Watch out: ') + arr(a.watch_outs).join(' · ')}</div> : null}
     {a.advice ? <div className={cn(S.sub, 'mt-2 text-foreground')}>{a.advice}</div> : null}
+    {/* §10 EXPORT. customer_api action='compare_pdf' has existed, ownership-checked, rendering this
+        same analysis as a PDF — with NO caller anywhere a customer could click. A procurement
+        decision has to leave the portal to reach a manager or a finance approver; the comparison
+        stays on screen (§10 is explicit that it must not be an exported spreadsheet) and the
+        document is what the customer takes to the meeting. */}
+    <ExportComparison inqId={inqId} token={token} lang={lang} />
     <div className={cn(S.sub, 'mt-2 text-muted-foreground/70 text-[11px]')}>{lang === 'ar' ? 'إرشادي فقط — القرار النهائي لك.' : 'Guidance only — the final decision is yours.'}</div>
+  </div>);
+}
+// The download is its own component because it owns a failure the report must survive: a PDF that
+// cannot be built must not blank the analysis the customer is reading.
+function ExportComparison({ inqId, token, lang }) {
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  const go = async () => {
+    setBusy(true); setErr('');
+    try {
+      const j = await call('customer_api', { action: 'compare_pdf', inquiry_id: inqId, lang }, token);
+      const url = j && (j.url || j.pdf_url || j.file_url);
+      if (url) window.open(url, '_blank', 'noopener');
+      else setErr((j && (j.message || j.error)) || (lang === 'ar' ? 'تعذّر إنشاء المستند.' : 'Could not build the document.'));
+    } catch (e) {
+      setErr((e && e.message) || (lang === 'ar' ? 'تعذّر إنشاء المستند.' : 'Could not build the document.'));
+    } finally { setBusy(false); }
+  };
+  return (<div className="mt-2">
+    <Button size="sm" variant="secondary" disabled={busy} onClick={go}>
+      {busy ? (lang === 'ar' ? 'جارٍ التجهيز…' : 'Preparing…') : (lang === 'ar' ? '⬇ حفظ المقارنة كمستند' : '⬇ Save this comparison as a document')}
+    </Button>
+    {err ? <div className={cn(S.err, 'mt-1')}>{err}</div> : null}
   </div>);
 }
 function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired }) {
@@ -739,8 +858,38 @@ function NewRequest({ token, onDone, onCancel }) {
           <div className={cn(S.sub, 'font-bold capitalize text-foreground')}>{brief.category || 'Request'}{brief.emirate ? ' — ' + brief.emirate : ''}</div>
           <div className={cn(S.sub, 'mt-1')}>{brief.summary || ''}</div>
           {brief.scope ? <div className={cn(S.sub, 'mt-1')}>Scope: {brief.scope}</div> : null}
+          {/* §3 THE ESTIMATED QUANTITY. The intake has emitted brief.quantity from the start and
+              this card rendered seven brief fields without it, so the customer confirmed a brief
+              containing a number they were never shown — and create_inquiry then dropped it. Both
+              halves are fixed together: it is shown here and persisted there. */}
+          {brief.quantity ? <div className={cn(S.sub, 'mt-1')}>Quantity: {brief.quantity}{brief.provenance && brief.provenance.quantity === 'inferred' ? <span className="text-muted-foreground"> (estimated from your description — correct it below if it is wrong)</span> : null}</div> : null}
           {brief.timeline ? <div className={cn(S.sub, 'mt-1')}>Timeline: {brief.timeline}</div> : null}
           {brief.budget ? <div className={cn(S.sub, 'mt-1')}>Budget: {brief.budget}</div> : null}
+          {/* §3 REQUIRED DOCUMENTS, before Send. The category's own compliance checklist — the same
+              list create_inquiry copies onto the RFQ — so what the customer agrees to send is what
+              the supplier will be held to. A category with no published checklist shows nothing
+              rather than three invented lines. */}
+          {Array.isArray(brief.required_documents) && brief.required_documents.length ? (
+            <div className="mt-2">
+              <div className={cn(S.sub, 'font-semibold text-foreground')}>Required documents and approvals</div>
+              <ul className="mt-0.5 space-y-0.5" role="list">
+                {brief.required_documents.map((d, i) => (
+                  <li key={i} className={S.sub}>✓ {d.item}{d.authority ? <span className="text-muted-foreground"> — {d.authority}</span> : null}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {/* §3 HOW FAR THIS WILL REACH, before it is sent. The number comes from the same matcher
+              dispatch itself uses, so "12 suppliers" means twelve suppliers get this brief. Zero is
+              stated as zero: a customer about to send a request that will reach nobody has to be
+              told that BEFORE they press the button, not by silence afterwards. */}
+          {brief.supplier_count != null ? (
+            <div className={cn(S.sub, 'mt-2 font-semibold', Number(brief.supplier_count) > 0 ? 'text-foreground' : 'text-muted-foreground')}>
+              {Number(brief.supplier_count) > 0
+                ? `We will send this to ${brief.supplier_count} matching supplier${Number(brief.supplier_count) === 1 ? '' : 's'}.`
+                : 'No registered supplier matches this brief yet. You can still send it — it reaches suppliers in this trade as they register.'}
+            </div>
+          ) : null}
           {trades.length > 1 ? (<div className="mt-2.5 rounded-lg border border-primary/30 bg-primary/5 p-3"><div className={cn(S.sub, 'font-semibold text-primary')}>This project spans several trades: {trades.join(', ')}.</div><div className={cn(S.sub, 'mt-0.5 mb-2')}>How would you like to source it?</div><label className="flex items-start gap-2 cursor-pointer rounded-md p-2 hover:bg-secondary/50"><input type="radio" name="combine" className="mt-1" checked={combineMode === 'multi'} onChange={() => setCombineMode('multi')} /><span className={S.sub}><span className="font-semibold text-foreground">Separate specialists (recommended)</span> — a separate request goes to specialists in each trade, so you get the sharpest price on every part.</span></label><label className="flex items-start gap-2 cursor-pointer rounded-md p-2 hover:bg-secondary/50"><input type="radio" name="combine" className="mt-1" checked={combineMode === 'turnkey'} onChange={() => setCombineMode('turnkey')} /><span className={S.sub}><span className="font-semibold text-foreground">One turnkey company</span> — a single fit-out / decoration company handles the whole project end to end.</span></label></div>) : null}
           {brief.plausibility && brief.plausibility.note ? <div className={cn(S.sub, 'mt-1')} style={{ color: 'hsl(43 68% 64%)' }}>Note: {brief.plausibility.note}</div> : null}
           <Button className="w-full mt-3" disabled={busy} onClick={submit}>{busy ? 'Sending…' : 'Send to suppliers'}</Button>
@@ -768,8 +917,22 @@ function NewRequest({ token, onDone, onCancel }) {
 const MODULES = [
   ['projects', 'projects'], ['spatial', 'mod_spatial'], ['documents', 'mod_documents'],
   ['messages', 'messages'], ['approvals', 'mod_approvals'], ['orders', 'mod_orders'],
-  ['predict', 'mod_predict'], ['account', 'mod_account'],
+  ['predict', 'mod_predict'], ['profile', 'mod_profile'], ['account', 'mod_account'],
 ];
+// §21: the server's per-customer panel order, applied to the module bar.
+//
+// THE DECLARED ORDER IS THE FLOOR, NOT THE DEFAULT. A layout is a REORDERING of what exists, so a
+// module the server did not rank is appended rather than dropped — otherwise shipping a new module
+// would make it invisible to every customer whose layout was computed before it existed, which is
+// the failure mode of every server-driven layout that trusts the payload as a whitelist. An id the
+// server sends that this build does not have is ignored for the mirror-image reason.
+function orderedModules(layout) {
+  const want = (layout && Array.isArray(layout.order)) ? layout.order.map(String) : [];
+  const known = new Map(MODULES.map((m) => [m[0], m]));
+  const out = want.map((id) => known.get(id)).filter(Boolean);
+  for (const m of MODULES) if (!out.includes(m)) out.push(m);
+  return out;
+}
 // The unread count is the one fact worth knowing BEFORE opening the inbox, so the module bar asks
 // messages_api for it. Failure is silent by design: a badge that cannot load must not put an error
 // where a count goes, and the inbox itself reports its own failure when the customer opens it.
@@ -789,7 +952,7 @@ function UnreadBadge({ token, lang }) {
 // One floating window, whichever module is open. Nothing here fetches: each surface owns its own
 // endpoint, its own loading state and its own empty state, and this component decides only where
 // they appear and what the window is called.
-function ModuleWindow({ id, onClose, token, lang, inqs, onChanged }) {
+function ModuleWindow({ id, onClose, token, lang, inqs, onChanged, twin }) {
   const l2 = lang === 'ar' ? 'ar' : 'en';
   // 'home' is a real destination in the module bar and it is the dashboard itself, so it opens no
   // window: the guard is the module entry, not a non-empty string.
@@ -804,6 +967,14 @@ function ModuleWindow({ id, onClose, token, lang, inqs, onChanged }) {
       {id === 'approvals' && <ApprovalChain token={token} lang={l2} onOpenRfq={onClose} />}
       {id === 'orders' && <OrdersList token={token} lang={l2} onOpenRfq={onClose} />}
       {id === 'predict' && <PredictiveIntelligence token={token} lang={l2} />}
+      {/* §2 the twin, §9 discovery and §17 the memory — three surfaces whose backends were complete
+          and whose only reader was os_api, the staff console. They share one window because they
+          are one subject: what the system knows about this customer and what it does with it. */}
+      {id === 'profile' && <div className="flex flex-col gap-3">
+        <CompanyTwin twin={twin} lang={l2} />
+        <SupplierDiscovery token={token} lang={l2} />
+        <CustomerMemory token={token} lang={l2} />
+      </div>}
       {id === 'account' && <AccountSettings token={token} lang={lang} />}
     </DialogContent>
   </Dialog>);

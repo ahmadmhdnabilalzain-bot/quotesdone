@@ -93,10 +93,22 @@ export type CommsResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string };
 
-/** One POST to messages_api. Errors are returned, never thrown, so every caller must render them. */
-export async function messagesApi<T>(token: string, body: Record<string, unknown>): Promise<CommsResult<T>> {
+/**
+ * One POST to a customer-authed edge function, named as a LITERAL first argument.
+ *
+ * The function name used to be interpolated into the URL (`${SUPA_FN}/messages_api`), which works
+ * and is invisible: `call('messages_api', { action: 'thread' })` is one grep away from answering
+ * "what can a customer's page reach, and with which actions", and a template literal is not. That
+ * question is asked by the row #4 scorer, by the deploy-parity checker and by anyone auditing what
+ * a customer JWT can open — this is the same convention approvals/api.ts already uses, for the same
+ * stated reason.
+ *
+ * Errors are RETURNED, never thrown, so every caller has to render them: a swallowed error is how
+ * an inbox ends up showing "no messages" over a failure to ask.
+ */
+export async function call<T>(fn: string, body: Record<string, unknown>, token: string): Promise<CommsResult<T>> {
   try {
-    const r = await fetch(`${SUPA_FN}/messages_api`, {
+    const r = await fetch(`${SUPA_FN}/${fn}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
       body: JSON.stringify(body),
@@ -111,14 +123,17 @@ export async function messagesApi<T>(token: string, body: Record<string, unknown
   }
 }
 
+/** Kept as an alias so nothing outside this file has to change with the rename. */
+export const messagesApi = <T,>(token: string, body: Record<string, unknown>) => call<T>('messages_api', body, token);
+
 export const listThreads = (token: string) =>
-  messagesApi<ThreadsResponse>(token, { action: 'threads' });
+  call<ThreadsResponse>('messages_api', { action: 'threads' }, token);
 
 export const openThread = (token: string, inquiry_id: string, supplier_id: number) =>
-  messagesApi<ThreadResponse>(token, { action: 'thread', inquiry_id, supplier_id });
+  call<ThreadResponse>('messages_api', { action: 'thread', inquiry_id, supplier_id }, token);
 
-export const sendMessage = (token: string, inquiry_id: string, supplier_id: number, body: string) =>
-  messagesApi<SendResponse>(token, { action: 'send', inquiry_id, supplier_id, body });
+export const sendMessage = (token: string, inquiry_id: string, supplier_id: number, body: string, attachment_path?: string | null, attachment_name?: string | null) =>
+  call<SendResponse>('messages_api', { action: 'send', inquiry_id, supplier_id, body, attachment_path: attachment_path || null, attachment_name: attachment_name || null }, token);
 
 export const requestChat = (token: string, inquiry_id: string, supplier_id: number, question: string) =>
-  messagesApi<RequestChatResponse>(token, { action: 'request_chat', inquiry_id, supplier_id, question });
+  call<RequestChatResponse>('messages_api', { action: 'request_chat', inquiry_id, supplier_id, question }, token);

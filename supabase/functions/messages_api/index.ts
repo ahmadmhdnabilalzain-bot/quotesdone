@@ -48,6 +48,58 @@ async function resolveCat(category: unknown){
   return null;
 }
 
+// ── §16 THE UNIFIED INBOX: ONE PLACE, FOUR CHANNELS ─────────────────────────────────────────────
+// MEASURED 7 Aug 2026: wa_messages held 5 rows and inbound_messages 8, five edge functions touched
+// each, and the customer's inbox opened NEITHER. WhatsApp and e-mail were captured by the platform
+// and shown only to staff; calls were not logged anywhere with a counterparty at all (llm_calls is
+// an API-usage ledger). "One unified place" was one channel.
+//
+// THE JOIN KEY IS THE CUSTOMER'S OWN IDENTITY, and that is the whole safety story here: wa_messages
+// is matched on the customer's own phone number and inbound_messages on their own e-mail address,
+// so what comes back is the customer's own correspondence with QuotesDone. Nothing is joined
+// through a supplier, so this cannot leak an identity the reveal fee sells.
+const CHANNELS = ['chat', 'whatsapp', 'email', 'call'];
+// A UAE mobile written six ways is one number. Comparing raw text would silently return nothing
+// for every customer who stored theirs with a +971 or a space.
+const digits = (v: unknown) => String(v ?? '').replace(/\D+/g, '').replace(/^00971/, '971').replace(/^0/, '971');
+
+async function otherChannels(cust: { id: string; phone?: string | null }) {
+  const out: any[] = [];
+  const phone = digits(cust.phone);
+  if (phone.length >= 9) {
+    const { data: wa } = await admin.from('wa_messages')
+      .select('id,wa_from,wa_to,inbound,reply,created_at').order('created_at', { ascending: false }).limit(200);
+    const mine = (wa || []).filter((m: any) => digits(m.wa_from) === phone || digits(m.wa_to) === phone);
+    if (mine.length) out.push({ channel: 'whatsapp', inquiry_id: null, supplier_id: null,
+      counterpart: 'QuotesDone on WhatsApp', subject: 'WhatsApp', chat_status: 'open',
+      last: clip(mine[0].inbound || mine[0].reply, 240), last_at: mine[0].created_at, unread: 0, count: mine.length });
+  }
+  // The address goes into a PostgREST `or` filter, whose grammar uses , ( ) . — so it is checked
+  // against a strict address shape first rather than escaped. An address that cannot appear in an
+  // `or` filter unambiguously is not queried at all; returning no e-mail channel is a correct
+  // answer, and building the filter anyway would let a stored address change what is selected.
+  const cEmail = String((cust as any).email || '').toLowerCase();
+  const em = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(cEmail)
+    ? (await admin.from('inbound_messages')
+        .select('id,from_email,to_email,subject,ai_summary,body,created_at,replied_at')
+        .or(`from_email.eq.${cEmail},to_email.eq.${cEmail}`)
+        .order('created_at', { ascending: false }).limit(50)).data
+    : [];
+  if ((em || []).length) out.push({ channel: 'email', inquiry_id: null, supplier_id: null,
+    counterpart: 'QuotesDone by e-mail', subject: em![0].subject || 'E-mail', chat_status: 'open',
+    last: clip(em![0].ai_summary || em![0].body, 240), last_at: em![0].created_at,
+    unread: (em || []).filter((r: any) => !r.replied_at).length, count: em!.length });
+
+  const { data: calls } = await admin.from('customer_calls')
+    .select('id,direction,status,started_at,duration_s,summary,inquiry_id')
+    .eq('customer_id', cust.id).order('started_at', { ascending: false }).limit(50);
+  if ((calls || []).length) out.push({ channel: 'call', inquiry_id: calls![0].inquiry_id || null, supplier_id: null,
+    counterpart: 'Calls', subject: 'Call log', chat_status: 'open',
+    last: clip(calls![0].summary || (calls![0].direction + ' call, ' + calls![0].status), 240),
+    last_at: calls![0].started_at, unread: 0, count: calls!.length });
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
@@ -58,7 +110,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
 
     const { data: supLead } = await admin.from('leads').select('id,company_name,banned').eq('claimed_by', email).maybeSingle();
-    const { data: cust } = await admin.from('customers').select('id,banned').eq('email', email).maybeSingle();
+    const { data: cust } = await admin.from('customers').select('id,banned,phone,email').eq('email', email).maybeSingle();
 
     if (action === 'threads') {
       const out: any[] = [];
@@ -66,7 +118,7 @@ Deno.serve(async (req) => {
         const { data: th } = await admin.from('chat_threads').select('status').eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).maybeSingle();
         const { data: last } = await admin.from('messages').select('body,created_at').eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).eq('blocked', false).order('created_at', { ascending: false }).limit(1).maybeSingle();
         const { count } = await admin.from('messages').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).eq('sender', senderUnread).eq(senderUnread === 'customer' ? 'read_by_supplier' : 'read_by_customer', false).eq('blocked', false);
-        out.push({ inquiry_id, supplier_id, counterpart, subject, chat_status: th?.status || 'none', last: last?.body || null, last_at: last?.created_at || null, unread: count || 0 });
+        out.push({ channel: 'chat', inquiry_id, supplier_id, counterpart, subject, chat_status: th?.status || 'none', last: last?.body || null, last_at: last?.created_at || null, unread: count || 0 });
       };
       if (supLead) {
         const { data: tx } = await admin.from('transactions').select('inquiry_id, inquiries(category,summary)').eq('supplier_id', supLead.id).not('revealed_at', 'is', null);
@@ -77,8 +129,9 @@ Deno.serve(async (req) => {
       if (cust) {
         const { data: tx } = await admin.from('transactions').select('inquiry_id, supplier_id, inquiries(category,summary)').eq('customer_id', cust.id).not('revealed_at', 'is', null);
         for (const t of (tx || [])) { const { data: lead } = await admin.from('leads').select('company_name').eq('id', t.supplier_id).maybeSingle(); await push(t.inquiry_id, t.supplier_id, lead?.company_name || 'Supplier', (t as any).inquiries?.summary || (t as any).inquiries?.category || 'Inquiry', 'supplier'); }
+        for (const c of (await otherChannels(cust))) out.push(c);
         out.sort((a, b) => String(b.last_at || '').localeCompare(String(a.last_at || '')));
-        return J({ ok: true, role: 'customer', threads: out });
+        return J({ ok: true, role: 'customer', threads: out, channels: CHANNELS });
       }
       return J({ ok: true, role: null, threads: [] });
     }
@@ -143,8 +196,26 @@ Deno.serve(async (req) => {
           return J({ ok: false, blocked: true, review: true, warning: 'Your message looks like it may include a phone number or contact detail, so it was held. Keep all details on QuotesDone. If that was a quantity or project number, please write it in words and resend.' });
         }
       }
-      const { data: m, error } = await admin.from('messages').insert({ inquiry_id, supplier_id, customer_id: rev.customer_id, sender: role, body: text, read_by_customer: role === 'customer', read_by_supplier: role === 'supplier' }).select('id,sender,body,created_at').maybeSingle();
+      // §16 A DOCUMENT INSIDE THE CONVERSATION. The path is a storage path the caller already
+      // uploaded through the same buckets the rest of the portal uses; only its SHAPE is trusted
+      // here, never its contents, and it is stored on the message rather than merged into the body
+      // so the contact detector above still sees the text a human wrote and nothing else.
+      const attach = clip(body.attachment_path, 400);
+      const attachOk = attach.length > 0 && /^[A-Za-z0-9][A-Za-z0-9/_.-]{2,}$/.test(attach) && !attach.includes('..');
+      const attachName = clip(body.attachment_name, 180) || (attachOk ? attach.split('/').pop() || 'attachment' : '');
+      const { data: m, error } = await admin.from('messages').insert({ inquiry_id, supplier_id, customer_id: rev.customer_id, sender: role, body: text, attachment_path: attachOk ? attach : null, read_by_customer: role === 'customer', read_by_supplier: role === 'supplier' }).select('id,sender,body,created_at,attachment_path').maybeSingle();
       if (error) return J({ error: error.message }, 500);
+      // The vault is the index of everything the customer holds, so a file dropped into a chat has
+      // to appear there too — otherwise §14's "find the warranty document" cannot find one that
+      // arrived by chat. ref_table='messages' is the link documents already models for every other
+      // origin (inquiries, leads, quotes). Best-effort: a failed registration must not lose the
+      // message that carried the file.
+      if (attachOk && m) {
+        try {
+          await admin.from('documents').insert({ bucket: clip(body.attachment_bucket, 60) || 'uploads', path: attach, file_name: attachName,
+            kind: clip(body.attachment_kind, 40) || 'chat_attachment', ref_table: 'messages', ref_id: String(m.id), status: 'received' });
+        } catch (_e) { /* the message is delivered either way */ }
+      }
       try {
         if (role === 'customer') { const { data: lead } = await admin.from('leads').select('claimed_by,company_name').eq('id', supplier_id).maybeSingle(); if (lead?.claimed_by) await notify([{ type: 'new_message', to_email: lead.claimed_by, to_role: 'supplier', inquiry_id, subject: 'New message from a customer on QuotesDone', body: 'You have a new message on an open project chat. Log in to your supplier portal to reply.' }]); }
         else { const { data: c } = await admin.from('customers').select('email').eq('id', rev.customer_id).maybeSingle(); const { data: lead } = await admin.from('leads').select('company_name').eq('id', supplier_id).maybeSingle(); if (c?.email) await notify([{ type: 'new_message', to_email: c.email, to_role: 'customer', inquiry_id, subject: 'New message from ' + (lead?.company_name || 'a supplier'), body: 'You have a new message on your open project chat. Log in to reply.' }]); }

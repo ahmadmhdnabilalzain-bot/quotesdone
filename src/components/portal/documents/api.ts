@@ -125,7 +125,7 @@ export async function documentsApi<T>(token: string, body: Record<string, unknow
 
 /** The whole vault, newest first. `kind` filters server-side; omit it for everything. */
 export const listDocuments = (token: string, kind?: string | null, limit = 100) =>
-  documentsApi<VaultListResponse>(token, { action: 'list', kind: kind || null, limit });
+  documentsApi<VaultListResponse>(token, { action: 'documents', kind: kind || null, limit });
 
 /**
  * The natural-language question — spec §14's own example is "Find warranty documents for HVAC".

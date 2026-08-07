@@ -457,6 +457,44 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       brief.urgency = urgency;
       if (plausibility) brief.plausibility = plausibility;
       if (provenance) brief.provenance = provenance;
+
+      // ── §3 THE TWO THINGS THE SPEC'S ASSISTANT SAYS BEFORE THE CUSTOMER PRESSES SEND ───────────
+      // The spec's §3 panel is: "Required Documents: ✓ Technical specs ✓ Delivery timeline
+      // ✓ Warranty" and "Recommended Suppliers: 18". Both were computable and neither was computed,
+      // so the customer confirmed a brief without knowing what it would be asked for or how far it
+      // would reach.
+      //
+      // REQUIRED DOCUMENTS come from category_specs.compliance_checklist — the same list
+      // create_inquiry now copies onto the RFQ, so the customer is shown exactly what the supplier
+      // will be held to. A category with no checklist emits an EMPTY ARRAY, never a placeholder:
+      // 21 of 56 categories carry one, and inventing three lines for the other 35 would be telling
+      // the customer we require things we do not.
+      try {
+        const { data: cs } = await admin.from('category_specs').select('compliance_checklist').eq('category', category).maybeSingle();
+        const cl = (cs as any)?.compliance_checklist;
+        const list = Array.isArray(cl?.list) ? cl.list : (Array.isArray(cl) ? cl : []);
+        brief.required_documents = list.slice(0, 8).map((x: any) => ({
+          item: String(x?.item ?? x ?? '').slice(0, 160),
+          authority: x?.authority ? String(x.authority).slice(0, 80) : null,
+          notes: x?.notes ? String(x.notes).slice(0, 160) : null,
+        })).filter((x: any) => x.item);
+        brief.required_documents_source = brief.required_documents.length ? 'category_specs.compliance_checklist' : 'no checklist published for this category';
+      } catch (_e) { brief.required_documents = []; brief.required_documents_source = 'checklist lookup failed'; }
+
+      // THE SUPPLIER COUNT IS THE REAL FAN-OUT, RUN BEFORE DISPATCH. fn_match_capability is the
+      // same routine the dispatch path uses, called with the same trades and emirate, so the number
+      // shown here is the number that will actually be reached — not an estimate of it. It is
+      // capped at the dispatch limit rather than reported raw, because "18 suppliers" has to mean
+      // eighteen suppliers will get this brief.
+      try {
+        const { data: cand } = await admin.rpc('fn_match_capability', {
+          p_trades: (trades.length ? trades : [category]).filter(Boolean),
+          p_need: 'executes', p_products: [], p_brands: [],
+          p_project_type: null, p_value: null, p_emirate: emirate || null, p_limit: 24,
+        });
+        brief.supplier_count = Array.isArray(cand) ? cand.length : 0;
+        brief.supplier_count_basis = 'fn_match_capability, the routine dispatch itself uses, over trades [' + (trades.join(',') || category) + ']' + (emirate ? ' in ' + emirate : '');
+      } catch (_e) { brief.supplier_count = null; brief.supplier_count_basis = 'matcher unavailable at intake time'; }
     }
 
     const { error: saveErr } = await admin.from('inquiry_intake').update({ category, status, raw_input: allText.slice(0, 4000), turns, brief, readiness: Math.max(0, Math.min(100, Number(out.readiness) || 0)), missing: out.missing || [], updated_at: new Date().toISOString() }).eq('id', draft.id);
