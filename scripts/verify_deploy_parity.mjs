@@ -73,6 +73,52 @@ const GENERIC = new Set([
   'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY',
 ]);
 
+/**
+ * The string literals on ONE line, found by walking it once and tracking which quote opened the
+ * current string.
+ *
+ * THE REGEX THIS REPLACES PRODUCED A PERMANENT FALSE STALE, and a false STALE is the failure this
+ * file's own header calls the worse one. `/'([^'\\\n]{14,})'|"([^"\\\n]{14,})"/g` has no idea which
+ * quotes are open. On procurement_api's line
+ *
+ *     if (decision !== 'approved' && decision !== 'rejected') return J({ error: "decision must be …
+ *
+ * every real literal is too short to qualify, so the scan reached the quote CLOSING 'rejected',
+ * treated it as an opening quote, ran 38 characters of code to the next quote — the one opening
+ * 'approved' inside the double-quoted string — and emitted
+ *
+ *     ") return J({ error: \"decision must be"
+ *
+ * as a signature. That is source code, not a literal; the bundler re-quotes strings, so it can
+ * never appear in a deployed bundle and the function reported STALE on both projects forever, on
+ * two occasions after being redeployed. Verified by hashing the deployed body: the code was live.
+ *
+ * A quote inside a string of the other kind ("it's") is now what it actually is — part of the
+ * string — instead of a delimiter.
+ */
+function stringLiterals(line) {
+  const out = [];
+  let quote = null, buf = '', escaped = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (quote) {
+      // A LITERAL CONTAINING AN ESCAPE IS DROPPED, not repaired. The old regex excluded backslashes
+      // for a reason the first version of this rewrite forgot: the signature is compared against a
+      // BUNDLE, and the bundler re-encodes escapes, so \n in source is a real newline in the
+      // bundle. Substituting a placeholder produced signatures like "xxLANGUAGE: Write ALL…" and
+      // took the gate from one false STALE to six.
+      if (c === '\\') { escaped = true; i++; continue; }
+      if (c === quote) { if (!escaped) out.push(buf.trim()); quote = null; buf = ''; escaped = false; continue; }
+      buf += c;
+    } else if (c === '"' || c === "'" || c === '`') {
+      quote = c; buf = ''; escaped = false;
+    }
+  }
+  // An unterminated quote means the literal spans lines (or the line was cut). Nothing is emitted:
+  // a partial string is exactly the kind of not-really-a-literal that caused the defect above.
+  return out.filter((s) => s.length >= 14 && !s.includes('${'));
+}
+
 function signatures(slug) {
   const src = readFileSync(`${FN_DIR}/${slug}/index.ts`, 'utf8');
   const out = new Set();
@@ -82,8 +128,7 @@ function signatures(slug) {
     if (block) { if (line.includes('*/')) block = false; continue; }
     if (line.startsWith('/*')) { if (!line.includes('*/')) block = true; continue; }
     if (line.startsWith('//') || line.startsWith('*')) continue;
-    for (const m of line.matchAll(/'([^'\\\n]{14,})'|"([^"\\\n]{14,})"/g)) {
-      const s = (m[1] || m[2]).trim();
+    for (const s of stringLiterals(line)) {
       if (!s || GENERIC.has(s)) continue;
       if (s.includes('://') || /^[A-Z_]{6,}$/.test(s)) continue;
       if (/^[\s.,;:%*+\-/\\|]+$/.test(s)) continue;
