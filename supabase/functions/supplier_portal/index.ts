@@ -127,6 +127,17 @@ Deno.serve(async (req) => {
     // and average price return available:false with the empty population named, because there are
     // 0 inquiries and 0 quotes. An arrow reading "HVAC demand up 18%" against zero inquiries is
     // indistinguishable from real market intelligence on screen, and a supplier could staff up on it.
+    // ROW #5 §18 — COLLABORATION WORKSPACES, one per customer relationship. Returns an empty list
+    // with its population named on production today, because 0 inquiries and 0 matches exist. It is
+    // NOT seeded with a demo relationship: one inquiry insert fires twelve triggers including
+    // fn_emit_event('inquiry','rfq.created'), which would inject a synthetic event into row #2's
+    // separately-measured event backbone. That is the founder's call, not a side effect.
+    if (action === 'workspaces') {
+      const { data: ws, error } = await admin.rpc('fn_supplier_workspaces', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...ws });
+    }
+
     if (action === 'market') {
       const { data: mkt, error } = await admin.rpc('fn_supplier_market', { p_lead_id: supId });
       if (error) return J({ error: error.message }, 500);
