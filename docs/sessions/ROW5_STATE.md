@@ -604,3 +604,51 @@ over-swung twice: §14 went to 7/7 when the stated ceiling was 4/7, because `fn_
 returned so the reading is auditable. **NOT changed in the shared writer**, because
 `fn_customer_supplier_score` and `fn_company_indices` also read that column. Which scale it is meant
 to be is your decision.
+
+---
+
+# SESSION 2026-08-08 (part 2) — FOUNDER DECISIONS AND ONE BLOCKED REQUIREMENT
+
+## DECISION 1 — §18 demo data: PRODUCTION, not staging
+Founder, 2026-08-08: *"create a demo for whatever we need to verify. no staging only, we need to go
+on production."* The fenced-demo pattern already used for the demo supplier applies: tagged,
+excluded from matching/search/reveal, removable in one statement. NOT YET SEEDED — the §18 inquiry
+was not created this turn. When it is, note that it injects one synthetic `rfq.created` into row
+#2's separately-measured event backbone, so row #2's next re-run must subtract it or say so.
+
+## DECISION 2 — the rating request fires on the QUOTE'S OWN DURATION
+Founder, 2026-08-08: *"its not fixed 3 months. it depends on the duration mentioned on the quotes
+received. once the customer reveal a specific quote, the duration will be mentioned there. so if
+its a week for example, then we ask the customer after 7 working days."*
+
+The wait is **reveal timestamp + the revealed quote's stated duration**, an estimate of when the job
+is done, so it scales with job size. The earlier reading (a fixed ~90 days) would ask for a rating
+on a one-week job eleven weeks late and on a nine-month fit-out while it was still running.
+The founder asked for a **demo quote with a reveal and a 1-hour duration** so the flow can be tested
+end to end before it is built fully. NOT BUILT THIS TURN.
+
+## tech-knowledge-graph IS BLOCKED BY BUSINESS REALITY, NOT BY CODE
+Measured on production, 8 Aug 2026:
+
+    graph_nodes 324: category 86, responsibility 72, employee 66, goal 63, workflow 14,
+                     department 13, operating_system 10
+    graph_edges 301: operating_system-[owns]->responsibility 72
+                     employee-[accountable_for]->goal 71
+                     department-[employs]->employee 66
+                     employee-[manages]->employee 65
+                     operating_system-[runs]->workflow 14
+                     operating_system-[contains]->department 13
+
+**Zero edges touch `category`.** The graph is QuotesDone's own internal operating-system graph —
+its departments, its 66 employees, their reporting lines and their goals. Two things follow, and
+they point the same way:
+
+1. Putting a reader for it on the SUPPLIER surface publishes internal org structure to external
+   users. That is a data-exposure decision, not a feature.
+2. The only supplier-adjacent nodes are the 86 isolated `category` rows. With no edges there is
+   nothing to traverse, so a "knowledge graph" panel over them would render a list and call it a
+   graph — the exact "a mention is not a delivery" failure the honesty rules forbid.
+
+Turning this check green is one `graph_nodes` select away and would deliver the supplier nothing.
+It stays MISSING until there is a graph that is ABOUT suppliers — categories linked to trades,
+materials and adjacent capabilities. That is a build, and it is not this row's.
