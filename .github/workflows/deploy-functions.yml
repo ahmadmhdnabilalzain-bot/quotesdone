@@ -1,0 +1,154 @@
+# Deploy edge functions, under the same rules a human deploy follows.
+#
+# ── WHY THIS IS NOT THE FIVE-LINE VERSION ───────────────────────────────────────────────────────
+# The common recipe for this is:
+#
+#     - run: supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+#
+# It works, and against this repository it would have caused an outage on its first run. Four
+# reasons, each of which cost something to learn:
+#
+#   1. IT DEPLOYS ON PUSH TO main. Production currently runs an unmerged branch. A workflow keyed
+#      to main would have deployed OLDER code over the newer code that is live.
+#   2. IT DEPLOYS ALL 196 FUNCTIONS EVERY TIME, bumping 196 version numbers and destroying the one
+#      signal that says which function actually moved.
+#   3. IT HAS NO verify_jwt DRIFT CHECK. On 3 Aug 2026 a deploy flipped verify_jwt and a function
+#      silently began rejecting every request. supabase/config.toml is the single source of truth;
+#      deploying while it disagrees with live means nobody knows which value is about to win.
+#   4. IT TRUSTS THE CLI's EXIT CODE. A deploy that reports success and does not bump the version
+#      did not happen. Observed in this repo today, while testing the script this workflow calls.
+#
+# All four rules live in scripts/deploy_functions.mjs, so CI and a human run the same code rather
+# than two implementations that drift.
+#
+# ── WHAT THIS DOES AND DOES NOT DO ──────────────────────────────────────────────────────────────
+# Push to any branch     -> deploy the CHANGED functions to STAGING, after deno check.
+# Manual dispatch        -> deploy to production, and only when someone types the project ref.
+#
+# Production is never automatic. That is deliberate and matches the -IMeanProduction flag the
+# PowerShell script has always required.
+#
+# ── REQUIRED SECRET ─────────────────────────────────────────────────────────────────────────────
+#   SUPABASE_ACCESS_TOKEN   a personal access token from https://supabase.com/dashboard/account/tokens
+# The project refs are NOT secrets — they appear in every function URL — so they are written here
+# where they can be read and reviewed rather than hidden in a settings page.
+name: deploy edge functions
+
+on:
+  push:
+    branches: ['**']
+    paths: ['supabase/functions/**', 'supabase/config.toml']
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Project ref to deploy to. Type the production ref to mean production.'
+        required: true
+        default: pglpqrhvozwepymcuunn
+      slugs:
+        description: 'Space-separated function names. Leave blank to deploy what changed in the last commit.'
+        required: false
+        default: ''
+
+env:
+  STAGING_REF: pglpqrhvozwepymcuunn
+  PRODUCTION_REF: htdblwldjkcgjvmqkbeh
+
+jobs:
+  deploy:
+    name: deploy changed functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # deploy_functions.mjs --changed diffs against a base commit, so the runner needs more
+          # than the shallow single commit actions/checkout fetches by default.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # The base to diff against. github.event.before is all-zeros on a branch's first push, which
+      # would make the diff meaningless rather than empty, so that case falls back to the parent.
+      - name: Work out what changed
+        id: scope
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ref=${{ github.event.inputs.target }}" >> "$GITHUB_OUTPUT"
+            echo "slugs=${{ github.event.inputs.slugs }}" >> "$GITHUB_OUTPUT"
+            echo "base=${{ github.sha }}~1" >> "$GITHUB_OUTPUT"
+          else
+            before='${{ github.event.before }}'
+            case "$before" in
+              ''|0000000000000000000000000000000000000000) before="${{ github.sha }}~1" ;;
+            esac
+            echo "ref=${{ env.STAGING_REF }}" >> "$GITHUB_OUTPUT"
+            echo "slugs=" >> "$GITHUB_OUTPUT"
+            echo "base=$before" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Print the set before doing anything to it. "Deployed nothing" and "had nothing to deploy"
+      # look identical in a log otherwise, and only one of them is fine.
+      - name: What would deploy
+        run: |
+          node scripts/deploy_functions.mjs --ref=${{ steps.scope.outputs.ref }} \
+            ${{ steps.scope.outputs.slugs || format('--changed --base={0}', steps.scope.outputs.base) }} \
+            --production --dry-run
+
+      # A compile error in an edge function is a silent 500, not a visible failure — which is why
+      # the repo has a deno-check gate at all. Deploying without it would route around the gate.
+      - name: Typecheck what is about to deploy
+        run: |
+          slugs=$(node scripts/deploy_functions.mjs --ref=${{ steps.scope.outputs.ref }} \
+            ${{ steps.scope.outputs.slugs || format('--changed --base={0}', steps.scope.outputs.base) }} \
+            --production --dry-run | sed -n 's/^[0-9]* function(s): //p')
+          if [ -z "$slugs" ]; then echo "nothing to typecheck"; exit 0; fi
+          files=""
+          for s in $slugs; do files="$files supabase/functions/$s/index.ts"; done
+          echo "deno check$files"
+          deno check --no-lock --node-modules-dir=auto $files
+
+      # ── IS THE TOKEN THERE? ──────────────────────────────────────────────────────────────────
+      # Measured 8 Aug 2026: this repository has NO secrets set at all. Shipping a deploy step that
+      # simply uses the token would have made this workflow red on its first run, and the repo's own
+      # CI header already records why that is the wrong move — "a permanently red gate teaches
+      # people to ignore gates".
+      #
+      # Skipping is not the same as passing, and this must not read as a green deploy that deployed
+      # nothing. So the absence is announced as a warning annotation and the deploy step is skipped
+      # by an explicit condition, which shows in the run as a step that did not execute.
+      #
+      # The secrets context cannot be read in a job-level `if`, so it is mapped to an output here.
+      - name: Check the token is configured
+        id: gate
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::warning title=Deploy skipped::SUPABASE_ACCESS_TOKEN is not set, so no functions were deployed. Add it under Settings > Secrets and variables > Actions, from https://supabase.com/dashboard/account/tokens"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          # --production is passed only when the target IS production; the script refuses otherwise,
+          # so a typo in the dispatch input cannot reach production by accident.
+          prod=""
+          if [ "${{ steps.scope.outputs.ref }}" = "${{ env.PRODUCTION_REF }}" ]; then prod="--production"; fi
+          node scripts/deploy_functions.mjs --ref=${{ steps.scope.outputs.ref }} $prod \
+            ${{ steps.scope.outputs.slugs || format('--changed --base={0}', steps.scope.outputs.base) }}
