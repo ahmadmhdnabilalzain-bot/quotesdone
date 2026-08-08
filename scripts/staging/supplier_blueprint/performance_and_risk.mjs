@@ -340,7 +340,11 @@ export default async function (H) {
     ['doc-impact', /(doc|document|certificate)[_ ]?impact|impact[_ ]?(score|rating|level)|criticality/i, 'an impact rating'],
   ]) {
     const shown = delivered(re, P);
-    const served = fnsMatching(re);
+    // servedBy, not fnsMatching — this module already builds the rpc-aware version at the top and
+    // this loop was the one place still scanning the edge tier alone. document_status and
+    // impact_level are produced by fn_supplier_certifications; the action that rpc()s it is a
+    // four-line passthrough carrying neither name.
+    const served = servedBy(re);
     const loose = fnsNear(id === 'doc-status-valid' ? /\bvalid\b/i : /impact/i, /document|certificate|licen[cs]e|iso/i, 400);
     await req(S16, id, `the document shows ${label}`,
       B(shown && served.length > 0),

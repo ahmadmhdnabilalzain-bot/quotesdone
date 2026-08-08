@@ -13,6 +13,7 @@ import SupplierInsightBoard from './supplier/SupplierInsightBoard';
 import SupplierOpportunities from './supplier/SupplierOpportunities';
 import SupplierTier from './supplier/SupplierTier';
 import SupplierNegotiation from './supplier/SupplierNegotiation';
+import SupplierCertifications from './supplier/SupplierCertifications';
 import SupplierCommandPalette from './supplier/SupplierCommandPalette';
 import dynamic from 'next/dynamic';
 // 3D is client-only and heavy; loaded on demand so the portal's first paint does not carry WebGL.
@@ -239,7 +240,7 @@ function Dashboard({ token, lang }) {
   if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{err === 'load_err' ? t(lang, 'err_generic') : err}</div></Card></div>;
   if (!ov) return <div className={S.center}>{t(lang, 'loading_dash')}</div>;
   const s = ov.stats || {}; const pp = s.price_positioning || {};
-  const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing'), profile: lang === 'ar' ? 'الملف' : 'Profile', twin: lang === 'ar' ? 'التوأم الرقمي' : 'Digital Twin', products: lang === 'ar' ? 'المنتجات' : 'Products', assistant: lang === 'ar' ? 'المساعد' : 'AI Assistant', environment: lang === 'ar' ? 'البيئة ثلاثية الأبعاد' : '3D Environment', network: lang === 'ar' ? 'خريطة الشبكة' : 'Network Map', market: lang === 'ar' ? 'ذكاء السوق' : 'Market', workspaces: lang === 'ar' ? 'مساحات العمل' : 'Workspaces', onboarding: lang === 'ar' ? 'إعداد الملف' : 'Set up my profile', board: lang === 'ar' ? 'لوحة الرؤى' : 'Insight Board', recommended: lang === 'ar' ? 'موصى به لك' : 'Recommended', ranking: lang === 'ar' ? 'التصنيف' : 'Supplier Score', negotiation: lang === 'ar' ? 'مساعد التفاوض' : 'Negotiation AI' };
+  const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing'), profile: lang === 'ar' ? 'الملف' : 'Profile', twin: lang === 'ar' ? 'التوأم الرقمي' : 'Digital Twin', products: lang === 'ar' ? 'المنتجات' : 'Products', assistant: lang === 'ar' ? 'المساعد' : 'AI Assistant', environment: lang === 'ar' ? 'البيئة ثلاثية الأبعاد' : '3D Environment', network: lang === 'ar' ? 'خريطة الشبكة' : 'Network Map', market: lang === 'ar' ? 'ذكاء السوق' : 'Market', workspaces: lang === 'ar' ? 'مساحات العمل' : 'Workspaces', onboarding: lang === 'ar' ? 'إعداد الملف' : 'Set up my profile', board: lang === 'ar' ? 'لوحة الرؤى' : 'Insight Board', recommended: lang === 'ar' ? 'موصى به لك' : 'Recommended', ranking: lang === 'ar' ? 'التصنيف' : 'Supplier Score', negotiation: lang === 'ar' ? 'مساعد التفاوض' : 'Negotiation AI', certifications: lang === 'ar' ? 'الشهادات' : 'Certifications' };
   // 'profile' is new. ProfileForm previously rendered only from Onboarding, which shows solely
   // while supplier_portal returns no_company — so the moment a supplier registered, every field
   // in it became permanently unreachable: contact name, phone, products, services, description,
@@ -250,7 +251,7 @@ function Dashboard({ token, lang }) {
   // lives in its own component file (portal/supplier/SupplierTwin.tsx) rather than here: this file
   // is already 81,811 stripped characters holding six unrelated features, and that size is what
   // made three separate scorer refutation rounds necessary.
-  const TABS = ['overview', 'board', 'recommended', 'ranking', 'negotiation', 'onboarding', 'twin', 'environment', 'network', 'market', 'workspaces', 'assistant', 'products', 'rfqs', 'documents', 'profile', 'projects', 'messages', 'billing'];
+  const TABS = ['overview', 'board', 'recommended', 'ranking', 'negotiation', 'certifications', 'onboarding', 'twin', 'environment', 'network', 'market', 'workspaces', 'assistant', 'products', 'rfqs', 'documents', 'profile', 'projects', 'messages', 'billing'];
   return (
     <div className={S.wrap}>
       <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
@@ -282,6 +283,7 @@ function Dashboard({ token, lang }) {
       {tab === 'recommended' && <SupplierOpportunities token={token} lang={lang} />}
       {tab === 'ranking' && <SupplierTier token={token} lang={lang} />}
       {tab === 'negotiation' && <SupplierNegotiation token={token} lang={lang} />}
+      {tab === 'certifications' && <SupplierCertifications token={token} lang={lang} goTo={setTab} />}
       {tab === 'onboarding' && <SupplierOnboarding token={token} lang={lang} goTo={setTab} />}
       {tab === 'workspaces' && <CollaborationWorkspace token={token} lang={lang} goTo={setTab} />}
       {tab === 'assistant' && <SupplierAdvisor token={token} lang={lang} goTo={setTab} />}

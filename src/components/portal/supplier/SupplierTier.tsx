@@ -48,14 +48,14 @@ async function call(path: string, body: unknown, token?: string | null) {
 
 const T = {
   en: {
-    title: 'QuotesDone Supplier Ranking', loading: 'Reading your ranking…',
+    title: 'Supplier Score and Ranking', loading: 'Reading your score…',
     yourTier: 'Your tier', unranked: 'Unranked', ladder: 'The ladder',
     progress: 'Your progress', submitted: 'Quotes submitted', won: 'Jobs won',
     quality: 'Quality rating', response: 'Response rate', notRated: 'not rated yet',
     benefits: 'What your tier does', notYet: 'It does not affect your matches.',
   },
   ar: {
-    title: 'تصنيف موردي QuotesDone', loading: 'جارٍ قراءة تصنيفك…',
+    title: 'درجة المورّد والتصنيف', loading: 'جارٍ قراءة درجتك…',
     yourTier: 'تصنيفك', unranked: 'غير مصنّف', ladder: 'السلّم',
     progress: 'تقدّمك', submitted: 'عروض مقدَّمة', won: 'أعمال فائزة',
     quality: 'تقييم الجودة', response: 'معدل الاستجابة', notRated: 'لم يُقيَّم بعد',

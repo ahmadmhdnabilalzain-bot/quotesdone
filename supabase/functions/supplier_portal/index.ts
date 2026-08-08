@@ -228,6 +228,13 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
       return J({ ok: true, ...neg, analysis });
     }
 
+    // §16 §24 — every certificate with its validity status and what it gates.
+    if (action === 'certifications') {
+      const { data: certs, error } = await admin.rpc('fn_supplier_certifications', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...certs });
+    }
+
     // §20 — the QuotesDone supplier tier and the ladder above it.
     if (action === 'tier') {
       const { data: tier, error } = await admin.rpc('fn_supplier_tier', { p_lead_id: supId });
