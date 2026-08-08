@@ -1,7 +1,7 @@
 {
  "target": "htdblwldjkcgjvmqkbeh",
  "total": 283,
- "met": 243,
+ "met": 246,
  "rows": [
   {
    "section": "§12 mechanism",
@@ -28,8 +28,8 @@
    "section": "§12 mechanism",
    "id": "mech-resolve-legacy-vocab",
    "name": "resolution accepts the live intake vocabulary, not only catalogue slugs",
-   "ok": false,
-   "ev": "36 of 56 category_specs trade slugs resolve to an agent; those slugs overlap the 84-category catalogue on 0 row(s) — two vocabularies, so resolution must bridge them"
+   "ok": true,
+   "ev": "54 of 56 category_specs trade slugs resolve to an agent; those slugs overlap the 84-category catalogue on 0 row(s) — two vocabularies, so resolution must bridge them"
   },
   {
    "section": "§12 mechanism",
@@ -56,8 +56,8 @@
    "section": "§12 mechanism",
    "id": "mech-graph-edge",
    "name": "the category -> agent relationship is present in the knowledge graph",
-   "ok": false,
-   "ev": "graph_edges src_kind='category' rel='served_by': 0 row(s), need 84; all category edges present: [adjacent_to->category 223]"
+   "ok": true,
+   "ev": "graph_edges src_kind='category' rel='served_by': 84 row(s), need 84; all category edges present: [served_by->category_agent 84, adjacent_to->category 223]"
   },
   {
    "section": "§3 industry",
@@ -70,8 +70,8 @@
    "section": "§3 industry",
    "id": "ind-overview",
    "name": "industry overview",
-   "ok": false,
-   "ev": "\"industry overview\" in topic='Industry Knowledge'.content on 0 of 84 agents (bar B is 21); CORPUS GAP"
+   "ok": true,
+   "ev": "\"industry overview\" in topic='Industry Knowledge'.content on 72 of 84 agents (bar B is 21); pattern"
   },
   {
    "section": "§3 industry",
