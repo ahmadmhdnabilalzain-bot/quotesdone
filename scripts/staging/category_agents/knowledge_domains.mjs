@@ -77,7 +77,12 @@ const DOMAINS = [
     // fires MORE in the control), ind-scope-of-work (16 vs 39) and prod-categories (14 vs 13).
     ['overview', /upstream|downstream|midstream|\btiers?\b|segment|clusters?|splits? (sharply|into)|three.?tier|market is|trade is|dominat/i, 'industry overview'],
     ['scope-of-work', /scope\b|\bsow\b|remit|covers?\b|deliverab/i, 'scope of work'],
-    ['terminology', /terminolog|jargon|known as|called|referred to as|\bterm(s|ed)?\b/i, 'common terminology'],
+    // REPAIRED, same discipline as ind-overview: the bodies LIST the vocabulary instead of naming
+    // the act of listing it. cat:accounting-and-audit-firms opens "Vocabulary in the room: AFS, ISA,
+    // IFRS…"; cat:air-compressor-and-pneumatic-suppliers opens "Speak the units: FAD…". Neither
+    // says "terminology". Adding vocabular/speak the/acronym: 17 -> 57 in Industry Knowledge
+    // against 30 in the Quotation Knowledge control (27 clear of it).
+    ['terminology', /terminolog|jargon|vocabular|speak the|acronym|abbreviat|known as|called|referred to as|\bterms?\b|in the trade/i, 'common terminology'],
     ['market-segments', /segment|residential|commercial|industrial|hospitality|retail|tier/i, 'market segments'],
     ['uae-practices', /\buae\b|dubai|abu dhabi|sharjah|emirat|gcc\b/i, 'local UAE practices'],
     ['supplier-ecosystem', /supplier|vendor|subcontractor|trader|distribut|manufactur/i, 'supplier ecosystem'],
@@ -138,7 +143,9 @@ const DOMAINS = [
     ['rfq', /\brfq\b|request for quot/i, 'RFQs'],
     ['rfi', /\brfi\b|request for information/i, 'RFIs'],
     ['method-statements', /method statement|\bmos\b|\brams\b/i, 'Method Statements'],
-    ['technical-specs', /technical spec|specification/i, 'Technical Specifications'],
+    // REPAIRED: the abbreviation and the tender-document names are what the bodies actually use.
+    // 17 -> 23 in Documents Knowledge against 2 in the Supplier Knowledge control (21 clear).
+    ['technical-specs', /technical spec|specification|\bspecs?\b|tender document|scope document|\bsow\b/i, 'Technical Specifications'],
     ['photos', /photo|picture|image/i, 'Photos'],
     ['site-videos', /video/i, 'Site Videos'],
     ['purchase-orders', /purchase order|\blpo\b|\bpo\b/i, 'Purchase Orders'],
@@ -170,7 +177,12 @@ const DOMAINS = [
     ['dependent-questions', /\bif\b|depend|only if|conditional|branch|when .{0,25}then/i, 'which questions depend on previous answers'],
     ['mandatory-info', /mandator|must\b|required/i, 'which information is mandatory'],
     ['skippable-info', /skip|optional|omit|not essential|nice to have|can be left/i, 'which information can be skipped'],
-    ['enough-collected', /enough|sufficient|complete|ready to (fan|quote|route|send)|proceed when|once you have/i, 'when enough information has been collected'],
+    // REPAIRED, and this is the clearest of the three. "Enough information collected" is expressed
+    // in this corpus as the ACT it gates: "Mandatory before fanning out: …", "then fan out to
+    // suppliers", "do not proceed until". The old regex demanded the abstract noun. Adding the
+    // gate vocabulary: 19 -> 59 in Inquiry Qualification Logic against 5 in the Supplier Knowledge
+    // control — 54 clear, the widest margin of any candidate tested.
+    ['enough-collected', /enough|sufficient|complete|ready to|proceed|once you have|before fanning|fan out|then quote|stop asking|do not proceed/i, 'when enough information has been collected'],
     ['confidence-score', /confidence|score|certaint/i, 'confidence score'],
     ['missing-info', /missing|absent|not provided|not given|\bgap\b|unknown|unclear/i, 'missing information'],
     ['validation-rules', /valid|\brules?\b|check|must be|reject if|verify|flag/i, 'validation rules'],
