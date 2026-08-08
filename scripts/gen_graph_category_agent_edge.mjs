@@ -72,8 +72,13 @@ const FIXED =
 const patched = def.replace(CLAUSE, FIXED);
 if (patched === def) { console.error('replacement produced no change'); process.exit(1); }
 
-const HEADER = readFileSync(new URL(import.meta.url).pathname.replace(/^\//, ''), 'utf8')
-  .split('\n').slice(0, 46).map(l => l.replace(/^\/\/ ?/, '-- ').replace(/^\/\//, '--')).join('\n');
+// Take the leading comment block and stop at the first line that is not one. A fixed slice length
+// silently swallowed the import statements into the .sql on the first run, and Postgres reported it
+// as a syntax error 43 lines into a file whose first 42 lines were fine.
+const selfLines = readFileSync(new URL(import.meta.url).pathname.replace(/^\//, ''), 'utf8').split('\n');
+const end = selfLines.findIndex((l) => !l.startsWith('//'));
+const HEADER = selfLines.slice(0, end < 0 ? selfLines.length : end)
+  .map(l => l.replace(/^\/\/ ?/, '-- ').replace(/^\/\//, '--')).join('\n');
 
 writeFileSync(OUT, `${HEADER}\n\n${patched};\n`);
 console.log(`wrote ${OUT}`);
