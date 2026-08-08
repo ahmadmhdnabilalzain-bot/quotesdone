@@ -17,6 +17,7 @@
 // Same rule as the health panel: absent is not zero. A product with no availability recorded shows
 // "not recorded", never "0 units", because 0 units means out of stock and that is a different claim.
 import React, { useEffect, useState } from 'react';
+import SupplierCatalogUpload from './SupplierCatalogUpload';
 
 type Variant = {
   sku?: string | null; attributes?: Record<string, unknown> | null;
@@ -155,6 +156,7 @@ export function ProductCard({ p, lang }: { p: Product; lang: Lang }) {
 export default function ProductIntelligence({ token, lang = 'en' }: { token?: string | null; lang?: Lang }) {
   const [data, setData] = useState<Payload | null>(null);
   const [q, setQ] = useState('');
+  const [reload, setReload] = useState(0);
   const [err, setErr] = useState('');
 
   useEffect(() => {
@@ -168,7 +170,7 @@ export default function ProductIntelligence({ token, lang = 'en' }: { token?: st
       });
     }, q ? 250 : 0);
     return () => { live = false; clearTimeout(id); };
-  }, [token, q]);
+  }, [token, q, reload]);
 
   if (err) return <div className="text-xs opacity-60 p-4">{err}</div>;
   if (!data) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
@@ -177,6 +179,9 @@ export default function ProductIntelligence({ token, lang = 'en' }: { token?: st
 
   return (
     <div className="space-y-4">
+      {/* Catalog AI — the only door that WRITES the product store from a file the supplier already has. */}
+      <SupplierCatalogUpload token={token} lang={lang} onDone={() => setReload((n) => n + 1)} />
+
       {/* §7's "After" panel: the three counts the spec draws, over real rows. */}
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
         <h3 className="text-xs uppercase tracking-wide opacity-60 mb-3">{t(lang, 'title')}</h3>
