@@ -48,22 +48,39 @@ const OUT_FK = 'supabase/migrations/20991231235959_baseline_foreign_keys.sql';
 // Excluding its own output is what makes this re-runnable. Analysing a tree that already contains
 // the baseline reports nothing missing, and the generator would then overwrite a good file with an
 // empty one — a regenerate that silently undoes itself.
-const analysis = JSON.parse(execFileSync('node',
-  ['scripts/check_migration_order.mjs', '--json',
-    `--exclude=${OUT.split('/').pop()},${OUT_FK.split('/').pop()}`],
-  { encoding: 'utf8' }));
-const wanted = analysis.missingPublic.map((m) => m.table);
-console.log(`${wanted.length} table(s) reported missing by check_migration_order`);
-
 const q = (sql) => mgmtRead(PROD_REF, sql);
-const lit = wanted.map((t) => `'${t}'`).join(',');
 
-// Only tables that REALLY exist on production. `_cand` is a CTE name the DDL scanner reads as a
-// table; asking the catalog rather than trusting the scanner drops it without a special case.
-const real = (await q(`select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace
-  where n.nspname='public' and c.relkind='r' and c.relname in (${lit}) order by 1`)).map((r) => r.relname);
-const notReal = wanted.filter((t) => !real.includes(t));
-console.log(`${real.length} exist on production${notReal.length ? `; not real tables, skipped: ${notReal.join(', ')}` : ''}`);
+// ── --all: THE WHOLE SCHEMA, BECAUSE "ONLY WHAT IS MISSING" WAS THE WRONG QUESTION ─────────────
+// A baseline of just the uncreated TABLES got a clean replay 103 migrations deep and then died on
+// `column i.pipeline_stage does not exist` — a view referencing a column that no migration adds.
+// Tables were never the unit of the problem. This database was built by hand alongside its
+// migrations, so the gaps are tables AND columns AND whatever comes next, and chasing them one
+// replay at a time converges only by luck.
+//
+// So the baseline creates EVERY public table with EVERY current column, and the entire class of
+// "does not exist" disappears in one move rather than one round per object. The 736 historical
+// migrations still run on top; measured across all of them, only fourteen statements are not
+// idempotent (6 create table, 5 add column, 3 create index), and those are fixed at the source.
+let real;
+if (process.argv.includes('--all')) {
+  real = (await q(`select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname='public' and c.relkind='r' order by 1`)).map((r) => r.relname);
+  console.log(`--all: ${real.length} public table(s) on production`);
+} else {
+  const analysis = JSON.parse(execFileSync('node',
+    ['scripts/check_migration_order.mjs', '--json',
+      `--exclude=${OUT.split('/').pop()},${OUT_FK.split('/').pop()}`],
+    { encoding: 'utf8' }));
+  const wanted = analysis.missingPublic.map((m) => m.table);
+  console.log(`${wanted.length} table(s) reported missing by check_migration_order`);
+  const lit = wanted.map((t) => `'${t}'`).join(',');
+  // Only tables that REALLY exist on production. `_cand` is a CTE name the DDL scanner reads as a
+  // table; asking the catalog rather than trusting the scanner drops it without a special case.
+  real = (await q(`select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname='public' and c.relkind='r' and c.relname in (${lit}) order by 1`)).map((r) => r.relname);
+  const notReal = wanted.filter((t) => !real.includes(t));
+  console.log(`${real.length} exist on production${notReal.length ? `; not real tables, skipped: ${notReal.join(', ')}` : ''}`);
+}
 
 const rlit = real.map((t) => `'${t}'`).join(',');
 
