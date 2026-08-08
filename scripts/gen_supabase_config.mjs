@@ -26,7 +26,31 @@ const REPO = process.cwd();
 const OUT = join(REPO, 'supabase', 'config.toml');
 const FN_DIR = join(REPO, 'supabase', 'functions');
 
-const token = readFileSync(TOKEN_PATH, 'utf8').trim();
+// ── THE ENV VAR COMES FIRST, AND ON CI IT IS THE ONLY THING THERE ────────────────────────────────
+// This was `readFileSync(TOKEN_PATH)` with no fallback — the ONLY one of the eleven token readers
+// in this repo written that way; qd_guard, apply_sql, deploy_functions and the rest all try
+// SUPABASE_ACCESS_TOKEN first. On a Windows desktop the difference is invisible. On a GitHub
+// runner the path does not exist, so this threw ENOENT on the first deploy that ever got far
+// enough to call it — 8 Aug 2026, minutes after SUPABASE_ACCESS_TOKEN was finally added as a
+// secret.
+//
+// AND THE FAILURE POINTED AT THE WRONG THING. This script is called by deploy_functions.mjs's
+// verify_jwt drift check, which treats a non-zero exit as DRIFT. So an ENOENT on a hardcoded
+// desktop path was reported as:
+//
+//     REFUSING TO DEPLOY. config.toml and the live project disagree about verify_jwt.
+//
+// which is a security-posture alarm about a file that was never read. Anyone acting on that
+// message would have gone looking for a verify_jwt mismatch that did not exist.
+//
+// existsSync guards the read so a missing file is a clear "no token" rather than a stack trace,
+// which is the shape deploy_functions.mjs already uses.
+const token = (process.env.SUPABASE_ACCESS_TOKEN
+  || (existsSync(TOKEN_PATH) ? readFileSync(TOKEN_PATH, 'utf8') : '')).trim();
+if (!token) {
+  throw new Error('No Supabase access token. Set SUPABASE_ACCESS_TOKEN, or place one at '
+    + TOKEN_PATH + ' (https://supabase.com/dashboard/account/tokens).');
+}
 
 const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/functions`, {
   headers: { Authorization: `Bearer ${token}` },
