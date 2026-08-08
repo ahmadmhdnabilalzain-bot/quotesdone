@@ -10,11 +10,18 @@
 // A supplier should be able to predict their own tier. Thresholds nobody can see are a mood, not a
 // target, so the requirements are rendered from the routine's own ladder rather than restated here.
 //
-// ── AND THE BENEFITS ARE LABELLED AS NOT YET ACTIVE ─────────────────────────────────────────────
-// §20 wants the tier to change RFQ distribution, preferred status and visibility. Those decide
-// which real companies get work, so they are the founder's call rather than an implementation
-// detail. Showing a benefit that does not operate would be the most damaging kind of invention on
-// this page, so `benefits_active:false` renders as an explicit "not yet".
+// ── THE TIER NEVER AFFECTS MATCHING, AND THAT IS SETTLED ────────────────────────────────────────
+// Founder, 2026-08-08: "no cancel that totally. a tier shouldnt effect a match."
+//
+// §20 asks for a tier that changes RFQ distribution, preferred status and search visibility. The
+// founder refused it, and the refusal is right: a score this platform computes deciding who gets
+// sent work sorts real companies into winners and losers on a number none of them agreed to.
+// Matching stays on fit alone.
+//
+// This panel used to read "Not active yet", which was a promise — and is now a false one. A
+// supplier reading "not yet" waits for an advantage that is never coming, and may chase the ladder
+// to get it. It states the settled position instead. The three §20 benefit requirements are
+// therefore permanently unmet BY DECISION, not by omission, and must never be quietly satisfied.
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 
@@ -24,7 +31,7 @@ type Payload = {
   tier?: string; available?: boolean; basis?: string;
   ladder?: Rung[];
   progress?: { quotes_submitted?: number; quotes_won?: number; quality_rating?: number | null; response_rate?: number | null };
-  benefits_active?: boolean; benefits_note?: string;
+  benefits_active?: boolean; affects_matching?: boolean; benefits_note?: string;
 };
 
 const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
@@ -45,14 +52,14 @@ const T = {
     yourTier: 'Your tier', unranked: 'Unranked', ladder: 'The ladder',
     progress: 'Your progress', submitted: 'Quotes submitted', won: 'Jobs won',
     quality: 'Quality rating', response: 'Response rate', notRated: 'not rated yet',
-    benefits: 'What a tier confers', notYet: 'Not active yet',
+    benefits: 'What your tier does', notYet: 'It does not affect your matches.',
   },
   ar: {
     title: 'تصنيف موردي QuotesDone', loading: 'جارٍ قراءة تصنيفك…',
     yourTier: 'تصنيفك', unranked: 'غير مصنّف', ladder: 'السلّم',
     progress: 'تقدّمك', submitted: 'عروض مقدَّمة', won: 'أعمال فائزة',
     quality: 'تقييم الجودة', response: 'معدل الاستجابة', notRated: 'لم يُقيَّم بعد',
-    benefits: 'ما يمنحه التصنيف', notYet: 'غير مفعّل بعد',
+    benefits: 'ماذا يفعل تصنيفك', notYet: 'لا يؤثر على مطابقاتك.',
   },
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);

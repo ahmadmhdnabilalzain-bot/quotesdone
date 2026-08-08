@@ -67,11 +67,22 @@ as $function$
       'quality_rating', (select quality_rating from s),
       'response_rate', (select response_rate from s)
     ),
-    -- WHAT THE TIER CONFERS IS NOT WIRED, AND SAYING SO IS THE POINT. §20 asks for a tier that
-    -- changes RFQ distribution, preferred status and visibility. Those change WHICH REAL COMPANIES
-    -- GET WORK, so they are a founder decision, not an implementation detail — and with every
-    -- supplier unranked they would confer nothing today regardless.
+    -- ── THE TIER DOES NOT AFFECT MATCHING. FOUNDER DECISION, 2026-08-08, VERBATIM: ──────────────
+    --     "no cancel that totally. a tier shouldnt effect a match."
+    --
+    -- §20 asks for a tier that changes RFQ distribution, preferred status and search visibility.
+    -- The founder has refused it, and the refusal is the correct call: a score computed by this
+    -- platform deciding which real companies get sent work would quietly sort suppliers into
+    -- winners and losers on a number none of them agreed to.
+    --
+    -- This field used to say "not YET" — which was a promise, and is now a false one. A supplier
+    -- reading "not yet" waits for an advantage that is never coming and may chase the ladder for
+    -- it. So the payload states the settled position instead, and the three §20 benefit
+    -- requirements stay permanently unmet BY DECISION rather than by omission.
     'benefits_active', false,
-    'benefits_note', 'The ladder is published; it does not yet change RFQ distribution, preferred status or search visibility.'
+    'affects_matching', false,
+    'benefits_note', 'Your tier never affects which work you are matched to, how you rank in search, '
+      || 'or whether you are shown as preferred. Every supplier is matched on fit alone. '
+      || 'This is a record of your track record, not a queue position.'
   );
 $function$;

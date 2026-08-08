@@ -652,3 +652,50 @@ they point the same way:
 Turning this check green is one `graph_nodes` select away and would deliver the supplier nothing.
 It stays MISSING until there is a graph that is ABOUT suppliers — categories linked to trades,
 materials and adjacent capabilities. That is a build, and it is not this row's.
+
+---
+
+# FOUNDER DECISION 2026-08-08 — A TIER MUST NOT AFFECT A MATCH
+
+Verbatim: **"no cancel that totally. a tier shouldnt effect a match."**
+
+§20 Supplier Gamification asks for a tier that confers real advantages — more RFQs, preferred
+status, higher search visibility. The founder has refused it. Matching stays on **fit alone**:
+trade, location, declared capability, history.
+
+**Nothing had to be unwired.** The benefits were never built, precisely because this was flagged as
+a founder decision rather than an implementation detail. `fn_supplier_opportunities` ranks on trade,
+location, capacity and history and has never referenced a tier; no tier column exists anywhere in
+the schema. The estate is already in the state the decision requires.
+
+## WHAT CHANGED: A PROMISE WAS REMOVED
+
+`fn_supplier_tier` and `SupplierTier.tsx` previously said the ladder *"does not YET change RFQ
+distribution, preferred status or search visibility."* That was accurate when the decision was open
+and became a **false promise** the moment it closed. A supplier reading "not yet" waits for an
+advantage that is never coming, and may chase the ladder to get it.
+
+Both now state the settled position:
+
+> Your tier never affects which work you are matched to, how you rank in search, or whether you are
+> shown as preferred. Every supplier is matched on fit alone. This is a record of your track record,
+> not a queue position.
+
+`affects_matching: false` is in the payload so any future surface reads the position rather than
+re-deciding it. Promoted md5-identical to production.
+
+## THE CONSEQUENCE FOR THE SCORE — READ THIS BEFORE QUOTING 100%
+
+Three of the 234 requirements are now **permanently unmet by decision**:
+
+    game-benefit-more-rfqs           tier affects RFQ distribution
+    game-benefit-preferred-status    preferred-supplier status is conferred
+    game-benefit-visibility          tier affects visibility
+
+They are not build orders and must never be "fixed". Any future change that turns one of them MET
+would mean the tier had started affecting matching, which is the thing that was refused — so a
+green verdict on these three is now a REGRESSION SIGNAL, not progress.
+
+**Row #5's achievable ceiling is therefore 231/234, not 234.** §20's ceiling is 5/8. The checks stay
+in the denominator deliberately: removing them would hide the decision instead of recording it, and
+the founder's standing rule is that a check is never weakened to change a number.
