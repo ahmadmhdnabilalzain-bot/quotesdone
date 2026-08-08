@@ -14,6 +14,7 @@ import SupplierOpportunities from './supplier/SupplierOpportunities';
 import SupplierTier from './supplier/SupplierTier';
 import SupplierNegotiation from './supplier/SupplierNegotiation';
 import SupplierCertifications from './supplier/SupplierCertifications';
+import SupplierEntryHero from './supplier/SupplierEntryHero';
 import SupplierCommandPalette from './supplier/SupplierCommandPalette';
 import dynamic from 'next/dynamic';
 // 3D is client-only and heavy; loaded on demand so the portal's first paint does not carry WebGL.
@@ -196,7 +197,9 @@ export function SupplierPortal() {
         </div>
       </header>
       {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
-        {phase === 'login' && <Login onAuth={onAuth} lang={lang} />}
+        {/* §1 — the supplier meets the product before the sign-in box, not after it. */}
+        {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
+        {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} /></div>}
         {phase === 'app' && <Dashboard token={token} lang={lang} />}
       </>)}
     </div>

@@ -1,7 +1,7 @@
 {
  "target": "htdblwldjkcgjvmqkbeh",
  "total": 234,
- "met": 206,
+ "met": 211,
  "rows": [
   {
    "section": "collab",
@@ -260,7 +260,7 @@
    "id": "ui-animated-charts",
    "name": "animated charts",
    "ok": true,
-   "ev": "1 portal file(s) carry chart machinery, 59 animation token(s) — both required in one file"
+   "ev": "1 portal file(s) carry chart machinery, 70 animation token(s) — both required in one file"
   },
   {
    "section": "ui",
@@ -274,7 +274,7 @@
    "id": "ui-not-sidebar-tables-forms",
    "name": "not a sidebar / tables / forms interface",
    "ok": true,
-   "ev": "134 panel token(s) vs 1 table + 20 form token(s) — a workspace may hold a form, it may not be built of them"
+   "ev": "136 panel token(s) vs 1 table + 20 form token(s) — a workspace may hold a form, it may not be built of them"
   },
   {
    "section": "ui",
@@ -323,14 +323,14 @@
    "id": "tech-nextjs",
    "name": "Next.js is used on the supplier surface",
    "ok": true,
-   "ev": "Next.js: 22 usage(s) on the supplier surface; dependency INSTALLED 16.2.11 — a package.json entry is a purchase, not a feature"
+   "ev": "Next.js: 23 usage(s) on the supplier surface; dependency INSTALLED 16.2.11 — a package.json entry is a purchase, not a feature"
   },
   {
    "section": "tech",
    "id": "tech-react",
    "name": "React is used on the supplier surface",
    "ok": true,
-   "ev": "React: 202 usage(s) on the supplier surface; dependency INSTALLED 19.2.8 — a package.json entry is a purchase, not a feature"
+   "ev": "React: 205 usage(s) on the supplier surface; dependency INSTALLED 19.2.8 — a package.json entry is a purchase, not a feature"
   },
   {
    "section": "tech",
@@ -351,7 +351,7 @@
    "id": "tech-framer-motion",
    "name": "Framer Motion is used on the supplier surface",
    "ok": true,
-   "ev": "Framer Motion: 26 usage(s) on the supplier surface; dependency INSTALLED ^12.42.2 — a package.json entry is a purchase, not a feature"
+   "ev": "Framer Motion: 31 usage(s) on the supplier surface; dependency INSTALLED ^12.42.2 — a package.json entry is a purchase, not a feature"
   },
   {
    "section": "tech",
@@ -428,133 +428,133 @@
    "id": "struct-ai-command-center",
    "name": "AI Command Center is reachable from the supplier navigation",
    "ok": true,
-   "ev": "AI Command Center: destination [overview], heading/label [no]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "AI Command Center: destination [overview], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-digital-twin",
    "name": "Supplier Digital Twin is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Supplier Digital Twin: destination [twin], heading/label [no]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Supplier Digital Twin: destination [twin], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-company-profile",
    "name": "Company Profile is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Company Profile: destination [profile], heading/label [register your company | 3d company environment | let’s build your profile]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Company Profile: destination [profile], heading/label [register your company | 3d company environment | let’s build your profile]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-product-intelligence",
    "name": "Product Intelligence is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Product Intelligence: destination [products], heading/label [product intelligence]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Product Intelligence: destination [products], heading/label [product intelligence]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-catalog-ai",
    "name": "Catalog AI is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Catalog AI: destination [no], heading/label [catalog ai]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Catalog AI: destination [no], heading/label [catalog ai]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-rfq-marketplace",
    "name": "RFQ Marketplace is reachable from the supplier navigation",
    "ok": true,
-   "ev": "RFQ Marketplace: destination [rfqs], heading/label [lost opportunities]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "RFQ Marketplace: destination [rfqs], heading/label [lost opportunities]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-quote-builder",
    "name": "Quote Builder is reachable from the supplier navigation",
    "ok": false,
-   "ev": "Quote Builder: destination [no], heading/label [no]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Quote Builder: destination [no], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-negotiation-ai",
    "name": "Negotiation AI is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Negotiation AI: destination [negotiation], heading/label [negotiation assistant]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Negotiation AI: destination [negotiation], heading/label [negotiation assistant]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-customer-projects",
    "name": "Customer Projects is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Customer Projects: destination [projects], heading/label [{o.project_title}]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Customer Projects: destination [projects], heading/label [{o.project_title}]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-documents",
    "name": "Documents is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Documents: destination [documents], heading/label [no]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Documents: destination [documents], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-certifications",
    "name": "Certifications is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Certifications: destination [certifications], heading/label [certifications]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Certifications: destination [certifications], heading/label [certifications]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-inventory",
    "name": "Inventory is reachable from the supplier navigation",
    "ok": false,
-   "ev": "Inventory: destination [no], heading/label [no]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Inventory: destination [no], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-analytics",
    "name": "Analytics is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Analytics: destination [no], heading/label [insight board]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Analytics: destination [no], heading/label [insight board]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-market-intelligence",
    "name": "Market Intelligence is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Market Intelligence: destination [market], heading/label [market intelligence]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Market Intelligence: destination [market], heading/label [market intelligence]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-supplier-score",
    "name": "Supplier Score is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Supplier Score: destination [no], heading/label [supplier score and ranking]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Supplier Score: destination [no], heading/label [supplier score and ranking]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-ai-assistant",
    "name": "AI Assistant is reachable from the supplier navigation",
    "ok": true,
-   "ev": "AI Assistant: destination [assistant], heading/label [ai assistant | catalog ai | negotiation assistant]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "AI Assistant: destination [assistant], heading/label [ai assistant | catalog ai | negotiation assistant]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-messages",
    "name": "Messages is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Messages: destination [messages], heading/label [no]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Messages: destination [messages], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-finance",
    "name": "Finance is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Finance: destination [billing], heading/label [no]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Finance: destination [billing], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-settings",
    "name": "Settings is reachable from the supplier navigation",
    "ok": false,
-   "ev": "Settings: destination [no], heading/label [no]; portal has 20 destination(s) and 72 heading(s) total"
+   "ev": "Settings: destination [no], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
   },
   {
    "section": "cc",
@@ -568,7 +568,7 @@
    "id": "cc-verified-badge",
    "name": "a \"Verified Supplier\" badge",
    "ok": true,
-   "ev": "supplier-badge token(s) 9, rendered yes; 15 account-verification token(s) excluded — a confirmed mobile is not a Verified Supplier"
+   "ev": "supplier-badge token(s) 10, rendered yes; 15 account-verification token(s) excluded — a confirmed mobile is not a Verified Supplier"
   },
   {
    "section": "cc",
@@ -624,7 +624,7 @@
    "id": "cc-workspace-not-dashboard",
    "name": "a command-center layout, not a table dashboard",
    "ok": true,
-   "ev": "134 panel token(s) vs 1 table token(s) — a command center may hold a table, it may not be built of them"
+   "ev": "136 panel token(s) vs 1 table token(s) — a command center may hold a table, it may not be built of them"
   },
   {
    "section": "env",
@@ -666,7 +666,7 @@
    "id": "env-node-customers",
    "name": "the environment has a Customers node",
    "ok": true,
-   "ev": "Customers: in a 3D scene file [SupplierEnvironment.tsx]; mentioned in 6 portal file(s) — a mention outside the scene is not a scene node"
+   "ev": "Customers: in a 3D scene file [SupplierEnvironment.tsx]; mentioned in 7 portal file(s) — a mention outside the scene is not a scene node"
   },
   {
    "section": "env",
@@ -778,7 +778,7 @@
    "id": "entry-landing-route",
    "name": "a supplier landing screen exists and is reachable unauthenticated",
    "ok": true,
-   "ev": "route present; closure 30 file(s), 17 edge fn(s)"
+   "ev": "route present; closure 31 file(s), 17 edge fn(s)"
   },
   {
    "section": "entry",
@@ -791,36 +791,36 @@
    "section": "entry",
    "id": "entry-value-proposition",
    "name": "the \"grow your business with AI-powered procurement\" value line",
-   "ok": false,
-   "ev": "0 occurrence(s) of the value proposition"
+   "ok": true,
+   "ev": "2 occurrence(s) of the value proposition"
   },
   {
    "section": "entry",
    "id": "entry-cta-become-verified",
    "name": "a primary CTA \"Become a Verified Supplier\" leading to registration",
-   "ok": false,
-   "ev": "0 exact CTA, 23 registration-ish token(s) — the spec names the CTA"
+   "ok": true,
+   "ev": "1 exact CTA, 24 registration-ish token(s) — the spec names the CTA"
   },
   {
    "section": "entry",
    "id": "entry-cta-how-it-works",
    "name": "a secondary CTA \"Watch How It Works\"",
-   "ok": false,
-   "ev": "0 occurrence(s) of a how-it-works CTA"
+   "ok": true,
+   "ev": "2 occurrence(s) of a how-it-works CTA"
   },
   {
    "section": "entry",
    "id": "entry-bg-animated-network",
    "name": "an animated supply-network background",
    "ok": true,
-   "ev": "44 animation token(s) on the supplier surface"
+   "ev": "53 animation token(s) on the supplier surface"
   },
   {
    "section": "entry",
    "id": "entry-bg-moving-connections",
    "name": "moving connections between suppliers and projects",
    "ok": true,
-   "ev": "2 connection token(s) x 44 animation token(s) — the spec says MOVING, so both are required"
+   "ev": "2 connection token(s) x 53 animation token(s) — the spec says MOVING, so both are required"
   },
   {
    "section": "entry",
@@ -848,7 +848,7 @@
    "id": "onb-prompt-tell-me",
    "name": "the agent opens by asking the supplier about their company",
    "ok": true,
-   "ev": "1 occurrence(s) of an opening company question"
+   "ev": "2 occurrence(s) of an opening company question"
   },
   {
    "section": "onb",
@@ -924,57 +924,57 @@
    "section": "twin",
    "id": "twin-company-strength",
    "name": "the twin shows Company Strength %",
-   "ok": false,
-   "ev": "Company Strength %: rendered yes (mentioned yes), served by [NO fn]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
+   "ok": true,
+   "ev": "Company Strength %: rendered yes (mentioned yes), served by [fn_supplier_advisor fn_supplier_tier fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
   },
   {
    "section": "twin",
    "id": "twin-capabilities-list",
    "name": "the twin shows capability checklist",
    "ok": true,
-   "ev": "capability checklist: rendered yes (mentioned yes), served by [supplier_portal supplier_api profile_ai]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
+   "ev": "capability checklist: rendered yes (mentioned yes), served by [supplier_portal supplier_api profile_ai fn_supplier_advisor fn_supplier_certifications fn_supplier_opportunities fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
   },
   {
    "section": "twin",
    "id": "twin-product-count",
    "name": "the twin shows product count",
    "ok": true,
-   "ev": "product count: rendered yes (mentioned yes), served by [supplier_portal supplier_api profile_ai]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
+   "ev": "product count: rendered yes (mentioned yes), served by [supplier_portal supplier_api profile_ai fn_supplier_advisor fn_supplier_products fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
   },
   {
    "section": "twin",
    "id": "twin-certifications",
    "name": "the twin shows certifications",
    "ok": true,
-   "ev": "certifications: rendered yes (mentioned yes), served by [supplier_portal supplier_api profile_ai]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
+   "ev": "certifications: rendered yes (mentioned yes), served by [supplier_portal supplier_api profile_ai fn_supplier_certifications fn_supplier_expiries fn_supplier_products fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
   },
   {
    "section": "twin",
    "id": "twin-production-capacity",
    "name": "the twin shows production capacity",
-   "ok": false,
-   "ev": "production capacity: rendered yes (mentioned yes), served by [NO fn]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
+   "ok": true,
+   "ev": "production capacity: rendered yes (mentioned yes), served by [fn_supplier_opportunities fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
   },
   {
    "section": "twin",
    "id": "twin-best-opportunities",
    "name": "the twin shows best opportunities",
    "ok": true,
-   "ev": "best opportunities: rendered yes (mentioned yes), served by [supplier_portal]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
+   "ev": "best opportunities: rendered yes (mentioned yes), served by [supplier_portal fn_supplier_advisor fn_supplier_opportunities fn_supplier_products fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
   },
   {
    "section": "twin",
    "id": "twin-risk-level",
    "name": "the twin shows risk level",
    "ok": true,
-   "ev": "risk level: rendered yes (mentioned yes), served by [supplier_portal supplier_api]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
+   "ev": "risk level: rendered yes (mentioned yes), served by [supplier_portal supplier_api fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
   },
   {
    "section": "twin",
    "id": "twin-supplier-visible",
    "name": "the twin renders on the supplier own surface",
    "ok": true,
-   "ev": "62 twin token(s) across 30 file(s) of the supplier surface"
+   "ev": "62 twin token(s) across 31 file(s) of the supplier surface"
   },
   {
    "section": "perf",
@@ -1037,7 +1037,7 @@
    "id": "perf-supplier-visible",
    "name": "the health panel renders on the supplier surface",
    "ok": true,
-   "ev": "2 of 28 portal file(s) name the score store [SupplierInsightBoard.tsx SupplierTwin.tsx]; supplier_score 20465 row(s), reliability non-null on 20465 — a MISSING here is \"computed and not shown\""
+   "ev": "2 of 29 portal file(s) name the score store [SupplierInsightBoard.tsx SupplierTwin.tsx]; supplier_score 20465 row(s), reliability non-null on 20465 — a MISSING here is \"computed and not shown\""
   },
   {
    "section": "mkt",
@@ -1093,7 +1093,7 @@
    "id": "emp-assistant-present",
    "name": "an AI assistant is available on the supplier surface",
    "ok": true,
-   "ev": "3 portal file(s) pair an assistant with supplier-specific analysis [SupplierPortal.tsx SupplierAdvisor.tsx SupplierNegotiation.tsx]; 16 support-chat token(s) excluded — a help desk is not §15's AI employee"
+   "ev": "4 portal file(s) pair an assistant with supplier-specific analysis [SupplierPortal.tsx SupplierAdvisor.tsx SupplierEntryHero.tsx SupplierNegotiation.tsx]; 16 support-chat token(s) excluded — a help desk is not §15's AI employee"
   },
   {
    "section": "emp",
@@ -1142,7 +1142,7 @@
    "id": "doc-intelligence-panel",
    "name": "a document-intelligence panel",
    "ok": true,
-   "ev": "3 portal file(s) pair a document with intelligence about it [SupplierPortal.tsx SupplierCertifications.tsx SupplierTwin.tsx]; 64 storage-only token(s) — a file path is not a living document"
+   "ev": "3 portal file(s) pair a document with intelligence about it [SupplierPortal.tsx SupplierCertifications.tsx SupplierTwin.tsx]; 65 storage-only token(s) — a file path is not a living document"
   },
   {
    "section": "doc",
@@ -1191,7 +1191,7 @@
    "id": "doc-supplier-visible",
    "name": "the document panel renders on the supplier surface",
    "ok": true,
-   "ev": "3 of 28 portal file(s) render document intelligence [SupplierPortal.tsx SupplierCertifications.tsx SupplierTwin.tsx]"
+   "ev": "3 of 29 portal file(s) render document intelligence [SupplierPortal.tsx SupplierCertifications.tsx SupplierTwin.tsx]"
   },
   {
    "section": "risk",
@@ -1254,7 +1254,7 @@
    "id": "prod-upload-catalog",
    "name": "the supplier can upload catalogs for product extraction",
    "ok": true,
-   "ev": "catalogs: 3 file(s) pair the format with a PRODUCT context [SupplierPortal.tsx ProductIntelligence.tsx SupplierCatalogUpload.tsx]; 3 mention it at all, 0 only alongside registration documents — a licence uploader is not catalog ingestion"
+   "ev": "catalogs: 3 file(s) pair the format with a PRODUCT context [SupplierPortal.tsx ProductIntelligence.tsx SupplierCatalogUpload.tsx]; 4 mention it at all, 1 only alongside registration documents — a licence uploader is not catalog ingestion"
   },
   {
    "section": "prod",
@@ -1345,7 +1345,7 @@
    "id": "prod-supplier-visible",
    "name": "product intelligence renders on the supplier surface",
    "ok": true,
-   "ev": "1 of 30 supplier file(s) carry product-intelligence CODE [ProductIntelligence.tsx]; 13 upload-caption token(s) — a caption is not a render"
+   "ev": "1 of 31 supplier file(s) carry product-intelligence CODE [ProductIntelligence.tsx]; 13 upload-caption token(s) — a caption is not a render"
   },
   {
    "section": "card",
@@ -1499,7 +1499,7 @@
    "id": "rank-why-reasons",
    "name": "a \"Why\" explanation list is rendered",
    "ok": true,
-   "ev": "3 file(s) pair explanation language with ranking [SupplierAdvisor.tsx SupplierNegotiation.tsx SupplierOpportunities.tsx]"
+   "ev": "4 file(s) pair explanation language with ranking [SupplierAdvisor.tsx SupplierEntryHero.tsx SupplierNegotiation.tsx SupplierOpportunities.tsx]"
   },
   {
    "section": "rank",

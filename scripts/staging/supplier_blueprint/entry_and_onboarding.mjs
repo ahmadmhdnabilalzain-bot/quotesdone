@@ -300,7 +300,27 @@ export default async function (H) {
   // leg is scored per-function over the endpoints that actually serve it, and the evidence NAMES
   // the function — an unnamed "endpoint yes" is evidence that does not compute the verdict.
   const TWIN_FNS = ['supplier_portal', 'supplier_api', 'profile_ai'].filter((f) => SUPPLIER.FNS.includes(f));
-  const twinSrc = TWIN_FNS.map((f) => [f, strip(EDGE.get(f) || '')]);
+  //
+  // ── AND THE HOP THOSE ENDPOINTS ACTUALLY TAKE ─────────────────────────────────────────────────
+  // The note above is right that the server leg must be the TWIN'S OWN endpoint and not any of
+  // fourteen. It was still scanning only the TypeScript, and the twin's fields are not there:
+  // supplier_portal's twin action is `admin.rpc('fn_supplier_twin')` — four lines carrying none of
+  // the field names — while company_strength and production_capacity live in the routine. Executed
+  // against production, fn_supplier_twin(30419) returns both.
+  //
+  // So the population follows the hop WITHOUT widening: only routines these three endpoints
+  // themselves rpc() are added. A routine no twin endpoint calls is still not a twin server, which
+  // is the distinction the original note was protecting.
+  const twinRpcNames = [...new Set(TWIN_FNS.flatMap((f) =>
+    [...strip(EDGE.get(f) || '').matchAll(/\.rpc\(\s*['"]([a-z0-9_]+)['"]/gi)].map((m) => m[1])))];
+  const twinRpcSrc = twinRpcNames.length ? await (async () => {
+    const txt = await one(`select coalesce(jsonb_agg(jsonb_build_array(p.proname, pg_get_functiondef(p.oid)))::text, '[]')
+      from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+      where ns.nspname='public' and p.prokind in ('f','p')
+        and p.proname in (${twinRpcNames.map((x) => `'${x}'`).join(',')})`);
+    try { return JSON.parse(String(txt || '[]')).map(([nm, src]) => [nm, strip(src)]); } catch { return []; }
+  })() : [];
+  const twinSrc = [...TWIN_FNS.map((f) => [f, strip(EDGE.get(f) || '')]), ...twinRpcSrc];
   for (const [id, re, label] of TWIN) {
     const shown = delivered(re);       // rendered as a value, not offered as a form field
     const occurs = re.test(SRC_NC);    // reported so a MISSING says which leg failed
