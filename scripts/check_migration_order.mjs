@@ -81,15 +81,38 @@ for (const { real, sorted } of files) {
     if (!created.has(t)) created.set(t, sorted);
   }
 
+  // ── EVERY WAY A MIGRATION CAN DEMAND A TABLE ALREADY EXISTS ──────────────────────────────────
+  // The first version tracked three forms and the fresh-database replay kept finding a fourth. It
+  // died on `drop trigger if exists trg_notifications_digest on public.notifications` — and note
+  // that IF EXISTS does not save it: Postgres tolerates the missing TRIGGER and still raises 42P01
+  // for the missing RELATION. Discovering these one preview run at a time is a slow way to be
+  // wrong, so the list is now every DDL and DML form that takes a table name.
   const refs = [
     ...[...sql.matchAll(/\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?([a-z0-9_."]+)/gi)].map((m) => ['alter', m[1]]),
     ...[...sql.matchAll(/\binsert\s+into\s+([a-z0-9_."]+)/gi)].map((m) => ['insert into', m[1]]),
+    ...[...sql.matchAll(/\bupdate\s+(?:only\s+)?([a-z0-9_."]+)\s+set\b/gi)].map((m) => ['update', m[1]]),
+    ...[...sql.matchAll(/\bdelete\s+from\s+(?:only\s+)?([a-z0-9_."]+)/gi)].map((m) => ['delete from', m[1]]),
+    ...[...sql.matchAll(/\btruncate\s+(?:table\s+)?(?:only\s+)?([a-z0-9_."]+)/gi)].map((m) => ['truncate', m[1]]),
     ...[...sql.matchAll(/\bcreate\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?[a-z0-9_"]+\s+on\s+([a-z0-9_."]+)/gi)].map((m) => ['index on', m[1]]),
+    ...[...sql.matchAll(/\bdrop\s+index\s+(?:concurrently\s+)?(?:if\s+exists\s+)?([a-z0-9_."]+)/gi)].map((m) => ['drop index', m[1]]),
+    // Triggers and policies name their table after ON, and both spellings must be caught.
+    ...[...sql.matchAll(/\bcreate\s+(?:or\s+replace\s+)?(?:constraint\s+)?trigger\s+[a-z0-9_"]+[\s\S]{0,200}?\bon\s+([a-z0-9_."]+)/gi)].map((m) => ['create trigger on', m[1]]),
+    ...[...sql.matchAll(/\bdrop\s+trigger\s+(?:if\s+exists\s+)?[a-z0-9_"]+\s+on\s+([a-z0-9_."]+)/gi)].map((m) => ['drop trigger on', m[1]]),
+    ...[...sql.matchAll(/\bcreate\s+policy\s+[a-z0-9_"]+\s+on\s+([a-z0-9_."]+)/gi)].map((m) => ['create policy on', m[1]]),
+    ...[...sql.matchAll(/\bdrop\s+policy\s+(?:if\s+exists\s+)?[a-z0-9_"]+\s+on\s+([a-z0-9_."]+)/gi)].map((m) => ['drop policy on', m[1]]),
+    ...[...sql.matchAll(/\bcomment\s+on\s+table\s+([a-z0-9_."]+)/gi)].map((m) => ['comment on', m[1]]),
+    ...[...sql.matchAll(/\bgrant\s+[\s\S]{0,120}?\bon\s+table\s+([a-z0-9_."]+)/gi)].map((m) => ['grant on', m[1]]),
   ];
+
+  // A reserved word is never a table name. `create trigger … after insert or update or delete or
+  // TRUNCATE ON public.x` made the truncate pattern capture the word "on" and report public.on as
+  // an uncreated table — a scanner inventing a table out of the grammar it was trying to read.
+  const KEYWORD = new Set(['on', 'only', 'table', 'select', 'from', 'set', 'where', 'exists', 'if', 'not', 'concurrently']);
 
   for (const [how, rawT] of refs) {
     if (EXTERNAL.test(rawT)) continue;
     const t = bare(rawT);
+    if (KEYWORD.has(t)) continue;
     if (created.has(t)) continue;                       // created here or earlier — fine
     if (!unknown.has(t)) unknown.set(t, { file: sorted, how });
   }

@@ -15,6 +15,12 @@
 -- ==============================================================================================
 
 do $$ begin
+  if not exists (select 1 from pg_constraint where conname='agent_actions_decision_log_id_fkey'
+                 and conrelid='public.agent_actions'::regclass) then
+    alter table public.agent_actions add constraint agent_actions_decision_log_id_fkey FOREIGN KEY (decision_log_id) REFERENCES decision_log(id);
+  end if;
+end $$;
+do $$ begin
   if not exists (select 1 from pg_constraint where conname='catalog_subcategories_domain_slug_fkey'
                  and conrelid='public.catalog_subcategories'::regclass) then
     alter table public.catalog_subcategories add constraint catalog_subcategories_domain_slug_fkey FOREIGN KEY (domain_slug) REFERENCES catalog_domains(slug) ON DELETE CASCADE;
