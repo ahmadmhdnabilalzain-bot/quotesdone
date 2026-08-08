@@ -24,6 +24,8 @@ const ROUTINES = [
   'fn_rating_due', 'fn_lead_time_interval',
   // Part 4: §11's quote builder and §16/§4's document impact.
   'fn_supplier_quote_recommend', 'fn_supplier_document_impact',
+  // §23's knowledge graph: the adjacency builder and the supplier-facing reader.
+  'fn_graph_supplier_market', 'fn_supplier_knowledge_graph',
 ];
 const EDGE_FNS = ['supplier_portal', 'supplier_onboard', 'supplier_catalog_ingest', 'supplier_api'];
 const CRONS = ['supplier_risk_complaints', 'supplier_risk_response_delays', 'supplier_risk_performance_drops'];
