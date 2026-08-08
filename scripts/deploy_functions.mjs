@@ -39,17 +39,11 @@ if (ref === PROD_REF && !has('production')) {
   die(`REFUSED: --ref is production (${PROD_REF}). Pass --production to mean it.`);
 }
 
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || (existsSync('C:/Users/Opera/.supabase/access-token')
-      ? readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8') : '')).trim();
-if (!token) die('No Supabase access token (SUPABASE_ACCESS_TOKEN).');
-const H = { Authorization: 'Bearer ' + token };
-
-const api = async (path) => {
-  const r = await fetch(`https://api.supabase.com/v1/projects/${ref}${path}`, { headers: H });
-  if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 200)}`);
-  return r.json();
-};
+// THE TOKEN IS DEMANDED WHERE IT IS USED, NOT AT STARTUP. It was required here, above the slug
+// resolution, which made `--dry-run` — a git diff and nothing else — fail without credentials. That
+// broke the workflow's first real run on main: the two dry-run steps died on a missing token before
+// the step whose whole job is to report the token missing could say so. A command that touches
+// nothing should need nothing.
 
 // ── WHICH FUNCTIONS ────────────────────────────────────────────────────────────────────────────
 // --changed asks git, so a push deploys what the push touched rather than all 196. Deploying
@@ -94,6 +88,19 @@ console.log(`${slugs.length} function(s): ${slugs.join(' ')}\n`);
 // silently wrong — deploying nothing looks identical to having nothing to deploy — so it has to be
 // inspectable without a deploy to inspect it.
 if (has('dry-run')) { console.log('--dry-run: stopping before the drift check.'); process.exit(0); }
+
+// Everything past this point talks to the API, so the token is required from here.
+const token = (process.env.SUPABASE_ACCESS_TOKEN
+  || (existsSync('C:/Users/Opera/.supabase/access-token')
+      ? readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8') : '')).trim();
+if (!token) die('No Supabase access token (SUPABASE_ACCESS_TOKEN).');
+const H = { Authorization: 'Bearer ' + token };
+
+const api = async (path) => {
+  const r = await fetch(`https://api.supabase.com/v1/projects/${ref}${path}`, { headers: H });
+  if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 200)}`);
+  return r.json();
+};
 
 // ── RULE 3: THE DRIFT CHECK ────────────────────────────────────────────────────────────────────
 const live = await api('/functions').catch((e) => die(`Could not list functions on ${ref}: ${e.message}`));
