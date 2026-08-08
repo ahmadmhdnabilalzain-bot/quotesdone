@@ -228,6 +228,18 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
       return J({ ok: true, ...neg, analysis });
     }
 
+    // §8 — which of MY products answers this enquiry, and how well. The match_pct on a product card
+    // is computed by fn_supplier_product_match and never in the browser: a percentage the client
+    // invents is a decoration, and the supplier cannot tell the difference by looking.
+    if (action === 'product_match') {
+      const inquiryId = String(b.inquiry_id || '');
+      if (!inquiryId) return J({ error: 'inquiry_id required' }, 400);
+      const { data: pm, error } = await admin.rpc('fn_supplier_product_match',
+        { p_inquiry_id: inquiryId, p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...pm });
+    }
+
     // §16 §24 — every certificate with its validity status and what it gates.
     if (action === 'certifications') {
       const { data: certs, error } = await admin.rpc('fn_supplier_certifications', { p_lead_id: supId });

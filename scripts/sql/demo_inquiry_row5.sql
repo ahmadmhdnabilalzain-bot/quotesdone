@@ -46,9 +46,15 @@ insert into public.inquiries (
     null,                                   -- belongs to nobody; see the note above
     'aluminium', 'Sharjah', 'supplier',
     'ZZ DEMO — curtain walling to a mall atrium (QuotesDone fixture, not a real project)',
-    'Demo fixture used to exercise the QuotesDone supplier collaboration workspace. '
-      || 'Not a real enquiry. Fenced out of dispatch: rfq_ready is NULL so trg_autodispatch_inquiry '
-      || 'cannot fire.',
+    -- raw_input IS THE CUSTOMER'S OWN BRIEF, so it has to read like one. The first version put the
+    -- fence explanation here instead, and that had a consequence beyond tidiness: raw_input is what
+    -- the opportunity surface shows as the requirement AND what fn_supplier_product_match matches
+    -- products against, so every product scored 0% against an enquiry whose only description was a
+    -- note about triggers. Fixture metadata belongs in the marker, not in the customer's words.
+    'ZZ DEMO — We need aluminium curtain walling and structural glazing for a mall atrium in '
+      || 'Sharjah, roughly 400 square metres, plus shopfront doors to the retail units. '
+      || 'Powder coated finish. (QuotesDone demo fixture, not a real enquiry. rfq_ready is NULL so '
+      || 'trg_autodispatch_inquiry cannot fire.)',
     'open', 'qd_demo_fixture',
     null,                                   -- THE FENCE. Not false — NULL, which the trigger's
                                             -- `is true` test rejects either way, and which reads
@@ -86,3 +92,13 @@ where i.brief_source = 'qd_demo_fixture'
     select 1 from public.messages m
     where m.inquiry_id = i.id and m.supplier_id = s.id
   );
+
+-- The brief is corrected in place on a re-run. The insert above is guarded by NOT EXISTS, so
+-- without this an existing fixture would keep the old text forever and the file would describe a
+-- row that does not match what is deployed.
+update public.inquiries set raw_input =
+  'ZZ DEMO — We need aluminium curtain walling and structural glazing for a mall atrium in '
+    || 'Sharjah, roughly 400 square metres, plus shopfront doors to the retail units. '
+    || 'Powder coated finish. (QuotesDone demo fixture, not a real enquiry. rfq_ready is NULL so '
+    || 'trg_autodispatch_inquiry cannot fire.)'
+where brief_source = 'qd_demo_fixture';

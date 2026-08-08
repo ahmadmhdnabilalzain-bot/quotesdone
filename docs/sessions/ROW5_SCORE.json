@@ -1,7 +1,7 @@
 {
  "target": "htdblwldjkcgjvmqkbeh",
  "total": 234,
- "met": 211,
+ "met": 212,
  "rows": [
   {
    "section": "collab",
@@ -939,7 +939,7 @@
    "id": "twin-product-count",
    "name": "the twin shows product count",
    "ok": true,
-   "ev": "product count: rendered yes (mentioned yes), served by [supplier_portal supplier_api profile_ai fn_supplier_advisor fn_supplier_products fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
+   "ev": "product count: rendered yes (mentioned yes), served by [supplier_portal supplier_api profile_ai fn_supplier_advisor fn_supplier_product_match fn_supplier_products fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
   },
   {
    "section": "twin",
@@ -1338,7 +1338,7 @@
    "id": "prod-table-reader",
    "name": "supplier_product has a reader that is not its writer",
    "ok": true,
-   "ev": "supplier_product: 2 non-writer SQL routine(s), 2 reachable edge fn(s) [supplier_catalog_ingest supplier_portal]; supplier_catalog: 1 routine(s); 7 row(s)"
+   "ev": "supplier_product: 3 non-writer SQL routine(s), 2 reachable edge fn(s) [supplier_catalog_ingest supplier_portal]; supplier_catalog: 1 routine(s); 7 row(s)"
   },
   {
    "section": "prod",
@@ -1407,8 +1407,8 @@
    "section": "card",
    "id": "card-match-routine",
    "name": "the product match percentage is computed server-side",
-   "ok": false,
-   "ev": "0 reachable fn(s) match on PRODUCTS [none]; 2 match on anything [ai_gateway supplier_portal], 25 matching routine(s) in public — capability-level supplier matching is a different mechanism and is scored elsewhere"
+   "ok": true,
+   "ev": "1 reachable fn(s) match on PRODUCTS [fn_supplier_product_match]; 2 match on anything [ai_gateway supplier_portal], 26 matching routine(s) in public — capability-level supplier matching is a different mechanism and is scored elsewhere"
   },
   {
    "section": "rfq",
@@ -1450,7 +1450,7 @@
    "id": "rfq-ai-match-pct",
    "name": "the opportunity shows AI match %",
    "ok": true,
-   "ev": "AI match %: rendered yes, served by [fn_supplier_opportunities fn_supplier_products] (1 fn(s) name it outside any RFQ context: [supplier_portal]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ev": "AI match %: rendered yes, served by [fn_supplier_opportunities fn_supplier_product_match fn_supplier_products] (1 fn(s) name it outside any RFQ context: [supplier_portal]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rfq",
@@ -1471,7 +1471,7 @@
    "id": "rfq-feed-routine",
    "name": "the opportunity feed is computed server-side for this supplier",
    "ok": true,
-   "ev": "4 fn(s) scope a feed to the caller [messages_api rfq_flag supplier_api supplier_portal]; 12 matching routine(s) in public; inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ev": "4 fn(s) scope a feed to the caller [messages_api rfq_flag supplier_api supplier_portal]; 13 matching routine(s) in public; inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rank",
@@ -1485,7 +1485,7 @@
    "id": "rank-ordered",
    "name": "ranked ordering, not chronological",
    "ok": true,
-   "ev": "9 fn(s) order by a SCORE [fn_ai_route fn_faq_answer fn_llm_cache_lookup fn_supplier_advisor fn_supplier_network_map fn_supplier_opportunities fn_supplier_products fn_supplier_tier fn_supplier_workspaces]; 8 order by date [kyc login_otp messages_api supplier_api supplier_portal fn_supplier_negotiation fn_supplier_products fn_supplier_workspaces] — a chronological inbox is what §10 rejects"
+   "ev": "10 fn(s) order by a SCORE [fn_ai_route fn_faq_answer fn_llm_cache_lookup fn_supplier_advisor fn_supplier_network_map fn_supplier_opportunities fn_supplier_product_match fn_supplier_products fn_supplier_tier fn_supplier_workspaces]; 8 order by date [kyc login_otp messages_api supplier_api supplier_portal fn_supplier_negotiation fn_supplier_products fn_supplier_workspaces] — a chronological inbox is what §10 rejects"
   },
   {
    "section": "rank",
