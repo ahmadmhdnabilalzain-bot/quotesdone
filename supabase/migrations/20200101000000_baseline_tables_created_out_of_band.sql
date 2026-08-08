@@ -16,8 +16,16 @@
 -- created later is the exact defect this baseline exists to end.
 -- ==============================================================================================
 
--- Extensions the column types depend on.
-create extension if not exists vector;
+-- Extensions, in the schema production keeps them in. pg_cron is what a migration that
+-- schedules a job needs, and no column type points at it — hence the whole list, not a subset.
+create schema if not exists extensions;
+create extension if not exists "pg_cron";
+create extension if not exists "pg_net" with schema public;
+create extension if not exists "pg_stat_statements" with schema extensions;
+create extension if not exists "pg_trgm" with schema public;
+create extension if not exists "pgcrypto" with schema extensions;
+create extension if not exists "uuid-ossp" with schema extensions;
+create extension if not exists "vector" with schema public;
 
 -- Sequences backing serial-style defaults. Identity columns are not here: they make their own.
 create sequence if not exists public.agent_actions_id_seq;

@@ -116,15 +116,20 @@ const enums = await q(`
   where n.nspname='public' and c.relname in (${rlit}) and a.attnum>0 and not a.attisdropped
     and t.typtype='e'`);
 
-const exts = await q(`
-  select distinct e.extname
-  from pg_attribute a
-  join pg_class c on c.oid=a.attrelid
-  join pg_namespace n on n.oid=c.relnamespace
-  join pg_type t on t.oid=a.atttypid
-  join pg_depend dep on dep.objid = t.oid and dep.refclassid = 'pg_extension'::regclass
-  join pg_extension e on e.oid = dep.refobjid
-  where n.nspname='public' and c.relname in (${rlit}) and a.attnum>0 and not a.attisdropped`);
+// ── EVERY EXTENSION PRODUCTION HAS, NOT JUST THE ONES A COLUMN TYPE NEEDS ──────────────────────
+// The first version asked which extensions the COLUMN TYPES depend on and emitted exactly one:
+// vector. A fresh database then died on `select cron.unschedule(jobid) from cron.job` — pg_cron
+// provides no column type, so nothing pointed at it, and a migration that schedules a job cannot
+// run without it. The same is true of pg_net for outbound calls and pg_trgm for a search index.
+//
+// An extension is part of the database's shape whether or not a column happens to be typed by it,
+// so the list now comes from pg_extension itself. plpgsql is always present and supabase_vault is
+// managed by the platform; the rest are installed, in the schema production keeps them in, because
+// code that calls extensions.crypt() breaks if pgcrypto lands somewhere else.
+const exts = await q(`select e.extname, n.nspname sch
+  from pg_extension e join pg_namespace n on n.oid = e.extnamespace
+  where e.extname not in ('plpgsql', 'supabase_vault')
+  order by e.extname`);
 
 const by = (rows, key) => rows.reduce((m, r) => ((m[r[key]] ||= []).push(r), m), {});
 const C = by(cols, 'tbl'), K = by(cons, 'tbl'), I = by(idx, 'tbl');
@@ -161,8 +166,15 @@ out.push(`-- ===================================================================
 out.push('');
 
 if (exts.length) {
-  out.push('-- Extensions the column types depend on.');
-  for (const e of exts) out.push(`create extension if not exists ${e.extname};`);
+  out.push('-- Extensions, in the schema production keeps them in. pg_cron is what a migration that');
+  out.push('-- schedules a job needs, and no column type points at it — hence the whole list, not a subset.');
+  const schemas = [...new Set(exts.map((e) => e.sch))].filter((s) => s !== 'public' && s !== 'pg_catalog');
+  for (const s of schemas) out.push(`create schema if not exists ${s};`);
+  for (const e of exts) {
+    // pg_catalog cannot be named as a target schema; those extensions install there by default.
+    const where = e.sch === 'pg_catalog' ? '' : ` with schema ${e.sch}`;
+    out.push(`create extension if not exists "${e.extname}"${where};`);
+  }
   out.push('');
 }
 
