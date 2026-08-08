@@ -1,0 +1,274 @@
+{
+  "day": "20260724",
+  "renamed": [
+    {
+      "f": "20260724_fn_query_platform.sql",
+      "version": "20260724003746",
+      "name": "fn_query_platform_agent_network",
+      "covRec": 1,
+      "covFile": 1,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_phase_b_autonomy_policy_classifier.sql",
+      "version": "20260724012241",
+      "name": "phase_b_autonomy_policy_classifier",
+      "covRec": 1,
+      "covFile": 1,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_phase_b_digest_trigger_and_brief.sql",
+      "version": "20260724012451",
+      "name": "phase_b_digest_trigger_and_brief",
+      "covRec": 1,
+      "covFile": 1,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_layer2_resilience_watch.sql",
+      "version": "20260724014043",
+      "name": "layer2_resilience_watch",
+      "covRec": 1,
+      "covFile": 0.9733333333333334,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_layer2_cron_liveness_rpc.sql",
+      "version": "20260724014606",
+      "name": "layer2_cron_liveness_rpc",
+      "covRec": 1,
+      "covFile": 1,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_org_foundation.sql",
+      "version": "20260724020640",
+      "name": "org_foundation_kernel_ledger_permissions",
+      "covRec": 0.7282608695652174,
+      "covFile": 0.5948275862068966,
+      "why": "name + top-ranked content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_cos_execution_engine.sql",
+      "version": "20260724022703",
+      "name": "cos_execution_engine_schema",
+      "covRec": 0.7,
+      "covFile": 0.875,
+      "why": "name + top-ranked content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_founder_brief_objectives.sql",
+      "version": "20260724024511",
+      "name": "founder_brief_objectives_section",
+      "covRec": 1,
+      "covFile": 1,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_supplier_success_executors.sql",
+      "version": "20260724025336",
+      "name": "supplier_success_executors_and_registry",
+      "covRec": 1,
+      "covFile": 1,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_knowledge_department.sql",
+      "version": "20260724030452",
+      "name": "knowledge_reconcile_and_executor",
+      "covRec": 0.9411764705882353,
+      "covFile": 0.660377358490566,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_analytics_department.sql",
+      "version": "20260724031359",
+      "name": "analytics_advisory_executor_support",
+      "covRec": 1,
+      "covFile": 0.14285714285714285,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_marketing_knowledge_library.sql",
+      "version": "20260724050021",
+      "name": "marketing_library_search_or",
+      "covRec": 1,
+      "covFile": 0.34,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_brand_assets.sql",
+      "version": "20260724051620",
+      "name": "brand_assets_manifest",
+      "covRec": 1,
+      "covFile": 0.2,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_company_vision_and_omniscience.sql",
+      "version": "20260724053709",
+      "name": "company_vision_and_omniscience",
+      "covRec": 0.3875,
+      "covFile": 0.8378378378378378,
+      "why": "name + top-ranked content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_founder_review_gates.sql",
+      "version": "20260724060712",
+      "name": "founder_review_gates",
+      "covRec": 0.43103448275862066,
+      "covFile": 0.6410256410256411,
+      "why": "name + top-ranked content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_dept_library_store.sql",
+      "version": "20260724061538",
+      "name": "dept_library_store",
+      "covRec": 0.6190476190476191,
+      "covFile": 0.7222222222222222,
+      "why": "name + top-ranked content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_autonomy_self_audit.sql",
+      "version": "20260724062250",
+      "name": "autonomy_self_audit",
+      "covRec": 0.3235294117647059,
+      "covFile": 0.5,
+      "why": "name + top-ranked content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_canon_eval_scoreboard.sql",
+      "version": "20260724072752",
+      "name": "canon_eval_scoreboard",
+      "covRec": 0.7142857142857143,
+      "covFile": 0.7142857142857143,
+      "why": "name + top-ranked content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_cto_audit_hardening_wave1.sql",
+      "version": "20260724163122",
+      "name": "cto_audit_hardening_wave1",
+      "covRec": 1,
+      "covFile": 1,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_cto_audit_stripe_event_seen_fn.sql",
+      "version": "20260724163144",
+      "name": "cto_audit_stripe_event_seen_fn",
+      "covRec": 1,
+      "covFile": 1,
+      "why": "content",
+      "alsoContains": []
+    },
+    {
+      "f": "20260724_phase1_os_settings_meta.sql",
+      "version": "20260724171750",
+      "name": "phase1_os_settings_meta",
+      "covRec": 0.19607843137254902,
+      "covFile": 1,
+      "why": "name + top-ranked content",
+      "alsoContains": []
+    }
+  ],
+  "left_alone": [
+    {
+      "f": "20260724_company_canon.sql",
+      "lines": 12,
+      "why": "no recorded 20260724 version appears in it — probably applied on another day, or never",
+      "top": "20260724003746 fn_query_platform_agent_network"
+    },
+    {
+      "f": "20260724_engineering_extra_principles.sql",
+      "lines": 7,
+      "why": "no recorded 20260724 version appears in it — probably applied on another day, or never",
+      "top": "20260724003746 fn_query_platform_agent_network"
+    },
+    {
+      "f": "20260724_fn_agent_context_fairpack.sql",
+      "lines": 18,
+      "why": "best version only 15% contained (need 90%)",
+      "top": "20260724090758 chairman_doctrine_default_to_action"
+    },
+    {
+      "f": "20260724_fn_schema_export.sql",
+      "lines": 0,
+      "why": "no meaningful SQL lines to match on",
+      "top": "20260724003746 fn_query_platform_agent_network"
+    },
+    {
+      "f": "20260724_gstack_role_principles.sql",
+      "lines": 9,
+      "why": "no recorded 20260724 version appears in it — probably applied on another day, or never",
+      "top": "20260724003746 fn_query_platform_agent_network"
+    },
+    {
+      "f": "20260724_human_writing_voice.sql",
+      "lines": 4,
+      "why": "no recorded 20260724 version appears in it — probably applied on another day, or never",
+      "top": "20260724003746 fn_query_platform_agent_network"
+    },
+    {
+      "f": "20260724_management_discipline.sql",
+      "lines": 12,
+      "why": "no recorded 20260724 version appears in it — probably applied on another day, or never",
+      "top": "20260724003746 fn_query_platform_agent_network"
+    },
+    {
+      "f": "20260724_marketing_department.sql",
+      "lines": 6,
+      "why": "best version only 10% contained (need 90%)",
+      "top": "20260724022703 cos_execution_engine_schema"
+    },
+    {
+      "f": "20260724_marketing_images_and_skills.sql",
+      "lines": 15,
+      "why": "best version only 10% contained (need 90%)",
+      "top": "20260724022703 cos_execution_engine_schema"
+    },
+    {
+      "f": "20260724_marketing_paid_media_methodology.sql",
+      "lines": 11,
+      "why": "no recorded 20260724 version appears in it — probably applied on another day, or never",
+      "top": "20260724003746 fn_query_platform_agent_network"
+    },
+    {
+      "f": "20260724_phase1_os_settings_fns.sql",
+      "lines": 0,
+      "why": "no meaningful SQL lines to match on",
+      "top": "20260724003746 fn_query_platform_agent_network"
+    },
+    {
+      "f": "20260724_phase2_automation_backend.sql",
+      "lines": 0,
+      "why": "no meaningful SQL lines to match on",
+      "top": "20260724003746 fn_query_platform_agent_network"
+    },
+    {
+      "f": "20260724_phase3_catalog_backend.sql",
+      "lines": 0,
+      "why": "no meaningful SQL lines to match on",
+      "top": "20260724003746 fn_query_platform_agent_network"
+    }
+  ]
+}
