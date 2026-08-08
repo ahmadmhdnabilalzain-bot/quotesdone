@@ -190,9 +190,14 @@ Deno.serve(async (req) => {
     // Telemetry, not a profile write: how often extraction actually lands is the only way to know
     // whether this surface can replace the form. Failure to log must never fail the extraction.
     try {
+      // `agent` is the NOT NULL column; there is no `actor`. The first version used `actor` and
+      // the catch below swallowed the 42703 every time, so the one number that would show whether
+      // this surface can replace the form was never recorded. A swallowed write looks exactly like
+      // a feature nobody used.
       await admin.from('agent_actions').insert({
-        kind: 'supplier_onboard_extract', status: 'logged', actor: email,
-        detail: { filled: filled.length, missing, chars: text.length },
+        agent: 'supplier_onboard', kind: 'supplier_onboard_extract', status: 'logged', risk: 'low',
+        title: 'Onboarding extraction',
+        detail: { filled: filled.length, missing, chars: text.length, by: email },
       });
     } catch { /* telemetry is not the product */ }
 

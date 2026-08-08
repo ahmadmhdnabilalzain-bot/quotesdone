@@ -1,7 +1,7 @@
 {
  "target": "htdblwldjkcgjvmqkbeh",
  "total": 234,
- "met": 182,
+ "met": 185,
  "rows": [
   {
    "section": "collab",
@@ -918,7 +918,7 @@
    "id": "twin-object",
    "name": "a supplier digital-twin object or routine exists",
    "ok": true,
-   "ev": "6 non-writer routine(s) read supplier_score; 20465 row(s) on target"
+   "ev": "7 non-writer routine(s) read supplier_score; 20465 row(s) on target"
   },
   {
    "section": "twin",
@@ -1030,7 +1030,7 @@
    "id": "perf-living",
    "name": "the score is recomputed on a schedule, not a static column",
    "ok": true,
-   "ev": "1 active cron(s) recompute a score, 6 routine(s) touch supplier_score, 20465 of 20465 row(s) computed in the last 30d — a score written once is not living"
+   "ev": "1 active cron(s) recompute a score, 7 routine(s) touch supplier_score, 20465 of 20465 row(s) computed in the last 30d — a score written once is not living"
   },
   {
    "section": "perf",
@@ -1198,7 +1198,7 @@
    "id": "risk-monitor-routine",
    "name": "a monitoring routine runs on a schedule",
    "ok": true,
-   "ev": "2 active cron(s) monitor risk signals of 144 active cron(s) total"
+   "ev": "5 active cron(s) monitor risk signals of 147 active cron(s) total"
   },
   {
    "section": "risk",
@@ -1211,22 +1211,22 @@
    "section": "risk",
    "id": "risk-monitor-complaints",
    "name": "the monitor watches customer complaints",
-   "ok": false,
-   "ev": "customer complaints: 0 active cron(s), 11 routine(s) reference it — a routine with no schedule is not a monitor"
+   "ok": true,
+   "ev": "customer complaints: 1 active cron(s), 12 routine(s) reference it — a routine with no schedule is not a monitor"
   },
   {
    "section": "risk",
    "id": "risk-monitor-response-delays",
    "name": "the monitor watches response delays",
-   "ok": false,
-   "ev": "response delays: 0 active cron(s), 14 routine(s) reference it — a routine with no schedule is not a monitor"
+   "ok": true,
+   "ev": "response delays: 1 active cron(s), 15 routine(s) reference it — a routine with no schedule is not a monitor"
   },
   {
    "section": "risk",
    "id": "risk-monitor-performance-drops",
    "name": "the monitor watches performance drops",
-   "ok": false,
-   "ev": "performance drops: 0 active cron(s), 4 routine(s) reference it — a routine with no schedule is not a monitor"
+   "ok": true,
+   "ev": "performance drops: 1 active cron(s), 5 routine(s) reference it — a routine with no schedule is not a monitor"
   },
   {
    "section": "risk",
