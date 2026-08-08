@@ -92,7 +92,17 @@ for (const [t, first] of unknown) {
     problems.push({ table: t, referenced: first.file, how: first.how, createdIn: creator });
   }
 }
+// ── NEVER CREATED IS TWO DIFFERENT THINGS, AND THE FIRST VERSION CONFLATED THEM ────────────────
+// It reported all never-created tables as "pre-existing or externally owned, not failures". For
+// auth.users that is right. For public.decision_policy it is exactly wrong: on a FRESH database
+// nothing pre-exists, so a public table no migration creates is a hard replay blocker — which is
+// what the Supabase Preview check hit immediately after the ordering fix landed.
+//
+// The distinction is the schema. Anything the platform owns is genuinely not ours to create;
+// anything in public that only exists because it was made out-of-band is a hole in the history.
 const neverCreated = [...unknown].filter(([t]) => !created.has(t));
+const missingPublic = neverCreated.filter(([t]) => !t.includes('.'));
+const externalOnly = neverCreated.filter(([t]) => t.includes('.'));
 
 console.log(`${files.length} migration(s) in replay order${renames.size ? `, with ${renames.size} proposed rename(s)` : ''}`);
 
@@ -107,10 +117,20 @@ if (problems.length) {
   console.log('\nORDER OK: every table is created before any migration alters, inserts into or indexes it.');
 }
 
-if (neverCreated.length) {
-  console.log(`\nnot created by any migration (${neverCreated.length}) — pre-existing or externally owned, not failures:`);
-  for (const [t, v] of neverCreated.slice(0, 12)) console.log(`  public.${t}  (first ${v.how} in ${v.file})`);
-  if (neverCreated.length > 12) console.log(`  …and ${neverCreated.length - 12} more`);
+if (missingPublic.length) {
+  console.log(`\nNEVER CREATED — ${missingPublic.length} public table(s) that no migration in this tree creates.`);
+  console.log('These exist on production and staging only because they were made out-of-band, so the');
+  console.log('history CANNOT replay onto an empty database until each one has a create migration:');
+  for (const [t, v] of missingPublic) console.log(`  public.${t}   (first ${v.how} in ${v.file})`);
 }
 
-process.exit(problems.length ? 1 : 0);
+if (externalOnly.length) {
+  console.log(`\nplatform-owned, correctly not created here (${externalOnly.length}): `
+    + externalOnly.map(([t]) => t).join(', '));
+}
+
+// Ordering and completeness are reported separately because they are fixed differently: ordering by
+// renaming, completeness by recovering a definition. Either one blocks a fresh replay.
+const failed = problems.length + missingPublic.length;
+console.log(`\n${problems.length} ordering break(s), ${missingPublic.length} missing create(s)`);
+process.exit(failed ? 1 : 0);
