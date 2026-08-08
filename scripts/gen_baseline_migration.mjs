@@ -33,7 +33,7 @@ import { writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
 
-const OUT = 'supabase/migrations/00000000000000_baseline_tables_created_out_of_band.sql';
+const OUT = 'supabase/migrations/20200101000000_baseline_tables_created_out_of_band.sql';
 // ── THE FOREIGN KEYS GO LAST, IN THEIR OWN MIGRATION, AND THIS WAS LEARNED THE HARD WAY ─────────
 // The first version put every foreign key at the end of the baseline. It failed on a real fresh
 // database at statement 134: company_goals references org_departments, and org_departments is
@@ -43,7 +43,7 @@ const OUT = 'supabase/migrations/00000000000000_baseline_tables_created_out_of_b
 //
 // So they move to a migration that sorts after every existing one. By then every table in the tree
 // exists, whoever created it, and a foreign key cannot reference something that is not there yet.
-const OUT_FK = 'supabase/migrations/29999999999999_baseline_foreign_keys.sql';
+const OUT_FK = 'supabase/migrations/20991231235959_baseline_foreign_keys.sql';
 
 // Excluding its own output is what makes this re-runnable. Analysing a tree that already contains
 // the baseline reports nothing missing, and the generator would then overwrite a good file with an
