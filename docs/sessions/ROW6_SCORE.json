@@ -1,7 +1,7 @@
 {
  "target": "htdblwldjkcgjvmqkbeh",
  "total": 283,
- "met": 246,
+ "met": 249,
  "rows": [
   {
    "section": "§12 mechanism",
@@ -84,8 +84,8 @@
    "section": "§3 industry",
    "id": "ind-terminology",
    "name": "common terminology",
-   "ok": false,
-   "ev": "\"common terminology\" in topic='Industry Knowledge'.content on 17 of 84 agents (bar B is 21); CORPUS GAP"
+   "ok": true,
+   "ev": "\"common terminology\" in topic='Industry Knowledge'.content on 57 of 84 agents (bar B is 21); pattern"
   },
   {
    "section": "§3 industry",
@@ -476,8 +476,8 @@
    "section": "§8 documents",
    "id": "doc-technical-specs",
    "name": "Technical Specifications",
-   "ok": false,
-   "ev": "\"Technical Specifications\" in topic='Documents Knowledge'.content on 17 of 84 agents (bar B is 21); CORPUS GAP"
+   "ok": true,
+   "ev": "\"Technical Specifications\" in topic='Documents Knowledge'.content on 23 of 84 agents (bar B is 21); pattern"
   },
   {
    "section": "§8 documents",
@@ -665,8 +665,8 @@
    "section": "§10 inquiry-qual",
    "id": "iql-enough-collected",
    "name": "when enough information has been collected",
-   "ok": false,
-   "ev": "\"when enough information has been collected\" in topic='Inquiry Qualification Logic'.content on 19 of 84 agents (bar B is 21); CORPUS GAP"
+   "ok": true,
+   "ev": "\"when enough information has been collected\" in topic='Inquiry Qualification Logic'.content on 59 of 84 agents (bar B is 21); pattern"
   },
   {
    "section": "§10 inquiry-qual",

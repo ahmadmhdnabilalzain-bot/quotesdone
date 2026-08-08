@@ -278,3 +278,55 @@ procurement decision, not a sprint.
 
 **The honest position: 246/283 is the ceiling reachable by code. The remaining 37 are an authoring
 programme.**
+
+---
+
+## 12. REFUTATION PASS — 14 CANDIDATES TESTED, 3 SURVIVED. FINAL: 249/283 (88%)
+
+`ind-overview` proved a check can fail on vocabulary rather than substance, so every remaining
+MISSING that could plausibly be the same defect was retested the same way: propose a substance-based
+regex, then require it to **DISCRIMINATE** — at least 21 hits in its own topic AND at least 20 clear
+of a control topic where the concept does not belong.
+
+**Eleven rejected.** Listed so nobody retries them:
+
+| leg | target | control | why it stands |
+|---|---|---|---|
+| `prod-models` | 18 | 18 | still below bar |
+| `prod-sizes` | 23 | 19 | no discrimination |
+| `prod-variants` | 23 | 13 | no discrimination |
+| `prod-warranties` | 37 | 30 | no discrimination |
+| `tech-installation-methods` | 31 | 34 | fires MORE in the control |
+| `sup-maintenance-companies` | 17 | 18 | still below bar |
+| `doc-photos` | 13 | 3 | still below bar |
+| `uae-local-terminology` | 25 | 16 | no discrimination |
+| `iql-missing-info` | 23 | 8 | 15 clear, short of 20 |
+| `ind-scope-of-work` | 16 | 39 | the concept lives in Documents Knowledge |
+| `quo-optional-info` | 5 | 0 | still below bar |
+
+`iql-missing-info` is the closest call at 15 clear. **The threshold was stated before the results
+were seen and is not being moved to admit it.**
+
+**Three repaired**, each with its margin:
+
+| leg | before → after | control | what the corpus says instead |
+|---|---|---|---|
+| `ind-terminology` | 17 → **57** | 30 | *"Vocabulary in the room: AFS, ISA, IFRS…"*, *"Speak the units: FAD…"* |
+| `doc-technical-specs` | 17 → **23** | 2 | the abbreviation and tender-document names |
+| `iql-enough-collected` | 19 → **59** | 5 | the act it gates — *"Mandatory before fanning out"* |
+
+### Final section scores
+
+| § | | | § | | |
+|---|---|---|---|---|---|
+| 1 Domain taxonomy | 66/66 | **100%** | 8 Documents | 10/16 | 63% |
+| 2 Realistic categories | 84/84 | **100%** | 9 UAE Regulations | 10/16 | 63% |
+| 3 Industry | 8/9 | 89% | 10 Inquiry Qualification ⭐⭐⭐ | 8/9 | 89% |
+| 4 Products & Services | 7/13 | 54% | 11 Optional modules | 24/35 | 69% |
+| 5 Technical | 9/10 | 90% | 12 Agent mechanism | 8/8 | **100%** |
+| 6 Supplier | 8/9 | 89% | | | |
+| 7 Quotation ⭐ | 7/8 | 88% | | | |
+
+**249 / 283 (88%).** Four scorer defects found and fixed across two passes; 25 candidate
+repairs proposed and rejected. The 34 remaining MISSINGs have now each been challenged twice and
+survived — they are corpus gaps, not measurement artefacts.
