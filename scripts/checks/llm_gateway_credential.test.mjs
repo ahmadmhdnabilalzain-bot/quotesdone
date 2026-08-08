@@ -17,6 +17,7 @@
 // QD_LLM_SRC points these assertions at an older copy of llm.ts so qd-check can prove they bite.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readOneMigration } from './_migration_files.mjs';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -85,12 +86,11 @@ test('every function that imports _shared/llm.ts has a credential minted for it'
     .map((d) => d.name).sort();
   assert.ok(importers.length > 0, 'no function imports _shared/llm.ts - this guard is now testing nothing');
 
-  const migDir = join(root, 'supabase', 'migrations');
-  const mig = readdirSync(migDir).filter((f) => f.endsWith('_audit_95_llm_path_scoped_credentials.sql'));
-  assert.equal(mig.length, 1,
+  // Both migration directories — the replay path and the archived history. See
+  // scripts/checks/_migration_files.mjs; the migration is still in the repo, one folder over.
+  const sql = readOneMigration('_audit_95_llm_path_scoped_credentials.sql', assert,
     'the migration that issues the llm.ts credentials is not in the repo, so a rebuilt database would put every ' +
     'model call back on the shared secret.');
-  const sql = readFileSync(join(migDir, mig[0]), 'utf8');
 
   const missing = importers.filter((n) => !new RegExp("'" + n + "'").test(sql));
   assert.deepEqual(missing, [],

@@ -7,7 +7,7 @@
 # could silently strip that requirement with nothing failing and nothing logged. Pinning the
 # value here makes the auth posture reviewable in git: an unintended change shows up as a diff.
 #
-# Functions that require a JWT (17):
+# Functions that require a JWT (18):
 #   brand_upload
 #   contact_submit
 #   os_automation
@@ -17,6 +17,7 @@
 #   os_ops
 #   os_pages
 #   os_settings
+#   procurement_api
 #   project_api
 #   put_src
 #   quote_quality
@@ -129,6 +130,12 @@ verify_jwt = false
 
 [functions.customer_api]
 verify_jwt = false
+
+[functions.customer_documents]
+verify_jwt = false
+
+[functions.customer_intelligence]
+verify_jwt = true
 
 [functions.customer_portal]
 verify_jwt = false
@@ -352,6 +359,9 @@ verify_jwt = false
 [functions.money_tests]
 verify_jwt = false
 
+[functions.negotiation_assistant]
+verify_jwt = true
+
 [functions.orchestrate]
 verify_jwt = false
 
@@ -396,6 +406,9 @@ verify_jwt = false
 
 [functions.postiz_publish]
 verify_jwt = false
+
+[functions.procurement_api]
+verify_jwt = true
 
 [functions.profile_ai]
 verify_jwt = false
@@ -542,6 +555,12 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.supplier_pay]
+verify_jwt = false
+
+[functions.supplier_catalog_ingest]
+verify_jwt = false
+
+[functions.supplier_onboard]
 verify_jwt = false
 
 [functions.supplier_portal]

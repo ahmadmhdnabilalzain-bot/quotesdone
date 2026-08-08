@@ -230,10 +230,29 @@ Deno.serve(async (req) => {
     const capped = fitsAll.length > pick.length + already.size;
 
     // 4) persist matches (gate trigger allows only rfq_ready; notify trigger queues seller emails)
+    //
+    // THE MATCH PERCENTAGE IS NOW STORED. route_inquiry already returns `score` per fit — it is
+    // fn_match_capability's weighted score, whose weights (score_w_product 40 + brand 20 +
+    // project_type 15 + track_record 15 + size_fit 10) sum to 100 by construction, so score/100 is
+    // a real 0..1 fraction of the maximum that scorer can award. Every writer here used to pass the
+    // literal null, so the number the matcher computed was thrown away at the moment of writing and
+    // three customer-facing requirements had nothing to render.
+    //
+    // NULL STAYS NULL WHEN NOTHING WAS MEASURED. route_inquiry sets score only on the structured
+    // capability path; on the legacy AI-adjudicator path the verdict is binary fit/no with a
+    // free-text reason and NO number exists. Manufacturing one there — from rank position, from
+    // fanout size, from anything — would be inventing a percentage, which is the one thing this
+    // column must never carry. A null here means "not scored", and a surface must render it as
+    // absent, not as 0%.
+    const sim01 = (raw: unknown, max: number): number | null => {
+      const n = Number(raw);
+      if (!Number.isFinite(n) || max <= 0) return null;
+      return Math.round(Math.min(1, Math.max(0, n / max)) * 1000) / 1000;
+    };
     let inserted = 0; const sent_ids: number[] = []; let insertErrors = 0; let lastInsertErr = '';
     for (const f of pick) {
       const reason = String((route.primary_trade ? route.primary_trade + ' — ' : '') + (f.reason || 'genuine capability match')).slice(0, 300);
-      const { error } = await admin.from('inquiry_matches').insert({ inquiry_id: inquiryId, supplier_id: Number(f.id), similarity: null, match_reason: reason, sent_at: new Date().toISOString() });
+      const { error } = await admin.from('inquiry_matches').insert({ inquiry_id: inquiryId, supplier_id: Number(f.id), similarity: sim01(f.score, 100), match_reason: reason, sent_at: new Date().toISOString() });
       if (!error) { inserted++; sent_ids.push(Number(f.id)); }
       else { insertErrors++; lastInsertErr = String(error.message || '').slice(0, 200); }
     }

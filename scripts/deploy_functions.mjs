@@ -1,0 +1,166 @@
+// Deploy edge functions with the guarantees deploy_functions.ps1 established, from any OS.
+//
+//   node scripts/deploy_functions.mjs --ref=<project> supplier_portal supplier_api
+//   node scripts/deploy_functions.mjs --ref=<project> --changed --base=<sha>
+//   node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production <slugs>
+//
+// ── WHY THIS EXISTS ALONGSIDE THE .ps1 ──────────────────────────────────────────────────────────
+// The PowerShell script is correct and proven; it is also PowerShell, so a GitHub runner cannot
+// use it. The alternative on offer was a workflow calling `supabase functions deploy` bare, which
+// drops every guarantee the .ps1 spent three incidents acquiring. Rather than let CI deploy under
+// weaker rules than a human does, the rules move into Node and both callers use the same ones.
+//
+// ── THE FOUR RULES, EACH FROM A REAL FAILURE ────────────────────────────────────────────────────
+// 1. NEVER GUESS A TARGET. No ref, no deploy. The .ps1 was pinned to production in three places,
+//    which is how staging could never run the application at all.
+// 2. PRODUCTION NEEDS SAYING OUT LOUD. --production, or it refuses. Same as -IMeanProduction.
+// 3. NO verify_jwt FLAG IS EVER PASSED. supabase/config.toml is the single source of truth and the
+//    CLI reads it. Proven on production 3 Aug 2026: vercel_status (verify_jwt=false) redeployed
+//    with no flag stayed false, where the CLI's own default would have flipped it to true and made
+//    the function reject every request. Instead the committed config is CHECKED against live first
+//    and a mismatch refuses the deploy, because deploying through drift means nobody knows which
+//    value is about to win.
+// 4. THE CLI's EXIT CODE IS NOT THE VERIFICATION. Each function's version is read from the API
+//    before and after; a deploy that did not bump the version did not happen, whatever it printed.
+import { execFileSync, spawnSync } from 'node:child_process';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
+
+const PROD_REF = 'htdblwldjkcgjvmqkbeh';
+const args = process.argv.slice(2);
+const flag = (name) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
+const has = (name) => args.includes(`--${name}`);
+
+const ref = flag('ref') || process.env.QD_TARGET_REF;
+const die = (msg) => { console.error(msg); process.exit(1); };
+
+if (!ref) die('No --ref given and QD_TARGET_REF is unset. Refusing to guess a deploy target.');
+if (!/^[a-z]{20}$/.test(ref)) die(`--ref ${JSON.stringify(ref)} is not a valid project ref.`);
+if (ref === PROD_REF && !has('production')) {
+  die(`REFUSED: --ref is production (${PROD_REF}). Pass --production to mean it.`);
+}
+
+const token = (process.env.SUPABASE_ACCESS_TOKEN
+  || (existsSync('C:/Users/Opera/.supabase/access-token')
+      ? readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8') : '')).trim();
+if (!token) die('No Supabase access token (SUPABASE_ACCESS_TOKEN).');
+const H = { Authorization: 'Bearer ' + token };
+
+const api = async (path) => {
+  const r = await fetch(`https://api.supabase.com/v1/projects/${ref}${path}`, { headers: H });
+  if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 200)}`);
+  return r.json();
+};
+
+// ── WHICH FUNCTIONS ────────────────────────────────────────────────────────────────────────────
+// --changed asks git, so a push deploys what the push touched rather than all 196. Deploying
+// everything on every commit bumps 196 version numbers and destroys the one signal that says which
+// function actually moved. _shared is a library, never a function, and is excluded by name.
+let slugs = args.filter((a) => !a.startsWith('--'));
+if (has('changed')) {
+  const base = flag('base');
+  if (!base) die('--changed needs --base=<sha> to diff against.');
+  let out = '';
+  try {
+    out = execFileSync('git', ['diff', '--name-only', `${base}...HEAD`, '--', 'supabase/functions/'],
+      { encoding: 'utf8' });
+  } catch (e) { die(`git diff failed: ${e.message}`); }
+  const touched = new Set();
+  for (const line of out.split('\n')) {
+    const m = line.match(/^supabase\/functions\/([^/]+)\//);
+    if (m) touched.add(m[1]);
+  }
+  // A change to _shared can break any function that imports it, so it widens the set rather than
+  // being ignored — silently skipping it would deploy nothing for the change most able to break
+  // everything. The importers are found by reading the source, not guessed.
+  if (touched.has('_shared')) {
+    touched.delete('_shared');
+    const dirs = readdirSync('supabase/functions', { withFileTypes: true })
+      .filter((d) => d.isDirectory() && d.name !== '_shared').map((d) => d.name);
+    for (const d of dirs) {
+      const idx = `supabase/functions/${d}/index.ts`;
+      if (existsSync(idx) && /_shared\//.test(readFileSync(idx, 'utf8'))) touched.add(d);
+    }
+    console.log(`_shared changed — widened to ${touched.size} importer(s)`);
+  }
+  slugs = [...touched].sort();
+}
+slugs = slugs.filter((s) => s !== '_shared');
+if (!slugs.length) { console.log('No functions to deploy. Nothing to do.'); process.exit(0); }
+
+console.log(`target project: ${ref}${ref === PROD_REF ? '  (PRODUCTION)' : ''}`);
+console.log(`${slugs.length} function(s): ${slugs.join(' ')}\n`);
+
+// --dry-run prints the set and stops. What --changed resolves to is the part most able to be
+// silently wrong — deploying nothing looks identical to having nothing to deploy — so it has to be
+// inspectable without a deploy to inspect it.
+if (has('dry-run')) { console.log('--dry-run: stopping before the drift check.'); process.exit(0); }
+
+// ── RULE 3: THE DRIFT CHECK ────────────────────────────────────────────────────────────────────
+const live = await api('/functions').catch((e) => die(`Could not list functions on ${ref}: ${e.message}`));
+console.log('--- verify_jwt drift check ---');
+if (!Array.isArray(live) || live.length === 0) {
+  console.log(`SKIPPED: ${ref} has no deployed functions yet, so config.toml cannot have drifted from it.`);
+} else {
+  const chk = spawnSync('node', ['scripts/gen_supabase_config.mjs', '--check', `--deploying=${slugs.join(',')}`],
+    { stdio: 'inherit', env: { ...process.env, QD_TARGET_REF: ref, SUPABASE_ACCESS_TOKEN: token } });
+  if (chk.status !== 0) {
+    die('\nREFUSING TO DEPLOY. config.toml and the live project disagree about verify_jwt.\n'
+      + 'Resolve it deliberately: regenerate (node scripts/gen_supabase_config.mjs) and review the\n'
+      + 'diff, or fix the live value. Do not deploy through drift.');
+  }
+}
+
+// Versions BEFORE, so "it deployed" is a comparison rather than a claim.
+const before = {};
+for (const f of slugs) {
+  before[f] = await api(`/functions/${f}`).then((m) => Number(m.version)).catch(() => -1);
+}
+
+console.log(`\n--- deploying ${slugs.length} function(s) to ${ref} ---`);
+const failed = [];
+slugs.forEach((f, i) => {
+  // NO verify_jwt FLAG. See rule 3. --use-api matches what the .ps1 does.
+  // ── HOW THE CLI IS INVOKED, WHICH TOOK THREE ATTEMPTS ────────────────────────────────────────
+  // `shell: true` works but concatenates the argv into a command line, which Node deprecates
+  // (DEP0190) and which is a genuine quoting hazard. Naming supabase.cmd directly does NOT work:
+  // the file exists, but Windows cannot execute a batch file without an interpreter, so spawnSync
+  // returned a failure — caught, correctly, by the version check below rather than by trusting an
+  // exit code. Routing through the command interpreter explicitly gets both: a real argv, and a
+  // .cmd that runs.
+  const [exe, pre] = process.platform === 'win32'
+    ? [process.env.ComSpec || 'cmd.exe', ['/c', 'supabase']]
+    : ['supabase', []];
+  const r = spawnSync(exe, [...pre, 'functions', 'deploy', f, '--project-ref', ref, '--use-api'],
+    { encoding: 'utf8', env: { ...process.env, SUPABASE_ACCESS_TOKEN: token } });
+  if (r.status !== 0) {
+    failed.push(f);
+    console.log(`[${i + 1}/${slugs.length}] ${f} DEPLOY FAILED exit=${r.status}`);
+    console.log((r.stdout || '') + (r.stderr || ''));
+  } else {
+    console.log(`[${i + 1}/${slugs.length}] ${f} deployed`);
+  }
+});
+
+// ── RULE 4: VERIFY AGAINST THE DEPLOYED BUNDLE ─────────────────────────────────────────────────
+console.log('\n--- verifying against the DEPLOYED bundle ---');
+const notVerified = [];
+let pass = 0;
+for (const f of slugs) {
+  try {
+    const m = await api(`/functions/${f}`);
+    // A first deploy has no previous version, so "bumped" is satisfied by the function existing.
+    const bumped = before[f] < 0 ? Number(m.version) >= 1 : Number(m.version) > before[f];
+    if (bumped) pass++; else notVerified.push(f);
+    console.log(`${f.padEnd(24)} v${String(m.version).padEnd(4)} (was v${String(before[f]).padEnd(4)}) `
+      + `ok=${String(bumped).padEnd(5)} verify_jwt=${m.verify_jwt}`);
+  } catch (e) {
+    notVerified.push(f);
+    console.log(`${f.padEnd(24)} CHECK FAILED: ${e.message}`);
+  }
+}
+
+console.log(`\nDEPLOYED_OK ${pass}/${slugs.length}`);
+if (failed.length) console.log('DEPLOY FAILURES: ' + failed.join(' '));
+if (notVerified.length) console.log('NOT VERIFIED:    ' + notVerified.join(' '));
+if (failed.length || notVerified.length) process.exit(1);
+console.log('ALL GOOD');

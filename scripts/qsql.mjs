@@ -21,12 +21,25 @@ function token() {
 }
 
 const query = readFileSync(file, 'utf8');
-const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
-  method: 'POST',
-  headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ query }),
-});
-const text = await res.text();
+// The management API rate-limits hard after a heavy session. Without backoff a read fails with a
+// bare 429 that reads exactly like a broken query, which is how a throttle gets misdiagnosed as a
+// defect in the SQL. qd_guard has had this for weeks; this path did not.
+async function run(attempt = 0) {
+  const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  });
+  const text = await res.text();
+  if ((res.status === 429 || res.status >= 500) && attempt < 7) {
+    const wait = Math.min(2000 * 2 ** attempt, 60000);
+    console.error(`-- ${res.status}; retrying in ${wait / 1000}s (attempt ${attempt + 1}/7)`);
+    await new Promise(r => setTimeout(r, wait));
+    return run(attempt + 1);
+  }
+  return { res, text };
+}
+const { res, text } = await run();
 if (!res.ok) { console.error(`HTTP ${res.status}`); console.error(text); process.exit(1); }
 let rows;
 try { rows = JSON.parse(text); } catch { console.log(text); process.exit(0); }

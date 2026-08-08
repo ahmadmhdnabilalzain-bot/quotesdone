@@ -34,3 +34,6 @@ knowledge-import/all86/
 
 knowledge-import/all86_full/
 knowledge-import/__pycache__/
+
+# vendored third-party reference clones - read-only, evaluated in docs/VENDOR_EVALUATION.md, never built
+vendor/reference/

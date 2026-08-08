@@ -71,8 +71,21 @@ if (process.argv.includes('--check')) {
   // between batches, and treating it as drift blocks every deploy after the first - which is
   // exactly what happened when 38 of 190 functions were live. Absent is not drifted.
   const isProduction = PROJECT_REF === 'htdblwldjkcgjvmqkbeh';
+  // ── AND A FUNCTION BEING ADDED IS NOT A FUNCTION THAT WAS REMOVED ─────────────────────────────
+  // The finding above is "something was removed without review". A BRAND-NEW production function is
+  // in exactly the same state for exactly one moment — config.toml committed, deploy not yet run —
+  // and the gate fired on it, so the only tool in the repo could never create a production function
+  // at all (observed 8 Aug 2026, supplier_onboard). --deploying names the slugs this run is about
+  // to deploy, and only those are exempt: a slug that was genuinely removed is not in the deploy
+  // list, so it still fails. The gate keeps its teeth and loses the false positive.
+  const deployingArg = process.argv.find((a) => a.startsWith('--deploying='));
+  const deploying = new Set((deployingArg ? deployingArg.slice(12) : '').split(',').map((s) => s.trim()).filter(Boolean));
   if (isProduction) {
-    for (const slug of committed.keys()) if (!deployed.has(slug)) drift.push(`${slug}: in config.toml but NOT DEPLOYED`);
+    for (const slug of committed.keys()) {
+      if (deployed.has(slug) || deploying.has(slug)) continue;
+      drift.push(`${slug}: in config.toml but NOT DEPLOYED`);
+    }
+    if (deploying.size) console.log(`note: ${deploying.size} slug(s) exempt as this run's deploy target [${[...deploying].join(' ')}]`);
   } else {
     const undeployed = [...committed.keys()].filter((s) => !deployed.has(s));
     if (undeployed.length) console.log(`note: ${undeployed.length} function(s) in config.toml not yet deployed to ${PROJECT_REF} (not drift)`);

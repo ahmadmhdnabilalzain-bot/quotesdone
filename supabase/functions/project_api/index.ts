@@ -101,9 +101,20 @@ Deno.serve(async (req) => {
       const { data: p } = await admin.from('projects').select('*').eq('id', id).eq('customer_id', cust.id).maybeSingle();
       if (!p) return J({ error: 'not_found' }, 404);
       const { data: rfqs } = await admin.from('inquiries')
-        .select('id,category,emirate,summary,status,pipeline_stage,budget,expected_value,hired_supplier_id,created_at')
+        .select('id,rfq_no,category,emirate,summary,status,pipeline_stage,budget,expected_value,hired_supplier_id,created_at')
         .eq('project_id', id).eq('customer_id', cust.id).order('created_at', { ascending: false });
-      return J({ ok: true, project: p, rfqs: rfqs || [] });
+      // The COMPUTED figures live on the project_summary view, not on the projects row: the trade
+      // breakdown, the suppliers engaged on THIS project, and how far through its timeline it is.
+      // detail returned the raw row only, so a caller that opened one project saw fewer numbers than
+      // the list it came from. timeline_pct is null when the project has no target open date — a
+      // project with no deadline has no timeline completion and must not be drawn as 0%.
+      const { data: summary } = await admin.from('project_summary').select('*').eq('project_id', id).maybeSingle();
+      return J({
+        ok: true, project: p, summary: summary || null, rfqs: rfqs || [],
+        trade_breakdown: summary?.trade_breakdown ?? [],
+        supplier_count: summary?.supplier_count ?? 0,
+        timeline_pct: summary?.timeline_pct ?? null,
+      });
     }
 
     if (action === 'link' || action === 'unlink') {

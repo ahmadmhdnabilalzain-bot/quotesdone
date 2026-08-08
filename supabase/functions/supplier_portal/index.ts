@@ -84,6 +84,222 @@ Deno.serve(async (req) => {
       return J({ ok:true, supplier:{ id:sup.id, company_name:sup.company_name, approval_status:sup.approval_status, registration_status:sup.registration_status, license_expiry: sup.license_expiry || null, name_corrected: !!sup.name_corrected_from }, stats, active_matches: activeMatches || 0, alerts, alerts_count: alerts.length });
     }
 
+    // ROW #5 §3 §4 §6 §13 — THE SUPPLIER'S OWN DIGITAL TWIN AND HEALTH PANEL.
+    //
+    // supplier_score holds `reliability` and `response_rate` non-null on 20,464 of 20,464 rows on
+    // production, and until this action existed the supplier surface could reach NEITHER. The
+    // portal already renders `{s.response_rate != null && <Stat …/>}` — a tile whose guard could
+    // never be true, because no endpoint returned the field. This is that missing read path.
+    //
+    // The whole payload comes from ONE routine, fn_supplier_twin, so the numbers a supplier sees
+    // are the numbers the database computed rather than a second derivation that can drift from it.
+    if (action === 'twin') {
+      const { data: twin, error } = await admin.rpc('fn_supplier_twin', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      // A demo fixture must never be presentable as a live account. fn_supplier_twin sets is_demo
+      // from the fence itself (matching_blocked AND a 'demo' tag), so the flag cannot drift from
+      // the thing it describes, and the UI can label the row rather than passing it off as real.
+      return J({ ok: true, twin });
+    }
+
+    // ROW #5 §7 §8 — PRODUCT INTELLIGENCE.
+    //
+    // supplier_product, supplier_product_variant and supplier_catalog are a complete schema —
+    // jsonb attributes, certifications, evidence_refs, catalog versioning by source_hash, variants
+    // with price and lead-time policy — that had 0 rows AND 0 readers on production, confirmed by
+    // two independent scans against a control. Built and abandoned. This is the read path.
+    //
+    // `q` searches names, brands, models, categories AND attribute values, so "5000 CFM" finds the
+    // unit whose specification says so rather than only matching a title.
+    // ROW #5 §15 §4 — THE AI EMPLOYEE. "Why am I losing RFQs?" answered from real columns.
+    //
+    // The loss BREAKDOWN is empty on purpose while there are 0 quotes estate-wide, and the payload
+    // says `basis: 'no_completed_opportunities'` so an empty array is never mistaken for a failed
+    // computation. The RECOMMENDATIONS half is real today: every gap is derived from a column the
+    // supplier can act on, and impact_rfqs counts live inquiries rather than quoting the spec's
+    // illustrative "32 more projects".
+    // ROW #5 §19 — THE SUPPLIER NETWORK MAP. Supplier density by emirate from 20,464 real leads;
+    // demand, projects and shipments return EMPTY with a stated basis, because there are 0
+    // inquiries and no shipments relation at all. A globe speckled with invented demand looks like
+    // market intelligence and is nothing.
+    // ROW #5 §14 — MARKET INTELLIGENCE. Competitor counts and supply composition are real (20,464
+    // leads with sectors and emirates). Demand trend, most-requested and average price are COMPUTED
+    // from their populations and fall back to available:false with the empty population named — the
+    // availability flag is derived from a count, not hard-coded, so the routine tells the truth on
+    // both sides of the day a category starts trading. An arrow reading "HVAC demand up 18%" against
+    // zero inquiries would be indistinguishable from real market intelligence on screen, so the
+    // percentage stays NULL whenever the prior period is empty rather than being computed from zero.
+    // Demo fixtures and live rows are partitioned symmetrically inside the routine, so the demo
+    // market cannot move a real supplier's competitor count or market price.
+    // ROW #5 §18 — COLLABORATION WORKSPACES, one per customer relationship. Seeded on both projects
+    // with one fenced demo relationship (scripts/sql/demo_inquiry_row5.sql) under the founder's
+    // standing "create demo for whatever is needed". The cost was stated rather than hidden: each
+    // inquiry insert fires fn_emit_event('inquiry','rfq.created'), which injects a synthetic row
+    // into row #2's separately-measured event backbone for that row's next run to subtract.
+    if (action === 'workspaces') {
+      const { data: ws, error } = await admin.rpc('fn_supplier_workspaces', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...ws });
+    }
+
+    if (action === 'market') {
+      const { data: mkt, error } = await admin.rpc('fn_supplier_market', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...mkt });
+    }
+
+    // ROW #5 §11 — THE AI QUOTE BUILDER. fn_supplier_quote_recommend proposes the price, delivery,
+    // warranty, terms, market position and risk for THIS supplier on ONE enquiry, computed from the
+    // competing bids on that same enquiry. p_lead_id is the authenticated supplier, never a
+    // parameter — a supplier must not be able to ask what someone else should charge, and the
+    // routine's `your_index` leg reads that supplier's own pricing history.
+    if (action === 'quote_recommend') {
+      const inqId = String(b.inquiry_id || '');
+      if (!inqId) return J({ error: 'inquiry_id required' }, 400);
+      const { data: rec, error } = await admin.rpc('fn_supplier_quote_recommend',
+        { p_lead_id: supId, p_inquiry_id: inqId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...rec });
+    }
+
+    // ROW #5 §16 §4 — WHAT EACH DOCUMENT IS EARNING, AND WHAT THE MISSING ONE IS COSTING.
+    if (action === 'document_impact') {
+      const { data: di, error } = await admin.rpc('fn_supplier_document_impact', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...di });
+    }
+
+    if (action === 'network_map') {
+      const { data: map, error } = await admin.rpc('fn_supplier_network_map');
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...map });
+    }
+
+    // §10 — RANKED OPPORTUNITIES. "Recommended for you", ordered by fit score and never by date.
+    //
+    // The ranking itself is fn_supplier_opportunities: it is a query over inquiries, leads and
+    // quotes, so it belongs in SQL where the planner can see the indexes, not in a loop here
+    // pulling rows across the wire to sort them. What this action must NOT do is re-sort the
+    // result — a browser or an edge function reordering a list it already holds is not ranking,
+    // and the routine has already ordered by fit_score desc.
+    //
+    // The reasons ride along with each opportunity: trade, location, capacity fits, and previous
+    // similar project — each carrying whether it applied and, when it could not be asked at all,
+    // why. With 0 completed jobs the history reason is unanswerable for EVERY supplier, and it
+    // says so rather than reading as "you have no relevant experience".
+    // §12 — THE NEGOTIATION ASSISTANT. Detect a discount request, show the arithmetic, draft a reply.
+    //
+    // Two halves, deliberately split. fn_supplier_negotiation does the ARITHMETIC — quote, app fee,
+    // customer price, reduction scenarios — because it is a query and it must be exact. The DETECTION
+    // is a language problem ("can you sharpen that?", "the other guy is cheaper", "budget is 170")
+    // and goes to the model.
+    //
+    // WHAT THE DRAFT MAY NOT DO IS CONCEDE. QuotesDone does not know what the job costs the supplier,
+    // so any draft that names a discount would be advising a cut against a floor nobody knows. The
+    // prompt forbids proposing a number; the draft acknowledges the request and puts the decision
+    // back to the supplier, who is the only party holding the cost.
+    if (action === 'negotiation') {
+      // quote_id is optional: with none given this analyses the supplier's most recent quote, which
+      // is the one a customer is almost certainly pushing back on. Ownership is enforced either way
+      // — the lookup is always scoped to supId, so a supplier can only ever analyse their own.
+      let quoteId = String(b.quote_id || '');
+      if (quoteId) {
+        const { data: own } = await admin.from('quotes').select('id').eq('id', quoteId).eq('supplier_id', supId).maybeSingle();
+        if (!own) return J({ error: 'not your quote' }, 403);
+      } else {
+        const { data: latest } = await admin.from('quotes').select('id')
+          .eq('supplier_id', supId).order('created_at', { ascending: false }).limit(1).maybeSingle();
+        if (!latest) return J({ ok: true, quote_id: null, population: { customer_messages: 0, note: 'you have not submitted a quote yet, so there is nothing to negotiate' } });
+        quoteId = latest.id;
+      }
+
+      const { data: neg, error } = await admin.rpc('fn_supplier_negotiation', { p_quote_id: quoteId });
+      if (error) return J({ error: error.message }, 500);
+
+      const inbound = (neg?.inbound_messages || []) as { body: string }[];
+      let analysis: Record<string, unknown> = {
+        price_pressure_detected: false,
+        detection: 'no customer message to read yet',
+        recommended_response: null,
+      };
+      if (inbound.length) {
+        const { data: keyRow } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_ai').maybeSingle();
+        if (keyRow?.value) {
+          const SYS = `You read a UAE construction customer's messages to a supplier and classify whether they are asking for a DISCOUNT or applying price pressure.
+Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"signals":[string],"recommended_response":string}
+- price_pressure_detected: true only if they actually push on price — a request to lower it, a competitor comparison, a stated budget below the quote. Asking what something costs is not pressure.
+- detection: one sentence naming what you saw, quoting their words.
+- signals: the exact phrases that made you decide. Empty if none.
+- recommended_response: a short, warm reply the supplier could send. NEVER propose a discount, a percentage or a new price — you do not know what this job costs them. Acknowledge the request, restate the value in their quote (lead time, warranty, scope), and ask what is driving the number. If there is no price pressure, reply to what they actually asked instead.`;
+          try {
+            const r = await fetch(SUPA_URL + '/functions/v1/ai_gateway', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                __secret: keyRow.value, fn: 'supplier_negotiation', max: 700, temperature: 0.2,
+                sys: SYS, response_format: 'json',
+                input: [{ role: 'user', content: inbound.map((m) => m.body).join('\n---\n').slice(0, 6000) }],
+              }),
+            });
+            const d = await r.json();
+            const txt = String(d?.content || '{}');
+            analysis = JSON.parse(txt.match(/\{[\s\S]*\}/)?.[0] || '{}');
+          } catch (e) {
+            // A model failure must not read as "no discount was requested" — that is the one wrong
+            // answer that costs the supplier money.
+            analysis = { price_pressure_detected: null, detection: 'the analysis could not run: ' + String((e as Error)?.message || e), recommended_response: null };
+          }
+        }
+      }
+      return J({ ok: true, ...neg, analysis });
+    }
+
+    // §8 — which of MY products answers this enquiry, and how well. The match_pct on a product card
+    // is computed by fn_supplier_product_match and never in the browser: a percentage the client
+    // invents is a decoration, and the supplier cannot tell the difference by looking.
+    if (action === 'product_match') {
+      const inquiryId = String(b.inquiry_id || '');
+      if (!inquiryId) return J({ error: 'inquiry_id required' }, 400);
+      const { data: pm, error } = await admin.rpc('fn_supplier_product_match',
+        { p_inquiry_id: inquiryId, p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...pm });
+    }
+
+    // §16 §24 — every certificate with its validity status and what it gates.
+    if (action === 'certifications') {
+      const { data: certs, error } = await admin.rpc('fn_supplier_certifications', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...certs });
+    }
+
+    // §20 — the QuotesDone supplier tier and the ladder above it.
+    if (action === 'tier') {
+      const { data: tier, error } = await admin.rpc('fn_supplier_tier', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...tier });
+    }
+
+    if (action === 'opportunities') {
+      const { data: opps, error } = await admin.rpc('fn_supplier_opportunities', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...opps });
+    }
+
+    if (action === 'advisor') {
+      const { data: advice, error } = await admin.rpc('fn_supplier_advisor', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...advice });
+    }
+
+    if (action === 'products') {
+      const { data: prods, error } = await admin.rpc('fn_supplier_products', {
+        p_lead_id: supId,
+        p_query: typeof b.q === 'string' && b.q.trim() ? b.q.trim().slice(0, 120) : null,
+      });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...prods });
+    }
+
     if (action === 'documents') {
       // Column list is derived from DOC_KINDS so adding a document type here needs no edit below.
       const cols = new Set<string>(['catalog_doc_paths']);
