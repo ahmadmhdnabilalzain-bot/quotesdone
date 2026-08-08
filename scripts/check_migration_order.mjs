@@ -40,8 +40,14 @@ if (renameArg) {
   }
 }
 
+// --exclude lets the baseline generator ask "what would be missing WITHOUT my output file?".
+// Without it the generator is self-defeating: it reads the missing list from a tree that already
+// contains the baseline, sees nothing missing, and regenerates an empty file over a good one.
+const excludeArg = process.argv.find((a) => a.startsWith('--exclude='));
+const excluded = new Set(excludeArg ? excludeArg.slice('--exclude='.length).split(',') : []);
+
 const files = readdirSync(MIG)
-  .filter((f) => f.endsWith('.sql'))
+  .filter((f) => f.endsWith('.sql') && !excluded.has(f))
   .map((f) => ({ real: f, sorted: renames.get(f) || f }))
   .sort((a, b) => a.sorted.localeCompare(b.sorted));
 
@@ -64,7 +70,12 @@ const unknown = new Map();   // table -> first file that referenced it, never cr
 for (const { real, sorted } of files) {
   const sql = strip(readFileSync(join(MIG, real), 'utf8'));
 
-  for (const m of sql.matchAll(/\bcreate\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_."]+)/gi)) {
+  // TEMP and UNLOGGED tables count as creations. Missing them reported public._cand as an
+  // uncreated table for the whole of this exercise — it is `create temporary table _cand … on
+  // commit drop`, three lines above the insert that "referenced" it. A scanner that only knows one
+  // spelling of create invents a missing table, which is the same false-MISSING class as a scan
+  // whose population excludes where the fact lives.
+  for (const m of sql.matchAll(/\bcreate\s+(?:temp\s+|temporary\s+|unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_."]+)/gi)) {
     const t = bare(m[1]);
     if (EXTERNAL.test(m[1])) continue;
     if (!created.has(t)) created.set(t, sorted);
@@ -103,6 +114,18 @@ for (const [t, first] of unknown) {
 const neverCreated = [...unknown].filter(([t]) => !created.has(t));
 const missingPublic = neverCreated.filter(([t]) => !t.includes('.'));
 const externalOnly = neverCreated.filter(([t]) => t.includes('.'));
+
+// --json so the baseline generator consumes the SAME analysis the human report prints, rather than
+// keeping a second list of missing tables that could drift from this one.
+if (process.argv.includes('--json')) {
+  console.log(JSON.stringify({
+    migrations: files.length,
+    orderingBreaks: problems,
+    missingPublic: [...unknown].filter(([t]) => !created.has(t) && !t.includes('.'))
+      .map(([t, v]) => ({ table: t, firstUse: v.how, file: v.file })),
+  }, null, 2));
+  process.exit(0);
+}
 
 console.log(`${files.length} migration(s) in replay order${renames.size ? `, with ${renames.size} proposed rename(s)` : ''}`);
 
