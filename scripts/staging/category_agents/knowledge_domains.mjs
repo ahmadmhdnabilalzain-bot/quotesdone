@@ -52,7 +52,30 @@ export const EXPECTED = 90;
 // [spec topic string, section label, id prefix, [[id-suffix, regex, human label], ...]]
 const DOMAINS = [
   ['Industry Knowledge', '§3 industry', 'ind', [
-    ['overview', /overview|landscape|sector\b|market structure|the industry/i, 'industry overview'],
+    // ── A SCORER DEFECT, FOUND BY READING THE PAYLOAD AND CORRECTED WITH ITS PROOF ──────────────
+    // The first version of this leg was /overview|landscape|sector\b|market structure|the industry/
+    // and scored 0 of 84 — on a topic literally called "Industry Knowledge" averaging 861
+    // characters. Zero is the shape of a bad regex, not of a corpus gap, so the bodies were read
+    // before the verdict was believed. cat:aluminium-and-glass-suppliers opens:
+    //
+    //   "UAE aluminium & glass is a three-tier trade. Upstream: Emirates Global Aluminium smelts
+    //    billet at Jebel Ali and Al Taweelah; extruders such as Gulf Extrusions press profiles.
+    //    Midstream: float and coated glass from Emirates Float Glass … Downstream: thousands of
+    //    fabricators and facade contractors clustered in Al Quoz, Ras Al Khor, Sharjah Industrial…"
+    //
+    // That IS an industry overview. It never says the word. The old leg was testing for textbook
+    // meta-language that expert writing does not use, and its build order would have been "add the
+    // word 'overview' to 84 bodies" — busywork that degrades real knowledge to move a number.
+    //
+    // The replacement tests what an overview CONTAINS: where the trade sits in its supply chain,
+    // how it tiers, who the players are, where they cluster. It was accepted only after passing a
+    // DISCRIMINATION test against a control topic — 72/84 inside Industry Knowledge against 13/84
+    // inside Quotation Knowledge. A regex that fires everywhere is not a check, it is a pass.
+    //
+    // Three sibling legs were tested the same way and their replacements were REJECTED, so their
+    // MISSING verdicts stand as real corpus gaps: prod-hierarchy (26/84 target vs 34/84 control —
+    // fires MORE in the control), ind-scope-of-work (16 vs 39) and prod-categories (14 vs 13).
+    ['overview', /upstream|downstream|midstream|\btiers?\b|segment|clusters?|splits? (sharply|into)|three.?tier|market is|trade is|dominat/i, 'industry overview'],
     ['scope-of-work', /scope\b|\bsow\b|remit|covers?\b|deliverab/i, 'scope of work'],
     ['terminology', /terminolog|jargon|known as|called|referred to as|\bterm(s|ed)?\b/i, 'common terminology'],
     ['market-segments', /segment|residential|commercial|industrial|hospitality|retail|tier/i, 'market segments'],

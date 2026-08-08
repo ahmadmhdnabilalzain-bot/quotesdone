@@ -187,3 +187,94 @@ The supplier-facing reader (`fn_graph_supplier_market`) selects `rel='adjacent_t
 repairing this adds nothing to what a supplier sees.
 
 **The fix is one clause: `org_agents`/`'employee'` → `category_agents`/`'category_agent'`.**
+
+---
+
+## 8. THE SCORE: 246 / 283 (87%) ON PRODUCTION
+
+Composed of a full 283-check baseline run (243/283, zero errored checks, no denominator shortfall),
+plus two verified section re-runs after the fixes below.
+
+| § | | | § | | |
+|---|---|---|---|---|---|
+| 1 Domain taxonomy | 66/66 | **100%** | 8 Documents | 9/16 | 56% |
+| 2 Realistic categories | 84/84 | **100%** | 9 UAE Regulations | 10/16 | 63% |
+| 3 Industry | 7/9 | 78% | 10 Inquiry Qualification ⭐⭐⭐ | 7/9 | 78% |
+| 4 Products & Services | 7/13 | 54% | 11 Optional modules | 24/35 | 69% |
+| 5 Technical | 9/10 | 90% | 12 Agent mechanism | **8/8** | **100%** |
+| 6 Supplier | 8/9 | 89% | | | |
+| 7 Quotation ⭐ | 7/8 | 88% | | | |
+
+**All eight BAR A domain-coverage checks are MET at 84/84.** No domain is empty on any of the 84
+mapped agents, and 672 domain rows carry 672 distinct bodies — not one is a template.
+
+Every remaining MISSING is a BAR B sub-bullet: a concept the spec listed as an *"Example:"* of a
+domain that appears on fewer than 21 of the 84 agents in that domain's own content.
+
+## 9. WHAT WAS FIXED, DEPLOYED TO BOTH, VERIFIED BY EXECUTION
+
+| defect | before | after |
+|---|---|---|
+| `fn_graph_rebuild` category edge pointed at `org_agents` | 0 edges | **84** on both projects |
+| `fn_resolve_cat_agent` could not speak the intake vocabulary | 36/56 | **54/56** on both projects |
+
+The two trade slugs still unresolved — `acrylic`, `elevators` — have no `lead_trade_map` row at all.
+That is missing DATA, a mapping decision somebody has to make, and inventing those rows to raise a
+score is not on the table.
+
+## 10. ONE SCORER DEFECT, FOUND BY READING THE PAYLOAD
+
+`ind-overview` scored **0 of 84** on `/overview|landscape|sector|market structure|the industry/`.
+Zero on a topic called "Industry Knowledge" averaging 861 characters is the shape of a bad regex,
+so the bodies were read before the verdict was believed:
+
+> "UAE aluminium & glass is a three-tier trade. Upstream: Emirates Global Aluminium smelts billet at
+> Jebel Ali and Al Taweelah; extruders such as Gulf Extrusions press profiles. Midstream: float and
+> coated glass from Emirates Float Glass … Downstream: thousands of fabricators and facade
+> contractors clustered in Al Quoz, Ras Al Khor, Sharjah Industrial…"
+
+That *is* an industry overview; it never says the word. The check was testing for textbook
+meta-language expert writing does not use, and its build order would have been "add the word
+'overview' to 84 bodies" — busywork that degrades real knowledge to move a number.
+
+Replaced with a test of what an overview CONTAINS — supply-chain position, tiering, players,
+clusters — and accepted only after a **discrimination test** against a control topic:
+**72/84 inside Industry Knowledge against 13/84 inside Quotation Knowledge.**
+
+**Three sibling legs were tested identically and their replacements were REJECTED**, so their
+MISSING verdicts stand as real corpus gaps:
+
+| leg | candidate in target topic | in control topic | verdict |
+|---|---|---|---|
+| `prod-hierarchy` | 26/84 | 34/84 | rejected — fires MORE in the control |
+| `ind-scope-of-work` | 16/84 | 39/84 | rejected — the concept lives in Documents Knowledge |
+| `prod-categories` | 14/84 | 13/84 | rejected — no discrimination |
+
+## 11. BLOCKED BY BUSINESS REALITY, NOT BY CODE
+
+The 37 remaining MISSINGs are **not a coding backlog**. Every one is a gap in authored knowledge,
+and they fall into three groups that need three different decisions:
+
+**(a) Correctly narrow — arguably not gaps at all.** `uae-rta` (18/84), `opt-std-ul` (7/84),
+`opt-std-nfpa` (33/84), `opt-brand-local` (7/84). RTA governs road transport; UL is a North American
+listing mark. An accounting agent citing NFPA would be *wrong*. The spec introduced these with
+"Example:", and BAR B at 21 is what keeps them from being scored as universal mandates — but four of
+them land just under the bar. **This needs a founder call, not code.**
+
+**(b) Genuinely absent, and platform-mechanical — buildable without fabricating anything.**
+`opt-att-excel` (6/84), `opt-att-pdf` (8/84), `opt-draw-cad` (8/84), `opt-draw-bim` (4/84),
+`doc-site-videos` (1/84), `opt-att-understands-content` (15/84). These describe **the platform's own
+behaviour** — which file types an inquiry can arrive with and what each one tells you. Writing that
+is documenting QuotesDone, not inventing industry facts, so it can be authored honestly. It is the
+single largest recoverable block: roughly 11 requirements.
+
+**(c) Genuinely absent, and category expertise — cannot be written without a source.**
+`doc-rfi` (4/84), `doc-ifc-drawings` (3/84), `doc-shop-drawings` (16/84), `prod-hierarchy` (2/84),
+`quo-optional-info` (5/84), `uae-addc` (8/84), `uae-etihad-we` (6/84). Filling these means writing
+UAE regulatory and document-workflow knowledge per category. **Generating it with an LLM is exactly
+what the brief forbids** — "this knowledge is what the platform will ask real customers real
+questions with". It needs sourced research or a domain expert per category, and that is a
+procurement decision, not a sprint.
+
+**The honest position: 246/283 is the ceiling reachable by code. The remaining 37 are an authoring
+programme.**
