@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
       # 4 Aug 2026. `npm test` now runs the Deno suite as well as the Node checks, because
       # supabase/functions/_shared/attachment.test.ts had never executed once: the runner globbed
       # *.test.mjs and `deno test` appeared in no workflow. run.mjs fails HARD when deno is absent
@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
       - run: npm ci
       - run: npm run typecheck
