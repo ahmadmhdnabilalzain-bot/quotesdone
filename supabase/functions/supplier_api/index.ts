@@ -243,7 +243,10 @@ Deno.serve(async (req) => {
     const email = user.email.toLowerCase();
     const body = await req.json().catch(() => ({})); const action = body.action;
 
-    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,bank_name,bank_account_name,bank_iban,license_doc_path,iban_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data || null }); }
+    // claimed_by is the account e-mail. Registration SHOWS it with its verification state rather
+    // than asking for it — the supplier signed in with it, so a field here could only ever be
+    // answered with the value we already hold.
+    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,bank_name,bank_account_name,bank_iban,license_doc_path,iban_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data || null }); }
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select('id,company_name,emirate,business_role,claimed,claimed_by').ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); return J({ results: (data || []).map((r) => ({ ...r, claimable: !r.claimed || r.claimed_by === email })) }); }
     if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.' }, 400); const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, source: 'self_registered', scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) return J({ error: error.message }, 500); const reg = await setRegistration(ins!.id); return J({ ok: true, id: ins?.id, registration: reg }); }
     // TAKEOVER FIX 27 Jul 2026 -----------------------------------------------------------------
@@ -383,6 +386,37 @@ Deno.serve(async (req) => {
         out.services_crosscheck = { verdict: cc.verdict, overlap: Math.round(cc.overlap * 100) / 100, note: cc.note, extracted_services: xServices, declared_services: declared == null ? null : String(declared) };
       }
       return J({ ok: true, extracted: out });
+    }
+
+    // ROW #5 §24 — SETTINGS. Language and notification preferences, on their own narrow allowlist.
+    //
+    // These are deliberately NOT added to PROFILE_COLS. That list carries the bank IBAN, the
+    // emirates ID, the trade licence number and the licence expiry — fields whose writes are what
+    // the licence gate and the approval flow are built around. Letting a preferences screen post
+    // into the same allowlist would mean a change of interface language travelled through the same
+    // door as a change of bank account. Three columns, named here, and nothing else is settable.
+    if (action === 'save_settings') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first' }, 400);
+      const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
+      if (body.locale !== undefined) {
+        const loc = String(body.locale);
+        if (!['en', 'ar'].includes(loc)) return J({ error: 'locale must be en or ar' }, 400);
+        upd.locale = loc;
+      }
+      if (body.wa_optin !== undefined) upd.wa_optin = !!body.wa_optin;
+      if (body.email_shared !== undefined) upd.email_shared = !!body.email_shared;
+      const { error } = await admin.from('leads').update(upd).eq('id', sup.id);
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, saved: Object.keys(upd).filter((k) => k !== 'portal_updated_at') });
+    }
+
+    if (action === 'settings') {
+      const { data: sup } = await admin.from('leads')
+        .select('id,company_name,locale,wa_optin,email_shared,claimed_by,phone,approval_status,registration_status,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,license_expiry')
+        .eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first' }, 400);
+      return J({ ok: true, settings: sup });
     }
 
     if (action === 'save_profile') {

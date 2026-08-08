@@ -15,13 +15,24 @@
 // and 0 of them can currently receive an RFQ" is genuinely useful and completely true.
 import React, { useEffect, useState } from 'react';
 
-type Blocked = { available?: false; value?: null; basis?: string; population?: number; note?: string };
+type Blocked = { available?: boolean; value?: unknown; basis?: string; population?: number; note?: string };
+type Trend = Blocked & {
+  category?: string | null; value?: number | null; prior?: number | null;
+  direction?: 'up' | 'down' | 'flat' | null; pct?: number | null; from_zero?: boolean;
+  share_pct?: number | null; series?: { week: string; count: number }[];
+};
+type TopCat = Blocked & { value?: string | null; count?: number | null };
+type Price = Blocked & {
+  value?: number | null; median?: number | null; p25?: number | null; p75?: number | null;
+  low?: number | null; high?: number | null; currency?: string;
+};
 type Market = {
   sector?: string | null;
+  population?: 'demo' | 'live';
   competitors?: { available?: boolean; basis?: string; total?: number; in_my_area?: number;
                   matchable?: number; by_emirate?: { emirate: string; count: number }[] };
   market_composition?: { available?: boolean; basis?: string; segments?: { name: string; count: number }[] };
-  demand_trend?: Blocked; most_requested?: Blocked; avg_market_price?: Blocked;
+  demand_trend?: Trend; most_requested?: TopCat; avg_market_price?: Price;
 };
 type Lang = 'en' | 'ar';
 
@@ -45,6 +56,10 @@ const T = {
     notAvailable: 'not available yet', loading: 'Reading the market…',
     sector: 'sector', companies: 'companies', none: 'none',
     matchableNote: 'None of them is verified, so none can currently be matched to work — including you.',
+    thisPeriod: 'enquiries in the last 14 days', priorPeriod: 'in the 14 before',
+    shareOf: 'of all enquiries', newDemand: 'new', perWeek: 'Enquiries per week',
+    median: 'median', quartiles: 'middle half', range: 'range', from: 'from',
+    demoBanner: 'Demonstration data. These figures are computed from QuotesDone demo fixtures, not from live trading.',
   },
   ar: {
     title: 'ذكاء السوق', competitors: 'المنافسون', inArea: 'في نطاق خدمتك',
@@ -53,6 +68,10 @@ const T = {
     notAvailable: 'غير متاح بعد', loading: 'جارٍ قراءة السوق…',
     sector: 'القطاع', companies: 'شركة', none: 'لا يوجد',
     matchableNote: 'لا أحد منهم موثّق، لذا لا يمكن مطابقة أي منهم بالعمل — بما فيهم أنت.',
+    thisPeriod: 'طلب خلال ١٤ يومًا الماضية', priorPeriod: 'في الـ١٤ يومًا قبلها',
+    shareOf: 'من إجمالي الطلبات', newDemand: 'جديد', perWeek: 'الطلبات أسبوعيًا',
+    median: 'الوسيط', quartiles: 'النصف الأوسط', range: 'المدى', from: 'من',
+    demoBanner: 'بيانات تجريبية. هذه الأرقام محسوبة من بيانات عرض توضيحي، وليست من تداول حقيقي.',
   },
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
@@ -77,6 +96,22 @@ function Bars({ rows, lang }: { rows: { name: string; count: number }[]; lang: L
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Money the supplier is meant to compare against their own. No decimals — a market price quoted to
+// the fils is a precision the population cannot support.
+const aed = (n?: number | null, cur = 'AED') =>
+  n === null || n === undefined ? '—' : cur + ' ' + Math.round(n).toLocaleString('en-US');
+
+// A card that shows a computed figure. The three demand figures share it so that "available" is
+// decided in exactly one place on the surface, the same way the routine decides it in one place.
+function Figure({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
+      <div className="text-[11px] opacity-60 mb-1">{label}</div>
+      {children}
     </div>
   );
 }
@@ -115,8 +150,22 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
   const byEm = (c.by_emirate || []).map((x) => ({ name: x.emirate, count: x.count }));
   const segs = m.market_composition?.segments || [];
 
+  // The direction the routine computed, as the one glyph a supplier reads before any number.
+  // 'flat' gets its own mark rather than defaulting to a down arrow — no change is not a decline.
+  const trend = m.demand_trend;
+  const arrow = trend?.direction === 'up' ? '↑' : trend?.direction === 'down' ? '↓' : '→';
+  const dirTone = trend?.direction === 'up' ? 'text-emerald-300'
+    : trend?.direction === 'down' ? 'text-rose-300' : 'text-white/60';
+
   return (
     <div className="space-y-4">
+      {/* A demo fixture must never be able to read its own figures as live trading. The routine
+          says which population it computed over; the surface says so out loud. */}
+      {m.population === 'demo' && (
+        <p className="rounded-xl border border-amber-300/25 bg-amber-300/[0.06] px-3 py-2 text-[11px] leading-snug text-amber-200/80">
+          {t(lang, 'demoBanner')}
+        </p>
+      )}
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
         <div className="flex justify-between items-baseline mb-3">
           <h3 className="text-xs uppercase tracking-wide opacity-60">{t(lang, 'title')}</h3>
@@ -152,11 +201,66 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
         )}
       </section>
 
-      {/* The half the platform cannot answer yet. Shown with its reason, never filled in. */}
+      {/* ── THE DEMAND HALF ────────────────────────────────────────────────────────────────────
+          Each figure renders its real value when the routine computed one, and its reason when the
+          routine refused. The decision is the routine's `available` flag in every case: the surface
+          never decides for itself that a number is good enough to show. */}
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 space-y-2">
-        <Unavailable label={t(lang, 'demandTrend')} b={m.demand_trend} lang={lang} />
-        <Unavailable label={t(lang, 'mostRequested')} b={m.most_requested} lang={lang} />
-        <Unavailable label={t(lang, 'avgPrice')} b={m.avg_market_price} lang={lang} />
+        {trend?.available ? (
+          <Figure label={t(lang, 'demandTrend') + (trend.category ? ' · ' + trend.category : '')}>
+            <div className="flex items-baseline gap-2">
+              <span className={'text-xl leading-none ' + dirTone}>{arrow}</span>
+              <span className="text-2xl font-semibold tabular-nums">{trend.value ?? 0}</span>
+              <span className="text-[11px] opacity-50">{t(lang, 'thisPeriod')}</span>
+            </div>
+            <div className="text-[11px] opacity-55 mt-1">
+              {/* A percentage is printed only when the routine produced one. From a base of zero
+                  there is no honest percentage, so the word "new" stands in its place. */}
+              {trend.pct !== null && trend.pct !== undefined
+                ? <span className={dirTone}>{(trend.pct > 0 ? '+' : '') + trend.pct + '%'}</span>
+                : <span className="opacity-70">{t(lang, 'newDemand')}</span>}
+              <span className="opacity-50">
+                {' · ' + (trend.prior ?? 0) + ' ' + t(lang, 'priorPeriod')}
+                {trend.share_pct !== null && trend.share_pct !== undefined
+                  ? ' · ' + trend.share_pct + '% ' + t(lang, 'shareOf') : ''}
+              </span>
+            </div>
+            {!!(trend.series || []).length && (
+              <div className="mt-2.5 pt-2 border-t border-white/10">
+                <div className="text-[10px] uppercase tracking-wide opacity-40 mb-1.5">{t(lang, 'perWeek')}</div>
+                <Bars rows={(trend.series || []).map((w) => ({ name: w.week, count: w.count }))} lang={lang} />
+              </div>
+            )}
+            {trend.note && <p className="text-[10px] opacity-40 mt-1.5 leading-snug">{trend.note}</p>}
+          </Figure>
+        ) : <Unavailable label={t(lang, 'demandTrend')} b={m.demand_trend} lang={lang} />}
+
+        {m.most_requested?.available ? (
+          <Figure label={t(lang, 'mostRequested')}>
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-semibold capitalize">{m.most_requested.value}</span>
+              <span className="text-[11px] opacity-50">{m.most_requested.count} {t(lang, 'companies') === 'companies' ? 'enquiries' : 'طلب'}</span>
+            </div>
+            <p className="text-[10px] opacity-40 mt-1">{m.most_requested.basis}</p>
+          </Figure>
+        ) : <Unavailable label={t(lang, 'mostRequested')} b={m.most_requested} lang={lang} />}
+
+        {m.avg_market_price?.available ? (
+          <Figure label={t(lang, 'avgPrice')}>
+            <div className="text-2xl font-semibold tabular-nums">
+              {aed(m.avg_market_price.value, m.avg_market_price.currency)}
+            </div>
+            {/* The mean alone tells a supplier nothing about where they sit. The median and the
+                middle half are what "you are high" is actually measured against, so they are shown
+                beside it rather than left in the payload. */}
+            <div className="text-[11px] opacity-55 mt-1 leading-relaxed">
+              <div>{t(lang, 'median')}: <span className="tabular-nums">{aed(m.avg_market_price.median, m.avg_market_price.currency)}</span></div>
+              <div>{t(lang, 'quartiles')}: <span className="tabular-nums">{aed(m.avg_market_price.p25, m.avg_market_price.currency)} – {aed(m.avg_market_price.p75, m.avg_market_price.currency)}</span></div>
+              <div className="opacity-70">{t(lang, 'range')}: <span className="tabular-nums">{aed(m.avg_market_price.low, m.avg_market_price.currency)} – {aed(m.avg_market_price.high, m.avg_market_price.currency)}</span></div>
+            </div>
+            <p className="text-[10px] opacity-40 mt-1.5 leading-snug">{m.avg_market_price.basis} · {m.avg_market_price.population} quotes</p>
+          </Figure>
+        ) : <Unavailable label={t(lang, 'avgPrice')} b={m.avg_market_price} lang={lang} />}
       </section>
     </div>
   );

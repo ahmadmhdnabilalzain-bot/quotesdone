@@ -1,14 +1,14 @@
 {
  "target": "htdblwldjkcgjvmqkbeh",
  "total": 234,
- "met": 212,
+ "met": 229,
  "rows": [
   {
    "section": "collab",
    "id": "collab-workspace-per-relationship",
    "name": "every customer relationship gets a workspace",
    "ok": true,
-   "ev": "3 portal file(s) pair a workspace with relationship content [SupplierPortal.tsx CollaborationWorkspace.tsx SupplierEnvironment.tsx]; 110 raw messaging token(s) — a thread is the transport, not a workspace"
+   "ev": "3 portal file(s) pair a workspace with relationship content [SupplierPortal.tsx CollaborationWorkspace.tsx SupplierEnvironment.tsx]; 112 raw messaging token(s) — a thread is the transport, not a workspace"
   },
   {
    "section": "collab",
@@ -71,14 +71,14 @@
    "id": "map-geo-markers",
    "name": "markers positioned by real geography",
    "ok": true,
-   "ev": "1 portal file(s) pair markers with coordinates [SupplierNetworkMap.tsx]"
+   "ev": "2 portal file(s) pair markers with coordinates [SupplierEnvironment.tsx SupplierNetworkMap.tsx]"
   },
   {
    "section": "map",
    "id": "map-layer-suppliers",
    "name": "the map has a suppliers layer",
    "ok": true,
-   "ev": "suppliers: on a map in 5 file(s) [CollaborationWorkspace.tsx SupplierInsightBoard.tsx SupplierNegotiation.tsx SupplierNetworkMap.tsx SupplierTier.tsx]; mentioned somewhere on the portal yes — a word off the map is not a layer"
+   "ev": "suppliers: on a map in 6 file(s) [CollaborationWorkspace.tsx SupplierInsightBoard.tsx SupplierNegotiation.tsx SupplierNetworkMap.tsx SupplierQuoteBuilder.tsx SupplierTier.tsx]; mentioned somewhere on the portal yes — a word off the map is not a layer"
   },
   {
    "section": "map",
@@ -92,7 +92,7 @@
    "id": "map-layer-projects",
    "name": "the map has a projects layer",
    "ok": true,
-   "ev": "projects: on a map in 3 file(s) [SupplierPortal.tsx SupplierNetworkMap.tsx SupplierOpportunities.tsx]; mentioned somewhere on the portal yes — a word off the map is not a layer"
+   "ev": "projects: on a map in 4 file(s) [SupplierPortal.tsx SupplierNetworkMap.tsx SupplierOpportunities.tsx SupplierQuoteBuilder.tsx]; mentioned somewhere on the portal yes — a word off the map is not a layer"
   },
   {
    "section": "map",
@@ -176,42 +176,42 @@
    "id": "mob-nav-command",
    "name": "a Command destination in the navigation",
    "ok": true,
-   "ev": "Command: destination [overview]; portal destinations are [profile documents overview board recommended ranking negotiation certifications onboarding twin environment network market workspaces assistant products rfqs projects messages billing]"
+   "ev": "Command: destination [overview]; portal destinations are [profile documents overview board recommended quote ranking negotiation certifications onboarding twin environment network market workspaces assistant products inventory rfqs projects messages settings billing]"
   },
   {
    "section": "mob",
    "id": "mob-nav-rfqs",
    "name": "a RFQs destination in the navigation",
    "ok": true,
-   "ev": "RFQs: destination [rfqs]; portal destinations are [profile documents overview board recommended ranking negotiation certifications onboarding twin environment network market workspaces assistant products rfqs projects messages billing]"
+   "ev": "RFQs: destination [rfqs]; portal destinations are [profile documents overview board recommended quote ranking negotiation certifications onboarding twin environment network market workspaces assistant products inventory rfqs projects messages settings billing]"
   },
   {
    "section": "mob",
    "id": "mob-nav-products",
    "name": "a Products destination in the navigation",
    "ok": true,
-   "ev": "Products: destination [products]; portal destinations are [profile documents overview board recommended ranking negotiation certifications onboarding twin environment network market workspaces assistant products rfqs projects messages billing]"
+   "ev": "Products: destination [products]; portal destinations are [profile documents overview board recommended quote ranking negotiation certifications onboarding twin environment network market workspaces assistant products inventory rfqs projects messages settings billing]"
   },
   {
    "section": "mob",
    "id": "mob-nav-messages",
    "name": "a Messages destination in the navigation",
    "ok": true,
-   "ev": "Messages: destination [messages]; portal destinations are [profile documents overview board recommended ranking negotiation certifications onboarding twin environment network market workspaces assistant products rfqs projects messages billing]"
+   "ev": "Messages: destination [messages]; portal destinations are [profile documents overview board recommended quote ranking negotiation certifications onboarding twin environment network market workspaces assistant products inventory rfqs projects messages settings billing]"
   },
   {
    "section": "mob",
    "id": "mob-nav-ai",
    "name": "a AI destination in the navigation",
    "ok": true,
-   "ev": "AI: destination [assistant]; portal destinations are [profile documents overview board recommended ranking negotiation certifications onboarding twin environment network market workspaces assistant products rfqs projects messages billing]"
+   "ev": "AI: destination [assistant]; portal destinations are [profile documents overview board recommended quote ranking negotiation certifications onboarding twin environment network market workspaces assistant products inventory rfqs projects messages settings billing]"
   },
   {
    "section": "mob",
    "id": "mob-nav-company",
    "name": "a Company destination in the navigation",
    "ok": true,
-   "ev": "Company: destination [profile]; portal destinations are [profile documents overview board recommended ranking negotiation certifications onboarding twin environment network market workspaces assistant products rfqs projects messages billing]"
+   "ev": "Company: destination [profile]; portal destinations are [profile documents overview board recommended quote ranking negotiation certifications onboarding twin environment network market workspaces assistant products inventory rfqs projects messages settings billing]"
   },
   {
    "section": "mob",
@@ -225,7 +225,7 @@
    "id": "mob-same-intelligence",
    "name": "mobile carries the same modules, not a cut-down set",
    "ok": true,
-   "ev": "20 navigable destination(s) [profile documents overview board recommended ranking negotiation certifications onboarding twin environment network market workspaces assistant products rfqs projects messages billing] against §21's six; 0 breakpoint-gated visibility rule(s) on the portal"
+   "ev": "23 navigable destination(s) [profile documents overview board recommended quote ranking negotiation certifications onboarding twin environment network market workspaces assistant products inventory rfqs projects messages settings billing] against §21's six; 0 breakpoint-gated visibility rule(s) on the portal"
   },
   {
    "section": "ui",
@@ -239,7 +239,7 @@
    "id": "ui-glass-panels",
    "name": "glass panels",
    "ok": true,
-   "ev": "23 glass token(s) on the portal"
+   "ev": "31 glass token(s) on the portal"
   },
   {
    "section": "ui",
@@ -260,7 +260,7 @@
    "id": "ui-animated-charts",
    "name": "animated charts",
    "ok": true,
-   "ev": "1 portal file(s) carry chart machinery, 70 animation token(s) — both required in one file"
+   "ev": "1 portal file(s) carry chart machinery, 71 animation token(s) — both required in one file"
   },
   {
    "section": "ui",
@@ -274,7 +274,7 @@
    "id": "ui-not-sidebar-tables-forms",
    "name": "not a sidebar / tables / forms interface",
    "ok": true,
-   "ev": "136 panel token(s) vs 1 table + 20 form token(s) — a workspace may hold a form, it may not be built of them"
+   "ev": "167 panel token(s) vs 1 table + 24 form token(s) — a workspace may hold a form, it may not be built of them"
   },
   {
    "section": "ui",
@@ -323,14 +323,14 @@
    "id": "tech-nextjs",
    "name": "Next.js is used on the supplier surface",
    "ok": true,
-   "ev": "Next.js: 23 usage(s) on the supplier surface; dependency INSTALLED 16.2.11 — a package.json entry is a purchase, not a feature"
+   "ev": "Next.js: 27 usage(s) on the supplier surface; dependency INSTALLED 16.2.11 — a package.json entry is a purchase, not a feature"
   },
   {
    "section": "tech",
    "id": "tech-react",
    "name": "React is used on the supplier surface",
    "ok": true,
-   "ev": "React: 205 usage(s) on the supplier surface; dependency INSTALLED 19.2.8 — a package.json entry is a purchase, not a feature"
+   "ev": "React: 243 usage(s) on the supplier surface; dependency INSTALLED 19.2.8 — a package.json entry is a purchase, not a feature"
   },
   {
    "section": "tech",
@@ -371,15 +371,15 @@
    "section": "tech",
    "id": "tech-3d-model-assets",
    "name": "Blender models (3D assets) is used on the supplier surface",
-   "ok": false,
-   "ev": "Blender models (3D assets): 0 usage(s) on the supplier surface; dependency n/a — a package.json entry is a purchase, not a feature"
+   "ok": true,
+   "ev": "Blender models (3D assets): 2 usage(s) on the supplier surface; dependency n/a — a package.json entry is a purchase, not a feature"
   },
   {
    "section": "tech",
    "id": "tech-gltf",
    "name": "GLTF loading is used on the supplier surface",
-   "ok": false,
-   "ev": "GLTF loading: 0 usage(s) on the supplier surface; dependency n/a — a package.json entry is a purchase, not a feature"
+   "ok": true,
+   "ev": "GLTF loading: 3 usage(s) on the supplier surface; dependency n/a — a package.json entry is a purchase, not a feature"
   },
   {
    "section": "tech",
@@ -428,147 +428,147 @@
    "id": "struct-ai-command-center",
    "name": "AI Command Center is reachable from the supplier navigation",
    "ok": true,
-   "ev": "AI Command Center: destination [overview], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "AI Command Center: destination [overview], heading/label [no]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-digital-twin",
    "name": "Supplier Digital Twin is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Supplier Digital Twin: destination [twin], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Supplier Digital Twin: destination [twin], heading/label [no]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-company-profile",
    "name": "Company Profile is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Company Profile: destination [profile], heading/label [register your company | 3d company environment | let’s build your profile]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Company Profile: destination [profile], heading/label [register your company | 3d company environment | let’s build your profile]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-product-intelligence",
    "name": "Product Intelligence is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Product Intelligence: destination [products], heading/label [product intelligence]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Product Intelligence: destination [products], heading/label [product intelligence]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-catalog-ai",
    "name": "Catalog AI is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Catalog AI: destination [no], heading/label [catalog ai]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Catalog AI: destination [no], heading/label [catalog ai]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-rfq-marketplace",
    "name": "RFQ Marketplace is reachable from the supplier navigation",
    "ok": true,
-   "ev": "RFQ Marketplace: destination [rfqs], heading/label [lost opportunities]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "RFQ Marketplace: destination [rfqs], heading/label [lost opportunities]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-quote-builder",
    "name": "Quote Builder is reachable from the supplier navigation",
-   "ok": false,
-   "ev": "Quote Builder: destination [no], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
+   "ok": true,
+   "ev": "Quote Builder: destination [quote], heading/label [quote builder | i want to quote this project]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-negotiation-ai",
    "name": "Negotiation AI is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Negotiation AI: destination [negotiation], heading/label [negotiation assistant]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Negotiation AI: destination [negotiation], heading/label [negotiation assistant]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-customer-projects",
    "name": "Customer Projects is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Customer Projects: destination [projects], heading/label [{o.project_title}]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Customer Projects: destination [projects], heading/label [{o.project_title} | i want to quote this project]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-documents",
    "name": "Documents is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Documents: destination [documents], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Documents: destination [documents], heading/label [what your documents unlock]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-certifications",
    "name": "Certifications is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Certifications: destination [certifications], heading/label [certifications]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Certifications: destination [certifications], heading/label [certifications]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-inventory",
    "name": "Inventory is reachable from the supplier navigation",
-   "ok": false,
-   "ev": "Inventory: destination [no], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
+   "ok": true,
+   "ev": "Inventory: destination [inventory], heading/label [inventory]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-analytics",
    "name": "Analytics is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Analytics: destination [no], heading/label [insight board]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Analytics: destination [no], heading/label [insight board]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-market-intelligence",
    "name": "Market Intelligence is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Market Intelligence: destination [market], heading/label [market intelligence]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Market Intelligence: destination [market], heading/label [market intelligence]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-supplier-score",
    "name": "Supplier Score is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Supplier Score: destination [no], heading/label [supplier score and ranking]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Supplier Score: destination [no], heading/label [supplier score and ranking]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-ai-assistant",
    "name": "AI Assistant is reachable from the supplier navigation",
    "ok": true,
-   "ev": "AI Assistant: destination [assistant], heading/label [ai assistant | catalog ai | negotiation assistant]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "AI Assistant: destination [assistant], heading/label [ai assistant | catalog ai | negotiation assistant]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-messages",
    "name": "Messages is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Messages: destination [messages], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Messages: destination [messages], heading/label [no]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-finance",
    "name": "Finance is reachable from the supplier navigation",
    "ok": true,
-   "ev": "Finance: destination [billing], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
+   "ev": "Finance: destination [billing], heading/label [no]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "struct",
    "id": "struct-settings",
    "name": "Settings is reachable from the supplier navigation",
-   "ok": false,
-   "ev": "Settings: destination [no], heading/label [no]; portal has 20 destination(s) and 75 heading(s) total"
+   "ok": true,
+   "ev": "Settings: destination [settings], heading/label [settings]; portal has 23 destination(s) and 92 heading(s) total"
   },
   {
    "section": "cc",
    "id": "cc-company-header",
    "name": "the supplier company name heads the screen",
    "ok": true,
-   "ev": "rendered yes; named in [SupplierPortal.tsx SupplierOnboarding.tsx SupplierTwin.tsx]"
+   "ev": "rendered yes; named in [SupplierPortal.tsx SupplierOnboarding.tsx SupplierSettings.tsx SupplierTwin.tsx]"
   },
   {
    "section": "cc",
    "id": "cc-verified-badge",
    "name": "a \"Verified Supplier\" badge",
    "ok": true,
-   "ev": "supplier-badge token(s) 10, rendered yes; 15 account-verification token(s) excluded — a confirmed mobile is not a Verified Supplier"
+   "ev": "supplier-badge token(s) 12, rendered yes; 25 account-verification token(s) excluded — a confirmed mobile is not a Verified Supplier"
   },
   {
    "section": "cc",
@@ -616,15 +616,15 @@
    "section": "cc",
    "id": "cc-assistant-actionable",
    "name": "the advice names a concrete gap and a quantified upside",
-   "ok": false,
-   "ev": "gap leg yes, quantified-upside leg NO — the spec's example needs both"
+   "ok": true,
+   "ev": "gap leg yes, quantified-upside leg yes — the spec's example needs both"
   },
   {
    "section": "cc",
    "id": "cc-workspace-not-dashboard",
    "name": "a command-center layout, not a table dashboard",
    "ok": true,
-   "ev": "136 panel token(s) vs 1 table token(s) — a command center may hold a table, it may not be built of them"
+   "ev": "167 panel token(s) vs 1 table token(s) — a command center may hold a table, it may not be built of them"
   },
   {
    "section": "env",
@@ -652,21 +652,21 @@
    "id": "env-node-inventory",
    "name": "the environment has a Inventory node",
    "ok": true,
-   "ev": "Inventory: in a 3D scene file [SupplierEnvironment.tsx]; mentioned in 1 portal file(s) — a mention outside the scene is not a scene node"
+   "ev": "Inventory: in a 3D scene file [SupplierEnvironment.tsx]; mentioned in 3 portal file(s) — a mention outside the scene is not a scene node"
   },
   {
    "section": "env",
    "id": "env-node-orders",
    "name": "the environment has a Orders node",
    "ok": true,
-   "ev": "Orders: in a 3D scene file [SupplierEnvironment.tsx]; mentioned in 3 portal file(s) — a mention outside the scene is not a scene node"
+   "ev": "Orders: in a 3D scene file [SupplierEnvironment.tsx]; mentioned in 4 portal file(s) — a mention outside the scene is not a scene node"
   },
   {
    "section": "env",
    "id": "env-node-customers",
    "name": "the environment has a Customers node",
    "ok": true,
-   "ev": "Customers: in a 3D scene file [SupplierEnvironment.tsx]; mentioned in 7 portal file(s) — a mention outside the scene is not a scene node"
+   "ev": "Customers: in a 3D scene file [SupplierEnvironment.tsx]; mentioned in 10 portal file(s) — a mention outside the scene is not a scene node"
   },
   {
    "section": "env",
@@ -687,7 +687,7 @@
    "id": "env-inv-available",
    "name": "the warehouse panel shows Available",
    "ok": true,
-   "ev": "Available: rendered yes, served by [ai_gateway fn_supplier_market fn_supplier_negotiation fn_supplier_opportunities fn_supplier_products fn_supplier_tier]; supplier_product_variant 4 row(s) (the supplier stock); inv_items 0 (the company COGS ledger, a different thing) — the verdict is delivery, not rows"
+   "ev": "Available: rendered yes, served by [ai_gateway fn_supplier_market fn_supplier_negotiation fn_supplier_opportunities fn_supplier_products fn_supplier_quote_recommend fn_supplier_tier]; supplier_product_variant 4 row(s) (the supplier stock); inv_items 0 (the company COGS ledger, a different thing) — the verdict is delivery, not rows"
   },
   {
    "section": "env",
@@ -722,7 +722,7 @@
    "id": "prof-verified-mark",
    "name": "the profile shows verified mark",
    "ok": true,
-   "ev": "verified mark: rendered yes, served by [kyc login_otp supplier_api supplier_review fn_supplier_advisor fn_supplier_market fn_supplier_network_map fn_supplier_opportunities fn_supplier_twin]"
+   "ev": "verified mark: rendered yes, served by [kyc login_otp supplier_api supplier_review fn_supplier_advisor fn_supplier_market fn_supplier_network_map fn_supplier_opportunities fn_supplier_quote_recommend fn_supplier_twin]"
   },
   {
    "section": "prof",
@@ -778,7 +778,7 @@
    "id": "entry-landing-route",
    "name": "a supplier landing screen exists and is reachable unauthenticated",
    "ok": true,
-   "ev": "route present; closure 31 file(s), 17 edge fn(s)"
+   "ev": "route present; closure 35 file(s), 17 edge fn(s)"
   },
   {
    "section": "entry",
@@ -799,7 +799,7 @@
    "id": "entry-cta-become-verified",
    "name": "a primary CTA \"Become a Verified Supplier\" leading to registration",
    "ok": true,
-   "ev": "1 exact CTA, 24 registration-ish token(s) — the spec names the CTA"
+   "ev": "1 exact CTA, 30 registration-ish token(s) — the spec names the CTA"
   },
   {
    "section": "entry",
@@ -834,14 +834,14 @@
    "id": "entry-not-form-wall",
    "name": "entry is not \"register then fill 20 forms\"",
    "ok": false,
-   "ev": "26 form control(s) on the supplier surface; the spec rejects a 20-form wall"
+   "ev": "30 form control(s) on the supplier surface; the spec rejects a 20-form wall"
   },
   {
    "section": "onb",
    "id": "onb-ai-conversation",
    "name": "a conversational onboarding surface exists instead of a form",
    "ok": true,
-   "ev": "6 turn-taking token(s) in the portal; 10 on the whole surface (the difference is ChatWidget.tsx, the marketing bubble); 26 form control(s) alongside"
+   "ev": "6 turn-taking token(s) in the portal; 10 on the whole surface (the difference is ChatWidget.tsx, the marketing bubble); 30 form control(s) alongside"
   },
   {
    "section": "onb",
@@ -946,7 +946,7 @@
    "id": "twin-certifications",
    "name": "the twin shows certifications",
    "ok": true,
-   "ev": "certifications: rendered yes (mentioned yes), served by [supplier_portal supplier_api profile_ai fn_supplier_certifications fn_supplier_expiries fn_supplier_products fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
+   "ev": "certifications: rendered yes (mentioned yes), served by [supplier_portal supplier_api profile_ai fn_supplier_certifications fn_supplier_document_impact fn_supplier_expiries fn_supplier_products fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
   },
   {
    "section": "twin",
@@ -967,14 +967,14 @@
    "id": "twin-risk-level",
    "name": "the twin shows risk level",
    "ok": true,
-   "ev": "risk level: rendered yes (mentioned yes), served by [supplier_portal supplier_api fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
+   "ev": "risk level: rendered yes (mentioned yes), served by [supplier_portal supplier_api fn_supplier_quote_recommend fn_supplier_twin]; 20465 supplier_score row(s) exist so a MISSING is not an empty estate"
   },
   {
    "section": "twin",
    "id": "twin-supplier-visible",
    "name": "the twin renders on the supplier own surface",
    "ok": true,
-   "ev": "62 twin token(s) across 31 file(s) of the supplier surface"
+   "ev": "63 twin token(s) across 35 file(s) of the supplier surface"
   },
   {
    "section": "perf",
@@ -1009,7 +1009,7 @@
    "id": "perf-pricing",
    "name": "the health panel shows Pricing",
    "ok": true,
-   "ev": "Pricing: rendered yes, served by [fn_supplier_twin]; supplier_score.price_index non-null on 0 of 20465 row(s) — the data is not the blocker"
+   "ev": "Pricing: rendered yes, served by [fn_supplier_twin]; supplier_score.price_index non-null on 1 of 20465 row(s) — the data is not the blocker"
   },
   {
    "section": "perf",
@@ -1037,35 +1037,35 @@
    "id": "perf-supplier-visible",
    "name": "the health panel renders on the supplier surface",
    "ok": true,
-   "ev": "2 of 29 portal file(s) name the score store [SupplierInsightBoard.tsx SupplierTwin.tsx]; supplier_score 20465 row(s), reliability non-null on 20465 — a MISSING here is \"computed and not shown\""
+   "ev": "3 of 33 portal file(s) name the score store [SupplierEnvironment.tsx SupplierInsightBoard.tsx SupplierTwin.tsx]; supplier_score 20465 row(s), reliability non-null on 20465 — a MISSING here is \"computed and not shown\""
   },
   {
    "section": "mkt",
    "id": "mkt-panel",
    "name": "a Market Intelligence panel",
    "ok": true,
-   "ev": "3 portal file(s) pair market subject matter with market content [SupplierPortal.tsx MarketIntelligence.tsx SupplierNetworkMap.tsx]"
+   "ev": "4 portal file(s) pair market subject matter with market content [SupplierPortal.tsx MarketIntelligence.tsx SupplierNetworkMap.tsx SupplierQuoteBuilder.tsx]"
   },
   {
    "section": "mkt",
    "id": "mkt-demand-trend",
    "name": "market intelligence shows a demand trend with direction",
-   "ok": false,
-   "ev": "a demand trend with direction: rendered yes, served by [NO fn]"
+   "ok": true,
+   "ev": "a demand trend with direction: rendered yes, served by [fn_supplier_market]"
   },
   {
    "section": "mkt",
    "id": "mkt-most-requested",
    "name": "market intelligence shows the most-requested project type",
-   "ok": false,
-   "ev": "the most-requested project type: rendered yes, served by [NO fn]"
+   "ok": true,
+   "ev": "the most-requested project type: rendered yes, served by [fn_supplier_market]"
   },
   {
    "section": "mkt",
    "id": "mkt-avg-market-price",
    "name": "market intelligence shows an average market price",
-   "ok": false,
-   "ev": "an average market price: rendered yes, served by [NO fn]"
+   "ok": true,
+   "ev": "an average market price: rendered yes, served by [fn_supplier_market]"
   },
   {
    "section": "mkt",
@@ -1079,7 +1079,7 @@
    "id": "mkt-routine",
    "name": "the market figures are computed from real demand data",
    "ok": true,
-   "ev": "3 reachable fn(s) aggregate market data [fn_supplier_market fn_supplier_network_map fn_supplier_stats]; 9 market/demand routine(s) in public"
+   "ev": "4 reachable fn(s) aggregate market data [fn_supplier_market fn_supplier_network_map fn_supplier_quote_recommend fn_supplier_stats]; 9 market/demand routine(s) in public"
   },
   {
    "section": "mkt",
@@ -1121,14 +1121,14 @@
    "id": "emp-recommendations",
    "name": "it recommends concrete actions",
    "ok": true,
-   "ev": "2 portal file(s) render recommendations [SupplierAdvisor.tsx SupplierNegotiation.tsx]; 1 routine(s) produce concrete actions [fn_supplier_advisor]"
+   "ev": "3 portal file(s) render recommendations [SupplierAdvisor.tsx SupplierNegotiation.tsx SupplierQuoteBuilder.tsx]; 2 routine(s) produce concrete actions [fn_supplier_advisor fn_supplier_quote_recommend]"
   },
   {
    "section": "emp",
    "id": "emp-recommendation-actionable",
    "name": "the recommendation links to the fix",
    "ok": true,
-   "ev": "1 portal file(s) put advice next to an actionable control [SupplierAdvisor.tsx]"
+   "ev": "2 portal file(s) put advice next to an actionable control [SupplierAdvisor.tsx SupplierQuoteBuilder.tsx]"
   },
   {
    "section": "emp",
@@ -1142,7 +1142,7 @@
    "id": "doc-intelligence-panel",
    "name": "a document-intelligence panel",
    "ok": true,
-   "ev": "3 portal file(s) pair a document with intelligence about it [SupplierPortal.tsx SupplierCertifications.tsx SupplierTwin.tsx]; 65 storage-only token(s) — a file path is not a living document"
+   "ev": "5 portal file(s) pair a document with intelligence about it [SupplierPortal.tsx SupplierCertifications.tsx SupplierDocumentImpact.tsx SupplierSettings.tsx SupplierTwin.tsx]; 70 storage-only token(s) — a file path is not a living document"
   },
   {
    "section": "doc",
@@ -1163,21 +1163,21 @@
    "id": "doc-impact",
    "name": "the document shows an impact rating",
    "ok": true,
-   "ev": "an impact rating: rendered yes, served by [fn_supplier_certifications]; 0 fn(s) merely put the English word near a document word [] — prose is not a field"
+   "ev": "an impact rating: rendered yes, served by [supplier_portal fn_supplier_certifications fn_supplier_document_impact]; 1 fn(s) merely put the English word near a document word [supplier_portal] — prose is not a field"
   },
   {
    "section": "doc",
    "id": "doc-expiry-date",
    "name": "the document shows its expiry date",
    "ok": true,
-   "ev": "rendered on 1 portal file(s), served by [license_extract supplier_api supplier_portal supplier_review]; 6 fn(s) match a loose /expir/ near a document word [kyc license_extract login_otp supplier_api supplier_portal supplier_review] — login_otp/kyc are the OTP's own expiry; license_expiry non-null on 0, iso_expiry on 0 of 20464"
+   "ev": "rendered on 2 portal file(s), served by [license_extract supplier_api supplier_portal supplier_review]; 6 fn(s) match a loose /expir/ near a document word [kyc license_extract login_otp supplier_api supplier_portal supplier_review] — login_otp/kyc are the OTP's own expiry; license_expiry non-null on 0, iso_expiry on 0 of 20464"
   },
   {
    "section": "doc",
    "id": "doc-used-for-count",
    "name": "the document shows how many RFQs it unlocked",
-   "ok": false,
-   "ev": "0 portal file(s) tie a document to the opportunities it unlocked [none]"
+   "ok": true,
+   "ev": "1 portal file(s) tie a document to the opportunities it unlocked [SupplierDocumentImpact.tsx]"
   },
   {
    "section": "doc",
@@ -1191,7 +1191,7 @@
    "id": "doc-supplier-visible",
    "name": "the document panel renders on the supplier surface",
    "ok": true,
-   "ev": "3 of 29 portal file(s) render document intelligence [SupplierPortal.tsx SupplierCertifications.tsx SupplierTwin.tsx]"
+   "ev": "5 of 33 portal file(s) render document intelligence [SupplierPortal.tsx SupplierCertifications.tsx SupplierDocumentImpact.tsx SupplierSettings.tsx SupplierTwin.tsx]"
   },
   {
    "section": "risk",
@@ -1205,7 +1205,7 @@
    "id": "risk-monitor-cert-expiry",
    "name": "the monitor watches certificate expiry",
    "ok": true,
-   "ev": "certificate expiry: 1 active cron(s), 41 routine(s) reference it — a routine with no schedule is not a monitor"
+   "ev": "certificate expiry: 1 active cron(s), 43 routine(s) reference it — a routine with no schedule is not a monitor"
   },
   {
    "section": "risk",
@@ -1247,14 +1247,14 @@
    "id": "risk-recommended-action",
    "name": "the warning carries a recommended action",
    "ok": true,
-   "ev": "1 portal file(s) pair a warning with a recommended action [SupplierPortal.tsx]"
+   "ev": "2 portal file(s) pair a warning with a recommended action [SupplierPortal.tsx SupplierQuoteBuilder.tsx]"
   },
   {
    "section": "prod",
    "id": "prod-upload-catalog",
    "name": "the supplier can upload catalogs for product extraction",
    "ok": true,
-   "ev": "catalogs: 3 file(s) pair the format with a PRODUCT context [SupplierPortal.tsx ProductIntelligence.tsx SupplierCatalogUpload.tsx]; 4 mention it at all, 1 only alongside registration documents — a licence uploader is not catalog ingestion"
+   "ev": "catalogs: 4 file(s) pair the format with a PRODUCT context [SupplierPortal.tsx ProductIntelligence.tsx SupplierCatalogUpload.tsx SupplierInventory.tsx]; 5 mention it at all, 1 only alongside registration documents — a licence uploader is not catalog ingestion"
   },
   {
    "section": "prod",
@@ -1303,7 +1303,7 @@
    "id": "prod-ai-extraction",
    "name": "a routine converts uploads into products",
    "ok": true,
-   "ev": "1 fn(s)/routine(s) WRITE the product store from an ingested file [supplier_catalog_ingest]; 2 merely read it [supplier_catalog_ingest supplier_portal] — a reader is not an extractor, and 96 product token(s) on the portal are not either"
+   "ev": "1 fn(s)/routine(s) WRITE the product store from an ingested file [supplier_catalog_ingest]; 2 merely read it [supplier_catalog_ingest supplier_portal] — a reader is not an extractor, and 111 product token(s) on the portal are not either"
   },
   {
    "section": "prod",
@@ -1331,7 +1331,7 @@
    "id": "prod-searchable",
    "name": "products are searchable",
    "ok": true,
-   "ev": "search UI in 1 product file(s) [ProductIntelligence.tsx], product search in [quote_extract supplier_api supplier_pay]"
+   "ev": "search UI in 2 product file(s) [ProductIntelligence.tsx SupplierInventory.tsx], product search in [quote_extract supplier_api supplier_pay]"
   },
   {
    "section": "prod",
@@ -1345,7 +1345,7 @@
    "id": "prod-supplier-visible",
    "name": "product intelligence renders on the supplier surface",
    "ok": true,
-   "ev": "1 of 31 supplier file(s) carry product-intelligence CODE [ProductIntelligence.tsx]; 13 upload-caption token(s) — a caption is not a render"
+   "ev": "1 of 35 supplier file(s) carry product-intelligence CODE [ProductIntelligence.tsx]; 13 upload-caption token(s) — a caption is not a render"
   },
   {
    "section": "card",
@@ -1415,49 +1415,49 @@
    "id": "rfq-opportunities-screen",
    "name": "a NEW OPPORTUNITIES screen",
    "ok": true,
-   "ev": "5 file(s) put an opportunity list next to opportunity content [SupplierPortal.tsx ProductIntelligence.tsx SupplierAdvisor.tsx SupplierOpportunities.tsx SupplierTwin.tsx]; inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ev": "7 file(s) put an opportunity list next to opportunity content [SupplierPortal.tsx ProductIntelligence.tsx SupplierAdvisor.tsx SupplierDocumentImpact.tsx SupplierOpportunities.tsx SupplierQuoteBuilder.tsx SupplierTwin.tsx]; inquiries 7, quotes 25, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rfq",
    "id": "rfq-project-title",
    "name": "the opportunity shows project title",
    "ok": true,
-   "ev": "project title: rendered yes, served by [fn_supplier_opportunities] (0 fn(s) name it outside any RFQ context: [none]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ev": "project title: rendered yes, served by [fn_supplier_opportunities] (0 fn(s) name it outside any RFQ context: [none]); inquiries 7, quotes 25, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rfq",
    "id": "rfq-requirement",
    "name": "the opportunity shows the requirement",
    "ok": true,
-   "ev": "the requirement: rendered yes, served by [fn_supplier_opportunities fn_supplier_tier] (0 fn(s) name it outside any RFQ context: [none]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ev": "the requirement: rendered yes, served by [fn_supplier_opportunities fn_supplier_tier] (0 fn(s) name it outside any RFQ context: [none]); inquiries 7, quotes 25, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rfq",
    "id": "rfq-quantity",
    "name": "the opportunity shows quantity",
    "ok": true,
-   "ev": "quantity: rendered yes, served by [messages_api supplier_api] (4 fn(s) name it outside any RFQ context: [messages_api quote_extract supplier_api supplier_pay]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ev": "quantity: rendered yes, served by [messages_api supplier_api] (4 fn(s) name it outside any RFQ context: [messages_api quote_extract supplier_api supplier_pay]); inquiries 7, quotes 25, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rfq",
    "id": "rfq-deadline",
    "name": "the opportunity shows deadline",
    "ok": true,
-   "ev": "deadline: rendered yes, served by [supplier_portal] (3 fn(s) name it outside any RFQ context: [ai_gateway supplier_pay supplier_portal]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ev": "deadline: rendered yes, served by [supplier_portal] (3 fn(s) name it outside any RFQ context: [ai_gateway supplier_pay supplier_portal]); inquiries 7, quotes 25, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rfq",
    "id": "rfq-ai-match-pct",
    "name": "the opportunity shows AI match %",
    "ok": true,
-   "ev": "AI match %: rendered yes, served by [fn_supplier_opportunities fn_supplier_product_match fn_supplier_products] (1 fn(s) name it outside any RFQ context: [supplier_portal]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ev": "AI match %: rendered yes, served by [fn_supplier_opportunities fn_supplier_product_match fn_supplier_products] (1 fn(s) name it outside any RFQ context: [supplier_portal]); inquiries 7, quotes 25, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rfq",
    "id": "rfq-estimated-value",
    "name": "the opportunity shows estimated opportunity value",
    "ok": true,
-   "ev": "estimated opportunity value: rendered yes, served by [fn_supplier_opportunities] (0 fn(s) name it outside any RFQ context: [none]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ev": "estimated opportunity value: rendered yes, served by [fn_supplier_opportunities] (0 fn(s) name it outside any RFQ context: [none]); inquiries 7, quotes 25, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rfq",
@@ -1471,21 +1471,21 @@
    "id": "rfq-feed-routine",
    "name": "the opportunity feed is computed server-side for this supplier",
    "ok": true,
-   "ev": "4 fn(s) scope a feed to the caller [messages_api rfq_flag supplier_api supplier_portal]; 13 matching routine(s) in public; inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ev": "4 fn(s) scope a feed to the caller [messages_api rfq_flag supplier_api supplier_portal]; 13 matching routine(s) in public; inquiries 7, quotes 25, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rank",
    "id": "rank-recommended-list",
    "name": "a \"Recommended For You\" list",
    "ok": true,
-   "ev": "2 file(s) pair recommendation language with opportunities [SupplierPortal.tsx SupplierOpportunities.tsx]"
+   "ev": "3 file(s) pair recommendation language with opportunities [SupplierPortal.tsx SupplierOpportunities.tsx SupplierQuoteBuilder.tsx]"
   },
   {
    "section": "rank",
    "id": "rank-ordered",
    "name": "ranked ordering, not chronological",
    "ok": true,
-   "ev": "10 fn(s) order by a SCORE [fn_ai_route fn_faq_answer fn_llm_cache_lookup fn_supplier_advisor fn_supplier_network_map fn_supplier_opportunities fn_supplier_product_match fn_supplier_products fn_supplier_tier fn_supplier_workspaces]; 8 order by date [kyc login_otp messages_api supplier_api supplier_portal fn_supplier_negotiation fn_supplier_products fn_supplier_workspaces] — a chronological inbox is what §10 rejects"
+   "ev": "12 fn(s) order by a SCORE [fn_ai_route fn_faq_answer fn_llm_cache_lookup fn_supplier_advisor fn_supplier_document_impact fn_supplier_network_map fn_supplier_opportunities fn_supplier_product_match fn_supplier_products fn_supplier_quote_recommend fn_supplier_tier fn_supplier_workspaces]; 9 order by date [kyc login_otp messages_api supplier_api supplier_portal fn_supplier_market fn_supplier_negotiation fn_supplier_products fn_supplier_workspaces] — a chronological inbox is what §10 rejects"
   },
   {
    "section": "rank",
@@ -1499,7 +1499,7 @@
    "id": "rank-why-reasons",
    "name": "a \"Why\" explanation list is rendered",
    "ok": true,
-   "ev": "4 file(s) pair explanation language with ranking [SupplierAdvisor.tsx SupplierEntryHero.tsx SupplierNegotiation.tsx SupplierOpportunities.tsx]"
+   "ev": "5 file(s) pair explanation language with ranking [SupplierAdvisor.tsx SupplierEntryHero.tsx SupplierNegotiation.tsx SupplierOpportunities.tsx SupplierQuoteBuilder.tsx]"
   },
   {
    "section": "rank",
@@ -1527,77 +1527,77 @@
    "id": "rank-routine",
    "name": "ranking is computed by a routine, not a client-side sort",
    "ok": true,
-   "ev": "2 server fn(s) rank [fn_supplier_opportunities fn_supplier_tier]; 1 client-side .sort( call(s) on the portal — a browser sort is not AI ranking"
+   "ev": "3 server fn(s) rank [fn_supplier_opportunities fn_supplier_quote_recommend fn_supplier_tier]; 1 client-side .sort( call(s) on the portal — a browser sort is not AI ranking"
   },
   {
    "section": "qb",
    "id": "qb-builder-surface",
    "name": "a quote-builder surface where AI proposes terms",
    "ok": true,
-   "ev": "2 file(s) pair recommendation language with quoting [SupplierAdvisor.tsx SupplierNegotiation.tsx]; 6 quote-EXTRACTION token(s) excluded — OCR of a quote the supplier wrote is not AI proposing one"
+   "ev": "4 file(s) pair recommendation language with quoting [SupplierPortal.tsx SupplierAdvisor.tsx SupplierNegotiation.tsx SupplierQuoteBuilder.tsx]; 6 quote-EXTRACTION token(s) excluded — OCR of a quote the supplier wrote is not AI proposing one"
   },
   {
    "section": "qb",
    "id": "qb-nl-intent",
    "name": "a natural-language \"I want to quote this project\" entry",
-   "ok": false,
-   "ev": "0 portal file(s) carry a natural-language quoting intent [none] — the marketing chat bubble is excluded"
+   "ok": true,
+   "ev": "1 portal file(s) carry a natural-language quoting intent [SupplierQuoteBuilder.tsx] — the marketing chat bubble is excluded"
   },
   {
    "section": "qb",
    "id": "qb-recommend-price",
    "name": "the builder proposes a recommended price",
-   "ok": false,
-   "ev": "a recommended price: recommended on 0 file(s), computed by [NO fn]; 1 negotiation surface(s) excluded — reading back a quote the supplier already wrote is not proposing one; field present on the portal yes — a field the supplier TYPES is what §11 replaces"
+   "ok": true,
+   "ev": "a recommended price: recommended on 1 file(s), computed by [fn_supplier_quote_recommend]; 1 negotiation surface(s) excluded — reading back a quote the supplier already wrote is not proposing one; field present on the portal yes — a field the supplier TYPES is what §11 replaces"
   },
   {
    "section": "qb",
    "id": "qb-market-position",
    "name": "the builder proposes market position",
-   "ok": false,
-   "ev": "market position: recommended on 0 file(s), computed by [NO fn]; 0 negotiation surface(s) excluded — reading back a quote the supplier already wrote is not proposing one; field present on the portal yes — a field the supplier TYPES is what §11 replaces"
+   "ok": true,
+   "ev": "market position: recommended on 1 file(s), computed by [fn_supplier_quote_recommend]; 0 negotiation surface(s) excluded — reading back a quote the supplier already wrote is not proposing one; field present on the portal yes — a field the supplier TYPES is what §11 replaces"
   },
   {
    "section": "qb",
    "id": "qb-delivery-estimate",
    "name": "the builder proposes a delivery estimate",
-   "ok": false,
-   "ev": "a delivery estimate: recommended on 0 file(s), computed by [NO fn]; 1 negotiation surface(s) excluded — reading back a quote the supplier already wrote is not proposing one; field present on the portal yes — a field the supplier TYPES is what §11 replaces"
+   "ok": true,
+   "ev": "a delivery estimate: recommended on 1 file(s), computed by [fn_supplier_quote_recommend]; 1 negotiation surface(s) excluded — reading back a quote the supplier already wrote is not proposing one; field present on the portal yes — a field the supplier TYPES is what §11 replaces"
   },
   {
    "section": "qb",
    "id": "qb-risk-level",
    "name": "the builder proposes a risk level",
-   "ok": false,
-   "ev": "a risk level: recommended on 0 file(s), computed by [NO fn]; 0 negotiation surface(s) excluded — reading back a quote the supplier already wrote is not proposing one; field present on the portal yes — a field the supplier TYPES is what §11 replaces"
+   "ok": true,
+   "ev": "a risk level: recommended on 1 file(s), computed by [fn_supplier_quote_recommend]; 0 negotiation surface(s) excluded — reading back a quote the supplier already wrote is not proposing one; field present on the portal yes — a field the supplier TYPES is what §11 replaces"
   },
   {
    "section": "qb",
    "id": "qb-warranty-suggestion",
    "name": "the builder proposes a suggested warranty",
-   "ok": false,
-   "ev": "a suggested warranty: recommended on 0 file(s), computed by [NO fn]; 1 negotiation surface(s) excluded — reading back a quote the supplier already wrote is not proposing one; field present on the portal yes — a field the supplier TYPES is what §11 replaces"
+   "ok": true,
+   "ev": "a suggested warranty: recommended on 1 file(s), computed by [fn_supplier_quote_recommend]; 1 negotiation surface(s) excluded — reading back a quote the supplier already wrote is not proposing one; field present on the portal yes — a field the supplier TYPES is what §11 replaces"
   },
   {
    "section": "qb",
    "id": "qb-routine",
    "name": "a server routine produces the quote recommendation",
-   "ok": false,
-   "ev": "0 fn(s) pair a PROPOSAL field with recommendation [none]; 1 merely put \"quote\" near \"recommend\" [supplier_portal]; 1 perform quote EXTRACTION [supplier_api] — a different mechanism"
+   "ok": true,
+   "ev": "1 fn(s) pair a PROPOSAL field with recommendation [fn_supplier_quote_recommend]; 1 merely put \"quote\" near \"recommend\" [supplier_portal]; 1 perform quote EXTRACTION [supplier_api] — a different mechanism"
   },
   {
    "section": "qb",
    "id": "qb-writes-quote",
    "name": "accepting the recommendation creates a real quote",
    "ok": true,
-   "ev": "3 fn(s) write a quote row [rfq_flag supplier_api supplier_portal]; inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ev": "3 fn(s) write a quote row [rfq_flag supplier_api supplier_portal]; inquiries 7, quotes 25, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "neg",
    "id": "neg-assistant-surface",
    "name": "a negotiation-assistant surface",
    "ok": true,
-   "ev": "1 file(s) pair negotiation with pricing [SupplierNegotiation.tsx]; 152 raw messaging token(s) — a message thread is the transport, not the assistant"
+   "ev": "2 file(s) pair negotiation with pricing [SupplierPortal.tsx SupplierNegotiation.tsx]; 157 raw messaging token(s) — a message thread is the transport, not the assistant"
   },
   {
    "section": "neg",

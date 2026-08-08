@@ -122,16 +122,20 @@ Deno.serve(async (req) => {
     // demand, projects and shipments return EMPTY with a stated basis, because there are 0
     // inquiries and no shipments relation at all. A globe speckled with invented demand looks like
     // market intelligence and is nothing.
-    // ROW #5 §14 — MARKET INTELLIGENCE, with an honest ceiling. Competitor counts and supply
-    // composition are real (20,464 leads with sectors and emirates). Demand trend, most-requested
-    // and average price return available:false with the empty population named, because there are
-    // 0 inquiries and 0 quotes. An arrow reading "HVAC demand up 18%" against zero inquiries is
-    // indistinguishable from real market intelligence on screen, and a supplier could staff up on it.
-    // ROW #5 §18 — COLLABORATION WORKSPACES, one per customer relationship. Returns an empty list
-    // with its population named on production today, because 0 inquiries and 0 matches exist. It is
-    // NOT seeded with a demo relationship: one inquiry insert fires twelve triggers including
-    // fn_emit_event('inquiry','rfq.created'), which would inject a synthetic event into row #2's
-    // separately-measured event backbone. That is the founder's call, not a side effect.
+    // ROW #5 §14 — MARKET INTELLIGENCE. Competitor counts and supply composition are real (20,464
+    // leads with sectors and emirates). Demand trend, most-requested and average price are COMPUTED
+    // from their populations and fall back to available:false with the empty population named — the
+    // availability flag is derived from a count, not hard-coded, so the routine tells the truth on
+    // both sides of the day a category starts trading. An arrow reading "HVAC demand up 18%" against
+    // zero inquiries would be indistinguishable from real market intelligence on screen, so the
+    // percentage stays NULL whenever the prior period is empty rather than being computed from zero.
+    // Demo fixtures and live rows are partitioned symmetrically inside the routine, so the demo
+    // market cannot move a real supplier's competitor count or market price.
+    // ROW #5 §18 — COLLABORATION WORKSPACES, one per customer relationship. Seeded on both projects
+    // with one fenced demo relationship (scripts/sql/demo_inquiry_row5.sql) under the founder's
+    // standing "create demo for whatever is needed". The cost was stated rather than hidden: each
+    // inquiry insert fires fn_emit_event('inquiry','rfq.created'), which injects a synthetic row
+    // into row #2's separately-measured event backbone for that row's next run to subtract.
     if (action === 'workspaces') {
       const { data: ws, error } = await admin.rpc('fn_supplier_workspaces', { p_lead_id: supId });
       if (error) return J({ error: error.message }, 500);
@@ -142,6 +146,27 @@ Deno.serve(async (req) => {
       const { data: mkt, error } = await admin.rpc('fn_supplier_market', { p_lead_id: supId });
       if (error) return J({ error: error.message }, 500);
       return J({ ok: true, ...mkt });
+    }
+
+    // ROW #5 §11 — THE AI QUOTE BUILDER. fn_supplier_quote_recommend proposes the price, delivery,
+    // warranty, terms, market position and risk for THIS supplier on ONE enquiry, computed from the
+    // competing bids on that same enquiry. p_lead_id is the authenticated supplier, never a
+    // parameter — a supplier must not be able to ask what someone else should charge, and the
+    // routine's `your_index` leg reads that supplier's own pricing history.
+    if (action === 'quote_recommend') {
+      const inqId = String(b.inquiry_id || '');
+      if (!inqId) return J({ error: 'inquiry_id required' }, 400);
+      const { data: rec, error } = await admin.rpc('fn_supplier_quote_recommend',
+        { p_lead_id: supId, p_inquiry_id: inqId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...rec });
+    }
+
+    // ROW #5 §16 §4 — WHAT EACH DOCUMENT IS EARNING, AND WHAT THE MISSING ONE IS COSTING.
+    if (action === 'document_impact') {
+      const { data: di, error } = await admin.rpc('fn_supplier_document_impact', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...di });
     }
 
     if (action === 'network_map') {

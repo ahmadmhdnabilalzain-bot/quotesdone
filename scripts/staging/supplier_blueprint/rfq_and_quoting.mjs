@@ -243,7 +243,19 @@ export default async function (H) {
     const recommended = filesNear(re, RECOMMEND, 300).filter((f) => !NEGOT.test(fileSrc(f)));
     const negFiltered = filesNear(re, RECOMMEND, 300).length - recommended.length;
     const typed = has(re, P);
-    const served = fnsNear(re, RECOMMEND, 400).filter((f) => !NEGOT.test(fnSrc(f)));
+    // ── THE RPC HOP, WHICH THIS FILE'S OWN HEADER WARNS ABOUT AND THIS LEG DID NOT APPLY ─────────
+    // These five legs used raw fnsNear() — the edge tier only — while §10's legs twenty lines up
+    // already used the rpc-aware servedNear(). §11's recommendation is a SQL routine reached by
+    // rpc, and supplier_portal's quote_recommend action is a four-line passthrough carrying none of
+    // the field names, so the scan reported "computed by [NO fn]" about a routine answering 200 on
+    // production with a real median. Measured before this line was changed, not after.
+    //
+    // This loosens nothing, for the reason the header gives: RPC_NAMES comes from the .rpc('…')
+    // calls in reachable edge functions. It also TIGHTENS the negotiation exclusion, which
+    // previously could not reach an rpc routine at all — a routine full of negotiation vocabulary
+    // was invisible rather than excluded, and is now read and excluded on the same rule as a file.
+    const bodyOf = (nm) => { const hit = RPC.find(([n]) => n === nm); return hit ? hit[1] : fnSrc(nm); };
+    const served = servedNear(re, RECOMMEND, 400).filter((f) => !NEGOT.test(bodyOf(f)));
     await req(S11, id, `the builder proposes ${label}`,
       B(recommended.length > 0 && served.length > 0),
       Q(`${label}: recommended on ${recommended.length} file(s), computed by [${served.join(' ') || 'NO fn'}]; ` +
@@ -259,7 +271,9 @@ export default async function (H) {
   // Same exclusion as the five field legs above: the negotiation assistant pairs PROPOSAL words
   // with RECOMMEND words all day and proposes no quote at all.
   const QB_NEGOT = /negotiat|counter[_ ]?offer|discount|recommended[_ ]?response|price[_ ]?pressure|possible[_ ]?reduction/i;
-  const qbFn = fnsNear(PROPOSAL, RECOMMEND, 400).filter((f) => !QB_NEGOT.test(fnSrc(f)));
+  // Same rpc hop as the five field legs above, same reasoning, same preserved exclusions.
+  const qbBody = (nm) => { const hit = RPC.find(([n]) => n === nm); return hit ? hit[1] : fnSrc(nm); };
+  const qbFn = servedNear(PROPOSAL, RECOMMEND, 400).filter((f) => !QB_NEGOT.test(qbBody(f)));
   const looseQb = fnsNear(/quote/i, RECOMMEND, 500);
   await req(S11, 'qb-routine', 'a server routine produces the quote recommendation',
     B(qbFn.length > 0),

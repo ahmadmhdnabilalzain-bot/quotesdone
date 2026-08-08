@@ -9,6 +9,10 @@ import SupplierAdvisor from './supplier/SupplierAdvisor';
 import MarketIntelligence from './supplier/MarketIntelligence';
 import CollaborationWorkspace from './supplier/CollaborationWorkspace';
 import SupplierOnboarding from './supplier/SupplierOnboarding';
+import SupplierQuoteBuilder from './supplier/SupplierQuoteBuilder';
+import SupplierSettings from './supplier/SupplierSettings';
+import SupplierInventory from './supplier/SupplierInventory';
+import SupplierDocumentImpact from './supplier/SupplierDocumentImpact';
 import SupplierInsightBoard from './supplier/SupplierInsightBoard';
 import SupplierOpportunities from './supplier/SupplierOpportunities';
 import SupplierTier from './supplier/SupplierTier';
@@ -117,6 +121,8 @@ const T = {
     pp_fallback:'Once you quote on a few competitive RFQs, you will see how your pricing compares to the market here — without ever revealing anyone else pricing.',
     pf_company:'Company', pf_emirates:'Emirates you serve', pf_contact:'Contact & owner', contact_name:'Contact name *', mobile:'Mobile *',
     mobile_verified:'✓ Mobile verified', verify_my_mobile:'Verify my mobile →', sms_code:'6-digit SMS code', verify:'Verify',
+    email_verified:'✓ E-mail verified', email_unverified:'e-mail not yet verified',
+    reg_rest_optional:'Attach these two and you are done. Everything else is optional and can wait until you are inside.',
     wa_alerts:'Send me WhatsApp alerts when a matching RFQ comes in.', verify_first:'Please verify your mobile number first.',
     accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation (PDF/photo) — we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', loading_msgs:'Loading messages…', no_convos_h:'No conversations yet', no_convos_sub:'Once a customer reveals your quote on a project, you can request a direct chat with them here. Our assistant handles most questions instantly.', no_messages:'No messages yet', no_chat:'no chat', back:'← Back', type_message:'Type a message…', send:'Send', no_chat_open:'No chat open yet.', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', could_not_send:'Could not send.', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', no_history:'No history yet.', registering_pre:'Registering ', registering_post:'. Registration is free for every supplier until 31 July 2027; the first 1,000 to register stay free permanently.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no. *', authority:'Authority (DED / free zone)', lic_expiry:'Licence expiry', vat_trn:'VAT no. (TRN)', h_egr:'Establishment (EGR)', egr_no:'Economic Register (EGR) no.', egr_cert:'EGR / establishment certificate:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', h_bank:'Bank / payout', bank_name_ph:'Bank name', account_holder:'Account holder name', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).' },
   ar: { brand_sub:'بوابة المورّدين', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_dash:'جارٍ تحميل لوحتك…',
@@ -136,6 +142,8 @@ const T = {
     pp_fallback:'بمجرد تقديمك عروضًا على بعض طلبات التسعير التنافسية، سترى هنا كيف تقارن أسعارك بالسوق — دون الكشف عن أسعار أي طرف آخر.',
     pf_company:'الشركة', pf_emirates:'الإمارات التي تخدمها', pf_contact:'جهة الاتصال والمالك', contact_name:'اسم جهة الاتصال *', mobile:'الجوال *',
     mobile_verified:'✓ تم التحقق من الجوال', verify_my_mobile:'تحقّق من جوالي ←', sms_code:'رمز الرسالة (6 أرقام)', verify:'تحقّق',
+    email_verified:'✓ تم التحقق من البريد', email_unverified:'لم يتم التحقق من البريد بعد',
+    reg_rest_optional:'أرفق هذين الملفين وانتهيت. كل ما عدا ذلك اختياري ويمكن إكماله بعد الدخول.',
     wa_alerts:'أرسل لي تنبيهات واتساب عند وصول طلب تسعير مطابق.', verify_first:'يُرجى التحقق من رقم جوالك أولًا.',
     accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' الخاصة بمنصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتك، سيظهر هنا.', request_w:'طلب', you_won:' · فزت بالطلب', concluded:' · مُغلق', quoted:'قدّمت عرضًا: ', close:'إغلاق', quote:'قدّم عرضًا', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفع عرض السعر (PDF/صورة) — سنقرأه:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'أدخل مبلغًا صحيحًا.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ كمسودة — أضف التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضك', line_items:'بند', read_quote_post:'. راجعه وأرسله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'ارفع التجديدات قبل انتهائها — سنذكّرك هنا وسنوقف المطابقة إذا انتهى مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضك ويتعاقد معك، يظهر المشروع هنا.', project_w:'مشروع', loading_msgs:'جارٍ تحميل الرسائل…', no_convos_h:'لا توجد محادثات بعد', no_convos_sub:'بمجرد أن يكشف العميل عن عرضك في مشروع، يمكنك طلب محادثة مباشرة معه هنا. مساعدنا يجيب عن معظم الأسئلة فورًا.', no_messages:'لا رسائل بعد', no_chat:'لا محادثة', back:'→ رجوع', type_message:'اكتب رسالة…', send:'إرسال', no_chat_open:'لا توجد محادثة مفتوحة بعد.', ask_placeholder:'اطرح سؤالًا — يجيب مساعدنا فورًا، أو يفتح محادثة مباشرة عند الحاجة فعلًا.', ask_request:'اسأل / اطلب محادثة', assistant_pre:'المساعد: ', could_not_send:'تعذّر الإرسال.', sent_review:'أُرسل للمراجعة — سنُعلمك إذا فُتحت محادثة.', sent:'أُرسل.', no_history:'لا يوجد سجل بعد.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لجميع الموردين حتى 31 يوليو 2027، وأول 1,000 مورّد يسجّلون يبقون معفيين بشكل دائم.', corrected:' (مُصحّح من رخصتك)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفع رخصتك وسنقرأ الرقم والجهة وتاريخ الانتهاء والرقم الضريبي تلقائيًا.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية *', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما الذي تقدّمه', products_ph:'المنتجات التي توردها (مفصولة بفواصل)', services_ph:'الخدمات التي تقدّمها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', h_bank:'البنك / التحويل', bank_name_ph:'اسم البنك', account_holder:'اسم صاحب الحساب', add_contact_phone:'أضف اسم جهة الاتصال ورقم الهاتف.', add_license:'أضف رقم رخصتك التجارية (أو ارفع الرخصة لتعبئته تلقائيًا).', could_not_save:'تعذّر حفظ ملفك.', save_error:'حدث خطأ أثناء حفظ ملفك. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتك', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'يوماً متبقياً لمعالجة هذا', ar_overdue:'تجاوز الموعد - قد يُعلَّق حسابك', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).' }
 };
@@ -243,7 +251,7 @@ function Dashboard({ token, lang }) {
   if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{err === 'load_err' ? t(lang, 'err_generic') : err}</div></Card></div>;
   if (!ov) return <div className={S.center}>{t(lang, 'loading_dash')}</div>;
   const s = ov.stats || {}; const pp = s.price_positioning || {};
-  const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing'), profile: lang === 'ar' ? 'الملف' : 'Profile', twin: lang === 'ar' ? 'التوأم الرقمي' : 'Digital Twin', products: lang === 'ar' ? 'المنتجات' : 'Products', assistant: lang === 'ar' ? 'المساعد' : 'AI Assistant', environment: lang === 'ar' ? 'البيئة ثلاثية الأبعاد' : '3D Environment', network: lang === 'ar' ? 'خريطة الشبكة' : 'Network Map', market: lang === 'ar' ? 'ذكاء السوق' : 'Market', workspaces: lang === 'ar' ? 'مساحات العمل' : 'Workspaces', onboarding: lang === 'ar' ? 'إعداد الملف' : 'Set up my profile', board: lang === 'ar' ? 'لوحة الرؤى' : 'Insight Board', recommended: lang === 'ar' ? 'موصى به لك' : 'Recommended', ranking: lang === 'ar' ? 'التصنيف' : 'Supplier Score', negotiation: lang === 'ar' ? 'مساعد التفاوض' : 'Negotiation AI', certifications: lang === 'ar' ? 'الشهادات' : 'Certifications' };
+  const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing'), profile: lang === 'ar' ? 'الملف' : 'Profile', twin: lang === 'ar' ? 'التوأم الرقمي' : 'Digital Twin', products: lang === 'ar' ? 'المنتجات' : 'Products', assistant: lang === 'ar' ? 'المساعد' : 'AI Assistant', environment: lang === 'ar' ? 'البيئة ثلاثية الأبعاد' : '3D Environment', network: lang === 'ar' ? 'خريطة الشبكة' : 'Network Map', market: lang === 'ar' ? 'ذكاء السوق' : 'Market', workspaces: lang === 'ar' ? 'مساحات العمل' : 'Workspaces', onboarding: lang === 'ar' ? 'إعداد الملف' : 'Set up my profile', board: lang === 'ar' ? 'لوحة الرؤى' : 'Insight Board', recommended: lang === 'ar' ? 'موصى به لك' : 'Recommended', ranking: lang === 'ar' ? 'التصنيف' : 'Supplier Score', negotiation: lang === 'ar' ? 'مساعد التفاوض' : 'Negotiation AI', certifications: lang === 'ar' ? 'الشهادات' : 'Certifications', quote: lang === 'ar' ? 'منشئ عروض الأسعار' : 'Quote Builder', inventory: lang === 'ar' ? 'المخزون' : 'Inventory', settings: lang === 'ar' ? 'الإعدادات' : 'Settings' };
   // 'profile' is new. ProfileForm previously rendered only from Onboarding, which shows solely
   // while supplier_portal returns no_company — so the moment a supplier registered, every field
   // in it became permanently unreachable: contact name, phone, products, services, description,
@@ -254,7 +262,7 @@ function Dashboard({ token, lang }) {
   // lives in its own component file (portal/supplier/SupplierTwin.tsx) rather than here: this file
   // is already 81,811 stripped characters holding six unrelated features, and that size is what
   // made three separate scorer refutation rounds necessary.
-  const TABS = ['overview', 'board', 'recommended', 'ranking', 'negotiation', 'certifications', 'onboarding', 'twin', 'environment', 'network', 'market', 'workspaces', 'assistant', 'products', 'rfqs', 'documents', 'profile', 'projects', 'messages', 'billing'];
+  const TABS = ['overview', 'board', 'recommended', 'quote', 'ranking', 'negotiation', 'certifications', 'onboarding', 'twin', 'environment', 'network', 'market', 'workspaces', 'assistant', 'products', 'inventory', 'rfqs', 'documents', 'profile', 'projects', 'messages', 'settings', 'billing'];
   return (
     <div className={S.wrap}>
       <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
@@ -288,6 +296,9 @@ function Dashboard({ token, lang }) {
       {tab === 'negotiation' && <SupplierNegotiation token={token} lang={lang} />}
       {tab === 'certifications' && <SupplierCertifications token={token} lang={lang} goTo={setTab} />}
       {tab === 'onboarding' && <SupplierOnboarding token={token} lang={lang} goTo={setTab} />}
+      {tab === 'quote' && <SupplierQuoteBuilder token={token} lang={lang} />}
+      {tab === 'inventory' && <SupplierInventory token={token} lang={lang} goTo={setTab} />}
+      {tab === 'settings' && <SupplierSettings token={token} lang={lang} />}
       {tab === 'workspaces' && <CollaborationWorkspace token={token} lang={lang} goTo={setTab} />}
       {tab === 'assistant' && <SupplierAdvisor token={token} lang={lang} goTo={setTab} />}
       {tab === 'billing' && <BillingPanel token={token} lang={lang} />}
@@ -297,6 +308,10 @@ function Dashboard({ token, lang }) {
             real buttons — they were clickable divs, so keyboard users could not reach them at all. */}
         {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => <button key={i} type="button" className="qd-panel qd-panel-hover w-full text-start px-4 py-3.5 cursor-pointer flex items-start gap-3" onClick={() => setTab(a.action === 'documents' ? 'documents' : 'rfqs')}><span aria-hidden className={cn('mt-[7px] h-2 w-2 rounded-full shrink-0', a.severity === 'high' ? 'bg-red-400' : a.severity === 'medium' ? 'bg-amber-300' : 'bg-primary')} /><span className="flex flex-col gap-0.5 min-w-0"><b className="text-[13.5px] text-white">{a.title}</b><span className="text-muted-foreground text-xs leading-[1.6]">{a.detail}</span></span></button>)}</div>}
         <EligibilityPanel token={token} lang={lang} goProfile={() => setTab('profile')} goDocs={() => setTab('documents')} />
+        {/* §4's assistant has to name a concrete gap AND quantify what closing it is worth. The
+            counts come from fn_supplier_document_impact, so "6 more opportunities" is a count of
+            open enquiries in this supplier's trade rather than the spec's illustrative figure. */}
+        <div className="mb-4"><SupplierDocumentImpact token={token} lang={lang} goTo={setTab} /></div>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5 mb-4">
           <Kpi label={t(lang, 'k_quotes_sent')} v={s.quotes_total ?? 0} />
           <Kpi label={t(lang, 'k_reveals')} v={s.reveals ?? 0} />
@@ -883,31 +898,63 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     <div className={cn(S.sub, 'font-semibold mt-1.5')}>{t(lang, 'pf_emirates')}</div>
     <div className="flex gap-2 flex-wrap mt-2">{EMIRATES.map((e) => <button key={e} className={cn(S.chip, emirates.includes(e) && S.chipOn)} onClick={() => toggleEm(e)}>{e}</button>)}</div>
 
-    <div className={cn(S.h2, 'mt-4')}>{t(lang, 'pf_contact')}</div>
-    <div className={S.frow}><Input placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /><Input placeholder={t(lang, 'mobile')} value={f.phone} onChange={(e) => set('phone', e.target.value)} /></div>
-    {phoneVerified ? <div className={cn(S.sub, 'font-semibold')} style={{ color: 'hsl(var(--primary))' }}>{t(lang, 'mobile_verified')}</div> : (!smsSent ? <Button variant="link" className="px-0 h-auto mt-1.5" disabled={vbusy} onClick={sendSms}>{vbusy ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button> : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input placeholder={t(lang, 'sms_code')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /><Button size="sm" disabled={vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div></>)}
-    <div className={S.frow}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></div>
-    <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" checked={wa} onChange={(e) => setWa(e.target.checked)} /> {t(lang, 'wa_alerts')}</label>
+    {/* ── REGISTRATION ASKS FOR FIVE THINGS ───────────────────────────────────────────────────────
+        Founder decision, 8 Aug 2026, verbatim: "20 fields form? why? it should be much simpler.
+        once someone attach the trade license, we automatically extract most of the information,
+        then we need company profile and catalogue, mobile number, email and thats it. anything
+        else is optional. of course both email and mobile need to be verified."
 
+        So the registration path is: the licence (which fills the licence number and authority by
+        extraction, not by typing), the company profile, the catalogue, a verified mobile and a
+        verified e-mail. Everything else this form can capture is REAL and still saved — it has
+        simply moved to the Profile tab, where a supplier edits their own details after they are in.
+        Nothing was deleted; the questions were moved off the front door.
+
+        The typed licence number and authority stay visible during registration ONLY as a fallback
+        for a licence the extractor could not read, which is why they sit behind `!licNote` — once
+        extraction has succeeded there is nothing left to type and asking anyway would be the
+        twenty-field wall arriving through a different door. */}
     <div className={cn(S.h2, 'mt-4')}>{t(lang, 'h_trade')}</div>
     {!isEdit && <>
       <div className={cn(S.sub, 'mb-1.5')}>{t(lang, 'trade_sub')}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><FilePick lang={lang} accept="image/*,application/pdf" onPick={(fl) => fl && upLicense(fl)} />{uploading && <span className={S.sub}>{t(lang, 'reading_lic')}</span>}</div>
       {licNote && <div className={cn(S.sub, 'font-semibold')} style={{ color: 'hsl(var(--primary))' }}>{licNote}</div>}
     </>}
-    <div className={S.frow}><Input placeholder={t(lang, 'lic_no')} value={f.trade_license_no} onChange={(e) => set('trade_license_no', e.target.value)} /><Input placeholder={t(lang, 'authority')} value={f.license_authority} onChange={(e) => set('license_authority', e.target.value)} /></div>
-
+    {(isEdit || !licNote) && <div className={S.frow}><Input placeholder={t(lang, 'lic_no')} value={f.trade_license_no} onChange={(e) => set('trade_license_no', e.target.value)} /><Input placeholder={t(lang, 'authority')} value={f.license_authority} onChange={(e) => set('license_authority', e.target.value)} /></div>}
 
     {/* The establishment card lived here AND in the Documents tab — the same attachment asked for
         twice. It is optional and never gates verification, so it has no place in the registration
         form. Documents is now the single home for it. The egr_number field and its upload handler
         remain in this component and still submit if populated; only the duplicated prompt is gone. */}
 
-    <div className={cn(S.h2, 'mt-4')}>{t(lang, 'h_offer')}</div>
-    <Input className="mt-3" placeholder={t(lang, 'products_ph')} value={f.products} onChange={(e) => set('products', e.target.value)} />
-    <Input className="mt-3" placeholder={t(lang, 'services_ph')} value={f.services} onChange={(e) => set('services', e.target.value)} />
-    <textarea className={S.area} rows={3} placeholder={t(lang, 'desc_ph')} value={f.description} onChange={(e) => set('description', e.target.value)} />
+    <div className={cn(S.h2, 'mt-4')}>{t(lang, 'pf_contact')}</div>
+    {/* E-mail is not asked for. The supplier signed in with it, so the platform already holds it and
+        already knows whether it is confirmed — asking again would be a field whose only possible
+        answer is the one we have. It is SHOWN with its verification state instead. */}
+    <div className={cn(S.sub, 'mb-1.5')}>
+      {me.claimed_by || ''}
+      {me.owner_email_verified
+        ? <b style={{ color: 'hsl(var(--primary))' }}> · {t(lang, 'email_verified')}</b>
+        : <b className="text-amber-300"> · {t(lang, 'email_unverified')}</b>}
+    </div>
+    <div className={S.frow}><Input placeholder={t(lang, 'mobile')} value={f.phone} onChange={(e) => set('phone', e.target.value)} /></div>
+    {phoneVerified ? <div className={cn(S.sub, 'font-semibold')} style={{ color: 'hsl(var(--primary))' }}>{t(lang, 'mobile_verified')}</div> : (!smsSent ? <Button variant="link" className="px-0 h-auto mt-1.5" disabled={vbusy} onClick={sendSms}>{vbusy ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button> : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input placeholder={t(lang, 'sms_code')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /><Button size="sm" disabled={vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div></>)}
+
+    {/* ── OPTIONAL, AND ONLY ON THE PROFILE TAB ───────────────────────────────────────────────────
+        Contact name, signatory, products, services and the description are all optional by the
+        founder's decision. They still save through exactly the same payload; they are asked once
+        the supplier is inside rather than standing between them and the door. */}
+    {isEdit && <>
+      <div className={S.frow}><Input placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></div>
+      <div className={cn(S.h2, 'mt-4')}>{t(lang, 'h_offer')}</div>
+      <Input className="mt-3" placeholder={t(lang, 'products_ph')} value={f.products} onChange={(e) => set('products', e.target.value)} />
+      <Input className="mt-3" placeholder={t(lang, 'services_ph')} value={f.services} onChange={(e) => set('services', e.target.value)} />
+      <textarea className={S.area} rows={3} placeholder={t(lang, 'desc_ph')} value={f.description} onChange={(e) => set('description', e.target.value)} />
+    </>}
+    <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" checked={wa} onChange={(e) => setWa(e.target.checked)} /> {t(lang, 'wa_alerts')}</label>
     {!isEdit && <>
+      <div className={cn(S.h2, 'mt-4')}>{t(lang, 'h_offer')}</div>
+      <div className={cn(S.sub, 'mb-1')}>{t(lang, 'reg_rest_optional')}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'company_profile_pdf')}</span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" onPick={setProfileFile} />{profileFile && <span className={S.sub}>{profileFile.name}</span>}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'catalogs_ph')}</span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" multiple onPick={(a) => setCatalogFiles((a || []).slice(0, 5))} />{catalogFiles.length ? <span className={S.sub}>{catalogFiles.length} {t(lang, 'selected')}</span> : null}</div>
     </>}

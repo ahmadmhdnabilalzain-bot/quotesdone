@@ -22,8 +22,10 @@ const ROUTINES = [
   'fn_supplier_opportunities', 'fn_supplier_tier', 'fn_supplier_negotiation',
   'fn_supplier_certifications', 'fn_supplier_product_match', 'fn_supplier_risk_monitor',
   'fn_rating_due', 'fn_lead_time_interval',
+  // Part 4: §11's quote builder and §16/§4's document impact.
+  'fn_supplier_quote_recommend', 'fn_supplier_document_impact',
 ];
-const EDGE_FNS = ['supplier_portal', 'supplier_onboard', 'supplier_catalog_ingest'];
+const EDGE_FNS = ['supplier_portal', 'supplier_onboard', 'supplier_catalog_ingest', 'supplier_api'];
 const CRONS = ['supplier_risk_complaints', 'supplier_risk_response_delays', 'supplier_risk_performance_drops'];
 
 let bad = 0;
@@ -68,23 +70,36 @@ for (const ref of [STAGE, PROD_REF]) {
 // Counts, not ids: the two projects allocate their own keys, so an id comparison would report drift
 // that is not drift. What must match is that the fixture EXISTS and is fenced on each.
 console.log('\nDEMO FIXTURES');
+// rfq_ready IS AN AGGREGATE NOW, AND THAT IS NOT A STYLE CHOICE. The first version read
+// `(select rfq_ready from public.inquiries where brief_source='qd_demo_fixture')` — a bare scalar
+// subselect that was correct while exactly one fixture existed and raises 21000 the moment a second
+// one does. Part 4 seeded six more, so the gate that proves the production fence would have died
+// with a SQL error instead of reporting on the fence. It now counts the rows that BREACH the fence,
+// which is the question being asked and is independent of how many fixtures there are.
 const fx = (ref) => mgmtRead(ref, `select
-    (select count(*) from public.leads where place_id='qd-demo-supplier-001')::text supplier,
+    (select count(*) from public.leads where source='qd_demo_fixture')::text supplier,
     (select count(*) from public.inquiries where brief_source='qd_demo_fixture')::text inquiry,
-    (select coalesce((select rfq_ready::text from public.inquiries where brief_source='qd_demo_fixture'),'null')) rfq_ready,
+    (select count(*) from public.inquiries where brief_source='qd_demo_fixture' and rfq_ready is true)::text rfq_ready_true,
     (select count(*) from public.quotes where source='qd_demo_fixture')::text quote,
     (select count(*) from public.transactions t join public.quotes q on q.id=t.quote_id where q.source='qd_demo_fixture')::text reveal,
     (select count(*) from public.messages m join public.inquiries i on i.id=m.inquiry_id where i.brief_source='qd_demo_fixture')::text message,
-    (select count(*) from public.supplier_product where supplier_id=(select id from public.leads where place_id='qd-demo-supplier-001'))::text products,
-    (select count(*) from public.notifications n join public.inquiries i on i.id=n.inquiry_id where i.brief_source='qd_demo_fixture')::text notifs`);
+    (select count(*) from public.supplier_product where supplier_id in (select id from public.leads where source='qd_demo_fixture'))::text products,
+    (select count(*) from public.inquiry_matches m join public.inquiries i on i.id=m.inquiry_id where i.brief_source='qd_demo_fixture')::text matches,
+    -- Both legs a notification can arrive by. The quote leg is new in part 4: notify_new_quote_sms
+    -- addresses a CUSTOMER, and twenty-four fenced quotes would have found it if customer_id were
+    -- ever non-null. Counting only the inquiry leg would have missed that entirely.
+    (select count(*) from public.notifications n
+       where n.inquiry_id in (select id from public.inquiries where brief_source='qd_demo_fixture')
+          or n.quote_id in (select id from public.quotes where source='qd_demo_fixture'))::text notifs`);
 const [sf, pf] = await Promise.all([fx(STAGE), fx(PROD_REF)]);
 for (const k of Object.keys(sf[0])) {
   const s = sf[0][k], p = pf[0][k];
   const same = String(s) === String(p);
   console.log(`  ${same ? 'ok ' : '≠  '} ${k.padEnd(10)} staging ${String(s).padEnd(6)} production ${p}`);
   // The fence legs must hold on production regardless of whether the counts match.
-  if (k === 'rfq_ready' && p === 'true') fail('production demo inquiry has rfq_ready=true — dispatch could fire');
-  if (k === 'notifs' && Number(p) > 0) fail(`production demo has ${p} queued notification(s)`);
+  if (k === 'rfq_ready_true' && Number(p) > 0) fail(`${p} production demo inquiry(s) have rfq_ready=true — dispatch could fire`);
+  if (k === 'notifs' && Number(p) > 0) fail(`production demo has ${p} notification(s) addressed to somebody`);
+  if (k === 'matches' && Number(p) > 0) fail(`${p} production demo inquiry_matches exist — a fixture reached the matcher`);
 }
 
 console.log(bad ? `\nSTAGING-ONLY WORK FOUND: ${bad} item(s)` : '\nCLEAN: nothing from this session is staging-only, and the production fences hold.');
