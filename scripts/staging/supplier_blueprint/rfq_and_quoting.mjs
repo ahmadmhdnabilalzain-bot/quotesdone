@@ -224,13 +224,28 @@ export default async function (H) {
     ['qb-risk-level', /risk[_ ]?(level|score|rating)/i, 'a risk level'],
     ['qb-warranty-suggestion', /warrant(y|ies)/i, 'a suggested warranty'],
   ]) {
-    const recommended = filesNear(re, RECOMMEND, 300);
+    // ── AND NEGOTIATION IS SUBTRACTED TOO, FOR THE SAME REASON EXTRACTION IS ────────────────────
+    // On 8 Aug 2026 the §12 assistant was built and FOUR §11 legs flipped to MET off it —
+    // qb-recommend-price, qb-delivery-estimate, qb-warranty-suggestion and qb-routine — because
+    // `recommended_response` (a drafted REPLY) sits within 300 characters of the words price,
+    // lead_time and warranty. Every one was false. That assistant explicitly REFUSES to recommend
+    // a price, and the lead time and warranty it shows are the ones already ON the supplier's
+    // quote, echoed back.
+    //
+    // §11's premise is that the supplier writes nothing and the AI proposes the terms. §12 reads a
+    // quote the supplier has ALREADY written. Both live near the words "recommend" and "price", so
+    // the negotiation vocabulary is excluded by name exactly as the extraction vocabulary is, and
+    // both counts print so the exclusion stays auditable.
+    const NEGOT = /negotiat|counter[_ ]?offer|discount|recommended[_ ]?response|price[_ ]?pressure|possible[_ ]?reduction/i;
+    const recommended = filesNear(re, RECOMMEND, 300).filter((f) => !NEGOT.test(fileSrc(f)));
+    const negFiltered = filesNear(re, RECOMMEND, 300).length - recommended.length;
     const typed = has(re, P);
-    const served = fnsNear(re, RECOMMEND, 400);
+    const served = fnsNear(re, RECOMMEND, 400).filter((f) => !NEGOT.test(fnSrc(f)));
     await req(S11, id, `the builder proposes ${label}`,
       B(recommended.length > 0 && served.length > 0),
       Q(`${label}: recommended on ${recommended.length} file(s), computed by [${served.join(' ') || 'NO fn'}]; ` +
-        `field present on the portal ${typed ? 'yes' : 'no'} — a field the supplier TYPES is what §11 replaces`));
+        `${negFiltered} negotiation surface(s) excluded — reading back a quote the supplier already wrote ` +
+        `is not proposing one; field present on the portal ${typed ? 'yes' : 'no'} — a field the supplier TYPES is what §11 replaces`));
   }
 
   // "quote near recommend" passed on messages_api — the messaging endpoint — because the two words
@@ -238,7 +253,10 @@ export default async function (H) {
   // recommendation has to produce the things §11 says it produces, so the leg requires the proposal
   // vocabulary itself (a price, a delivery estimate, a warranty) rather than the word "recommend".
   const PROPOSAL = /price|delivery[_ ]?(days|time|estimate)|warrant(y|ies)|market[_ ]?position/i;
-  const qbFn = fnsNear(PROPOSAL, RECOMMEND, 400);
+  // Same exclusion as the five field legs above: the negotiation assistant pairs PROPOSAL words
+  // with RECOMMEND words all day and proposes no quote at all.
+  const QB_NEGOT = /negotiat|counter[_ ]?offer|discount|recommended[_ ]?response|price[_ ]?pressure|possible[_ ]?reduction/i;
+  const qbFn = fnsNear(PROPOSAL, RECOMMEND, 400).filter((f) => !QB_NEGOT.test(fnSrc(f)));
   const looseQb = fnsNear(/quote/i, RECOMMEND, 500);
   await req(S11, 'qb-routine', 'a server routine produces the quote recommendation',
     B(qbFn.length > 0),
@@ -279,7 +297,11 @@ export default async function (H) {
     ['neg-possible-reduction', /possible[_ ]?reduction|max[_ ]?discount|room[_ ]?to[_ ]?move|reduction[_ ]?pct/i, 'the possible reduction'],
   ]) {
     const shown = delivered(re);
-    const served = fnsMatching(re);
+    // The rpc hop again: margin and the reduction scenarios are computed in
+    // fn_supplier_negotiation, so an edge-only scan named [kyc login_otp] — two functions that
+    // contain the word 'margin' for reasons of their own — while missing the routine that
+    // actually produces the number.
+    const served = servedBy(re);
     await req(S12, id, `the analysis shows ${label}`,
       B(shown && served.length > 0),
       Q(`${label}: rendered ${shown ? 'yes' : 'NO'}, served by [${served.join(' ') || 'NO fn'}]`));
