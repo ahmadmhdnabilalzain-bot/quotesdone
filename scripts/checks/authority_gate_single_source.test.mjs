@@ -16,17 +16,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
+import { readOneMigration } from './_migration_files.mjs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const migDir = join(root, 'supabase', 'migrations');
-const migs = readdirSync(migDir).filter((f) => f.endsWith('.sql')).sort();
-const find = (suffix) => {
-  const hit = migs.filter((f) => f.endsWith(suffix));
-  assert.equal(hit.length, 1, 'expected exactly one migration ending ' + suffix + ', found ' + hit.length);
-  return readFileSync(join(migDir, hit[0]), 'utf8');
-};
+// Looks in BOTH migration directories — the generated replay path and the archived history. The
+// question this guard asks is whether the repository still holds the migration, and it does; only
+// which folder changed. See scripts/checks/_migration_files.mjs.
+const find = (suffix) => readOneMigration(suffix, assert);
 
 const gates = find('_audit_71_declared_gates_become_the_runtime_gate.sql');
 const dropOverload = find('_audit_71_drop_the_regex_overload_that_would_have_won.sql');

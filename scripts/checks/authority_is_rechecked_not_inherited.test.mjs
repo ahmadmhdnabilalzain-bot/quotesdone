@@ -12,6 +12,7 @@
 // granting authority, AND the executor must stop trusting the grant.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readOneMigration } from './_migration_files.mjs';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -49,10 +50,10 @@ test('a task claiming more authority than the model grants is reported', () => {
 });
 
 test('the event dispatcher no longer grants the tier it writes', () => {
-  const migDir = join(root, 'supabase', 'migrations');
-  const mig = readdirSync(migDir).filter((f) => f.endsWith('_audit_71_declared_gates_become_the_runtime_gate.sql'));
-  assert.equal(mig.length, 1, 'the migration that rewrote fn_event_dispatch is not in the repo');
-  const sql = readFileSync(join(migDir, mig[0]), 'utf8');
+  // Both migration directories — the replay path and the archived history. The claim is that the
+  // repo still contains the migration, which it does; see scripts/checks/_migration_files.mjs.
+  const sql = readOneMigration('_audit_71_declared_gates_become_the_runtime_gate.sql', assert,
+    'the migration that rewrote fn_event_dispatch is not in the repo');
   const fn = sql.slice(sql.indexOf('function public.fn_event_dispatch'));
   assert.ok(fn.length > 0, 'fn_event_dispatch is not defined in that migration');
   assert.match(fn, /fn_dept_authority\(v_dept, 'analysis'\)/,

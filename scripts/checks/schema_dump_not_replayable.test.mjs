@@ -19,6 +19,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { allMigrations } from './_migration_files.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const dumpPath = join(root, 'supabase', 'schema', 'full_schema.sql');
@@ -68,10 +69,21 @@ test('the header does not point a rebuild at the migration set', () => {
   assert.doesNotMatch(dump.slice(0, 3000), /replay supabase\/migrations\/ in order/,
     'full_schema.sql directs rebuilds at supabase/migrations/, which holds 285 of 712 applied ' +
     'migrations and creates 131 of 403 tables. Measure with scripts/verify_repo_production_parity.mjs.');
-  // And the directory must not silently shrink either - that would be a different defect.
-  const files = readdirSync(join(root, 'supabase', 'migrations')).filter((f) => f.endsWith('.sql'));
+  // And the history must not silently shrink either - that would be a different defect.
+  //
+  // COUNTED ACROSS BOTH DIRECTORIES since the squash of 8 Aug 2026. supabase/migrations/ is now the
+  // generated replay path (a baseline a fresh database can actually be built from, proven by the
+  // Supabase Preview check building 411 tables from empty); supabase/migrations_history/ holds the
+  // 736 real migrations, applied by nothing and kept for the record.
+  //
+  // The ratchet is unchanged in what it protects: migrations are append-only history and none may
+  // vanish. Counting only the replay path after the move would have read 2 and failed on a
+  // relocation, and narrowing it to that path to make it pass would have retired the guard while
+  // appearing to keep it. Both directories is the population the claim was always about.
+  const files = allMigrations();
   assert.ok(files.length >= 285,
-    'supabase/migrations dropped to ' + files.length + ' files from 285; migrations are append-only history.');
+    'migrations dropped to ' + files.length + ' files from 285 across supabase/migrations and ' +
+    'supabase/migrations_history; migrations are append-only history.');
 });
 
 test('the dump says when it was captured and where the real rebuild path is', () => {
