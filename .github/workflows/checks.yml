@@ -34,6 +34,44 @@ jobs:
       - name: Run checks
         run: npm test
 
+  # 8 Aug 2026. Squawk lints migration SQL for operations that take locks on a table with live
+  # traffic — an index built without CONCURRENTLY, a NOT NULL column that rewrites the table, a
+  # missing lock_timeout. It reads the files statically, so it needs no database and no secrets.
+  #
+  # It is here because of what this repo just went through: nine rounds of a migration set that
+  # could not rebuild an environment, none of which any existing gate could see. This does not
+  # catch that class — check_migration_order.mjs does — but it catches the next one, where a
+  # migration applies cleanly and locks the leads table for four minutes during business hours.
+  #
+  # The two generated baseline files are excluded in .squawk.toml: they only ever run against an
+  # empty database, where a warning about blocking writers is not a finding. 942 of them are not a
+  # finding either, and a linter people mute is worse than no linter.
+  migration-lint:
+    name: lint migrations for locking operations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      # The file list is built here rather than handed to squawk as a glob, because squawk exits 1
+      # when every path it was given is excluded — indistinguishable from a lint failure, and that
+      # is today's state: the only migrations present are the two generated ones. Measured, not
+      # assumed; the first version of this step would have been red from the moment it landed.
+      #
+      # `_baseline_` is the same token .squawk.toml excludes on, so the two cannot disagree.
+      - name: Squawk
+        run: |
+          files=$(ls supabase/migrations/*.sql 2>/dev/null | grep -v '_baseline_' || true)
+          if [ -z "$files" ]; then
+            echo "no hand-written migrations to lint — the generated baseline is excluded by design"
+            exit 0
+          fi
+          echo "linting:"; echo "$files"
+          npx squawk $files
+
   typecheck:
     name: typecheck the app
     runs-on: ubuntu-latest
