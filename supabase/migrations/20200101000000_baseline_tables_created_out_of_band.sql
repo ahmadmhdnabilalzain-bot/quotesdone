@@ -170,6 +170,27 @@ do $$ begin
   end if;
 end $$;
 
+-- Functions that GENERATED columns call. A generated expression is part of the column
+-- definition, so unlike a default it cannot be deferred — the function must already exist.
+-- check_function_bodies is off so a body referencing a not-yet-created table still loads,
+-- which is the same thing pg_dump does and for the same reason.
+set check_function_bodies = off;
+CREATE OR REPLACE FUNCTION public.margin_rate(amount numeric)
+ RETURNS numeric
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when amount < 2000  then 0.10
+    when amount < 5000  then 0.08
+    when amount < 10000 then 0.06
+    when amount < 20000 then 0.05
+    when amount < 50000 then 0.04
+    else 0.03 end
+$function$;
+reset check_function_bodies;
+
 -- ── public.action_class_gate ─────────────────────────────────────────────────────────────
 create table if not exists public.action_class_gate (
   action_class text,
