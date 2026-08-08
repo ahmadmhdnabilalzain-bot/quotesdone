@@ -38,6 +38,11 @@ as $function$
   -- Only inquiries this supplier could actually work: open, and not their own demo fence.
   cand as (
     select i.id, i.category, i.emirate, i.summary, i.scope_type, i.created_at, i.budget,
+           -- WHAT THE CUSTOMER ACTUALLY NEEDS, which is not the project's title. raw_input is what
+           -- they typed, in their words. `spec` is jsonb — the structured brief intake derived —
+           -- and pouring that through ::text would put raw JSON in front of a supplier, so it is
+           -- deliberately not a fallback. No brief typed means NULL, and the surface says so.
+           nullif(btrim(coalesce(i.raw_input, '')), '') requirement,
            lower(coalesce(i.category, '')) cat
       from public.inquiries i
      where coalesce(i.status, 'open') = 'open'
@@ -86,6 +91,9 @@ as $function$
           'project_title', coalesce(nullif(btrim(coalesce(r.summary,'')),''), r.category, 'Untitled project'),
           'category', r.category,
           'emirate', r.emirate,
+          -- NULL, not an empty string: an inquiry with no brief has not been described yet, and the
+          -- surface must be able to say that rather than render a blank line.
+          'requirement', r.requirement,
           'estimated_value', r.budget,
           'fit_score', r.fit_score,
           'match_pct', r.fit_score,

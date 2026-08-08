@@ -106,7 +106,10 @@ export default async function (H) {
     ['rfq-estimated-value', /estimated[_ ]?(value|opportunity|budget)|opportunity[_ ]?value/i, 'estimated opportunity value'],
   ]) {
     const shown = delivered(re);
-    const served = fnsNear(re, RFQCTX, 500);      // the field, near RFQ subject matter, same fn
+    // The rpc hop, same as §10 and §12: project_title, match_pct, estimated_value and the
+    // requirement are produced by fn_supplier_opportunities, and the edge action that rpc()s it
+    // carries none of those names.
+    const served = servedNear(re, RFQCTX, 500);  // the field, near RFQ subject matter, same fn
     const unscoped = fnsMatching(re);             // what the loose version would have counted
     await req(S9, id, `the opportunity shows ${label}`,
       B(shown && served.length > 0),

@@ -1,7 +1,7 @@
 {
  "target": "htdblwldjkcgjvmqkbeh",
  "total": 234,
- "met": 192,
+ "met": 196,
  "rows": [
   {
    "section": "collab",
@@ -1421,15 +1421,15 @@
    "section": "rfq",
    "id": "rfq-project-title",
    "name": "the opportunity shows project title",
-   "ok": false,
-   "ev": "project title: rendered yes, served by [NO fn] (0 fn(s) name it outside any RFQ context: [none]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ok": true,
+   "ev": "project title: rendered yes, served by [fn_supplier_opportunities] (0 fn(s) name it outside any RFQ context: [none]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rfq",
    "id": "rfq-requirement",
    "name": "the opportunity shows the requirement",
-   "ok": false,
-   "ev": "the requirement: rendered NO, served by [NO fn] (0 fn(s) name it outside any RFQ context: [none]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ok": true,
+   "ev": "the requirement: rendered yes, served by [fn_supplier_opportunities] (0 fn(s) name it outside any RFQ context: [none]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rfq",
@@ -1449,15 +1449,15 @@
    "section": "rfq",
    "id": "rfq-ai-match-pct",
    "name": "the opportunity shows AI match %",
-   "ok": false,
-   "ev": "AI match %: rendered yes, served by [NO fn] (1 fn(s) name it outside any RFQ context: [supplier_portal]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ok": true,
+   "ev": "AI match %: rendered yes, served by [fn_supplier_opportunities fn_supplier_products] (1 fn(s) name it outside any RFQ context: [supplier_portal]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rfq",
    "id": "rfq-estimated-value",
    "name": "the opportunity shows estimated opportunity value",
-   "ok": false,
-   "ev": "estimated opportunity value: rendered yes, served by [NO fn] (0 fn(s) name it outside any RFQ context: [none]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
+   "ok": true,
+   "ev": "estimated opportunity value: rendered yes, served by [fn_supplier_opportunities] (0 fn(s) name it outside any RFQ context: [none]); inquiries 1, quotes 1, matches 0 — verdicts are mechanism, not rows"
   },
   {
    "section": "rfq",

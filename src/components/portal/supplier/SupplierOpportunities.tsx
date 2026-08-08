@@ -21,7 +21,8 @@ import { motion } from 'motion/react';
 type Lang = 'en' | 'ar';
 type Reason = { key: string; applies: boolean; available?: boolean; text: string; similar_jobs?: number };
 type Opportunity = {
-  inquiry_id: string; project_title: string; category?: string | null; emirate?: string | null;
+  inquiry_id: string; project_title: string; requirement?: string | null;
+  category?: string | null; emirate?: string | null;
   estimated_value?: number | null; fit_score: number | null; match_pct: number | null;
   reasons: Reason[];
 };
@@ -50,6 +51,7 @@ const T = {
     empty: 'Nothing to recommend yet.',
     emptyWhy: 'An opportunity appears here when a customer posts work you could win.',
     ordered: 'Ranked by fit, not by date.', notAssessable: 'not assessable yet',
+    requirement: 'What they need', noBrief: 'The customer has not described the work yet.',
   },
   ar: {
     title: 'موصى به لك', loading: 'جارٍ ترتيب الفرص…',
@@ -57,6 +59,7 @@ const T = {
     empty: 'لا توجد توصيات بعد.',
     emptyWhy: 'تظهر الفرصة هنا عندما ينشر عميل عملًا يمكنك الفوز به.',
     ordered: 'مرتّبة حسب الملاءمة، لا حسب التاريخ.', notAssessable: 'غير قابل للتقييم بعد',
+    requirement: 'ما يحتاجونه', noBrief: 'لم يصف العميل العمل بعد.',
   },
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
@@ -133,6 +136,14 @@ export default function SupplierOpportunities({ token, lang = 'en' }:
               </div>
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t(lang, 'fit')}</div>
             </div>
+          </div>
+
+          {/* The requirement, in the customer's own words. NULL is a state, not a blank line. */}
+          <div className="mt-2.5">
+            <h4 className="text-[10px] uppercase tracking-wide text-muted-foreground">{t(lang, 'requirement')}</h4>
+            <p className={o.requirement ? 'mt-0.5 text-[12.5px] leading-[1.65] text-white/85' : 'mt-0.5 text-[12.5px] italic text-muted-foreground/60'}>
+              {o.requirement || t(lang, 'noBrief')}
+            </p>
           </div>
 
           <div className="mt-3">
