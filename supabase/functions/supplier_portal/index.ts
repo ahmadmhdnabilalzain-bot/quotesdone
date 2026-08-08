@@ -169,6 +169,17 @@ Deno.serve(async (req) => {
       return J({ ok: true, ...di });
     }
 
+    // ROW #5 §23 — THE KNOWLEDGE GRAPH, READ RATHER THAN REBUILT NIGHTLY AND IGNORED.
+    // fn_supplier_knowledge_graph returns CATEGORY structure only: the categories this company is
+    // listed in and the adjacent ones its competitors also serve, computed from lead_category's
+    // 17,107 rows. Employee, department and goal nodes are QuotesDone's internal org chart and the
+    // routine never selects them — a supplier is not an audience for our reporting lines.
+    if (action === 'knowledge_graph') {
+      const { data: kg, error } = await admin.rpc('fn_supplier_knowledge_graph', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...kg });
+    }
+
     if (action === 'network_map') {
       const { data: map, error } = await admin.rpc('fn_supplier_network_map');
       if (error) return J({ error: error.message }, 500);

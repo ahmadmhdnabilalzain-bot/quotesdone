@@ -13,6 +13,7 @@ import SupplierQuoteBuilder from './supplier/SupplierQuoteBuilder';
 import SupplierSettings from './supplier/SupplierSettings';
 import SupplierInventory from './supplier/SupplierInventory';
 import SupplierDocumentImpact from './supplier/SupplierDocumentImpact';
+import SupplierKnowledgeGraph from './supplier/SupplierKnowledgeGraph';
 import SupplierInsightBoard from './supplier/SupplierInsightBoard';
 import SupplierOpportunities from './supplier/SupplierOpportunities';
 import SupplierTier from './supplier/SupplierTier';
@@ -287,7 +288,10 @@ function Dashboard({ token, lang }) {
       {tab === 'twin' && <SupplierTwin token={token} lang={lang} />}
       {tab === 'products' && <ProductIntelligence token={token} lang={lang} />}
       {tab === 'environment' && <SupplierEnvironment token={token} lang={lang} />}
-      {tab === 'network' && <SupplierNetworkMap token={token} lang={lang} />}
+      {/* §19's supplier density map and §23's knowledge graph are the same subject — the shape of
+          the market around this company — so they share a destination rather than splitting the
+          navigation. The map answers "where", the graph answers "next to what". */}
+      {tab === 'network' && <div className="space-y-4"><SupplierNetworkMap token={token} lang={lang} /><SupplierKnowledgeGraph token={token} lang={lang} /></div>}
       {tab === 'market' && <MarketIntelligence token={token} lang={lang} />}
       <SupplierCommandPalette tabs={TABS} labels={TAB} onGo={setTab} lang={lang} />
       {tab === 'board' && <SupplierInsightBoard token={token} lang={lang} />}
