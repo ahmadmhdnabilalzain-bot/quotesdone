@@ -94,7 +94,9 @@ for (const { real, sorted } of files) {
     ...[...sql.matchAll(/\bdelete\s+from\s+(?:only\s+)?([a-z0-9_."]+)/gi)].map((m) => ['delete from', m[1]]),
     ...[...sql.matchAll(/\btruncate\s+(?:table\s+)?(?:only\s+)?([a-z0-9_."]+)/gi)].map((m) => ['truncate', m[1]]),
     ...[...sql.matchAll(/\bcreate\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?[a-z0-9_"]+\s+on\s+([a-z0-9_."]+)/gi)].map((m) => ['index on', m[1]]),
-    ...[...sql.matchAll(/\bdrop\s+index\s+(?:concurrently\s+)?(?:if\s+exists\s+)?([a-z0-9_."]+)/gi)].map((m) => ['drop index', m[1]]),
+    // NOT `drop index`. Its argument is an INDEX name, not a table, and treating it as one reported
+    // uq_inquiry_match and ux_supplier_capabilities_supplier as uncreated tables. `create index …
+    // ON x` is tracked because the ON names a real table; `drop index` names no table at all.
     // Triggers and policies name their table after ON, and both spellings must be caught.
     ...[...sql.matchAll(/\bcreate\s+(?:or\s+replace\s+)?(?:constraint\s+)?trigger\s+[a-z0-9_"]+[\s\S]{0,200}?\bon\s+([a-z0-9_."]+)/gi)].map((m) => ['create trigger on', m[1]]),
     ...[...sql.matchAll(/\bdrop\s+trigger\s+(?:if\s+exists\s+)?[a-z0-9_"]+\s+on\s+([a-z0-9_."]+)/gi)].map((m) => ['drop trigger on', m[1]]),
