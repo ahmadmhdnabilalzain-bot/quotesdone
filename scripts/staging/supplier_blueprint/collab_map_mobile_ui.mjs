@@ -175,7 +175,26 @@ export default async function (H) {
   // The three BENEFIT legs are the interesting ones. A tier that changes only a badge is a sticker;
   // the spec says tiers confer more RFQs, preferred status and higher visibility. Each benefit
   // therefore has to reach the MATCHING/RANKING mechanism, not just the profile screen.
-  const TIERS = /platinum|gold|silver|bronze|tier/i;
+  // ── A TIER IS NOT ANY TIER ────────────────────────────────────────────────────────────────────
+  // This was /platinum|gold|silver|bronze|tier/i, and the bare word did all the damage. The estate
+  // is full of tiers that have nothing to do with suppliers: ai_cost_log.tier and model_policy.tier
+  // are MODEL tiers (haiku / sonnet / opus), action_execution.risk_tier and customer_health.risk_tier
+  // are risk bands, org_authority.max_tier is an approval level. Measured on production 8 Aug 2026,
+  // NO routine in the estate mentions platinum, gold, silver or bronze at all — there is no supplier
+  // tier anywhere — yet §20 read 3/8, and `game-benefit-visibility` was MET on ai_gateway, whose
+  // "tier" chooses a language model.
+  //
+  // That is the §9 lesson at a different altitude: a token naming the right CONCEPT in the wrong
+  // SUBJECT. A supplier tier is a NAMED tier, or the word used in supplier subject matter. Nothing
+  // else counts, and this deliberately LOWERS the section's score.
+  const TIER_NAMED = /platinum|\bgold\b|\bsilver\b|\bbronze\b/i;
+  const TIER_WORD = /\btiers?\b/i;
+  const SUPPLIER_CTX = /supplier|lead_id|vendor/i;
+  const TIERS = TIER_NAMED;
+  const supplierTierFns = FNS.filter((f) => {
+    const src = fnSrc(f);
+    return TIER_NAMED.test(src) || (TIER_WORD.test(src) && near(src, TIER_WORD, SUPPLIER_CTX, 200));
+  });
 
   const rankSurface = filesNear(TIERS, /ranking|leaderboard|supplier/i, 400, P_FILES);
   await req(S20, 'game-ranking-surface', 'a QuotesDone Supplier Ranking surface',
@@ -188,15 +207,18 @@ export default async function (H) {
     B(tierCov.hit === tierCov.total),
     Q(`${tierCov.hit}/${tierCov.total} tier name(s) on the portal; missing [${tierCov.missing.join(' ') || 'none'}]`));
 
+  // The `|| tierSql > 0` clause was the whole verdict, and it counted any routine whose NAME matched
+  // `tier|rank` or whose body contained the bare word — 39 of them, none about suppliers. A
+  // supplier tier computed from a supplier score has to name a tier a supplier would recognise.
   const tierFn = fnsNear(TIERS, /score|rank|compute|assign/i, 400);
   const tierSql = await one(`select count(distinct p.proname)::text from pg_proc p
     join pg_namespace ns on ns.oid=p.pronamespace
     where ns.nspname='public' and p.prokind in ('f','p')
-      and (p.proname ~* 'tier|rank' or pg_get_functiondef(p.oid) ~* 'platinum|\\ytier\\y')`);
+      and pg_get_functiondef(p.oid) ~* '(platinum|\\mgold\\M|\\msilver\\M|\\mbronze\\M)'`);
   await req(S20, 'game-tier-assignment-routine', 'the tier is computed from score by a routine',
-    B(fnsNear(TIERS, /score|rank|compute|assign/i, 400).length > 0 || Number(tierSql) > 0),
-    Q(`${tierFn.length} reachable fn(s) compute a tier [${tierFn.join(' ') || 'none'}]; ` +
-      `${tierSql} SQL routine(s) reference tiers`));
+    B(tierFn.length > 0 || Number(tierSql) > 0),
+    Q(`${tierFn.length} reachable fn(s) compute a NAMED supplier tier [${tierFn.join(' ') || 'none'}]; ` +
+      `${tierSql} SQL routine(s) name one — model-routing, risk and authority tiers are excluded`));
 
   const board = filesNear(/leaderboard|ranking/i, /\.map\(|rank\s*[:=]|position/i, 400, P_FILES);
   await req(S20, 'game-leaderboard', 'a ranked list of suppliers',
@@ -209,12 +231,14 @@ export default async function (H) {
     ['game-benefit-preferred-status', /preferred/i, 'preferred-supplier status is conferred'],
     ['game-benefit-visibility', /visibility|rank|order[_ ]?by|priority|boost/i, 'tier affects visibility'],
   ]) {
-    // The benefit must reach the SERVER mechanism, in the same function as the tier.
-    const inMechanism = fnsNear(TIERS, re, 500);
+    // The benefit must reach the SERVER mechanism, in the same function as a SUPPLIER tier. Scored
+    // over supplierTierFns rather than "any function containing the word tier": ai_gateway ties a
+    // tier to `rank|order_by|priority` all day long, and that tier picks a language model.
+    const inMechanism = supplierTierFns.filter((f) => near(fnSrc(f), TIERS, re, 500));
     const sqlSide = await one(`select count(distinct p.proname)::text from pg_proc p
       join pg_namespace ns on ns.oid=p.pronamespace
       where ns.nspname='public' and p.prokind in ('f','p')
-        and pg_get_functiondef(p.oid) ~* 'platinum|\\ytier\\y'`);
+        and pg_get_functiondef(p.oid) ~* '(platinum|\\mgold\\M|\\msilver\\M|\\mbronze\\M)'`);
     await req(S20, id, label,
       B(inMechanism.length > 0),
       Q(`${label}: ${inMechanism.length} reachable fn(s) tie a tier to it [${inMechanism.join(' ') || 'none'}]; ` +

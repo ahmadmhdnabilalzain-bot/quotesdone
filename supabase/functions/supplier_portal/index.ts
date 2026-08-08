@@ -162,6 +162,13 @@ Deno.serve(async (req) => {
     // similar project — each carrying whether it applied and, when it could not be asked at all,
     // why. With 0 completed jobs the history reason is unanswerable for EVERY supplier, and it
     // says so rather than reading as "you have no relevant experience".
+    // §20 — the QuotesDone supplier tier and the ladder above it.
+    if (action === 'tier') {
+      const { data: tier, error } = await admin.rpc('fn_supplier_tier', { p_lead_id: supId });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, ...tier });
+    }
+
     if (action === 'opportunities') {
       const { data: opps, error } = await admin.rpc('fn_supplier_opportunities', { p_lead_id: supId });
       if (error) return J({ error: error.message }, 500);
