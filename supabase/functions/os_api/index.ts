@@ -55,6 +55,7 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   activity: 'read_only', nav: 'read_only', inbox: 'read_only', search: 'read_only',
   record: 'read_only', files: 'read_only', file: 'read_only', prompt_view: 'read_only',
   memory: 'read_only', drilldown: 'read_only', report_recommend_approve: 'mutating',
+  simulate: 'mutating', simulation_approve: 'mutating',
   marketing_studio: 'read_only', knowledge_gaps: 'read_only', exam_summary: 'read_only',
   knowledge_export: 'read_only', extract_doc: 'read_only', report_pdf: 'read_only',
   'ws.suppliers': 'read_only', 'ws.supplier': 'read_only', 'ws.customer': 'read_only',
@@ -291,6 +292,10 @@ Deno.serve(async (req) => {
     // Click a number in a report: why it moved, against what target, and who contributed.
     // Approve a recommendation without leaving the report it came from.
     if (action === 'report_recommend_approve') { const { data, error } = await admin.rpc('fn_report_recommendation_approve', { p_report_id: Number(body?.report_id), p_index: Number(body?.index || 0), p_by: email, p_source: String(body?.source || 'exec_reports') }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    // Screen 16 — "What if?". A natural-language scenario goes to fn_what_if, which records the
+    // simulation and returns its projection. Mutating: it writes a simulations row.
+    if (action === 'simulation_approve') { const { data, error } = await admin.from('agent_actions').insert({ agent: 'strategy_ai', kind: 'simulation_approved', status: 'approved', risk: 'medium', title: String(body?.scenario || 'Simulated action'), recommendation: JSON.stringify(body?.result || {}).slice(0, 4000), target_table: 'simulations', decided_by: email, decided_at: new Date().toISOString() }).select('id').maybeSingle(); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    if (action === 'simulate') { const { data, error } = await admin.rpc('fn_what_if', { p_question: String(body?.question || body?.scenario || ''), p_change: body?.change || {} }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'drilldown') { const { data, error } = await admin.rpc('fn_report_drilldown', { p_metric: String(body?.metric || ''), p_days: Number(body?.days || 30) }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'memory') {
       const { data, error } = await admin.rpc('fn_os_memory', {
