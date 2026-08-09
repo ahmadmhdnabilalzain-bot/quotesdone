@@ -234,6 +234,7 @@ yours** — the routine did not do what execution said it would.
 | 00:35 | `digital-twin-live-kpis` | `bi_snapshot_6h` |
 | 02:15 | `s34-resilience-measured` | `capability_verify_daily` |
 | 03:50 | **`s29-scan-five-questions`** | `opportunity_scan_daily` — daily, so this is the soonest |
+| 04:15 | **`s31-slowdown-investigated`** | `index_slowdown_watch_daily` — raises the 6 Aug company_maturity fall |
 | 04:30 | `companion-overnight-brief`, `voice-morning-brief-spoken` | `founder_brief_daily` |
 | 05:00 Mon | `exec-meeting-agenda-six`, `exec-meeting-debate` | `exec_meeting_weekly` |
 | 06:00 Mon | `exec-intel-quantified-recommendation` | `exec-agents-weekly` (the retry fix) |
