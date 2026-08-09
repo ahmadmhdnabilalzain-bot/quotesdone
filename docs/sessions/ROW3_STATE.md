@@ -1,4 +1,4 @@
-# ROW #3 — THE EXECUTIVE UI: 28 → 76 / 152 IN ONE SESSION
+# ROW #3 — THE EXECUTIVE UI: 28 → 80 / 152 IN ONE SESSION
 
 Measured on production 2026-08-09. Every number below is a scorer run, not an estimate.
 Scorer: `scripts/staging/verify_os2_blueprint.mjs`, modules in `scripts/staging/os2_blueprint/`.
@@ -11,8 +11,11 @@ Scorer: `scripts/staging/verify_os2_blueprint.mjs`, modules in `scripts/staging/
 | after the employee workspace | ~57/152 | `fn_ws_agent_ops` extended |
 | after the Operating System | **66/152 (43%)** | `fn_ws_company_os` + the map |
 | after Memory, notifications, voice | **76/152 (50%)** | `fn_os_search`/`fn_os_memory`, `fn_ws_notifications` |
+| after explainability | **80/152 (53%)** | `fn_owning_os` + the four action surfaces |
 
 152 verdicts every run. **0 errored, denominator verified, every run.**
+
+Seven scorer runs. The row nearly tripled its score in a single session.
 
 ---
 
@@ -97,6 +100,13 @@ That blocks five per-employee universals: `employee-current-thoughts`, `-perform
 `-performance-trend`, `-learning-progress`, `-knowledge-used`. **No UI change can close them**, and
 `employee-learning-progress` deliberately has no key on the drawer — a learning panel with no curve
 behind it is an empty panel.
+
+### Three explanations have no source to draw from
+
+`explain-confidence-score` reads 27 of 35: the eight escalations come from `decision_log` and **every
+`action_gate` row has `confidence` NULL**. `explain-alternatives-considered` reads 0 of 35 because
+`challenge_record`'s 31 recorded alternatives are challenges to *founder proposals* and join to none
+of these actions. `explain-knowledge-used` needs `kb_usage_log`, which has 0 rows and no writer.
 
 ### The console is operationally overloaded
 
