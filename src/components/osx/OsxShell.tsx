@@ -3020,15 +3020,41 @@ function ReportViewerDrawer({ report, onClose }: { report: any; onClose: () => v
     <ReportViewer id={Number(report.id)} />
   </SheetContent></Sheet>);
 }
+// THE WEEKLY EXECUTIVE MEETING, REPLAYED IN THE ORDER IT HAPPENED.
+// exec_reports.findings is the ordered transcript — ten officers plus the company-level items — and
+// report_registry only ever projected the title, period and id, so the body of the meeting reached
+// nothing the browser could run. fn_ws_reports carries it now: the contributions in sequence, the
+// ranked priorities the meeting agreed, and the challenges recorded inside its own window.
+//
+// Contributions written before 9 Aug 2026 carry item/owner/health/finding/drivers and none of the
+// six agenda sections, so every section is rendered only when it is actually present. An older
+// meeting shows what it has rather than six empty rows.
+function MeetingReplay({ meeting }: { meeting: any }) {
+  const SECTIONS: [string, string][] = [['wins', 'Wins'], ['problems', 'Problems'], ['kpis', 'KPIs'], ['risks', 'Risks'], ['opportunities', 'Opportunities'], ['requests', 'Requests']];
+  const contributions = meeting?.contributions || []; const priorities = meeting?.priorities || []; const challenges = meeting?.challenges || [];
+  const [open, setOpen] = React.useState<number | null>(0);
+  if (!contributions.length && !priorities.length) return null;
+  const stanceTone = (s: string) => /against/.test(s) ? 'red' : /concern/.test(s) ? 'amber' : 'green';
+  return (<SectionCard title={'Executive meeting' + (meeting.period ? ' — ' + String(meeting.period) : '')} count={contributions.length} right={<span className='text-[11px] text-muted-foreground'>{fmt(meeting.at)}</span>}>
+    {meeting.summary ? <div className='px-4 py-2.5 text-xs text-muted-foreground border-b border-border'>{meeting.summary}</div> : null}
+    {priorities.length ? <div className='px-4 py-3 border-b border-border'><div className='text-xs font-semibold mb-2'>Agreed priorities</div><ol className='space-y-1'>{priorities.map((p: any, i: number) => (<li key={i} className='text-xs flex items-center gap-2'><span className='tabular-nums text-muted-foreground w-4 shrink-0'>{(p && typeof p === 'object' ? p.rank : null) ?? i + 1}</span><span className='flex-1'>{p && typeof p === 'object' ? String(p.title || p.why || '') : String(p)}</span>{p && typeof p === 'object' && p.owner ? <Chip label={String(p.owner)} tone='slate' /> : null}{p && typeof p === 'object' && p.priority ? <Chip label={String(p.priority)} tone={CHIP_TONE[String(p.priority)] ? String(p.priority) : statusTone(String(p.priority))} /> : null}</li>))}</ol></div> : null}
+    <div className='divide-y divide-border'>{contributions.map((c: any, i: number) => (<div key={i}>
+      <button onClick={() => setOpen(open === i ? null : i)} className='w-full text-left px-4 py-2.5 hover:bg-foreground/5 transition-colors flex items-center gap-2'><span className='tabular-nums text-[11px] text-muted-foreground w-5 shrink-0'>{i + 1}</span><span className='flex-1 text-sm font-medium line-clamp-1'>{c.item}</span>{c.owner ? <Chip label={String(c.owner)} tone='slate' /> : null}{c.health ? <Chip label={String(c.health)} tone={CHIP_TONE[String(c.health)] ? String(c.health) : 'slate'} /> : null}<ChevronRight className={cn('h-4 w-4 text-muted-foreground shrink-0 transition-transform', open === i ? 'rotate-90' : '')} /></button>
+      {open === i ? <div className='px-4 pb-3 pl-11 space-y-1.5'>{SECTIONS.map(([key, label]) => { const v = c[key]; if (v == null || v === '') return null; const body = typeof v === 'object' ? Object.entries(v).map(([kk, vv]) => String(kk).replace(/_/g, ' ') + ' ' + String(vv ?? '—')).join(', ') : String(v); return (<div key={key} className='text-xs'><span className='text-muted-foreground'>{label}: </span>{body}</div>); })}{c.drivers ? <div className='text-[11px] text-muted-foreground pt-0.5'>{String(c.drivers)}</div> : null}</div> : null}
+    </div>))}</div>
+    {challenges.length ? <div className='px-4 py-3 border-t border-border'><div className='text-xs font-semibold mb-2'>Challenged in the meeting</div><div className='space-y-1.5'>{challenges.map((ch: any, i: number) => (<div key={i} className='text-xs flex items-start gap-2'><Chip label={String(ch.stance || '')} tone={stanceTone(String(ch.stance || ''))} /><span className='flex-1'><span className='text-muted-foreground'>{String(ch.by || '')} on {String(ch.of || '')}: </span>{String(ch.reasoning || '')}</span></div>))}</div></div> : null}
+  </SectionCard>);
+}
 function ReportsApp() {
   const { d, err, busy, load } = useWs('ws.reports'); const [sel, setSel] = React.useState<any>(null);
   if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Reports: {err}</Card>;
-  const k = d?.kpis || {}; const recent = d?.recent || []; const byType = d?.by_type || []; const flags = d?.flags || [];
+  const k = d?.kpis || {}; const recent = d?.recent || []; const byType = d?.by_type || []; const flags = d?.flags || []; const meeting = d?.meeting || null;
   const TYPES = ['daily', 'weekly', 'monthly', 'quarterly', 'finance', 'exec', 'customer', 'supplier', 'department', 'ai'];
   const fresh = TYPES.filter((t) => k[t + '_at']).map((t) => ({ type: t, at: k[t + '_at'], fresh: k[t + '_fresh'] }));
   return (<div className='space-y-4'>
     <AppHeader icon={FileBarChart} title='Reports' onRefresh={load} busy={busy} badge={k.stale_count ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.stale_count} stale</Badge> : null} />
     <KpiRow items={[['Total reports', k.total_reports], ['Reports 30d', k.reports_30d], ['Report types', k.report_types], ['Stale', k.stale_count]]} />
+    {meeting ? <MeetingReplay meeting={meeting} /> : null}
     {fresh.length ? <SectionCard title='Report freshness'><div className='p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2'>{fresh.map((f) => (<div key={f.type} className={cn('rounded-md border p-2.5', f.fresh ? 'border-emerald-500/30 bg-emerald-500/[0.03]' : 'border-amber-500/30 bg-amber-500/[0.03]')}><div className='flex items-center justify-between'><span className='text-xs font-medium capitalize'>{f.type}</span>{f.fresh ? <Check className='h-3.5 w-3.5 text-emerald-500' /> : <AlertTriangle className='h-3.5 w-3.5 text-amber-500' />}</div><div className='text-[10px] text-muted-foreground mt-1'>{fmt(f.at)}</div></div>))}</div></SectionCard> : null}
     {flags.length ? <SectionCard title='Report flags' count={flags.length}><div className='divide-y divide-border'>{flags.map((f: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm flex items-center gap-2'><Chip label={titleCase(String(f.risk))} tone={riskTone(String(f.risk))} /><span className='flex-1'>{f.title}</span>{f.status ? <Chip label={titleCase(String(f.status))} tone={statusTone(String(f.status))} /> : null}</div>))}</div></SectionCard> : null}
     <SectionCard title='Recent reports' count={recent.length}>{recent.length ? <div className='divide-y divide-border'>{recent.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'><div className='min-w-0 flex-1'><div className='text-sm font-medium line-clamp-1'>{r.title}</div><div className='text-[11px] text-muted-foreground'>{r.source ? titleCase(String(r.source)) + ' · ' : ''}{fmt(r.created)}</div></div>{r.report_type ? <Chip label={titleCase(String(r.report_type))} tone='blue' /> : null}<ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No reports yet.</div>}</SectionCard>
