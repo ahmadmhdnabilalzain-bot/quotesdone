@@ -1834,6 +1834,34 @@ function AgentsApp() {
   return (<div className='space-y-4'>
     <BoardHeader icon={Sparkles} title='Smart Engine' total={d?.total} sub={d ? (Number(d.runs24 || 0).toLocaleString() + ' runs/24h') : ''} view={view} setView={setView} />
     {!d ? <div className='text-sm text-muted-foreground'>Loading agents…</div> : view === 'kanban' ? <KanbanBoard stages={d.departments || []} onCard={setSel} renderCard={card} /> : <RichList rows={d.rows || []} columns={columns} onRow={setSel} />}
+    {/* ── THE ORG CHART ────────────────────────────────────────────────────────────────────
+        A real reporting hierarchy drawn as nodes, and clicking a person opens their workspace.
+        The kanban and the list both open the drawer already; neither is a chart, and "clicking
+        any PERSON on the chart" is what screen 4 asks for. */}
+    {d ? <SectionCard title='Org chart' count={(d.rows || []).length}
+      right={<span className='text-[11px] text-muted-foreground'>click a person to open their workspace</span>}>
+      <div className='p-4 overflow-auto'>
+        <svg viewBox={'0 0 900 ' + Math.max(220, 60 + (d.departments || []).length * 74)} className='w-full' style={{ minWidth: 720 }}>
+          <text x={20} y={26} className='fill-muted-foreground' fontSize={12}>Company</text>
+          {(d.departments || []).map((dep: any, di: number) => {
+            const y = 60 + di * 74;
+            const people = ((d.rows || []) as any[]).filter((r: any) => r.department === dep.key).slice(0, 9);
+            return (<g key={dep.key}>
+              <line x1={30} y1={30} x2={30} y2={y} stroke='currentColor' strokeOpacity={0.2} />
+              <line x1={30} y1={y} x2={64} y2={y} stroke='currentColor' strokeOpacity={0.2} />
+              <text x={70} y={y + 4} fontSize={12} className='fill-foreground' fontWeight={600}>{dep.label || dep.key}</text>
+              <text x={70} y={y + 20} fontSize={10} className='fill-muted-foreground'>{dep.runs ?? 0} runs/24h · {people.length} people</text>
+              {people.map((p: any, pi: number) => (
+                <g key={p.agent_key} onClick={() => setSel(p)} style={{ cursor: 'pointer' }}>
+                  <circle cx={300 + pi * 66} cy={y} r={9} className={p.active ? 'fill-emerald-500' : 'fill-muted'} />
+                  <title>{titleCase(String(p.agent_key))} — open workspace</title>
+                  <text x={300 + pi * 66} y={y + 26} fontSize={9} textAnchor='middle' className='fill-muted-foreground'>{String(p.agent_key).slice(0, 10)}</text>
+                </g>))}
+            </g>);
+          })}
+        </svg>
+      </div>
+    </SectionCard> : null}
     {sel ? <AgentDrawer agent={sel} onClose={() => setSel(null)} /> : null}
   </div>);
 }
@@ -2374,7 +2402,11 @@ function CompanyMemoryApp() {
 function CompanyOsApp() {
   const { d, err, busy, load } = useWs('ws.company_os');
   const [sel, setSel] = React.useState<any>(null);
-  const [tab, setTab] = React.useState<'os' | 'map' | 'board' | 'strategy' | 'resilience' | 'manual'>('os');
+  const [tab, setTab] = React.useState<'os' | 'map' | 'live' | 'board' | 'strategy' | 'resilience' | 'manual'>('os');
+  const L = useWs('ws.live_company');
+  const goal_path = (L.d?.goal_path || []) as any[]; const handoff_chain = (L.d?.handoff_chain || []) as any[];
+  const handoff_stages = (L.d?.handoff_stages || []) as any[]; const risk_register = (L.d?.risk_register || []) as any[];
+  const department_health = (L.d?.department_health || []) as any[];
   const onNode = React.useCallback((n: any) => setSel(n), []);
   if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load the Operating System: {err}</Card>;
 
@@ -2387,7 +2419,7 @@ function CompanyOsApp() {
   const opportunity = (d?.opportunity || []) as any[]; const queues = d?.strategic_queues || {};
   const institutional = d?.institutional_memory || {}; const resilience = d?.resilience || {};
   const operating_manual = d?.operating_manual || {}; const events = d?.events || {};
-  const TABS: [any, string][] = [['os', 'Mission control'], ['map', 'Company map'], ['board', 'Board'],
+  const TABS: [any, string][] = [['os', 'Mission control'], ['map', 'Company map'], ['live', 'Live company'], ['board', 'Board'],
     ['strategy', 'Strategic queue'], ['resilience', 'Resilience'], ['manual', 'Operating manual']];
 
   return (<div className='space-y-4'>
@@ -2426,6 +2458,59 @@ function CompanyOsApp() {
         <CompanyGraphField nodes={graph_nodes as any} edges={graph_edges as any} onSelect={onNode} />
       </div>
     </SectionCard> : null}
+
+    {tab === 'live' ? <div className='space-y-3'>
+      {/* WORK PASSING BETWEEN DEPARTMENTS, hop by hop. review_chain holds 1,093 of these and no
+          screen had ever drawn the sequence. */}
+      <SectionCard title='Work passing between departments' count={L.d?.handoffs_total}
+        right={<div className='flex flex-wrap gap-1'>{handoff_stages.slice(0, 6).map((s: any) => (<Chip key={s.hop} label={titleCase(String(s.hop)) + ' ' + s.n} tone='slate' />))}</div>}>
+        <div className='divide-y divide-border max-h-96 overflow-auto'>{handoff_chain.map((c: any) => (
+          <div key={c.id} className='px-4 py-2.5 text-sm'>
+            <div className='flex items-center gap-2 flex-wrap'>
+              <Chip label={titleCase(String(c.from_dept || '—'))} tone='slate' />
+              <ChevronRight className='h-3.5 w-3.5 text-muted-foreground' />
+              <Chip label={titleCase(String(c.hop))} tone='blue' />
+              <ChevronRight className='h-3.5 w-3.5 text-muted-foreground' />
+              <Chip label={titleCase(String(c.to_dept || c.reviewer_agent || '—'))} tone='slate' />
+              <Chip label={titleCase(String(c.decision))} tone={statusTone(String(c.decision))} />
+              <span className='text-[11px] text-muted-foreground ml-auto'>{fmt(c.at)}</span>
+            </div>
+            {c.reason ? <div className='text-[11px] text-muted-foreground mt-0.5 line-clamp-2'>{c.reason}</div> : null}
+            {c.delegated_from ? <div className='text-[11px] text-muted-foreground'>delegated from {c.delegated_from}</div> : null}
+          </div>))}</div>
+      </SectionCard>
+
+      {goal_path.length ? <SectionCard title='Where the company is going, and the path to it' count={goal_path.length}>
+        <div className='p-4 space-y-4'>{goal_path.map((m: any) => (
+          <div key={m.year_no} className='border-l-2 border-primary/40 pl-3'>
+            <div className='text-sm font-semibold'>{m.milestone}<span className='text-[11px] text-muted-foreground font-normal'> — {m.statement}</span></div>
+            <div className='mt-1 space-y-1'>{(m.steps || []).map((s: any, i: number) => (
+              <div key={i} className='text-[12px] flex items-center gap-2'>
+                <span className='text-muted-foreground tabular-nums'>{i + 1}.</span>
+                <span className='min-w-0 flex-1 truncate'>{s.step}</span>
+                <span className='text-[11px] text-muted-foreground shrink-0 tabular-nums'>{s.actual ?? '—'} / {s.target} {s.unit}</span>
+              </div>))}{!(m.steps || []).length ? <div className='text-[11px] text-muted-foreground'>No steps recorded for this milestone.</div> : null}</div>
+          </div>))}</div>
+      </SectionCard> : null}
+
+      {risk_register.length ? <SectionCard title='Risk register' count={risk_register.length}>
+        <div className='divide-y divide-border max-h-80 overflow-auto'>{risk_register.map((r: any) => (
+          <div key={r.id} className='px-4 py-2.5 text-sm'><div className='flex items-center gap-2 flex-wrap'>
+            <span className='font-medium'>{r.risk}</span>
+            {r.category ? <Chip label={String(r.category)} tone='slate' /> : null}
+            {r.impact ? <Chip label={'impact ' + r.impact} tone='amber' /> : null}
+            {r.probability ? <Chip label={'probability ' + r.probability} tone='slate' /> : null}
+            <span className='text-[11px] text-muted-foreground ml-auto'>{r.dept_key} · {r.owner_agent}</span></div>
+            {r.mitigation ? <div className='text-[11px] text-muted-foreground mt-0.5'>{r.mitigation}</div> : null}</div>))}</div>
+      </SectionCard> : null}
+
+      {department_health.length ? <SectionCard title='Department health' count={department_health.length}>
+        <div className='p-4 grid grid-cols-1 sm:grid-cols-2 gap-2'>{department_health.map((h: any) => (
+          <div key={h.dept_key} className='rounded-md border border-border px-3 py-2'>
+            <div className='text-sm font-medium flex items-center gap-2'>{h.department}<Chip label={String(h.score)} tone={Number(h.score) >= 80 ? 'green' : Number(h.score) >= 60 ? 'amber' : 'red'} /></div>
+            <div className='text-[11px] text-muted-foreground'>{h.basis}</div></div>))}</div>
+      </SectionCard> : null}
+    </div> : null}
 
     {tab === 'board' ? <div className='space-y-3'>
       <SectionCard title='The board' count={(board.advisors || []).length}>
