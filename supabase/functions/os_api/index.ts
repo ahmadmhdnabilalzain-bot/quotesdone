@@ -21,7 +21,7 @@ const WS: Record<string, string> = {
   'ws.finance': 'fn_ws_finance', 'ws.agents': 'fn_ws_agents', 'ws.marketing': 'fn_ws_marketing',
   'ws.ea': 'fn_ws_ea', 'ws.reports': 'fn_ws_reports', 'ws.strategy': 'fn_ws_strategy', 'ws.governance': 'fn_ws_governance',
   'ws.fraud': 'fn_ws_fraud', 'ws.refunds': 'fn_ws_refunds', 'ws.intelligence': 'fn_ws_intelligence',
-  'ws.exec_home': 'fn_ws_exec_home',
+  'ws.exec_home': 'fn_ws_exec_home', 'ws.company_os': 'fn_ws_company_os',
 };
 // ---- ACTION CLASSIFICATION (2 Aug 2026, Phase 1 hardening) -------------------------------------
 // Every action this function will route, classified, with no default. It feeds two independent
@@ -63,7 +63,7 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   'ws.agents': 'read_only', 'ws.marketing': 'read_only', 'ws.ea': 'read_only',
   'ws.reports': 'read_only', 'ws.strategy': 'read_only', 'ws.governance': 'read_only',
   'ws.fraud': 'read_only', 'ws.refunds': 'read_only', 'ws.intelligence': 'read_only',
-  'ws.exec_home': 'read_only',
+  'ws.exec_home': 'read_only', 'ws.company_os': 'read_only',
 };
 
 const OSAPI_MUTATIONS = new Set(Object.keys(ACTION_CLASS).filter((a) => ACTION_CLASS[a] === 'mutating'));

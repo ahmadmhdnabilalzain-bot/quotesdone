@@ -218,3 +218,136 @@ export function NodeField() {
 
   return <canvas ref={ref} id="qd-field" aria-hidden="true" />;
 }
+
+// ── THE COMPANY MAP ────────────────────────────────────────────────────────────────────────────
+// The interactive sibling of the decorative field above. Same canvas module, opposite contract:
+// NodeField is aria-hidden decoration that ignores its surroundings; CompanyGraphField is given
+// real graph_nodes / graph_edges and is driven by the pointer — wheel to zoom, drag to pan, click
+// to select. graph_nodes and graph_edges are rebuilt nightly and, until this existed, were read by
+// nothing anywhere in the product.
+export type GraphNode = { kind: string; ref_id: string; label: string };
+export type GraphEdge = { src_kind: string; src_ref: string; rel: string; dst_kind: string; dst_ref: string };
+
+const KIND_COLOR: Record<string, string> = {
+  operating_system: '#6366f1', department: '#0ea5e9', employee: '#10b981', goal: '#f59e0b',
+  category: '#a855f7', responsibility: '#64748b', workflow: '#ec4899',
+};
+
+export function CompanyGraphField({ nodes, edges, onSelect, height = 460 }:
+  { nodes: GraphNode[]; edges: GraphEdge[]; onSelect?: (n: GraphNode) => void; height?: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  // view = pan + zoom, held in a ref so wheel/drag never re-render React mid-gesture.
+  const view = useRef({ x: 0, y: 0, scale: 1 });
+  const placed = useRef<{ n: GraphNode; x: number; y: number }[]>([]);
+
+  useEffect(() => {
+    const cv = ref.current; if (!cv) return;
+    const ctx = cv.getContext('2d'); if (!ctx) return;
+
+    // Deterministic layout: one column per kind, nodes stacked down it. No physics, no jitter —
+    // the same company draws the same map every time, which is what makes it navigable.
+    const kinds = [...new Set(nodes.map((n) => n.kind))].sort();
+    const byKind = new Map(kinds.map((k) => [k, nodes.filter((n) => n.kind === k)]));
+    const colW = 260, rowH = 22;
+    const pos = new Map<string, { x: number; y: number }>();
+    placed.current = [];
+    kinds.forEach((k, ci) => {
+      (byKind.get(k) || []).forEach((n, ri) => {
+        const x = 90 + ci * colW, y = 70 + ri * rowH;
+        pos.set(n.kind + '\u0000' + n.ref_id, { x, y });
+        placed.current.push({ n, x, y });
+      });
+    });
+
+    const draw = () => {
+      const w = cv.clientWidth, h = cv.clientHeight;
+      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+      const v = view.current;
+      ctx.clearRect(0, 0, w, h);
+      ctx.save();
+      ctx.translate(v.x, v.y); ctx.scale(v.scale, v.scale);
+
+      ctx.lineWidth = 1 / v.scale;
+      ctx.strokeStyle = 'rgba(120,140,170,0.22)';
+      for (const e of edges) {
+        const a = pos.get(e.src_kind + '\u0000' + e.src_ref); const b = pos.get(e.dst_kind + '\u0000' + e.dst_ref);
+        if (!a || !b) continue;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y);
+        ctx.bezierCurveTo((a.x + b.x) / 2, a.y, (a.x + b.x) / 2, b.y, b.x, b.y);
+        ctx.stroke();
+      }
+      ctx.font = (11 / v.scale > 6 ? 11 : 11) + 'px ui-sans-serif, system-ui, sans-serif';
+      ctx.textBaseline = 'middle';
+      for (const p of placed.current) {
+        ctx.fillStyle = KIND_COLOR[p.n.kind] || '#94a3b8';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+        if (v.scale > 0.55) {
+          ctx.fillStyle = 'rgba(140,155,175,0.92)';
+          ctx.fillText(String(p.n.label || p.n.ref_id).slice(0, 26), p.x + 8, p.y);
+        }
+      }
+      kinds.forEach((k, ci) => {
+        ctx.fillStyle = KIND_COLOR[k] || '#94a3b8';
+        ctx.font = '600 12px ui-sans-serif, system-ui, sans-serif';
+        ctx.fillText(k.replace(/_/g, ' '), 90 + ci * colW, 40);
+      });
+      ctx.restore();
+    };
+
+    const at = (ev: PointerEvent | WheelEvent | MouseEvent) => {
+      const r = cv.getBoundingClientRect(); const v = view.current;
+      return { x: ((ev as any).clientX - r.left - v.x) / v.scale, y: ((ev as any).clientY - r.top - v.y) / v.scale };
+    };
+    const onWheel = (ev: WheelEvent) => {
+      ev.preventDefault();
+      const v = view.current; const before = at(ev);
+      const next = Math.min(3, Math.max(0.25, v.scale * (ev.deltaY < 0 ? 1.12 : 1 / 1.12)));
+      v.scale = next;
+      const after = at(ev);
+      v.x += (after.x - before.x) * v.scale; v.y += (after.y - before.y) * v.scale;
+      draw();
+    };
+    let dragging = false, lx = 0, ly = 0, moved = 0;
+    const onDown = (ev: PointerEvent) => { dragging = true; moved = 0; lx = ev.clientX; ly = ev.clientY; cv.setPointerCapture(ev.pointerId); };
+    const onMove = (ev: PointerEvent) => {
+      if (!dragging) return;
+      const dx = ev.clientX - lx, dy = ev.clientY - ly; lx = ev.clientX; ly = ev.clientY;
+      moved += Math.abs(dx) + Math.abs(dy);
+      view.current.x += dx; view.current.y += dy; draw();
+    };
+    const onUp = (ev: PointerEvent) => {
+      dragging = false;
+      if (moved > 4 || !onSelect) return;                    // a drag is not a click
+      const p = at(ev);
+      let best: { n: GraphNode; d: number } | null = null;
+      for (const q of placed.current) {
+        const d = (q.x - p.x) ** 2 + (q.y - p.y) ** 2;
+        if (d < 240 && (!best || d < best.d)) best = { n: q.n, d };
+      }
+      if (best) onSelect(best.n);
+    };
+
+    draw();
+    cv.addEventListener('wheel', onWheel, { passive: false });
+    cv.addEventListener('pointerdown', onDown);
+    cv.addEventListener('pointermove', onMove);
+    cv.addEventListener('pointerup', onUp);
+    const ro = new ResizeObserver(draw); ro.observe(cv);
+    return () => {
+      cv.removeEventListener('wheel', onWheel); cv.removeEventListener('pointerdown', onDown);
+      cv.removeEventListener('pointermove', onMove); cv.removeEventListener('pointerup', onUp); ro.disconnect();
+    };
+  }, [nodes, edges, onSelect]);
+
+  const zoomBy = (f: number) => { view.current.scale = Math.min(3, Math.max(0.25, view.current.scale * f)); ref.current?.dispatchEvent(new Event('resize')); };
+  return (
+    <div className='relative w-full' style={{ height }}>
+      <canvas ref={ref} className='w-full h-full cursor-grab active:cursor-grabbing rounded-md' />
+      <div className='absolute right-2 top-2 flex gap-1'>
+        <button onClick={() => zoomBy(1.25)} className='h-6 w-6 rounded border border-border bg-background/80 text-xs'>+</button>
+        <button onClick={() => zoomBy(1 / 1.25)} className='h-6 w-6 rounded border border-border bg-background/80 text-xs'>−</button>
+        <button onClick={() => { view.current = { x: 0, y: 0, scale: 1 }; ref.current?.dispatchEvent(new Event('resize')); }} className='h-6 px-1.5 rounded border border-border bg-background/80 text-[10px]'>reset</button>
+      </div>
+    </div>
+  );
+}

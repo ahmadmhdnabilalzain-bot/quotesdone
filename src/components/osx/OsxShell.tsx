@@ -36,7 +36,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight, Minus, Maximize2, Minimize2, ExternalLink, SquareStack, X, ChevronRight, Check, Brain } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight, Minus, Maximize2, Minimize2, ExternalLink, SquareStack, X, ChevronRight, Check, Brain, Network } from 'lucide-react';
+import { CompanyGraphField } from '@/components/NodeField';
 import { ControlModeProvider, ControlModeIndicator } from '@/components/osx/ControlMode';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
@@ -58,6 +59,7 @@ const MODULES: Mod[] = [
   { id: 'marketing', label: 'Marketing', icon: Megaphone, ws: 'ws.marketing' },
   { id: 'strategy', label: 'Strategy', icon: Compass, ws: 'ws.strategy' },
   { id: 'intelligence', label: 'Intelligence', icon: Brain, kind: 'intelligence' },
+  { id: 'company_os', label: 'Operating System & map', icon: Network, kind: 'company_os' },
   { id: 'documents', label: 'Documents', icon: FileText, ws: 'ws.documents' },
   { id: 'company', label: 'Company', icon: Building2, ws: 'ws.company' },
   { id: 'reports', label: 'Reports', icon: FileBarChart, ws: 'ws.reports' },
@@ -126,7 +128,7 @@ function bringToTop(list: WinState[], id: string, patch: Partial<WinState> = {})
 // Shared module renderer — used by both the tabbed main area and floating windows.
 function renderModule(id: string, go: (id: string) => void): React.ReactNode {
   const m = MODULES.find((x) => x.id === id) || MODULES[0];
-  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'intelligence' ? <IntelligenceApp /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : m.id === 'marketing' ? <MarketingApp /> : m.id === 'fraud' ? <FraudApp /> : m.id === 'refunds' ? <RefundsApp /> : m.id === 'operations' ? <OperationsApp /> : m.id === 'analytics' ? <AnalyticsApp /> : m.id === 'strategy' ? <StrategyApp /> : m.id === 'governance' ? <GovernanceApp /> : m.id === 'company' ? <CompanyApp /> : m.id === 'ea' ? <AssistantApp /> : m.id === 'documents' ? <DocumentsApp /> : m.id === 'reports' ? <ReportsApp /> : <Workspace mod={m} />;
+  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'intelligence' ? <IntelligenceApp /> : m.kind === 'company_os' ? <CompanyOsApp /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : m.id === 'marketing' ? <MarketingApp /> : m.id === 'fraud' ? <FraudApp /> : m.id === 'refunds' ? <RefundsApp /> : m.id === 'operations' ? <OperationsApp /> : m.id === 'analytics' ? <AnalyticsApp /> : m.id === 'strategy' ? <StrategyApp /> : m.id === 'governance' ? <GovernanceApp /> : m.id === 'company' ? <CompanyApp /> : m.id === 'ea' ? <AssistantApp /> : m.id === 'documents' ? <DocumentsApp /> : m.id === 'reports' ? <ReportsApp /> : <Workspace mod={m} />;
 }
 
 function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, onSnap }: { win: WinState; onFocus: () => void; onClose: () => void; onMin: () => void; onMax: () => void; onMove: (x: number, y: number) => void; onSize: (w: number, h: number) => void; onSnap: (s: 'l' | 'r' | null) => void }) {
@@ -2141,6 +2143,175 @@ function AnalyticsApp() {
       <SectionCard title='Top emirates'><div className='p-4'>{emirates.length ? <HBars rows={emirates.slice(0, 10).map((s: any) => ({ label: s.key, n: Number(s.count) }))} /> : <div className='text-xs text-muted-foreground'>No data.</div>}</div></SectionCard>
     </div>
     {(mp.category_growth || []).length || (mp.competitive_categories || []).length ? <SectionCard title='Category signals'><div className='p-4'><ReadableObject data={{ category_growth: mp.category_growth, competitive_categories: mp.competitive_categories }} /></div></SectionCard> : null}
+  </div>);
+}
+
+// ── THE OPERATING SYSTEM & COMPANY MAP ─────────────────────────────────────────────────────────
+// Mission Control and the company knowledge graph on one screen. Eighteen stores feed this and
+// every one of them reached no surface at all before it existed — graph_nodes and graph_edges are
+// rebuilt nightly and had ZERO readers anywhere in the product.
+function CompanyOsApp() {
+  const { d, err, busy, load } = useWs('ws.company_os');
+  const [sel, setSel] = React.useState<any>(null);
+  const [tab, setTab] = React.useState<'os' | 'map' | 'board' | 'strategy' | 'resilience' | 'manual'>('os');
+  const onNode = React.useCallback((n: any) => setSel(n), []);
+  if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load the Operating System: {err}</Card>;
+
+  const systems = (d?.operating_systems || []) as any[];
+  const graph = d?.graph || {}; const graph_nodes = (graph.nodes || []) as any[]; const graph_edges = (graph.edges || []) as any[];
+  const board = d?.board || {}; const indices = (d?.indices || []) as any[];
+  const replay = d?.replay || {}; const reputation = d?.reputation || {};
+  const evolution_proposal = (d?.evolution_proposals || []) as any[];
+  const challenge_record = (d?.challenge_record || []) as any[];
+  const institutional = d?.institutional_memory || {}; const resilience = d?.resilience || {};
+  const operating_manual = d?.operating_manual || {}; const events = d?.events || {};
+  const TABS: [any, string][] = [['os', 'Mission control'], ['map', 'Company map'], ['board', 'Board'],
+    ['strategy', 'Strategic queue'], ['resilience', 'Resilience'], ['manual', 'Operating manual']];
+
+  return (<div className='space-y-4'>
+    <AppHeader icon={Network} title='Operating System' onRefresh={load} busy={busy}
+      badge={<Badge className='bg-primary/15 text-primary border-0'>{systems.length} systems · {graph.node_count} nodes</Badge>} />
+    <KpiRow items={[
+      ['Operating systems', systems.length],
+      ['Graph nodes', graph.node_count], ['Graph edges', graph.edge_count],
+      ['Events 7d', events.last_7d], ['Lessons on file', institutional.lessons],
+      ['Runbooks', operating_manual.runbooks],
+    ]} />
+    <div className='inline-flex rounded-md border border-border overflow-hidden text-xs'>{TABS.map(([k, lbl]) => (
+      <button key={k} onClick={() => setTab(k)} className={cn('h-7 px-3 border-l first:border-l-0 border-border', tab === k ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}>{lbl}</button>))}</div>
+
+    {tab === 'os' ? <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>{systems.map((s: any) => (
+      <Card key={s.os_key} className='p-4 cursor-pointer hover:brightness-[1.03] transition-all' onClick={() => setSel(s)}>
+        <div className='flex items-center gap-2'>
+          <span className={cn('inline-block h-2 w-2 rounded-full', Number(s.health_score) >= 80 ? 'bg-emerald-500 animate-pulse' : Number(s.health_score) >= 60 ? 'bg-amber-500' : 'bg-red-500')} />
+          <span className='text-sm font-semibold'>{s.name}</span>
+          <span className='text-[11px] text-muted-foreground'>{s.os_key}</span>
+          <Chip label={'health ' + (s.health_score ?? '—')} tone={Number(s.health_score) >= 80 ? 'green' : Number(s.health_score) >= 60 ? 'amber' : 'red'} />
+        </div>
+        <div className='text-[12px] text-muted-foreground mt-1.5 line-clamp-2'>{s.mission}</div>
+        <div className='text-[11px] text-muted-foreground mt-2 flex flex-wrap gap-x-3'>
+          <span>owner {s.owner_agent}</span><span>{(s.objectives || []).length} objective(s)</span>
+          <span>{(s.responsibilities || []).length} responsibilit(ies)</span>
+          {(s.owned_departments || []).length ? <span>{s.staff_in_owned_departments} staff in {(s.owned_departments || []).join(', ')}</span> : null}
+        </div>
+      </Card>))}</div> : null}
+
+    {tab === 'map' ? <SectionCard title='Company map' count={graph.node_count}
+      right={<span className='text-[11px] text-muted-foreground'>{graph.edge_count} edges · rebuilt {fmt(graph.rebuilt_at)} · scroll to zoom, drag to pan, click a node</span>}>
+      <div className='p-2'>
+        <div className='flex flex-wrap gap-1.5 px-2 pb-2'>{(graph.node_kinds || []).map((k: any) => (
+          <Chip key={k.kind} label={titleCase(String(k.kind)) + ' ' + k.n} tone='slate' />))}</div>
+        <CompanyGraphField nodes={graph_nodes as any} edges={graph_edges as any} onSelect={onNode} />
+      </div>
+    </SectionCard> : null}
+
+    {tab === 'board' ? <div className='space-y-3'>
+      <SectionCard title='The board' count={(board.advisors || []).length}>
+        <div className='divide-y divide-border'>{(board.advisors || []).map((a: any) => (
+          <div key={a.advisor_key} className='px-4 py-2.5 text-sm'><span className='font-medium'>{a.name}</span>
+            <span className='text-[11px] text-muted-foreground'> · {a.lens} · weight {a.weight}</span>
+            {a.asks ? <div className='text-[11px] text-muted-foreground mt-0.5'>{a.asks}</div> : null}</div>))}</div>
+      </SectionCard>
+      {(board.opinions || []).length ? <SectionCard title='Recent opinions' count={board.opinion_count}>
+        <div className='divide-y divide-border'>{(board.opinions || []).map((o: any, i: number) => (
+          <div key={i} className='px-4 py-2.5 text-sm'><div className='flex items-center gap-2 flex-wrap'>
+            <span className='font-medium'>{o.subject}</span><Chip label={String(o.advisor_key)} tone='slate' />
+            {o.confidence != null ? <Chip label={'confidence ' + o.confidence} tone={Number(o.confidence) >= 0.7 ? 'green' : 'amber'} /> : null}</div>
+            <div className='text-[12px] mt-0.5'>{o.recommendation}</div>
+            <div className='text-[11px] text-muted-foreground mt-0.5 line-clamp-2'>{o.rationale}</div></div>))}</div>
+      </SectionCard> : null}
+      <SectionCard title='Company indices' count={indices.length}>
+        <div className='p-4 grid grid-cols-1 sm:grid-cols-3 gap-3'>{indices.map((ix: any) => (
+          <div key={ix.index_name} className='rounded-md border border-border p-3'>
+            <div className='text-[11px] uppercase tracking-wide text-muted-foreground'>{titleCase(String(ix.index_name))}</div>
+            <div className='text-xl font-semibold tabular-nums'>{ix.score}<span className='text-xs font-normal text-muted-foreground'> · {ix.band}</span></div>
+            <div className='text-[11px] text-muted-foreground'>measured {ix.measured_on}</div>
+            {ix.dimensions ? <div className='mt-2 space-y-1'>{Object.entries(ix.dimensions).slice(0, 6).map(([k, v]: any) => (
+              <div key={k} className='flex items-center justify-between text-[11px]'><span className='text-muted-foreground truncate'>{titleCase(k)}</span><span className='tabular-nums'>{fmt(v)}</span></div>))}</div> : null}
+          </div>))}</div>
+      </SectionCard>
+      <SectionCard title='Replay' count={replay.days_on_file}
+        right={<span className='text-[11px] text-muted-foreground'>newest {replay.newest}</span>}>
+        <div className='p-4 flex flex-wrap gap-1.5'>{(replay.company_snapshot || []).map((s: any, i: number) => (
+          <button key={i} onClick={() => setSel(s)} className='rounded-md border border-border px-2 py-1 text-[11px] hover:bg-foreground/5'>{s.snapshot_on}</button>))}</div>
+      </SectionCard>
+    </div> : null}
+
+    {tab === 'strategy' ? <div className='space-y-3'>
+      {challenge_record.length ? <SectionCard title='Where the AI disagreed' count={challenge_record.length}>
+        <div className='divide-y divide-border'>{challenge_record.map((c: any) => (
+          <div key={c.id} className='px-4 py-3 text-sm'>
+            <div className='flex items-center gap-2 flex-wrap'><Chip label={titleCase(String(c.stance))} tone={c.stance === 'recommend_against' ? 'red' : 'amber'} />
+              <span className='font-medium'>{c.proposal}</span>
+              <span className='text-[11px] text-muted-foreground'>challenged by {c.challenged_by}</span>
+              {c.confidence != null ? <Chip label={'confidence ' + c.confidence} tone='slate' /> : null}</div>
+            <div className='text-[12px] text-muted-foreground mt-1'>{c.reasoning}</div>
+            {(c.alternatives || []).length ? <div className='mt-1.5'>
+              <div className='text-[11px] uppercase tracking-wide text-muted-foreground'>Alternatives offered</div>
+              <ul className='list-disc pl-5 text-[12px]'>{(c.alternatives as any[]).map((a: any, j: number) => (<li key={j}>{String(a)}</li>))}</ul></div> : null}
+            {c.violates_principle ? <div className='text-[11px] text-amber-600 mt-1'>Violates: {c.violates_principle} (rank {c.violates_rank})</div> : null}
+            <div className='text-[11px] text-muted-foreground mt-1'>{c.responded_at ? 'Answered ' + fmt(c.responded_at) : 'Awaiting the founder'}</div>
+          </div>))}</div>
+      </SectionCard> : null}
+      {evolution_proposal.length ? <SectionCard title='Structural proposals' count={evolution_proposal.length}>
+        <div className='divide-y divide-border'>{evolution_proposal.map((p: any) => (
+          <div key={p.id} className='px-4 py-2.5 text-sm'><div className='flex items-center gap-2 flex-wrap'>
+            <span className='font-medium'>{p.subject}</span><Chip label={String(p.change_class || p.trigger_kind)} tone='slate' />
+            <Chip label={titleCase(String(p.status))} tone={statusTone(String(p.status))} /></div>
+            <div className='text-[12px] text-muted-foreground mt-0.5'>{p.observation}</div>
+            <div className='text-[12px] mt-0.5'>{p.proposal}</div></div>))}</div>
+      </SectionCard> : null}
+      {(institutional.rows || []).length ? <SectionCard title='Lessons the company has learned' count={institutional.lessons}>
+        <div className='divide-y divide-border'>{(institutional.rows || []).map((m: any, i: number) => (
+          <div key={i} className='px-4 py-2.5 text-sm'><div className='flex items-center gap-2 flex-wrap'>
+            <span className='font-medium'>{m.headline}</span>{m.outcome ? <Chip label={String(m.outcome)} tone='slate' /> : null}
+            {m.os_key ? <span className='text-[11px] text-muted-foreground'>{m.os_key}</span> : null}</div>
+            <div className='text-[12px] text-muted-foreground mt-0.5'>{m.lesson}</div></div>))}</div>
+      </SectionCard> : null}
+      <SectionCard title='Employee reputation' count={reputation.graded}
+        right={<div className='flex gap-1'>{(reputation.by_tier || []).map((t: any) => (<Chip key={t.tier} label={t.n + ' ' + t.tier} tone={t.tier === 'probation' ? 'amber' : 'green'} />))}</div>}>
+        <div className='overflow-auto max-h-72'><table className='w-full text-sm'>
+          <thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border sticky top-0 bg-card'><th className='px-4 py-2 font-medium'>Employee</th><th className='px-4 py-2 font-medium'>Score</th><th className='px-4 py-2 font-medium'>Tier</th><th className='px-4 py-2 font-medium'>Learning</th></tr></thead>
+          <tbody>{(reputation.rows || []).map((r: any) => (<tr key={r.agent_key} className='border-b border-border/40'>
+            <td className='px-4 py-2 font-medium'>{r.agent_key}</td><td className='px-4 py-2 tabular-nums'>{r.score ?? '—'}</td>
+            <td className='px-4 py-2'><Chip label={String(r.tier || '—')} tone={r.tier === 'probation' ? 'amber' : 'green'} /></td>
+            <td className='px-4 py-2 tabular-nums'>{r.learning_speed ?? '—'}</td></tr>))}</tbody></table></div>
+      </SectionCard>
+    </div> : null}
+
+    {tab === 'resilience' ? <div className='space-y-3'>
+      <SectionCard title='Critical capabilities' count={(resilience.critical_capability || []).length}>
+        <div className='divide-y divide-border'>{(resilience.critical_capability || []).map((c: any) => (
+          <div key={c.capability_key} className='px-4 py-2.5 text-sm flex items-center gap-3'>
+            <div className='min-w-0 flex-1'><div className='font-medium'>{c.capability}</div>
+              <div className='text-[11px] text-muted-foreground'>{c.owner_dept} · {c.test_kind}</div></div>
+            <Chip label={String(c.last_verdict || 'never tested')} tone={c.last_verdict === 'pass' ? 'green' : c.last_verdict ? 'red' : 'amber'} />
+            <span className='text-[11px] text-muted-foreground shrink-0'>{c.last_checked ? fmt(c.last_checked) : '—'}</span>
+          </div>))}</div>
+      </SectionCard>
+      <SectionCard title='Continuity plans' count={(resilience.continuity_plan || []).length}>
+        <div className='divide-y divide-border'>{(resilience.continuity_plan || []).map((p: any, i: number) => (
+          <div key={i} className='px-4 py-2.5 text-sm'><div className='flex items-center gap-2 flex-wrap'>
+            <span className='font-medium'>{p.service}</span><Chip label={String(p.criticality)} tone={p.criticality === 'high' ? 'red' : 'amber'} />
+            {p.rto_minutes != null ? <span className='text-[11px] text-muted-foreground'>RTO {p.rto_minutes}m</span> : null}
+            <span className='text-[11px] text-muted-foreground'>{p.last_tested ? 'tested ' + fmt(p.last_tested) : 'never tested'}</span></div>
+            <div className='text-[12px] text-muted-foreground mt-0.5'>{p.failure_mode} → {p.fallback}</div></div>))}</div>
+      </SectionCard>
+    </div> : null}
+
+    {tab === 'manual' ? <SectionCard title='Operating manual' count={operating_manual.runbooks}
+      right={<div className='flex flex-wrap gap-1'>{(operating_manual.by_category || []).slice(0, 6).map((c: any) => (<Chip key={c.category} label={c.category + ' ' + c.n} tone='slate' />))}</div>}>
+      <div className='divide-y divide-border'>{(operating_manual.rows || []).map((r: any) => (
+        <div key={r.slug} className='px-4 py-2.5 text-sm'><div className='flex items-center gap-2 flex-wrap'>
+          <span className='font-medium'>{r.title}</span><Chip label={String(r.category || 'general')} tone='slate' />
+          {r.os_key ? <span className='text-[11px] text-muted-foreground'>{r.os_key}</span> : null}</div>
+          <div className='text-[12px] text-muted-foreground mt-0.5'>{r.when_to_use}</div></div>))}</div>
+    </SectionCard> : null}
+
+    {sel ? <Sheet open={true} onOpenChange={(o) => { if (!o) setSel(null); }}><SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto'>
+      <SheetHeader><SheetTitle>{sel.name || sel.label || sel.snapshot_on || 'Detail'}</SheetTitle>
+        <SheetDescription>{sel.os_key || sel.kind || ''}</SheetDescription></SheetHeader>
+      <Card className='mt-4 p-4'><ReadableObject data={sel} /></Card></SheetContent></Sheet> : null}
   </div>);
 }
 
