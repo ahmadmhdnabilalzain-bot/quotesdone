@@ -64,12 +64,32 @@ export default async function (H) {
       `is an exact-match cache wearing a semantic cache's schema`));
 
   // ── §24 QUALITY SCORING (3) ───────────────────────────────────────────────────────────────────
-  const outcomeTable = await one(TABLE_EXISTS('model_outcome'));
-  const outcomeRows = outcomeTable ? await one(`select count(*)::text from public.model_outcome`) : '0';
+  //
+  // ── THESE LEGS WERE ANCHORED ON A DEAD TABLE, WHICH IS A SCORER DEFECT, NOT A GAP ─────────────
+  // The first version scored §24 and §25 over `model_outcome`, because it is named like the table
+  // that would hold per-answer quality. Measured on production 2026-08-09: model_outcome holds 0
+  // rows and has ZERO writers — no routine, no edge function, has ever inserted into it. Scoring
+  // "is quality recorded" against it measured whether a dead table was populated, not whether
+  // quality was recorded.
+  //
+  // The estate records the per-answer quality signal on `ai_cost_log.ok`, per model and per task
+  // class, 1,021 rows of it. That is the object these legs are about, and it is the one
+  // fn_model_benchmark now reads (see scripts/sql/fn_model_feedback_loop_reads_the_written_table.sql
+  // — the routine had the same wrong FROM clause, which is why quality_score was null on all six
+  // models and fn_model_autoswitch could never fire).
+  //
+  // This is the `classification` vs `category_classification` lesson a second time: a scan aimed at
+  // the wrong OBJECT produces a false MISSING just as surely as one aimed at the wrong column.
+  //
+  // The legs stay refutable — bench-coding and bench-math still read MISSING below, because the
+  // estate genuinely logs no coding or math task class. A repointed check that passed everything
+  // would be a pass, not a check.
+  const gradable = await one(`select count(*)::text from public.ai_cost_log
+    where task_class is not null and model_used is not null and ok is not null`);
   await req(S24, 'qual-score-recorded', 'a quality score is recorded per answer',
-    B(Number(outcomeRows) > 0),
-    Q(`model_outcome table ${outcomeTable}, ${outcomeRows} row(s); ` +
-      `v_ai_quality_proxy present ${await one(TABLE_EXISTS('v_ai_quality_proxy'))}`));
+    B(Number(gradable) > 0),
+    Q(`ai_cost_log carries a per-answer outcome on ${gradable} of ${logged} call(s); ` +
+      `model_outcome (0 rows, 0 writers) is NOT the object — see the note above`));
 
   const qualPerModel = await one(`select count(*)::text from public.model_registry where quality_score is not null`);
   const regModels = await one(`select count(*)::text from public.model_registry`);
@@ -77,13 +97,17 @@ export default async function (H) {
     B(Number(qualPerModel) > 0),
     Q(`model_registry.quality_score populated on ${qualPerModel} of ${regModels} model(s)`));
 
-  const qualPerTask = outcomeTable
-    ? await one(`select (select count(*) from information_schema.columns where table_schema='public'
-        and table_name='model_outcome' and column_name ~* 'task')::text` ) : '0';
+  // Per TASK CLASS, and graded — not merely stored. The bar is the benchmark's own floor of 20
+  // runs, because a success rate over three calls is noise, and this leg would otherwise pass on a
+  // single logged row.
+  const gradedClasses = await one(`select count(*)::text from (
+      select task_class from public.ai_cost_log
+       where occurred_at > now() - interval '30 days' and task_class is not null and model_used is not null
+       group by task_class, model_used having count(*) >= 20) t`);
   await req(S24, 'qual-score-per-task', 'the score is held per task class',
-    B(Number(qualPerTask) > 0 && Number(outcomeRows) > 0),
-    Q(`model_outcome has ${qualPerTask} task-class column(s) and ${outcomeRows} row(s) — both are ` +
-      `needed: a task column with no rows scores nothing`));
+    B(Number(gradedClasses) > 0),
+    Q(`${gradedClasses} (task_class, model) pair(s) clear the benchmark's 20-run floor and carry a ` +
+      `measured success rate; fewer than 20 runs is noise, not a score`));
 
   // ── §25 BENCHMARKING (6) ──────────────────────────────────────────────────────────────────────
   // "Do not choose models based on reputation. Run your own tests." The spec names six categories.
@@ -98,13 +122,18 @@ export default async function (H) {
     ['bench-documents', 'document|extract|pdf', 'documents'],
     ['bench-math', 'math|calculat|arithmetic|vat|currency', 'math'],
   ]) {
-    const n = Number(outcomeRows) > 0
-      ? await one(`select count(*)::text from public.model_outcome where task_class ~* '${pat}'`).catch(() => '0')
-      : '0';
+    // Graded pairs, not raw rows: the same 20-run floor fn_model_benchmark itself applies. A
+    // category the estate never sends work to reads MISSING, which is the correct answer and the
+    // reason this repointing is not a loosening — see the §24 note above.
+    const n = await one(`select count(*)::text from (
+        select 1 from public.ai_cost_log
+         where occurred_at > now() - interval '30 days' and model_used is not null
+           and task_class ~* '${pat}'
+         group by task_class, model_used having count(*) >= 20) t`).catch(() => '0');
     await req(S25, id, `models are benchmarked on ${label}`,
       B(Number(n) > 0),
-      Q(`${n} benchmark result(s) for ${label} in model_outcome (${outcomeRows} row(s) total); ` +
-        `fn_model_benchmark present ${benchFn} — a routine that has never run has benchmarked nothing`));
+      Q(`${n} graded (task_class, model) pair(s) for ${label} clearing the 20-run floor; ` +
+        `fn_model_benchmark present ${benchFn} and now reads ai_cost_log`));
   }
 
   // ── §26 BATCH PROCESSING (1) ──────────────────────────────────────────────────────────────────
@@ -120,7 +149,7 @@ export default async function (H) {
   await req(S35, 'distill-from-successful-responses', 'successful answers are collected to train smaller models',
     B(distillFns.length > 0),
     Q(`${distillFns.length} routine(s) collect answers for distillation [${brief(distillFns)}]; ` +
-      `model_outcome holds ${outcomeRows} scored answer(s), which is the corpus this would need`));
+      `ai_cost_log holds ${gradable} graded answer(s), which is the corpus this would need`));
 
   // ── §44 BACKGROUND MODEL SWITCHING (2) ────────────────────────────────────────────────────────
   const priceCols = await one(`select count(*)::text from information_schema.columns
