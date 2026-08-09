@@ -28,6 +28,9 @@ Eight scorer runs. The row nearly tripled its score in a single session.
 | after the exec meeting + the manual | **93/152 (61%)** | `exec-meeting-replayable`, `s38-manual-self-documenting` |
 | after the flow map | **94/152 (62%)** | `mission-control-flow-animation` |
 | after the memory reaches the gate | **95/152 (62%)** | `s28-blocks-repeat-failures` |
+| after routing, replay reader, reactive bus | **96/152 (63%)** | `s25-routing-seven-task-classes` |
+| after reputation reaches authority | 97/152 | `s32-reputation-drives-authority` |
+| after the command centre | **98/152 (64%)** | `command-center-six-boards` |
 
 **0 errored, 0 regressions**, every run.
 
@@ -73,6 +76,13 @@ neither:
 | `bi_snapshot_6h` cron + registry row | `digital-twin-live-kpis`, and the KPI track of `s33-replay-six-tracks` |
 | `fn_ws_company_os` + a `flow` key, and `OsFlowMap` | **`mission-control-flow-animation` — MET.** 932 deliveries in 7d, 738 attributed to a sending system, 37 cross-OS edges drawn. The declared `os_interface` graph joins to ZERO cross-OS edges, so the map is drawn from what was delivered rather than from the contract |
 | `fn_should_escalate` consults `institutional_memory` | **`s28-blocks-repeat-failures` — MET.** 287 lessons on file and 1,229 gated actions a month that had never met. Three-token match, set by measuring: it fires on 4 of 1,229 (0.3%), three of them precise |
+| `fn_capability_verify` + `capability_verify_daily` | `s34-resilience-measured`. 16 capabilities graded by a view nothing read. **`matching` has been FAILING at 33% since 5 Aug and no surface said so** |
+| `fn_period_report` + a Competitive Position section, `monthly_report` repointed | `s37-benchmark-monthly-report` leg 1 MET. 27 competitors, none ever named in a board report. **0 of 27 offer supplier anonymity** — the differentiator this marketplace is built on |
+| four `model_policy` rows | **`s25-routing-seven-task-classes` — MET.** vision, OCR, translation and summarization were running with no tier, no fallback and no cost ceiling |
+| `fn_ws_company_os` + a `tracks` key | `s33-replay-six-tracks` spanner leg: 0 → 1 routine spanning all six track tables |
+| `trg_company_event_dispatch` | `s21-no-polling` trigger leg MET. Delivery went from a 15-minute scan to **0s measured**; the 7-day median converges |
+| `fn_check_spend` consults `agent_reputation` | **`s32-reputation-drives-authority` — MET.** Seven probation employees kept their nominal spend ceiling while `max_tier` already said 'gated' |
+| `fn_ws_exec_home` + four figures, and the Console strip | **`command-center-six-boards` — MET**, 2 of 6 → 6 of 6 |
 
 ---
 
