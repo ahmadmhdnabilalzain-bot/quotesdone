@@ -135,3 +135,77 @@ router correctly fell back to its safe medium default and the check read that as
 4. **Move `agent_reasoning` off `large` where it can go.** 282 calls, AED 51 — the single biggest
    line, and `v_cost_optimisation` already flags 25 of them as downgradable.
 5. Capture `confidence` on write — unblocks `dash-avg-quality` and `cascade-confidence-score`.
+
+---
+
+## 8. THE FEEDBACK LOOP WAS READING A TABLE NOTHING HAS EVER WRITTEN — FIXED
+
+The keystone named in §7 above turned out to be one wrong `FROM` clause, not missing data.
+
+```
+model_outcome rows                                           0
+routines that INSERT into model_outcome                      NONE
+edge functions referencing model_outcome                     NONE
+routines that READ model_outcome    fn_model_benchmark, fn_model_autoswitch   <- both dead
+ai_cost_log rows                                         1,021   with every column they need
+```
+
+`fn_model_benchmark` is the **only** writer of `model_registry.quality_score` — which is why that
+column was null on all six models — and `fn_model_autoswitch`, the safety loop that promotes a task
+class off a model that has started failing, could never fire.
+
+**Fix: the two readers move to `ai_cost_log`.** Not a new writer for `model_outcome` — that would
+put two tables in the business of recording one event and they would drift the first time a caller
+updated one and not the other. Deployed to both projects, digest-identical.
+
+Preserved exactly: the ≥20-run floor, the 85% success floor, and the autoswitch's refusal to act
+unless the failing model is still the primary for that class. Both signatures unchanged, so this is
+a `CREATE OR REPLACE` and no dependent object is invalidated.
+
+### What it graded on its first real run
+
+| task class | model | runs | success | cost/call | verdict |
+|---|---|---|---|---|---|
+| json_extraction | gemini-3.1-flash-lite | 216 | **100.00%** | $0.000277 | GOOD |
+| memory_retrieval | gemini-3.1-flash-lite | 183 | **100.00%** | $0.000447 | GOOD |
+| knowledge_research | claude-haiku | 89 | 98.88% | $0.005160 | GOOD |
+| chief_of_staff_decision | claude-sonnet-5 | 46 | 93.48% | $0.023066 | ACCEPTABLE — watch |
+| agent_reasoning | claude-sonnet-5 | 271 | 92.25% | $0.049455 | ACCEPTABLE — watch |
+
+`quality_score` now populated on **4 of 6 models, both projects**. The two unscored have fewer than
+20 runs and are correctly excluded.
+
+**`fn_model_autoswitch` executed and promoted 0.** That is the correct outcome and worth stating:
+every graded pair sits above the 85% floor. The value of the repair is that the loop can now *see*,
+not that it acts. A loop that fired on its first run after being repaired would be a reason to
+distrust the repair.
+
+### And the finding the numbers hand you
+
+**The cheapest model in the registry has a perfect record.** `gemini-3.1-flash-lite` — tier `small`,
+$0.25/Mtok — scores **1.0000 over 399 runs**. `claude-sonnet-5` — tier `large`, 8× the input price —
+scores **0.9245**. The spec's whole thesis, proven with the estate's own traffic rather than with a
+vendor benchmark.
+
+## 9. A SECOND SCORER DEFECT, THE SAME LESSON IN A NEW FORM
+
+Eight legs (`qual-score-recorded`, `qual-score-per-task`, and all six `bench-*`) were anchored on
+`model_outcome` **because it is named like the table that would hold per-answer quality**. It is a
+table with zero writers. Scoring "is quality recorded" against it measured whether a dead table was
+populated, not whether quality was recorded — and the estate records it on `ai_cost_log.ok`.
+
+That is `classification` vs `category_classification` a second time: **a scan aimed at the wrong
+OBJECT produces a false MISSING just as surely as one aimed at the wrong column.**
+
+Repointed, and the legs stay refutable — `bench-coding`, `bench-writing`, `bench-vision` and
+`bench-math` still read MISSING, because the estate genuinely has no graded pair in those
+categories. A repointed check that passed everything would be a pass, not a check.
+
+## 10. SCORE AFTER THIS SESSION'S FIXES: 191 / 226 (85%)
+
+| | |
+|---|---|
+| baseline | 184/226 |
+| `cascade-starts-cheap` — boolean/string comparison defect | +1 |
+| `qual-score-*` ×3, `bench-*` ×2, `switch-automatic` — dead-table repoint + real benchmark run | +6 |
+| **total** | **191/226 (85%)** |
