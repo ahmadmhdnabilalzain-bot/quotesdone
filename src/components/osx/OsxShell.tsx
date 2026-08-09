@@ -1022,9 +1022,22 @@ function Console() {
     setBusy(false);
   };
   const decide = async (decision: string) => { if (!confirm) return; const tok = confirm.token; setConfirm(null); setBusy(true); try { const d = await osApi('secretary_chat', { confirm_token: tok, decision }); setMsgs((m) => [...m, { role: 'assistant', content: d?.reply || (decision === 'confirm' ? 'Done.' : 'Cancelled.') }]); } catch (_e) { setMsgs((m) => [...m, { role: 'assistant', content: 'Could not complete that.' }]); } setBusy(false); };
+  // Landing on the console should still land on a live company, not on an empty text box. The same
+  // figures the Command Center shows, one line, refreshed on the same 30s beat.
+  const [eh, setEh] = React.useState<any>({});
+  const loadHome = React.useCallback(() => { osApi('ws.exec_home').then(setEh).catch(() => {}); }, []);
+  React.useEffect(() => { loadHome(); const t = setInterval(loadHome, 30000); return () => clearInterval(t); }, [loadHome]);
   return (
     <Card className='flex flex-col h-[calc(100vh-140px)]'>
       <div className='px-5 py-3 border-b border-border flex items-center gap-2'><div className='h-8 w-8 rounded-lg bg-primary text-primary-foreground grid place-items-center font-bold'>✦</div><div><div className='font-semibold text-sm'>Command Console</div><div className='text-xs text-muted-foreground'>Instruct the Secretary — it acts across the team.</div></div></div>
+      <div className='px-5 py-2 border-b border-border/60 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px]'>
+        <span className='text-muted-foreground'>Company health <b className='text-foreground tabular-nums'>{eh.health_index ?? '—'}</b>{eh.mood ? ' · ' + titleCase(String(eh.mood)) : ''}</span>
+        <span className='text-muted-foreground'>Revenue today <b className='text-foreground tabular-nums'>{eh.revenue_today != null ? aed(eh.revenue_today) : '—'}</b></span>
+        <span className='text-muted-foreground'>Active suppliers <b className='text-foreground tabular-nums'>{eh.suppliers_active ?? '—'}</b></span>
+        <span className='text-muted-foreground'>Active customers <b className='text-foreground tabular-nums'>{eh.customers_active ?? '—'}</b></span>
+        <span className='text-muted-foreground'>AI employees working <b className='text-foreground tabular-nums'>{eh.employees_working ?? '—'}</b> / {eh.employees ?? '—'}</span>
+        <span className='text-muted-foreground'>Monthly goal <b className='text-foreground tabular-nums'>{eh.goal_progress_pct != null ? eh.goal_progress_pct + '%' : '—'}</b></span>
+      </div>
       <div className='flex-1 overflow-auto p-4 space-y-3'>
         {!msgs.length ? <div className='text-sm text-muted-foreground'>Ask for a status, approve a supplier, draft content, log a finance entry, or attach an invoice and tell me what to do with it.</div> : null}
         {msgs.map((m, i) => (<div key={i} className={cn('max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm whitespace-pre-wrap', m.role === 'user' ? 'ml-auto bg-primary text-primary-foreground' : 'bg-foreground/5')}>{m.content}</div>))}
@@ -1092,10 +1105,15 @@ function StatTile({ label, value, hint, onClick }: { label: string; value: any; 
 
 function Overview({ onNav }: { onNav: (id: string) => void }) {
   const [v, setV] = React.useState<any>(null); const [health, setHealth] = React.useState<any>({}); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
-  const load = React.useCallback(() => { setBusy(true); setErr(''); Promise.all([osApi('viz'), osApi('ws.exec').catch(() => null)]).then(([viz, exec]: any) => { setV(viz); setHealth((exec && exec.command && exec.command.health) || {}); }).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  const [eh, setEh] = React.useState<any>({});
+  const load = React.useCallback(() => { setBusy(true); setErr(''); Promise.all([osApi('viz'), osApi('ws.exec').catch(() => null), osApi('ws.exec_home').catch(() => null)]).then(([viz, exec, home]: any) => { setV(viz); setHealth((exec && exec.command && exec.command.health) || {}); setEh(home || {}); }).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
   React.useEffect(() => { load(); }, [load]);
+  // The lobby refreshes itself. Revenue, customers and suppliers move without a reload, which is
+  // what "live company state" means — a landing screen you have to refresh is a report.
+  React.useEffect(() => { const t = setInterval(load, 30000); return () => clearInterval(t); }, [load]);
   if (err && !v) return <Card className='p-6 text-sm text-destructive'>Could not load command center: {err}</Card>;
   if (!v) return <div className='text-muted-foreground text-sm'>Loading command center…</div>;
+  const bottlenecks = (eh.bottlenecks || []) as any[]; const departments = (eh.departments || []) as any[];
   const H = v.headline || {}; const band = String(health.band || 'unknown');
   const bandColor = /crit|down|bad|fail/.test(band) ? 'border-red-500/40 text-red-600' : /attention|warn|risk|watch/.test(band) ? 'border-amber-500/40 text-amber-600' : /ok|good|healthy|strong/.test(band) ? 'border-emerald-500/40 text-emerald-600' : 'border-border text-muted-foreground';
   const pipeline = (v.pipeline || []) as { stage: string; n: number }[]; const pipelineLive = pipeline.some((p) => p.n > 0);
@@ -1111,6 +1129,44 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
         <div><div className='text-[11px] uppercase tracking-wide opacity-70'>Business health</div><div className='text-2xl font-bold mt-0.5'>{health.index ?? '—'}<span className='text-sm font-normal opacity-70'> / 100 · {titleCase(band)}</span></div></div>
         <div className='flex items-center gap-2 max-w-md'><div className='text-xs opacity-80 text-right'>{health.note || 'Live signals across revenue, uptime, disputes and activity.'}</div><ArrowUpRight className='h-4 w-4 shrink-0 opacity-60' /></div>
       </Card>
+
+      {/* ── THE LIVE COMPANY STATE ────────────────────────────────────────────────────────────
+          Nine figures the company already computes every night and never showed anyone. Each is
+          taken from the routine that owns it, so this strip can never disagree with the module it
+          links to. It re-reads itself every 30 seconds. */}
+      <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3'>
+        <StatTile label='Company health' value={eh.health_index != null ? eh.health_index + ' / 100' : '—'} hint={eh.mood ? titleCase(String(eh.mood)) : undefined} onClick={() => onNav('health')} />
+        <StatTile label='Revenue today (AED)' value={eh.revenue_today != null ? aed(eh.revenue_today) : '—'} onClick={() => onNav('finance')} />
+        <StatTile label='Revenue this month (AED)' value={eh.revenue_30d != null ? aed(eh.revenue_30d) : '—'} hint='rolling 30 days' onClick={() => onNav('finance')} />
+        <StatTile label={'Monthly goal progress'} value={eh.goal_progress_pct != null ? eh.goal_progress_pct + '%' : '—'} hint={eh.goal_count ? eh.goal_count + ' ' + String(eh.goal_horizon || '') + ' targets' : undefined} onClick={() => onNav('company')} />
+        <StatTile label='Active customers' value={eh.customers_active} onClick={() => onNav('customers')} />
+        <StatTile label='Active suppliers' value={eh.suppliers_active} hint='quoting in 30 days' onClick={() => onNav('suppliers')} />
+        <StatTile label='AI employees working' value={(eh.employees_working ?? '—') + ' / ' + (eh.employees ?? '—')} hint='ran in the last 24 hours' onClick={() => onNav('agents')} />
+        <StatTile label='Company mood' value={eh.mood ? titleCase(String(eh.mood)) : '—'} hint='business health band' onClick={() => onNav('health')} />
+        <StatTile label='Bottlenecks' value={bottlenecks.length} hint='departments over capacity' onClick={() => onNav('operations')} />
+      </div>
+
+      {bottlenecks.length ? <SectionCard title='Where the company is blocked right now' count={bottlenecks.length}>
+        <div className='divide-y divide-border'>{bottlenecks.map((b: any, i: number) => (
+          <div key={i} className='px-4 py-2.5 flex items-center gap-3 text-sm'>
+            <Chip label={String(b.state)} tone={b.state === 'HALT' ? 'red' : 'amber'} />
+            <div className='min-w-0 flex-1'><span className='font-medium'>{b.resource}</span>
+              <span className='text-muted-foreground'> — {titleCase(String(b.department))}</span></div>
+            <span className='tabular-nums text-muted-foreground shrink-0'>{b.committed}/{b.capacity} {b.unit} · {b.used_pct}%</span>
+          </div>))}</div>
+      </SectionCard> : null}
+
+      {departments.length ? <SectionCard title='Departments' count={departments.length}
+        right={<span className='text-[11px] text-muted-foreground'>agent runs in the last 24 hours</span>}>
+        <div className='p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2'>{departments.map((d: any, i: number) => (
+          <button key={i} onClick={() => onNav('agents')} className={cn('rounded-md border px-3 py-2 text-left transition-colors hover:bg-foreground/5', d.busy ? 'border-emerald-500/40 bg-emerald-500/[0.06]' : 'border-border')}>
+            <div className='text-sm font-medium truncate'>{d.department}</div>
+            <div className='text-[11px] text-muted-foreground flex items-center gap-1.5'>
+              <span className={cn('inline-block h-1.5 w-1.5 rounded-full', d.busy ? 'bg-emerald-500 animate-pulse' : 'bg-foreground/20')} />
+              {d.runs} run{d.runs === 1 ? '' : 's'}{d.health != null ? ' · health ' + d.health : ''}
+            </div>
+          </button>))}</div>
+      </SectionCard> : null}
 
       <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>
         <StatTile label='Suppliers sourced' value={H.suppliers_total} onClick={() => onNav('suppliers')} />
