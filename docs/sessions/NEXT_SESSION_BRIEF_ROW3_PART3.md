@@ -222,3 +222,28 @@ means the runner never started — that is quota or billing, never code. A broke
 reports `startup_failure`; a failing test reports failing steps. The way to tell them apart in one
 move is to dispatch a workflow you did not touch: `resilience-ping` costs 0.1 minutes and failed
 identically, which proved the `checks.yml` change was innocent.
+
+## 8. WHAT NOW FLIPS ON A CLOCK, WITH THE HOUR (as at 22:30 UTC, 9 Aug 2026)
+
+Every one is deployed to both projects and verified by executing the routine or by projecting its
+output over production read-only. **A check still MISSING after its hour is a defect and it is
+yours** — the routine did not do what execution said it would.
+
+| UTC | check(s) | written by |
+|---|---|---|
+| 00:35 | `digital-twin-live-kpis` | `bi_snapshot_6h` |
+| 02:15 | `s34-resilience-measured` | `capability_verify_daily` |
+| 03:50 | **`s29-scan-five-questions`** | `opportunity_scan_daily` — daily, so this is the soonest |
+| 04:30 | `companion-overnight-brief`, `voice-morning-brief-spoken` | `founder_brief_daily` |
+| 05:00 Mon | `exec-meeting-agenda-six`, `exec-meeting-debate` | `exec_meeting_weekly` |
+| 06:00 Mon | `exec-intel-quantified-recommendation` | `exec-agents-weekly` (the retry fix) |
+| 06:00 Mon | **`s35-restructure-four-questions`**, `evolution-proposes-structure` | `evolution_scan_weekly` |
+| 06:40 Mon | `s39-governance-six-monitors` | the three previously-unrun monitors |
+| 1 Sept | `s37-benchmark-monthly-report` leg 2 | `monthly_report` |
+
+`s33-replay-six-tracks` needs a snapshot day that has BOTH a KPI reading and an outcome opened —
+the first is from 00:35, the second from `fn_kpi_review` on a Monday.
+
+`exec-meeting-priorities-agreed` is the one that does not flip on any clock: it is a universal over
+60 days and three of the four meetings in the window carry string recommendations written on 28 Jul
+and 3 Aug. They age out 27 Sept, 3 Oct and 6 Oct. Rewriting them would be editing the record.
