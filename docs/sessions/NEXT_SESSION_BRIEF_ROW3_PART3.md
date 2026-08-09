@@ -82,6 +82,31 @@ console reads them through `os_api` with the service role, so a browser subscrip
 fire. Making it real is a security change with its own review. **Nothing in session 2 touched RLS
 or the realtime publication.**
 
+### C2. The next three, already scoped
+
+- **`explain-policies-applied`** — the biggest single remaining piece and fully understood. The
+  check takes the ACTUAL rows of four action surfaces — `fn_os_command()->'attention'`,
+  `fn_ws_governance()->'recent_escalations'`, `fn_ws_operations()->'approvals'`,
+  `fn_ws_ea()->'approvals_top'` — and requires EVERY surfaced action to carry a key matching
+  `policy|policies|policy_keys|policies_applied|rule|rules`, **and** the drawing component to show
+  it (all keys count for a surface handed to `<ReadableObject>`, only rendered ones otherwise). The
+  source is `decision_trace.policy_keys`. It is four payload changes and up to four component
+  changes, which is why it was not started at the end of a session rather than because it is hard.
+  `explain-alternatives-considered` has the identical shape over `challenge_record.alternatives`.
+- **`s24-board-before-major-decisions`** — leg 1 is one line: one of `fn_decide`,
+  `fn_decision_gate`, `fn_task_approve`, `fn_check_spend`, `fn_exec_meeting` must CALL
+  `fn_board_review(`. Leg 2 needs every `decision_record` in 30 days to carry an opinion from all
+  seven advisors, and the 11 already in the window have none. Building leg 1 makes future decisions
+  advised and the check flips 30 days later — back-filling opinions onto past decisions would be
+  fabrication.
+- **`s21-events-nine-classes`** — 4 of 9. An emitter counts either as a recorded event OR as a
+  routine passing the type to `fn_emit*(...)` as a literal, so three are honest code changes:
+  `customer.registered` (trigger on `customers`), `supplier.approved` (on the `leads` approval
+  transition), and an AI-confidence monitor over `ai_cost_log.confidence`. `campaign.launched` has
+  a defensible analogue in `invite_schedule`. **`competitor.pricing_changed` has no mechanism at
+  all** — `competitor` has no price column and `market_intel` has 0 rows — so the check cannot be
+  closed honestly until the company observes competitor pricing.
+
 ### C. Buildable, closest first
 
 - **`s33-replay-six-tracks`** — two legs. The KPI track is fixed by `bi_snapshot_6h` (from 00:35
