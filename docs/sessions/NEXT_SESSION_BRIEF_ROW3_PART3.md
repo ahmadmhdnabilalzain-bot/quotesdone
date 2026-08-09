@@ -241,6 +241,7 @@ yours** — the routine did not do what execution said it would.
 | 06:00 Mon | **`s35-restructure-four-questions`**, `evolution-proposes-structure` | `evolution_scan_weekly` |
 | 06:40 Mon | `s39-governance-six-monitors` | the three previously-unrun monitors |
 | 1 Sept | `s37-benchmark-monthly-report` leg 2 | `monthly_report` |
+| **23 Aug** | `time-machine-restores-six-dimensions` | `company_snapshot_daily` — a 14-day universal, so it needs 14 nights of the new key, not one |
 
 `s33-replay-six-tracks` needs a snapshot day that has BOTH a KPI reading and an outcome opened —
 the first is from 00:35, the second from `fn_kpi_review` on a Monday.
