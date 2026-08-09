@@ -39,7 +39,19 @@ export const DENO_TEST = /\.test\.ts$/;
 // this set and those two is exactly the defect being prevented.
 export const LOOKS_LIKE_A_TEST = /\.(test|spec)\.[cm]?[jt]sx?$/;
 
-const SKIP_DIRS = new Set(['.git', 'node_modules', '.next', 'dist', 'build', 'out', '.vercel', 'coverage', '.turbo']);
+// `vendor` is here for a reason that only shows up off CI. It holds UNTRACKED third-party
+// reference material — a checkout of PaddleOCR's JS packages carries 280 of the 281 `*.test.ts`
+// files this walk finds, against exactly one of ours. CI never sees them because they are not in
+// git, so CI has always been green; a developer machine that has them hands all 281 paths to
+// `deno test` on a single command line and Windows refuses at its 32k limit with "The command line
+// is too long". The gate was therefore GREEN IN CI AND UNRUNNABLE LOCALLY, which is the worst
+// combination — and it stopped being academic on 9 Aug 2026 when the Actions allowance ran out.
+//
+// Excluding it is also correct on its own terms: a vendored library's own suite is not this
+// repository's gate. It can fail for reasons that have nothing to do with this codebase, and it
+// costs CI minutes to prove someone else's tests still pass. discover() is exported and
+// every_test_file_is_run.test.mjs asserts against the same walk, so both sides stay consistent.
+const SKIP_DIRS = new Set(['.git', 'node_modules', '.next', 'dist', 'build', 'out', '.vercel', 'coverage', '.turbo', 'vendor']);
 
 function walk(dir, out = []) {
   let entries;
