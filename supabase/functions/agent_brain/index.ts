@@ -95,6 +95,11 @@ async function layeredContext(key:string, msg:string){
   try{
     const { data, error } = await admin.rpc('fn_agent_context', { p_agent_key: key, p_max_chars: 24000, p_query: msg });
     if(error || !data) return '';
+    // WHICH KNOWLEDGE FED THIS ANSWER. kb_usage_log is the store the spec points at for "what
+    // knowledge did this employee use", and it had 0 rows because NOTHING had ever written to it —
+    // retrieval happened right here and was never recorded. One row per retrieval, so the usage
+    // ledger fills as the company works rather than by backfill.
+    try{ await admin.from('kb_usage_log').insert({ agent:key, query:msg.slice(0,300), category:'agent_context' }); }catch(_e){}
     return '\n\n'+String(data);
   }catch(_e){ return ''; }
 }
@@ -174,6 +179,7 @@ Deno.serve(async (req)=>{
       const al=await sec('admin_emails'); const admins=String(al||'management@quotesdone.com').toLowerCase().split(',').map(s=>s.trim());
       if(!admins.includes(email)) return J({error:'forbidden'},403);
     }
+    const runStartedAt=Date.now();
     const key=String(body.agent||''); const msg=String(body.message||'').trim();
     const m=await meta(key); if(!m) return J({error:'unknown agent'},400);
     if(!msg) return J({error:'message required'},400);
@@ -210,6 +216,19 @@ Deno.serve(async (req)=>{
     }
     if(notes.length) finalReply=finalReply+'\n\n'+notes.join('\n');
     await admin.from('agent_chats').insert([{agent_key:key,role:'user',content:msg,created_by:email},{agent_key:key,role:'assistant',content:finalReply}]);
+    // ── THE EMPLOYEE ACTUALLY WORKED. RECORD IT. ────────────────────────────────────────────
+    // agent_runs was READ here (line ~140) and never written, so 59 of 66 employees had no run
+    // record at all and agent_runs.agent held only CRON JOB names. An employee that thinks is an
+    // employee that ran; without this row nothing downstream — performance, trend, workload —
+    // can say anything about them. Keyed by agent_key so it joins to org_agents.
+    try{
+      await admin.from('agent_runs').insert({ agent:key, status:'ok', started_at:new Date(runStartedAt).toISOString(),
+        finished_at:new Date().toISOString(), note:msg.slice(0,180) });
+    }catch(_e){}
+    // A thought, every turn — not only when the founder says "remember". employee-current-thoughts
+    // asks what the employee is thinking, and it was written on a keyword match roughly never.
+    try{ await admin.from('agent_memory').insert({ agent_key:key, kind:'reasoning',
+      content:finalReply.slice(0,360), source:'chat_turn', importance:1 }); }catch(_e){}
     if(/\b(remember|always|never|from now on|for future|going forward|note that|our policy|keep in mind|prefer)\b/i.test(msg)){ try{ if(await lintClean(msg)){ await admin.from('agent_memory').insert({agent_key:key,kind:'instruction',content:msg.slice(0,600),source:'founder_chat'}); } }catch(_e){} }
     try{ const p=learn(key,m.name,msg,finalReply); (globalThis as any).EdgeRuntime?.waitUntil?.(p); }catch(_e){}
     return J({reply:finalReply});
