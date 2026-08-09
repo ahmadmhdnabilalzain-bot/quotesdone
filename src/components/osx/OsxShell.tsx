@@ -1325,6 +1325,7 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
 
 function Escalations({ onNav }: { onNav: (id: string) => void }) {
   const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [sel, setSel] = React.useState<any>(null); const [draft, setDraft] = React.useState(''); const [busy, setBusy] = React.useState(false); const [msg, setMsg] = React.useState('');
+  const [row, setRow] = React.useState<any>(null);
   const load = React.useCallback(() => { setD(null); Promise.all([osApi('inbox').catch(() => null), osApi('ws.exec').catch(() => null)]).then(([inbox, exec]) => setD({ inbox, attention: (exec && exec.command && exec.command.attention) || [] })).catch((e) => setErr(e.message)); }, []);
   React.useEffect(() => { load(); }, [load]);
   const openItem = (it: any) => { setSel(it); setDraft(it.draft || ''); setMsg(''); };
@@ -1357,9 +1358,14 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
       {attention.length ? <Card className='overflow-hidden'>
         <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Agent decisions held for review<Badge variant='secondary'>{attention.length}</Badge></div>
         <div className='divide-y divide-border'>{attention.map((a: any) => (
-          <div key={a.id} className='px-4 py-3 flex items-center justify-between gap-3 hover:bg-foreground/5 transition-colors'>
-            <div className='min-w-0'><div className='text-sm truncate flex items-center gap-2'>{titleCase(String(a.kind || 'decision'))} · <span className='text-muted-foreground'>{a.actor}</span>{a.risk ? <Chip label={a.risk} tone={riskTone(String(a.risk))} /> : null}</div><div className='text-xs text-muted-foreground truncate'>{a.title || a.decision} → {a.route_to}</div></div>
-            <div className='flex items-center gap-1.5 shrink-0'>
+          <div key={a.id} onClick={() => setRow({ entity: 'agent_action', id: a.id, title: titleCase(String(a.kind || 'decision')), row: a })} className='px-4 py-3 flex items-center justify-between gap-3 hover:bg-foreground/5 transition-colors cursor-pointer'>
+            {/* Every action explains itself: which OS owned it, why, and what happened after —
+                and clicking it opens the full record, which is where the explanation lives. */}
+            <div className='min-w-0'><div className='text-sm truncate flex items-center gap-2'>{titleCase(String(a.kind || 'decision'))} · <span className='text-muted-foreground'>{a.actor}</span>{a.os ? <Chip label={titleCase(String(a.os)) + ' OS'} tone='slate' /> : null}{a.risk ? <Chip label={a.risk} tone={riskTone(String(a.risk))} /> : null}</div>
+              <div className='text-xs text-muted-foreground truncate'>{a.title || a.decision} → {a.route_to}</div>
+              {Array.isArray(a.reasons) && a.reasons.length ? <div className='text-[11px] text-muted-foreground truncate'>Why: {a.reasons.join(' · ')}</div> : null}
+              {a.outcome ? <div className='text-[11px] text-muted-foreground truncate'>After: {a.outcome}</div> : null}</div>
+            <div className='flex items-center gap-1.5 shrink-0' onClick={(e) => e.stopPropagation()}>
               <Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>{dbusy === String(a.id) + 'approve' ? '…' : 'Approve'}</Button>
               <Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>{dbusy === String(a.id) + 'reject' ? '…' : 'Reject'}</Button>
               <button onClick={() => onNav('agents')} title='Review in Smart Engine' className='text-muted-foreground hover:text-foreground'><ArrowUpRight className='h-4 w-4' /></button>
@@ -1381,6 +1387,7 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
           </div>
         </SheetContent>
       </Sheet>
+      {row ? <RecordDrawer frame0={{ entity: 'agent_action', id: row.id, title: row.title, row: row.row }} onClose={() => setRow(null)} /> : null}
     </div>
   );
 }
@@ -2212,6 +2219,7 @@ function useWs(action: string) {
 
 function OperationsApp() {
   const { d, err, busy, load } = useWs('ws.operations'); const [dbusy, setDbusy] = React.useState('');
+  const [row, setRow] = React.useState<any>(null);
   const decide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('action_decide', { id, op }); load(); } catch (_e) {} setDbusy(''); };
   const taskDone = async (id: any) => { setDbusy('t' + id); try { await osOps('task_done', { id, op: 'done' }); load(); } catch (_e) {} setDbusy(''); };
   if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Operations: {err}</Card>;
@@ -2222,7 +2230,8 @@ function OperationsApp() {
     <KpiRow items={[['Open tasks', k.tasks_open], ['Decisions 24h', k.decisions_24h], ['Approvals pending', k.approvals_pending], ['Disputes', k.disputes], ['High risk', k.high_risk], ['Held for review', held.length]]} />
     {held.length ? <SectionCard title='Decisions held for review' count={held.length}><div className='divide-y divide-border'>{held.map((a: any) => (<div key={a.id} className='px-4 py-3 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{titleCase(String(a.kind || 'decision'))}<span className='text-muted-foreground text-xs'>{a.actor}</span><Chip label={titleCase(String(a.decision))} tone={statusTone(String(a.decision))} /></div><div className='text-xs text-muted-foreground'>→ {a.route_to} · {fmt(a.created_at)}</div></div><div className='flex gap-1.5 shrink-0'><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>Approve</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>Reject</Button></div></div>))}</div></SectionCard> : null}
     <SectionCard title='Open tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
-    {approvals.length ? <SectionCard title='Approvals pending' count={approvals.length}><div className='p-4'><ReadableObject data={approvals} /></div></SectionCard> : null}
+    {approvals.length ? <SectionCard title='Approvals pending' count={approvals.length}><div className='p-4'><div className='mb-2 flex flex-wrap gap-1.5'>{(approvals as any[]).map((a: any, i: number) => (<button key={i} onClick={() => setRow({ id: a.id ?? i, title: String(a.title || 'Action'), row: a })} className='text-[11px] rounded border border-border px-1.5 py-0.5 hover:bg-foreground/5'>Open #{a.id ?? i}</button>))}</div><ReadableObject data={approvals} /></div></SectionCard> : null}
+    {row ? <RecordDrawer frame0={{ entity: 'agent_action', id: row.id, title: row.title, row: row.row }} onClose={() => setRow(null)} /> : null}
     {Object.keys(sec).length ? <SectionCard title='Security posture'><div className='p-4'><ReadableObject data={sec} /></div></SectionCard> : null}
   </div>);
 }
@@ -2778,6 +2787,7 @@ function KnowledgeHealthCard() {
 }
 function GovernanceApp() {
   const { d, err, busy, load } = useWs('ws.governance');
+  const [row, setRow] = React.useState<any>(null);
   if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Governance: {err}</Card>;
   const k = d?.kpis || {}; const cov = d?.agent_coverage || []; const rules = d?.universal_rules || []; const esc = d?.recent_escalations || [];
   const personaPct = k.active_agents ? Math.round(100 * (k.agents_with_persona || 0) / k.active_agents) : 0;
@@ -2792,7 +2802,8 @@ function GovernanceApp() {
       </div></SectionCard>
       <SectionCard title='Universal rules' count={rules.length}><div className='p-4 space-y-1.5 max-h-64 overflow-y-auto'>{rules.map((r: any, i: number) => (<div key={i} className='text-xs flex gap-2'><Check className='h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5' /><span>{typeof r === 'string' ? r : (r.rule || r.title || fmt(r))}</span></div>))}</div></SectionCard>
     </div>
-    <SectionCard title='Recent escalations' count={esc.length}>{esc.length ? <div className='divide-y divide-border'>{esc.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5'><div className='text-sm font-medium flex items-center gap-1.5'>{e.title}<span className='text-[11px] text-muted-foreground'>{e.agent}</span>{e.confidence != null ? <Chip label={Math.round(e.confidence * 100) + '%'} tone='blue' /> : null}</div><div className='text-xs text-muted-foreground mt-0.5'>{e.reason} · {fmt(e.created)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No recent escalations.</div>}</SectionCard>
+    <SectionCard title='Recent escalations' count={esc.length}>{esc.length ? <div className='divide-y divide-border'>{esc.map((e: any, i: number) => (<div key={i} onClick={() => setRow({ id: e.id ?? i, title: String(e.title || 'Escalation'), row: e })} className='px-4 py-2.5 cursor-pointer hover:bg-foreground/5 transition-colors'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{e.title}<span className='text-[11px] text-muted-foreground'>{e.agent}</span>{e.os ? <Chip label={titleCase(String(e.os)) + ' OS'} tone='slate' /> : null}{e.confidence != null ? <Chip label={Math.round(e.confidence * 100) + '%'} tone='blue' /> : null}</div><div className='text-xs text-muted-foreground mt-0.5'>{e.reason} · {fmt(e.created)}</div>{e.outcome ? <div className='text-[11px] text-muted-foreground'>After: {e.outcome}</div> : null}</div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No recent escalations.</div>}</SectionCard>
+    {row ? <RecordDrawer frame0={{ entity: 'agent_action', id: row.id, title: row.title, row: row.row }} onClose={() => setRow(null)} /> : null}
     <KnowledgeHealthCard />
     <ExamPanel />
     {(cov || []).length ? <SectionCard title='Agent coverage' count={cov.length}><div className='overflow-auto max-h-72'><table className='w-full text-sm'><thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border sticky top-0 bg-card'><th className='px-4 py-2 font-medium'>Agent</th><th className='px-3 py-2 font-medium'>Persona</th><th className='px-3 py-2 font-medium'>Knowledge</th><th className='px-3 py-2 font-medium'>Audit items</th></tr></thead><tbody>{cov.map((c: any, i: number) => (<tr key={i} className='border-b border-border/40'><td className='px-4 py-2'>{c.agent}</td><td className='px-3 py-2'>{c.has_persona ? <Check className='h-4 w-4 text-emerald-500' /> : <Minus className='h-4 w-4 text-muted-foreground/40' />}</td><td className='px-3 py-2'>{c.has_knowledge ? <Check className='h-4 w-4 text-emerald-500' /> : <Minus className='h-4 w-4 text-muted-foreground/40' />}</td><td className='px-3 py-2 tabular-nums'>{c.audit_items}</td></tr>))}</tbody></table></div></SectionCard> : null}
@@ -2822,6 +2833,7 @@ function CompanyApp() {
 
 function AssistantApp() {
   const { d, err, busy, load } = useWs('ws.ea'); const [dbusy, setDbusy] = React.useState('');
+  const [row, setRow] = React.useState<any>(null);
   const taskDone = async (id: any) => { setDbusy('t' + id); try { await osOps('task_done', { id, op: 'done' }); load(); } catch (_e) {} setDbusy(''); };
   if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Assistant: {err}</Card>;
   const tasks = d?.open_tasks || []; const today = d?.today_events || []; const upcoming = d?.upcoming_events || []; const reminders = d?.reminders_due || []; const approvals = d?.approvals_top || []; const meetings = d?.recent_meetings || [];
@@ -2833,7 +2845,8 @@ function AssistantApp() {
       <SectionCard title='Upcoming' count={upcoming.length}>{upcoming.length ? <div className='divide-y divide-border'>{upcoming.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm'><div className='font-medium'>{e.title || e.summary}</div><div className='text-[11px] text-muted-foreground'>{fmt(e.start || e.at || e.when)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>Nothing scheduled.</div>}</SectionCard>
     </div> : null}
     <SectionCard title='Open tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
-    {approvals.length ? <SectionCard title='Approvals awaiting you' count={d?.approvals_total ?? approvals.length}><div className='p-4'><ReadableObject data={approvals} /></div></SectionCard> : null}
+    {approvals.length ? <SectionCard title='Approvals awaiting you' count={d?.approvals_total ?? approvals.length}><div className='p-4'><div className='mb-2 flex flex-wrap gap-1.5'>{(approvals as any[]).map((a: any, i: number) => (<button key={i} onClick={() => setRow({ id: a.id ?? i, title: String(a.title || 'Action'), row: a })} className='text-[11px] rounded border border-border px-1.5 py-0.5 hover:bg-foreground/5'>Open #{a.id ?? i}</button>))}</div><ReadableObject data={approvals} /></div></SectionCard> : null}
+    {row ? <RecordDrawer frame0={{ entity: 'agent_action', id: row.id, title: row.title, row: row.row }} onClose={() => setRow(null)} /> : null}
     {reminders.length ? <SectionCard title='Reminders due' count={reminders.length}><div className='p-4'><ReadableObject data={reminders} /></div></SectionCard> : null}
     {meetings.length ? <SectionCard title='Recent meetings' count={meetings.length}><div className='p-4'><ReadableObject data={meetings} /></div></SectionCard> : null}
   </div>);
