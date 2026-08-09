@@ -1,4 +1,4 @@
-# ROW #3 — THE EXECUTIVE UI: 28 → 88 / 152 IN ONE SESSION
+# ROW #3 — THE EXECUTIVE UI: 28 → 91 / 152 IN ONE SESSION
 
 Measured on production 2026-08-09. Every number below is a scorer run, not an estimate.
 Scorer: `scripts/staging/verify_os2_blueprint.mjs`, modules in `scripts/staging/os2_blueprint/`.
@@ -12,7 +12,9 @@ Scorer: `scripts/staging/verify_os2_blueprint.mjs`, modules in `scripts/staging/
 | after the Operating System | **66/152 (43%)** | `fn_ws_company_os` + the map |
 | after Memory, notifications, voice | **76/152 (50%)** | `fn_os_search`/`fn_os_memory`, `fn_ws_notifications` |
 | after explainability | **80/152 (53%)** | `fn_owning_os` + the four action surfaces |
-| after live company, reports, what-if | **88/152 (58%)** | `fn_ws_live_company`, `fn_report_drilldown`, the org chart, 5 more departments in `v_department_health` |
+| after live company, reports, what-if | 88/152 (58%) | `fn_ws_live_company`, `fn_report_drilldown`, the org chart, 5 more departments in `v_department_health` |
+
+| after root-cause fixes + realtime + manual | **91/152 (60%)** | customer creation at intake, agent_brain instrumentation, action-queue sweep, twin realtime, cron registry |
 
 152 verdicts every run. **0 errored, denominator verified, every run.**
 
