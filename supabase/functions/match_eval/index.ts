@@ -6,9 +6,19 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
-async function logRun(status: string, counts: Record<string, unknown>, note: string) {
+// A REFUSED CALL IS NOT A RUN OF THE BENCHMARK, AND MUST NOT BE FILED AS ONE.
+// This logged everything under agent 'match_eval', including callers rejected at the auth guard.
+// v_critical_capability_tests reads the LATEST agent_runs row for the suite to decide whether the
+// `matching` critical capability is passing, so a single unauthenticated probe on 5 Aug marked
+// "RFQs reach suppliers who can actually do the work" as FAILING — while the benchmark itself
+// returned precision 100% and recall 100% on 3 Aug, and on 27, 20 and 13 July before it. It also
+// dragged pass_pct_14d to 33%, because two of the three "runs" in the window were refusals.
+//
+// The agent key is now a parameter. Refusals go to 'match_eval_auth', so the suite's history
+// contains benchmark runs and nothing else.
+async function logRun(status: string, counts: Record<string, unknown>, note: string, agent = 'match_eval') {
   try {
-    await admin.from('agent_runs').insert({ agent: 'match_eval', status, counts,
+    await admin.from('agent_runs').insert({ agent, status, counts,
       note: String(note || '').slice(0, 500),
       started_at: new Date(T0).toISOString(), finished_at: new Date().toISOString() });
   } catch (_e) { /* never let logging break the function */ }
@@ -46,7 +56,7 @@ Deno.serve(async (req) => {
   // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
   // per-context credential and the legacy shared secret, and records which one called.
   const __auth = await requireInternal(admin, body?.__secret, 'match_eval');
-  if (!__auth.ok) { await logRun('error', { stage:'auth', rejected:1 }, 'Rejected a call with a wrong or missing __secret; the matching benchmark did not run, so any degradation in supplier-match precision/recall goes unmeasured'); return J({ error:'forbidden' }, 403); }
+  if (!__auth.ok) { await logRun('error', { stage:'auth', rejected:1 }, 'Rejected a call with a wrong or missing __secret; the matching benchmark did not run, so any degradation in supplier-match precision/recall goes unmeasured', 'match_eval_auth'); return J({ error:'forbidden' }, 403); }
   const created: number[] = []; const tagById = new Map<number,string>();
   try {
     const seedFails: string[] = [];
