@@ -170,10 +170,16 @@ export default async function (H) {
     B(Number(editCols) > 0),
     Q(`${editCols} column(s) record an edit/correction/override of a generated answer`));
 
+  // Anchored on model_outcome in the first version — a table with ZERO writers, so this asked
+  // whether a dead table was populated rather than whether feedback reaches routing. Same defect as
+  // the eight §24/§25 legs, missed here because this one lives in a different module. The
+  // observations are ai_cost_log.ok, and the thing they must actually MOVE is
+  // model_registry.quality_score, which fn_model_benchmark now writes from them.
   const loopFns = await fnList('outcome_eval|feedback|autoswitch');
+  const scored = await one(`select count(*)::text from public.model_registry where quality_score is not null`);
   await req(S42, 'feedback-improves-routing', 'the feedback changes future routing',
-    B(loopFns.length > 0 && Number(await one(`select count(*)::text from public.model_outcome`).catch(() => '0')) > 0),
-    Q(`${loopFns.length} routine(s) close the loop [${brief(loopFns)}]; model_outcome holds ` +
-      `${await one(`select count(*)::text from public.model_outcome`).catch(() => 'n/a')} row(s) — ` +
-      `a loop with no observations changes no routing`));
+    B(loopFns.length > 0 && Number(scored) > 0),
+    Q(`${loopFns.length} routine(s) close the loop [${brief(loopFns)}]; measured outcomes have moved ` +
+      `quality_score onto ${scored} model(s), which is what fn_model_autoswitch reads — a loop whose ` +
+      `observations never reach the registry changes no routing`));
 }

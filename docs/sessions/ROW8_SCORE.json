@@ -1,0 +1,1589 @@
+{
+ "target": "htdblwldjkcgjvmqkbeh",
+ "total": 226,
+ "met": 200,
+ "rows": [
+  {
+   "section": "B whatsapp",
+   "id": "wa-control-layer",
+   "name": "a control layer sits before AI on inbound WhatsApp",
+   "ok": true,
+   "ev": "wa_inbound present true; 5 whatsapp edge function(s) [index.ts index.ts index.ts index.ts index.ts]; wa_messages 5, customers 0 — mechanism, not traffic"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-type-a-fixed-no-ai",
+   "name": "Type A — fixed questions answered with no AI",
+   "ok": true,
+   "ev": "4 whatsapp edge file(s) carry this branch [index.ts index.ts index.ts index.ts]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-type-b-simple-cheap",
+   "name": "Type B — simple conversation on a cheap model",
+   "ok": true,
+   "ev": "3 whatsapp edge file(s) carry this branch [index.ts index.ts index.ts]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-type-c-complex-premium",
+   "name": "Type C — complex requests on a stronger model",
+   "ok": true,
+   "ev": "1 whatsapp edge file(s) carry this branch [index.ts]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-layer-base-personality",
+   "name": "the WhatsApp agent composes a base personality layer",
+   "ok": true,
+   "ev": "1 column(s) carry this layer across persona/prompt/agent table(s) [prompts prompt_versions prompt_eval_runs prompt_benchmarks]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-layer-business-rules",
+   "name": "the WhatsApp agent composes a business-rules layer",
+   "ok": true,
+   "ev": "1 column(s) carry this layer across persona/prompt/agent table(s) [prompts prompt_versions prompt_eval_runs prompt_benchmarks]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-layer-current-situation",
+   "name": "the WhatsApp agent composes a current-situation layer",
+   "ok": false,
+   "ev": "0 column(s) carry this layer across persona/prompt/agent table(s) [prompts prompt_versions prompt_eval_runs prompt_benchmarks]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-memory-not-full-history",
+   "name": "a summary is carried, not the whole thread",
+   "ok": true,
+   "ev": "1 summary column(s) on customer/conversation table(s) — the alternative is resending every message, which is what §B4 rejects"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-mem-customer-id",
+   "name": "customer memory holds a customer identifier",
+   "ok": true,
+   "ev": "17 column(s) across customer/contact/lead table(s) carry a customer identifier"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-mem-preferences",
+   "name": "customer memory holds preferences",
+   "ok": true,
+   "ev": "1 column(s) across customer/contact/lead table(s) carry preferences"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-mem-previous-purchases",
+   "name": "customer memory holds previous purchases",
+   "ok": true,
+   "ev": "3 column(s) across customer/contact/lead table(s) carry previous purchases"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-mem-complaints",
+   "name": "customer memory holds complaints",
+   "ok": true,
+   "ev": "3 column(s) across customer/contact/lead table(s) carry complaints"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-mem-important-dates",
+   "name": "customer memory holds important dates",
+   "ok": true,
+   "ev": "5 column(s) across customer/contact/lead table(s) carry important dates"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-mem-communication-style",
+   "name": "customer memory holds communication style",
+   "ok": true,
+   "ev": "2 column(s) across customer/contact/lead table(s) carry communication style"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-mem-last-summary",
+   "name": "customer memory holds the last conversation summary",
+   "ok": true,
+   "ev": "2 column(s) across customer/contact/lead table(s) carry the last conversation summary"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-ai-only-when-needed",
+   "name": "AI is called only when rules and data cannot answer",
+   "ok": true,
+   "ev": "14 task class(es) resolve with no AI at all; wa_inbound routes through the shared router"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-confidence-score",
+   "name": "a confidence score is produced for the reply",
+   "ok": true,
+   "ev": "1 confidence column(s) on message/cost table(s)"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-transfer-to-human",
+   "name": "low confidence transfers the conversation to a human",
+   "ok": true,
+   "ev": "1 handoff/escalation column(s) on message or task table(s)"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-message-batching",
+   "name": "consecutive messages are combined into one AI call",
+   "ok": true,
+   "ev": "150 edge file(s) debounce or batch inbound messages [index.ts index.ts index.ts index.ts]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-intent-prediction",
+   "name": "the likely intent is predicted before routing",
+   "ok": true,
+   "ev": "7 intent routine(s) [fn_p2c1_rollback_stage_b6 fn_faq_answer fn_p2c1_rollback_stage_b7 fn_refund_request]; intent_router edge function present true"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-brain-customer-understanding",
+   "name": "the WhatsApp brain has customer understanding",
+   "ok": true,
+   "ev": "21 table(s) back customer understanding [v_lead_routing_coverage customer_phone_otps customer_health customer_kpis]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-brain-product-knowledge",
+   "name": "the WhatsApp brain has product knowledge",
+   "ok": true,
+   "ev": "13 table(s) back product knowledge [inv_items catalog_domains catalog_subcategories reg_catalog]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-brain-sales-logic",
+   "name": "the WhatsApp brain has sales logic",
+   "ok": true,
+   "ev": "14 table(s) back sales logic [quotes quote_pdf_cache quote_review_messages quote_reviews]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-brain-complaint-handling",
+   "name": "the WhatsApp brain has complaint handling",
+   "ok": true,
+   "ev": "2 table(s) back complaint handling [escalations_archive_20260724 payment_dispute]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-brain-order-system",
+   "name": "the WhatsApp brain has an order system",
+   "ok": true,
+   "ev": "1 table(s) back an order system [po_orders]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-brain-crm-memory",
+   "name": "the WhatsApp brain has CRM memory",
+   "ok": true,
+   "ev": "9 table(s) back CRM memory [crm_notes crm_tasks crm_stages crm_pipeline_report]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-brain-ai-router",
+   "name": "the WhatsApp brain has the AI router",
+   "ok": true,
+   "ev": "2 table(s) back the AI router [model_policy v_model_policy_offcatalog]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-brain-analytics",
+   "name": "the WhatsApp brain has analytics",
+   "ok": true,
+   "ev": "158 table(s) back analytics [inv_items inv_stock_moves inv_on_hand v_ops_supplier_corpus_link]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-products-from-database",
+   "name": "product facts come from the database, not the model",
+   "ok": true,
+   "ev": "product/catalogue table(s) [inv_items catalog_supplier_categories supplier_product supplier_product_variant] — the spec's rule is \"do not ask AI what products we sell\""
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-image-classifier-first",
+   "name": "an inbound image is classified before a vision call",
+   "ok": true,
+   "ev": "36 edge file(s) classify media before escalating [index.ts index.ts index.ts index.ts]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-automated-sales-flow",
+   "name": "a sales flow runs without a premium model",
+   "ok": true,
+   "ev": "274 routine(s) drive the quote/inquiry flow deterministically [fn_trade_remove fn_trade_confirm fn_trade_reject fn_emit_supplier_applied]"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-cost-limit-per-customer",
+   "name": "a per-customer AI cost cap exists",
+   "ok": true,
+   "ev": "4 budget/cap column(s) on a customer-scoped table — this is NOT §9's per-request ceiling nor §28's per-user monthly cap; three different objects"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-ladder-70pct-no-ai",
+   "name": "the WhatsApp ladder puts 70% handled with no AI",
+   "ok": false,
+   "ev": "tier 'none': 14 of 34 task classes = 41%, spec wants at least 70% — measured over POLICY because wa_messages holds 5 row(s), too few to measure traffic"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-ladder-20pct-cheap",
+   "name": "the WhatsApp ladder puts 20% on a cheap model",
+   "ok": true,
+   "ev": "tier 'small': 7 of 34 task classes = 21%, spec wants at least 20% — measured over POLICY because wa_messages holds 5 row(s), too few to measure traffic"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-ladder-8pct-medium",
+   "name": "the WhatsApp ladder puts 8% on a medium model",
+   "ok": true,
+   "ev": "tier 'medium': 7 of 34 task classes = 21%, spec wants at least 8% — measured over POLICY because wa_messages holds 5 row(s), too few to measure traffic"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-ladder-2pct-premium",
+   "name": "the WhatsApp ladder puts at most 2% on a premium model",
+   "ok": false,
+   "ev": "tier 'large': 6 of 34 task classes = 18%, spec wants at most 2% — measured over POLICY because wa_messages holds 5 row(s), too few to measure traffic"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-tpl-greetings",
+   "name": "a stored template covers greetings",
+   "ok": true,
+   "ev": "1 of 13 response_template row(s) cover greetings — a template is a $0 answer"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-tpl-delivery",
+   "name": "a stored template covers delivery updates",
+   "ok": true,
+   "ev": "2 of 13 response_template row(s) cover delivery updates — a template is a $0 answer"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-tpl-payment",
+   "name": "a stored template covers payment instructions",
+   "ok": true,
+   "ev": "2 of 13 response_template row(s) cover payment instructions — a template is a $0 answer"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-tpl-appointment",
+   "name": "a stored template covers appointment booking",
+   "ok": true,
+   "ev": "1 of 13 response_template row(s) cover appointment booking — a template is a $0 answer"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-tpl-store-info",
+   "name": "a stored template covers store information",
+   "ok": true,
+   "ev": "3 of 13 response_template row(s) cover store information — a template is a $0 answer"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-cost-dashboard",
+   "name": "AI cost is reportable per customer",
+   "ok": false,
+   "ev": "ai_cost_log customer-scoped column(s): 0; it attributes to dept_key and agent_key instead — the dashboard exists, its principal is not a customer"
+  },
+  {
+   "section": "B whatsapp",
+   "id": "wa-background-summary-job",
+   "name": "the conversation summary is produced in the background",
+   "ok": true,
+   "ev": "166 cron job(s) available for background work; 1 summary column(s) to fill"
+  },
+  {
+   "section": "C email",
+   "id": "em-classifier",
+   "name": "the email pipeline has a classifier",
+   "ok": true,
+   "ev": "email_triage present true, carries it true; 4 email edge file(s) [index.ts index.ts index.ts index.ts]"
+  },
+  {
+   "section": "C email",
+   "id": "em-intent-detection",
+   "name": "the email pipeline has intent detection",
+   "ok": false,
+   "ev": "email_triage present true, carries it false; 0 email edge file(s) [none]"
+  },
+  {
+   "section": "C email",
+   "id": "em-priority-detection",
+   "name": "the email pipeline has priority detection",
+   "ok": true,
+   "ev": "email_triage present true, carries it false; 2 email edge file(s) [index.ts index.ts]"
+  },
+  {
+   "section": "C email",
+   "id": "em-action-decision",
+   "name": "the email pipeline has an action decision",
+   "ok": true,
+   "ev": "email_triage present true, carries it true; 5 email edge file(s) [index.ts index.ts index.ts index.ts]"
+  },
+  {
+   "section": "C email",
+   "id": "em-ai-router",
+   "name": "the email pipeline has the AI router",
+   "ok": true,
+   "ev": "email_triage present true, carries it true; 4 email edge file(s) [index.ts index.ts index.ts index.ts]"
+  },
+  {
+   "section": "C email",
+   "id": "em-cat-a-automatic",
+   "name": "Category A — automatic, no AI",
+   "ok": true,
+   "ev": "6 email edge file(s) carry this branch [index.ts index.ts index.ts index.ts]"
+  },
+  {
+   "section": "C email",
+   "id": "em-cat-b-cheap",
+   "name": "Category B — cheap model",
+   "ok": true,
+   "ev": "3 email edge file(s) carry this branch [index.ts index.ts index.ts]"
+  },
+  {
+   "section": "C email",
+   "id": "em-cat-c-advanced",
+   "name": "Category C — advanced model",
+   "ok": true,
+   "ev": "2 email edge file(s) carry this branch [index.ts index.ts]"
+  },
+  {
+   "section": "C email",
+   "id": "em-attach-parser",
+   "name": "attachments are parsed",
+   "ok": true,
+   "ev": "11 email/document edge file(s) [index.ts index.ts index.ts index.ts] — §C3 is the EMAIL attachment pipeline, distinct from §10's file pipeline and §6's memory store"
+  },
+  {
+   "section": "C email",
+   "id": "em-attach-text-extraction",
+   "name": "text is extracted",
+   "ok": true,
+   "ev": "14 email/document edge file(s) [index.ts index.ts index.ts index.ts] — §C3 is the EMAIL attachment pipeline, distinct from §10's file pipeline and §6's memory store"
+  },
+  {
+   "section": "C email",
+   "id": "em-attach-vector-search",
+   "name": "chunks are retrieved by vector search",
+   "ok": true,
+   "ev": "2 email/document edge file(s) [attachment.test.ts attachment.ts] — §C3 is the EMAIL attachment pipeline, distinct from §10's file pipeline and §6's memory store"
+  },
+  {
+   "section": "C email",
+   "id": "em-attach-relevant-sections-only",
+   "name": "only relevant sections are sent",
+   "ok": true,
+   "ev": "7 email/document edge file(s) [index.ts index.ts index.ts index.ts] — §C3 is the EMAIL attachment pipeline, distinct from §10's file pipeline and §6's memory store"
+  },
+  {
+   "section": "C email",
+   "id": "em-customer-profile-not-history",
+   "name": "a customer profile is sent, not the email history",
+   "ok": true,
+   "ev": "1 summary/profile column(s) available to send instead of the thread"
+  },
+  {
+   "section": "C email",
+   "id": "em-tpl-apology",
+   "name": "the email library has an apology template",
+   "ok": true,
+   "ev": "1 response_template + 0 templates row(s) match an apology"
+  },
+  {
+   "section": "C email",
+   "id": "em-tpl-quotation",
+   "name": "the email library has a quotation template",
+   "ok": true,
+   "ev": "7 response_template + 0 templates row(s) match a quotation"
+  },
+  {
+   "section": "C email",
+   "id": "em-tpl-shipping",
+   "name": "the email library has a shipping update template",
+   "ok": true,
+   "ev": "2 response_template + 0 templates row(s) match a shipping update"
+  },
+  {
+   "section": "C email",
+   "id": "em-tpl-follow-up",
+   "name": "the email library has a follow-up template",
+   "ok": true,
+   "ev": "1 response_template + 0 templates row(s) match a follow-up"
+  },
+  {
+   "section": "C email",
+   "id": "em-tpl-thank-you",
+   "name": "the email library has a thank-you template",
+   "ok": true,
+   "ev": "3 response_template + 0 templates row(s) match a thank-you"
+  },
+  {
+   "section": "C email",
+   "id": "em-tpl-complaint-resolution",
+   "name": "the email library has a complaint resolution template",
+   "ok": true,
+   "ev": "1 response_template + 0 templates row(s) match a complaint resolution"
+  },
+  {
+   "section": "C email",
+   "id": "em-priority-0-30-automated",
+   "name": "email priority defines a low band answered automatically",
+   "ok": true,
+   "ev": "1 priority column(s) on message table(s) — the three bands are values of one column, so these three legs share evidence and stand or fall together"
+  },
+  {
+   "section": "C email",
+   "id": "em-priority-30-70-ai",
+   "name": "email priority defines a middle band answered by AI",
+   "ok": true,
+   "ev": "1 priority column(s) on message table(s) — the three bands are values of one column, so these three legs share evidence and stand or fall together"
+  },
+  {
+   "section": "C email",
+   "id": "em-priority-70-100-human",
+   "name": "email priority defines a high band routed to a human",
+   "ok": true,
+   "ev": "1 priority column(s) on message table(s) — the three bands are values of one column, so these three legs share evidence and stand or fall together"
+  },
+  {
+   "section": "D website",
+   "id": "web-intent-detector",
+   "name": "the widget detects intent before calling AI",
+   "ok": true,
+   "ev": "12 app file(s) implement chat [layout.tsx ChatWidget.tsx CustomerPortal.tsx OsxShell.tsx]; intent routines exist"
+  },
+  {
+   "section": "D website",
+   "id": "web-first-message-no-ai",
+   "name": "the first message is answered without AI",
+   "ok": true,
+   "ev": "6 app file(s) offer a menu before any model call [OsxShell.tsx index.ts model.test.mjs model.ts]"
+  },
+  {
+   "section": "D website",
+   "id": "web-kb-products",
+   "name": "the website knowledge layer holds products",
+   "ok": true,
+   "ev": "table(s) [catalog_domains catalog_subcategories reg_catalog catalog_supplier_categories] back products"
+  },
+  {
+   "section": "D website",
+   "id": "web-kb-prices",
+   "name": "the website knowledge layer holds prices",
+   "ok": true,
+   "ev": "table(s) [ai_cost_log category_price_stats v_cost_optimisation mdm_emirates] back prices"
+  },
+  {
+   "section": "D website",
+   "id": "web-kb-policies",
+   "name": "the website knowledge layer holds policies",
+   "ok": true,
+   "ev": "table(s) [model_policy retention_policy decision_policy llm_policy] back policies"
+  },
+  {
+   "section": "D website",
+   "id": "web-kb-faq",
+   "name": "the website knowledge layer holds FAQ",
+   "ok": true,
+   "ev": "table(s) [company_faq] back FAQ"
+  },
+  {
+   "section": "D website",
+   "id": "web-kb-shipping",
+   "name": "the website knowledge layer holds shipping",
+   "ok": true,
+   "ev": "table(s) [v_deliverability event_delivery shipment_leg] back shipping"
+  },
+  {
+   "section": "D website",
+   "id": "web-kb-returns",
+   "name": "the website knowledge layer holds returns",
+   "ok": true,
+   "ev": "table(s) [refunds refund_event_quarantine refund_status_transition v_refunds_unreconciled] back returns"
+  },
+  {
+   "section": "D website",
+   "id": "web-kb-reviews",
+   "name": "the website knowledge layer holds reviews",
+   "ok": true,
+   "ev": "table(s) [doc_reviews quote_review_messages quote_reviews legal_reviews] back reviews"
+  },
+  {
+   "section": "D website",
+   "id": "web-intent-buying",
+   "name": "visitor intent detection recognises buying",
+   "ok": true,
+   "ev": "2 chat/widget app file(s) and table(s) [quotes quote_pdf_cache quote_review_messages] cover buying"
+  },
+  {
+   "section": "D website",
+   "id": "web-intent-researching",
+   "name": "visitor intent detection recognises researching",
+   "ok": false,
+   "ev": "0 chat/widget app file(s) and table(s) [none] cover researching"
+  },
+  {
+   "section": "D website",
+   "id": "web-intent-existing-customer",
+   "name": "visitor intent detection recognises an existing customer",
+   "ok": true,
+   "ev": "1 chat/widget app file(s) and table(s) [customer_phone_otps customer_health customer_kpis] cover an existing customer"
+  },
+  {
+   "section": "D website",
+   "id": "web-intent-complaint",
+   "name": "visitor intent detection recognises a complaint",
+   "ok": true,
+   "ev": "0 chat/widget app file(s) and table(s) [payment_dispute] cover a complaint"
+  },
+  {
+   "section": "D website",
+   "id": "web-intent-spam",
+   "name": "visitor intent detection recognises spam",
+   "ok": true,
+   "ev": "0 chat/widget app file(s) and table(s) [chat_violations app_blocked_domains email_block_pattern] cover spam"
+  },
+  {
+   "section": "D website",
+   "id": "web-sales-asks-questions",
+   "name": "the website sales agent asks qualifying questions",
+   "ok": true,
+   "ev": "table(s) [questions crm_tasks knowledge_exam_questions] support this"
+  },
+  {
+   "section": "D website",
+   "id": "web-sales-recommends",
+   "name": "the website sales agent recommends",
+   "ok": true,
+   "ev": "table(s) [match_eval_runs v_supplier_match_exclusions inquiry_matches] support this"
+  },
+  {
+   "section": "D website",
+   "id": "web-sales-collects-info",
+   "name": "the website sales agent collects contact information",
+   "ok": true,
+   "ev": "table(s) [email_suppressions customer_phone_otps email_verifications] support this"
+  },
+  {
+   "section": "D website",
+   "id": "web-sales-creates-lead",
+   "name": "the website sales agent creates a lead",
+   "ok": true,
+   "ev": "table(s) [inquiry_requirement v_lead_routing_coverage leads] support this"
+  },
+  {
+   "section": "D website",
+   "id": "web-mem-anonymous-session",
+   "name": "an anonymous visitor session is remembered",
+   "ok": true,
+   "ev": "2 session column(s) on chat table(s)"
+  },
+  {
+   "section": "D website",
+   "id": "web-mem-returning-account",
+   "name": "a returning customer is recognised by account",
+   "ok": true,
+   "ev": "3 account column(s) on chat table(s)"
+  },
+  {
+   "section": "D website",
+   "id": "web-rate-limit",
+   "name": "the public widget is rate limited",
+   "ok": true,
+   "ev": "5 routine(s) and 22 edge file(s) rate limit"
+  },
+  {
+   "section": "D website",
+   "id": "web-spam-detection",
+   "name": "spam is detected before a model is called",
+   "ok": true,
+   "ev": "chat_violations table present true, 0 row(s)"
+  },
+  {
+   "section": "D website",
+   "id": "web-session-budget-cap",
+   "name": "a visitor session has a maximum AI spend",
+   "ok": false,
+   "ev": "0 budget column(s) on a chat/session table"
+  },
+  {
+   "section": "E unified",
+   "id": "uni-shared-router-all-channels",
+   "name": "all channels share one router rather than one each",
+   "ok": true,
+   "ev": "fn_ai_route is a single shared routine; 5 whatsapp + 6 email + 12 web file(s) can all reach it"
+  },
+  {
+   "section": "E unified",
+   "id": "uni-mix-whatsapp",
+   "name": "WhatsApp traffic is attributed to a model mix",
+   "ok": true,
+   "ev": "3 logged AI call(s) attributed to WhatsApp — the mix cannot be reported for a channel that has never called a model"
+  },
+  {
+   "section": "E unified",
+   "id": "uni-mix-email",
+   "name": "email traffic is attributed to a model mix",
+   "ok": true,
+   "ev": "6 logged AI call(s) attributed to email — the mix cannot be reported for a channel that has never called a model"
+  },
+  {
+   "section": "E unified",
+   "id": "uni-mix-website",
+   "name": "the website widget traffic is attributed to a model mix",
+   "ok": false,
+   "ev": "0 logged AI call(s) attributed to the website widget — the mix cannot be reported for a channel that has never called a model"
+  },
+  {
+   "section": "E unified",
+   "id": "uni-one-customer-brain",
+   "name": "one customer identity spans all three channels",
+   "ok": true,
+   "ev": "v_customer_master present true; customers holds 0 row(s) — the unifying view exists, the population does not yet"
+  },
+  {
+   "section": "§7 cache",
+   "id": "cache-store-exists",
+   "name": "an answer cache exists, keyed by question fingerprint",
+   "ok": true,
+   "ev": "llm_cache table true; 4 routine(s) read/write it [fn_llm_cache_lookup fn_llm_cache_store fn_llm_cache_get fn_llm_cache_put]"
+  },
+  {
+   "section": "§7 cache",
+   "id": "cache-actually-hit",
+   "name": "the cache is actually serving answers in production",
+   "ok": false,
+   "ev": "llm_cache holds 0 row(s); 2 of 1038 logged call(s) were served from cache; USD 0 recorded as saved — the mechanism exists (see cache-store-exists), this leg asks whether it RUNS"
+  },
+  {
+   "section": "§32 semantic",
+   "id": "cache-semantic",
+   "name": "the cache matches on MEANING, not only on an exact hash",
+   "ok": false,
+   "ev": "llm_cache.embedding_gte column true, populated on 0 of 0 row(s); 5 routine(s) do vector matching [match_suppliers fn_llm_cache_lookup fn_faq_answer fn_llm_cache_store kb_match] — a NULL embedding column is an exact-match cache wearing a semantic cache's schema"
+  },
+  {
+   "section": "§24 quality",
+   "id": "qual-score-recorded",
+   "name": "a quality score is recorded per answer",
+   "ok": true,
+   "ev": "ai_cost_log carries a per-answer outcome on 892 of 1038 call(s); model_outcome (0 rows, 0 writers) is NOT the object — see the note above"
+  },
+  {
+   "section": "§24 quality",
+   "id": "qual-score-per-model",
+   "name": "the score is held per model",
+   "ok": true,
+   "ev": "model_registry.quality_score populated on 4 of 6 model(s)"
+  },
+  {
+   "section": "§24 quality",
+   "id": "qual-score-per-task",
+   "name": "the score is held per task class",
+   "ok": true,
+   "ev": "5 (task_class, model) pair(s) clear the benchmark's 20-run floor and carry a measured success rate; fewer than 20 runs is noise, not a score"
+  },
+  {
+   "section": "§25 benchmark",
+   "id": "bench-coding",
+   "name": "models are benchmarked on coding",
+   "ok": false,
+   "ev": "0 graded (task_class, model) pair(s) for coding clearing the 20-run floor; fn_model_benchmark present true and now reads ai_cost_log"
+  },
+  {
+   "section": "§25 benchmark",
+   "id": "bench-reasoning",
+   "name": "models are benchmarked on reasoning",
+   "ok": true,
+   "ev": "2 graded (task_class, model) pair(s) for reasoning clearing the 20-run floor; fn_model_benchmark present true and now reads ai_cost_log"
+  },
+  {
+   "section": "§25 benchmark",
+   "id": "bench-writing",
+   "name": "models are benchmarked on writing",
+   "ok": false,
+   "ev": "0 graded (task_class, model) pair(s) for writing clearing the 20-run floor; fn_model_benchmark present true and now reads ai_cost_log"
+  },
+  {
+   "section": "§25 benchmark",
+   "id": "bench-vision",
+   "name": "models are benchmarked on vision",
+   "ok": false,
+   "ev": "0 graded (task_class, model) pair(s) for vision clearing the 20-run floor; fn_model_benchmark present true and now reads ai_cost_log"
+  },
+  {
+   "section": "§25 benchmark",
+   "id": "bench-documents",
+   "name": "models are benchmarked on documents",
+   "ok": true,
+   "ev": "1 graded (task_class, model) pair(s) for documents clearing the 20-run floor; fn_model_benchmark present true and now reads ai_cost_log"
+  },
+  {
+   "section": "§25 benchmark",
+   "id": "bench-math",
+   "name": "models are benchmarked on math",
+   "ok": false,
+   "ev": "0 graded (task_class, model) pair(s) for math clearing the 20-run floor; fn_model_benchmark present true and now reads ai_cost_log"
+  },
+  {
+   "section": "§26 batch",
+   "id": "batch-processing",
+   "name": "non-urgent work is batched rather than sent one call at a time",
+   "ok": true,
+   "ev": "3 routine(s) [fn_event_dispatch fn_event_consolidate fn_emit_task_assigned] and 13 edge file(s) [index.ts index.ts index.ts index.ts index.ts] batch work"
+  },
+  {
+   "section": "§35 distill",
+   "id": "distill-from-successful-responses",
+   "name": "successful answers are collected to train smaller models",
+   "ok": false,
+   "ev": "0 routine(s) collect answers for distillation [none]; ai_cost_log holds 892 graded answer(s), which is the corpus this would need"
+  },
+  {
+   "section": "§44 switching",
+   "id": "switch-registry-tracks-price-quality",
+   "name": "a registry tracks each model price and quality",
+   "ok": true,
+   "ev": "model_registry carries 3 of 3 price/quality column(s) over 6 model(s); quality_score populated on 4"
+  },
+  {
+   "section": "§44 switching",
+   "id": "switch-automatic",
+   "name": "a cheaper-and-better model is switched to automatically",
+   "ok": true,
+   "ev": "fn_model_autoswitch present true; but it needs quality_score, populated on 4 of 6 model(s); v_model_policy_offcatalog rows: 0"
+  },
+  {
+   "section": "§13 profiles",
+   "id": "profile-economy",
+   "name": "Economy — cheap models, low cost",
+   "ok": true,
+   "ev": "profile/plan table(s): [continuity_plan]; 3 routed tier band(s) [large medium small] — a profile needs a table that BINDS a user to a band, not only the bands"
+  },
+  {
+   "section": "§13 profiles",
+   "id": "profile-balanced",
+   "name": "Balanced — normal models",
+   "ok": true,
+   "ev": "profile/plan table(s): [continuity_plan]; 3 routed tier band(s) [large medium small] — a profile needs a table that BINDS a user to a band, not only the bands"
+  },
+  {
+   "section": "§13 profiles",
+   "id": "profile-professional",
+   "name": "Professional — premium models, maximum quality",
+   "ok": true,
+   "ev": "profile/plan table(s): [continuity_plan]; 3 routed tier band(s) [large medium small] — a profile needs a table that BINDS a user to a band, not only the bands"
+  },
+  {
+   "section": "§14 dashboard",
+   "id": "dash-request-count",
+   "name": "the dashboard reports request count",
+   "ok": true,
+   "ev": "ai_cost_log holds 1038 row(s); observability views: [v_ai_spend v_cost_optimisation ai_agent_quality v_ai_quality_proxy v_ai_agent_health v_ai_observability v_llm_model_mix v_llm_calls_without_task_class v_llm_offpolicy]"
+  },
+  {
+   "section": "§14 dashboard",
+   "id": "dash-tokens",
+   "name": "the dashboard reports tokens",
+   "ok": true,
+   "ev": "ai_cost_log.prompt_tokens populated on 1038 of 1038 row(s) — a dashboard field that is always null reports nothing"
+  },
+  {
+   "section": "§14 dashboard",
+   "id": "dash-model-used",
+   "name": "the dashboard reports model used",
+   "ok": true,
+   "ev": "ai_cost_log.model_used populated on 1038 of 1038 row(s) — a dashboard field that is always null reports nothing"
+  },
+  {
+   "section": "§14 dashboard",
+   "id": "dash-cost",
+   "name": "the dashboard reports cost",
+   "ok": true,
+   "ev": "ai_cost_log.cost_aed populated on 1038 of 1038 row(s) — a dashboard field that is always null reports nothing"
+  },
+  {
+   "section": "§14 dashboard",
+   "id": "dash-failures",
+   "name": "the dashboard reports failures",
+   "ok": true,
+   "ev": "ai_cost_log.ok populated on 1038 of 1038 row(s) — a dashboard field that is always null reports nothing"
+  },
+  {
+   "section": "§14 dashboard",
+   "id": "dash-avg-quality",
+   "name": "the dashboard reports average response quality",
+   "ok": false,
+   "ev": "ai_cost_log.confidence populated on 0 of 1038 row(s) — a dashboard field that is always null reports nothing"
+  },
+  {
+   "section": "§27 queue",
+   "id": "queue-urgent",
+   "name": "the AI task queue supports URGENT priority",
+   "ok": true,
+   "ev": "2 priority column(s) on queue/job/task table(s) [v_supplier_exception_queue crm_tasks org_tasks cron_job_seen review_qu] — the three bands are values of one column, so all three legs share this evidence and stand or fall together"
+  },
+  {
+   "section": "§27 queue",
+   "id": "queue-normal",
+   "name": "the AI task queue supports NORMAL priority",
+   "ok": true,
+   "ev": "2 priority column(s) on queue/job/task table(s) [v_supplier_exception_queue crm_tasks org_tasks cron_job_seen review_qu] — the three bands are values of one column, so all three legs share this evidence and stand or fall together"
+  },
+  {
+   "section": "§27 queue",
+   "id": "queue-background",
+   "name": "the AI task queue supports BACKGROUND priority",
+   "ok": true,
+   "ev": "2 priority column(s) on queue/job/task table(s) [v_supplier_exception_queue crm_tasks org_tasks cron_job_seen review_qu] — the three bands are values of one column, so all three legs share this evidence and stand or fall together"
+  },
+  {
+   "section": "§28 spend",
+   "id": "spend-limit-free",
+   "name": "spending limits define a free tier cap",
+   "ok": false,
+   "ev": "0 per-USER spend-cap column(s); 13 DEPARTMENT budget(s) are set and fn_ai_spend_guard present true — the mechanism exists but its principal is a department, not a user, which is what §28 asks for"
+  },
+  {
+   "section": "§28 spend",
+   "id": "spend-limit-premium",
+   "name": "spending limits define a premium tier cap",
+   "ok": false,
+   "ev": "0 per-USER spend-cap column(s); 13 DEPARTMENT budget(s) are set and fn_ai_spend_guard present true — the mechanism exists but its principal is a department, not a user, which is what §28 asks for"
+  },
+  {
+   "section": "§28 spend",
+   "id": "spend-limit-enterprise",
+   "name": "spending limits define an enterprise / custom cap",
+   "ok": false,
+   "ev": "0 per-USER spend-cap column(s); 13 DEPARTMENT budget(s) are set and fn_ai_spend_guard present true — the mechanism exists but its principal is a department, not a user, which is what §28 asks for"
+  },
+  {
+   "section": "§37 credits",
+   "id": "credit-0-simple",
+   "name": "the cost ladder has a zero-cost band for work that needs no AI",
+   "ok": true,
+   "ev": "tier 'none': 14 priced entr(y/ies) — the estate prices in AED per million tokens rather than in credits, which is the same ladder in a different unit"
+  },
+  {
+   "section": "§37 credits",
+   "id": "credit-1-small",
+   "name": "the cost ladder has a cheapest band",
+   "ok": true,
+   "ev": "tier 'small': 2 priced entr(y/ies) — the estate prices in AED per million tokens rather than in credits, which is the same ladder in a different unit"
+  },
+  {
+   "section": "§37 credits",
+   "id": "credit-5-medium",
+   "name": "the cost ladder has a mid band",
+   "ok": true,
+   "ev": "tier 'medium': 2 priced entr(y/ies) — the estate prices in AED per million tokens rather than in credits, which is the same ladder in a different unit"
+  },
+  {
+   "section": "§37 credits",
+   "id": "credit-20-premium",
+   "name": "the cost ladder has a premium band",
+   "ok": true,
+   "ev": "tier 'large': 1 priced entr(y/ies) — the estate prices in AED per million tokens rather than in credits, which is the same ladder in a different unit"
+  },
+  {
+   "section": "§41 accountant",
+   "id": "acct-spending",
+   "name": "the AI accountant tracks spending",
+   "ok": true,
+   "ev": "1038 of 1038 calls carry a cost"
+  },
+  {
+   "section": "§41 accountant",
+   "id": "acct-token-waste",
+   "name": "the AI accountant identifies token waste",
+   "ok": true,
+   "ev": "v_cost_optimisation flags 336 downgradable call(s)"
+  },
+  {
+   "section": "§41 accountant",
+   "id": "acct-expensive-users",
+   "name": "the AI accountant names the expensive principals",
+   "ok": true,
+   "ev": "947 of 1038 calls are attributed to a department or agent"
+  },
+  {
+   "section": "§41 accountant",
+   "id": "acct-expensive-tasks",
+   "name": "the AI accountant names the expensive tasks",
+   "ok": true,
+   "ev": "892 of 1038 calls are classified; 146 are NOT"
+  },
+  {
+   "section": "§41 accountant",
+   "id": "acct-optimization-alerts",
+   "name": "the AI accountant raises an optimisation alert",
+   "ok": true,
+   "ev": "43 alert routine(s) [fn_emit_metric_alerts fn_emit_budget_exceeded fn_dispute_open fn_day_conductor fn_founder_brief]; 336 call(s) flagged could_be_cheaper — §41 needs an alert that FIRES, not a view that could be read"
+  },
+  {
+   "section": "§42 feedback",
+   "id": "feedback-thumbs",
+   "name": "thumbs up / down is collected on answers",
+   "ok": true,
+   "ev": "1 rating column(s) on feedback/outcome table(s) [doc_reviews quote_review_messages quote_reviews legal_review]"
+  },
+  {
+   "section": "§42 feedback",
+   "id": "feedback-edits",
+   "name": "user edits to an answer are captured",
+   "ok": true,
+   "ev": "8 column(s) record an edit/correction/override of a generated answer"
+  },
+  {
+   "section": "§42 feedback",
+   "id": "feedback-improves-routing",
+   "name": "the feedback changes future routing",
+   "ok": false,
+   "ev": "4 routine(s) close the loop [fn_event_dispatch fn_outcome_evaluate fn_day_conductor fn_model_autoswitch]; model_outcome holds 0 row(s) — a loop with no observations changes no routing"
+  },
+  {
+   "section": "§1 router",
+   "id": "route-layer-exists",
+   "name": "an AI router layer sits before the provider",
+   "ok": true,
+   "ev": "fn_ai_route('agent_reasoning') EXECUTED, returns tier+model+use_llm: true; 1038 logged AI call(s) in ai_cost_log"
+  },
+  {
+   "section": "§1 router",
+   "id": "route-intent-detection",
+   "name": "the router detects intent before choosing",
+   "ok": true,
+   "ev": "fn_ai_route explains its choice: \"An AI employee reasoning over its own context, memory and live numbers\""
+  },
+  {
+   "section": "§1 router",
+   "id": "route-task-classification",
+   "name": "requests are classified into task classes",
+   "ok": true,
+   "ev": "model_policy defines 34 task class(es); ai_cost_log carries 20 distinct task_class value(s)"
+  },
+  {
+   "section": "§1 router",
+   "id": "route-model-selection",
+   "name": "a model is selected per request",
+   "ok": true,
+   "ev": "fn_select_model present true; fn_ai_route returns a model: anthropic/claude-sonnet-5"
+  },
+  {
+   "section": "§1 router",
+   "id": "route-reaches-openrouter",
+   "name": "the selected model is sent to OpenRouter",
+   "ok": true,
+   "ev": "29 edge function(s) call OpenRouter [index.ts index.ts index.ts index.ts index.ts index.ts]"
+  },
+  {
+   "section": "§1 router",
+   "id": "route-branch-simple-cheap",
+   "name": "simple question -> cheap model",
+   "ok": true,
+   "ev": "fn_ai_route('category_classification') -> tier=small model=google/gemini-3.1-flash-lite; spec wants small"
+  },
+  {
+   "section": "§1 router",
+   "id": "route-branch-reasoning-premium",
+   "name": "reasoning -> premium model",
+   "ok": true,
+   "ev": "fn_ai_route('agent_reasoning') -> tier=large model=anthropic/claude-sonnet-5; spec wants large"
+  },
+  {
+   "section": "§1 router",
+   "id": "route-branch-long-context",
+   "name": "document work routes to a long-context model",
+   "ok": true,
+   "ev": "3 active model(s) with >=500k context [google/gemini-3.5-flash qwen/qwen3.7-plus google/gemini-3.1-flash-lite]"
+  },
+  {
+   "section": "§1 router",
+   "id": "route-branch-emergency-fallback",
+   "name": "an emergency fallback provider is chosen",
+   "ok": true,
+   "ev": "fn_ai_route returns fallback=anthropic/claude-opus-4.8; 1 logged call(s) actually fell back"
+  },
+  {
+   "section": "§2 levels",
+   "id": "level-0-no-ai",
+   "name": "Level 0 — handled with no AI call at all",
+   "ok": true,
+   "ev": "14 active model_policy row(s) route to NO llm and name a deterministic alternative"
+  },
+  {
+   "section": "§2 levels",
+   "id": "level-1-cheap",
+   "name": "Level 1 — cheap fast model",
+   "ok": true,
+   "ev": "tier 'small': model(s) [qwen/qwen3.7-plus google/gemini-3.1-flash-lite], 7 policy row(s) route to it"
+  },
+  {
+   "section": "§2 levels",
+   "id": "level-2-medium",
+   "name": "Level 2 — medium intelligence",
+   "ok": true,
+   "ev": "tier 'medium': model(s) [google/gemini-3.5-flash ~anthropic/claude-haiku-latest], 7 policy row(s) route to it"
+  },
+  {
+   "section": "§2 levels",
+   "id": "level-3-premium",
+   "name": "Level 3 — premium reasoning",
+   "ok": true,
+   "ev": "tier 'large': model(s) [anthropic/claude-sonnet-5], 6 policy row(s) route to it"
+  },
+  {
+   "section": "§2 levels",
+   "id": "level-4-human-tasks",
+   "name": "Level 4 — human-level tasks",
+   "ok": true,
+   "ev": "tier 'xlarge': model(s) [anthropic/claude-opus-4.8], 0 policy row(s) route to it"
+  },
+  {
+   "section": "§2 levels",
+   "id": "dist-no-ai-20pct",
+   "name": "about 20% of work should need no AI",
+   "ok": true,
+   "ev": "14 of 34 active task classes (41%) route to NO llm; bar is 20%. Measured over model_policy, not ai_cost_log — a request that never called an LLM leaves no cost row by construction"
+  },
+  {
+   "section": "§2 levels",
+   "id": "dist-cheap-55pct",
+   "name": "about 55% of calls should use the cheap tier",
+   "ok": false,
+   "ev": "tier 'small': 427 of 1038 logged calls = 41%, bar is 55%"
+  },
+  {
+   "section": "§2 levels",
+   "id": "dist-medium-20pct",
+   "name": "about 20% of calls should use the medium tier",
+   "ok": false,
+   "ev": "tier 'medium': 115 of 1038 logged calls = 11%, bar is 20%"
+  },
+  {
+   "section": "§2 levels",
+   "id": "dist-premium-5pct",
+   "name": "premium should be at most about 5% of calls",
+   "ok": false,
+   "ev": "tier large+xlarge: 347 of 1038 logged calls = 33%, ceiling is 5% — this is a CEILING not a floor; those calls cost AED 57.32"
+  },
+  {
+   "section": "§3 engine",
+   "id": "engine-classifier",
+   "name": "a classifier assigns a task class",
+   "ok": true,
+   "ev": "34 classified task class(es); routines naming task_class: [fn_ai_spend_guard fn_select_model fn_llm_cache_lookup fn_llm_cache_store fn_model_autoswitch]"
+  },
+  {
+   "section": "§3 engine",
+   "id": "engine-model-selector",
+   "name": "a model selector picks the model",
+   "ok": true,
+   "ev": "fn_select_model present true; fn_ai_route_tier_rank present true"
+  },
+  {
+   "section": "§3 engine",
+   "id": "engine-cost-manager",
+   "name": "a cost manager tracks and constrains spend",
+   "ok": true,
+   "ev": "fn_model_cost_usd present; ai_cost_log holds 1038 row(s); fn_budget_available present true"
+  },
+  {
+   "section": "§3 engine",
+   "id": "engine-memory-manager",
+   "name": "a memory manager decides what context is carried",
+   "ok": true,
+   "ev": "5 vector column(s) back retrieval; agent_knowledge holds 1960 row(s)"
+  },
+  {
+   "section": "§4 cascading",
+   "id": "cascade-starts-cheap",
+   "name": "the cascade starts at a cheap model",
+   "ok": true,
+   "ev": "fn_ai_route('category_classification') starts at tier=small"
+  },
+  {
+   "section": "§4 cascading",
+   "id": "cascade-confidence-score",
+   "name": "a confidence score is produced per answer",
+   "ok": false,
+   "ev": "ai_cost_log.confidence column true; populated on 0 of 1038 row(s)"
+  },
+  {
+   "section": "§4 cascading",
+   "id": "cascade-escalates-on-low-confidence",
+   "name": "low confidence escalates to a stronger model",
+   "ok": true,
+   "ev": "1 logged call(s) escalated to their fallback model; fn_ai_route supplies a fallback for every routed class"
+  },
+  {
+   "section": "§4 cascading",
+   "id": "cascade-evaluator",
+   "name": "an evaluator judges whether the cheap answer was good enough",
+   "ok": true,
+   "ev": "routines reasoning about confidence: [fn_ap_bill_dupe_guard fn_dispute_open fn_outcome_evaluate fn_simulate fn_knowledge_decay fn_challenge]"
+  },
+  {
+   "section": "§8 stream",
+   "id": "stream-enabled",
+   "name": "streaming is enabled on the provider call",
+   "ok": true,
+   "ev": "6 active model(s) support streaming; fn_ai_route returns stream=true"
+  },
+  {
+   "section": "§8 stream",
+   "id": "stream-cancellation-stops-generation",
+   "name": "cancelling a stream stops generation",
+   "ok": true,
+   "ev": "25 edge file(s) wire an abort signal to a streaming call [index.ts index.ts index.ts index.ts index.ts] — streaming without cancellation saves no tokens, which is §8's whole reason"
+  },
+  {
+   "section": "§11 providers",
+   "id": "prov-openrouter",
+   "name": "OpenRouter is one of the providers",
+   "ok": true,
+   "ev": "29 edge function(s) reach OpenRouter"
+  },
+  {
+   "section": "§11 providers",
+   "id": "prov-direct-or-local",
+   "name": "more than one provider is available",
+   "ok": true,
+   "ev": "3 distinct provider(s) in model_registry [anthropic google qwen]"
+  },
+  {
+   "section": "§11 providers",
+   "id": "prov-fallback-chain",
+   "name": "a fallback chain exists when the primary fails",
+   "ok": true,
+   "ev": "20 of 20 routed policies name a fallback model"
+  },
+  {
+   "section": "§12 local",
+   "id": "local-small-model",
+   "name": "a small model runs locally for classification and commands",
+   "ok": true,
+   "ev": "1 local/embedded model policy row(s) (gte-small is Supabase-hosted, not billed per call); 0 routine(s) reference one [none]"
+  },
+  {
+   "section": "§15 settings",
+   "id": "set-model-fallback",
+   "name": "model fallback is enabled",
+   "ok": true,
+   "ev": "20 policy row(s) declare a fallback model"
+  },
+  {
+   "section": "§15 settings",
+   "id": "set-streaming",
+   "name": "streaming is enabled",
+   "ok": true,
+   "ev": "fn_ai_route returns stream=true"
+  },
+  {
+   "section": "§15 settings",
+   "id": "set-provider-routing",
+   "name": "provider routing is enabled",
+   "ok": true,
+   "ev": "3 provider(s) routable [anthropic google qwen]"
+  },
+  {
+   "section": "§15 settings",
+   "id": "set-usage-tracking",
+   "name": "usage tracking is enabled",
+   "ok": true,
+   "ev": "ai_cost_log holds 1038 tracked call(s)"
+  },
+  {
+   "section": "§15 settings",
+   "id": "set-no-auto-premium",
+   "name": "automatic premium selection is disabled",
+   "ok": false,
+   "ev": "25 premium call(s) are flagged could_be_cheaper — every one is a premium selection the router should not have made"
+  },
+  {
+   "section": "§15 settings",
+   "id": "set-no-unnecessary-long-context",
+   "name": "unnecessary long contexts are disabled",
+   "ok": true,
+   "ev": "0 logged call(s) sent more than 100k prompt tokens; avg prompt is 7063 tokens"
+  },
+  {
+   "section": "§15 settings",
+   "id": "set-no-full-history",
+   "name": "sending the full history is disabled",
+   "ok": true,
+   "ev": "61 routine(s) compress rather than resend history [fn_regulation_propagate match_suppliers fn_p2c1_rollback_stage_b run_no_quote_nudges gtrgm_compress]"
+  },
+  {
+   "section": "§17 split",
+   "id": "split-intent-engine-cheap",
+   "name": "intent detection runs on a cheap/local model",
+   "ok": true,
+   "ev": "fn_ai_route('intent_detection') -> tier=small; spec wants one of [small/none]"
+  },
+  {
+   "section": "§17 split",
+   "id": "split-task-planner-cheap",
+   "name": "planning runs below the premium tier",
+   "ok": true,
+   "ev": "fn_ai_route('rfq_routing') -> tier=medium; spec wants one of [small/medium/none]"
+  },
+  {
+   "section": "§17 split",
+   "id": "split-final-response-stronger-only-if-needed",
+   "name": "only the final step escalates to a stronger model",
+   "ok": true,
+   "ev": "6 of 20 routed task classes sit at the premium tier — the spec's rule is that the strong model is the exception, so this leg needs premium to be under half"
+  },
+  {
+   "section": "§18 sleep",
+   "id": "sleep-event-wakes-agent",
+   "name": "an event wakes the agent rather than the agent polling",
+   "ok": true,
+   "ev": "159 non-internal trigger(s) fire on events; event/outbox table(s): [v_supplier_exception_queue security_events error_events expe]"
+  },
+  {
+   "section": "§18 sleep",
+   "id": "sleep-agent-sleeps-after",
+   "name": "agents are not left running continuously",
+   "ok": false,
+   "ev": "166 cron job(s); 2 run EVERY MINUTE — a per-minute poll is the \"agent alive 24/7\" pattern §18 rejects"
+  },
+  {
+   "section": "§19 deterministic",
+   "id": "det-dates",
+   "name": "dates are handled deterministically, not by an LLM",
+   "ok": true,
+   "ev": "1 policy row(s) refuse the LLM for dates [date_calculation]"
+  },
+  {
+   "section": "§19 deterministic",
+   "id": "det-calendars",
+   "name": "calendars are handled deterministically, not by an LLM",
+   "ok": true,
+   "ev": "1 policy row(s) refuse the LLM for calendars [calendar_scheduling]"
+  },
+  {
+   "section": "§19 deterministic",
+   "id": "det-file-operations",
+   "name": "file operations are handled deterministically, not by an LLM",
+   "ok": true,
+   "ev": "1 policy row(s) refuse the LLM for file operations [file_operations]"
+  },
+  {
+   "section": "§19 deterministic",
+   "id": "det-searches",
+   "name": "searches are handled deterministically, not by an LLM",
+   "ok": true,
+   "ev": "2 policy row(s) refuse the LLM for searches [duplicate_detection supplier_matching]"
+  },
+  {
+   "section": "§19 deterministic",
+   "id": "det-database-queries",
+   "name": "database queries are handled deterministically, not by an LLM",
+   "ok": true,
+   "ev": "2 policy row(s) refuse the LLM for database queries [supplier_scoring kpi_calculation]"
+  },
+  {
+   "section": "§19 deterministic",
+   "id": "det-calculations",
+   "name": "calculations are handled deterministically, not by an LLM",
+   "ok": true,
+   "ev": "5 policy row(s) refuse the LLM for calculations [vat_calculation date_calculation currency_conversion approval_threshold kpi_calculation]"
+  },
+  {
+   "section": "§23 learning",
+   "id": "learn-user-preference",
+   "name": "the system learns a user preference and routes to it",
+   "ok": true,
+   "ev": "preference table(s) [customer_preference]; 19 routine(s) read or adapt to them [fn_ap_bill_dupe_guard fn_dispute_open fn_outcome_evaluate fn_day_conductor fn_company_reflect]"
+  },
+  {
+   "section": "§29 image",
+   "id": "img-cv-filter",
+   "name": "an image is classified before a vision model is called",
+   "ok": true,
+   "ev": "36 edge file(s) classify an image before escalating [index.ts index.ts index.ts index.ts index.ts]"
+  },
+  {
+   "section": "§29 image",
+   "id": "img-escalates-only-when-needed",
+   "name": "the vision model is only called when needed",
+   "ok": true,
+   "ev": "5 vision-capable model(s); 0 of 1038 logged calls were vision work — this leg needs vision to be a minority of traffic"
+  },
+  {
+   "section": "§33 early exit",
+   "id": "early-exit",
+   "name": "the system answers without AI when it can",
+   "ok": true,
+   "ev": "fn_ai_route('vat_calculation') EXECUTED -> use_llm=false; 14 task class(es) exit before any model call"
+  },
+  {
+   "section": "§36 multi-agent",
+   "id": "multi-agent-manager",
+   "name": "a manager agent decides which agents are needed",
+   "ok": true,
+   "ev": "17 routine(s) implement delegation [fn_event_dispatch fn_kpi_review fn_exec_meeting fn_os_review fn_graph_rebuild]; org_agents carries a manager_key chain"
+  },
+  {
+   "section": "§36 multi-agent",
+   "id": "multi-agent-only-needed-activated",
+   "name": "only the needed agents are activated",
+   "ok": true,
+   "ev": "5 of 66 active agents actually spent on AI — all of them spending would be the \"10 agents per request\" pattern §36 rejects"
+  },
+  {
+   "section": "§38 predict",
+   "id": "predict-intent",
+   "name": "intent is predicted before an expensive call is made",
+   "ok": true,
+   "ev": "7 routine(s) detect intent [fn_p2c1_rollback_stage_b6 fn_faq_answer fn_p2c1_rollback_stage_b7 fn_refund_request fn_refund_settle]; fn_ai_route('intent_detection') -> tier=small"
+  },
+  {
+   "section": "§39 fail",
+   "id": "fail-primary-then-fallback",
+   "name": "a failure falls back once to another model",
+   "ok": true,
+   "ev": "20 policies declare a fallback; 1 logged call(s) used it"
+  },
+  {
+   "section": "§39 fail",
+   "id": "fail-stops-no-endless-retry",
+   "name": "retrying stops rather than looping",
+   "ok": true,
+   "ev": "the most attempts any logged call made is 1 — the spec's rule is primary, then fallback, then stop, so anything above 3 is the endless-retry pattern it rejects"
+  },
+  {
+   "section": "§40 region",
+   "id": "region-lowest-cost-provider",
+   "name": "the lowest-cost provider meeting the quality bar is chosen",
+   "ok": true,
+   "ev": "fn_ai_route_tier_rank present true across 3 provider(s); cheapest active model is google/gemini-3.1-flash-lite — the estate ranks by price within a tier, which is §40 without the geographic dimension"
+  },
+  {
+   "section": "§43 offline",
+   "id": "offline-file-search",
+   "name": "file search work without any AI call",
+   "ok": true,
+   "ev": "2 policy row(s) refuse the LLM for file search; 3 table(s) named for it — the policy row is the requirement, the table alone is not"
+  },
+  {
+   "section": "§43 offline",
+   "id": "offline-commands",
+   "name": "commands work without any AI call",
+   "ok": true,
+   "ev": "2 policy row(s) refuse the LLM for commands; 1 table(s) named for it — the policy row is the requirement, the table alone is not"
+  },
+  {
+   "section": "§43 offline",
+   "id": "offline-notes",
+   "name": "notes work without any AI call",
+   "ok": true,
+   "ev": "1 policy row(s) refuse the LLM for notes; 8 table(s) named for it — the policy row is the requirement, the table alone is not"
+  },
+  {
+   "section": "§43 offline",
+   "id": "offline-calculations",
+   "name": "calculations work without any AI call",
+   "ok": true,
+   "ev": "5 policy row(s) refuse the LLM for calculations; 25 table(s) named for it — the policy row is the requirement, the table alone is not"
+  },
+  {
+   "section": "§43 offline",
+   "id": "offline-reminders",
+   "name": "reminders work without any AI call",
+   "ok": true,
+   "ev": "2 policy row(s) refuse the LLM for reminders; 5 table(s) named for it — the policy row is the requirement, the table alone is not"
+  },
+  {
+   "section": "§5 tokens",
+   "id": "token-conversation-compression",
+   "name": "conversation history is compressed, not resent whole",
+   "ok": true,
+   "ev": "63 routine(s) [fn_regulation_propagate match_suppliers fn_p2c1_holdout_checksum run_no_quote_nudges fn_founder_brief] and 9 edge file(s) [index.ts index.ts index.ts index.ts index.ts] summarise rather than resend"
+  },
+  {
+   "section": "§5 tokens",
+   "id": "token-context-cleaning",
+   "name": "irrelevant turns and tool output are pruned from context",
+   "ok": true,
+   "ev": "116 routine(s) [fn_trade_confirm fn_trade_reject fn_email_sendable fn_dispute_open fn_norm_text] and 156 edge file(s) [index.ts index.ts index.ts index.ts index.ts] prune context — distinct from compression, which shortens rather than drops"
+  },
+  {
+   "section": "§6 embeddings",
+   "id": "embed-vector-store",
+   "name": "a local vector store holds the memory",
+   "ok": true,
+   "ev": "pgvector: 5 vector column(s) across [company_faq kb_chunks leads llm_cache]"
+  },
+  {
+   "section": "§6 embeddings",
+   "id": "embed-sends-only-relevant",
+   "name": "retrieval selects relevant memory instead of all of it",
+   "ok": true,
+   "ev": "25 routine(s) do vector/similarity retrieval [cosine_distance cosine_distance cosine_distance match_suppliers word_similarity]"
+  },
+  {
+   "section": "§9 budgets",
+   "id": "budget-per-request-max-tokens",
+   "name": "every request carries a max_tokens budget",
+   "ok": true,
+   "ev": "fn_ai_route returns max_tokens=8000; 20 of 34 active policies set one"
+  },
+  {
+   "section": "§9 budgets",
+   "id": "budget-no-unlimited-generation",
+   "name": "no routed task class is allowed unlimited generation",
+   "ok": true,
+   "ev": "0 active LLM-routed policy row(s) have no token ceiling — the spec's rule is \"never allow unlimited generation\""
+  },
+  {
+   "section": "§10 files",
+   "id": "file-parser",
+   "name": "uploaded files are parsed before they reach a model",
+   "ok": true,
+   "ev": "95 edge file(s) parse documents [index.ts index.ts index.ts index.ts index.ts index.ts]"
+  },
+  {
+   "section": "§10 files",
+   "id": "file-chunking",
+   "name": "parsed text is chunked rather than sent whole",
+   "ok": true,
+   "ev": "10 routine(s) [kb_query kb_sync fn_ws_knowledge kb_match fn_promote_memory] and 26 edge file(s) [index.ts index.ts index.ts index.ts index.ts] chunk text"
+  },
+  {
+   "section": "§10 files",
+   "id": "file-vector-search",
+   "name": "chunks are retrieved by vector search",
+   "ok": true,
+   "ev": "1 vector column(s) on chunk/document/knowledge tables — pgvector alone is §6, this leg needs the DOCUMENT pipeline"
+  },
+  {
+   "section": "§10 files",
+   "id": "file-sends-only-relevant-sections",
+   "name": "only the relevant sections reach the model",
+   "ok": true,
+   "ev": "38 edge file(s) select chunks by relevance before the model call [index.ts index.ts index.ts index.ts index.ts]"
+  },
+  {
+   "section": "§20 prompt",
+   "id": "prompt-profile-stored-not-resent",
+   "name": "the system profile is stored, not resent every call",
+   "ok": true,
+   "ev": "prompt/persona table(s): [prompts prompt_versions prompt_eval_runs prompt_benchmarks]; agent_prompt exists false"
+  },
+  {
+   "section": "§20 prompt",
+   "id": "prompt-only-necessary-instructions",
+   "name": "only the necessary instructions are sent",
+   "ok": true,
+   "ev": "3 active model(s) support prompt caching, which is what makes a stable prefix cheap; 2 of 1038 logged calls used it"
+  },
+  {
+   "section": "§21 context",
+   "id": "ctx-dynamic-window",
+   "name": "the context window is chosen per task, not fixed at maximum",
+   "ok": true,
+   "ev": "active model context windows span 200000..1048576; routing across that spread IS the dynamic window"
+  },
+  {
+   "section": "§22 length",
+   "id": "len-quick",
+   "name": "Quick — a short ceiling exists",
+   "ok": true,
+   "ev": "13 distinct max_tokens band(s) in model_policy [10000 1024 1200 1500 2000 2500 300 32 400 4000 800 8000 900]; this leg needs >= 1"
+  },
+  {
+   "section": "§22 length",
+   "id": "len-normal",
+   "name": "Normal — a second, larger ceiling exists",
+   "ok": true,
+   "ev": "13 distinct max_tokens band(s) in model_policy [10000 1024 1200 1500 2000 2500 300 32 400 4000 800 8000 900]; this leg needs >= 2"
+  },
+  {
+   "section": "§22 length",
+   "id": "len-detailed",
+   "name": "Detailed — a third ceiling exists",
+   "ok": true,
+   "ev": "13 distinct max_tokens band(s) in model_policy [10000 1024 1200 1500 2000 2500 300 32 400 4000 800 8000 900]; this leg needs >= 3"
+  },
+  {
+   "section": "§22 length",
+   "id": "len-expert",
+   "name": "Expert — a fourth, largest ceiling exists",
+   "ok": true,
+   "ev": "13 distinct max_tokens band(s) in model_policy [10000 1024 1200 1500 2000 2500 300 32 400 4000 800 8000 900]; this leg needs >= 4"
+  },
+  {
+   "section": "§30 retrieval",
+   "id": "retrieval-over-generation",
+   "name": "stored knowledge is retrieved rather than regenerated",
+   "ok": true,
+   "ev": "agent_knowledge holds 1960 row(s), read by 33 routine(s) [fn_regulation_propagate fn_day_conductor fn_knowledge_decay fn_company_facts_sync fn_company_reflect]"
+  },
+  {
+   "section": "§31 knowledge",
+   "id": "kb-user-preferences",
+   "name": "the OS brain holds user preferences",
+   "ok": true,
+   "ev": "tables: gl_settings os_settings_meta customer_preference"
+  },
+  {
+   "section": "§31 knowledge",
+   "id": "kb-previous-solutions",
+   "name": "the OS brain holds previous solutions",
+   "ok": true,
+   "ev": "agent_knowledge experience/lesson rows: 17"
+  },
+  {
+   "section": "§31 knowledge",
+   "id": "kb-app-documentation",
+   "name": "the OS brain holds app documentation",
+   "ok": true,
+   "ev": "agent_knowledge company-layer rows: 46"
+  },
+  {
+   "section": "§31 knowledge",
+   "id": "kb-commands",
+   "name": "the OS brain holds commands",
+   "ok": true,
+   "ev": "tables: agent_pending_actions agent_command_log agent_actions agent_action_log control_mode_action workflow_step v_os_action_classification transactions drawing_redaction_runs org_action_executor_rpc_allowed v_action_executor_authority action_class_gate workflow_step_run action_execution org_action_executor"
+  },
+  {
+   "section": "§31 knowledge",
+   "id": "kb-workflows",
+   "name": "the OS brain holds workflows",
+   "ok": true,
+   "ev": "workflow rows: 14"
+  },
+  {
+   "section": "§34 code index",
+   "id": "code-index-exists",
+   "name": "a code index exists so the whole project is never sent",
+   "ok": true,
+   "ev": "graphify-out/graph.json present true, 9006 KB"
+  },
+  {
+   "section": "§34 code index",
+   "id": "code-index-sends-relevant-files-only",
+   "name": "the index is consulted before raw files",
+   "ok": true,
+   "ev": "CLAUDE.md mandates 'graphify query' before reading source: true; index present true"
+  }
+ ]
+}

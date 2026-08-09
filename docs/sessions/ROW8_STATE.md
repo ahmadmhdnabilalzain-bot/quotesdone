@@ -276,3 +276,54 @@ max_tokens + system prompt + conversation, so it hits only on a genuine repeat; 
 0.95 is what catches near-repeats. Whether that yields a high hit rate depends on how repetitive
 real traffic is — **a measurement for next session, not a claim to make now.** `cache-actually-hit`
 therefore still reads MISSING, correctly: the cache is reachable, and has not yet been reached.
+
+---
+
+## 12. FINAL: 200 / 226 (88%)
+
+| | |
+|---|---|
+| baseline | 184/226 |
+| `cascade-starts-cheap` — boolean/string comparison defect | +1 |
+| model feedback loop repointed off a table with zero writers, benchmark run | +6 |
+| task classification at the write path, 3 deterministic refusals, 7 response templates | +9 |
+| **total** | **200/226 (88%)** |
+
+### The last batch
+
+**`fn_llm_log` now derives `task_class` from the caller when it is omitted.** 146 of 1,021 calls
+(AED 21.11) carried none — `agent_brain` 46, `cos_execute` 23, `dept_plan` 21, `knowledge_exam` 17
+— and a call with no class cannot be routed by policy, capped by `max_tokens`, cached, or
+benchmarked. It is invisible to every mechanism this row is about. **The 146 existing rows were
+NOT backfilled**: rewriting historical log rows to make a gate read better is back-dating, and it
+would destroy the only evidence the defect existed.
+
+**Three deterministic refusals added** — `calendar_scheduling`, `file_operations`, `note_capture`.
+A calendar lookup is a query, not a judgement, and each now names its SQL alternative like the
+eleven that were already there. 11 → 14.
+
+**Seven response templates added** — delivery, appointment, payment, apology, shipping, follow-up,
+complaint resolution. A template is a zero-cost answer and the spec's ladder starts with "most
+messages should never reach AI". This is QuotesDone's own operational copy, which is a different act
+from generating category expertise: nothing asserts a fact about an industry, a regulation or a
+supplier, and where a real number would be needed the copy asks for it rather than inventing one.
+
+## 13. THE 26 THAT REMAIN, AND WHY
+
+**Need traffic, not code (12).** `cache-actually-hit` and `cache-semantic` — the cache is reachable
+as of this session and has not yet been reached. `bench-coding/-writing/-vision/-math` — no graded
+pair exists in those categories because the estate sends no such work. `dist-cheap/-medium/-premium`
+and `wa-ladder-*` — the distribution moves as traffic re-routes, not as code lands.
+`uni-mix-website` — 0 AI calls attributed to the widget.
+
+**Need a business decision (3).** `spend-limit-free/-premium/-enterprise`: the estate budgets by
+DEPARTMENT (13 budgets, `fn_ai_spend_guard` live). Per-USER caps need a pricing/plan model.
+
+**Genuinely still to build (11).** `confidence` capture at the write path (unblocks 2),
+`distill-from-successful-responses`, per-customer cost attribution, a widget session budget cap,
+the two per-minute cron jobs, and four channel-side gaps in unlaunched surfaces.
+
+`sleep-agent-sleeps-after` is worth naming separately: `kb_embed_backfill` and `site_autodeploy` both
+run **every minute**, which is the "agent alive 24/7" pattern §18 rejects. Slowing them is a
+one-line cron change — but it is an operational trade-off about deploy latency and backfill speed,
+not a defect, so it is the founder's call rather than something to change unilaterally.
