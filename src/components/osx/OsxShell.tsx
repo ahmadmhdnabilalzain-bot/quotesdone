@@ -191,6 +191,24 @@ export default function OsxShell() {
   const [cur, setCur] = React.useState('console');
   const [tabs, setTabs] = React.useState<string[]>(['console']);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
+  // The palette searches ENTITIES, not just module labels: what the founder types goes to
+  // fn_os_search across all nine corpora, debounced, and the hits sit above the actions.
+  const [paletteQ, setPaletteQ] = React.useState(''); const [paletteHits, setPaletteHits] = React.useState<any[]>([]);
+  React.useEffect(() => {
+    const term = paletteQ.trim(); if (!paletteOpen || term.length < 2) { setPaletteHits([]); return; }
+    let alive = true;
+    const t = setTimeout(() => {
+      osApi('search', { q: term }).then((d: any) => {
+        if (!alive) return;
+        const GROUPS: [string, string, string][] = [['suppliers', 'Supplier', 'suppliers'], ['rfqs', 'RFQ', 'rfqs'],
+          ['customers', 'Customer', 'customers'], ['knowledge', 'Knowledge', 'knowledge'], ['lessons', 'Lesson', 'memory'],
+          ['decisions', 'Decision', 'memory'], ['documents', 'Document', 'documents']];
+        setPaletteHits(GROUPS.flatMap(([k, label, mod]) => ((d && d[k]) || []).slice(0, 4)
+          .map((r: any) => ({ name: r.name || r.headline || r.title, group: label, mod }))).slice(0, 12));
+      }).catch(() => {});
+    }, 220);
+    return () => { alive = false; clearTimeout(t); };
+  }, [paletteQ, paletteOpen]);
   const [live, setLive] = React.useState(0);
   const [wins, setWins] = React.useState<WinState[]>([]);
   const openWindow = React.useCallback((s: WinSpec) => {
@@ -283,15 +301,24 @@ export default function OsxShell() {
       </div>
 
       <CommandDialog open={paletteOpen} onOpenChange={setPaletteOpen}>
-        <CommandInput placeholder='Jump to a module, or type: status, RFQ #302…' />
+        <CommandInput placeholder='Jump to a module, find a supplier, RFQ, lesson or decision…' value={paletteQ} onValueChange={setPaletteQ} />
         <CommandList>
           <CommandEmpty>No matches.</CommandEmpty>
           <CommandGroup heading='Modules'>
             {MODULES.map((m) => (<CommandItem key={m.id} onSelect={() => { setCur(m.id); setPaletteOpen(false); }}><m.icon className='h-4 w-4' />{m.label}</CommandItem>))}
           </CommandGroup>
+          {/* Entities, searched live across all nine corpora rather than listed. */}
+          {paletteHits.length ? <CommandGroup heading='Entities'>
+            {paletteHits.map((h: any, i: number) => (<CommandItem key={'e' + i} onSelect={() => { setCur(h.mod); setPaletteOpen(false); }}><Search className='h-4 w-4' />{h.name}<span className='ml-2 text-[11px] text-muted-foreground'>{h.group}</span></CommandItem>))}
+          </CommandGroup> : null}
           <CommandGroup heading='Actions'>
+            <CommandItem onSelect={() => { osApi('search', { q: paletteQ }).then((d: any) => setPaletteHits(((d && d.suppliers) || []).map((r: any) => ({ name: r.name, group: 'Supplier', mod: 'suppliers' })))).catch(() => {}); }}><Search className='h-4 w-4' />Search everything the company knows</CommandItem>
             <CommandItem onSelect={() => { setCur('console'); setPaletteOpen(false); }}><MessageSquare className='h-4 w-4' />Ask the Secretary for status</CommandItem>
             <CommandItem onSelect={() => { setCur('agents'); setPaletteOpen(false); }}><Sparkles className='h-4 w-4' />Show matching / agent activity</CommandItem>
+            <CommandItem onSelect={() => { setCur('operations'); setPaletteOpen(false); }}><Check className='h-4 w-4' />Approve a pending decision</CommandItem>
+            <CommandItem onSelect={() => { setCur('agents'); setPaletteOpen(false); }}><RotateCcw className='h-4 w-4' />Restart AI agents</CommandItem>
+            <CommandItem onSelect={() => { setCur('intelligence'); setPaletteOpen(false); }}><BarChart3 className='h-4 w-4' />Forecast</CommandItem>
+            <CommandItem onSelect={() => { setCur('finance'); setPaletteOpen(false); }}><DollarSign className='h-4 w-4' />Cash Flow</CommandItem>
           </CommandGroup>
         </CommandList>
       </CommandDialog>
@@ -948,9 +975,15 @@ function Knowledge() {
 
 function NotificationsBell({ pulse, onNav }: { pulse: number; onNav: (id: string) => void }) {
   const [items, setItems] = React.useState<any[]>([]); const [open, setOpen] = React.useState(false);
+  const [tiers, setTiers] = React.useState<any>(null);
   React.useEffect(() => { let alive = true; osApi('ws.exec').then((d: any) => { if (alive) setItems(((d && d.notifications) || []).slice(0, 30)); }).catch(() => {}); return () => { alive = false; }; }, [pulse]);
+  // Four named tiers with counts, and the share the AI cleared without the founder — the two things
+  // screen 14 asks for and the bell never showed.
+  React.useEffect(() => { let alive = true; osApi('ws.notifications').then((d: any) => { if (alive) setTiers(d); }).catch(() => {}); return () => { alive = false; }; }, [pulse]);
   const routeFor = (t: string) => { const s = String(t); return /finance|payment|invoice/.test(s) ? 'finance' : /uptime|site|governance|security/.test(s) ? 'governance' : /ops|error|operation/.test(s) ? 'operations' : 'escalations'; };
-  const count = items.length;
+  const TIERS: [string, string, string][] = [['critical', 'Critical', 'escalations'], ['important', 'Important', 'operations'],
+    ['suggested', 'Suggested', 'intelligence'], ['completed_today', 'Completed Today', 'audit']];
+  const count = (tiers?.critical?.count ?? 0) + (tiers?.important?.count ?? 0) || items.length;
   return (
     <>
       <button onClick={() => setOpen(true)} title='Notifications' className='relative flex items-center justify-center h-9 w-9 rounded-md border border-border hover:bg-foreground/5'>
@@ -959,7 +992,26 @@ function NotificationsBell({ pulse, onNav }: { pulse: number; onNav: (id: string
       </button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent className='osx dark w-full sm:max-w-md overflow-y-auto'>
-          <SheetHeader><SheetTitle>Notifications</SheetTitle><SheetDescription>Recent founder alerts & reminders</SheetDescription></SheetHeader>
+          <SheetHeader><SheetTitle>Notifications</SheetTitle><SheetDescription>Recent founder alerts &amp; reminders</SheetDescription></SheetHeader>
+          {tiers ? <div className='mt-3 space-y-3'>
+            <div className='grid grid-cols-2 gap-2'>{TIERS.map(([k, label, mod]) => (
+              <button key={k} onClick={() => { setOpen(false); onNav(mod); }}
+                className={cn('rounded-md border px-3 py-2 text-left hover:bg-foreground/5',
+                  k === 'critical' && (tiers[k]?.count ?? 0) > 0 ? 'border-red-500/50' : 'border-border')}>
+                <div className='text-[11px] uppercase tracking-wide text-muted-foreground'>{label}</div>
+                <div className='text-lg font-semibold tabular-nums'>{tiers[k]?.count ?? 0}</div>
+              </button>))}</div>
+            <div className='text-[11px] text-muted-foreground'>
+              The AI auto-cleared <b className='text-foreground'>{tiers.auto_cleared_24h ?? '—'}%</b> of {tiers.actions_24h ?? 0} actions in the last 24h
+              {' '}· <b className='text-foreground'>{tiers.auto_handled_30d ?? '—'}%</b> of {tiers.actions_30d ?? 0} over 30 days, without the founder.
+            </div>
+            {TIERS.map(([k, label]) => ((tiers[k]?.rows || []).length ? <div key={'r' + k}>
+              <div className='text-[11px] uppercase tracking-wide text-muted-foreground mt-2'>{label}</div>
+              <div className='divide-y divide-border rounded-md border border-border mt-1'>{(tiers[k].rows as any[]).slice(0, 5).map((r: any, i: number) => (
+                <div key={i} className='px-3 py-2 text-sm'><div className='truncate'>{r.title}</div>
+                  {r.detail ? <div className='text-[11px] text-muted-foreground truncate'>{r.detail}</div> : null}</div>))}</div>
+            </div> : null))}
+          </div> : null}
           <div className='mt-4 divide-y divide-border'>
             {items.length ? items.map((n: any, i: number) => (
               <button key={i} onClick={() => { setOpen(false); onNav(routeFor(n.type)); }} className='w-full text-left py-3 hover:bg-foreground/5 transition-colors flex items-start gap-3'>
@@ -1031,6 +1083,43 @@ function Console() {
     setBusy(false);
   };
   const decide = async (decision: string) => { if (!confirm) return; const tok = confirm.token; setConfirm(null); setBusy(true); try { const d = await osApi('secretary_chat', { confirm_token: tok, decision }); setMsgs((m) => [...m, { role: 'assistant', content: d?.reply || (decision === 'confirm' ? 'Done.' : 'Cancelled.') }]); } catch (_e) { setMsgs((m) => [...m, { role: 'assistant', content: 'Could not complete that.' }]); } setBusy(false); };
+  // ── VOICE. The founder speaks to the OS. ────────────────────────────────────────────────────
+  // The microphone existed in this product — in the CUSTOMER portal — and nowhere in the founder's
+  // console. The recorded clip goes to the transcribe edge function and the text lands in the same
+  // box the keyboard fills, so speech is an input to the Secretary, not a separate feature.
+  const [rec, setRec] = React.useState(false); const recRef = React.useRef<MediaRecorder | null>(null);
+  const [speak, setSpeak] = React.useState(false);
+  const listen = async () => {
+    if (rec) { recRef.current?.stop(); setRec(false); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream); recRef.current = mr; const chunks: BlobPart[] = [];
+      mr.ondataavailable = (e) => chunks.push(e.data);
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' });
+        const b64: string = await new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result || '')); rd.readAsDataURL(blob); });
+        try { const d: any = await osApi('transcribe', { b64, mime: blob.type }); if (d?.text) setText((t) => (t ? t + ' ' : '') + d.text); }
+        catch (_e) { setMsgs((m) => [...m, { role: 'assistant', content: 'Could not transcribe that.' }]); }
+      };
+      mr.start(); setRec(true);
+    } catch (_e) { setMsgs((m) => [...m, { role: 'assistant', content: 'Microphone unavailable.' }]); }
+  };
+  // "Good morning" — the overnight brief, read out. speechSynthesis is the browser's own voice.
+  const sayBrief = async () => {
+    setSpeak(true);
+    try {
+      const d: any = await osApi('ws.exec_home');
+      const brief = 'Good morning. Company health ' + (d?.health_index ?? 'unknown') + ', mood ' + (d?.mood ?? 'unknown') + '. '
+        + 'Revenue today ' + (d?.revenue_today ?? 0) + ' dirhams, ' + (d?.revenue_30d ?? 0) + ' over thirty days. '
+        + (d?.suppliers_active ?? 0) + ' active suppliers, ' + (d?.customers_active ?? 0) + ' active customers. '
+        + (d?.employees_working ?? 0) + ' of ' + (d?.employees ?? 0) + ' AI employees worked overnight. '
+        + 'Monthly goal progress ' + (d?.goal_progress_pct ?? 0) + ' percent. '
+        + ((d?.bottlenecks || []).length ? (d.bottlenecks.length + ' departments are over capacity.') : 'No department is over capacity.');
+      setMsgs((m) => [...m, { role: 'assistant', content: brief }]);
+      const u = new SpeechSynthesisUtterance(brief); u.onend = () => setSpeak(false); window.speechSynthesis.speak(u);
+    } catch (_e) { setSpeak(false); }
+  };
   // Landing on the console should still land on a live company, not on an empty text box. The same
   // figures the Command Center shows, one line, refreshed on the same 30s beat.
   const [eh, setEh] = React.useState<any>({});
@@ -1058,6 +1147,8 @@ function Console() {
       <div className='p-3 border-t border-border flex items-end gap-2'>
         <input ref={fileRef} type='file' accept='image/*,application/pdf' className='hidden' onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.currentTarget.value = ''; }} />
         <Button variant='outline' size='icon' onClick={() => fileRef.current?.click()}><Paperclip className='h-4 w-4' /></Button>
+        <Button variant={rec ? 'default' : 'outline'} size='icon' title={rec ? 'Stop and transcribe' : 'Speak to the OS'} onClick={listen}><AudioLines className='h-4 w-4' /></Button>
+        <Button variant='outline' size='icon' title='Good morning — speak the overnight brief' disabled={speak} onClick={sayBrief}><Megaphone className='h-4 w-4' /></Button>
         <textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }} rows={2} placeholder='Type an instruction… (⌘+Enter to send)' className='flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring' />
         <Button onClick={send} disabled={busy}><Send className='h-4 w-4' /></Button>
       </div>
