@@ -88,6 +88,97 @@ neither:
 | `fn_health_index` fills its own `note` | **`exec-intel-narrative-insight` — MET.** The lobby had a prose slot filled only when there was almost no data |
 | `exec_agents` retries once and logs the truth | **A silent failure, not a check.** Three of six officers filed empty reports for a week, each recorded as `status: ok` |
 
+### Session 4 (9 Aug 2026, late — opened 22:42 UTC)
+
+**The opening measurement was 100/152, unchanged, and the reason is the clock, not twelve broken
+routines.** The part-4 brief said twelve checks "flip on crons that have since fired" and instructed
+that anything still MISSING was a defect to debug. The brief was written at ~22:35 UTC and this
+session opened at **22:42 UTC — seven minutes later**. Its table lists the hour each cron NEXT
+fires. Not one of the twelve had reached its hour.
+
+```
+select now() at time zone 'utc'  ->  2026-08-09 22:42:08   (Sunday)
+```
+
+The local date rolls over four hours before UTC does, so "today is the 10th" in Dubai was 22:42 on
+the 9th in the database. **Read `now()` before calling an un-flipped check a defect.** Corroborated
+without relying on arithmetic: `bi_snapshot_6h` (`35 */6 * * *`), `capability_verify_daily`
+(`15 2 * * *`), `index_slowdown_watch_daily` (`15 4 * * *`) and the three governance monitors all
+have **zero runs ever** — impossible unless they were created after their most recent slot.
+
+| run | score | what changed |
+|---|---|---|
+| opening | **100/152 (66%)** | re-measured, 0 errored — no cron had fired |
+| after the knowledge provenance fix | 100/152 | s27 1 of 7 → 2 of 7, no flip |
+| after the genome | **102/152 (67%)** | `genome-eleven-attributes-stored` + `genome-inherited-by-every-employee` both MET |
+
+#### What was built
+
+| change | what it closed |
+|---|---|
+| `fn_knowledge_provenance_stamp` + trigger + backfill | `owner_agent` 1,148 null → **0 of 1,986**; `source_ref` → 1,016. **s27 1/7 → 2/7.** Five DB functions and fourteen edge functions write `agent_knowledge` and not one set either field; the newest cohort was still growing, so a backfill alone would have been undone by the next cron |
+| six `company_constitution` sections | **`genome-eleven-attributes-stored` — MET**, 5 of 11 → 11 of 11 |
+| genome block injected into `fn_agent_context` | **`genome-inherited-by-every-employee` — MET**, 2 of 11 → 11 of 11 across all 66 |
+
+#### Four of the six genome attributes were missing LABELS, not missing facts
+
+The check is label-anchored on purpose. `brand-quick-reference.md` (a real Dropbox asset already in
+`agent_knowledge`) carried the brand voice; `vision_horizon` carried the growth strategy;
+`career_level`'s seven levels carried the hiring bar; the constitution already carried the ethical
+commitments under other names. **Two were founder doctrine and were ASKED, not authored** — risk
+appetite (aggressive growth) and leadership style ("the executives should always make sure targets
+are achieved, and accordingly push the team for that").
+
+#### The `match_eval` caller, answered
+
+Nothing calls it with a *wrong* secret — it is called with **no secret at all**. `requireInternal`
+returns early on an empty credential without consulting `fn_internal_auth`, and
+`internal_credential_audit` (live since 3 Aug) holds **zero `match_eval` rows**, including for the
+5 Aug 18:49 refusal; a wrong secret is always recorded as `unknown_credential`. It is never called
+alone either — 5 Aug is strictly alphabetical (`dispatch_inquiry` :07, `doc_extract` :10,
+`match_eval` :24, `quote_extract` :34, `route_inquiry` :37). A sweep posting an empty body over a
+sorted slug list. Not `verify_prod_readiness.mjs` (GET-only) and not `deploy_functions.ps1`.
+
+**The same pattern elsewhere, and much larger: `send_whatsapp` was refused 823 times**,
+`unknown_credential`, every two minutes from 3 Aug 05:06 to 8 Aug 21:38. The 4 Aug identity capture
+names it: `pg_net/0.20.4` from `3.1.231.113` then `47.131.52.147`, presenting a real 64-char secret.
+Production's own `wa_flush` is fine — `cred_cron_notifications` hashes to credential 13, active and
+scoped. So it was another Postgres: a branch database carrying production's `wa_flush` cron with
+production's URL baked in and its own regenerated secret, the same class of incident `qd_guard.mjs`
+records for 3–4 Aug. It stopped when that database went away. Neither surviving non-prod project can
+do it now — `staging-batch0` has zero crons naming the production ref, and the
+`fix/row3-root-causes` preview branch has no `cron` schema at all.
+
+**`fn_internal_auth` records nothing on a successful non-legacy auth.** `internal_credential_audit`
+is a refusal log, not an access log; absence there is not absence of traffic.
+
+#### Two traps found, and NOT walked into
+
+- **`s36-recommendation-seven-fields` is not "3 of 7 needing a writer change".** Four fields have no
+  column at all (the brief named three and omitted *expected impact*). Worse, two of the three
+  "covered" fields are trigger boilerplate: `fn_governance_stamp` stamps `confidence := 0.9` and a
+  template `evidence` object whenever the caller omits them, so `confidence` is **0.9 on all 1,165
+  rows, one distinct value**. Filling four more columns from that trigger would read 7/7 in thirty
+  days and mean nothing. The honest build is per-writer, and there are **31 writers across 32
+  recommendation kinds**, none sharing a helper.
+- **`s27` cannot be closed honestly.** `agent_knowledge.confidence` is 0.70 on 1,711 of its 1,786
+  non-null rows — the same decorative constant — so the 200 nulls were left alone. `source_ref`
+  reaches only 132 of the 1,148: the other 1,016 are the 26–27 Jul category batch, and the estate's
+  own labels distinguish `expert_framework_v1` from `v2` from `authored`, which is not recoverable
+  per row. `expiry` and `supporting evidence` have no column and no derivable content.
+
+#### Open, and deliberately not invented
+
+- **200 knowledge items have no `review_due` at all**, so `fn_knowledge_decay` can never mark them
+  stale — they are permanently invisible to review. No single interval is derivable: `profession`
+  uses 90, 365 **and** 396 days and `company` is scattered 367–398 (a fixed target date, not an
+  interval). Setting one is a knowledge-director decision, not a derivation.
+- **`what-if-projected-deltas` and `what-if-confidence-score`** are universals over *all*
+  `simulations` rows, so the four legacy 28-July rows block both. Back-filling or deleting them
+  would be fabrication.
+- **`time-machine-scrub`** needs a six-month-old snapshot and `company_snapshot_daily` has 12 runs.
+  Only time closes it.
+
 ---
 
 ## 1. THE SHAPE OF THE WHOLE ROW, IN ONE SENTENCE
