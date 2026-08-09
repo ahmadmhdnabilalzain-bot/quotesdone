@@ -3,9 +3,14 @@
 Spec: `docs/specs_row3_executive_ui.txt`. Scorer: `scripts/staging/verify_os2_blueprint.mjs`.
 State: `docs/sessions/ROW3_STATE.md`. Overlap decision: `docs/sessions/ROW3_ROW7_UI_OWNERSHIP.md`.
 
-**Measured on production at the end of the previous session: 93/152 (61%), 0 errored, 0
+**Measured on production at the end of the previous session: 95/152 (62%), 0 errored, 0
 regressions. Run the scorer before you read another line — six checks were deployed and verified
 but flip on clocks between 00:35 and 06:40 UTC, so the number should be materially higher.**
+
+The last full run measured 94; `s28-blocks-repeat-failures` landed after it and was confirmed MET
+by a targeted run. Production's clock was **2026-08-09 20:00 UTC** at handover — the local date had
+rolled to the 10th but none of the six clock checks had reached its hour, so do not read their
+still-MISSING verdicts as failures until you have compared `now()` against the table below.
 
 ---
 
@@ -36,7 +41,8 @@ Session 1 built eleven workspace routines and nine screens (section 1 of
 top three) · `fn_ws_reports` (the meeting transcript, priorities and challenges) · `fn_challenge`
 (a prior-outcome refusal now states its basis) · `v_operating_manual` (+ governance_policy,
 decision_policy, org_departments — 198 → 254 entries) · `bi_snapshot_6h` cron · `MeetingReplay` in
-`OsxShell.tsx`.
+`OsxShell.tsx` · `fn_ws_company_os` (+ a `flow` key) and `OsFlowMap` · `fn_should_escalate`
+(consults institutional_memory before deciding).
 
 ## 3. THE RULE THAT PAID FOR ITSELF TWICE THIS SESSION
 
@@ -87,16 +93,41 @@ or the realtime publication.**
   nightly `company_snapshot.state` carries 24 keys and not one matches `customer|buyer`. Adding a
   real count (0 today) is a true measurement, not a fabrication — but the check is a universal
   over the last 14 days, so it flips 14 days after the writer changes, not on deploy.
-- **`s32-reputation-six-dimensions`** — `agent_reputation` has 66 rows with only `score` and
-  `learning_speed`. The other four need the reputation job to compute them.
+- **`s32-reputation-six-dimensions`** — re-measured, and it is mostly NOT buildable yet.
+  `fn_reputation_recompute` already computes five of the six and writes NULL where there is no
+  evidence. `correctness` is NULL on all 66 for a reason that is business reality, not a defect:
+  it reads graded outcomes, and **all 51 `outcome_record` rows sit at `verdict='pending'` because
+  0 of them have reached their measurement date** — the earliest is 11 Aug, then 19 Aug, then
+  1 Sept. `fn_outcome_evaluate` runs daily at 03:30 and correctly has nothing to grade. The other
+  four are thin because few employees execute. What IS buildable: **"decision quality" has no
+  column at all** — `agent_reputation` carries correctness, reliability, cost_efficiency,
+  learning_speed, collaboration, score, tier and nothing matching `decision|judg|quality`. Adding
+  the column alone will not flip the check, so do it as part of the whole dimension, not before.
 - **`s36-recommendation-seven-fields`** — 3 of 7 on every one of 1,157 recommendations/30d;
   missing alternatives, assumptions, cost and one more.
 - **`s29-scan-five-questions`** (2 of 5), **`s35-restructure-four-questions`** (0 of 4) — the scan
   and the restructure prompts do not ask the named questions.
-- **`mission-control-flow-animation`** — pure frontend: 3 components draw connections, 0 animate,
-  0 are bound to a flow.
 - **`s27-knowledge-seven-fields`** — 1 of 7 metadata fields on 1,985 rows. A backfill; only if the
   values are derivable, never invented.
+- **`s25-routing-seven-task-classes`** — 3 of 7 task classes have an active `model_policy`;
+  missing OCR, summarization, translation, vision. Config rows, promoted with
+  `promote_rows_to_production.mjs`. Untouched because naming the model that serves OCR is a
+  configuration decision, not a repair.
+
+### E. Two architecture findings worth acting on outside the scorer
+
+- **`os_interface` does not connect.** The ten systems declare 16 outputs and 17 inputs and the two
+  sets are DISJOINT except `supply.gap`, which marketplace both emits and consumes. Joining
+  outputs to inputs on `event_type` gives **zero** cross-OS edges, and `graph_edges` has none
+  either. The flow map on the OS map screen is therefore drawn from what was actually delivered
+  (`event_delivery` + `company_event.actor` resolved through the department), not from the
+  contract table. Deciding which system consumes `decision.executive`, `policy.updated` and
+  `task.assigned` is a founder call; writing those rows to make a picture connect would be
+  inventing the company's contract table.
+- **`decision_log.ctx` nests the action text.** `trg_action_gate` passes `text` at the top level to
+  `fn_should_escalate`, then RECORDS the decision as `{kind, risk, action, attrs}` with the text
+  under `attrs`. Measuring anything about gated actions on `ctx->>'text'` returns 0 of 1,229; the
+  path in the log is `ctx->'attrs'->>'text'`, and all 1,229 carry it.
 
 ### D. One softness worth knowing about
 
