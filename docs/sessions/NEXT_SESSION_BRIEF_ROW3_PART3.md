@@ -26,6 +26,7 @@ the routine did not do what execution said it would.
 | 04:30 | `companion-overnight-brief`, `voice-morning-brief-spoken` | extended `fn_founder_brief` executed on staging: all four new figures land, `founder_alerts` row written. Digest-identical on both projects |
 | 05:00 Mon | `exec-meeting-agenda-six`, `exec-meeting-debate` | `fn_exec_meeting` executed on staging: 6 of 6 sections on all 12 contributions, 2 challenges recorded between cfo and procurement |
 | 06:40 Mon | `s39-governance-six-monitors` | the three unrun monitors executed on staging; all three succeed |
+| 02:15 | `s34-resilience-measured` | `capability_verify_daily` scheduled + registered; the verdicts it will write were projected read-only over production's 16 rows — 4 passing, 1 failing, 11 mechanism_present, 0 absent |
 
 `exec-meeting-priorities-agreed` will NOT flip with the others. It is a universal over every ceo
 `exec_report` in 60 days and three of the four in the window were written on 28 Jul and 3 Aug with
@@ -124,6 +125,16 @@ or the realtime publication.**
   contract table. Deciding which system consumes `decision.executive`, `policy.updated` and
   `task.assigned` is a founder call; writing those rows to make a picture connect would be
   inventing the company's contract table.
+- **`matching` is failing and the founder has never been told.** `v_critical_capability_tests`
+  grades all sixteen critical capabilities and nothing read it, so `critical_capability.last_verdict`
+  was NULL on all sixteen. `matching` — "RFQs reach suppliers who can actually do the work" — has
+  been **FAILING at 33% pass over fourteen days** since 5 Aug. `fn_capability_verify` now writes the
+  verdict back and raises a founder alert on a failing capability, but **fixing the matching
+  capability itself is untouched work** and it is the most consequential thing in this file.
+- **Eleven of sixteen capabilities have never been behaviourally exercised.** Their declared test is
+  `rpc_selftest`, which only establishes that the mechanism exists. They are written as
+  `mechanism_present`, deliberately not `passing`. Turning those into real behavioural tests is the
+  follow-on, and it is what `s34-resilience-measured` is really asking for.
 - **`decision_log.ctx` nests the action text.** `trg_action_gate` passes `text` at the top level to
   `fn_should_escalate`, then RECORDS the decision as `{kind, risk, action, attrs}` with the text
   under `attrs`. Measuring anything about gated actions on `ctx->>'text'` returns 0 of 1,229; the
