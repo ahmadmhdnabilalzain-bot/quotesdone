@@ -20,6 +20,56 @@ Scorer: `scripts/staging/verify_os2_blueprint.mjs`, modules in `scripts/staging/
 
 Eight scorer runs. The row nearly tripled its score in a single session.
 
+### Session 2 (9 Aug 2026, evening)
+
+| run | score | what changed |
+|---|---|---|
+| opening | **91/152 (60%)** | re-measured, unmoved — see below for why |
+| after the exec meeting + the manual | **93/152 (61%)** | `exec-meeting-replayable`, `s38-manual-self-documenting` |
+
+**0 errored, 0 regressions**, both runs.
+
+The three fixes the previous session expected to accrue moved the score by zero, and measuring
+each one separately says why — one is genuinely waiting on traffic, one is working and will never
+reach its threshold on its own, one worked and its check needs a different number:
+
+| fix | before | now | verdict |
+|---|---|---|---|
+| customer created at intake | 0 customers, 7 inquiries all null | **unchanged** | deployed and correct — `inquiry_intake` v21 (18:25 UTC) creates the row. No inquiry has arrived since. Waiting on a buyer, not on code. |
+| agent_brain instrumentation | 7 of 66 employees had ever run | **8 of 66** | writing. `kb_usage_log` 0 → 2 rows, `agent_memory` 22 → 26 distinct in 30d. The checks are 66-of-66 universals; one employee an hour does not reach them. |
+| hourly action-queue sweep | 316 pending/needs-review | **181** | working, −135. `strategic-not-operational` needs strategic (115) to exceed operational (181), so it is still short by 66. |
+
+Four things the previous brief called clocks or blockers were re-measured, and one of them was
+neither:
+
+- **`fn_bi_snapshot` had no cron at all.** It walks `metric_definition`, executes each metric's
+  own `measure_sql` and writes `metric_snapshot`. The only thing that ever called it was
+  `fn_emit_metric_alerts`, weekly on a Monday, as a side effect of an alerting job — so fourteen
+  KPIs were computed once a week by accident and presented as a live digital twin.
+  `metric_snapshot` had rows on exactly two days ever. Now scheduled `35 */6 * * *` on both
+  projects and registered in `cron_registry`. All 14 metrics dry-run to a value on production.
+- **the 04:30 founder-brief cron is fine.** 22 runs, 22 successes, last 2026-08-09 04:30:01. The
+  extended `fn_founder_brief` was deployed *after* that run, so it has never executed on
+  production — today's brief carries none of the four new figures. Verified by executing the
+  deployed definition on staging: all four figures land and the `founder_alerts` row is written.
+  First real run 04:30 UTC on 10 Aug.
+- **the three governance monitors are new, not broken.** `approval_trace_audit_weekly`,
+  `decision_conflict_scan_weekly` and `regulation_watch_weekly` are active with Monday 06:10 /
+  06:20 / 06:40 schedules and **zero runs ever** — they were created after the last Monday. All
+  three were executed on staging and all three succeed, so their first firing will not fail.
+- **`s38-manual-always-current` was already MET.** 0 undocumented, 0 ghosts, against 151 active
+  jobs. The previous brief's "28 undocumented, 2 stale" was fixed at the end of that session.
+
+### What was built
+
+| change | what it closed |
+|---|---|
+| `fn_exec_meeting` — six agenda sections, all ten participants, ranked/owned priorities, `fn_challenge` on the top three | `exec-meeting-agenda-six`, `-debate`, `-priorities-agreed` (all verified on staging; production flips on the Monday cron) |
+| `fn_ws_reports` + `MeetingReplay` in the shell | **`exec-meeting-replayable` — MET** |
+| `fn_challenge` — a refusal driven only by prior outcomes now says so | a `recommend_against` with an empty `reasoning`, which the meeting would have produced weekly |
+| `v_operating_manual` + governance_policy, decision_policy, org_departments | **`s38-manual-self-documenting` — MET**, 198 → 254 entries |
+| `bi_snapshot_6h` cron + registry row | `digital-twin-live-kpis`, and the KPI track of `s33-replay-six-tracks` |
+
 ---
 
 ## 1. THE SHAPE OF THE WHOLE ROW, IN ONE SENTENCE
