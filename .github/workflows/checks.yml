@@ -10,10 +10,31 @@ name: checks
 
 # Every PR used to run this twice: once for the branch push and once for the pull_request event,
 # three jobs each time. Push is now limited to main, and pull_request covers everything else.
+#
+# ── AND IT STILL BURNED THE MONTH ───────────────────────────────────────────────────────────────
+# Measured 9 Aug 2026 over the three days GitHub still had runs for: 192 Actions-minutes, ~64 a
+# day, of which this workflow is 160 across 214 runs. A 2,000-minute allowance divided by 64 is
+# 31 days, so the plan was being consumed exactly as fast as it renewed and the month ran out on
+# the 9th. Two changes, neither of which costs any coverage:
+#
+#   paths-ignore  the three jobs are `deno check`, `tsc --noEmit` and three node scripts. None of
+#                 them can be affected by a markdown file, and this repository writes a lot of
+#                 markdown — handover briefs, state documents, session notes. A docs commit was
+#                 paying for a full typecheck of the Next.js app.
+#   concurrency   this project merges in bursts. Superseded runs on the same ref are cancelled
+#                 rather than each one running to completion for a commit nobody will look at.
+#                 main is excluded from cancellation on purpose: the run against what is actually
+#                 deployed must finish, whatever lands after it.
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 on:
   push:
     branches: ['main']
+    paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
   pull_request:
+    paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
   workflow_dispatch:
 
 jobs:
