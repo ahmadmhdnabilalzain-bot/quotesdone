@@ -181,3 +181,26 @@ and the challenge fields do not exist on it, and the component renders only what
 **25 of 26** against the new-shape meeting on staging. The one empty path was
 `challenge.reasoning` — which turned out to be a real defect in `fn_challenge`, found because the
 path was measured rather than assumed, and fixed in the same session.
+
+## 6. THE GITHUB ACTIONS ALLOWANCE (9 Aug 2026)
+
+The plan's 2,000 minutes hit 100% on 9 August with 23 days left. Measured over the three days
+GitHub still had runs for: **192 Actions-minutes, ~64 a day**, of which `checks` is 160 across 214
+runs. 2,000 ÷ 64 = 31 days, so the burn rate and the allowance were the same number and the month
+ran out exactly on schedule.
+
+Fixed in `.github/workflows/checks.yml`, no coverage lost:
+
+- **`paths-ignore`** on `docs/**`, `**/*.md`, `.claude-flow/**`, `graphify-out/**`. The three jobs
+  are `deno check`, `tsc --noEmit` and three node scripts — none can be affected by a markdown
+  file, and this repository writes a great deal of markdown plus two directories of run artefacts.
+  A handover commit was paying for a full typecheck of the Next.js app twice.
+- **`concurrency`** with `cancel-in-progress` on every ref **except main**. The project merges in
+  bursts; superseded runs are cancelled instead of each running to completion. main is excluded on
+  purpose — the run against what is actually deployed has to finish.
+
+**Still the owner's call, and deliberately not done:** setting a $0 Actions budget stops the
+overage immediately, but it also stops the daily **External resilience watchdog** — the only check
+outside the database that would notice a total pg_cron outage. It costs 0.1 minutes a day. At
+GitHub's $0.008/minute for Linux the overage for the rest of the cycle is single-digit dollars at
+the pre-fix rate and less after it.
