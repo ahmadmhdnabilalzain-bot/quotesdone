@@ -54,7 +54,7 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   rfq_board: 'read_only', customers_board: 'read_only', agents_board: 'read_only',
   activity: 'read_only', nav: 'read_only', inbox: 'read_only', search: 'read_only',
   record: 'read_only', files: 'read_only', file: 'read_only', prompt_view: 'read_only',
-  memory: 'read_only',
+  memory: 'read_only', drilldown: 'read_only', report_recommend_approve: 'mutating',
   marketing_studio: 'read_only', knowledge_gaps: 'read_only', exam_summary: 'read_only',
   knowledge_export: 'read_only', extract_doc: 'read_only', report_pdf: 'read_only',
   'ws.suppliers': 'read_only', 'ws.supplier': 'read_only', 'ws.customer': 'read_only',
@@ -288,6 +288,10 @@ Deno.serve(async (req) => {
     if (action === 'search') { const { data, error } = await admin.rpc('fn_os_search', { p_q: String(body?.q || '') }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     // The company's memory, asked about a SUBJECT and scoped to a PERIOD — "every decision about
     // Marketing", "why did we reject Supplier X", "when did AI change pricing", "lessons from February".
+    // Click a number in a report: why it moved, against what target, and who contributed.
+    // Approve a recommendation without leaving the report it came from.
+    if (action === 'report_recommend_approve') { const { data, error } = await admin.rpc('fn_report_recommendation_approve', { p_report_id: Number(body?.report_id), p_index: Number(body?.index || 0), p_by: email, p_source: String(body?.source || 'exec_reports') }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    if (action === 'drilldown') { const { data, error } = await admin.rpc('fn_report_drilldown', { p_metric: String(body?.metric || ''), p_days: Number(body?.days || 30) }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'memory') {
       const { data, error } = await admin.rpc('fn_os_memory', {
         p_q: body?.topic != null ? String(body.topic) : (body?.subject != null ? String(body.subject) : null),
