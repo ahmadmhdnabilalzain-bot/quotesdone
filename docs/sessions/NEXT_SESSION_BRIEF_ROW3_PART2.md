@@ -3,8 +3,9 @@
 Spec: `docs/specs_row3_executive_ui.txt`. Scorer: `scripts/staging/verify_os2_blueprint.mjs`.
 State: `docs/sessions/ROW3_STATE.md`. Overlap decision: `docs/sessions/ROW3_ROW7_UI_OWNERSHIP.md`.
 
-**Measured on production at the end of the previous session: see ROW3_STATE.md for the number.
-Run the scorer before you read another line of this file.**
+**Measured on production at the end of the previous session: 91/152 (60%). Run the scorer before
+you read another line of this file — three fixes landed late and accrue over days, so the number
+should be HIGHER, not equal.**
 
 ---
 
@@ -40,7 +41,23 @@ reports.
 
 ## 3. WHAT IS LEFT, HONESTLY SORTED
 
-### A. Blocked by business reality — do not spend time here
+### A. WAS blocked by business reality — THE ROOT CAUSES WERE FIXED, and they accrue with time
+
+Three of these were code defects, not business facts, and all three are now deployed. They do not
+flip instantly; they fill as the company works:
+
+- **customers** —  looked a customer up and never created one, so every inquiry
+  carried a null . It now upserts the authenticated person.  fills
+  as inquiries arrive.
+- **employees** —  READ  and never wrote it;  was written on
+  a keyword match;  had no writer at all. All three are written per turn now, keyed
+  by . Five employee checks accrue from here. **Do not backfill any of it.**
+- **the 316-item queue** —  runs hourly, collapsing duplicates and closing
+  stale incidents whose condition cleared. Handoffs, legal flags and escalations are untouched.
+
+Re-measure these before assuming anything about them.
+
+### A2. Still genuinely blocked
 
 | what | why |
 |---|---|
