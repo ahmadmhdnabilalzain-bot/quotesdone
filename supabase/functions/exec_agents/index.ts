@@ -27,15 +27,51 @@ async function runOfficer(k: string): Promise<any> {
   const cfg = OFFICERS[k]; if (!cfg) return { error: 'unknown officer' };
   const { data: metrics } = await admin.rpc(cfg.rpc);
   const sys = 'You are ' + cfg.name + ' for QuotesDone, the UAE anonymous B2B quotation marketplace. ' + cfg.brief + ' Be concrete, specific to the numbers, and honest about small sample sizes. Return ONLY JSON: {"summary":string,"findings":[string],"recommendations":[{"action":string,"impact":"high|medium|low","effort":"high|medium|low","confidence":number}]}. 3-6 findings, 3-6 recommendations, most important first.';
-  const raw = await llm(sys, 'LIVE METRICS (JSON):\n' + JSON.stringify(metrics || {}), 1800);
-  const parsed = parseJson(raw || '');
+  // ONE RETRY, THEN THE TRUTH. Measured on production 9 Aug 2026: three of six officers —
+  // competitive, product_ux and strategy — had filed reports carrying the fallback summary
+  // "Metrics captured; AI synthesis unavailable this run.", zero findings and zero
+  // recommendations. parseJson had returned null, and the run was still written to agent_runs as
+  // status 'ok'. product_ux had produced five findings on an earlier run, so this is intermittent,
+  // not an officer that cannot work — which is exactly the shape a single attempt handles badly.
+  //
+  // The most likely cause is a response that does not close: parseJson takes the first `{` to the
+  // last `}` and JSON.parse throws on a truncated object. So the retry asks for a SMALLER object
+  // rather than simply asking again, and says why.
+  const user = 'LIVE METRICS (JSON):\n' + JSON.stringify(metrics || {});
+  let raw = await llm(sys, user, 1800);
+  let parsed = parseJson(raw || '');
+  let attempts = 1;
+  if (!parsed || !Array.isArray(parsed.recommendations) || !parsed.recommendations.length) {
+    attempts = 2;
+    const strict = sys + ' Your previous response could not be parsed into that object. Return ONLY the'
+      + ' JSON object — no prose, no markdown fence, no commentary before or after. Keep it to exactly'
+      + ' 3 findings and 3 recommendations so the object closes inside the token budget.';
+    const retry = await llm(strict, user, 1800);
+    const reparsed = parseJson(retry || '');
+    if (reparsed && Array.isArray(reparsed.recommendations) && reparsed.recommendations.length) {
+      parsed = reparsed; raw = retry;
+    } else if (!parsed && reparsed) { parsed = reparsed; raw = retry; }
+  }
   const row: any = { officer: k, period: new Date().toISOString().slice(0, 10), metrics: metrics || {},
     summary: parsed?.summary || ('Metrics captured; AI synthesis unavailable this run.'),
     findings: Array.isArray(parsed?.findings) ? parsed.findings : [],
     recommendations: Array.isArray(parsed?.recommendations) ? parsed.recommendations : [] };
   const { data: ins } = await admin.from('exec_reports').insert(row).select('id').maybeSingle();
-  try { await admin.from('agent_runs').insert({ agent: 'exec:' + k, started_at: new Date().toISOString(), finished_at: new Date().toISOString(), status: 'ok', counts: { recs: row.recommendations.length } }); } catch (_e) {}
-  return { officer: k, report_id: ins?.id, recommendations: row.recommendations.length, ai: !!parsed };
+  // An officer report with no recommendations is a FAILED run, not a quiet one. Recording it as
+  // 'ok' is why three officers could file nothing for a week with no signal anywhere.
+  const produced = row.recommendations.length > 0;
+  try {
+    await admin.from('agent_runs').insert({ agent: 'exec:' + k,
+      started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+      status: produced ? 'ok' : 'error',
+      counts: { recs: row.recommendations.length, findings: row.findings.length, attempts },
+      note: produced ? null
+        : ('Officer ' + k + ' filed a report with NO recommendations after ' + attempts
+           + ' attempt(s): the model response could not be parsed into the required object, so this'
+           + ' officer contributes nothing to the executive intelligence layer this period.'
+           + ' First 200 characters of the last response: ' + String(raw || '(empty)').slice(0, 200)).slice(0, 500) });
+  } catch (_e) { /* never let logging break the officer */ }
+  return { officer: k, report_id: ins?.id, recommendations: row.recommendations.length, ai: !!parsed, attempts };
 }
 
 Deno.serve(async (req) => {
