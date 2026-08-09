@@ -40,10 +40,15 @@ They age out 27 Sept, 3 Oct, 6 Oct. Rewriting them would be editing the record.
 
 ## 2. THE THREE THINGS THAT MATTER MORE THAN THE SCORE
 
-1. **`matching` is FAILING at 33% and has been since 5 Aug.** "RFQs reach suppliers who can
-   actually do the work." `v_critical_capability_tests` graded it and nothing read the grade;
-   `fn_capability_verify` now writes it back and raises a founder alert. **Fixing matching itself is
-   untouched work and it outranks every remaining check in this file.**
+1. **`matching` was never failing — CORRECTED 9 Aug.** The benchmark returns precision 100% and
+   recall 100% on every run it has made (3 Aug, 27, 20, 13 Jul). `match_eval`'s logRun hardcoded
+   `agent: 'match_eval'` and was called from the AUTH GUARD as well as the benchmark, so a caller
+   refused at the secret check was filed under the benchmark's own identity — and
+   `v_critical_capability_tests` reads the LATEST run for a suite. One unauthenticated probe on
+   5 Aug marked the capability FAILING and dragged the 14-day pass rate to 33%. Refusals now go to
+   `match_eval_auth`; the capability reads PASSING again after the next weekly benchmark.
+   **Open, and not fixed:** something has called `match_eval` with a wrong or missing `__secret`
+   four times since 27 July. The guard is right to refuse it; nobody has established what it is.
 2. **`strategic_execution` fell 65.3 → 46.8**, taking `company_maturity` 44.1 → 42.4 on 6 Aug, and
    nothing looked for three days. `fn_index_slowdown_watch` now raises it. The cause is still unknown
    — the routine names the dimension that moved and says plainly that the reason is not in the data.
