@@ -60,6 +60,24 @@ reports.
   are done. Each needs an `agent_actions` row that only exists once the founder approves something.
   They flip on first real use.
 
+### B2. Looks cheap and is a trap — `twin-realtime-updates`
+
+It reads *"0 of 13 twin classes are in the supabase_realtime publication (which holds 0)"*, so the
+obvious move is `alter publication supabase_realtime add table …` for the thirteen and a
+subscription in the shell. **Do not.**
+
+All thirteen have **RLS enabled with zero policies** — deny-all. The OS console never selects them
+directly; it goes through `os_api` with the service role. A browser subscription would therefore
+**never fire**, and the check would go green over a feature that does nothing. Verified 9 Aug: RLS
+true, policies 0, on every one of `customers`, `leads`, `org_agents`, `kb_chunks`, `inquiries`,
+`transactions`, `gl_journal`, `ai_cost_log`, `workflow`, `edge_health_probe`, `risk_register`,
+`expenses`, `vision_horizon`.
+
+Making it real means admin-scoped RLS policies on those thirteen — including `customers`,
+`transactions` and `gl_journal` — so that the founder's authenticated role can read them and
+suppliers and customers cannot. **That is a security change and it needs its own review**, not a
+line in a UI session.
+
 ### C. Genuinely buildable
 
 - **`s38-manual-always-current`** — `cron_registry` has 138 rows against 147 active jobs. **28
