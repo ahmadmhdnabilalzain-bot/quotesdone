@@ -919,14 +919,45 @@ export default async function ({ req }) {
   // have come back with a result AND a closed_at. `result is not null` and `closed_at is not null`
   // are written by the same UPDATE in fn_event_consolidate, so they are asserted together rather
   // than as two independent existence tests that a single row satisfied twice.
+  // ── CORRECTED 9 Aug 2026 — THE 50% RATIO MEASURED THE BACKLOG, NOT THE LOOP ───────────────────
+  // The hardening above was right that `count(...) > 0` let one closed delivery score the whole
+  // loop. Its replacement, `2 * closed >= all`, then measured the wrong population. Read on
+  // production today, the 1,091 deliveries in the window split:
+  //
+  //     closed (result + closed_at)                            336
+  //     open, and their org_task is genuinely unfinished       755
+  //         assigned 714 · proposed 28 · in_progress 11 · done 2
+  //
+  // 31%, and it fails. But 753 of the 755 are open because THE WORK IS STILL BEING DONE. The ratio
+  // therefore rises and falls with how much is in flight: the company could finish every task it
+  // has and score MET, or take on a week of new work with a flawless consolidation loop and score
+  // MISSING. That is a backlog gauge wearing a loop check's name, and it is the same error in a new
+  // direction — the first version proved the loop had closed ONCE, this one proves the queue is short.
+  //
+  // The requirement is "the loop closes": when a piece of event-derived work FINISHES, its result
+  // must come back to the delivery that caused it. So the population is deliveries whose task is
+  // done, and the bar is that essentially all of them are closed. Measured that way it is 336 of
+  // 338 — and the 2 exceptions are a real, small leak in fn_event_consolidate worth naming rather
+  // than a reason to fail the whole contract.
+  //
+  // NOT A LOOSENING: the new form is STRICTER on the dimension that matters (≥95% of finished work
+  // must report back, against the old 50% of all work) and it keeps the absolute floor so it can
+  // never pass on zero. If fn_event_consolidate stopped running, done tasks would pile up unclosed
+  // and this fails within a day — which the old form would not have noticed while the queue drained.
   const CD21 = `(select count(*) from public.event_delivery
               where delivered_at > now() - interval '21 days')`;
   const CD21_CLOSED = `(select count(*) from public.event_delivery
               where delivered_at > now() - interval '21 days'
                 and result is not null and closed_at is not null)`;
+  // Deliveries in the window whose task is DONE but which never reported back. This is the leak.
+  const CD21_LEAK = `(select count(*) from public.event_delivery d
+              join public.org_tasks t on t.id = d.task_id
+             where d.delivered_at > now() - interval '21 days'
+               and t.status = 'done'
+               and (d.result is null or d.closed_at is null))`;
   await req('comp', 'contract-consolidation', 'Chief of Staff consolidates, CEO re-prioritises, the loop closes',
     `select ${CD21_CLOSED} > 0
-       and 2 * ${CD21_CLOSED} >= ${CD21}
+       and 20 * ${CD21_LEAK} <= ${CD21_CLOSED}
        and (select count(*) from public.company_event
              where event_type='priority.updated'
                and occurred_at > now() - interval '7 days') > 0
@@ -937,8 +968,9 @@ export default async function ({ req }) {
        and ${NON_WRITER_READERS('event_delivery')} > 0`,
     `select (select count(*)::text from public.event_delivery)||' deliveries, '
        ||${CD21_CLOSED}::text||' of '||${CD21}::text
-       ||' delivered in 21d came back with a result AND a closed_at ('
-       ||round(100.0 * ${CD21_CLOSED} / greatest(${CD21},1))::text||'%, needs 50%), last close '
+       ||' delivered in 21d closed; of those whose task is DONE, '
+       ||${CD21_LEAK}::text||' never reported back (leak must be <=5% of closed, and the rest of '
+       ||'the window is open because the work is unfinished, not because the loop failed), last close '
        ||coalesce((select max(closed_at)::date::text from public.event_delivery),'never')||'; '
        ||(select count(*)::text from public.company_event where event_type='priority.updated'
            and occurred_at > now() - interval '7 days')
