@@ -219,6 +219,10 @@ export default function OsxShell() {
     return () => { alive = false; clearTimeout(t); };
   }, [paletteQ, paletteOpen]);
   const [live, setLive] = React.useState(0);
+  // A twin that refreshes is not a counter that ticks. Bumping this key remounts the open
+  // workspace, so every panel re-fetches when the database pushes a change.
+  const [twinKey, setTwinKey] = React.useState(0);
+  const reload = React.useCallback(() => setTwinKey((k) => k + 1), []);
   const [wins, setWins] = React.useState<WinState[]>([]);
   const openWindow = React.useCallback((s: WinSpec) => {
     setWins((w) => { const ex = w.find((x) => x.id === s.id); if (ex) return bringToTop(w, s.id, { min: false }); const n = w.length; const withNew = [...w, { ...s, x: 90 + (n % 6) * 30, y: 96 + (n % 6) * 30, w: 760, h: 500, z: 0, min: false, max: false, snap: null }]; return bringToTop(withNew, s.id); });
@@ -240,12 +244,31 @@ export default function OsxShell() {
     return () => { try { sub?.unsubscribe(); } catch (_e) {} window.removeEventListener('keydown', onKey); };
   }, []);
 
-  // Supabase Realtime: live activity indicator
+  // ── THE TWIN, LIVE ────────────────────────────────────────────────────────────────────────
+  // Every one of the thirteen twin object classes, subscribed. This only works because each is
+  // now in the supabase_realtime publication AND carries an owner/admin select policy — before
+  // that the publication was empty, so a subscription here delivered nothing at all and the
+  // channel below was watching two tables it could never receive.
+  // Each change reloads the surface rather than only bumping a counter: a number that ticks is
+  // not a twin that refreshes.
   React.useEffect(() => {
     if (!email) return;
+    const bump = () => { setLive((n) => n + 1); reload(); };
     const ch = supa.channel('osx-live')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'inquiries' }, () => setLive((n) => n + 1))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => setLive((n) => n + 1))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'org_agents' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kb_chunks' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inquiries' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gl_journal' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_cost_log' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workflow' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'edge_health_probe' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'risk_register' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vision_horizon' }, bump)
       .subscribe();
     return () => { try { supa.removeChannel(ch); } catch (_e) {} };
   }, [email]);
@@ -302,7 +325,7 @@ export default function OsxShell() {
         </div>
         <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
           {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
-            <div key={id} className={id === cur ? '' : 'hidden'}>
+            <div key={id + ':' + twinKey} className={id === cur ? '' : 'hidden'}>
               {renderModule(id, go)}
             </div>
           ); })}
