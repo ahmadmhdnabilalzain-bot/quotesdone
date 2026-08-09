@@ -85,7 +85,19 @@ Deno.serve(async (req) => {
     if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
     const email = user.email.toLowerCase();
     try { const { data: ok } = await admin.rpc('rl_check', { p_key: 'intake:' + email, p_limit: 60, p_seconds: 3600 }); if (ok === false) { await logRun('ok', { rate_limited: 1, intake_persisted: 0 }, 'Customer hit the intake rate limit (60/hour) and was turned away before their request was captured — their RFQ was not created and no supplier will ever see it unless they retry.'); return J({ error: 'You are sending requests too quickly. Please wait a moment and try again.' }, 429); } } catch (_e) { /* */ }
-    const { data: cust } = await admin.from('customers').select('id').eq('email', email).maybeSingle();
+    // THE CUSTOMER RECORD IS CREATED HERE, NOT LOOKED UP AND ABANDONED.
+    // This line used to be a select only. When it missed — which it did for everyone who came in
+    // through intake rather than through the OTP or KYC paths — customer_id was written null and
+    // no customer row ever appeared. Production shows the result: 7 inquiries, every one with a
+    // null customer_id, and public.customers empty. The person is already AUTHENTICATED at this
+    // point, so this materialises a customer that genuinely exists rather than inventing one.
+    let cust = (await admin.from('customers').select('id').eq('email', email).maybeSingle()).data;
+    if (!cust) {
+      const { data: made } = await admin.from('customers')
+        .insert({ email, full_name: (user.user_metadata as any)?.full_name || email.split('@')[0] })
+        .select('id').maybeSingle();
+      cust = made || null;
+    }
     const b = await req.json().catch(() => ({} as any));
     const text = sanitizeInput(String(b.text || '').trim()).slice(0, 4000);
     const drawingBoq = b.drawing_boq || null;
