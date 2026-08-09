@@ -209,3 +209,70 @@ categories. A repointed check that passed everything would be a pass, not a chec
 | `cascade-starts-cheap` — boolean/string comparison defect | +1 |
 | `qual-score-*` ×3, `bench-*` ×2, `switch-automatic` — dead-table repoint + real benchmark run | +6 |
 | **total** | **191/226 (85%)** |
+
+---
+
+## 11. THE CACHE WAS COMPLETE, CORRECT, AND SWITCHED OFF BY A DEFAULT — FIXED
+
+`llm_cache` holding 0 rows reads like "the cache was never built". It was:
+
+- `llm_cache`, 12 columns including a semantic `embedding_gte`
+- `fn_llm_cache_get` / `_lookup` / `_put` / `_store`, all four present
+- `ai_gateway/index.ts`: exact-hash lookup at line 250, store at line 455, a 0.95 semantic
+  similarity floor, and deliberate exclusions for tool-calling turns and base64 blobs — each with a
+  written reason
+
+All of it works. **Line 241 is why none of it ran:**
+
+```ts
+const cacheable = Number(body.cache_ttl_min ?? 0) > 0 && !hasBinary && !(body.tools?.length);
+```
+
+`cache_ttl_min` is a CALLER-supplied field with no default, and **no caller anywhere supplies it**.
+So `cacheable` was false on every request, the lookup never fired, the store never fired, and the
+table stayed empty. A complete cache, disabled by a `?? 0`.
+
+### The fix: the TTL belongs to the task class, not the call site
+
+Whether a response may be replayed is a property of the task, not of who asked. Asking every caller
+to know it is how it ended up being answered by nobody.
+
+1. `model_policy.cache_ttl_min` — new column, default 0 (DDL, both projects, schema digests match)
+2. `fn_ai_route` returns it — one line, added by generator from the live definition, never retyped
+3. `ai_gateway` falls back to it: `body.cache_ttl_min ?? route.cache_ttl_min ?? 0`, caller keeps
+   precedence so a call site that knows its request is unrepeatable can still pass 0
+
+### The rule for the enabled set, and it is deliberately conservative
+
+**A response may be cached only when it is a function of the input text alone.** If the answer
+depends on anything that can change while the entry is alive — live figures, a growing corpus, the
+web, the clock — replaying it serves a stale answer to a real customer, which is worse than paying
+for the call.
+
+| enabled (24h) | why |
+|---|---|
+| `json_extraction` | extracts structure from the text it was given. 216 calls, 100% success |
+| `category_classification` | classifies the text it was given |
+| `intent_detection` | classifies the text it was given |
+| `ocr_cleanup` | tidies the text it was given |
+
+**16 routed classes deliberately left at 0**, including `memory_retrieval` — tempting at 183 calls
+and 100% success, but it retrieves over a corpus that grows, so a cache hit *misses new knowledge*,
+which is the one failure mode a knowledge base must not have.
+
+### Verified by execution on BOTH projects, with `dry_run` so it cost nothing
+
+```
+production  json_extraction   http 200  cacheable=true   model=gemini-3.1-flash-lite
+production  agent_reasoning   http 200  cacheable=false  model=claude-sonnet-5
+staging     json_extraction   http 200  cacheable=true   model=gemini-3.1-flash-lite
+staging     agent_reasoning   http 200  cacheable=false  model=claude-sonnet-5
+```
+
+`ai_gateway` v12 → v13 on production, v3 → v4 on staging, both `DEPLOYED_OK`.
+
+**What this does not do:** it does not fill the cache by itself. The exact-hash key covers model +
+max_tokens + system prompt + conversation, so it hits only on a genuine repeat; the semantic path at
+0.95 is what catches near-repeats. Whether that yields a high hit rate depends on how repetitive
+real traffic is — **a measurement for next session, not a claim to make now.** `cache-actually-hit`
+therefore still reads MISSING, correctly: the cache is reachable, and has not yet been reached.
