@@ -69,6 +69,14 @@ as $function$
       order by r.review_due nulls last, r.updated_at desc nulls last)
       from public.risk_register r where coalesce(r.status, '') <> 'closed'), '[]'::jsonb),
 
+    -- ── INFRASTRUCTURE, the last twin class with no reader ───────────────────────────────────
+    -- edge_health_probe is the thirteenth twin object class and the only one nothing the browser
+    -- can reach had ever read, so the founder's twin was complete except for the machine it runs on.
+    'infrastructure', jsonb_build_object(
+      'probes', (select count(*) from public.edge_health_probe),
+      'rows', coalesce((select jsonb_agg(to_jsonb(p) order by p.id desc)
+        from (select * from public.edge_health_probe order by id desc limit 12) p), '[]'::jsonb)),
+
     -- ── DEPARTMENT HEALTH, for the twin ──────────────────────────────────────────────────────
     'department_health', coalesce((select jsonb_agg(jsonb_build_object(
         'dept_key', h.dept_key, 'department', h.department, 'score', h.score,
