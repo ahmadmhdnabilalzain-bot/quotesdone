@@ -24,7 +24,12 @@ Deno.serve(async (req) => {
     const id = Number(b.id);
     if (!id) return J({ error: 'id required' }, 400);
     const { data: rpt } = await admin.from('board_reports').select('id,title,report_type,week_start,body,kpis,created_at').eq('id', id).maybeSingle();
-    if (!rpt) return J({ ok: true, found: false, note: 'No stored body for this report id.' });
-    return J({ ok: true, found: true, report: rpt });
+    if (rpt) return J({ ok: true, found: true, report: rpt });
+    // exec_reports is the OTHER report store — 40 rows, 33 carrying recommendations — and this
+    // function had never served it, so the founder's own officer reports were unreadable in the
+    // viewer. Its shape is mapped onto the same contract rather than a second one.
+    const { data: ex } = await admin.from('exec_reports').select('id,officer,period,summary,findings,recommendations,metrics,status,created_at').eq('id', id).maybeSingle();
+    if (ex) return J({ ok: true, found: true, report: { id: ex.id, title: String(ex.officer || 'Officer') + ' — ' + String(ex.period || ''), report_type: 'exec_reports', week_start: null, body: ex.summary, kpis: ex.metrics, findings: ex.findings, recommendations: ex.recommendations, status: ex.status, created_at: ex.created_at } });
+    return J({ ok: true, found: false, note: 'No stored body for this report id.' });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 });
