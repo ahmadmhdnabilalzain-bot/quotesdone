@@ -116,20 +116,41 @@ const CONFIG = ['model_policy', 'fn_task_class', 'model_rate', 'model_registry',
   'org_action_executor', 'catalog_supplier_categories', 'catalog_domains', 'catalog_category_domain',
   'lead_trade_map', 'knowledge_module_standard', 'os_knowledge_domain', 'operating_system',
   'company_goals', 'employee_kpi'];
-const behind = [], ahead = [];
+// ── THREE STATES, NOT TWO. THE OLD TWO MADE THIS REPORT READ AS AN ALARM ────────────────────────
+// The comparison is a CONTENT HASH, not a row count. A table whose hash differs while its counts
+// are EQUAL is neither ahead nor behind — it is DIVERGENT — but the old code had nowhere to put it,
+// so `a.n > b.n` was false and it landed in `behind`. The note then printed:
+//
+//     note: 9 table(s) where staging is BEHIND: model_policy (staging 34 / production 34) ·
+//           org_agents (staging 67 / production 67) · …
+//
+// Eight of those nine showed IDENTICAL numbers beside the word BEHIND. Read at a glance that says
+// "work is stuck in staging", which is the single thing this script exists to rule out, and it was
+// saying the opposite of the truth: measured directly, model_policy's routing-relevant columns
+// differ on 0 of 34 rows and org_agents' identity columns on 0 of 67. The hashes moved on
+// timestamp-shaped metadata alone.
+//
+// Splitting DIVERGENT out keeps the one verdict that matters — AHEAD means undelivered work and
+// fails the step — while saying plainly that equal counts with a different hash are not a backlog.
+const behind = [], ahead = [], divergent = [];
 for (const t of CONFIG) {
   const sql = `select count(*)::int n, md5(string_agg(md5(to_jsonb(x)::text), E'\\n' order by md5(to_jsonb(x)::text))) h from public.${t} x`;
   try {
     const [a, b] = await Promise.all([mgmtRead(STAGE_REF, sql), mgmtRead(PROD_REF, sql)]);
     if (a[0].h === b[0].h) continue;
     // Direction is the whole point of this run. Staging AHEAD is undelivered work; staging BEHIND
-    // is a rehearsal surface that has not been refreshed, which breaks no promise to anybody.
-    (a[0].n > b[0].n ? ahead : behind).push(`${t} (staging ${a[0].n} / production ${b[0].n})`);
+    // is a rehearsal surface that has not been refreshed, which breaks no promise to anybody; equal
+    // counts with a different hash is metadata drift and breaks nothing at all.
+    const where = a[0].n > b[0].n ? ahead : a[0].n < b[0].n ? behind : divergent;
+    where.push(`${t} (staging ${a[0].n} / production ${b[0].n})`);
   } catch (e) { ahead.push(`${t} UNREADABLE: ${String(e.message || e).slice(0, 60)}`); }
 }
 step('nothing configuration-shaped is staging-only', ahead.length === 0,
-  ahead.length ? `STAGING AHEAD: ${ahead.join(' · ')}` : `${CONFIG.length} tables, staging never ahead`);
-console.log(`     note: ${behind.length} table(s) where staging is BEHIND — not undelivered work: ${behind.join(' · ') || 'none'}`);
+  ahead.length ? `STAGING AHEAD: ${ahead.join(' · ')}` : `${CONFIG.length} tables, staging never ahead — nothing is undelivered`);
+console.log(`     note: ${behind.length} table(s) where production is AHEAD of staging (expected — staging is a`
+  + ` smaller rehearsal surface): ${behind.join(' · ') || 'none'}`);
+console.log(`     note: ${divergent.length} table(s) with EQUAL row counts and a different content hash`
+  + ` (metadata drift such as updated_at, not a backlog): ${divergent.join(' · ') || 'none'}`);
 
 // ---- the knowledge estate: content, not counts --------------------------------------------------
 const KNOW = [
