@@ -1165,6 +1165,13 @@ function Console() {
         <span className='text-muted-foreground'>Revenue today <b className='text-foreground tabular-nums'>{eh.revenue_today != null ? aed(eh.revenue_today) : '—'}</b></span>
         <span className='text-muted-foreground'>Active suppliers <b className='text-foreground tabular-nums'>{eh.suppliers_active ?? '—'}</b></span>
         <span className='text-muted-foreground'>Active customers <b className='text-foreground tabular-nums'>{eh.customers_active ?? '—'}</b></span>
+        {/* The four boards the command centre measured constantly and showed nowhere. Same strip as
+            company health and revenue, because the point of a command centre is that they are on
+            ONE screen — six boards across six modules is a sidebar. */}
+        <span className='text-muted-foreground'>Live workflow <b className='text-foreground tabular-nums'>{eh.workflow_runs_24h ?? '—'}</b> runs/24h</span>
+        <span className='text-muted-foreground'>AI collaboration <b className='text-foreground tabular-nums'>{eh.handoffs_24h ?? '—'}</b> handoffs/24h</span>
+        <span className='text-muted-foreground'>Knowledge growth <b className='text-foreground tabular-nums'>{eh.knowledge_revisions_7d ?? '—'}</b> revisions/7d</span>
+        <span className='text-muted-foreground'>Infrastructure uptime <b className='text-foreground tabular-nums'>{eh.uptime_pct_24h != null ? eh.uptime_pct_24h + '%' : '—'}</b></span>
         <span className='text-muted-foreground'>AI employees working <b className='text-foreground tabular-nums'>{eh.employees_working ?? '—'}</b> / {eh.employees ?? '—'}</span>
         <span className='text-muted-foreground'>Monthly goal <b className='text-foreground tabular-nums'>{eh.goal_progress_pct != null ? eh.goal_progress_pct + '%' : '—'}</b></span>
       </div>
