@@ -238,7 +238,23 @@ Deno.serve(async (req) => {
     //     a different blob), and the SEMANTIC path is actively dangerous, because embedding a
     //     truncated base64 string produces near-identical vectors for two unrelated documents.
     //     A 0.95 "hit" there would return another supplier's invoice. Off, on purpose.
-    const cacheable = Number(body.cache_ttl_min ?? 0) > 0 && !hasBinary && !(body.tools && body.tools.length);
+    //
+    // ── THE TTL COMES FROM THE ROUTE WHEN THE CALLER DOES NOT SUPPLY ONE ──────────────────────
+    // This read `Number(body.cache_ttl_min ?? 0) > 0` — a CALLER-supplied field with no default
+    // and, measured on production 2026-08-09, no caller anywhere that supplied it. So `cacheable`
+    // was false on every single request: the lookup below never fired, the store at the bottom
+    // never fired, and llm_cache held 0 rows against 1,021 logged calls. Everything in this
+    // section worked. It was switched off by a `?? 0`.
+    //
+    // Whether a response may be REPLAYED is a property of the task class, not of the call site —
+    // asking every caller to know it is how it ended up being answered by nobody. model_policy
+    // now carries cache_ttl_min per task class and fn_ai_route hands it back, so the default is
+    // made once, deliberately, next to the tier and token ceilings it belongs with.
+    //
+    // The caller keeps the override and keeps precedence, which is what lets a call site that
+    // knows its own request is unrepeatable pass 0 and opt out.
+    const ttlMin = Number(body.cache_ttl_min ?? route.cache_ttl_min ?? 0);
+    const cacheable = ttlMin > 0 && !hasBinary && !(body.tools && body.tools.length);
     let cacheKey: string | null = null;
     let promptEmb: string | null = null;
     if (cacheable) {
@@ -454,7 +470,9 @@ Deno.serve(async (req) => {
     if (cacheable && cacheKey && out) {
       await rpcSafe('fn_llm_cache_store', {
         p_key: cacheKey, p_fn: fnName, p_task_class: route.task_class ?? null, p_model: used,
-        p_response: out, p_ttl_minutes: Number(body.cache_ttl_min), p_embedding: promptEmb,
+        // ttlMin, not body.cache_ttl_min: with the route now supplying the default, reading the
+        // caller's field here would store NaN as the TTL on every route-defaulted entry.
+        p_response: out, p_ttl_minutes: ttlMin, p_embedding: promptEmb,
         p_saved_usd: costUsd ?? 0,
       });
     }
