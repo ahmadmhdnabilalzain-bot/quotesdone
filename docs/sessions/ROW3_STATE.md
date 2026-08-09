@@ -31,6 +31,7 @@ Eight scorer runs. The row nearly tripled its score in a single session.
 | after routing, replay reader, reactive bus | **96/152 (63%)** | `s25-routing-seven-task-classes` |
 | after reputation reaches authority | 97/152 | `s32-reputation-drives-authority` |
 | after the command centre | **98/152 (64%)** | `command-center-six-boards` |
+| after policies and the prose insight | **100/152 (66%)** | `explain-policies-applied`, `exec-intel-narrative-insight` |
 
 **0 errored, 0 regressions**, every run.
 
@@ -83,6 +84,9 @@ neither:
 | `trg_company_event_dispatch` | `s21-no-polling` trigger leg MET. Delivery went from a 15-minute scan to **0s measured**; the 7-day median converges |
 | `fn_check_spend` consults `agent_reputation` | **`s32-reputation-drives-authority` — MET.** Seven probation employees kept their nominal spend ceiling while `max_tier` already said 'gated' |
 | `fn_ws_exec_home` + four figures, and the Console strip | **`command-center-six-boards` — MET**, 2 of 6 → 6 of 6 |
+| `fn_action_policies` + four action payloads + two components | **`explain-policies-applied` — MET**, 34 of 34. decision_trace holds 4 rows and could never have answered for 34 actions; decision_policy could |
+| `fn_health_index` fills its own `note` | **`exec-intel-narrative-insight` — MET.** The lobby had a prose slot filled only when there was almost no data |
+| `exec_agents` retries once and logs the truth | **A silent failure, not a check.** Three of six officers filed empty reports for a week, each recorded as `status: ok` |
 
 ---
 
