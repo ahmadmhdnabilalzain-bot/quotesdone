@@ -22,6 +22,7 @@ const WS: Record<string, string> = {
   'ws.ea': 'fn_ws_ea', 'ws.reports': 'fn_ws_reports', 'ws.strategy': 'fn_ws_strategy', 'ws.governance': 'fn_ws_governance',
   'ws.fraud': 'fn_ws_fraud', 'ws.refunds': 'fn_ws_refunds', 'ws.intelligence': 'fn_ws_intelligence',
   'ws.exec_home': 'fn_ws_exec_home', 'ws.company_os': 'fn_ws_company_os',
+  'ws.notifications': 'fn_ws_notifications',
 };
 // ---- ACTION CLASSIFICATION (2 Aug 2026, Phase 1 hardening) -------------------------------------
 // Every action this function will route, classified, with no default. It feeds two independent
@@ -64,7 +65,8 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   'ws.agents': 'read_only', 'ws.marketing': 'read_only', 'ws.ea': 'read_only',
   'ws.reports': 'read_only', 'ws.strategy': 'read_only', 'ws.governance': 'read_only',
   'ws.fraud': 'read_only', 'ws.refunds': 'read_only', 'ws.intelligence': 'read_only',
-  'ws.exec_home': 'read_only', 'ws.company_os': 'read_only',
+  'ws.exec_home': 'read_only', 'ws.company_os': 'read_only', 'ws.notifications': 'read_only',
+  transcribe: 'read_only',
 };
 
 const OSAPI_MUTATIONS = new Set(Object.keys(ACTION_CLASS).filter((a) => ACTION_CLASS[a] === 'mutating'));
@@ -74,7 +76,8 @@ const OSAPI_MUTATIONS = new Set(Object.keys(ACTION_CLASS).filter((a) => ACTION_C
 //   extract_doc  - hands caller-supplied bytes to extract_text, which is a paid OCR call
 // Everything else classified read_only is allowed; anything mutating, mode_control or unclassified
 // is not, so the bypass cannot reach a handler added later without someone classifying it first.
-const BYPASS_DENY = new Set(['report_pdf', 'extract_doc']);
+//   transcribe   - hands caller-supplied audio to the transcribe function, a paid speech-to-text call
+const BYPASS_DENY = new Set(['report_pdf', 'extract_doc', 'transcribe']);
 const READONLY = new Set(
   Object.keys(ACTION_CLASS).filter((a) => ACTION_CLASS[a] === 'read_only' && !BYPASS_DENY.has(a)),
 );
@@ -299,6 +302,12 @@ Deno.serve(async (req) => {
       const payload: any = { __secret: await sec('cred_fn_os_api'), actor_email: email };
       for (const k of ['message','history','attachments','confirm_token','decision']) if (body?.[k] !== undefined) payload[k] = body[k];
       const r = await fetch(`${BASE}/secretary_act`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const jd = await r.json().catch(() => ({})); if (!r.ok && jd?.error) return J({ error: jd.error }, 502); return J({ ok: true, data: jd });
+    }
+    // The founder speaking to the OS. Same shape as extract_doc: caller-supplied bytes to a paid
+    // service, so it is on BYPASS_DENY and a static preview key cannot spend against it.
+    if (action === 'transcribe') {
+      const r = await fetch(`${BASE}/transcribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), b64: String(body?.b64 || ''), mime: String(body?.mime || 'audio/webm') }) });
       const jd = await r.json().catch(() => ({})); if (!r.ok && jd?.error) return J({ error: jd.error }, 502); return J({ ok: true, data: jd });
     }
     if (action === 'extract_doc') {
