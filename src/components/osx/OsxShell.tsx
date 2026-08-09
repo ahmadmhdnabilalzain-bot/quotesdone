@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight, Minus, Maximize2, Minimize2, ExternalLink, SquareStack, X, ChevronRight, Check } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight, Minus, Maximize2, Minimize2, ExternalLink, SquareStack, X, ChevronRight, Check, Brain } from 'lucide-react';
 import { ControlModeProvider, ControlModeIndicator } from '@/components/osx/ControlMode';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
@@ -57,6 +57,7 @@ const MODULES: Mod[] = [
   { id: 'analytics', label: 'Analytics', icon: BarChart3, ws: 'ws.analytics' },
   { id: 'marketing', label: 'Marketing', icon: Megaphone, ws: 'ws.marketing' },
   { id: 'strategy', label: 'Strategy', icon: Compass, ws: 'ws.strategy' },
+  { id: 'intelligence', label: 'Intelligence', icon: Brain, kind: 'intelligence' },
   { id: 'documents', label: 'Documents', icon: FileText, ws: 'ws.documents' },
   { id: 'company', label: 'Company', icon: Building2, ws: 'ws.company' },
   { id: 'reports', label: 'Reports', icon: FileBarChart, ws: 'ws.reports' },
@@ -125,7 +126,7 @@ function bringToTop(list: WinState[], id: string, patch: Partial<WinState> = {})
 // Shared module renderer — used by both the tabbed main area and floating windows.
 function renderModule(id: string, go: (id: string) => void): React.ReactNode {
   const m = MODULES.find((x) => x.id === id) || MODULES[0];
-  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : m.id === 'marketing' ? <MarketingApp /> : m.id === 'fraud' ? <FraudApp /> : m.id === 'refunds' ? <RefundsApp /> : m.id === 'operations' ? <OperationsApp /> : m.id === 'analytics' ? <AnalyticsApp /> : m.id === 'strategy' ? <StrategyApp /> : m.id === 'governance' ? <GovernanceApp /> : m.id === 'company' ? <CompanyApp /> : m.id === 'ea' ? <AssistantApp /> : m.id === 'documents' ? <DocumentsApp /> : m.id === 'reports' ? <ReportsApp /> : <Workspace mod={m} />;
+  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'intelligence' ? <IntelligenceApp /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : m.id === 'marketing' ? <MarketingApp /> : m.id === 'fraud' ? <FraudApp /> : m.id === 'refunds' ? <RefundsApp /> : m.id === 'operations' ? <OperationsApp /> : m.id === 'analytics' ? <AnalyticsApp /> : m.id === 'strategy' ? <StrategyApp /> : m.id === 'governance' ? <GovernanceApp /> : m.id === 'company' ? <CompanyApp /> : m.id === 'ea' ? <AssistantApp /> : m.id === 'documents' ? <DocumentsApp /> : m.id === 'reports' ? <ReportsApp /> : <Workspace mod={m} />;
 }
 
 function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, onSnap }: { win: WinState; onFocus: () => void; onClose: () => void; onMin: () => void; onMax: () => void; onMove: (x: number, y: number) => void; onSize: (w: number, h: number) => void; onSnap: (s: 'l' | 'r' | null) => void }) {
@@ -2036,6 +2037,162 @@ function AnalyticsApp() {
       <SectionCard title='Top emirates'><div className='p-4'>{emirates.length ? <HBars rows={emirates.slice(0, 10).map((s: any) => ({ label: s.key, n: Number(s.count) }))} /> : <div className='text-xs text-muted-foreground'>No data.</div>}</div></SectionCard>
     </div>
     {(mp.category_growth || []).length || (mp.competitive_categories || []).length ? <SectionCard title='Category signals'><div className='p-4'><ReadableObject data={{ category_growth: mp.category_growth, competitive_categories: mp.competitive_categories }} /></div></SectionCard> : null}
+  </div>);
+}
+
+// ── INTELLIGENCE CENTRE ────────────────────────────────────────────────────────────────────────
+// One screen that reads three workspaces the browser already routes and renders only what those
+// payloads actually contain. Every panel below was executed against production before it was
+// written and carries live rows; nothing here is a placeholder waiting for a backend. Panels are
+// added to this screen only when the routine feeding them returns data — an empty panel on an
+// intelligence screen is worse than an absent one, because it reads as "the company knows nothing"
+// rather than "this is not wired yet".
+function IntelligenceApp() {
+  const S = useWs('ws.strategy'); const F = useWs('ws.finance'); const A = useWs('ws.analytics');
+  const I = useWs('ws.intelligence');
+  const [sel, setSel] = React.useState<any>(null);
+  const busy = S.busy || F.busy || A.busy || I.busy;
+  const reloadAll = React.useCallback(() => { S.load(); F.load(); A.load(); I.load(); }, [S.load, F.load, A.load, I.load]);
+  const err = S.err || F.err || A.err || I.err;
+  if (err && !S.d && !F.d && !A.d && !I.d) return <Card className='p-6 text-sm text-destructive'>Could not load Intelligence: {err}</Card>;
+
+  const opp = I.d?.opportunities || {}; const oppRows = (opp.rows || []) as any[];
+  const comp = I.d?.competitors || {}; const compRows = (comp.rows || []) as any[];
+  const spend = I.d?.ai_spending || {}; const byModel = (spend.by_model || []) as any[];
+  const growth_probability = I.d?.growth_probability || {};
+  const k = S.d?.kpis || {};
+  const risks = [...(S.d?.risks || [])].sort((a: any, b: any) => (Number(b.score) || 0) - (Number(a.score) || 0));
+  const predictions = (S.d?.recent_simulations || []) as any[];
+  const forecast = F.d?.ai?.forecast || {};
+  const horizons = (forecast.horizons || []) as any[];
+  // Supply-side coverage: the categories with live demand and too few suppliers behind them.
+  const coverage_gaps = (S.d?.under_supplied || []) as any[];
+  const mk = A.d?.marketplace || {};
+
+  return (<div className='space-y-4'>
+    <AppHeader icon={Brain} title='Intelligence' onRefresh={reloadAll} busy={busy}
+      badge={k.top_risk_score ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>Top risk {k.top_risk_score}</Badge> : null} />
+    <KpiRow items={[
+      ['Cash', k.cash != null ? aed(k.cash) : '—'],
+      ['Monthly burn', k.monthly_burn != null ? aed(k.monthly_burn) : '—'],
+      ['Open risks', k.open_risks],
+      ['Coverage gaps', coverage_gaps.length],
+      ['Suppliers 30d', mk.active_suppliers_30d],
+      ['Capacity avg', mk.supplier_capacity_avg],
+      ['Open leads', opp.open],
+      ['Rivals tracked', comp.total],
+      ['AI spend 30d', spend.total_aed != null ? aed(spend.total_aed) : '—'],
+      ['Growth in 30d', growth_probability.growth_probability_pct != null ? growth_probability.growth_probability_pct + '%' : '—'],
+    ]} />
+
+    <SectionCard title='Top risks' count={risks.length}>{risks.length ? <div className='divide-y divide-border'>{risks.map((r: any, i: number) => (
+      <button key={i} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
+        <div className='min-w-0 flex-1'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{r.title}{r.category ? <span className='text-[11px] text-muted-foreground'>{r.category}</span> : null}<Chip label={titleCase(String(r.status))} tone={statusTone(String(r.status))} /></div><div className='text-[11px] text-muted-foreground mt-0.5'>Impact {r.impact}/5 · Likelihood {r.likelihood}/5</div></div>
+        <div className='flex items-center gap-2 shrink-0'><Chip label={'Score ' + r.score} tone={Number(r.score) >= 15 ? 'red' : Number(r.score) >= 8 ? 'amber' : 'slate'} /><ChevronRight className='h-4 w-4 text-muted-foreground' /></div>
+      </button>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open risks.</div>}</SectionCard>
+
+    {horizons.length ? <SectionCard title='Cash forecast' count={horizons.length}
+      right={<span className='text-[11px] text-muted-foreground'>from {aed(forecast.cash_now)} today</span>}>
+      <div className='overflow-auto'><table className='w-full text-sm'>
+        <thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border'><th className='px-4 py-2 font-medium'>Horizon</th><th className='px-4 py-2 font-medium'>Projected cash</th><th className='px-4 py-2 font-medium'>Expected in</th><th className='px-4 py-2 font-medium'>Expected out</th></tr></thead>
+        <tbody>{horizons.map((h: any, i: number) => (<tr key={i} className='border-b border-border/40 last:border-0'>
+          <td className='px-4 py-2 whitespace-nowrap'>{h.days}d</td>
+          <td className={cn('px-4 py-2 tabular-nums font-medium', Number(h.projected_cash) < 0 ? 'text-red-500' : 'text-emerald-500')}>{aed(h.projected_cash)}</td>
+          <td className='px-4 py-2 tabular-nums text-muted-foreground'>{aed(h.expected_inflows)}</td>
+          <td className='px-4 py-2 tabular-nums text-muted-foreground'>{aed(h.expected_outflows)}</td>
+        </tr>))}</tbody></table></div>
+      <div className='px-4 py-2 text-[11px] text-muted-foreground border-t border-border/40'>Run rate assumption — out {aed(forecast?.assumptions?.expense_run_rate_30d)}/30d, in {aed(forecast?.assumptions?.revenue_run_rate_30d)}/30d.</div>
+    </SectionCard> : null}
+
+    {predictions.length ? <SectionCard title='Predictions' count={predictions.length}
+      right={k.last_simulation_at ? <span className='text-[11px] text-muted-foreground'>last run {fmt(k.last_simulation_at)}</span> : null}>
+      <div className='divide-y divide-border'>{predictions.map((p: any, i: number) => (
+        <div key={i} className='px-4 py-2.5 text-sm flex items-center gap-3'><div className='min-w-0 flex-1'>{p.title || fmt(p)}</div>
+          {p.created ? <span className='text-[11px] text-muted-foreground shrink-0'>{p.created}</span> : null}</div>))}</div>
+    </SectionCard> : null}
+
+    <SectionCard title='Supply coverage' count={coverage_gaps.length}
+      right={<span className='text-[11px] text-muted-foreground'>{mk.rfqs_30d ?? '—'} RFQs/30d · avg first quote {mk.avg_first_quote_hours ?? '—'}h</span>}>
+      {coverage_gaps.length ? <div className='overflow-auto'><table className='w-full text-sm'>
+        <thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border'><th className='px-4 py-2 font-medium'>Category</th><th className='px-4 py-2 font-medium'>Live RFQs</th><th className='px-4 py-2 font-medium'>Suppliers behind it</th></tr></thead>
+        <tbody>{coverage_gaps.map((u: any, i: number) => (<tr key={i} className='border-b border-border/40 last:border-0'>
+          <td className='px-4 py-2 font-medium'>{titleCase(String(u.category || u.key || u.label || '—'))}</td>
+          <td className='px-4 py-2 tabular-nums'>{u.rfqs ?? u.gap ?? '—'}</td>
+          <td className='px-4 py-2'><Chip label={String(u.active_suppliers ?? 0)} tone={Number(u.active_suppliers ?? 0) < 2 ? 'red' : Number(u.active_suppliers ?? 0) < 4 ? 'amber' : 'green'} /></td>
+        </tr>))}</tbody></table></div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>Every category with live demand has suppliers behind it.</div>}
+      {(mk.category_growth || []).length ? <div className='p-4 border-t border-border/40'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-2'>Demand by category, 30d vs prior</div>
+        <HBars rows={(mk.category_growth as any[]).map((c: any) => ({ label: titleCase(String(c.category)), n: Number(c.this_30d || 0) }))} /></div> : null}
+    </SectionCard>
+
+    {oppRows.length ? <SectionCard title='Top openings' count={opp.open}
+      right={opp.newest ? <span className='text-[11px] text-muted-foreground'>newest {fmt(opp.newest)}</span> : null}>
+      <div className='divide-y divide-border'>{oppRows.map((o: any) => (
+        <button key={o.id} onClick={() => setSel(o)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
+          <div className='min-w-0 flex-1'>
+            <div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{o.title}<Chip label={titleCase(String(o.kind))} tone='slate' /></div>
+            <div className='text-[11px] text-muted-foreground mt-0.5 line-clamp-1'>{o.detail}</div>
+          </div>
+          <div className='flex items-center gap-2 shrink-0'>
+            {o.effort ? <Chip label={titleCase(String(o.effort)) + ' effort'} tone={o.effort === 'low' ? 'green' : o.effort === 'high' ? 'red' : 'amber'} /> : null}
+            <Chip label={'Value ' + Math.round(Number(o.value_score) || 0)} tone={Number(o.value_score) >= 60 ? 'green' : 'slate'} />
+            <ChevronRight className='h-4 w-4 text-muted-foreground' />
+          </div>
+        </button>))}</div>
+    </SectionCard> : null}
+
+    {compRows.length ? <SectionCard title='Competitors' count={comp.total}
+      right={<div className='flex items-center gap-1'>{(comp.by_threat || []).map((t: any) => (
+        <Chip key={t.level} label={t.n + ' ' + t.level} tone={t.level === 'high' ? 'red' : t.level === 'medium' ? 'amber' : 'slate'} />))}</div>}>
+      <div className='divide-y divide-border max-h-96 overflow-auto'>{compRows.map((c: any) => (
+        <button key={c.id} onClick={() => setSel(c)} className='w-full text-left px-4 py-2.5 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
+          <div className='min-w-0 flex-1'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{c.name}{c.kind ? <span className='text-[11px] text-muted-foreground'>{c.kind}</span> : null}</div>
+            <div className='text-[11px] text-muted-foreground mt-0.5 line-clamp-1'>{c.overlap}</div></div>
+          <Chip label={titleCase(String(c.threat_level || 'unrated'))} tone={c.threat_level === 'high' ? 'red' : c.threat_level === 'medium' ? 'amber' : 'slate'} />
+          <ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' />
+        </button>))}</div>
+      {(comp.positions || []).length ? <div className='p-4 border-t border-border/40'>
+        <div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-2'>Where we stand, by dimension</div>
+        <div className='space-y-1.5'>{(comp.positions as any[]).map((p: any, i: number) => (
+          <div key={i} className='text-sm'><span className='font-medium'>{p.dimension}</span>
+            <span className='text-muted-foreground'> — us: {p.quotesdone} · market: {p.market_norm}</span></div>))}</div>
+      </div> : null}
+    </SectionCard> : null}
+
+    {byModel.length ? <SectionCard title='AI spending' count={spend.calls_30d}
+      right={<span className='text-[11px] text-muted-foreground'>{aed(spend.total_aed)} over {spend.window_days}d · {spend.cache_hits_30d} cached · {spend.failed_30d} failed</span>}>
+      <div className='overflow-auto'><table className='w-full text-sm'>
+        <thead><tr className='text-left text-[11px] text-muted-foreground border-b border-border'><th className='px-4 py-2 font-medium'>Model</th><th className='px-4 py-2 font-medium'>Calls</th><th className='px-4 py-2 font-medium'>Spend</th><th className='px-4 py-2 font-medium'>Share</th></tr></thead>
+        <tbody>{byModel.map((m: any, i: number) => { const share = Number(spend.total_aed) > 0 ? (100 * Number(m.aed) / Number(spend.total_aed)) : 0;
+          return (<tr key={i} className='border-b border-border/40 last:border-0'>
+            <td className='px-4 py-2 font-medium break-all'>{m.model}</td>
+            <td className='px-4 py-2 tabular-nums'>{m.calls}</td>
+            <td className='px-4 py-2 tabular-nums'>{aed(m.aed)}</td>
+            <td className='px-4 py-2'><div className='flex items-center gap-2'><div className='h-1.5 w-20 rounded-full bg-foreground/[0.08] overflow-hidden'><div className='h-full rounded-full bg-primary' style={{ width: Math.max(1, share) + '%' }} /></div><span className='text-[11px] tabular-nums text-muted-foreground'>{share.toFixed(0)}%</span></div></td>
+          </tr>); })}</tbody></table></div>
+      {(spend.by_dept || []).length ? <div className='p-4 border-t border-border/40'>
+        <div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-2'>By department</div>
+        <HBars rows={(spend.by_dept as any[]).map((d: any) => ({ label: titleCase(String(d.dept)), n: Number(d.aed) }))} />
+      </div> : null}
+    </SectionCard> : null}
+
+    {growth_probability.growth_probability_pct != null ? <SectionCard title='Growth probability'
+      right={<span className='text-[11px] text-muted-foreground'>{growth_probability.observations} daily observations, {growth_probability.window_from} → {growth_probability.window_to}</span>}>
+      <div className='p-4 space-y-3'>
+        <div className='flex items-baseline gap-3'>
+          <div className={cn('text-3xl font-semibold tabular-nums', Number(growth_probability.growth_probability_pct) >= 60 ? 'text-emerald-500' : Number(growth_probability.growth_probability_pct) >= 40 ? 'text-amber-500' : 'text-red-500')}>{growth_probability.growth_probability_pct}%</div>
+          <div className='text-sm text-muted-foreground'>that maturity is higher in {growth_probability.horizon_days} days than today</div>
+        </div>
+        <div className='grid grid-cols-2 md:grid-cols-4 gap-2'>
+          <StatTile label='Index now' value={growth_probability.index_now} />
+          <StatTile label={'Index ' + growth_probability.window_from} value={growth_probability.index_first} />
+          <StatTile label='Drift / day' value={growth_probability.drift_per_day} />
+          <StatTile label='Volatility / day' value={growth_probability.volatility_per_day} />
+        </div>
+        <div className='text-[11px] text-muted-foreground'>{growth_probability.method}. A {growth_probability.observations}-point sample — read the drift and volatility beside the figure, not the figure alone.</div>
+      </div>
+    </SectionCard> : null}
+
+    {sel ? <Sheet open={true} onOpenChange={(o) => { if (!o) setSel(null); }}><SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto'><SheetHeader><div className='flex items-center gap-2'>{sel.score != null ? <Chip label={'Score ' + sel.score} tone={Number(sel.score) >= 15 ? 'red' : Number(sel.score) >= 8 ? 'amber' : 'slate'} /> : null}{sel.status ? <Chip label={titleCase(String(sel.status))} tone={statusTone(String(sel.status))} /> : null}{sel.threat_level ? <Chip label={titleCase(String(sel.threat_level)) + ' threat'} tone={sel.threat_level === 'high' ? 'red' : sel.threat_level === 'medium' ? 'amber' : 'slate'} /> : null}</div><SheetTitle className='mt-1'>{sel.title || sel.name}</SheetTitle><SheetDescription>{sel.category ? titleCase(String(sel.category)) + ' risk' : sel.kind ? titleCase(String(sel.kind)) : 'Detail'}</SheetDescription></SheetHeader>{sel.impact != null ? <div className='mt-4 grid grid-cols-3 gap-2'><StatTile label='Impact' value={sel.impact + '/5'} /><StatTile label='Likelihood' value={sel.likelihood + '/5'} /><StatTile label='Score' value={sel.score} /></div> : null}<Card className='mt-4 p-4'><ReadableObject data={sel} /></Card></SheetContent></Sheet> : null}
   </div>);
 }
 
