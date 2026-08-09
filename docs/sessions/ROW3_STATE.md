@@ -91,3 +91,36 @@ precondition for building it, and was not true before today.
 **The one thing not to repeat:** the first run's 14% would have sent someone building things that
 already worked. Nineteen requirements had no verdict, and the report still printed a percentage.
 An errored check is not a MISSING verdict — fix the measurement before reading the score.
+
+---
+
+## 5. THE INTELLIGENCE SCREEN, COSTED AGAINST THE ACTUAL PAYLOADS
+
+Before writing any UI, the three workspace routines a screen could read were executed and their
+payloads measured. This matters more than it sounds: the nine `intel-*` checks scan a component's
+**body** for nine regexes, so a component that merely *names* all nine would flip all nine to MET
+while the founder looked at empty panels. **That is fabricating a green gate**, and the payload had
+to be read first to avoid it.
+
+`fn_ws_strategy()` · `fn_ws_analytics()` · `fn_ws_company()`, executed on production 2026-08-09:
+
+| intel item | data reachable today | source |
+|---|---|---|
+| risks | **yes** — 6 rows, top risk scored 20 | `ws.strategy.risks` |
+| predictions | **yes** — 4 simulations | `ws.strategy.recent_simulations` |
+| forecast | **yes** — burn 1,127, cash −4,317, rfqs 7/30d, category growth | `ws.strategy.kpis` + `ws.analytics.marketplace` |
+| supplier health | **yes** — 1 under-supplied category, capacity avg 4.2 | `ws.strategy.under_supplied` + `ws.analytics` |
+| opportunities | partial — 8 recommendations, but the `opportunity` table (9 rows) is not in any payload | — |
+| competitors | **no** — `market_intel` is **0 rows**, `competitor_intel` is **0** | — |
+| customer behaviour | **no** — no customer figure in any of the three payloads | — |
+| AI spending | **no** — `ai_cost_log` has 1,050 rows and no workspace routine exposes them | — |
+| growth probability | **no** — *"0 browser-reachable routine(s) mention a probability"* | — |
+
+**Four items have live data, which is exactly the co-location threshold.** An Intelligence screen
+rendering risks + predictions + forecast + supplier health is honest, meets the ≥4 bar, and would
+flip those four. The other five need a server change first — a workspace routine that exposes
+`opportunity`, `competitor`, customer health and `ai_cost_log`, and a growth-probability figure that
+does not exist anywhere yet.
+
+**So the intel cluster is 4 now and 5 after a server change — not 9 from one component.** Anyone who
+builds the component alone will score 9 and ship four empty panels.
