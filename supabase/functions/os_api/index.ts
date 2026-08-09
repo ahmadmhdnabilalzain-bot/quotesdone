@@ -53,6 +53,7 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   rfq_board: 'read_only', customers_board: 'read_only', agents_board: 'read_only',
   activity: 'read_only', nav: 'read_only', inbox: 'read_only', search: 'read_only',
   record: 'read_only', files: 'read_only', file: 'read_only', prompt_view: 'read_only',
+  memory: 'read_only',
   marketing_studio: 'read_only', knowledge_gaps: 'read_only', exam_summary: 'read_only',
   knowledge_export: 'read_only', extract_doc: 'read_only', report_pdf: 'read_only',
   'ws.suppliers': 'read_only', 'ws.supplier': 'read_only', 'ws.customer': 'read_only',
@@ -282,6 +283,16 @@ Deno.serve(async (req) => {
     if (action === 'inbox') { const { data, error } = await admin.rpc('fn_inbox_list'); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'inbox_send') { const { data, error } = await admin.rpc('fn_inbox_send', { p_id: Number(body?.id), p_body: String(body?.body || ''), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'search') { const { data, error } = await admin.rpc('fn_os_search', { p_q: String(body?.q || '') }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    // The company's memory, asked about a SUBJECT and scoped to a PERIOD — "every decision about
+    // Marketing", "why did we reject Supplier X", "when did AI change pricing", "lessons from February".
+    if (action === 'memory') {
+      const { data, error } = await admin.rpc('fn_os_memory', {
+        p_q: body?.topic != null ? String(body.topic) : (body?.subject != null ? String(body.subject) : null),
+        p_from: body?.from ? String(body.from) : null,
+        p_to: body?.to ? String(body.to) : null,
+      });
+      if (error) return J({ error: error.message }, 500); return J({ ok: true, data });
+    }
     if (action === 'record') { const { data, error } = await admin.rpc('fn_os_record', { p_entity: String(body?.entity || ''), p_id: String(body?.id || '') }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
 
     if (action === 'secretary_chat') {

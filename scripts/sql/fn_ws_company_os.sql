@@ -118,6 +118,23 @@ as $function$
         'change_class', e.change_class, 'status', e.status, 'decided_by', e.decided_by, 'at', e.created_at)
       order by e.created_at desc)
       from (select * from public.evolution_proposal order by created_at desc limit 12) e), '[]'::jsonb),
+    -- THE FOUR STRATEGIC QUEUES, named by their own tables so the screen and the store cannot drift
+    -- apart: evolution_proposal, challenge_record, opportunity and board_opinion. The spec's
+    -- "strategic decisions rather than operational tasks" is exactly this set against the pending
+    -- agent_actions queue the founder was being shown instead.
+    'strategic_queues', jsonb_build_object(
+      'evolution_proposal', (select count(*) from public.evolution_proposal where status = 'proposed'),
+      'challenge_record', (select count(*) from public.challenge_record where responded_at is null),
+      'opportunity', (select count(*) from public.opportunity where status = 'open'),
+      'board_opinion', (select count(*) from public.board_opinion),
+      'operational_pending', (select count(*) from public.agent_actions where status in ('pending','needs_review'))),
+    'opportunity', coalesce((select jsonb_agg(jsonb_build_object(
+        'id', o.id, 'kind', o.kind, 'title', o.title, 'detail', left(o.detail, 240),
+        'value_score', o.value_score, 'effort', o.effort, 'confidence', o.confidence, 'at', o.created_at)
+      order by o.value_score desc nulls last)
+      from (select * from public.opportunity where status = 'open'
+             order by value_score desc nulls last limit 10) o), '[]'::jsonb),
+
     -- The AI disagreeing with the founder, and what it offered instead. 47 challenges on file, 31
     -- carrying alternatives, and no surface has ever shown one.
     'challenge_record', coalesce((select jsonb_agg(jsonb_build_object(

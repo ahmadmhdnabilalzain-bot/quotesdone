@@ -60,6 +60,7 @@ const MODULES: Mod[] = [
   { id: 'strategy', label: 'Strategy', icon: Compass, ws: 'ws.strategy' },
   { id: 'intelligence', label: 'Intelligence', icon: Brain, kind: 'intelligence' },
   { id: 'company_os', label: 'Operating System & map', icon: Network, kind: 'company_os' },
+  { id: 'memory', label: 'Company memory', icon: ScrollText, kind: 'memory' },
   { id: 'documents', label: 'Documents', icon: FileText, ws: 'ws.documents' },
   { id: 'company', label: 'Company', icon: Building2, ws: 'ws.company' },
   { id: 'reports', label: 'Reports', icon: FileBarChart, ws: 'ws.reports' },
@@ -128,7 +129,7 @@ function bringToTop(list: WinState[], id: string, patch: Partial<WinState> = {})
 // Shared module renderer — used by both the tabbed main area and floating windows.
 function renderModule(id: string, go: (id: string) => void): React.ReactNode {
   const m = MODULES.find((x) => x.id === id) || MODULES[0];
-  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'intelligence' ? <IntelligenceApp /> : m.kind === 'company_os' ? <CompanyOsApp /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : m.id === 'marketing' ? <MarketingApp /> : m.id === 'fraud' ? <FraudApp /> : m.id === 'refunds' ? <RefundsApp /> : m.id === 'operations' ? <OperationsApp /> : m.id === 'analytics' ? <AnalyticsApp /> : m.id === 'strategy' ? <StrategyApp /> : m.id === 'governance' ? <GovernanceApp /> : m.id === 'company' ? <CompanyApp /> : m.id === 'ea' ? <AssistantApp /> : m.id === 'documents' ? <DocumentsApp /> : m.id === 'reports' ? <ReportsApp /> : <Workspace mod={m} />;
+  return m.kind === 'console' ? <Console /> : m.kind === 'overview' ? <Overview onNav={go} /> : m.kind === 'escalations' ? <Escalations onNav={go} /> : m.kind === 'intelligence' ? <IntelligenceApp /> : m.kind === 'company_os' ? <CompanyOsApp /> : m.kind === 'memory' ? <CompanyMemoryApp /> : m.kind === 'knowledge' ? <Knowledge /> : m.kind === 'audit' ? <AuditLog /> : m.kind === 'settings' ? <SettingsPanel /> : m.kind === 'automation' ? <AutomationPanel /> : m.kind === 'catalog' ? <CatalogPanel /> : m.kind === 'content' ? <ContentPanel /> : m.kind === 'health' ? <HealthPanel onNav={go} /> : m.kind === 'support' ? <SupportPanel /> : m.kind === 'intake_audio' ? <IntakeAudio /> : m.id === 'suppliers' ? <SuppliersApp /> : m.id === 'rfqs' ? <RfqApp /> : m.id === 'customers' ? <CustomersApp /> : m.id === 'agents' ? <AgentsApp /> : m.id === 'finance' ? <FinanceApp /> : m.id === 'marketing' ? <MarketingApp /> : m.id === 'fraud' ? <FraudApp /> : m.id === 'refunds' ? <RefundsApp /> : m.id === 'operations' ? <OperationsApp /> : m.id === 'analytics' ? <AnalyticsApp /> : m.id === 'strategy' ? <StrategyApp /> : m.id === 'governance' ? <GovernanceApp /> : m.id === 'company' ? <CompanyApp /> : m.id === 'ea' ? <AssistantApp /> : m.id === 'documents' ? <DocumentsApp /> : m.id === 'reports' ? <ReportsApp /> : <Workspace mod={m} />;
 }
 
 function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, onSnap }: { win: WinState; onFocus: () => void; onClose: () => void; onMin: () => void; onMax: () => void; onMove: (x: number, y: number) => void; onSize: (w: number, h: number) => void; onSnap: (s: 'l' | 'r' | null) => void }) {
@@ -878,16 +879,22 @@ function IntakeAudio() {
 }
 
 function AuditLog() {
-  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState('');
+  const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [subject, setSubject] = React.useState('');
   React.useEffect(() => { osOps('audit_log', { limit: 200 }).then(setD).catch((e) => setErr(e.message)); }, []);
   if (err) return <Card className='p-6 text-sm text-destructive'>Could not load audit log: {err}</Card>;
   if (!d) return <div className='text-muted-foreground text-sm'>Loading audit log…</div>;
-  const rows = d.rows || [];
+  // "When did AI change pricing?" is a SUBJECT question, and the log answered only "what happened
+  // most recently". The filter narrows the same dated stream to one subject.
+  const allRows = d.rows || [];
+  const rows = subject.trim()
+    ? allRows.filter((r: any) => JSON.stringify(r).toLowerCase().includes(subject.trim().toLowerCase()))
+    : allRows;
   return (
     <div className='space-y-5'>
-      <div className='flex items-center gap-2'><ScrollText className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Audit log</h1></div>
+      <div className='flex items-center gap-2'><ScrollText className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Audit log</h1>
+        <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder='Filter by subject — pricing, model_policy, prompts…' className='ml-auto h-8 w-72 text-xs' /></div>
       <Card className='overflow-hidden'>
-        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Recent actions<Badge variant='secondary'>{rows.length}</Badge></div>
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Recent actions<Badge variant='secondary'>{rows.length}{subject.trim() ? ' of ' + allRows.length : ''}</Badge></div>
         <div className='overflow-auto max-h-[620px]'>
           <table className='w-full text-sm'>
             <thead><tr className='text-left text-xs text-muted-foreground border-b border-border'><th className='px-4 py-2 font-medium'>When</th><th className='px-4 py-2 font-medium'>Actor</th><th className='px-4 py-2 font-medium'>Action</th><th className='px-4 py-2 font-medium'>Entity</th><th className='px-4 py-2 font-medium'>Detail</th></tr></thead>
@@ -2146,6 +2153,120 @@ function AnalyticsApp() {
   </div>);
 }
 
+// ── COMPANY MEMORY ─────────────────────────────────────────────────────────────────────────────
+// Screen 12: one search box over everything the company knows, and four questions it must answer —
+// every decision about a topic, why something was rejected, when a thing changed, and the lessons
+// from a period. fn_os_search reached three operational tables and none of the company's memory;
+// fn_os_memory is the subject-and-period reader that did not exist at all.
+function CompanyMemoryApp() {
+  const [q, setQ] = React.useState(''); const [topic, setTopic] = React.useState('');
+  const [from, setFrom] = React.useState(''); const [to, setTo] = React.useState('');
+  const [found, setFound] = React.useState<any>(null); const [mem, setMem] = React.useState<any>(null);
+  const [busy, setBusy] = React.useState(false); const [err, setErr] = React.useState('');
+
+  const runSearch = React.useCallback(async () => {
+    setBusy(true); setErr('');
+    try { setFound(await osApi('search', { q })); } catch (e: any) { setErr(e?.message || 'search failed'); }
+    setBusy(false);
+  }, [q]);
+  // The subject and the period both travel to the query — this is what makes "show every decision
+  // about Marketing" and "find lessons from February" askable at all.
+  const runMemory = React.useCallback(async () => {
+    setBusy(true); setErr('');
+    try { const subject = topic.trim(); setMem(await osApi('memory', { topic: subject, subject, from: from || null, to: to || null })); }
+    catch (e: any) { setErr(e?.message || 'memory query failed'); }
+    setBusy(false);
+  }, [topic, from, to]);
+  React.useEffect(() => { runMemory(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  const CORPORA: [string, string][] = [['knowledge', 'Knowledge base'], ['lessons', 'Lessons'],
+    ['decisions', 'Decisions'], ['org_memory', 'Organisational memory'], ['agent_memory', 'Employee memory'],
+    ['documents', 'Documents'], ['suppliers', 'Suppliers'], ['rfqs', 'RFQs'], ['customers', 'Customers']];
+  const decisions = (mem?.decisions || []) as any[];
+  const rejection_reason = (mem?.rejection_reason || []) as any[];
+  const changes = (mem?.changes || []) as any[];
+  const lessons = (mem?.lessons || []) as any[];
+
+  return (<div className='space-y-4'>
+    <AppHeader icon={BookOpen} title='Company memory' onRefresh={runMemory} busy={busy} />
+    {err ? <Card className='p-3 text-sm text-destructive'>{err}</Card> : null}
+
+    <SectionCard title='Search everything the company knows'>
+      <div className='p-4 space-y-3'>
+        <div className='flex gap-2'>
+          <Input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
+            placeholder='Search suppliers, RFQs, knowledge, lessons, decisions, documents, memory…' className='flex-1' />
+          <Button onClick={runSearch} disabled={busy}>Search</Button>
+        </div>
+        {found ? <div className='space-y-2'>{CORPORA.map(([k, label]) => {
+          const rows = (found[k] || []) as any[]; if (!rows.length) return null;
+          return (<div key={k}>
+            <div className='text-[11px] uppercase tracking-wide text-muted-foreground'>{label} · {rows.length}</div>
+            <div className='divide-y divide-border rounded-md border border-border mt-1'>{rows.map((r: any, i: number) => (
+              <div key={i} className='px-3 py-2 text-sm'><div className='font-medium truncate'>{r.name || r.headline}</div>
+                {r.sub ? <div className='text-[11px] text-muted-foreground truncate'>{r.sub}</div> : null}</div>))}</div>
+          </div>);
+        })}{CORPORA.every(([k]) => !((found[k] || []) as any[]).length) ? <div className='text-sm text-muted-foreground'>Nothing matched.</div> : null}</div> : null}
+      </div>
+    </SectionCard>
+
+    <SectionCard title='Ask the memory a question'
+      right={<span className='text-[11px] text-muted-foreground'>a subject, a period, or both</span>}>
+      <div className='p-4 flex flex-wrap items-end gap-2'>
+        <div><div className='text-[11px] text-muted-foreground mb-1'>Subject / topic</div>
+          <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder='e.g. Marketing, pricing, Supplier X' className='w-64' /></div>
+        <div><div className='text-[11px] text-muted-foreground mb-1'>From</div>
+          <Input type='date' value={from} onChange={(e) => setFrom(e.target.value)} className='w-40' /></div>
+        <div><div className='text-[11px] text-muted-foreground mb-1'>To</div>
+          <Input type='date' value={to} onChange={(e) => setTo(e.target.value)} className='w-40' /></div>
+        <Button onClick={runMemory} disabled={busy}>{busy ? 'Asking…' : 'Ask'}</Button>
+      </div>
+    </SectionCard>
+
+    {decisions.length ? <SectionCard title={'Decisions' + (mem?.subject ? ' about ' + mem.subject : '')} count={decisions.length}>
+      <div className='divide-y divide-border max-h-96 overflow-auto'>{decisions.map((x: any) => (
+        <div key={x.id} className='px-4 py-2.5 text-sm'><div className='flex items-center gap-2 flex-wrap'>
+          <span className='font-medium'>{titleCase(String(x.decision || x.kind))}</span>
+          <span className='text-[11px] text-muted-foreground'>{x.actor}</span>
+          {x.confidence != null ? <Chip label={'confidence ' + x.confidence} tone='slate' /> : null}
+          <span className='text-[11px] text-muted-foreground ml-auto'>{fmt(x.at)}</span></div>
+          {Array.isArray(x.reasons) && x.reasons.length ? <div className='text-[11px] text-muted-foreground mt-0.5'>{x.reasons.join(' · ')}</div> : null}</div>))}</div>
+    </SectionCard> : null}
+
+    {rejection_reason.length ? <SectionCard title='Why it was rejected' count={rejection_reason.length}>
+      <div className='divide-y divide-border'>{rejection_reason.map((r: any) => (
+        <div key={r.id} className='px-4 py-2.5 text-sm'>
+          <div className='flex items-center gap-2 flex-wrap'><span className='font-medium'>{r.problem}</span>
+            <Chip label={titleCase(String(r.status || 'recorded'))} tone={statusTone(String(r.status))} />
+            <span className='text-[11px] text-muted-foreground ml-auto'>{fmt(r.at)}</span></div>
+          <div className='text-[12px] mt-0.5'>{r.recommendation}</div>
+          {r.risks ? <div className='text-[11px] text-amber-600 mt-0.5'>Risks: {fmt(r.risks)}</div> : null}
+          {r.actual_outcome ? <div className='text-[11px] text-muted-foreground mt-0.5'>Outcome: {r.actual_outcome}</div> : null}
+        </div>))}</div>
+    </SectionCard> : null}
+
+    {changes.length ? <SectionCard title='What changed, and when' count={changes.length}
+      right={<div className='flex flex-wrap gap-1'>{((mem?.change_subjects || []) as any[]).slice(0, 6).map((s: any) => (
+        <button key={s.table_name} onClick={() => { setTopic(s.table_name); }} className='text-[10px] rounded border border-border px-1.5 py-0.5 hover:bg-foreground/5'>{s.table_name} {s.n}</button>))}</div>}>
+      <div className='divide-y divide-border max-h-80 overflow-auto'>{changes.map((c: any) => (
+        <div key={c.id} className='px-4 py-2 text-sm flex items-center gap-2'>
+          <Chip label={String(c.op)} tone={c.op === 'DELETE' ? 'red' : c.op === 'INSERT' ? 'green' : 'slate'} />
+          <span className='font-medium'>{c.table_name}</span>
+          <span className='text-[11px] text-muted-foreground'>#{c.row_id} · {c.actor || 'system'}</span>
+          <span className='text-[11px] text-muted-foreground ml-auto'>{fmt(c.at)}</span></div>))}</div>
+    </SectionCard> : null}
+
+    {lessons.length ? <SectionCard title='Lessons' count={lessons.length}
+      right={mem?.from || mem?.to ? <span className='text-[11px] text-muted-foreground'>{mem.from || '…'} → {mem.to || '…'}</span> : null}>
+      <div className='divide-y divide-border max-h-96 overflow-auto'>{lessons.map((l: any) => (
+        <div key={l.id} className='px-4 py-2.5 text-sm'><div className='flex items-center gap-2 flex-wrap'>
+          <span className='font-medium'>{l.headline}</span>{l.outcome ? <Chip label={String(l.outcome)} tone='slate' /> : null}
+          <span className='text-[11px] text-muted-foreground ml-auto'>{fmt(l.occurred_at)}</span></div>
+          <div className='text-[12px] text-muted-foreground mt-0.5'>{l.detail}</div></div>))}</div>
+    </SectionCard> : null}
+  </div>);
+}
+
 // ── THE OPERATING SYSTEM & COMPANY MAP ─────────────────────────────────────────────────────────
 // Mission Control and the company knowledge graph on one screen. Eighteen stores feed this and
 // every one of them reached no surface at all before it existed — graph_nodes and graph_edges are
@@ -2163,6 +2284,7 @@ function CompanyOsApp() {
   const replay = d?.replay || {}; const reputation = d?.reputation || {};
   const evolution_proposal = (d?.evolution_proposals || []) as any[];
   const challenge_record = (d?.challenge_record || []) as any[];
+  const opportunity = (d?.opportunity || []) as any[]; const queues = d?.strategic_queues || {};
   const institutional = d?.institutional_memory || {}; const resilience = d?.resilience || {};
   const operating_manual = d?.operating_manual || {}; const events = d?.events || {};
   const TABS: [any, string][] = [['os', 'Mission control'], ['map', 'Company map'], ['board', 'Board'],
@@ -2238,6 +2360,23 @@ function CompanyOsApp() {
     </div> : null}
 
     {tab === 'strategy' ? <div className='space-y-3'>
+      {/* The four strategic queues against the operational one. The spec's whole point: what the
+          founder is shown should be strategic decisions, not the pending-task queue. */}
+      <KpiRow items={[
+        ['Structural proposals', queues.evolution_proposal],
+        ['Open challenges', queues.challenge_record],
+        ['Open opportunities', queues.opportunity],
+        ['Board opinions', queues.board_opinion],
+        ['Operational queue', queues.operational_pending],
+      ]} />
+      {opportunity.length ? <SectionCard title='Open opportunities' count={queues.opportunity}>
+        <div className='divide-y divide-border'>{opportunity.map((o: any) => (
+          <div key={o.id} className='px-4 py-2.5 text-sm'><div className='flex items-center gap-2 flex-wrap'>
+            <span className='font-medium'>{o.title}</span><Chip label={titleCase(String(o.kind))} tone='slate' />
+            {o.effort ? <Chip label={titleCase(String(o.effort)) + ' effort'} tone={o.effort === 'low' ? 'green' : 'amber'} /> : null}
+            <Chip label={'value ' + Math.round(Number(o.value_score) || 0)} tone={Number(o.value_score) >= 60 ? 'green' : 'slate'} /></div>
+            <div className='text-[12px] text-muted-foreground mt-0.5'>{o.detail}</div></div>))}</div>
+      </SectionCard> : null}
       {challenge_record.length ? <SectionCard title='Where the AI disagreed' count={challenge_record.length}>
         <div className='divide-y divide-border'>{challenge_record.map((c: any) => (
           <div key={c.id} className='px-4 py-3 text-sm'>
