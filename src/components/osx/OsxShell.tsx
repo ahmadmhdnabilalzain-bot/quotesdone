@@ -2659,6 +2659,11 @@ function IntelligenceApp() {
   const S = useWs('ws.strategy'); const F = useWs('ws.finance'); const A = useWs('ws.analytics');
   const I = useWs('ws.intelligence');
   const [sel, setSel] = React.useState<any>(null);
+  const [scenario, setScenario] = React.useState(''); const [simResult, setSimResult] = React.useState<any>(null); const [simBusy, setSimBusy] = React.useState(false);
+  const runScenario = async () => { setSimBusy(true); try { setSimResult(await osApi('simulate', { question: scenario, scenario })); } catch (e: any) { setSimResult({ error: e?.message || 'simulation failed' }); } setSimBusy(false); };
+  // Approving a simulation records it in the same ledger every other approval lands in, pointing
+  // back at the simulations row it came from.
+  const approveSimulation = async () => { setSimBusy(true); try { await osApi('simulation_approve', { scenario, result: simResult }); } catch (_e) {} setSimBusy(false); };
   const busy = S.busy || F.busy || A.busy || I.busy;
   const reloadAll = React.useCallback(() => { S.load(); F.load(); A.load(); I.load(); }, [S.load, F.load, A.load, I.load]);
   const err = S.err || F.err || A.err || I.err;
@@ -2711,6 +2716,27 @@ function IntelligenceApp() {
         </tr>))}</tbody></table></div>
       <div className='px-4 py-2 text-[11px] text-muted-foreground border-t border-border/40'>Run rate assumption — out {aed(forecast?.assumptions?.expense_run_rate_30d)}/30d, in {aed(forecast?.assumptions?.revenue_run_rate_30d)}/30d.</div>
     </SectionCard> : null}
+
+    {/* ── SCREEN 16 — "WHAT IF?" ──────────────────────────────────────────────────────────────
+        A natural-language scenario, run against the company's own numbers. fn_what_if existed and
+        nothing could reach it: there was no simulation action in os_api and no scenario input
+        anywhere in the console. */}
+    <SectionCard title='What if?' right={<span className='text-[11px] text-muted-foreground'>a scenario in plain language, run against the live numbers</span>}>
+      <div className='p-4 space-y-3'>
+        <div className='flex gap-2'>
+          <Input value={scenario} onChange={(e) => setScenario(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') runScenario(); }}
+            placeholder='e.g. What if we raised supplier fees 20%? What if we doubled marketing spend?' className='flex-1' />
+          <Button onClick={runScenario} disabled={simBusy || !scenario.trim()}>{simBusy ? 'Simulating…' : 'Simulate'}</Button>
+        </div>
+        {simResult ? <div className='rounded-md border border-border p-3'>
+          <div className='text-sm font-medium'>{simResult.scenario || scenario}</div>
+          {simResult.confidence != null ? <Chip label={'confidence ' + simResult.confidence} tone={Number(simResult.confidence) >= 0.7 ? 'green' : 'amber'} /> : null}
+          {/* Approve the simulated action from the simulation itself, not from somewhere else. */}
+          {!simResult.error ? <Button className='h-7 text-xs mt-1' variant='outline' disabled={simBusy} onClick={() => approveSimulation()}>Approve this simulated action</Button> : null}
+          <div className='mt-2'><ReadableObject data={simResult} /></div>
+        </div> : null}
+      </div>
+    </SectionCard>
 
     {predictions.length ? <SectionCard title='Predictions' count={predictions.length}
       right={k.last_simulation_at ? <span className='text-[11px] text-muted-foreground'>last run {fmt(k.last_simulation_at)}</span> : null}>
