@@ -1640,6 +1640,7 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
   const load = React.useCallback(() => { osApi('ws.agent', { key: agent.agent_key }).then(setOps).catch(() => setOps({})); }, [agent.agent_key]);
   React.useEffect(() => { load(); }, [load]);
   const decide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('action_decide', { id, op }); load(); } catch (_e) {} setDbusy(''); };
+  const goal = ops?.goal || {}; const tasks = ops?.tasks || {}; const decisions = ops?.decisions || []; const confidence = ops?.confidence || {}; const workload = ops?.workload || {}; const plans = ops?.plans || []; const knowledge = ops?.knowledge || {};
   const id = ops?.identity || {}; const h = ops?.health || {}; const perf = ops?.performance || {}; const queue = ops?.queue || []; const runs = ops?.recent_runs || []; const kn = ops?.knowledge || {}; const mem = ops?.memory || {}; const convos = ops?.conversations || []; const recs = ops?.recommendations || [];
   const healthTone = /healthy/.test(String(h.status)) ? 'green' : /degraded|error|fail/.test(String(h.status)) ? 'red' : /stale/.test(String(h.status)) ? 'amber' : 'slate';
   const sub = (label: string, extra?: any) => (<div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center justify-between'>{label}{extra}</div>);
@@ -1649,12 +1650,59 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
       <SheetDescription>{[agent.department, id.prompt_desc || agent.role, id.prompt_version ? 'prompt v' + id.prompt_version : null].filter(Boolean).join(' · ')}</SheetDescription>
     </SheetHeader>
     {ops === null ? <div className='mt-4 text-sm text-muted-foreground'>Loading agent operations…</div> : <>
+      {/* ── WHAT THIS EMPLOYEE IS ACTUALLY DOING ────────────────────────────────────────────────
+          Goal, tasks, decisions, confidence, workload and plans. All six were computed elsewhere in
+          the estate and reached no screen; the drawer showed identity, health and run counts only. */}
+      <Card className='mt-4 p-4'>
+        <div className='text-[11px] uppercase tracking-wide text-muted-foreground'>Current goal</div>
+        <div className='text-sm font-medium mt-0.5'>{goal.objective || '—'}</div>
+        <div className='text-[11px] text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2'>
+          {goal.horizon ? <span>{titleCase(String(goal.horizon))}</span> : null}
+          {goal.metric ? <span>· {goal.metric}{goal.target_value != null ? ' target ' + goal.target_value + (goal.unit || '') : ''}</span> : null}
+          <span>· from {titleCase(String(goal.goal_source || 'none'))}</span>
+        </div>
+      </Card>
+
       <div className='mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2'>
         <StatTile label='Runs 24h' value={perf.runs_24h ?? agent.runs24} />
         <StatTile label='Runs 7d' value={perf.runs_7d} />
         <StatTile label='OK rate' value={perf.ok_rate != null ? perf.ok_rate + '%' : '—'} />
         <StatTile label='Avg run' value={perf.avg_duration_ms ? Math.round(Number(perf.avg_duration_ms)) + ' ms' : '—'} />
       </div>
+
+      <div className='mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2'>
+        <StatTile label='Workload' value={workload.workload_pct != null ? workload.workload_pct + '%' : '—'} hint={'capacity ' + (workload.capacity ?? '—') + ' · ' + titleCase(String(workload.state || ''))} />
+        <StatTile label='Open tasks assigned' value={workload.open_tasks} hint={'queue ' + (workload.queue_depth ?? 0)} />
+        <StatTile label='Confidence (reputation)' value={confidence.reputation_score != null ? confidence.reputation_score : '—'} hint={confidence.tier ? titleCase(String(confidence.tier)) : undefined} />
+        <StatTile label='Confidence when deciding' value={confidence.avg_decided != null ? confidence.avg_decided : '—'} hint={(confidence.decided_with_confidence ?? 0) + ' scored decision(s)'} />
+      </div>
+
+      {(tasks.rows || []).length ? <Card className='mt-4 overflow-hidden'>{sub('Tasks assigned to ' + titleCase(String(tasks.department || 'this team')), <Badge variant='secondary'>{tasks.department_open}</Badge>)}
+        <div className='divide-y divide-border'>{(tasks.rows as any[]).map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center gap-2 text-sm'>
+          <div className='min-w-0 flex-1'><div className='truncate'>{t.title}</div>
+            <div className='text-[11px] text-muted-foreground'>{titleCase(String(t.status))}{t.tier ? ' · ' + t.tier : ''}{t.needs_founder ? ' · needs founder' : ''}</div></div>
+          <span className='text-[11px] text-muted-foreground shrink-0'>{fmt(t.created_at)}</span>
+        </div>))}</div></Card> : null}
+
+      {decisions.length ? <Card className='mt-4 overflow-hidden'>{sub('Recent decisions', <Badge variant='secondary'>{decisions.length}</Badge>)}
+        <div className='divide-y divide-border'>{(decisions as any[]).map((x: any) => (<div key={x.id} className='px-4 py-2.5 text-sm'>
+          <div className='flex items-center gap-2 flex-wrap'><span className='font-medium'>{titleCase(String(x.decision || x.kind))}</span>
+            {x.confidence != null ? <Chip label={'confidence ' + x.confidence} tone={Number(x.confidence) >= 0.7 ? 'green' : Number(x.confidence) >= 0.4 ? 'amber' : 'red'} /> : null}
+            {x.route_to ? <span className='text-[11px] text-muted-foreground'>→ {x.route_to}</span> : null}
+            <span className='text-[11px] text-muted-foreground ml-auto'>{fmt(x.at)}</span></div>
+          {Array.isArray(x.reasons) && x.reasons.length ? <div className='text-[11px] text-muted-foreground mt-0.5'>{x.reasons.join(' · ')}</div> : null}
+        </div>))}</div></Card> : null}
+
+      {plans.length ? <Card className='mt-4 overflow-hidden'>{sub('Upcoming plans', <Badge variant='secondary'>{plans.length}</Badge>)}
+        <div className='divide-y divide-border'>{(plans as any[]).map((p: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm flex items-center gap-2'>
+          <div className='min-w-0 flex-1'>{p.objective}{p.measure ? <span className='text-[11px] text-muted-foreground'> — {p.measure}</span> : null}</div>
+          <Chip label={String(p.scope === 'operating_system' ? 'OS' : 'Dept')} tone='slate' />
+          {p.horizon ? <span className='text-[11px] text-muted-foreground shrink-0'>{titleCase(String(p.horizon))}</span> : null}
+        </div>))}</div></Card> : null}
+
+      {(knowledge.topics || []).length ? <Card className='mt-4 overflow-hidden'>{sub('Knowledge held', <Badge variant='secondary'>{knowledge.count}</Badge>)}
+        <div className='p-4 flex flex-wrap gap-1.5'>{(knowledge.topics as any[]).slice(0, 24).map((t: any, i: number) => (<Chip key={i} label={String(t)} tone='slate' />))}</div>
+      </Card> : null}
       {queue.length ? <Card className='mt-4 overflow-hidden'>{sub('Decisions held for review', <Badge variant='secondary'>{queue.length}</Badge>)}
         <div className='divide-y divide-border'>{queue.map((a: any) => (<div key={a.id} className='px-4 py-3'>
           <div className='flex items-center justify-between gap-2'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{titleCase(String(a.title || a.kind || 'decision'))}{a.risk ? <Chip label={String(a.risk)} tone={riskTone(String(a.risk))} /> : null}<Chip label={titleCase(String(a.status))} tone={statusTone(String(a.status))} /></div>{a.recommendation ? <div className='text-xs text-muted-foreground mt-0.5 line-clamp-2'>{a.recommendation}</div> : null}</div></div>
