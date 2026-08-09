@@ -26,8 +26,10 @@ Eight scorer runs. The row nearly tripled its score in a single session.
 |---|---|---|
 | opening | **91/152 (60%)** | re-measured, unmoved — see below for why |
 | after the exec meeting + the manual | **93/152 (61%)** | `exec-meeting-replayable`, `s38-manual-self-documenting` |
+| after the flow map | **94/152 (62%)** | `mission-control-flow-animation` |
+| after the memory reaches the gate | **95/152 (62%)** | `s28-blocks-repeat-failures` |
 
-**0 errored, 0 regressions**, both runs.
+**0 errored, 0 regressions**, every run.
 
 The three fixes the previous session expected to accrue moved the score by zero, and measuring
 each one separately says why — one is genuinely waiting on traffic, one is working and will never
@@ -69,6 +71,8 @@ neither:
 | `fn_challenge` — a refusal driven only by prior outcomes now says so | a `recommend_against` with an empty `reasoning`, which the meeting would have produced weekly |
 | `v_operating_manual` + governance_policy, decision_policy, org_departments | **`s38-manual-self-documenting` — MET**, 198 → 254 entries |
 | `bi_snapshot_6h` cron + registry row | `digital-twin-live-kpis`, and the KPI track of `s33-replay-six-tracks` |
+| `fn_ws_company_os` + a `flow` key, and `OsFlowMap` | **`mission-control-flow-animation` — MET.** 932 deliveries in 7d, 738 attributed to a sending system, 37 cross-OS edges drawn. The declared `os_interface` graph joins to ZERO cross-OS edges, so the map is drawn from what was delivered rather than from the contract |
+| `fn_should_escalate` consults `institutional_memory` | **`s28-blocks-repeat-failures` — MET.** 287 lessons on file and 1,229 gated actions a month that had never met. Three-token match, set by measuring: it fires on 4 of 1,229 (0.3%), three of them precise |
 
 ---
 
