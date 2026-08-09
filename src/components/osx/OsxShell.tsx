@@ -2633,6 +2633,18 @@ function CompanyOsApp() {
         right={<span className='text-[11px] text-muted-foreground'>newest {replay.newest}</span>}>
         <div className='p-4 flex flex-wrap gap-1.5'>{(replay.company_snapshot || []).map((s: any, i: number) => (
           <button key={i} onClick={() => setSel(s)} className='rounded-md border border-border px-2 py-1 text-[11px] hover:bg-foreground/5'>{s.snapshot_on}</button>))}</div>
+        {/* The six tracks of the day the card is showing. A track reading zero is a real answer —
+            it says nothing of that kind happened — so it is rendered rather than hidden. */}
+        {replay.tracks ? <div className='px-4 pb-4'>
+          <div className='text-xs font-semibold mb-2'>What happened on {String(replay.tracks.day)}</div>
+          <div className='grid grid-cols-3 sm:grid-cols-6 gap-2'>{([['decisions', 'Decisions'], ['conversations', 'Conversations'], ['approvals', 'Approvals'], ['workflows', 'Workflow steps'], ['kpis', 'KPI readings'], ['outcomes', 'Outcomes']] as [string, string][]).map(([key, label]) => {
+            const n = Number(replay.tracks[key] ?? 0);
+            return (<div key={key} className={cn('rounded-md border p-2', n > 0 ? 'border-border' : 'border-amber-500/30 bg-amber-500/[0.03]')}>
+              <div className='text-base font-bold tabular-nums'>{n}</div>
+              <div className='text-[10px] text-muted-foreground leading-tight'>{label}</div>
+            </div>);
+          })}</div>
+        </div> : null}
       </SectionCard>
     </div> : null}
 
