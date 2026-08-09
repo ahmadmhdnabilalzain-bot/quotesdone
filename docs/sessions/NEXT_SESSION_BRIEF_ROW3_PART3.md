@@ -204,3 +204,21 @@ overage immediately, but it also stops the daily **External resilience watchdog*
 outside the database that would notice a total pg_cron outage. It costs 0.1 minutes a day. At
 GitHub's $0.008/minute for Linux the overage for the rest of the cycle is single-digit dollars at
 the pre-fix rate and less after it.
+
+## 7. THE END-OF-SESSION SWEEP (standing procedure)
+
+The founder's instruction, 9 Aug 2026: **check GitHub, Vercel and Supabase for failures at the end
+of every session.** Not as a reaction to a report — as a procedure. Result of the first one:
+
+| platform | checked | found |
+|---|---|---|
+| GitHub Actions | last 12 runs | 6 failures, ALL of them the quota block before the budget was set at ~21:47. Every run after it is green, including `checks` and `deploy edge functions` on main |
+| Vercel | 20 deployments + runtime errors/24h | 19 READY, 1 CANCELED (superseded by a rapid follow-up push — normal). Latest production READY. **No runtime errors** |
+| Supabase production | advisors, cron, agent_runs | 617 advisories, **0 ERROR** — 441 are the known `rls_enabled_no_policy` deny-all state from section B. **0 name any object touched this session.** No failed cron runs in 12h, no `agent_runs` errors in 6h |
+| Supabase staging | cron, agent_runs | clean on both |
+
+**The diagnostic that matters, because it will happen again:** an Actions job with **zero steps**
+means the runner never started — that is quota or billing, never code. A broken workflow file
+reports `startup_failure`; a failing test reports failing steps. The way to tell them apart in one
+move is to dispatch a workflow you did not touch: `resilience-ping` costs 0.1 minutes and failed
+identically, which proved the `checks.yml` change was innocent.
