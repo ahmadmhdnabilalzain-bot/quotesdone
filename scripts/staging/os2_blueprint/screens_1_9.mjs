@@ -53,7 +53,12 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const label = 'screens 1-9 (Executive Home .. Approval Center)';
-export const expected = 40;
+// EXPECTED, not `expected`. The runner reads `mod.EXPECTED`, so the lowercase name declared this
+// module's denominator to nobody: the run printed "1 section(s) have an unverified check count —
+// the denominator is not trustworthy, so neither is the percentage below" while this file was in
+// fact registering exactly the 40 checks it intended. A silent casing slip is precisely the failure
+// the EXPECTED assertion exists to catch, arriving in the assertion itself.
+export const EXPECTED = 40;
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const SRC_DIR = join(REPO, 'src');

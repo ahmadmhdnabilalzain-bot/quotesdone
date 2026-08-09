@@ -81,12 +81,28 @@ export default async function ({ req, one, ui }) {
   // screen (os_api invokes all eighteen workspace routines with no arguments); `provolatile <> 'v'`
   // is the guarantee that executing one against production cannot write, because PostgreSQL refuses
   // a data-modifying statement inside a STABLE or IMMUTABLE function.
+  // ── AND `not p.proretset`, WHICH COST 18 REQUIREMENTS THEIR MEASUREMENT ──────────────────────
+  // SURFACE below calls every `callable` routine inside a VALUES list. PostgreSQL forbids a
+  // set-returning function there, so ONE screen routine that RETURNS TABLE or SETOF — with zero
+  // arguments and STABLE volatility, so it passed both existing filters — made every check that
+  // uses DELIVERED() fail with:
+  //
+  //     ERROR 0A000: set-returning functions are not allowed in VALUES
+  //
+  // Measured on production 2026-08-09, that was 18 of this file's checks ERRORED. An errored check
+  // is an UNMEASURED requirement, not a MISSING one, so the run reported 21/152 while eighteen
+  // requirements had no verdict at all and the printed percentage was not trustworthy.
+  //
+  // The set-returning screens are NOT dropped — that would silently shrink the surface and turn a
+  // measurement bug into a scoring bug. They move to `uncallable`, where a static read of them
+  // still counts, which is exactly how every other non-executable screen is already handled.
   const rootList = sqlArr(roots.filter(safeToken));
   const callable = String(await one(
     `select coalesce(string_agg(distinct p.proname, ','), '') from pg_proc p
        join pg_namespace n on n.oid = p.pronamespace
       where n.nspname='public' and p.prokind in ('f','p')
-        and p.pronargs = 0 and p.provolatile <> 'v' and p.proname = any(${rootList})`) || '')
+        and p.pronargs = 0 and p.provolatile <> 'v' and not p.proretset
+        and p.proname = any(${rootList})`) || '')
     .split(',').filter(safeToken);
   // The screens that cannot be executed under that rule, so a static read of them still counts.
   // fn_agent_context is excluded because it IS executed below, with arguments.
@@ -94,7 +110,7 @@ export default async function ({ req, one, ui }) {
     `select coalesce(string_agg(distinct p.proname, ','), '') from pg_proc p
        join pg_namespace n on n.oid = p.pronamespace
       where n.nspname='public' and p.prokind in ('f','p') and p.proname <> 'fn_agent_context'
-        and (p.pronargs > 0 or p.provolatile = 'v') and p.proname = any(${rootList})`) || '')
+        and (p.pronargs > 0 or p.provolatile = 'v' or p.proretset) and p.proname = any(${rootList})`) || '')
     .split(',').filter(safeToken);
   const UNCALLABLE = sqlArr(uncallable);
 
@@ -407,7 +423,15 @@ export default async function ({ req, one, ui }) {
   // exists. It cannot be satisfied by setting a column, because the antecedent is the measured gap.
   const SH_LAST = `(select s.metrics from public.supply_health_snapshots s order by s.period_end desc, s.id desc limit 1)`;
   const SH_FRESH = `(select max(period_end) from public.supply_health_snapshots) >= current_date - 2`;
-  const SH_GAP = `coalesce((${SH_LAST} ->> 'coverage_gaps')::numeric, 0)`;
+  // ->>'coverage_gaps' then ::numeric assumed the key holds a SCALAR. On production it holds an
+  // ARRAY, so the cast raised 22P02 and the check ERRORED — an unmeasured requirement reported with
+  // no verdict at all, which is worse than either answer. Both shapes are handled and anything else
+  // counts as zero gaps rather than throwing, because a snapshot with an unexpected shape is a
+  // snapshot this check cannot read, not a supply crisis.
+  const SH_GAP = `(case jsonb_typeof(${SH_LAST} -> 'coverage_gaps')
+        when 'array'  then jsonb_array_length(${SH_LAST} -> 'coverage_gaps')::numeric
+        when 'number' then (${SH_LAST} ->> 'coverage_gaps')::numeric
+        else 0 end)`;
   const GAP_ACTED = `(${SH_GAP} = 0 or exists (select 1 from public.agent_actions a
       where a.kind in ('coverage_gap','supply_gap','sla_no_supply')
         and a.created_at > now() - interval '7 days'))`;
@@ -440,7 +464,7 @@ export default async function ({ req, one, ui }) {
              where coalesce(extracted_at, updated_at) > now() - interval '180 days') > 0
        and ${UI_READS(C, 'supplier_capabilities')} > 0, false)`,
     `select (select count(*) from public.supplier_capabilities)||' capability record(s) against '
-       ||(select count(*) from public.leads where status = 'approved')||' approved supplier(s), '
+       ||(select count(*) from public.leads where approval_status = 'approved')||' approved supplier(s), '
        ||(select count(*) from public.supplier_capabilities where coalesce(extracted_at, updated_at) > now() - interval '180 days')
        ||' extracted in 180d; '||(select count(*) from public.supplier_opportunity_score)
        ||' comparison score(s) on file; reachable reader(s): '||${UI_READ_NAMES(C, 'supplier_capabilities')}`);
