@@ -8,9 +8,11 @@
 #                invisible until `deno check` was run over the file.
 name: checks
 
+# Every PR used to run this twice: once for the branch push and once for the pull_request event,
+# three jobs each time. Push is now limited to main, and pull_request covers everything else.
 on:
   push:
-    branches: ['**']
+    branches: ['main']
   pull_request:
   workflow_dispatch:
 

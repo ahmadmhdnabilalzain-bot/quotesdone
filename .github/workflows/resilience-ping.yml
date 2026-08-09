@@ -1,6 +1,12 @@
 name: External resilience watchdog
 
-# Pings the resilience_ping edge function from OUTSIDE Supabase every 15 minutes.
+# A THIRD-PARTY CROSS-CHECK, ONCE A DAY. The 15-minute cadence moved to Vercel Cron
+# (vercel.json -> /api/resilience-ping) because a ten-second curl every 15 minutes is billed by
+# GitHub as a full minute each time: 2,880 minutes a month against a 2,000-minute allowance, which
+# consumed 90% of it in nine days and left the build gate competing with a curl.
+#
+# This run stays so that something OUTSIDE BOTH Supabase and Vercel still checks daily — a
+# simultaneous failure of both would otherwise go unseen.
 # This is the one resilience check that cannot live inside the database: an in-cluster
 # watchdog is itself a pg_cron job, so it cannot detect a TOTAL pg_cron outage. GitHub's
 # scheduler is independent of both Supabase and Vercel, so it survives that failure mode.
@@ -9,7 +15,7 @@ name: External resilience watchdog
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '17 7 * * *'
   workflow_dispatch: {}
 
 jobs:
