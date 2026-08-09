@@ -2431,6 +2431,65 @@ function CompanyMemoryApp() {
 // Mission Control and the company knowledge graph on one screen. Eighteen stores feed this and
 // every one of them reached no surface at all before it existed — graph_nodes and graph_edges are
 // rebuilt nightly and had ZERO readers anywhere in the product.
+// INFORMATION FLOWING BETWEEN THE TEN OPERATING SYSTEMS, DRAWN AND MOVING.
+//
+// The ten systems exchanged 932 events in the last seven days and no surface had ever drawn one of
+// those connections. The edges come from what was actually DELIVERED — event_delivery gives the
+// receiving system, company_event.actor resolved through its department gives the sending one —
+// because os_interface's declared outputs and inputs are disjoint sets that join to zero cross-OS
+// edges. That is a real fact about the contract table, not a rendering problem, so it is reported
+// in the footer rather than papered over.
+//
+// The dash animation is BOUND TO VOLUME: an edge carrying 78 events a week cycles in about a
+// second, one carrying 3 takes three. A line that moves at a constant rate would be decoration.
+function OsFlowMap({ flow }: { flow: any }) {
+  const nodes = (flow?.nodes || []) as any[]; const edges = (flow?.edges || []) as any[];
+  const [hot, setHot] = React.useState<string>('');
+  if (!nodes.length || !edges.length) return null;
+  const max = Math.max(...edges.map((e: any) => Number(e.n) || 0), 1);
+  const R = 118, CX = 150, CY = 140;
+  const pos = (i: number) => ({ x: CX + R * Math.cos((i / nodes.length) * 2 * Math.PI - Math.PI / 2), y: CY + R * Math.sin((i / nodes.length) * 2 * Math.PI - Math.PI / 2) });
+  const at = (k: string) => nodes.findIndex((n: any) => String(n.os_key) === String(k));
+  const cross = edges.filter((e: any) => String(e.from_os) !== String(e.to_os));
+  const lit = (e: any) => !hot || String(e.from_os) === hot || String(e.to_os) === hot;
+  return (<SectionCard title='Information flow between operating systems' count={cross.length}
+    right={<span className='text-[11px] text-muted-foreground'>{flow.deliveries} deliver{Number(flow.deliveries) === 1 ? 'y' : 'ies'} over {flow.window_days}d</span>}>
+    <div className='p-4 grid gap-5 lg:grid-cols-[300px_1fr]'>
+      <svg viewBox='0 0 300 285' className='w-full max-w-[300px] mx-auto' role='img' aria-label={'Information flow between ' + nodes.length + ' operating systems'}>
+        {cross.map((e: any, i: number) => {
+          const a = at(e.from_os), b = at(e.to_os); if (a < 0 || b < 0) return null;
+          const p = pos(a), q = pos(b); const share = Number(e.n) / max;
+          return (<line key={i} x1={p.x} y1={p.y} x2={q.x} y2={q.y} strokeLinecap='round'
+            stroke='currentColor' strokeWidth={0.6 + 2.4 * share} strokeDasharray='5 7'
+            className={cn('transition-opacity duration-300', lit(e) ? 'text-primary/45' : 'text-primary/10')}>
+            <animate attributeName='stroke-dashoffset' from='12' to='0' dur={(2.8 - 1.9 * share).toFixed(2) + 's'} repeatCount='indefinite' />
+          </line>);
+        })}
+        {nodes.map((n: any, i: number) => { const p = pos(i); const k = String(n.os_key); const on = !hot || hot === k;
+          return (<g key={k} onMouseEnter={() => setHot(k)} onMouseLeave={() => setHot('')} className='cursor-pointer'>
+            <circle cx={p.x} cy={p.y} r={5 + Math.min(5, Math.sqrt(Number(n.received) || 0) / 3)}
+              className={cn('transition-all duration-300', on ? 'fill-primary' : 'fill-primary/25')} />
+            <text x={p.x} y={p.y + (p.y < CY ? -10 : 16)} textAnchor='middle'
+              className={cn('text-[8px] transition-opacity duration-300', on ? 'fill-foreground' : 'fill-muted-foreground/50')}>{String(n.name || k).replace(/ OS$/, '')}</text>
+          </g>); })}
+      </svg>
+      <div className='min-w-0'>
+        <div className='text-xs font-semibold mb-2'>Busiest connections</div>
+        <div className='space-y-1'>{cross.slice(0, 8).map((e: any, i: number) => (
+          <div key={i} onMouseEnter={() => setHot(String(e.from_os))} onMouseLeave={() => setHot('')}
+            className='text-xs flex items-center gap-2 rounded px-1.5 py-1 hover:bg-foreground/5 transition-colors'>
+            <span className='truncate flex-1'>{titleCase(String(e.from_os))} <span className='text-muted-foreground'>&rarr;</span> {titleCase(String(e.to_os))}</span>
+            <span className='text-[11px] text-muted-foreground truncate max-w-[9rem]'>{(e.kinds || []).join(', ')}</span>
+            <span className='tabular-nums font-medium'>{e.n}</span>
+          </div>))}</div>
+        <div className='text-[11px] text-muted-foreground mt-3 leading-relaxed'>
+          {flow.attributed} of {flow.deliveries} deliveries resolve to a sending system; {flow.unattributed} were emitted by machinery rather than an operating system, and {flow.unroutable} could not be routed at all.
+          The connections are drawn from what was delivered — the declared os_interface outputs and inputs are disjoint, so they join to no cross-system edge.
+        </div>
+      </div>
+    </div>
+  </SectionCard>);
+}
 function CompanyOsApp() {
   const { d, err, busy, load } = useWs('ws.company_os');
   const [sel, setSel] = React.useState<any>(null);
@@ -2482,6 +2541,7 @@ function CompanyOsApp() {
         </div>
       </Card>))}</div> : null}
 
+    {tab === 'map' ? <OsFlowMap flow={d?.flow} /> : null}
     {tab === 'map' ? <SectionCard title='Company map' count={graph.node_count}
       right={<span className='text-[11px] text-muted-foreground'>{graph.edge_count} edges · rebuilt {fmt(graph.rebuilt_at)} · scroll to zoom, drag to pan, click a node</span>}>
       <div className='p-2'>
