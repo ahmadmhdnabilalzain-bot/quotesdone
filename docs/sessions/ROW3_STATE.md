@@ -288,6 +288,15 @@ notified**, with answers of 509–797 characters — and #1748 correctly refusin
 *"Blocked: this needs the live project region setting, which is not in my telemetry snapshot."*
 **The first handoff completed since 25 June.**
 
+**THE INBOX FIXES HALF THE QUEUE. SAY SO.** Measured straight after: **85 open handoffs, 42 addressed
+to an employee that actually runs, 43 stranded** on employees that have not reasoned once in seven
+days. Only six of 66 employees reach `agent_brain` at all (`it` 26 open, `brief` 9, `onboarding` 6,
+`docs` 1, `intel_director` 0, `ceo` 0), and they drain three per hourly `cos_execute` run. The other
+43 will never drain however good the inbox is — they are addressed to the dormant half of the
+workforce, which is precisely the `audit_gap` proposal the evolution scan raised at 06:00 this
+morning: *decide, for each dormant role, whether nothing routes to it or the role is not needed.*
+The queue is also still growing: 82 at 06:00, 85 by 07:20 net of the three closed.
+
 **Both failures are kept in the record.** The first inbox emitted five items at 300 characters each —
 2,082 characters for `it` — and agent_brain then **timed out twice at ~56s**. Measured cause: `it`'s
 only prior successful call, at 01:51 that morning and **before** the change, already took
