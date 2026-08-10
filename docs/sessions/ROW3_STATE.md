@@ -121,15 +121,141 @@ addressee fix unblocked feeds a check that was already MET. That one did move un
 lot — `approval-center-everything-else-automatic` reads **53 of 1,279 (4.1%)** against a 10% bar,
 where the part-9 mid-session measurement was 204 of 1,269 (16.1%). The margin, not the verdict.
 
+### THE 31 NOT MET, RECLASSIFIED BY WHY — AND MOST OF THEM ARE NOT SOFTWARE
+
+Chasing them one at a time is what the last four sessions did. Measuring the estate underneath them
+first says something none of the evidence lines say on their own:
+
+```
+transactions   0        customers  0        inquiries  0        quotes  0        reviews  0
+leads     20,470        agent_reputation: 66 rows, correctness non-null on 0 of them
+```
+
+**The marketplace has a supply side and no demand side at all.** So:
+
+- `s30-marketplace-eight-inputs` is missing exactly *customer satisfaction, revenue and churn* —
+  the three inputs that require a customer. Computing them today would mean writing a satisfaction
+  score for customers who do not exist. It is red because the company has not sold anything yet, and
+  that is a business fact, not a missing routine. It belongs beside `s26-discover-suppliers`.
+- `s32-reputation-six-dimensions` has all six axes as COLUMNS and 66 of 66 employees graded with a
+  score — and `correctness` is non-null on 0 of them, `learning_speed` 0, `cost_efficiency` 7,
+  `reliability` 11, `collaboration` 20. `fn_reputation_recompute` fills a dimension only where the
+  underlying activity exists, and for most of the workforce it does not. This is the dormant-workforce
+  fact from section 6.2 of the brief wearing a different hat: 47 of 66 employees do nothing on a
+  given day, so there is nothing to grade them on. Filling it is a staffing decision, not a query.
+- `employee-performance`, `employee-current-thoughts`, `employee-learning-progress`,
+  `employee-knowledge-used`, `employee-performance-trend` — same cause. Each is a per-row universal
+  over ALL 66 active employees, and each fails on the employees that never act.
+
+So the honest grouping of the 31 is:
+
+| why it is red | checks | what would move it |
+|---|---|---|
+| **no demand side yet** | `s30`, `s26-compare-capabilities`, `intel-customer-behavior`, parts of `s29` | customers, not code |
+| **dormant workforce** | `s32`, the five `employee-*` checks | staffing or retiring 47 employees — his call |
+| **time-gated, already built** | `s24` (30-day universal, ~9 Sept), `time-machine-restores-six-dimensions` (~24 Aug), `time-machine-scrub` (needs a six-month-old snapshot) | waiting |
+| **deliberately blocked** | `s26-discover-suppliers` (Apify to ~Feb 2027) | nothing, on purpose |
+| **genuinely buildable** | `s21-no-polling`, `s22-graph-navigation`, `company-map-entities`, `s33`, `s34`, `s25`, `s27`, `s36`, `explain-alternatives-considered`, `what-if-*` | engineering |
+
+**One of those was investigated to the point of refusal tonight and is worth recording.**
+`explain-alternatives-considered` is 0 of 61 surfaced actions. The obvious fix is to project
+`challenge_record.alternatives` onto each surface — and reading the rows stops that dead: three of
+the four newest carry the identical sentence *"Run it as a bounded test with a named metric and a
+captured baseline, so it can be graded and reversed."* `fn_challenge` emits a canned fallback for any
+subject it has no specific rule for. Projecting that onto 61 actions would put one generic sentence
+in front of the founder labelled "alternatives considered", pass the scorer, and be a lie. The check
+is red for a true reason: the company does not compute alternatives per action. The build order is
+real alternatives, not a projection.
+
+`s34-stress-six-scenarios` was also scoped and not built: the four missing scenarios need a runner
+that genuinely exercises them, and `fn_what_if` answers *"No model exists for this question yet"* at
+confidence 0.2 for the two it would have to model. Inserting four rows with a `last_run` timestamp
+would fabricate an exercise that never happened.
+
 ### A DIVERGENCE FOUND IN THE CLOSING SWEEP AND NOT YET FIXED
 
-**Staging has 520 anon-executable SECURITY DEFINER functions. Production has 56.** Both were counted
-the same way in the same minute. This is not from this session — all three functions created here are
-revoked on both projects, checked by name — and it is not a rehearsal-surface excuse either: a
-staging project whose anon role can execute 520 definer functions cannot rehearse production's
-posture, and it is the same database with the same data shapes. It is recorded rather than fixed
-because revoking 464 grants is a change that needs its own run and its own verification, not a line
-in a closing sweep. Production's 56 did not move.
+**Staging has 520 anon-executable SECURITY DEFINER functions. Production has 56.** — *closed later in
+the same session; kept here because how it was found matters.* It was found by counting, not by
+suspecting, and the count came from a check that did not exist that morning.
+
+### "BOTH PROJECTS" WAS A CLAIM NOBODY HAD COUNTED — 602 OBJECTS OF DRIFT
+
+`scripts/checks/project_parity.mjs` counts the inventory on each project and prints only the
+difference. First run:
+
+```
+edge function                      197 / 197   in sync (name + verify_jwt + status together)
+table                              418 / 417   1 prod-only   qa_fixture_purge_archive
+function                           837 / 837   in sync  (SIGNATURES only — see below)
+trigger                            153 / 147   6 prod-only
+cron job                           164 /  37   127 prod-only
+table WITHOUT rls                    0 /   4   4 staging-only
+anon-executable SECURITY DEFINER    56 / 520   464 staging-only
+```
+
+**The grant was from PUBLIC, not from anon.** The first revoke pass ran 464 statements and moved the
+count by zero: `revoke … from anon` is a silent no-op against a privilege held through PUBLIC.
+Staging's ACLs read `=X/postgres | postgres=X | service_role=X` — that leading `=X` IS what
+`CREATE FUNCTION` grants to PUBLIC. Production's read `postgres=X | service_role=X` on all 499:
+PUBLIC revoked, service_role granted explicitly. Revoking PUBLIC on staging lands on production's
+exact ACL shape, and service_role — what every edge function and pg_net call authenticates as —
+keeps EXECUTE through its own grant. **anon 520 → 56, authenticated 522 → 58, service_role still
+executes all 558**, and staging's gates and pack scorecard both re-read clean afterwards.
+
+**Signature parity hid the triggers.** 837 = 837 said the functions matched. Six triggers did not
+exist on staging, so staging silently did not version an RFQ, dispatch a ready inquiry, enrich a
+supplier's capability on approval, sign a verified customer or supplier, or dedupe IT incidents.
+Behaviour lives in the wiring, not in the function list. Checked before creating, because four of
+them reach `net.http_post`: staging's copies of those functions point at `pglpqrhvozwepymcuunn` and
+production's hard-code the production ref — the two bodies differ by exactly that host — and every
+outbound channel on staging is gated off (`email_enabled`, `sms_enabled`, `wa_autoreply_enabled`,
+`supplier_emails_enabled`, `invite_enabled`, `bd_outreach_enabled` all false).
+
+**Crons are a decision, not a copy.** 14 detectors scheduled on staging (37 → 51) — uptime, edge
+health, ai health, resilience, exception alerts, SLA watch, spend guard, security selfaudit, money
+tests, QA suite, policy consistency, dead-letter drain, autonomy audit, health check — and all 19
+previously undocumented staging jobs registered, so drift there is 0 and 0 too. The remaining 113 are
+recorded in `staging_cron_exclusions.json` **with the reason**, so a NEW production cron missing from
+staging still fails the check: the company's own work is a model call each and staging has no
+business to run; backup and dropbox jobs write to a SHARED external account; and scheduling the
+outbound jobs would make a feature flag the only thing between a rehearsal and a real supplier's
+phone. `resilience_watch_10min` and `ai_spend_guard_hourly` both fired and succeeded at 22:40 UTC.
+
+All seven dimensions read IN SYNC and the check exits 0.
+
+### THE QUALITY AXIS HAD NO WRITER — FIFTH INSTANCE OF THE SAME SHAPE
+
+`s25` asks whether models are compared on quality, latency and cost. Measured: **1,614 model calls in
+30 days across 6 models, every one carrying `latency_ms` and `cost_aed`, and not one carrying a
+`confidence`** — because `fn_llm_log` had thirteen parameters and none of them was quality, so the
+INSERT could not set the column whatever the caller knew.
+
+And the caller knew. `_shared/llm.ts` already sends `confidence` to the gateway, `ai_gateway` already
+forwards it to the router, and on the level-0 path the gateway formats a genuinely measured retrieval
+confidence **into the `p_because` prose column** — *"Answered with no model: faq (confidence 0.82)"* —
+because there was no numeric slot. A measured value stringified into a text field is the same defect
+as an action addressed to an identity nobody models: it exists, it is correct, and it is addressed
+somewhere nothing reads.
+
+`fn_llm_log` takes `p_confidence` now. It does not invent one: null unless measured, a percentage
+normalised (87 → 0.8700), and anything outside 0..100 discarded rather than clamped into looking like
+a probability. The 13-argument signature was DROPPED rather than left beside the new one — a defaulted
+fourteenth parameter makes every existing 13-named-argument call ambiguous (42725). `selfReportedConfidence()`
+reads the model's own reported confidence out of JSON output, fenced or bare, and returns null
+otherwise; a model that says nothing keeps a null and the comparison stays honestly incomplete.
+
+```
+DB probe, aborted, production   0.87 -> 0.87   87 -> 0.8700   null -> null   4200 -> null
+DB probe, aborted, staging      0.73 -> 0.73
+END TO END, production, through the deployed bundle:
+  the model answered ```json {"answer":"yes","confidence":0.9999}```, HTTP 200, and ai_cost_log
+  holds latency 1970ms + cost 0.000639 AED + confidence 0.9999 for ~anthropic/claude-haiku-latest
+  — all three axes on one model for the first time
+```
+
+`s25` stays NOT MET and should: it needs two models compared. The mechanism was the build order;
+filling it is traffic. `anon`-executable SECURITY DEFINER on production is still 56 after the
+signature change, and exactly one `fn_llm_log` exists.
 
 Three daily crons — `kb_corpus_integrity_daily` 03:40, `model_catalog_drift_daily` 03:50,
 `tool_readiness_daily` 03:55 — still have **no scheduled run**, because their first one is at 03:40
