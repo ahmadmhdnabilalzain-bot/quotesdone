@@ -210,12 +210,27 @@ is a refusal log, not an access log; absence there is not absence of traffic.
   `internal@quotesdone.com`, i.e. `cos_execute`. Both cannot be true of the same calls.
   `agent_key` is not a hardcoded default — six distinct values appear across `ai_cost_log` in 7 days
   (ceo 408, ai_trainer 129, knowledge_curator 85, NULL 39, brief 23, onboarding 5) — and
-  `_shared/llm` does forward `agent: def.agent ?? null`. So either the reasoning is billed to the
-  wrong employee, or those department chats come from `cos_execute`'s generic department-head
-  fallback rather than from `agent_brain`. **Unresolved, and it matters**: this document's "`ai_cost_log`
-  — **3 of 66** have ever been billed for a model call" is evidence for employee dormancy only if the
-  attribution is right. Resolve it before treating per-employee spend, or the five per-employee
-  universals, as measured. No cron calls agent_brain; the credential trail points at `cos_execute`.
+  `_shared/llm` does forward `agent: def.agent ?? null`.
+
+  **RESOLVED — it is a mis-attribution defect.** `cos_execute` never writes `agent_chats` (zero
+  occurrences); `agent_brain` is the only function that writes a conversational one. So those
+  department chats WERE `agent_brain` calls. And `agent_brain` passes `agent: key` in exactly two
+  places — line 102 (`kb_usage_log`) and line 225 (`agent_runs`) — **neither of which is an LLM
+  call**. Nothing hands the employee to the model layer, so `ai_cost_log` resolves it to the exec
+  department head. **Every model call `agent_brain` makes on behalf of any of the 66 employees is
+  billed to `ceo`.**
+
+  Two things follow. Per-employee AI spend is not measured, it is a single bucket. And this
+  document's "`ai_cost_log` — **3 of 66** have ever been billed for a model call" is an ARTEFACT of
+  that bucket, not evidence of dormancy — so the dormancy case, which five per-employee universals
+  rest on, is weaker than it reads here and must be re-argued from `agent_runs` and `agent_memory`
+  instead.
+
+  **The fix is one argument**: pass `agent: key` into `agent_brain`'s `llm()` call, which already
+  accepts `agent?: string`. NOT done in this session on purpose — it is an edge-function change to
+  the company's core reasoning path that auto-deploys on merge, and it was found twenty minutes
+  before a scheduled measurement. It deserves a staging deploy and a billed-call check of its own,
+  not a rushed one.
 - Two other routines use a `between now()-x and now()-y` band (`fn_founder_brief` 60→30d,
   `fn_ceo_questions` 14→7d) and both are legitimate prior-period comparisons, not alerts. No active
   daily cron has failed to run in 30 hours.
