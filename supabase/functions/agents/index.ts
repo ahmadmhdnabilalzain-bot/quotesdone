@@ -32,6 +32,13 @@ function parseDate(v: unknown): Date | null { if (!v) return null; const s = Str
 // The insert is still wrapped, but a swallowed failure is no longer silent: it was impossible to
 // tell a queue that was working from one that had been throwing for a week.
 const QUEUE_DEDUPE_HOURS = 20;
+// Rows this invocation actually INSERTED. The eleven counts.* counters after the queue() calls below
+// increment on every attempt, so once deduping started they report what was CONSIDERED, not what was
+// written — a run that suppressed everything still says "licence_alerts: 1". Rewriting all eleven
+// call sites means editing eleven long lines inside conditionals; one counter here plus
+// rows_written in the run row says the true thing without that risk. Reset per request because edge
+// isolates are reused across invocations.
+let _rowsWritten = 0;
 async function queue(row: Record<string, unknown>) {
   try {
     const since = new Date(Date.now() - QUEUE_DEDUPE_HOURS * 3600e3).toISOString();
@@ -43,6 +50,7 @@ async function queue(row: Record<string, unknown>) {
     const { data: dup } = await q;
     if (dup && dup.length) return;
     const { error } = await admin.from('agent_actions').insert(row);
+    if (!error) _rowsWritten++;
     if (error) {
       await admin.from('agent_runs').insert({ agent: 'agents', status: 'error',
         started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
@@ -348,9 +356,13 @@ Deno.serve(async (req) => {
     const __auth = await requireInternal(admin, body?.__secret, 'agents');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
     const job = String(body.job || '');
+    _rowsWritten = 0; // edge isolates are reused, so this must not carry over between invocations
     const { data: run } = await admin.from('agent_runs').insert({ agent: job }).select('id').maybeSingle();
     let counts: Record<string, unknown> = {}; let status = 'ok'; let note = '';
     try { if (job === 'onboarding') counts = await onboarding(); else if (job === 'compliance') counts = await compliance(); else if (job === 'followup') counts = await followup(); else if (job === 'finance') counts = await finance(); else if (job === 'marketing') counts = await marketing(); else if (job === 'category_sales') counts = await categorySales(); else if (job === 'bd_outreach') counts = await bdOutreach(); else if (job === 'it_health') counts = await itHealth(); else if (job === 'security') counts = await security(); else { status = 'error'; note = 'unknown_job'; } } catch (e) { status = 'error'; note = String((e as Error)?.message || e); }
+    // rows_written is the only count here that survived deduping: the per-job counters above say
+    // what was considered, this says what reached agent_actions.
+    counts = { ...counts, rows_written: _rowsWritten };
     if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status, counts, note }).eq('id', run.id);
     return J({ ok: status === 'ok', job, counts, note });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
