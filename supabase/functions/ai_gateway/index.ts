@@ -83,6 +83,31 @@ async function rpcSafe(name: string, args: Record<string, unknown>) {
 // deno-lint-ignore no-explicit-any
 type Msg = { role: string; content?: any; [k: string]: unknown };
 
+// THE QUALITY AXIS. ai_cost_log.confidence was null on all 1,614 model calls in 30 days because
+// fn_llm_log had no parameter for it, so "compare models on quality, latency and cost" could only
+// ever have two of the three. This reads the model's OWN reported confidence out of its output when
+// the output is JSON and carries one, and returns null otherwise.
+//
+// It does not derive, estimate or default a score. A model that says nothing about its confidence
+// keeps a null, and the comparison stays honestly incomplete for it -- which is the point. A number
+// invented here would be indistinguishable from a measured one the moment it reached the column.
+// deno-lint-ignore no-explicit-any
+function selfReportedConfidence(text: any): number | null {
+  if (typeof text !== 'string' || text.length === 0 || text.length > 200_000) return null;
+  // Models fence JSON in ```json … ``` about as often as they emit it bare.
+  const body = text.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+  if (!(body.startsWith('{') || body.startsWith('['))) return null;
+  let parsed: unknown;
+  try { parsed = JSON.parse(body); } catch { return null; }
+  const root = Array.isArray(parsed) ? parsed[0] : parsed;
+  if (!root || typeof root !== 'object') return null;
+  const raw = (root as Record<string, unknown>).confidence;
+  const n = typeof raw === 'number' ? raw : (typeof raw === 'string' ? Number(raw) : NaN);
+  // fn_llm_log normalises a percentage and discards anything outside 0..100, so the only job here is
+  // to reject what is not a number at all.
+  return Number.isFinite(n) ? n : null;
+}
+
 interface Body {
   __secret?: string;
   fn?: string; task_class?: string; dept?: string; agent?: string;
@@ -176,6 +201,9 @@ Deno.serve(async (req) => {
           p_because: 'Answered with no model: ' + faq.source + ' (confidence ' + faq.confidence + ')',
           p_tier: 'none', p_prompt_tokens: 0, p_output_tokens: 0, p_cached: true,
           p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
+          // The retrieval confidence was already measured on this path and was being formatted into
+          // p_because as prose. It goes in the numeric column it belongs in as well.
+          p_confidence: typeof faq.confidence === 'number' ? faq.confidence : null,
         });
         return J({ ok: true, used_llm: false, outcome: 'level0', source: faq.source,
                    content: faq.answer, confidence: faq.confidence, cost_usd: 0 });
@@ -274,6 +302,7 @@ Deno.serve(async (req) => {
           p_because: hit.kind + ' cache hit (similarity ' + hit.similarity + ')',
           p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: true,
           p_cache_key: cacheKey, p_latency_ms: Date.now() - t0, p_ok: true,
+          p_confidence: selfReportedConfidence(hit.response),
         });
         return J({ ok: true, used_llm: false, outcome: 'cache_' + hit.kind,
                    content: hit.response, similarity: hit.similarity, cost_usd: 0 });
@@ -459,6 +488,7 @@ Deno.serve(async (req) => {
                       + String(route.task_class) + ', so the reply is cut off mid-output. A caller that '
                       + 'expects JSON will report unparseable output; raise max_tokens in model_policy.'
                     : ''),
+      p_confidence: selfReportedConfidence(out),
       p_tier: route.tier ?? null, p_prompt_tokens: inTok, p_output_tokens: outTok,
       p_cached: cachedIn > 0, p_cache_key: cacheKey, p_latency_ms: Date.now() - t0, p_ok: !!outMsg,
     });
