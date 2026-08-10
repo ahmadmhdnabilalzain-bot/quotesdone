@@ -1,7 +1,244 @@
-# ROW #3 — THE EXECUTIVE UI: 28 → 105 / 152
+# ROW #3 — THE EXECUTIVE UI: 28 → 120 / 152
 
 Measured on production. Every number below is a scorer run, not an estimate.
 Scorer: `scripts/staging/verify_os2_blueprint.mjs`, modules in `scripts/staging/os2_blueprint/`.
+
+---
+
+## Session 6 (10 Aug 2026, opened 05:47 UTC) — THE CLOCK WAS READ FIRST, AND IT PAID
+
+```
+select now() at time zone 'utc'  ->  2026-08-10 05:47:29   (Monday)
+```
+
+**Opening measurement 112/152 (74%), 0 errored, 0 regressions — up 7 from 105 at 02:33.**
+Not one of those seven came from a session. `cron.job_run_details` was queried before anything
+else: `opportunity_scan_daily` 03:50, `kpi_review_weekly` 04:00, `index_slowdown_watch_daily`
+04:15, `founder_brief_daily` 04:30, `exec_meeting_weekly` and `match_eval_weekly` 05:00 had all
+fired; `exec-agents-weekly`, `evolution_scan_weekly`, the three governance monitors,
+`marketing_ai_daily` and `reputation_weekly` had not. The 06:00–07:00 window was watched by a
+background poller while other work continued, so no minute was spent idling against it.
+
+**Closing measurement 06:50 UTC: 120/152 (79%), 0 errored, 0 REGRESSIONS.** Eight flips, and every
+one of the eight was verified against its own predicate BEFORE the run rather than hoped for:
+
+| flipped | how it was closed |
+|---|---|
+| `s21-events-nine-classes` | five emitters built — 4 of 9 → 9 of 9 |
+| `s35-restructure-four-questions` | code that had shipped and never run; 06:00 cron, 0 of 4 → 4 of 4 |
+| `evolution-proposes-structure` | prompting trigger + widened allow-lists, 5 of 8 → 8 of 8 |
+| `future-simulator-forward-questions` | three scenarios, 1 of 4 → 4 of 4 |
+| `s37-benchmark-monthly-report` | monthly report executed, 16 of 27 competitors named |
+| `exec-intel-quantified-recommendation` | session 2's retry proved itself, 4 of 7 → 7 of 7 |
+| `s39-governance-six-monitors` | 06:40 `regulation_watch_weekly`, 5 of 6 → 6 of 6 |
+| `approval-center-five-decision-kinds` | 06:50 `marketing_ai_daily` filed the media-budget decision |
+
+**Not the high 120s the part-6 brief targeted, and the reason is in the blocked table below, not
+effort.** Ten of the remaining 32 were measured one at a time and each is short on a date, a
+customer, a founder decision or a column that does not exist — none on a build that was skipped.
+
+`match_eval` is green again and it was the previous session's fix, proved by its own run:
+05:00 cron `error`, 5 of 5 seeds refused by `leads_approved_implies_verified`; 05:16 manual run
+after the fix `ok`, 5 fixtures seeded, precision 100% / recall 100%. The daily
+*"CRITICAL: matching is failing"* founder alert therefore stops on its own.
+
+### Built and verified by execution
+
+| change | what it closed |
+|---|---|
+| Five event emitters — `customer.registered`, `supplier.approved`, `campaign.launched`, `ai.confidence_dropped`, `competitor.pricing_changed` | **`s21-events-nine-classes` 4 of 9 → 9 of 9.** Each fires where the fact becomes true, in the database, so every caller is covered. Verified inside an aborted transaction: customer=1 supplier=1 competitor=1 campaign=1, and ai=1 on a second probe. Nothing persisted |
+| `prompt_unmeasured` trigger in `fn_evolution_scan`, and both `evolution_proposal` allow-lists widened to accept `prompting` | **`evolution-proposes-structure` 5 of 8 → 8 of 8 domains.** Prompting was the one domain the schema itself refused |
+| three `scenario_library` rows — reveal fee change, paid channel failure, expansion to another emirate | **`future-simulator-forward-questions` 1 of 4 → 4 of 4 classes.** No `last_run`, no `last_result`: none has been exercised |
+| `fn_period_report('monthly')` executed | **`s37-benchmark-monthly-report`** — report 142, 18,545 bytes, **16 of 27 competitors named**. 141 reports in 40 days had named none |
+| `knowledge_exam` v13 stamps the grader's real confidence, `author_verified`, `source_ref` and a 90-day `review_due` on every fill | **The knowledge validator §7 called open already existed and was mislabelling its own output.** Executed on production: HTTP 200, 3 examined, `knowledge_exam_results` 492 → 495 |
+
+### `regulation.changed` had ten subscribers, no emitter — and the brief's reason was wrong
+
+The part-6 brief said `compliance_sources` is empty, so `regulation.changed` has ten subscribers and
+no possible emitter. Measured: it holds **17 ACTIVE UAE authorities** — Dubai Municipality, DEWA,
+RTA, Trakhees, SIRA, DHA, ADIBC, Estidama, TDRA and nine more — **all checked at 04:18 today**, 16
+carrying a content signature, 16 with a downloaded document and **4 with a recorded change**. The
+regulatory watcher works. *(Fifth brief diagnosis to be wrong while its counts were right.)*
+
+**And the reason is now identifiable, which matters more than the correction.** Staging holds
+`compliance_sources` = **0** where production holds 17. The brief measured STAGING and reported it as
+production. Check which project a number came from before repeating it — the two databases diverge
+on data, not on code (staging also carries **524** anon-executable SECURITY DEFINER functions against
+production's 58, because staging's grants are synced broadly and it holds no real data).
+
+What was missing is the emit: a change lands in `compliance_sources.last_changed_at` and is raised as
+a `compliance_update` action, and the bus is never told. A trigger on that column now emits it.
+**Verified in an aborted transaction: one emit produced TEN `event_delivery` rows**, one per waiting
+subscriber, and `has_function_privilege('anon', …)` is false because the grant was revoked in the
+same migration.
+
+**`health.degraded` was the second one fixed.** The CTO subscribes to it — *"OS interface: Technology
+OS consumes health.degraded"* — and it had never fired, while `os.health_changed` fired 21 times
+carrying both numbers: **leadership 81 → 75 and marketplace 69 ← 75 at 04:45 today**, two operating
+systems degrading with nobody woken. Repointing the subscription would have been the wrong repair —
+CHANGED is not DEGRADED and an improvement must not page the CTO — so the narrower event is derived
+from the wider one by trigger, rather than by editing the 8 KB `fn_os_review` that already works.
+Probed both directions in an aborted transaction: a 75 → 60 drop emitted once and delivered to `cto`;
+a 75 → 90 rise stayed silent.
+
+**`rfq.classified` is the next one and was deliberately left.** Five category specialists
+(`spec_commercial`, `spec_construction`, `spec_fitout`, `spec_industrial`, `spec_mep`) subscribe to
+it and it has never fired. `rfq.created` IS emitted, by `trg_event_inquiry`, but nothing emits the
+classification, so when a real buyer finally arrives the five specialists who should compete for the
+RFQ will not hear about it. Not built here because `inquiries` carries **eleven** triggers and zero
+rows, so the only way to verify an emitter is a probe insert through all eleven, minutes before the
+closing measurement. It is a small, well-understood build with room to check it.
+
+**32 active subscriptions still sit on 14 names nothing has ever emitted**: `budget.exceeded`,
+`campaign.published`, `content.drafted`, `customer.churn_signal`, `customer.complaint`,
+`department.conflict`, `health.degraded`, `invoice.flagged`, `invoice.received`, `outcome.graded`,
+`rfq.classified`, `sla.breached`, `supplier.applied` — and `regulation.changed`, now fixed.
+`supplier.applied` has a working trigger and has never fired, which means no supplier has ever
+completed a registration through it.
+
+### Two checks flipped on code that had shipped and never run
+
+- **`s35-restructure-four-questions` 0 of 4 → 4 of 4, with no code change.** The four structural
+  questions were already inside `fn_evolution_scan`; `evolution_scan_weekly` last fired **3 Aug**,
+  before they were added. Today's 06:00 run was their first execution and produced **12 `audit_gap`
+  proposals** off real numbers: 44 of 66 employees dormant, six operating systems over 5 open tasks
+  per head (Operations 19.0, Leadership 14.4), four departments holding ≥5 open tasks with nobody
+  running (`evolution` 27, `legal` 25, `knowledge_eng` 14, `hr` 8), 13 departments with two or more
+  wholly dormant employees. **Session 5 nearly rebuilt this. Read section 3 before building.**
+- **`exec-intel-quantified-recommendation` 4 of 7 → 7 of 7.** `competitive` filed its first
+  non-empty report ever at 06:02:57 (3 recommendations), `strategy` 3 after **2 attempts**,
+  `procurement_quality` 3 after 2. The retry session 2 added is what fixed it; the payload-size
+  hypothesis was already dead and the officers were never broken in the way four sessions assumed.
+
+### Measured and found HONESTLY BLOCKED — do not "fix" these
+
+| check | why, measured 10 Aug |
+|---|---|
+| `s32-reputation-six-dimensions` | needs six dimensions non-null on **all 66** employees. Today: correctness **0** of 66, reliability 7, cost_efficiency 3, collaboration 5, learning_speed 15 and falling to 0 at 07:00. **There is no decision-quality column at all.** Filling these is fabrication, not a build — but see the correctness note below: one of the six is a date, not a blocker |
+| `s27-knowledge-seven-fields` | needs two columns that do not exist (expiry, supporting evidence) plus `source_ref` on all 1,990 rows — 1,022 have no source and inventing one is fabrication |
+| `explain-confidence-score` | the `confidence` key **is** on all 8 escalation elements and is **NULL on all 8**. A UI change cannot help; stamping a constant is the `fn_governance_stamp` mistake again |
+| `explain-alternatives-considered` | 0 of 34 across all four surfaces, and no per-action alternatives data exists anywhere. Same 53-writer shape as `s36` |
+| `s23-reallocation-three-classes` | only one of the three resource classes can move at all. `allocation_change` holds 12 rows, every one `ai_budget_aed`, all from the 1 Aug run that destroyed 1,860 AED. Marketing budget needs a media budget that does not exist; onboarding capacity needs invites unpaused. Both are founder money decisions |
+| `s29-scan-five-questions` | 4 of 5. "Rising keywords" has **no data source**: `seo_categories` holds 24 search terms with no volume and no time series, `category_keyword` is a 1,839-row routing dictionary. A keyword-volume feed costs money |
+| `personalization-learns-founder-habits` | the founder has decided **12 things ever** — 7 of them `os-preview@quotesdone.com` rejecting in a 53-second burst on 13 July, newest decision **2026-07-13**. A habit store over that measures nothing. Blocked on usage, not on code |
+| `employee-learning-progress` | **0 of 83 examined agents have exam results on two different days.** Not a defect: `fn_exam_pick_agent` walks 207 distinct `agent_knowledge.agent_key` values at ~6 exams a day and started 26 July, so it is still on its first pass. Only 66 of those 207 keys are employees; the rest are `cat:` specialists with no workspace |
+| `time-machine-restores-six-dimensions` | 5 of 6 on all 13 snapshots; `customers` first appears on the **2026-08-09** snapshot and is written nightly now, so the 14-day universal completes ~**24 Aug**. Nothing to build |
+| `s39-governance-six-monitors` | 5 of 6 at 06:22; the sixth (`regulatory changes`) fires at 06:40 |
+
+### End-of-session sweep, 10 Aug ~07:00 UTC
+
+| checked | found |
+|---|---|
+| GitHub Actions, 12 most recent runs | all `success`, **no zero-step job** (a zero-step job means quota, never code) |
+| Vercel deployments | 20 listed, **all READY**, including this branch's preview at 06:27 |
+| Vercel runtime errors, 24h | **none** |
+| Production `cron.job_run_details`, 24h | **0 failed runs** |
+| Production `agent_runs` errors, 24h | 27, and **both causes are already closed**: `match_eval` at 05:00 (fixed at 05:16, ok since) and `resilience_watch`, whose 26 errors all predate 2026-08-09 10:50 and whose last 118 runs are `ok` — *read the dates before treating a rolling window as live* |
+| Production security advisors | 628 lints, **0 ERROR**. 442 INFO `rls_enabled_no_policy`, 69 + 67→**58** secdef-executable, 47 `function_search_path_mutable`, 3 `extension_in_public` |
+| Production performance advisors | 171 lints, **0 ERROR** — 85 unindexed FKs, 70 unused indexes, 13 `auth_rls_initplan` |
+| Staging `cron.job_run_details` + `agent_runs`, 24h | **0 failed runs, 0 errors** |
+
+The evolution scan's *"resilience_watch failed 182 times in the last 7 days"* is the same rolling
+window and is not a live failure.
+
+### `correctness` is a clock, not a missing grader — checked before calling it blocked
+
+`fn_reputation_recompute` reads `correctness` from `outcome_record.verdict`, and all **66** rows read
+`pending` with **0 observed**, which looks exactly like a grader nobody wrote. It is not.
+`fn_outcome_evaluate` exists, `outcome_evaluate_daily` is active on `30 3 * * *`, and **not one
+outcome is due yet**: the earliest `due_at` is **2026-08-11 17:25** and the latest is 14 September.
+The oldest record was created 28 July with a 14-day measurement window.
+
+So `correctness` starts filling from **12 Aug** with no code change, and `s32` is short of six
+dimensions for a different reason — there is no decision-quality column at all, and cost_efficiency
+only exists for the handful of employees that spend on models. Do not build a grader; one is already
+scheduled and waiting for its first measurement window to close.
+
+### The four new emitters raised the public-exposure number, and it was put back
+
+Postgres grants EXECUTE to PUBLIC on every new function, so the four SECURITY DEFINER trigger
+functions took production's `anon_security_definer_function_executable` from **63 to 67** — the one
+figure in the daily security alert that is genuinely about public exposure, and the one left for the
+founder to work through caller by caller. Caught in the advisor sweep in the same session and
+revoked from `public, anon, authenticated` on both projects; `has_function_privilege` now returns
+false for all four, and the emitters were **re-probed after the revoke** and still fire
+(customer=1 competitor=1 campaign=1), because a trigger function runs as the table owner.
+**Any new SECURITY DEFINER function adds one to that count unless the grant is revoked.**
+
+### The 63 anon-executable SECURITY DEFINER functions, triaged instead of counted
+
+Every one of the 63 was checked against the Next.js source and the edge functions rather than
+revoked blind, because revoking blind is what breaks product surfaces:
+
+| bucket | n | what the evidence says |
+|---|---|---|
+| **BROWSER** | 7 | named in `src/` — `fn_customer_preference_learn`, `fn_os_memory`, `fn_supplier_document_impact`, `fn_supplier_knowledge_graph`, `fn_supplier_opportunities`, `fn_supplier_quote_recommend`, `fn_supplier_twin`. Real supplier-portal and OS-shell surfaces. **Left alone** |
+| **TRIGGER** | 5 | return type `trigger`; nothing calls them by name in any language — `fn_approval_raise_on_award`, `fn_org_task_cross_os_guard`, `fn_po_orders_link`, `trg_company_event_dispatch`, `trg_learn_customer_preference`. **Revoked on both projects** |
+| **INTERNAL** | 51 | not named anywhere in `src/`. The ones with edge references are called with the service role; the rest are cron- and database-only. Each still needs one look, so they were not touched |
+
+**Production `anon_security_definer_function_executable` 63 → 58**, verified by
+`has_function_privilege`, with `trg_company_event_dispatch` re-probed afterwards: an insert into
+`company_event` still runs the dispatch trigger without error.
+
+**Then the BROWSER bucket turned out to be wrong, and the answer is much stronger than 58.** All
+seven "browser" matches are **comments**, not calls — each component names the routine in a comment
+explaining where its data comes from. Measured across the whole frontend:
+
+```
+.rpc(            in src/   0 occurrences
+rest/v1/rpc      in src/   0 occurrences
+app/ or pages/ outside src/   none — src/ IS the whole frontend
+os_api / supplier_api / customer_api / messages_api
+                           service-role key only, 0 anon or publishable key references
+```
+
+**Nothing in the browser calls any Postgres function directly.** Every routine reaches a screen
+through an edge function holding the service role, so `anon` and `authenticated` need EXECUTE on
+none of the 58.
+
+**Not revoked, and this is the escalation, not caution.** PostgREST is publicly exposed, so an
+external integration could be calling `/rest/v1/rpc/<fn>` with the anon key from outside this
+repository — and whether one is is a fact only the founder holds, which is the escalation category
+they defined. The repository-side pass they asked for is done and the answer is unambiguous. If no
+external system calls production's PostgREST RPC endpoints, this closes it:
+
+```sql
+do $$ declare f record; begin
+  for f in select p.oid::regprocedure sig from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+            where n.nspname='public' and p.prosecdef and p.prokind in ('f','p')
+              and has_function_privilege('anon', p.oid, 'execute')
+  loop execute format('revoke execute on function %s from public, anon, authenticated', f.sig); end loop;
+end $$;
+```
+
+### The IT employee's URGENT incident is a misreading, five escalations deep
+
+`agent_actions` holds **82 `needs_review` handoffs**, oldest 24 July, **none completed since 25
+June** (7 done, all 25 June). All 82 titles are distinct, so this is not the `licence_expiring`
+duplicate storm — it is the same question re-asked with a louder title because nobody answers.
+`it` alone holds 28 and escalated one incident five times in three days:
+
+> *"URGENT: event-bus retry loop is unbounded"* · *"Systemic Ingress Failure — review.step
+> duplicate storm on timestamp 01:41:05.615334"* · *"(2nd escalation) … 18 duplicate review.step
+> rows, hard-stop not applied"*
+
+**Measured: there is no duplicate storm.** The two clusters it names are
+`2026-08-06 03:59:05.598967` with 150 rows and **150 distinct `entity_id`s**, and
+`2026-07-27 01:41:05.615334` with 20 rows and **20 distinct `entity_id`s** — batch inserts sharing
+one transaction timestamp, not duplicates. Over 7 days every `company_event` type has
+`count(distinct (entity_type, entity_id, occurred_at)) = count(*)`. The bug is the handoff queue
+having no consumer, which is what turned one wrong reading into five founder-facing escalations.
+
+**Root cause located, deliberately NOT fixed today.** `agent_brain` writes the handoff
+(`agent_actions`, `kind:'handoff'`, `status:'pending'`, which `trg_action_gate` rewrites to
+`needs_review`) and **`fn_agent_context` never mentions `handoff`** — measured, not read. So the
+receiving employee's own context contains no trace of what was handed to it: a handoff is a message
+with no inbox. The fix is an inbox — the agent's open handoffs, capped, inside the context every
+employee reasons from. It was not made in this session on purpose: `fn_agent_context` is 31 KB and
+feeds every AI call in the company, `agent_brain` is **93% of the OpenRouter spend** with about
+three days of balance left, and there were twenty-five minutes before the closing measurement.
+Changing the most central and most expensive routine on production without room to verify it is how
+a session breaks the company. **This is the first build order for the next session.**
 
 ---
 

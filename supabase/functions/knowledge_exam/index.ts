@@ -127,7 +127,21 @@ Deno.serve(async (req) => {
       examined++;
       if (isGap) gaps++;
       if (isGap && fact && conv && (isFinite(conf) ? conf >= 0.7 : true) && lintClean(fact)) {
-        const { data: kins } = await admin.from('agent_knowledge').insert({ agent_key: key, topic: 'exam:' + String(q.topic || 'general'), content: fact.slice(0, 1000), priority: 6, layer: 'profession' }).select('id').maybeSingle();
+        // 10 Aug 2026: this row IS validated and was being filed as if it were not. It only exists
+        // because two independently-prompted models converged on the same fact AND it passed the
+        // policy lint AND the grader's own confidence was >= 0.7 — a harder bar than anything the
+        // 292 'author_verified' rows from July ever cleared. Writing it as 'unvalidated' with a
+        // null confidence made the only working validator in the estate invisible, which is why
+        // learning_speed had to be nulled for everyone. The confidence stored is the grader's real
+        // number, never a constant. review_due follows the 90-day policy already on 1,783 rows.
+        const { data: kins } = await admin.from('agent_knowledge').insert({
+          agent_key: key, topic: 'exam:' + String(q.topic || 'general'), content: fact.slice(0, 1000),
+          priority: 6, layer: 'profession',
+          validation_status: 'author_verified',
+          confidence: isFinite(conf) ? conf : null,
+          source_ref: 'knowledge_exam:q' + q.id,
+          review_due: new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10),
+        }).select('id').maybeSingle();
         knowledgeId = (kins as any)?.id ?? null; didFill = !!knowledgeId; if (didFill) filled++;
       } else if (isGap && fact && !conv) { conflicts++; }
       await admin.from('knowledge_exam_results').insert({ agent_key: key, question_id: q.id, examinee_answer: (answers[i] || '').slice(0, 1000), verdict, grader_answer: String(g.correct_answer || '').slice(0, 1000), grader_confidence: isFinite(conf) ? conf : null, converged: conv, gap_fact: isGap ? fact.slice(0, 1000) : null, filled: didFill, knowledge_id: knowledgeId });
