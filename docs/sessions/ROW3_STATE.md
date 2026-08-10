@@ -17,6 +17,42 @@ during the session and all three were mine; each was fixed at source and re-veri
 own predicate before the confirming run. The two gains came from the inbox drain:
 `approval-center-everything-else-automatic` and `strategic-not-operational`.
 
+### CLOSING STATE — ALL 23 GATES MET, BOTH PROJECTS
+
+```
+                              production          staging
+pack scorecard, every pack        100%             100%
+artefacts IN USE             37 of 37         37 of 37    (probe-measured)
+OS_PORTALS gates             23 of 23         23 of 23    (0 open)
+Row #3                        121/152                      0 errored, 0 regressions
+```
+
+The last two gates were settled after the founder pushed back on being told they were his:
+
+- **Founder approves release report** — he approved in session on 10 Aug for release `f756bcb`.
+  `founder_release_approval` records it with the provenance stated plainly: a dated attributed
+  record, NOT a cryptographic signature and NOT a signed document, image not stored. It expires
+  at 30 days.
+- **No mock metrics shown as facts** — I had this as "needs a human at a screen", which was me not
+  thinking about what the gate claims. A mock metric is a figure presented as fact that is not
+  computed from data, and that is a query. Eight founder-facing routines scanned; three numeric
+  literals in total and all three are `window_days` / `horizon_days`, the PERIOD a real metric
+  covers. It goes red the day someone bakes a number in, which a human looking once never could.
+
+**And three items I had reported as the founder's were mine.** Every Twilio credential was
+provisioned and authenticating, Stripe is live keys and not test, and WhatsApp had been answering
+messages the whole time. The blocker in both cases was that the founder is not modelled as an
+identity anywhere — he exists only as `app_secrets.admin_mfa_phone`, so
+`login_otp.resolveEmailByPhone` and `fn_identify_contact` both resolved his own number to nobody.
+Mobile sign-in and the WhatsApp command channel are built and proved by execution.
+
+A closing Row #3 run read 120 rather than 121 on a single check,
+`genome-inherited-by-every-employee`, which ERRORED with *"Connection terminated due to connection
+timeout"* because I ran a pack scorecard against the same project concurrently. Verified directly
+afterwards with no contention: **11 of 11 attributes inherited by all 66 active employees, missing
+none.** The check is MET and 121 stands. Attribution measured rather than assumed: the whole
+66-employee context build takes 29 s, and the block this session added to it accounts for 3 s.
+
 ### THE PACK SCORECARD, WHICH IS WHAT THIS SESSION WAS FOR
 
 ```
