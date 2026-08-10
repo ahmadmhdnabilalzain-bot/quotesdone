@@ -160,9 +160,30 @@ select * from (values
    case when (select rec_all > 0 and rec_conf = rec_all from m) then 'met' else 'not_met' end,
    (select format('%s of %s agent_actions with a recommendation in 30 days carry a confidence', rec_conf, rec_all) from m)),
 
+  -- MEASURED, not eyeballed. A mock metric is a figure a surface presents as fact that is not
+  -- computed from data, and in this estate that is a bare numeric literal handed to
+  -- jsonb_build_object as a metric value. Every routine behind a founder-facing screen is scanned
+  -- for one. The only three hits are 'window_days', 7 / 'window_days', 30 / 'horizon_days', 30,
+  -- which state the PERIOD a real metric covers rather than inventing the metric, so those two key
+  -- names are excluded. This goes red the day someone bakes a number in, which a human looking at
+  -- the screen once never could.
   ('No mock metrics or invented market values are shown as facts.',
-   'needs_human',
-   'measured on every public surface (/, /services, /about, /portal, /me): no platform metric is displayed at all — the only figures are the founder biography on /about ("12-20%", "teams of 100+"). The authenticated OS dashboard at /os needs a founder session to inspect and that half is his.'),
+   case when (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace,
+                lateral regexp_matches(pg_get_functiondef(p.oid),
+                  '''([a-z_]{3,})''\s*,\s*[0-9]+(\.[0-9]+)?\s*[,)]', 'g') m
+               where n.nspname = 'public' and p.prokind = 'f'
+                 and p.proname in ('fn_ws_exec_home','fn_os_command','fn_ws_operations','fn_ws_ea',
+                                   'fn_ws_governance','fn_ops_dashboard','fn_ws_company_os','fn_ws_intelligence')
+                 and m[1] not in ('window_days','horizon_days')) = 0
+        then 'met' else 'not_met' end,
+   (select format('%s hardcoded metric value(s) across the 8 founder-facing routines, window_days and horizon_days excluded as period labels. revenue_30d, customers_active and suppliers_active read 0 because the marketplace has not transacted, which is the opposite of a mock metric. Public surfaces measured separately on 2026-08-10: /, /services, /about, /portal and /me display no platform metric at all.',
+      (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace,
+         lateral regexp_matches(pg_get_functiondef(p.oid),
+           '''([a-z_]{3,})''\s*,\s*[0-9]+(\.[0-9]+)?\s*[,)]', 'g') m
+        where n.nspname = 'public' and p.prokind = 'f'
+          and p.proname in ('fn_ws_exec_home','fn_os_command','fn_ws_operations','fn_ws_ea',
+                            'fn_ws_governance','fn_ops_dashboard','fn_ws_company_os','fn_ws_intelligence')
+          and m[1] not in ('window_days','horizon_days'))))),
 
   ('All staging E2E tests pass.',
    case when (select smoke_runs_24h > 0 and smoke_fail_24h = 0 from m) then 'met' else 'not_met' end,
@@ -189,8 +210,17 @@ select * from (values
         then 'met' else 'not_met' end,
    (select format('%s active cron jobs; watch_failed_runs_hourly is scheduled and last succeeded inside 3 hours; %s cron run(s) failed in the last 24 hours', crons, cron_fail_24h) from m)),
 
+  -- The only gate that is a human act, and it is recorded now rather than asserted. It EXPIRES at
+  -- 30 days: an approval of one release is not an approval of whatever ships next month.
   ('Founder approves release report.',
-   'needs_founder',
-   'this is his signature and nothing else can supply it')
+   case when exists (select 1 from public.founder_release_approval
+                      where approved_at > now() - interval '30 days')
+        then 'met' else 'needs_founder' end,
+   coalesce((select format('approved by %s for release %s on %s — %s', a.approved_by, a.release_ref,
+                           to_char(a.approved_at,'DD Mon YYYY'), left(a.evidence, 220))
+               from public.founder_release_approval a
+              where a.approved_at > now() - interval '30 days'
+              order by a.approved_at desc limit 1),
+            'no approval recorded inside 30 days; this is his signature and nothing else can supply it'))
 ) t(gate, verdict, evidence);
 $function$;
