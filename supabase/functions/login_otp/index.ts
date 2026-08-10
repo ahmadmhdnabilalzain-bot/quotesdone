@@ -67,7 +67,21 @@ function wrapCode(code: string) { const logo = 'https://htdblwldjkcgjvmqkbeh.sup
 async function uidByEmail(email: string): Promise<string | null> { try { const { data } = await admin.rpc('auth_uid_by_email', { p_email: email }); return (data as string) || null; } catch { return null; } }
 async function ensureUser(email: string) { let uid = await uidByEmail(email); if (!uid) { const cr = await admin.auth.admin.createUser({ email, email_confirm: true, password: crypto.randomUUID() }); uid = cr.data?.user?.id || null; } return uid; }
 async function mintSession(email: string): Promise<{ access_token: string; refresh_token: string } | null> { try { await ensureUser(email); const { data } = await admin.auth.admin.generateLink({ type: 'magiclink', email }); const th = (data as any)?.properties?.hashed_token; if (!th) return null; const { data: v, error } = await admin.auth.verifyOtp({ type: 'email', token_hash: th } as any); if (error || !v?.session) return null; return { access_token: v.session.access_token, refresh_token: v.session.refresh_token }; } catch { return null; } }
-async function resolveEmailByPhone(kind: string, e164: string): Promise<string | null> { const last9 = e164.slice(-9); if (kind === 'supplier') { const { data } = await admin.from('leads').select('claimed_by,phone').not('claimed_by', 'is', null).ilike('phone', '%' + last9).limit(1); return (data && data[0] && (data[0] as any).claimed_by) || null; } const { data } = await admin.from('customers').select('email,phone').ilike('phone', '%' + last9).limit(1); return (data && data[0] && (data[0] as any).email) || null; }
+// THE FOUNDER IS NEITHER A SUPPLIER NOR A CUSTOMER, which is why mobile sign-in could not reach
+// him. This resolver knew two kinds — 'supplier' (leads.claimed_by) and 'customer'
+// (customers.email) — and his number lives in app_secrets.admin_mfa_phone while `customers` holds
+// no row for him at all. Every Twilio credential was provisioned and authenticating (Verify
+// service "QuotesDone", HTTP 200), and the OS sign-in still emailed a code, because the phone
+// could not be turned into an account. Checked FIRST and on the last nine digits like the other
+// two branches, so +971 50 931 9355 and 0509319355 both land.
+async function resolveAdminEmailByPhone(e164: string): Promise<string | null> {
+  const admins = (await sec('admin_mfa_phone') || '').split(',').map((s) => s.replace(/\D/g, '')).filter((s) => s.length >= 9);
+  const last9 = e164.replace(/\D/g, '').slice(-9);
+  if (!admins.some((a) => a.slice(-9) === last9)) return null;
+  const first = (await sec('admin_emails') || '').split(',')[0]?.trim().toLowerCase();
+  return first || null;
+}
+async function resolveEmailByPhone(kind: string, e164: string): Promise<string | null> { const adminEmail = await resolveAdminEmailByPhone(e164); if (adminEmail) return adminEmail; const last9 = e164.slice(-9); if (kind === 'supplier') { const { data } = await admin.from('leads').select('claimed_by,phone').not('claimed_by', 'is', null).ilike('phone', '%' + last9).limit(1); return (data && data[0] && (data[0] as any).claimed_by) || null; } const { data } = await admin.from('customers').select('email,phone').ilike('phone', '%' + last9).limit(1); return (data && data[0] && (data[0] as any).email) || null; }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
