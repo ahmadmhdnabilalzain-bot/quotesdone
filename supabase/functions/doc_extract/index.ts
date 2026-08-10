@@ -100,11 +100,26 @@ Deno.serve(async (req)=>{
   if(!apiKey) { await logThrottled('no_openrouter_key',60,'error',{stage:'config'},'cred_fn_ai is missing from app_secrets, so doc_extract cannot reach ai_gateway to call the extraction model; every uploaded supplier document is stuck pending and none of their specs, brands or certifications reach the knowledge base.'); return j({error:'no_openrouter_key'},500); }
 
   // pick a document: explicit id, or next pending (batch drainer passes nothing)
+  //
+  // THE RETRY BUDGET COULD NEVER BE SPENT (10 Aug 2026). This selector read status='pending' and
+  // lt('attempts',3) — but a failure below writes status='error', and NOTHING ever returns a row to
+  // 'pending'. So `attempts < 3` was a dead guard: the first failure was permanent, and a document
+  // stayed broken even after the bug that broke it had been fixed.
+  //
+  // Measured: document 10, a real 105,843-byte PNG floorplan that is present in storage, has sat at
+  // status='error' / 'Error: extraction_null' / attempts=1 since 2026-07-15. It failed because
+  // ai_gateway was then capped at max:2000 by this function's own caller-supplied ceiling; that was
+  // removed weeks ago and the task class now allows 8000. The document was never retried, so it is
+  // still the single row keeping s26-verify-documentation at 7 of 8.
+  //
+  // 'error' rejoins the queue while it still has budget. 'skipped' deliberately does NOT — that is a
+  // terminal decision the code makes on purpose (unsupported mime, scanned PDF with no OCR text),
+  // and retrying it would just burn extraction cost on the same refusal every five minutes.
   let doc:any=null;
   if(body.document_id){
     const { data } = await sb.from('documents').select('*').eq('id',body.document_id).maybeSingle(); doc=data;
   } else {
-    const { data } = await sb.from('documents').select('*').eq('status','pending').lt('attempts',3).order('id').limit(1); doc=(data||[])[0];
+    const { data } = await sb.from('documents').select('*').in('status',['pending','error']).lt('attempts',3).order('id').limit(1); doc=(data||[])[0];
   }
   if(!doc) return j({ok:true,note:'no pending documents'});
 
