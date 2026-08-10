@@ -74,6 +74,22 @@ false for all four, and the emitters were **re-probed after the revoke** and sti
 (customer=1 competitor=1 campaign=1), because a trigger function runs as the table owner.
 **Any new SECURITY DEFINER function adds one to that count unless the grant is revoked.**
 
+### The 63 anon-executable SECURITY DEFINER functions, triaged instead of counted
+
+Every one of the 63 was checked against the Next.js source and the edge functions rather than
+revoked blind, because revoking blind is what breaks product surfaces:
+
+| bucket | n | what the evidence says |
+|---|---|---|
+| **BROWSER** | 7 | named in `src/` — `fn_customer_preference_learn`, `fn_os_memory`, `fn_supplier_document_impact`, `fn_supplier_knowledge_graph`, `fn_supplier_opportunities`, `fn_supplier_quote_recommend`, `fn_supplier_twin`. Real supplier-portal and OS-shell surfaces. **Left alone** |
+| **TRIGGER** | 5 | return type `trigger`; nothing calls them by name in any language — `fn_approval_raise_on_award`, `fn_org_task_cross_os_guard`, `fn_po_orders_link`, `trg_company_event_dispatch`, `trg_learn_customer_preference`. **Revoked on both projects** |
+| **INTERNAL** | 51 | not named anywhere in `src/`. The ones with edge references are called with the service role; the rest are cron- and database-only. Each still needs one look, so they were not touched |
+
+**Production `anon_security_definer_function_executable` 63 → 58**, verified by
+`has_function_privilege`, with `trg_company_event_dispatch` re-probed afterwards: an insert into
+`company_event` still runs the dispatch trigger without error. The remaining 51 are a reviewable
+list now rather than a bare number.
+
 ### The IT employee's URGENT incident is a misreading, five escalations deep
 
 `agent_actions` holds **82 `needs_review` handoffs**, oldest 24 July, **none completed since 25
