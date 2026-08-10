@@ -179,6 +179,41 @@ is a refusal log, not an access log; absence there is not absence of traffic.
 - **`time-machine-scrub`** needs a six-month-old snapshot and `company_snapshot_daily` has 12 runs.
   Only time closes it.
 
+#### Found after the first three PRs, mostly by the end-of-session sweep
+
+- **`s21-no-polling` was a real defect, not a converging clock — FIXED.** This document said delivery
+  went "to 0s measured" and "the 7-day median converges". The median was 543 / 553 / 557 / **561s**
+  across 6–9 Aug: flat. Only **21 of 508 deliveries (4%)** were sub-5s. Two suspects were cleared by
+  experiment rather than by reading — `FOR EACH STATEMENT` is fine, because `fn_event_dispatch`
+  sweeps instead of reading `NEW` (two rows in one statement both delivered). The defect was the
+  argument: `fn_event_dispatch(1)` is **`p_lookback_minutes`**, so any event whose `occurred_at` was
+  more than sixty seconds old was invisible inline and waited for the 15-minute cron. Probe on
+  staging: `now()` → delivered, `now() - 5 min` → **zero**. Now 20 minutes, which exceeds the
+  poller's own interval. Flips ~13–16 Aug when instant deliveries are the majority of the window.
+- **`explain-knowledge-used` is a THIRTEENTH clock-bound check the brief never listed.** The
+  `sources` fix landed on 6 Aug: gate decisions are 100% cited since 7 Aug (29/29, 61/61, 70/70) and
+  0% before. It flips ~13 Aug on its own. Every one of the 108 uncited rows is `kind='action_gate'`.
+- **The unmatched-inquiry watchdog forgot after 24 hours — FIXED.** `resilience_watch` was the only
+  agent erroring on production, 65 times, and stopped dead at 09-08 10:40. Nothing was fixed: the
+  check read `between now()-24h and now()-6h`, a BAND, and the inquiries created 08-08 10:40 simply
+  crossed the far edge. It also counted fixtures. Both corrected, in opposite directions.
+- **THE SEVEN INQUIRIES ARE DEMO FIXTURES.** All 7 carry `brief_source='qd_demo_fixture'` and are
+  seeded "ZZ DEMO" briefs. This document and the part-4 brief both treat them as real demand waiting
+  on a buyer. **The company has had ZERO real inquiries, not seven**, and live matching has never
+  been exercised — `match_eval`'s 100%/100% is a synthetic benchmark against its own seeded
+  suppliers.
+- **`agent_brain` is 93% of all AI spend and runs as ONE employee.** 381 calls over 4 days, **AED
+  51.08 (~AED 383/month)**, 14,110 prompt tokens each — and `agent_key` is `ceo` on every single one.
+  Daily AI cost went from ~AED 0.5 to ~AED 13 on 6 Aug when this started. This document says "one
+  employee an hour does not reach" the 66-of-66 universals; the mechanism is not rotating at all, so
+  those five checks will never be fed by it however long it runs. No cron calls it — the credential
+  trail points at `cos_execute`.
+- Two other routines use a `between now()-x and now()-y` band (`fn_founder_brief` 60→30d,
+  `fn_ceo_questions` 14→7d) and both are legitimate prior-period comparisons, not alerts. No active
+  daily cron has failed to run in 30 hours.
+- The genome block costs ~425 prompt tokens per `fn_agent_context` call, about **+4% of prompt
+  tokens, ~AED 0.5/day**. Measured, not assumed.
+
 ---
 
 ## 1. THE SHAPE OF THE WHOLE ROW, IN ONE SENTENCE
