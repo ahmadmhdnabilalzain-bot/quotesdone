@@ -161,6 +161,33 @@ subscription look alive. It needs a real detector.
 The evolution scan's *"resilience_watch failed 182 times in the last 7 days"* is the same rolling
 window and is not a live failure.
 
+### THE BRAIN RUNS SECONDS FROM ITS TIMEOUT AND EVERY MISS WAS LOGGED AS SUCCESS
+
+Found while verifying the handoff inbox, and it is the most consequential measurement of the day.
+`agent_brain` over 7 days on production:
+
+```
+calls                425        distinct employees      6   (of 66)
+avg prompt tokens 13,947        max prompt tokens  33,203
+calls over 45s        28        outright failures       7
+```
+
+**28 calls in 7 days ran within ten seconds of the timeout, 7 returned nothing — and every one of
+those 425 wrote `agent_runs.status = 'ok'`.** `it`'s single prior success took **53,139 ms**. There
+was no signal anywhere that the company's reasoning loop was operating on that margin.
+
+It is now recorded truthfully (`status: 'error'`, with the prompt size in `counts`), which matters
+beyond the log: `fn_evolution_scan`'s `repeated_failure` trigger fires at three or more errors in
+seven days, so the estate will now raise its own proposal about this instead of a session having to
+notice it. **No context cap was imposed** — trimming what an employee knows is a quality decision
+with a founder-visible consequence, and the loop that surfaces it is now working. Let it report
+first.
+
+Employees are exercised hourly by `cos_execute_hourly` (`50 * * * *`), which is what reaches
+`agent_brain` — so the six agents that actually run will drain their handoff inboxes hourly from
+now. The other 60 do not run at all; 44 are dormant, which is the `audit_gap` proposal the evolution
+scan raised at 06:00.
+
 ### `correctness` is a clock, not a missing grader — checked before calling it blocked
 
 `fn_reputation_recompute` reads `correctness` from `outcome_record.verdict`, and all **66** rows read
