@@ -155,10 +155,25 @@ item('config', 'every active registry model has an AED rate', !rate.missing,
 // 2. the missing task class.
 const drv = await one(`select coalesce((select task_class from public.fn_task_class
                                          where fn='drawing_redact_verify'),'ABSENT') as tc`);
-item('config', 'fn_task_class has a row for drawing_redact_verify', drv.tc !== 'ABSENT',
+// THIS ASSERTED EXISTENCE AND PASSED ON THE ONE VALUE ITS OWN REMEDIATION FORBIDS (9 Aug 2026).
+// The gate read `drv.tc !== 'ABSENT'`, so ANY mapping satisfied it. Measured on production today:
+// the row exists and says **document_extraction**, which model_policy resolves to
+// google/gemini-3.5-flash — and the fix text printed a dozen lines below says, from a measurement
+// on staging that took the journey 37/37 -> 35/37, that this function cannot parse that model's
+// output, fails closed, and publishes NO redacted page. So the gate reported APPLIED over exactly
+// the configuration it exists to prevent, and would have gone on doing so forever.
+//
+// A check that passes by accident is worse than one that fails. It now asserts the VALUE.
+// Currently latent rather than firing: 2 drawings on file and 0 inquiries carrying a
+// drawing_redacted_paths, so no redaction has been attempted on real work yet. Redaction is the
+// supplier-anonymity mechanism this marketplace is built on, so it should be right before traffic
+// arrives, not after.
+const drvBad = drv.tc === 'document_extraction';
+item('config', 'drawing_redact_verify routes to a model it can parse', drv.tc !== 'ABSENT' && !drvBad,
   drv.tc === 'ABSENT' ? `ABSENT — fn_ai_route reports UNMAPPED and falls through to general_drafting. It happens to work there, but nobody chose it`
+    : drvBad ? `document_extraction — resolves to google/gemini-3.5-flash, whose output this function cannot parse. It fails closed and publishes NO redacted page`
                       : `${drv.tc}`,
-  drv.tc === 'ABSENT' ? `-- general_drafting, NOT document_extraction. Mapping it to document_extraction to match\n` +
+  (drv.tc === 'ABSENT' || drvBad) ? `-- general_drafting, NOT document_extraction. Mapping it to document_extraction to match\n` +
     `-- its siblings drawing_redact/drawing_boq was applied in staging and took the journey from\n` +
     `-- 37/37 to 35/37: that class resolves to google/gemini-3.5-flash, whose output this function\n` +
     `-- cannot parse. It then fails closed and publishes NO redacted page. Until the parser is\n` +
