@@ -161,6 +161,32 @@ subscription look alive. It needs a real detector.
 The evolution scan's *"resilience_watch failed 182 times in the last 7 days"* is the same rolling
 window and is not a live failure.
 
+### THE BIGGEST SINGLE BLOCKER LEFT IS THAT THE WORKFORCE DOES NOT WORK
+
+Several of the remaining 32 are per-employee UNIVERSALS over all 66 active employees. Measured
+10 Aug:
+
+```
+active employees                                  66
+no agent_runs row in 30 days                      56
+no agent_memory row in 30 days                    44
+fewer than two dated exam results                 66
+employees reaching agent_brain at all in 7 days    6
+```
+
+`employee-current-thoughts` needs an `agent_memory` row for **every** active employee — 44 have none.
+`employee-performance-trend` needs two observations each — 12 of 66 have them.
+`employee-learning-progress` needs two dated exam results each — nobody has them, because the exam
+walks 207 `agent_knowledge` keys at six a day and started 26 July, so it is still on its first pass.
+`employee-knowledge-used` needs every decider to have a knowledge-usage record.
+
+**No code change satisfies any of these.** They are all the same fact: 56 of 66 employees have not
+run in a month, so there is nothing to render, trend or grade. Fabricating a thought or a run for a
+dormant employee is exactly what a scorecard exists to catch. This is the one decision that unblocks
+several checks at once, and the company raised it itself at 06:00 this morning — the `audit_gap`
+proposal that asks, for each dormant role, whether nothing routes to it or the role is not needed.
+It is also why 43 of the 85 open handoffs are stranded.
+
 ### REPUTATION CAN TAKE AUTHORITY AWAY AND HAS NO WAY TO GIVE IT BACK — FOUNDER DECISION
 
 `reputation_weekly` ran on production at **07:00 and confirmed session 5's fix by execution:
