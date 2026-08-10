@@ -104,6 +104,7 @@ Backfilling opinions onto them would be inventing advice that was never given.
 
 ```
                               production          staging
+Row #3                        121/152                      COMPLETE run, 0 errored, 0 regressions
 pack scorecard, every pack        100%             100%
 artefacts IN USE             37 of 37         37 of 37     probe-measured
 OS_PORTALS gates             23 met            23 met      0 not_met, 0 open
@@ -111,6 +112,14 @@ anon-executable SECURITY DEFINER    56                     unmoved; both new fun
 pending agent_actions        82 -> 30                      24 founder-held + 6 escalated with reasons
 kb_chunks embedded      21,192 of 120,400                  17.6%, ~132/min, free in-region gte-small
 ```
+
+**Row #3 is 121/152 on a COMPLETE run — 152 checks ran, 0 errored, no section short of its declared
+count — and the 31 NOT MET are the SAME 31, name for name, that part 9 closed with.** Zero
+regressions and zero gains. The two things built this session cannot move a check by construction:
+`s24` is a 30-day universal over decisions already taken without a board, and the queue the
+addressee fix unblocked feeds a check that was already MET. That one did move underneath, and by a
+lot — `approval-center-everything-else-automatic` reads **53 of 1,279 (4.1%)** against a 10% bar,
+where the part-9 mid-session measurement was 204 of 1,269 (16.1%). The margin, not the verdict.
 
 Three daily crons — `kb_corpus_integrity_daily` 03:40, `model_catalog_drift_daily` 03:50,
 `tool_readiness_daily` 03:55 — still have **no scheduled run**, because their first one is at 03:40
