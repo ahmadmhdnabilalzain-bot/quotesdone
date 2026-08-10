@@ -229,7 +229,30 @@ one transaction timestamp, not duplicates. Over 7 days every `company_event` typ
 `count(distinct (entity_type, entity_id, occurred_at)) = count(*)`. The bug is the handoff queue
 having no consumer, which is what turned one wrong reading into five founder-facing escalations.
 
-**Root cause located, deliberately NOT fixed today.** `agent_brain` writes the handoff
+**FIXED AFTER THE CLOSING MEASUREMENT, and it cost two failures to get right.** `fn_agent_handoff_inbox`
+lists the three oldest open handoffs in the employee's own context; `fn_handoff_answer` closes one
+and posts the reply back to the **asker** as an `agent_memory` row, which `fn_agent_context` already
+surfaces — that is the half that was missing, because before this, answering a handoff reached
+nobody. It refuses an empty answer, a handoff addressed to a different agent, and a second close of
+a decided row; all three refusals verified alongside the success path in an aborted transaction.
+
+Executed on production for `it`: **HTTP 200, open handoffs 29 → 26, done 7 → 10, three askers
+notified**, with answers of 509–797 characters — and #1748 correctly refusing rather than inventing:
+*"Blocked: this needs the live project region setting, which is not in my telemetry snapshot."*
+**The first handoff completed since 25 June.**
+
+**Both failures are kept in the record.** The first inbox emitted five items at 300 characters each —
+2,082 characters for `it` — and agent_brain then **timed out twice at ~56s**. Measured cause: `it`'s
+only prior successful call, at 01:51 that morning and **before** the change, already took
+**53,139 ms** on a 30,821-token prompt. It had been three seconds from the cliff on its own and 1.7%
+more prompt pushed it over. Inbox trimmed to three items and 110 characters: 2,082 → **678**.
+
+And nothing said so, which is the second defect: an empty model return produced the apology text
+**and an `agent_runs` row reading `status: 'ok'`** — the same silent failure `exec_agents` was fixed
+for in session 2. A turn where the model returns nothing now records `status: 'error'` with the
+prompt size, and no longer stores the apology as the employee's current reasoning.
+
+**Historical note — the original diagnosis.** `agent_brain` writes the handoff
 (`agent_actions`, `kind:'handoff'`, `status:'pending'`, which `trg_action_gate` rewrites to
 `needs_review`) and **`fn_agent_context` never mentions `handoff`** — measured, not read. So the
 receiving employee's own context contains no trace of what was handed to it: a handoff is a message
@@ -238,7 +261,9 @@ employee reasons from. It was not made in this session on purpose: `fn_agent_con
 feeds every AI call in the company, `agent_brain` is **93% of the OpenRouter spend** with about
 three days of balance left, and there were twenty-five minutes before the closing measurement.
 Changing the most central and most expensive routine on production without room to verify it is how
-a session breaks the company. **This is the first build order for the next session.**
+a session breaks the company — and the two timeouts above show the instinct was right. The fix that
+shipped avoids `fn_agent_context` entirely: `agent_brain` is the only place an employee both reasons
+AND can act, so the inbox lives there and the 31 KB routine every AI call depends on was not touched.
 
 ---
 
