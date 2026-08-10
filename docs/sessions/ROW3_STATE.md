@@ -5,6 +5,131 @@ Scorer: `scripts/staging/verify_os2_blueprint.mjs`, modules in `scripts/staging/
 
 ---
 
+## Session 9 (10 Aug 2026, opened 21:20 UTC / 11 Aug 01:20 Dubai) — THE IDENTITY DEFECT, FOURTH INSTANCE FOUND
+
+```
+select now() at time zone 'utc'  ->  2026-08-10 21:20:18   (Dubai 2026-08-11 01:20)
+cron.job_run_details, 12h        ->  2 job names with failures, BOTH already fixed before this
+                                     session opened: org_task_execute_sweep_hourly failed 14:45,
+                                     15:45, 16:45 and has succeeded every run since 17:45;
+                                     action_invoke_collect_5min failed once at 13:19 and has
+                                     succeeded 99 times since. Read the dates.
+```
+
+### THE SAME ROOT CAUSE, THIRD AND FOURTH INSTANCES
+
+**Third: the work queue.** 75 of 82 pending `agent_actions` were addressed to `knowledge_curator`,
+`strategy_ai`, `marketing_ai`, `reporting_ai`, `document_controller`, `legal_ai`, `security_ai`,
+`finance_ai`, `operations_ai`, `ai_trainer`, `customer_success`, `compliance` — and to four
+DEPARTMENT names, `evolution`, `intelligence`, `knowledge_eng`, `sales`. None is an `org_agents`
+row, so `fn_agent_action_work_sweep`'s join dropped every one, and `fn_agent_context` would have
+handed `action_worker` an empty brain even if the join had let them through.
+
+Decided rather than widened. These are not distinct jobs — `strategy_ai` is what this org already
+staffs as `strategy_director` — so twenty new employees for work sixty-five existing ones own would
+be inventing an org chart to satisfy a string. The keys map, the map is DATA (`org_agent_alias`),
+and the mapping happens at INSERT. **A trigger IS the writer-side fix**: 38 functions insert into
+`agent_actions`, and patching 38 leaves writer 39 free to invent `procurement_ai` next month.
+Resolution order is employee → alias → department head, the last a rule rather than fifteen rows so
+it survives restaffing. The name the writer used is kept in `detail.addressed_as`; an addressee that
+resolves to nobody goes to the Chief of Staff with `escalated = true` and the reason attached, which
+makes `approval-center-everything-else-automatic` HARDER rather than easier — an unaddressable
+action now counts as paused where before it sat pending for ever and looked the same.
+
+```
+probe, aborted transaction, BOTH projects
+  strategy_ai       -> strategy_director   addressed_as strategy_ai
+  knowledge_curator -> docs                addressed_as knowledge_curator
+  intelligence      -> intel_director      addressed_as intelligence          (department rule)
+  procurement_ai    -> brief               escalated, "not an employee and no alias maps it"
+  cfo               -> cfo                 untouched, the common case
+```
+
+**Fourth, found by sweeping rather than guessing.** Every `agent`/`agent_key` column in `public` was
+counted against `org_agents`. Five tables carry orphans and only two are defects:
+
+```
+agent_runs            17,111 of 19,667   NOT a defect — `agent` is the JOB name there
+                                         (uptime, smoke, kb_embed, cos_execute)
+ai_quality_snapshots     754 of 1,066    THE DEFECT
+agent_expectations        29 of 36       the same defect, deliberately not forced
+agent_actions            415 of 2,377    done rows, history, left alone
+model_policy_by_identity  80 of 120      pack TARGET departments against the live 15
+```
+
+754 quality snapshots score an employee under a name that is not an employee — 32 rows each for
+twelve invented roles. The Marketing Director's measured quality history EXISTS and is filed under
+someone who does not work here, so every per-employee quality view sees an empty series. Resolved
+through the same `fn_org_agent_resolve` at the write boundary and backfilled across ALL rows rather
+than only live ones, because a trend needs its past. Job names resolve to null and are left alone:
+that table scores subsystems too, and forcing those onto a person would be the mirror of the defect.
+**902 of 1,066 now attributed to a real employee, across 25 employees.**
+
+`agent_expectations` is left alone on purpose. Its primary key is `agent`, so `chief_of_staff` →
+`brief` collides with brief's own row — 23505, and the constraint is right to refuse. Two
+expectations for one employee is a MERGE, and which of the two states what is actually expected of
+the Chief of Staff is a judgement, not a rename. Recorded rather than forced.
+
+### THE QUEUE: 82 → 30, AND THE SIX THAT ARE NOT BACKLOG NOW SAY SO
+
+52 drained the moment the sweep could see them — `eligible_remaining 0`, 52 of 52 executions
+succeeded. Of the 30 left, **24 are the founder-held kinds** `action_worker` refuses by name. The
+other six were invisible: ordinary pending rows already carrying a deliverable, a `decided_by` and a
+reason buried in `detail`. Five were worked between 16:00 and 16:21 UTC and reopened by the part-9
+session — *"the deliverable is a real written analysis but it ends by ASKING for information rather
+than settling the item"* — and one (#2326) was refused by `action_worker` against its own reply:
+*"the reply is an apology, not a deliverable"*. Both are guards working. They are escalated with the
+reason on the row now; no status changed, nothing closed.
+
+They are also unreachable by the sweep and left that way: the idempotency guard excludes any action
+with an execution row of ANY status, so a reopened item cannot be re-swept. Re-running the same
+employee against the same question with the same context returns the same question and spends a
+model call doing it. A retry would need the key to carry a generation, which is a schema decision.
+
+### THE BOARD ACTUALLY ADVISES
+
+`s24-board-before-major-decisions` needed the decision path to INVOKE the board — a call form, not a
+mention. `fn_decide` now calls `fn_board_review(problem, decision_record_id)` before its final
+return, keyed on the record id rather than the subject text the scorer had to fall back on because
+`board_opinion.subject_ref` was null on all 28 rows. Guarded twice: only when a record was written,
+and an advisor that throws raises a warning instead of losing the decision. `fn_challenge` underneath
+is pure plpgsql, so no model call per decision. Probe on production, aborted: `decision_record` 46,
+**7 of 7** active advisors filed an opinion against that `subject_ref`.
+
+**The check stays NOT MET until ~9 Sept** — its second half is a 30-day universal over every
+`decision_record` in the window, and the ones already recorded were decided without a board.
+Backfilling opinions onto them would be inventing advice that was never given.
+
+### CLOSING MEASUREMENTS
+
+```
+                              production          staging
+Row #3                        121/152                      COMPLETE run, 0 errored, 0 regressions
+pack scorecard, every pack        100%             100%
+artefacts IN USE             37 of 37         37 of 37     probe-measured
+OS_PORTALS gates             23 met            23 met      0 not_met, 0 open
+anon-executable SECURITY DEFINER    56                     unmoved; both new functions revoked
+pending agent_actions        82 -> 30                      24 founder-held + 6 escalated with reasons
+kb_chunks embedded      21,192 of 120,400                  17.6%, ~132/min, free in-region gte-small
+```
+
+**Row #3 is 121/152 on a COMPLETE run — 152 checks ran, 0 errored, no section short of its declared
+count — and the 31 NOT MET are the SAME 31, name for name, that part 9 closed with.** Zero
+regressions and zero gains. The two things built this session cannot move a check by construction:
+`s24` is a 30-day universal over decisions already taken without a board, and the queue the
+addressee fix unblocked feeds a check that was already MET. That one did move underneath, and by a
+lot — `approval-center-everything-else-automatic` reads **53 of 1,279 (4.1%)** against a 10% bar,
+where the part-9 mid-session measurement was 204 of 1,269 (16.1%). The margin, not the verdict.
+
+Three daily crons — `kb_corpus_integrity_daily` 03:40, `model_catalog_drift_daily` 03:50,
+`tool_readiness_daily` 03:55 — still have **no scheduled run**, because their first one is at 03:40
+UTC on 11 Aug, six hours after this session opened. All three are `active`, and all three commands
+were executed by hand here and returned clean: corpus staged = checkpointed = deployed = 115,148 and
+0 problems; catalog drift 10 of 14 unserved with 0 active policies affected; tool readiness 22 tools,
+0 unconditional launch blockers, 3 conditional.
+
+---
+
 ## Session 8 (10 Aug 2026, opened 12:15 UTC) — ALL SIX PACKS 100%, IN USE 22 OF 37 → 37 OF 37
 
 ```
