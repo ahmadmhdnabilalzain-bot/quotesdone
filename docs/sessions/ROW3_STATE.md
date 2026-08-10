@@ -115,7 +115,12 @@ kb_chunks embedded      21,192 of 120,400                  17.6%, ~132/min, free
 
 **Row #3 is 121/152 on a COMPLETE run — 152 checks ran, 0 errored, no section short of its declared
 count — and the 31 NOT MET are the SAME 31, name for name, that part 9 closed with.** Zero
-regressions and zero gains. The two things built this session cannot move a check by construction:
+regressions and zero gains.
+
+**Run twice, and the second run is the one that matters.** After the 464 revokes on staging, the six
+new triggers, the dropped-and-recreated `fn_llm_log` signature and the `ai_gateway` redeploy, a full
+second run read **121/152 again with a byte-identical NOT MET set** (`diff` over the two sorted
+lists is empty). A night of schema, grant and edge-function changes moved nothing it should not have. The two things built this session cannot move a check by construction:
 `s24` is a 30-day universal over decisions already taken without a board, and the queue the
 addressee fix unblocked feeds a check that was already MET. That one did move underneath, and by a
 lot — `approval-center-everything-else-automatic` reads **53 of 1,279 (4.1%)** against a 10% bar,
@@ -153,9 +158,43 @@ So the honest grouping of the 31 is:
 |---|---|---|
 | **no demand side yet** | `s30`, `s26-compare-capabilities`, `intel-customer-behavior`, parts of `s29` | customers, not code |
 | **dormant workforce** | `s32`, the five `employee-*` checks | staffing or retiring 47 employees — his call |
-| **time-gated, already built** | `s24` (30-day universal, ~9 Sept), `time-machine-restores-six-dimensions` (~24 Aug), `time-machine-scrub` (needs a six-month-old snapshot) | waiting |
+| **time-gated, already built** | `s24` (~9 Sept), `time-machine-restores-six-dimensions` (~24 Aug), `s21-no-polling` (**~17 Aug — see below**), `time-machine-scrub` (needs a six-month-old snapshot) | waiting |
 | **deliberately blocked** | `s26-discover-suppliers` (Apify to ~Feb 2027) | nothing, on purpose |
-| **genuinely buildable** | `s21-no-polling`, `s22-graph-navigation`, `company-map-entities`, `s33`, `s34`, `s25`, `s27`, `s36`, `explain-alternatives-considered`, `what-if-*` | engineering |
+| **genuinely buildable** | `s22-graph-navigation`, `company-map-entities`, `s33`, `s34`, `s25`, `s27`, `s36`, `explain-alternatives-considered`, `what-if-*` | engineering |
+
+**`s21-no-polling` was about to be built and did not need to be.** The evidence line reads *"median
+delivery lag 545s over 1419 deliveries/7d"* against a 60-second bar, which looks like a dispatcher
+still polling. Measured per day instead of over the window:
+
+```
+2026-08-02   2 deliveries   median  285,966s     no dispatch at all
+2026-08-05  15                      13,649s
+2026-08-06 480                         276s   \
+2026-08-07 164                         554s    |  the 15-minute cron: median ≈ half of 900s
+2026-08-08 188                         557s    |
+2026-08-09 162                         558s   /
+2026-08-10 231                           0s      the trigger, delivering on insert
+```
+
+The reactive path started working on 10 August. The check measures a 7-day window on `delivered_at`,
+so it carries pre-10-August deliveries until about **17 August** and then the median drops to zero on
+its own. Events that occurred in the last 24 hours already have a median lag of **0 seconds over 238
+deliveries**. Building anything here would have been building a thing that already works.
+
+**`s33-replay-six-tracks` is the same story with an hour on the clock rather than a week.** It scores
+the day given by `max(company_snapshot.snapshot_on)`, which is 2026-08-09, and on that day
+`metric_snapshot` and `outcome_record` are both empty — they first carry rows on **10 August**:
+
+```
+              decisions conversations approvals workflows  KPIs  outcomes
+2026-08-08        yes        yes          yes       yes     no      no
+2026-08-09        yes        yes          yes       yes     no      no
+2026-08-10        yes        yes          yes       yes    YES     YES
+```
+
+`company_snapshot_daily` runs at 23:55 UTC and last ran 09 Aug 23:55. When it fires tonight the
+scored day becomes 10 August, all six tracks are true for it, and the other leg — a reachable routine
+spanning all six tables — is already satisfied. It flips on its own, tonight.
 
 **One of those was investigated to the point of refusal tonight and is worth recording.**
 `explain-alternatives-considered` is 0 of 61 surfaced actions. The obvious fix is to project
@@ -222,6 +261,24 @@ outbound jobs would make a feature flag the only thing between a rehearsal and a
 phone. `resilience_watch_10min` and `ai_spend_guard_hourly` both fired and succeeded at 22:40 UTC.
 
 All seven dimensions read IN SYNC and the check exits 0.
+
+**One divergence is left open on purpose: the migration HISTORIES differ while the objects match.**
+Production has 726 applied migrations, staging 718 — eleven production-only
+(`row4_customer_portal_intelligence_schema`, `documents_customer_vault`, five `emit_*` classes and
+others) and three staging-only, which are tonight's. Every object those eleven create is present on
+staging, so nothing is missing today; their effects arrived by some route other than the migration
+that records them. That is exactly the mechanism that generates drift: **a project rebuilt from its
+migration history would not come out the same on the two sides.** It is recorded rather than
+reconciled because back-filling eleven history rows to make the ledgers agree would assert that
+migrations ran which did not, and that is the fabrication rule. The binding check is object parity,
+which is green.
+
+A false alarm worth writing down, because it is the discipline this estate keeps failing at: a
+closing probe read `ghost = 17` on production's `cron_registry` and looked like an `s38` regression.
+It was not. My probe counted registry rows with no *active* job; the check counts registry rows with
+no job row *at all*, and all seventeen exist and are deliberately disabled. The check was right and
+the probe was stricter than the requirement. Read what the check actually says before believing a
+number that disagrees with it.
 
 ### THE QUALITY AXIS HAD NO WRITER — FIFTH INSTANCE OF THE SAME SHAPE
 
