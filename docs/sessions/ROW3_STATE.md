@@ -1,28 +1,29 @@
-# ROW #3 — THE EXECUTIVE UI: 28 → 119 / 152
+# ROW #3 — THE EXECUTIVE UI: 28 → 121 / 152
 
 Measured on production. Every number below is a scorer run, not an estimate.
 Scorer: `scripts/staging/verify_os2_blueprint.mjs`, modules in `scripts/staging/os2_blueprint/`.
 
 ---
 
-## Session 8 (10 Aug 2026, opened 12:15 UTC) — THE PACKS ARE IN USE: 22 OF 37 → 37 OF 37
+## Session 8 (10 Aug 2026, opened 12:15 UTC) — ALL SIX PACKS 100%, IN USE 22 OF 37 → 37 OF 37
 
 ```
 select now() at time zone 'utc'  ->  2026-08-10 12:15:19   (Monday, Dubai 16:15)
 cron.job_run_details, 12h        ->  40 job names, every run succeeded, zero failures
 ```
 
-**Opening 119/152. Closing 119/152 — two regressions, both found, both fixed, both re-verified
-by their own predicate before the confirming run.** Nothing in this session could move Row #3
-upward: every remaining red check is short of a date, a customer, a founder decision or a column
-that does not exist.
+**Opening 119/152. Closing 121/152 — 0 errored, ZERO regressions, +2.** Three regressions appeared
+during the session and all three were mine; each was fixed at source and re-verified against its
+own predicate before the confirming run. The two gains came from the inbox drain:
+`approval-center-everything-else-automatic` and `strategic-not-operational`.
 
 ### THE PACK SCORECARD, WHICH IS WHAT THIS SESSION WAS FOR
 
 ```
                                    production            staging
-OVERALL INGESTED                       99.8%              99.4%
+OVERALL INGESTED                        100%               100%    (every pack 100%)
 OVERALL IN USE                    37 of 37            37 of 37     (was 22 of 37)
+OS_PORTALS GATES            21 met + 2 reasoned  21 met + 2 reasoned   (0 not_met)
 ```
 
 **And IN USE is a different kind of number than it was this morning.** It used to be a
