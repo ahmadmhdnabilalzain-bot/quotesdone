@@ -109,6 +109,26 @@ the genome block injected into `fn_agent_context` · `trg_company_event_dispatch
 | the five per-employee universals, `s32-reputation-six-dimensions` | re-measure first — see §2.2 |
 | `s26-verify-documentation` | **8 of the 16 documents point at storage objects that never existed.** See §2.4 |
 
+### 2.5 — `agent_runs` IS THE CRON LOG. FOUR ROUTINES READ IT AS AN EMPLOYEE RECORD.
+
+111 distinct `agent` values over 30 days and **only nine are `org_agents` keys**. Employees record
+work in `agent_memory` (26 of 66 in 30d) and `agent_chats` (23 of 66). Every routine below was
+swept; the result is recorded in full so nobody re-derives it:
+
+| routine | verdict |
+|---|---|
+| `fn_ws_exec_home` | **WAS WRONG, FIXED.** `employees_working` was `count(distinct agent) from agent_runs` with no join at all — reported **54 of 66** on the landing screen when the truth was **13** |
+| `fn_evolution_scan` | **WAS WRONG, FIXED.** "57 of 66 dormant", proposing retirement — real figure 44 |
+| `fn_reputation_recompute` | `reliability` reads it. **Unsound but harmless** — every value present is >= 93, so it only ever raises a score. Do not "fix" it into something that lowers scores without first deciding what employee reliability means |
+| `fn_agents_board` | per-agent `last_run` / `fails24` / `last_status` from `agent_runs`, joined to `org_agents`. Shows "never ran" for employees who reason via `agent_chats`. **Misleading display, no consequence attached** — left alone |
+| `fn_self_review` | raises "failing repeatedly" from `agent_runs` errors in 7d. Same class. **Read it properly before changing it** |
+| `fn_exec_meeting` | **CLEAN.** Its only use is writing its own run row |
+| `fn_company_snapshot` | **CLEAN.** `agent_runs_7d` and `error_rate_7d` are platform metrics and are honestly named |
+| `fn_os_review`, `fn_os_improve`, `fn_graph_rebuild`, `fn_ws_agent_ops`, `fn_ws_agents`, `fn_promote_memory_sweep` | not swept in detail; the last three already read `agent_memory` too |
+
+**The estate was simultaneously telling the founder 54 of 66 were working and 57 of 66 were
+dormant, from the same table read the same wrong way. The answer is 13 in 24h and 22 in 30d.**
+
 ### 2.4 — QA FIXTURES IN PRODUCTION ARE HOLDING CHECKS RED, IN AT LEAST THREE PLACES
 
 This is the pattern, not three coincidences, and every scorer verdict that counts rows should be
