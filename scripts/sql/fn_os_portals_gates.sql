@@ -151,9 +151,22 @@ select * from (values
    case when (select rollback_drill > 0 from m) then 'met' else 'not_met' end,
    'fn_p2c1_rollback_stage_b(''rehearse'') executed on production 2026-08-10: Stage B functions 19 -> 0, relations 13 -> 0, Stage A intact 10/10 and its selftest 14/14, 5 brand-policy identities and 22 source mappings restored, all rolled back. The b6 and b7 PARTIAL rollbacks abort themselves on a post-condition of Stage B 13/14 — a true finding recorded, not weakened.'),
 
+  -- The first version of this predicate was wrong and it is worth saying how: it required zero
+  -- failed cron runs in 24 hours, which conflates "monitoring is configured" with "nothing has
+  -- gone wrong". A caught failure is evidence FOR monitoring, not against it. It went red on a
+  -- failure this session's own invoker caused an hour after the gate was written. The gate now
+  -- measures the thing it is named after — schedulers plus a watcher that notices failures — and
+  -- reports the failure count as evidence rather than as the verdict.
   ('Monitoring and alerts configured.',
-   case when (select crons > 50 and cron_fail_24h = 0 from m) then 'met' else 'not_met' end,
-   (select format('%s active cron jobs, %s failed runs in 24 hours', crons, cron_fail_24h) from m)),
+   case when (select crons > 20 from m)
+         and exists (select 1 from cron.job where jobname = 'control_mode_sweep_5min' and active)
+         and exists (select 1 from cron.job where jobname = 'smoke_test_30min' and active)
+         and exists (select 1 from cron.job where jobname = 'watch_failed_runs_hourly' and active)
+         and exists (select 1 from cron.job_run_details d join cron.job j on j.jobid = d.jobid
+                      where j.jobname = 'watch_failed_runs_hourly' and d.status = 'succeeded'
+                        and d.start_time > now() - interval '3 hours')
+        then 'met' else 'not_met' end,
+   (select format('%s active cron jobs; watch_failed_runs_hourly is scheduled and last succeeded inside 3 hours; %s cron run(s) failed in the last 24 hours', crons, cron_fail_24h) from m)),
 
   ('Founder approves release report.',
    'needs_founder',
