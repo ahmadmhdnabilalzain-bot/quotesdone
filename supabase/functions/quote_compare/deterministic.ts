@@ -150,6 +150,10 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
   return {
     degraded: true,
     engine: 'deterministic',
+    // Declared here so the caller can stamp it. Without it the returned object literal's inferred
+    // type has no such property and `analysis.disclaimer = ...` is a TS2339 — which the Supabase
+    // CLI does not catch, because it bundles without typechecking, but CI does.
+    disclaimer: '',
     trade: '',
     considered: labelled.length,
     shortlist_reason: ar
