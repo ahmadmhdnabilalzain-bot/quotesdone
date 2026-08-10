@@ -10,6 +10,7 @@ declare out text := ''; r record; piece text; cap int; own_cap int;
         v_emp text := ''; v_title text; v_resp text; v_mgr text; v_sen text; v_plan text;
         v_cap_tasks int; v_line text; v_n int; v_os text; v_pad int := 0;
         v_genome text;
+        v_risks text;
 begin
   cap := greatest(coalesce(p_max_chars,9000), 22000);
   own_cap := least(cap/2, 6000);
@@ -43,6 +44,41 @@ begin
                        'Supplier promises','Ethics','Leadership style','Growth strategy');
     if v_genome is not null then
       out := out || '# THE COMPANY GENOME - you inherit every line of this'||E'\n'||v_genome||E'\n\n';
+    end if;
+
+    -- ---- WHAT THE COMPANY IS WORRIED ABOUT --------------------------------------------------
+    -- ai-conversation-worry asks whether an employee could answer "what worries you most today?"
+    -- with the COMPANY'S OWN judgement rather than an improvisation. It could not: risk_register
+    -- holds 18 live entries across commercial, customer, financial, legal, operational, security
+    -- and supplier, and not one word of them reached any employee. The check tests for a stored
+    -- risk appearing VERBATIM in the context, precisely so that naming the topic cannot pass for
+    -- carrying the content.
+    --
+    -- RENDERED RAW, AND THAT IS DELIBERATE. No regexp_replace and no truncation of r.risk: the
+    -- longest is 66 characters and the check matches on left(risk, 50), so collapsing whitespace
+    -- could silently break the match on a row that happens to contain a double space. The whole
+    -- register is only 730 characters of risk text; the mitigation is what makes it actionable
+    -- rather than merely alarming, and is capped at 140.
+    --
+    -- Closed risks are excluded. A risk the company has already dealt with is not a worry, and one
+    -- of the closed rows is a fixture.
+    -- ALIAS rr, NOT r. This routine already declares `r record` at the top for its own loops, and
+    -- plpgsql resolves the identifier to that variable in preference to a table alias — so an
+    -- alias of r raised "record r is not assigned yet" and took the whole context down. Caught on
+    -- staging, which is the entire reason it goes there first.
+    select string_agg('- ['||coalesce(rr.impact,'?')||' impact / '||coalesce(rr.probability,'?')
+                      ||' likelihood] '||rr.risk
+                      ||case when coalesce(rr.mitigation,'') <> ''
+                             then '  -> mitigating: '||left(rr.mitigation, 140) else '' end,
+                      E'\n' order by case coalesce(rr.impact,'') when 'high' then 0 when 'medium' then 1 else 2 end,
+                                     case coalesce(rr.probability,'') when 'high' then 0 when 'medium' then 1 else 2 end,
+                                     rr.id)
+      into v_risks
+      from public.risk_register rr
+     where coalesce(rr.status,'open') in ('open','mitigating') and length(rr.risk) > 20;
+    if v_risks is not null then
+      out := out || '# WHAT THE COMPANY IS WORRIED ABOUT - its own live risk register'||E'\n'
+                 || v_risks||E'\n\n';
     end if;
 
     -- ---- THE EMPLOYEE OBJECT (spec line 372) --------------------------------------------------
