@@ -161,6 +161,34 @@ subscription look alive. It needs a real detector.
 The evolution scan's *"resilience_watch failed 182 times in the last 7 days"* is the same rolling
 window and is not a live failure.
 
+### REPUTATION CAN TAKE AUTHORITY AWAY AND HAS NO WAY TO GIVE IT BACK — FOUNDER DECISION
+
+`reputation_weekly` ran on production at **07:00 and confirmed session 5's fix by execution:
+probation 7 → 0**, learning_speed nulled for all 66, zero new demotions. But the demotions it made
+*before* the fix are still in force, because `fn_reputation_recompute` only ever runs
+
+```
+update employee_authority set max_tier='gated' ... where p.tier='probation' and a.max_tier='autonomous'
+```
+
+There is no statement anywhere that moves an authority back. Measured now:
+
+```
+gated       34 rows / 14 employees   — of which on probation: 0
+                                        held by 'trusted':    9 rows
+                                        held by 'standard':  25 rows
+```
+
+**And the classes are ordinary ones.** `health_report` is gated for 2 employees and autonomous for 7.
+`uptime_verify` 2 gated / 6 autonomous. `forecast` 2 / 4. `compare_quotes`, `qualify_inquiry`,
+`supplier_verify` 1 gated each against 9 autonomous. That is not a policy that certain classes need
+approval — it is per-employee residue from a scoring bug that has since been fixed.
+
+**Not restored, and that is the escalation.** Moving an authority from `gated` back to `autonomous`
+means the action stops requiring approval, and two of the affected classes are `money_verify` and
+`invoice_review`. Widening authority on a money path is the founder's call, not a session's. The
+list is 34 rows over 14 employees and every one is now rated `standard` or `trusted`.
+
 ### THE BRAIN RUNS SECONDS FROM ITS TIMEOUT AND EVERY MISS WAS LOGGED AS SUCCESS
 
 Found while verifying the handoff inbox, and it is the most consequential measurement of the day.
