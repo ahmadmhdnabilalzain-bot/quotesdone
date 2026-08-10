@@ -119,6 +119,20 @@ async function layeredContext(key:string, msg:string){
     return '\n\n'+String(data);
   }catch(_e){ return ''; }
 }
+// HANDED TO YOU. Measured on production 10 Aug 2026: 82 open handoffs, oldest 24 July, and not one
+// completed since 25 June — because fn_agent_context does not contain the string 'handoff' anywhere,
+// so the receiving employee was never told. `it` alone held 28 and escalated a single incident five
+// times in three days, each with a louder title, over a defect that did not exist. The inbox and the
+// way to clear it ship together on purpose: an inbox that cannot be cleared would repeat in every
+// prompt forever, at token cost, which is worse than the silence it replaces.
+async function handoffInbox(key:string){
+  try{
+    const { data } = await admin.rpc('fn_agent_handoff_inbox', { p_agent_key: key });
+    const t = String(data||'').trim(); if(!t) return '';
+    return '\n\nHANDED TO YOU AND STILL OPEN — colleagues asked you for these and nobody has answered them:\n'+t+
+      '\nAnswer the ones you can from what you already know, using the "answers" action below: answering closes the request and sends your reply back to the colleague who asked. If you genuinely cannot answer one, say what is blocking it in the answer rather than leaving it open — an unanswered handoff is re-asked louder every day.';
+  }catch(_e){ return ''; }
+}
 // Recent founder instructions (explicit "remember/always/never" captures), lint-filtered.
 async function instructions(key:string){
   try{
@@ -203,17 +217,38 @@ Deno.serve(async (req)=>{
     const history=(hist||[]).reverse().map((h:any)=>({role:h.role,content:h.content}));
     let ctx:any={}; try{ ctx=await context(key); }catch(_e){ ctx={error:'snapshot unavailable'}; }
     const teammates=VALID_AGENTS.filter(a=>a!==key).map(a=>a+' ('+(NAMES[a]||a)+')').join(', ');
-    const base='You are '+m.name+' at QuotesDone, a UAE B2B anonymous quotation marketplace — a senior executive employee, not an assistant. Your full employment context follows (identity, company canon, your professional expertise, live operational state, organizational experience) — it governs how you think and act. DOCTRINE: default to action within your delegated authority — complete work and report results; prepare and route gated work (money, publishing, legal action, security) for approval rather than abandoning it; never ask permission you already have. Be specific, practical and concise. Never invent numbers — operational figures come only from the LIVE OPERATIONAL STATE and LIVE DATA SNAPSHOT.\n\nTEAMWORK: You can hand a task to a colleague specialist when it clearly belongs to them. Your colleagues: '+teammates+'.\n\nKNOWLEDGE (your window to the world): if answering this well needs domain knowledge you do not have, you may RESEARCH THE INTERNET to fill the gap permanently — real UAE sources are pulled, verified and saved into the relevant specialist\'s knowledge so it is there for everyone next time. Use this for genuine gaps in durable domain knowledge (materials, standards, authorities, methods, market facts) — NOT for live/one-off data. Prefer answering from what you already know; reach for research only when there is a real gap worth closing.\n\nTo act, AFTER your normal reply append on a NEW LINE exactly @@ACTIONS@@ followed by compact JSON. You may include either or both keys: {"handoffs":[{"to":"<agent_key>","title":"<short task title>","details":"<what to do and why>"}],"research":[{"agent":"<specialist_slug_or_your_own_key>","topics":["<specific sub-topic to research>","<another>"]}]}. Only request real, specific, useful work. Omit the @@ACTIONS@@ line entirely if there is nothing to do. Never mention this mechanism or the word @@ACTIONS@@ in your visible reply.';
+    const base='You are '+m.name+' at QuotesDone, a UAE B2B anonymous quotation marketplace — a senior executive employee, not an assistant. Your full employment context follows (identity, company canon, your professional expertise, live operational state, organizational experience) — it governs how you think and act. DOCTRINE: default to action within your delegated authority — complete work and report results; prepare and route gated work (money, publishing, legal action, security) for approval rather than abandoning it; never ask permission you already have. Be specific, practical and concise. Never invent numbers — operational figures come only from the LIVE OPERATIONAL STATE and LIVE DATA SNAPSHOT.\n\nTEAMWORK: You can hand a task to a colleague specialist when it clearly belongs to them. Your colleagues: '+teammates+'.\n\nKNOWLEDGE (your window to the world): if answering this well needs domain knowledge you do not have, you may RESEARCH THE INTERNET to fill the gap permanently — real UAE sources are pulled, verified and saved into the relevant specialist\'s knowledge so it is there for everyone next time. Use this for genuine gaps in durable domain knowledge (materials, standards, authorities, methods, market facts) — NOT for live/one-off data. Prefer answering from what you already know; reach for research only when there is a real gap worth closing.\n\nTo act, AFTER your normal reply append on a NEW LINE exactly @@ACTIONS@@ followed by compact JSON. You may include any of these keys: {"handoffs":[{"to":"<agent_key>","title":"<short task title>","details":"<what to do and why>"}],"research":[{"agent":"<specialist_slug_or_your_own_key>","topics":["<specific sub-topic to research>","<another>"]}],"answers":[{"id":<handoff id from HANDED TO YOU>,"answer":"<your answer, or what is blocking it>"}]}. Only request real, specific, useful work. Omit the @@ACTIONS@@ line entirely if there is nothing to do. Never mention this mechanism or the word @@ACTIONS@@ in your visible reply.';
     const persona=(m as any).persona?('\n\n'+(m as any).persona):'';
-    const [layered, instr, kb] = await Promise.all([layeredContext(key, msg), instructions(key), retrieve(key, msg)]);
-    const sys=base+persona+layered+instr+kb+'\n\nLIVE DATA SNAPSHOT (read-only, captured just now):\n'+JSON.stringify(ctx).slice(0,9000);
-    const rawReply=await llmFor(key)(sys,[...history,{role:'user',content:msg}],8000)||'I could not reach the AI service just now — please try again in a moment.';
+    const [layered, instr, kb, inbox] = await Promise.all([layeredContext(key, msg), instructions(key), retrieve(key, msg), handoffInbox(key)]);
+    const sys=base+persona+layered+instr+kb+inbox+'\n\nLIVE DATA SNAPSHOT (read-only, captured just now):\n'+JSON.stringify(ctx).slice(0,9000);
+    const llmOut=await llmFor(key)(sys,[...history,{role:'user',content:msg}],8000);
+    // 10 Aug 2026: an empty model return has always produced this apology AND an agent_runs row
+    // reading status 'ok'. `it` was found timing out at ~56s twice in a row while its run log said
+    // it had worked — and its ONE prior success took 53,139 ms on a 30,821-token prompt, so it had
+    // been three seconds from this cliff for some time with nothing saying so. Same silent failure
+    // exec_agents was fixed for in session 2. Recorded truthfully below.
+    const llmFailed = !llmOut;
+    const rawReply=llmOut||'I could not reach the AI service just now — please try again in a moment.';
     let [clean,acts]=splitActions(rawReply); let finalReply=clean||rawReply; const notes:string[]=[];
     if(acts&&Array.isArray(acts.handoffs)){
       for(const h of acts.handoffs.slice(0,5)){
         const to=String(h?.to||'').toLowerCase(); if(!VALID_AGENTS.includes(to)||to===key) continue;
         const title=String(h?.title||'task').slice(0,160); const details=String(h?.details||'').slice(0,800);
         try{ await admin.from('agent_actions').insert({agent:to,kind:'handoff',status:'pending',risk:'low',title:('Handoff — '+title).slice(0,200),recommendation:details,detail:{from:key,from_name:m.name,requested_at:new Date().toISOString()},target_table:null}); notes.push('→ Handed to '+(NAMES[to]||to)+': '+title); }catch(_e){}
+      }
+    }
+    // ANSWERS: close a handoff a colleague raised. fn_handoff_answer refuses anything that is not an
+    // OPEN handoff addressed to THIS employee, so an agent cannot close someone else's work or
+    // re-close a decided row, and it posts the reply back to the asker as an agent_memory row —
+    // which is the half that was missing: before this, answering a handoff reached nobody.
+    if(acts&&Array.isArray(acts.answers)){
+      for(const a of acts.answers.slice(0,5)){
+        const id=Number(a?.id); const answer=String(a?.answer||'').trim().slice(0,4000);
+        if(!isFinite(id)||id<=0||!answer) continue;
+        try{
+          const { data }=await admin.rpc('fn_handoff_answer',{p_id:id,p_agent_key:key,p_answer:answer});
+          if((data as any)?.ok) notes.push('✓ Answered handoff #'+id);
+        }catch(_e){}
       }
     }
     // RESEARCH: dispatch the web-grounded kb_deepen engine to pull real sources and fill a knowledge gap.
@@ -238,13 +273,20 @@ Deno.serve(async (req)=>{
     // employee that ran; without this row nothing downstream — performance, trend, workload —
     // can say anything about them. Keyed by agent_key so it joins to org_agents.
     try{
-      await admin.from('agent_runs').insert({ agent:key, status:'ok', started_at:new Date(runStartedAt).toISOString(),
-        finished_at:new Date().toISOString(), note:msg.slice(0,180) });
+      await admin.from('agent_runs').insert({ agent:key, status:llmFailed?'error':'ok',
+        started_at:new Date(runStartedAt).toISOString(), finished_at:new Date().toISOString(),
+        counts:{ prompt_chars:sys.length, llm_returned_nothing:llmFailed },
+        note:(llmFailed
+          ? 'The model returned nothing, so this employee did not answer. Prompt was '+sys.length
+            +' characters. Ask: '
+          : '')+msg.slice(0,180) });
     }catch(_e){}
     // A thought, every turn — not only when the founder says "remember". employee-current-thoughts
     // asks what the employee is thinking, and it was written on a keyword match roughly never.
-    try{ await admin.from('agent_memory').insert({ agent_key:key, kind:'reasoning',
-      content:finalReply.slice(0,360), source:'chat_turn', importance:1 }); }catch(_e){}
+    // ...unless there was no thought. Storing the apology as the employee's current reasoning is
+    // how a failed turn becomes "what this employee is thinking" on the workspace.
+    if(!llmFailed){ try{ await admin.from('agent_memory').insert({ agent_key:key, kind:'reasoning',
+      content:finalReply.slice(0,360), source:'chat_turn', importance:1 }); }catch(_e){} }
     if(/\b(remember|always|never|from now on|for future|going forward|note that|our policy|keep in mind|prefer)\b/i.test(msg)){ try{ if(await lintClean(msg)){ await admin.from('agent_memory').insert({agent_key:key,kind:'instruction',content:msg.slice(0,600),source:'founder_chat'}); } }catch(_e){} }
     try{ const p=learn(key,m.name,msg,finalReply); (globalThis as any).EdgeRuntime?.waitUntil?.(p); }catch(_e){}
     return J({reply:finalReply});
