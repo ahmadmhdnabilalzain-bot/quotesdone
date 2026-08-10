@@ -79,7 +79,7 @@ begin
   for r in
     select a.id, a.action_class, a.request, a.idempotency_key, a.attempts,
            e.target, e.kind, e.active, e.risk_tier, e.advisory_safe, e.reversible,
-           e.required_authority, e.compensation_action_class, e.idempotency_strategy,
+           e.required_authority, e.compensation_action_class, e.idempotency_strategy, e.params,
            coalesce(e.timeout_seconds, 60) timeout_seconds, coalesce(e.max_attempts, 1) max_attempts
       from public.action_execution a
       join public.org_action_executor e on e.action_class = a.action_class
@@ -129,7 +129,13 @@ begin
     select net.http_post(
              url := v_url,
              headers := '{"Content-Type":"application/json"}'::jsonb,
-             body := coalesce(r.request, '{}'::jsonb) || jsonb_build_object('__secret', v_secret),
+             -- org_action_executor.params is the per-executor payload TEMPLATE and it existed,
+             -- empty, on all 55 rows. Without it the invoker sent {org_task_id, dept_key, title}
+             -- to every target and compliance_archive answered 400 unknown_action — found by
+             -- execution on the first real sweep, not by reading. params is the base of the body
+             -- so a target's contract is declared as data, not coded into the invoker.
+             body := coalesce(r.params, '{}'::jsonb) || coalesce(r.request, '{}'::jsonb)
+                     || jsonb_build_object('__secret', v_secret),
              timeout_milliseconds := r.timeout_seconds * 1000)
       into v_req;
 
@@ -193,6 +199,32 @@ begin
                'body', left(coalesce(v_body,''), 4000))
        where id = r.id;
       v_ok := v_ok + 1;
+
+      -- Close the org_task this invocation was carrying out. The task is the unit of work the
+      -- company tracks; leaving it 'in_progress' after its executor returned 200 would keep it in
+      -- the 439-row backlog for ever.
+      --
+      -- IN ITS OWN SUB-BLOCK, and that is not defensive padding. The very first scheduled run of
+      -- this function died on org_tasks #189: fn_org_task_root_cause_guard refuses to close a
+      -- KPI-miss task that records no root_cause, and one refusing task aborted the entire collect
+      -- pass, leaving every other invocation stuck in 'running'. The guard is right — a missed KPI
+      -- must say why — so the invocation is still recorded as succeeded and the TASK stays open
+      -- with the reason attached, which is the true state: the executor ran, the task cannot close.
+      begin
+        update public.org_tasks k
+           set status = 'done', updated_at = now(), last_run_at = now(),
+               result = coalesce(k.result,'{}'::jsonb) || jsonb_build_object(
+                 'mode','executed_by_invoker', 'executor', r.executor,
+                 'http_status', v_status, 'at', now(),
+                 'summary', left(coalesce(v_body,''), 500))
+         where k.id = (select (a.request->>'org_task_id')::bigint from public.action_execution a where a.id = r.id)
+           and k.status in ('assigned','in_progress');
+      exception when others then
+        update public.action_execution
+           set response = coalesce(response,'{}'::jsonb) || jsonb_build_object(
+                 'org_task_close', 'refused', 'reason', left(SQLERRM, 400))
+         where id = r.id;
+      end;
     elsif coalesce(r.attempts,1) < r.max_attempts then
       update public.action_execution
          set status = 'queued',
