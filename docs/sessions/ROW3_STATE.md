@@ -33,6 +33,13 @@ one of the eight was verified against its own predicate BEFORE the run rather th
 | `s39-governance-six-monitors` | 06:40 `regulation_watch_weekly`, 5 of 6 → 6 of 6 |
 | `approval-center-five-decision-kinds` | 06:50 `marketing_ai_daily` filed the media-budget decision |
 
+**Re-measured after the post-close work — 120/152, 0 errored, and a byte-identical MET set.** The
+handoff inbox, the four new emitters, `agent_brain` v31 and the `fn_sla_watch` rewrite all landed on
+production after the closing run, so the whole scorer was run again: same 120, same checks, **zero
+regressions**. (An earlier attempt reported 103 and was a truncated run killed by its own 15-minute
+timeout at check 130 of 152 — the sixteen apparent regressions were checks that never executed. A
+partial run is not a score.)
+
 **Not the high 120s the part-6 brief targeted, and the reason is in the blocked table below, not
 effort.** Ten of the remaining 32 were measured one at a time and each is short on a date, a
 customer, a founder decision or a column that does not exist — none on a build that was skipped.
