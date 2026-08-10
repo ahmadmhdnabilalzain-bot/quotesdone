@@ -39,7 +39,23 @@ async function cntT(t:string, mod?:(q:any)=>any){ let q=admin.from(t).select('id
 // deleting it is worse, because llm.ts falls back to `def.max ?? 700`. The policy moved 1700 -> 4000
 // on both projects in the same change. `llmFast` below deliberately keeps max:160 against
 // memory_retrieval's 400 — measured 1-93 output tokens, nothing near its ceiling.
-const llm = makeLlm(OPUS_FIRST, { max: 8000, timeoutMs: 70000 });
+// A FACTORY, NOT A CONSTANT, SO THE BILL CARRIES THE EMPLOYEE (9 Aug 2026).
+// This was `const llm = makeLlm(...)` at module scope — built once at boot, before any request and
+// therefore before any agent_key exists. makeLlm binds `def.agent` at CONSTRUCTION and the function
+// it returns takes (sys, input, max) with no per-call override, so every model call this file made
+// carried agent: undefined. ai_gateway then resolved the caller to the exec department head, and
+// MEASURED over 4 Aug–9 Aug that is all 381 agent_brain rows in ai_cost_log — AED 51.08, every one
+// stamped 'ceo' — while agent_chats over the same window shows this function replying as
+// knowledge_director, procurement, docs and brief. The reasoning rotated; the bill did not.
+//
+// It is not a cosmetic ledger issue. ROW3_STATE cites "ai_cost_log — 3 of 66 have ever been billed
+// for a model call" as evidence that the 66 employees are dormant, and five per-employee checks
+// rest on that story. That figure counts buckets, not employees.
+//
+// llmFast below still sends no agent. Deliberate and noted rather than silently fixed: it is the
+// memory_retrieval path at max:160 against a 14,110-token main call, so it is a rounding error in
+// the bill, and its callers take no key to pass.
+const llmFor = (agent: string) => makeLlm(OPUS_FIRST, { max: 8000, timeoutMs: 70000, agent });
 async function llmFast(sys:string, user:string){ try{ const secret=await sec('cred_fn_agent_brain'); if(!secret) return ''; const r=await fetch(SUPA+'/functions/v1/ai_gateway',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:secret,fn:'agent_brain',task_class:'memory_retrieval',sys,input:user,max:160,temperature:0}),signal:AbortSignal.timeout(20000)}); const j=await r.json(); return j?.content||''; }catch(_e){ return ''; } }
 
 // Lint gate: a candidate memory that matches any active forbidden-language rule is refused.
@@ -191,7 +207,7 @@ Deno.serve(async (req)=>{
     const persona=(m as any).persona?('\n\n'+(m as any).persona):'';
     const [layered, instr, kb] = await Promise.all([layeredContext(key, msg), instructions(key), retrieve(key, msg)]);
     const sys=base+persona+layered+instr+kb+'\n\nLIVE DATA SNAPSHOT (read-only, captured just now):\n'+JSON.stringify(ctx).slice(0,9000);
-    const rawReply=await llm(sys,[...history,{role:'user',content:msg}],8000)||'I could not reach the AI service just now — please try again in a moment.';
+    const rawReply=await llmFor(key)(sys,[...history,{role:'user',content:msg}],8000)||'I could not reach the AI service just now — please try again in a moment.';
     let [clean,acts]=splitActions(rawReply); let finalReply=clean||rawReply; const notes:string[]=[];
     if(acts&&Array.isArray(acts.handoffs)){
       for(const h of acts.handoffs.slice(0,5)){
