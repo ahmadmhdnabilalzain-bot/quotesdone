@@ -17,7 +17,41 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function callFn(name: string, payload: Record<string, unknown>){ try { const sk = await sec('cred_fn_agents'); const r = await fetch(FN + '/' + name, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: sk, ...payload }) }); return await r.json(); } catch (e) { return { error: String((e as Error)?.message || e) }; } }
 function parseDate(v: unknown): Date | null { if (!v) return null; const s = String(v).trim(); let d = new Date(s); if (!isNaN(d.getTime())) return d; const m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/); if (m) { let yy = Number(m[3]); if (yy < 100) yy += 2000; d = new Date(yy, Number(m[2]) - 1, Number(m[1])); if (!isNaN(d.getTime())) return d; } return null; }
-async function queue(row: Record<string, unknown>) { try { await admin.from('agent_actions').insert(row); } catch (_e) {} }
+// IDEMPOTENCY. This was a bare insert, and every one of the 13 call sites below duplicated on every
+// run. Measured on production 2026-08-10: kind='licence_expiring' holds 150 rows carrying EIGHT
+// facts about TWO suppliers — "Emirates Prestige Flooring LLC — licence expires in 12 days" appears
+// 24 times, once an hour, and again 24 times the next day as "11 days". 44% of the recommendations
+// in s36's 30-day window are this kind of repetition.
+//
+// Deduping on an OPEN row is not enough: all 150 ended 'auto_done', so the next run saw nothing open
+// and inserted again. The window is time-based instead — the same kind about the same subject with
+// the same title is not new information within QUEUE_DEDUPE_HOURS. 20 hours is chosen so a daily
+// countdown still gets through (the title changes when the day count does) while the hourly repeats
+// are suppressed.
+//
+// The insert is still wrapped, but a swallowed failure is no longer silent: it was impossible to
+// tell a queue that was working from one that had been throwing for a week.
+const QUEUE_DEDUPE_HOURS = 20;
+async function queue(row: Record<string, unknown>) {
+  try {
+    const since = new Date(Date.now() - QUEUE_DEDUPE_HOURS * 3600e3).toISOString();
+    let q = admin.from('agent_actions').select('id').gte('created_at', since).limit(1);
+    q = q.eq('kind', String(row.kind ?? ''));
+    q = row.title == null ? q.is('title', null) : q.eq('title', String(row.title));
+    q = row.target_table == null ? q.is('target_table', null) : q.eq('target_table', String(row.target_table));
+    q = row.target_id == null ? q.is('target_id', null) : q.eq('target_id', String(row.target_id));
+    const { data: dup } = await q;
+    if (dup && dup.length) return;
+    const { error } = await admin.from('agent_actions').insert(row);
+    if (error) {
+      await admin.from('agent_runs').insert({ agent: 'agents', status: 'error',
+        started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+        counts: { stage: 'queue', kind: row.kind ?? null },
+        note: ('queue() could not insert a ' + String(row.kind) + ' recommendation, so it reaches no '
+          + 'surface and no monitor: ' + String(error.message || error)).slice(0, 500) });
+    }
+  } catch (_e) { /* never let the queue break the agent run */ }
+}
 async function sha256(s: string){ const data = new TextEncoder().encode(s); const h = await crypto.subtle.digest('SHA-256', data); return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 40); }
 const dayAgo = (d: number) => new Date(Date.now() - d * 864e5).toISOString();
 // Background AI helpers on Opus 4.8 first, Sonnet 5 fallback, iterating models individually for resilience.
