@@ -5,6 +5,7 @@
 // prices against the market and ranks technical quality authoritatively for any trade.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { deterministicCompare } from './deterministic.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -165,7 +166,24 @@ Deno.serve(async (req) => {
         lastDetail = 'parse:' + model + (jd?.truncated ? ':truncated@' + jd?.max_tokens + ' (used ' + jd?.output_tokens + ')' : '');
       } catch (e) { lastDetail = 'exc:' + String((e as Error)?.message || e).slice(0, 100); }
     }
-    if (!parsed) { await logRun('error', { compared: 0, quotes_seen: qs.length, ai_attempts: attempts, ai_ok: 0, lang }, 'quote_compare produced NO comparison for ' + qs.length + ' real supplier quotes because every model attempt failed or returned unparseable output (' + String(lastDetail).slice(0, 120) + '). The customer reached the decision step, was given nothing to compare, and this returns HTTP 200 so it is invisible to ordinary error monitoring.'); return J({ ok: false, error: 'parse_failed', detail: lastDetail }, 200); }
+    // MODEL-FREE FALLBACK. This used to return {ok:false,'parse_failed'} at HTTP 200 and the
+    // customer, standing at the decision step, was shown nothing at all. Every model attempt
+    // failing is not a rare edge: the whole company runs on ONE OpenRouter balance, so when it
+    // empties this branch is the ONLY branch. A rules-only ranking off the figures the suppliers
+    // actually stated is worth incomparably more than an empty screen, and it costs nothing.
+    // It is NOT cached — the model result must win as soon as the model works again.
+    const degradedBecause = (why: string) => {
+      const analysis = deterministicCompare(labelled as never, lang as 'en' | 'ar');
+      analysis.disclaimer = (lang === 'ar') ? DISCLAIMER_AR : DISCLAIMER_EN;
+      return { analysis, why };
+    };
+    if (!parsed) {
+      const { analysis } = degradedBecause(String(lastDetail).slice(0, 120));
+      const t3 = analysis.top3.length;
+      await logRun(t3 > 0 ? 'ok' : 'error', { compared: 1, degraded: 1, quotes_seen: qs.length, ai_attempts: attempts, ai_ok: 0, top3: t3, lang },
+        'Every model attempt for quote_compare failed (' + String(lastDetail).slice(0, 120) + '), so the customer was served the DETERMINISTIC comparison instead of nothing: ' + qs.length + ' quotes ranked on stated price, completeness, lead time, warranty and payment terms, ' + t3 + ' ranked recommendation(s). It is labelled degraded to the customer and is not cached, so the full analysis returns the moment the model does.');
+      return J({ ok: true, analysis, degraded: true, detail: lastDetail });
+    }
     if (Array.isArray(parsed.quotes) && parsed.quotes.length > 3) parsed.quotes = parsed.quotes.slice(0, 3);
     if (Array.isArray(parsed.top3) && parsed.top3.length > 3) parsed.top3 = parsed.top3.slice(0, 3);
     if (Array.isArray(parsed.line_findings) && parsed.line_findings.length > 14) parsed.line_findings = parsed.line_findings.slice(0, 14);
@@ -174,11 +192,21 @@ Deno.serve(async (req) => {
     parsed.shortlisted = Math.min(3, qs.length);
     parsed.itemised_quotes = labelled.filter((q: any) => q.itemised).length;
     parsed.disclaimer = (lang === 'ar') ? DISCLAIMER_AR : DISCLAIMER_EN;
-    let cacheSaved = 1;
-    try { const { error: cacheErr } = await admin.from('qd_compare_cache').upsert({ inquiry_id, quotes_hash: qhash, lang, analysis: parsed, created_at: new Date().toISOString() }); if (cacheErr) cacheSaved = 0; } catch (_e) { cacheSaved = 0; }
     const _top3 = Array.isArray(parsed.top3) ? parsed.top3.length : 0;
     const _shown = Array.isArray(parsed.quotes) ? parsed.quotes.length : 0;
     const _lines = Array.isArray(parsed.line_findings) ? parsed.line_findings.length : 0;
+    // The model answered but ranked nothing. To the customer that is the same blank screen as a
+    // total failure, so it gets the same remedy — and the blank is NOT written to the cache,
+    // which would have served it back on every re-open.
+    if (_top3 === 0 || _shown === 0) {
+      const { analysis } = degradedBecause('empty_shortlist');
+      const t3 = analysis.top3.length;
+      await logRun(t3 > 0 ? 'ok' : 'error', { compared: 1, degraded: 1, quotes_seen: qs.length, ai_attempts: attempts, ai_ok: 1, empty_shortlist: 1, top3: t3, lang },
+        'The model returned a comparison object with an EMPTY shortlist for ' + qs.length + ' real quotes, which reaches the customer as a blank decision step. Served the DETERMINISTIC comparison instead: ' + t3 + ' ranked recommendation(s) from stated figures. The empty model result was not cached.');
+      return J({ ok: true, analysis, degraded: true, detail: 'empty_shortlist' });
+    }
+    let cacheSaved = 1;
+    try { const { error: cacheErr } = await admin.from('qd_compare_cache').upsert({ inquiry_id, quotes_hash: qhash, lang, analysis: parsed, created_at: new Date().toISOString() }); if (cacheErr) cacheSaved = 0; } catch (_e) { cacheSaved = 0; }
     await logRun((_top3 > 0 && _shown > 0) ? 'ok' : 'error', { compared: 1, quotes_seen: qs.length, quotes_live: live.length, itemised: parsed.itemised_quotes, line_items_sent: itemsTotal, track_records: Object.keys(trackBySupplier).length, expert_ref: expertRef ? 1 : 0, must_specs: mustSpecs.length, line_findings: _lines, shortlisted: _shown, top3: _top3, ai_attempts: attempts, ai_ok: 1, cached: 0, cache_saved: cacheSaved, lang }, (_top3 > 0 && _shown > 0) ? ('Quote comparison delivered: ' + qs.length + ' quotes evaluated (' + parsed.itemised_quotes + ' itemised, ' + itemsTotal + ' line items, ' + Object.keys(trackBySupplier).length + ' track records, expert_ref=' + (expertRef ? 'yes' : 'no') + '), ' + _shown + ' shortlisted, ' + _top3 + ' ranked recommendation(s), ' + _lines + ' line-level finding(s).' + (cacheSaved ? '' : ' NOTE: the result could not be written to qd_compare_cache, so every re-open re-runs the model at full cost.')) : ('quote_compare returned a comparison object with an EMPTY shortlist/top3 for ' + qs.length + ' real quotes — the model responded but produced no ranked recommendation, so the customer sees a blank comparison and cannot choose a supplier, while the call reports HTTP 200 success.'));
     return J({ ok: true, analysis: parsed });
   } catch (e) { await logRun('error', { compared: 0, unhandled_exception: 1 }, 'quote_compare threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e).slice(0, 200) + ' — the customer could not compare the quotes they received and the RFQ stalls at the decision step.'); return J({ error: String((e as Error)?.message || e) }, 500); }
