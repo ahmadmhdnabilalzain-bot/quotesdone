@@ -337,6 +337,38 @@ rows, the same decorative constant · `explain-confidence-score` — `trg_action
 explicit NULL and its decision is deterministic · `strategic-not-operational` — operational 186 vs
 strategic 116, widening, will not converge on its own.
 
+## 8b. THE CEILING. READ THIS BEFORE PROMISING 152.
+
+Row #3 cannot reach 152 inside 24 hours, and the reasons are dates and missing customers, not effort.
+Measured 10 Aug:
+
+| check | earliest possible | why |
+|---|---|---|
+| `s21-no-polling` | ~13–16 Aug | 7-day median must fill with post-fix deliveries |
+| `explain-knowledge-used` | ~13 Aug | 7-day window; 100% cited since 7 Aug, 0% before |
+| `s33-replay-six-tracks` | **23:55 tonight** | anchored on a `company_snapshot` not yet taken |
+| `time-machine-restores-six-dimensions` | ~23 Aug | 14-day universal over every snapshot |
+| `s37-benchmark-monthly-report` leg 2 | 1 Sept | `monthly_report` is `0 7 1 * *` |
+| `s36-recommendation-seven-fields` | **~9 Sept** | 30-day universal; the window only opens once the last of 53 writers is fixed |
+| `exec-meeting-priorities-agreed` | late Sept/Oct | 60-day universal; 4 older meetings must age out |
+| `time-machine-scrub` | ~Feb 2027 | needs a six-month-old snapshot |
+
+**Blocked on a real customer** (`public.customers` = 0 rows, and after the fixture purge `inquiries` = 0
+too): `intel-customer-behavior`, `company-map-entities`, `s22-graph-navigation`, the churn and
+satisfaction inputs of `s30`.
+
+**Blocked on a founder decision**: `s26-discover-suppliers` (Apify cancelled to ~Feb 2027, deliberate)
+· `s32` and `learning_speed` (needs a definition of validated knowledge) · `compliance_sources` is
+empty, so `regulation.changed` has 10 subscribers and no possible emitter.
+
+**Blocked on a real build**: `s25-quality-latency-cost` (quality is unmeasured; `ai_cost_log.confidence`
+is NULL on all 1,176 rows and scoring model output needs reference outputs) · `s27` (cannot be closed
+honestly — `confidence` is 0.70 on 1,711 of 1,786 rows) · `s34-stress-six-scenarios` (four of six
+scenario types need deliberate failure injection against a provider or the database).
+
+A 24-hour run should target **the high 120s**, and should say so rather than report a number it
+reached by loosening something.
+
 ## 9. END-OF-SESSION SWEEP — STANDING PROCEDURE
 
 GitHub Actions, Vercel deployments and runtime errors, and on BOTH Supabase projects the advisors,
