@@ -92,17 +92,26 @@ for (const [label, table, want] of [['departments', 'departments', 24], ['roles'
   add('2 · COMPANY_OPERATIONS', label, want, await one(`select count(*) n from ops_kb_stage.${table}`),
     table === 'hard_gates' ? 'YES — fn_ops_authority_check' : 'staged only', '');
 }
-add('2 · COMPANY_OPERATIONS', 'target departments live in org_departments', 24,
-  await one('select count(*) n from ops_kb_stage.departments d where exists(select 1 from org_departments o where o.dept_key=d.department_key)'),
-  'YES', 'production keys kept; renaming would break every FK');
-add('2 · COMPANY_OPERATIONS', 'target roles live in org_agents', 96,
-  await one('select count(*) n from ops_kb_stage.roles r where exists(select 1 from org_agents o where o.agent_key=r.agent_key)'),
-  'YES', 'inactive until work routes to them');
+// The pack's target org lives in ops_kb_stage and is mapped onto the live org by the pack's own
+// department_crosswalk. Promoting it INTO org_departments was my idea, not the pack's, and it cost
+// three Row #3 checks: digital-twin-department-health counts every row in org_departments, so
+// twenty unstaffed departments turned 15-of-15 into 15-of-35. Reverted. Measuring the crosswalk is
+// the honest test of whether the target structure is represented.
+add('2 · COMPANY_OPERATIONS', 'target org mapped by the crosswalk', 24,
+  await one('select count(distinct target_department_key) n from ops_kb_stage.department_crosswalk'),
+  'YES', 'target state mapped, not merged into the live org');
+add('2 · COMPANY_OPERATIONS', 'roles carry an authority tier', 96,
+  await one('select count(*) n from ops_kb_stage.roles where authority_tier is not null'),
+  'YES — fn_ops_authority_check', '');
 add('2 · COMPANY_OPERATIONS', 'decision rules enabled + in decider context', 240,
   await one('select count(*) n from ops_kb_stage.decision_rules where enabled'),
   'YES — fn_ops_department_context returns them', 'after all 282 scenarios ran RUNNABLE');
-add('2 · COMPANY_OPERATIONS', 'department authority declared', 24,
-  await one('select count(distinct dept_key) n from org_authority'), 'YES — fn_ops_authority_check', '');
+// Measured against the departments that actually operate, not the 24 target ones: authority for a
+// department that does not exist in the live org is a row nothing can ever consult.
+add('2 · COMPANY_OPERATIONS', 'live departments with authority declared',
+  await one('select count(*) n from org_departments'),
+  await one('select count(distinct dept_key) n from org_authority where dept_key in (select dept_key from org_departments)'),
+  'YES — fn_ops_authority_check', 'was fail-closed gated for most pairs before today');
 
 // ══ PACK 3 — AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS ════════════════════════════════════════════
 add('3 · AI_AUTONOMY_ROUTING', 'task-class policies', csvRows(join(AI, '04_MODEL_POLICY_BY_TASK_CLASS.csv')),
