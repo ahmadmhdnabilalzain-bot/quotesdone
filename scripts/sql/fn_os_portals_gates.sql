@@ -33,12 +33,19 @@ with m as (
         and (status = 'pending' or escalated)) aa30_paused,
     (select count(*) from agent_actions where created_at > now() - interval '30 days'
         and status = 'auto_done') aa30_auto,
-    (select count(*) from information_schema.column_privileges p
-       join information_schema.columns c on c.table_schema = p.table_schema
-        and c.table_name = p.table_name and c.column_name = p.column_name
-      where p.grantee in ('anon','authenticated') and p.privilege_type = 'SELECT'
-        and c.table_schema = 'public'
-        and (c.column_name ilike '%customer%email%' or c.column_name ilike '%customer%phone%')) leak_cols,
+    -- pg_catalog, not information_schema. The information_schema.column_privileges view
+    -- materialises every grant on every column in the database and the join was O(columns x
+    -- grants): it ran on production and hit the statement timeout on staging, which took the whole
+    -- gates function and the scorecard down with it. Filtering by column NAME first and asking
+    -- has_column_privilege per candidate is the same question asked cheaply.
+    (select count(*) from pg_attribute a
+       join pg_class c on c.oid = a.attrelid
+       join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and a.attnum > 0 and not a.attisdropped
+        and c.relkind in ('r','v','m','p')
+        and (a.attname ilike '%customer%email%' or a.attname ilike '%customer%phone%')
+        and (has_column_privilege('anon', c.oid, a.attnum, 'SELECT')
+             or has_column_privilege('authenticated', c.oid, a.attnum, 'SELECT'))) leak_cols,
     (select count(*) from cron.job where jobname = 'control_mode_sweep_5min' and active) cm_sweep,
     (select count(*) from internal_credential where active and scope @> array['*']) star_creds,
     (select count(*) from internal_credential where active) creds,
