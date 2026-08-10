@@ -156,3 +156,27 @@ revoke execute on function public.fn_org_agent_resolve(text) from public, anon, 
 revoke execute on function public.fn_agent_action_resolve_addressee() from public, anon, authenticated;
 
 alter table public.org_agent_alias enable row level security;
+
+-- ─────────────────────────────────────────────────────────────────────────────────────────────
+-- TRIGGER ORDER IS ALPHABETICAL, AND THE FIRST NAME WAS WRONG.
+--
+-- Postgres fires BEFORE triggers in NAME order, so `action_gate` ran before
+-- `trg_agent_action_resolve_addressee` and read NEW.agent while it was still the unresolved role
+-- name. trg_action_gate does not merely stamp: it hands NEW.agent to fn_should_escalate as the ACTOR
+-- the escalation routes FROM, and writes it to decision_log.actor.
+--
+-- Probed on production in an aborted transaction, one action addressed to strategy_ai:
+--     BEFORE   row.agent = strategy_director   decision_log.actor = strategy_ai
+--     AFTER    row.agent = strategy_director   decision_log.actor = strategy_director
+-- Staging reads the same after.
+--
+-- So the fix was correct one layer up and still handed the router an identity that does not exist --
+-- the same defect one layer down, introduced by the fix for it. The rename IS the whole repair.
+alter trigger trg_agent_action_resolve_addressee on public.agent_actions
+  rename to a00_agent_action_resolve_addressee;
+
+comment on trigger a00_agent_action_resolve_addressee on public.agent_actions is
+  'MUST fire before action_gate. BEFORE triggers fire in NAME order and trg_action_gate reads '
+  'NEW.agent as the actor it routes the escalation FROM, so an unresolved addressee here becomes an '
+  'unresolved actor in decision_log and in fn_should_escalate. The a00_ prefix is the ordering '
+  'contract; do not rename it back.';
