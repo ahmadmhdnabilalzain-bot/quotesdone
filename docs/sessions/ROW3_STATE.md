@@ -54,6 +54,23 @@ a `compliance_update` action, and the bus is never told. A trigger on that colum
 subscriber, and `has_function_privilege('anon', …)` is false because the grant was revoked in the
 same migration.
 
+**`health.degraded` was the second one fixed.** The CTO subscribes to it — *"OS interface: Technology
+OS consumes health.degraded"* — and it had never fired, while `os.health_changed` fired 21 times
+carrying both numbers: **leadership 81 → 75 and marketplace 69 ← 75 at 04:45 today**, two operating
+systems degrading with nobody woken. Repointing the subscription would have been the wrong repair —
+CHANGED is not DEGRADED and an improvement must not page the CTO — so the narrower event is derived
+from the wider one by trigger, rather than by editing the 8 KB `fn_os_review` that already works.
+Probed both directions in an aborted transaction: a 75 → 60 drop emitted once and delivered to `cto`;
+a 75 → 90 rise stayed silent.
+
+**`rfq.classified` is the next one and was deliberately left.** Five category specialists
+(`spec_commercial`, `spec_construction`, `spec_fitout`, `spec_industrial`, `spec_mep`) subscribe to
+it and it has never fired. `rfq.created` IS emitted, by `trg_event_inquiry`, but nothing emits the
+classification, so when a real buyer finally arrives the five specialists who should compete for the
+RFQ will not hear about it. Not built here because `inquiries` carries **eleven** triggers and zero
+rows, so the only way to verify an emitter is a probe insert through all eleven, minutes before the
+closing measurement. It is a small, well-understood build with room to check it.
+
 **32 active subscriptions still sit on 14 names nothing has ever emitted**: `budget.exceeded`,
 `campaign.published`, `content.drafted`, `customer.churn_signal`, `customer.complaint`,
 `department.conflict`, `health.degraded`, `invoice.flagged`, `invoice.received`, `outcome.graded`,
