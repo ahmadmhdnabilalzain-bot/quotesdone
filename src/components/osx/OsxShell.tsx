@@ -1285,6 +1285,31 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
         <StatTile label='Bottlenecks' value={bottlenecks.length} hint='departments over capacity' onClick={() => onNav('operations')} />
       </div>
 
+      {/* ── THE COMPANY AT WORK ───────────────────────────────────────────────────────────────
+          Seven of the nine tiles above can only be non-zero once the marketplace transacts, and
+          on 10 Aug 2026 seven of them were: revenue 0, customers 0, suppliers 0, pipeline empty.
+          The founder opened this screen and said it "looks extremely basic still" — and he was
+          right, because it was showing him the company he does not have yet instead of the one
+          that is already running: 746 agent runs and 180 events in a day, 20,470 leads, 1,754
+          knowledge revisions in a week.
+
+          FOUR OF THESE WERE ALREADY IN THE API AND RENDERED NOWHERE. fn_ws_exec_home added
+          workflow_runs_24h, handoffs_24h, knowledge_revisions_7d and uptime_pct_24h under a
+          comment reading "FOUR BOARDS THAT WERE MEASURED CONSTANTLY AND SHOWN NOWHERE" — and then
+          this component never read them. That is the exact defect the Row #3 spec exists to
+          catch, one layer further up: computed, returned over the API, still not on a screen. */}
+      <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3'>
+        <StatTile label='Leads sourced' value={eh.leads_total != null ? Number(eh.leads_total).toLocaleString() : '—'} hint='suppliers found, not yet registered' onClick={() => onNav('suppliers')} />
+        <StatTile label='Agent runs today' value={eh.agent_runs_24h != null ? Number(eh.agent_runs_24h).toLocaleString() : '—'} hint='last 24 hours' onClick={() => onNav('agents')} />
+        <StatTile label='Workflows run today' value={eh.workflow_runs_24h ?? '—'} hint='last 24 hours' onClick={() => onNav('operations')} />
+        <StatTile label='Events on the bus' value={eh.events_24h != null ? Number(eh.events_24h).toLocaleString() : '—'} hint='last 24 hours' onClick={() => onNav('company_os')} />
+        <StatTile label='Handoffs delivered' value={eh.handoffs_24h != null ? Number(eh.handoffs_24h).toLocaleString() : '—'} hint='last 24 hours' onClick={() => onNav('operations')} />
+        <StatTile label='Decisions waiting' value={eh.decisions_open ?? '—'} hint='review queue' onClick={() => onNav('escalations')} />
+        <StatTile label='Open tasks' value={eh.tasks_open ?? '—'} hint='across every department' onClick={() => onNav('operations')} />
+        <StatTile label='Knowledge updated' value={eh.knowledge_revisions_7d != null ? Number(eh.knowledge_revisions_7d).toLocaleString() : '—'} hint='revisions in 7 days' onClick={() => onNav('knowledge')} />
+        <StatTile label='Uptime' value={eh.uptime_pct_24h != null ? eh.uptime_pct_24h + '%' : '—'} hint='edge probes, last 24 hours' onClick={() => onNav('health')} />
+      </div>
+
       {bottlenecks.length ? <SectionCard title='Where the company is blocked right now' count={bottlenecks.length}>
         <div className='divide-y divide-border'>{bottlenecks.map((b: any, i: number) => (
           <div key={i} className='px-4 py-2.5 flex items-center gap-3 text-sm'>
