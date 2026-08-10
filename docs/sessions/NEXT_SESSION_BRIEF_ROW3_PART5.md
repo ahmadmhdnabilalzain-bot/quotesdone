@@ -97,6 +97,30 @@ the genome block injected into `fn_agent_context` · `trg_company_event_dispatch
 | `s21-events-nine-classes` | `competitor.pricing_changed` has no observation mechanism at all |
 | `exec-meeting-priorities-agreed` | 60-day universal; three meetings age out 27 Sept / 3 Oct / 6 Oct |
 | the five per-employee universals, `s32-reputation-six-dimensions` | re-measure first — see §2.2 |
+| `s26-verify-documentation` | **8 of the 16 documents point at storage objects that never existed.** See §2.4 |
+
+### 2.4 — QA FIXTURES IN PRODUCTION ARE HOLDING CHECKS RED, IN AT LEAST THREE PLACES
+
+This is the pattern, not three coincidences, and every scorer verdict that counts rows should be
+read against it:
+
+- **`inquiries`** — all 7 carry `brief_source='qd_demo_fixture'` and a "ZZ DEMO" summary. Zero real
+  inquiries have ever arrived.
+- **`documents`** — 9 of 16 are unextracted, and **8 of those are `status='orphaned'`** with the
+  error written on the row: *"Storage object never existed. QA fixture or seed row with no
+  object"* and *"Stale demo path; no object in storage."* They cannot be extracted because there is
+  no file. Marking them verified is fabrication, so `s26-verify-documentation` is unpassable while
+  they sit there. The 9th is a genuine `extraction_null` on a drawing — the `doc_extract`
+  truncation defect `verify_prod_readiness` tracks — and fixing it alone reaches only 8 of 16.
+- **`match_eval`'s own HARNESS_FIX sellers** are self-cleaning, so that one is handled.
+
+**The decision is the founder's, not a session's**, because it means deleting rows from production:
+either purge the orphaned fixture rows and the ZZ DEMO inquiries, or accept that the checks reading
+them stay red until real traffic dilutes them. **Do not "fix" this by teaching the scorer to skip
+fixtures** — that is weakening a check to make it pass, and the same argument would eventually
+excuse skipping anything inconvenient. The one place fixture-exclusion WAS correct this session was
+`fn_resilience_watch`, because that is an operational alert paging a human about demo data, not a
+measurement of whether the company works.
 
 ---
 
