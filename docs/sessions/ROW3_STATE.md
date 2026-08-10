@@ -15,7 +15,7 @@ cron.job_run_details, 12h        ->  40 job names, every run succeeded, zero fai
 **Opening 119/152. Closing 121/152 — 0 errored, ZERO regressions, +2.** Three regressions appeared
 during the session and all three were mine; each was fixed at source and re-verified against its
 own predicate before the confirming run. The two gains came from the inbox drain:
- and .
+`approval-center-everything-else-automatic` and `strategic-not-operational`.
 
 ### THE PACK SCORECARD, WHICH IS WHAT THIS SESSION WAS FOR
 
