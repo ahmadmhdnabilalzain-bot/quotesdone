@@ -24,6 +24,13 @@
 do $$
 declare
   callers text[] := array[
+    -- action_worker added 10 Aug 2026. CI refused the merge without it — "these functions import
+    -- _shared/llm.ts but are not in the credential migration, so each one falls back to the shared
+    -- inbound_secret on every model call" — and it was right: the credential had been issued at
+    -- runtime, so a REBUILT database would have put the worker back on the shared secret. This
+    -- block widens-or-issues per caller and is re-runnable, so naming it here is a no-op against
+    -- the credential that already exists.
+    'action_worker',
     'agent_act','agent_brain','agents','analytics_recommend','archive_rfq','blog_weekly',
     'boost_recommend','canon_eval','category_provision','category_reqs','content_revise','copilot',
     'cos_execute','dept_learn','dept_plan','doc_render','ea_meeting_summary','email_triage',
