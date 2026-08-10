@@ -25,11 +25,19 @@
 -- vector (fn_kb_corpus_integrity asserts it), and full text is the path kb_search falls back to.
 -- Recall of vector against FTS is deliberately NOT claimed here — comparing them at 0.4% embedded
 -- would measure the backfill, not the retrieval.
+-- CORRECTED AFTER MEASURING IT. The first version passed limit 8, reading the function's own
+-- comment "limit 40 -> 546, limit 20 -> 546, limit 10 -> 546, limit 8 -> 546, limit 5 -> 200" as
+-- row counts. They are HTTP STATUS CODES: 546 is WORKER_RESOURCE_LIMIT and only a batch of 5
+-- returns 200. net._http_response confirmed it — 4x 546 within twenty minutes and the pack
+-- embedding rate collapsed from 164/min to 17/min. Batch is 5, the only size the gte-small
+-- session survives; the concurrency stays, because a separate worker per invocation is the whole
+-- reason more invocations help where a bigger batch does not.
+select cron.unschedule('kb_embed_backfill_boost');
 select cron.schedule('kb_embed_backfill_boost', '* * * * *', $job$
   select net.http_post(
     url := 'https://__PROJECT_REF__.supabase.co/functions/v1/kb_embed',
     headers := '{"Content-Type":"application/json"}'::jsonb,
     body := jsonb_build_object('__secret', (select value from app_secrets where key = 'cred_cron_knowledge'),
-                               'limit', 8))
+                               'limit', 5))
   from generate_series(1, 6);
 $job$);
