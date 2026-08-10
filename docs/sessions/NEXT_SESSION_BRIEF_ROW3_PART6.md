@@ -40,13 +40,18 @@ track) and `marketing_ai_daily` (06:50).
 | 03:50 | `opportunity_scan_daily` | yes, succeeded, found 5 | `s29-scan-five-questions` | no — 4 of 5, deliberately (see §3) |
 | 04:00 | `kpi_review_weekly` | yes, succeeded — 15 opened, 33 missed, 20 no_data | `s33-replay-six-tracks` | not yet — see below |
 | 04:15 | `index_slowdown_watch_daily` | yes, succeeded — **2** investigated, 2 proposals | `s31-slowdown-investigated` | |
-| 04:30 | `founder_brief_daily` | _pending_ | `companion-overnight-brief`, `voice-morning-brief-spoken` | |
-| 05:00 | `exec_meeting_weekly` | _pending_ | `exec-meeting-agenda-six`, `-debate`, `exec-reports-recommendations-approvable` | |
-| 06:00 | `exec-agents-weekly` | _pending_ | `exec-intel-quantified-recommendation` | |
-| 06:00 | `evolution_scan_weekly` | _pending_ | `s35-restructure-four-questions`, `evolution-proposes-structure` | |
-| 06:10/20/40 | three governance monitors | _pending_ | `s39-governance-six-monitors` | |
-| 06:50 | `marketing_ai_daily` | _pending_ | `approval-center-five-decision-kinds` | |
-| 07:00 | `reputation_weekly` | _pending_ | `s32` — will NOT flip, by design (§3) | |
+| 04:30 | `founder_brief_daily` | yes, succeeded | `companion-overnight-brief` 4→**8 of 8**, `voice-morning-brief-spoken` 2→**6 of 6** | **both MET** |
+| 05:00 | `exec_meeting_weekly` | yes — 12 priorities, 3 challenges, 12 raised | `exec-meeting-agenda-six` 0→**6 of 6**, `-debate`, `exec-reports-recommendations-approvable` 0→**12 rows** | **all three MET** |
+| 06:00 | `exec-agents-weekly` | yes — **7 of 7 officers filed, 0 empty, no errors** | `exec-intel-quantified-recommendation` | expected MET |
+| 06:00 | `evolution_scan_weekly` | yes — **22 proposals** | `s35-restructure-four-questions`, `evolution-proposes-structure` | expected MET |
+| 06:10/20/40 | three governance monitors | **all three fired, first runs ever** | `s39-governance-six-monitors` 3→6 of 6 | expected MET |
+| 06:50 | `marketing_ai_daily` | yes — marketing budget decision raised | `approval-center-five-decision-kinds` 4→**5 of 5** | expected MET |
+| 07:00 | `reputation_weekly` | yes — **probation 0**, standard 60, trusted 6 | `s32` — did NOT flip, by design (§3) | as designed |
+
+**ALL THIRTEEN FIRED, ALL SUCCEEDED, ZERO FAILURES.** And every prediction made by executing the
+routine on staging BEFORE its cron ran turned out correct — the three "permanently empty" officers
+all filed on `attempts: 2`, the evolution scan asked all four structural questions, and the
+reputation recompute demoted nobody.
 | **23:55** | `company_snapshot_daily` | tonight | `s33-replay-six-tracks` | **a 13th clock-bound check** |
 
 **`s33` is anchored on a snapshot that has not been taken yet.** It measures the six tracks against
