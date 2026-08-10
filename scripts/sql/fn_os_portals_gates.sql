@@ -31,8 +31,13 @@ with m as (
     (select count(*) from agent_actions where created_at > now() - interval '30 days') aa30,
     (select count(*) from agent_actions where created_at > now() - interval '30 days'
         and (status = 'pending' or escalated)) aa30_paused,
+    -- Work a MACHINE executed, counted by every mechanism that executes it rather than by one
+    -- pipeline's status literal. 'auto_done' is what trg_action_gate's auto-approval writes; an
+    -- item settled by action_worker carries decided_by='action_worker:<employee>' and status
+    -- 'done'. Counting only the first said staging executes nothing while two of its items had
+    -- just been executed there. The bar is unchanged — machine-executed work must be non-zero.
     (select count(*) from agent_actions where created_at > now() - interval '30 days'
-        and status = 'auto_done') aa30_auto,
+        and (status = 'auto_done' or decided_by like 'action_worker%')) aa30_auto,
     -- pg_catalog, not information_schema. The information_schema.column_privileges view
     -- materialises every grant on every column in the database and the join was O(columns x
     -- grants): it ran on production and hit the statement timeout on staging, which took the whole
@@ -52,9 +57,18 @@ with m as (
     (select count(*) from model_policy where active and tier = 'none') det_pol,
     (select count(*) from model_policy where task_class = 'quote_comparison'
         and coalesce(deterministic_alternative,'') <> '') qc_det,
-    (select count(*) from llm_calls where created_at > now() - interval '30 days') llm30,
-    (select count(*) from llm_calls where created_at > now() - interval '30 days'
-        and purpose is not null and model_used is not null and ok is not null and cached is not null) llm30_full,
+    -- ai_cost_log, NOT llm_calls. The first version of this gate read llm_calls and was WRONG on
+    -- both projects for the same reason: fn_llm_log — which ai_gateway calls in five places — has
+    -- inserted into ai_cost_log for some time, and llm_calls is a superseded table frozen at 56
+    -- rows since 3 Aug 2026. So the gate PASSED on production off a week-old stale sample and
+    -- FAILED on staging, which never had the old table populated, while the company was making
+    -- 123 logged model calls this afternoon. ai_cost_log carries exactly the four things the gate
+    -- names: task_class, cost_aed, cached and ok. The 7-day window is deliberate — a logging
+    -- pipeline that stopped a week ago must not keep this green.
+    (select count(*) from ai_cost_log where occurred_at > now() - interval '7 days') llm30,
+    (select count(*) from ai_cost_log where occurred_at > now() - interval '7 days'
+        and task_class is not null and model_used is not null and ok is not null
+        and cached is not null and cost_aed is not null) llm30_full,
     (select count(*) from agent_actions where created_at > now() - interval '30 days'
         and recommendation is not null and confidence is not null) rec_conf,
     (select count(*) from agent_actions where created_at > now() - interval '30 days'
@@ -89,7 +103,7 @@ select * from (values
 
   ('Routine low-risk work executes, rather than merely producing a recommendation.',
    case when (select invoked_ok > 0 and aa30_auto > 0 from m) then 'met' else 'not_met' end,
-   (select format('%s action(s) invoked over HTTP and confirmed on a 200 by fn_action_invoke_collect; %s of %s agent_actions auto_done in 30 days', invoked_ok, aa30_auto, aa30) from m)),
+   (select format('%s action(s) invoked over HTTP and confirmed on a 200 by fn_action_invoke_collect; %s of %s agent_actions in 30 days were executed by a machine (auto_done or settled by action_worker)', invoked_ok, aa30_auto, aa30) from m)),
 
   ('Every executor is registered, policy checked, idempotent and retry-safe.',
    case when (select exec_incomplete = 0 and invoked_ok > 0 from m) then 'met' else 'not_met' end,
@@ -132,7 +146,7 @@ select * from (values
 
   ('Model calls include task class, budget, cache and outcome logging.',
    case when (select llm30 > 0 and llm30_full = llm30 from m) then 'met' else 'not_met' end,
-   (select format('%s of %s llm_calls rows in 30 days carry purpose, model_used, cached and ok', llm30_full, llm30) from m)),
+   (select format('%s of %s ai_cost_log rows in 7 days carry task_class, model_used, cached, ok and cost_aed', llm30_full, llm30) from m)),
 
   ('Customer and supplier portals work on mobile web.',
    'met',
