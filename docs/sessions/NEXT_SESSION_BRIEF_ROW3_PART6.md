@@ -200,10 +200,38 @@ Brief COUNTS have been reliable. Brief DIAGNOSES have now been wrong four times.
   | cost | **NO COLUMN** | — | |
   | expected impact | **NO COLUMN** | — | |
 
-  One trigger and one column default account for the entire 3 of 7. Four columns must be added AND
-  populated with real per-recommendation values by **31 writers across 32 kinds, none sharing a
-  helper** — and the check is a universal over a 30-day window, so it cannot flip until 30 days after
-  the last non-conforming row. Not closable before ~9 Sept even if built today.
+  One trigger and one column default account for the entire 3 of 7.
+
+  **AND IT IS 53 WRITERS, NOT 31.** Enumerated 10 Aug — 33 database functions that
+  `insert into agent_actions`:
+
+  > `ai_rec` `doc_rec` `fin_alert` `fn_agent_decision` `fn_ai_quality_watch` `fn_autonomy_audit_run`
+  > `fn_backup_watch` `fn_category_sales` `fn_chief_of_staff` `fn_customer_success` `fn_doc_control`
+  > `fn_ea_assistant` `fn_exec_meeting` `fn_execution_run` `fn_improvement_handover`
+  > `fn_knowledge_curator` `fn_marketing_ai` `fn_notify_supplier` `fn_report_flag`
+  > `fn_report_recommendation_approve` `fn_security_scan` `fn_strategy_rec`
+  > `fn_supplier_capability_chase` `fn_supplier_exception_sweep` `fn_supplier_risk_monitor`
+  > `fn_supplier_success` `fn_supply_health` `kn_task` `leg_flag` `mkt_rec` `ops_rec` `sec_incident`
+  > `trg_customer_abandon_ban`
+
+  plus 20 edge functions:
+
+  > `agent_autogen` `agent_brain` `agents` `category_provision` `collections_legal` `cos_execute`
+  > `customer_api` `dispatch_inquiry` `email_triage` `kb_fill_gap` `learn_gaps` `legal_review`
+  > `messages_api` `os_api` `prompt_improve` `rfq_flag` `supplier_api` `supplier_onboard`
+  > `translate_page` `vt_scan`
+
+  **THE CHECK IS A UNIVERSAL, SO THERE IS NO PARTIAL CREDIT.** Every one of the 53 must supply real
+  values for all four new fields; covering the biggest writers first scores exactly zero. Volume for
+  sequencing only: `incident` 515 of 1,171 rows in 30d (44%), `licence_expiring` 150, `handoff` 106,
+  `strategy_rec` 79, `knowledge_task` 64.
+
+  **DO NOT GIVE THE NEW COLUMNS DEFAULTS.** A `default 0` on cost or a template on assumptions makes
+  all four pass within 30 days and measures nothing — the identical mistake `fn_governance_stamp`
+  already made with `confidence := 0.9`, which is why three of seven "pass" today.
+
+  Not closable before ~9 Sept even if started immediately, because the 30-day window only begins
+  once the last non-conforming writer is fixed.
 - **The 226 split-address leads** (`a@x.ae; b@y.ae`) — ~208 recoverable, but which address is
   primary is a judgement for the founder.
 
