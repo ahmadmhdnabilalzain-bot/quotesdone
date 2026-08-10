@@ -145,6 +145,20 @@ measurement of whether the company works.
 - **`explain-confidence-score`** — escalations read 0/8 because `trg_action_gate` inserts
   `confidence` as an explicit NULL. The gate's decision is deterministic, so any number written
   there is boilerplate. Fix the meaning of confidence or leave it red.
+- **`strategic-not-operational` is NOT converging — it widened.** `ROW3_STATE` records the hourly
+  sweep taking operational 316 → 181 and implies it keeps draining. Re-measured 10 Aug: **operational
+  186, strategic 116** — the gap went from 66 to 70. The sweep is holding a steady state against
+  arrivals, not draining toward the threshold. Today's `opportunity_scan` and `evolution_scan` add
+  strategic items, but tens, not seventy. It will not flip on its own.
+- **`personalization-learns-founder-habits` has an honest seed, contrary to "0 candidate stores".**
+  Real founder behaviour IS recorded: **11 `agent_chats` from two genuine founder accounts**
+  (`ahmadalzain1993@admin.quotesdone.com`, `management@quotesdone.com`) — which agents the founder
+  consults, when, how often. That is a legitimate basis to derive a profile from, not invented data.
+  But it is a THREE-LAYER build (a store, a UI-reachable reader, and the shell genuinely adapting —
+  and note the `adapts` leg is a source regex, so writing the word "habit" without behaviour would
+  be an accidental pass), and **eleven data points do not make a habit**. What the habits should
+  DRIVE — which module opens first, notification batching, prominence — is a founder product
+  decision. Ask before building.
 - **200 knowledge items have no `review_due`**, so `fn_knowledge_decay` can never mark them stale —
   permanently invisible to review. No single interval is derivable (`profession` uses 90, 365 AND
   396 days; `company` is a scattered 367–398). Setting one is a knowledge-director decision.
