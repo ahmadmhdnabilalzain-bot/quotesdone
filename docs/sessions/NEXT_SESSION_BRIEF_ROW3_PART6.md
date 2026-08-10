@@ -55,6 +55,44 @@ first ran 00:35 on the 10th) and no outcomes (`kpi_review_weekly` ran 04:00 on t
 missing tracks now have rows dated the 10th, and `company_snapshot_daily` is `55 23 * * *`. So s33
 should flip at **23:55 tonight** with no code change. It is not broken.
 
+### Confirmed flips, 10 Aug
+
+| check | before | after | cause |
+|---|---|---|---|
+| `s26-verify-documentation` | 7 of 16 | **8 of 8 — MET** | the fixture purge (16→8 docs) + the `doc_extract` retry fix (document 10 extracted on attempt 2) |
+| `companion-overnight-brief` | 4 of 8 | **8 of 8** | 04:30 `founder_brief_daily`, first run of the extended body |
+| `voice-morning-brief-spoken` | 2 of 6 | **6 of 6** | same run — it reads `founder_alerts`, not `notifications` |
+
+### Two more defects found 10 Aug, both fixed on both projects
+
+- **`doc_extract`'s retry budget could never be spent.** The selector read `status='pending'` with
+  `lt('attempts',3)`, but every failure writes `status='error'` and nothing returns a row to
+  `pending`. The first failure was permanent. Document 10 — a real 105,843-byte PNG present in
+  `storage.objects` — had sat at `extraction_null`/`attempts=1` since **15 July**, failing because
+  `ai_gateway` was then capped at `max:2000` (removed weeks ago). `error` now rejoins the queue while
+  it has budget; `skipped` deliberately does not.
+- **`queue()` in `agents/index.ts` had no idempotency.** A bare insert behind a bare catch, 13 call
+  sites. `licence_expiring` holds **150 rows carrying 8 facts about 2 suppliers** — each countdown
+  day appears ~24 times, once an hour. Deduping on an OPEN row would not help (all 150 ended
+  `auto_done`); the guard is a 20-hour window on kind+title+target, which lets the daily countdown
+  through. A failed insert now writes an `agent_runs` error row instead of vanishing.
+
+### CREDENTIAL SCOPING — READ THIS BEFORE PROBING ANY EDGE FUNCTION
+
+`cred_cron_<x>` and `cred_fn_<x>` are **not** necessarily scoped to `<x>`. On BOTH projects:
+
+```
+cred_cron_agents -> out_of_scope  "The cron.agents credential is not scoped to call agents."
+cred_fn_agents   -> out_of_scope  "The fn.agents credential is not scoped to call agents."
+```
+
+`agents` is reachable only with **`cred_db_internal`** — the credential labelled *"database triggers
+and helpers"*, scope of 14 slugs including `agents`, use_count 442 on production. There is no latent
+outage; the naming is just misleading. Ask `fn_internal_auth(secret, slug)` before assuming.
+
+Related and useful: the legacy shared secret (scope `*`) is at **382 uses, last used 6 Aug and not
+rising**, so it can be withdrawn per its own doctrine.
+
 ### Two checks predicted by execution before their cron ran, and both were right
 
 - **`companion-overnight-brief`** — staging's brief written by the current `fn_founder_brief` scores
