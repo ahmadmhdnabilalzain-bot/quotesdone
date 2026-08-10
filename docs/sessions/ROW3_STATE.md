@@ -111,6 +111,13 @@ have **zero runs ever** — impossible unless they were created after their most
 | opening | **100/152 (66%)** | re-measured, 0 errored — no cron had fired |
 | after the knowledge provenance fix | 100/152 | s27 1 of 7 → 2 of 7, no flip |
 | after the genome | **102/152 (67%)** | `genome-eleven-attributes-stored` + `genome-inherited-by-every-employee` both MET |
+| after the 00:35 cron | **103/152 (68%)** | `digital-twin-live-kpis` MET — the first of the twelve, watched rather than predicted |
+
+**THE FIRST OF THE TWELVE FIRED AND WAS MEASURED, NOT ASSUMED.** `bi_snapshot_6h` ran for the first
+time in its life at **2026-08-10 00:35:00**, status succeeded. `metric_snapshot` went 42 → **56
+rows** and all **14** active metrics carry a reading inside the window. The check now reads "0 of 14
+active metric(s) have no snapshot inside 24h ... newest 2026-08-10 00:35:00" — **MET**. Everything
+the opening section says about the clock is confirmed by the clock itself.
 
 #### What was built
 
@@ -226,11 +233,20 @@ is a refusal log, not an access log; absence there is not absence of traffic.
   rest on, is weaker than it reads here and must be re-argued from `agent_runs` and `agent_memory`
   instead.
 
-  **The fix is one argument**: pass `agent: key` into `agent_brain`'s `llm()` call, which already
-  accepts `agent?: string`. NOT done in this session on purpose — it is an edge-function change to
-  the company's core reasoning path that auto-deploys on merge, and it was found twenty minutes
-  before a scheduled measurement. It deserves a staging deploy and a billed-call check of its own,
-  not a rushed one.
+  **FIXED AND DEPLOYED TO BOTH PROJECTS.** And it was NOT the one-line change it first looked like:
+  `const llm = makeLlm(...)` sat at MODULE SCOPE, built at boot before any request, and `makeLlm`
+  binds `def.agent` at CONSTRUCTION while the function it returns takes `(sys, input, max)` with no
+  per-call override. There was no argument to pass the agent in. The constant became a factory —
+  `const llmFor = (agent) => makeLlm(OPUS_FIRST, {..., agent})`, called as `llmFor(key)(...)`. Same
+  models, ceiling, timeout and prompt; only the stamp changes.
+
+  **Verified by execution, not by typecheck.** Staging's `agent_brain` was invoked as `account_mgr`
+  — chosen precisely because it is not the exec head, so `ceo` could not be right by accident — and
+  the resulting `ai_cost_log` row reads `agent_key='account_mgr'`, 14,332 prompt tokens, AED 0.1086.
+  A second row, `agent_key` NULL at 317 tokens and AED 0.0003, is `llmFast`: left unattributed on
+  purpose and noted in the code, because it is 0.3% of the bill and its callers take no key.
+  Production is v29 as of 00:34:50; its first post-deploy call is pending the next hourly
+  `cos_execute`. staging had zero prior `agent_brain` cost rows, so those two are clean evidence.
 - Two other routines use a `between now()-x and now()-y` band (`fn_founder_brief` 60→30d,
   `fn_ceo_questions` 14→7d) and both are legitimate prior-period comparisons, not alerts. No active
   daily cron has failed to run in 30 hours.
