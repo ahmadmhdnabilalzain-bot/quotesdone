@@ -202,12 +202,20 @@ is a refusal log, not an access log; absence there is not absence of traffic.
   on a buyer. **The company has had ZERO real inquiries, not seven**, and live matching has never
   been exercised — `match_eval`'s 100%/100% is a synthetic benchmark against its own seeded
   suppliers.
-- **`agent_brain` is 93% of all AI spend and runs as ONE employee.** 381 calls over 4 days, **AED
-  51.08 (~AED 383/month)**, 14,110 prompt tokens each — and `agent_key` is `ceo` on every single one.
-  Daily AI cost went from ~AED 0.5 to ~AED 13 on 6 Aug when this started. This document says "one
-  employee an hour does not reach" the 66-of-66 universals; the mechanism is not rotating at all, so
-  those five checks will never be fed by it however long it runs. No cron calls it — the credential
-  trail points at `cos_execute`.
+- **`agent_brain` is 93% of all AI spend, and its cost attribution does not survive scrutiny.** 381
+  calls over 4 days, **AED 51.08 (~AED 383/month)**, 14,110 prompt tokens each. Daily AI cost went
+  from ~AED 0.5 to ~AED 13 on 6 Aug when this started. **Every one of the 381 `ai_cost_log` rows
+  carries `agent_key='ceo'`** — yet `agent_chats` over the same window shows `agent_brain` replying
+  as knowledge_director (38), procurement (35), docs (27) and brief (25), dispatched by
+  `internal@quotesdone.com`, i.e. `cos_execute`. Both cannot be true of the same calls.
+  `agent_key` is not a hardcoded default — six distinct values appear across `ai_cost_log` in 7 days
+  (ceo 408, ai_trainer 129, knowledge_curator 85, NULL 39, brief 23, onboarding 5) — and
+  `_shared/llm` does forward `agent: def.agent ?? null`. So either the reasoning is billed to the
+  wrong employee, or those department chats come from `cos_execute`'s generic department-head
+  fallback rather than from `agent_brain`. **Unresolved, and it matters**: this document's "`ai_cost_log`
+  — **3 of 66** have ever been billed for a model call" is evidence for employee dormancy only if the
+  attribution is right. Resolve it before treating per-employee spend, or the five per-employee
+  universals, as measured. No cron calls agent_brain; the credential trail points at `cos_execute`.
 - Two other routines use a `between now()-x and now()-y` band (`fn_founder_brief` 60→30d,
   `fn_ceo_questions` 14→7d) and both are legitimate prior-period comparisons, not alerts. No active
   daily cron has failed to run in 30 hours.
