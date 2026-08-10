@@ -39,7 +39,7 @@ track) and `marketing_ai_daily` (06:50).
 | 02:15 | `capability_verify_daily` | yes, succeeded | `s34-resilience-measured` | **MET** |
 | 03:50 | `opportunity_scan_daily` | yes, succeeded, found 5 | `s29-scan-five-questions` | no — 4 of 5, deliberately (see §3) |
 | 04:00 | `kpi_review_weekly` | yes, succeeded — 15 opened, 33 missed, 20 no_data | `s33-replay-six-tracks` | not yet — see below |
-| 04:15 | `index_slowdown_watch_daily` | _pending_ | `s31-slowdown-investigated` | |
+| 04:15 | `index_slowdown_watch_daily` | yes, succeeded — **2** investigated, 2 proposals | `s31-slowdown-investigated` | |
 | 04:30 | `founder_brief_daily` | _pending_ | `companion-overnight-brief`, `voice-morning-brief-spoken` | |
 | 05:00 | `exec_meeting_weekly` | _pending_ | `exec-meeting-agenda-six`, `-debate`, `exec-reports-recommendations-approvable` | |
 | 06:00 | `exec-agents-weekly` | _pending_ | `exec-intel-quantified-recommendation` | |
@@ -186,9 +186,24 @@ Brief COUNTS have been reliable. Brief DIAGNOSES have now been wrong four times.
   `status='error'` before touching anything.
 - **A knowledge validator.** Nothing in the estate writes `author_verified`. This blocks
   `learning_speed`, and therefore `s32`, permanently.
-- **`s36-recommendation-seven-fields`** — still 31 writers across 32 kinds, four fields with no
-  column, and a 30-day age-out. Two of its three "covered" fields are `fn_governance_stamp`
-  boilerplate (`confidence := 0.9` on all rows). Cannot flip before ~9 Sept even if built today.
+- **`s36-recommendation-seven-fields` — MEASURED EXACTLY 10 Aug, and it is worse than "two of three
+  are boilerplate". ALL THREE ARE.** `FIELD_COVERED` requires a column whose NAME matches the field's
+  regex and which is non-null on every recommendation in the window. Result:
+
+  | field | column | nulls in 30d | why it passes |
+  |---|---|---|---|
+  | evidence | `evidence` | 0 | `fn_governance_stamp` stamps a template object |
+  | confidence | `confidence` | 0 | same trigger stamps `0.9` |
+  | risks | `risk` | 0 | column DEFAULT `'low'`, NOT NULL |
+  | alternatives | **NO COLUMN** | — | |
+  | assumptions | **NO COLUMN** | — | |
+  | cost | **NO COLUMN** | — | |
+  | expected impact | **NO COLUMN** | — | |
+
+  One trigger and one column default account for the entire 3 of 7. Four columns must be added AND
+  populated with real per-recommendation values by **31 writers across 32 kinds, none sharing a
+  helper** — and the check is a universal over a 30-day window, so it cannot flip until 30 days after
+  the last non-conforming row. Not closable before ~9 Sept even if built today.
 - **The 226 split-address leads** (`a@x.ae; b@y.ae`) — ~208 recoverable, but which address is
   primary is a judgement for the founder.
 
