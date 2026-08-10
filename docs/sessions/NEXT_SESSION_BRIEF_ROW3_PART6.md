@@ -77,6 +77,60 @@ should flip at **23:55 tonight** with no code change. It is not broken.
   `auto_done`); the guard is a 20-hour window on kind+title+target, which lets the daily countdown
   through. A failed insert now writes an `agent_runs` error row instead of vanishing.
 
+### THE DAILY "CRITICAL: matching is failing" ALERT IS A FIXTURE INSERT BEING REFUSED
+
+`capability_verify_daily` raises a **critical** founder alert every morning:
+*"matching — RFQs reach suppliers who can actually do the work"*. It runs no test. It copies
+`state` out of `v_critical_capability_tests`, which derives it from the latest `agent_runs` row for
+`test_ref='match_eval'` — `status='ok'` is PASSING, anything else FAILING.
+
+Today's 05:00 `match_eval_weekly` run, measured:
+
+```
+status  error
+counts  {"cases_total":5,"fixtures_seeded":0,"seed_failures":5,"precision_pct":100,"recall_pct":0}
+note    5 of 5 fixture sellers failed to seed ... violates check constraint
+        "leads_approved_implies_verified"
+```
+
+`public.leads` carries `CHECK (approval_status <> 'approved' OR coalesce(verified,false) = true)` and
+the seed sets `approval_status:'approved'` with **no `verified` field at all**. So the matcher is
+never exercised; the INSERT is refused and the whole suite records an error. It last passed 3 Aug at
+100%/100%, so the constraint landed between 3 and 10 Aug. `pass_pct_14d = 17` is the same artefact.
+
+**Two different causes, same red verdict, five days apart** — 5 Aug was the auth refusal from the
+alphabetical no-secret sweep, 10 Aug is this constraint. Do not assume one explains the other.
+
+### THREE ANSWERS TO "HOW MANY EMPLOYEES ARE WORKING", AND THE SCORER PRINTS THE WORST ONE
+
+| source | 24h figure |
+|---|---|
+| the scorer's own evidence line for `exec-home-ai-employees-working` | **64** |
+| `agent_runs` joined to `org_agents` | **9** |
+| `fn_ws_exec_home.employees_working` (three-source, fixed 9 Aug) | **16** |
+
+The scorer's evidence uses `count(distinct agent) from agent_runs` with **no join** — the identical
+conflation the landing screen was fixed for. It is in the EVIDENCE STRING only; the pass predicate is
+just `count(*) > 0`, so the verdict is unaffected and **the scorer must not be edited**. But a session
+reading "64 ran in 24h" will conclude the workforce is busy. The honest number is 16.
+
+### SECURITY: THE DAILY DRIFT ALERT IS MISLABELLED
+
+`security_selfaudit_daily` reports *"public data reachable by anon"* but counts
+`has_table_privilege('anon',…) OR has_table_privilege('authenticated',…)`. **Nothing was
+anon-reachable.** Four objects were `authenticated`-reachable: `documents` (RLS on, policies govern
+it — left alone) and three views with no RLS protection at all, since a non-`security_invoker` view
+runs as its owner and reads past the RLS on its base tables. `v_customer_master` is a customer master
+readable by any logged-in user, harmless only because `customers` holds zero rows.
+
+All three views had **zero readers** that need the grant (`fn_ws_knowledge` is SECURITY DEFINER and
+`authenticated` cannot even EXECUTE it; the one edge-function reader uses the service role), so the
+grants were revoked on both projects. Production `anon_readable_views` **3 → 0**.
+
+**Left for the founder: `anon_executable_secdef_fns = 63`** — the one number in that alert that is
+genuinely about public exposure. Revoking 63 grants blind breaks product surfaces; it needs a
+caller-by-caller pass.
+
 ### CREDENTIAL SCOPING — READ THIS BEFORE PROBING ANY EDGE FUNCTION
 
 `cred_cron_<x>` and `cred_fn_<x>` are **not** necessarily scoped to `<x>`. On BOTH projects:
