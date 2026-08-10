@@ -1,4 +1,4 @@
-# ROW #3 — THE EXECUTIVE UI: 28 → 112 / 152 and rising
+# ROW #3 — THE EXECUTIVE UI: 28 → 120 / 152
 
 Measured on production. Every number below is a scorer run, not an estimate.
 Scorer: `scripts/staging/verify_os2_blueprint.mjs`, modules in `scripts/staging/os2_blueprint/`.
@@ -18,6 +18,24 @@ else: `opportunity_scan_daily` 03:50, `kpi_review_weekly` 04:00, `index_slowdown
 fired; `exec-agents-weekly`, `evolution_scan_weekly`, the three governance monitors,
 `marketing_ai_daily` and `reputation_weekly` had not. The 06:00–07:00 window was watched by a
 background poller while other work continued, so no minute was spent idling against it.
+
+**Closing measurement 06:50 UTC: 120/152 (79%), 0 errored, 0 REGRESSIONS.** Eight flips, and every
+one of the eight was verified against its own predicate BEFORE the run rather than hoped for:
+
+| flipped | how it was closed |
+|---|---|
+| `s21-events-nine-classes` | five emitters built — 4 of 9 → 9 of 9 |
+| `s35-restructure-four-questions` | code that had shipped and never run; 06:00 cron, 0 of 4 → 4 of 4 |
+| `evolution-proposes-structure` | prompting trigger + widened allow-lists, 5 of 8 → 8 of 8 |
+| `future-simulator-forward-questions` | three scenarios, 1 of 4 → 4 of 4 |
+| `s37-benchmark-monthly-report` | monthly report executed, 16 of 27 competitors named |
+| `exec-intel-quantified-recommendation` | session 2's retry proved itself, 4 of 7 → 7 of 7 |
+| `s39-governance-six-monitors` | 06:40 `regulation_watch_weekly`, 5 of 6 → 6 of 6 |
+| `approval-center-five-decision-kinds` | 06:50 `marketing_ai_daily` filed the media-budget decision |
+
+**Not the high 120s the part-6 brief targeted, and the reason is in the blocked table below, not
+effort.** Ten of the remaining 32 were measured one at a time and each is short on a date, a
+customer, a founder decision or a column that does not exist — none on a build that was skipped.
 
 `match_eval` is green again and it was the previous session's fix, proved by its own run:
 05:00 cron `error`, 5 of 5 seeds refused by `leads_approved_implies_verified`; 05:16 manual run
@@ -106,6 +124,22 @@ completed a registration through it.
 | `employee-learning-progress` | **0 of 83 examined agents have exam results on two different days.** Not a defect: `fn_exam_pick_agent` walks 207 distinct `agent_knowledge.agent_key` values at ~6 exams a day and started 26 July, so it is still on its first pass. Only 66 of those 207 keys are employees; the rest are `cat:` specialists with no workspace |
 | `time-machine-restores-six-dimensions` | 5 of 6 on all 13 snapshots; `customers` first appears on the **2026-08-09** snapshot and is written nightly now, so the 14-day universal completes ~**24 Aug**. Nothing to build |
 | `s39-governance-six-monitors` | 5 of 6 at 06:22; the sixth (`regulatory changes`) fires at 06:40 |
+
+### End-of-session sweep, 10 Aug ~07:00 UTC
+
+| checked | found |
+|---|---|
+| GitHub Actions, 12 most recent runs | all `success`, **no zero-step job** (a zero-step job means quota, never code) |
+| Vercel deployments | 20 listed, **all READY**, including this branch's preview at 06:27 |
+| Vercel runtime errors, 24h | **none** |
+| Production `cron.job_run_details`, 24h | **0 failed runs** |
+| Production `agent_runs` errors, 24h | 27, and **both causes are already closed**: `match_eval` at 05:00 (fixed at 05:16, ok since) and `resilience_watch`, whose 26 errors all predate 2026-08-09 10:50 and whose last 118 runs are `ok` — *read the dates before treating a rolling window as live* |
+| Production security advisors | 628 lints, **0 ERROR**. 442 INFO `rls_enabled_no_policy`, 69 + 67→**58** secdef-executable, 47 `function_search_path_mutable`, 3 `extension_in_public` |
+| Production performance advisors | 171 lints, **0 ERROR** — 85 unindexed FKs, 70 unused indexes, 13 `auth_rls_initplan` |
+| Staging `cron.job_run_details` + `agent_runs`, 24h | **0 failed runs, 0 errors** |
+
+The evolution scan's *"resilience_watch failed 182 times in the last 7 days"* is the same rolling
+window and is not a live failure.
 
 ### `correctness` is a clock, not a missing grader — checked before calling it blocked
 
