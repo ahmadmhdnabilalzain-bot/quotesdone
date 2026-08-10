@@ -39,7 +39,10 @@ begin
        -- not already queued or running for this task
        and not exists (select 1 from public.action_execution x
                         where x.idempotency_key = 'org_task:' || k.id
-                          and x.status in ('queued','running','succeeded'))
+                          -- ALL statuses. idempotency_key is UNIQUE, so a task whose invocation FAILED once
+                          -- collides on the next sweep: org_task:260 failed org_task_execute_sweep_hourly
+                          -- at 14:45, 15:45 and 16:45 on 10 Aug. A failed attempt is a recorded attempt.
+                          and true)
      order by k.id
      limit greatest(coalesce(p_limit, 5), 1)
   loop
@@ -51,7 +54,8 @@ begin
             jsonb_build_object('org_task_id', t.id, 'dept_key', t.dept_key,
                                'title', left(coalesce(t.title,''), 300),
                                'source', 'fn_org_task_execute_sweep'),
-            'queued', 0);
+            'queued', 0)
+    on conflict (idempotency_key) do nothing;
 
     update public.org_tasks set status = 'in_progress', last_run_at = now(), updated_at = now()
      where id = t.id and status = 'assigned';
@@ -65,7 +69,10 @@ begin
                               and e.risk_tier='low' and e.advisory_safe and e.reversible
                               and not exists (select 1 from public.action_execution x
                                                where x.idempotency_key = 'org_task:' || k.id
-                                                 and x.status in ('queued','running','succeeded'))));
+                                                 -- ALL statuses. idempotency_key is UNIQUE, so a task whose invocation FAILED once
+                          -- collides on the next sweep: org_task:260 failed org_task_execute_sweep_hourly
+                          -- at 14:45, 15:45 and 16:45 on 10 Aug. A failed attempt is a recorded attempt.
+                          and true)));
 end $function$;
 
 revoke execute on function public.fn_org_task_execute_sweep(integer) from public;
