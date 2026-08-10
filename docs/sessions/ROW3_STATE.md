@@ -114,8 +114,38 @@ revoked blind, because revoking blind is what breaks product surfaces:
 
 **Production `anon_security_definer_function_executable` 63 → 58**, verified by
 `has_function_privilege`, with `trg_company_event_dispatch` re-probed afterwards: an insert into
-`company_event` still runs the dispatch trigger without error. The remaining 51 are a reviewable
-list now rather than a bare number.
+`company_event` still runs the dispatch trigger without error.
+
+**Then the BROWSER bucket turned out to be wrong, and the answer is much stronger than 58.** All
+seven "browser" matches are **comments**, not calls — each component names the routine in a comment
+explaining where its data comes from. Measured across the whole frontend:
+
+```
+.rpc(            in src/   0 occurrences
+rest/v1/rpc      in src/   0 occurrences
+app/ or pages/ outside src/   none — src/ IS the whole frontend
+os_api / supplier_api / customer_api / messages_api
+                           service-role key only, 0 anon or publishable key references
+```
+
+**Nothing in the browser calls any Postgres function directly.** Every routine reaches a screen
+through an edge function holding the service role, so `anon` and `authenticated` need EXECUTE on
+none of the 58.
+
+**Not revoked, and this is the escalation, not caution.** PostgREST is publicly exposed, so an
+external integration could be calling `/rest/v1/rpc/<fn>` with the anon key from outside this
+repository — and whether one is is a fact only the founder holds, which is the escalation category
+they defined. The repository-side pass they asked for is done and the answer is unambiguous. If no
+external system calls production's PostgREST RPC endpoints, this closes it:
+
+```sql
+do $$ declare f record; begin
+  for f in select p.oid::regprocedure sig from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+            where n.nspname='public' and p.prosecdef and p.prokind in ('f','p')
+              and has_function_privilege('anon', p.oid, 'execute')
+  loop execute format('revoke execute on function %s from public, anon, authenticated', f.sig); end loop;
+end $$;
+```
 
 ### The IT employee's URGENT incident is a misreading, five escalations deep
 
