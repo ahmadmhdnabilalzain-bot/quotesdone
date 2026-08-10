@@ -5,6 +5,204 @@ Scorer: `scripts/staging/verify_os2_blueprint.mjs`, modules in `scripts/staging/
 
 ---
 
+## Session 7 (10 Aug 2026, opened 07:52 UTC) — THE PACKS WERE ALREADY IN. THE BRIEF MEASURED THE WRONG TABLE
+
+```
+select now() at time zone 'utc'  ->  2026-08-10 07:52:31   (Monday, Dubai 11:52)
+cron.job_run_details, 12h        ->  60 jobs, every one succeeded, zero failures
+```
+
+**Opening and closing measurement: 120/152 (79%), 0 errored, 0 REGRESSIONS.** Complete run, summary
+line present. Nothing in this session could move Row #3 and nothing did — see the last section.
+
+### THE ONE SENTENCE THAT MATTERS, AND IT IS THE OPPOSITE OF THE BRIEF'S
+
+The part-8 brief said the knowledge half of the 86-category pack is **NOT DEPLOYED** and that Company
+Operations is **NOT DEPLOYED**, on the evidence of
+`select count(*) from kb_chunks where citation ilike '%QD-KB%'` → 0.
+
+**That query is right and the conclusion is wrong. Both corpora are already imported — into
+`kb_stage` and `ops_kb_stage`, which is exactly where the packs' own staging schema says to put
+them.** `kb_chunks` is the UAE Knowledge Library, a different corpus, and it was never the target.
+
+| measured on production | |
+|---|---|
+| `kb_stage.records` | **112,611** |
+| `kb_stage.categories` | **67 of 67** packages |
+| `kb_stage.file_hashes` | **1,005 of 1,005** module files, every sha matching disk |
+| `kb_stage.questions` / `decision_rules` / `validation_rules` / `scenario_tests` | 16,588 / 16,254 / 4,696 / 3,324 |
+| `ops_kb_stage.records` | **3,959** |
+| ops projections | departments **24**, roles **96**, SOPs **236**, decision rules **240**, exception playbooks **240**, KPIs **216**, workflows **18**, handoffs **132**, event subscriptions **100**, live bindings **268**, scenarios **282**, templates **120** |
+
+Every one of those matches the pack's advertised count. *(Sixth brief diagnosis to be wrong while
+its counts were right — and this time the count was wrong too.)*
+
+### THE PACK'S OWN RECORD TOTALS ARE DOUBLE-COUNTS. THE REAL NUMBERS ARE SMALLER
+
+- **Company Operations is 3,959 records, not 7,918.** `06_ALL_RECORDS/01_ALL_OPERATIONAL_RECORDS.jsonl`
+  is an exact union of the other 227 files: 7,918 = 2 × 3,959, and all 3,959 ids are distinct.
+- **The 86-category corpus is 115,148 records, not 213,198.** 60 of the 67 packages ship a
+  `23_all_records.jsonl` that is an exact union of that package's module files (verified per
+  package, zero mismatches); QD-KB-086 ships the same thing as `24_all_records.jsonl`; seven
+  packages ship none. Module files alone: 117,195 across 1,006 files, of which 2,047 are 086's
+  union file. **115,148 is the corpus.**
+- So the embedding-spend decision the brief framed as 213,198 records is really 115,148, and
+  **nothing has been embedded** — `05_OPENROUTER_REDUCTION_PLAN.md` was read first and no
+  embedding was generated. That remains the founder's spend decision.
+
+### THE 4,584-RECORD "GAP" RESOLVED INTO TWO THINGS, NEITHER OF THEM A MISSING IMPORT
+
+`scripts/kb/audit_packs.mjs` compares every module file on disk to `file_hashes` and `records`:
+
+- **2,047** = QD-KB-086's `24_all_records.jsonl`, counted twice by the audit's first pass. Not real.
+- **2,537** = rows in `13_decision_rules.jsonl` of packages **002–007** that carry **no `record_id`,
+  no `title` and no `content`**. They are not malformed — they are a **different, well-formed native
+  rule shape**: `{rule_id, category_slug, subcategory_slug, priority, rule_type, when, then,
+  source_ids, confidence, requires_human_review, version}`. The knowledge-record importer validates
+  against `knowledge-record-v1.json` and correctly rejected every one.
+
+They were never lost: all 2,537 are in `kb_stage.decision_rules` with `record_id` null.
+`scripts/kb/import_rules.mjs` re-derives them from the corpus and was run against production as the
+proof: **0 inserted, 2,537 updated, net +0.** A script that reproduces production exactly is a
+script that can be trusted against staging.
+
+**And no id anywhere is invented.** Both projects' full `kb_stage.decision_rules` id sets were
+diffed against the corpus: **0 ids in either database that are not on disk, 0 corpus rule_ids
+missing from either database.**
+
+### THE REAL GAP WAS STAGING, AND IT IS CLOSED
+
+`ops_kb_stage.records` held all 3,959 rows on staging and **every relational projection was EMPTY** —
+departments 0, roles 0, SOPs 0, decision rules 0, handoffs 0, event subscriptions 0. The records
+landed and the projection step never ran.
+
+`scripts/kb/sync_ops_projections.mjs` copies row data production → staging, refuses production as a
+destination outright, and refuses any table that already holds independent rows. Verified by
+execution on staging afterwards:
+
+```
+records 3959  departments 24  roles 96  sops 236  decision_rules 240  exception_playbooks 240
+kpis 216  workflows 18  handoffs 132  event_subscriptions 100  live_bindings 268  scenarios 282
+templates 120  department_crosswalk 28      kb_stage.records 112611
+has_table_privilege('anon', ...) -> false on both staging schemas
+```
+
+Staging's `kb_stage.decision_rules` is **12,929 — which is exactly the 12,929 rows in the corpus's
+67 `13_decision_rules.jsonl` files.** Production holds 16,254 for the same corpus: it keyed 3,325
+of the same logical rules a second time under their `record_id` as well as their `rule_id`.
+**Staging is the cleaner projection and production carries 3,325 redundant keys.** Nothing reads
+either table yet, so de-duplicating production is a change with no consumer and it was not made.
+
+### THE IMPORTER, AND HOW IT WAS PROVED
+
+`scripts/kb/import_packs.mjs` — one streaming importer, `--corpus=kb|ops`, `--ref=` mandatory with
+no default. It streams JSONL by line, validates in code against the pack's own required-field list,
+batches ~600 KB per statement, and checkpoints per file in the **existing** `kb_stage.file_hashes`
+rather than a table of its own. It writes the tables the packs' staging schema already defines; it
+does not create a parallel shape.
+
+It does not use `qd_guard.mjs` and does not weaken it. That guard refuses production because it
+protects migration and fixture tooling from reaching production by accident; this import is
+founder-ordered onto both projects, so it carries its own door instead.
+
+Three executions, all on the real databases:
+
+| run | result |
+|---|---|
+| ops → production | 3,959 lines read, **0 rejected, 0 inserted, 3,959 updated**, table still 3,959, 17 s |
+| kb → production | **1,005 of 1,005 files skipped at matching sha**, 0 rows touched, 6 s |
+| ops → staging | 3,959 lines, **0 rejected, 0 inserted, 3,959 updated**, table still 3,959 |
+
+The write path is exercised end to end and changes nothing — which is what an idempotent importer
+against a complete corpus must do. A run that inserted rows here would have meant the corpus was
+short, and it is not.
+
+**One table was created and then dropped in the same session.** The staging-schema migration added
+`kb_stage.ingestion_files`, and `kb_stage.file_hashes` already owned per-file checkpointing with
+1,005 rows in it. A second source of truth for one concept is the first thing the packs' own
+acceptance checklist forbids. It never held a row; it is dropped on both projects and the reuse is
+recorded in `ops_kb_stage.mapping_decisions`.
+
+### MODEL ROUTING: THE BRIEF'S "10 OF 32" IS EXACTLY RIGHT, AND THE 22 ROUTE NOTHING TODAY
+
+Production carries 38 task classes and **10** of the pack's 32 by exact name: `health_ping`,
+`rfq_routing`, `category_classification`, `intent_detection`, `missing_fields_detection`,
+`supplier_matching`, `customer_communication`, `quote_comparison`, `chief_of_staff_decision`,
+`speech_transcription`.
+
+**What the other 22 route to today, measured before writing anything.** `fn_ai_route` selects
+`where task_class = v_class and active`, and on a miss falls back to `general_drafting`
+(`~anthropic/claude-haiku-latest`, medium) while recording
+*`no policy for "<class>", fell back to general_drafting`*. And over 30 days `llm_calls` carries
+**one** purpose — `visitor_chat`, 56 calls, **which has no policy of its own either** and is served
+by that same fallback. **Not one of the 22 class names is requested by anything in production.**
+
+So all 22 were inserted from `04_MODEL_POLICY_BY_TASK_CLASS.csv`, **`active = false`, and not one
+existing row was touched.** An inactive row routes exactly what a missing row routes, so this
+changes no live path — proved by execution on production *after* the insert:
+
+```
+model_policy 38 -> 60, of which 22 inactive, all 22 pack classes present  (identical on staging)
+agent_reasoning still: large / anthropic/claude-sonnet-5 / active = true
+fn_ai_route('drawing_and_boq_analysis') -> still "...fell back to general_drafting", haiku, medium
+fn_ai_route('quote_comparison')         -> unchanged, sonnet-5, large
+```
+
+**Activation is deliberately left open, and it is a money decision.** Each row names a paid model and
+several — `deepseek/deepseek-v4-flash`, `qwen/qwen3.7-plus`, `google/gemini-3.6-flash`,
+`anthropic/claude-opus-5` — are not in production's current four-model catalogue, on a balance with
+about three days left. The sharpest one is `routine_employee_reasoning`, which the pack describes as
+*"replaces the current blanket large-tier agent_reasoning"*: `agent_reasoning` is live on
+`claude-sonnet-5` and `agent_brain` is ~93% of OpenRouter spend. Switching the company's reasoning
+loop to a cheaper tier is the single largest cost lever in all six packs **and it is a quality
+decision with a founder-visible consequence**, so the policy exists and does not take over.
+
+### OS/PORTALS ACCEPTANCE GATES — THE PACK THE BRIEF LEFT UNASSESSED
+
+`01_MASTER/07_ACCEPTANCE_GATES.md`, 24 gates. Measured on production where a gate is measurable:
+
+| gate | measured |
+|---|---|
+| Every executor is registered | `org_action_executor` **55**, `org_action_executor_rpc_allowed` **16** |
+| Failed actions enter a dead-letter path | `dead_letter`, `v_dead_letter_open`, `v_email_deadletter` all exist |
+| Every workflow has a durable run and step record | `workflow_run` and `workflow_step` both exist |
+| Every mutation links to a canonical event | `company_event` **962** in 30 days |
+| Control Mode is short-lived | `control_mode_sweep_5min` active |
+| Deterministic rules run without OpenRouter | **14** active `tier='none'` policies |
+| Model calls include task class, budget, cache and outcome logging | `llm_calls` carries purpose, model_wanted, model_used, cached, tokens, ok — **but one distinct purpose in 30 days**, so the field exists and is barely populated |
+| **Quote comparison has a model-free fallback** | **FAILS. `model_policy.quote_comparison.deterministic_alternative` is NULL**, and it routes large-tier `claude-sonnet-5` at 10,000 max tokens — the dearest class in the table |
+
+**That last one was NOT patched, on purpose.** Writing a sentence into `deterministic_alternative`
+would turn the gate green without building anything, which is the `fn_governance_stamp` mistake the
+session-5 record exists to prevent. The gate needs a deterministic compliance-and-price scorer that
+ranks quotes without a model, with the model writing only the final explanation — which is exactly
+what the routing pack prescribes. **That is the build order this session hands forward**, and it is
+also the second-largest cost lever after `routine_employee_reasoning`.
+
+The remaining gates — mobile web, EN/AR journey completeness, no pre-reveal identity leakage, no
+mock metrics, rollback tested, founder release approval — are not decidable from SQL and were not
+guessed at.
+
+### WHAT THIS SESSION DID **NOT** DO, AND WHY
+
+- **Nothing was activated.** `03_IMPORT_ORDER.md` step 18 is *"run tests and STOP before production
+  activation"*, and every category manifest carries
+  `status: production_research_draft_not_sme_approved`. The corpus is not SME-approved knowledge.
+- **`org_departments` stayed 15 and `org_agents` stayed 67.** The pack's 24 departments and 96 roles
+  live in `ops_kb_stage`, staged, where they can be read and compared. Promoting them would add nine
+  unstaffed departments and 29 more dormant employees to a workforce where 56 of 66 have not run in
+  30 days — making every per-employee universal in Row #3 harder for no gain in truth. That is the
+  same `audit_gap` decision the evolution scan raised at 06:00 on 10 Aug, and it is still open.
+- **Nothing was embedded.** 115,148 records is a spend decision on a three-day balance.
+- **No SECURITY DEFINER function was created**, so production's
+  `anon_security_definer_function_executable` is unchanged at 58. Both staging schemas were checked
+  by execution: `has_table_privilege('anon', ...)` is **false**.
+- **Row #3 could not move and did not.** Every one of the 32 red checks is short of a date, a
+  customer, a founder decision or a column that does not exist; none is short of knowledge in a
+  staging schema that nothing reads yet. 120/152 before, 120/152 after, 0 regressions.
+
+---
+
 ## Session 6 (10 Aug 2026, opened 05:47 UTC) — THE CLOCK WAS READ FIRST, AND IT PAID
 
 ```
