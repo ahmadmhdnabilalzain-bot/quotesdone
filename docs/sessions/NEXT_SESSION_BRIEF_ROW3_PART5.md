@@ -71,6 +71,15 @@ Three corrections that matter more than the score, all measured this session.
 3. **`agent_brain` is 93% of all AI spend** — ~AED 383/month, 14,110 prompt tokens a call. Daily
    cost went from ~AED 0.5 to ~AED 13 on 6 Aug when it was switched on. That is a founder decision
    to review, not a defect.
+4. **"57 of 66 EMPLOYEES ARE DORMANT" IS WRONG. IT IS 44 — MEASURED, NOT ESTIMATED.** That figure
+   counts from `agent_runs`, which is the **cron and job log**: 111 distinct agent values in 30 days
+   and only **nine** of them are `org_agents` keys at all. Employees record work in `agent_memory`
+   (26 of 66 in 30d) and `agent_chats` (23 of 66). `fn_evolution_scan` used the wrong table and
+   fired a founder-facing proposal every Monday naming each "dormant" role for retirement — **13 of
+   them demonstrably working.** Fixed on both projects before the 10 Aug 06:00 run; it now requires
+   silence in all three sources and reports 44. The five per-employee universals are 66-of-66 so
+   they stay blocked either way, but **the gap is a third smaller than this estate believes**, and
+   `ROW3_STATE` still leads with the 57.
 
 ---
 
