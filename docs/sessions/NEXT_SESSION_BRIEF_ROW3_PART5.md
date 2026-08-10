@@ -169,6 +169,24 @@ measurement of whether the company works.
   be an accidental pass), and **eleven data points do not make a habit**. What the habits should
   DRIVE — which module opens first, notification batching, prominence — is a founder product
   decision. Ask before building.
+- **`s32-reputation-six-dimensions` — all six dimensions accounted for, and reputation gates spend.**
+  `fn_reputation_recompute` weights correctness .30, reliability .30, cost_efficiency .15,
+  learning_speed .15, collaboration .10, NULLs coalesce to 50, and `< 50` is probation — which
+  `fn_check_spend` enforces. State of each:
+  - **correctness** — NULL on all 66. All `outcome_record` rows sit at verdict `pending`; genuinely
+    nothing to grade.
+  - **reliability** — computed from `agent_runs`, which for employees is the wrong table (see §2.4).
+    `onboarding` and `security` show exactly 720 runs/30d — 24/day, a cron heartbeat — while `brief`
+    has 39 runs against 140 chats and `docs` 9 against 136. **Unsound but currently harmless**:
+    every value present is >= 93, so it only ever raises a score. Do not "fix" it into something
+    that starts lowering scores without deciding what employee reliability should mean.
+  - **cost_efficiency** — was NULL for almost everyone because `agent_brain` billed all reasoning to
+    `ceo`. That is fixed as of 10 Aug, so this dimension starts carrying real per-employee data.
+  - **learning_speed** — **was actively demoting people. Fixed 10 Aug**, see the section above.
+  - **collaboration** — from `review_chain`, NULL for the probation cohort.
+
+  `agent_reputation` is also a week stale at any given moment: `reputation_weekly` is `0 7 * * 1`,
+  so rows show NULL for dimensions whose underlying data arrived after the last Monday.
 - **200 knowledge items have no `review_due`**, so `fn_knowledge_decay` can never mark them stale —
   permanently invisible to review. No single interval is derivable (`profession` uses 90, 365 AND
   396 days; `company` is a scattered 367–398). Setting one is a knowledge-director decision.
