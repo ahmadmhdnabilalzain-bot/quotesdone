@@ -46,11 +46,26 @@ select jsonb_build_object(
              'charter', left(d.charter,400), 'north_star', left(d.north_star,240),
              'implementation_status', d.implementation_status) order by d.department_key), '[]'::jsonb)
     from ops_kb_stage.departments d, tk where d.department_key = any(tk.targets)),
+  -- Each target role carries the routing pack's model default for that role. The 96
+  -- scope='target_employee' rows in model_policy_by_identity are keyed on the same target
+  -- department and title as ops_kb_stage.roles and had no reader anywhere; fn_ai_route picked up
+  -- only the 24 current_agent rows. deterministic_first is the operative field: the pack says
+  -- most of these roles should reach for a rule before a model.
   'roles', (
     select coalesce(jsonb_agg(jsonb_build_object('title', r.title, 'agent_key', r.agent_key,
              'authority_tier', r.authority_tier, 'max_authority', r.max_authority,
-             'responsibilities', left(r.responsibilities,300)) order by r.record_id), '[]'::jsonb)
-    from ops_kb_stage.roles r, tk where r.department_key = any(tk.targets)),
+             'responsibilities', left(r.responsibilities,300),
+             'model_default', case when i.identity_key is null then null else jsonb_build_object(
+                 'primary', i.primary_model, 'fallback', i.fallback_model,
+                 'deterministic_first', i.deterministic_first,
+                 'max_output_tokens', i.max_output_tokens) end) order by r.record_id), '[]'::jsonb)
+    from ops_kb_stage.roles r
+    cross join tk
+    -- identity_key IS the role's agent_key: 96 of 96 join exactly. Matching on department+title
+    -- reached only 44 and was my invention, not the data's.
+    left join public.model_policy_by_identity i
+           on i.scope = 'target_employee' and i.identity_key = r.agent_key
+    where r.department_key = any(tk.targets)),
   'company_core', (
     select coalesce(jsonb_agg(jsonb_build_object('title', c.title, 'content', c.body)), '[]'::jsonb)
     from (select r.title, left(r.content,1200) body from ops_kb_stage.records r
