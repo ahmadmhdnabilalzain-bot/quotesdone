@@ -79,6 +79,37 @@ dashboard he finds basic.
 **This is the build.** Not one more panel: a consumer per kind, or an executor per kind, so that
 `needs_review` means "genuinely needs Ahmad" rather than "nobody wrote the other half".
 
+### UPDATE, same day — half of this is now done, and the other half is specified
+
+**Done:** the inbox no longer filters `kind='handoff'`. It shows every kind addressed to an
+employee, marks the founder's items *"FOUNDER DECIDES — do not close"*, and `fn_handoff_answer`
+closes only the company's own internal work via `fn_agent_inbox_closable_kinds()`. Of the 92 items
+held by employees that run, **89 are now reachable and 3 correctly are not.** Eleven employees have
+a non-empty inbox where six did. The whole line is bounded at 215 characters so the block is 647
+and cannot drift back into the `agent_brain` timeout.
+
+**Specified, not built — and deliberately so.** The 39 action classes that cannot execute are not
+broken rows. Their `target` is an **edge function** — `quote_compare`, `uptime_check`, `match`,
+`knowledge_exam`, `ai_health`, `send_outbox` — not a database routine, which is why
+`fn_execution_run` cannot call them: it does not invoke anything. It writes an `agent_actions` row
+addressed to an employee, so "execution" today means "tell a person".
+
+What is missing is one HTTP invoker, and `org_action_executor` was **already designed for it**:
+`idempotency_strategy`, `timeout_seconds`, `max_attempts`, `backoff`, `required_authority` and
+`compensation_action_class` are all columns on that table and **nothing implements a single one of
+them**.
+
+It was not built at the end of this session on purpose. The same list contains
+`outreach_send` (high risk, **not reversible**), `pdpl_action` (high, not reversible),
+`collections_chase` (not reversible) and `refund_within_window` — and a refund is the one action
+the founder has reserved to himself. A generic invoker built without room to watch it is how a
+session hands AI employees the ability to email strangers and move money on the same afternoon.
+
+**Build it in this order:** the 28 that are `advisory_safe = true, reversible = true,
+risk_tier = low` first, one at a time, each proved by execution; then the medium tier; and
+`outreach_send`, `pdpl_action`, `collections_chase` and `refund_within_window` last, or never
+without an explicit decision each.
+
 ---
 
 ## 3. THE WORKFORCE STILL DOES NOT WORK
