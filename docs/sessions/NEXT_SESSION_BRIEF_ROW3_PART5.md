@@ -95,6 +95,7 @@ the genome block injected into `fn_agent_context` · `trg_company_event_dispatch
 | `s24-board-before-major-decisions` | leg 2 needs 7 advisor opinions on decisions already taken |
 | `s34-stress-six-scenarios`, `future-simulator-forward-questions` | `scenario_library.last_run` has no writer. A real runner is the build |
 | `s21-events-nine-classes` | `competitor.pricing_changed` has no observation mechanism at all |
+| `s25-quality-latency-cost` | **QUALITY IS NOT MEASURED.** Latency and cost are, on 100% of rows for all 5 routed models over 30 days — but the check's quality axis is `ai_cost_log.confidence`, which is **NULL on all 1,176 rows**. `ok` exists and genuinely discriminates (gemini-3.5-flash 77.8% success, sonnet-5 94.8%, gemini-3.1-flash-lite 100%) but it is a success flag, not a confidence, and filling the column from it would be re-labelling a boolean to clear a null check. The check also wants a `fn_model_benchmark` that has RUN and the comparison on a surface. Scoring model output quality needs reference outputs — a real build, not a gap-fill |
 | `exec-meeting-priorities-agreed` | 60-day universal; three meetings age out 27 Sept / 3 Oct / 6 Oct |
 | the five per-employee universals, `s32-reputation-six-dimensions` | re-measure first — see §2.2 |
 | `s26-verify-documentation` | **8 of the 16 documents point at storage objects that never existed.** See §2.4 |
