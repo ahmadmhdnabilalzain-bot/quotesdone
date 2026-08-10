@@ -804,22 +804,85 @@ function SupportPanel() {
   );
 }
 
+// MOBILE NUMBER + VERIFICATION, which is what the founder asked for and what the estate could
+// already do everywhere except here. login_otp has carried a Twilio Verify SMS path and a
+// mintSession() that returns a real Supabase session for months; the customer and supplier portals
+// both use it. This screen called supa.auth.signInWithOtp({ email }) and nothing else, so the one
+// person who runs the company was the only one who could not sign in by phone.
+//
+// The credentials were never the blocker: twilio_api_key_sid/_secret and
+// twilio_verify_service_sid are all provisioned and authenticate against Verify service
+// "QuotesDone" (HTTP 200, auth_ok true, checked 10 Aug 2026). The blocker was that
+// resolveEmailByPhone knew only 'supplier' and 'customer', so an admin number resolved to nobody.
+// That is fixed in login_otp; this is the other half.
+//
+// Email stays. It is the fallback for the day Twilio is down, and removing a working sign-in path
+// to make a new one look finished is not an upgrade.
+const isPhoneish = (s: string) => /^[+0-9][0-9\s().-]{7,}$/.test(s.trim());
+
 function LoginCard({ onDone }: { onDone: (e: string) => void }) {
   const [em, setEm] = React.useState(''); const [code, setCode] = React.useState(''); const [sent, setSent] = React.useState(false); const [busy, setBusy] = React.useState(false); const [err, setErr] = React.useState('');
-  const send = async () => { setBusy(true); setErr(''); const { error } = await supa.auth.signInWithOtp({ email: em.trim().toLowerCase(), options: { shouldCreateUser: false } }); setBusy(false); if (error) setErr(error.message); else setSent(true); };
-  const verify = async () => { setBusy(true); setErr(''); const { data, error } = await supa.auth.verifyOtp({ email: em.trim().toLowerCase(), token: code.trim(), type: 'email' }); setBusy(false); if (error) setErr(error.message); else onDone(data.user?.email || em); };
+  const [channel, setChannel] = React.useState<'email' | 'sms'>('email');
+  const id = em.trim();
+  const byPhone = isPhoneish(id);
+
+  const otp = async (action: 'send' | 'verify') => {
+    const r = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/login_otp`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, identifier: id, user_kind: 'customer', ...(action === 'verify' ? { code: code.trim() } : {}) }),
+    });
+    return { r, j: await r.json().catch(() => ({})) } as { r: Response; j: Record<string, unknown> };
+  };
+
+  const send = async () => {
+    setBusy(true); setErr('');
+    try {
+      if (byPhone) {
+        const { j } = await otp('send');
+        if (!j.ok) { setErr(String(j.error || 'Could not send the code.')); return; }
+        setChannel('sms'); setSent(true);
+      } else {
+        const { error } = await supa.auth.signInWithOtp({ email: id.toLowerCase(), options: { shouldCreateUser: false } });
+        if (error) { setErr(error.message); return; }
+        setChannel('email'); setSent(true);
+      }
+    } finally { setBusy(false); }
+  };
+
+  const verify = async () => {
+    setBusy(true); setErr('');
+    try {
+      if (channel === 'sms') {
+        const { j } = await otp('verify');
+        const at = j.access_token as string | undefined, rt = j.refresh_token as string | undefined;
+        if (!at || !rt) { setErr(String(j.error || 'That code did not work.')); return; }
+        const { data, error } = await supa.auth.setSession({ access_token: at, refresh_token: rt });
+        if (error) { setErr(error.message); return; }
+        onDone(data.user?.email || String(j.email || id));
+      } else {
+        const { data, error } = await supa.auth.verifyOtp({ email: id.toLowerCase(), token: code.trim(), type: 'email' });
+        if (error) { setErr(error.message); return; }
+        onDone(data.user?.email || id);
+      }
+    } finally { setBusy(false); }
+  };
+
   return (
     <div className='osx dark min-h-screen grid place-items-center p-4'>
       <Card className='w-full max-w-sm p-6'>
         <div className='flex items-center gap-2 mb-4'><div className='h-8 w-8 rounded-lg bg-primary text-primary-foreground grid place-items-center font-extrabold'>Q</div><div className='font-bold text-lg'>QuotesDone OS</div></div>
-        <p className='text-sm text-muted-foreground mb-4'>Admin sign-in. We email you a one-time code.</p>
+        <p className='text-sm text-muted-foreground mb-4'>Admin sign-in. Enter your mobile number or your email and we send you a one-time code.</p>
         {!sent ? (<>
-          <Input placeholder='you@quotesdone.com' value={em} onChange={(e) => setEm(e.target.value)} />
-          <Button className='w-full mt-3' disabled={busy || !em} onClick={send}>{busy ? 'Sending…' : 'Send code'}</Button>
+          <Input placeholder='+971 50 000 0000  or  you@quotesdone.com' inputMode='text' autoComplete='username'
+                 value={em} onChange={(e) => setEm(e.target.value)} />
+          <div className='text-xs text-muted-foreground mt-2'>{id ? (byPhone ? 'We will text you a code.' : 'We will email you a code.') : ' '}</div>
+          <Button className='w-full mt-3' disabled={busy || !id} onClick={send}>{busy ? 'Sending…' : 'Send code'}</Button>
         </>) : (<>
-          <Input placeholder='6-digit code' value={code} onChange={(e) => setCode(e.target.value)} />
+          <Input placeholder='6-digit code' inputMode='numeric' autoComplete='one-time-code'
+                 value={code} onChange={(e) => setCode(e.target.value)} />
+          <div className='text-xs text-muted-foreground mt-2'>Sent by {channel === 'sms' ? 'SMS' : 'email'} to {id}.</div>
           <Button className='w-full mt-3' disabled={busy || !code} onClick={verify}>{busy ? 'Verifying…' : 'Verify & enter'}</Button>
-          <button className='text-xs text-muted-foreground mt-3 underline' onClick={() => setSent(false)}>Use a different email</button>
+          <button className='text-xs text-muted-foreground mt-3 underline' onClick={() => { setSent(false); setCode(''); }}>Use a different number or email</button>
         </>)}
         {err ? <div className='text-sm text-destructive mt-3'>{err}</div> : null}
       </Card>
