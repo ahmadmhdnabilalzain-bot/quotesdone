@@ -89,12 +89,32 @@ RFQ will not hear about it. Not built here because `inquiries` carries **eleven*
 rows, so the only way to verify an emitter is a probe insert through all eleven, minutes before the
 closing measurement. It is a small, well-understood build with room to check it.
 
-**32 active subscriptions still sit on 14 names nothing has ever emitted**: `budget.exceeded`,
-`campaign.published`, `content.drafted`, `customer.churn_signal`, `customer.complaint`,
-`department.conflict`, `health.degraded`, `invoice.flagged`, `invoice.received`, `outcome.graded`,
-`rfq.classified`, `sla.breached`, `supplier.applied` — and `regulation.changed`, now fixed.
-`supplier.applied` has a working trigger and has never fired, which means no supplier has ever
-completed a registration through it.
+### The 14 never-emitted names, resolved into two very different piles
+
+32 active subscriptions sat on 14 event names with zero occurrences ever. That number hid two
+opposite situations, and separating them took one query against `pg_get_functiondef`:
+
+**Nine have an emitter and are waiting for a first occurrence — honest silence, nothing to build.**
+`budget.exceeded` (`fn_decision_gate` → `fn_emit_budget_exceeded`), `invoice.flagged`
+(`fn_ap_bill_dupe_guard`, `fn_dispute_open`), `invoice.received` (`fn_emit_invoice_received`),
+`outcome.graded` and `rollback.required` (**already inside `fn_outcome_evaluate`** — and the first
+outcome comes due 2026-08-11 17:25, so it fires tomorrow on its own), `supplier.applied`
+(`fn_emit_supplier_applied`, never fired because no supplier has ever completed a registration),
+plus the four wired this session.
+
+**Four now emit that did not this morning** — `regulation.changed`, `health.degraded`,
+`rfq.classified` and `sla.breached`. The last is the sharpest: **`fn_sla_watch` runs HOURLY**,
+detects an RFQ with no supplier quote past the SLA window, writes a founder alert and an email, and
+told the bus nothing — so `ops_director`, whose subscription reads *"OS interface: Operations OS
+consumes sla.breached"*, has never received one. Probed: `flagged=1`, `sla.breached` emitted once,
+**delivered to `ops_director`**, and the founder alert still written.
+
+**Five have no emitter and no detector**: `campaign.published`, `content.drafted`,
+`customer.churn_signal`, `customer.complaint` (the last two blocked on `customers` = 0) and
+`department.conflict`. That last one was deliberately NOT wired: `fn_decision_conflict_scan` finds
+the same ACTOR reaching two verdicts on one kind, which is a decision inconsistency, **not two
+departments disagreeing**. Emitting `department.conflict` for it would be mislabelling to make a
+subscription look alive. It needs a real detector.
 
 ### Two checks flipped on code that had shipped and never run
 
