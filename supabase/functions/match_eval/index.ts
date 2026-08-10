@@ -62,7 +62,17 @@ Deno.serve(async (req) => {
     const seedFails: string[] = [];
     // seed fixtures
     for (const f of FIX) {
-      const { data, error: seedErr } = await admin.from('leads').insert({ company_name: f.name, source:'self_registered', approval_status:'approved', banned:false, matching_blocked:false, registration_submitted_at: new Date().toISOString(), categories: f.cat, emirate:'Dubai', service_emirates:['Dubai'], email:'zzz_harness_'+f.tag+'@example.com', capability_summary: f.cap }).select('id').maybeSingle();
+      // `verified: true` is required, not cosmetic. public.leads carries
+      //   CHECK (coalesce(approval_status,'') <> 'approved' OR coalesce(verified,false) = true)
+      // and this insert sets approval_status='approved' without it, so every fixture seller was
+      // rejected by the constraint. Measured 2026-08-10 05:00: "5 of 5 fixture sellers failed to
+      // seed ... violates check constraint leads_approved_implies_verified", recall 0%, and the
+      // suite has been recording status='error' ever since the constraint landed (it last passed
+      // 3 Aug at 100%/100%). v_critical_capability_tests derives `matching` straight from this
+      // run's status, so capability_verify_daily has raised a CRITICAL "matching is failing" alert
+      // to the founder every morning on the back of a seed that could not be written — while the
+      // matcher itself was never exercised at all.
+      const { data, error: seedErr } = await admin.from('leads').insert({ company_name: f.name, source:'self_registered', approval_status:'approved', verified:true, banned:false, matching_blocked:false, registration_submitted_at: new Date().toISOString(), categories: f.cat, emirate:'Dubai', service_emirates:['Dubai'], email:'zzz_harness_'+f.tag+'@example.com', capability_summary: f.cap }).select('id').maybeSingle();
       if (data?.id) { created.push(Number(data.id)); tagById.set(Number(data.id), f.tag); }
       else { seedFails.push(f.tag+':'+String(seedErr?.message || 'no id returned')); }
     }
