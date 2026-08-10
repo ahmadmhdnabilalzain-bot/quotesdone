@@ -1,7 +1,234 @@
-# ROW #3 — THE EXECUTIVE UI: 28 → 120 / 152
+# ROW #3 — THE EXECUTIVE UI: 28 → 119 / 152
 
 Measured on production. Every number below is a scorer run, not an estimate.
 Scorer: `scripts/staging/verify_os2_blueprint.mjs`, modules in `scripts/staging/os2_blueprint/`.
+
+---
+
+## Session 8 (10 Aug 2026, opened 12:15 UTC) — THE PACKS ARE IN USE: 22 OF 37 → 37 OF 37
+
+```
+select now() at time zone 'utc'  ->  2026-08-10 12:15:19   (Monday, Dubai 16:15)
+cron.job_run_details, 12h        ->  40 job names, every run succeeded, zero failures
+```
+
+**Opening 119/152. Closing 119/152 — two regressions, both found, both fixed, both re-verified
+by their own predicate before the confirming run.** Nothing in this session could move Row #3
+upward: every remaining red check is short of a date, a customer, a founder decision or a column
+that does not exist.
+
+### THE PACK SCORECARD, WHICH IS WHAT THIS SESSION WAS FOR
+
+```
+                                   production            staging
+OVERALL INGESTED                       99.8%              99.4%
+OVERALL IN USE                    37 of 37            37 of 37     (was 22 of 37)
+```
+
+**And IN USE is a different kind of number than it was this morning.** It used to be a
+hand-written string per row in `pack_scorecard.mjs` — a claim that cannot go red. Every row now
+carries a probe: SQL that EXECUTES the routine and counts what comes back. IN USE means n > 0;
+a probe returning 0, or erroring, prints NOT READ and is listed at the bottom of the run.
+
+Converting it caught four rows the old column called YES that had **no reader in the database at
+all**: `model_catalog`, `model_policy_by_identity`, `ai_tool_matrix` and `kb_stage.decision_rules`.
+`fn_ops_department_context` even *looked* like a reader of the last one by grep — it was matching
+a substring of `ops_kb_stage.decision_rules`. That is what an unread table looks like when you
+check by reading instead of by running.
+
+### WHAT WAS STAGED THIS MORNING AND IS READ THIS AFTERNOON
+
+| artefact | the routine that reads it now | proved by |
+|---|---|---|
+| all twelve `ops_kb_stage` projections | `fn_ops_department_context` ← `fn_agent_context` | one call on a LIVE dept key returns every projection non-empty |
+| `kb_stage.decision_rules` 16,254 | `fn_kb_route_decide`, 344× an hour | 5 rules returned for an English and an Arabic input |
+| `model_catalog` 14 | `fn_model_catalog_drift` daily | 10 of 14 not in `model_registry`, 0 active policies affected |
+| `model_policy_by_identity` 24 + 96 | `fn_ai_route` role default / `ops_kb_stage.roles` | `identity_policy` non-null for `cfo`; 96 of 96 roles carry a model default |
+| `ai_tool_matrix` 22 | `fn_tool_readiness` daily | 22 tools, 0 unconditional launch blockers, 3 conditional |
+| `kb_stage.file_hashes` 1,005 + `.categories` 67 | `fn_kb_corpus_integrity` daily | staged = checkpointed = deployed = 115,148 on both projects |
+| 344 route tests | `fn_kb_route_test_run` hourly | 344 ran, 342 pass, 0 regressions — identical to the 2 Aug baseline |
+| 282 pack scenarios | `fn_ops_scenarios_sweep` hourly | 282/282 RUNNABLE, written back; `last_run` had said 2 Aug for ever |
+| route ACTIVATION | `fn_kb_route_decide` filters blocked routes | removing catalog 1's 80 Arabic aliases took its knowledge 50 → 0 while catalog 2 stayed 50, in an aborted transaction |
+
+**`fn_ops_department_context` had ZERO callers and could not be reached from a live department key
+at all.** `ops_kb_stage` is keyed on the pack's 24 TARGET departments; the live org has 15. The
+pack ships `department_crosswalk` for exactly this and it had no runtime reader either. It
+resolves either keyspace now — `procurement` → `{document_intelligence, marketplace_operations,
+rfq_intelligence}` — and the digest `fn_agent_context` emits is **1,037 characters measured on
+four employees**, against the 2,082 that timed `agent_brain` out twice.
+
+The 100 pack event subscriptions are emitted **with `activated: false`**, not filtered out and not
+flipped true. The live bus is a different table; setting the flag would dress a staged row up as
+delivery.
+
+### ONE HTTP INVOKER, AND THE PROOF IS THE HALF IT REFUSES
+
+39 of the 55 registered executors target an edge function, so `fn_execution_run` — which can only
+PERFORM a database routine — invoked nothing for them. `org_action_executor` was already designed
+for the missing piece: `idempotency_strategy`, `timeout_seconds`, `max_attempts`, `backoff`,
+`required_authority`, `compensation_action_class` and `params` are all columns on it and **not one
+was implemented**. All seven are read now.
+
+Two phases, because `pg_net` is asynchronous: dispatch posts and records the request id, collect
+asserts on the response. A 200 alone is not enough — `quote_compare` returned
+`{ok:false,'parse_failed'}` at HTTP 200 for weeks — so the body must also not say it failed.
+
+**Risk order is a predicate, not an intention.** Only low + advisory_safe + reversible dispatches.
+Three refusals sit outside the tier: `required_authority='founder'` is never auto-invoked; an
+executor that is not reversible and declares no compensation is refused, which turns OS_PORTALS
+gate 19 from a claim into an enforcement and keeps all seven of today's such rows refused; and an
+inactive row is refused.
+
+```
+positive, both projects   health_report -> ai_health   200 {"ok":true,"healthy":true}  succeeded
+negative, aborted txn     refund_within_window, outreach_send, collections_chase,
+                          code_selfheal, escalate_founder
+                          -> refused=5  dispatched=0  net_queued=0
+```
+
+`net.http_post` enqueues into `net.http_request_queue`, so the rollback un-sends anything a broken
+gate had let through. That is the only safe way to test a refusal whose failure mode is moving
+money or emailing a stranger.
+
+### THE 199 PENDING ACTIONS: THE OBVIOUS FIX WAS THE WRONG ONE, AND MEASURING FIRST SHOWED IT
+
+124 of the 199 are addressed to a real active employee, 69 were raised in the last 3 days, and
+**not one has a matching executor** — `agent_actions.kind` (handoff, improvement_question,
+knowledge_task) is a different vocabulary from `org_action_executor.action_class`. So the bridge
+that suggests itself — turn each pending action into an `org_task` — pours an inbox into a queue
+that is **already 439 open rows against a `cos_execute` throughput of about three an hour**.
+
+What helps instead: **84 of those 439 open tasks carry an action_class whose executor is an edge
+function** — `recommend`, `knowledge_acquire`, `exec_review`, `compliance_check` — all low,
+advisory-safe and reversible, and none of them could run before today.
+`fn_org_task_execute_sweep` queues five a run into the invoker. Five tasks closed on the first
+afternoon. The cap is a spend decision: `analytics_recommend` and `kb_deepen` call models.
+
+`approval-center-everything-else-automatic` is therefore still red at **204 of 1,269 (16.1%)
+against a 10% bar**, and it goes green when the work drains, at the rate the company can actually
+do it. That is the honest arithmetic, not a reason to move anything back.
+
+### SIX DEFECTS FOUND BY EXECUTION. FIVE OF THEM WERE FOUND BY RUNNING MY OWN NEW CODE
+
+1. **`fn_kb_route_activation_blocked` threw instead of blocking, on two of its three reasons.**
+   `text[] || 'literal'` resolves to the array-concatenation operator, so Postgres parses the
+   reason as an array literal (22P02). Both branches were unreachable because every route has a
+   mapped subcategory and an Arabic alias — and both became load-bearing the moment
+   `fn_kb_retrieve` and `fn_kb_route_decide` started gating on them. Found by the activation probe.
+2. **`fn_ai_route`'s new role-default branch was itself unreachable**, for the same shape of
+   reason: it hung off `if not found` on the policy lookup, but an unmapped function has already
+   had its class rewritten to `general_drafting`, which IS found. Measured:
+   `fn_ai_route(...,'cfo')` returned `identity_policy` null.
+3. **The first scheduled `fn_action_invoke_collect` died.** `fn_org_task_root_cause_guard` refuses
+   to close a KPI-miss task with no root cause, and one refusing task aborted the whole pass,
+   stranding every other invocation in `running`. The guard is right; the close is isolated now
+   and the task stays open with the refusal attached.
+4. **`compliance_archive` answered 400 `unknown_action`.** `org_action_executor.params` is the
+   per-executor payload template and was `{}` on all 55 rows. It is the base of the request body
+   now — a target's contract is data, not code — and `compliance_check` declares
+   `{"action":"ping"}`. Requeued: 200 `{"ok":true,"dropbox_ready":true}`. The failure also
+   exercised the dead-letter path for real rather than by table existence.
+5. **My first route-test runner reported 5 regressions that were mine.** It asserted
+   `fn_trade_identify`'s output against expectations recorded from `fn_kb_route_decide`. The false
+   incident it raised is superseded with the reason.
+6. **The embedding boost made things worse before it made them better.** The first version passed
+   `limit 8`, reading the function's own comment — *"limit 40 -> 546, limit 20 -> 546, limit 10 ->
+   546, limit 8 -> 546, limit 5 -> 200"* — as row counts. They are HTTP status codes: 546 is
+   `WORKER_RESOURCE_LIMIT`. `net._http_response` showed 4× 546 and the rate collapsed from 164/min
+   to 17/min. At a batch of 5 with six invocations a minute: **31/min measured, zero 546s**.
+
+### THE EMBEDDING DECISION, AND IT IS NOT A SPEND DECISION
+
+`kb_embed` does not touch OpenRouter. Its own first line says so — *"populate
+kb_chunks.embedding_gte via the free in-region gte-small"* — and it builds a
+`Supabase.ai.Session`. Embedding all 115,148 costs nothing beyond compute already paid for, so the
+only question is throughput, and the answer is more invocations rather than a bigger batch,
+because each invocation is a fresh worker and the batch cap is what the session's memory growth
+allows. 5.6/min → **31/min**, sixteen days → about **2.5 days**. 1,853 pack rows embedded and
+climbing at the time of writing.
+
+Recall of the vector path against full text is deliberately **not** claimed here: comparing them
+at 1.6% embedded would measure the backfill, not the retrieval. Until it finishes `kb_search`
+still answers, because all 115,148 deployed chunks carry a full-text vector and
+`fn_kb_corpus_integrity` asserts it every day.
+
+### OS_PORTALS ACCEPTANCE GATES: 20 OF 23 MET, MEASURED RATHER THAN COUNTED BY HAND
+
+`fn_os_portals_gates()` replaces the literal `19` that sat in a JavaScript file. Three-valued on
+purpose — `met`, `not_met`, and `needs_human`/`needs_founder` with the reason and what would
+settle it. "Not measured" is not one of the values.
+
+Two were settled by doing the thing:
+
+- **Rollback tested.** `fn_p2c1_rollback_stage_b('rehearse')` on production: Stage B functions
+  19 → 0, relations 13 → 0, Stage A intact 10/10 and its selftest 14/14, 5 brand-policy identities
+  and 22 source mappings restored, all rolled back. **The drill destroys its own audit trail** —
+  the rehearsal raises at the end, so the audit row it writes rolls back too — which is why this
+  gate could never have measured true however often it was run. It reads `institutional_memory`
+  now and expires after 90 days. Two true findings recorded rather than silenced: the **b6 and b7
+  partial rollbacks abort themselves** on "Stage B 13/14 after rollback", because a Stage B
+  selftest case depends on an object they remove; and on **staging the drill aborts entirely** with
+  "brand_policy identities were not restored" — staging lacks the data the rollback restores, and
+  the staging memory row says exactly that instead of claiming a pass.
+- **Mobile web.** 375×812 on production: `/`, `/portal`, `/me`, `/ar`, `/ar/supplier` all 200,
+  `scrollWidth = clientWidth = 375` on every one, viewport meta present, Arabic `lang=ar dir=rtl`.
+  EN/AR completeness measured alongside it: 105 keys each, 0 missing, 0 values left in English.
+
+The three that remain:
+
+| gate | verdict | why |
+|---|---|---|
+| Founder receives exceptions, not routine approvals | **not_met** | 204 of 1,269 (16.1%) against a 10% bar. Real work, and the drain is built and running |
+| No mock metrics shown as facts | needs_human | measured clean on every public surface: no platform metric is displayed at all, the only figures are the founder biography on `/about`. The authenticated OS dashboard needs his session |
+| Founder approves release report | needs_founder | his signature |
+
+### STAGING DIVERGENCES FOUND AND CLOSED
+
+- **Every executor row read `risk_tier='high'`, `reversible=false`.** The classification columns
+  were populated on production and never backfilled, so staging failed closed on everything —
+  which looks safe and means the invoker could not be rehearsed there at all.
+  `scripts/kb/sync_executor_classification.mjs` copies the classification columns only, refuses
+  production as a destination, and moved staging 0 → 40 low/advisory-safe/reversible rows.
+- **`control_mode_sweep_5min` and `smoke_test_30min` existed as functions and were never
+  scheduled.** A rehearsal surface that does not run the monitors cannot rehearse a monitoring
+  failure. Staging gates 16 → 17.
+
+### THE TWO ROW #3 REGRESSIONS, BOTH CAUSED BY THIS SESSION
+
+- **`s38-manual-always-current` MET → NOT MET: "9 active cron job(s) are undocumented".** All nine
+  are mine, added today, and the check caught me inside the hour. That is the check working: it
+  measures drift in both directions and automation that runs without being written down is exactly
+  the first direction. All nine registered in `cron_registry` with what they do; drift is 0 and 0.
+- **`exec-intel-quantified-recommendation` MET → NOT MET: 6 of 7 officers.** The `exec_review`
+  task my own sweep queued re-ran the officers at 13:47, and `strategy` filed an empty
+  recommendations array — the flakiness session 6 recorded, where strategy needed two attempts.
+  Re-run through the invoker: report #55 at 14:05 with 3 recommendations. 7 of 7.
+
+Both predicates were re-evaluated directly before the confirming scorer run: `tot 7 / quant 7`,
+`undoc 0 / ghost 0`.
+
+### TWO PREDICATES OF MY OWN THAT WERE WRONG, AND WHAT THEY TAUGHT
+
+- The **monitoring gate** required zero failed cron runs in 24 hours, which conflates "monitoring
+  is configured" with "nothing has gone wrong". A caught failure is evidence FOR monitoring. It
+  measures the named monitors now — `watch_failed_runs_hourly`, `control_mode_sweep_5min`,
+  `smoke_test_30min`, scheduled and succeeding — which is narrower than "more than 50 jobs exist"
+  and the same check on both projects.
+- The **scorecard's own fetch** had no catch around a timeout, so one slow staging probe killed the
+  whole run instead of retrying.
+
+### WHAT THIS SESSION DID NOT DO
+
+- **`anon_security_definer_function_executable` is still 56.** Eight new SECURITY DEFINER
+  functions were created and every one revoked EXECUTE from `public`, `anon` and `authenticated`
+  in the same migration. `fn_ai_route` was DROPped and recreated to take a seventh parameter — an
+  added defaulted parameter is an overload, and a six-argument positional call would then be
+  ambiguous on the hottest path in the company — so its grants were re-applied exactly as
+  measured: `service_role` true, `anon` and `authenticated` false.
+- **`fn_kb_route_activation_blocked`'s grants were not touched.** `CREATE OR REPLACE` preserves the
+  ACL; a revoke there would have removed a grant that was already decided rather than undone one I
+  added. Asserted before and after.
+- **The target org stayed in `ops_kb_stage`.** Reached through the crosswalk, never merged.
 
 ---
 

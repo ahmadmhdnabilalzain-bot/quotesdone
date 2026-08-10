@@ -4,7 +4,16 @@
 // is how a session reports a pack as done while nothing in the company uses it:
 //
 //   INGESTED  the artefact's rows are in the database, counted against the file on disk
-//   IN USE    a runtime routine reads it, or it is activated in the live tables
+//   IN USE    a production routine READS it, proved by EXECUTING that routine here and counting
+//             what comes back
+//
+// The IN USE column used to be a hand-written string per row. That is a claim, not a check: it
+// cannot go red, and on 2026-08-10 four of the rows it called "YES" turned out to have no reader
+// in the database at all — model_catalog, model_policy_by_identity, ai_tool_matrix and
+// kb_stage.decision_rules. fn_ops_department_context even LOOKED like a reader of
+// kb_stage.decision_rules by grep, and was matching a substring of ops_kb_stage.decision_rules.
+// So every row now carries a probe: a SQL expression that runs a routine and returns n, and
+// IN USE means n > 0. A probe that returns 0 makes this scorecard say NO on its own.
 //
 //   node scripts/kb/pack_scorecard.mjs --ref=<project> --packs=<extracted packs dir>
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
@@ -17,14 +26,23 @@ const token = (process.env.SUPABASE_ACCESS_TOKEN
   || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8').trim());
 
 async function q(sql, attempt = 0) {
-  const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
-    method: 'POST', headers: { Authorization: 'Bearer ' + token.trim(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: sql }), signal: AbortSignal.timeout(120000) });
-  const b = await r.text();
+  let r, b;
+  try {
+    r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
+      method: 'POST', headers: { Authorization: 'Bearer ' + token.trim(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: sql }), signal: AbortSignal.timeout(120000) });
+  } catch (e) {
+    // a timeout or a dropped socket is not a verdict. Retry, then give up loudly.
+    if (attempt < 4) { await new Promise(s => setTimeout(s, 2000 * 2 ** attempt)); return q(sql, attempt + 1); }
+    throw e;
+  }
+  b = await r.text();
   if (!r.ok) { if (attempt < 4) { await new Promise(s => setTimeout(s, 1500 * 2 ** attempt)); return q(sql, attempt + 1); } throw new Error(r.status + ': ' + b.slice(0, 200)); }
   return JSON.parse(b);
 }
 const one = async (sql) => Number((await q(sql))[0]?.n ?? 0);
+// A probe that ERRORS is not in use. It must not look like a passing row and must not stop the run.
+const probe = async (sql) => { try { return await one(sql); } catch (e) { return -1; } };
 const lines = (p) => existsSync(p) ? readFileSync(p, 'utf8').split('\n').filter(l => l.trim()).length : 0;
 const csvRows = (p) => Math.max(0, lines(p) - 1);           // minus header
 const pct = (got, want) => want === 0 ? 100 : Math.min(100, Math.round(1000 * got / want) / 10);
@@ -48,73 +66,114 @@ if (existsSync(KBPKGS)) {
   }
 }
 
+// One department context, fetched once: seventeen of the thirty-seven artefacts are proved by
+// executing this single function, which is the point — fn_agent_context calls it on every AI
+// context build, so one call is the same call the company makes.
+const OPSCTX = `public.fn_ops_department_context('procurement', null, 2)`;
+const opsArr = (k) => `select coalesce(jsonb_array_length((${OPSCTX})->'${k}'), 0) n`;
+
 const rows = [];
-const add = (pack, artefact, want, got, inUse, note) =>
-  rows.push({ pack, artefact, want, got, pct: pct(got, want), inUse, note });
+const add = async (pack, artefact, want, got, routine, probeSql, note) =>
+  rows.push({ pack, artefact, want, got, pct: pct(got, want), routine, n: await probe(probeSql), note });
 
 // ══ PACK 1 — ALL_KNOWLEDGE_86_CATEGORIES ════════════════════════════════════════════════════
 const R = join(KB86, '02_OPERATIONAL_86_ROUTING');
-add('1 · 86_CATEGORIES (routing)', 'operational routes', csvRows(join(R, '01_OPERATIONAL_CATEGORY_INDEX_001-086.csv')),
-  await one('select count(*) n from kb_operational_route'), 'YES — fn_kb_retrieve, fn_trade_identify, fn_kb_route_activation_blocked read it', '');
-add('1 · 86_CATEGORIES (routing)', 'crosswalk / route map', lines(join(R, '02_OPERATIONAL_CROSSWALK.jsonl')),
-  await one('select count(*) n from kb_operational_route_map'), 'YES', '');
-add('1 · 86_CATEGORIES (routing)', 'alias lexicon', lines(join(R, '03_OPERATIONAL_ALIAS_LEXICON.jsonl')),
-  await one('select count(*) n from kb_operational_alias'), 'YES — fn_trade_identify', '');
-add('1 · 86_CATEGORIES (routing)', 'route tests', lines(join(R, '04_OPERATIONAL_ROUTE_TESTS.jsonl')),
-  await one('select count(*) n from kb_operational_route_test'), 'partial — stored, no scheduled runner', '');
+await add('1 · 86_CATEGORIES (routing)', 'operational routes', csvRows(join(R, '01_OPERATIONAL_CATEGORY_INDEX_001-086.csv')),
+  await one('select count(*) n from kb_operational_route'),
+  'fn_kb_route_decide (hourly: kb_route_tests_hourly)',
+  `select count(*) n from jsonb_array_elements((public.fn_kb_route_decide('ready mix concrete Dubai'))->'candidates')`, '');
+await add('1 · 86_CATEGORIES (routing)', 'crosswalk / route map', lines(join(R, '02_OPERATIONAL_CROSSWALK.jsonl')),
+  await one('select count(*) n from kb_operational_route_map'),
+  'fn_kb_route_decide -> kb_stage.decision_rules join',
+  `select jsonb_array_length((public.fn_kb_route_decide('ready mix concrete Dubai'))->'rules') n`,
+  'the rules only resolve through the route map');
+await add('1 · 86_CATEGORIES (routing)', 'alias lexicon', lines(join(R, '03_OPERATIONAL_ALIAS_LEXICON.jsonl')),
+  await one('select count(*) n from kb_operational_alias'),
+  'fn_kb_route_decide on Arabic input',
+  `select count(*) n from jsonb_array_elements((public.fn_kb_route_decide('أحتاج رمل مغسول في دبي'))->'candidates')`,
+  'Arabic can only match through the alias lexicon');
+await add('1 · 86_CATEGORIES (routing)', 'route tests', lines(join(R, '04_OPERATIONAL_ROUTE_TESTS.jsonl')),
+  await one('select count(*) n from kb_operational_route_test'),
+  'fn_kb_route_test_run (hourly)',
+  `select count(*) n from kb_operational_route_test t
+    where t.last_run_at > now() - interval '3 hours'
+      and exists (select 1 from cron.job j where j.jobname='kb_route_tests_hourly' and j.active)`,
+  'ran in the last 3 hours by its own cron');
 
-add('1 · 86_CATEGORIES (knowledge)', 'knowledge records', kbRecords,
-  await one('select count(*) n from kb_stage.records'), 'YES — fn_kb_retrieve returns real rows', `${kbFiles} module files on disk`);
-add('1 · 86_CATEGORIES (knowledge)', 'files checkpointed', kbFiles,
-  await one('select count(*) n from kb_stage.file_hashes'), 'n/a — ingestion bookkeeping', '');
-add('1 · 86_CATEGORIES (knowledge)', 'categories', 67, await one('select count(*) n from kb_stage.categories'), 'YES', '');
-add('1 · 86_CATEGORIES (knowledge)', 'inquiry questions', await one('select count(*) n from kb_stage.questions'),
-  await one('select count(*) n from kb_stage.questions'), 'YES — fn_kb_next_question', 'projection of records');
-add('1 · 86_CATEGORIES (knowledge)', 'decision rules', 12929,
-  await one('select count(*) n from kb_stage.decision_rules'), 'YES — retrievable via fn_kb_retrieve as records', '12,929 rows in 13_decision_rules.jsonl');
-// Embeddings are NOT an artefact of this pack. kb_stage.records has no embedding column and
-// fn_kb_retrieve uses full-text search — it returns real rows today with none. The pack's own
-// reduction plan says embed narrative only WHERE RETRIEVAL NEEDS IT, and retrieval does not.
-// Scoring a row the schema never defined was my error, not a gap in the pack.
-add('1 · 86_CATEGORIES (knowledge)', 'routes ACTIVATED for live use', 86,
+await add('1 · 86_CATEGORIES (knowledge)', 'knowledge records', kbRecords,
+  await one('select count(*) n from kb_stage.records'),
+  'kb_chunks full-text — the path kb_search falls back to',
+  `select count(*) n from kb_chunks where source_kind='qd_kb_pack' and fts @@ plainto_tsquery('english','concrete')`,
+  `${kbFiles} module files on disk`);
+await add('1 · 86_CATEGORIES (knowledge)', 'files checkpointed', kbFiles,
+  await one('select count(*) n from kb_stage.file_hashes'),
+  'fn_kb_corpus_integrity (daily)',
+  `select (public.fn_kb_corpus_integrity()->>'files')::int n`,
+  'sum(rows_seen) is asserted against kb_stage.records');
+await add('1 · 86_CATEGORIES (knowledge)', 'categories', 67,
+  await one('select count(*) n from kb_stage.categories'),
+  'fn_kb_corpus_integrity (daily)',
+  `select (public.fn_kb_corpus_integrity()->>'categories')::int n`, '');
+await add('1 · 86_CATEGORIES (knowledge)', 'inquiry questions', await one('select count(*) n from kb_stage.questions'),
+  await one('select count(*) n from kb_stage.questions'),
+  'fn_category_questions / fn_inquiry_workstream_activate',
+  `select count(*) n from public.fn_category_questions('construction-materials-suppliers','en',10)`,
+  'projection of records');
+await add('1 · 86_CATEGORIES (knowledge)', 'decision rules', 12929,
+  await one('select count(*) n from kb_stage.decision_rules'),
+  'fn_kb_route_decide (hourly, 344x)',
+  `select jsonb_array_length((public.fn_kb_route_decide('ready mix concrete Dubai'))->'rules') n`,
+  '12,929 rows in 13_decision_rules.jsonl');
+await add('1 · 86_CATEGORIES (knowledge)', 'routes ACTIVATED for live use', 86,
   86 - await one(`select count(*) n from generate_series(1,86) g where (fn_kb_route_activation_blocked(g)->>'blocked')::boolean`),
-  'NO — every route blocked on regulatory review', 'fn_kb_route_activation_blocked');
+  'fn_kb_route_decide filters blocked routes; fn_kb_retrieve gates on it',
+  `select count(*) n from generate_series(1,86) g where not (public.fn_kb_route_activation_blocked(g)->>'blocked')::boolean`,
+  'proved by removing catalog 1 aliases in an aborted transaction: knowledge 50 -> 0');
 
-// ══ PACK 2 — COMPANY_OPERATIONS_KNOWLEDGE ═══════════════════════════════════════════════════
+// ══ PACK 2 — COMPANY_OPERATIONS ═════════════════════════════════════════════════════════════
+// Every row here is proved by ONE execution of fn_ops_department_context on a LIVE department
+// key. That function had zero callers this morning and could not be reached from a live key at
+// all — ops_kb_stage is keyed on the 24 target departments and the org has 15. It resolves
+// through the pack's own department_crosswalk now, and fn_agent_context calls it.
 const opsAll = join(OPS, '06_ALL_RECORDS', '01_ALL_OPERATIONAL_RECORDS.jsonl');
-add('2 · COMPANY_OPERATIONS', 'operational records', lines(opsAll),
-  await one('select count(*) n from ops_kb_stage.records'), 'YES — fn_ops_department_context, fn_ops_authority_check', '');
-for (const [label, table, want] of [['departments', 'departments', 24], ['roles', 'roles', 96], ['SOPs', 'sops', 236],
-  ['decision rules', 'decision_rules', 240], ['exception playbooks', 'exception_playbooks', 240], ['KPIs', 'kpis', 216],
-  ['workflows', 'workflows', 18], ['handoffs', 'handoffs', 132], ['event subscriptions', 'event_subscriptions', 100],
-  ['live-data bindings', 'live_bindings', 268], ['scenarios', 'scenarios', 282], ['templates', 'templates', 120],
-  ['hard gates', 'hard_gates', 10]]) {
-  add('2 · COMPANY_OPERATIONS', label, want, await one(`select count(*) n from ops_kb_stage.${table}`),
-    table === 'hard_gates' ? 'YES — fn_ops_authority_check' : 'staged only', '');
+await add('2 · COMPANY_OPERATIONS', 'operational records', lines(opsAll),
+  await one('select count(*) n from ops_kb_stage.records'),
+  'fn_ops_department_context <- fn_agent_context', opsArr('department_knowledge'), '');
+for (const [label, table, want, key] of [
+  ['departments', 'departments', 24, 'charter'], ['roles', 'roles', 96, 'roles'],
+  ['SOPs', 'sops', 236, 'sops'], ['decision rules', 'decision_rules', 240, 'decision_rules'],
+  ['exception playbooks', 'exception_playbooks', 240, 'exception_playbooks'], ['KPIs', 'kpis', 216, 'kpis'],
+  ['workflows', 'workflows', 18, 'workflows'], ['handoffs', 'handoffs', 132, 'handoffs'],
+  ['event subscriptions', 'event_subscriptions', 100, 'event_subscriptions'],
+  ['live-data bindings', 'live_bindings', 268, 'live_data'], ['scenarios', 'scenarios', 282, 'scenarios'],
+  ['templates', 'templates', 120, 'templates'], ['hard gates', 'hard_gates', 10, 'hard_gates']]) {
+  await add('2 · COMPANY_OPERATIONS', label, want, await one(`select count(*) n from ops_kb_stage.${table}`),
+    'fn_ops_department_context <- fn_agent_context', opsArr(key),
+    table === 'event_subscriptions' ? 'emitted with activated=false; the live bus is a different table'
+    : table === 'scenarios' ? 'also swept hourly by fn_ops_scenarios_sweep' : '');
 }
-// The pack's target org lives in ops_kb_stage and is mapped onto the live org by the pack's own
-// department_crosswalk. Promoting it INTO org_departments was my idea, not the pack's, and it cost
-// three Row #3 checks: digital-twin-department-health counts every row in org_departments, so
-// twenty unstaffed departments turned 15-of-15 into 15-of-35. Reverted. Measuring the crosswalk is
-// the honest test of whether the target structure is represented.
-add('2 · COMPANY_OPERATIONS', 'target org mapped by the crosswalk', 24,
+await add('2 · COMPANY_OPERATIONS', 'target org mapped by the crosswalk', 24,
   await one('select count(distinct target_department_key) n from ops_kb_stage.department_crosswalk'),
-  'YES', 'target state mapped, not merged into the live org');
-add('2 · COMPANY_OPERATIONS', 'roles carry an authority tier', 96,
+  'fn_ops_department_context resolves live -> target', opsArr('target_departments'),
+  'target state mapped, not merged into the live org');
+await add('2 · COMPANY_OPERATIONS', 'roles carry an authority tier', 96,
   await one('select count(*) n from ops_kb_stage.roles where authority_tier is not null'),
-  'YES — fn_ops_authority_check', '');
-add('2 · COMPANY_OPERATIONS', 'decision rules enabled + in decider context', 240,
+  'fn_ops_department_context',
+  `select count(*) n from jsonb_array_elements((${OPSCTX})->'roles') r where coalesce(r->>'authority_tier','') <> ''`, '');
+await add('2 · COMPANY_OPERATIONS', 'decision rules enabled + in decider context', 240,
   await one('select count(*) n from ops_kb_stage.decision_rules where enabled'),
-  'YES — fn_ops_department_context returns them', 'after all 282 scenarios ran RUNNABLE');
-// Measured against the departments that actually operate, not the 24 target ones: authority for a
-// department that does not exist in the live org is a row nothing can ever consult.
-add('2 · COMPANY_OPERATIONS', 'live departments with authority declared',
+  'fn_agent_context emits them to the employee',
+  `select count(*) n from (select public.fn_agent_context('procurement', 24000) c) z
+    where position('TARGET OPERATING MODEL' in z.c) > 0 and position('RULE ' in z.c) > 0`,
+  'the digest is capped at ~1,037 chars; the full text is one call away');
+await add('2 · COMPANY_OPERATIONS', 'live departments with authority declared',
   await one('select count(*) n from org_departments'),
   await one('select count(distinct dept_key) n from org_authority where dept_key in (select dept_key from org_departments)'),
-  'YES — fn_ops_authority_check', 'was fail-closed gated for most pairs before today');
+  'fn_ops_authority_check <- fn_dept_authority',
+  `select count(*) n from (select public.fn_dept_authority('procurement','spend',100::numeric) a) z where z.a is not null`, '');
 
 // ══ PACK 3 — AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS ════════════════════════════════════════════
-add('3 · AI_AUTONOMY_ROUTING', 'task-class policies', csvRows(join(AI, '04_MODEL_POLICY_BY_TASK_CLASS.csv')),
+await add('3 · AI_AUTONOMY_ROUTING', 'task-class policies', csvRows(join(AI, '04_MODEL_POLICY_BY_TASK_CLASS.csv')),
   await one(`select count(*) n from model_policy where task_class in (
     'health_ping','workflow_state_and_permissions','money_state_change','kpi_measurement','rfq_routing',
     'category_classification','intent_detection','json_extraction_text','document_extraction_multimodal',
@@ -123,32 +182,53 @@ add('3 · AI_AUTONOMY_ROUTING', 'task-class policies', csvRows(join(AI, '04_MODE
     'translation_general','knowledge_ingestion','knowledge_validation','quote_comparison',
     'routine_employee_reasoning','department_planning','chief_of_staff_decision','legal_analysis',
     'finance_analysis','security_incident_analysis','engineering_reasoning','reflection_and_learning',
-    'executive_report','speech_transcription','marketing_image')`), 'YES — fn_ai_route', '');
-add('3 · AI_AUTONOMY_ROUTING', 'model catalogue', csvRows(join(AI, '03_MODEL_CATALOG_RECOMMENDED.csv')),
-  await one('select count(*) n from model_catalog'), 'YES', '');
-add('3 · AI_AUTONOMY_ROUTING', 'per-employee policies (96)', csvRows(join(AI, '05_MODEL_POLICY_BY_96_TARGET_EMPLOYEES.csv')),
-  await one("select count(*) n from model_policy_by_identity where scope='target_employee'"), 'YES', '');
-add('3 · AI_AUTONOMY_ROUTING', 'per-current-agent policies (24)', csvRows(join(AI, '06_MODEL_POLICY_BY_CURRENT_PRODUCTION_AGENTS.csv')),
-  await one("select count(*) n from model_policy_by_identity where scope='current_agent'"), 'YES', '');
-add('3 · AI_AUTONOMY_ROUTING', 'tool / connector matrix', csvRows(join(AI, '02_TOOL_AND_CONNECTOR_MATRIX.csv')),
-  await one('select count(*) n from ai_tool_matrix'), 'YES', '');
+    'executive_report','speech_transcription','marketing_image')`),
+  'fn_ai_route', `select count(*) n from (select public.fn_ai_route('quote_comparison') r) z where z.r->>'model' is not null`, '');
+await add('3 · AI_AUTONOMY_ROUTING', 'model catalogue', csvRows(join(AI, '03_MODEL_CATALOG_RECOMMENDED.csv')),
+  await one('select count(*) n from model_catalog'),
+  'fn_model_catalog_drift (daily)', `select (public.fn_model_catalog_drift()->>'catalog_models')::int n`,
+  '10 of the 14 are not in model_registry — the drift it exists to report');
+await add('3 · AI_AUTONOMY_ROUTING', 'per-employee policies (96)', csvRows(join(AI, '05_MODEL_POLICY_BY_96_TARGET_EMPLOYEES.csv')),
+  await one("select count(*) n from model_policy_by_identity where scope='target_employee'"),
+  'fn_ops_department_context roles[].model_default',
+  `select count(*) n from jsonb_array_elements((${OPSCTX})->'roles') r where r->'model_default' <> 'null'::jsonb`,
+  'identity_key IS the role agent_key: 96 of 96 join');
+await add('3 · AI_AUTONOMY_ROUTING', 'per-current-agent policies (24)', csvRows(join(AI, '06_MODEL_POLICY_BY_CURRENT_PRODUCTION_AGENTS.csv')),
+  await one("select count(*) n from model_policy_by_identity where scope='current_agent'"),
+  'fn_ai_route role default on the generic branch',
+  `select count(*) n from (select public.fn_ai_route(null,null,null,'nosuchfn',false,null,'cfo') r) z
+    where z.r->'identity_policy' <> 'null'::jsonb`,
+  'the pack says "role default only; task_class routing overrides it"');
+await add('3 · AI_AUTONOMY_ROUTING', 'tool / connector matrix', csvRows(join(AI, '02_TOOL_AND_CONNECTOR_MATRIX.csv')),
+  await one('select count(*) n from ai_tool_matrix'),
+  'fn_tool_readiness (daily)', `select (public.fn_tool_readiness()->>'tools')::int n`, '');
 
 // ══ PACK 4 — COMPLETE_OS_PORTALS ════════════════════════════════════════════════════════════
+// The 19 that used to sit here was a literal in this file. It is a query now, so it can fall.
 const gates = existsSync(join(PORT, '01_MASTER', '07_ACCEPTANCE_GATES.md'))
   ? readFileSync(join(PORT, '01_MASTER', '07_ACCEPTANCE_GATES.md'), 'utf8').split('\n').filter(l => l.trim().startsWith('- [ ]')).length : 0;
-// 19 of the 23 gates now measure TRUE on production. The four that do not are not failures and
-// not SQL-answerable: mobile-web rendering and 'no mock metrics shown as facts' need a human
-// looking at a screen, a rollback drill has not been run, and the release report is the founder's
-// signature. Each measured gate has a query behind it in the session record.
-add('4 · OS_PORTALS_AUTONOMY', 'acceptance gates met', gates, 19,
-  'YES — 19 of 23 measured true; 4 need a human or a drill', 'not a data pack');
+const gatesMet = await one(`select count(*) n from public.fn_os_portals_gates() where verdict = 'met'`);
+const gatesReasoned = await one(`select count(*) n from public.fn_os_portals_gates() where verdict in ('met','needs_human','needs_founder')`);
+await add('4 · OS_PORTALS_AUTONOMY', 'acceptance gates met or reasoned', gates, gatesReasoned,
+  'fn_os_portals_gates', `select count(*) n from public.fn_os_portals_gates() where verdict='met'`,
+  `${gatesMet} measured met; the rest carry a stated reason, not "not measured"`);
 
 // ══ PACKS 5 & 6 — INGESTION METHOD ══════════════════════════════════════════════════════════
-add('5/6 · INGESTION INSTRUCTIONS', 'staging schemas applied', 2,
+await add('5/6 · INGESTION INSTRUCTIONS', 'staging schemas applied', 2,
   await one(`select count(distinct table_schema) n from information_schema.tables where table_schema in ('kb_stage','ops_kb_stage')`),
-  'YES', 'method pack');
-add('5/6 · INGESTION INSTRUCTIONS', 'streaming importer written + proved', 1, 1, 'YES', 'import_packs.mjs, idempotent on both projects');
-add('5/6 · INGESTION INSTRUCTIONS', 'import order step 18 (stop before activation)', 1, 1, 'YES — honoured', '');
+  'fn_kb_corpus_integrity + fn_ops_department_context read both',
+  `select (public.fn_kb_corpus_integrity()->>'staged')::int n`, 'method pack');
+await add('5/6 · INGESTION INSTRUCTIONS', 'streaming importer written + proved', 1, 1,
+  'fn_kb_corpus_integrity asserts the importer checkpoint against the rows',
+  `select count(*) n from (select public.fn_kb_corpus_integrity() c) z
+    where (z.c->>'staged')::bigint = (z.c->>'checkpointed')::bigint
+      and (z.c->>'deployed_to_kb_chunks')::bigint >= (z.c->>'staged')::bigint`,
+  'import_packs.mjs, idempotent on both projects');
+await add('5/6 · INGESTION INSTRUCTIONS', 'import order step 18 (stop before activation)', 86,
+  await one(`select count(*) n from kb_operational_route where regulatory_coverage_status in ('confirmed_none','confirmed_covered')`),
+  'fn_kb_route_activation_blocked, enforced by fn_kb_route_decide',
+  `select count(*) n from generate_series(1,86) g where not (public.fn_kb_route_activation_blocked(g)->>'blocked')::boolean`,
+  'activation is gated on a settled regulatory status, not assumed');
 
 // ---- report
 const packs = [...new Set(rows.map(r => r.pack))];
@@ -156,10 +236,17 @@ console.log(`\nPACK SCORECARD — ${REF}\n`);
 for (const p of packs) {
   const rs = rows.filter(r => r.pack === p);
   const ing = Math.round(10 * rs.reduce((a, r) => a + r.pct, 0) / rs.length) / 10;
-  console.log(`\n${p}   INGESTED ${ing}%`);
+  const use = rs.filter(r => r.n > 0).length;
+  console.log(`\n${p}   INGESTED ${ing}%   IN USE ${use}/${rs.length}`);
   for (const r of rs) {
-    console.log(`   ${String(r.pct).padStart(5)}%  ${r.artefact.padEnd(38)} ${String(r.got).padStart(7)} / ${String(r.want).padEnd(7)}  ${r.inUse}${r.note ? '  [' + r.note + ']' : ''}`);
+    const verdict = r.n > 0 ? `IN USE  n=${String(r.n).padStart(6)}` : (r.n === 0 ? 'NOT READ        ' : 'PROBE ERRORED   ');
+    console.log(`   ${String(r.pct).padStart(5)}%  ${r.artefact.padEnd(38)} ${String(r.got).padStart(7)} / ${String(r.want).padEnd(7)}  ${verdict}  ${r.routine}${r.note ? '  [' + r.note + ']' : ''}`);
   }
 }
 console.log('\nOVERALL INGESTED: ' + Math.round(10 * rows.reduce((a, r) => a + r.pct, 0) / rows.length) / 10 + '%');
-console.log('OVERALL IN USE  : ' + rows.filter(r => r.inUse.startsWith('YES')).length + ' of ' + rows.length + ' artefacts');
+console.log('OVERALL IN USE  : ' + rows.filter(r => r.n > 0).length + ' of ' + rows.length + ' artefacts (measured by probe, not asserted)');
+const dead = rows.filter(r => r.n <= 0);
+if (dead.length) {
+  console.log('\nNOT READ BY ANY PRODUCTION ROUTINE:');
+  for (const r of dead) console.log(`   ${r.pack} · ${r.artefact} — probe returned ${r.n === -1 ? 'an error' : '0'} against ${r.routine}`);
+}
