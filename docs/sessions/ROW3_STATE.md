@@ -79,7 +79,7 @@ completed a registration through it.
 
 | check | why, measured 10 Aug |
 |---|---|
-| `s32-reputation-six-dimensions` | needs six dimensions non-null on **all 66** employees. Today: correctness **0** of 66, reliability 7, cost_efficiency 3, collaboration 5, learning_speed 15 and falling to 0 at 07:00. **There is no decision-quality column at all.** Filling these is fabrication, not a build |
+| `s32-reputation-six-dimensions` | needs six dimensions non-null on **all 66** employees. Today: correctness **0** of 66, reliability 7, cost_efficiency 3, collaboration 5, learning_speed 15 and falling to 0 at 07:00. **There is no decision-quality column at all.** Filling these is fabrication, not a build — but see the correctness note below: one of the six is a date, not a blocker |
 | `s27-knowledge-seven-fields` | needs two columns that do not exist (expiry, supporting evidence) plus `source_ref` on all 1,990 rows — 1,022 have no source and inventing one is fabrication |
 | `explain-confidence-score` | the `confidence` key **is** on all 8 escalation elements and is **NULL on all 8**. A UI change cannot help; stamping a constant is the `fn_governance_stamp` mistake again |
 | `explain-alternatives-considered` | 0 of 34 across all four surfaces, and no per-action alternatives data exists anywhere. Same 53-writer shape as `s36` |
@@ -89,6 +89,19 @@ completed a registration through it.
 | `employee-learning-progress` | **0 of 83 examined agents have exam results on two different days.** Not a defect: `fn_exam_pick_agent` walks 207 distinct `agent_knowledge.agent_key` values at ~6 exams a day and started 26 July, so it is still on its first pass. Only 66 of those 207 keys are employees; the rest are `cat:` specialists with no workspace |
 | `time-machine-restores-six-dimensions` | 5 of 6 on all 13 snapshots; `customers` first appears on the **2026-08-09** snapshot and is written nightly now, so the 14-day universal completes ~**24 Aug**. Nothing to build |
 | `s39-governance-six-monitors` | 5 of 6 at 06:22; the sixth (`regulatory changes`) fires at 06:40 |
+
+### `correctness` is a clock, not a missing grader — checked before calling it blocked
+
+`fn_reputation_recompute` reads `correctness` from `outcome_record.verdict`, and all **66** rows read
+`pending` with **0 observed**, which looks exactly like a grader nobody wrote. It is not.
+`fn_outcome_evaluate` exists, `outcome_evaluate_daily` is active on `30 3 * * *`, and **not one
+outcome is due yet**: the earliest `due_at` is **2026-08-11 17:25** and the latest is 14 September.
+The oldest record was created 28 July with a 14-day measurement window.
+
+So `correctness` starts filling from **12 Aug** with no code change, and `s32` is short of six
+dimensions for a different reason — there is no decision-quality column at all, and cost_efficiency
+only exists for the handful of employees that spend on models. Do not build a grader; one is already
+scheduled and waiting for its first measurement window to close.
 
 ### The four new emitters raised the public-exposure number, and it was put back
 
