@@ -183,6 +183,80 @@ The remaining gates — mobile web, EN/AR journey completeness, no pre-reveal id
 mock metrics, rollback tested, founder release approval — are not decidable from SQL and were not
 guessed at.
 
+### AFTER THE PACKS — FOUR THINGS THAT WERE NAMED AS GAPS AND THEN ACTUALLY BUILT
+
+The founder asked twice whether everything was finished. The first answer was a summary, which is
+not the same thing. **Writing a gap down is not closing it.** Four were closed by execution:
+
+**1. `quote_compare` showed the customer NOTHING when the model failed.** The branch returned
+`{ok:false,'parse_failed'}` at HTTP 200 — the function's own log line says *"the customer reached
+the decision step, was given nothing to compare, and this returns HTTP 200 so it is invisible to
+ordinary error monitoring."* The whole company runs on ONE OpenRouter balance, so when it empties
+that branch is the ONLY branch, at the one moment QuotesDone earns its reveal fee.
+
+`supabase/functions/quote_compare/deterministic.ts` ranks every quote on stated price,
+completeness (via the existing `fn_quote_score_json`), lead time, warranty, payment terms,
+itemisation and expiry, with no model call. It never invents a specification, a spec deviation or
+a line finding. It labels itself `degraded` in EN and AR and is **not cached**, so the full
+analysis returns the moment the model does. The same remedy now covers a model reply with an
+**empty shortlist**, which reached the customer as a blank screen *and was being cached*.
+
+**A defect in it was found by running it against real data.** Price scored as a ratio to the
+cheapest gave all four staging quotes (862,400–1,107,400, within 22%) **5/5**, so price stopped
+discriminating and ranking collapsed onto lead time. Scores now span the range the quotes occupy:
+cheapest 5, dearest 1, a genuine tie **3 for everyone**. Same four quotes now: 5/4/4. Regression
+guard added for exactly this.
+
+Proved on staging with the model forced to fail by a 16-token ceiling — the documented real cause
+of `parse_failed`: `HTTP 200, degraded:true, all_models_failed, 4 considered, 3 ranked`,
+`agent_runs {degraded:1, ai_ok:0, ai_attempts:2, top3:3}`, `model_policy` restored byte-identical.
+
+**2. Reputation could only ever take authority away.** `fn_reputation_recompute` demoted
+`autonomous → gated` and no statement anywhere moved one back — a ratchet, not a policy. It left
+34 gated rows over 14 employees with **not one on probation**.
+
+The restore is **narrower than the demotion on purpose**. `employee_authority` has no timestamp
+and no provenance column, so the only surviving evidence is the grant's own `note`. **12** say
+*"Advisory-safe action, may run autonomously"* and were restored; **22** say something else
+(*"Structural change is proposed, never self-applied"*, *"Cost changes touching production need
+review"*, *"Inherits department authority as head"*) and keep their gate. This did not restore
+"the 34" — it restored the 12 the data can justify. Executed on production: **gated 34 → 22,
+autonomous 131 → 143**, 12 rows in `autonomy_control_audit` (which already existed — no new audit
+table), second run restores 0.
+
+**3. `fn_action_queue_sweep` had run hourly for weeks and never resolved one incident.** Two
+defects. Its cleared-condition guard asked *"has anything in the entire company failed in 48
+hours?"* — with 66 employees and ~90 crons something always has, so the branch was **unreachable**.
+And dedupe partitioned on a title carrying a changing count (*"4 agent run(s) failed…"*, *"6…"*,
+*"10…"*), so every day's count made a new unique title and `it` accumulated one for ever.
+
+Dedupe now normalises a **leading** count only — narrow so *"Supplier 12 failed audit"* and
+*"Supplier 45 failed audit"* stay distinct — and staleness is judged on the 24-hour window the
+incident itself names. Probed first: exactly 2 title groups collapse, no collateral. Executed:
+**10 superseded, open 211 → 201, incidents 10 → 1** (the live one from today survives), second run
+0/0, and the 84 handoffs and 19 legal/customer/security rows untouched.
+
+**4. `visitor_chat` had no model policy** — the ONLY purpose reaching `llm_calls` in 30 days, the
+one live AI conversation the company has with a real stranger, and `fn_ai_route` was answering it
+with *'no policy for "visitor_chat", fell back to general_drafting'*. Now named and set
+**identical** to what it already resolved to (haiku, medium, 900), so behaviour is unchanged and
+it is finally measurable as itself.
+
+**And the 22 pack task classes were activated** rather than left inactive. They had been parked as
+"a money decision for the founder"; he removed that category outright — *"there's not a single
+thing that requires my approval except refunds. Nothing else, literally nothing else."* Each pack
+model is mapped to the nearest model production actually serves, at the same tier, with the pack's
+original choice preserved in `rationale`. **60 of 61 policies active on both projects**; only
+`marketing_image` stays off because production serves no image model at all. `agent_reasoning` is
+untouched.
+
+**The remaining automation gap is written up in `docs/sessions/AUTOMATION_GAP_ANALYSIS.md`.** Its
+headline: 55 action types are registered and only **16 can execute**, and `agent_actions` holds
+~200 `needs_review` rows across **22 kinds** — every one already carrying a `recommendation` AND a
+`confidence`. The company has decided; it is parked waiting for someone to say yes. The root cause
+is sharper than "no consumer": **`agent_actions` has no assignee column at all.** `agent` is who
+RAISED the item. The queue has no addressee, which is why 21 of 22 kinds have never been drained.
+
 ### WHAT THIS SESSION DID **NOT** DO, AND WHY
 
 - **Nothing was activated.** `03_IMPORT_ORDER.md` step 18 is *"run tests and STOP before production
