@@ -1,7 +1,112 @@
-# ROW #3 — THE EXECUTIVE UI: 28 → 91 / 152 IN ONE SESSION
+# ROW #3 — THE EXECUTIVE UI: 28 → 105 / 152
 
-Measured on production 2026-08-09. Every number below is a scorer run, not an estimate.
+Measured on production. Every number below is a scorer run, not an estimate.
 Scorer: `scripts/staging/verify_os2_blueprint.mjs`, modules in `scripts/staging/os2_blueprint/`.
+
+---
+
+## Session 5 (10 Aug 2026, opened 02:33 UTC) — THE CLOCK, AGAIN, AND FOUR DEFECTS IN THE MONEY PATH
+
+```
+select now() at time zone 'utc'  ->  2026-08-10 02:33:05   (Monday)
+```
+
+**The previous session ended at 02:30 UTC. This one opened at 02:33 — three minutes later.** The
+part-5 brief listed ten crons "due between 03:50 and 07:00 that morning" and asked which had fired.
+At session open, **none had**; the earliest was 77 minutes away. This is the third consecutive
+session opened inside the previous one's shadow. Opening score **105/152 (69%), 0 errored, 0
+regressions** — identical to 02:30, exactly as the clock predicts.
+
+One cron HAD fired in the gap: `capability_verify_daily` at 02:15, first run ever, and
+`s34-resilience-measured` was already MET in the opening run.
+
+**The window is not ten crons. It is 78.** Every active job with a fixed hour between 03:16 and
+07:00 today: 78 of them, weekday-or-Monday. The ten in the brief are the subset that gate Row #3
+checks. Three more that matter and were not listed: `kpi_review_weekly` (`0 4 * * 1`, the outcomes
+track `s33` needs), `bi_snapshot_6h` (06:35, the KPI track), and `marketing_ai_daily` (06:50).
+
+### Four defects, all found by reading rows under a verdict rather than taking it
+
+| defect | consequence | state |
+|---|---|---|
+| `fn_reallocate` released 20% of the AI budget from all twelve departments and granted it to **nobody** — no department was over 85% | **1,860 AED destroyed**, `department_budget` 9,500 → 7,640, run note claimed "moved from idle to saturated departments". Compounding, monthly, and `department_budget` is enforced by `fn_check_spend` / `fn_ai_spend_guard` / `fn_budget_available` / `fn_ai_route` | FIXED, both projects |
+| `fn_reallocate`'s grant loop divided the pool by a hard-coded `3` regardless of recipient count | latent leak; with one recipient two-thirds of the pool vanished | FIXED |
+| `fn_budget_rollup` inner-joined its spend subquery, so a department with zero spend was never rolled | ten of thirteen rows still read `period_label 2026-07`; a department at 90% that goes quiet reads 90% forever and stays halted | FIXED |
+| `fn_reputation_recompute` was about to demote **three employees at 07:00** on two dimensions that score noise | see below | FIXED |
+
+### The two reputation dimensions, and why nobody should have been on probation
+
+Predicted read-only at 03:15, before the 07:00 run: five employees under 50 — `legal` 43.8, `cpo`
+45.0, `learning_dev_mgr` 45.2, `analytics` 46.3, `ops_director` 49.5, three of them newly demoted.
+Every one was below the line because of these two and nothing else; correctness, reliability and
+cost_efficiency are NULL for all five.
+
+- **`learning_speed` still measured a frozen seed.** Session 4 nulled it at zero validated rows —
+  half the fix. `author_verified`: **292 rows, created 24–28 July only, 4 owners, none since**.
+  `unvalidated`: **1,694 rows, 23 Jun → today, 23 owners, still growing**. A frozen July seed over a
+  denominator that grows every time an employee learns anything, so the score **falls monotonically
+  with work done**. There is no `validated_at` column, so no liveness guard is sound. Now NULL for
+  everyone. **This makes `s32` harder, not easier** — it can never read 6 of 6 until a validator
+  exists. Building that validator is the real fix and is still open.
+- **`collaboration` counted undecided drafts and ownership markers as failed reviews.**
+  `review_chain.decision` mixes verdicts with states and `stage` proves it: 208 NULLs are stage
+  `drafted` with `reviewer_agent` NULL on **all 208**; 183 `owned` are stage `ownership` and first
+  appeared 6 Aug; `hold` and `required` are states. `cpo` has **eight rows, all `owned`**, and
+  scored 0.0% for having taken ownership of eight things. Now `approve / (approve + reject +
+  request_revision)`.
+
+After both: 60 standard, 6 trusted, **zero probation, zero demotions** — verified by execution on
+staging, `employee_authority` byte-identical before and after.
+
+### The opportunity scan was 25 minutes from reporting demo fixtures as market demand
+
+`marketing_category_demand.inquiries_90d` counts inquiries with **no fixture filter**, and hvac's 6
+and aluminium's 1 are **7 of 7 `qd_demo_fixture`**. Today was the new body's first run. At 03:50 it
+would have written *"the hvac industry drew 6 inquir(y/ies) in 90 days… demand is running ahead of
+the supply able to answer it"* and put it in front of the founder as detected demand. Fixed in the
+two demand-driven blocks only; the shared view is untouched because four routines read it.
+**This also makes `s29` harder** — it stays at 3 of 5 rather than reading a false 5 of 5, and
+reaches 5 of 5 the day a real inquiry arrives.
+
+### The marketing budget decision now reaches the founder
+
+Two paused QuotesDone Meta campaigns, AED 0 spend, and `fn_marketing_ai` has said *"launch and fund
+it"* daily since 30 July **without ever naming the money** — because no media budget exists anywhere
+(`budgets` and `budget_lines` empty; `department_budget` is AI model spend and does not cover media)
+and the amount is a founder decision. Filed as kind `finance_marketing_budget` so
+`fn_governance_stamp`'s existing sensitive-domain rule escalates it.
+
+Probed rather than reasoned about: `mkt_rec` inserts `pending` and `trg_action_gate` immediately
+rewrites it to `needs_review`, because **`fn_authorize` resolves `marketing_ai` to role `"guest"`**
+— `role "guest" lacks permission "run_agent_action"`. That is why all 161 `needs_review` rows sit
+where they do. **Granting that role would push the paused share from 2.6% to ~15% and regress
+`approval-center-everything-else-automatic`**, so the 159 are left alone.
+
+### Checked and found clean — recorded so nobody re-derives it
+
+- **`fn_agent_silence_watch` is NOT a fifth `agent_runs` offender.** Despite the name it watches
+  **cron jobs**, not employees; its only `agent_runs` use is writing its own run row. Clean.
+- **`employee_authority`'s 285 rows over 67 agents is BY DESIGN** — keyed by (agent_key,
+  action_class), ~4.25 classes each. The 44 agents with "conflicting" `max_tier` simply have
+  different authority per action class. Not a duplication bug.
+- All eight morning routines are **md5-identical across both projects**, as are the three governance
+  monitors, and all three dry-run clean. `fn_regulation_watch` returns `sources: 0` — it succeeds
+  while watching nothing, which satisfies `s39`'s scheduling question but governs nothing.
+- **`fn_exec_meeting` will flip `exec-meeting-agenda-six` at 05:00**: executed on staging, all six
+  sections present on **all 12** contributions, 2 challenges in the window.
+- **`fn_founder_brief` will flip `companion-overnight-brief` at 04:30**: staging's brief written by
+  the current body scores **8 of 8**; production's is yesterday's, written by the old body, at 4 of 8.
+- **`fn_index_slowdown_watch` will find exactly one fall at 04:15** — `company_maturity` 44.1 → 42.4
+  on 6 Aug, −1.70 — and raise a proposal, which should flip `s31`.
+- **`s26-discover-suppliers` is a FOUNDER SPEND DECISION, not a defect.** The scraper is an Apify
+  actor (`compass/crawler-google-places`), 22 runs, **all manual, none since 19 June, and there is
+  no cron for it at all**. Restarting it commits money to a third party. Not scheduled unilaterally.
+- **The part-5 brief's claim that "`ROW3_STATE` still leads with the 57" is itself wrong** — the
+  string `57` has never appeared in this file. It lives only in the part-4 and part-5 briefs. That
+  is the third brief misdiagnosis in three sessions; brief COUNTS are reliable, brief DIAGNOSES are
+  not.
+
+---
 
 | run | score | what changed |
 |---|---|---|
@@ -324,13 +429,22 @@ of `s30-marketplace-eight-inputs`.
 
 The org chart lists 66 active employees. The estate has almost no record of them working:
 
-| source | coverage |
-|---|---|
-| `agent_runs` | **7 of 113** agent values match an `org_agents` key — the rest are cron job names |
-| `agent_memory` | 22 of 66 wrote a thought in 30 days |
-| `ai_cost_log` | **3 of 66** have ever been billed for a model call |
-| exam results | 10 of 66 have any; **0 of 66 have two dated ones** |
-| `kb_usage_log` | **0 rows** — nothing writes it |
+**RE-MEASURED 2026-08-10 03:45 UTC. Three of these five rows were wrong or are now stale — the
+corrected figures are in the right-hand column, and the dormancy case rests on the middle three
+rows, never on `ai_cost_log`.**
+
+| source | as written 9 Aug | measured 10 Aug |
+|---|---|---|
+| `agent_runs` | **7 of 113** agent values match an `org_agents` key | **10 of 113.** Still the wrong table for employees — it is the CRON log; 103 of its 113 values are job names |
+| `agent_memory` | 22 of 66 wrote a thought in 30 days | **22 of 66** — unchanged, and one of the three sources that actually evidences employee work |
+| `ai_cost_log` | **3 of 66** have ever been billed for a model call | **AN ARTEFACT, NOT A FACT.** `agent_brain` never passed the employee to the model layer, so every call resolved to `ceo`. Fixed 10 Aug 00:34; **6 employees billed in 30d and 5 distinct in the first three hours after the fix alone** |
+| exam results | 10 of 66 have any; **0 of 66 have two dated ones** | unchanged — still blocks `employee-learning-progress` |
+| `kb_usage_log` | **0 rows** — nothing writes it | **17 rows.** `agent_brain` writes it now |
+
+**The dormancy figure is 44 of 66, measured across all three real sources** (`agent_memory` 22,
+`agent_chats` 19, `agent_runs` 10 — silent in all three). Not 57, and not the `ai_cost_log` 3.
+`fn_evolution_scan` was proposing 57 for retirement every Monday until it was fixed on 9 Aug; the
+10 Aug 06:00 run reports 44.
 
 That blocks five per-employee universals: `employee-current-thoughts`, `-performance`,
 `-performance-trend`, `-learning-progress`, `-knowledge-used`. **No UI change can close them**, and
