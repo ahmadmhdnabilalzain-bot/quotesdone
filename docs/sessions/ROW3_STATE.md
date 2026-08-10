@@ -121,6 +121,16 @@ addressee fix unblocked feeds a check that was already MET. That one did move un
 lot — `approval-center-everything-else-automatic` reads **53 of 1,279 (4.1%)** against a 10% bar,
 where the part-9 mid-session measurement was 204 of 1,269 (16.1%). The margin, not the verdict.
 
+### A DIVERGENCE FOUND IN THE CLOSING SWEEP AND NOT YET FIXED
+
+**Staging has 520 anon-executable SECURITY DEFINER functions. Production has 56.** Both were counted
+the same way in the same minute. This is not from this session — all three functions created here are
+revoked on both projects, checked by name — and it is not a rehearsal-surface excuse either: a
+staging project whose anon role can execute 520 definer functions cannot rehearse production's
+posture, and it is the same database with the same data shapes. It is recorded rather than fixed
+because revoking 464 grants is a change that needs its own run and its own verification, not a line
+in a closing sweep. Production's 56 did not move.
+
 Three daily crons — `kb_corpus_integrity_daily` 03:40, `model_catalog_drift_daily` 03:50,
 `tool_readiness_daily` 03:55 — still have **no scheduled run**, because their first one is at 03:40
 UTC on 11 Aug, six hours after this session opened. All three are `active`, and all three commands
