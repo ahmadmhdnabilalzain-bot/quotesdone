@@ -34,6 +34,33 @@ after the fix `ok`, 5 fixtures seeded, precision 100% / recall 100%. The daily
 | `fn_period_report('monthly')` executed | **`s37-benchmark-monthly-report`** — report 142, 18,545 bytes, **16 of 27 competitors named**. 141 reports in 40 days had named none |
 | `knowledge_exam` v13 stamps the grader's real confidence, `author_verified`, `source_ref` and a 90-day `review_due` on every fill | **The knowledge validator §7 called open already existed and was mislabelling its own output.** Executed on production: HTTP 200, 3 examined, `knowledge_exam_results` 492 → 495 |
 
+### `regulation.changed` had ten subscribers, no emitter — and the brief's reason was wrong
+
+The part-6 brief said `compliance_sources` is empty, so `regulation.changed` has ten subscribers and
+no possible emitter. Measured: it holds **17 ACTIVE UAE authorities** — Dubai Municipality, DEWA,
+RTA, Trakhees, SIRA, DHA, ADIBC, Estidama, TDRA and nine more — **all checked at 04:18 today**, 16
+carrying a content signature, 16 with a downloaded document and **4 with a recorded change**. The
+regulatory watcher works. *(Fifth brief diagnosis to be wrong while its counts were right.)*
+
+**And the reason is now identifiable, which matters more than the correction.** Staging holds
+`compliance_sources` = **0** where production holds 17. The brief measured STAGING and reported it as
+production. Check which project a number came from before repeating it — the two databases diverge
+on data, not on code (staging also carries **524** anon-executable SECURITY DEFINER functions against
+production's 58, because staging's grants are synced broadly and it holds no real data).
+
+What was missing is the emit: a change lands in `compliance_sources.last_changed_at` and is raised as
+a `compliance_update` action, and the bus is never told. A trigger on that column now emits it.
+**Verified in an aborted transaction: one emit produced TEN `event_delivery` rows**, one per waiting
+subscriber, and `has_function_privilege('anon', …)` is false because the grant was revoked in the
+same migration.
+
+**32 active subscriptions still sit on 14 names nothing has ever emitted**: `budget.exceeded`,
+`campaign.published`, `content.drafted`, `customer.churn_signal`, `customer.complaint`,
+`department.conflict`, `health.degraded`, `invoice.flagged`, `invoice.received`, `outcome.graded`,
+`rfq.classified`, `sla.breached`, `supplier.applied` — and `regulation.changed`, now fixed.
+`supplier.applied` has a working trigger and has never fired, which means no supplier has ever
+completed a registration through it.
+
 ### Two checks flipped on code that had shipped and never run
 
 - **`s35-restructure-four-questions` 0 of 4 → 4 of 4, with no code change.** The four structural
