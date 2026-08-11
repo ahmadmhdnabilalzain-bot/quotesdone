@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       .eq('review_status', 'changes_requested').not('founder_comment', 'is', null).limit(5);
     if (!drafts || !drafts.length) return J({ ok: true, revised: 0, note: 'nothing to revise' });
 
-    let brain = ''; try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: 'marketing', p_max_chars: 6000 }); brain = data ? String(data) : ''; } catch (_e) {}
+    let brain = ''; try { const { data } = await admin./* _capped: fn_agent_context ignores any p_max_chars below 22,000 (measured 11 Aug 2026: ask 3,000 get ~30,000), so the cap on this line was decorative and LAYER 2b/2c were never emitted without a query. */ rpc('fn_agent_context_capped', { p_agent_key: 'marketing', p_max_chars: 6000, p_query: (drafts||[]).map((d)=>String(d.founder_comment||'')).join(' ').slice(0,400) }); brain = data ? String(data) : ''; } catch (_e) {}
     const sys = 'You revise a QuotesDone marketing post to address the founder feedback exactly, keeping it on-brand (UAE B2B anonymous quotation marketplace; practical, trustworthy, pro-SME; never invent stats/prices/client names). Change exactly what the feedback asks and improve the post; keep the same channel and intent. Return STRICT minified JSON only: {"title":"...","body":"..."}. body is the finished revised post.' + (brain ? ('\n\n' + brain.slice(0, 4500)) : '');
 
     const results: any[] = [];

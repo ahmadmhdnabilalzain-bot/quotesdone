@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     if ((pending || 0) > 0) return J({ ok: true, recommend: false, reason: 'a boost proposal is already awaiting founder review' });
 
     // Marketing brain (now includes the paid-media hard rules) + candidate content to boost.
-    let brain = ''; try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: 'marketing', p_max_chars: 7000 }); brain = data ? String(data) : ''; } catch (_e) {}
+    let brain = ''; try { const { data } = await admin./* _capped: fn_agent_context ignores any p_max_chars below 22,000 (measured 11 Aug 2026: ask 3,000 get ~30,000), so the cap on this line was decorative and LAYER 2b/2c were never emitted without a query. */ rpc('fn_agent_context_capped', { p_agent_key: 'marketing', p_max_chars: 7000, p_query: 'paid media boost budget rules' }); brain = data ? String(data) : ''; } catch (_e) {}
     const { data: posts } = await admin.from('content_drafts').select('id,title,channel,status,review_status,created_at').in('status', ['published', 'staged', 'draft']).order('created_at', { ascending: false }).limit(12);
     const candidates = (posts || []).map((p: any) => '- #' + p.id + ' [' + p.status + '/' + (p.review_status || '-') + '] ' + (p.title || '').slice(0, 80)).join('\n') || '(no posts yet)';
     const golive = (await sec('marketing_golive')) || 'false';

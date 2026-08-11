@@ -1,0 +1,26 @@
+-- TWO OVERLOADS, AND A TWO-ARGUMENT CALL COULD MATCH EITHER.
+--
+--   fn_agent_context_capped(p_agent_key text, p_max_chars integer default 9000)
+--   fn_agent_context_capped(p_agent_key text, p_max_chars integer default 9000, p_query text default null)
+--
+-- Postgres refuses a two-argument call outright:
+--
+--   ERROR: 42725: function fn_agent_context_capped(unknown, integer) is not unique
+--   HINT:  Could not choose a best candidate function.
+--
+-- Found by executing it, while wiring nine edge functions onto the capped wrapper — two of them
+-- (agent_act, designer) have no question to pass and would have called it with two arguments. It is
+-- not a defect I introduced: any two-argument caller has been unable to call this since the day the
+-- overload was added. Nothing was calling it that way, which is why nobody had hit it.
+--
+-- THE 3-ARGUMENT VERSION ALREADY DOES EVERYTHING THE 2-ARGUMENT ONE DOES. `p_query text default
+-- null` and its first branch is `if p_query is null or btrim(p_query) = '' then call the 2-arg
+-- inner function`. So the older signature is dead weight that only creates ambiguity. Dropped.
+--
+-- Checked before dropping: no SQL routine in public references fn_agent_context_capped at all, and
+-- the only repo reference outside the edge functions is a COMMENT in
+-- scripts/staging/os_blueprint/the_ten_oses.mjs. PostgREST resolves by argument NAME, so a caller
+-- posting {p_agent_key, p_max_chars} now lands on the surviving function and gets p_query = null,
+-- which is exactly what it got before.
+
+drop function if exists public.fn_agent_context_capped(text, integer);

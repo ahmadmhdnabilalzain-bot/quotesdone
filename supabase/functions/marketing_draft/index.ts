@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     if (!title) title = 'Draft marketing content for QuotesDone';
 
     // Brand voice / company context (always-on distilled knowledge).
-    let brain = ''; try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: 'marketing', p_max_chars: 6000 }); brain = data ? String(data) : ''; } catch (_e) {}
+    let brain = ''; try { const { data } = await admin./* _capped: fn_agent_context ignores any p_max_chars below 22,000 (measured 11 Aug 2026: ask 3,000 get ~30,000), so the cap on this line was decorative and LAYER 2b/2c were never emitted without a query. */ rpc('fn_agent_context_capped', { p_agent_key: 'marketing', p_max_chars: 6000, p_query: String(title).slice(0,400) }); brain = data ? String(data) : ''; } catch (_e) {}
 
     // Retrieved depth: pull the most relevant chunks from the queryable UAE marketing library for THIS task
     // (regulation/PDPL, SEO, paid media, WhatsApp/lifecycle, influencer, B2B, analytics...). On-demand, not always-on.
