@@ -26,6 +26,31 @@ Instead of Generation".
 `fn_agent_context` — the function that assembles every employee's prompt — reaches knowledge through
 `fn_dept_library_search` and `fn_ops_knowledge_search`, both keyword-only.
 
+> ### CORRECTED 11 Aug 2026, later the same day. Half of this verdict does not survive measurement.
+>
+> The table above counts **SQL routines in `public`**, and on that evidence it is right. It is not
+> the whole reader. `agent_brain.retrieve()` — the path an employee's question actually takes —
+> calls the **`kb_search` edge function**, and `kb_search` has been hybrid since it was written:
+> it runs `gte-small` over the question, calls **`kb_match`** with the vector, runs the full-text
+> query as well, and merges both with reciprocal-rank fusion.
+>
+> **Probed by execution on production**, `kb_search` with *"chilled water pipe insulation thickness
+> Dubai Municipality"*: six results, **all six `via=semantic`**, similarity 0.891–0.922. Not one
+> keyword hit reached the top six.
+>
+> So: `kb_match` **is** called by the employee path, and "make retrieval hybrid first" was work that
+> was already done. What remains true, and is now the whole of the finding:
+>
+> * **`fn_agent_context`'s own layers are still keyword.** LAYER 2b (`fn_dept_library_search`) and
+>   LAYER 2c (`fn_ops_knowledge_search`) are full-text, and they are a different corpus from
+>   `kb_chunks`.
+> * **The semantic half can only see the embedded 42.6%.** `kb_match` filters
+>   `embedding_gte is not null`, so the hybrid path is real and looking at less than half the
+>   corpus. The backfill is the lever, not the fusion.
+>
+> Recorded here rather than in a session log, because the un-corrected verdict would have bought a
+> day of rebuilding something that already works.
+
 And the embeddings that do exist are 39% complete:
 
 | source_kind | rows | embedded | coverage |
