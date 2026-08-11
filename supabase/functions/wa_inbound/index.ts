@@ -306,7 +306,12 @@ Deno.serve(async (req) => {
     let founderBrain = '';
     if (audience === 'founder') {
       try {
-        const { data } = await admin.rpc('fn_agent_context', { p_agent_key: 'brief', p_max_chars: 9000, p_query: Body.slice(0, 400) });
+        // _capped, not the raw function. fn_agent_context ignores any p_max_chars below 22,000 —
+        // measured on production 11 Aug 2026: ask 6,000 get 32,324; ask 24,000 get 34,316. So this
+        // line asked for 9,000 and was silently sending him ~30,000 characters on every message.
+        // The wrapper enforces the promise AND appends LAYER 4 (EXTERNAL) — the UAE regulations,
+        // standards and manufacturers that reached no employee at all until today.
+        const { data } = await admin.rpc('fn_agent_context_capped', { p_agent_key: 'brief', p_max_chars: 12000, p_query: Body.slice(0, 400) });
         founderBrain = data ? String(data) : '';
       } catch (_e) { /* he still gets an answer, just a thinner one */ }
     }

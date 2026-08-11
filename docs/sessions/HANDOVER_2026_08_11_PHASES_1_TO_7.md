@@ -105,7 +105,7 @@ Not enumerable in advance; this is what it actually turned up.
 | **`sec()` / `J()` divergence** | Pinned at 8 and 11 variants by `scripts/checks/shared_helpers_agree.test.mjs`. Not unified — the check stops it getting worse. Measured: **0** functions combine a `''`-returning `sec()` with a strict comparison, so it is a latent hazard, not a live hole. |
 | **`scripts/sql` drift** | 175 routines, 166 identical to their newest file, 0 missing, **9 drifted** — named on every run by `scripts/checks/sql_files_match_live.test.mjs`. |
 | **`leads` duplicate phones (675)** | Measured last session, **not touched**. Deleting real leads is a destructive production change. |
-| **Phase 8 — the 171 ABSENT** | **Not started.** OCR + Drawing Intelligence, inbound WhatsApp, vision routing, the 13 uncovered exception scenarios, the 5 missing workflows, cost per OS, Maturity Index, delete-proposer, the remaining spec #3 UI gaps. |
+| **Phase 8 — the 171 ABSENT** | **Not started, except one measurement and one line — see §7.** OCR + Drawing Intelligence, vision routing, the 13 uncovered exception scenarios, the 5 missing workflows, cost per OS, Maturity Index, delete-proposer, the remaining spec #3 UI gaps are all untouched. |
 | **Model cascading** | Still correctly blocked: confidence on 5 of 1,642 calls, 0 of 622 on sonnet-5. The output contract must carry a confidence first. |
 
 ---
@@ -132,3 +132,55 @@ demand side           customers 0 · inquiries 0 · quotes 0 · transactions 0 �
 released. `zzz_notifications_demo_guard` is installed and inert; arm it before any future rehearsal
 with `node scripts/rehearsal/hvac_dress_rehearsal.mjs arm`, which refuses unless it can prove the
 guard by execution first.
+
+---
+
+## 7. INBOUND WHATSAPP IS NOT ABSENT — it can answer you, it cannot obey you
+
+The prompt lists *"inbound WhatsApp (my command channel, outbound-only today)"* as a Phase 8 build
+order. Measured before building anything:
+
+**`wa_inbound` exists and is at v12.** Webhook authenticity with Twilio signature *and* provenance
+verification, `fn_identify_contact` phone lookup, per-audience prompts for customer / supplier /
+unknown, FAQ Level-0 answers with no model at all, a 20-messages-per-hour per-sender ceiling,
+Arabic BIDI isolates, escalation to your inbox, and a dedicated **`audience === 'founder'` branch**
+that replaces the public script with the leadership brain and an operator's answer contract.
+
+**So inbound is built. The gap is narrower and sharper than "absent", and the code states it
+itself**, in its own founder rules:
+
+> *"If he asks you to DO something rather than tell him something, say plainly whether it is already
+> automated, and if it is not, say what would have to be built. **Do not claim to have done it.**"*
+
+You can ask it anything. It cannot dispatch a single piece of work.
+
+### One line landed today
+
+The founder branch called `fn_agent_context('brief', 9000, …)` — and that function ignores any
+`p_max_chars` below 22,000. Measured on production just now:
+
+```
+fn_agent_context('brief', 9000, 'what is stuck today')          32,408 characters
+fn_agent_context_capped('brief', 12000, 'what is stuck today')  12,011 characters
+                                                                LAYER 4 (EXTERNAL) at offset 9,249
+```
+
+It was silently sending 32,408 characters on every message you wrote. It now sends 12,011 —
+including the external authority layer that reached no employee at all before today.
+
+### The design for making it obey, worked out and deliberately not built
+
+`agent_brain` already has the whole mechanism: it assembles the capped context, and its
+`@@ACTIONS@@` contract creates real `agent_actions` rows addressed to the sixteen named specialists
+— that is the company's own work-dispatch path. Routing the founder branch to
+`agent_brain(agent:'brief')` instead of a bare model call would turn "tell me what is stuck" into
+"chase it", using the credential that already exists for exactly this hop
+(`cred_fn_to_agent_brain`, scope `['agent_brain']`).
+
+**Why it was not done in this session, plainly:** `agent_brain` runs to 70 seconds and Twilio's
+webhook wall is 15. Calling it inline makes Twilio time out and **retry**, and `wa_inbound` has no
+idempotency on `MessageSid` — so you would get duplicate replies and duplicate handoffs. Doing it
+properly means moving the founder path into `EdgeRuntime.waitUntil`, returning `TW(200)`
+immediately, and sending through `sendWa` when the brain finishes. That is a restructure of the
+tail of a 381-line function on your own command channel, and it needed more verification budget
+than this session had left. **It is the highest-value Phase 8 item and it is fully specified above.**
