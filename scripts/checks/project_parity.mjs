@@ -102,5 +102,40 @@ for (const [label, sql] of DIMENSIONS) {
   show('prod only', onlyProd);
   show('staging only', onlyStg);
 }
-console.log(drift ? `\nTOTAL DRIFT: ${drift} object(s)` : '\nBOTH PROJECTS IN SYNC');
+// POPULATION, BECAUSE SHAPE PARITY IS NOT BEHAVIOUR PARITY (11 Aug 2026).
+//
+// This check reported BOTH PROJECTS IN SYNC on 418 = 418 tables while staging held 255 empty
+// tables against production's 96, board_advisor 0 against 7, and workflow_run 7 against 198. Every
+// object existed on both sides and almost nothing behaved the same. A rehearsal run on staging
+// would have proved very little, and the line above would still have said IN SYNC.
+//
+// Deliberately NOT a drift failure. Staging is expected to hold different data, so failing on it
+// would make the check permanently red and therefore ignored. It fails nothing and it is printed
+// every time, so the sentence "in sync" can never again be read as "behaves the same".
+const POP_SQL = `select count(*)::int total,
+       count(*) filter (where n = 0)::int empty
+  from (select (xpath('/row/c/text()',
+                query_to_xml('select count(*) c from public.'||quote_ident(c.relname), false, true, '')
+               ))[1]::text::bigint n
+          from pg_class c join pg_namespace ns on ns.oid = c.relnamespace
+         where ns.nspname = 'public' and c.relkind = 'r') z`;
+let popNote = '';
+try {
+  const [pp, ps] = await Promise.all([q(PROD, POP_SQL), q(STG, POP_SQL)]);
+  const P = pp[0], S = ps[0];
+  console.log(`${'table WITH rows'.padEnd(34)} prod ${String(P.total - P.empty).padStart(4)}   `
+    + `staging ${String(S.total - S.empty).padStart(4)}   `
+    + `POPULATION (not compared — staging data differs by design)`);
+  console.log(`${'table EMPTY'.padEnd(34)} prod ${String(P.empty).padStart(4)}   `
+    + `staging ${String(S.empty).padStart(4)}`
+    + (S.empty > P.empty ? `   staging has ${S.empty - P.empty} more empty table(s) than production` : ''));
+  popNote = ` (shape only — ${P.empty} empty table(s) on prod, ${S.empty} on staging)`;
+} catch (e) {
+  // A population read that fails must not turn a green shape check red, but it must not be silent
+  // either: an unreported failure here is exactly the blind spot this block exists to close.
+  console.log(`${'table population'.padEnd(34)} COULD NOT MEASURE: ${String(e.message || e).slice(0, 90)}`);
+  popNote = ' (shape only — population NOT measured this run)';
+}
+
+console.log(drift ? `\nTOTAL DRIFT: ${drift} object(s)` : `\nBOTH PROJECTS IN SYNC${popNote}`);
 process.exit(drift ? 1 : 0);
