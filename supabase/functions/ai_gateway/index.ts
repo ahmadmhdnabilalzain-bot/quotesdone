@@ -247,6 +247,12 @@ Deno.serve(async (req) => {
       p_fn: fnName,
       p_escalate: body.escalate === true,
       p_require_caps: caps.length ? caps : null,
+      // THE ROUTER NEVER KNEW WHO WAS ASKING (fixed 11 Aug 2026). body.agent was already passed to
+      // fn_llm_log in five places on this path, so the identity was in hand the whole time and was
+      // simply not given to fn_ai_route. Both role-default branches inside it - the pack's
+      // current_agent rows and org_agents.routing_tier - key off p_agent_key, so without this line
+      // neither could ever fire through the gateway, which is how every call reaches a model.
+      p_agent_key: body.agent ?? null,
     });
     if (rErr || !route) {
       return J({ ok: false, error: 'route_failed', detail: String(rErr?.message || 'no route') }, 500);
