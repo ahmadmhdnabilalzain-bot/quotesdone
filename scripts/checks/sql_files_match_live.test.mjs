@@ -33,8 +33,20 @@ const BASELINE_DRIFTED = 9;    // MEASURED 11 Aug 2026: 175 routines across 288 
                                // they are named in the output every run so they cannot stay invisible.
 const DIR = 'scripts/sql';
 const PROD = 'htdblwldjkcgjvmqkbeh';
+// This check has to READ PRODUCTION, so it cannot run where there is no management token — and CI
+// is exactly that place. Skipping loudly beats failing the build for a missing credential, which is
+// what the first run of this file did: ENOENT on the local token path, exit 1, red merge.
+// It is not weakened, it is scoped: the drift it looks for is created by a human applying (or not
+// applying) a file, and it is caught the next time a session runs the sweep.
+const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
+if (!token) {
+  console.log('SKIPPED: no SUPABASE_ACCESS_TOKEN and no local access token, so production cannot be '
+    + 'read. This check compares scripts/sql against LIVE routine bodies; run it from a session that '
+    + 'has the management token. It is not asserting anything here.');
+  process.exit(0);
+}
 
 const tokens = (s) => (String(s).match(/[A-Za-z_$][\w$]*|\d+(?:\.\d+)?|'(?:[^']|'')*'|[^\sA-Za-z0-9_$]/g) || [])
   .join(' ').toLowerCase();
