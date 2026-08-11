@@ -57,7 +57,42 @@ existing demo / test / seed marker columns:  NONE
 | 0.1 | **Turn `llm_cache` on** | fully built — `cache_key`, `prompt_hash`, `hits`, `expires_at`, `saved_usd`, `embedding_gte` — with `fn_llm_cache_get/put/lookup/store` and a `cache_ttl_min` on all 61 `model_policy` rows. Holds **1 row, 2 hits, $0.00**. This is a wiring bug: find the call site that should write and does not. Verify by execution — two identical calls, second must hit |
 | 0.2 | **Stop provider-side prompt caching where it loses money** | read/write **0.115** over 7 days against a **0.278** break-even. Read it from `prompt_tokens_details`, not the top-level names |
 | 0.3 | **Point `could_be_cheaper` at the spender** | flagged 179 calls: **175 on `gemini-3.1-flash-lite`** (1.1% of spend), **0 on `claude-sonnet-5`** (84% of spend) |
-| 0.4 | **Cut `agent_reasoning` input** | 11,499 average input tokens × 622 calls. `fn_agent_context_capped` exists and is not on this path |
+| 0.4 | **Cut `agent_brain` input — the only Tier 0 item left, and the largest** | see the measured block below |
+
+### 0.4 in full — measured 11 Aug, fix shape identified, deliberately NOT attempted blind
+
+`agent_brain` is 68% of all AI spend: **278 calls, AED 69.47 of 102.01 in 7 days, averaging 24,619
+input tokens.** (`exec_agents` is 262 calls at 439 average input — it is not the problem.)
+
+**`fn_agent_context` does not honour `p_max_chars`:**
+
+| asked | returned |
+|---|---|
+| 6,000 | **32,324** |
+| 24,000 | **34,316** |
+| 60,000 | **70,254** |
+
+A ~30,000-character block ignores the cap entirely. Asking for less barely helps — 6,000 and 24,000
+differ by only 2,000 characters of output — so **lowering the ask is not the fix; enforcing the cap
+is.** At the 24,000 `agent_brain` requests, that is ~10,300 characters ≈ 2,600 tokens per call,
+≈ 720,000 tokens a week, on the single most expensive path in the system.
+
+**The fix already exists and nothing calls it.** `fn_agent_context_capped(p_agent_key, p_max_chars)`
+enforces the promise and its own comment names this defect verbatim: *"The inner function ignores
+anything below 22,000 and overshoots above it, so ask for what we want and then enforce the promise
+ourselves."* Its only caller is `scripts/staging/os_blueprint/the_ten_oses.mjs`.
+
+**Why it was not simply wired in:** `agent_brain` calls the **3-argument** overload
+(`fn_agent_context(key, 24000, msg)`) to get LAYER 2b/2c — the department reference library and the
+company's operating knowledge, retrieved *for that specific question*. Those layers are **appended
+at the end**, so `left(v_raw, cap)` would truncate away precisely the most relevant, query-matched
+content and keep the static profession block. A 3-argument capped wrapper therefore has to cut the
+**middle**, not the tail, and that needs the section boundaries inside a 400-line function that
+`agent_brain`'s own comment describes as having "a documented history of one bug per rewrite".
+
+**Do this first in the next session, with the boundaries read rather than assumed.** Verify by
+executing `agent_brain` before and after and comparing `prompt_tokens` in `ai_cost_log`, not by
+reading the code.
 
 **Do not build model cascading.** Confidence is reported on **5 of 1,642 calls** and **0 of 622
 sonnet-5 calls**; a confidence-gated cascade with no confidence escalates every time and pays twice.
