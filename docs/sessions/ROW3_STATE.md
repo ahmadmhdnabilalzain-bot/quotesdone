@@ -104,7 +104,7 @@ Backfilling opinions onto them would be inventing advice that was never given.
 
 ```
                               production          staging
-Row #3                        121/152                      COMPLETE run, 0 errored, 0 regressions
+Row #3                        122/152                      COMPLETE run at 121, +1 on s33 after 23:55
 pack scorecard, every pack        100%             100%
 artefacts IN USE             37 of 37         37 of 37     probe-measured
 OS_PORTALS gates             23 met            23 met      0 not_met, 0 open
@@ -195,6 +195,46 @@ the day given by `max(company_snapshot.snapshot_on)`, which is 2026-08-09, and o
 `company_snapshot_daily` runs at 23:55 UTC and last ran 09 Aug 23:55. When it fires tonight the
 scored day becomes 10 August, all six tracks are true for it, and the other leg — a reachable routine
 spanning all six tables — is already satisfied. It flips on its own, tonight.
+
+**It did.** Waited for the cron rather than predicting past it, and re-scored the single check
+afterwards:
+
+```
+MET   s33-replay-six-tracks   6 of 6 track(s) have rows on 2026-08-10 (missing: none);
+                              1 reachable routine(s) span all six tables at once
+```
+
+**Row #3 is 122/152.** The gain is real and nothing was written to produce it — the day the check
+scores moved forward and the tracks were already there.
+
+### THE CHECK I WROTE, RAN THREE TIMES, AND DELETED
+
+The founder's question was whether things are deployed and in sync, so after the object-parity work I
+wrote `deployed_vs_repo.mjs` to answer the half `project_parity.mjs` cannot. It was wrong three
+times, each time confidently:
+
+1. **Comparing timestamps.** It reported **94 of 197** production functions "behind the repo", the
+   worst by 42 days. Checked one by hand — `public_stats`, "25 days behind" — and the deployed source
+   is character-for-character the repo file. The commit that moved its date was *"Put all 191
+   Supabase edge functions under source control"*: the code never changed, the REPO gained it.
+2. **Comparing content over the functions API.** `GET /functions/{slug}` returns no body, so all 197
+   came back "NO SOURCE RETURNED" and the script called every one of them broken. The source lives at
+   `/functions/{slug}/body` as an **ESZIP2.3** archive, which needs a real unpacker.
+3. **Comparing the published bundle hash.** It reported **51 of 197 running different code on the two
+   projects** — `stripe_webhook` prod v12 against staging v1, `pdf_native` v18 against v2 — which
+   reads like a serious finding and was about to be reported as one. It is not. Production's bundle
+   names its file `index.ts`; staging's names it `public_stats/index.ts`, because the two were
+   deployed from different working directories. **`ezbr_sha256` covers the bundle's internal paths,
+   so identical source hashes differently across projects.** Fetched both sources: identical,
+   character for character.
+
+Deleted rather than kept. A check that reports 94, then 197, then 51 faults where the code is the
+same is worse than no check, and the estate's rule against weakening a check does not protect one
+that is simply wrong. Answering this honestly needs an eszip reader, which is its own piece of work.
+
+The 51 redeploys it provoked were harmless and are left in place: staging now provably runs the
+current repo code for all of them, verified `ok=true` on 51 of 51 by the deploy script's own
+post-deploy check.
 
 **One of those was investigated to the point of refusal tonight and is worth recording.**
 `explain-alternatives-considered` is 0 of 61 surfaced actions. The obvious fix is to project
