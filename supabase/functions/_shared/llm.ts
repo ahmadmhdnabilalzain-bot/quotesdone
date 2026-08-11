@@ -152,6 +152,29 @@ export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) 
           dept: def.dept ?? null,
           agent: def.agent ?? null,
           sys, sys_stable: sysStable, input, max,
+          // THE GATEWAY ASKED FOR THIS AND NOBODY THROUGH THIS MODULE EVER SENT IT (11 Aug 2026).
+          //
+          // ai_gateway computes its wall as `declared > 5000 ? max(declared - 3000, 8000) : 55000`
+          // and its own comment states the design: "Guessing the caller's patience is the mistake.
+          // The caller knows it, so the caller declares it via client_timeout_ms." Only
+          // quote_compare and quote_extract ever declared it. Every one of the 31 call sites that
+          // goes through makeLlm got the 55,000 ms default instead of its own timeoutMs.
+          //
+          // agent_brain sets timeoutMs: 70000 and says why in its own header - "70s sits above the
+          // gateway's 55s wall and below cos_execute's 75s patience". It was above a wall the
+          // gateway never raised. Measured on production: 28 agent_brain calls failed with 0 prompt
+          // tokens, 0 output tokens and latency 50,523-55,596 ms across ceo, it, brief, followup and
+          // rfq_qualification_mgr - the gateway aborting at 55s while the caller would have waited
+          // 70 and cos_execute 75. A successful call on the same path took 34,675 ms.
+          //
+          // IT DECLARES dTo + 5000, NOT dTo, AND THE 5000 IS THE POINT. This module aborts at
+          // `dTo + 5000` (see the setTimeout above), so that - not dTo - is the caller's real
+          // patience. Declaring dTo would set the gateway's wall to dTo-3000 = 22s on the 25s
+          // default while this module still waits 30s, and every call that currently lands between
+          // 22s and 30s would start failing. Declaring the true abort point makes the wall 27s
+          // there: strictly inside the client, strictly longer than anything that works today, so
+          // no existing successful call is cut. agent_brain goes from a 55s wall to 72s.
+          client_timeout_ms: dTo + 5000,
           temperature: def.temperature ?? null,
           confidence: def.confidence ?? null,
           // THE SAME `?? 0` BUG, ONE LAYER UP (fixed 11 Aug 2026).
