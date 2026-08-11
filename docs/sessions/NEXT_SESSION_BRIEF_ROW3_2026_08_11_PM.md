@@ -52,6 +52,8 @@ customers 0   inquiries 0   quotes 0   transactions 0   approved suppliers 0
 | `s21-no-polling` | already known; per-day lag is 0s since the trigger landed | **~17 Aug** |
 | `time-machine-restores-six-dimensions` | the missing dimension is **customers**, present on 2 of 13 snapshots. `fn_company_snapshot` already writes it — 9 and 10 Aug both carry it. The 11 older snapshots predate the fix and must NOT be back-filled: writing a customer count into a day nobody measured it is reconstructing a measurement that was never taken | **23 Aug**, when 8 Aug leaves the 14-day window |
 | `s24-board-before-major-decisions` | 10 of 11; `decision_record` 42 is `executed` and is deliberately unreviewed | **5 Sept** |
+| `exec-meeting-priorities-agreed` | writer already fixed — meeting #42 carries 12 `rank`/`owner` objects; the other four are pre-fix prose | **5 Oct** |
+| `explain-alternatives-considered` | column, writer, all four surfaces and both components landed this session; two thirds of surfaced approvals predate `decision_log_id` | as the queue turns over |
 
 ### One can never pass as written
 
@@ -104,12 +106,38 @@ customers 0   inquiries 0   quotes 0   transactions 0   approved suppliers 0
    real gap is that `fn_reallocate` only moves AI budget; the spec also names marketing spend and
    supplier onboarding capacity. Marketing budget is AED 0 on paused campaigns — check there is
    something real to move before moving it.
-4. **`what-if-approve-from-simulation`** — no approval row references a simulation.
-5. **`personalization-learns-founder-habits`** — nothing yet. New store + reader + UI.
-6. **`time-machine-restores-six-dimensions`** — 5 of 6 dimensions non-null on all 13 snapshots. One
-   short; find which and why.
-7. **`exec-meeting-priorities-agreed`** — 1 of 5 meetings in 60d end with ranked agreed priorities.
-   `exec_meeting` runs weekly, so build the ranking and it fills over ~4 weeks.
+   *(The writer, all four surfaces and both components landed this session — see below. What is left
+   is the queue turning over.)*
+
+That is the whole list. Four items that were on it have since been measured off it:
+
+- **`what-if-approve-from-simulation` — DONE this session.** `fn_what_if` now leaves an approval
+  referencing the simulation, gated on the simulator's own confidence ≥ 0.5.
+- **`exec-meeting-priorities-agreed` — SELF-CLEARING, not buildable.** The writer is already fixed:
+  meeting #42 (10 Aug) carries 12 objects with `rank`, `owner`, `title`, `priority`, `why`. The
+  other four in the window are arrays of prose strings from before the fix, and rewriting what a
+  past meeting produced is not on. `exec_meeting_weekly` runs Mondays 05:00 UTC, so every meeting
+  from here is compliant and the check goes MET on **5 October**, when the 6 Aug meeting leaves the
+  60-day window.
+- **`personalization-learns-founder-habits` — BLOCKED, same class as Group A.** There is no
+  founder-behaviour stream to learn from. The founder has decided **12 actions ever** across three
+  identities, the newest on **13 July**, and nothing records which modules he opens or when. A
+  "habit" derived from twelve month-old rows is an invented pattern. The honest first step is the
+  *capture* half — record founder interactions so that in some weeks there is something to learn —
+  and the check will show nothing until then. Do not build the reader first.
+- **`s36-recommendation-seven-fields` — weeks, not a session.** `FIELD_COVERED` requires a *column*
+  on `agent_actions` whose name matches each of the seven, non-null on **every** recommendation in
+  30 days. Three exist (`evidence`, `risk`, `confidence`); `assumptions`, `alternatives`,
+  `expected_impact` and `cost` do not. `cost` and `alternatives` are honestly derivable, but
+  assumptions and expected impact have to be *stated by the producing agents* — that is a change to
+  dozens of routines, and stamping boilerplate into them is precisely the black box the section
+  forbids. Then 30 days of turnover on top.
+
+And on **`s23`**: `department_budget.marketing` is 400 AED/month, but that is the marketing
+department's AI budget, not channel spend — Meta is the only paid channel and both campaigns sit
+paused at AED 0. There is nothing real to move for "marketing budget to channels". Supplier
+onboarding capacity (`invite_daily_cap`, currently 10 against a sendable pool of 16,238) **is** a
+real movable resource. So s23 can be honestly advanced to 2 of 3 and not to 3 of 3.
 
 Group B (employee track record) is unchanged and should still not be filled with a baseline.
 
@@ -137,6 +165,19 @@ Group B (employee track record) is unchanged and should still not be filled with
   Fixed, deployed to both, `deploy edge functions` green on main.
 - **`agent_silence_watch_daily`** was dying for a full day at a time. Not slow — measured 465 ms end
   to end; it sat blocked for its full 120 s timeout. Cadence, not code: now `40 */6 * * *`.
+- **`what-if-approve-from-simulation`**: the screen half already passed and nothing had ever created
+  the action, so the approve control had nothing to bind to. `fn_what_if` now leaves an approval
+  referencing the simulation, gated on its **own** confidence ≥ 0.5 — the branches whose text says
+  "Any number would be invented" or "an assumption not an observation" produce a projection to read
+  and no action to take. Run for real on the live question: simulation #8, `agent_action` #2679.
+- **A hardcoded metric the founder was being shown as a fact.** `fn_what_if` told him "cache
+  adoption is 0%, so caching is the first lever" — a string literal between three computed figures,
+  true when the cache meter was broken and never updated when it was fixed. It now measures
+  `cached_in_tokens` against `prompt_tokens` and prints the write volume beside the read, and says
+  the opposite: 0.1% against a ~22% break-even, so caching is **not** currently the lever.
+- **`explain-alternatives-considered`** built end to end: `decision_log.alternatives`, the gate
+  writing the verdict it rejected, all four surfaces projecting it, both hand-picked components
+  rendering it. Key present on 60 of 60 rows; values arrive as the queue turns over.
 
 PRs: #173, #174, #175, #176 — all merged.
 
