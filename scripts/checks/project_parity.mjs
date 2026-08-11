@@ -5,11 +5,16 @@
 //   node scripts/checks/project_parity.mjs
 //
 // Exits non-zero when anything diverges, so it can be a check rather than a report.
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
 const PROD = 'htdblwldjkcgjvmqkbeh', STG = 'pglpqrhvozwepymcuunn';
+// Env first so this runs in CI, where the local file does not exist and an ENOENT would look like a
+// broken check rather than a missing credential.
 const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  || (existsSync('C:/Users/Opera/.supabase/access-token')
+      ? readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')
+      : '')).trim();
+if (!token) { console.error('SUPABASE_ACCESS_TOKEN is not set and no local access token was found.'); process.exit(2); }
 
 async function q(ref, sql, attempt = 0) {
   try {
