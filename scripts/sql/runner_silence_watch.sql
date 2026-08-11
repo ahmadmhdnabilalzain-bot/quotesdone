@@ -56,7 +56,7 @@ begin
   -- as on-demand rather than alerted on — which is what stops this becoming the noise generator the
   -- 18 July snapshot would have been if anything had ever read it.
   with runs as (
-    select agent, started_at,
+    select agent, started_at, counts,
            started_at - lag(started_at) over (partition by agent order by started_at) gap
       from agent_runs where started_at > now() - interval '30 days'),
   agg as (
@@ -68,6 +68,12 @@ begin
            -- schedule makes every quiet day an alert. A real cadence shows up on separate DAYS, so
            -- that is what is counted.
            count(distinct started_at::date) as active_days,
+           -- A RUNNER LOGGED ONLY ON EXCEPTIONS HAS NO CADENCE EITHER. cos_execute writes an
+           -- agent_runs row under its own name ONLY when it has a throttled signal to report (a
+           -- refused task start); its ordinary hourly work is logged under 'chief_of_staff'. So its
+           -- rows stop the moment it stops having a PROBLEM, and the first version of this watch
+           -- read that as the runner going silent -- alerting daily on a loop that was working.
+           count(*) filter (where coalesce(counts ? 'signal', false)) as signal_rows,
            max(started_at) as last_seen,
            percentile_cont(0.5) within group (order by extract(epoch from gap)/3600.0) as median_gap_h
       from runs group by agent)
@@ -78,14 +84,14 @@ begin
          -- Three times its own median, floored at 6 hours and capped at two weeks. Derived from the
          -- runner rather than from its schedule, because the schedule is what fn_agent_silence_watch
          -- already checks and is exactly what stayed green while the work stopped.
-         case when a.n >= 5 and a.active_days >= 5 and a.median_gap_h >= 0.5
+         case when a.n >= 5 and a.active_days >= 5 and a.median_gap_h >= 0.5 and a.n > a.signal_rows
               then least(336, greatest(6, ceil(a.median_gap_h * 3)))
               else 999999 end,
-         not (a.n >= 5 and a.active_days >= 5 and a.median_gap_h >= 0.5),
+         not (a.n >= 5 and a.active_days >= 5 and a.median_gap_h >= 0.5 and a.n > a.signal_rows),
          round(a.median_gap_h::numeric, 2),
          a.n,
          a.last_seen,
-         case when a.n >= 5 and a.active_days >= 5 and a.median_gap_h >= 0.5
+         case when a.n >= 5 and a.active_days >= 5 and a.median_gap_h >= 0.5 and a.n > a.signal_rows
               then 'cadence learned from '||a.n||' run(s) across '||a.active_days||' day(s) in 30d, median gap '||round(a.median_gap_h::numeric,2)||'h'
               else 'no steady cadence ('||a.n||' run(s) across '||a.active_days||' day(s), median gap '
                    ||coalesce(round(a.median_gap_h::numeric,2)::text,'n/a')||'h) — event-driven or on-demand, not watched' end,
