@@ -109,8 +109,66 @@ Deno.serve(async (req) => {
   // --- activity ---
   const inquiries_7d = await cnt('inquiries', 'id', d7);
   const reveals_7d = await admin.from('transactions').select('id', { count: 'exact', head: true }).gte('revealed_at', d7).then((r: any) => r.count || 0);
+  // "Emails sent: 123" was read, reasonably, as 123 emails to suppliers. It is not: 119 of the 154
+  // in the week to 11 Aug went to @quotesdone.com — this system emailing us. Counting them together
+  // under ACTIVITY made our own alarm traffic look like outbound business. Split, so the outbound
+  // number is the one that means something.
   const emails_7d = await cnt('notifications', 'id', d7, (q: any) => q.eq('channel', 'email').eq('status', 'sent'));
+  const emails_internal_7d = await cnt('notifications', 'id', d7, (q: any) =>
+    q.eq('channel', 'email').eq('status', 'sent').ilike('to_email', '%@quotesdone.com'));
+  const emails_outbound_7d = Math.max(0, emails_7d - emails_internal_7d);
+
+  // Same problem, larger: "AI/agent runs: 4721" reads as the company working. 3,055 of 4,761 were
+  // uptime, smoke, ai_health, it_health, ops_watch and resilience_watch — monitoring polling itself.
+  // 416 were an actual employee. agent_runs.agent is a JOB name, not an employee key, which is why
+  // the total was never a measure of work done.
+  const MONITORS = ['uptime', 'smoke', 'ai_health', 'it_health', 'ops_watch', 'resilience_watch', 'edge_health_scan', 'health_check'];
   const ai_runs_7d = await admin.from('agent_runs').select('id', { count: 'exact', head: true }).gte('started_at', d7).then((r: any) => r.count || 0);
+  const monitor_runs_7d = await admin.from('agent_runs').select('id', { count: 'exact', head: true })
+    .gte('started_at', d7).in('agent', MONITORS).then((r: any) => r.count || 0);
+  const employee_keys = await admin.from('org_agents').select('agent_key').eq('active', true)
+    .then((r: any) => (r.data || []).map((x: any) => x.agent_key));
+  const employee_runs_7d = employee_keys.length
+    ? await admin.from('agent_runs').select('id', { count: 'exact', head: true })
+        .gte('started_at', d7).in('agent', employee_keys).then((r: any) => r.count || 0)
+    : 0;
+
+  // THE LINE THAT SAID "no live API wired" FOR FOUR VENDORS WAS WRONG ON TWO OF THEM. Every
+  // credential was already in app_secrets; nothing here was ever asked for a number. Verified by
+  // execution on 11 Aug 2026: Apify /v2/users/me/usage/monthly -> 200, Twilio
+  // /Usage/Records/ThisMonth?Category=totalprice -> 200 ($1.2676). Resend publishes no usage or
+  // billing endpoint at all, and app_secrets holds NO Supabase management token, so those two are
+  // named individually with the reason instead of being lumped in with the two that work.
+  async function vendorSpend(): Promise<{ apify: string; twilio: string }> {
+    const out = { apify: 'no reading', twilio: 'no reading' };
+    try {
+      const t = await sec('apify_token');
+      if (t) {
+        const r = await fetch('https://api.apify.com/v2/users/me/usage/monthly',
+          { headers: { Authorization: 'Bearer ' + t }, signal: AbortSignal.timeout(8000) });
+        if (r.ok) {
+          const j = await r.json();
+          const usd = Number(j?.data?.totalUsageCreditsUsdAfterVolumeDiscount ?? NaN);
+          if (Number.isFinite(usd)) out.apify = '$' + usd.toFixed(2) + ' this billing cycle';
+        } else out.apify = 'API returned HTTP ' + r.status;
+      } else out.apify = 'no apify_token in app_secrets';
+    } catch (e) { out.apify = 'call failed: ' + String((e as Error)?.message || e).slice(0, 60); }
+    try {
+      const sid = await sec('twilio_account_sid'), ks = await sec('twilio_api_key_sid'), kk = await sec('twilio_api_key_secret');
+      if (sid && ks && kk) {
+        const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Usage/Records/ThisMonth.json?Category=totalprice`,
+          { headers: { Authorization: 'Basic ' + btoa(ks + ':' + kk) }, signal: AbortSignal.timeout(8000) });
+        if (r.ok) {
+          const j = await r.json();
+          const rec = (j?.usage_records || [])[0];
+          const price = Number(rec?.price ?? NaN);
+          if (Number.isFinite(price)) out.twilio = '$' + Math.abs(price).toFixed(2) + ' this month';
+        } else out.twilio = 'API returned HTTP ' + r.status;
+      } else out.twilio = 'credentials missing in app_secrets';
+    } catch (e) { out.twilio = 'call failed: ' + String((e as Error)?.message || e).slice(0, 60); }
+    return out;
+  }
+  const vendors = await vendorSpend();
   const new_suppliers_7d = await admin.from('leads').select('id', { count: 'exact', head: true }).eq('claimed', true).gte('created_at', d7).then((r: any) => r.count || 0);
   const fmt = (n: number) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const snapshot = {
@@ -136,8 +194,17 @@ Deno.serve(async (req) => {
       const orLine = or.ok ? ('OpenRouter (AI): $' + Number(or.total_usage || 0).toFixed(2) + ' spent total, $' + Number(or.remaining || 0).toFixed(2) + ' credit remaining.' + runwayLine) : 'OpenRouter: spend API unavailable.';
       const bodyTxt = 'QuotesDone weekly burn + revenue snapshot\n\n'
         + 'REVENUE (paid reveal fees)\n  Last 7 days: ' + fmt(revenue_7d) + '\n  Last 30 days: ' + fmt(revenue_30d) + '\n  All time: ' + fmt(revenue_all) + '\n\n'
-        + 'ACTIVITY (last 7 days)\n  Inquiries: ' + inquiries_7d + '\n  Reveals (paid): ' + reveals_7d + '\n  New onboarded suppliers: ' + new_suppliers_7d + '\n  Emails sent: ' + emails_7d + '\n  AI/agent runs: ' + ai_runs_7d + '\n\n'
-        + 'COSTS\n  ' + orLine + '\n  (Apify, Twilio, Resend, Supabase: check each dashboard - no live API wired.)\n';
+        + 'ACTIVITY (last 7 days)\n  Inquiries: ' + inquiries_7d + '\n  Reveals (paid): ' + reveals_7d + '\n  New onboarded suppliers: ' + new_suppliers_7d + '\n'
+        + '  Emails to suppliers/customers: ' + emails_outbound_7d + '\n'
+        + '  Emails this system sent us: ' + emails_internal_7d + ' (alerts, briefs, digests)\n'
+        + '  Runs by an AI employee: ' + employee_runs_7d + '\n'
+        + '  Monitoring probes: ' + monitor_runs_7d + ' (uptime, smoke, health — the system watching itself)\n'
+        + '  All scheduled runs incl. plumbing: ' + ai_runs_7d + '\n\n'
+        + 'COSTS\n  ' + orLine + '\n'
+        + '  Apify: ' + vendors.apify + '\n'
+        + '  Twilio: ' + vendors.twilio + '\n'
+        + '  Resend: no usage or billing endpoint exists — check the dashboard.\n'
+        + '  Supabase: no management token in app_secrets — check the dashboard.\n';
       if (owner) { const { error: nErr } = await admin.from('notifications').insert([{ type: 'cost_snapshot', to_email: owner, to_role: 'admin', channel: 'email', subject: 'QuotesDone weekly burn + revenue snapshot', body: bodyTxt }]); if (nErr) emailErr = String(nErr.message).slice(0, 140); else emailQueued = 1; }
     } catch (e) { emailErr = String(e).slice(0, 140); }
   }
