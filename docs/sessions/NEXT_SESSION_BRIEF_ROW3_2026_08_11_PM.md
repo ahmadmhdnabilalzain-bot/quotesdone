@@ -178,6 +178,20 @@ Group B (employee track record) is unchanged and should still not be filled with
 - **`explain-alternatives-considered`** built end to end: `decision_log.alternatives`, the gate
   writing the verdict it rejected, all four surfaces projecting it, both hand-picked components
   rendering it. Key present on 60 of 60 rows; values arrive as the queue turns over.
+- **`fn_governance_stamp` nested two independent defaults.** The evidence stamp sat *inside*
+  `if NEW.confidence is null`, so any caller supplying its own confidence silently lost its evidence.
+  Found by regressing `s36` 3/7 → 2/7 with my own simulation action, which was the only row in
+  thirty days with a null evidence. Decoupled; `s36` back to 3 of 7.
+- **`kb_usage_log` had 78 rows from 11 agents and zero readers** — not one database routine even
+  named the table. The knowledge workspace now shows what the company reached for, not just what it
+  knows. `ws.knowledge` was already mapped read-only, so no new action or permission.
+- **The company map omitted the supplier book and the knowledge base.** `leads` 20,470 and
+  `kb_chunks` 120,530, and `fn_graph_rebuild` emitted neither. Now one **pool node per category**
+  from `v_supply_gap` (so the map and the supply reports cannot disagree) plus one knowledge node
+  per KB category, both hung off the existing category node so the map is walkable.
+  **336 → 829 nodes, 620 → 644 edges** on production; `company-map-entities` 3 of 6 → **5 of 6** and
+  `s22-graph-navigation` 2 of 9 → **4 of 9**. Both stay MISSING on `customers`, which is genuinely
+  zero — 20,470 supplier dots would have been a hairball, and inventing customers is not on.
 
 PRs: #173, #174, #175, #176 — all merged.
 
