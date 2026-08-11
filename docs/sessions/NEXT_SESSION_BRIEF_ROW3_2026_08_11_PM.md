@@ -63,12 +63,37 @@ customers 0   inquiries 0   quotes 0   transactions 0   approved suppliers 0
 ## WHAT IS ACTUALLY LEFT AND BUILDABLE
 
 1. **`explain-alternatives-considered`** — 0 of 61. All four surfaces already deliver `confidence`;
-   none delivers `alternatives`. Needs the four payloads (`fn_os_command().attention`,
-   `fn_ws_governance().recent_escalations`, `fn_ws_operations().approvals`, `fn_ws_ea().approvals_top`)
-   to carry it, and the two hand-picked components (`<Escalations>`, `<GovernanceApp>`) to render it
-   — the other two use `<ReadableObject>` and show every key automatically. The honest source is the
-   verdict the gate actually rejected, the same shape `fn_decide` already builds as `v_alt`/`v_alt_why`.
-   `decision_log` has no `alternatives` column yet.
+   none delivers `alternatives`. Needs the four payloads to carry it and the two hand-picked
+   components to render it:
+
+   | surface | payload | reads |
+   |---|---|---|
+   | escalations | `fn_os_command().attention` | `decision_log` directly |
+   | governance | `fn_ws_governance().recent_escalations` | `agent_actions where escalated` |
+   | operations | `fn_ws_operations().approvals` | `agent_actions where status='pending'` |
+   | assistant | `fn_ws_ea().approvals_top` | **`fn_ea_agenda(7)`**, not `fn_ws_ea` — edit that one |
+
+   `<OperationsApp>` and `<AssistantApp>` hand their payload to `<ReadableObject>` and so show every
+   key automatically; only `<Escalations>` and `<GovernanceApp>` name their fields by hand.
+
+   The honest source is the verdict the gate actually rejected — the same shape `fn_decide` already
+   builds as `v_alt`/`v_alt_why`. `decision_log` has no `alternatives` column yet.
+
+   **MEASURE THIS BEFORE BUILDING IT.** The obvious implementation — put `alternatives` on
+   `decision_log`, have `trg_action_gate` write it, and join the three `agent_actions` surfaces
+   through `decision_log_id` — **does not close the check today**:
+
+   ```
+   operations (30 pending)   29 rows, 9 carry a decision_log_id
+   assistant  (pending+needs_review)  42 rows, 22 carry one
+   governance (escalated)    15 rows, 15 carry one
+   ```
+
+   The column was added on 6 Aug, so two thirds of the surfaced approvals predate it and have **no
+   recorded evaluation to cite**. Emitting "approve / reject" for those would invent an evaluation
+   that never happened — the same objection that keeps the reputation dimensions empty. Build the
+   writer so every new gated action carries a real alternative, project it on all four surfaces, and
+   let the check go MET as the older rows leave the queue. Do not synthesise a value for the rest.
 2. **`s36-recommendation-seven-fields`** — 3 of 7 on every recommendation; missing alternatives,
    assumptions, cost. Shares its answer with #1.
 3. **`s23-reallocation-three-classes`** — all 12 `allocation_change` rows in 62d carry
