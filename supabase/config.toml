@@ -619,5 +619,8 @@ verify_jwt = false
 [functions.wa_templates_watch]
 verify_jwt = true
 
+[functions.workflow_dispatch]
+verify_jwt = false
+
 [functions.yello_scrape]
 verify_jwt = false

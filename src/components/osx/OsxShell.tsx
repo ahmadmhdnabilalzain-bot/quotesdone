@@ -1904,6 +1904,7 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
   const decide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('action_decide', { id, op }); load(); } catch (_e) {} setDbusy(''); };
   const goal = ops?.goal || {}; const tasks = ops?.tasks || {}; const decisions = ops?.decisions || []; const confidence = ops?.confidence || {}; const workload = ops?.workload || {}; const plans = ops?.plans || []; const knowledge = ops?.knowledge || {};
   const id = ops?.identity || {}; const h = ops?.health || {}; const perf = ops?.performance || {}; const queue = ops?.queue || []; const runs = ops?.recent_runs || []; const kn = ops?.knowledge || {}; const mem = ops?.memory || {}; const convos = ops?.conversations || []; const recs = ops?.recommendations || [];
+  const kpiTrend: any[] = Array.isArray(ops?.kpi_trend) ? ops.kpi_trend : [];
   const healthTone = /healthy/.test(String(h.status)) ? 'green' : /degraded|error|fail/.test(String(h.status)) ? 'red' : /stale/.test(String(h.status)) ? 'amber' : 'slate';
   const sub = (label: string, extra?: any) => (<div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center justify-between'>{label}{extra}</div>);
   return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-2xl overflow-y-auto'>
@@ -1931,6 +1932,33 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
         <StatTile label='OK rate' value={perf.ok_rate != null ? perf.ok_rate + '%' : '—'} />
         <StatTile label='Avg run' value={perf.avg_duration_ms ? Math.round(Number(perf.avg_duration_ms)) + ' ms' : '—'} />
       </div>
+
+      {/* PERFORMANCE AS A TREND, NOT A POINT. Every tile above is a single current value, so this
+          drawer could say how the employee is doing and never whether it is getting better or
+          worse. employee_kpi_history writes one row per KPI per UTC day — a unique index makes a
+          fabricated trend impossible — and until now nothing read it. The empty state says which
+          of the two reasons applies rather than drawing a flat line on one point, because a line
+          through a single observation is a picture of a trend that does not exist yet. */}
+      <Card className='mt-3 p-4'>
+        <div className='flex items-center justify-between'>
+          <div className='text-[11px] uppercase tracking-wide text-muted-foreground'>KPI attainment trend</div>
+          {kpiTrend.length ? <span className='text-[11px] text-muted-foreground'>
+            {kpiTrend.length} day{kpiTrend.length === 1 ? '' : 's'} · {kpiTrend[kpiTrend.length - 1]?.kpis ?? 0} KPI(s) · latest {kpiTrend[kpiTrend.length - 1]?.v ?? '—'}%
+          </span> : null}
+        </div>
+        {kpiTrend.length > 1
+          ? <div className='mt-2'>
+              <MiniLine data={kpiTrend.map((p: any) => ({ label: String(p.label), v: Number(p.v) || 0 }))} />
+              <div className='mt-1 flex justify-between text-[11px] text-muted-foreground'>
+                <span>{kpiTrend[0]?.label}</span><span>{kpiTrend[kpiTrend.length - 1]?.label}</span>
+              </div>
+            </div>
+          : <div className='mt-1 text-sm text-muted-foreground'>
+              {kpiTrend.length === 1
+                ? 'One measurement so far (' + kpiTrend[0].label + ', ' + kpiTrend[0].v + '%). A trend needs a second; KPIs are measured daily at 03:30 UTC.'
+                : 'No measured KPI history for this employee yet.'}
+            </div>}
+      </Card>
 
       <div className='mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2'>
         <StatTile label='Workload' value={workload.workload_pct != null ? workload.workload_pct + '%' : '—'} hint={'capacity ' + (workload.capacity ?? '—') + ' · ' + titleCase(String(workload.state || ''))} />
