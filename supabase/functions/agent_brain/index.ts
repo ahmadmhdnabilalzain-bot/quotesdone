@@ -109,7 +109,13 @@ async function meta(key:string){
 // when a query arrives, so the twelve other call sites are unchanged until they pass one too.
 async function layeredContext(key:string, msg:string){
   try{
-    const { data, error } = await admin.rpc('fn_agent_context', { p_agent_key: key, p_max_chars: 24000, p_query: msg });
+    // _capped, not the raw function: fn_agent_context does not honour p_max_chars. Measured on
+    // production 11 Aug 2026 — ask 6,000 get 32,324; ask 24,000 get 34,316; ask 60,000 get 70,254.
+    // This call asked for 24,000 and received 35,813, and agent_brain is 68% of all AI spend at a
+    // 24,619-token average input, so the overshoot was ~2,600 tokens a call and ~720k a week.
+    // The wrapper keeps LAYER 2b/2c — the department library and operating knowledge retrieved for
+    // THIS question — whole, and trims the standing context, announcing that it did.
+    const { data, error } = await admin.rpc('fn_agent_context_capped', { p_agent_key: key, p_max_chars: 24000, p_query: msg });
     if(error || !data) return '';
     // WHICH KNOWLEDGE FED THIS ANSWER. kb_usage_log is the store the spec points at for "what
     // knowledge did this employee use", and it had 0 rows because NOTHING had ever written to it —

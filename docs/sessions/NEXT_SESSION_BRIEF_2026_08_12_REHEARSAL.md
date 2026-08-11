@@ -119,7 +119,40 @@ proves nothing and manufactures exactly the false confidence the audit was commi
 
 | # | task | detail |
 |---|---|---|
-| 2.1 | **Resolve the 96 `target_employee` keys at the write boundary** | `org_agent_alias` + `fn_org_agent_resolve` in a **BEFORE INSERT trigger** — never by widening the reader's join. **48 of 96 already match a slugified `org_departments.name`** and fail only on `&` vs `and`; the other 48 need five rename mappings: `ai-and-model-operations`→AI Department, `it-sre-and-cybersecurity`→IT & Cybersecurity, `marketplace-operations`→Marketplace & Procurement, `payments-and-revenue-operations`→Payment, `strategy-performance-and-evolution`→Evolution. Present identically on both projects |
+| 2.1 | **DO NOT ALIAS THE 96 KEYS. Measured 11 Aug — nothing reads them.** | see below |
+
+### 2.1 corrected — the plan was wrong and the measurement killed it
+
+The audit filed the 96 unresolvable `target_employee` rows as *instance 5 of "a complete thing
+addressed to an identity the system does not model"*, and the fix was going to be
+`org_agent_alias` + `fn_org_agent_resolve` at the write boundary.
+
+**Checked before building it: `fn_ai_route` is the only routing reader of
+`model_policy_by_identity`, and it reads one scope only —**
+
+```sql
+select * into v_idp from model_policy_by_identity
+ where scope = 'current_agent'
+   and (identity_key = p_agent_key
+        or (identity_key = 'cat:*' and p_agent_key like 'cat:%'))
+```
+
+`scope = 'target_employee'` is **never selected, anywhere.** (The other two readers are
+`fn_ops_department_context` and the pack scorecard, neither of which routes a model.)
+
+So the diagnosis was one layer off. It is not a complete thing addressed to an identity nobody
+models — **it is a complete thing addressed to a reader that does not exist.** Making the 96 keys
+resolvable would leave them exactly as unread as they are now: a bridge to nowhere, and about a
+day's work.
+
+**The real question is a design decision, not a defect to patch:** should per-employee model
+routing exist at all? Today `fn_ai_route` applies a per-identity override only when the task class
+is unmapped (`v_generic`), and only for the 24 `current_agent` rows. Turning on 96 target-employee
+policies would change which model each of 94 employees uses, with a direct cost consequence — that
+belongs with the founder and with the Tier 0 cost work, not in a data-hygiene pass.
+
+**Either delete the 96 rows as dead imported config, or wire a reader deliberately. Do not alias
+them.**
 | 2.2 | **Retire or map the 44 legacy `cat:` keys** | of 132 `cat:` keys in `agent_knowledge`, **88 carry all 14 standard modules and 44 carry none** — the distribution is binary. The 44 are knowledge filed under the vocabulary `knowledge_module_standard` replaced. `cat:aluminium-glass` and `cat:aluminium-and-glass-suppliers` are the same agent twice |
 | 2.3 | **Fix `dept_key='knowledge'` naming "Administration & Operations"** | a rename or an alias — decide and record which. `scenario_library.regulatory_change` names `knowledge` and reaches Admin & Ops |
 
