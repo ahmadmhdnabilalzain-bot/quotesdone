@@ -96,7 +96,21 @@ function splitActions(s:string):[string, any]{ const i=s.indexOf('@@ACTIONS@@');
 
 async function meta(key:string){
   if(NAMES[key]) return { name:NAMES[key] };
-  if(key.startsWith('cat:')){ const { data:ca }=await admin.from('category_agents').select('name,persona').eq('slug',key.slice(4)).maybeSingle(); if(ca) return { name:ca.name+' Sales', persona: ca.persona }; }
+  // THE 44 RETIRED CATEGORY AGENTS WERE STILL ANSWERING (fixed 11 Aug 2026).
+  // category_agents holds 132 rows: 88 active, 44 inactive. Measured — every one of the 132 `cat:`
+  // keys in agent_knowledge resolves to a row here, so there are no orphans; what there is, is a
+  // retired agent that still answers. The 88 active ones each carry all 15 standardised knowledge
+  // modules; the 44 inactive ones carry 7-9 rows of the vocabulary those modules replaced.
+  // `cat:aluminium-glass` (inactive, 8 rows) and `cat:aluminium-and-glass-suppliers` (active, 15
+  // modules) are the same trade twice, and until this line the retired one was reachable: this
+  // lookup had no active filter, while the org_agents branch two lines below always had one.
+  // agent_chats records 4 turns across 2 retired keys, the last on 26 July.
+  //
+  // Deliberately NOT deleted: the retired rows still hold real trade knowledge (7-73 kb_chunks
+  // each) that the unscoped keyword pass surfaces to whoever asks. Retiring the SPEAKER is the
+  // defect; deleting the KNOWLEDGE would be a second one. Reactivating a category is still a single
+  // UPDATE on category_agents.active, which is what `active` is for.
+  if(key.startsWith('cat:')){ const { data:ca }=await admin.from('category_agents').select('name,persona').eq('slug',key.slice(4)).eq('active',true).maybeSingle(); if(ca) return { name:ca.name+' Sales', persona: ca.persona }; }
   const { data:oa } = await admin.from('org_agents').select('role').eq('agent_key',key).eq('active',true).maybeSingle();
   if(oa) return { name: oa.role || key };
   return null;

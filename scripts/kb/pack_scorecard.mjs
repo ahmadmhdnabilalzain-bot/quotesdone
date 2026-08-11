@@ -245,6 +245,46 @@ for (const p of packs) {
 }
 console.log('\nOVERALL INGESTED: ' + Math.round(10 * rows.reduce((a, r) => a + r.pct, 0) / rows.length) / 10 + '%');
 console.log('OVERALL IN USE  : ' + rows.filter(r => r.n > 0).length + ' of ' + rows.length + ' artefacts (measured by probe, not asserted)');
+
+// ---- THIRD AXIS: RETRIEVABLE. Added 11 Aug 2026 after the word-by-word audit.
+//
+// The two axes above were both TRUE and together read as something neither of them says. This
+// scorecard printed "OVERALL INGESTED 100% / IN USE 37 of 37" on a corpus where 73,488 of 120,530
+// kb_chunks had no embedding at all, including 0% of `trade` and 0% of `regulation`. INGESTED means
+// the rows are in the table. IN USE means SOME routine reads the artefact. Neither word is
+// "retrievable", and an employee asking a question reaches knowledge through retrieval.
+//
+// So the third axis is printed next to the other two, from the database, every run — never asserted.
+// It is allowed to be ugly. A scorecard that cannot say "ingested but unreachable" is how a corpus
+// spends three weeks at 39% embedded with every report green.
+const emb = await q(`select coalesce(source_kind,'(null)') k, count(*) n,
+                            count(*) filter (where embedding_gte is not null) e
+                       from public.kb_chunks group by 1 order by 2 desc`);
+const totN = emb.reduce((a, r) => a + Number(r.n), 0);
+const totE = emb.reduce((a, r) => a + Number(r.e), 0);
+console.log('OVERALL RETRIEVABLE: ' + totE.toLocaleString() + ' of ' + totN.toLocaleString() +
+            ' kb_chunks carry an embedding (' + (totN ? (100 * totE / totN).toFixed(1) : '0.0') + '%)' +
+            (totE < totN ? ' — the remainder is reachable by keyword only' : ''));
+for (const r of emb) {
+  const n = Number(r.n), e = Number(r.e);
+  const p = n ? (100 * e / n) : 0;
+  console.log('   ' + (p === 0 ? 'NOT EMBEDDED' : p.toFixed(1).padStart(11) + '%') + '  ' +
+              String(r.k).padEnd(14) + String(e).padStart(7) + ' / ' + String(n).padEnd(7) +
+              (p === 0 ? '  no semantic path to any of these rows' : ''));
+}
+// And the path itself. A vector column with a vector index earns nothing if the routine holding it
+// is not the routine the employees call. Measured against the function bodies, not assumed.
+const sem = await q(`select
+    (select count(*) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+      where ns.nspname='public' and p.prokind='f' and p.prolang <> 12
+        and pg_get_functiondef(p.oid) like '%embedding_gte%'
+        and p.proname <> 'kb_match') vector_readers,
+    (select count(*) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+      where ns.nspname='public' and p.prokind='f' and p.prolang <> 12
+        and pg_get_functiondef(p.oid) like '%kb_match%' and p.proname <> 'kb_match') kb_match_callers`);
+console.log('   semantic path: kb_match has ' + sem[0].kb_match_callers + ' caller(s) in public; ' +
+            sem[0].vector_readers + ' other routine(s) touch embedding_gte' +
+            (Number(sem[0].kb_match_callers) === 0 ? '  — NO ROUTINE CALLS THE SEMANTIC ONE' : ''));
 const dead = rows.filter(r => r.n <= 0);
 if (dead.length) {
   console.log('\nNOT READ BY ANY PRODUCTION ROUTINE:');
