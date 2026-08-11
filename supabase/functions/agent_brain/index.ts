@@ -213,15 +213,55 @@ Deno.serve(async (req)=>{
     const key=String(body.agent||''); const msg=String(body.message||'').trim();
     const m=await meta(key); if(!m) return J({error:'unknown agent'},400);
     if(!msg) return J({error:'message required'},400);
-    const { data:hist } = await admin.from('agent_chats').select('role,content').eq('agent_key',key).order('id',{ascending:false}).limit(10);
-    const history=(hist||[]).reverse().map((h:any)=>({role:h.role,content:h.content}));
+    // CONVERSATION COMPRESSION (open router.txt §5 "Token Management", §21 "Dynamic Context Window").
+    // This sent the last TEN turns verbatim. Measured on production 11 Aug 2026, the last ten rows
+    // for `procurement` are 29,625 characters, legal 26,588, intel_director 25,291 — roughly 7,000
+    // tokens of history on top of a ~31,000-character employment context, on every hourly call, at
+    // the large tier. And the loop that dominates this function is cos_execute working ONE task per
+    // call: task N-9's full 5,000-character reply is not context for task N, it is a bill.
+    //
+    // Six turns, each capped, with the machine-readable @@ACTIONS@@ tail stripped — that tail is a
+    // dispatch instruction that was already carried out when it was written, so replaying it invites
+    // the model to re-issue handoffs it has already made. Founder conversation keeps its shape; what
+    // goes is the transcript nobody is reading.
+    const HIST_TURNS = 6, HIST_CHARS = 1200;
+    const { data:hist } = await admin.from('agent_chats').select('role,content').eq('agent_key',key).order('id',{ascending:false}).limit(HIST_TURNS);
+    const history=(hist||[]).reverse().map((h:any)=>{
+      let c=String(h.content||''); const cut=c.indexOf('@@ACTIONS@@'); if(cut>=0) c=c.slice(0,cut).trim();
+      if(c.length>HIST_CHARS) c=c.slice(0,HIST_CHARS)+' […earlier detail trimmed; ask if you need it]';
+      return {role:h.role,content:c};
+    }).filter((h:any)=>h.content.length>0);
     let ctx:any={}; try{ ctx=await context(key); }catch(_e){ ctx={error:'snapshot unavailable'}; }
     const teammates=VALID_AGENTS.filter(a=>a!==key).map(a=>a+' ('+(NAMES[a]||a)+')').join(', ');
     const base='You are '+m.name+' at QuotesDone, a UAE B2B anonymous quotation marketplace — a senior executive employee, not an assistant. Your full employment context follows (identity, company canon, your professional expertise, live operational state, organizational experience) — it governs how you think and act. DOCTRINE: default to action within your delegated authority — complete work and report results; prepare and route gated work (money, publishing, legal action, security) for approval rather than abandoning it; never ask permission you already have. Be specific, practical and concise. Never invent numbers — operational figures come only from the LIVE OPERATIONAL STATE and LIVE DATA SNAPSHOT.\n\nTEAMWORK: You can hand a task to a colleague specialist when it clearly belongs to them. Your colleagues: '+teammates+'.\n\nKNOWLEDGE (your window to the world): if answering this well needs domain knowledge you do not have, you may RESEARCH THE INTERNET to fill the gap permanently — real UAE sources are pulled, verified and saved into the relevant specialist\'s knowledge so it is there for everyone next time. Use this for genuine gaps in durable domain knowledge (materials, standards, authorities, methods, market facts) — NOT for live/one-off data. Prefer answering from what you already know; reach for research only when there is a real gap worth closing.\n\nTo act, AFTER your normal reply append on a NEW LINE exactly @@ACTIONS@@ followed by compact JSON. You may include any of these keys: {"handoffs":[{"to":"<agent_key>","title":"<short task title>","details":"<what to do and why>"}],"research":[{"agent":"<specialist_slug_or_your_own_key>","topics":["<specific sub-topic to research>","<another>"]}],"answers":[{"id":<handoff id from HANDED TO YOU>,"answer":"<your answer, or what is blocking it>"}]}. Only request real, specific, useful work. Omit the @@ACTIONS@@ line entirely if there is nothing to do. Never mention this mechanism or the word @@ACTIONS@@ in your visible reply.';
     const persona=(m as any).persona?('\n\n'+(m as any).persona):'';
     const [layered, instr, kb, inbox] = await Promise.all([layeredContext(key, msg), instructions(key), retrieve(key, msg), handoffInbox(key)]);
-    const sys=base+persona+layered+instr+kb+inbox+'\n\nLIVE DATA SNAPSHOT (read-only, captured just now):\n'+JSON.stringify(ctx).slice(0,9000);
-    const llmOut=await llmFor(key)(sys,[...history,{role:'user',content:msg}],8000);
+    // STABLE HALF / VOLATILE HALF. A provider prompt cache only pays on a BYTE-IDENTICAL block, and
+    // this prompt's tail says "captured just now" — so marking the whole thing, which is what
+    // ai_gateway did, bought a cache WRITE at 1.25x on every call and a read on none of them.
+    //
+    // The boundary is the first live section fn_agent_context emits. Everything above it (identity,
+    // company genome, risk register, employee record, LAYER 2 profession, LAYER 1 company knowledge)
+    // is the same string call after call for the same employee; everything from there down carries a
+    // timestamp, a live health snapshot or this turn's retrieval. Split on the section headings
+    // rather than a new sentinel so fn_agent_context — 400 lines with a documented history of one
+    // inserted line silently evicting knowledge from 19 employees — is not touched at all.
+    //
+    // No marker found (a department with no health_fn and no experience yet) means no stable block
+    // is claimed, and nothing is marked. Failing to "no caching" is free; claiming a prefix that
+    // moves is not.
+    const VOLATILE_AT = ['\n# LAYER 3 - LIVE OPERATIONAL STATE',
+                         '\n# LAYER 4 - WHAT THIS ORGANIZATION HAS LEARNED',
+                         '\n# YOUR OS OBJECTIVES, MEASURED'];
+    let cutAt = -1;
+    for (const marker of VOLATILE_AT) { const i = layered.indexOf(marker); if (i >= 0 && (cutAt < 0 || i < cutAt)) cutAt = i; }
+    const stableCtx   = cutAt >= 0 ? layered.slice(0, cutAt) : '';
+    const volatileCtx = cutAt >= 0 ? layered.slice(cutAt)    : layered;
+    // instr moves ahead of the context so the stable half is contiguous from the first character.
+    const sysStable = stableCtx ? (base+persona+instr+stableCtx) : '';
+    const sysVolatile = (stableCtx ? '' : base+persona+instr)+volatileCtx+kb+inbox
+      +'\n\nLIVE DATA SNAPSHOT (read-only, captured just now):\n'+JSON.stringify(ctx).slice(0,9000);
+    const llmOut=await llmFor(key)(sysVolatile,[...history,{role:'user',content:msg}],8000,sysStable);
     // 10 Aug 2026: an empty model return has always produced this apology AND an agent_runs row
     // reading status 'ok'. `it` was found timing out at ~56s twice in a row while its run log said
     // it had worked — and its ONE prior success took 53,139 ms on a 30,821-token prompt, so it had
@@ -275,10 +315,12 @@ Deno.serve(async (req)=>{
     try{
       await admin.from('agent_runs').insert({ agent:key, status:llmFailed?'error':'ok',
         started_at:new Date(runStartedAt).toISOString(), finished_at:new Date().toISOString(),
-        counts:{ prompt_chars:sys.length, llm_returned_nothing:llmFailed },
+        counts:{ prompt_chars:sysStable.length+sysVolatile.length,
+                 stable_chars:sysStable.length, volatile_chars:sysVolatile.length,
+                 history_turns:history.length, llm_returned_nothing:llmFailed },
         note:(llmFailed
-          ? 'The model returned nothing, so this employee did not answer. Prompt was '+sys.length
-            +' characters. Ask: '
+          ? 'The model returned nothing, so this employee did not answer. Prompt was '
+            +(sysStable.length+sysVolatile.length)+' characters ('+sysStable.length+' cacheable). Ask: '
           : '')+msg.slice(0,180) });
     }catch(_e){}
     // A thought, every turn — not only when the founder says "remember". employee-current-thoughts

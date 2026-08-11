@@ -97,6 +97,41 @@ async function validBrains(): Promise<Set<string>> {
   } catch (_e) { _brains = new Set(LEGACY_BRAINS); }
   return _brains;
 }
+// WHO IN THE DEPARTMENT ACTUALLY DOES IT (11 Aug 2026).
+// Every task went to `dept.brain_agent || dept.lead_agent` — ONE agent per department. Measured on
+// production the same day: of 93 active employees, 64 had never appeared in agent_runs, agent_chats,
+// agent_actions, decision_log or agent_memory at all. They were not idle; they were unreachable.
+// The spec is explicit that a department is a TEAM and that specialists perform while managers
+// review, and an org chart whose staff cannot be given work is an org chart, not a company.
+//
+// employee_authority already holds 285 per-employee (agent_key, action_class, max_tier) grants
+// across 67 employees and had no reader on this path. It IS the answer to "who in this department
+// is allowed to do this?", so the work order goes to the person the authority model already names.
+//
+// Ordering: the highest tier for that class first, then the LEAST senior person who holds it —
+// specialists do the work, managers review it. The department's brain remains the fallback, so a
+// class nobody personally holds behaves exactly as it did before.
+async function assignee(deptKey: string, actionClass: string, fallback: string): Promise<string> {
+  if (!actionClass) return fallback;
+  try {
+    const { data } = await admin.from('employee_authority')
+      .select('agent_key,max_tier,org_agents!inner(agent_key,department,active,seniority)')
+      .eq('action_class', actionClass)
+      .eq('org_agents.department', deptKey)
+      .eq('org_agents.active', true);
+    const RANK: Record<string, number> = { advisory: 0, gated: 1, supervised: 2, autonomous: 3 };
+    const SEN: Record<string, number> = { specialist: 0, senior: 1, lead: 2, manager: 3, director: 4, chief: 5, executive: 6 };
+    const rows = (data || []) as any[];
+    if (!rows.length) return fallback;
+    rows.sort((a, b) =>
+      (RANK[b.max_tier] ?? 0) - (RANK[a.max_tier] ?? 0) ||
+      (SEN[a.org_agents?.seniority] ?? 9) - (SEN[b.org_agents?.seniority] ?? 9) ||
+      String(a.agent_key).localeCompare(String(b.agent_key)));
+    const pick = String(rows[0].agent_key || '');
+    return (pick && (await validBrains()).has(pick)) ? pick : fallback;
+  } catch (_e) { return fallback; }   // routing is an improvement; it must never block dispatch
+}
+
 // A deliverable-complete class is one where the work product IS the completion (advice/analysis/plan/
 // draft/knowledge). Others are 'prepared' — the department's own autonomous machinery (invite ramp,
 // kb autofill, approval lane, etc.) performs the real side effect on its schedule.
@@ -312,7 +347,8 @@ Deno.serve(async (req) => {
       }
 
       const { data: obj } = await admin.from('org_objectives').select('objective').eq('id', t.objective_id).maybeSingle();
-      const deliverable = (await dispatch(dept.name, dept.brain_agent || dept.lead_agent, obj?.objective || '', t)).trim();
+      const worker = await assignee(t.dept_key, t.action_class, dept.brain_agent || dept.lead_agent);
+      const deliverable = (await dispatch(dept.name, worker, obj?.objective || '', t)).trim();
       const oneLine = resultLine(deliverable);
       const delivered = DELIVERED_CLASSES.test(t.action_class || '') || t.tier === 'advisory';
       const mode = delivered ? 'delivered' : 'prepared'; // 'prepared' → dept's autonomous machinery executes the side effect
@@ -392,7 +428,10 @@ Deno.serve(async (req) => {
           });
         } catch (_e) {}
       }
-      summary.push({ task_id: t.id, dept: t.dept_key, tier: t.tier, status: newStatus, mode, summary: oneLine, review: reviewNote });
+      // `worker` is recorded, not just used: which EMPLOYEE did the work is the thing the org chart
+      // could not previously answer, and a routing change nobody can audit is a routing change
+      // nobody can disprove.
+      summary.push({ task_id: t.id, dept: t.dept_key, tier: t.tier, status: newStatus, mode, worker, summary: oneLine, review: reviewNote });
     }
 
     // Roll up each touched objective. Open = anything still needing work or the founder (incl. gated 'proposed').

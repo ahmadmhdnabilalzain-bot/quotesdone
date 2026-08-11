@@ -111,7 +111,9 @@ function selfReportedConfidence(text: any): number | null {
 interface Body {
   __secret?: string;
   fn?: string; task_class?: string; dept?: string; agent?: string;
-  sys?: string; input?: string | Msg[];
+  sys?: string;
+  sys_stable?: string;                    // the byte-stable half of the system prompt; only this is marked cacheable
+  input?: string | Msg[];
   messages?: Msg[];                       // full OpenAI-shape passthrough (multimodal, tool turns)
   max?: number; temperature?: number; confidence?: number;
   cache_ttl_min?: number; try_faq?: boolean; faq_text?: string;
@@ -214,6 +216,16 @@ Deno.serve(async (req) => {
     // Two shapes, one path. `messages` is the full OpenAI array and wins when present - that is
     // what a tool-calling loop needs, because it must replay assistant tool_calls and tool
     // results verbatim. `sys` + `input` remains the shorthand the 32 migrated callers use.
+    // THE STABLE HALF AND THE VOLATILE HALF (11 Aug 2026).
+    // A provider cache only pays when the marked block is BYTE-IDENTICAL between calls. agent_brain
+    // was handing us one 40,000-character string whose tail carried "LIVE DATA SNAPSHOT ... captured
+    // just now" — so cache_control was being stamped on a prefix that changed every single call.
+    // Every call was a cache WRITE at 1.25x and no call was ever a read. That is not caching being
+    // off, it is caching pointed at the wrong thing and charged a premium for it.
+    //
+    // Callers that know which half of their prompt is stable now say so. sys_stable is prepended to
+    // sys and is the ONLY block marked cacheable; sys keeps whatever changes per call.
+    const sysStable = String(body.sys_stable || '');
     const sys = String(body.sys || '');
     const explicit = Array.isArray(body.messages) ? body.messages : null;
     const convo: Msg[] = explicit
@@ -287,10 +299,10 @@ Deno.serve(async (req) => {
     let promptEmb: string | null = null;
     if (cacheable) {
       cacheKey = await sha256([
-        model, String(maxTok), sys, JSON.stringify(convo),
+        model, String(maxTok), sysStable, sys, JSON.stringify(convo),
         JSON.stringify(body.plugins ?? null), JSON.stringify(body.response_format ?? null),
       ].join(' '));
-      promptEmb = await embed(sys.slice(0, 400) + ' ' + JSON.stringify(convo).slice(0, 800));
+      promptEmb = await embed((sysStable + sys).slice(0, 400) + ' ' + JSON.stringify(convo).slice(0, 800));
       const { data: hit } = await admin.rpc('fn_llm_cache_lookup', {
         p_key: cacheKey, p_embedding: promptEmb,
         p_task_class: route.task_class ?? null, p_min_similarity: 0.95,
@@ -313,7 +325,9 @@ Deno.serve(async (req) => {
     if (dry) {
       return J({ ok: true, dry_run: true, used_llm: false, outcome: 'would_call',
                  model, fallback, tier: route.tier, task_class: route.task_class,
-                 max_tokens: maxTok, prompt_cache: route.cache === true && sys.length >= CACHE_MIN_CHARS,
+                 max_tokens: maxTok,
+                 prompt_cache: route.cache === true && (sysStable || sys).length >= CACHE_MIN_CHARS,
+                 stable_chars: sysStable.length, volatile_chars: sys.length,
                  stream_ok: route.stream === true, budget_pct: route.budget_pct,
                  caps, cacheable, has_binary: hasBinary,
                  plugins: body.plugins ?? null, tools: (body.tools || []).length || 0,
@@ -324,17 +338,40 @@ Deno.serve(async (req) => {
     const key = await sec('openrouter_api_key');
     if (!key) return J({ ok: false, error: 'openrouter_api_key missing' }, 500);
 
-    // Mark the system prompt cacheable when the model supports it and the block is big enough
-    // to be worth a cache write. agent_brain's ~30k-char prefix is the target here.
-    const useCache = route.cache === true && sys.length >= CACHE_MIN_CHARS;
+    // One row, so switching prompt caching off is a policy change and not a deploy. It exists
+    // because the decision is arithmetic over a hit rate that can move: below a 22% same-prefix
+    // hit rate the 1.25x write premium costs more than the 10x read discount saves.
+    let promptCacheOn = true;
+    try {
+      const { data: pc } = await admin.from('decision_policy').select('value')
+        .eq('key', 'prompt_cache_enabled').maybeSingle();
+      if (pc && (pc.value === false || pc.value === 'false')) promptCacheOn = false;
+    } catch (_e) { /* a missing policy row means the default, not a failed call */ }
+
+    // Mark the STABLE block cacheable when the model supports it, the estate has not switched it
+    // off, and the block is big enough to be worth a cache write. Without sys_stable the caller has
+    // not told us which part is stable, so we fall back to the old whole-prompt behaviour — which
+    // is right for a caller whose whole prompt genuinely is stable and wrong only for one that
+    // silently mixes, which is exactly what sys_stable exists to fix.
+    //
+    // NO ttl FIELD. The 1-hour tier works (probe 11 Aug 2026 returned 200) and loses money on this
+    // workload: it bills 2x to write against 1.25x for the default, and the hourly loop repeats at
+    // ~65 minutes — just outside the window. See scripts/sql/prompt_cache_accounting.sql for the
+    // arithmetic and the measured hit rates.
+    const cacheBlock = sysStable || sys;
+    const useCache = route.cache === true && promptCacheOn && cacheBlock.length >= CACHE_MIN_CHARS;
+    const sysText = sysStable ? (sysStable + sys) : sys;
     const sysMsg = useCache
-      ? { role: 'system', content: [{ type: 'text', text: sys, cache_control: { type: 'ephemeral' } }] }
-      : { role: 'system', content: sys };
+      ? { role: 'system', content: sysStable
+            ? [{ type: 'text', text: sysStable, cache_control: { type: 'ephemeral' } },
+               ...(sys ? [{ type: 'text', text: sys }] : [])]
+            : [{ type: 'text', text: sys, cache_control: { type: 'ephemeral' } }] }
+      : { role: 'system', content: sysText };
     // An empty system message is not free - it is a message the provider still tokenises, and on
     // the transcribe path there is no system prompt at all. Only prepend one when it says something,
     // and never when the caller already supplied its own system turn inside `messages`.
     const hasOwnSystem = convo.some((m) => m?.role === 'system');
-    const outbound: Msg[] = (sys && !hasOwnSystem) ? [sysMsg as Msg, ...convo] : convo;
+    const outbound: Msg[] = (sysText && !hasOwnSystem) ? [sysMsg as Msg, ...convo] : convo;
 
     // 29 Jul 2026 - WALL DEADLINE. The ladder could run two models x two attempts x 25s, up to
     // about 100 seconds, while _shared/llm.ts abandons a plain call after 30. On 29 Jul five
@@ -464,10 +501,24 @@ Deno.serve(async (req) => {
     // ---- 8. LOG with real money ---------------------------------------------------------
     const inTok = Number(usage.prompt_tokens ?? 0);
     const outTok = Number(usage.completion_tokens ?? 0);
-    // OpenRouter reports the cached portion under a few different names depending on provider.
+    // WHERE THE CACHE NUMBERS ACTUALLY LIVE. This looked for usage.cache_read_input_tokens and
+    // usage.cached_tokens. OpenRouter reports NEITHER at the top level — measured 11 Aug 2026 on a
+    // live sonnet-5 call, the response is:
+    //   "usage":{"prompt_tokens":2697,...,"prompt_tokens_details":{"cached_tokens":2683,
+    //             "cache_write_tokens":0,"audio_tokens":0,"video_tokens":0}}
+    // so cachedIn read 0 on every call the company has ever made, fn_llm_log was told p_cached=false
+    // every time, and "prompt caching is off: 4 of 2,141 cached" was a meter pointed at a field that
+    // does not exist. The nested read goes first; the two flat names are kept because a different
+    // provider may still use them.
+    // deno-lint-ignore no-explicit-any
+    const det = ((usage as any).prompt_tokens_details || {}) as Record<string, number>;
     const cachedIn = Number(
+      det.cached_tokens ??
       (usage as Record<string, number>).cache_read_input_tokens ??
       (usage as Record<string, number>).cached_tokens ?? 0);
+    const cacheWrite = Number(
+      det.cache_write_tokens ??
+      (usage as Record<string, number>).cache_creation_input_tokens ?? 0);
 
     let costUsd: number | null = null;
     try {
@@ -482,7 +533,8 @@ Deno.serve(async (req) => {
       p_task_class: route.task_class ?? null, p_model: used,
       p_because: route.why + (used !== model ? ' [fell back from ' + model + ']' : '')
                  + (caps.length ? ' | caps: ' + caps.join('+') : '')
-                 + (useCache ? ' | prompt cache on, ' + cachedIn + ' input tokens read from cache' : '')
+                 + (useCache ? ' | prompt cache on (' + cacheBlock.length + ' stable chars): '
+                               + cachedIn + ' tokens read from cache, ' + cacheWrite + ' written' : '')
                  + (finishReason === 'length'
                     ? ' | TRUNCATED: the model stopped at the ' + maxTok + '-token ceiling for task_class '
                       + String(route.task_class) + ', so the reply is cut off mid-output. A caller that '
@@ -490,7 +542,12 @@ Deno.serve(async (req) => {
                     : ''),
       p_confidence: selfReportedConfidence(out),
       p_tier: route.tier ?? null, p_prompt_tokens: inTok, p_output_tokens: outTok,
-      p_cached: cachedIn > 0, p_cache_key: cacheKey, p_latency_ms: Date.now() - t0, p_ok: !!outMsg,
+      // p_cached is NOT "some of the prompt came from cache". It means "no model was called", and
+      // fn_llm_log skips costing entirely when it is true. A prompt-cache read IS a model call and
+      // it does cost money — at the cache-read rate, which is what the two new arguments carry.
+      // Setting p_cached true here booked 90%-off prompts at exactly zero.
+      p_cached: false, p_cached_in: cachedIn, p_cache_write: cacheWrite,
+      p_cache_key: cacheKey, p_latency_ms: Date.now() - t0, p_ok: !!outMsg,
     });
 
     if (!outMsg) return J({ ok: false, error: deadlineHit ? 'gateway_deadline' : 'all_models_failed',
@@ -517,6 +574,7 @@ Deno.serve(async (req) => {
                finish_reason: finishReason || undefined,
                truncated: finishReason === 'length', max_tokens: maxTok,
                prompt_tokens: inTok, output_tokens: outTok, cached_input_tokens: cachedIn,
+               cache_write_tokens: cacheWrite, prompt_cache: useCache,
                cost_usd: costUsd, latency_ms: Date.now() - t0 });
   } catch (e) {
     return J({ ok: false, error: String((e as Error)?.message || e) }, 500);

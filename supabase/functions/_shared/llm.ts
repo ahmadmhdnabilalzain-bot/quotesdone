@@ -125,7 +125,12 @@ export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) 
   const dTo = def.timeoutMs ?? 25000;
   const fnName = def.fn || guessFn();
 
-  return async function llm(sys: string, input: string | Msg[], max: number = dMax): Promise<string | null> {
+  // sysStable is the fourth argument on purpose: the three-argument signature is what 31 call
+  // sites use and none of them need editing. A caller that knows which half of its system prompt
+  // is byte-stable between calls passes it here, and ai_gateway marks ONLY that half cacheable.
+  // Passing a prefix that is not actually stable is worse than passing none: a cache write costs
+  // 1.25x the input rate and a prefix that never repeats never earns it back.
+  return async function llm(sys: string, input: string | Msg[], max: number = dMax, sysStable = ''): Promise<string | null> {
     const ac = new AbortController();
     const to = setTimeout(() => ac.abort(), dTo + 5000); // gateway has its own 25s per attempt
     try {
@@ -146,7 +151,7 @@ export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) 
           task_class: def.taskClass ?? null,
           dept: def.dept ?? null,
           agent: def.agent ?? null,
-          sys, input, max,
+          sys, sys_stable: sysStable, input, max,
           temperature: def.temperature ?? null,
           confidence: def.confidence ?? null,
           cache_ttl_min: def.cacheTtlMin ?? 0,
