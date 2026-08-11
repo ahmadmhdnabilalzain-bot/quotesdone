@@ -83,9 +83,22 @@ Deno.serve(async (req) => {
     };
     const tgt = TARGETS[String(body.target ?? 'kb_chunks')] ?? TARGETS.kb_chunks;
 
-    const { data, error: qerr } = await admin
-      .from(tgt.table).select(tgt.cols)
-      .is('embedding_gte', null)
+    // OLDEST-FIRST IS FAIR AND IT PUT THE MOST AUTHORITATIVE KNOWLEDGE LAST (11 Aug 2026).
+    // Measured on production: kb_chunks is 42.6% embedded and rising ~1,240/hour, but `trade`
+    // (1,993 rows) and `regulation` (45) are at 0% and `material` (3) at 0% — they arrived AFTER
+    // the 115,148-row pack import, so a strict FIFO leaves UAE regulations and trade knowledge
+    // roughly 56 hours behind a queue of pack chunks. Those are exactly the rows an employee is
+    // most likely to be wrong about without.
+    //
+    // An optional source_kinds filter, not a hard-coded priority: the default is unchanged, so the
+    // every-minute backfill cron keeps its fair FIFO, and a second caller can drain a named,
+    // FINITE set first. A permanent priority ordering would starve the pack corpus, which is the
+    // defect the comment above this one records.
+    const kinds = Array.isArray(body.source_kinds)
+      ? body.source_kinds.map((s: unknown) => String(s)).filter(Boolean).slice(0, 8) : null;
+    let sel = admin.from(tgt.table).select(tgt.cols).is('embedding_gte', null);
+    if (kinds && kinds.length && tgt.table === 'kb_chunks') sel = sel.in('source_kind', kinds);
+    const { data, error: qerr } = await sel
       .order('created_at', { ascending: true })
       .limit(lim);
 

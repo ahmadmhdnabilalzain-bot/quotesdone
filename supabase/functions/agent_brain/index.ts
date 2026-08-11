@@ -96,7 +96,21 @@ function splitActions(s:string):[string, any]{ const i=s.indexOf('@@ACTIONS@@');
 
 async function meta(key:string){
   if(NAMES[key]) return { name:NAMES[key] };
-  if(key.startsWith('cat:')){ const { data:ca }=await admin.from('category_agents').select('name,persona').eq('slug',key.slice(4)).maybeSingle(); if(ca) return { name:ca.name+' Sales', persona: ca.persona }; }
+  // THE 44 RETIRED CATEGORY AGENTS WERE STILL ANSWERING (fixed 11 Aug 2026).
+  // category_agents holds 132 rows: 88 active, 44 inactive. Measured — every one of the 132 `cat:`
+  // keys in agent_knowledge resolves to a row here, so there are no orphans; what there is, is a
+  // retired agent that still answers. The 88 active ones each carry all 15 standardised knowledge
+  // modules; the 44 inactive ones carry 7-9 rows of the vocabulary those modules replaced.
+  // `cat:aluminium-glass` (inactive, 8 rows) and `cat:aluminium-and-glass-suppliers` (active, 15
+  // modules) are the same trade twice, and until this line the retired one was reachable: this
+  // lookup had no active filter, while the org_agents branch two lines below always had one.
+  // agent_chats records 4 turns across 2 retired keys, the last on 26 July.
+  //
+  // Deliberately NOT deleted: the retired rows still hold real trade knowledge (7-73 kb_chunks
+  // each) that the unscoped keyword pass surfaces to whoever asks. Retiring the SPEAKER is the
+  // defect; deleting the KNOWLEDGE would be a second one. Reactivating a category is still a single
+  // UPDATE on category_agents.active, which is what `active` is for.
+  if(key.startsWith('cat:')){ const { data:ca }=await admin.from('category_agents').select('name,persona').eq('slug',key.slice(4)).eq('active',true).maybeSingle(); if(ca) return { name:ca.name+' Sales', persona: ca.persona }; }
   const { data:oa } = await admin.from('org_agents').select('role').eq('agent_key',key).eq('active',true).maybeSingle();
   if(oa) return { name: oa.role || key };
   return null;
@@ -116,7 +130,39 @@ async function layeredContext(key:string, msg:string){
     // The wrapper keeps LAYER 2b/2c — the department library and operating knowledge retrieved for
     // THIS question — whole, and trims the standing context, announcing that it did.
     const { data, error } = await admin.rpc('fn_agent_context_capped', { p_agent_key: key, p_max_chars: 24000, p_query: msg });
-    if(error || !data) return '';
+    // THE EMPLOYEE RAN WITH NO EMPLOYMENT CONTEXT AND NOTHING SAID SO (fixed 11 Aug 2026).
+    // This line was `if(error || !data) return ''`. Measured on production from the agent_runs rows
+    // this very function writes: `docs` produced prompt_chars 53,188 / 16,691 / 53,581 / 53,530 /
+    // 16,912 / 15,943 / 16,633 on seven consecutive hourly turns. The 16k runs carried NONE of the
+    // 36,641 characters of identity, company genome, risk register, employee record, authority
+    // limits and profession — the employee answered from the base prompt alone and both agent_runs
+    // and ai_cost_log recorded an ordinary successful turn.
+    //
+    // The cause was a wall, not a bug in this file: PostgREST connects as `authenticator`, which
+    // carries statement_timeout=8s, and fn_agent_context('docs') took 7,302 ms — over it about half
+    // the time. Two indexes on kb_chunks took it to 765 ms (see
+    // scripts/sql/the_employee_context_died_on_an_8s_wall.sql and
+    // scripts/sql/v_kb_coverage_scanned_120530_rows_five_times.sql).
+    //
+    // The swallow stays fixed anyway, because the next thing that makes this call slow or fail must
+    // not be invisible for another three weeks. Two changes: the failure gets an agent_runs row, and
+    // the model is TOLD it is working without its employment context instead of quietly improvising
+    // an identity. Returning '' silently is what turned a database timeout into an employee that
+    // confidently answered as nobody in particular.
+    if(error || !data){
+      const why = error ? String(error.message||error).slice(0,300) : 'the context function returned nothing';
+      try{ await admin.from('agent_runs').insert({ agent:'agent_context_missing', status:'error',
+        started_at:new Date().toISOString(), finished_at:new Date().toISOString(),
+        counts:{ signal:'layered_context_empty', for_agent:key },
+        note:'fn_agent_context_capped returned no context for '+key+' ('+why+'), so this employee '
+            +'answered without its identity, company genome, authority limits or profession. '
+            +'Ask: '+msg.slice(0,160) }); }catch(_e){}
+      return '\n\nYOUR EMPLOYMENT CONTEXT COULD NOT BE LOADED THIS TURN ('+why+'). You do NOT have '
+        +'your identity record, company canon, authority limits, live operational state or retrieved '
+        +'department knowledge in front of you. Answer only what you can answer without them, say '
+        +'plainly that your context was unavailable, and assert nothing about company figures, '
+        +'policies or your own authority.';
+    }
     // WHICH KNOWLEDGE FED THIS ANSWER. kb_usage_log is the store the spec points at for "what
     // knowledge did this employee use", and it had 0 rows because NOTHING had ever written to it —
     // retrieval happened right here and was never recorded. One row per retrieval, so the usage
@@ -256,6 +302,15 @@ Deno.serve(async (req)=>{
     // No marker found (a department with no health_fn and no experience yet) means no stable block
     // is claimed, and nothing is marked. Failing to "no caching" is free; claiming a prefix that
     // moves is not.
+    // MEASURED 11 Aug 2026, AFTER THE CAP: none of these three markers survives
+    // fn_agent_context_capped, because they sit in the standing head and that is what the wrapper
+    // trims. So cutAt is -1, stable_chars is 0, and NOTHING is claimed as cacheable any more.
+    // That costs nothing today — decision_policy.prompt_cache_enabled is false, set deliberately on
+    // 11 Aug because the read/write ratio was 0.115 against a 0.22 break-even, so ai_gateway ignores
+    // sys_stable entirely. Recorded rather than repaired: building a stable-prefix split for a
+    // switch that is off would be work with no payer, and the ratio has to be re-measured over a
+    // full week before that switch moves. If it is ever turned back on, this is the first thing to
+    // look at — agent_runs.counts->>'stable_chars' reads 0 on every agent_brain turn.
     const VOLATILE_AT = ['\n# LAYER 3 - LIVE OPERATIONAL STATE',
                          '\n# LAYER 4 - WHAT THIS ORGANIZATION HAS LEARNED',
                          '\n# YOUR OS OBJECTIVES, MEASURED'];
