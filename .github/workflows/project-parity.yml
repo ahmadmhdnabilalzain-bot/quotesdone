@@ -1,0 +1,32 @@
+# "Both projects" was a claim this estate made constantly and had never counted. On 2026-08-10 the
+# first count found 602 objects of drift: one table, six triggers, 127 cron jobs, four tables with
+# RLS off, and 464 SECURITY DEFINER functions that staging's anon role could execute and
+# production's could not.
+#
+# All of it is closed. This exists so it cannot silently come back.
+#
+# DAILY RATHER THAN PER-PR, deliberately. The check makes ~14 queries against both live projects;
+# running it on every pull request would add live-database latency to every review and give the same
+# answer forty times a day. Drift arrives from applying SQL by hand, not from merging a branch, so a
+# daily read is the right cadence for what actually causes it.
+name: project parity
+
+on:
+  schedule:
+    - cron: '41 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  parity:
+    name: production and staging hold the same objects
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # No npm install: the check uses fetch and node:fs only.
+      - name: Compare the two projects
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/checks/project_parity.mjs
