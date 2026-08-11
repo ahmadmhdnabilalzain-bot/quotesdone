@@ -1,5 +1,5 @@
 
-UI closure: 32 browser-reachable edge function(s), 165 of 826 routine(s), 34 view(s)
+UI closure: 32 browser-reachable edge function(s), 165 of 828 routine(s), 34 view(s)
 
 SPEC FILE #3 — the executive UI (OS 2.txt), scored against htdblwldjkcgjvmqkbeh
 
@@ -12,7 +12,7 @@ MET     twin-realtime-updates              13 of 13 twin classes are both publis
 MET     exec-intel-narrative-insight       2 lobby surface(s) render a prose key (OsxShell,Overview); the value behind it right now is "Company health is 65.8 of 1
 MET     exec-intel-quantified-recommendation 7 of 7 officer(s) with a report in 14d carry a numeric recommendation (confidence excluded); 0 filed an empty recommenda
 MET     employee-current-goal              93 of 93 active employee(s) are handed a goal by fn_ws_agent_ops; AgentDrawer renders 2 goal key(s) (goal,objective); me
-MISSING employee-knowledge-used            21 of 33 employee(s) who decided something in 7d have no knowledge-usage record in that window; kb_usage_log holds 93 ro
+MISSING employee-knowledge-used            21 of 33 employee(s) who decided something in 7d have no knowledge-usage record in that window; kb_usage_log holds 97 ro
 MISSING employee-performance-trend         12 of 93 active employee(s) have more than one performance observation in 90d in a REACHABLE source; employee_kpi gives 
 MET     exec-meeting-weekly-autostart      exec_meeting_weekly (0 5 * * 1, active true); last succeeded 2026-08-10 05:00:02 after 2 run(s); ceo report(s) written w
 MET     exec-meeting-ten-participants      10 of 10 active operating system(s) contributed to the meeting of 2026-08-10 05:00:00 (12 agenda item(s), 0 with no owne
@@ -24,7 +24,7 @@ MET     company-brain-one-page-graph       829 node(s) and 644 edge(s), rebuilt 
 MET     company-brain-navigate-by-relationship RecordDrawer hops through a compiled-in map of 23 entity key(s), with an unbounded stack: true; graph_edges holds 644 re
 MISSING time-machine-scrub                 1 of 3 horizons have a snapshot — last week true, last month false, six months ago false; company_snapshot holds 14 day(
 MISSING time-machine-restores-six-dimensions 5 of 6 dimensions are non-null on ALL 13 snapshot(s) of the last 14 days — KPIs 13, employees 13, knowledge 13, decision
-MET     future-simulator-forward-questions 4 of 4 named question classes appear in scenario_library (19 scenarios) — pricing change 1, vendor cost shock 1, channel
+MET     future-simulator-forward-questions 4 of 4 named question classes appear in scenario_library (32 scenarios) — pricing change 2, vendor cost shock 1, channel
 
 --- layers_9_15 ---
 MET     genome-eleven-attributes-stored    11 of 11 attributes are written down across 56 rows in 7 genome stores; absent: none
@@ -34,12 +34,12 @@ MET     consciousness-unprompted           company_reflect_nightly (30 21 * * *,
 MET     companion-overnight-brief          8 of 8 figures in the newest brief (2026-08-11 04:30:00); absent: none | the brief text reaches the browser: true
 MET     evolution-proposes-structure       8 of 8 domains covered by 54 proposal(s) in the last 90 days (newest 2026-08-10 06:08:52); absent: none | named by 8 rou
 MET     command-center-six-boards          <Console> (module 'console') is the fullest of 31 sidebar modules: 6 of 6 boards; absent there: none | the six sources e
-MISSING personalization-learns-founder-habits 0 candidate founder-behaviour store(s) among 418 public tables (none); UI-reachable reader: false; the OS shell persists
+MISSING personalization-learns-founder-habits 0 candidate founder-behaviour store(s) among 420 public tables (none); UI-reachable reader: false; the OS shell persists
 MET     personalization-governance-unchanged 0 personalization store(s); 0 routine(s) both read one and write governance_rule/governance_policy/policy_rules/control_
 MET     explain-why                        61 of 61 surfaced action(s) show a reason: assistant 8/8, escalations 8/8, governance 15/15, operations 30/30 | shown ke
 MET     explain-who-initiated              61 of 61 surfaced action(s) show an initiator: assistant 8/8, escalations 8/8, governance 15/15, operations 30/30 | show
 MET     explain-owning-os                  61 of 61 surfaced action(s) show an owning Operating System: assistant 8/8, escalations 8/8, governance 15/15, operation
-MISSING explain-knowledge-used             399 of 447 decisions in the last 7 days name the knowledge that fed them (decision_log.sources or decision_trace.knowled
+MISSING explain-knowledge-used             405 of 451 decisions in the last 7 days name the knowledge that fed them (decision_log.sources or decision_trace.knowled
 MET     explain-policies-applied           61 of 61 surfaced action(s) show the policies applied: assistant 8/8, escalations 8/8, governance 15/15, operations 30/3
 MISSING explain-alternatives-considered    10 of 61 surfaced action(s) show the alternatives considered: assistant 0/8, escalations 8/8, governance 0/15, operation
 MET     explain-confidence-score           61 of 61 surfaced action(s) show a confidence score: assistant 8/8, escalations 8/8, governance 15/15, operations 30/30 
@@ -60,14 +60,14 @@ MISSING intel-customer-behavior            ui: no rendered component names it (0
 MET     intel-ai-spending                  ui: IntelligenceApp() OsxShell.tsx:2876 renders it and carries 8 of the 9 intelligence items (risks+opportunities+predic
 MET     intel-growth-probability           ui: IntelligenceApp() OsxShell.tsx:2876 renders it and carries 8 of the 9 intelligence items (risks+opportunities+predic
 MET     company-memory-search-anything     ui: 3 reference(s) to the search action anywhere in src/ | db: fn_os_search spans 9 of 9 corpora (kb_chunks,institutiona
-MET     company-memory-decisions-by-topic  ui: 1 control(s) pass a topic or subject to a query | db: 1505 decision(s) across 6 kind(s) and 57 actor(s); browser-rea
+MET     company-memory-decisions-by-topic  ui: 1 control(s) pass a topic or subject to a query | db: 1511 decision(s) across 6 kind(s) and 57 actor(s); browser-rea
 MET     company-memory-why-rejected        ui: 5 rendered rejection-reason field(s) in the OS surface | db: decision_record 11 row(s) read by fn_agent_context,fn_o
-MET     company-memory-when-changed        ui: AuditLog renders 3 dated field(s) and 2 subject filter control(s) | db: undo_log 13854 change(s) over 11 table(s), r
-MET     company-memory-lessons-by-period   ui: 20 lesson field(s) rendered in the OS surface | db: 373 lesson(s) spanning 2026-07-26..2026-08-11, browser-reachable
+MET     company-memory-when-changed        ui: AuditLog renders 3 dated field(s) and 2 subject filter control(s) | db: undo_log 14162 change(s) over 11 table(s), r
+MET     company-memory-lessons-by-period   ui: 20 lesson field(s) rendered in the OS surface | db: 375 lesson(s) spanning 2026-07-26..2026-08-11, browser-reachable
 MET     command-palette-ctrl-k             ui: (meta||ctrl)+k handler at OsxShell.tsx:242 toggles the palette 1x, 1 window keydown listener(s), CommandDialog bound
 MET     command-palette-everything-searchable ui: the palette lists 31 module(s) plus 8 fixed item(s); 2 entity-search reference(s); 4 of 4 spec verbs (Approve, Resta
-MET     notifications-grouped-four-tiers   ui: NotificationsBell renders 4 of 4 named tiers and 8 tier count(s) | db: notifications holds 395 row(s) with 0 severit
-MET     notifications-auto-handled-share   ui: 2 rendered auto-handled share(s) in the OS surface | db: 97% of 1360 agent actions in 30d were not escalated, 1 brow
+MET     notifications-grouped-four-tiers   ui: NotificationsBell renders 4 of 4 named tiers and 8 tier count(s) | db: notifications holds 396 row(s) with 0 severit
+MET     notifications-auto-handled-share   ui: 2 rendered auto-handled share(s) in the OS surface | db: 97% of 1364 agent actions in 30d were not escalated, 1 brow
 MISSING company-map-entities               ui: 9 map surface(s) in the OS console | db: graph_nodes 829 node(s) of kind category/department/employee/goal/knowledge
 MET     company-map-click-zoom-explore     ui: 1 map module(s) among the 31 sidebar modules; the only canvas-ish component (NodeField.tsx) carries 22 zoom/pan hand
 MET     what-if-scenario-input             ui: 2 simulation action(s) among os_api's 73 routable actions, 20 scenario input(s) in the OS console | db: fn_what_if(p
@@ -111,20 +111,20 @@ MET     employee-workload                  workload key(s) in the employee works
 MET     employee-upcoming-plans            forward-looking key(s) in the employee workspace: goal goal_source objective plans; department_objective holds 83 row(s)
 MISSING employee-learning-progress         learning key(s) in the employee workspace: none; 93 of 93 active employee(s) have fewer than two dated exam results, so 
 MET     company-timeline-chronological     4 browser-reachable routine(s) return company_event without being handed an entity, of 7 reachable reader(s) and 29 name
-MET     company-timeline-nothing-hidden    20 of 20 distinct company_event class(es) reach a company-scoped surface; event_rollup holds 926 row(s) with 1 browser-r
+MET     company-timeline-nothing-hidden    20 of 20 distinct company_event class(es) reach a company-scoped surface; event_rollup holds 934 row(s) with 1 browser-r
 MET     mission-control-os-nodes           Operating-System key(s) rendered in src/: operating_systems os_key; a surface named for mission control: true; 10 active
 MET     mission-control-flow-animation     4 component(s) draw connections [AreaSpark AgentsApp MiniLine OsFlowMap], 1 of those animate [OsFlowMap], 1 of those are
 MET     digital-twin-department-health     25 of 25 department(s) carry a health value in v_department_health, with 2 browser-reachable reader(s) of 4 namers; v_di
 MET     digital-twin-employee-workload     0 of 93 active employee(s) carry no active employee_kpi row; employee_kpi holds 124 row(s) last written 2026-08-11 with 
-MET     digital-twin-live-kpis             0 of 14 active metric(s) have no snapshot inside 24h (metric_snapshot holds 154 rows, newest 2026-08-11 12:35:00); brows
+MET     digital-twin-live-kpis             0 of 14 active metric(s) have no snapshot inside 24h (metric_snapshot holds 168 rows, newest 2026-08-11 18:35:00); brows
 MET     digital-twin-pressure-visible      3 component(s) render a pressure figure [Overview AgentDrawer IntelligenceApp], 1 of those on a visual intensity channel
 MET     approval-center-decision-inbox     8 decision surface(s) bind approve and reject to a row id [Escalations SuppliersApp AgentDrawer ReviewDrawer RefundDrawe
 MET     approval-center-five-decision-kinds 5 of 5 named decision kind(s) have ever reached a founder-decidable state: marketing budget=1, supplier suspension=1, ne
-MET     approval-center-everything-else-automatic 57 of 1359 agent action(s) in 30d paused for the founder (4.2%), and 25 of 839 org_tasks flagged needs_founder (3.0%); c
+MET     approval-center-everything-else-automatic 57 of 1364 agent action(s) in 30d paused for the founder (4.2%), and 25 of 839 org_tasks flagged needs_founder (3.0%); c
 
 --- sections_21_40 ---
 MET     s21-events-nine-classes            9 of 9 named event class(es) are emitted; missing: none; the bus carried 217 event(s)/24h across 20 type(s) ever, while 
-MISSING s21-no-polling                     trigger on company_event hands events to the dispatcher: true; median delivery lag 515s over 1648 deliver(ies)/7d; 169 a
+MISSING s21-no-polling                     trigger on company_event hands events to the dispatcher: true; median delivery lag 514s over 1656 deliver(ies)/7d; 169 a
 MISSING s22-graph-navigation               4 of 9 chain class(es) exist as node kinds (missing: campaign, customer, quote, revenue, rfq), 1 of 8 hop(s) exist as ed
 MISSING s23-reallocation-three-classes     0 of 3 named resource class(es) moved in 62d; missing: AI compute to higher-value tasks, marketing budget to channels, s
 MET     s23-reallocation-policy-cited      12 reallocation(s)/62d, 0 citing no policy and 0 moving nothing; 1 distinct policy text(s); cron last ok 2026-08-01 08:0
@@ -140,10 +140,10 @@ MET     s26-negotiate-limits               1 negotiation policy row(s) with 2 ro
 MET     s26-recommend-onboarding           30 invitation(s) sent in 7d against 40 planned; newest schedule row 2026-08-07; invite cron last ok 2026-08-11 09:00:01;
 MET     s27-knowledge-seven-fields         7 of 7 metadata field(s) present on EVERY one of 2042 agent_knowledge row(s); missing or partial: none; on kb_chunks (95
 MET     s27-stale-warning                  0 knowledge item(s) past review_due of 2042 dated and 2042 total; the retrieval path attaches a staleness warning: false
-MET     s28-decisions-with-outcomes        373 institutional memor(ies)/30d of which 0 record no consequence; outcome_record holds 66 open outcome(s), 0 observed, 
+MET     s28-decisions-with-outcomes        375 institutional memor(ies)/30d of which 0 record no consequence; outcome_record holds 66 open outcome(s), 0 observed, 
 MET     s28-blocks-repeat-failures         1 of 5 decision-path routine(s) consult institutional_memory, outcome_record or org_memory before deciding; the memory h
 MISSING s29-scan-five-questions            4 of 5 question class(es) appear among 14 opportunit(ies)/90d; missing: rising keywords; kinds on file: competitive_gap,
-MET     s29-opportunities-auto-created     14 opportunit(ies) detected in 14d, 14 on file (newest 2026-08-10, 14 still open), 0 with no detector named; payload car
+MET     s29-opportunities-auto-created     5 opportunit(ies) detected in 14d, 14 on file (newest 2026-08-10, 14 still open), 0 with no detector named; payload carr
 MET     s30-marketplace-single-score       marketplace_health = 44.8 band unhealthy measured 2026-08-11; payload carries /marketplace[_ ]health/: true, unexecutabl
 MISSING s30-marketplace-eight-inputs       5 of 8 named input(s) carry a non-null value in the newest marketplace_health row; missing: churn, customer satisfaction
 MET     s31-energy-five-measures           5 of 5 named measure(s) carry a non-null value; missing: none; score 91.7 band high measured 2026-08-11
@@ -156,10 +156,10 @@ MISSING s34-stress-six-scenarios           0 of 6 named scenario(s) exist and we
 MET     s34-resilience-measured            16 of 16 critical capabilit(ies) carry a verdict from the last 30 days; continuity_plan holds 13 service(s), 0 tested in
 MET     s35-restructure-four-questions     4 of 4 structural question(s) appear among 54 proposal(s)/180d; missing: none; trigger kinds on file: audit_gap, cost_an
 MET     s35-proposals-evidence-backed      54 of 54 proposal(s)/180d carry both evidence and an observation; 53 of 54 are still awaiting a decision and 0 name a de
-MISSING s36-recommendation-seven-fields    3 of 7 field(s) present on EVERY one of 1260 recommendation(s)/30d; missing or partial: alternatives, assumptions, cost,
+MISSING s36-recommendation-seven-fields    3 of 7 field(s) present on EVERY one of 1263 recommendation(s)/30d; missing or partial: alternatives, assumptions, cost,
 MET     s37-benchmark-six-tracks           6 of 6 competitor track(s) are structured or freshly evidenced; missing: none; competitor holds 27 record(s), 27 verifie
 MET     s37-benchmark-monthly-report       1 of 147 report(s)/40d name a competitor from the roster of 27; market_intel holds 0 row(s); monthly cron last ok 2026-0
-MET     s38-manual-self-documenting        4 of 4 documented categor(ies); missing: none; undocumented rows — 0 of 14 workflow(s), 0 of 16 polic(ies), 0 of 29 deci
+MET     s38-manual-self-documenting        4 of 4 documented categor(ies); missing: none; undocumented rows — 0 of 19 workflow(s), 0 of 16 polic(ies), 0 of 29 deci
 MISSING s38-manual-always-current          3 active cron job(s) are undocumented and 0 documented job(s) no longer exist, against 169 active job(s) and 183 registr
 MET     s39-governance-six-monitors        6 of 6 governance monitor(s) have an active cron that succeeded in 14d; missing: none; the sources hold governance_polic
 MET     s39-governance-can-pause           4 live routine(s) can stop automation (scheduler change, autonomy flag or halt verdict); 2597 control change(s) recorded
