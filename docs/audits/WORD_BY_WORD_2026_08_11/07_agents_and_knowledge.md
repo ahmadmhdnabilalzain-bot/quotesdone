@@ -141,29 +141,44 @@ gateway, etc.)" (ABSENT — no ERP, no CRM integration exists).
 
 ---
 
-## §4 — The layered knowledge architecture (L534–L543) — **CONTRADICTED**
+## §4 — The layered knowledge architecture (L534–L543) — **PARTIAL**
 
 > "Don't create 20 isolated knowledge bases. Instead, build a layered knowledge architecture:
 > Layer 1 – Company Core … Layer 2 – Department … Layer 3 – Live Business Data … Layer 4 – External"
 
-`agent_knowledge.layer` **does** have exactly four values, which is why a shape check would pass it.
-They are not the four the contract names:
+**This verdict was wrong on first pass and is corrected here.** Reading `agent_knowledge.layer`
+shows four values — `profession` (1,959), `company` (46), `experience` (33), `state` (2) — none of
+which are the contract's four, and that reads as CONTRADICTED. It is the wrong place to look. The
+layering is not a storage column; it is **assembled at prompt time** by
+`fn_agent_context(p_agent_key, p_max_chars[, p_query])`, whose own section headers are:
 
-| spec layer | production layer | rows | distinct agent_keys |
-|---|---|---|---|
-| Layer 1 Company Core | `company` | 46 | 1 |
-| Layer 2 Department | — **ABSENT** | — | — |
-| Layer 3 Live Business Data | — **ABSENT** | — | — |
-| Layer 4 External | — **ABSENT** | — | — |
-| (not in spec) | `profession` | 1,959 | 234 |
-| (not in spec) | `experience` | 33 | 12 |
-| (not in spec) | `state` | 2 | 1 |
+| spec layer | header emitted by `fn_agent_context` | source table | rows | verdict |
+|---|---|---|---|---|
+| Layer 1 Company Core | `# LAYER 1 - COMPANY KNOWLEDGE (authoritative; pricing marked LIVE overrides any other figure)` | `agent_knowledge` layer=`company` | 46 | PRESENT |
+| Layer 2 Department | `# LAYER 2 - YOUR PROFESSIONAL EXPERTISE` + `# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY` + `# LAYER 2c - HOW THIS COMPANY OPERATES` | `agent_knowledge` layer=`profession`, `dept_library`, `ops_knowledge` | 1,959 / 1,456 / 3,959 | PARTIAL — see the arity defect below |
+| Layer 3 Live Business Data | `# LAYER 3 - LIVE OPERATIONAL STATE` (with an explicit `unavailable` branch) | live queries | — | PRESENT |
+| Layer 4 External | `# LAYER 4 - WHAT THIS ORGANIZATION HAS LEARNED` | internal lessons | — | **CONTRADICTED** |
 
-**CONTRADICTED, and the count is the trap.** "4 layers exist" is true and meaningless. 96% of the
-rows sit in a `profession` layer the contract never names, keyed by 234 distinct `agent_key`s
-against an org of 94 employees — **141 of those keys resolve to no employee** (they are `cat:*`
-category keys and `_global`). The contract's explicit instruction was to avoid isolated per-domain
-knowledge bases; `profession` + 234 keys is precisely a per-domain knowledge base per category.
+**The Layer 4 contradiction.** The contract's Layer 4 is *"External Knowledge: UAE regulations,
+industry standards, manufacturer catalogs, and other authoritative external sources."* The code's
+Layer 4 is the company's **own internal learnings** — the opposite direction. The external stores
+exist and are populated: `regulations` 17, `reg_catalog` 38, `compliance_sources` 17,
+`mdm_standards` 22, `mdm_manufacturers` 22, `supplier_catalog` 2. **`fn_agent_context` references
+none of them** (verified by matching each table name against the function body). 118 rows of
+external authority are held and never delivered to a single employee.
+
+**The Layer 2 arity defect — the sharper finding.** Layers 2b and 2c only exist in the **3-argument
+overload**, which calls the 2-argument one and then appends the department library and the company's
+operating knowledge. Both overloads are live in production
+(`fn_agent_context(text,integer)` 34,892 bytes and `fn_agent_context(text,integer,text)` 2,394
+bytes). Across the repo, **9 of 11 callsites pass no `p_query` and therefore receive no department
+layer at all** — only 2 do. So the department layer is built, correct, and skipped by 82% of callers.
+
+**On "Don't create 20 isolated knowledge bases":** the instruction is honoured in shape — there is
+one assembly path, not 20 stores. But `agent_knowledge` layer=`profession` is keyed by **234
+distinct `agent_key`s against an org of 94**, of which **141 resolve to no employee** (they are
+`cat:<category>` keys and `_global`). That is a per-category knowledge base in all but name, and it
+is the thing the sentence was written to prevent.
 
 ---
 
@@ -494,7 +509,9 @@ The brief's figures for two of these (`ai_quality_snapshots` 754/1,066 and `agen
 ## Carried forward to the contradictions register
 
 1. `dept_key='knowledge'` names "Administration & Operations" (§1 #11).
-2. The 4-layer knowledge architecture has four layers, none of them the four specified (§4).
+2. Layer 4 is implemented as internal learnings where the contract specifies external authority; 118
+   rows across `regulations`, `mdm_standards` and `mdm_manufacturers` reach no employee (§4).
+   Separately, 9 of 11 callsites drop the department layer by calling the 2-argument overload.
 3. `model_policy_by_identity`: 96 dead rows (§16).
 4. The observability trace cannot be produced (§15).
 5. `fn_scenario_run` verifies staffing and is read as scenario coverage (§11).
