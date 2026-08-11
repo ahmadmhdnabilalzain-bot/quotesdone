@@ -2,16 +2,21 @@
 // and print the JSON result.  Read-only by convention: the caller is responsible
 // for wrapping anything destructive in an aborted transaction.
 //
-//   node scripts/qsql.mjs path/to/file.sql
+//   node scripts/qsql.mjs path/to/file.sql              # production (default)
+//   node scripts/qsql.mjs path/to/file.sql --ref=<ref>  # any project, e.g. staging
+//
+// The --ref form exists because "verify by measurement" means BOTH projects, and this reader was
+// production-only: staging could only be read through qd_guard from inside another script.
 //
 // Token: %USERPROFILE%\.supabase\access-token or SUPABASE_ACCESS_TOKEN.
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
-const PROJECT_REF = 'htdblwldjkcgjvmqkbeh';
-const file = process.argv[2];
-if (!file) { console.error('usage: node scripts/qsql.mjs <file.sql>'); process.exit(2); }
+const args = process.argv.slice(2);
+const PROJECT_REF = (args.find(a => a.startsWith('--ref='))|| '').slice(6) || 'htdblwldjkcgjvmqkbeh';
+const file = args.find(a => !a.startsWith('--'));
+if (!file) { console.error('usage: node scripts/qsql.mjs <file.sql> [--ref=<ref>]'); process.exit(2); }
 
 function token() {
   if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN.trim();
