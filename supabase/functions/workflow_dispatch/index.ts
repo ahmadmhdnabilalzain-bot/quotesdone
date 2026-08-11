@@ -144,8 +144,23 @@ Deno.serve(async (req: Request) => {
         + 'what routes the next step to a stronger or a cheaper model.'
         + '\n\nYOUR CONTEXT:\n' + brain.slice(0, 9000);
 
+      // WHAT THIS RUN HAS ALREADY CONCLUDED (11 Aug 2026). Without it the process does not
+      // accumulate: on the first metric_lifecycle run, forecast_analyst answered step 3 with no
+      // sight of what intel_director had just concluded in step 2, and six independent essays about
+      // one metric is not a process. fn_workflow_step_claim supplies the last three finished steps
+      // — conclusion only, not the 4,000-character body — so this applies to any caller of the
+      // queue rather than to this function alone.
+      const prior = Array.isArray(s.prior_steps) ? s.prior_steps as Record<string, unknown>[] : [];
+      const priorText = prior.length
+        ? 'WHAT THIS PROCESS HAS ALREADY CONCLUDED, in order — build on it, do not repeat it, and '
+          + 'say so plainly if you disagree with a colleague\'s conclusion:\n'
+          + prior.map((p) => '  step ' + String(p.step_no) + ' (' + String(p.by) + ') "'
+              + String(p.step) + '" → ' + String(p.outcome)).join('\n') + '\n'
+        : 'You are the first step of this process to produce anything.\n';
+
       const user = 'PROCESS: ' + wfName + '\n'
         + 'STEP ' + String(s.step_no) + ': ' + stepText + '\n'
+        + priorText
         + (s.gate && s.gate !== 'none' ? 'THIS STEP IS GATED (' + String(s.gate) + '): your output is a '
             + 'recommendation for that gate, not the decision itself.\n' : '')
         + (s.addressed_as && s.addressed_as !== employee

@@ -1,5 +1,5 @@
 {
-  "why": "Production cron jobs deliberately NOT scheduled on staging. Regenerate only when the decision changes: the company’s own work is a model call each and staging has no business to run; backup and dropbox jobs write to a SHARED external account; scheduling the outbound jobs would make a feature flag the only thing between a rehearsal and a real supplier’s phone. A production cron NOT in this list and NOT on staging is unintended drift and fails project_parity.mjs.",
+  "why": "Production cron jobs deliberately NOT scheduled on staging. Regenerate only when the decision changes: the company’s own work is a model call each and staging has no business to run; backup and dropbox jobs write to a SHARED external account; scheduling the outbound jobs would make a feature flag the only thing between a rehearsal and a real supplier’s phone. A production cron NOT in this list and NOT on staging is unintended drift and fails project_parity.mjs. ADDED 2026-08-11: ai_health_15min, uptime_check_15min, money_tests_daily and qa_suite_daily. These four were SCHEDULED on staging and posted to PRODUCTION URLs — production already runs all four itself on identical schedules, so they were the same job fired twice at the same minute, letting a staging schedule drive production behaviour (97 and 96 successful invocations respectively, all HTTP 200). Measured before removal: no duplicate rows (health_checks takes 5/hour regardless) and no model spend (zero ai_cost_log entries in 7d). Production accepts them because both projects hold byte-identical internal credentials — that is escalated, not fixed here.",
   "decided": "2026-08-10",
   "jobs": [
     "agent_compliance_weekly",
@@ -12,6 +12,7 @@
     "agent_security_hourly",
     "agent_silence_watch_daily",
     "agent_supply_health_daily",
+    "ai_health_15min",
     "ai_quality_watch_daily",
     "ai_trainer_daily",
     "archive_completed_daily",
@@ -84,6 +85,7 @@
     "meta_sync_daily",
     "model_autoswitch_daily",
     "model_benchmark_daily",
+    "money_tests_daily",
     "no_quote_nudges",
     "operations_ai_daily",
     "opportunity_scan_daily",
@@ -92,6 +94,7 @@
     "os_review_weekly",
     "outcome_evaluate_daily",
     "pending_suppliers_digest",
+    "qa_suite_daily",
     "quarterly_report",
     "reallocate_monthly",
     "reporting_ai_daily",
@@ -112,6 +115,7 @@
     "supplier_success_daily",
     "supply_gap_scan_daily",
     "task_approve_hourly",
+    "uptime_check_15min",
     "vt_scan_daily",
     "wa_flush",
     "watch_health_daily"

@@ -2661,6 +2661,10 @@ function CompanyOsApp() {
   const opportunity = (d?.opportunity || []) as any[]; const queues = d?.strategic_queues || {};
   const institutional = d?.institutional_memory || {}; const resilience = d?.resilience || {};
   const operating_manual = d?.operating_manual || {}; const events = d?.events || {};
+  // WHAT THE COMPANY'S PROCESSES ACTUALLY PRODUCED. Until this reader existed, the only routines
+  // touching workflow_step_run.output were the two that write it — so every deliverable an employee
+  // produced performing a company process was stored and read by nobody.
+  const process_work = (d?.process_work || []) as any[];
   const TABS: [any, string][] = [['os', 'Mission control'], ['map', 'Company map'], ['live', 'Live company'], ['board', 'Board'],
     ['strategy', 'Strategic queue'], ['resilience', 'Resilience'], ['manual', 'Operating manual']];
 
@@ -2671,8 +2675,30 @@ function CompanyOsApp() {
       ['Operating systems', systems.length],
       ['Graph nodes', graph.node_count], ['Graph edges', graph.edge_count],
       ['Events 7d', events.last_7d], ['Lessons on file', institutional.lessons],
-      ['Runbooks', operating_manual.runbooks],
+      ['Runbooks', operating_manual.runbooks], ['Process work 14d', process_work.length],
     ]} />
+
+    {process_work.length ? <SectionCard title='What the company’s processes produced' count={process_work.length}
+      right={<span className='text-[11px] text-muted-foreground'>step(s) an employee completed in 14 days — the outcome each closed on</span>}>
+      <div className='divide-y divide-border'>{process_work.slice(0, 12).map((p: any, i: number) => (
+        <div key={i} className='px-4 py-3 text-sm'>
+          <div className='flex items-center gap-2 flex-wrap'>
+            <span className='font-medium'>{p.workflow}</span>
+            <span className='text-[11px] text-muted-foreground'>step {p.step_no} · {p.step}</span>
+            <Chip label={titleCase(String(p.employee || ''))} tone='slate' />
+            {p.confidence != null
+              ? <Chip label={'confidence ' + p.confidence}
+                      tone={Number(p.confidence) >= 0.7 ? 'green' : Number(p.confidence) >= 0.4 ? 'amber' : 'red'} />
+              : null}
+            <span className='text-[11px] text-muted-foreground ml-auto'>{fmt(p.at)}</span>
+          </div>
+          <div className='mt-1'>{p.outcome || '—'}</div>
+          <div className='text-[11px] text-muted-foreground mt-0.5'>
+            {p.chars ? p.chars.toLocaleString() + ' characters of working' : null}
+            {p.mode === 'advisory' ? ' · advisory: a determination, not a side effect' : null}
+          </div>
+        </div>))}</div>
+    </SectionCard> : null}
     <div className='inline-flex rounded-md border border-border overflow-hidden text-xs'>{TABS.map(([k, lbl]) => (
       <button key={k} onClick={() => setTab(k)} className={cn('h-7 px-3 border-l first:border-l-0 border-border', tab === k ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}>{lbl}</button>))}</div>
 
