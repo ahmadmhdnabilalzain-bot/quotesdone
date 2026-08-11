@@ -28,7 +28,7 @@ const remaining = async () => Number((await q(
   `select count(*) n from public.kb_chunks where embedding_gte is null
     and source_kind in (${KINDS.map(k => `'${k.replace(/'/g, "''")}'`).join(',')})`))[0].n);
 
-const secret = (await q(`select value from public.app_secrets where key='cred_fn_cos_execute'`))[0].value;
+const secret = (await q(`select value from public.app_secrets where key='cred_cron_knowledge'`))[0].value;
 
 let before = await remaining();
 console.log(`unembedded in [${KINDS.join(', ')}]: ${before}`);
