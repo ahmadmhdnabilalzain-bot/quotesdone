@@ -1,0 +1,201 @@
+{
+ "inq1": "c133da16-c4cb-407d-8044-19faa7e38455",
+ "inq2": "0a8dcce6-198d-4c64-9dca-96426831cabb",
+ "txn": "9f19299d-ccbd-4c09-a3d1-6d4ab358d2ce",
+ "pass": 32,
+ "fail": 0,
+ "results": [
+  {
+   "step": "supplier_onboarding — 12 synthetic suppliers approved",
+   "ok": true,
+   "measured": 12,
+   "expected": "12"
+  },
+  {
+   "step": "supplier approved event fired (fn_emit_supplier_approved)",
+   "ok": true,
+   "measured": 36,
+   "expected": "> 0"
+  },
+  {
+   "step": "1. RFQ created",
+   "ok": true,
+   "measured": "inquiry c133da16",
+   "expected": "a uuid"
+  },
+  {
+   "step": "   rfq_no assigned by the sequence",
+   "ok": true,
+   "measured": 88304,
+   "expected": "> 0"
+  },
+  {
+   "step": "   inquiry event emitted (trg_event_inquiry)",
+   "ok": true,
+   "measured": 2,
+   "expected": "> 0"
+  },
+  {
+   "step": "2. BOQ analysed — lines carried on the inquiry",
+   "ok": true,
+   "measured": 4,
+   "expected": "4"
+  },
+  {
+   "step": "3. qualified — completeness computed by trg_rfq_complete",
+   "ok": true,
+   "measured": "{\"have\": [\"category\", \"emirate\", \"scope_detail\", \"scope_type",
+   "expected": "non-null"
+  },
+  {
+   "step": "   rfq_ready set",
+   "ok": true,
+   "measured": "true",
+   "expected": "true"
+  },
+  {
+   "step": "4. suppliers matched (match -> match_suppliers_kw)",
+   "ok": true,
+   "measured": "12 (HTTP 200)",
+   "expected": "> 0"
+  },
+  {
+   "step": "   NO REAL LEAD MATCHED (containment invariant)",
+   "ok": true,
+   "measured": 0,
+   "expected": "0"
+  },
+  {
+   "step": "   12 suppliers on the inquiry (spec trace)",
+   "ok": true,
+   "measured": 12,
+   "expected": "12"
+  },
+  {
+   "step": "5. invitations queued to demo suppliers",
+   "ok": true,
+   "measured": 13,
+   "expected": "> 0"
+  },
+  {
+   "step": "   NOTHING ESCAPED TO A REAL ADDRESS",
+   "ok": true,
+   "measured": 0,
+   "expected": "0"
+  },
+  {
+   "step": "6. 7 quotations received (spec trace)",
+   "ok": true,
+   "measured": 7,
+   "expected": "7"
+  },
+  {
+   "step": "   quote_items written (trg_quote_items_rescore fires)",
+   "ok": true,
+   "measured": 28,
+   "expected": "28"
+  },
+  {
+   "step": "   fn_quote_structured_score produced a structured score",
+   "ok": true,
+   "measured": 7,
+   "expected": "> 0"
+  },
+  {
+   "step": "   trg_quote_quality graded each quote",
+   "ok": true,
+   "measured": 7,
+   "expected": "7"
+  },
+  {
+   "step": "7. quotes ranked (quote_compare)",
+   "ok": true,
+   "measured": "HTTP 200 ok=true ",
+   "expected": "HTTP 200 AND ok:true"
+  },
+  {
+   "step": "   comparison persisted to qd_compare_cache",
+   "ok": true,
+   "measured": 1,
+   "expected": "> 0"
+  },
+  {
+   "step": "8. award recommendation produced",
+   "ok": true,
+   "measured": "{\"note\": \"no other supplier has priced this enquiry yet, so there is n",
+   "expected": "non-null"
+  },
+  {
+   "step": "reveal — transaction created",
+   "ok": true,
+   "measured": "9f19299d",
+   "expected": "a uuid"
+  },
+  {
+   "step": "   reveal fee computed (trg_reveal_window / reveal_fee)",
+   "ok": true,
+   "measured": "57375.00",
+   "expected": "> 0"
+  },
+  {
+   "step": "   refund deadline set by the reveal window",
+   "ok": true,
+   "measured": "2026-08-14 15:46:43.44287+00",
+   "expected": "non-null"
+  },
+  {
+   "step": "refund requested (fn_refund_request)",
+   "ok": true,
+   "measured": "{\"ok\": true, \"status\": \"requested\", \"refund_id\": 26, \"ceiling_aed\": 2000, \"auto_approved\":",
+   "expected": "a refund row"
+  },
+  {
+   "step": "   refund decided (fn_refund_decide)",
+   "ok": true,
+   "measured": "approved",
+   "expected": "moved off requested"
+  },
+  {
+   "step": "reviews written",
+   "ok": true,
+   "measured": 3,
+   "expected": "3"
+  },
+  {
+   "step": "   recompute_supplier_rating moved app_reviews",
+   "ok": true,
+   "measured": 1,
+   "expected": "> 0"
+  },
+  {
+   "step": "   fn_reputation_recompute ran",
+   "ok": true,
+   "measured": "ok",
+   "expected": "no error"
+  },
+  {
+   "step": "second RFQ created (incomplete brief)",
+   "ok": true,
+   "measured": "0a8dcce6",
+   "expected": "a uuid"
+  },
+  {
+   "step": "   incomplete brief is NOT marked rfq_ready",
+   "ok": true,
+   "measured": "false",
+   "expected": "false"
+  },
+  {
+   "step": "post-quote requirements change (fn_edit_inquiry, spec #7 L1351)",
+   "ok": true,
+   "measured": "{\"ok\": true, \"edited\": true, \"editable_until\": \"2026-08-11T16:46:48.577556+00:00\"}",
+   "expected": "accepted or an explicit refusal"
+  },
+  {
+   "step": "   the 3 existing quotes were handled, not silently kept valid",
+   "ok": true,
+   "measured": "before=3 still-live=3",
+   "expected": "recorded either way"
+  }
+ ]
+}
