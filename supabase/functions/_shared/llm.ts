@@ -154,7 +154,24 @@ export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) 
           sys, sys_stable: sysStable, input, max,
           temperature: def.temperature ?? null,
           confidence: def.confidence ?? null,
-          cache_ttl_min: def.cacheTtlMin ?? 0,
+          // THE SAME `?? 0` BUG, ONE LAYER UP (fixed 11 Aug 2026).
+          //
+          // ai_gateway was corrected on 9 Aug to fall back to model_policy.cache_ttl_min when the
+          // caller supplies nothing, and its comment records the intent: "the caller keeps the
+          // override and keeps precedence, which is what lets a call site that knows its own
+          // request is unrepeatable pass 0 and opt out."
+          //
+          // This line then sent an explicit 0 for EVERY caller. `0 ?? route.cache_ttl_min` is 0 —
+          // ?? only falls through on null/undefined, and 0 is neither. So every call through this
+          // module took the deliberate opt-out path without any binding asking for it, and the
+          // policy default it was supposed to inherit never applied. Measured 11 Aug: llm_cache
+          // held 1 row and 2 hits against 1,642 calls in seven days, with a cache_ttl_min set on
+          // all 61 model_policy rows.
+          //
+          // Omitting the key is the whole fix. A binding that genuinely wants to opt out still
+          // sets cacheTtlMin: 0 and still wins, because undefined is now the only thing that
+          // defers to policy.
+          ...(def.cacheTtlMin === undefined ? {} : { cache_ttl_min: def.cacheTtlMin }),
           try_faq: def.tryFaq === true,
           rate_key: def.rateKey ?? null,
           rate_limit: def.rateLimit ?? null,
