@@ -36,7 +36,12 @@ declare
     'cos_execute','dept_learn','dept_plan','doc_render','ea_meeting_summary','email_triage',
     'enrich_capability','exec_agents','gen_category_knowledge','gen_category_personas',
     'intent_router','kb_deepen','kb_research_test','knowledge_exam','learn_gaps','marketing_draft',
-    'messages_api','project_consultant','prompt_gate','reflect'];
+    'messages_api','project_consultant','prompt_gate','reflect',
+    -- workflow_dispatch added 11 Aug 2026, the employee side of the workflow engine. Named here for
+    -- the same reason action_worker was: the credential is issued at runtime by
+    -- scripts/sql/wiring_for_the_employee_side_of_the_engine.sql, and a rebuilt database that never
+    -- replayed that file would put every step deliberation back on the shared secret.
+    'workflow_dispatch'];
   c text; v jsonb; v_id bigint; v_has_secret boolean;
   n_widened int := 0; n_issued int := 0; n_rotated int := 0; n_noop int := 0; n_missing int;
 begin

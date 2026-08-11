@@ -33,7 +33,18 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
-const llm = makeLlm(SONNET_FIRST, { fn: 'action_worker', max: 1400, temperature: 0.2, timeoutMs: 70000 });
+// THE CEILING WAS 900, NOT THE 1400 SET HERE, AND IT WAS NEVER SONNET (measured 11 Aug 2026).
+// action_worker had no fn_task_class row, so ai_gateway defaulted it to general_drafting — medium
+// tier, haiku, max_tokens 900 — and min(caller, policy) made 1400 irrelevant. Of the 229 model
+// calls this function made in 14 days, 133 returned output_tokens EXACTLY 900. Not a distribution
+// with a tail on the ceiling: 58% of every deliverable this function has produced was cut off
+// mid-sentence, and MIN_CHARS=400 could not see it because 900 tokens is ~3,000 characters.
+//
+// The row now exists (agent_reasoning — an AI employee reasoning over its own context to decide,
+// which is exactly what this does). max is raised above that policy on purpose so
+// ai_gateway's min(caller, policy) always yields the policy, the same shape cos_execute and
+// agent_brain already use; deleting it is worse, because llm.ts falls back to `def.max ?? 700`.
+const llm = makeLlm(SONNET_FIRST, { fn: 'action_worker', max: 8000, temperature: 0.2, timeoutMs: 70000 });
 
 // Reused verbatim from cos_execute. See the header.
 const NOT_WORK = /(could not reach|couldn't reach|unable to reach|not reachable|ai_unreachable|ai (service|is) (unavailable|unreachable)|try again in a moment|no ai key|ai not reachable|service unavailable)/i;
@@ -108,7 +119,9 @@ Deno.serve(async (req: Request) => {
       + 'WHAT WAS ASKED OF YOU: ' + rec + '\n'
       + 'DETAIL: ' + JSON.stringify(row.detail ?? {}).slice(0, 1500);
 
-    const out = await llm(sys, user, 1400);
+    // SET TWICE, THE DOCUMENTED SHAPE: this per-call third argument overrides makeLlm's `max`, so
+    // raising only the constructor above would have changed nothing. Both are now above the policy.
+    const out = await llm(sys, user, 8000);
     const deliverable = (out ?? '').trim();
 
     if (!deliverable || deliverable.length < MIN_CHARS || NOT_WORK.test(deliverable)) {
