@@ -98,8 +98,17 @@ Ordered by consequence.
    198**.
 
 7. **96 of 418 tables are empty — the whole demand side.** `customers` 0, `inquiries` 0, `quotes` 0,
-   `transactions` 0, and **20,470 leads of which 6 are claimed and 0 approved**. Both portals are
-   fully built and neither has served its user. **No code change fixes this.**
+   `transactions` 0, and 20,470 leads of which **0 are really claimed and 0 approved**.
+
+   **Corrected 11 Aug after this report was first merged:** the "6 claimed" reported here were all
+   `ZZ DEMO — … (QuotesDone fixture, not a real company)` rows on `@example.invalid` addresses,
+   seeded 7–8 Aug. Real claimed suppliers is **zero**.
+
+   **The original wording — "No code change fixes this" — was wrong and is withdrawn.** An
+   unexercised path is a *testing gap*: seed a marked fixture set, drive the flow end to end, prove
+   it, tear it down. That is ordinary work and it is scheduled in
+   `docs/sessions/NEXT_SESSION_BRIEF_2026_08_12_REHEARSAL.md`. What genuinely cannot be fixed by
+   code is *real* demand — but proving the machinery works does not require it.
 
 8. **28,521 of 120,530 `kb_chunks` are byte-identical duplicates (23.7%)**, plus 1,197 in
    `ops_knowledge` (30%) and 675 duplicate supplier phone numbers. Directly contradicts spec #7

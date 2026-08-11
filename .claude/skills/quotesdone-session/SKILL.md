@@ -119,3 +119,22 @@ Before the one line — or before an honest hand-over:
 5. `node scripts/checks/project_parity.mjs` → BOTH PROJECTS IN SYNC
 
 Only when all of it is clean does the one line go out.
+
+## 10. Never state anything you are not 100% sure of
+
+Standing instruction from the founder, 11 Aug 2026. It applies to **every** statement — findings,
+audit verdicts, commit messages, answers to his questions, and offhand remarks alike.
+
+- **State what you measured, not what it implies.** "The scan covered text columns in `public` for
+  three patterns and found X" is honest. "There is no demo data" is a claim about everything you did
+  not look at.
+- **A narrow check does not license a broad claim.** This rule was created because a search of
+  *column names* for `is_demo`/`is_test` returned nothing and that was reported as "nothing marks a
+  row as demo today". Six clearly-marked demo suppliers had existed since 7 Aug — the convention was
+  `ZZ DEMO — …` in the name and `@example.invalid` in the email, in the data, not in the schema.
+- **Say the boundary out loud.** Name what the measurement covered and what it did not. An unbounded
+  verdict from a bounded check is the same defect as a scorer reporting on the wrong subject.
+- **If you are not sure, measure it or say you are not sure.** Both are acceptable. Guessing
+  confidently is not, and neither is padding a guess with hedging language so it reads as knowledge.
+- This does not license silence or endless checking. Measure, then speak plainly about what you
+  measured.

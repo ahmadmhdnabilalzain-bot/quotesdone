@@ -12,17 +12,25 @@ Audited 2026-08-11 13:50–14:25 UTC. No scorer run; verdicts are direct measure
 ## The single fact that governs both files
 
 ```
-leads         20,470      claimed        6      approved  0
+leads         20,470      really claimed 0      approved  0
 customers          0      inquiries      0      quotes    0
 ```
 
 **Both portals are built. Neither has ever served its user.** 20,470 leads is a scraped directory,
-not a supplier network: **6 suppliers have claimed a profile and none has been approved.** Every
-verdict below that says PARTIAL for a screen with real code behind it says so for this reason and
-no other, and that is stated once here rather than repeated 60 times.
+not a supplier network.
 
-This is not a defect in the portals. It is the reason the marketplace half of every other spec file
-is unexercised, and it is the one thing in this audit that code cannot fix.
+**Corrected 11 Aug after first merge:** this section originally read "6 suppliers have claimed a
+profile". All six are `ZZ DEMO — … (QuotesDone fixture, not a real company)` rows on
+`@example.invalid` addresses, seeded 7–8 Aug and still `approval_status = 'pending'`. **Real claimed
+suppliers is zero.**
+
+Every verdict below that says PARTIAL for a screen with real code behind it says so for this reason
+and no other, and that is stated once here rather than repeated 60 times.
+
+This is not a defect in the portals. **It is a testing gap, not an unfixable one** — the flow can be
+proved with a marked fixture set and torn down afterwards, which is scheduled in
+`docs/sessions/NEXT_SESSION_BRIEF_2026_08_12_REHEARSAL.md`. What code cannot manufacture is *real*
+demand; proving the machinery works does not need it.
 
 ---
 
