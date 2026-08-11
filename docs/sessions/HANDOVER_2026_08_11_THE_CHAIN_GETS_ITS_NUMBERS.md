@@ -159,8 +159,11 @@ becomes a trend rather than a point. That is required by the standard itself —
 them, learns from outcomes and failures, improves its methods" is unobservable without history — and
 it will pass the check legitimately on its second cron run, not its first.
 
-**Pack scorecard was NOT re-run on either project** — the rule forbids running it while the Row #3
-scorer runs, and the scorer was still running at hand-over.
+**Pack scorecard was NOT re-run on either project, and the stated reason matters.** It requires
+`--packs=<extracted packs dir>` — the six `QuotesDone_*_v2026.07.31.zip` files from `~/Downloads`
+extracted to a directory — and that directory does not exist in this working tree. It fails fast with
+`--ref and --packs are required`. Extract the six zips and run it on **both** refs; the last recorded
+values are INGESTED 100%, IN USE 37/37, RETRIEVABLE 46.6%. **I am not claiming those still hold.**
 
 ---
 
