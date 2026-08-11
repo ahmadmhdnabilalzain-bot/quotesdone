@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    let brain = ''; try { const { data } = await admin.rpc('fn_agent_context', { p_agent_key: 'designer', p_max_chars: 3000 }); brain = data ? String(data) : ''; } catch (_e) {}
+    let brain = ''; try { const { data } = await admin./* _capped: fn_agent_context ignores any p_max_chars below 22,000 (measured 11 Aug 2026: ask 3,000 get ~30,000), so the cap on this line was decorative and LAYER 2b/2c were never emitted without a query. */ rpc('fn_agent_context_capped', { p_agent_key: 'designer', p_max_chars: 3000 }); brain = data ? String(data) : ''; } catch (_e) {}
     const brandLine = 'Brand: QuotesDone, a modern UAE B2B marketplace. Visual style: clean, professional, trustworthy, tech-forward; teal/deep-green brand accent (#0E7C73) with crisp white space; UAE business context (offices, trades, SMEs) where relevant. Avoid clutter and stocky clichés. If the brief asks for a headline area, leave clean negative space for text to be added later — do not render long paragraphs of text.';
     const prompt = brandLine + (brain ? ('\n' + brain.slice(0, 1500)) : '') + '\n\nDesign request: ' + brief;
 

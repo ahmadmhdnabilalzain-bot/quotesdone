@@ -38,7 +38,7 @@ const PERSONAS: Record<string,string> = {
 };
 // map UI/persona keys -> agent_knowledge keys so each agent loads its own role knowledge (all also inherit _global)
 const KMAP: Record<string,string> = { finance:'cfo', cfo:'cfo', bookkeeper:'bookkeeper', it_health:'it', it:'it', bd_outreach:'bd', bd:'bd', doc_control:'docs', docs:'docs', compliance:'legal', legal:'legal', marketing:'marketing', security:'security', collections:'collections', brief:'brief', onboarding:'onboarding', followup:'followup', secretary:'secretary', crm:'crm', pricing:'pricing' };
-async function brainFor(agent: string){ try{ const key = KMAP[agent] || agent; const { data } = await admin.rpc('fn_agent_context', { p_agent_key: key, p_max_chars: 6500 }); return data ? String(data) : ''; }catch(_e){ return ''; } }
+async function brainFor(agent: string){ try{ const key = KMAP[agent] || agent; const { data } = await admin./* _capped: fn_agent_context ignores any p_max_chars below 22,000 (measured 11 Aug 2026: ask 3,000 get ~30,000), so the cap on this line was decorative and LAYER 2b/2c were never emitted without a query. */ rpc('fn_agent_context_capped', { p_agent_key: key, p_max_chars: 6500 }); return data ? String(data) : ''; }catch(_e){ return ''; } }
 const SAFE_DELETE = ['quote-files','drawing-files','supplier-docs','receipt-files','agent-docs'];
 const ALLOWED = ['resolve_action','dismiss_action','delete_file','add_note','draft_doc','approve_supplier','reject_supplier','send_message','create_task','post_content','ad_campaign'];
 

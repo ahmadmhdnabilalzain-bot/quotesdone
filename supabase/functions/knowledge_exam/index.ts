@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
 
     // 2) the agent's actual knowledge context (what it reasons from) + its DEEP corpus region
     const cat = key.startsWith('cat:') ? key.slice(4) : key;   // deep chunks are category-scoped to this slug
-    const { data: ctxRaw } = await admin.rpc('fn_agent_context', { p_agent_key: key, p_max_chars: 16000 });
+    const { data: ctxRaw } = await admin./* _capped: fn_agent_context ignores any p_max_chars below 22,000 (measured 11 Aug 2026: ask 3,000 get ~30,000), so the cap on this line was decorative and LAYER 2b/2c were never emitted without a query. */ rpc('fn_agent_context_capped', { p_agent_key: key, p_max_chars: 16000, p_query: cat });
     const kb = String(ctxRaw || '').slice(0, 16000);
     // Deep material for the examiner's remit — lets it write questions that probe true mastery.
     const remitDeep = await deepKb(label + ' UAE Dubai key materials standards authorities pricing', cat, 8);
