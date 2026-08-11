@@ -2,7 +2,12 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { PDFDocument, StandardFonts, rgb } from 'https://esm.sh/pdf-lib@1.17.1';
-import fontkit from 'https://esm.sh/@pdf-lib/fontkit@1.1.1';
+// The published fontkit.d.ts has no default export (TS1192) even though the CJS module esm.sh
+// serves does. Import the namespace and take .default when it is there, so the runtime value is
+// exactly what it was before and the types stop lying about it.
+import * as fontkitMod from 'https://esm.sh/@pdf-lib/fontkit@1.1.1';
+// deno-lint-ignore no-explicit-any
+const fontkit = ((fontkitMod as any).default ?? fontkitMod) as any;
 import bidiFactory from 'https://esm.sh/bidi-js@1.0.3';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const ASSET = Deno.env.get('SUPABASE_URL')! + '/storage/v1/object/public/brand';
@@ -157,7 +162,11 @@ Deno.serve(async (req) => {
     }
 
     const bytes = await pdf.save();
-    if (body.raw){ return new Response(bytes, { status:200, headers:{ 'Content-Type':'application/pdf', ...CORS } }); }
+    // ...CORS LAST WAS OVERWRITING THE CONTENT TYPE. CORS carries 'Content-Type': 'application/json',
+    // so this spread replaced application/pdf on every raw response and the PDF went out labelled
+    // JSON. TS2783/TS2785 said exactly that ("this spread always overwrites this property") and the
+    // edge-function typecheck is deliberately non-blocking, so nobody saw it. CORS goes first now.
+    if (body.raw){ return new Response(bytes as unknown as BodyInit, { status:200, headers:{ ...CORS, 'Content-Type':'application/pdf' } }); }
     const bucket=String(body.bucket||'agent-docs');
     const safe=String(body.name||title||'document').replace(/[^\w.\-]+/g,'_').slice(0,60)||'document';
     const path=(body.folder?String(body.folder).replace(/[^\w\-\/]/g,'')+'/':(new Date().toISOString().slice(0,10)+'/'))+Date.now()+'_'+safe+'.pdf';

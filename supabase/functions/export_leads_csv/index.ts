@@ -33,7 +33,9 @@ Deno.serve(async (req) => {
     const { data, error } = await admin.from('leads').select(COLS.join(',')).order('id', { ascending: true }).range(from, from + page - 1);
     if (error) return new Response('error: ' + error.message, { status: 500 });
     if (!data || data.length === 0) break;
-    for (const row of data) lines.push(COLS.map((c) => csvCell((row as Record<string, unknown>)[c])).join(','));
+    // via unknown: with a runtime-built select list PostgREST types each row as GenericStringError,
+    // which does not overlap Record<string, unknown>, so the direct assertion is rejected (TS2352).
+    for (const row of data) lines.push(COLS.map((c) => csvCell((row as unknown as Record<string, unknown>)[c])).join(','));
     if (data.length < page) break;
     from += page;
   }

@@ -13,7 +13,9 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
-async function sha1hex(bytes: Uint8Array){ const h = await crypto.subtle.digest('SHA-1', bytes); return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+// Uint8Array<ArrayBuffer>, not bare Uint8Array: Deno 2 types the latter as Uint8Array<ArrayBufferLike>,
+// which BufferSource does not accept because a SharedArrayBuffer-backed view cannot be hashed here.
+async function sha1hex(bytes: Uint8Array<ArrayBuffer>){ const h = await crypto.subtle.digest('SHA-1', bytes); return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function esc(s: string){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 const COSTMAP: Record<string,string> = {'electrical':'cost-of-electrical-work-uae','plumbing':'cost-of-plumbing-uae','ac-maintenance':'cost-of-ac-maintenance-uae','cleaning':'cost-of-deep-cleaning-uae','interior-design':'cost-of-fit-out-uae','joinery-kitchens':'cost-of-kitchen-uae','waterproofing':'cost-of-waterproofing-uae','tiling-marble':'cost-of-tiling-marble-uae','pest-control':'cost-of-pest-control-uae','swimming-pools':'cost-of-swimming-pool-uae','movers':'cost-of-movers-uae','handyman':'cost-of-handyman-uae','facilities-management':'cost-of-facilities-management-uae','ac-duct-cleaning':'cost-of-ac-duct-cleaning-uae','smart-home':'cost-of-smart-home-uae','solar':'cost-of-solar-uae','curtains-blinds':'cost-of-curtains-blinds-uae','cctv-security':'cost-of-cctv-installation-uae','painting':'cost-of-house-painting-uae','flooring':'cost-of-flooring-uae','false-ceiling':'cost-of-false-ceiling-uae','landscaping':'cost-of-landscaping-uae','aluminium-glass':'cost-of-aluminium-glass-uae','signage':'cost-of-signage-uae'};
 const LLMS = `# QuotesDone
