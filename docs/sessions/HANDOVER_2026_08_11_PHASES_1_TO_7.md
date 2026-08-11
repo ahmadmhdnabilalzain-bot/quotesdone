@@ -184,3 +184,40 @@ properly means moving the founder path into `EdgeRuntime.waitUntil`, returning `
 immediately, and sending through `sendWa` when the brain finishes. That is a restructure of the
 tail of a 381-line function on your own command channel, and it needed more verification budget
 than this session had left. **It is the highest-value Phase 8 item and it is fully specified above.**
+
+---
+
+## 8. ADDENDUM — the arity defect, closed after the hand-over was first written (PR #196)
+
+Re-measured before touching it, and the brief was wrong in both directions: **13 callsites across 11
+edge functions, of which 4 already passed a query** (`agent_brain`, `wa_inbound`, `dept_plan`,
+`action_worker`). So 4 of 13, not 2 of 11.
+
+The other nine were worse than "no department layer". `fn_agent_context` ignores any `p_max_chars`
+below 22,000, so every one of them asked for a cap and got the whole thing:
+
+| caller | asked | actually received | now |
+|---|---|---|---|
+| `marketing` (5 callsites) | 6,000 | **28,080** | 5,945 |
+| `designer` | 3,000 | **25,338** | 3,037 |
+| `secretary` | 8,000 | **25,339** | 8,010 |
+| `knowledge_exam` (cat agent) | 16,000 | **25,348** | 16,011 |
+
+All nine now call `fn_agent_context_capped`; seven pass a question they already had in hand. LAYER 2b
+(the 1,456-row department library) and 2c go from silent to retrieved, and LAYER 4 (EXTERNAL) comes
+with them. Verified by execution: `marketing_draft` → `{"ok":true,"draft_id":36}`.
+
+It also surfaced a function **nobody could call with two arguments** —
+`ERROR: 42725: fn_agent_context_capped(unknown, integer) is not unique`. Two overloads, both matching
+a 2-arg call. True since the overload was added; nothing called it that way, so nobody hit it. The
+3-arg version already handles `p_query is null`, so the older signature was dropped on both projects.
+
+**Two things changed since §6 was written, and neither is demo data:**
+
+- `content_drafts` holds **1 row** — a genuine blog draft the marketing agent produced during the
+  verification probe, `status=draft`, gated for your review. It is real work and is not being
+  deleted, so the production empty-table count is **95**, not 96. The rehearsal's 96 = 96 teardown
+  equality was measured before it.
+- `trade` finished embedding: **1,988 / 1,988 = 100%**. Every authoritative source kind is now fully
+  embedded — `trade`, `regulation`, `material` and `library` at 100%, `generated` 98.3%,
+  `document` 91.7%. Only `qd_kb_pack` (43.7%) and `memory` (66.7%) remain, both draining on cron.
