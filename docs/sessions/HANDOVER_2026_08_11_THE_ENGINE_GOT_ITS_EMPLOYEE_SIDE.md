@@ -274,9 +274,48 @@ skipped again.
 
 ---
 
+## 6b. AFTER THE FIRST HAND-OVER — [PR #221](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/221)
+
+I stopped too early and the founder said so. Three more things landed, and two of them were **defects
+I had introduced hours earlier**.
+
+**Staging stops driving production.** The four crons in §7 are unscheduled on staging and added to
+`staging_cron_exclusions.json` with the measurement as the reason. Measured before removing anything:
+not doubling data (`health_checks` takes 5/hour regardless of two invokers firing 8×/2h each) and
+costing no model spend (zero `ai_cost_log` rows in 7 days) — but definitely arriving, 97 and 96
+successful invocations, every one HTTP 200. Parity holds at prod 172 / staging 55, 117 excluded.
+**`qd_guard` refused my first attempt** because the production ref appeared in my comments; it was
+right and I complied rather than working around it.
+
+**The root cause is escalated, not guessed at:** `cred_cron_monitoring`, `cred_cron_agents` and
+`inbound_secret` are **byte-identical on both projects** — same md5, same length. Anything holding
+staging's `app_secrets` can invoke any production edge function with internal authority. Rotating
+them touches all 172 active jobs and whether the sharing is deliberate is a fact you hold.
+
+**The process did not accumulate — my defect.** The dispatcher passed each employee the run's trigger
+context and nothing else, so `forecast_analyst` answered step 3 with no sight of what
+`intel_director` concluded in step 2. Six independent essays about one metric is not a process. Fixed
+at the **claim**, so it applies to every consumer of the queue: the last three finished steps travel
+with it, conclusion only. Verified by probe — claiming `strategic_review` step 3 for `brief` now
+returns step 1's real finding, *"…are missing and are being raised as a gap rather than assumed."*
+
+**Nothing read the deliverables — also my defect, and instance #5 of this estate's recurring root
+cause.** Sixteen deliverables of 3,700–4,700 characters, and the only routines touching
+`workflow_step_run.output` were the two that write it. `fn_ws_company_os` gains `process_work`;
+`OsxShell` draws it as *"What the company's processes produced"* with the confidence toned and each
+row saying out loud that the mode is **advisory — a determination, not a side effect**.
+
+**Verified after:** the three newest deliverables all build on their predecessors.
+`strategic_review` step 5 by `brief` — *"Two re-plan work threads (category-liquidity remediation
+owned by Supplier Ops, P1-backlog/refund-gate review owned by Ops/Support) and one
+objective-supersession recommendation…"* — is genuinely cascading from the step-4 decision, with
+named owners. That is a company running its own process, not six essays.
+
+---
+
 ## 7. ONE THING I FOUND AND DID NOT FIX
 
-**Four active cron jobs on STAGING post to PRODUCTION URLs.** Staging has 58 active jobs and 4 of
+**FIXED IN §6b — kept here for the record.** Four active cron jobs on STAGING post to PRODUCTION URLs. Staging has 58 active jobs and 4 of
 them contain the literal production ref `htdblwldjkcgjvmqkbeh` — `ai_health_15min` is one. So a
 staging cron is invoking production edge functions every fifteen minutes.
 
