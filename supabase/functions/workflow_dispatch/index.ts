@@ -136,7 +136,13 @@ Deno.serve(async (req: Request) => {
         + 'gap, and state what you concluded without it. You are advisory — you may decide and '
         + 'recommend within your authority, but you do not move money, approve a supplier, publish, '
         + 'or send anything to a customer. End with a line "OUTCOME:" and one sentence stating what is '
-        + 'now true.\n\nYOUR CONTEXT:\n' + brain.slice(0, 9000);
+        + 'now true, then on the FINAL line compact JSON {"confidence":<0.0-1.0>} — how sure you are '
+        + 'that what you just produced is correct and complete on the evidence you actually had. 0.9+ '
+        + 'means you had the facts and the expertise; 0.5 means you reasoned from partial information; '
+        + 'below 0.4 means you were guessing and this step needs a specialist or a source. Be honest '
+        + 'and discriminating: a confidence that is always high tells the company nothing, and it is '
+        + 'what routes the next step to a stronger or a cheaper model.'
+        + '\n\nYOUR CONTEXT:\n' + brain.slice(0, 9000);
 
       const user = 'PROCESS: ' + wfName + '\n'
         + 'STEP ' + String(s.step_no) + ': ' + stepText + '\n'
@@ -147,7 +153,12 @@ Deno.serve(async (req: Request) => {
         + 'WHAT TRIGGERED THIS RUN: ' + JSON.stringify(s.context ?? {}).slice(0, 1500);
 
       const out = await llmAs(employee)(sys, user, 8000);
-      const deliverable = (out ?? '').trim();
+      const raw = (out ?? '').trim();
+      // The confidence tail is the gateway's business (it parses `out` itself and writes
+      // ai_cost_log.confidence); it is not part of the work product the founder reads.
+      const confTail = raw.match(/\{\s*"confidence"\s*:\s*[0-9.]+\s*\}\s*$/);
+      const selfConfidence = confTail ? Number(confTail[0].replace(/[^0-9.]/g, '')) : null;
+      const deliverable = confTail ? raw.slice(0, confTail.index).trim() : raw;
 
       if (!deliverable || deliverable.length < MIN_CHARS || NOT_WORK.test(deliverable)) {
         const reason = !deliverable ? 'the model returned nothing'
@@ -171,6 +182,7 @@ Deno.serve(async (req: Request) => {
         p_output: {
           mode: 'advisory',
           employee,
+          self_confidence: selfConfidence,
           addressed_as: s.addressed_as ?? null,
           deliverable: deliverable.slice(0, 20000),
           outcome: outcome.slice(0, 400),
