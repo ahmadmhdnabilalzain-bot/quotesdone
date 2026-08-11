@@ -530,7 +530,25 @@ Deno.serve(async (req) => {
       if (!images.length && isCad && body.original_b64) {
         try { const cr = await fetch(`${SUPABASE_URL}/functions/v1/cad_convert`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, b64: body.original_b64, filename: name }) }); const cj = await cr.json(); if (cj?.ok && Array.isArray(cj.images) && cj.images.length) images = cj.images.slice(0, 10); } catch (_e) { /* */ }
       }
-      if (!images.length) return J({ ok: true, boq: null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], note: isCad ? 'cad_not_converted' : 'no_readable_pages' });
+      // WHY THE NOTE IS SPECIFIC NOW (11 Aug 2026). Spec #7 §3 names "a customer uploads a ZIP file
+      // instead of a PDF" and "a PDF is corrupted" as two of its sixteen exception scenarios.
+      // Measured before changing anything: neither crashed — both fell through to the single note
+      // 'no_readable_pages', which is true and useless. The customer is told nothing they can act
+      // on, and sending a ZIPPED DRAWING SET is normal practice in UAE construction, so this is the
+      // likeliest of the sixteen to actually happen. The recovery strategy for both is the same and
+      // it is not a retry: tell the person exactly what to send instead.
+      const isArchive = /\.(zip|rar|7z|tar|tgz|gz)$/i.test(name)
+        || /(^|[^a-z])(zip|rar|7z|x-7z|x-tar|gzip|compressed)([^a-z]|$)/i.test(mime);
+      if (!images.length) {
+        const note = isCad ? 'cad_not_converted' : (isArchive ? 'archive_not_supported' : 'no_readable_pages');
+        const advice = isCad
+          ? 'We could not convert this CAD file. Please export it to PDF and upload that.'
+          : (isArchive
+            ? 'This is a compressed archive, so we cannot read the drawings inside it. Please extract it and upload the PDF or image files themselves — you can attach up to 10 pages.'
+            : 'We could not read any pages from this file. It may be corrupted, password-protected, or saved in a format we cannot open. Please re-export it as a PDF or upload clear images of each page.');
+        return J({ ok: true, boq: null, drawing_file_path: path, drawing_file_name: name,
+                   drawing_redacted_paths: [], note, advice });
+      }
       try {
         const redPrefix = `redacted/${crypto.randomUUID()}/page`;
         const [boqRes, redRes] = await Promise.allSettled([
