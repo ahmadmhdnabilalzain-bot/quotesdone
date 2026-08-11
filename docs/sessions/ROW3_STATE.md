@@ -104,7 +104,7 @@ Backfilling opinions onto them would be inventing advice that was never given.
 
 ```
                               production          staging
-Row #3                        122/152                      COMPLETE run at 121, +1 on s33 after 23:55
+Row #3                        123/152                      COMPLETE run, 0 errored, 0 regressions, +2
 pack scorecard, every pack        100%             100%
 artefacts IN USE             37 of 37         37 of 37     probe-measured
 OS_PORTALS gates             23 met            23 met      0 not_met, 0 open
@@ -204,8 +204,27 @@ MET   s33-replay-six-tracks   6 of 6 track(s) have rows on 2026-08-10 (missing: 
                               1 reachable routine(s) span all six tables at once
 ```
 
-**Row #3 is 122/152.** The gain is real and nothing was written to produce it — the day the check
-scores moved forward and the tracks were already there.
+**The gain is real and nothing was written to produce it** — the day the check scores moved forward
+and the tracks were already there.
+
+### CLOSING RUN: 123/152, COMPLETE, ZERO REGRESSIONS
+
+A third full run after everything above — the workflow sweep, the FAQ embeddings, the trigger rename,
+the 464 staging revokes, the `fn_llm_log` signature change and two edge redeploys. **152 checks ran,
+0 errored, no section short of its declared count, and the NOT MET list lost exactly two names and
+gained none.**
+
+| moved | why |
+|---|---|
+| `s33-replay-six-tracks` | the scored day advanced at 23:55 and all six tracks already had rows |
+| `s25-quality-latency-cost` | **2 of 6 routed models now carry all three axes**, where none did |
+
+`s25` is worth stating precisely rather than claiming more than it is. The two rows carrying a
+confidence are `quality_axis_probe` on `~anthropic/claude-haiku-latest` — the probe made to prove the
+path — and **`knowledge_exam` on `google/gemini-3.1-flash-lite` at 00:23 UTC, which is real
+production traffic that arrived on its own within ninety minutes of the deploy.** The prediction in
+that commit was "the second will arrive when a caller whose prompt asks for a confidence routes to a
+different model", and it did. The column will keep filling from traffic; nothing was backfilled.
 
 ### THE CHECK I WROTE, RAN THREE TIMES, AND DELETED
 
@@ -250,6 +269,68 @@ real alternatives, not a projection.
 that genuinely exercises them, and `fn_what_if` answers *"No model exists for this question yet"* at
 confidence 0.2 for the two it would have to model. Inserting four rows with a `last_run` timestamp
 would fabricate an exercise that never happened.
+
+### THE SWEEP THAT FOUND THE REST: COLUMNS THAT ARE 100% NULL IN TABLES THAT HAVE ROWS
+
+The defect this session kept hitting is a value with nowhere to land, so instead of hunting the next
+one, every column in every table over 200 rows was counted for nulls. 92 came back all-null. Most are
+honest — the 20,470 leads are scraped suppliers who never registered, so their licence, bank and
+signature columns are empty because there is nothing to put in them. Three were mechanisms with no
+wire, and two of those were fixed tonight.
+
+**NOT ONE WORKFLOW STEP HAD EVER FINISHED.** `workflow_step_run` holds 2,072 rows — 1,904 `queued`,
+168 `ready`, **none terminal** — with `finished_at`, `output` and `error` null on every one.
+`workflow_start_due` has been starting workflows every 15 minutes and nothing has ever advanced one.
+`fn_workflow_step_done` is complete and correct — it marks the step, promotes the next to `ready` and
+closes the run — and **has no caller anywhere in the estate**. The runner existed too:
+`workflow_step_run` carries `action_class` and `idempotency_key`, the same vocabulary as the part-9
+invoker, and `action_execution` has a `workflow_step_run_id` column that was null on all 233 rows.
+Every piece was built and the wire between them was not.
+
+`fn_workflow_step_sweep` is that wire, in the same shape as `fn_org_task_execute_sweep` rather than a
+third design: SETTLE hands a terminal execution to `fn_workflow_step_done`; QUEUE turns a `ready`
+step whose class has a low + advisory_safe + reversible edge executor into an `action_execution`. The
+93 ready steps with no `action_class` are gates and human steps and are left alone.
+
+```
+sweep      queued 5
+dispatch   dispatched 5, refused 0
+collect    succeeded 5, dead_lettered 0
+sweep      settled 5   never_finished 2072 -> 2067   ready_with_executor 70 -> 74
+```
+
+`ready_with_executor` going UP is the mechanism working: finishing a step promotes the next one.
+Five `workflow_run` rows advanced from step 1 to step 2. Scheduled at `6,16,26,36,46,56` on both
+projects — after collect, before dispatch — registered in `cron_registry` on both, and by the time
+of the closing sweep it had run itself: production 6 steps finished, staging 3.
+
+**THE NO-MODEL FAQ PATH'S SEMANTIC HALF HAD NEVER WORKED.** `fn_faq_answer` takes an embedding and a
+min-similarity and has both a full-text and a vector leg — and `company_faq.embedding_gte` was null on
+all 484 rows, so the vector leg could not return anything, ever. Every question it could have answered
+**with no model at all** went to a model instead. `kb_embed` now takes an allowlisted `target`
+(allowlisted, not free-form: it runs as service_role and a caller-supplied table name would be an
+update primitive for the whole schema), the default is unchanged so the 95k-row `kb_chunks` backfill
+beside it was untouched, and 484 of 484 are embedded on the same free in-region gte-small. Proved with
+the text leg forced to miss so only the vector leg could answer:
+
+```
+fn_faq_answer('zzzznomatchzzzz', 0.99, <embedding>, 0.60)
+   -> answered true, source "faq_semantic", confidence 1.0000
+```
+
+Two things recorded rather than smoothed over. **Firing 25 invocations at once embedded 5 rows** —
+there is no row locking, so every concurrent invocation selects the same oldest 5 and 24 redo the same
+work. Throughput here is SEQUENTIAL, the exact opposite of the `kb_chunks` lesson where the fix was
+more invocations: that one is rate-limited by batch size *within* an invocation, this one collides on
+selection *between* them. And **a gateway probe with `try_faq` still answered with a model** — the
+vector leg is proved at the function, but whether the gateway's default `min_similarity` catches a
+real paraphrase is a separate measurement that has not been taken and is not claimed.
+
+**LEFT ALONE DELIBERATELY.** `kb_revisions` has 9,185 rows, every one `published`, with `reviewer`,
+`decided_at` and `review_notes` null on all of them: knowledge publishes without ever being reviewed,
+and `fn_kb_approve` has nothing to approve. That is a policy that was chosen, not a mechanism that is
+broken, and changing the write path to hold revisions as pending would stop the corpus pipeline
+publishing. It is a governance decision, recorded here rather than made at 01:00.
 
 ### A DIVERGENCE FOUND IN THE CLOSING SWEEP AND NOT YET FIXED
 
