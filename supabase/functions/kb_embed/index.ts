@@ -68,14 +68,29 @@ Deno.serve(async (req) => {
     // Strict oldest-first. Without this, PostgREST returns an arbitrary slice and individual rows can
     // starve forever behind newer arrivals. The old library-first priority pass is gone for the same
     // reason: a steady stream of 'library' chunks starved every other source_kind indefinitely.
+    // TARGET. company_faq.embedding_gte was null on all 484 rows, and fn_faq_answer takes an
+    // embedding and a min-similarity: the SEMANTIC half of the level-0 FAQ path -- the one that
+    // answers a customer with no model at all -- had never worked, so every question it could have
+    // caught went to a model instead. Same free in-region gte-small, same batch ceiling, one more
+    // table. Allowlisted rather than free-form: this runs as service_role and a caller-supplied
+    // table name would be an update primitive for the whole schema. Default is unchanged, so the
+    // kb_chunks backfill running on kb_embed_backfill_boost is not touched by this.
+    const TARGETS: Record<string, { table: string; cols: string; text: (r: Record<string, unknown>) => string }> = {
+      kb_chunks:   { table: 'kb_chunks',   cols: 'id, title, content',
+                     text: (r) => String(r.title || '') + '\n' + String(r.content || '') },
+      company_faq: { table: 'company_faq', cols: 'id, question, answer',
+                     text: (r) => String(r.question || '') + '\n' + String(r.answer || '') },
+    };
+    const tgt = TARGETS[String(body.target ?? 'kb_chunks')] ?? TARGETS.kb_chunks;
+
     const { data, error: qerr } = await admin
-      .from('kb_chunks').select('id, title, content')
+      .from(tgt.table).select(tgt.cols)
       .is('embedding_gte', null)
       .order('created_at', { ascending: true })
       .limit(lim);
 
     if (!data || data.length === 0) {
-      if (qerr) await logThrottled('query_failed', 60, 'error', { stage: 'select' }, 'kb_embed could not read kb_chunks, so it reported "done" while unembedded chunks may still exist; the embedding backfill has silently stalled and new knowledge-base content will not appear in semantic search. ' + String(qerr?.message || qerr).slice(0, 160));
+      if (qerr) await logThrottled('query_failed', 60, 'error', { stage: 'select' }, 'kb_embed could not read its target table, so it reported "done" while unembedded chunks may still exist; the embedding backfill has silently stalled and new knowledge-base content will not appear in semantic search. ' + String(qerr?.message || qerr).slice(0, 160));
       return J({ ok: true, done: true, embedded: 0 });
     }
 
@@ -85,13 +100,13 @@ Deno.serve(async (req) => {
     let budgetHit = false;
     for (const r of data as any[]) {
       if (Date.now() - T0 > BUDGET_MS) { budgetHit = true; break; }
-      const text = (String(r.title || '') + '\n' + String(r.content || '')).slice(0, 1200);
+      const text = tgt.text(r).slice(0, 1200);
       const emb = await model.run(text, { mean_pool: true, normalize: true }) as number[];
-      const { error: uerr } = await admin.from('kb_chunks').update({ embedding_gte: '[' + emb.join(',') + ']' }).eq('id', r.id);
+      const { error: uerr } = await admin.from(tgt.table).update({ embedding_gte: '[' + emb.join(',') + ']' }).eq('id', r.id);
       if (uerr) { writeFailed++; lastWriteErr = String(uerr?.message || uerr).slice(0, 160); }
       n++;
     }
-    const { count: remaining } = await admin.from('kb_chunks').select('id', { count: 'exact', head: true }).is('embedding_gte', null);
+    const { count: remaining } = await admin.from(tgt.table).select('id', { count: 'exact', head: true }).is('embedding_gte', null);
     if (writeFailed > 0) {
       await logThrottled('embedding_write_failed', 60, 'error', { attempted: n, write_failed: writeFailed, remaining }, 'kb_embed computed embeddings but failed to write ' + writeFailed + ' of ' + n + ' back to kb_chunks. Those chunks stay unembedded and are re-picked on every run, so the backfill loops forever without progressing and that content never becomes searchable. ' + lastWriteErr);
     } else {
