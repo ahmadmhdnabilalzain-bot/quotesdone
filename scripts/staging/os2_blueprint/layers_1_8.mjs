@@ -338,11 +338,19 @@ export default async function ({ req, q, one, Q: Qesc, B: Bhelp }) {
   // "Performance is shown as a trend, not a point value."
   //
   // A trend needs two things a point value does not: more than one observation PER EMPLOYEE inside a
-  // window, and a surface that draws a series. Both sources the spec names are counted separately
-  // because they fail differently — employee_kpi is reachable but was written in one batch on
-  // 28 July, ai_quality_snapshots genuinely is a per-agent time series and nothing can reach it.
-  const KPI_TREND = `(select count(*) from (select agent_key from public.employee_kpi
-      where created_at > now() - interval '90 days' group by agent_key having count(distinct created_at) > 1) z)`;
+  // window, and a surface that draws a series.
+  //
+  // employee_kpi.created_at IS NO LONGER COUNTED, AND THAT MAKES THIS CHECK HARDER ON PURPOSE
+  // (11 Aug 2026). It is the date somebody WROTE a KPI definition. A second row for an employee
+  // means a second KPI was defined for them — it is not a second observation of their performance
+  // by any reading, and counting it could only ever push this towards a false MET. The honest
+  // source is employee_kpi_history: one row per KPI per UTC day, with a unique index that makes a
+  // fabricated trend impossible. It had no reader at all until fn_ws_agent_ops gained kpi_trend.
+  //
+  // ai_quality_snapshots is kept: it genuinely is a per-agent time series, and nothing can reach it.
+  const KPI_TREND = `(select count(*) from (select agent_key from public.employee_kpi_history
+      where measured_on > (now() at time zone 'utc')::date - 90
+      group by agent_key having count(distinct measured_on) > 1) z)`;
   const AIQ_TREND = `(select case when to_regclass('public.ai_quality_snapshots') is null then 0 else
       (xpath('/row/c/text()', query_to_xml('select count(*) c from (select agent from public.ai_quality_snapshots'
         ||' where at > now() - interval ''90 days'' group by agent having count(distinct at) > 1) z',
@@ -350,10 +358,11 @@ export default async function ({ req, q, one, Q: Qesc, B: Bhelp }) {
   // SUMMING THE TWO SOURCES WOULD DOUBLE-COUNT an employee who appears in both, and double-counting
   // can only ever push this check towards a false MET. Reachability is resolved to a JS boolean
   // first so the population can be a genuine UNION of employees rather than a sum of two counts.
-  const kpiReach = Number(await one(`select ${UI_READS(ui, 'employee_kpi')}`)) > 0;
+  const kpiReach = Number(await one(`select ${UI_READS(ui, 'employee_kpi_history')}`)) > 0;
   const aiqReach = Number(await one(`select ${UI_READS(ui, 'ai_quality_snapshots')}`)) > 0;
   const TREND_SRC = [
-    kpiReach ? `select agent_key k, created_at ts from public.employee_kpi where created_at > now() - interval '90 days'` : null,
+    kpiReach ? `select agent_key k, measured_on::timestamptz ts from public.employee_kpi_history
+                 where measured_on > (now() at time zone 'utc')::date - 90` : null,
     aiqReach ? `select agent k, at ts from public.ai_quality_snapshots where at > now() - interval '90 days'` : null,
   ].filter(Boolean);
   const TREND_REACHABLE = TREND_SRC.length
@@ -366,10 +375,10 @@ export default async function ({ req, q, one, Q: Qesc, B: Bhelp }) {
        and ${N(SERIES_IN_DRAWER)} > 0, false)`,
     `select ${TREND_REACHABLE}||' of '||${AGENTS_ACTIVE}
        ||' active employee(s) have more than one performance observation in 90d in a REACHABLE source; '
-       ||'employee_kpi gives '||${KPI_TREND}||' such employee(s) ('||${UI_READS(ui, 'employee_kpi')}
-       ||' reachable reader(s), '||${COUNT_IF_EXISTS('employee_kpi')}||' rows across '
-       ||(select count(distinct created_at::date) from public.employee_kpi)
-       ||' distinct day(s)) and ai_quality_snapshots gives '||${AIQ_TREND}||' ('
+       ||'employee_kpi_history gives '||${KPI_TREND}||' such employee(s) ('||${UI_READS(ui, 'employee_kpi_history')}
+       ||' reachable reader(s), '||${COUNT_IF_EXISTS('employee_kpi_history')}||' rows across '
+       ||(select count(distinct measured_on) from public.employee_kpi_history)
+       ||' distinct measured day(s)) and ai_quality_snapshots gives '||${AIQ_TREND}||' ('
        ||${UI_READS(ui, 'ai_quality_snapshots')}||' reachable reader(s)); AgentDrawer draws '
        ||${N(SERIES_IN_DRAWER)}||' series component(s)'`);
 
