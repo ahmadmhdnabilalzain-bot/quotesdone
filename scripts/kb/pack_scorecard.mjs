@@ -222,7 +222,10 @@ await add('5/6 · INGESTION INSTRUCTIONS', 'streaming importer written + proved'
   'fn_kb_corpus_integrity asserts the importer checkpoint against the rows',
   `select count(*) n from (select public.fn_kb_corpus_integrity() c) z
     where (z.c->>'staged')::bigint = (z.c->>'checkpointed')::bigint
-      and (z.c->>'deployed_to_kb_chunks')::bigint >= (z.c->>'staged')::bigint`,
+      and (z.c->>'staged_records_with_no_chunk')::bigint = 0`,
+  // WAS: deployed_to_kb_chunks >= staged — a ROW-COUNT test that went red the moment 24,660
+  // byte-identical duplicate chunks were deleted, while every distinct staged record was still
+  // deployed. fn_kb_corpus_integrity now answers the real question directly and this probe asks it.
   'import_packs.mjs, idempotent on both projects');
 await add('5/6 · INGESTION INSTRUCTIONS', 'import order step 18 (stop before activation)', 86,
   await one(`select count(*) n from kb_operational_route where regulatory_coverage_status in ('confirmed_none','confirmed_covered')`),
@@ -274,6 +277,14 @@ for (const r of emb) {
 }
 // And the path itself. A vector column with a vector index earns nothing if the routine holding it
 // is not the routine the employees call. Measured against the function bodies, not assumed.
+//
+// SCOPE OF THIS LINE, STATED, because the first version of it was an instrument reporting on the
+// wrong subject — the exact defect this scorecard exists to stop. It counts SQL routines in
+// `public` ONLY. kb_match's real caller is the `kb_search` EDGE FUNCTION, which agent_brain's
+// retrieve() invokes on every employee turn, and which merges kb_match with full-text by
+// reciprocal-rank fusion. Probed on production 11 Aug 2026: six results for "chilled water pipe
+// insulation thickness Dubai Municipality", all six via=semantic, similarity 0.891-0.922. So "0
+// callers in public" is true and does NOT mean the semantic path is unused.
 const sem = await q(`select
     (select count(*) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
       where ns.nspname='public' and p.prokind='f' and p.prolang <> 12
@@ -282,9 +293,10 @@ const sem = await q(`select
     (select count(*) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
       where ns.nspname='public' and p.prokind='f' and p.prolang <> 12
         and pg_get_functiondef(p.oid) like '%kb_match%' and p.proname <> 'kb_match') kb_match_callers`);
-console.log('   semantic path: kb_match has ' + sem[0].kb_match_callers + ' caller(s) in public; ' +
-            sem[0].vector_readers + ' other routine(s) touch embedding_gte' +
-            (Number(sem[0].kb_match_callers) === 0 ? '  — NO ROUTINE CALLS THE SEMANTIC ONE' : ''));
+console.log('   semantic path: kb_match has ' + sem[0].kb_match_callers + ' SQL caller(s) in public; ' +
+            sem[0].vector_readers + ' other routine(s) touch embedding_gte. Its real caller is the ' +
+            'kb_search EDGE FUNCTION (hybrid: kb_match + full-text, RRF), which agent_brain calls on ' +
+            'every employee turn — so a 0 here is NOT evidence that the semantic path is unused.');
 const dead = rows.filter(r => r.n <= 0);
 if (dead.length) {
   console.log('\nNOT READ BY ANY PRODUCTION ROUTINE:');
