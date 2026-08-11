@@ -43,12 +43,15 @@ customers 0   inquiries 0   quotes 0   transactions 0   approved suppliers 0
 - **`time-machine-scrub`** — needs a snapshot from last month and from six months ago.
   `company_snapshot` holds **14 days**. Blocked by time; back-dating snapshots would be fabrication.
 
-### Two need no work — they clear themselves
+### Five need no work — they clear themselves. Re-measure, do not rebuild.
 
-- **`explain-knowledge-used`** — 367 of 423. All 55 failures are `action_gate` rows dated **4–6 Aug**,
-  before `action_gate_records_sources.sql` landed on 6 Aug. Every row since carries sources.
-  **Clears itself 13 August** when 6 Aug leaves the 7-day window.
-- **`s21-no-polling`** — **clears ~17 August.** Do not touch it; re-measure.
+| check | why it is already fixed | goes MET |
+|---|---|---|
+| `explain-confidence-score` | writer + trigger order fixed today; needs 8 new gated decisions | within hours |
+| `explain-knowledge-used` | all 55 failures are `action_gate` rows dated 4–6 Aug, before `action_gate_records_sources.sql` landed on 6 Aug; every row since carries sources | **13 Aug** |
+| `s21-no-polling` | already known; per-day lag is 0s since the trigger landed | **~17 Aug** |
+| `time-machine-restores-six-dimensions` | the missing dimension is **customers**, present on 2 of 13 snapshots. `fn_company_snapshot` already writes it — 9 and 10 Aug both carry it. The 11 older snapshots predate the fix and must NOT be back-filled: writing a customer count into a day nobody measured it is reconstructing a measurement that was never taken | **23 Aug**, when 8 Aug leaves the 14-day window |
+| `s24-board-before-major-decisions` | 10 of 11; `decision_record` 42 is `executed` and is deliberately unreviewed | **5 Sept** |
 
 ### One can never pass as written
 
