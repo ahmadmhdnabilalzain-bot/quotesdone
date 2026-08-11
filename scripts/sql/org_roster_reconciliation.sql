@@ -1,0 +1,33 @@
+-- THE SHADOW ROSTER. There were two staff tables, not one.
+--
+-- org_agents held 66 employees. category_agents held 132 rows, and 14 of them were agent_class
+-- 'internal_staff': ai_trainer, chief_of_staff, customer_success, document_controller,
+-- executive_assistant, finance_ai, knowledge_curator, legal_ai, marketing_ai, operations_ai,
+-- reporting_ai, security_ai, strategy_ai, supplier_success.
+--
+-- Those are the exact names I spent the night calling "invented by the writers". They were not
+-- invented. They were a SECOND ROSTER, and every writer addressing work to strategy_ai was
+-- addressing a real row in a real table -- just not the table the company runs on. fn_company_state
+-- reports category_agents as `category_sales_agents: 132`, which is why the OS header shows a
+-- headcount far larger than the 66 real employees.
+--
+-- Folded into the real employees using category_agents' own folded_into mechanism (9 legacy rows were
+-- already folded this way), through the same fn_org_agent_resolve the write boundary uses. No new
+-- machinery, and the mapping is one table.
+--
+-- supplier_success WAS NOT AN EMPTY SHELL. It owns two ACTIVE company goals -- "Grow verified
+-- supplier coverage across active categories" (5 per category) and "Increase supplier satisfaction"
+-- (4.5 rating) -- and had zero employees, so nobody was working on either. The FK from company_goals
+-- refused the delete and it was right to. Staffed instead: onboarding, whose title is literally
+-- Supplier Success Manager and which was sitting in procurement, becomes the head, plus a Retention
+-- and a Coverage specialist, one per goal.
+--
+-- analytics was a genuine empty shell -- no goals, no budget, no objectives -- and its function is
+-- already covered by the Intelligence department and the Data & Analytics Engineer in IT. Deleted.
+--
+-- signage was classed trade_unmapped while carrying two subcategory mappings: linked below, orphaned
+-- above. The catalog FK refused a subcategory slug as a catalog slug, correctly; the parent category
+-- was resolved from its own subcategories.
+--
+-- After, on BOTH projects: 68 employees, 14 departments, zero empty, zero shadow staff,
+-- zero active company goals without an owning department.
