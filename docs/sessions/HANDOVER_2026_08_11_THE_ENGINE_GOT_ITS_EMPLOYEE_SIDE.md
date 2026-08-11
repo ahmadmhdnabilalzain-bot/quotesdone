@@ -365,3 +365,37 @@ migration and promoted with `--ddl`.
 4. **The four staging crons pointing at production** (§7).
 5. Still the founder's calls, unchanged: **resuming supplier invites** (list verification costs
    money) and **the spend split** (`org_tasks` 1309).
+
+---
+
+## 10. A DEFECT THE ENGINE MADE VISIBLE ON ITS FIRST NIGHT — NOT MINE, NOT FIXED
+
+`workflow_run` went 7 failed → 8 during the session. That is the engine working: before tonight a
+run whose step failed sat `running` forever. Now it reaches a terminal state and `failed_workflows`
+can see it.
+
+**The failure is worth its own look.** All three failed `exec_review` steps carry the identical
+signature in `workflow_step_run.output`:
+
+```
+Timeout of 140000 ms reached. Total time: 140002 ms
+  (DNS time: 140002 ms, TCP/SSL handshake time: 0.000000 ms, HTTP Request/Response time: 0.000000 ms)
+```
+
+DNS accounts for the entire 140 seconds; the handshake and the HTTP exchange never happened. The
+step is `strategic_review` step 4 — *"Decide and record rationale"*, actor `ceo`, gate `authority` —
+routed to `exec_agents` by the **executor-side** sweep, not by the dispatcher I built.
+
+Occurrences: **2026-08-11 04:09 and 04:24 (both `cpo`), and 22:54 (`ceo`)**. The first two predate
+this session, so this is not something tonight introduced — it is something tonight made visible.
+
+**I did not diagnose it further and I am not guessing at the cause.** Two readings are open and I
+have not distinguished them: pg_net mis-attributing a connect/read timeout to DNS (its timing
+breakdown is unreliable on timeout), or `exec_agents` genuinely exceeding 140s. Against the first:
+every `net.http_post` this session made to the same host resolved and returned 200. Against the
+second: a 0.000000 ms handshake means no connection was ever established, which is not what a slow
+function looks like.
+
+**Where to start:** `exec_agents`' own runtime on a successful `exec_review`, and whether
+`org_action_executor.timeout_seconds` for `exec_review` is below what the function actually needs.
+Three identical failures on one action class is a pattern, not an incident.
