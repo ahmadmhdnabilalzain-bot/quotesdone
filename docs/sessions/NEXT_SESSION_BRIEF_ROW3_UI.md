@@ -12,7 +12,7 @@ The conduct rules are in the `quotesdone-session` skill and apply automatically.
 
 | | |
 |---|---|
-| Row #3 | **123/152**, complete run, 0 errored, **29 NOT MET** |
+| Row #3 | **124/152**, complete run, 0 errored, **28 NOT MET** |
 | pack scorecard | 100% ingested, **37 of 37 IN USE**, both projects |
 | OS_PORTALS gates | **23 met, 0 open**, both projects |
 | project parity | `scripts/checks/project_parity.mjs` → **BOTH PROJECTS IN SYNC** |
@@ -21,10 +21,10 @@ The conduct rules are in the `quotesdone-session` skill and apply automatically.
 | security | 56 anon-executable SECURITY DEFINER, both projects |
 | agent_knowledge | 2,040 rows, **7 of 7 metadata fields** non-null |
 
-A second full scorer run was still in flight when the last session ended. Its output is at
-`%TEMP%/…/scratchpad/row3_run2.txt` if it survived; otherwise just run the scorer. It should read
-**at least 124** — `s27-knowledge-seven-fields` was scored MISSING at 09:20 and closed at 09:35,
-mid-run.
+**124/152 is a SECOND complete run**, taken after every change of the session had landed. The first
+run read 123/152 because `s27-knowledge-seven-fields` was scored MISSING at 09:20 and closed at
+09:35, mid-run; the re-run confirms it MET with 7 of 7 metadata fields on all 2,040 rows. Two
+complete runs, no check errored in either.
 
 ---
 
