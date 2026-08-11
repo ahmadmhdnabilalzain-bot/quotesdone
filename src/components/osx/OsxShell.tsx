@@ -1047,6 +1047,21 @@ function Knowledge() {
           <div className='h-2.5 rounded-full bg-foreground/[0.06] overflow-hidden flex'><div className='h-full bg-emerald-500' style={{ width: (Number(ck.covered ?? 0) / tot * 100) + '%' }} /><div className='h-full bg-amber-500' style={{ width: (Number(ck.thin ?? 0) / tot * 100) + '%' }} /><div className='h-full bg-red-500' style={{ width: (Number(ck.gaps ?? 0) / tot * 100) + '%' }} /></div>
           <div className='flex flex-wrap gap-x-5 gap-y-1 mt-2 text-xs'><span className='inline-flex items-center gap-1.5'><span className='h-2 w-2 rounded-full bg-emerald-500' />Covered <b>{fmt(ck.covered ?? 0)}</b></span><span className='inline-flex items-center gap-1.5'><span className='h-2 w-2 rounded-full bg-amber-500' />Thin <b>{fmt(ck.thin ?? 0)}</b></span><span className='inline-flex items-center gap-1.5'><span className='h-2 w-2 rounded-full bg-red-500' />Gaps <b>{fmt(ck.gaps ?? 0)}</b></span><span className='text-muted-foreground ml-auto'>{fmt(ck.total ?? 0)} service categories</span></div>
         </Card>); })()}
+      {/* WHICH KNOWLEDGE WAS ACTUALLY USED. agent_brain has been writing kb_usage_log on every
+          retrieval and nothing had ever read it back — 78 rows from 11 agents with zero readers
+          anywhere in the database. Coverage says what the company knows; this says what it reached
+          for. An empty list is a real answer and reads as one. */}
+      {(() => { const uk = d.used_kpis || {}; const used = d.used || []; return (
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Knowledge actually used
+            <span className='text-xs font-normal text-muted-foreground'>{fmt(uk.lookups_7d ?? 0)} lookup(s) · {fmt(uk.agents_7d ?? 0)} employee(s) · 7d</span></div>
+          {used.length ? <div className='divide-y divide-border'>{used.map((u: any, i: number) => (
+            <div key={i} className='px-4 py-2.5'>
+              <div className='text-sm truncate flex items-center gap-2'><span className='text-muted-foreground'>{u.agent}</span>{u.category ? <Chip label={String(u.category)} tone='slate' /> : null}</div>
+              <div className='text-xs text-muted-foreground truncate'>{u.query}</div>
+            </div>
+          ))}</div> : <div className='px-4 py-6 text-sm text-muted-foreground'>No knowledge lookups recorded yet.</div>}
+        </Card>); })()}
       <Card className='overflow-hidden'>
         <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Coverage by category<Badge variant='secondary'>{rows.length}</Badge></div>
         <div className='overflow-auto max-h-[560px]'>
