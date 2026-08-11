@@ -27,10 +27,21 @@ import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 
-const BASELINE_DRIFTED = 9;    // MEASURED 11 Aug 2026: 175 routines across 288 files — 166 identical,
-                               // 0 missing from production, 9 drifted. Those 9 are routines a later
-                               // migration or session changed without adding a scripts/sql file, and
-                               // they are named in the output every run so they cannot stay invisible.
+const BASELINE_DRIFTED = 0;    // RECONCILED 12 Aug 2026: 190 routines across 316 files — 190 identical,
+                               // 0 missing from production, 0 drifted. The ratchet is now at the
+                               // floor, so ANY drift fails this check.
+                               //
+                               // The 8 that were outstanding were reconciled TOWARD PRODUCTION, after
+                               // checking the direction rather than assuming it. fn_term_matches live
+                               // handles multi-word Arabic patterns and English plurals; the file in
+                               // scripts/sql/stage_b6_rollback_completion.sql has neither, so applying
+                               // that file would have broken Arabic term matching on a UAE marketplace.
+                               // The files were stale; the database was right. Captured verbatim from
+                               // pg_get_functiondef in scripts/sql/the_files_were_stale_not_the_database.sql.
+                               //
+                               // Raising this number is not how you fix a failure here. A routine that
+                               // drifts means something changed production without leaving a file, and
+                               // the file is what the next session would apply.
 const DIR = 'scripts/sql';
 const PROD = 'htdblwldjkcgjvmqkbeh';
 // This check has to READ PRODUCTION, so it cannot run where there is no management token — and CI
