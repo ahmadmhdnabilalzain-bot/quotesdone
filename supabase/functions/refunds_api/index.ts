@@ -88,9 +88,14 @@ async function enrich(txs: any[]) {
     cids.length ? admin.from('customers').select('id,full_name,email,phone').in('id', cids) : Promise.resolve({ data: [] } as any),
     iids.length ? admin.from('inquiries').select('id,summary,category,emirate').in('id', iids) : Promise.resolve({ data: [] } as any),
   ]);
-  const lm = new Map((leads || []).map((l: any) => [Number(l.id), l]));
-  const cm = new Map((custs || []).map((c: any) => [String(c.id), c]));
-  const im = new Map((inqs || []).map((i: any) => [String(i.id), i]));
+  // TYPED ON PURPOSE. The empty branches above are `Promise.resolve({ data: [] } as any)`, so when
+  // a batch is empty `leads`/`custs`/`inqs` infer as never[]; the Maps then infer Map<never, never>,
+  // .get() returns undefined, and `undefined || {}` is `{}` — which is why all twelve property reads
+  // below were TS2339 "does not exist on type '{}'". The rows really are untyped PostgREST payloads,
+  // so the honest annotation is any, not a fabricated row interface.
+  const lm = new Map<number, any>((leads || []).map((l: any) => [Number(l.id), l]));
+  const cm = new Map<string, any>((custs || []).map((c: any) => [String(c.id), c]));
+  const im = new Map<string, any>((inqs || []).map((i: any) => [String(i.id), i]));
   return txs.map((t) => { const l = lm.get(Number(t.supplier_id)) || {}; const c = cm.get(String(t.customer_id)) || {}; const i = im.get(String(t.inquiry_id)) || {}; return {
     transaction_id: t.id, inquiry_id: t.inquiry_id, reveal_fee: t.reveal_fee, quote_amount: t.quote_amount,
     revealed_at: t.revealed_at, refund_requested_at: t.refund_requested_at, refund_status: t.refund_status, refund_note: t.refund_note,

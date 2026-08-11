@@ -26,9 +26,12 @@ async function dbxToken(): Promise<string | null> {
   } catch { return null; }
 }
 function apiArg(obj: any) { return JSON.stringify(obj).replace(/[-￿]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')); }
+// The parameter stays a bare Uint8Array on purpose: narrowing it to Uint8Array<ArrayBuffer> compiles
+// here but pushes the same TS2345 onto all three call sites, which is one error turned into three.
+// The cast is at the fetch body instead, where BodyInit is what is actually being satisfied.
 async function dbxUpload(token: string, path: string, bytes: Uint8Array): Promise<boolean> {
   try {
-    const r = await fetch('https://content.dropboxapi.com/2/files/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': apiArg({ path, mode: 'overwrite', autorename: false, mute: true, strict_conflict: false }) }, body: bytes });
+    const r = await fetch('https://content.dropboxapi.com/2/files/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': apiArg({ path, mode: 'overwrite', autorename: false, mute: true, strict_conflict: false }) }, body: bytes as unknown as BodyInit });
     return r.ok;
   } catch { return false; }
 }
