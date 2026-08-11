@@ -1495,7 +1495,12 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
               {/* Under which rule. action_autonomy decides whether the sweep may clear this kind
                   or the founder must see it; confidence_min is the floor this action's own
                   confidence was measured against. Both come from decision_policy as stored. */}
-              {Array.isArray(a.policies) && a.policies.length ? <div className='text-[11px] text-muted-foreground'>Policies: {a.policies.join(' · ')}</div> : null}</div>
+              {Array.isArray(a.policies) && a.policies.length ? <div className='text-[11px] text-muted-foreground'>Policies: {a.policies.join(' · ')}</div> : null}
+              {/* The score the acting agent assigned to its own action. It was already being sent
+                  here and drawn nowhere, so the founder was told which floor the action was measured
+                  against and never the measurement. Null stays absent rather than rendering a 0%:
+                  an agent that reported no confidence has not reported low confidence. */}
+              {a.confidence != null ? <div className='text-[11px] text-muted-foreground'>Confidence: {Math.round(Number(a.confidence) * 100)}%</div> : null}</div>
             <div className='flex items-center gap-1.5 shrink-0' onClick={(e) => e.stopPropagation()}>
               <Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>{dbusy === String(a.id) + 'approve' ? '…' : 'Approve'}</Button>
               <Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>{dbusy === String(a.id) + 'reject' ? '…' : 'Reject'}</Button>
