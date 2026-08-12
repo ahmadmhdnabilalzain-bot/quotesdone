@@ -741,6 +741,67 @@ Deno.serve(async (req) => {
       return TW(200);
     }
 
+    // ---- A SUPPLIER ASKING FOR A CHANGE, NOT AN ANSWER (v18) ---------------
+    // "Adjust my quotation price" is the one verb on the supplier's list, and until now this
+    // function could only describe what a supplier would have to go and do themselves.
+    //
+    // The same shape the founder's settings got, with one difference that matters: the SCOPING IS
+    // NOT THE MODEL'S JOB. fn_supplier_apply_change resolves the supplier from the phone number in
+    // SQL and decides everything — which quotation, whether it is committed, whether a customer
+    // has already paid to reveal them, whether the move is a fat-fingered zero — so the worst a
+    // misclassification can do is produce a refusal. The model's entire job is turning a sentence
+    // into a number.
+    //
+    // cache_ttl_min: 0 IS LOAD-BEARING, for the reason measured on 13 Aug: ai_gateway's cache does
+    // a SEMANTIC lookup at 0.95 over (sys_stable + sys).slice(0,400) + convo.slice(0,800), and a
+    // classifier whose system prompt dwarfs its one-line input gets the PREVIOUS caller's answer.
+    // Three different founder messages were all classified as the first one's directive that way.
+    if (audience === 'supplier') {
+      try {
+        const gsecret = await sec('cred_fn_ai');
+        const csys = 'Decide whether this message from a supplier is an INSTRUCTION TO CHANGE THEIR QUOTATION PRICE, and if so to what amount in AED.\n'
+          + 'Return STRICT JSON ONLY. If it is: {"change":true,"amount":"<the new total price as a bare number, no currency, no commas>"}.\n'
+          + 'Otherwise, including every question, every request for information, anything about their licence or profile, anything asking to CREATE a new quotation, and anything you are unsure about: {"change":false}.\n'
+          + 'A relative instruction with no stated total ("drop it a bit", "make it cheaper") is NOT a change — return false, because I cannot act on an amount you had to invent.';
+        const cr = await fetch(GATEWAY, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ __secret: gsecret, fn: 'supplier_directive', sys: csys, input: Body.slice(0, 600), temperature: 0, task_class: 'json_extraction', cache_ttl_min: 0 }),
+          signal: AbortSignal.timeout(40000),
+        });
+        const cj = await cr.json().catch(() => ({} as Record<string, unknown>));
+        const cm = String((cj as { content?: string })?.content || '').match(/\{[\s\S]*\}/);
+        const parsed = cm ? JSON.parse(cm[0]) : null;
+        if (parsed?.change === true && parsed?.amount) {
+          const { data: applied } = await admin.rpc('fn_supplier_apply_change', {
+            p_phone: From, p_field: 'quote_price', p_value: String(parsed.amount),
+            p_inbound: Body.slice(0, 1500), p_channel: 'whatsapp',
+          });
+          const out = String(applied?.message || applied?.refusal || '');
+          if (out) {
+            const replyD = bidiSafe(out.slice(0, 1200));
+            const enabledD = (await sec('wa_autoreply_enabled')) === 'true';
+            let sentD = false; let sendErrD: string | undefined;
+            if (enabledD) { const r = await sendWa(From, replyD); sentD = r.ok; sendErrD = r.err; }
+            try {
+              await admin.from('wa_messages').insert({
+                wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
+                inbound: Body.slice(0, 2000), reply: replyD, lang: 'en', escalated: false, sent: sentD,
+                meta: { enabled: enabledD, audience: 'supplier', route: 'supplier_directive',
+                        applied: applied?.ok === true, directive: applied, send_error: sendErrD || null,
+                        provenance_verified: true, message_sid: MessageSid || null },
+              });
+            } catch (_e) { /* the reply already went out */ }
+            await logRun(applied?.ok === true ? 'ok' : 'error',
+              { audience: 'supplier', route: 'supplier_directive', applied: applied?.ok === true, sent: sentD },
+              applied?.ok === true
+                ? ('supplier re-priced a quotation by WhatsApp: ' + String(applied?.old) + ' -> ' + String(applied?.new))
+                : ('supplier price change REFUSED: ' + String(applied?.refusal || '').slice(0, 200)));
+            return TW(200);
+          }
+        }
+      } catch (_e) { /* a classifier failure must never swallow their message: fall through and answer it */ }
+    }
+
     let audienceBlock: string;
     if (audience === 'supplier') {
       audienceBlock = `AUDIENCE: this number belongs to a REGISTERED SUPPLIER${known?.name ? ' (' + known.name + ')' : ''}${known?.approved ? ', already verified' : ', registration not yet verified'}. Treat them as a supplier. You may naturally acknowledge that they are registered with us, but never recite ANOTHER person's private details. Their OWN record is supplied below and you may state it back to them plainly - that is the point of this channel.`;
