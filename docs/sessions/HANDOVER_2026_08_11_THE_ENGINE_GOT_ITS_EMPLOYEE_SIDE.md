@@ -470,3 +470,57 @@ last real reports. Deleted on a narrow guard; the `agent_runs` rows exec_agents 
 The dispatcher meanwhile hit its ceiling honestly: **24/24 steps delivered today, capped, 49 still
 ready, zero steps stuck running** — it spent its budget on real work before the credits ran out, and
 the release path left nothing wedged.
+
+---
+
+## 12. AFTER THE RECHARGE — TWO MORE UNREACHABLE PATHS, AND A MEASURED STOP LINE
+
+[#228](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/228),
+[#229](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/229).
+
+**An empty officer report is not a report.** `exec_agents` inserted an `exec_reports` row even when
+it reached no model, so the outage produced seven rows saying "AI synthesis unavailable" — and
+because the check reads the *newest* report per officer, they displaced six officers' real ones. It
+now files nothing and records the failure in `agent_runs` with its reason. Verified on both paths:
+nothing filed during the outage, `{"report_id":296,"filed":true,"recommendations":3}` after it.
+
+**`cos_execute`'s stale reclaim could only run when the queue was empty.** `if (batch.length <
+MAX_TASKS)` gave stale work the slots the assigned queue left over — and with **340 tasks in
+`assigned`**, the FIFO head fills both slots every run. The branch had never once executed. **48
+tasks sat `in_progress` for up to six days**, none at MAX_ATTEMPTS. Now a reserved slot, oldest
+first, mirroring the fairness block directly above it. Verified: task 49, untouched since
+2026-08-06, came back `done` at 07:55 while the same run still delivered a task from the assigned
+queue.
+
+### THAT IS FIVE INSTANCES OF ONE DEFECT IN ONE SESSION
+
+A recovery path that is correct, deployed, and reachable only under a condition that never holds:
+the parked workflow steps, `fn_ai_route`'s confidence arms, `exec_review`'s 140s timeout,
+`cos_execute`'s stale reclaim, and `fn_delete_proposer` reopening decisions it had just been given.
+**The 25 existing watcher functions miss all of them, because nothing failed** — the runner ran,
+succeeded, and did nothing. Do not add a 26th generic watcher; measure the specific queue. The
+question that finds them is *"has this path ever actually executed?"*
+
+### THREE MEASUREMENT ERRORS OF MY OWN, CORRECTED NOT SHIPPED
+
+- *"cos_execute has not run in 6 hours."* It logs its per-run row as `agent='chief_of_staff'`. It
+  had run 12 times in 12 hours. `agent_runs.agent` is a JOB name and this one function uses two.
+- *"outcome_record has 0 observed — the learning loop never closes."* 17 of 66 are observed **and**
+  closed, and `due_now_unobserved` is **0**. Every outcome past its due date has been measured.
+- *"The fallback ladder has never engaged"* (§11) — corrected there.
+
+### WHERE ROW #3 STOPS BEING WORTH CHASING, WITH THE MEASUREMENT
+
+Four reds probed this morning; **none is honestly closable**, and each for a different reason:
+
+| check | why not |
+|---|---|
+| `s32-reputation-six-dimensions` | of 93 active employees only **14 have runs, 14 have cost, 13 have exams**. Six axes × 93 means inventing 53–80 numbers per axis. One axis has no column at all. |
+| `s36-recommendation-seven-fields` | the population is **`it/incident` 487 and `onboarding/licence_expiring` 150** — machine-generated alerts, not deliberations. "Alternatives considered" for an expiring licence is fabrication. |
+| `explain-alternatives-considered` | `challenge_record` holds 39 rows with alternatives and **no join key** to a surfaced action. Matching on prose would mis-attribute. |
+| `s24-board-before-major-decisions` | the one unadvised decision is #42, *"Which agent owns signage work"* — a routine `route_category` call. The check reads every `decision_record` as major. It ages out of the window on **5 Sept**. |
+
+The honest position: the remaining reds are mostly checks whose population does not match their
+requirement, or which need demand, or a fixture set that has to be built. **Building the fixture set
+for 101/102/103/114 is the one that is real work rather than a blocked measurement** — that is where
+the next session should go if it wants Row #3 to move.
