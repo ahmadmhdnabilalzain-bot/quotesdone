@@ -182,13 +182,49 @@ export function SupplierPortal() {
   const [token, setToken] = useState('');
   const [phase, setPhase] = useState('login');
   const [mounted, setMounted] = useState(false);
+  // THE INVITATION'S TOKEN HAD NOWHERE TO LAND (12 Aug 2026).
+  //
+  // supplier_api's `claim` action is complete and hardened - it takes body.t, looks the lead up by
+  // the unguessable claim_token, refuses a company already claimed by someone else, refuses an
+  // account that already manages another company, and sets claimed/claimed_by/portal_updated_at.
+  // claim_lookup exists beside it for the "is this your company?" check. NEITHER HAS A SINGLE
+  // CALLER: grep for 'claim' across src/components returns nothing, and this portal never read
+  // location.search at all.
+  //
+  // So an invited supplier arriving from their invitation signed up as a stranger. Their directory
+  // row - company name, emirate, categories, trades, and now a derived supplier_capabilities record
+  // - stayed unclaimed while they retyped it into an empty form. On a cold B2B invite that is the
+  // difference between "confirm what we already know about you" and "fill in this form", and
+  // leads.claimed is also what stops us inviting the same company again.
+  //
+  // sessionStorage, not state: the sign-up flow is email -> OTP -> back, and the URL that carried
+  // the token is not necessarily the one we return to. Cleared as soon as it is used or refused, so
+  // a stale token cannot attach a later, unrelated sign-in to someone else's company.
+  const CLAIM_KEY = 'qd-claim-token';
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const claimIfInvited = async (access) => {
+    let t = '';
+    try { t = sessionStorage.getItem(CLAIM_KEY) || ''; } catch (_e) {}
+    if (!UUID_RE.test(t) || !access) return;
+    try {
+      // A failure here must never block the portal: the supplier can still register manually, which
+      // is exactly what everyone has had to do until now.
+      await call('supplier_api', { action: 'claim', t }, access);
+    } catch (_e) { /* claim is an improvement on the flow, not a gate into it */ }
+    try { sessionStorage.removeItem(CLAIM_KEY); } catch (_e) {}
+  };
   useEffect(() => {
     setMounted(true);
     try { setLang(initLang()); } catch (_e) {}
-    try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { setToken(tk); setPhase('app'); } } catch (_e) {}
-    SB.auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); } }).catch(() => {});
+    // Capture ?t= before anything else can navigate away from it.
+    try {
+      const t = new URLSearchParams(window.location.search).get('t') || '';
+      if (UUID_RE.test(t)) sessionStorage.setItem(CLAIM_KEY, t);
+    } catch (_e) {}
+    try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
+    SB.auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); claimIfInvited(ss.access_token); } }).catch(() => {});
   }, []);
-  const onAuth = (access, refresh) => { try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} } };
+  const onAuth = (access, refresh) => { try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
   const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB.auth.signOut().catch(() => {}); } catch (_e) {} };
   const rtl = lang === 'ar';
   if (!mounted) return null;
