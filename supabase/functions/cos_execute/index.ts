@@ -238,10 +238,28 @@ Deno.serve(async (req) => {
         if (fair && fair.length) batch = batch.slice(0, MAX_TASKS - 1).concat(fair[0]);
       }
     }
-    if (batch.length < MAX_TASKS) {
-      const { data: stale } = await admin.from('org_tasks').select(TASK_COLS).eq('status', 'in_progress').lt('last_run_at', staleCut).order('id').limit(MAX_TASKS - batch.length);
-      batch = batch.concat(stale || []);
-    }
+    // THE RECLAIM COULD ONLY RUN WHEN THE QUEUE WAS EMPTY, AND THE QUEUE IS NEVER EMPTY
+    // (12 Aug 2026). This was `if (batch.length < MAX_TASKS)`, i.e. stale work was picked up only
+    // with the slots the ASSIGNED queue had left over. There are 340 tasks in 'assigned', so the
+    // FIFO head fills both slots on every single run and the condition has never once been true.
+    //
+    // MEASURED: 48 tasks sit in 'in_progress', the oldest last touched on 2026-08-06 - six days -
+    // and NONE is at MAX_ATTEMPTS, so none was abandoned deliberately. They are simply in a state
+    // whose only exit was a branch that cannot execute. A recovery path that runs only when nothing
+    // needs recovering is the same defect as the workflow steps parked on an executor that could
+    // never pick them up.
+    //
+    // Reserving a slot rather than taking the leftovers, which is the pattern the fairness block
+    // directly above already uses for exactly this reason: whichever class owns the head of the
+    // queue, the other one still gets in. Oldest-first by last_run_at, so the six-day-old task goes
+    // first rather than the lowest id. attempts still increments and MAX_ATTEMPTS still escalates to
+    // the founder, so a task that genuinely cannot be worked leaves this loop instead of cycling.
+    //
+    // It costs the assigned queue one slot per run WHILE stale work exists, and nothing once it is
+    // cleared - self-limiting, and cheaper than 48 tasks aging indefinitely.
+    const { data: stale } = await admin.from('org_tasks').select(TASK_COLS)
+      .eq('status', 'in_progress').lt('last_run_at', staleCut).order('last_run_at').limit(1);
+    if (stale && stale.length) batch = batch.slice(0, MAX_TASKS - 1).concat(stale[0]);
 
     const touchedObjectives = new Set<number>();
     const summary: any[] = []; let done = 0, escalated = 0, working = 0;
