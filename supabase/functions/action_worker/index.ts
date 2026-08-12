@@ -44,23 +44,45 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 // which is exactly what this does). max is raised above that policy on purpose so
 // ai_gateway's min(caller, policy) always yields the policy, the same shape cos_execute and
 // agent_brain already use; deleting it is worse, because llm.ts falls back to `def.max ?? 700`.
-const llm = makeLlm(SONNET_FIRST, { fn: 'action_worker', max: 8000, temperature: 0.2, timeoutMs: 70000 });
+//
+// THE CEILING WENT UP AND THE CLOCK DID NOT (measured 12 Aug 2026 23:00 UTC). Raising `max` to
+// 8000 above made the deliverables longer, and the 70-second AbortSignal that had been fine for a
+// 900-token answer became the thing that killed them. Of 267 model calls this function has made,
+// 257 succeeded and TEN returned ok=false with zero tokens — and eight of those ten recorded
+// latency_ms between 72,056 and 72,086, i.e. the abort, one of them saying so in as many words:
+// "ALL MODELS FAILED after the full ladder: The signal has been aborted". The successes run 34.5s
+// to 72.0s for 2,762 to 6,138 output tokens. So the failure is not the model refusing and it is
+// not OpenRouter: the harder the employee worked, the more likely we hung up on it, and the item
+// went back in the queue reading "the model returned nothing", which is not what happened.
+//
+// 105s, not more: the executor row for agent_action_work sets timeout_seconds = 120, and the
+// invoker passes that to net.http_post. A client timeout above the caller's own timeout just moves
+// the guillotine somewhere with a worse error message.
+const llm = makeLlm(SONNET_FIRST, { fn: 'action_worker', max: 8000, temperature: 0.2, timeoutMs: 105000 });
 
 // Reused verbatim from cos_execute. See the header.
 const NOT_WORK = /(could not reach|couldn't reach|unable to reach|not reachable|ai_unreachable|ai (service|is) (unavailable|unreachable)|try again in a moment|no ai key|ai not reachable|service unavailable)/i;
 const MIN_CHARS = 400;
 
-// Kinds an AI employee may settle by producing a written determination.
-const WORKABLE = new Set([
-  'handoff', 'improvement_question', 'knowledge_task', 'report_recommendation', 'report_task',
-  'objective_step', 'strategy_rec', 'ops_recommendation', 'marketing_recommendation',
-  'ai_improvement', 'doc_task', 'supply_health', 'decision.route_category', 'autonomy_stall',
-]);
-// Kinds that are never auto-settled, whatever their risk tier says.
-const NEVER = new Set([
-  'customer_escalation', 'legal_flag', 'security_incident', 'prompt_approval',
-  'compliance_update', 'finance_alert', 'finance_marketing_budget', 'incident',
-]);
+// WHICH KINDS MAY BE SETTLED — now read from agent_action_kind_policy, not from two hard-coded
+// lists that happened to agree. The same 14 auto / 8 founder kinds lived here as Sets AND inside
+// fn_agent_action_work_sweep as a SQL IN-list. They matched, but nothing made them match, and
+// neither of them had a third answer: a kind in neither list was not refused with a reason, it was
+// never selected — silently, by both. 24 kinds were in that position.
+//
+// Reading the table makes the sweep and the worker the same decision, and makes UNKNOWN an
+// explicit, fail-closed refusal that fn_founder_queue then reports. If the lookup itself fails we
+// refuse too: settling an item because we could not read its policy is precisely the false success
+// this function exists to prevent.
+async function policyFor(kind: string): Promise<'auto' | 'founder' | 'unknown' | 'unreadable'> {
+  try {
+    const { data, error } = await admin.from('agent_action_kind_policy')
+      .select('policy').eq('kind', kind).maybeSingle();
+    if (error) return 'unreadable';
+    const p = data?.policy;
+    return p === 'auto' || p === 'founder' ? p : 'unknown';
+  } catch (_e) { return 'unreadable'; }
+}
 
 const nowIso = () => new Date().toISOString();
 
@@ -79,18 +101,26 @@ Deno.serve(async (req: Request) => {
         .eq('id', Number(body.action_id)).maybeSingle();
       row = data ?? null;
     } else {
+      const { data: auto } = await admin.from('agent_action_kind_policy').select('kind').eq('policy', 'auto');
+      const kinds = (auto ?? []).map((r: { kind: string }) => r.kind);
+      if (!kinds.length) return J({ ok: false, worked: 0, reason: 'agent_action_kind_policy is empty or unreadable — refusing rather than guessing which kinds may be settled' }, 500);
       const { data } = await admin.from('agent_actions')
         .select('id,agent,kind,status,risk,title,recommendation,detail,confidence,created_at')
-        .eq('status', 'pending').in('kind', [...WORKABLE]).order('created_at').limit(1);
+        .eq('status', 'pending').in('kind', kinds).order('created_at').limit(1);
       row = (data && data[0]) ?? null;
     }
     if (!row) return J({ ok: true, worked: 0, note: 'nothing eligible is pending' });
 
     const kind = String(row.kind ?? '');
     if (String(row.status) !== 'pending') return J({ ok: true, worked: 0, note: 'not pending', action_id: row.id });
-    if (NEVER.has(kind) || !WORKABLE.has(kind)) {
-      return J({ ok: true, worked: 0, refused: true, kind, action_id: row.id,
-                 note: 'this kind is never settled without the founder' });
+    const policy = await policyFor(kind);
+    if (policy !== 'auto') {
+      return J({ ok: true, worked: 0, refused: true, kind, action_id: row.id, policy,
+                 note: policy === 'founder'
+                   ? 'this kind is never settled without the founder'
+                   : policy === 'unknown'
+                     ? 'no row in agent_action_kind_policy for this kind — refused until someone classifies it; fn_founder_queue reports it as unrouted'
+                     : 'agent_action_kind_policy could not be read — refusing rather than settling on an unknown policy' });
     }
 
     const agentKey = String(row.agent ?? '');

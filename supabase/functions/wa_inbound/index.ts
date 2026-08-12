@@ -10,8 +10,16 @@
 //      per-sender ceiling it never had (20 messages/hour per WhatsApp number). The reply contract
 //      is unchanged - the model still returns {reply,lang,audience,escalate}; only the transport
 //      moved. A Level 0 FAQ answer arrives as plain prose, so it is wrapped in the same envelope.
+// v16 (13 Aug 2026): MEDIA IN. This function has read `Body` since it was written and has never
+//      looked at MediaUrl0. A supplier doing exactly what the invitation asks — attach your trade
+//      licence — got a courteous reply about how QuotesDone works and the document went nowhere:
+//      not to storage, not to license_extract, not onto the lead, not even into doc_reviews, so
+//      nothing recorded that it had arrived. The same journey by EMAIL has worked for weeks. This
+//      is that path, reused rather than reinvented: same bucket, same sanitiser, same extractor,
+//      same columns, same audit row.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const TW = (s = 200) => new Response('<Response></Response>', { status: s, headers: { 'Content-Type': 'text/xml' } });
@@ -186,6 +194,127 @@ async function llm(sys: string, user: string, faqText: string, rateKey: string):
   } catch (_e) { return null; }
 }
 
+// ---- MEDIA IN (v16) --------------------------------------------------------------------------
+function b64(u8: Uint8Array): string {
+  let bin = ''; const c = 0x8000;
+  for (let i = 0; i < u8.length; i += c) bin += String.fromCharCode.apply(null, Array.from(u8.subarray(i, i + c)));
+  return btoa(bin);
+}
+
+// Twilio's MediaUrl needs Basic auth and then 307s to a pre-signed S3 URL. Deno's fetch drops the
+// Authorization header on a cross-origin redirect, which is exactly right here: the redirect target
+// carries its own signature and must not also receive our API key.
+//
+// THE HOST IS PINNED, AND THAT IS THE POINT. MediaUrl0 arrives inside the request body. Provenance
+// or an HMAC signature proves the body came from Twilio, but this function ALSO has an
+// authenticated JSON path, and "fetch whatever URL the payload names" is a server-side request
+// forgery primitive one bug away either way — an attacker-chosen MediaUrl aimed at an internal
+// address would be fetched with our own network position. Only api.twilio.com is fetched.
+//
+// `allowInline` permits a data: URL, and ONLY the authenticated internal path sets it. That path
+// already requires the ops.wa_replay credential and exists to replay a message through the real
+// code; a data: URL carries its own bytes, names no host and reaches no network, so it is the one
+// safe way to exercise this leg where no Twilio media exists to replay. The Twilio webhook path
+// cannot reach it.
+async function fetchTwilioMedia(url: string, allowInline: boolean):
+    Promise<{ bytes: Uint8Array | null; mime: string; err?: string }> {
+  const isInline = /^data:/i.test(url);
+  if (isInline && !allowInline) return { bytes: null, mime: '', err: 'inline media is only accepted from an authenticated internal caller' };
+  if (!isInline) {
+    let host = '';
+    try { host = new URL(url).hostname.toLowerCase(); } catch (_e) { /* malformed */ }
+    if (host !== 'api.twilio.com') return { bytes: null, mime: '', err: 'media URL is not on api.twilio.com and was not fetched' };
+  }
+  const kSid = isInline ? '' : (await sec('twilio_api_key_sid') || '');
+  const kSec = isInline ? '' : (await sec('twilio_api_key_secret') || '');
+  if (!isInline && (!kSid || !kSec)) return { bytes: null, mime: '', err: 'twilio credentials not configured' };
+  try {
+    const ctrl = new AbortController(); const tt = setTimeout(() => ctrl.abort(), 20000);
+    const r = await fetch(url, {
+      headers: isInline ? {} : { 'Authorization': 'Basic ' + btoa(kSid + ':' + kSec) },
+      signal: ctrl.signal,
+    });
+    clearTimeout(tt);
+    if (!r.ok) return { bytes: null, mime: '', err: 'twilio media fetch HTTP ' + r.status };
+    const buf = new Uint8Array(await r.arrayBuffer());
+    // 12 MB ceiling: WhatsApp caps documents at 16 MB and base64 inflates by a third, so anything
+    // larger cannot be handed to the extractor as a data URL anyway. Refuse loudly, not silently.
+    if (buf.byteLength > 12 * 1024 * 1024) return { bytes: null, mime: '', err: 'file is larger than 12 MB' };
+    return { bytes: buf, mime: r.headers.get('content-type') || '' };
+  } catch (e) { return { bytes: null, mime: '', err: String((e as Error)?.message || e).slice(0, 160) }; }
+}
+
+// Store, read and APPLY one attachment to the sender's lead. Deliberately the same sequence
+// resend_inbound uses for an emailed licence — sanitize, upload, extract, update, file a
+// doc_reviews row — so a supplier gets the same outcome whichever way they send it.
+async function handleSupplierDoc(leadId: number, url: string, declaredMime: string, fromPhone: string, allowInline: boolean):
+    Promise<{ ok: boolean; applied: string[]; note: string }> {
+  const got = await fetchTwilioMedia(url, allowInline);
+  if (!got.bytes) return { ok: false, applied: [], note: got.err || 'could not download the file' };
+
+  const mime = got.mime || declaredMime || 'application/octet-stream';
+  const ext = /pdf/i.test(mime) ? 'pdf' : /png/i.test(mime) ? 'png' : /jpe?g/i.test(mime) ? 'jpg' : 'bin';
+  const fname = 'whatsapp-licence-' + Date.now() + '.' + ext;
+
+  // The mime came from a header a sender controls. Sniff the bytes, refuse anything that is not a
+  // PDF or a real image, and strip EXIF/GPS off a photographed document before it is stored.
+  const san = sanitizeUpload({ input: got.bytes, declaredMime: mime, filename: fname, allow: SAFE_UPLOAD });
+  if (!san.ok) return { ok: false, applied: [], note: 'that file type is not accepted — please send a PDF or a photo of the licence' };
+
+  const path = 'inbound/' + leadId + '/' + Date.now() + '_' + fname;
+  const up = await admin.storage.from('supplier-docs').upload(path, san.bytes, { contentType: san.mime, upsert: true });
+  if (up && (up as { error?: unknown }).error) return { ok: false, applied: [], note: 'the file could not be stored' };
+
+  const docSecret = await sec('cred_fn_wa_docs');
+  let doc: Record<string, string> | null = null;
+  if (docSecret) {
+    try {
+      const isImg = /^image\//.test(san.mime);
+      const payload = isImg
+        ? { __secret: docSecret, mode: 'license', images: [{ b64: b64(san.bytes), mime: san.mime }] }
+        : { __secret: docSecret, mode: 'license', file_b64: b64(san.bytes), mime: san.mime, filename: fname };
+      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/license_extract', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload), signal: AbortSignal.timeout(90000),
+      });
+      const j = await r.json().catch(() => null);
+      if (j?.ok && j.doc) doc = j.doc;
+    } catch (_e) { /* the file is stored either way; say so rather than claiming it was read */ }
+  }
+
+  // The document is attached whatever the extraction did — a licence we could not read is still a
+  // licence on file, and license_doc_path is what unblocks the approval gate.
+  const upd: Record<string, unknown> = {
+    license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
+  };
+  const applied: string[] = [];
+  // 'low' confidence never overwrites a stored fact. license_extract returns confidence 'low' both
+  // for an unreadable scan AND for a response that was truncated into {} — the two are
+  // indistinguishable from here, so neither is allowed to change a number on the record.
+  if (doc && doc.confidence !== 'low') {
+    if (doc.license_number) { upd.trade_license_no = doc.license_number; applied.push('licence no ' + doc.license_number); }
+    if (doc.license_authority) { upd.license_authority = doc.license_authority; applied.push('authority'); }
+    if (doc.expiry_date) { upd.license_expiry = doc.expiry_date; applied.push('expiry ' + doc.expiry_date); }
+    if (doc.city) upd.license_city = doc.city;
+    if (doc.trn) { upd.trn = doc.trn; applied.push('TRN'); }
+  }
+  const { error: uErr } = await admin.from('leads').update(upd).eq('id', leadId);
+  if (uErr) return { ok: false, applied: [], note: 'the file was stored but the record could not be updated' };
+
+  try {
+    await admin.from('doc_reviews').insert({
+      lead_id: leadId, from_email: null, subject: 'WhatsApp from ' + fromPhone.replace('whatsapp:', ''),
+      file_name: fname, file_path: path, mime: san.mime, ai_relevant: true, ai_category: 'trade_license',
+      ai_summary: doc ? ('read from WhatsApp: ' + [doc.legal_name, doc.license_number, doc.expiry_date].filter(Boolean).join(' / ')) : 'stored from WhatsApp; extraction returned nothing',
+      ai_suggested_field: 'license_doc_path', ai_confidence: doc?.confidence || 'low',
+      status: 'pending', auto_applied: applied.length > 0, extracted: doc,
+    });
+  } catch (_e) { /* the lead is already updated; a lost audit row must not undo that */ }
+
+  return { ok: true, applied,
+           note: applied.length ? 'read and applied' : 'stored, but the details could not be read confidently' };
+}
+
 async function sendWa(to: string, body: string): Promise<{ ok: boolean; err?: string }> {
   const sid = await sec('twilio_account_sid'); const kSid = await sec('twilio_api_key_sid'); const kSec = await sec('twilio_api_key_secret'); const from = await sec('twilio_wa_from');
   if (!sid || !kSid || !kSec || !from) return { ok: false, err: 'twilio_not_configured' };
@@ -203,7 +332,11 @@ Deno.serve(async (req) => {
   const logRun = mkLog(Date.now());
   try {
     let From = '', Body = '', Profile = '', MessageSid = '';
+    const media: { url: string; mime: string }[] = [];
     let trusted = false; // true once we know the request really came from Twilio (or an internal caller)
+    // NOT the same as `trusted`: a valid Twilio signature also sets trusted. This is true only for
+    // an authenticated internal JSON caller, and it is the sole thing that permits inline media.
+    let internalCaller = false;
     const formParams: Record<string, string> = {}; // every POST param, needed for signature validation
     const ct = req.headers.get('content-type') || '';
 
@@ -223,14 +356,24 @@ Deno.serve(async (req) => {
         return TW(200);
       }
       From = j.From || ''; Body = j.Body || ''; Profile = j.ProfileName || ''; MessageSid = j.MessageSid || '';
-      trusted = true; // authenticated internal caller (test harness / replay tooling)
+      for (let i = 0; i < Number(j.NumMedia || 0) && i < 5; i++) {
+        if (j['MediaUrl' + i]) media.push({ url: String(j['MediaUrl' + i]), mime: String(j['MediaContentType' + i] || '') });
+      }
+      trusted = true; internalCaller = true; // authenticated internal caller (replay tooling)
     } else {
       const p = new URLSearchParams(await req.text());
       From = p.get('From') || ''; Body = p.get('Body') || ''; Profile = p.get('ProfileName') || ''; MessageSid = p.get('MessageSid') || p.get('SmsMessageSid') || '';
       // Signature validation needs every POST param, not just the four we consume.
       for (const [k, v] of p.entries()) formParams[k] = v;
+      for (let i = 0; i < Number(p.get('NumMedia') || 0) && i < 5; i++) {
+        const u = p.get('MediaUrl' + i);
+        if (u) media.push({ url: u, mime: p.get('MediaContentType' + i) || '' });
+      }
     }
-    if (!Body || !From) return TW(200);
+    // A WhatsApp attachment usually arrives with an EMPTY Body — the caption is optional. The
+    // original guard returned 200 and dropped it, which is the whole of why an attached trade
+    // licence achieved nothing even before the media params went unread.
+    if (!From || (!Body && !media.length)) return TW(200);
 
     // IDEMPOTENCY. Twilio redelivers a webhook it believes timed out, and until now nothing here
     // remembered a MessageSid: a redelivery meant a second model call, a second WhatsApp reply and
@@ -452,6 +595,65 @@ Deno.serve(async (req) => {
       const er = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
       if (er?.waitUntil) er.waitUntil(work); else await work;
 
+      return TW(200);
+    }
+
+    // ---- A DOCUMENT ARRIVED (v16) ------------------------------------------
+    // Placed AFTER the founder branch on purpose: he returned above, and a document from him is a
+    // different conversation from a supplier sending their licence. This handles the case the
+    // invitation actually asks for.
+    //
+    // Backgrounded for the same reason the founder branch is: downloading from Twilio, sanitising,
+    // uploading and running a vision extraction is 20-60 seconds and Twilio's webhook wall is 15.
+    // Acknowledging first and reporting the result by message is also simply how a person would do
+    // it — "got it, reading it now" and then what it said.
+    if (media.length) {
+      const leadId = await (async () => {
+        try { const { data } = await admin.rpc('fn_wa_lead_id', { p_phone: From }); return data ? Number(data) : null; }
+        catch (_e) { return null; }
+      })();
+
+      const docWork = (async () => {
+        const enabled = (await sec('wa_autoreply_enabled')) === 'true';
+        let reply = ''; const results: string[] = [];
+
+        if (!leadId) {
+          // Not a supplier we can find. Never silently discard it, and never guess whose it is.
+          reply = 'Thanks — I can see you have sent a file, but this number is not linked to a supplier account yet, so I cannot file it against a company. Register or sign in at https://quotesdone.com/suppliers and upload it there, and it will be read automatically.';
+        } else {
+          for (const m of media.slice(0, 3)) {
+            const r = await handleSupplierDoc(leadId, m.url, m.mime, From, internalCaller);
+            results.push(r.ok ? (r.applied.length ? ('updated: ' + r.applied.join(', ')) : r.note) : ('not stored — ' + r.note));
+          }
+          const anyOk = results.some((r) => !r.startsWith('not stored'));
+          const anyApplied = results.some((r) => r.startsWith('updated:'));
+          reply = anyApplied
+            ? 'Got it — your trade licence is on file and I have updated your record (' + results.filter((r) => r.startsWith('updated:')).map((r) => r.replace('updated: ', '')).join('; ') + '). You can check it any time at https://quotesdone.com/suppliers.'
+            : anyOk
+              ? 'Thanks — the document is saved against your account, but I could not read the details off it confidently, so nothing on your record was changed. If the licence number or expiry is wrong on your profile, please correct it at https://quotesdone.com/suppliers.'
+              : 'Sorry — I could not accept that file (' + results[0].replace('not stored — ', '') + '). Please send the trade licence as a PDF or a clear photo, or upload it at https://quotesdone.com/suppliers.';
+        }
+
+        reply = bidiSafe(reply.slice(0, 1200));
+        let sent = false; let sendErr: string | undefined;
+        if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; }
+        try {
+          await admin.from('wa_messages').insert({
+            wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
+            inbound: (Body || '(no caption)').slice(0, 2000), reply, lang: 'en', escalated: false, sent,
+            meta: { enabled, audience, route: 'media_in', media_count: media.length, lead_id: leadId,
+                    results, send_error: sendErr || null, provenance_verified: true,
+                    message_sid: MessageSid || null },
+          });
+        } catch (_e) { /* the reply already went out */ }
+        await logRun(leadId && results.every((r) => r.startsWith('not stored')) ? 'error' : 'ok',
+          { audience, route: 'media_in', media: media.length, lead_id: leadId, sent },
+          leadId ? ('WhatsApp document from lead ' + leadId + ': ' + results.join(' | '))
+                 : 'WhatsApp document from a number with no supplier account; nothing was filed and the sender was told why');
+      })();
+
+      const erDoc = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+      if (erDoc?.waitUntil) erDoc.waitUntil(docWork); else await docWork;
       return TW(200);
     }
 
