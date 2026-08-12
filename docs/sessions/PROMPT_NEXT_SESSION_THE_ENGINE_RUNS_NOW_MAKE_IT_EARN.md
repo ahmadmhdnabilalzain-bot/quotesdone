@@ -39,47 +39,32 @@ objective, the specs, or the operating model. Stripe refunds still need me.
 
 ---
 
-## THE FIRST THING — supplier invites, now delegated to me, and the gate is NOT met
+## THE ORDER, AND IT IS NOT NEGOTIABLE
 
-On 12 Aug the founder delegated this: *"you can proceed once you are 100% sure that suppliers won't
-have an issue when they register... in case we ever get banned on the email from spam or any issue
-that's gonna be on you. I have no clue about the limits per day... its your responsibility."*
-
-**DO NOT ENABLE INVITES YET.** His condition is not met and the measurement says so:
+The founder's instruction, 12 Aug: *"logically you need to finish all those before you worry about
+invitation."* He is right. Work the backlog first. **Sending invitations is the LAST item on this
+page**, and the only thing above it that touches suppliers is finding out why the ones already
+invited never registered — which is a broken capability on the revenue path, not invite work.
 
 ```
-20,470 leads · 19,903 with an email
-    62 ever invited
-     0 registration_submitted_at   <- not one supplier has EVER started registration
-     0 approved
+1  confirm #236 fires                       one query
+2  Vercel: kill the build-time font fetch   diagnosed, small, closes a known failure mode
+3  the dispatcher's 24/day cap              one CREATE OR REPLACE, ours to decide
+4  WHY 57 SUPPLIERS NEVER REGISTERED        revenue-critical. NOT sending. Do not skip.
+5  BoQ fixtures + the goals/KPIs worth doing
+6  spec #3 UI
+7  ...then, and only then, supplier invites
 ```
-
-62 invitations, zero registrations started. That may be a broken path or it may be cold outreach
-being ignored — **nobody has ever distinguished the two, and that is the job.**
-
-**The domain risk is now ours to carry.** 7-day bounce is **13.3%**; providers throttle above ~5%
-and block sustained double digits, and a burned sending domain takes the company's real customer
-mail with it. `app_secrets.invite_max_bounce_rate` is already set to **0.08** and the live rate is
-above the platform's own brake. At the 10/day cap the list takes 5.4 years anyway, so volume is not
-available until the list is clean.
-
-**Do these three, in order. None needs the founder's money:**
-
-1. **Walk the registration path end to end yourself** — invite link → supplier portal → company
-   profile → submit → trade-licence upload → approval queue. Find where it breaks and fix it.
-   Until one real registration completes, every further invitation burns an address for nothing.
-   `s26-compare-capabilities` reads "0 capability record(s) against 0 approved supplier(s)" — the
-   supplier side has 20,470 rows of data and no working intake.
-2. **Cull the list for free** — syntax validation, MX-record lookup, drop role addresses
-   (`info@`, `sales@`, `admin@`) and dead domains. That is most of what a paid verifier does and
-   should pull 13.3% under the 8% brake at zero cost.
-3. **Only then ramp**, small batches, re-measuring bounce after each, halting automatically at the
-   brake. If bounce is still above 8% after step 2, verification becomes a money decision — go back
-   to him with the number, not with a request to "consider verification".
 
 ---
 
-## THE SECOND THING — one query, and it is the highest-value single check
+## 1. THE FIRST THING — one query, and it is the highest-value single check
+
+**Finish this before starting anything else.** The pattern that produced every mistake of 12 Aug was
+moving to the next thing before the check in front of me was done: a step marked done on a truncated
+deliverable, three claims asserted before they were measured, a reason written as "needs a fixture"
+when it was "needs demand", and a whole priority list reordered because the founder mentioned
+invites mid-sentence. Work items in order. Verify each one before opening the next.
 
 `fn_action_invoke_collect` used to close a task writing only a 500-character `summary` and never
 `result.deliverable`. **Ten routines read `deliverable`** — `fn_task_lesson`,
@@ -142,16 +127,49 @@ work is not. One `CREATE OR REPLACE`. Tell me which you chose and why.
 
 ### 3. Act on the company's own revenue diagnosis
 
-Its two named gates:
-- **the 20,470-supplier directory generates zero RFQs**
-- **supplier approval is stuck at 0/6**
+Its two named gates were **the 20,470-supplier directory generates zero RFQs** and **supplier
+approval is stuck at 0/6**.
 
-Both are demand-side and neither needs my decision. `s26-compare-capabilities` reads
-"0 capability record(s) against 0 approved supplier(s), 0 extracted in 180d" — so the supplier side
-has data and no processing. Start there. **Apify stays paused until ~Feb 2027; work the existing
-20,470 leads.** Do not "fix" `s26-discover-suppliers`.
+**THE SECOND GATE IS NOT REAL — measured 12 Aug after the diagnosis was written.** All six "pending
+approvals" are seeded test fixtures:
 
-### 4. Goals and KPIs still without a measure — 34 and 14
+```
+ZZ DEMO — Al Barsha HVAC Trading        qd-demo-supplier-005@example.invalid
+ZZ DEMO — Al Noor HVAC Manufacturing    demo-supplier@example.invalid
+ZZ DEMO — Capital Mechanical Works      qd-demo-supplier-006@example.invalid
+ZZ DEMO — Emirates Air Engineering      qd-demo-supplier-003@example.invalid
+ZZ DEMO — Gulf Climate Systems          qd-demo-supplier-002@example.invalid
+ZZ DEMO — Northern Cooling Contracting  qd-demo-supplier-004@example.invalid
+```
+
+Every one is labelled *"not a real company"* in its own name and sits on `@example.invalid`.
+Approval automation is not stuck — it is correctly refusing to approve companies that do not exist.
+**Do not go looking for a broken approver.** It is a decorative number, the same defect class as
+`ocr_coverage_pct`, and the honest fix is to exclude `ZZ DEMO` fixtures from that count wherever it
+is computed. **Not one real supplier has ever reached the approval queue**, because none has ever
+started registration — which is item 4 below, not this one.
+
+The FIRST gate is real. `s26-compare-capabilities` reads "0 capability record(s) against 0 approved
+supplier(s), 0 extracted in 180d" — 20,470 rows of supplier data and no processing over it. Start
+there. **Apify stays paused until ~Feb 2027; work the existing leads.** Do not "fix"
+`s26-discover-suppliers`.
+
+### 4. WHY 57 REAL SUPPLIERS NEVER REGISTERED — revenue-critical, and NOT invite work
+
+62 invitations were genuinely sent (5 hard-bounced through the Resend webhook and are in
+`email_suppressions`; the other 57 show no bounce). **Zero recipients ever started registration** —
+`registration_submitted_at` is 0 across all 20,470 leads.
+
+**Walk the path yourself**: invite link → supplier portal → company profile → submit → trade-licence
+upload → approval queue. Find out whether it is broken or simply unpersuasive, and fix what breaks.
+Until one real registration completes end to end, sending more invitations burns addresses for
+nothing — which is why the invite section is at the bottom of this page and this is not.
+
+Note `invite_status` never advances past `queued` on success — only the bounce webhook writes back.
+That is a tracking gap worth closing while you are in there; it is what made "were these even sent?"
+unanswerable without cross-checking `email_suppressions`.
+
+### 5. Goals and KPIs still without a measure — 34 and 14
 
 Every one now carries a written `no_measure_reason`, so none is silently decorative. Re-read those
 reasons before building: two of mine were the wrong KIND last session (I wrote "needs a fixture"
@@ -160,13 +178,54 @@ where the truth was "needs demand", and the distinction decides whether you buil
   fixtures**; two drawings and four checks is a thin instrument.
 - **114** needs a holdout of qualified RFQs and there are 0 inquiries. Blocked.
 
-### 5. The remaining spec #3 UI
+### 6. The remaining spec #3 UI
 
 Landed last session: the workflow screen ("Processes in flight", with what each run waits on) and
 "What the company's processes produced". Still open: **interactive documents, drag & drop, workspace
 snapshots, live collaboration, visual workflow builder**, and making the AI side panel persistent —
 note it is *less absent* than the spec implies, a Secretary chat and a per-entity `askAI` already
 exist in `OsxShell`.
+
+---
+
+## LAST — supplier invites. Everything above comes first, and the gate is still NOT met
+
+On 12 Aug the founder delegated this: *"you can proceed once you are 100% sure that suppliers won't
+have an issue when they register... in case we ever get banned on the email from spam or any issue
+that's gonna be on you. I have no clue about the limits per day... its your responsibility."*
+
+**DO NOT ENABLE INVITES YET.** His condition is not met and the measurement says so:
+
+```
+20,470 leads · 19,903 with an email
+    62 ever invited
+     0 registration_submitted_at   <- not one supplier has EVER started registration
+     0 approved
+```
+
+62 invitations, zero registrations started. That may be a broken path or it may be cold outreach
+being ignored — **nobody has ever distinguished the two, and that is the job.**
+
+**The domain risk is now ours to carry.** 7-day bounce is **13.3%**; providers throttle above ~5%
+and block sustained double digits, and a burned sending domain takes the company's real customer
+mail with it. `app_secrets.invite_max_bounce_rate` is already set to **0.08** and the live rate is
+above the platform's own brake. At the 10/day cap the list takes 5.4 years anyway, so volume is not
+available until the list is clean.
+
+**Do these three, in order. None needs the founder's money:**
+
+1. **Walk the registration path end to end yourself** — invite link → supplier portal → company
+   profile → submit → trade-licence upload → approval queue. Find where it breaks and fix it.
+   Until one real registration completes, every further invitation burns an address for nothing.
+   `s26-compare-capabilities` reads "0 capability record(s) against 0 approved supplier(s)" — the
+   supplier side has 20,470 rows of data and no working intake.
+2. **Cull the list for free** — syntax validation, MX-record lookup, drop role addresses
+   (`info@`, `sales@`, `admin@`) and dead domains. That is most of what a paid verifier does and
+   should pull 13.3% under the 8% brake at zero cost.
+3. **Only then ramp**, small batches, re-measuring bounce after each, halting automatically at the
+   brake. If bounce is still above 8% after step 2, verification becomes a money decision — go back
+   to him with the number, not with a request to "consider verification".
+
 
 ---
 
