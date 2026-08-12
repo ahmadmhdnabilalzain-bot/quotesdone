@@ -235,6 +235,16 @@ Deno.serve(async (req) => {
           title: 'RFQ had no matchable seller' + (inq.category ? (': ' + inq.category) : ''),
           recommendation: 'A finalized customer RFQ (' + label + ') produced ZERO genuine seller matches — a supply-coverage gap. Consider acquiring/onboarding sellers in this trade+emirate. No sellers were contacted.',
           detail: { signal: 'coverage_gap:' + inquiryId, inquiry_id: inquiryId, category: inq.category, emirate: inq.emirate, primary_trade: route.primary_trade, evaluated: route.evaluated },
+          // s36 (13 Aug 2026): same three assumptions as create_inquiry's flag, plus the one this
+          // path can state and that one cannot — how many candidates were actually looked at.
+          assumptions: [
+            'That the matcher was asked the right question. Category, emirate and primary trade are the customer\'s intake as it was recorded; a mis-categorised RFQ manufactures a gap in a trade nobody asked for.',
+            'That zero fits means no capable seller. It equally means sellers exist and none has DECLARED this capability — the match gates on declared trades, not on what a company can do.',
+            'That the seller base was reachable. Suspended, unverified or unlicensed sellers are invisible to the match and count here as absent.',
+            String(route.evaluated ?? 0) + ' candidate(s) were evaluated. If that number is small the gap may be in the candidate query rather than in the market.',
+          ],
+          expected_impact: 'A finalized RFQ reached nobody and can receive no quotes. Supply is the binding constraint on revenue, and this is a customer who asked for something the marketplace could not serve.',
+          cost: 'No spend to record it. Closing the gap costs invitation volume and sending reputation, which the invite ramp caps — or nothing, if a seller already on file has simply not declared the trade.',
           target_table: 'inquiries', target_id: inquiryId
         });
       } catch (_e) { flagged = false; }
