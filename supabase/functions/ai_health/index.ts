@@ -66,7 +66,18 @@ Deno.serve(async (req) => {
         try { await admin.from('founder_alerts').insert({ level: 'info', event: 'ai_recovered', detail: 'AI provider (OpenRouter) is reachable again after ' + prior + ' failed checks.', channel: 'system' }); } catch (_e) { /* */ }
         try { await admin.from('notifications').insert({ type: 'ai_recovered', to_email: admin_email, to_role: 'admin', channel: 'email', subject: 'AI provider recovered', body: 'The AI model gateway (OpenRouter) is reachable again. Agents can resume automatically. Any queued jobs will drain on their next scheduled run.', status: 'queued' }); } catch (_e) { /* */ }
       }
-      await setSec('ai_health_fails', '0');
+      // ONLY WRITE WHEN THE COUNTER ACTUALLY CHANGES (12 Aug 2026). This reset the counter to '0'
+      // on every healthy run, including the overwhelming majority where it was already '0'.
+      // app_secrets carries an audit trigger, so each no-op UPDATE wrote a security_audit_log row:
+      // measured, 2,593 of the 2,678 app_secrets updates ever recorded are this one key, against 24
+      // DELETEs and 157 INSERTs of real credentials across the whole estate.
+      //
+      // That is not a write-volume problem, it is an instrument problem. security_audit_log exists so
+      // that a change to a credential can be found; 90% of it was a health counter ticking every
+      // fifteen minutes, and a real key rotation sat buried in the noise. The counter itself is
+      // legitimate and is read by the OS shell ("AI health failures"), so it stays — it is only
+      // written when its value moves.
+      if (prior !== 0) await setSec('ai_health_fails', '0');
       return J({ ok: true, healthy: true, recovered: prior >= THRESHOLD });
     }
 
