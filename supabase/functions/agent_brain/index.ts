@@ -229,7 +229,17 @@ async function context(key:string){
   let dueSum=0,dueCnt=0; for(const d of (dues||[])){ dueCnt++; dueSum+=Number(d.amount_due||0)+Number(d.fine_amount||0); }
   const [pendAll,kyc,refunds,drafts,inq7,q7,sup,cust,sec7]=await Promise.all([
     cntT('agent_actions',(q)=>q.eq('status','pending')),
-    cntT('leads',(q)=>q.eq('approval_status','pending')),
+    // THE COMPANY'S OWN REVENUE DIAGNOSIS WAS BUILT ON A COUNT OF SIX FIXTURES (12 Aug 2026).
+    // This reported kyc_pending: 6, and that number is what the employees reason from - org_tasks
+    // 1309, the AI-spend escalation the founder asked for a decision on, concluded that "supplier
+    // approval is stuck at 0/6" and named it a revenue gate. All six rows carry
+    // source='qd_demo_fixture', matching_blocked=true, a name beginning "ZZ DEMO —" and an
+    // @example.invalid address. The approver is not stuck; it is correctly refusing to approve
+    // companies that do not exist. The true figure is ZERO real suppliers awaiting approval, and
+    // that is a much worse number than six, because it says none has ever reached the queue.
+    // fn_opportunity_scan, fn_supplier_market and three others already exclude this source; the
+    // employee context did not.
+    cntT('leads',(q)=>q.eq('approval_status','pending').neq('source','qd_demo_fixture')),
     cntT('transactions',(q)=>q.eq('refund_status','requested')),
     cntT('content_drafts',(q)=>q.eq('status','draft')),
     cntT('inquiries',(q)=>q.gte('created_at',since7)),
