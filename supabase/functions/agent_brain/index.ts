@@ -312,18 +312,37 @@ Deno.serve(async (req)=>{
     // No marker found (a department with no health_fn and no experience yet) means no stable block
     // is claimed, and nothing is marked. Failing to "no caching" is free; claiming a prefix that
     // moves is not.
-    // MEASURED 11 Aug 2026, AFTER THE CAP: none of these three markers survives
-    // fn_agent_context_capped, because they sit in the standing head and that is what the wrapper
-    // trims. So cutAt is -1, stable_chars is 0, and NOTHING is claimed as cacheable any more.
-    // That costs nothing today — decision_policy.prompt_cache_enabled is false, set deliberately on
-    // 11 Aug because the read/write ratio was 0.115 against a 0.22 break-even, so ai_gateway ignores
-    // sys_stable entirely. Recorded rather than repaired: building a stable-prefix split for a
-    // switch that is off would be work with no payer, and the ratio has to be re-measured over a
-    // full week before that switch moves. If it is ever turned back on, this is the first thing to
-    // look at — agent_runs.counts->>'stable_chars' reads 0 on every agent_brain turn.
-    const VOLATILE_AT = ['\n# LAYER 3 - LIVE OPERATIONAL STATE',
-                         '\n# LAYER 4 - WHAT THIS ORGANIZATION HAS LEARNED',
-                         '\n# YOUR OS OBJECTIVES, MEASURED'];
+    // MEASURED 12 Aug 2026. The note above blamed the cap for trimming these markers away. It is
+    // simpler and worse than that: '\n# LAYER 3 - LIVE OPERATIONAL STATE' and
+    // '\n# LAYER 4 - WHAT THIS ORGANIZATION HAS LEARNED' HAVE NEVER EXISTED. The uncapped
+    // 207,798-character context emits five '# LAYER' headings and they read '# LAYER 2 - YOUR
+    // PROFESSIONAL EXPERTISE', '# LAYER 1 - COMPANY KNOWLEDGE (...)', '# LAYER 2c - HOW THIS
+    // COMPANY OPERATES (...)' and '# LAYER 4 (EXTERNAL) - AUTHORITATIVE SOURCES OUTSIDE THIS
+    // COMPANY'. There is no LAYER 3 heading at all and LAYER 4 carries a different suffix, so this
+    // loop has matched nothing since the day it was written. "Split on the section headings rather
+    // than a new sentinel" is exactly what failed: headings get reworded, and a string match
+    // against prose fails silently and forever.
+    //
+    // So there is a sentinel now, emitted by fn_agent_context_capped, which is also where the head
+    // is given a FIXED character budget — previously it was `v_want - length(tail)`, so the
+    // standing context was a different length for every question and the "stable" prefix was not
+    // byte-stable at all. Fixing these markers WITHOUT that would have been worse than doing
+    // nothing: a moving prefix buys a cache write at 1.25x and reads none of it. Measured after
+    // both changes: same agent, two different questions, boundary at 17,501 characters on both and
+    // identical md5 of the prefix; a different agent correctly differs; 81.3% of the context is now
+    // inside the stable half.
+    //
+    // decision_policy.prompt_cache_enabled stays FALSE. The 0.115 ratio that turned it off on
+    // 11 Aug was measured while this split cached nothing, so it measured nothing. What governs it
+    // is how often one agent calls back inside the TTL: over 7 days, 621 calls across 12 distinct
+    // agents, median gap 1 minute, 58.5% within 5 minutes and 89.0% within 1 hour, against
+    // break-evens of 22% and 53%. Both clear it. Re-measure over a full week with the split
+    // actually working, then move the switch — that is the founder's sequence and those numbers
+    // are the prediction to test.
+    const STABLE_END = '\n# --- END STABLE CONTEXT ---\n';
+    const VOLATILE_AT = [STABLE_END,
+                         '\n# LAYER 2b',
+                         '\n# LAYER 2c - HOW THIS COMPANY OPERATES'];
     let cutAt = -1;
     for (const marker of VOLATILE_AT) { const i = layered.indexOf(marker); if (i >= 0 && (cutAt < 0 || i < cutAt)) cutAt = i; }
     const stableCtx   = cutAt >= 0 ? layered.slice(0, cutAt) : '';
