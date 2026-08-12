@@ -67,6 +67,24 @@ dropped Row #3 to 126 earlier today. **0 undocumented active crons on both proje
 - `journey_test` end to end on staging: **40/40**, step 27 now PASS, teardown showing
   `inquiry_matches 1` where the previous run had none.
 
+### And the RFQ waiting behind your two clicks will land on a real supplier
+
+Worth knowing before you tick the boxes: I ran the matcher that dispatch itself uses, against your
+own HVAC brief, on production.
+
+```
+select * from fn_match_capability(array['hvac'], 'Supply and install 40 TR ducted split AC system',
+                                  null, null, null, 180000, 'Dubai', 10);
+
+30466  MERIDIAN MEP CONTRACTING LLC  score 5.0  trades hvac, electrical, plumbing, mep_general
+                                                why: "trades hvac · covers Dubai"
+```
+
+So intake `18e2c133` has a real, approved, capability-enriched supplier waiting for it. The moment
+`phone_verified` and `tos_accepted_at` are satisfied, Send creates the inquiry and dispatch reaches
+that company — and if it somehow reached nobody, the sweep built here would offer it again six hours
+later instead of leaving it dead.
+
 ---
 
 ## Two more one-shot triggers, measured not guessed
