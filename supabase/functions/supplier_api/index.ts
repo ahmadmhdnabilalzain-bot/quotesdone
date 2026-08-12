@@ -274,7 +274,7 @@ Deno.serve(async (req) => {
     // claim_lookup was hardened against on 19 Jul, one layer up. Here the id is resolved from the
     // caller's own JWT via claimed_by and the client's id is never consulted.
     if (action === 'capability_state' || action === 'capability_confirm') {
-      const { data: mine } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      const { data: mine } = await admin.from('leads').select('id,service_emirates').eq('claimed_by', email).maybeSingle();
       if (!mine) return J({ error: 'claim_your_company_first', message: 'Claim your company before confirming what it can quote for.' }, 400);
       const secret = await secretVal('cred_fn_supplier_api');
       if (!secret) return J({ error: 'internal_credential_missing' }, 500);
@@ -286,6 +286,21 @@ Deno.serve(async (req) => {
         for (const k of ['trades','roles','services','products','coverage_emirates','brands',
                          'project_types','exclusions','min_project_value','max_project_value']) {
           if (body[k] !== undefined) fwd[k] = body[k];
+        }
+        // COVERAGE 12 Aug 2026. Walked the registration end to end and the confirmed row came out
+        // with coverage_emirates = {} even though the same supplier had just told the registration
+        // form they serve Dubai, Sharjah and Abu Dhabi. CapabilityConfirmPanel sends
+        // `cap.coverage_emirates || []`, and for anyone whose scope was never derived from a
+        // scrape (every self-registered and every newly-invited supplier) `cap` is null, so it
+        // posts an empty array over the answer we already hold. fn_match_capability then ranks
+        // them with `why: 'coverage not stated'` - still matchable, but below an identical
+        // supplier who happened to have a derived row. The emirates are not missing; they are
+        // one table away. Defaulted server-side so every caller gets it, and only when the client
+        // genuinely has nothing to say: an explicit non-empty list from the screen always wins.
+        const sent = fwd.coverage_emirates as unknown[] | undefined;
+        if (!Array.isArray(sent) || !sent.length) {
+          const declared = (mine as { service_emirates?: string[] }).service_emirates;
+          if (Array.isArray(declared) && declared.length) fwd.coverage_emirates = declared;
         }
       }
       try {
