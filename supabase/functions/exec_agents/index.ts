@@ -56,22 +56,47 @@ async function runOfficer(k: string): Promise<any> {
     summary: parsed?.summary || ('Metrics captured; AI synthesis unavailable this run.'),
     findings: Array.isArray(parsed?.findings) ? parsed.findings : [],
     recommendations: Array.isArray(parsed?.recommendations) ? parsed.recommendations : [] };
-  const { data: ins } = await admin.from('exec_reports').insert(row).select('id').maybeSingle();
+  const produced = row.recommendations.length > 0;
+
+  // AN EMPTY REPORT IS NOT A REPORT, AND FILING IT DOES ACTIVE HARM (12 Aug 2026).
+  // This used to insert unconditionally, so a run that reached no model still left an exec_reports
+  // row carrying "Metrics captured; AI synthesis unavailable this run." with no findings and no
+  // recommendations. Proven the day this changed: OpenRouter refused sonnet-5 and opus-4.8 for
+  // credits (HTTP 402), three invocations filed SEVEN such rows in two minutes, and because
+  // exec-intel-quantified-recommendation reads the NEWEST report per officer, six officers went
+  // from "carries a numeric recommendation" to "filed an empty recommendation" — a green check
+  // turned red by reports that contain nothing. The company's last real reports were still there,
+  // one row further down, saying something useful.
+  //
+  // Same rule action_worker already follows one queue over: an unresolved item gets looked at, a
+  // false success never does. Nothing is lost by not filing — `metrics` is a live rpc that can be
+  // re-read at any time, and the agent_runs row below already records the failure WITH its reason,
+  // which is the honest artefact. A period with no report from an officer reads as "this officer
+  // produced nothing", which is true. An empty report reads as "this officer had nothing to say",
+  // which is not.
+  let ins: { id?: number } | null = null;
+  if (produced) {
+    const r = await admin.from('exec_reports').insert(row).select('id').maybeSingle();
+    ins = r.data;
+  }
+
   // An officer report with no recommendations is a FAILED run, not a quiet one. Recording it as
   // 'ok' is why three officers could file nothing for a week with no signal anywhere.
-  const produced = row.recommendations.length > 0;
   try {
     await admin.from('agent_runs').insert({ agent: 'exec:' + k,
       started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
       status: produced ? 'ok' : 'error',
-      counts: { recs: row.recommendations.length, findings: row.findings.length, attempts },
+      counts: { recs: row.recommendations.length, findings: row.findings.length, attempts, filed: produced },
       note: produced ? null
-        : ('Officer ' + k + ' filed a report with NO recommendations after ' + attempts
-           + ' attempt(s): the model response could not be parsed into the required object, so this'
-           + ' officer contributes nothing to the executive intelligence layer this period.'
+        : ('Officer ' + k + ' produced NO recommendations after ' + attempts
+           + ' attempt(s) and NO report was filed: the model response could not be parsed into the'
+           + ' required object, so this officer contributes nothing to the executive intelligence'
+           + ' layer this period. An empty report is not filed because it would displace this'
+           + " officer's last real one."
            + ' First 200 characters of the last response: ' + String(raw || '(empty)').slice(0, 200)).slice(0, 500) });
   } catch (_e) { /* never let logging break the officer */ }
-  return { officer: k, report_id: ins?.id, recommendations: row.recommendations.length, ai: !!parsed, attempts };
+  return { officer: k, report_id: ins?.id ?? null, filed: produced,
+           recommendations: row.recommendations.length, ai: !!parsed, attempts };
 }
 
 Deno.serve(async (req) => {
