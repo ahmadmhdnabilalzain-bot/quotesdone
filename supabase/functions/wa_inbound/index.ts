@@ -315,10 +315,70 @@ async function handleSupplierDoc(leadId: number, url: string, declaredMime: stri
            note: applied.length ? 'read and applied' : 'stored, but the details could not be read confidently' };
 }
 
-async function sendWa(to: string, body: string): Promise<{ ok: boolean; err?: string }> {
+// ---- A REPORT THAT ARRIVES AS A DOCUMENT (v17) ------------------------------------------------
+// "If I ask for a report it should reach me as a proper PDF." A company report does not fit in a
+// WhatsApp bubble: agent_brain routinely returns two to four thousand characters and this function
+// truncates at 1,200 without saying so. pdf_native already renders a branded, letterheaded, signed
+// document and returns a SEVEN-DAY SIGNED URL — exactly what Twilio's MediaUrl wants, because
+// Twilio fetches it itself and unauthenticated. The only thing missing was the wire.
+//
+// A KEYWORD, NOT A CLASSIFIER, and deliberately. A classifier here would be a second model call on
+// every message he sends, and it is the exact shape that gets burned by ai_gateway's semantic cache
+// (a large stable system prompt over a one-line input). "Did he use the word report" is a question
+// with a correct answer that costs nothing, and when it is wrong the failure is a PDF he did not
+// want rather than a wrong answer.
+const WANTS_DOC = /\b(report|pdf|document|statement|breakdown|write.?up|memo|plan for|invite plan|the plan)\b/i;
+
+// pdf_native's parser understands h2/h3/p/ul/ol/li/table and nothing else, so the model's markdown
+// is mapped onto exactly those. Anything unrecognised becomes a paragraph rather than being lost.
+function mdToHtml(md: string): string {
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inline = (s: string) => esc(s).replace(/\*\*(.+?)\*\*/g, '$1').replace(/`(.+?)`/g, '$1');
+  const out: string[] = []; let list: string[] = [];
+  const flush = () => { if (list.length) { out.push('<ul>' + list.map((li) => '<li>' + li + '</li>').join('') + '</ul>'); list = []; } };
+  for (const raw of md.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) { flush(); continue; }
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    const li = line.match(/^(?:[-*+]|\d+[.)])\s+(.*)$/);
+    // A bold-only line is how this model writes a heading most of the time; treat it as one.
+    const bold = line.match(/^\*\*(.+)\*\*:?$/);
+    if (h) { flush(); out.push((h[1].length <= 2 ? '<h2>' : '<h3>') + inline(h[2]) + (h[1].length <= 2 ? '</h2>' : '</h3>')); }
+    else if (li) { list.push(inline(li[1])); }
+    else if (bold) { flush(); out.push('<h3>' + inline(bold[1]) + '</h3>'); }
+    else { flush(); out.push('<p>' + inline(line) + '</p>'); }
+  }
+  flush();
+  return out.join('\n');
+}
+
+async function renderReportPdf(title: string, markdown: string): Promise<{ url: string | null; err?: string }> {
+  const secret = await sec('cred_fn_wa_pdf');
+  if (!secret) return { url: null, err: 'no cred_fn_wa_pdf credential' };
+  try {
+    const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/pdf_native', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        __secret: secret, title: title.slice(0, 120), body_html: mdToHtml(markdown),
+        name: 'quotesdone-' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 48) + '-' + new Date().toISOString().slice(0, 10),
+        // sign/stamp off: this is an internal report to the founder, not a document issued to a
+        // third party, and a signature block on a management report says something untrue about it.
+        options: { letterhead: true, sign: false, stamp: false },
+      }),
+      signal: AbortSignal.timeout(60000),
+    });
+    const j = await r.json().catch(() => null);
+    return j?.ok && j.url ? { url: String(j.url) } : { url: null, err: 'pdf_native returned ' + r.status + ' ' + JSON.stringify(j).slice(0, 160) };
+  } catch (e) { return { url: null, err: String((e as Error)?.message || e).slice(0, 160) }; }
+}
+
+async function sendWa(to: string, body: string, mediaUrl?: string | null): Promise<{ ok: boolean; err?: string }> {
   const sid = await sec('twilio_account_sid'); const kSid = await sec('twilio_api_key_sid'); const kSec = await sec('twilio_api_key_secret'); const from = await sec('twilio_wa_from');
   if (!sid || !kSid || !kSec || !from) return { ok: false, err: 'twilio_not_configured' };
   const form = new URLSearchParams({ From: 'whatsapp:' + (from.startsWith('+') ? from : '+' + from), To: to.startsWith('whatsapp:') ? to : ('whatsapp:' + to), Body: body });
+  // WhatsApp caps a media caption at 1,024 characters, well below the 1,200 used for a plain
+  // message, so the caller must send the summary here and the substance in the document.
+  if (mediaUrl) form.set('MediaUrl', mediaUrl);
   try {
     const r = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + sid + '/Messages.json', { method: 'POST', headers: { 'Authorization': 'Basic ' + btoa(kSid + ':' + kSec), 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
     if (r.ok) return { ok: true };
@@ -568,11 +628,32 @@ Deno.serve(async (req) => {
 
         // Never invent an answer on his own command channel. If the brain did not answer, say that.
         if (!reply) reply = 'I could not reach the company brain just now, so I have not answered your message rather than guessing at it. It has been logged and I will retry. (' + (brainErr || 'unknown') + ')';
-        reply = bidiSafe(reply.slice(0, 1200));
+
+        // ---- IF HE ASKED FOR A DOCUMENT, SEND HIM A DOCUMENT (v17) -------------------------
+        // The full answer goes in the PDF and the bubble carries a summary. The 400-character
+        // floor stops a one-line answer becoming a one-line PDF; a failure to render is never
+        // allowed to lose the answer, which is sent as text exactly as it was before.
+        let pdfUrl: string | null = null; let pdfErr: string | null = null;
+        if (!brainErr && WANTS_DOC.test(question) && reply.length >= 400) {
+          const title = /invite/i.test(question) ? 'Supplier invitation plan'
+                      : /financ|revenue|spend|cost|money/i.test(question) ? 'Financial report'
+                      : /supplier/i.test(question) ? 'Supplier report'
+                      : /customer|demand|inquir/i.test(question) ? 'Demand report'
+                      : 'Company report';
+          const rp = await renderReportPdf(title, reply);
+          pdfUrl = rp.url; pdfErr = rp.err || null;
+        }
+
+        const fullReply = reply;
+        reply = bidiSafe(pdfUrl
+          // 900, not 1,200: WhatsApp caps a MEDIA caption at 1,024 characters and silently refuses
+          // the message above it, which would turn "here is your report" into no report at all.
+          ? (fullReply.slice(0, 900) + (fullReply.length > 900 ? '…' : '') + '\n\nFull report attached as a PDF.')
+          : fullReply.slice(0, 1200));
 
         const enabled = (await sec('wa_autoreply_enabled')) === 'true';
         let sent = false; let sendErr: string | undefined;
-        if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; }
+        if (enabled) { const r = await sendWa(From, reply, pdfUrl); sent = r.ok; sendErr = r.err; }
 
         try {
           await admin.from('wa_messages').insert({
@@ -580,7 +661,10 @@ Deno.serve(async (req) => {
             inbound: question, reply, lang: 'en', escalated: false, sent,
             meta: { enabled, audience: 'founder', audience_source: 'phone_lookup', route: 'agent_brain',
                     deferred: true, brain_error: brainErr || null, send_error: sendErr || null,
-                    provenance_verified: true, message_sid: MessageSid || null },
+                    provenance_verified: true, message_sid: MessageSid || null,
+                    // The full text is kept whatever the bubble showed, so a truncated caption is
+                    // never the only copy of what the company said.
+                    reply_full_chars: fullReply.length, pdf_url: pdfUrl, pdf_error: pdfErr },
           });
         } catch (_e) { /* the reply already went out; a lost log must not retry the send */ }
 
