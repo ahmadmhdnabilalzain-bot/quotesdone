@@ -35,6 +35,8 @@ const VERIFY_SYS = `You are the final check before a REDACTED construction drawi
 Report ANY remaining information that could identify the client, the project, or the firms involved: company names, logos, stamps, signatures, addresses, plot/parcel/makani numbers, project names or numbers, drawing numbers or references, phone numbers, emails, websites, or personal names. Text inside a black box is covered and does not count - only report what is still LEGIBLE.
 Do not report the technical drawing, dimensions, room names, grid bubbles, north arrow or legend symbols.
 Do not report headings that describe the SHEET'S OWN CONTENT rather than a party: "GENERAL NOTES", "MECHANICAL GENERAL NOTES", "ABBREVIATIONS", "LEGEND", "KEYED NOTES", "SCHEDULE", "DEMOLITION NOTES" and the like are not identifying, and neither are equipment tags (AHU-3, VAV-2-1, EF-1), specification clause numbers, or the note text itself. Report a heading ONLY if it names or locates a person, a company or a project.
+A VIEW TITLE IS NOT AN IDENTITY. "MECHANICAL DEMOLITION - LOWER LEVEL", "MECHANICAL NEW WORK UPPER LEVEL", "PLAN", "SECTION A-A" and any scale notation ("1/8\\" = 1'-0\\"", "1:100") describe what is drawn and are exactly what a supplier needs in order to quote; never report them. A REVISIONS block is not an identity either: revision numbers, dates and descriptions are drawing history. Report a revision entry ONLY when it carries a person's name or initials, or a firm's name.
+Weigh what you report. A page is refused entirely on your answer, and refusing a page for a view title or a scale means the buyer's drawing reaches nobody - which helps no one and protects nothing.
 Return STRICT JSON ONLY: {"clean": true, "found": []} or {"clean": false, "found": ["consultant name top right", "phone number in title block"]}.
 If you cannot read the image, or you are unsure, answer {"clean": false, "found": ["uncertain"]}.`;
 
@@ -188,8 +190,15 @@ Deno.serve(async (req) => {
         }
         const jpg = await img.encodeJPEG(82);
         // Adversarial second pass over what the supplier will actually see. Fails closed.
-        const b64out = bytesToB64(jpg);
-        const vr = await verifyPage(key, b64out);
+        //
+        // A BLANKET TITLE-BLOCK FALLBACK WAS TRIED HERE AND REMOVED (13 Aug 2026). Masking the
+        // right 22% and bottom 12% of any page the verifier refused, then re-checking once, was
+        // measured on the same real 6-sheet mechanical set across three runs: the yield stayed at
+        // 4 of 6 with it and without it. It cost an extra vision call per failing page and blacked
+        // out a third of a drawing for no measured gain, so it is not here. What the verifier
+        // actually still reports on the two refused pages is a logo in a corner and a REVISIONS
+        // block — not the title strip. Anything that replaces this should be aimed there.
+        const vr = await verifyPage(key, bytesToB64(jpg));
         if (!vr.clean) { verifyFailed++; skipped++; verifyDetail.push({ page: i, found: vr.found }); continue; }
         verified++;
         const path = `${prefix}_p${i}.jpg`;
