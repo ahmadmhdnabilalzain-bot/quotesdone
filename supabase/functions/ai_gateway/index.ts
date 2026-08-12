@@ -576,7 +576,21 @@ Deno.serve(async (req) => {
                     ? ' | TRUNCATED: the model stopped at the ' + maxTok + '-token ceiling for task_class '
                       + String(route.task_class) + ', so the reply is cut off mid-output. A caller that '
                       + 'expects JSON will report unparseable output; raise max_tokens in model_policy.'
-                    : ''),
+                    : '')
+                 // WHY IT FAILED WAS RETURNED TO THE CALLER AND NEVER WRITTEN DOWN (12 Aug 2026).
+                 // A failed call logged ok=false, 0 tokens and the ordinary routing rationale, so
+                 // ai_cost_log could say THAT the AI layer failed and never WHY. Measured the day
+                 // this was added: 25 of 86 sonnet-5 calls failed in six hours across exec_agents,
+                 // action_worker and agent_brain, each in 258-698ms with 0 output tokens, and the
+                 // reason was unrecoverable from the database - lastErr existed, was returned in
+                 // the HTTP body, and was discarded.
+                 //
+                 // It also cost a wrong conclusion. "0 rows carry 'fell back from' in 24h" was read
+                 // as "the fallback ladder never engages", but that string is only written when a
+                 // fallback SUCCEEDS: `used !== model` above. A ladder that tried every model and
+                 // had them all fail looks identical to one that was never tried. Recording the
+                 // error tells the two apart.
+                 + (!outMsg && lastErr ? ' | ALL MODELS FAILED after the full ladder: ' + lastErr : ''),
       p_confidence: selfReportedConfidence(out),
       p_tier: route.tier ?? null, p_prompt_tokens: inTok, p_output_tokens: outTok,
       // p_cached is NOT "some of the prompt came from cache". It means "no model was called", and
