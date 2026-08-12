@@ -302,3 +302,33 @@ succeeded on production at 21:20:00Z — its first success in 377 attempts.**
    COMPLETE_OS_PORTALS) into a directory and tell me where — six artefacts cannot be scored without
    them.
 3. Nothing else. Everything above was decided and done.
+
+---
+
+## Addendum — the last hour
+
+**s36, three more writers.** `hot_lead` and `supply_gap` (`fn_category_sales`) now state their terms —
+probed on staging inside an aborted transaction, 8 hot_lead rows written, all 8 carrying all three
+columns. `coverage_gap` (both writers: `customer_api.flagCoverageGap` and `dispatch_inquiry`'s
+zero-fit branch) is deployed to both projects and typechecks but is **not proven by execution**: the
+branch needs a finalised RFQ matching zero suppliers, and a staging inquiry built to reach it was
+skipped as `not_rfq_ready`. I stopped rather than manufacture more state.
+
+**A correction that matters for the next session.** `sla_review` ALREADY carries assumptions,
+expected_impact and cost — an earlier session wrote them. So the list of "writers still missing s36"
+that both the brief and I worked from is inflated by kinds whose 30-day-old rows predate their own
+writer. **Read the writer, not the age of the row.** The same is true of `ai_rec`, `doc_rec`,
+`kn_task` and `mkt_rec`.
+
+**Redaction, second attempt, measured.** See §3 — the verifier exclusion was kept, the blanket
+title-block mask was reverted, and the yield is 4 of 6 either way.
+
+**One process failure of mine.** The `hot_lead`/`supply_gap` commit (`ca0daa0`) went **straight to
+main** instead of through a PR — I ran `git push -u origin HEAD:main` while standing on main. The
+change itself is deployed to both projects and probed; the route it took was wrong. Everything else
+went through PR #288 and PR #289.
+
+**Final sweep.** Row #3 127/152 (run to completion twice) · gates 23/23 both · parity IN SYNC ·
+pack scorecard on both · Actions green on main including `deploy edge functions` · Vercel 0 errors ·
+`control_mode_sweep_5min` 6 runs since the fix, 6 succeeded · production cron failures in the last
+two hours: 18, all of them the control-mode job **before** 21:19, none after.
