@@ -281,7 +281,22 @@ export default async function ({ req, one, ui }) {
   // one of production's twelve rows carries the sentence "marketing used only 0.0% of its budget",
   // so a match against the prose would score "marketing budget shifts to higher-performing channels"
   // for a row that moved an AI budget between departments and touched no channel at all.
-  const ALLOC_SRC = `(select resource as txt from public.allocation_change
+  // SEPARATORS IN THE RESOURCE NAME (12 Aug 2026). The classes below match with \y word
+  // boundaries, deliberately, so that 'ai' does not fire on 'email' or 'maintain'. But '_' is a
+  // WORD character in Postgres regex, so 'ai_budget_aed' has no boundary after 'ai' and
+  // \yai\y does not match it — measured, `select 'ai_budget_aed' ~* '\yai\y'` returns false.
+  // Production holds twelve allocation_change rows and every one of them is resource
+  // 'ai_budget_aed', so the check reported "0 of 3" for a company that HAS reallocated AI budget
+  // twelve times. Underscores and hyphens are separators in an identifier; normalising them to
+  // spaces lets the boundary anchors work as intended without loosening them into false
+  // positives. Same defect as leads.sector 'building-materials' against the alias
+  // 'building materials', one table over.
+  //
+  // This does NOT make the check pass and is not intended to: marketing budget and supplier
+  // onboarding capacity have genuinely never been reallocated, so the verdict moves from
+  // "0 of 3" to "1 of 3" and stays MISSING. The point is that "0 of 3" was false.
+  const ALLOC_SRC = `(select regexp_replace(resource, '[-_]+', ' ', 'g') as txt
+      from public.allocation_change
       where created_at > now() - interval '62 days')`;
   const ALLOC_CLASSES = [
     ['marketing budget to channels', 'marketing|channel|campaign|\\yads?\\y'],
