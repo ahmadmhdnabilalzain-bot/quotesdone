@@ -150,7 +150,29 @@ Deno.serve(async (req) => {
         'supplier brief could not be frozen - dispatch continued on the live masked projection');
     }
     const routing = (inq.routing && typeof inq.routing === 'object') ? inq.routing as any : {};
-    if (routing.dispatched_at && !force) return J({ ok: true, skip: 'already_dispatched', dispatched_at: routing.dispatched_at });
+    // A DISPATCH THAT REACHED NOBODY IS NOT A DISPATCH (12 Aug 2026). This skipped on
+    // dispatched_at alone, and dispatched_at is written unconditionally below — including on the
+    // run that fanned out to zero suppliers. The only caller is trg_autodispatch_inquiry, which
+    // fires once, on the rfq_ready transition, and re-checks dispatched_at itself. So an RFQ that
+    // arrived before a matching supplier existed was routed to nobody and could never be routed
+    // again: not by the trigger, not by a sweep, not by the supplier's own registration. It was
+    // dead the moment it was created, and nothing failed - the journey test's step 27 reads
+    // "supplier receives the inquiry: inbox 0" while step 26 answers ok.
+    //
+    // That is this company's normal case, not an edge case: demand arrives first and suppliers are
+    // onboarded from 20,470 leads afterwards. Now the skip requires the previous run to have
+    // actually reached someone; fn_rfq_redispatch_sweep retries the ones that reached nobody.
+    // Re-notification is impossible by construction - a zero-fanout RFQ notified no supplier, and
+    // once a retry succeeds the row no longer qualifies.
+    // A MISSING COUNTER IS NOT A ZERO. Only a fanout that is RECORDED as 0 licenses a retry; if the
+    // key is absent the reach is unknown, and re-dispatching on unknown could notify a supplier
+    // twice. Same shape as least(100, NULL) returning 100 - treating absent evidence as a specific
+    // value is how a green number ends up meaning the opposite of the truth.
+    const fanoutRecorded = routing.fanout !== undefined && routing.fanout !== null;
+    const reachedNobody = fanoutRecorded && Number(routing.fanout) === 0;
+    if (routing.dispatched_at && !reachedNobody && !force) {
+      return J({ ok: true, skip: 'already_dispatched', dispatched_at: routing.dispatched_at, fanout: fanoutRecorded ? Number(routing.fanout) : null });
+    }
 
     // ATOMIC CLAIM: set dispatch_lock only if unlocked (or stale). Losers of the race skip.
     // NOTE: force skips the freshness check but STILL takes the claim below, so a forced run and a
