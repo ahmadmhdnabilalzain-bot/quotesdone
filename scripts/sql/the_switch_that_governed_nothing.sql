@@ -1,0 +1,13 @@
+-- app_secrets.sms_enabled governed nothing, and read as if it governed identity verification.
+--
+-- MEASURED 12 Aug 2026 (production): value = 'false', set by migration 20260728230844 as a channel
+-- decision ("zero traffic in 30 days"). No routine in pg_proc references the key. No edge function
+-- reads it either: mobile_otp derives its own `smsEnabled` from whether the three Twilio credentials
+-- are present, and kyc calls twilioAuth() the same way. The only outbound SMS this company sends is
+-- a Twilio Verify code, which both of those paths send regardless of this row.
+--
+-- So a reader looking for "is SMS on?" found `false` next to a fully live Verify service. That is the
+-- same defect as a metric measuring something other than what its name says: it does not fail, it
+-- misinforms. There is no outbound SMS sender to gate, so the honest fix is to delete the switch
+-- rather than wire a reader to it.
+delete from app_secrets where key = 'sms_enabled';

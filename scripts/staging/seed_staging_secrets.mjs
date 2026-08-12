@@ -42,7 +42,7 @@ const WITHHOLD = new Map([
 ]);
 
 const FORCE_OFF = {
-  email_enabled: 'false', supplier_emails_enabled: 'false', sms_enabled: 'false',
+  email_enabled: 'false', supplier_emails_enabled: 'false',
   wa_autoreply_enabled: 'false', invite_enabled: 'false', bd_outreach_enabled: 'false',
   marketing_golive: 'false', meta_sync_enabled: 'false', agent_autonomy_enabled: 'false',
   cos_frozen: 'true', qa_mint_enabled: 'false',

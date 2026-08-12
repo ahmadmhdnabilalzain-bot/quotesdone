@@ -163,11 +163,23 @@ Deno.serve(async (req) => {
       const since = new Date(Date.now() - 3600e3).toISOString();
       const { count } = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('phone', phone).gte('created_at', since);
       if ((count || 0) >= 5) { await logRun('ok', { action, kind, rate_limited: true }, 'rate limit hit: 5+ code requests for this number in the last hour'); return J({ error: 'Too many code requests. Please try again later.' }, 429); }
-      const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Channel: 'sms' }) });
-      const jd = await r.json(); if (!r.ok || jd?.status === 'canceled') { await logRun('error', { action, kind, http: r.status }, 'twilio verify send failed: ' + String(jd?.message || jd?.status || '').slice(0, 200)); return J({ error: jd?.message || 'Could not send the SMS code.' }, 502); }
+      // LANDLINE FALLBACK (12 Aug 2026). Twilio Verify refuses SMS to a landline with error 21635,
+      // and the only customer on file registered a Dubai landline: Twilio Lookup returns
+      // type=landline for +97142587734, and a real send returned HTTP 400 / 21635. So the one
+      // button on the screen could never verify him, and create_inquiry's phone_verified gate kept
+      // the RFQ door shut. Verify carries the SAME code by voice on Channel=call, which a landline
+      // answers - proven by execution against that number (HTTP 201, status pending). Fall back
+      // automatically and tell the caller which channel actually carried it, so the screen can say
+      // "we are calling you" instead of asking him to watch for an SMS that cannot arrive.
+      const sendCode = (channel: string) => fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Channel: channel }) });
+      let channel = String(b.channel || 'sms'); if (channel !== 'sms' && channel !== 'call') channel = 'sms';
+      let r = await sendCode(channel);
+      let jd = await r.json().catch(() => ({}));
+      if (jd?.code === 21635 && channel === 'sms') { channel = 'call'; r = await sendCode(channel); jd = await r.json().catch(() => ({})); }
+      if (!r.ok || jd?.status === 'canceled') { await logRun('error', { action, kind, http: r.status, channel }, 'twilio verify send failed on channel ' + channel + ': ' + String(jd?.message || jd?.status || '').slice(0, 200)); return J({ error: jd?.message || 'Could not send the code.' }, 502); }
       await admin.from('phone_verifications').insert({ email, phone, code: 'twilio', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
-      await logRun('ok', { action, kind }, '');
-      return J({ ok: true });
+      await logRun('ok', { action, kind, channel }, '');
+      return J({ ok: true, channel });
     }
     if (action === 'verify_sms') {
       const phone = toE164(String(b.phone || '')); const code = String(b.code || '').replace(/\D/g, '');
