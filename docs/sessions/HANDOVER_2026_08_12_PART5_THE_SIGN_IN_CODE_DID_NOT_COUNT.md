@@ -98,6 +98,7 @@ all in place. I did not fabricate an inquiries row.
 ```
 Row #3        not re-scored this session — see below
 journey       39/40 on staging after the edit (step 27 supplier inbox, see below)
+journey       39/40 on staging after the edit (step 27 supplier inbox, see below)
 gates         23/23 met on BOTH projects
 parity        BOTH PROJECTS IN SYNC (anon-executable SECURITY DEFINER 56/56)
 OpenRouter    0 refusal/credit/rate-limit errors in agent_runs in the last 6h; the 15:07 intake
