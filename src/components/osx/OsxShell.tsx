@@ -1910,6 +1910,7 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
   // skills_matrix (695 rows) had no browser-reachable reader at all: the company examines its staff
   // every four hours and could not show one of them their own curve.
   const learn = ops?.learning || {};
+  const curriculum = ops?.curriculum || {};
   const kpiTrend: any[] = Array.isArray(ops?.kpi_trend) ? ops.kpi_trend : [];
   const healthTone = /healthy/.test(String(h.status)) ? 'green' : /degraded|error|fail/.test(String(h.status)) ? 'red' : /stale/.test(String(h.status)) ? 'amber' : 'slate';
   const sub = (label: string, extra?: any) => (<div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center justify-between'>{label}{extra}</div>);
@@ -2022,6 +2023,20 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
       </Card>
       {(knowledge.topics || []).length ? <Card className='mt-4 overflow-hidden'>{sub('Knowledge held', <Badge variant='secondary'>{knowledge.count}</Badge>)}
         <div className='p-4 flex flex-wrap gap-1.5'>{(knowledge.topics as any[]).slice(0, 24).map((t: any, i: number) => (<Chip key={i} label={String(t)} tone='slate' />))}</div>
+      </Card> : null}
+      {/* WHAT THEY ARE SUPPOSED TO KNOW, next to what has been written for them. employee_knowledge
+          holds 900 rows over 66 employees — the domains each is expected to cover and at what depth
+          — and had no browser-reachable reader at all, so this drawer could look full while the
+          employee covered one of twenty-four domains they are meant to hold. `Knowledge held` above
+          is agent_knowledge, a different table: what was authored FOR them, not what is expected OF
+          them. Depth is the employee_knowledge value verbatim; nothing here is inferred. */}
+      {Number(curriculum.domains || 0) > 0 ? <Card className='mt-4 overflow-hidden'>{sub('Expected to know', <Badge variant='secondary'>{curriculum.domains} domain{Number(curriculum.domains) === 1 ? '' : 's'}</Badge>)}
+        <div className='px-4 pt-3 flex flex-wrap gap-1.5'>{Object.entries(curriculum.by_depth || {}).map(([d, n]: any) => (<Chip key={d} label={`${d} · ${n}`} tone={d === 'expert' ? 'green' : d === 'working' ? 'amber' : 'slate'} />))}</div>
+        <div className='p-4 grid gap-1'>{(curriculum.rows || []).slice(0, 40).map((r: any, i: number) => (
+          <div key={i} className='text-xs flex items-center justify-between gap-2'>
+            <span className='truncate text-muted-foreground'>{String(r.domain || '').replace(/^cat:/, '')}</span>
+            <span className='flex items-center gap-1.5 shrink-0'>{r.layer != null ? <span className='text-[10px] text-muted-foreground tabular-nums'>layer {r.layer}</span> : null}<Chip label={String(r.depth || '—')} tone={r.depth === 'expert' ? 'green' : r.depth === 'working' ? 'amber' : 'slate'} /></span>
+          </div>))}</div>
       </Card> : null}
       {queue.length ? <Card className='mt-4 overflow-hidden'>{sub('Decisions held for review', <Badge variant='secondary'>{queue.length}</Badge>)}
         <div className='divide-y divide-border'>{queue.map((a: any) => (<div key={a.id} className='px-4 py-3'>

@@ -551,17 +551,43 @@ Deno.serve(async (req) => {
       }
       try {
         const redPrefix = `redacted/${crypto.randomUUID()}/page`;
-        const [boqRes, redRes] = await Promise.allSettled([
-          fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images }) }),
-          fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path }) }),
-        ]);
-        let redacted: string[] = []; let redJob: string | null = null; let redIn = 0; let redOut = 0;
+        // REDACTION IS BATCHED (13 Aug 2026), because one call over a real drawing set does not
+        // survive. MEASURED on staging with a genuine 6-sheet consultant mechanical set rasterised
+        // exactly as the portal rasterises it: 1-4 pages return 200 (22.9s / 24.2s / 27.6s / 37.2s),
+        // 5 pages return HTTP 546 WORKER_RESOURCE_LIMIT at 37.5s. imagescript decodes each page to
+        // full-resolution RGBA before resizing to MAXW, so cost is per page and the isolate is
+        // killed outright - which means drawing_redact's own recordRun never runs and NOTHING is
+        // written. The customer saw a successful upload with zero redacted pages and no trace.
+        // Four pages per call is the measured ceiling with a page in hand; the loop is sequential
+        // so two batches never run concurrently against the same budget.
+        const REDACT_BATCH = 4;
+        const redactBatch = async (slice: any[]) => {
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path }) });
+          return await r.json();
+        };
+        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images }) });
+        let redacted: string[] = []; const redJobs: string[] = []; let redIn = 0; let redOut = 0; let redDied = 0;
         // Only pass paths back to the client once drawing_redact has RECORDED the run server-side
         // (drawing_redaction_runs). An unrecorded run cannot be verified at create_inquiry, so its
         // paths are unusable — dropping them here lands on the existing total-failure behaviour
         // (inquiry goes out with no drawing) instead of a confusing rejection later.
-        if (redRes.status === 'fulfilled') { try { const rj = await redRes.value.json(); redIn = Number(rj?.pages_in || 0); redOut = Number(rj?.pages_out || 0); if (rj?.ok && rj?.recorded && rj?.job_id && Array.isArray(rj.paths)) { redacted = rj.paths.map((x: any) => String(x)); redJob = String(rj.job_id); } } catch (_e) { /* */ } }
-        const redMeta = { redaction_job_id: redJob, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_complete: redOut >= redIn };
+        for (let i = 0; i < images.length; i += REDACT_BATCH) {
+          const slice = images.slice(i, i + REDACT_BATCH);
+          try {
+            const rj = await redactBatch(slice);
+            const inN = Number(rj?.pages_in || 0);
+            // A 546 answers JSON too - {code:'WORKER_RESOURCE_LIMIT'} with no pages_in - so an
+            // isolate death is counted as pages LOST rather than as a batch that carried no pages.
+            if (!inN && !rj?.ok) { redDied += slice.length; redIn += slice.length; continue; }
+            redIn += inN; redOut += Number(rj?.pages_out || 0);
+            if (rj?.ok && rj?.recorded && rj?.job_id && Array.isArray(rj.paths)) { redacted = redacted.concat(rj.paths.map((x: any) => String(x))); redJobs.push(String(rj.job_id)); }
+          } catch (_e) { redDied += slice.length; redIn += slice.length; }
+        }
+        const boqRes = await Promise.allSettled([boqP]).then((a) => a[0]);
+        // redaction_complete compared redOut >= redIn, and both are 0 when the redactor dies before
+        // it can report anything - so total failure read as "complete". It now requires that pages
+        // were sent AND that every one of them came back.
+        const redMeta = { redaction_job_id: redJobs[0] || null, redaction_job_ids: redJobs, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_pages_lost: redDied, redaction_complete: redIn > 0 && redOut === redIn };
         if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
         const jd = await boqRes.value.json();
         if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);

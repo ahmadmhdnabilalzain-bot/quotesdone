@@ -43,9 +43,15 @@ async function q(sql, attempt = 0) {
 const one = async (sql) => Number((await q(sql))[0]?.n ?? 0);
 // A probe that ERRORS is not in use. It must not look like a passing row and must not stop the run.
 const probe = async (sql) => { try { return await one(sql); } catch (e) { return -1; } };
-const lines = (p) => existsSync(p) ? readFileSync(p, 'utf8').split('\n').filter(l => l.trim()).length : 0;
-const csvRows = (p) => Math.max(0, lines(p) - 1);           // minus header
-const pct = (got, want) => want === 0 ? 100 : Math.min(100, Math.round(1000 * got / want) / 10);
+// A MISSING SOURCE FILE IS NOT A SATISFIED ARTEFACT (13 Aug 2026). lines() returned 0 for a file
+// that is not on disk, and pct(got, 0) returns 100 — so a pack whose zip was never extracted here
+// scored a perfect 100% INGESTED on every one of its rows. Three of the four v2026.07.31 pack
+// directories are absent from this working tree, which means this scorecard's headline number was
+// mostly a statement about files it could not see. null now means "no source to compare against"
+// and is printed as NO SOURCE, excluded from the averages, and counted separately.
+const lines = (p) => existsSync(p) ? readFileSync(p, 'utf8').split('\n').filter(l => l.trim()).length : null;
+const csvRows = (p) => { const n = lines(p); return n === null ? null : Math.max(0, n - 1); };  // minus header
+const pct = (got, want) => want === null ? null : (want === 0 ? 100 : Math.min(100, Math.round(1000 * got / want) / 10));
 
 const D = (...s) => join(PACKS, ...s);
 const KB86 = D('QuotesDone_ALL_KNOWLEDGE_86_CATEGORIES_v2026.07.31', 'QuotesDone_ALL_KNOWLEDGE_86_CATEGORIES_v2026.07.31');
@@ -236,17 +242,24 @@ await add('5/6 · INGESTION INSTRUCTIONS', 'import order step 18 (stop before ac
 // ---- report
 const packs = [...new Set(rows.map(r => r.pack))];
 console.log(`\nPACK SCORECARD — ${REF}\n`);
+const scored = (rs) => rs.filter(r => r.pct !== null);
 for (const p of packs) {
   const rs = rows.filter(r => r.pack === p);
-  const ing = Math.round(10 * rs.reduce((a, r) => a + r.pct, 0) / rs.length) / 10;
+  const sc = scored(rs);
+  const ing = sc.length ? Math.round(10 * sc.reduce((a, r) => a + r.pct, 0) / sc.length) / 10 : null;
   const use = rs.filter(r => r.n > 0).length;
-  console.log(`\n${p}   INGESTED ${ing}%   IN USE ${use}/${rs.length}`);
+  const nosrc = rs.length - sc.length;
+  console.log(`\n${p}   INGESTED ${ing === null ? 'NO SOURCE ON DISK' : ing + '% of ' + sc.length + ' scorable'}` +
+              `${nosrc ? ' (' + nosrc + ' artefact(s) have no source file here)' : ''}   IN USE ${use}/${rs.length}`);
   for (const r of rs) {
     const verdict = r.n > 0 ? `IN USE  n=${String(r.n).padStart(6)}` : (r.n === 0 ? 'NOT READ        ' : 'PROBE ERRORED   ');
-    console.log(`   ${String(r.pct).padStart(5)}%  ${r.artefact.padEnd(38)} ${String(r.got).padStart(7)} / ${String(r.want).padEnd(7)}  ${verdict}  ${r.routine}${r.note ? '  [' + r.note + ']' : ''}`);
+    const left = r.pct === null ? 'NO SRC' : String(r.pct).padStart(5) + '%';
+    console.log(`   ${left}  ${r.artefact.padEnd(38)} ${String(r.got).padStart(7)} / ${String(r.want === null ? '?' : r.want).padEnd(7)}  ${verdict}  ${r.routine}${r.note ? '  [' + r.note + ']' : ''}`);
   }
 }
-console.log('\nOVERALL INGESTED: ' + Math.round(10 * rows.reduce((a, r) => a + r.pct, 0) / rows.length) / 10 + '%');
+const sc = scored(rows);
+console.log('\nOVERALL INGESTED: ' + (sc.length ? Math.round(10 * sc.reduce((a, r) => a + r.pct, 0) / sc.length) / 10 + '% across ' + sc.length + ' of ' + rows.length + ' artefacts' : 'NOT SCORABLE') +
+            (rows.length - sc.length ? ' — ' + (rows.length - sc.length) + ' artefact(s) have no source file in this working tree and are NOT counted either way' : ''));
 console.log('OVERALL IN USE  : ' + rows.filter(r => r.n > 0).length + ' of ' + rows.length + ' artefacts (measured by probe, not asserted)');
 
 // ---- THIRD AXIS: RETRIEVABLE. Added 11 Aug 2026 after the word-by-word audit.
