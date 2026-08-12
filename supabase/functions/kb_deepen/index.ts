@@ -124,6 +124,14 @@ Deno.serve(async (req) => {
     }
     const note = 'Deepened ' + agent + ' (' + label + '): +' + added + ' web-researched topic(s) [' + done.join(', ') + ']' + (ungrounded ? ' (' + ungrounded + ' without source URLs)' : '') + (stopped ? ' (stopped on time budget)' : '') + '. Coverage ' + (already.size + added) + '/' + topics.length + ' mapped topics.';
     await logRun(added ? 'ok' : 'error', { agent, topic_map: topics.length, covered_before: already.size, added, ungrounded, remaining: topics.length - already.size - added, stopped }, note);
-    return J({ ok: true, agent, label, topic_map: topics.length, covered_before: already.size, added, topics_added: done, ungrounded, remaining: topics.length - already.size - added, stopped });
+    // `note` IS THE WORK, AND IT WAS ONLY EVER TOLD TO agent_runs (12 Aug 2026). The string above
+    // already names every topic researched and the coverage it reached; logRun got it and the HTTP
+    // response did not. fn_action_invoke_collect reads the response body to fill
+    // org_tasks.result.deliverable, which ten routines then read — fn_task_lesson,
+    // fn_learning_loop_sweep, fn_task_review, fn_ws_company_os among them. So all 70 of this
+    // function's succeeded invocations in the last 7 days closed their task with a NULL
+    // deliverable and put nothing into the learning loop, while a complete account of the work sat
+    // one property away. Returning it costs nothing and is not new information.
+    return J({ ok: true, agent, label, note, topic_map: topics.length, covered_before: already.size, added, topics_added: done, ungrounded, remaining: topics.length - already.size - added, stopped });
   } catch (e) { await logRun('error', {}, 'kb_deepen crashed: ' + String((e as Error)?.message || e)); return J({ error: String((e as Error)?.message || e) }, 500); }
 });
