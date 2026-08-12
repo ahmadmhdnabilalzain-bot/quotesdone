@@ -34,6 +34,7 @@ const SYS = `You are a privacy redaction assistant for construction / architectu
 const VERIFY_SYS = `You are the final check before a REDACTED construction drawing is shared with COMPETING suppliers. You are looking at the page EXACTLY as the supplier will see it.
 Report ANY remaining information that could identify the client, the project, or the firms involved: company names, logos, stamps, signatures, addresses, plot/parcel/makani numbers, project names or numbers, drawing numbers or references, phone numbers, emails, websites, or personal names. Text inside a black box is covered and does not count - only report what is still LEGIBLE.
 Do not report the technical drawing, dimensions, room names, grid bubbles, north arrow or legend symbols.
+Do not report headings that describe the SHEET'S OWN CONTENT rather than a party: "GENERAL NOTES", "MECHANICAL GENERAL NOTES", "ABBREVIATIONS", "LEGEND", "KEYED NOTES", "SCHEDULE", "DEMOLITION NOTES" and the like are not identifying, and neither are equipment tags (AHU-3, VAV-2-1, EF-1), specification clause numbers, or the note text itself. Report a heading ONLY if it names or locates a person, a company or a project.
 Return STRICT JSON ONLY: {"clean": true, "found": []} or {"clean": false, "found": ["consultant name top right", "phone number in title block"]}.
 If you cannot read the image, or you are unsure, answer {"clean": false, "found": ["uncertain"]}.`;
 

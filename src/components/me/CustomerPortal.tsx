@@ -161,7 +161,14 @@ async function fileToImages(file) {
   if (file.type === 'application/pdf') {
     try { const L = await ensurePdfjs(); const raw = atob(b64); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
       const pdf = await L.getDocument({ data: arr }).promise; const out = []; const n = Math.min(pdf.numPages, 6);
-      for (let pnum = 1; pnum <= n; pnum++) { const pg = await pdf.getPage(pnum); const vp = pg.getViewport({ scale: 1.8 }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; out.push({ mime: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.8).split(',')[1] }); }
+      // scale 1.8 assumed a letter-sized page. A real construction sheet is ANSI D or A1, so 1.8
+      // produced 5444x3888 = 21 megapixels — 2.5 MB of base64 per page. drawing_redact decodes to
+      // full-resolution RGBA (85 MB for one such page) before resizing to its 1600px working width,
+      // and the isolate was killed outright: measured HTTP 546 WORKER_RESOURCE_LIMIT on a SINGLE
+      // page at that size. Capping the long edge costs nothing downstream (the redactor's own output
+      // is 1600px wide) and the same set at 2600px extracted 23 BoQ line items from the schedules.
+      const MAX_EDGE = 2600;
+      for (let pnum = 1; pnum <= n; pnum++) { const pg = await pdf.getPage(pnum); const v1 = pg.getViewport({ scale: 1 }); const vp = pg.getViewport({ scale: Math.min(1.8, MAX_EDGE / Math.max(v1.width, v1.height)) }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; out.push({ mime: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.8).split(',')[1] }); }
       return { images: out, b64, mime: 'application/pdf' };
     } catch (_e) { return { images: [], b64, mime: 'application/pdf' }; }
   }
