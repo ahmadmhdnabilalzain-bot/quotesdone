@@ -261,6 +261,44 @@ Deno.serve(async (req) => {
     // call is rejected rather than silently trusting either one.
     if (action === 'claim') { const token = String(body.claim_token || body.token || body.t || '').trim(); if (!UUID_RE.test(token)) return J({ error: 'invalid_link', message: 'This claim link is not valid. Please use the link from your invitation, or contact management@quotesdone.com.' }, 400); const { data: row } = await admin.from('leads').select('id,claimed,claimed_by').eq('claim_token', token).maybeSingle(); if (!row) return J({ error: 'not found' }, 404); const id = Number(row.id); const askedId = Number(body.leads_id); if (body.leads_id != null && isFinite(askedId) && askedId !== id) return J({ error: 'invalid_link', message: 'This claim link does not match the company you selected. Please use the link from your invitation.' }, 400); if (row.claimed && row.claimed_by !== email) return J({ error: 'This company is already claimed by another account.' }, 409); const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing && existing.id !== id) return J({ error: 'Your account already manages another company.' }, 409); await admin.from('leads').update({ claimed: true, claimed_by: email, portal_updated_at: new Date().toISOString() }).eq('id', id); const reg = await setRegistration(id); return J({ ok: true, id, registration: reg }); }
 
+    // WHAT THIS COMPANY CAN QUOTE FOR — the supplier-facing side of capability_agent (12 Aug 2026).
+    //
+    // fn_match_capability gates on supplier_capabilities.confirmed_at ("GATE: supplier confirmed
+    // their own scope") and capability_agent's `confirm` is its only writer. That endpoint had no
+    // caller anywhere, so no supplier could ever be matched to anything.
+    //
+    // IT IS PROXIED HERE RATHER THAN CALLED FROM THE BROWSER, and that is a security decision, not
+    // tidiness. capability_agent takes `supplier_id` straight from the request body and authenticates
+    // only with an internal secret. Handing the browser that secret would let any signed-in supplier
+    // read and CONFIRM another company's scope by changing one number - the same enumeration defect
+    // claim_lookup was hardened against on 19 Jul, one layer up. Here the id is resolved from the
+    // caller's own JWT via claimed_by and the client's id is never consulted.
+    if (action === 'capability_state' || action === 'capability_confirm') {
+      const { data: mine } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (!mine) return J({ error: 'claim_your_company_first', message: 'Claim your company before confirming what it can quote for.' }, 400);
+      const secret = await secretVal('cred_fn_supplier_api');
+      if (!secret) return J({ error: 'internal_credential_missing' }, 500);
+      // Whitelisted passthrough. The client cannot inject supplier_id, and it cannot reach any other
+      // capability_agent action - `analyze` runs a model and is not a supplier-triggerable operation.
+      const fwd: Record<string, unknown> = { __secret: secret, supplier_id: mine.id,
+        action: action === 'capability_state' ? 'state' : 'confirm' };
+      if (action === 'capability_confirm') {
+        for (const k of ['trades','roles','services','products','coverage_emirates','brands',
+                         'project_types','exclusions','min_project_value','max_project_value']) {
+          if (body[k] !== undefined) fwd[k] = body[k];
+        }
+      }
+      try {
+        const r = await fetch(`${SUPA_URL}/functions/v1/capability_agent`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fwd),
+        });
+        const j = await r.json().catch(() => null);
+        return J(j ?? { error: 'capability_agent_unreadable' }, r.status);
+      } catch (e) {
+        return J({ error: 'capability_agent_unreachable', detail: String((e as Error)?.message || e) }, 502);
+      }
+    }
+
     if (action === 'process_docs') {
       const { data: sup } = await admin.from('leads').select('id,company_name,services,products,service_emirates').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first' }, 400);
