@@ -203,7 +203,7 @@ function CapabilityConfirmPanel({ token, lang }) {
 
   const load = async () => {
     setSt((s) => ({ ...s, loading: true, err: '' }));
-    const j = await call('capability_agent', { action: 'state' }, token);
+    const j = await call('supplier_api', { action: 'capability_state' }, token);
     if (j && j.ok) {
       const cap = j.capability || null;
       setTrades((cap && cap.trades) || []);
@@ -223,8 +223,8 @@ function CapabilityConfirmPanel({ token, lang }) {
     // Everything the derivation already holds is sent back unchanged. Omitting a key on a
     // merge-duplicates upsert leaves the stored value alone, but sending what is on screen keeps
     // the confirmed row and the screen the supplier saw identical.
-    const j = await call('capability_agent', {
-      action: 'confirm', trades, roles,
+    const j = await call('supplier_api', {
+      action: 'capability_confirm', trades, roles,
       services: cap.services || [], products: cap.products_norm || [],
       coverage_emirates: cap.coverage_emirates || [],
       brands: cap.brands || [], project_types: cap.project_types || [], exclusions: cap.exclusions || [],
