@@ -2665,6 +2665,12 @@ function CompanyOsApp() {
   // touching workflow_step_run.output were the two that write it — so every deliverable an employee
   // produced performing a company process was stored and read by nobody.
   const process_work = (d?.process_work || []) as any[];
+  // THE ENGINE HAD NO SCREEN. 238 runs and the only surface was a "Workflows run today" count, so
+  // where each process is parked and who it waits on were nowhere. in_flight is the oldest-waiting
+  // 25; ready_now is the true total, so the card never implies the list is the whole queue.
+  const wf = (d?.workflow_state || {}) as any;
+  const wfStatus = (wf.by_status || {}) as Record<string, number>;
+  const wfFlight = (wf.in_flight || []) as any[];
   const TABS: [any, string][] = [['os', 'Mission control'], ['map', 'Company map'], ['live', 'Live company'], ['board', 'Board'],
     ['strategy', 'Strategic queue'], ['resilience', 'Resilience'], ['manual', 'Operating manual']];
 
@@ -2677,6 +2683,34 @@ function CompanyOsApp() {
       ['Events 7d', events.last_7d], ['Lessons on file', institutional.lessons],
       ['Runbooks', operating_manual.runbooks], ['Process work 14d', process_work.length],
     ]} />
+
+    {(wfFlight.length || wfStatus.done) ? <SectionCard title='Processes in flight' count={Number(wf.ready_now ?? 0)}
+      right={<span className='text-[11px] text-muted-foreground'>
+        {(wfStatus.done ?? 0)} done · {(wfStatus.running ?? 0)} running · {(wfStatus.failed ?? 0)} failed · {Number(wf.steps_delivered ?? 0)} step(s) delivered by an employee
+      </span>}>
+      <div className='divide-y divide-border'>{wfFlight.map((p: any, i: number) => {
+        const hrs = Number(p.hours_waiting) || 0;
+        return (<div key={i} className='px-4 py-2.5 text-sm flex items-center gap-2'>
+          <div className='min-w-0 flex-1'>
+            <div className='truncate'><span className='font-medium'>{p.workflow}</span>
+              <span className='text-muted-foreground'> · step {p.step_no}: {p.step}</span></div>
+            <div className='text-[11px] text-muted-foreground'>
+              waiting on {p.waiting_on ? titleCase(String(p.waiting_on)) : 'nobody it can name'}
+              {p.addressed_as && p.addressed_as !== p.waiting_on ? ' (named “' + p.addressed_as + '” by the process)' : ''}
+              {p.gate ? ' · gate: ' + p.gate : ''}
+            </div>
+          </div>
+          {/* Hours, not a colour alone: 144 hours parked is the fact, and it reads the same to
+              anyone who cannot distinguish the tones. */}
+          <Chip label={hrs >= 24 ? Math.round(hrs / 24) + 'd waiting' : hrs + 'h waiting'}
+                tone={hrs >= 72 ? 'red' : hrs >= 24 ? 'amber' : 'slate'} />
+        </div>);
+      })}</div>
+      {Number(wf.ready_now ?? 0) > wfFlight.length
+        ? <div className='px-4 py-2 text-[11px] text-muted-foreground border-t border-border'>
+            Showing the {wfFlight.length} longest-waiting of {Number(wf.ready_now)} ready step(s).
+          </div> : null}
+    </SectionCard> : null}
 
     {process_work.length ? <SectionCard title='What the company’s processes produced' count={process_work.length}
       right={<span className='text-[11px] text-muted-foreground'>step(s) an employee completed in 14 days — the outcome each closed on</span>}>
