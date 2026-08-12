@@ -135,6 +135,16 @@ async function flagCoverageGap(inqId: string, category: string, emirate: string 
       title: 'RFQ had no matchable supplier' + (category ? (': ' + category) : ''),
       recommendation: 'A customer request (' + label + ') matched ZERO suppliers, so it reached nobody and cannot receive quotes. This is a supply-coverage gap: consider acquiring or onboarding suppliers in this trade and emirate. No supplier was contacted.',
       detail: { signal: 'coverage_gap:' + inqId, inquiry_id: inqId, category, emirate, summary: String(summary || '').slice(0, 300), path: 'create_inquiry' },
+      // s36 (13 Aug 2026): what this flag takes on trust. Written here rather than left to a reader,
+      // because "zero suppliers matched" reads as a fact about the market and is at least three
+      // different findings wearing the same number.
+      assumptions: [
+        'That the matcher was asked the right question. Category and emirate are the customer\'s intake as it was recorded; a mis-categorised request manufactures a gap in a trade nobody actually asked for.',
+        'That zero matches means no capable supplier. It equally means suppliers exist and none has DECLARED this capability — fn_match_capability gates on declared trades, not on what a company can do.',
+        'That the supplier base was reachable at the time. A supplier suspended, unverified, or without an approved licence is invisible to the matcher and counts here as absent.',
+      ],
+      expected_impact: 'This request reached nobody and cannot receive a quote. It is the clearest demand signal this company gets: a customer who wanted something the marketplace could not serve.',
+      cost: 'No spend to record it. Closing the gap costs invitation volume and sending reputation, which the invite ramp caps — or nothing at all, if a supplier already on file simply has not declared the trade.',
       target_table: 'inquiries', target_id: inqId });
   } catch (_e) { flagged = false; }
   try { await admin.from('founder_alerts').insert({ level: 'high', event: 'rfq_no_supplier', detail: ('A customer request (' + label + ', inquiry ' + inqId + ') matched zero suppliers and reached nobody.' + (flagged ? '' : ' The coverage_gap flag ALSO failed to insert, so this gap is not in the action queue.')).slice(0, 900), channel: 'email' }); } catch (_e) { /* */ }
