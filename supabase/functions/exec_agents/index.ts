@@ -84,7 +84,36 @@ Deno.serve(async (req) => {
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
     const action = String(body.action || 'run_all');
     if (action === 'run') return J(await runOfficer(String(body.officer || 'strategy')));
-    if (action === 'run_all') { const out: any[] = []; for (const k of Object.keys(OFFICERS)) out.push(await runOfficer(k)); return J({ ok: true, ran: out }); }
+    // SIX OFFICERS IN SERIES WAS THE WHOLE FAILURE (11 Aug 2026). This was
+    // `for (const k of ...) out.push(await runOfficer(k))` — every officer waited for the one
+    // before it, in a single HTTP request, and each officer costs one model call plus a retry when
+    // the JSON does not parse.
+    //
+    // MEASURED ON PRODUCTION: exec_agents made 344 model calls in 14 days at a median of 16.4s and
+    // a MAXIMUM of 31.5s — no single call is slow and not one failed. But grouped per invocation it
+    // is 4.9 calls on average and up to 17, summing to 84.8s typically and 289.8s at worst. The
+    // org_action_executor row for exec_review allows 140s. Twelve of seventy invocations exceeded
+    // that on model time alone, and 25 of the 40 exec_review dispatches FAILED — every one with
+    // "Timeout of 140000 ms reached". Because max_attempts is 1, each timeout permanently failed a
+    // strategic_review run at step 4, "Decide and record rationale". The engine's own decision step.
+    //
+    // The officers are independent: each reads its own metrics rpc and writes its own exec_reports
+    // and agent_runs row, sharing no mutable state, and runOfficer has no caller outside this file.
+    // Serialising them bought nothing. In parallel the wall time is the SLOWEST officer rather than
+    // the SUM — about 35s against 204s — which fits inside 140s with room for the retry path.
+    //
+    // allSettled, not all: one officer throwing must not discard the five reports that succeeded.
+    // runOfficer already swallows its own logging errors and returns a shape either way, so a
+    // rejection here means something unexpected, and it is reported per officer instead of losing
+    // the batch.
+    if (action === 'run_all') {
+      const keys = Object.keys(OFFICERS);
+      const settled = await Promise.allSettled(keys.map((k) => runOfficer(k)));
+      const out = settled.map((r, i) => r.status === 'fulfilled'
+        ? r.value
+        : { officer: keys[i], error: String((r.reason as Error)?.message ?? r.reason) });
+      return J({ ok: true, ran: out });
+    }
     if (action === 'latest') { const { data } = await admin.from('exec_reports').select('*').order('created_at', { ascending: false }).limit(Math.min(Number(body.limit) || 12, 50)); return J({ ok: true, reports: data || [] }); }
     return J({ error: 'unknown action' }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
