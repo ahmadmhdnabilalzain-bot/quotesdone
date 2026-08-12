@@ -224,5 +224,5 @@ changes is that there is now something concrete to ask them to confirm, per trad
 | GitHub Actions | green; only the merge of #244 in flight |
 | Vercel | preview builds passed on #243 and #244 |
 | OpenRouter | **not refusing** as of 10:00 UTC — but 44 calls failed in a burst 06:47–07:53 UTC today across exec_agents (15), kb_deepen (10), action_worker (9), agent_brain (7), dept_plan (3), against 3/day on 10 and 11 Aug. Fast-fail at ~500 ms for exec_agents, 26–56 s timeouts for the rest. Mixed causes, not diagnosed. |
-| Row #3 scorer | see the run log; started 10:05 UTC |
+| Row #3 scorer | **127/152 (84%)** on production, run to completion — 127 MET, 25 MISSING. Was 126/152. |
 | Pack scorecard | **NOT RUN** |
