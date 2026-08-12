@@ -96,8 +96,17 @@ const cust = await mkUser('cust');
 created.push(cust.id);
 step('customer signup (auth)', !!cust.id && !!cust.jwt, cust.jwt ? 'signed in' : 'no token');
 
-let r = await call('customer_api', cust.jwt, { action: 'me' });
-step('customer profile (me)', r.status === 200, `HTTP ${r.status} ${r.text}`);
+let r;
+
+// ORDER MATTERS, AND THIS TEST HAD IT BACKWARDS (12 Aug 2026). The 'me' call below creates the
+// customers row (customer_api: `if (!cust) insert({ email })`), and it used to run BEFORE the OTP
+// step - so login_otp's `update customers set email_verified = true` always found a row to update.
+// A real first-time customer produces the opposite order: they enter the emailed code before any
+// portal call has ever run, the UPDATE matches nothing, and the row created moments later carries
+// email_verified false forever. The harness manufactured the one ordering in which the bug cannot
+// appear, which is why every staging customer is verified and production's only real one is not.
+// Verification now runs first, exactly as a human does it, and the flag is asserted from the
+// database rather than inferred from HTTP 200 - a 200 was returned throughout the broken period.
 
 // Journey step 2 - email verification. login_otp stores an HMAC of the code, never the code, so
 // the code cannot be read back out. Staging cannot receive the email either (email_enabled is
@@ -117,9 +126,16 @@ if (otpKey) {
     action: 'verify', identifier: cust.email, code: OTP, user_kind: 'customer',
   });
   step('email verification (OTP)', r.status === 200, `HTTP ${r.status} ${r.text}`);
+  const ev = (await mgmtRead(REF,
+    `select coalesce(bool_or(email_verified), false) as v from public.customers where email = '${cust.email}'`))[0]?.v;
+  step('email verification persisted email_verified', ev === true || ev === 't',
+    `customers.email_verified = ${ev} for a customer whose row did not exist when the code was verified`);
 } else {
   step('email verification (OTP)', false, 'otp_hmac_key missing from staging app_secrets');
 }
+
+r = await call('customer_api', cust.jwt, { action: 'me' });
+step('customer profile (me)', r.status === 200, `HTTP ${r.status} ${r.text}`);
 
 // Journey steps 3 and 4. create_inquiry refuses with 428 registration_incomplete until the
 // customer has a name, a mobile number and an accepted T&C version - and none of that lives in

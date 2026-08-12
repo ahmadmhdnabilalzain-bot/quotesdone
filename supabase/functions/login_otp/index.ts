@@ -170,7 +170,30 @@ Deno.serve(async (req) => {
           return J({ error: 'Incorrect or expired code.' }, 400);
         }
         await admin.from('email_verifications').update({ used_at: new Date().toISOString() }).eq('id', row.id);
-        if (kind === 'customer') await admin.from('customers').update({ email_verified: true }).eq('email', email); else await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email);
+        // A FIRST-TIME CUSTOMER HAS NO ROW TO UPDATE (12 Aug 2026). This recorded proof of email
+        // ownership with an UPDATE, and for someone signing in for the very first time there is
+        // nothing to update: login_otp never creates a customers row, and the row that appears
+        // seconds later - kyc save_customer, customer_api 'me', mobile_otp - inserts without the
+        // flag. Nothing repairs it afterwards. Measured on production: the only real customer used
+        // their code at 15:04:40 and kyc inserted the row at 15:05:26, so email_verified stayed
+        // false and create_inquiry's first gate refused every request with "enter the 6-digit code
+        // we email you" - the code they had just entered. Zero inquiries have ever been created.
+        //
+        // The supplier branch is safe for the opposite reason and is deliberately left an UPDATE:
+        // a lead already exists to be claimed, so the row is always there (lead 30466 carries
+        // owner_email_verified true from this same line). Creating a lead here would invent a
+        // supplier out of a sign-in.
+        //
+        // Insert-then-fall-back-to-update is the shape kyc's own verify_email already uses; the
+        // fallback covers the race where a concurrent caller inserts between the update and the
+        // insert. customers.email has no unique index, so the insert cannot be an upsert.
+        if (kind === 'customer') {
+          const up = await admin.from('customers').update({ email_verified: true }).eq('email', email).select('id');
+          if (!up.error && !(up.data || []).length) {
+            const ins = await admin.from('customers').insert({ email, email_verified: true });
+            if (ins.error) await admin.from('customers').update({ email_verified: true }).eq('email', email);
+          }
+        } else await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email);
         const s = await mintSession(email); if (!s) return J({ error: 'Could not start your session. Please try again.' }, 500);
         return J({ ok: true, ...s, user_kind: kind, email });
       }
