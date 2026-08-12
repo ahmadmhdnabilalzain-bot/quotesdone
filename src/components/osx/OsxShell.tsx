@@ -1904,6 +1904,12 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
   const decide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('action_decide', { id, op }); load(); } catch (_e) {} setDbusy(''); };
   const goal = ops?.goal || {}; const tasks = ops?.tasks || {}; const decisions = ops?.decisions || []; const confidence = ops?.confidence || {}; const workload = ops?.workload || {}; const plans = ops?.plans || []; const knowledge = ops?.knowledge || {};
   const id = ops?.identity || {}; const h = ops?.health || {}; const perf = ops?.performance || {}; const queue = ops?.queue || []; const runs = ops?.recent_runs || []; const kn = ops?.knowledge || {}; const mem = ops?.memory || {}; const convos = ops?.conversations || []; const recs = ops?.recommendations || [];
+  // IS THIS EMPLOYEE GETTING BETTER? The drawer showed goal, tasks, decisions, confidence, workload,
+  // plans, knowledge, health, performance, queue, runs, memory, conversations and recommendations —
+  // everything except that. knowledge_exam_results (576 graded answers over 98 employees) and
+  // skills_matrix (695 rows) had no browser-reachable reader at all: the company examines its staff
+  // every four hours and could not show one of them their own curve.
+  const learn = ops?.learning || {};
   const kpiTrend: any[] = Array.isArray(ops?.kpi_trend) ? ops.kpi_trend : [];
   const healthTone = /healthy/.test(String(h.status)) ? 'green' : /degraded|error|fail/.test(String(h.status)) ? 'red' : /stale/.test(String(h.status)) ? 'amber' : 'slate';
   const sub = (label: string, extra?: any) => (<div className='px-4 py-2.5 border-b border-border text-sm font-semibold flex items-center justify-between'>{label}{extra}</div>);
@@ -1990,6 +1996,30 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
           {p.horizon ? <span className='text-[11px] text-muted-foreground shrink-0'>{titleCase(String(p.horizon))}</span> : null}
         </div>))}</div></Card> : null}
 
+      {/* Learning progress. The trend is per DAY, oldest first, because "improving" is only visible
+          as a curve — a single aggregate score cannot say whether it went up. An employee with one
+          exam day shows the score and says so rather than drawing a one-point line as if it were a
+          trend. */}
+      <Card className='mt-4 overflow-hidden'>{sub('Learning progress', <Badge variant='secondary'>{learn.exam_results_total ?? 0} exam{(learn.exam_results_total ?? 0) === 1 ? '' : 's'}</Badge>)}
+        <div className='p-3 space-y-2'>
+          <div className='grid grid-cols-3 gap-2 text-xs'>
+            <div><div className='opacity-60'>Exam score</div><div className='text-sm'>{learn.exam_score_pct == null ? 'not examined yet' : `${learn.exam_score_pct}%`}</div></div>
+            <div><div className='opacity-60'>Gaps found</div><div className='text-sm'>{learn.knowledge_gaps_found ?? 0}</div></div>
+            <div><div className='opacity-60'>Gaps filled</div><div className='text-sm'>{learn.knowledge_gaps_filled ?? 0}</div></div>
+          </div>
+          {(learn.exam_trend || []).length > 1
+            ? <div className='space-y-1'>{(learn.exam_trend || []).map((p: any, i: number) => (
+                <div key={i} className='text-xs flex items-center justify-between gap-2'>
+                  <span className='opacity-60'>{p.day}</span>
+                  <span>{p.score_pct == null ? '—' : `${p.score_pct}%`} <span className='opacity-50'>({p.asked})</span></span>
+                </div>))}</div>
+            : <div className='text-xs opacity-60'>{(learn.exam_days ?? 0) === 0
+                ? 'No exam sat yet — the examiner works through the roster and has not reached this employee.'
+                : 'One exam day so far, so there is no curve yet. A trend needs a second sitting.'}</div>}
+          {(learn.skills || []).length ? <div className='pt-1 space-y-1'>{(learn.skills || []).map((s: any, i: number) => (
+            <div key={i} className='text-xs flex items-center justify-between gap-2'><span className='truncate'>{s.skill}</span><Badge variant='secondary'>{s.rating}</Badge></div>))}</div> : null}
+        </div>
+      </Card>
       {(knowledge.topics || []).length ? <Card className='mt-4 overflow-hidden'>{sub('Knowledge held', <Badge variant='secondary'>{knowledge.count}</Badge>)}
         <div className='p-4 flex flex-wrap gap-1.5'>{(knowledge.topics as any[]).slice(0, 24).map((t: any, i: number) => (<Chip key={i} label={String(t)} tone='slate' />))}</div>
       </Card> : null}
