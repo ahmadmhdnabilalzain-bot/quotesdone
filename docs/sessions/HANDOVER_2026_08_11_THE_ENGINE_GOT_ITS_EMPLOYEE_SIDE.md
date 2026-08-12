@@ -399,3 +399,74 @@ function looks like.
 **Where to start:** `exec_agents`' own runtime on a successful `exec_review`, and whether
 `org_action_executor.timeout_seconds` for `exec_review` is below what the function actually needs.
 Three identical failures on one action class is a pattern, not an incident.
+
+---
+
+## 11. MORNING OF 12 AUG — THE DECISION STEP, AND WHY THE AI LAYER WENT QUIET
+
+Four more PRs: [#224](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/224),
+[#225](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/225),
+[#226](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/226).
+
+**`employee-performance-trend` went MET on its own**, exactly as predicted: the 03:30 UTC cron wrote
+day two into `employee_kpi_history`, and the check reads *"94 of 93 active employee(s) have more
+than one performance observation in 90d in a REACHABLE source."* Nothing backdated.
+
+**The engine's own decision step had been timing out 25 times in 40.** `strategic_review` step 4
+dispatches `exec_review`, which ran **all six officers sequentially in one request** — 4.9 model
+calls per invocation, up to 17, summing to 289.8s at worst against a 140s executor timeout, with
+`max_attempts: 1` so each timeout permanently failed the run. Now `Promise.allSettled`: wall time is
+the slowest officer, not the sum. Verified — `run_all` returns 200 where it used to time out.
+
+**Three readings I had to discard getting there**, all recorded in the SQL file: pg_net attributes
+the whole elapsed time to DNS on timeout (not a DNS problem); `exec_agents` is not slow (344 calls,
+median 16.4s, max 31.5s); and `action_execution.finished_at - started_at` is the invoker's
+dispatch-then-collect cycle, not runtime.
+
+### THE ONE THING THAT NEEDS YOU
+
+**OpenRouter is out of credits for the expensive tier, and it is gating work right now.** I know
+your standing rule is not to report the balance. This is not a balance report — it is that the
+company's reasoning layer is currently failing:
+
+```
+ALL MODELS FAILED after the full ladder:
+{"message":"Insufficient credits...","code":402,"metadata":{"limit_source":"openrouter_credits"}}
+ladder: ["anthropic/claude-sonnet-5","anthropic/claude-opus-4.8"]
+```
+
+`~anthropic/claude-haiku-latest` (63/68) and gemini (11/11) still run; sonnet-5 and opus-4.8 are
+refused. So the cheap paths work and every **employee reasoning** path — `agent_brain`,
+`action_worker`, `workflow_dispatch`, `exec_agents` — does not.
+
+**It found this because of a fix made in the same hour.** A failed call used to log `ok=false`, zero
+tokens and the ordinary routing rationale — *that* it failed, never *why*. The reason existed in
+`lastErr`, was returned in the HTTP body, and was thrown away. It is now written to `ai_cost_log`.
+
+**And it corrected me.** I claimed in #224 that the fallback ladder "has never engaged", on the
+evidence that no row in 24h carries `fell back from`. That string is only written when a fallback
+**succeeds**, so an all-models-failed ladder is indistinguishable from one never tried. The response
+body shows both models were tried and both refused. **The ladder works; my measurement did not
+support the claim.**
+
+### AND A MESS I MADE AND CLEANED UP
+
+Probing the timeout fix during that outage wrote **seven empty officer reports**, which knocked
+`exec-intel-quantified-recommendation` from MET to MISSING — correctly, because they displaced the
+last real reports. Deleted on a narrow guard; the `agent_runs` rows exec_agents wrote for each
+(`status='error'`, with the reason) are kept, because those are the honest record. Verified after:
+7 of 7 officers carry 3–12 recommendations again.
+
+### THE NUMBER, FULLY ATTRIBUTABLE
+
+```
+125  start of session
++1   s38-manual-always-current      six cron jobs registered
++1   employee-performance-trend     the 03:30 cron, on real data
+-1   s33-replay-six-tracks          date rollover: no outcome_record row for 11 Aug. NOT mine.
+126  now, confirmed by three saved verdict lists and two clean diffs
+```
+
+The dispatcher meanwhile hit its ceiling honestly: **24/24 steps delivered today, capped, 49 still
+ready, zero steps stuck running** — it spent its budget on real work before the credits ran out, and
+the release path left nothing wedged.
