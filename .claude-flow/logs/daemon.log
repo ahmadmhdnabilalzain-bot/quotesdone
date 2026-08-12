@@ -2922,3 +2922,20 @@
 [2026-08-12T16:00:18.063Z] [INFO] Worker map completed in 2ms
 [2026-08-12T16:01:39.716Z] [INFO] Starting worker: audit (1/2 concurrent)
 [2026-08-12T16:01:39.717Z] [INFO] Worker audit completed in 3ms
+[2026-08-12T18:07:39.754Z] [INFO] Starting worker: testgaps (1/2 concurrent)
+[2026-08-12T18:07:39.757Z] [INFO] Worker testgaps completed in 4ms
+[2026-08-12T18:08:18.285Z] [INFO] Starting worker: testgaps (1/2 concurrent)
+[2026-08-12T18:08:18.287Z] [INFO] Worker testgaps completed in 3ms
+[2026-08-12T18:09:08.164Z] [INFO] Worker testgaps deferred: Memory too low: 8.2% free
+[2026-08-12T18:10:08.309Z] [INFO] Starting worker: optimize (1/2 concurrent)
+[2026-08-12T18:10:08.310Z] [INFO] Worker optimize completed in 3ms
+[2026-08-12T18:10:08.313Z] [INFO] Starting worker: testgaps (1/2 concurrent)
+[2026-08-12T18:10:08.314Z] [INFO] Worker testgaps completed in 2ms
+[2026-08-12T18:11:40.084Z] [INFO] Worker audit deferred: Memory too low: 8.1% free
+[2026-08-12T18:12:18.586Z] [INFO] Worker audit deferred: Memory too low: 5.3% free
+[2026-08-12T18:13:08.737Z] [INFO] Starting worker: audit (1/2 concurrent)
+[2026-08-12T18:13:08.739Z] [INFO] Worker audit completed in 3ms
+[2026-08-12T18:14:39.907Z] [INFO] Starting worker: map (1/2 concurrent)
+[2026-08-12T18:14:39.908Z] [INFO] Worker map completed in 3ms
+[2026-08-12T18:14:39.910Z] [INFO] Starting worker: audit (1/2 concurrent)
+[2026-08-12T18:14:39.910Z] [INFO] Worker audit completed in 1ms
