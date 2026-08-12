@@ -97,6 +97,7 @@ all in place. I did not fabricate an inquiries row.
 
 ```
 Row #3        not re-scored this session — see below
+journey       39/40 on staging after the edit (step 27 supplier inbox, see below)
 gates         23/23 met on BOTH projects
 parity        BOTH PROJECTS IN SYNC (anon-executable SECURITY DEFINER 56/56)
 OpenRouter    0 refusal/credit/rate-limit errors in agent_runs in the last 6h; the 15:07 intake
@@ -110,8 +111,16 @@ demand        inquiries 0 — UNCHANGED, and now blocked only on the two acts ab
 - **Row #3 scorer was not re-run to completion**, and no pack scorecard was run. Nothing this session
   touched a scored surface (one edge function, one test harness, one evidence-gated data repair), but
   that is reasoning, not a measurement, and 127/152 should not be treated as re-confirmed.
-- **`journey_test.mjs` full run was still in flight** when the session ended. The reordering it
-  contains was verified independently by the standalone probe described above; the full journey was
-  not re-confirmed green after my edit.
+- **One journey step fails, and it is not mine.** Full run after the edit: **39/40 on staging**,
+  with steps 2 and 3 passing in the new order — *"customers.email_verified = true for a customer
+  whose row did not exist when the code was verified"* — and step 14 `create inquiry` passing, so
+  the loop does close on staging. The failure is step 27, *supplier receives the inquiry*, inbox 0.
+  Step 14 routed with `no_capability_match` because the harness creates the supplier **after** the
+  RFQ, and step 26's re-dispatch returns `skip: already_dispatched` instead of fanning out to the
+  supplier that has since appeared. My diff is confined to the OTP ordering and an added assertion
+  and cannot reach supplier matching, but I did not run the harness *before* the edit, so I have not
+  measured how long step 27 has been failing. **It wants a look next session:** either the
+  re-dispatch must not skip when the previous dispatch reached nobody, or the harness must create
+  the supplier first.
 - Items 3–7 of the brief (s36 columns, invite ramp, Row #3 residue, Spec #3 UI, BoQ fixtures) were
   not started.
