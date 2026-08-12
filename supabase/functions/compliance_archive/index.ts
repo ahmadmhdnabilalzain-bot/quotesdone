@@ -102,7 +102,39 @@ Deno.serve(async (req) => {
       if (kind === 'supplier') { termsText = (await sec('supplier_terms_html')) || ''; termsLabel = (await sec('supplier_terms_label')) || 'Supplier Agreement — Version 5'; }
       else { const { data: p } = await admin.from('pages').select('html').eq('slug', 'legal_terms_body').maybeSingle(); termsText = (p?.html as string) || ''; termsLabel = (await sec('customer_terms_label')) || 'Customer Terms & Conditions — Version 3'; }
       const hash = await sha256hex(termsText);
-      const acceptedIso = (kind === 'supplier' ? rec.accepted_terms_at : rec.tos_accepted_at) || new Date().toISOString();
+      // A CERTIFICATE OF ACCEPTANCE REQUIRES AN ACCEPTANCE (12 Aug 2026). This read
+      // `... || new Date().toISOString()`, so when the party had NOT accepted the Terms it stamped
+      // the certificate with the moment of rendering and carried on. The document it produces then
+      // states, in its own words, that "Acceptance was given by ticking the 'I accept' box during
+      // registration" and that this "constitutes a valid and binding electronic acceptance" under
+      // the UAE Electronic Transactions and Trust Services Law — against a timestamp nobody clicked
+      // anything at, with "Method: Click-to-accept checkbox at registration" beside it.
+      //
+      // This is reachable without anyone doing anything wrong: trg_sign_customer fires on
+      // email_verified going true, NOT on tos_accepted_at being set, so any customer who verifies
+      // their email before accepting the Terms gets one. Found because repairing the email_verified
+      // flag for the one real production customer fired it, and produced a certificate asserting an
+      // acceptance that has not happened — tos_accepted_at is still null on that row.
+      //
+      // Refusing is the only honest option. A missing acceptance is not a formatting problem to be
+      // defaulted around; it is the absence of the fact the whole document exists to attest. The
+      // caller is a best-effort background archiver in every path (customer_api explicitly does not
+      // block on signed_terms_path), so refusing costs nothing and the certificate is produced the
+      // moment a real acceptance is recorded.
+      const acceptedIso = (kind === 'supplier' ? rec.accepted_terms_at : rec.tos_accepted_at) || '';
+      if (!acceptedIso) {
+        await admin.from('agent_runs').insert({
+          agent: 'compliance_archive', status: 'error',
+          started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+          counts: { stage: 'sign', kind, no_acceptance: 1 },
+          note: ('compliance_archive refused to issue a Terms-acceptance certificate for ' + (keyEmail || rec.id)
+            + ' because ' + (kind === 'supplier' ? 'leads.accepted_terms_at' : 'customers.tos_accepted_at')
+            + ' is null: this party has not accepted the Terms, and the certificate asserts under UAE law '
+            + 'that they did. It will be issued automatically the moment a real acceptance is recorded. '
+            + 'Do NOT restore the previous behaviour of stamping the render time as the acceptance time.').slice(0, 500),
+        });
+        return J({ error: 'no_acceptance_on_record', kind, email: keyEmail || null }, 409);
+      }
       const ip = (kind === 'supplier' ? rec.accepted_terms_ip : rec.tos_ip) || '';
       const fields: Record<string, string> = { full_name: rec.full_name || rec.contact_name || rec.signatory_name || '', company: rec.company_name || '', dob: (kind === 'supplier' ? rec.owner_dob : rec.date_of_birth) || '', phone: rec.phone || '', email: rec.email || rec.claimed_by || keyEmail, terms_label: termsLabel, accepted_utc: acceptedIso.slice(0, 19).replace('T', ' ') + ' UTC', accepted_iso: acceptedIso, ip };
       const nm = safeName((kind === 'supplier' ? fields.company : fields.full_name) || fields.email).replace(/\s+/g, '_') + '_TnC-Acceptance';
