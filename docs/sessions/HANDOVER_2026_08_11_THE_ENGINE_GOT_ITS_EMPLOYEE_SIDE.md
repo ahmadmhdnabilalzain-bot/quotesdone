@@ -524,3 +524,47 @@ The honest position: the remaining reds are mostly checks whose population does 
 requirement, or which need demand, or a fixture set that has to be built. **Building the fixture set
 for 101/102/103/114 is the one that is real work rather than a blocked measurement** — that is where
 the next session should go if it wants Row #3 to move.
+
+---
+
+## 13. THE BOQ FIXTURE — FEASIBILITY ESTABLISHED, DELIBERATELY NOT STARTED
+
+KPI 103 (`boq_analyst`, "BOQ lines extracted correctly", target 95%) and KPI 114
+(`ai_qa_specialist`, "RFQ qualification accuracy", target 90%) are the only two of the four
+"needs a fixture" KPIs that genuinely need one — their metric text says *"against the fixture set"*
+and *"against the holdout set"* in those words. 101 and 102 were mis-reasoned and are corrected in
+[#231](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/231).
+
+**103 is feasible now, and here is everything the next session needs so it can be done in one pass.**
+
+*Both drawing files still exist in storage* — checked against `storage.objects`, not assumed:
+
+```
+documents 4   drawing-files/drawings/27cbbc0a…/1781800750308_floorplan.jpg        present
+documents 10  drawing-files/drawings/c5e47f2d…/1784145964068_villa_floorplan.png  present
+```
+
+*The ground truth does not require my judgement.* Each drawing states its own schedule, so the
+fixture asserts "did the pipeline extract what the drawing says", which is arithmetic, not a
+quantity-surveying opinion:
+
+```
+documents 10  LIVING/DINING 5.0×4.5 · BEDROOM1 4.0×3.5 · KITCHEN 3.5×3.0 · BEDROOM2 4.0×3.0
+              BATHROOM 2.5×2.0  → 64 sqm of rooms, stated built-up area 78 sqm
+              DOOR SCHEDULE D1 ×5 flush wooden 900mm · WINDOW SCHEDULE W1 ×4 sliding 1500×1200
+              Floor 600×600 porcelain throughout · walls gypsum painted · gypsum false ceiling
+documents 4   LIVING/DINING 5.0×6.0 = 30 sqm · BEDROOM 3×3 = 9 · BATH 3×3 = 9 → 48 sqm
+```
+
+**It is three pieces, not one**, which is why it is not started here rather than half-started:
+
+1. a fixture table holding drawing → expected lines;
+2. a **runner** — `measure_sql` cannot invoke `drawing_boq`, because that is an HTTP call; something
+   has to execute the pipeline against the fixtures on a cadence and store the actual;
+3. the measure comparing stored actual to expected.
+
+Landing (1) without (2) produces a fixture table nothing reads — the exact defect this session spent
+its time removing, five times over. Do it in one pass or not at all.
+
+**114 needs a holdout set of qualified RFQs and there are 0 inquiries**, so unlike 103 it is blocked
+on demand as well as on the set. 103 is the one that can be built today.
