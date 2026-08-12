@@ -37,3 +37,14 @@ knowledge-import/__pycache__/
 
 # vendored third-party reference clones - read-only, evaluated in docs/VENDOR_EVALUATION.md, never built
 vendor/reference/
+
+# claude-flow: machine-local daemon state, metrics and neural scratch. PR #276 swept these in
+# because they were already dirty, and one commit on main has a regenerated
+# .claude-flow/neural/stats.json as its entire content. Nothing reads them from git.
+.claude-flow/
+
+# repomix / source-export artefacts, generated on demand
+repomix-src.xml
+
+# shell-redirection debris at the repo root (bad quoting produced files named `3)`, `1279'`, …)
+diag*.out
