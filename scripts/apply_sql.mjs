@@ -95,6 +95,37 @@ if (uniq.length) console.log(`staging now defines: ${stageDefs.map(d => `${d.n}(
 
 if (!PROMOTE) { console.log('staging only — pass --promote to deploy to production'); process.exit(0); }
 
+// A LITERAL PROJECT REF MUST NEVER BE PROMOTED (12 Aug 2026). This tool's whole premise is that the
+// definition read back from staging is the definition production should have, byte for byte. That
+// premise breaks for any routine carrying a hardcoded https://<ref>.supabase.co URL: promoting it
+// silently repoints the PRODUCTION copy at STAGING, and nothing fails — production's trainer posts
+// its work into the staging project and both sides keep reporting success.
+//
+// Nineteen routines carried one when this guard was written (fn_ai_trainer, fn_org_exec_knowledge_fill,
+// fn_os_incident_open, fn_provision_category_call, fn_recert_rotate, fn_resilience_watch, fn_run_vt,
+// fn_watch_failed_runs, fn_watch_health, qd_reveal_nudges, qd_sign_customer, qd_sign_supplier,
+// run_agent, run_auto_deploy, run_doc_reminders, run_pending_digest, run_site_autodeploy,
+// trg_autodispatch_inquiry, trg_enrich_capability). All pointed at their own project on both sides,
+// so nothing was broken — the hazard was one --promote away, and I came one step from triggering it.
+//
+// There is no legitimate promote that carries a literal ref, so this refuses rather than warns. The
+// fix is to derive the ref: `select value into v_ref from app_secrets where key = 'project_ref'`,
+// with the cron.job fallback fn_action_invoke_dispatch, fn_rfq_redispatch_sweep and
+// fn_capability_enrich_sweep all use.
+const REF_LITERAL = /https:\/\/([a-z]{20})\.supabase\.co/g;
+const offenders = stageDefs
+  .map(d => ({ n: d.n, a: d.a, refs: [...new Set([...String(d.d).matchAll(REF_LITERAL)].map(m => m[1]))] }))
+  .filter(x => x.refs.length);
+if (offenders.length) {
+  console.error('REFUSED: a routine in this file hardcodes a Supabase project ref, and promoting it');
+  console.error('would write STAGING\'s URL into the PRODUCTION copy. Nothing would fail visibly.');
+  for (const o of offenders) {
+    console.error(`  ${o.n}(${o.a})  ->  ${o.refs.map(r => r === STAGE ? `${r} (STAGING)` : r === PROD_REF ? `${r} (production)` : r).join(', ')}`);
+  }
+  console.error("Fix: read app_secrets.project_ref inside the routine instead of writing the ref out.");
+  process.exit(3);
+}
+
 // DDL FIRST, ALWAYS. A function body promoted before the column it selects exists fails on
 // production while reporting success on staging, which is the exact asymmetry this whole promotion
 // rule exists to prevent.
