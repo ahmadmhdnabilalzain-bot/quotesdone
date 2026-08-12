@@ -92,12 +92,27 @@ headings, which are not identity.
 **After: 6 pages in, 6 accounted for, 4 cleared the verifier and are ledgered, 23 BoQ items, HTTP
 200 in 65s.** Before: 0 pages, 546, no ledger row, and a green "complete".
 
-**Still open and honest:** 2 of 6 pages fail the verifier on genuine leftovers ("GENERAL CONTRACTOR
-TL", "ISSUED FOR BID"), so `create_inquiry` will refuse to attach a partial set. A real drawing today
-reaches suppliers as a BoQ with no drawing attached. That is fail-closed and correct, and it is the
-next piece of work: detection is missing title-block regions on sheets like these. `deno`-side repro
-is `scripts/staging/prove_boq_real_drawing.mjs <pages.json> [original.pdf]`, which is in the repo and
-documents the four rasterisation numbers a caller must match.
+**Still open, and here is exactly where it stands.** The yield sat at **4 of 6 pages** across five
+runs and three different configurations. Two things were tried on it:
+
+- **Kept** — the verifier was refusing pages over things that identify nobody. Its own words:
+  *"Drawing titles at bottom: 'MECHANICAL DEMOLITION - LOWER LEVEL'"*, *"Scale notations visible on
+  drawings"*, *"REVISIONS section (top right)"*. A view title and a scale are what a supplier quotes
+  from. `VERIFY_SYS` now excludes them by name, still reports a revision entry carrying a person's
+  name or initials, and is told what a refusal costs.
+- **Reverted** — masking the right 22% and bottom 12% of any refused page and re-checking once. It
+  sounded obviously right. **The yield was 4 of 6 with it and 4 of 6 without it.** It cost an extra
+  vision call per failing page and blacked out a third of a drawing for no measured gain, so it is
+  not shipping; a comment in its place records the measurement.
+
+**Where the remaining identity actually is**, from the verifier's own output: *"Company name/logo
+visible in bottom right corner (appears to be a triangular architectural firm logo)"* and a
+`REVISIONS` block. Not the title strip. That is where the next attempt should aim.
+
+Until then `create_inquiry` refuses a partial set, so a real drawing reaches suppliers as a BoQ with
+no drawing attached. That is fail-closed and correct. Repro:
+`node scripts/staging/prove_boq_real_drawing.mjs <pages.json> [original.pdf]`, in the repo, with the
+four rasterisation numbers a caller must match documented in its header.
 
 ## 4 — dr_drill. It restored one row. It now restores 123,691.
 
