@@ -95,7 +95,22 @@ async function runOfficer(k: string): Promise<any> {
            + " officer's last real one."
            + ' First 200 characters of the last response: ' + String(raw || '(empty)').slice(0, 200)).slice(0, 500) });
   } catch (_e) { /* never let logging break the officer */ }
+  // WHAT THE OFFICER ACTUALLY CONCLUDED, RETURNED (12 Aug 2026). This returned six counters and no
+  // prose, so fn_action_invoke_collect — which fills org_tasks.result.deliverable from the response
+  // body and is read by ten routines — found nothing to extract on all 15 succeeded invocations in
+  // the last 7 days. The synthesis was written to exec_reports and stopped there. `note` carries
+  // the officer's own summary and its lead recommendation, which is the same text already filed,
+  // not a new claim.
+  //
+  // NULL when nothing was filed, deliberately. The block above refuses to file an empty report
+  // because "an empty report reads as 'this officer had nothing to say', which is not true" — and
+  // a deliverable synthesised from a failed run would be the same lie in the learning loop.
+  const lead = row.recommendations[0]?.action;
   return { officer: k, report_id: ins?.id ?? null, filed: produced,
+           note: produced
+             ? (String(row.summary) + (lead ? ' Lead recommendation: ' + String(lead) : '')
+                + ' (' + row.findings.length + ' finding(s), ' + row.recommendations.length + ' recommendation(s).)')
+             : null,
            recommendations: row.recommendations.length, ai: !!parsed, attempts };
 }
 
