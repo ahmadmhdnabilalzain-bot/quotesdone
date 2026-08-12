@@ -48,12 +48,13 @@ invited never registered — which is a broken capability on the revenue path, n
 
 ```
 1  confirm #236 fires                       one query
-2  Vercel: kill the build-time font fetch   diagnosed, small, closes a known failure mode
-3  the dispatcher's 24/day cap              one CREATE OR REPLACE, ours to decide
-4  WHY 57 SUPPLIERS NEVER REGISTERED        revenue-critical. NOT sending. Do not skip.
-5  BoQ fixtures + the goals/KPIs worth doing
-6  spec #3 UI
-7  ...then, and only then, supplier invites
+2  THE SPEND IS 71% THINKING ABOUT ITSELF   founder challenge 12 Aug — deterministic gate
+3  Vercel: kill the build-time font fetch   diagnosed, small, closes a known failure mode
+4  act on the company's revenue diagnosis   and one of its two gates is NOT real
+5  WHY 57 SUPPLIERS NEVER REGISTERED        revenue-critical. NOT sending. Do not skip.
+6  BoQ fixtures + the goals/KPIs worth doing
+7  spec #3 UI
+8  ...then, and only then, supplier invites
 ```
 
 ---
@@ -95,7 +96,65 @@ a decision on — had already answered it, and the answer was invisible:
 
 ## THEN, IN ORDER
 
-### 1. Vercel: kill the build-time font fetch — VERIFIED CAUSE, 12 Aug
+### 2. THE SPEND IS 71% THINKING ABOUT ITSELF — the founder's challenge, 12 Aug
+
+> *"I am literally spending almost 0.3 usd per hour on open router. if the company is not operating
+> till now, we have no inquiries and no suppliers and nothing... most internal operations was
+> supposed to be part of the code and not an actual spend on open router."*
+
+**He is right, and the numbers are these:**
+
+```
+30-day total          170.00 AED  ≈ $46     → $1.53/day → $0.064/hour BASELINE
+today (12 Aug)         16.92 AED  ≈ $4.61   → ~$0.53/hour  <- that was MY session, not the company
+30 days before today  115.07 AED
+
+agent_brain        782 calls   103.48 AED   61% of all spend
+agent_reasoning    946 calls   120.08 AED   71% of all spend
+```
+
+First, correct the premise gently: **the company's steady burn is ~6 cents an hour.** The 0.3/hour
+he watched was a session running probes and re-running the scorer. Do not let him think the idle
+company costs that.
+
+**Then concede the real point, because it is correct.** 71% of every dirham goes to *an AI employee
+thinking*, and with 0 customers, 0 inquiries, 0 quotes and 0 transactions there is nothing external
+to think about — so it is thinking about itself. And much of that thinking is arithmetic:
+`metric_lifecycle` step 3 *"Measure on cadence and record the actual"* is `fn_employee_kpi_measure`,
+already a SQL routine; *"Evidence: KPI scoreboard, OS health, goal periods"* is a query;
+*"Detect variance against target"* is subtraction. **The dispatcher pays sonnet-5 0.217 AED to
+narrate numbers SQL already holds.**
+
+**The discipline already exists and was never applied here.** `model_policy` carries FIFTEEN task
+classes at `tier='none'` with a written `deterministic_alternative` — vat_calculation *("Arithmetic.
+An LLM here is pure waste and a correctness risk")*, date_calculation, currency_conversion,
+approval_threshold, supplier_scoring, duplicate_detection, workflow_routing, kpi_calculation,
+brand_rule_check, missing_fields_detection, calendar_scheduling, file_operations, note_capture,
+supplier_matching, money_state_change. The catch-all `agent_reasoning` has no such gate, and that is
+where 71% of the money is.
+
+**And the last session made it worse — say so.** `workflow_dispatch` added 49 calls and 7.21 AED in
+its first day, all internal reasoning, and `action_worker`'s ceiling went 900 → 8,000 tokens. Both
+were justified on correctness (the old ceiling silently truncated 58% of deliverables) but both are
+new internal spend in a company that had already diagnosed itself as over-spending internally.
+
+**DO THIS, and it is our call, not his:**
+
+1. **A deterministic gate on workflow steps.** Before `fn_workflow_step_claim` hands a step to a
+   model, check whether the step maps to a routine that already computes the answer. Same shape as
+   `model_policy.deterministic_alternative`, applied per workflow step rather than per task class.
+   A step that SQL can answer must never reach sonnet.
+2. **Idle the internal-reflection workflows until there is demand.** `metric_lifecycle` and
+   `strategic_review` re-analysing a company with zero customers is money spent to think about
+   nothing. They should wake when there is an inquiry, not on a timer.
+3. **Split the 24/day cap** rather than raising or lowering it: demand-side and marketplace work
+   uncapped, internal reflection near zero. Read
+   `scripts/sql/the_dispatcher_needed_a_daily_ceiling_before_it_needed_speed.sql` first.
+
+Report the AED/day before and after. The target is not "cheaper" — it is that **every dirham spent
+is spent on something a customer or a supplier will eventually feel.**
+
+### 3. Vercel: kill the build-time font fetch — VERIFIED CAUSE, 12 Aug
 
 Three production builds failed on 2026-08-11 between 21:01 and 21:16 UTC. Cause is confirmed and is
 NOT "mechanism unknown" as the old traps list says:
@@ -116,16 +175,7 @@ flake. Verify the rendered pages afterwards — this is a visual change and need
 is why I did not do it at the end of a long session. The last 40 deployments are READY, so this is
 prevention, not an outage.
 
-### 2. The dispatcher's 24/day cap — I am asking you to decide it
-
-107 workflow steps are ready and the cap clears them in 4–5 days. It exists because 85.4% of model
-spend went to `leadership` and 0.04% to `marketplace` against revenue of 0.
-**The company has now answered that question itself** (see the quote above) and its answer is *shift
-toward demand*. Read `scripts/sql/the_dispatcher_needed_a_daily_ceiling_before_it_needed_speed.sql`,
-then make the call — raise it, keep it, or split it so marketplace work is uncapped and internal
-work is not. One `CREATE OR REPLACE`. Tell me which you chose and why.
-
-### 3. Act on the company's own revenue diagnosis
+### 4. Act on the company's own revenue diagnosis
 
 Its two named gates were **the 20,470-supplier directory generates zero RFQs** and **supplier
 approval is stuck at 0/6**.
@@ -154,7 +204,7 @@ supplier(s), 0 extracted in 180d" — 20,470 rows of supplier data and no proces
 there. **Apify stays paused until ~Feb 2027; work the existing leads.** Do not "fix"
 `s26-discover-suppliers`.
 
-### 4. WHY 57 REAL SUPPLIERS NEVER REGISTERED — revenue-critical, and NOT invite work
+### 5. WHY 57 REAL SUPPLIERS NEVER REGISTERED — revenue-critical, and NOT invite work
 
 62 invitations were genuinely sent (5 hard-bounced through the Resend webhook and are in
 `email_suppressions`; the other 57 show no bounce). **Zero recipients ever started registration** —
@@ -169,7 +219,7 @@ Note `invite_status` never advances past `queued` on success — only the bounce
 That is a tracking gap worth closing while you are in there; it is what made "were these even sent?"
 unanswerable without cross-checking `email_suppressions`.
 
-### 5. Goals and KPIs still without a measure — 34 and 14
+### 6. Goals and KPIs still without a measure — 34 and 14
 
 Every one now carries a written `no_measure_reason`, so none is silently decorative. Re-read those
 reasons before building: two of mine were the wrong KIND last session (I wrote "needs a fixture"
@@ -178,7 +228,7 @@ where the truth was "needs demand", and the distinction decides whether you buil
   fixtures**; two drawings and four checks is a thin instrument.
 - **114** needs a holdout of qualified RFQs and there are 0 inquiries. Blocked.
 
-### 6. The remaining spec #3 UI
+### 7. The remaining spec #3 UI
 
 Landed last session: the workflow screen ("Processes in flight", with what each run waits on) and
 "What the company's processes produced". Still open: **interactive documents, drag & drop, workspace
