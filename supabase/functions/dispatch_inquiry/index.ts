@@ -164,8 +164,15 @@ Deno.serve(async (req) => {
     // actually reached someone; fn_rfq_redispatch_sweep retries the ones that reached nobody.
     // Re-notification is impossible by construction - a zero-fanout RFQ notified no supplier, and
     // once a retry succeeds the row no longer qualifies.
-    const priorFanout = Number(routing.fanout ?? 0);
-    if (routing.dispatched_at && priorFanout > 0 && !force) return J({ ok: true, skip: 'already_dispatched', dispatched_at: routing.dispatched_at, fanout: priorFanout });
+    // A MISSING COUNTER IS NOT A ZERO. Only a fanout that is RECORDED as 0 licenses a retry; if the
+    // key is absent the reach is unknown, and re-dispatching on unknown could notify a supplier
+    // twice. Same shape as least(100, NULL) returning 100 - treating absent evidence as a specific
+    // value is how a green number ends up meaning the opposite of the truth.
+    const fanoutRecorded = routing.fanout !== undefined && routing.fanout !== null;
+    const reachedNobody = fanoutRecorded && Number(routing.fanout) === 0;
+    if (routing.dispatched_at && !reachedNobody && !force) {
+      return J({ ok: true, skip: 'already_dispatched', dispatched_at: routing.dispatched_at, fanout: fanoutRecorded ? Number(routing.fanout) : null });
+    }
 
     // ATOMIC CLAIM: set dispatch_lock only if unlocked (or stale). Losers of the race skip.
     // NOTE: force skips the freshness check but STILL takes the claim below, so a forced run and a

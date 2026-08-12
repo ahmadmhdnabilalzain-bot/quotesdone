@@ -17,6 +17,10 @@
 -- The guard is fixed in supabase/functions/dispatch_inquiry/index.ts (skip only when the previous
 -- run actually reached someone). This is the retry that gives the fixed guard something to do.
 --
+-- A MISSING COUNTER IS NOT A ZERO. The predicate requires fanout to be RECORDED as 0, not merely
+-- absent. coalesce(fanout, 0) = 0 would have swept in every row whose reach is simply unknown and
+-- re-notified suppliers who had already been told — least(100, NULL) returning 100, in a new place.
+--
 -- SAFETY: only zero-fanout RFQs are retried, so no supplier can be notified twice — a zero-fanout
 -- RFQ notified nobody, and the moment a retry reaches someone the row stops qualifying. Backoff is
 -- 6 hours and attempts are capped at 30, so an RFQ nobody can serve stops asking after a week
@@ -57,7 +61,7 @@ begin
    where i.rfq_ready is true
      and i.status in ('open', 'sent', 'split')
      and (i.routing->>'dispatched_at') is not null
-     and coalesce((i.routing->>'fanout')::int, 0) = 0
+     and (i.routing->>'fanout') is not null and (i.routing->>'fanout')::int = 0
      and i.created_at > now() - interval '90 days'
      and coalesce((i.routing->>'redispatch_count')::int, 0) < 30
      and coalesce((i.routing->>'redispatch_last')::timestamptz, 'epoch'::timestamptz)
@@ -69,7 +73,7 @@ begin
      where i.rfq_ready is true
        and i.status in ('open', 'sent', 'split')
        and (i.routing->>'dispatched_at') is not null
-       and coalesce((i.routing->>'fanout')::int, 0) = 0
+       and (i.routing->>'fanout') is not null and (i.routing->>'fanout')::int = 0
        and i.created_at > now() - interval '90 days'
        and coalesce((i.routing->>'redispatch_count')::int, 0) < 30
        and coalesce((i.routing->>'redispatch_last')::timestamptz, 'epoch'::timestamptz)
