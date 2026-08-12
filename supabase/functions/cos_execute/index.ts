@@ -182,6 +182,29 @@ Deno.serve(async (req) => {
     // FREEZE / kill switch — halt instantly.
     if ((await sec('cos_frozen')) === 'true' || (await sec('ai_kill_switch')) === 'true') return J({ ok: true, frozen: true, note: 'CoS execution is frozen; no tasks worked.' });
 
+    // SIXTY PERCENT OF THE BILL WAS THE COMPANY THINKING ABOUT ITSELF (12 Aug 2026).
+    //
+    // Measured on production: 290 of the 316 agent_brain Anthropic calls in seven days fire at
+    // minute 50-51 — this cron — for 71.27 of 77.02 AED. On 6 August a queue of self-analysis tasks
+    // appeared (346 of the 385 open tasks are action_class='analysis') and the daily AI bill went
+    // from ~1 AED to 11-15 AED and has stayed there every day since, on days with a session and days
+    // without. Demand on the same date: 0 customers, 0 inquiries, 0 quotes, 0 transactions.
+    //
+    // The gate is on the WORK, not on the model. Revenue-path tasks are never capped. Self-analysis
+    // gets decision_policy.cos_reflection_tasks_per_day. It opens by itself: the gate asks whether
+    // THIS task is on the revenue path, never whether the company is busy yet, so the first inquiry
+    // that arrives is worked uncapped without anyone changing a setting.
+    //
+    // A failure to read the gate does NOT halt the loop — this is a cost control, not a safety gate,
+    // and the safety gates are the freeze switch above and the authority tier below. Failing open
+    // costs money; failing closed would stop the company on a transient PostgREST error.
+    let gate: any = {};
+    try {
+      const { data: g } = await admin.rpc('fn_cos_work_gate');
+      gate = (g || {}) as any;
+    } catch (_e) { gate = {}; }
+    if (gate.gated === true) return J({ ok: true, gated: true, gate, worked: 0, note: gate.reason });
+
     const { data: depts } = await admin.from('org_departments').select('dept_key,name,brain_agent,lead_agent');
     const deptMap = new Map((depts || []).map((d: any) => [d.dept_key, d]));
     // Action-executor registry: action_classes wired to a REAL side-effect executor.
@@ -228,8 +251,25 @@ Deno.serve(async (req) => {
     const BUS = 'fn_event_dispatch';
     const TASK_COLS = 'id,objective_id,dept_key,title,detail,action_class,tier,attempts,status,decided_by';
     const staleCut = new Date(Date.now() - STALE_MIN * 60000).toISOString();
-    const { data: assigned } = await admin.from('org_tasks').select(TASK_COLS).eq('status', 'assigned').order('id').limit(MAX_TASKS);
-    let batch = assigned || [];
+    // REVENUE-PATH WORK FIRST, AND UNCAPPED. This was one `order by id limit 2` over the whole
+    // assigned queue, which is FIFO across 346 self-analysis rows and 2 invites — so a task on the
+    // revenue path queued today would not be LOOKED at for a week, by exactly the structural
+    // starvation the fairness block below already fixed once for the event bus. Taking demand first
+    // costs nothing when there is none (the list is empty and this select is skipped) and is the
+    // only reason the ceiling below is safe to impose.
+    const demandClasses: string[] = Array.isArray(gate.demand_classes) ? gate.demand_classes : [];
+    let batch: any[] = [];
+    if (demandClasses.length) {
+      const { data: dem } = await admin.from('org_tasks').select(TASK_COLS)
+        .eq('status', 'assigned').in('action_class', demandClasses).order('id').limit(MAX_TASKS);
+      batch = dem || [];
+    }
+    // Reflection fills what the revenue path left, and only while today's ceiling holds.
+    const reflectionSlots = gate.reflection_allowed === false ? 0 : MAX_TASKS - batch.length;
+    const { data: assigned } = reflectionSlots > 0
+      ? await admin.from('org_tasks').select(TASK_COLS).eq('status', 'assigned').order('id').limit(reflectionSlots)
+      : { data: [] as any[] };
+    for (const x of (assigned || [])) if (!batch.some((b: any) => b.id === x.id)) batch.push(x);
     if (batch.length === MAX_TASKS) {
       const busInHead = batch.some((x: any) => x.decided_by === BUS);
       if (busInHead !== batch.some((x: any) => x.decided_by !== BUS)) { // head is all one class
@@ -257,8 +297,18 @@ Deno.serve(async (req) => {
     //
     // It costs the assigned queue one slot per run WHILE stale work exists, and nothing once it is
     // cleared - self-limiting, and cheaper than 48 tasks aging indefinitely.
-    const { data: stale } = await admin.from('org_tasks').select(TASK_COLS)
+    //
+    // 12 Aug 2026: the reclaim honours the reflection ceiling, because a stale task is worked by the
+    // same 25,000-token model call as a fresh one and 46 of the 48 in_progress rows are self-analysis.
+    // A stale task on the REVENUE path is still reclaimed while the ceiling is spent — the ceiling
+    // exists to stop the company thinking about itself, not to strand a customer.
+    let staleQ = admin.from('org_tasks').select(TASK_COLS)
       .eq('status', 'in_progress').lt('last_run_at', staleCut).order('last_run_at').limit(1);
+    if (gate.reflection_allowed === false) {
+      if (!demandClasses.length) staleQ = null as any;
+      else staleQ = staleQ.in('action_class', demandClasses);
+    }
+    const { data: stale } = staleQ ? await staleQ : { data: [] as any[] };
     if (stale && stale.length) batch = batch.slice(0, MAX_TASKS - 1).concat(stale[0]);
 
     const touchedObjectives = new Set<number>();
