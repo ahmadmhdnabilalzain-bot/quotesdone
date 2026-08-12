@@ -206,6 +206,7 @@ begin
              'method','fn_norm_trades over taxonomy_trade aliases - deterministic, no model call',
              'confirmed_by_supplier', false,
              'at', now())
+    from cand c
     where array_length(c.trades,1) > 0
     returning 1
   )
