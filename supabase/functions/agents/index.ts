@@ -79,7 +79,18 @@ async function onboarding() {
     if (!exp) missing.push('licence expiry unreadable'); else if (exp.getTime() < Date.now()) missing.push('trade licence EXPIRED');
     const clean = flags.length === 0 && missing.length === 0;
     const title = String(s.company_name || ('Supplier #' + s.id)) + (s.emirate ? ' — ' + s.emirate : '');
-    await queue({ agent: 'onboarding', kind: 'approve_supplier', status: 'pending', risk: 'high', title, recommendation: clean ? 'approve' : 'review', target_table: 'leads', target_id: String(s.id), detail: { emirate: s.emirate, flags, ai_notes: String(s.ai_review_notes || '').slice(0, 500), missing, licence_expiry: s.license_expiry || null } });
+    await queue({ agent: 'onboarding', kind: 'approve_supplier', status: 'pending', risk: 'high', title, recommendation: clean ? 'approve' : 'review', target_table: 'leads', target_id: String(s.id),
+      assumptions: [
+        'The uploaded trade licence belongs to the company named on it and has not been altered.',
+        clean ? 'The automated review found nothing, which means nothing was DETECTED — not that nothing is wrong.'
+              : 'Each of these ' + (flags.length + missing.length) + ' finding(s) is real and not an artefact of unreadable paperwork: ' + [...flags, ...missing].join('; ') + '.',
+        'This company can still trade in its emirate — approval here is not a licence check by an authority.',
+      ],
+      expected_impact: clean
+        ? 'Approving makes this supplier visible to fn_match_capability, so live RFQs in their trades can reach them. Until then they receive nothing.'
+        : 'Reviewing resolves ' + (flags.length + missing.length) + ' open question(s) before this company can receive any RFQ. Leaving it pending keeps them invisible to the matcher.',
+      cost: 'No spend. Founder or onboarding attention, minutes per supplier; approving early risks a bad supplier reaching a customer, approving late costs supply coverage.',
+      detail: { emirate: s.emirate, flags, ai_notes: String(s.ai_review_notes || '').slice(0, 500), missing, licence_expiry: s.license_expiry || null } });
     counts.queued_approval++;
     if (s.lifecycle_stage !== 'registered') await admin.from('leads').update({ lifecycle_stage: 'registered' }).eq('id', s.id);
   }
@@ -87,7 +98,16 @@ async function onboarding() {
   for (const s of (appr || [])) {
     const exp = parseDate(s.license_expiry); if (!exp) continue;
     const days = Math.round((exp.getTime() - Date.now()) / 864e5);
-    if (days <= 30) { const expired = days < 0; await queue({ agent: 'onboarding', kind: expired ? 'licence_expired' : 'licence_expiring', status: 'pending', risk: expired ? 'high' : 'low', title: String(s.company_name || s.id) + (expired ? ' — licence EXPIRED' : ' — licence expires in ' + days + ' days'), recommendation: expired ? 'suspend / chase renewal' : 'remind supplier', target_table: 'leads', target_id: String(s.id), detail: { licence_expiry: s.license_expiry, days } }); counts.licence_alerts++; }
+    if (days <= 30) { const expired = days < 0; await queue({ agent: 'onboarding', kind: expired ? 'licence_expired' : 'licence_expiring', status: 'pending', risk: expired ? 'high' : 'low', title: String(s.company_name || s.id) + (expired ? ' — licence EXPIRED' : ' — licence expires in ' + days + ' days'), recommendation: expired ? 'suspend / chase renewal' : 'remind supplier', target_table: 'leads', target_id: String(s.id),
+      assumptions: [
+        'leads.license_expiry (' + String(s.license_expiry) + ') is the CURRENT licence and the supplier has not renewed without telling us — the commonest way this alert is wrong.',
+        'The date was parsed correctly; a mis-parsed licence would produce exactly this alert with a false ' + days + '-day figure.',
+      ],
+      expected_impact: expired
+        ? 'Suspending stops an unlicensed company receiving RFQs and quoting work it cannot legally invoice. Leaving it costs the platform its compliance position on every job they win.'
+        : 'A reminder now gives ' + days + ' day(s) to renew before they must be suspended, so their supply stays available instead of dropping out mid-RFQ.',
+      cost: 'No spend. One outbound message and a diary note; the supplier bears the government renewal fee.',
+      detail: { licence_expiry: s.license_expiry, days } }); counts.licence_alerts++; }
     if (s.lifecycle_stage !== 'active') await admin.from('leads').update({ lifecycle_stage: 'active' }).eq('id', s.id);
   }
   return counts;
@@ -121,11 +141,33 @@ async function followup(){
     counts.quote_nudges++;
   }
   const { data: refs } = await admin.from('transactions').select('id,refund_requested_at,reveal_fee').eq('refund_status', 'requested').lt('refund_requested_at', dayAgo(2)).limit(50);
-  for (const r of (refs || [])) { const days = Math.round((Date.now() - new Date(r.refund_requested_at).getTime()) / 864e5); await queue({ agent: 'followup', kind: 'sla_refund', status: 'pending', risk: 'low', title: 'Refund request pending ' + days + ' days', recommendation: 'resolve in the Refunds tab', target_table: 'transactions', target_id: String(r.id), detail: { reveal_fee: r.reveal_fee, days } }); counts.sla++; }
+  for (const r of (refs || [])) { const days = Math.round((Date.now() - new Date(r.refund_requested_at).getTime()) / 864e5); await queue({ agent: 'followup', kind: 'sla_refund', status: 'pending', risk: 'low', title: 'Refund request pending ' + days + ' days', recommendation: 'resolve in the Refunds tab', target_table: 'transactions', target_id: String(r.id),
+    assumptions: [
+      'The customer is still waiting — refund_status is the live truth and no refund was settled outside the platform.',
+      days + ' day(s) of silence reads as unresolved rather than deliberately held pending evidence from the customer.',
+    ],
+    expected_impact: 'Resolving returns AED ' + String(r.reveal_fee ?? '?') + ' to the customer or closes the claim, and ends ' + days + ' day(s) of silence on a request about money — the single fastest way to lose a paying buyer.',
+    cost: 'Up to AED ' + String(r.reveal_fee ?? '?') + ' if refunded, plus the Stripe fee, which is not returned. Refunding is founder-gated and is not executed by any agent.',
+    detail: { reveal_fee: r.reveal_fee, days } }); counts.sla++; }
   const { data: revq } = await admin.from('inbound_messages').select('id,from_email,subject,created_at').eq('needs_review', true).lt('created_at', dayAgo(3)).limit(50);
-  for (const m of (revq || [])) { await queue({ agent: 'followup', kind: 'sla_review', status: 'pending', risk: 'low', title: 'Inbound email awaiting review: ' + String(m.subject || m.from_email || m.id).slice(0, 60), recommendation: 'clear in the Review queue', target_table: 'inbound_messages', target_id: String(m.id), detail: { from: m.from_email } }); counts.sla++; }
+  for (const m of (revq || [])) { await queue({ agent: 'followup', kind: 'sla_review', status: 'pending', risk: 'low', title: 'Inbound email awaiting review: ' + String(m.subject || m.from_email || m.id).slice(0, 60), recommendation: 'clear in the Review queue', target_table: 'inbound_messages', target_id: String(m.id),
+    assumptions: [
+      'needs_review is still true because nobody has read it, not because the flag was never cleared after someone did.',
+      'A message held more than 3 days is a person waiting, not spam — the spam path sets a different status.',
+    ],
+    expected_impact: 'Clearing it answers a real sender (' + String(m.from_email || 'unknown') + ') who has waited over 3 days, and removes the oldest item from the review queue so its age stops masking newer arrivals.',
+    cost: 'No spend. Minutes of reading; the only real cost is that an unread inbound may be a customer or supplier who gives up.',
+    detail: { from: m.from_email } }); counts.sla++; }
   const { data: gaps } = await admin.from('inquiries').select('id,category,emirate,created_at,status').lt('created_at', dayAgo(5)).not('status', 'in', CLOSED).limit(120);
-  for (const inq of (gaps || [])) { const mn = await cnt('inquiry_matches', (q) => q.eq('inquiry_id', inq.id)); if (mn) continue; await queue({ agent: 'followup', kind: 'sla_no_supply', status: 'pending', risk: 'low', title: 'No suppliers matched: ' + (inq.category || '') + (inq.emirate ? ' / ' + inq.emirate : ''), recommendation: 'check category coverage / source suppliers', target_table: 'inquiries', target_id: String(inq.id), detail: { category: inq.category, emirate: inq.emirate } }); counts.sla++; }
+  for (const inq of (gaps || [])) { const mn = await cnt('inquiry_matches', (q) => q.eq('inquiry_id', inq.id)); if (mn) continue; await queue({ agent: 'followup', kind: 'sla_no_supply', status: 'pending', risk: 'low', title: 'No suppliers matched: ' + (inq.category || '') + (inq.emirate ? ' / ' + inq.emirate : ''), recommendation: 'check category coverage / source suppliers', target_table: 'inquiries', target_id: String(inq.id),
+    assumptions: [
+      'Zero inquiry_matches means no supplier FITS, not that retrieval failed — route_inquiry distinguishes the two and logs the difference, and this alert cannot tell them apart on its own.',
+      'The category (' + String(inq.category || 'unknown') + ') and emirate (' + String(inq.emirate || 'unknown') + ') on the RFQ are the ones a supplier would be indexed under; a vocabulary drift between the two would look identical to a genuine supply gap.',
+      'fn_rfq_redispatch_sweep will re-offer this RFQ every 6h, so a supplier onboarded later still reaches it — this alert is about coverage, not about a lost RFQ.',
+    ],
+    expected_impact: 'Sourcing even one approved supplier in ' + String(inq.category || 'this trade') + (inq.emirate ? ' covering ' + String(inq.emirate) : '') + ' turns this RFQ, and every future one in the same cell, from silence into quotes. Left alone, the customer is told nobody serves them.',
+    cost: 'No spend today: the 20,470 existing leads cover most trades and invitation is free. Real cost is founder attention on the invite ramp, which is gated on invite_enabled.',
+    detail: { category: inq.category, emirate: inq.emirate } }); counts.sla++; }
   return counts;
 }
 
@@ -140,7 +182,14 @@ async function marketing(){
   let drafts: any[] = [];
   if (out) { const m = out.match(/\{[\s\S]*\}/); if (m) { try { drafts = JSON.parse(m[0]).drafts || []; } catch (_e) {} } }
   for (const d of drafts.slice(0, 8)) { if (!d || !d.body) continue; await admin.from('content_drafts').insert({ channel: String(d.channel || 'social').slice(0, 20), category: d.category ? String(d.category).slice(0, 80) : null, title: d.title ? String(d.title).slice(0, 200) : null, body: String(d.body).slice(0, 4000), status: 'draft', source: 'marketing_agent' }); counts.drafts++; }
-  if (counts.drafts) await queue({ agent: 'marketing', kind: 'content_review', status: 'pending', risk: 'low', title: counts.drafts + ' new marketing drafts ready to review', recommendation: 'open the Marketing agent, review and post the ones you like', target_table: 'content_drafts', target_id: null, detail: { count: counts.drafts } });
+  if (counts.drafts) await queue({ agent: 'marketing', kind: 'content_review', status: 'pending', risk: 'low', title: counts.drafts + ' new marketing drafts ready to review', recommendation: 'open the Marketing agent, review and post the ones you like', target_table: 'content_drafts', target_id: null,
+    assumptions: [
+      'These ' + counts.drafts + ' draft(s) are publishable in tone and factually right about QuotesDone — the generator was not asked to verify its own claims.',
+      'Nothing is posted without a human: campaign_publishing step 9 is founder-gated and no executor can send these.',
+    ],
+    expected_impact: 'Posting the ones worth posting puts ' + counts.drafts + ' piece(s) of demand-side content in front of buyers. Unreviewed drafts reach nobody and go stale as the product changes underneath them.',
+    cost: 'No spend — drafting already happened and the model cost is sunk. Reviewing costs founder attention; posting costs reputation if a draft is wrong.',
+    detail: { count: counts.drafts } });
   return counts;
 }
 
@@ -157,8 +206,22 @@ async function categorySales(){
       if (exists && exists.length) continue;
       const qn = await cnt('quotes', (q) => q.eq('inquiry_id', inq.id));
       const mn = await cnt('inquiry_matches', (q) => q.eq('inquiry_id', inq.id));
-      if (qn > 0) { await queue({ agent: key, kind: 'hot_lead', status: 'pending', risk: 'low', title: 'Hot lead — ' + c.name + (inq.emirate ? ' / ' + inq.emirate : '') + ': ' + qn + ' quote(s), not revealed', recommendation: 'nudge the customer to reveal', target_table: 'inquiries', target_id: String(inq.id), detail: { category: c.slug, quotes: qn } }); counts.hot++; }
-      else if (mn === 0) { await queue({ agent: key, kind: 'supply_gap', status: 'pending', risk: 'low', title: 'Supply gap — ' + c.name + (inq.emirate ? ' / ' + inq.emirate : '') + ': no suppliers matched', recommendation: 'source or activate suppliers in this category', target_table: 'inquiries', target_id: String(inq.id), detail: { category: c.slug } }); counts.gaps++; }
+      if (qn > 0) { await queue({ agent: key, kind: 'hot_lead', status: 'pending', risk: 'low', title: 'Hot lead — ' + c.name + (inq.emirate ? ' / ' + inq.emirate : '') + ': ' + qn + ' quote(s), not revealed', recommendation: 'nudge the customer to reveal', target_table: 'inquiries', target_id: String(inq.id),
+        assumptions: [
+          'The customer has not revealed because they have not decided, not because the quotes are unusable or the reveal fee is the obstacle — this alert cannot distinguish those and a nudge to the wrong one annoys a buyer.',
+          'All ' + qn + ' quote(s) are still valid; a quote past its stated validity is not something to nudge anyone towards.',
+        ],
+        expected_impact: 'A reveal on this RFQ is the platform\'s only revenue event — 3% of the awarded quote. This is the closest any open RFQ is to earning, with ' + qn + ' quote(s) already waiting.',
+        cost: 'No spend. One message to the customer. Nudging too hard on a buyer who is still comparing is the real risk, which is why this is a recommendation and not an automated send.',
+        detail: { category: c.slug, quotes: qn } }); counts.hot++; }
+      else if (mn === 0) { await queue({ agent: key, kind: 'supply_gap', status: 'pending', risk: 'low', title: 'Supply gap — ' + c.name + (inq.emirate ? ' / ' + inq.emirate : '') + ': no suppliers matched', recommendation: 'source or activate suppliers in this category', target_table: 'inquiries', target_id: String(inq.id),
+        assumptions: [
+          'Zero matches means no APPROVED supplier fits ' + c.name + (inq.emirate ? ' in ' + String(inq.emirate) : '') + '. An approved supplier whose capability enrichment never ran is invisible to the matcher and would look identical to an empty category.',
+          'The RFQ is indexed under the same vocabulary a supplier would be — two vocabularies drifting apart produces this alert with full supply sitting behind it.',
+        ],
+        expected_impact: 'Activating suppliers in ' + c.name + ' opens the whole category, not just this RFQ: every future request in the same trade and emirate currently ends the same way.',
+        cost: 'No spend to invite from the existing lead base. Cost is founder attention and the invite ramp, which is gated on invite_enabled.',
+        detail: { category: c.slug } }); counts.gaps++; }
     }
     if (counts.hot + counts.gaps >= 60) break;
   }
@@ -194,7 +257,14 @@ async function bdOutreach(){
     await admin.from('outreach').insert({ lead_id: l.id, source: 'database', email: l.email, company: l.company_name, category: trade, emirate: l.emirate, channel: 'email', status: 'queued', subject, body: bodyTxt });
     taken.add(l.id); made++; (counts.planned as number)++;
   }
-  if ((counts.planned as number) > 0) await queue({ agent: 'bd_outreach', kind: 'bd_batch', status: 'pending', risk: 'low', title: (counts.planned as number) + ' supplier invites drafted and queued (NOT sent)', recommendation: 'review in the BD / Outreach Rep agent; enable sending when ready', target_table: 'outreach', target_id: null, detail: { planned: counts.planned, mode: 'plan' } });
+  if ((counts.planned as number) > 0) await queue({ agent: 'bd_outreach', kind: 'bd_batch', status: 'pending', risk: 'low', title: (counts.planned as number) + ' supplier invites drafted and queued (NOT sent)', recommendation: 'review in the BD / Outreach Rep agent; enable sending when ready',  target_table: 'outreach', target_id: null,
+    assumptions: [
+      'Nothing here has been sent and nothing can be: these rows are status=queued and sending is gated on invite_enabled, which is the founder\'s to set.',
+      'The ' + String(counts.planned) + ' addresses are deliverable to a named human. Role addresses on live MX accounted for every bounce measured so far, and are deprioritised rather than deleted.',
+    ],
+    expected_impact: 'Sending these is how supply arrives: each accepted invite is a supplier the matcher can reach, and coverage is what turns a supply_gap alert into quotes. Left queued they reach nobody.',
+    cost: 'No direct spend — the SMTP quota is already paid. The real cost is sender reputation: a bad batch can suppress the domain, which is why enabling this is a founder decision and not an agent\'s.',
+    detail: { planned: counts.planned, mode: 'plan' } });
   return counts;
 }
 
@@ -206,10 +276,26 @@ async function itHealth(){
     try { const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 15000); const r = await fetch(url, { method: 'GET', redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': UA } }); clearTimeout(tm); code = r.status; ok = r.ok; try { await r.body?.cancel(); } catch (_e) {} } catch (e) { detail = String((e as Error)?.message || e); }
     const lat = Date.now() - t0;
     await admin.from('health_checks').insert({ check_kind: 'http', target: name, ok, status_code: code, latency_ms: lat, detail });
-    if (ok) counts.up++; else { counts.down++; await queue({ agent: 'it', kind: 'incident', status: 'pending', risk: 'high', title: 'Page DOWN: ' + name + ' (' + (code || detail || 'no response') + ')', recommendation: 'check the Vercel deploy / edge function; page returned non-200', target_table: 'health_checks', target_id: null, detail: { url, code, detail } }); counts.alerts++; }
+    if (ok) counts.up++; else { counts.down++; await queue({ agent: 'it', kind: 'incident', status: 'pending', risk: 'high', title: 'Page DOWN: ' + name + ' (' + (code || detail || 'no response') + ')', recommendation: 'check the Vercel deploy / edge function; page returned non-200', target_table: 'health_checks', target_id: null,
+      assumptions: [
+        'One GET from this runner represents what a real visitor sees. A regional edge fault, a 15s timeout under momentary load, or this runner being blocked would all produce exactly this alert with the site up for everyone else.',
+        'HTTP ' + String(code || 'none') + ' on ' + url + ' means the page is broken, not that it deliberately refuses unauthenticated robots.',
+      ],
+      expected_impact: 'While ' + name + ' is down, every visitor who reaches it leaves. It is one of the four public entry points, so this is lost demand for as long as it lasts, not a cosmetic fault.',
+      cost: 'No spend to investigate. A redeploy or rollback is minutes; the cost of not acting is every buyer who tried during the outage.',
+      detail: { url, code, detail } }); counts.alerts++; }
   }
   const { data: fails } = await admin.from('agent_runs').select('agent,note').eq('status', 'error').gte('started_at', dayAgo(1)).order('id', { ascending: false }).limit(10);
-  if (fails && fails.length) { const agents = [...new Set(fails.map((f) => f.agent))]; await admin.from('health_checks').insert({ check_kind: 'agent_runs', target: agents.join(','), ok: false, detail: fails.length + ' failed runs' }); await queue({ agent: 'it', kind: 'incident', status: 'pending', risk: 'medium', title: fails.length + ' agent run(s) failed in last 24h', recommendation: 'review failing jobs: ' + agents.join(', '), target_table: 'agent_runs', target_id: null, detail: { agents } }); counts.alerts++; }
+  if (fails && fails.length) { const agents = [...new Set(fails.map((f) => f.agent))]; await admin.from('health_checks').insert({ check_kind: 'agent_runs', target: agents.join(','), ok: false, detail: fails.length + ' failed runs' }); await queue({ agent: 'it', kind: 'incident', status: 'pending', risk: 'medium', title: fails.length + ' agent run(s) failed in last 24h', recommendation: 'review failing jobs: ' + agents.join(', '), target_table: 'agent_runs', target_id: null,
+    assumptions: [
+      'These ' + fails.length + ' row(s) are genuine faults. agent_runs status=error is also written by routines that log a real-world FINDING as an error — a degraded LLM parse, a watcher reporting what it watched — so a healthy run can appear here.',
+      'The count is capped at 10 by this query, so ' + fails.length + ' is a floor, not a total.',
+      'The named agent(s) — ' + agents.join(', ') + ' — are still scheduled. A failure from a job since removed would keep appearing for 24h with nothing to fix.',
+      'The window is the last 24 hours, so a fault already repaired hours ago is still counted here; read the timestamps before acting.',
+    ],
+    expected_impact: 'Fixing these restores ' + agents.length + ' scheduled routine(s) to service. Every one of them is something the company does on its own — left failing, that work silently stops happening and no other alert says so.',
+    cost: 'No spend. Engineering attention, and the diagnosis is usually reading one note in agent_runs.',
+    detail: { agents } }); counts.alerts++; }
   if (counts.down > 0) { const owner = String(await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim(); await admin.from('notifications').insert({ type: 'it_alert', to_email: owner, to_role: 'admin', channel: 'email', subject: '⚠ QuotesDone IT alert: ' + counts.down + ' page(s) down', body: 'The IT monitor found ' + counts.down + ' page(s) returning errors. Open the IT agent in admin for details.' }); }
   return counts;
 }
@@ -226,7 +312,14 @@ async function security(){
     else if (!okExt.test(path)) { sev = 'medium'; why = 'unexpected file type'; }
     else if (sizeB > 30 * 1024 * 1024) { sev = 'medium'; why = 'oversized (' + Math.round(sizeB / 1048576) + 'MB)'; }
     else if (sizeB === 0) { sev = 'low'; why = 'empty file'; }
-    if (sev) { counts.suspicious++; counts.events++; await admin.from('security_events').insert({ kind: 'suspicious_upload', severity: sev, source: b, subject: path.slice(0, 200), detail: { mime, size: sizeB, why } }); if (sev === 'high') await queue({ agent: 'security', kind: 'security_alert', status: 'pending', risk: 'high', title: 'Suspicious upload (' + why + '): ' + path.slice(0, 80), recommendation: 'inspect/remove the file in storage; do NOT open it directly', target_table: 'security_events', target_id: null, detail: { bucket: b, path, mime, size: sizeB, why } }); }
+    if (sev) { counts.suspicious++; counts.events++; await admin.from('security_events').insert({ kind: 'suspicious_upload', severity: sev, source: b, subject: path.slice(0, 200), detail: { mime, size: sizeB, why } }); if (sev === 'high') await queue({ agent: 'security', kind: 'security_alert', status: 'pending', risk: 'high', title: 'Suspicious upload (' + why + '): ' + path.slice(0, 80), recommendation: 'inspect/remove the file in storage; do NOT open it directly', target_table: 'security_events', target_id: null,
+      assumptions: [
+        'The judgement is made on extension, MIME (' + String(mime) + ') and size alone — the file was never opened or scanned. A renamed harmless file trips this; a genuinely malicious PDF does not.',
+        'The uploader is a customer or supplier acting carelessly rather than an attacker. Nothing here establishes intent.',
+      ],
+      expected_impact: 'Removing it stops a file that cannot be a legitimate drawing, quote or licence from sitting in a bucket that staff and suppliers download from. Leaving it risks someone opening it.',
+      cost: 'No spend. Minutes to inspect. Deleting a real customer document by mistake costs them a re-upload, which is why the recommendation is inspect-then-remove rather than an automatic delete.',
+      detail: { bucket: b, path, mime, size: sizeB, why } }); }
   };
   for (const b of buckets) {
     try {
@@ -267,7 +360,15 @@ async function compliance(){
     if (!firstBaseline && diff) { if (asset) meaningful = true; else if (textForStore) { const out = await llm('You compare official UAE regulatory page snapshots. Decide if the NEW snapshot reflects a SUBSTANTIVE regulatory change (new edition, circular, effective date, changed requirement) vs cosmetic/nav/news noise. Reply ONLY JSON {"changed":true|false,"summary":"one sentence"}.', 'Authority: ' + s.authority + '\nTopic: ' + s.topic + '\nOLD signature: ' + s.last_signature + '\n\nNEW PAGE TEXT:\n' + textForStore, 300); if (out) { const m = out.match(/\{[\s\S]*\}/); if (m) { try { const pj = JSON.parse(m[0]); meaningful = pj.changed === true; summary = String(pj.summary || ''); } catch (_e) {} } } } }
     const shouldStore = !s.doc_path || diff;
     if (shouldStore) { if (asset) { const dl = await downloadAsset(s.url); if (dl.ok && dl.bytes && dl.bytes.length <= CAP) { const ext = (dl.contentType || '').includes('pdf') || /\.pdf|\.ashx/i.test(s.url) ? 'pdf' : 'bin'; const pth = await storeDoc(s.id, s.doc_path, dl.bytes, dl.contentType, ext); if (pth) { upd.doc_path = pth; upd.doc_bytes = dl.bytes.length; upd.doc_content_type = dl.contentType; upd.doc_downloaded_at = new Date().toISOString(); counts.downloaded++; } } } else if (textForStore) { const pth = await storeDoc(s.id, s.doc_path, textForStore, 'text/plain', 'txt'); if (pth) { upd.doc_path = pth; upd.doc_bytes = textForStore.length; upd.doc_content_type = 'text/plain'; upd.doc_downloaded_at = new Date().toISOString(); counts.downloaded++; } } }
-    if (meaningful) { upd.last_changed_at = new Date().toISOString(); upd.last_summary = summary.slice(0, 500); const appendNote = '\n\n[Update ' + new Date().toISOString().slice(0, 10) + ' — ' + s.authority + ', ' + s.topic + '] ' + (summary || 'Governing document appears updated') + ' (source: ' + s.url + '). Verify before quoting.'; await queue({ agent: 'compliance', kind: 'compliance_update', status: 'pending', risk: 'high', title: s.authority + ' — ' + s.topic + ': possible code update', recommendation: 'review & append dated note to compliance reference', target_table: 'compliance_sources', target_id: String(s.id), detail: { authority: s.authority, topic: s.topic, url: s.url, summary, append_note: appendNote } }); counts.changes_proposed++; }
+    if (meaningful) { upd.last_changed_at = new Date().toISOString(); upd.last_summary = summary.slice(0, 500); const appendNote = '\n\n[Update ' + new Date().toISOString().slice(0, 10) + ' — ' + s.authority + ', ' + s.topic + '] ' + (summary || 'Governing document appears updated') + ' (source: ' + s.url + '). Verify before quoting.'; await queue({ agent: 'compliance', kind: 'compliance_update', status: 'pending', risk: 'high', title: s.authority + ' — ' + s.topic + ': possible code update', recommendation: 'review & append dated note to compliance reference', target_table: 'compliance_sources', target_id: String(s.id),
+      assumptions: [
+        'The page at ' + String(s.url) + ' changed because ' + String(s.authority) + ' changed the RULE. A reworded page, a new template or a CMS migration produces an identical signal — this watcher reads text, not regulation.',
+        'That URL is still the authoritative source for ' + String(s.topic) + '; authorities move documents without redirecting.',
+        'The summary below was written by a model reading the page and has not been checked against the authority\'s own wording.',
+      ],
+      expected_impact: 'A dated note on the compliance reference is what suppliers and BoQ checklists are held to. If ' + String(s.authority) + ' really did change ' + String(s.topic) + ', every quote issued against the old rule is wrong until this is reviewed.',
+      cost: 'No spend. Reading the source and appending a note. Appending an unverified change is the expensive mistake here, which is why the note says Verify before quoting.',
+      detail: { authority: s.authority, topic: s.topic, url: s.url, summary, append_note: appendNote } }); counts.changes_proposed++; }
     await admin.from('compliance_sources').update(upd).eq('id', s.id);
   }
   return counts;
