@@ -314,7 +314,89 @@ Deno.serve(async (req) => {
       const question = Body.slice(0, 1500);
 
       const work = (async () => {
-        let reply = ''; let brainErr = '';
+        let reply = ''; let brainErr = ''; let directive: any = null;
+
+        // ---- IS THIS AN INSTRUCTION OR A QUESTION? (v14, 13 Aug 2026) -------------------------
+        // He asked for both: "send me the financial report for last week" must ANSWER, and "change
+        // the weekly cap for emails into 15 instead of 10" must CHANGE something. Until now both
+        // went to agent_brain, which answers well and can queue an agent_action - and a queued
+        // action is not a change. There are 199 pending ones nothing drains.
+        //
+        // The model NEVER writes SQL and never names a table. It maps his sentence onto a key in
+        // fn_founder_settings(), which is the same registry fn_founder_apply_setting validates
+        // against, so the two cannot disagree. Anything it cannot map - or is unsure about - falls
+        // through to agent_brain and is answered rather than guessed at. Money, refunds and the
+        // three go-live switches are not in the registry and are refused BY NAME, with the list of
+        // what can be changed, so a refusal teaches instead of stonewalling.
+        try {
+          const { data: settings } = await admin.rpc('fn_founder_settings');
+          const rows: any[] = Array.isArray(settings) ? settings : [];
+          if (rows.length) {
+            const catalogue = rows.map((s: any) =>
+              `${s.setting_key} (${s.kind}${s.min_val !== null && s.min_val !== undefined ? `, ${s.min_val}..${s.max_val}` : ''}) = ${s.current_value} — ${s.description}`).join('\n');
+            const sys = 'You decide whether the message is an INSTRUCTION TO CHANGE ONE OF THESE SETTINGS, or anything else.\n\n'
+              + catalogue
+              + '\n\nReturn STRICT JSON ONLY. If it is an instruction to change one of these settings: {"directive":true,"key":"<exact setting_key>","value":"<the new value as a bare string, numbers unquoted in words e.g. 15, switches as on or off>"}.'
+              + '\nOtherwise, including anything you are unsure about, anything about money, refunds, payments or going live, and every question or request for information: {"directive":false}.'
+              + '\nThe sender writes informally. "weekly cap for emails" means the supplier invitation cap; "stop the invites" means invite_enabled off. Never guess a key that is not in the list above.';
+            const gsecret = await sec('cred_fn_ai');
+            const cr = await fetch(GATEWAY, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              // cache_ttl_min: 0 IS LOAD-BEARING, MEASURED 13 Aug 2026. ai_gateway's cache does an
+              // exact-hash lookup AND a SEMANTIC one at 0.95 similarity, over
+              // (sys_stable + sys).slice(0,400) + convo.slice(0,800). This call's system prompt is
+              // the 719-token settings catalogue and the user half is one short sentence, so every
+              // message embeds almost identically. Tested on staging without this: "turn on stripe
+              // live payments" and "send me the financial report for last week" both came back
+              // classified as the PREVIOUS message's directive — ai_cost_log recorded cached:true,
+              // 0 prompt tokens, for both. A classifier is the definition of an unrepeatable
+              // request, and the gateway explicitly leaves the caller this override for exactly
+              // that. Any classifier whose system prompt dwarfs its input needs this line.
+              body: JSON.stringify({ __secret: gsecret, fn: 'founder_directive', sys, input: question, temperature: 0, task_class: 'json_extraction', cache_ttl_min: 0 }),
+              signal: AbortSignal.timeout(45000),
+            });
+            const cj = await cr.json().catch(() => ({} as any));
+            const m = String(cj?.content || '').match(/\{[\s\S]*\}/);
+            const parsed = m ? JSON.parse(m[0]) : null;
+            if (parsed?.directive === true && parsed?.key) {
+              const { data: applied } = await admin.rpc('fn_founder_apply_setting', {
+                p_key: String(parsed.key), p_value: String(parsed.value ?? ''),
+                p_inbound: question, p_actor: String(known?.name || 'founder'), p_channel: 'whatsapp',
+              });
+              directive = applied || null;
+              reply = String(applied?.message || applied?.refusal || '');
+            }
+          }
+        } catch (e) {
+          // A classifier failure must never swallow his message: fall through and answer it.
+          directive = { classifier_error: String((e as Error)?.message || e) };
+        }
+
+        if (reply) {
+          // A directive was applied or refused, and either way it has been said in words. No brain
+          // call - he asked for a change, not an essay about one.
+          reply = bidiSafe(reply.slice(0, 1200));
+          const enabledD = (await sec('wa_autoreply_enabled')) === 'true';
+          let sentD = false; let sendErrD: string | undefined;
+          if (enabledD) { const r = await sendWa(From, reply); sentD = r.ok; sendErrD = r.err; }
+          try {
+            await admin.from('wa_messages').insert({
+              wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
+              inbound: question, reply, lang: 'en', escalated: false, sent: sentD,
+              meta: { enabled: enabledD, audience: 'founder', route: 'founder_directive',
+                      directive, send_error: sendErrD || null, provenance_verified: true,
+                      message_sid: MessageSid || null },
+            });
+          } catch (_e) { /* the reply already went out */ }
+          await logRun(directive?.ok === false ? 'error' : 'ok',
+            { audience: 'founder', route: 'founder_directive', applied: directive?.ok === true,
+              key: directive?.key || null, sent: sentD },
+            directive?.ok === true
+              ? ('founder changed ' + directive.key + ' from ' + directive.old + ' to ' + directive.new + ' by WhatsApp')
+              : ('founder directive REFUSED: ' + String(directive?.refusal || '').slice(0, 200)));
+          return;
+        }
+
         try {
           const ar = await fetch(FNBASE + '/agent_brain', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
