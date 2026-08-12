@@ -568,3 +568,66 @@ its time removing, five times over. Do it in one pass or not at all.
 
 **114 needs a holdout set of qualified RFQs and there are 0 inquiries**, so unlike 103 it is blocked
 on demand as well as on the set. 103 is the one that can be built today.
+
+---
+
+## 14. THE FIXTURE GOT BUILT, IN ONE PASS
+
+§13 said the BoQ fixture was three pieces and should be done in one pass or not at all. It was done
+in one pass: [#233](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/233),
+[#234](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/234).
+
+**`drawing_boq` had no way to be wrong.** A protected capability, wired into five functions, and
+nothing had ever checked whether its output was correct. All three pieces shipped: `boq_fixture` /
+`boq_fixture_run`, the **runner** `boq_fixture_check` (reads each drawing out of storage and posts
+it to `drawing_boq` exactly as a real caller would, stubbing nothing), and `fn_boq_fixture_score`
+holding the grading rule in SQL where it can be argued with.
+
+**KPI 103 = 100.00 against a target of 95**, with the detail stored per run: doors 5=5, windows 4=4,
+areas 78=78 and 48=48. **A NULL expectation is not scored** — drawing 4 prints no door schedule, and
+counting that as a miss would punish the pipeline for the drawing's silence.
+
+**100% here is a thin instrument and should not be oversold.** Two drawings, four checks. It proves
+the pipeline reads a printed schedule correctly; it does not prove general BoQ accuracy, and the
+number will mean more as fixtures are added than it does today.
+
+**The first grading run failed and was right to.** `drawing_boq` nests its analysis at `j.boq` with
+line items at `j.boq.boq`, and my unwrap expected the array one level up. It recorded `ok=false` and
+the KPI kept its previous value rather than reading 0% — the behaviour that separates "not measured"
+from "the employee scored zero", tested by accident on its first run.
+
+**The engine also got a screen.** 238 runs and the only surface was a count tile. `workflow_state`
+now carries runs by status, steps delivered by an employee, and the 25 longest-waiting in-flight
+steps with the *resolved* employee each waits on. The oldest reads **144 hours — six days — waiting
+on `intel_director`**. That was true before and nobody could see it. (My first version put `limit
+25` on the aggregate query, which limits the aggregated row and not the rows fed into `jsonb_agg`;
+caught by checking the output, not the code.)
+
+### FULL SWEEP AFTER SIX EDGE DEPLOYS AND EIGHT SQL FILES
+
+| check | result |
+|---|---|
+| Row #3 | **126/152, verdict list BYTE-IDENTICAL to the prior run — zero regressions** |
+| `fn_os_portals_gates()` | **23/23 production, 23/23 staging** |
+| `project_parity.mjs` | **BOTH PROJECTS IN SYNC** |
+| anon-executable SECURITY DEFINER | **56** — unchanged baseline; every new routine revoked from PUBLIC |
+| undocumented cron | **0** — the new weekly BoQ job is registered |
+| `sql_files_match_live` | **drift 0**, at the floor |
+| pack scorecard, production | INGESTED 100%, IN USE 37/37, **RETRIEVABLE 52.3%** (was 49.4% earlier tonight) |
+| model failures, last 20 min | **0** |
+| stuck workflow steps | **0** |
+
+KPIs measurable **104 → 108** of 122 across the session. Goals **24 → 29** of 63.
+
+### WHAT I DID NOT DO, AND WHY
+
+**I did not raise the dispatcher's 24/day cap**, even after the recharge. 107 steps are ready and it
+will take four to five days at that rate. The cap exists because of a measured spend concentration —
+85.4% of model spend to `leadership`, 0.04% to `marketplace`, against revenue of 0 — and that split
+is **your** open decision on `org_tasks` 1309. Raising the internal-reasoning throttle before you
+rule on it would be me deciding the thing you reserved. One `CREATE OR REPLACE` changes it.
+
+**I did not build the AI side panel.** It is less absent than spec #3 implies — a Secretary chat
+surface and a per-entity `askAI` already exist in the shell. Making it a persistent panel on every
+screen is a real change to the main shell, and at this point in the session I could not visually
+verify it well enough to ship it safely.
