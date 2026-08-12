@@ -2922,3 +2922,57 @@
 [2026-08-12T16:00:18.063Z] [INFO] Worker map completed in 2ms
 [2026-08-12T16:01:39.716Z] [INFO] Starting worker: audit (1/2 concurrent)
 [2026-08-12T16:01:39.717Z] [INFO] Worker audit completed in 3ms
+[2026-08-12T19:18:40.019Z] [INFO] Starting worker: optimize (1/2 concurrent)
+[2026-08-12T19:18:40.019Z] [INFO] Worker optimize completed in 1ms
+[2026-08-12T19:19:18.437Z] [INFO] Starting worker: optimize (1/2 concurrent)
+[2026-08-12T19:19:18.439Z] [INFO] Worker optimize completed in 4ms
+[2026-08-12T19:21:08.392Z] [INFO] Starting worker: map (1/2 concurrent)
+[2026-08-12T19:21:08.393Z] [INFO] Worker map completed in 3ms
+[2026-08-12T19:21:11.080Z] [INFO] Daemon self-shutdown: max age 43200s reached
+[2026-08-12T19:21:11.083Z] [INFO] Stopped worker: map
+[2026-08-12T19:21:11.083Z] [INFO] Stopped worker: audit
+[2026-08-12T19:21:11.083Z] [INFO] Stopped worker: optimize
+[2026-08-12T19:21:11.084Z] [INFO] Stopped worker: consolidate
+[2026-08-12T19:21:11.084Z] [INFO] Stopped worker: testgaps
+[2026-08-12T19:21:11.084Z] [INFO] Stopped worker: backup
+[2026-08-12T19:21:11.085Z] [INFO] Stopped worker: harness
+[2026-08-12T19:21:11.088Z] [INFO] Daemon stopped
+[2026-08-12T19:21:37.207Z] [INFO] AI workers disabled (default) - all workers run local-only. Enable with `daemon start --headless`, daemon.aiWorkers.enabled=true, or RUFLO_DAEMON_AI_WORKERS=1 (#2661)
+[2026-08-12T19:21:37.211Z] [INFO] Scheduled map (interval: 900s, first run in 871.183s)
+[2026-08-12T19:21:37.211Z] [INFO] Scheduled audit (interval: 600s, first run in 120s)
+[2026-08-12T19:21:37.212Z] [INFO] Scheduled optimize (interval: 900s, first run in 240s)
+[2026-08-12T19:21:37.212Z] [INFO] Scheduled consolidate (interval: 1800s, first run in 360s)
+[2026-08-12T19:21:37.212Z] [INFO] Scheduled testgaps (interval: 1200s, first run in 480s)
+[2026-08-12T19:21:37.213Z] [INFO] Scheduled backup (interval: 86400s, first run in 10117.045s)
+[2026-08-12T19:21:37.213Z] [INFO] Scheduled harness (interval: 21600s, first run in 720s)
+[2026-08-12T19:21:37.214Z] [INFO] Lifecycle monitor active (workspace-removal, ttl=43200s)
+[2026-08-12T19:21:37.218Z] [INFO] Daemon started (PID: 25648, CPUs: 22, workers: 7, maxCpuLoad: 17.6, minFreeMemoryPercent: 10%)
+[2026-08-12T19:21:40.200Z] [INFO] Starting worker: audit (1/2 concurrent)
+[2026-08-12T19:21:40.202Z] [INFO] Worker audit completed in 4ms
+[2026-08-12T19:22:18.695Z] [INFO] Starting worker: audit (1/2 concurrent)
+[2026-08-12T19:22:18.698Z] [INFO] Worker audit completed in 5ms
+[2026-08-12T19:23:37.224Z] [INFO] Starting worker: audit (1/2 concurrent)
+[2026-08-12T19:23:37.225Z] [INFO] Worker audit completed in 2ms
+[2026-08-12T19:25:37.219Z] [INFO] Starting worker: optimize (1/2 concurrent)
+[2026-08-12T19:25:37.220Z] [INFO] Worker optimize completed in 2ms
+[2026-08-12T19:27:37.227Z] [INFO] Starting worker: consolidate (1/2 concurrent)
+[2026-08-12T19:27:37.228Z] [INFO] Consolidate worker: distillation skipped (no-db)
+[2026-08-12T19:27:37.229Z] [INFO] Worker consolidate completed in 4ms
+[2026-08-12T19:27:39.856Z] [INFO] Starting worker: testgaps (1/2 concurrent)
+[2026-08-12T19:27:39.857Z] [INFO] Worker testgaps completed in 3ms
+[2026-08-12T19:28:18.387Z] [INFO] Starting worker: testgaps (1/2 concurrent)
+[2026-08-12T19:28:18.388Z] [INFO] Worker testgaps completed in 4ms
+[2026-08-12T19:29:37.243Z] [INFO] Starting worker: testgaps (1/2 concurrent)
+[2026-08-12T19:29:37.244Z] [INFO] Worker testgaps completed in 2ms
+[2026-08-12T19:29:40.016Z] [INFO] Starting worker: map (1/2 concurrent)
+[2026-08-12T19:29:40.017Z] [INFO] Worker map completed in 5ms
+[2026-08-12T19:30:18.538Z] [INFO] Starting worker: map (1/2 concurrent)
+[2026-08-12T19:30:18.540Z] [INFO] Worker map completed in 4ms
+[2026-08-12T19:31:40.212Z] [INFO] Starting worker: audit (1/2 concurrent)
+[2026-08-12T19:31:40.213Z] [INFO] Worker audit completed in 2ms
+[2026-08-12T19:32:18.706Z] [INFO] Starting worker: audit (1/2 concurrent)
+[2026-08-12T19:32:18.707Z] [INFO] Worker audit completed in 2ms
+[2026-08-12T19:33:37.222Z] [INFO] Worker harness deferred: Memory too low: 5.3% free
+[2026-08-12T19:33:37.238Z] [INFO] Worker audit deferred: Memory too low: 5.3% free
+[2026-08-12T19:33:40.028Z] [INFO] Worker optimize deferred: Memory too low: 6.3% free
+[2026-08-12T19:34:18.451Z] [INFO] Worker optimize deferred: Memory too low: 4.6% free
