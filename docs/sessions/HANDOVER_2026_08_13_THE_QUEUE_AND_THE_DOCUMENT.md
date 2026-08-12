@@ -264,11 +264,17 @@ know why the earlier run reported it; I am reporting what measured.
    `supplier_risk_complaints` (119 rows, still writing) and `improvement_question` have no helper.
 3. **7 of the 22 unread tables remain** — unchanged from the previous handover.
 4. **The three missing pack zips** are still file recovery, and the number is 10 artefacts, not 6.
-5. **39 `agent_actions` sit in `needs_review` and nothing drains them** (§6). Deliberately left: the
-   status was set by something, and I will not empty a queue just because it is full. The next
-   session should find the writer — `fn_chief_of_staff` is the first place to look — and decide
-   whether `needs_review` means "a person must look" or is a state nothing ever leaves. The brief
-   now reports the count every morning so it cannot go quiet again.
+5. **39 `agent_actions` sit in `needs_review` and nothing drains them** (§6). Deliberately left, and
+   I found the writer before stopping: **`trg_action_gate`**, a BEFORE trigger on `agent_actions`
+   that maps a row's kind onto an RBAC action, asks `fn_should_escalate`, and holds it for review
+   when the authority check blocks it. So `needs_review` is not neglect — **it is a security
+   decision**, and draining it would have been overriding an authority gate, not tidying a queue.
+   That settles what to do (nothing, for now) and sharpens the real question: **28 of the 39 are
+   plain handoffs from `docs` (Document Controller) to `it`**, and it is not obvious why a
+   documentation handoff needs an authority escalation at all. Either the gate's kind→action
+   mapping is catching `handoff` too widely, or those rows genuinely need someone — and nobody has
+   ever been told either way. Start at `trg_action_gate`'s `action := case …` mapping and at
+   `fn_should_escalate`. The brief now reports the count every morning so it cannot go quiet again.
 
 ## The one thing only you can do
 
