@@ -180,6 +180,56 @@ audience fell through to the chat path and was answered from their own record.
 something other than what it holds. Refusals are stored beside applications, because a refused price
 change is the record that the guard fired.
 
+## 6 — Your daily brief had the same defect, and my first fix for it had it too
+
+The email you actually read every morning said:
+
+> `- Approvals waiting: 44 — 38 agent action(s) plus 6 supplier KYC`
+
+`v_pend` counts every `agent_actions` row in five open statuses. **DECISIONS NEEDED — the one
+section whose entire job is to list what you must decide — never mentioned agent_actions at all.**
+So the queue built for exactly that purpose has never appeared in the list of things to decide, and
+the number that did appear was the machine's work and yours added together, which is why ignoring
+it was the correct response.
+
+It now reads:
+
+```
+NEEDS YOU TODAY
+- Waiting on YOU: 27 item(s) no agent may settle (oldest 35d) plus 6 supplier KYC — these are yours
+- The machine is working on: 12 item(s) it will settle itself within the hour
+- NOT MOVING: 39 item(s) sit in needs_review / proposed / open. The worker only selects
+  status=pending, so nothing is draining these. They are not yours to decide and they are not
+  being done either.
+
+DECISIONS NEEDED
+1. Approve/deny 6 supplier KYC application(s)
+2. Settle 27 item(s) no agent is allowed to decide — the oldest has been waiting 35 day(s)
+     · prompt_approval from ai_architect — Approve improved prompt: quote_review.system (v2) (35d)
+     · legal_flag from legal — Core legal documents missing (35d)
+     ...
+```
+
+**The third line is there because my first version of this fix was wrong.** I split 38 into "27
+yours / 51 the machine's" and wrote *"51 item(s) it settles itself; no action needed"*. The
+arithmetic was right and the claim was false for 39 of them: `fn_agent_action_work_sweep` selects
+`status = 'pending'` and nothing else, and 39 auto-policy rows sit in `needs_review` — 31 handoffs
+(oldest 3 days), 7 `strategy_rec`, 1 `report_task`. `fn_action_queue_sweep` runs hourly and
+succeeds, but it only supersedes duplicates and auto-resolves stale incidents; it has decided
+nothing since 10:35. I would have printed a fresh instance of the exact defect in your inbox every
+morning, with more authority than the number it replaced. Caught by checking the claim instead of
+the arithmetic, before it shipped.
+
+**I did not make the worker drain them.** Something put those rows in a status literally named
+`needs_review`, and emptying a queue on the grounds that nobody is emptying it is the mass-settling
+the standing rules forbid. Who sets that status and what it means is a real open question — the
+brief now says so out loud rather than absorbing 39 rows into a neighbouring number.
+
+Both patches are applied by reading the definition back from the catalogue and replacing exact
+anchor strings, each asserted to appear exactly once first. `fn_founder_brief` is ~200 lines that
+compose your email; retyping it to change four lines is how a transcription error reaches your
+inbox. Both projects verified byte-identical afterwards: `md5 25c6b29f6053454adab6de24725059ff`.
+
 ---
 
 ## Sweep
@@ -214,6 +264,11 @@ know why the earlier run reported it; I am reporting what measured.
    `supplier_risk_complaints` (119 rows, still writing) and `improvement_question` have no helper.
 3. **7 of the 22 unread tables remain** — unchanged from the previous handover.
 4. **The three missing pack zips** are still file recovery, and the number is 10 artefacts, not 6.
+5. **39 `agent_actions` sit in `needs_review` and nothing drains them** (§6). Deliberately left: the
+   status was set by something, and I will not empty a queue just because it is full. The next
+   session should find the writer — `fn_chief_of_staff` is the first place to look — and decide
+   whether `needs_review` means "a person must look" or is a state nothing ever leaves. The brief
+   now reports the count every morning so it cannot go quiet again.
 
 ## The one thing only you can do
 
