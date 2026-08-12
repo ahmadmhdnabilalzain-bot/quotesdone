@@ -241,6 +241,31 @@ that were actually tracked (`29020`, `diag3.out`, `diag5.out`).
 without it starts blind. `deno.lock` stays tracked because a lockfile is a build input. Both were
 left dirty rather than swept into an unrelated commit — that is what PR #276 did.
 
+## 11 — What the sweep itself found: a cron that had been failing for 31 hours
+
+Nothing was watching this. `control_mode_sweep_5min`: **377 consecutive failures**, first
+2026-08-11 13:50:00Z, latest 2026-08-12 21:15:00Z, every one of them
+
+```
+ERROR: update or delete on table "control_mode_challenge" violates foreign key constraint
+       "control_mode_session_mfa_ref_fk"
+```
+
+The constraint is `ON DELETE RESTRICT`, and there is exactly one challenge row — consumed more than
+seven days ago, referenced by the one session row. The retention DELETE at the end of
+`fn_control_mode_sweep` could never succeed.
+
+**What it stopped was not the tidying.** A plpgsql function is one transaction: the DELETE raised, so
+the two statements above it rolled back with it — and the first of those **closes expired
+control-mode sessions**. Your command channel has had no working session timeout for thirty-one
+hours. Nothing leaked (zero open sessions, the only one on record already closed), but the expiry
+path could not run and would not have run the moment it was needed.
+
+Retention now sits in its own exception block, and the DELETE skips challenges a session still
+references. Probed inside an aborted transaction with an expired open session: sweep returned 1, the
+session closed with `closed_reason='expired'`, 1 audit row written, rolled back. **The cron then
+succeeded on production at 21:20:00Z — its first success in 377 attempts.**
+
 ---
 
 ## State at hand-over
