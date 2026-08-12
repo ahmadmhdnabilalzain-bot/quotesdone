@@ -142,7 +142,15 @@ Deno.serve(async (req) => {
       const { data: cap } = await admin.from('supplier_capabilities').select('*').eq('supplier_id', supplierId).maybeSingle();
       const { data: hist } = await admin.from('supplier_capability_confirmation')
         .select('version,confirmed_at,confirmed_via').eq('supplier_id', supplierId).order('version', { ascending: false }).limit(5);
-      return J({ ok: true, capability: cap || null, confirmed: !!cap?.confirmed_at, history: hist || [] });
+      // THE VOCABULARY SHIPS WITH THE STATE (12 Aug 2026). `confirm` validates trades and roles
+      // against taxonomy_trade / taxonomy_role and returns 400 with the valid lists when they do not
+      // match. A UI that has to POST a deliberately-invalid confirm just to discover what the legal
+      // codes are would be a screen built out of error responses, so state returns them directly.
+      // This is also why capability_agent had no caller: nothing could render a confirmation screen
+      // without knowing the vocabulary, and until now the only way to read it was to fail.
+      const vocab = await vocabulary();
+      return J({ ok: true, capability: cap || null, confirmed: !!cap?.confirmed_at, history: hist || [],
+                 vocabulary: { trades: vocab.trades, roles: vocab.roles } });
     }
 
     // ---------------- confirm ----------------

@@ -177,6 +177,125 @@ const S = {
   fileInput: 'text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80',
 };
 
+// WHAT THIS COMPANY CAN ACTUALLY QUOTE FOR — the last gate on the revenue path (12 Aug 2026).
+//
+// fn_match_capability's candidate CTE opens with `where sc.confirmed_at is not null` and the comment
+// beside it reads "GATE: supplier confirmed their own scope". capability_agent's `confirm` action is
+// the only writer of that column. It is complete, it validates against the controlled vocabulary,
+// it versions every confirmation into supplier_capability_confirmation — and it had NO CALLER
+// ANYWHERE IN src/. Neither did claim_lookup. So no supplier could ever be matched to anything: not
+// because matching was broken, but because the one screen that unlocks it was never built.
+//
+// It is a CONFIRMATION screen, not a form, and that distinction is the whole point. The company has
+// already derived this supplier's trades from its own directory entry and its role from
+// leads.business_role, so the supplier is asked to correct a proposal rather than fill in a blank.
+// On a cold B2B onboarding those are very different asks.
+//
+// Nothing here can widen a scope silently: every code is rendered from the vocabulary the server
+// returns, and the server re-validates against taxonomy_trade / taxonomy_role on the way in.
+function CapabilityConfirmPanel({ token, lang }) {
+  const ar = lang === 'ar';
+  const [st, setSt] = useState({ loading: true, err: '', confirmed: false, cap: null, vocab: { trades: [], roles: [] } });
+  const [trades, setTrades] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const load = async () => {
+    setSt((s) => ({ ...s, loading: true, err: '' }));
+    const j = await call('capability_agent', { action: 'state' }, token);
+    if (j && j.ok) {
+      const cap = j.capability || null;
+      setTrades((cap && cap.trades) || []);
+      setRoles((cap && cap.roles) || []);
+      setSt({ loading: false, err: '', confirmed: !!j.confirmed, cap, vocab: j.vocabulary || { trades: [], roles: [] } });
+    } else {
+      setSt((s) => ({ ...s, loading: false, err: (j && (j.error || j.detail)) || 'load_err' }));
+    }
+  };
+  useEffect(() => { load(); }, [token]);
+
+  const toggle = (arr, setArr, code) => setArr(arr.includes(code) ? arr.filter((c) => c !== code) : arr.concat(code));
+
+  const confirm = async () => {
+    setBusy(true); setSaved(false);
+    const cap = st.cap || {};
+    // Everything the derivation already holds is sent back unchanged. Omitting a key on a
+    // merge-duplicates upsert leaves the stored value alone, but sending what is on screen keeps
+    // the confirmed row and the screen the supplier saw identical.
+    const j = await call('capability_agent', {
+      action: 'confirm', trades, roles,
+      services: cap.services || [], products: cap.products_norm || [],
+      coverage_emirates: cap.coverage_emirates || [],
+      brands: cap.brands || [], project_types: cap.project_types || [], exclusions: cap.exclusions || [],
+    }, token);
+    setBusy(false);
+    if (j && j.ok) { setSaved(true); load(); }
+    else setSt((s) => ({ ...s, err: (j && (j.message || j.error)) || 'confirm_err' }));
+  };
+
+  if (st.loading) return <Card className="qd-panel p-5">{ar ? 'جارٍ التحميل…' : 'Loading…'}</Card>;
+  if (st.err && !st.cap) return (
+    <Card className="qd-panel p-5">
+      <div className={S.h2}>{ar ? 'تعذّر تحميل نطاق عملك' : 'Could not load your scope'}</div>
+      <div className={S.sub}>{String(st.err)}</div>
+      <Button className="mt-3" onClick={load}>{ar ? 'إعادة المحاولة' : 'Retry'}</Button>
+    </Card>
+  );
+
+  const chip = (on) => cn('px-3 py-1.5 rounded-full text-sm border transition',
+    on ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-transparent border-white/20 hover:border-white/40');
+
+  return (
+    <Card className="qd-panel p-5">
+      <div className={S.h2}>{ar ? 'ما الذي يمكن لشركتك تسعيره' : 'What your company can quote for'}</div>
+      <div className={S.sub}>
+        {st.confirmed
+          ? (ar ? 'نطاقك مؤكَّد. تظهر طلبات التسعير المطابقة في تبويب طلبات التسعير.'
+                : 'Your scope is confirmed. Matching requests appear in the RFQs tab.')
+          : (ar ? 'هذا ما سجّلناه عن شركتك. صحّحه ثم أكّده — لن تصلك طلبات تسعير قبل التأكيد.'
+                : 'This is what we have on file for your company. Correct it, then confirm — you will not receive any requests until you do.')}
+      </div>
+
+      <div className="mt-4">
+        <div className="text-sm opacity-70 mb-2">{ar ? 'التخصصات' : 'Trades'}</div>
+        <div className="flex flex-wrap gap-2">
+          {(st.vocab.trades || []).map((tr) => (
+            <button key={tr.code} type="button" className={chip(trades.includes(tr.code))}
+                    onClick={() => toggle(trades, setTrades, tr.code)}>{tr.label || tr.code}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <div className="text-sm opacity-70 mb-2">{ar ? 'دورك' : 'Your role'}</div>
+        <div className="flex flex-wrap gap-2">
+          {(st.vocab.roles || []).map((r) => (
+            <button key={r.code} type="button" className={chip(roles.includes(r.code))}
+                    onClick={() => toggle(roles, setRoles, r.code)}>{r.label || r.code}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* The server refuses a confirm with no trade or no role. Say so here rather than letting the
+          supplier press a button that returns 400. */}
+      {(!trades.length || !roles.length) && (
+        <div className="mt-4 text-sm text-amber-400">
+          {ar ? 'اختر تخصصًا واحدًا ودورًا واحدًا على الأقل.' : 'Choose at least one trade and one role.'}
+        </div>
+      )}
+      {st.err && st.cap ? <div className="mt-3 text-sm text-red-400">{String(st.err)}</div> : null}
+      {saved ? <div className="mt-3 text-sm text-emerald-400">{ar ? 'تم التأكيد.' : 'Confirmed.'}</div> : null}
+
+      <Button className="mt-4" disabled={busy || !trades.length || !roles.length} onClick={confirm}>
+        {busy ? (ar ? 'جارٍ الحفظ…' : 'Saving…')
+              : st.confirmed ? (ar ? 'تحديث النطاق' : 'Update my scope')
+                             : (ar ? 'تأكيد نطاق عملي' : 'Confirm my scope')}
+      </Button>
+    </Card>
+  );
+}
+
 export function SupplierPortal() {
   const [lang, setLang] = useState('en');
   const [token, setToken] = useState('');
@@ -288,7 +407,7 @@ function Dashboard({ token, lang }) {
   if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{err === 'load_err' ? t(lang, 'err_generic') : err}</div></Card></div>;
   if (!ov) return <div className={S.center}>{t(lang, 'loading_dash')}</div>;
   const s = ov.stats || {}; const pp = s.price_positioning || {};
-  const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing'), profile: lang === 'ar' ? 'الملف' : 'Profile', twin: lang === 'ar' ? 'التوأم الرقمي' : 'Digital Twin', products: lang === 'ar' ? 'المنتجات' : 'Products', assistant: lang === 'ar' ? 'المساعد' : 'AI Assistant', environment: lang === 'ar' ? 'البيئة ثلاثية الأبعاد' : '3D Environment', network: lang === 'ar' ? 'خريطة الشبكة' : 'Network Map', market: lang === 'ar' ? 'ذكاء السوق' : 'Market', workspaces: lang === 'ar' ? 'مساحات العمل' : 'Workspaces', onboarding: lang === 'ar' ? 'إعداد الملف' : 'Set up my profile', board: lang === 'ar' ? 'لوحة الرؤى' : 'Insight Board', recommended: lang === 'ar' ? 'موصى به لك' : 'Recommended', ranking: lang === 'ar' ? 'التصنيف' : 'Supplier Score', negotiation: lang === 'ar' ? 'مساعد التفاوض' : 'Negotiation AI', certifications: lang === 'ar' ? 'الشهادات' : 'Certifications', quote: lang === 'ar' ? 'منشئ عروض الأسعار' : 'Quote Builder', inventory: lang === 'ar' ? 'المخزون' : 'Inventory', settings: lang === 'ar' ? 'الإعدادات' : 'Settings' };
+  const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing'), profile: lang === 'ar' ? 'الملف' : 'Profile', twin: lang === 'ar' ? 'التوأم الرقمي' : 'Digital Twin', products: lang === 'ar' ? 'المنتجات' : 'Products', assistant: lang === 'ar' ? 'المساعد' : 'AI Assistant', environment: lang === 'ar' ? 'البيئة ثلاثية الأبعاد' : '3D Environment', network: lang === 'ar' ? 'خريطة الشبكة' : 'Network Map', market: lang === 'ar' ? 'ذكاء السوق' : 'Market', workspaces: lang === 'ar' ? 'مساحات العمل' : 'Workspaces', onboarding: lang === 'ar' ? 'إعداد الملف' : 'Set up my profile', board: lang === 'ar' ? 'لوحة الرؤى' : 'Insight Board', recommended: lang === 'ar' ? 'موصى به لك' : 'Recommended', ranking: lang === 'ar' ? 'التصنيف' : 'Supplier Score', negotiation: lang === 'ar' ? 'مساعد التفاوض' : 'Negotiation AI', certifications: lang === 'ar' ? 'الشهادات' : 'Certifications', quote: lang === 'ar' ? 'منشئ عروض الأسعار' : 'Quote Builder', inventory: lang === 'ar' ? 'المخزون' : 'Inventory', settings: lang === 'ar' ? 'الإعدادات' : 'Settings', scope: lang === 'ar' ? 'نطاق عملي' : 'My scope' };
   // 'profile' is new. ProfileForm previously rendered only from Onboarding, which shows solely
   // while supplier_portal returns no_company — so the moment a supplier registered, every field
   // in it became permanently unreachable: contact name, phone, products, services, description,
@@ -299,7 +418,7 @@ function Dashboard({ token, lang }) {
   // lives in its own component file (portal/supplier/SupplierTwin.tsx) rather than here: this file
   // is already 81,811 stripped characters holding six unrelated features, and that size is what
   // made three separate scorer refutation rounds necessary.
-  const TABS = ['overview', 'board', 'recommended', 'quote', 'ranking', 'negotiation', 'certifications', 'onboarding', 'twin', 'environment', 'network', 'market', 'workspaces', 'assistant', 'products', 'inventory', 'rfqs', 'documents', 'profile', 'projects', 'messages', 'settings', 'billing'];
+  const TABS = ['overview', 'scope', 'board', 'recommended', 'quote', 'ranking', 'negotiation', 'certifications', 'onboarding', 'twin', 'environment', 'network', 'market', 'workspaces', 'assistant', 'products', 'inventory', 'rfqs', 'documents', 'profile', 'projects', 'messages', 'settings', 'billing'];
   return (
     <div className={S.wrap}>
       <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
@@ -341,6 +460,7 @@ function Dashboard({ token, lang }) {
       {tab === 'settings' && <SupplierSettings token={token} lang={lang} />}
       {tab === 'workspaces' && <CollaborationWorkspace token={token} lang={lang} goTo={setTab} />}
       {tab === 'assistant' && <SupplierAdvisor token={token} lang={lang} goTo={setTab} />}
+      {tab === 'scope' && <CapabilityConfirmPanel token={token} lang={lang} />}
       {tab === 'billing' && <BillingPanel token={token} lang={lang} />}
       {tab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
       {tab === 'overview' && <>
