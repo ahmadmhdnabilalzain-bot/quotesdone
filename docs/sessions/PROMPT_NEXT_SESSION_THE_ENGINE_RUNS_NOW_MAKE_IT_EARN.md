@@ -232,7 +232,7 @@ available until the list is clean.
 ## WHAT I DECIDE, NOT YOU
 
 * ~~Resuming supplier invites~~ — **DELEGATED TO US on 12 Aug**, conditional on proving the
-  registration path works. See THE FIRST THING. The email-reputation risk is explicitly ours.
+  registration path works. See the LAST section, and item 4 before it. The risk is explicitly ours.
   Buying list verification is still money and still his, but only after the free cull.
 * **Rotating the shared internal credentials** (below). It touches 172 cron jobs.
 * Stripe refunds.
