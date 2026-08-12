@@ -631,3 +631,66 @@ rule on it would be me deciding the thing you reserved. One `CREATE OR REPLACE` 
 surface and a per-entity `askAI` already exist in the shell. Making it a persistent panel on every
 screen is a real change to the main shell, and at this point in the session I could not visually
 verify it well enough to ship it safely.
+
+---
+
+## 15. THE LAST ONE, AND WHY IT MATTERS MOST
+
+[#236](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/236).
+
+`fn_action_invoke_collect` closed a task by writing the executor's response as a 500-character
+`summary` blob and never setting `deliverable`. **Ten routines read `result.deliverable`** —
+`fn_task_lesson`, `fn_learning_loop_sweep`, `fn_task_review`, `fn_ws_company_os` among them. So
+every task closed by that path produced real work that **never entered the learning loop, was never
+reviewed, and never reached your screen**.
+
+```
+373 tasks closed 'delivered'            373 carry a deliverable
+ 86 tasks closed 'executed_by_invoker'   81 do not
+ 12 tasks closed 'executed'              12 do not
+```
+
+**`org_tasks` 1309 is the example, and it is the one you named as your own decision input.** It
+closed with a real, specific answer:
+
+> *"Redirect AI spend from internal automation and quote optimization to diagnosing why the
+> 20,470-supplier directory generates zero RFQs and why supplier approval is stuck at 0/6 — these
+> are the revenue gates, not AI quality."*
+
+That is the company answering your spend question properly. It was buried in a stringified body
+where none of the ten readers would find it. **I first read that task as a false success because of
+it, and it was not one** — the answer existed and was addressed to a field nothing reads. The same
+recurring root cause, in data-shape form.
+
+Fixed forward only. The 93 historical rows kept 500 truncated characters, and rebuilding a
+"deliverable" from that would hand partial text to `fn_task_review` and the learning loop as a
+finished work product.
+
+---
+
+## 16. WHERE I STOPPED, AND WHY
+
+This is a capacity limit, not a judgement that the work is finished. I am deep enough into this
+session that further changes to critical paths would be less reliable than the ones above, and the
+rule is that a truthful hand-over beats a green tick.
+
+**Immediately available, in priority order:**
+
+1. **Watch #236 land.** The next `fn_action_invoke_collect` run should produce a task whose
+   `result.deliverable` is populated. If it does, 86 tasks a month rejoin the learning loop. That is
+   one query to confirm and I did not get to see it fire.
+2. **The dispatcher's 24/day cap.** 107 steps ready, four to five days to clear. Raising it is one
+   `CREATE OR REPLACE` and it is **your** call, because the reason it is throttled is the spend
+   concentration in `org_tasks` 1309 — which the company has now answered (see above): *shift toward
+   demand*. That answer arguably settles it.
+3. **The six spec #3 UI features.** A workflow screen and the process-work card landed this session;
+   the AI side panel is less absent than the spec implies (a Secretary chat and a per-entity `askAI`
+   already exist) and the honest remaining work is making it persistent across screens.
+4. **More BoQ fixtures.** The mechanism is proven and scores 100% on two drawings; it means more
+   with five.
+
+**Blocked on you, unchanged:** supplier invites (list verification costs money) and — though the
+company has now given you its recommendation — the spend split.
+
+**Blocked on demand:** 14 of the 26 remaining Row #3 reds. customers, inquiries, quotes and
+transactions are all still 0.
