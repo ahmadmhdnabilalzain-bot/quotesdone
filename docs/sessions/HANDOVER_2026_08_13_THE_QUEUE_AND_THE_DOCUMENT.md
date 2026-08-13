@@ -411,3 +411,47 @@ inquiries, and nothing was fabricated to change that.
 
 The 27 items in your decision queue are now visible to the command channel; ask it what is waiting
 on you and it will list them with their ages.
+
+---
+
+## ADDENDUM — the founder registered as a customer and the portal failed him
+
+He completed customer registration successfully (so the demand door mechanism works) and then
+looked at what he had signed up to. His verdict, recorded in his words because it is the
+requirement, not a bug report:
+
+> "so many mistakes. so many tabs that are irrelevant to customers and they should belong to
+> supplier portal only. the chat widget cant answer many questions, and some replies are horrible,
+> definitely this not a smart assistant, more like a dumb chat bot. thats not what i asked for at
+> all. coming to the visuals, extremely basic, felt so static and super outdated."
+
+Three separate defects, none of them measured by anything this repo runs:
+
+1. **SUPPLIER TABS ARE RENDERING TO CUSTOMERS.** An audience-scoping failure in the portal shell.
+   Every gate in `fn_os_portals_gates` passes at 23/23 and none of them asks "does a customer see
+   only customer surfaces". Start at the tab/route list in the `/me` shell and check what it keys
+   off — the SQL side already knows the audience (`fn_identify_contact`, `fn_wa_context`), so this
+   is almost certainly a client-side list that was never filtered.
+2. **THE CHAT WIDGET IS NOT THE ASSISTANT HE ASKED FOR.** "Cannot answer many questions" and "some
+   replies are horrible". This is the on-site widget, not `wa_inbound` — and note that `wa_inbound`
+   got `fn_wa_context` on 13 Aug so it answers from live scoped data, while the site widget may
+   still be running the older FAQ-and-facts prompt with no live context at all. Compare the two
+   before rewriting anything.
+3. **THE VISUALS ARE OUTDATED AND STATIC.** Same judgement he made about the OS dashboard on
+   10 Aug. His judgement of the screen outranks any score.
+
+**AND THE PROCESS FAILURE THAT LET ALL THREE SURVIVE — MINE.** He asked whether I had used the
+browser, Agent Reach or Playwright to check it. **I had not.** I answered a question about the
+customer portal's layout by grepping `CustomerPortal.tsx` and describing the field order from
+source. The description was correct about the code and told him nothing about the page, because I
+never rendered it. Every one of the three defects above is visible in the first ten seconds of
+actually opening `/en/me` as a customer, and none of them is visible in the source I read.
+
+**The rule this earns: if the founder will look at it, open it.** A grep of a component is evidence
+about a file, not about a screen — the same "instrument reporting on the wrong subject" defect this
+session found five times, committed by me against the one surface a paying customer sees first.
+`preview_start` + `read_page` + a screenshot at mobile and desktop widths, as a customer, before
+saying anything about a portal.
+
+**Next session starts here, before anything else on the list.** This is the product a customer
+sees, and he has now seen it.
