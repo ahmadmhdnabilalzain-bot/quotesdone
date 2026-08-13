@@ -24,7 +24,6 @@ import { PredictiveIntelligence, NegotiationAssistant } from '@/components/porta
 // v_digital_twin, customer_score and customer_preference were all built and read only by os_api —
 // the staff console — so the customer could not see their own profile or correct it.
 import { CompanyTwin, SupplierDiscovery, CustomerMemory } from '@/components/portal/twin';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 // THE SHELL. The portal was a stack of cards under ten grey pills; this is the application frame
 // the founder asked for — persistent grouped sidebar, a top bar whose widest element is the
 // assistant, a mobile tab bar, and the assistant docked in the layout rather than floating in a
@@ -482,6 +481,9 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     customerName={(ov && ov.customer && ov.customer.name) || ''}
     unread={unread} alerts={alertsCount} order={ov && ov.layout && ov.layout.order}
   >
+  {MODULES.some((m) => m[0] === view) ? (
+    <ModuleWindow id={view} onClose={() => setView('home')} token={token} lang={lang} inqs={inqs} onChanged={refresh} twin={ov && ov.twin} />
+  ) : (
   <div className="mx-auto w-full max-w-[1240px] px-4 py-5 sm:px-6">
     {/* THE WELCOME BAND. §1 asks the opening screen to greet by time of day AND company name; the
         hour is the CLIENT'S, because the server does not know which timezone the customer is in.
@@ -505,10 +507,6 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
       </div>
     </section>
 
-    {/* project_api ships seven customer-authed actions and had zero callers in src/. Linking an RFQ
-        to a project needs the customer's own RFQ list, which this component already holds —
-        top-level rows only, since a child of a combined project is sourced through its parent. */}
-    <ModuleWindow id={view} onClose={() => setView('home')} token={token} lang={lang} inqs={inqs} onChanged={refresh} twin={ov && ov.twin} />
     {note && <div className={S.note}>{note}</div>}
     {showNew && <div className="mb-5"><NewRequest token={token} onDone={() => { setShowNew(false); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => setShowNew(false)} /></div>}
 
@@ -615,6 +613,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         a flat line at zero, which reads as a real but quiet year. */}
     {!onlyRequests && <div className="mt-5"><SpendingIntelligence stats={s} inquiries={inqs} lang={lang === 'ar' ? 'ar' : 'en'} /></div>}
   </div>
+  )}
   </PortalShell>);
 }
 
@@ -1144,17 +1143,32 @@ function UnreadBadge({ token, lang }) {
   return <span className="ms-1.5 inline-block rounded-full bg-primary text-primary-foreground px-1.5 text-[10px] font-bold"
     title={unread + ' ' + t(lang, unread === 1 ? 'unread_message' : 'unread_messages')}>{unread}</span>;
 }
-// One floating window, whichever module is open. Nothing here fetches: each surface owns its own
-// endpoint, its own loading state and its own empty state, and this component decides only where
-// they appear and what the window is called.
+// A MODULE IS A PAGE NOW, NOT A POP-UP.
+//
+// These opened as a Dialog over the dashboard, and the reason was sound at the time: navigating to
+// a module used to REPLACE the whole screen, which unmounted the KPIs and stranded the intake
+// assistant, so a window that floated above kept them alive underneath.
+//
+// The shell removes that constraint. The sidebar, the top bar and the assistant persist across
+// every destination, so a module can own the main region without unmounting anything the customer
+// needs — and a sidebar item that opens a modal is the tell that a screen is a dashboard wearing an
+// application's clothes. Nothing here fetches: each surface still owns its endpoint, its loading
+// state and its empty state.
 function ModuleWindow({ id, onClose, token, lang, inqs, onChanged, twin }) {
   const l2 = lang === 'ar' ? 'ar' : 'en';
-  // 'home' is a real destination in the module bar and it is the dashboard itself, so it opens no
-  // window: the guard is the module entry, not a non-empty string.
+  const rtl = lang === 'ar';
   const entry = MODULES.find((m) => m[0] === id);
-  return (<Dialog open={!!entry} onOpenChange={(o) => { if (!o) onClose(); }}>
-    <DialogContent className="max-w-[min(1060px,96vw)] max-h-[88vh] overflow-y-auto bg-card/85 backdrop-blur transition-opacity duration-200">
-      <DialogHeader><DialogTitle>{entry ? t(lang, entry[1]) : ''}</DialogTitle></DialogHeader>
+  if (!entry) return null;
+  return (<section className="mx-auto w-full max-w-[1240px] px-4 py-5 sm:px-6">
+    <div className="mb-4 flex items-center gap-3">
+      <button type="button" onClick={onClose}
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={t(lang, 'nav_overview')}>
+        <ArrowRight className={cn('h-4 w-4', !rtl && 'rotate-180')} aria-hidden />
+      </button>
+      <h1 className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{t(lang, entry[1])}</h1>
+    </div>
+    <div className="flex flex-col gap-3">
       {id === 'projects' && <ProjectsModule token={token} lang={l2} linkableRfqs={inqs.map((i) => ({ id: i.id, summary: i.summary, category: i.category }))} onOpenRfq={onClose} onChanged={onChanged} />}
       {id === 'spatial' && <SpatialModule token={token} lang={l2} inquiries={inqs} onOpenRfq={onClose} />}
       {id === 'documents' && <DocumentVault token={token} lang={l2} />}
@@ -1171,8 +1185,8 @@ function ModuleWindow({ id, onClose, token, lang, inqs, onChanged, twin }) {
         <CustomerMemory token={token} lang={l2} />
       </div>}
       {id === 'account' && <AccountSettings token={token} lang={lang} />}
-    </DialogContent>
-  </Dialog>);
+    </div>
+  </section>);
 }
 // customer_api action='me' has served the customer's own row since the portal was written and no
 // file in src/ ever called it — the account the customer holds was the one thing they could not
