@@ -36,6 +36,24 @@ Deno.serve(async (req) => {
       if (error) return J({ error: error.message }, 500);
       return J({ ok: true, data });
     }
+    // ── AI QUALITY: THE TABLE THAT NOTHING READ ────────────────────────────────────────────────
+    // ai_quality_snapshots has been written nightly by fn_ai_quality_watch since 10 Jul and had
+    // ZERO readers in src/ — 1,219 rows nobody could see. This is the reader.
+    //
+    // IT AGGREGATES ON THE WAY OUT, and that is not defensive coding for its own sake: until
+    // 13 Aug the nightly INSERT wrote one row per VIEW agent and a BEFORE INSERT trigger collapsed
+    // several of them onto one canonical key, so a night could hold 52 rows carrying 37 agents.
+    // The writer now aggregates before inserting, but the 1,219 historical rows still carry that
+    // shape and are deliberately not rewritten. Grouping here means the screen reads both eras
+    // correctly instead of double-counting fifteen agents on every night before today.
+    //
+    // Weighted by actions, never a mean of percentages: an override rate is a ratio, and an agent
+    // with one action in thirty days must not move a trailing average like one with a hundred.
+    if (action === 'ai_quality') {
+      const { data, error } = await admin.rpc('fn_os_ai_quality');
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, data });
+    }
     return J({ error: 'unknown_action', action }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 });
