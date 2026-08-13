@@ -40,6 +40,18 @@ import { expiryOf } from './quoteExpiry';
 // LIVE database. supaEnv resolves it once and warns on fallback; see the note there.
 import { SUPA_URL as URL, SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
 const SB = createClient(URL, ANON, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'qd-cust-auth' } });
+// A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
+// mount while the Supabase client refreshes asynchronously, so for the first moment after a page
+// has been left open past the 60-minute expiry the portal holds a JWT that every endpoint will
+// answer 401 to. The retry-then-refresh path recovers and the customer sees nothing, but it spends
+// a round trip and prints a red error on a healthy page - and a console with routine errors in it
+// is one where a real error is easy to miss. Cheaper to read the `exp` we already have.
+// Sixty seconds of slack so a token about to die mid-flight is treated as already dead.
+const tokenAlive = (t) => {
+  if (!t) return false;
+  try { return (JSON.parse(atob(String(t).split('.')[1])).exp || 0) > (Date.now() / 1000) + 60; }
+  catch (_e) { return true; } // unparseable: let the endpoint be the judge, do not lock anyone out
+};
 async function call(path, body, token) { const r = await fetch(FN + '/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body) }); return r.json(); }
 function initLang(){ try{ if(typeof window==='undefined') return 'en'; const ls=localStorage.getItem('qd-lang'); if(ls) return ls; const m=document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/); if(m && String(m[1]).startsWith('ar')) return 'ar'; }catch(_e){} return 'en'; }
 const T = {
@@ -490,7 +502,9 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
   // Wrong in three ways - it spends a round trip per mount, it puts a red error in the console of
   // a working page so a real one is easy to miss, and it burns the one refresh attempt the
   // `retried` flag exists to protect. The effect re-runs when the token arrives, so waiting is free.
-  useEffect(() => { if (token) load(); }, [token]);
+  // Wait for a token, and for a token that has not already expired. SB.auth refreshes on its own
+  // and the auth listener re-renders with the new one, so this costs nothing but the 401.
+  useEffect(() => { if (tokenAlive(token)) load(); }, [token]);
   if (err === 'unauth') return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'session_expired')}</div><Button className="w-full mt-3" onClick={onSignOut}>{t(lang, 'tab_signin')}</Button></Card></div></>;
   if (err) return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'load_failed')}</div>{/* () => load(), not load: a click handler passes the MouseEvent as the first argument, which
         would arrive as `retried` and skip the one refresh attempt this retry exists to make. */}
@@ -1604,7 +1618,9 @@ function AccountSettings({ token, lang, onChanged }) {
   // Wrong in three ways - it spends a round trip per mount, it puts a red error in the console of
   // a working page so a real one is easy to miss, and it burns the one refresh attempt the
   // `retried` flag exists to protect. The effect re-runs when the token arrives, so waiting is free.
-  useEffect(() => { if (token) load(); }, [token]);
+  // Wait for a token, and for a token that has not already expired. SB.auth refreshes on its own
+  // and the auth listener re-renders with the new one, so this costs nothing but the 401.
+  useEffect(() => { if (tokenAlive(token)) load(); }, [token]);
   if (err) return <div className={S.err}>{err}</div>;
   if (!me) return <div className={S.sub}>{t(lang, 'loading')}</div>;
   const since = me.created_at ? new Date(me.created_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
