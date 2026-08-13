@@ -18,7 +18,7 @@
 //   registered, and fn_is_matchable admits only registered, verified suppliers. So this screen
 //   honestly answers "0 found" today and says why, rather than counting rows that could never
 //   receive an RFQ.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,7 +45,25 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
   const [emirate, setEmirate] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  const [res, setRes] = useState<{ found: number; filters: Record<string, unknown>; matches: Match[]; note?: string } | null>(null);
+  const [res, setRes] = useState<{
+    found: number; filters: Record<string, unknown>; matches: Match[]; note?: string;
+    why_empty?: { suppliers_holding_trade: number; confirmed_total: number; reason: string } | null;
+    unresolved?: string[];
+  } | null>(null);
+  // The controlled vocabulary, offered as a native datalist. The box stays free text — a customer
+  // may still type "marble" and have it resolved to Flooring server-side — but they can now SEE
+  // what the matcher knows instead of guessing at it. No library: <datalist> is the platform's own
+  // type-ahead and costs nothing.
+  const [known, setKnown] = useState<{ code: string; label: string }[]>([]);
+  useEffect(() => {
+    let live = true;
+    fetch(`${SUPA_FN}/customer_api`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
+      body: JSON.stringify({ action: 'trades' }),
+    }).then((r) => r.json()).then((j) => { if (live && j && Array.isArray(j.trades)) setKnown(j.trades); }).catch(() => {});
+    return () => { live = false; };
+  }, [token]);
 
   const ask = async () => {
     const list = trades.split(/[,\n]/).map((s) => s.trim().toLowerCase()).filter(Boolean).slice(0, 6);
@@ -62,7 +80,7 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
       // could not ask" are different answers and the customer must be able to tell them apart.
       if (!j) setErr(L(lang, 'No response from the matcher.', 'لا استجابة من المطابق.'));
       else if (j.error) setErr(String(j.message || j.error));
-      else setRes({ found: Number(j.found) || 0, filters: j.filters || {}, matches: Array.isArray(j.matches) ? j.matches : [], note: j.note });
+      else setRes({ found: Number(j.found) || 0, filters: j.filters || {}, matches: Array.isArray(j.matches) ? j.matches : [], note: j.note, why_empty: j.why_empty || null, unresolved: Array.isArray(j.unresolved) ? j.unresolved : [] });
     } catch (e) {
       setErr((e as Error)?.message || L(lang, 'Network error.', 'خطأ في الشبكة.'));
     } finally { setBusy(false); }
@@ -81,15 +99,23 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
   return (
     <Card className="p-3.5">
       <div className={S.label}>{L(lang, 'Find suppliers', 'ابحث عن موردين')}</div>
+      {/* THE INSTRUCTION AND THE CONTROL HAVE TO AGREE. This read 'Ask for what you need — "marble,
+          delivered in Dubai"', and the field beneath it splits on commas into a TRADES LIST with a
+          separate emirate dropdown. Typing this screen's own worked example produced
+          `Trades: marble, delivered in dubai` — a second trade that is not a trade — with the
+          location left at "anywhere in the UAE". A example that cannot work is worse than none. */}
       <div className={cn(S.sub, 'mt-1')}>
-        {L(lang, 'Ask for what you need — "marble, delivered in Dubai" — and we run the same matcher a real request would.',
-                 'اطلب ما تحتاجه — «رخام، توريد في دبي» — ونشغّل المطابق نفسه الذي يعمل مع أي طلب حقيقي.')}
+        {L(lang, 'Name the trades you need, separated by commas, and pick the emirate. We run the same matcher a real request would.',
+                 'اذكر التخصصات التي تحتاجها مفصولة بفواصل، واختر الإمارة. نشغّل المطابق نفسه الذي يعمل مع أي طلب حقيقي.')}
       </div>
 
       <div className="mt-2 flex flex-wrap gap-2">
         <Input value={trades} onChange={(e) => setTrades(e.target.value)}
-               placeholder={L(lang, 'marble, tiling', 'رخام، تبليط')}
+               placeholder={L(lang, 'marble, tiling', 'رخام، تبليط')} list="qd-trade-codes"
                className="min-w-0 flex-1" aria-label={L(lang, 'Trades', 'التخصصات')} />
+        <datalist id="qd-trade-codes">
+          {known.map((t) => <option key={t.code} value={t.label} />)}
+        </datalist>
         <select value={emirate} onChange={(e) => setEmirate(e.target.value)}
                 aria-label={L(lang, 'Emirate', 'الإمارة')}
                 className="h-9 rounded-md border border-border bg-background px-2 text-[13px] text-foreground">
@@ -134,12 +160,34 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
               ))}
             </ul>
           ) : (
+            /* A ZERO THAT NAMES ITS OWN REASON. This said "No registered supplier matches that yet",
+               which reads as "there are no such suppliers" and points at the wrong fix — buy more
+               of them. Measured on production: 15,306 supplier_capabilities rows, every one
+               carrying trades, and exactly ONE with confirmed_at set. The matcher gates on that
+               confirmation on purpose, so what is missing is confirmations, not suppliers, and the
+               two lead to completely different actions. */
             <div className={cn(S.sub, 'mt-2')}>
-              {L(lang, 'No registered supplier matches that yet. Sending the request anyway still puts it in front of suppliers as they register.',
-                       'لا يوجد مورّد مسجّل يطابق ذلك بعد. إرسال الطلب يضعه أمام الموردين فور تسجيلهم.')}
+              {res.why_empty && res.why_empty.reason === 'not_a_trade_we_know'
+                ? L(lang,
+                    `We do not have a trade called ${(res.unresolved || []).join(', ')}. Pick one from the list in the box — the matcher only knows those.`,
+                    `لا يوجد لدينا تخصص باسم ${(res.unresolved || []).join('، ')}. اختر واحدًا من القائمة في الحقل — المطابق لا يعرف سواها.`)
+                : res.why_empty && res.why_empty.reason === 'held_but_unconfirmed'
+                ? L(lang,
+                    `${res.why_empty.suppliers_holding_trade} suppliers on QuotesDone list this trade, but matching only shortlists suppliers who have confirmed their own scope — ${res.why_empty.confirmed_total === 1 ? 'one has' : `${res.why_empty.confirmed_total} have`} done so. Sending the request still puts it in front of them as they confirm.`,
+                    `${res.why_empty.suppliers_holding_trade} مورّد لدينا يذكر هذا التخصص، لكن المطابقة تُرشّح فقط من أكّد نطاق عمله بنفسه، وعددهم حتى الآن ${res.why_empty.confirmed_total}. إرسال الطلب يضعه أمامهم فور التأكيد.`)
+                : L(lang, 'No supplier on QuotesDone lists that trade yet. Sending the request anyway still puts it in front of suppliers as they register.',
+                          'لا يوجد مورّد لدينا يذكر هذا التخصص بعد. إرسال الطلب يضعه أمام الموردين فور تسجيلهم.')}
             </div>
           )}
 
+          {/* A word we could not place is SAID, not dropped. It was silently discarded before, so a
+              search for "marble, delivered in Dubai" ran as two trades and reported on neither. */}
+          {res.unresolved && res.unresolved.length && res.why_empty?.reason !== 'not_a_trade_we_know' ? (
+            <div className={cn(S.sub, 'mt-2')}>
+              {L(lang, `Ignored, because it is not a trade we match on: ${res.unresolved.join(', ')}.`,
+                       `تم تجاهلها لأنها ليست تخصصًا نطابق عليه: ${res.unresolved.join('، ')}.`)}
+            </div>
+          ) : null}
           {res.note ? <div className={cn(S.sub, 'mt-2')}>{res.note}</div> : null}
         </div>
       ) : null}

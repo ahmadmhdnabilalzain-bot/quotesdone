@@ -1110,9 +1110,46 @@ Deno.serve(async (req) => {
     // listed names would give away the thing being sold. The customer gets the COUNT, the FILTERS
     // that were applied, and a ranked, anonymous shortlist — which is what they need to decide
     // whether the brief is worth sending.
+    // The controlled vocabulary the trades box is actually matched against. It is served because
+    // the box is free text and fn_match_capability compares with `sc.trades && p_trades` — an exact
+    // array overlap on CODES. A customer typing a perfectly ordinary word gets silence otherwise.
+    if (action === 'trades') {
+      const { data: tr } = await admin.from('taxonomy_trade').select('code,label').eq('active', true).order('sort');
+      return J({ ok: true, trades: tr || [] });
+    }
+
     if (action === 'discover') {
-      const trades = Array.isArray(body.trades) ? body.trades.map((t: unknown) => String(t).toLowerCase().trim()).filter(Boolean).slice(0, 6) : [];
-      if (!trades.length) return J({ error: 'trades_required', message: 'Name at least one trade to search for.' }, 400);
+      const typed = Array.isArray(body.trades) ? body.trades.map((t: unknown) => String(t).toLowerCase().trim()).filter(Boolean).slice(0, 6) : [];
+      if (!typed.length) return J({ error: 'trades_required', message: 'Name at least one trade to search for.' }, 400);
+      // ── A WORD THAT IS NOT A CODE MATCHED NOTHING, SILENTLY ──────────────────────────────────
+      // MEASURED 13 Aug 2026: typing "marble" into this box returns nothing, and so does the
+      // screen's own worked example. taxonomy_trade holds 40 active codes — civil_works, flooring,
+      // building_materials, aluminium — and `marble` is not one of them, nor one of the 283
+      // aliases. fn_match_capability compares CODES with an exact array overlap, so the query was
+      // for a trade that cannot exist and the answer was an empty list with no hint that the word
+      // itself was the problem.
+      //
+      // route_inquiry has resolved customer words through taxonomy_trade.aliases since it was
+      // written; discovery never did. Same lexicon, same three steps — code, alias, then label —
+      // and whatever still does not resolve is REPORTED rather than searched for and lost.
+      const { data: taxo } = await admin.from('taxonomy_trade').select('code,label,aliases').eq('active', true);
+      const resolveTrade = (w: string): string | null => {
+        for (const t of (taxo || [])) if (String(t.code).toLowerCase() === w) return t.code;
+        for (const t of (taxo || [])) if ((t.aliases || []).some((a: string) => String(a).toLowerCase() === w)) return t.code;
+        for (const t of (taxo || [])) if (String(t.label || '').toLowerCase().includes(w) && w.length >= 4) return t.code;
+        return null;
+      };
+      const resolved: string[] = []; const unresolved: string[] = [];
+      for (const w of typed) { const c = resolveTrade(w); if (c && !resolved.includes(c)) resolved.push(c); else if (!c) unresolved.push(w); }
+      if (!resolved.length) {
+        return J({ ok: true, found: 0, matches: [], anonymous: true,
+          filters: { trades: [], emirate: body.emirate ? String(body.emirate).slice(0, 40) : null },
+          unresolved,
+          why_empty: { suppliers_holding_trade: 0, confirmed_total: 0, reason: 'not_a_trade_we_know' },
+          trades_known: (taxo || []).map((t: Record<string, unknown>) => ({ code: t.code, label: t.label })),
+          note: 'Supplier identities are revealed after a quote is accepted, so discovery returns ranked, anonymous matches.' });
+      }
+      const trades = resolved;
       const filters = {
         trades,
         emirate: body.emirate ? String(body.emirate).slice(0, 40) : null,
@@ -1137,7 +1174,36 @@ Deno.serve(async (req) => {
         track_record: r.track ?? null,
         why: scrubIdentity(r.why ?? null, r.company_name, hits2),
       }));
-      return J({ ok: true, found: matches.length, filters, matches, anonymous: true,
+      // ── A ZERO HAS TO NAME ITS OWN REASON ────────────────────────────────────────────────────
+      // MEASURED 13 Aug 2026, typing this screen's OWN worked example into it: "Found 0 suppliers —
+      // No registered supplier matches that yet." The database holds 20,470 leads and 15,306
+      // supplier_capabilities rows, EVERY ONE of them carrying trades. What it does not hold is
+      // confirmations: fn_match_capability gates on `sc.confirmed_at is not null`, and exactly ONE
+      // row in 15,306 satisfies it. So the matcher can return at most one supplier for any query,
+      // and the sentence on screen blamed the wrong thing.
+      //
+      // That distinction is the whole decision behind the screen. "No supplier matches that" reads
+      // as "you need more suppliers" — buy scraping, run outreach. "1,143 suppliers do that trade
+      // and none has confirmed their scope" reads as "chase confirmations", which is a different
+      // action, cheaper, and the correct one. A count is not an explanation.
+      //
+      // The GATE IS NOT WEAKENED. Matching an unconfirmed scope would put a customer's RFQ in front
+      // of a supplier who never said they do the work — the exact thing confirmed_at exists to
+      // prevent. Only the explanation is added.
+      let why_empty = null;
+      if (!matches.length) {
+        const { count: holding } = await admin.from('supplier_capabilities')
+          .select('supplier_id', { count: 'exact', head: true }).overlaps('trades', filters.trades);
+        const { count: confirmedTotal } = await admin.from('supplier_capabilities')
+          .select('supplier_id', { count: 'exact', head: true }).not('confirmed_at', 'is', null);
+        why_empty = {
+          suppliers_holding_trade: holding || 0,
+          confirmed_total: confirmedTotal || 0,
+          reason: (holding || 0) === 0 ? 'no_supplier_holds_this_trade' : 'held_but_unconfirmed',
+        };
+      }
+      return J({ ok: true, found: matches.length, filters, matches, anonymous: true, why_empty,
+        unresolved: unresolved.length ? unresolved : undefined,
         note: 'Supplier identities are revealed after a quote is accepted, so discovery returns ranked, anonymous matches.' });
     }
 
