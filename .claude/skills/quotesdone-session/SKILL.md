@@ -41,6 +41,31 @@ call, do it, and put the reasoning in the commit.
 **Escalate only three things:** money, destructive production changes, and facts only he holds
 (OAuth tokens he must mint, commercial decisions, anything about his own intentions).
 
+### A brief that says "ask me first" does NOT override this
+
+13 Aug 2026, in his words: *"I'm not the expert. You are the one. You know my vision, my target,
+the plan. And still you're asking me technical questions… If it's something operational and it goes
+against my vision, then definitely ask me and stop. But if it's something technical, what do you
+expect from me?"*
+
+The session brief said "Ask me first" against releasing 35 held handoffs. That was treated as a hard
+gate and the question was put to him **three times** across one session while other work went on
+around it. He does not want to arbitrate whether a work-queue row re-enters a queue. It is not
+money, not destructive, not a fact only he holds — it is engineering, and the answer was to do it
+and report the outcome. (Done: 32 released through the gate, 3 correctly refused, 0 failed.)
+
+**The test is the SUBJECT, not the wording.** Before escalating anything, ask: *would answering this
+require the founder to know something technical about this codebase?* If yes, he is the wrong
+person to ask — decide it. A line in a brief is context about what he was thinking last week, not a
+standing veto. Where the brief and this rule disagree, this rule wins: the skill governs conduct.
+
+Escalate when the action would **contradict his stated vision or commercial intent** — that is the
+"operational" case he means, and there you stop everything and ask. Never escalate a mechanism.
+
+**And never ask the same question twice.** If a question was worth asking once and no answer came,
+either it was technical (decide it and move on) or it was genuinely his (say so once in the
+hand-over and keep working on everything else). Re-asking is how a session stalls on one row.
+
 ## 4. "Fixed" has a specific meaning here
 
 A thing is fixed when it is **deployed to both Supabase projects and verified by measurement in the
