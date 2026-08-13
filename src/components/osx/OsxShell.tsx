@@ -764,6 +764,24 @@ function HealthPanel({ onNav }: { onNav: (id: string) => void }) {
         <Card className='overflow-hidden'>
           <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Operations</div>
           <div className='p-4'>
+            {/* CAN A REQUEST REACH ANYONE? The most suppliers the structured matcher can shortlist
+                for any request. It sits at the top of Operations because when it is 1, nothing
+                below it matters — a green cron board on a marketplace that cannot dispatch is the
+                definition of an instrument reporting on the wrong subject. */}
+            {h.supplier_reach ? (
+              <div className='mb-3 rounded-md border border-border/60 bg-secondary/20 px-3 py-2' title={h.supplier_reach.meaning}>
+                <div className='flex items-baseline justify-between gap-3'>
+                  <span className='text-xs text-muted-foreground'>Suppliers an RFQ can reach</span>
+                  <span className={cn('text-sm font-bold tabular-nums',
+                    Number(h.supplier_reach.matchable_now) < 5 ? 'text-destructive' : 'text-foreground')}>
+                    {h.supplier_reach.matchable_now}
+                  </span>
+                </div>
+                <div className='mt-0.5 text-[11px] leading-snug text-muted-foreground'>
+                  {h.supplier_reach.with_capability} supplier(s) hold capability data and {h.supplier_reach.confirmed} {Number(h.supplier_reach.confirmed) === 1 ? 'has' : 'have'} confirmed their own scope, which is what matching requires. The shortage is confirmations, not suppliers.
+                </div>
+              </div>
+            ) : null}
             {kv('Failing scheduled jobs (24h)', (h.failing_crons || []).length, 'automation')}
             {kv('Agent errors (24h)', h.agent_errors_24h, 'agents')}
             {kv('Health-check failures (24h)', h.health_check_fails_24h)}
