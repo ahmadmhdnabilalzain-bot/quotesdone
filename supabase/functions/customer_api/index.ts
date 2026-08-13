@@ -1174,6 +1174,26 @@ Deno.serve(async (req) => {
       return J({ ok: true, preferences: pref?.preferences ?? {}, updated_at: pref?.updated_at ?? null });
     }
 
+    // THE LANGUAGE THE PORTAL APOLOGISED FOR NOT SAVING.
+    //
+    // customers.locale has been read for months — my_inquiries serves it and the portal applies it
+    // on a device that has no stored choice — and NOTHING has ever written it. The Account screen
+    // said so out loud: "We have no settings endpoint that writes them back to your profile yet,
+    // so nothing here is saved to your account." An Arabic customer therefore set their language
+    // once per device, forever. This is that endpoint; the apology goes with it.
+    //
+    // Deliberately narrow: two values, validated against the same pair i18n/routing declares, and
+    // it touches one column. A generic profile-patch action here would be a way to write full_name
+    // and phone without passing kyc's checks — the phone one now clears phone_verified, and this
+    // must not become a route around it.
+    if (action === 'set_locale') {
+      const loc = String(body.locale || '').toLowerCase();
+      if (loc !== 'en' && loc !== 'ar') return J({ error: 'locale must be en or ar' }, 400);
+      const { error: le } = await admin.from('customers').update({ locale: loc }).eq('id', cust.id);
+      if (le) return J({ error: le.message }, 500);
+      return J({ ok: true, locale: loc });
+    }
+
     return J({ error: 'Unknown action' }, 400);
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
