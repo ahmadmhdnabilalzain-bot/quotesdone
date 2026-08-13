@@ -170,3 +170,64 @@ Supabase · Row #3 to completion · pack scorecard both · `fn_os_portals_gates`
 `all verified and fixed and merged and deployed 100%`
 
 If it is not true, keep working — or hand over honestly and name exactly what is unfinished.
+
+---
+
+## THE VISUAL STANDARD — he supplied two reference designs. This is the MINIMUM.
+
+His words: *"this is the minimum expectation in terms of the visuals and design. of course with our
+requirement though."* So: this SHAPE, our domain. Do not copy their nouns — an RFQ marketplace has
+no "orders" and no "$250.00 balance due".
+
+**Reference A — a customer dashboard.** Dark navy persistent LEFT SIDEBAR, icon + label, one item
+active with a filled pill. Top bar: full-width search, notification bell, avatar + name. Body on a
+soft grey canvas, white rounded cards with generous padding: a welcome card ("Welcome, {name} —
+here is a summary of your recent activity"), a row of **KPI stat tiles** (big number, small label),
+a **data table** with coloured status pills, a right rail carrying a **donut chart**, a stack of
+**quick-action rows** (icon + label), and small panels for shortcuts and announcements.
+
+**Reference B — a client portal.** Top nav, a large welcome heading, and — the important one — a
+**prominent AI search bar as a primary surface**: *"Search docs, tasks, files and other with AI…"*.
+Below it: large card tiles (Files / Tasks / Reports), a left navigation tree, a **progress stepper**
+for a multi-stage job, a **chat panel docked in the layout**, a task list with priority tags, and a
+recent-documents list.
+
+### The two structural lessons, which matter more than the palette
+
+1. **A PERSISTENT SIDEBAR, NOT A MARKETING HEADER.** Both references put the customer inside an
+   application. We put them on a website with a nav bar that offers them the supplier portal. This
+   is the same defect as `SiteHeader` having no concept of audience — solved properly, it is a
+   portal shell, not a filtered menu.
+2. **THE ASSISTANT IS A PRIMARY SURFACE, NOT A WIDGET.** Reference B makes AI search the widest
+   element on the page. He called ours "a dumb chat bot"; part of that verdict is that it is a
+   bubble in a corner instead of the way you use the portal.
+
+### Mapping to our domain — this is the "our requirement though"
+
+| Reference | Ours |
+|---|---|
+| My Orders | **My Requests** — the RFQs, with their real lifecycle |
+| status pills Shipped/Processing/Pending | **Matching · Quoting · Quotes in · Revealed · Closed** |
+| Invoices & Billing, "Balance Due $250.00" | **Reveals** — the 3% facilitation fee is the only money a customer ever pays. There is no balance, no invoice ledger. Do not invent one. |
+| Billing Overview donut (Paid/Unpaid) | **The quote spread on a request** — and see the hard rule below |
+| Support Tickets | **Support** |
+| My Documents | **My Documents** — drawings, extracted BoQs, the signed terms PDF |
+| Account Settings | **Account** — name, mobile, verification state, language |
+| KPI tiles | **Open requests · Quotes received · Awaiting your decision** |
+| Quick actions | **New request · Compare quotes · Upload a drawing** |
+| Project Progress stepper | **The request's own journey**: described → structured → matched to N suppliers → quotes arriving → compare → reveal |
+
+### THE ONE RULE NO AMOUNT OF DESIGN MAY BREAK
+
+**Pre-reveal, a customer sees a rounded band and a count — never an individual quote, never a
+supplier name.** `fn_wa_context` already enforces exactly this in SQL and the portal enforces it
+today. A beautiful chart that plots five distinct quote bars before payment destroys the product's
+core promise: the marketplace is anonymous until the customer chooses to reveal. Post-reveal, show
+everything. Design both states.
+
+### Craft, since "static and outdated" was half the complaint
+
+Motion on state change (a quote arriving, a status advancing), skeletons rather than spinners,
+real empty states that tell a customer what happens next rather than showing an empty box, and the
+whole thing correct at 375px — a UAE procurement buyer is on a phone on a site. Dark mode if it
+comes free with the token system; not at the cost of the Arabic.
