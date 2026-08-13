@@ -87,7 +87,12 @@ async function askAssistant(message, history, token, lang, path) {
   return r.json();
 }
 
-export function AssistantPanel({ token, lang, open, onClose, seed, t }) {
+// `suggestions` ARE THE OFFER, and they used to be three constants — the same three questions on a
+// day-one account with nothing in it and on an account with three quotes waiting to be compared.
+// "What is the status of my requests?" offered to someone who has never posted one is a menu, not
+// an offer. CustomerPortal derives them from the rows it already holds and passes them down; an
+// empty list falls back to the three constants, so a caller that does not compute them is unchanged.
+export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestions }) {
   const rtl = lang === 'ar';
   const [msgs, setMsgs] = useState([]);
   const [val, setVal] = useState('');
@@ -146,11 +151,11 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t }) {
           <div className="space-y-3">
             <p className="text-[13.5px] leading-relaxed text-muted-foreground">{t('asst_greet')}</p>
             <div className="flex flex-col gap-1.5">
-              {['asst_s1', 'asst_s2', 'asst_s3'].map((k) => (
-                <button key={k} type="button" onClick={() => send(t(k))}
+              {((suggestions && suggestions.length) ? suggestions : ['asst_s1', 'asst_s2', 'asst_s3'].map(t)).map((q) => (
+                <button key={q} type="button" onClick={() => send(q)}
                   className="flex items-center gap-2 rounded-lg border border-border bg-secondary/25 px-3 py-2 text-start text-[13px] text-foreground transition-colors hover:border-primary/40 hover:bg-primary/10">
                   <Search className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-                  <span className="min-w-0 flex-1">{t(k)}</span>
+                  <span className="min-w-0 flex-1">{q}</span>
                   <ChevronRight className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground', rtl && 'rotate-180')} aria-hidden />
                 </button>
               ))}
@@ -277,7 +282,7 @@ const rankOf = (id, order) => {
 
 export function PortalShell({
   lang, t, theme, onSwapTheme, onSetLang, onSignOut,
-  view, onView, customerName, unread = 0, alerts = 0, alertList = [], token, order, children,
+  view, onView, customerName, unread = 0, alerts = 0, alertList = [], token, order, suggestions, children,
 }) {
   const rtl = lang === 'ar';
   const [collapsed, setCollapsed] = useState(false);
@@ -544,7 +549,7 @@ export function PortalShell({
         </>
       )}
 
-      <AssistantPanel token={token} lang={lang} open={asstOpen} seed={seed} t={t}
+      <AssistantPanel token={token} lang={lang} open={asstOpen} seed={seed} t={t} suggestions={suggestions}
         onClose={() => { setAsstOpen(false); setSeed(''); }} />
     </div>
   );

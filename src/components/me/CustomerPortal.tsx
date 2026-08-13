@@ -656,6 +656,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     onSignOut={onSignOut} view={view} onView={navigate} token={token}
     customerName={(ov && ov.customer && ov.customer.name) || ''}
     unread={unread} alerts={alertsCount} alertList={(ov && ov.alerts) || []} order={ov && ov.layout && ov.layout.order}
+    suggestions={assistantOffers(lang, inqs, ballOf)}
   >
   {MODULES.some((m) => m[0] === view) ? (
     <ModuleWindow id={view} onClose={() => setView('home')} token={token} lang={lang} inqs={inqs} onChanged={refresh} twin={ov && ov.twin} />
@@ -832,6 +833,46 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
 // a procurement customer actually does. Every one is a real destination that already exists — a new
 // request, the comparison inside a request, the drawing upload inside the intake, and the
 // assistant. Nothing here is a placeholder.
+// "I wish the assistant offered me the next thing instead of waiting to be asked."
+//
+// The panel opened with three constants — status / how many quotes / what next — shown identically
+// to an account that has never posted anything and to one with three quotes sitting undecided. The
+// first of those is unanswerable on a new account and the third is the only one that ever varies.
+//
+// These are built from the same rows the dashboard is already rendering, so the offer is about the
+// customer's actual position, and it names the request rather than describing a category of
+// request: "Which of the 3 quotes on my HVAC request should I choose?" is a question a procurement
+// manager would type; "What is the status of my requests?" is a menu item. Capped at three — a list
+// of offers long enough to need reading is a form.
+function assistantOffers(lang, inqs, ballOf) {
+  const ar = lang === 'ar';
+  const out = [];
+  const label = (i) => i.category || (ar ? 'طلبي' : 'my request');
+  if (!inqs.length) {
+    out.push(ar ? 'ماذا يحدث بعد أن أنشر طلبي؟' : 'What happens after I post a request?');
+    out.push(ar ? 'كم يكلّفني كشف مورّد؟' : 'What does it cost me to reveal a supplier?');
+    out.push(ar ? 'ما المعلومات التي يحتاجها المورّدون لتسعير عملي؟' : 'What do suppliers need to know to price my job?');
+    return out;
+  }
+  const decide = inqs.filter((i) => ballOf(i) === 'you');
+  const waiting = inqs.filter((i) => ballOf(i) === 'suppliers');
+  const moving = inqs.filter((i) => ballOf(i) === 'moving');
+  if (decide.length) {
+    const i = decide[0]; const n = (i.quotes || []).length;
+    out.push(ar ? `أي عرض من العروض الـ${n} على طلب ${label(i)} ينبغي أن أختار؟`
+                : `Which of the ${n} quotes on my ${label(i)} request should I choose?`);
+    out.push(ar ? 'كم سيكلّفني كشف المورّد صاحب أقل سعر؟' : 'What would it cost me to reveal the cheapest supplier?');
+  }
+  if (waiting.length && out.length < 3) {
+    const i = waiting[0];
+    out.push(ar ? `لماذا لم يصلني عرض بعد على طلب ${label(i)}؟` : `Why has no one quoted my ${label(i)} request yet?`);
+  }
+  if (moving.length && out.length < 3) {
+    out.push(ar ? 'ما الخطوة التالية مع المورّد الذي كشفته؟' : 'What happens next with the supplier I revealed?');
+  }
+  if (out.length < 3) out.push(t(lang, 'asst_s3'));
+  return out.slice(0, 3);
+}
 // "I wish it told me what happens after I post, without me having to ask."
 //
 // The empty state said the first request "takes about a minute" and that posting and comparing are
