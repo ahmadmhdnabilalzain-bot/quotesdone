@@ -183,8 +183,30 @@ if (CORPUS === 'kb') {
 }
 console.log(`checkpointed files: ${done.size}${FORCE ? '  (--force: ignored)' : ''}`);
 
+// THE HEADER'S OWN TEST DID NOT PASS (13 Aug 2026).
+//
+// Twelve lines up this file says: "Re-running a fully imported corpus inserts nothing; that is the
+// test, and it is how this was verified against production." Run it a second time and it does not
+// insert nothing — it dies before reading a single file:
+//
+//   ERROR 23505: duplicate key value violates unique constraint "kb_stage_runs_pkg_idx"
+//   Key (package_id, package_version, COALESCE(package_sha256, ''))
+//        =(ALL_KNOWLEDGE_86_CATEGORIES, v2026.07.31, ) already exists.
+//
+// kb_stage.ingestion_runs is unique on (package_id, package_version, coalesce(package_sha256,'')),
+// so it is ONE ROW PER PACKAGE VERSION — a state record, not a per-execution log. The plain insert
+// contradicted its own table. It went unnoticed because the claim was written once and never
+// re-executed: the corpus was imported, the header recorded that re-running is the test, and
+// nobody ran it again until a session tried to repair what it thought was a 16,608-record hole.
+//
+// Upserted onto that exact expression, so a resumed or repeated run re-opens the same row and the
+// checkpoint loop below decides what actually gets read. ops_kb_stage.ingestion_runs carries only
+// its pkey — no equivalent constraint — so that branch never had the fault and is left alone.
 const runId = (await q(CORPUS === 'kb'
-  ? `insert into kb_stage.ingestion_runs (package_id, package_version) values ('ALL_KNOWLEDGE_86_CATEGORIES','v2026.07.31') returning id;`
+  ? `insert into kb_stage.ingestion_runs (package_id, package_version) values ('ALL_KNOWLEDGE_86_CATEGORIES','v2026.07.31')
+     on conflict (package_id, package_version, coalesce(package_sha256,''))
+     do update set status='started', started_at=now(), completed_at=null
+     returning id;`
   : `insert into ops_kb_stage.ingestion_runs (package_name, package_version) values ('COMPANY_OPERATIONS_KNOWLEDGE','v2026.07.31') returning id;`))[0].id;
 
 let totIns = 0, totUpd = 0, totRej = 0, totLines = 0, skipped = 0;
