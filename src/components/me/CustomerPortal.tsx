@@ -110,7 +110,11 @@ const T = {
     auth_sub:'Describe a job once — in text, voice, a photo or a drawing. We structure it and send it anonymously to vetted UAE suppliers, and their quotes come back for you to compare side by side.',
     auth_p1:'Posting a request and comparing quotes is free.',
     auth_p2:'Nobody sees who you are, and you do not see who they are, until you decide.',
-    auth_p3:'You pay a 3% facilitation fee only when you reveal a supplier. There is nothing else to pay.' },
+    auth_p3:'You pay a 3% facilitation fee only when you reveal a supplier. There is nothing else to pay.',
+    acct_saved:'Saved.', acct_unverified:'Not verified yet',
+    acct_reverify:'Saved. Your new mobile needs verifying — reload this page and we will send you a code.',
+    acct_phone_warn:'Changing your mobile will un-verify it. You will be asked to confirm the new number with a code before you can post a request.',
+    acct_device_note:'Appearance is remembered on this device. Your language is saved to your account and follows you to any device you sign in on.' },
   ar: { brand_sub:'طلباتي', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_requests:'جارٍ تحميل طلباتك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', create_account_title:'أنشئ حسابك',
     signup_sub:'أدخل بريدك الإلكتروني وسننشئ حسابك فورًا. ستضيف اسمك وتاريخ ميلادك وتتحقق من رقم جوالك في الخطوة التالية.',
@@ -178,7 +182,11 @@ const T = {
     auth_sub:'صِف العمل مرة واحدة — نصًا أو صوتًا أو بصورة أو برسم. نقوم ببنيته ونرسله بشكل مجهول إلى موردين معتمدين في الإمارات، وتعود عروضهم لتقارنها جنبًا إلى جنب.',
     auth_p1:'نشر الطلب ومقارنة العروض مجانًا.',
     auth_p2:'لا أحد يعرف هويتك، ولا تعرف هويتهم، حتى تقرر أنت.',
-    auth_p3:'تدفع رسوم تيسير 3% فقط عند كشف المورّد. لا شيء آخر تدفعه.' }
+    auth_p3:'تدفع رسوم تيسير 3% فقط عند كشف المورّد. لا شيء آخر تدفعه.',
+    acct_saved:'تم الحفظ.', acct_unverified:'لم يتم التحقق بعد',
+    acct_reverify:'تم الحفظ. رقمك الجديد يحتاج إلى تحقق — أعد تحميل الصفحة وسنرسل لك رمزًا.',
+    acct_phone_warn:'تغيير رقم جوالك سيلغي التحقق منه. سيُطلب منك تأكيد الرقم الجديد برمز قبل أن تتمكن من نشر طلب.',
+    acct_device_note:'يُحفظ المظهر على هذا الجهاز. أما لغتك فتُحفظ في حسابك وتتبعك على أي جهاز تسجّل الدخول منه.' }
 };
 const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
@@ -1230,7 +1238,7 @@ function ModuleWindow({ id, onClose, token, lang, inqs, onChanged, twin }) {
         <SupplierDiscovery token={token} lang={l2} />
         <CustomerMemory token={token} lang={l2} />
       </div>}
-      {id === 'account' && <AccountSettings token={token} lang={lang} />}
+      {id === 'account' && <AccountSettings token={token} lang={lang} onChanged={onChanged} />}
     </div>
   </section>);
 }
@@ -1238,29 +1246,80 @@ function ModuleWindow({ id, onClose, token, lang, inqs, onChanged, twin }) {
 // file in src/ ever called it — the account the customer holds was the one thing they could not
 // look at. It is read-only on purpose: there is no endpoint that writes a preference back to the
 // profile, so this states which choices are device-local rather than implying they were saved.
-function AccountSettings({ token, lang }) {
+// AN ACCOUNT SCREEN YOU COULD NOT CHANGE ANYTHING ON.
+//
+// This was read-only and said so honestly — "We have no settings endpoint that writes them back to
+// your profile yet, so nothing here is saved to your account." The honesty was right and the
+// situation was not: customers.locale has been READ for months (my_inquiries serves it, the portal
+// applies it on a new device) and nothing has ever written it, so an Arabic customer re-chose their
+// language on every device forever. customer_api gained a narrow set_locale for exactly this.
+//
+// Name and mobile go through kyc save_customer, which is the routine that already validates them —
+// and which now clears phone_verified when the number changes. That is the reason the mobile field
+// carries a warning rather than a quiet save: the next load will ask them to verify the new number,
+// and being told that before they press the button is the difference between a feature and a trap.
+function AccountSettings({ token, lang, onChanged }) {
   const [me, setMe] = useState(null); const [err, setErr] = useState('');
-  useEffect(() => {
-    let on = true;
-    call('customer_api', { action: 'me' }, token)
-      .then((j) => { if (!on) return; if (j && j.customer) setMe(j.customer); else setErr(t(lang, 'acct_failed')); })
-      .catch(() => { if (on) setErr(t(lang, 'acct_failed')); });
-    return () => { on = false; };
-  }, [token]);
+  const [name, setName] = useState(''); const [phone, setPhone] = useState('');
+  const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
+  const load = () => call('customer_api', { action: 'me' }, token)
+    .then((j) => { if (j && j.customer) { setMe(j.customer); setName(j.customer.full_name || ''); setPhone(j.customer.phone || ''); } else setErr(t(lang, 'acct_failed')); })
+    .catch(() => setErr(t(lang, 'acct_failed')));
+  useEffect(() => { load(); }, [token]);
   if (err) return <div className={S.err}>{err}</div>;
   if (!me) return <div className={S.sub}>{t(lang, 'loading')}</div>;
   const since = me.created_at ? new Date(me.created_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-  const profileLocale = me.locale === 'ar' ? 'العربية' : me.locale === 'en' ? 'English' : (me.locale || '—');
-  return (<div>
-    <div className={cn(S.sub, 'mb-2')}>{t(lang, 'acct_sub')}</div>
-    <div className="rounded-lg border border-border bg-secondary/20 p-3 grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">
-      <div className={S.sub}><span className="text-muted-foreground">{t(lang, 'acct_name')}: </span><span className="text-foreground">{me.full_name || '—'}</span></div>
-      <div className={S.sub}><span className="text-muted-foreground">{t(lang, 'acct_email')}: </span><span className="text-foreground">{me.email || '—'}</span></div>
-      <div className={S.sub}><span className="text-muted-foreground">{t(lang, 'acct_phone')}: </span><span className="text-foreground">{me.phone || '—'}</span></div>
-      <div className={S.sub}><span className="text-muted-foreground">{t(lang, 'acct_locale')}: </span><span className="text-foreground">{profileLocale}</span></div>
-      <div className={S.sub}><span className="text-muted-foreground">{t(lang, 'acct_since')}: </span><span className="text-foreground">{since || '—'}</span></div>
+  const digits = (v) => String(v || '').replace(/\D/g, '');
+  const phoneChanged = digits(phone) !== digits(me.phone);
+  const dirty = (name || '') !== (me.full_name || '') || phoneChanged;
+  const saveProfile = async () => {
+    setBusy('save'); setMsg('');
+    const j = await call('kyc', { action: 'save_customer', full_name: name, phone, dob: me.date_of_birth || '' }, token);
+    setBusy('');
+    if (j && j.ok) { setMsg(t(lang, j.phone_reverify_required ? 'acct_reverify' : 'acct_saved')); load(); if (onChanged) onChanged(); }
+    else setMsg((j && (j.error || j.message)) || t(lang, 'acct_failed'));
+  };
+  const saveLocale = async (loc) => {
+    setBusy('loc'); setMsg('');
+    const j = await call('customer_api', { action: 'set_locale', locale: loc }, token);
+    setBusy('');
+    if (j && j.ok) { setMsg(t(lang, 'acct_saved')); load(); } else setMsg((j && j.error) || t(lang, 'acct_failed'));
+  };
+  const Row = ({ label, children }) => (
+    <div className="grid gap-1 sm:grid-cols-[190px_1fr] sm:items-center sm:gap-3">
+      <div className="text-[12.5px] font-medium text-muted-foreground">{label}</div>
+      <div className="min-w-0">{children}</div>
     </div>
-    <div className={cn(S.hint, 'mt-2')}>{t(lang, 'acct_local_note')}</div>
+  );
+  return (<div className="flex flex-col gap-4">
+    <p className={S.sub}>{t(lang, 'acct_sub')}</p>
+    <Card className="flex flex-col gap-3.5 p-4">
+      <Row label={t(lang, 'acct_name')}><Input value={name} onChange={(e) => setName(e.target.value)} /></Row>
+      <Row label={t(lang, 'acct_phone')}>
+        <Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
+        <div className={cn('mt-1 text-[11.5px]', phoneChanged ? 'text-amber-300' : 'text-muted-foreground')}>
+          {phoneChanged ? t(lang, 'acct_phone_warn') : (me.phone_verified ? t(lang, 'verified') : t(lang, 'acct_unverified'))}
+        </div>
+      </Row>
+      <Row label={t(lang, 'acct_email')}>
+        {/* Isolated so a Latin address does not scramble inside an Arabic line. */}
+        <div className="text-[13px] text-foreground"><bdi>{me.email || '—'}</bdi></div>
+      </Row>
+      <Row label={t(lang, 'acct_locale')}>
+        <div className="flex flex-wrap gap-2">
+          {[['en', 'English'], ['ar', 'العربية']].map(([code, labelText]) => (
+            <Button key={code} type="button" size="sm" variant={me.locale === code ? 'default' : 'outline'}
+              disabled={busy === 'loc' || me.locale === code} onClick={() => saveLocale(code)}>{labelText}</Button>
+          ))}
+        </div>
+      </Row>
+      <Row label={t(lang, 'acct_since')}><div className="text-[13px] text-foreground">{since || '—'}</div></Row>
+      <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3.5">
+        <Button size="sm" disabled={!dirty || busy === 'save'} onClick={saveProfile}>{busy === 'save' ? t(lang, 'saving') : t(lang, 'save_details')}</Button>
+        {msg ? <span className="text-[12.5px] text-muted-foreground">{msg}</span> : null}
+      </div>
+    </Card>
+    <p className={S.hint}>{t(lang, 'acct_device_note')}</p>
   </div>);
 }
 function Kpi({ label, v }) { return <Card className="p-3.5"><div className="text-[19px] font-extrabold text-foreground">{v}</div><div className="text-[11.5px] text-muted-foreground mt-1">{label}</div></Card>; }

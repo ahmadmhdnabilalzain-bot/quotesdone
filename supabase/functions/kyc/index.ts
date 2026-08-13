@@ -97,9 +97,27 @@ Deno.serve(async (req) => {
       if (phone.replace(/\D/g, '').length < 7) return J({ error: 'Please enter a valid mobile number.' }, 400);
       const row: any = { email, full_name, phone };
       if (dob) { const a = ageFrom(dob); if (a !== null && a >= 18 && a <= 120) row.date_of_birth = dob; }
+      // CHANGING A VERIFIED NUMBER MUST UN-VERIFY IT (13 Aug 2026).
+      //
+      // This wrote `phone` and left `phone_verified` alone, so any caller holding a customer
+      // session could POST a DIFFERENT number and keep the verified flag. That flag is not
+      // cosmetic: create_inquiry gates on it, fn_wa_context scopes a WhatsApp conversation by it,
+      // and login_otp's resolveEmailByPhone maps an incoming number back to an account with
+      // `limit 1` — so a number written onto the wrong account can resolve a real person's phone
+      // sign-in to somebody else's row. Verification means "we sent a code to THIS number and it
+      // came back"; the moment the number changes, that sentence is no longer true about it.
+      //
+      // Compared digits-only because the same number is stored as +9715…, 05…, and with spaces,
+      // and a formatting change is not a new number. Re-verifying is the ProfileGate's existing
+      // flow: phone_verified false makes the gate render again on the next load, which is exactly
+      // where the Send SMS control lives.
+      const digits = (v: unknown) => String(v || '').replace(/\D/g, '');
+      const phoneChanged = !!cust && digits((cust as any).phone) !== digits(phone);
+      if (phoneChanged) row.phone_verified = false;
       if (cust) await admin.from('customers').update(row).eq('id', cust.id); else await admin.from('customers').insert(row);
-      await logRun('ok', { action, kind, created: !cust }, '');
-      return J({ ok: true });
+      if (phoneChanged) await logRun('ok', { action, kind, phone_reverify: 1 }, 'A customer changed their mobile number, so phone_verified was cleared and they must verify the new number before create_inquiry will accept a request. This is the intended behaviour, not a regression.');
+      else await logRun('ok', { action, kind, created: !cust }, '');
+      return J({ ok: true, phone_reverify_required: phoneChanged });
     }
 
     if (action === 'send_email') {
