@@ -39,7 +39,10 @@ for (const d of readdirSync(ROOT, { withFileTypes: true })) {
   const pkg = d.name.split('-v')[0];                       // QD-KB-001-construction-... -> QD-KB-001-construction-...
   const short = d.name.match(/^(QD-KB-\d+)/)[1];
   for (const f of readdirSync(join(ROOT, d.name))) {
-    if (!f.endsWith('.jsonl') || f === '23_all_records.jsonl') continue;
+    // The aggregate is every module concatenated, so counting it doubles the package. It was
+    // skipped by exact name, and QD-KB-086 numbers its aggregate 24_ rather than 23_ — which made
+    // that one package read as short by exactly its own record count, 2,047.
+    if (!f.endsWith('.jsonl') || /_all_records\.jsonl$/.test(f)) continue;
     const buf = readFileSync(join(ROOT, d.name, f));
     const lines = buf.toString('utf8').split('\n').filter(l => l.trim()).length;
     if (!disk.has(short)) disk.set(short, { dir: pkg, files: new Map(), lines: 0 });
@@ -64,24 +67,41 @@ console.log(`disk: ${disk.size} packages, ${diskFiles} module files, ${diskTotal
 console.log(`db  : ${fhByPkg.size} packages in file_hashes, ${fh.length} file rows, ` +
   `${[...dbByPkg.values()].reduce((a, b) => a + b, 0)} records in kb_stage.records`);
 
-// package_id in the DB may be the short id or the full dir name; resolve by prefix.
-const resolve = (short) => {
-  if (dbByPkg.has(short)) return short;
-  for (const k of dbByPkg.keys()) if (k.startsWith(short)) return k;
-  return null;
+// BOTH SHAPES EXIST AT ONCE, AND PICKING ONE INVENTS A HOLE (13 Aug 2026).
+//
+// package_id is written as the short id by one import and as the full directory name by another,
+// and kb_stage.records carries BOTH for the first six categories: QD-KB-002 holds 667 records in
+// one module, QD-KB-002-mep-mechanical-electrical-plumbing-v2026.07.31 holds 3,634 across
+// eighteen. 667 + 3,634 = 4,301 = exactly the file count on disk. Nothing is missing.
+//
+// The previous resolve() returned the FIRST match and `dbByPkg.has(short)` is true, so it compared
+// the 667-row remnant against 4,301 on disk and reported the category as short by 3,634. Across six
+// categories that came to "TOTAL MISSING: 16608" — a 16,608-record hole in the company's own
+// knowledge corpus that does not exist. file_hashes was worse: it is keyed ONLY by the full
+// directory name, so looking it up under the short id matched nothing and 91 files were reported
+// as NEVER RECORDED while every one of them was checkpointed.
+//
+// Both sides now take EVERY key that resolves to the package and sum. A tool that manufactures a
+// missing-knowledge figure is worse than no tool: the next session budgets a re-import against it.
+const resolveAll = (short) => {
+  const keys = [...dbByPkg.keys(), ...fhByPkg.keys()]
+    .filter((k) => k === short || k.startsWith(short + '-'));
+  return [...new Set(keys)];
 };
 
 let missingFiles = [], shortFiles = [], shortPkgs = [];
 for (const [short, p] of [...disk.entries()].sort()) {
-  const key = resolve(short) || short;
-  const dbFiles = fhByPkg.get(key) || fhByPkg.get(short) || new Map();
+  const keys = resolveAll(short);
+  const key = keys[0] || short;
+  const dbFiles = new Map();
+  for (const k of keys) for (const [fn, row] of (fhByPkg.get(k) || new Map())) dbFiles.set(fn, row);
   for (const [fname, info] of p.files) {
     const row = dbFiles.get(fname);
     if (!row) missingFiles.push(`${short}/${fname} (${info.lines} records, NEVER RECORDED)`);
     else if (row.sha256 !== info.sha) shortFiles.push(`${short}/${fname} SHA MISMATCH`);
     else if (Number(row.rows_seen) !== info.lines) shortFiles.push(`${short}/${fname} rows_seen=${row.rows_seen} disk=${info.lines}`);
   }
-  const got = dbByPkg.get(key) ?? 0;
+  const got = keys.reduce((a, k) => a + (dbByPkg.get(k) ?? 0), 0);
   if (got !== p.lines) shortPkgs.push({ short, key, db: got, disk: p.lines, delta: p.lines - got });
 }
 
