@@ -9,10 +9,13 @@
 //   * There is no attachment on a message. `send` accepts `body` and nothing else, and
 //     public.messages has no file/attachment/document column. A file control in the composer would
 //     therefore look like an attachment and be a discard — see the note in CommunicationCenter.
-//   * WhatsApp, email and calls are NOT in this payload. messages_api opens chat_threads, messages,
-//     transactions, leads, customers, inquiries, category_agents, chat_violations, notifications,
-//     app_secrets and agent_actions — not wa_messages, not inbound_messages, and no call log
-//     (production has no table that logs a call against an inquiry, supplier or customer at all).
+//   * WhatsApp, e-mail and calls ARE in this payload, and this comment said the opposite until
+//     13 Aug 2026. otherChannels() was added to messages_api on 7 Aug and joins wa_messages on the
+//     customer's own phone, inbound_messages on their own e-mail and customer_calls on their own
+//     customer_id. Measured signed in as a real customer: `threads` returned a WhatsApp row with 10
+//     messages and an e-mail row with 1 unread — while the surface above still said they were not
+//     routed in, and `action:'thread'` rejected their null inquiry_id at the door. `channel_thread`
+//     is the reader that closes that; a channel row carries `channel` and a null inquiry_id.
 //
 // Chat is GATED on purpose: it unlocks only after a paid reveal, and even then a chat must be
 // requested and approved. `request_chat` may be answered outright by the category agent instead of
@@ -24,18 +27,27 @@ export type Lang = 'en' | 'ar';
 /** none = never requested · requested = awaiting review · open = live · banned = closed for policy. */
 export type ChatStatus = 'none' | 'requested' | 'open' | 'banned' | string;
 
+/** 'chat' is a supplier conversation on one RFQ; the other three are the customer's own
+ *  correspondence with QuotesDone and carry inquiry_id: null. */
+export type Channel = 'chat' | 'whatsapp' | 'email' | 'call';
+
 /** One row of action:'threads'. */
 export interface ThreadSummary {
+  /** Absent on rows served before 7 Aug 2026; treated as 'chat'. */
+  channel?: Channel;
+  /** null on whatsapp / email / call rows — they are not about one RFQ. */
   inquiry_id: string;
   supplier_id: number;
   /** The supplier's company name — this list only exists after the reveal is paid. */
   counterpart: string;
-  /** The RFQ's summary, falling back to its category. */
+  /** The RFQ's summary, falling back to its category. On a channel row, the channel's own subject. */
   subject: string;
   chat_status: ChatStatus;
   last: string | null;
   last_at: string | null;
   unread: number;
+  /** How many messages the channel holds. Only on channel rows. */
+  count?: number;
 }
 
 export interface ThreadsResponse {
@@ -46,10 +58,28 @@ export interface ThreadsResponse {
 }
 
 export interface ChatMessage {
-  id: number;
-  sender: 'customer' | 'supplier';
+  id: number | string;
+  /** 'quotesdone' only occurs on the whatsapp / email / call channels — those are the customer's
+   *  correspondence with US, not with a supplier. */
+  sender: 'customer' | 'supplier' | 'quotesdone';
   body: string;
   created_at: string;
+  /** e-mail only. */
+  subject?: string | null;
+  /** call log only, in seconds. */
+  duration_s?: number | null;
+}
+
+/** action:'channel_thread' — the customer's own WhatsApp / e-mail / call history with QuotesDone. */
+export interface ChannelThreadResponse {
+  ok: true;
+  channel: Channel;
+  counterpart: string;
+  chat_status?: ChatStatus;
+  messages: ChatMessage[];
+  /** Present when the channel has nothing to match the customer to. */
+  note?: string;
+  unread_note?: string;
 }
 
 export interface ThreadResponse {
@@ -131,6 +161,11 @@ export const listThreads = (token: string) =>
 
 export const openThread = (token: string, inquiry_id: string, supplier_id: number) =>
   call<ThreadResponse>('messages_api', { action: 'thread', inquiry_id, supplier_id }, token);
+
+/** Read one of the three non-chat channels. Scoped server-side to the customer's OWN phone /
+ *  e-mail / customer_id — the same join keys the list itself is built from. */
+export const openChannel = (token: string, channel: Channel) =>
+  call<ChannelThreadResponse>('messages_api', { action: 'channel_thread', channel }, token);
 
 export const sendMessage = (token: string, inquiry_id: string, supplier_id: number, body: string, attachment_path?: string | null, attachment_name?: string | null) =>
   call<SendResponse>('messages_api', { action: 'send', inquiry_id, supplier_id, body, attachment_path: attachment_path || null, attachment_name: attachment_name || null }, token);

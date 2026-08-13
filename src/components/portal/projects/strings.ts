@@ -18,6 +18,7 @@ const EN = {
   retry: 'Retry',
   err_session: 'Your session has expired. Please sign in again.',
   err_not_found: 'That project no longer exists.',
+  err_unexpected: 'Something went wrong at our end. Nothing was changed — please try again.',
   err_load: 'Could not load your projects.',
   err_save: 'Could not save this project.',
 
@@ -105,6 +106,7 @@ const AR: Partial<Record<Key, string>> = {
   retry: 'إعادة المحاولة',
   err_session: 'انتهت جلستك. يُرجى تسجيل الدخول من جديد.',
   err_not_found: 'هذا المشروع لم يعد موجودًا.',
+  err_unexpected: 'حدث خطأ لدينا. لم يتغيّر أي شيء — يُرجى المحاولة مرة أخرى.',
   err_load: 'تعذّر تحميل مشاريعك.',
   err_save: 'تعذّر حفظ هذا المشروع.',
   empty_title: 'لا توجد لديك مشاريع بعد',
@@ -168,9 +170,17 @@ const AR: Partial<Record<Key, string>> = {
 
 export const tr = (lang: Lang | undefined, k: Key): string => (lang === 'ar' ? AR[k] || EN[k] : EN[k]);
 
-/** Maps the raw `error` string project_api returns to human text; unknown codes pass through. */
+/**
+ * Maps the raw `error` string project_api returns to human text.
+ *
+ * The fallback used to be `code`, which puts whatever the edge function or Postgres wrote into a
+ * customer-facing box — see the note on the same fallback in ../predict/strings.ts, which was
+ * measured on screen as `invalid input syntax for type uuid`. Callers keep the raw code in `title`.
+ */
 export const errText = (lang: Lang | undefined, code: string): string =>
-  code === 'unauthorized' ? tr(lang, 'err_session') : code === 'not_found' ? tr(lang, 'err_not_found') : code;
+  code === 'unauthorized' ? tr(lang, 'err_session')
+    : code === 'not_found' ? tr(lang, 'err_not_found')
+    : tr(lang, 'err_unexpected');
 
 export const statusLabel = (lang: Lang | undefined, status: string): string =>
   status === 'completed' ? tr(lang, 'st_completed') : status === 'archived' ? tr(lang, 'st_archived') : tr(lang, 'st_active');

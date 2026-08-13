@@ -5,7 +5,7 @@
 //   npm test        (the repository runner discovers *.test.mjs anywhere in the tree)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { linkDocuments, documentCount, threadKey } from './link.ts';
+import { linkDocuments, documentCount, threadKey, isChannelThread } from './link.ts';
 
 const T1 = { inquiry_id: 'inq-a', supplier_id: 7 };
 const T2 = { inquiry_id: 'inq-b', supplier_id: 7 };   // SAME supplier, different RFQ
@@ -34,8 +34,45 @@ test('supplier ids compare across the number/string boundary the two endpoints d
   // messages_api returns supplier_id as a NUMBER; documents.ref_id is TEXT. A === here would file
   // every supplier document under "unlinkable" and the vault would look empty on every thread.
   const { byThread, unlinkable } = linkDocuments([{ inquiry_id: 'inq-a', supplier_id: 7 }], [licence]);
-  assert.equal(documentCount(byThread['inq-a:7']), 1);
+  assert.equal(documentCount(byThread['chat:inq-a:7']), 1);
   assert.deepEqual(unlinkable, []);
+});
+
+// ── THE COLLISION THAT OPENED THE WRONG CONVERSATION ───────────────────────────────────────────
+// Measured 13 Aug 2026 in the browser, signed in as a real customer: messages_api returned a
+// WhatsApp row and an e-mail row, both with inquiry_id: null and supplier_id: null. Under the old
+// key both were the string "null:null", React logged a duplicate-key error, and clicking the row
+// with the unread badge opened the OTHER one.
+const WA = { channel: 'whatsapp', inquiry_id: null, supplier_id: null };
+const EMAIL = { channel: 'email', inquiry_id: null, supplier_id: null };
+const CALL = { channel: 'call', inquiry_id: null, supplier_id: null };
+
+test('two channel rows with null ids do not share a key', () => {
+  assert.notEqual(threadKey(WA), threadKey(EMAIL));
+  assert.notEqual(threadKey(EMAIL), threadKey(CALL));
+  assert.equal(new Set([WA, EMAIL, CALL].map(threadKey)).size, 3);
+});
+
+test('finding a thread by its key returns that thread, not the first null-id row', () => {
+  const threads = [WA, EMAIL, CALL];
+  const found = threads.find((t) => threadKey(t) === threadKey(EMAIL));
+  assert.equal(found.channel, 'email');
+});
+
+test('a chat row keeps a key of its own and is not a channel row', () => {
+  assert.equal(threadKey(T1), 'chat:inq-a:7');
+  assert.equal(isChannelThread(T1), false);          // no channel field at all
+  assert.equal(isChannelThread({ ...T1, channel: 'chat' }), false);
+  assert.equal(isChannelThread(WA), true);
+});
+
+test('a document never attaches to a channel row', () => {
+  // wa_messages and inbound_messages are not filed against an RFQ or a supplier, so nothing in the
+  // vault can prove it belongs to one. The drawing must stay unlinkable rather than land there.
+  const { byThread, unlinkable } = linkDocuments([WA, EMAIL], [drawing, licence]);
+  assert.equal(documentCount(byThread[threadKey(WA)]), 0);
+  assert.equal(documentCount(byThread[threadKey(EMAIL)]), 0);
+  assert.deepEqual(unlinkable.map((d) => d.id), [1, 2]);
 });
 
 test('a quotation file is reported as unlinkable, never guessed onto a conversation', () => {

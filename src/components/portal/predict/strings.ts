@@ -55,6 +55,7 @@ const EN = {
   loading_neg: 'Comparing this quote to the market…',
   err_load_neg: 'Could not load negotiation guidance.',
   err_not_your_quote: 'That quote is not on one of your requests.',
+  err_unexpected: 'Something went wrong at our end. Your quotes are unaffected — please try again.',
   empty_no_quote_title: 'Open a quote to compare it',
   empty_no_quote_body:
     'Pick one of the quotes on your requests and this panel shows where it sits against the market, what the house policy recommends, and a message drafted for the supplier.',
@@ -130,6 +131,7 @@ const AR: Translations = {
   loading_neg: 'جارٍ مقارنة هذا العرض بالسوق…',
   err_load_neg: 'تعذّر تحميل إرشادات التفاوض.',
   err_not_your_quote: 'هذا العرض ليس ضمن طلباتك.',
+  err_unexpected: 'حدث خطأ لدينا. عروضك لم تتأثر — يُرجى المحاولة مرة أخرى.',
   empty_no_quote_title: 'افتح عرضًا لمقارنته',
   empty_no_quote_body:
     'اختر أحد العروض على طلباتك، وستعرض هذه اللوحة موقعه مقابل السوق، وما توصي به سياسة الشركة، ورسالة مصاغة للمورّد.',
@@ -169,9 +171,24 @@ export function urgencyLabel(lang: Lang, u: Urgency): string {
   return tr(lang, 'u_planned') as string;
 }
 
-/** Error codes the endpoints actually emit. Anything else is shown verbatim, never dressed up. */
+/**
+ * Error codes the endpoints actually emit, in the customer's language.
+ *
+ * THE FALLBACK USED TO BE `return code`, and the comment above it said "shown verbatim, never
+ * dressed up". Honest in intent, and the intent is kept — a failure is still stated, never
+ * swallowed. But `code` is whatever the edge function put in `error`, and those functions return
+ * raw exception text: quote_compare's own catch is `J({ error: String(e.message) }, 500)`.
+ * MEASURED 13 Aug 2026 on a customer's own request screen, in the browser:
+ *
+ *     Could not load negotiation guidance. invalid input syntax for type uuid: "q-b-1"
+ *
+ * A Postgres parse error, in a red box, on the screen where a procurement manager is deciding
+ * which supplier to pay. Verbatim is the right rule for a sentence WE wrote for the customer;
+ * it is the wrong rule for a string the database wrote for us. Unknown codes now get a human
+ * sentence, and the raw code rides along in `title` so support can still read it.
+ */
 export function errText(lang: Lang, code: string): string {
   if (code === 'unauthorized') return tr(lang, 'err_session') as string;
   if (code === 'not_your_quote') return tr(lang, 'err_not_your_quote') as string;
-  return code;
+  return tr(lang, 'err_unexpected') as string;
 }

@@ -96,10 +96,28 @@ const token = (process.env.SUPABASE_ACCESS_TOKEN
 if (!token) die('No Supabase access token (SUPABASE_ACCESS_TOKEN).');
 const H = { Authorization: 'Bearer ' + token };
 
-const api = async (path) => {
+// A 429 IS THE ROAD BEING BUSY, NOT THE BUILD BEING BROKEN.
+//
+// MEASURED 13 Aug 2026: a change to _shared/internal_auth.ts made every importer a changed function,
+// so the job deployed 130. All 130 uploaded; the read-back then verified 120 and returned
+// "CHECK FAILED: 429 ThrottlerException" for the last ten — translate_page, uptime_check,
+// vercel_status, vt_scan, wa_inbound, wa_optin_set, wa_template_setup, wa_templates_watch,
+// workflow_dispatch, yello_scrape. Re-running the job failed on the SAME TEN. That is not a flake:
+// the management API's rate limit lands at a fixed point in an alphabetical loop of 130, so the
+// verifier could never confirm a full-fleet deploy, and a red job that means "we deployed fine but
+// stopped counting" trains everyone to re-run rather than read it.
+//
+// Retried with backoff, the same shape pack_scorecard.mjs and sql_files_match_live already use.
+// ONLY on 429/5xx: a 404 or a 401 is an answer and must stay an answer.
+const api = async (path, attempt = 0) => {
   const r = await fetch(`https://api.supabase.com/v1/projects/${ref}${path}`, { headers: H });
-  if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 200)}`);
-  return r.json();
+  if (r.ok) return r.json();
+  const body = (await r.text()).slice(0, 200);
+  if ((r.status === 429 || r.status >= 500) && attempt < 5) {
+    await new Promise((s) => setTimeout(s, 1200 * 2 ** attempt));   // 1.2s, 2.4s, 4.8s, 9.6s, 19.2s
+    return api(path, attempt + 1);
+  }
+  throw new Error(`${r.status} ${body}`);
 };
 
 // ── RULE 3: THE DRIFT CHECK ────────────────────────────────────────────────────────────────────

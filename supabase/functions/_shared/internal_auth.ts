@@ -35,8 +35,34 @@ export type InternalAuthResult =
  * @param secret    the presented credential (conventionally body.__secret)
  * @param fnName    THIS function's slug, e.g. 'uptime_check'. Scope is checked against it, so it
  *                  must be the real slug - passing something else silently widens the check.
+ * @param declaredCaller
+ *                  What the CALLER says it is, when the payload carries it — ai_gateway's `body.fn`,
+ *                  for example. Recorded only when the credential that authenticated is the legacy
+ *                  shared one, and only as a CLAIM (see below).
+ *
+ * WHY THE FOURTH ARGUMENT EXISTS.
+ *
+ * fn_internal_auth records `function_name`, and that is the CALLEE — the function being invoked.
+ * Every legacy_secret_used row therefore reads 'ai_gateway', which is the one thing already known.
+ * Asked on 13 Aug 2026 to find who is still presenting the shared secret, the answer was:
+ *
+ *   * llm.ts's gatewayCredential fallback is NOT it. It logs agent 'llm_gateway_auth' to agent_runs
+ *     on every fallback, and that table holds ZERO rows — no importer of the shared module is on it.
+ *   * social_stage's 6 Aug uses are historical; it reads cred_fn_social_stage now.
+ *   * capability_agent's header still says it presents inbound_secret; the code reads cred_fn_ai.
+ *   * The five remaining uses (most recently 12 Aug 07:38:57, callee ai_gateway) correlate with NO
+ *     cron run, NO llm_calls row and NO net._http_response within the minute — so the caller is
+ *     outside the database, and nothing on either side of the hop wrote down which one.
+ *
+ * ai_gateway already knows: it reads `body.fn` ten lines after it authenticates. The claim was
+ * simply never carried across. Now it is, so the NEXT legacy use names itself instead of adding one
+ * more row to a count nobody can attribute.
+ *
+ * IT IS A CLAIM, NOT AN IDENTITY, and the reason it is safe to record is that it is only written
+ * for a credential that has ALREADY authenticated and is stored under a reason that says so. It
+ * never widens scope, and it is never read as authorisation.
  */
-export async function requireInternal(admin: Admin, secret: unknown, fnName: string): Promise<InternalAuthResult> {
+export async function requireInternal(admin: Admin, secret: unknown, fnName: string, declaredCaller?: unknown): Promise<InternalAuthResult> {
   const presented = typeof secret === 'string' ? secret : '';
   if (!presented) {
     return { ok: false, status: 403, error: 'forbidden', message: 'No internal credential was presented.' };
@@ -46,6 +72,18 @@ export async function requireInternal(admin: Admin, secret: unknown, fnName: str
     if (error) throw new Error(error.message);
     const r = data as any;
     if (r?.ok === true) {
+      // Legacy only. A scoped credential IS the attribution, so writing this for one would be a
+      // second row saying what internal_credential.context already says.
+      if (r.legacy === true) {
+        const claim = typeof declaredCaller === 'string' ? declaredCaller.trim().slice(0, 120) : '';
+        try {
+          await admin.from('internal_credential_audit').insert({
+            credential_id: Number(r.credential_id), context: String(r.context), function_name: fnName,
+            allowed: true, reason: 'legacy_caller_declared',
+            detail: { declared_caller: claim || null, note: claim ? 'Claimed by the caller in its own payload; not verified.' : 'The caller declared nothing, so the payload carries no self-identification either.' },
+          });
+        } catch (_e) { /* attribution must never fail an authenticated call */ }
+      }
       return { ok: true, context: String(r.context), credentialId: Number(r.credential_id), legacy: r.legacy === true };
     }
     // out_of_scope is deliberately NOT distinguished from unknown_credential in the response. The

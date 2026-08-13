@@ -82,6 +82,21 @@ const T = {
     savings_unknown:'Potential savings needs at least two quotes on one request before it can be measured.',
     savings_potential:'Potential savings across your quotes',
     search_requests:'Search your requests…', no_search_match:'No request matches that search.',
+    // ── whose move is it ──
+    ball_all:'All', ball_you:'Waiting on you', ball_suppliers:'Waiting on suppliers',
+    ball_moving:'With your supplier', ball_done:'Closed',
+    ball_none_you:'No request matches that filter.',
+    hl_you_one:'1 request is waiting on you', hl_you_many:'requests are waiting on you',
+    hl_sup_one:'1 is waiting on suppliers', hl_sup_many:'are waiting on suppliers',
+    hl_mov_one:'1 is with your supplier', hl_mov_many:'are with your supplier',
+    hl_nothing:'Nothing is waiting on you — every open request is with suppliers.',
+    hl_all_quiet:'Nothing needs your attention right now.',
+    // ── what happens after you post ──
+    next_h:'What happens after you post',
+    next_1:'We structure your description into a request suppliers can price, and send it to matching UAE suppliers — without your name or number.',
+    next_2:'Their quotes come back onto this screen. Most requests get their first quote within 48 hours; you are emailed as each one arrives.',
+    next_3:'You compare them side by side for free. Supplier names stay hidden until you choose one.',
+    next_4:'Revealing a supplier costs 3% of that quote, and nothing else. It is refundable if they do not respond within 3 working days.',
     // ── shell ──
     nav_main:'Portal navigation', nav_work:'Work', nav_collaborate:'Collaborate', nav_intelligence:'Intelligence',
     nav_account:'Account', nav_overview:'Overview', nav_requests:'My requests', nav_more:'More',
@@ -156,6 +171,21 @@ const T = {
     savings_unknown:'يحتاج قياس التوفير المحتمل إلى عرضين على الأقل لنفس الطلب.',
     savings_potential:'التوفير المحتمل عبر عروضك',
     search_requests:'ابحث في طلباتك…', no_search_match:'لا يوجد طلب يطابق هذا البحث.',
+    // ── لدى من الدور ──
+    ball_all:'الكل', ball_you:'بانتظارك أنت', ball_suppliers:'بانتظار الموردين',
+    ball_moving:'مع مورّدك', ball_done:'مغلق',
+    ball_none_you:'لا يوجد طلب يطابق هذا التصفية.',
+    hl_you_one:'طلب واحد بانتظارك', hl_you_many:'طلبات بانتظارك',
+    hl_sup_one:'وطلب واحد بانتظار الموردين', hl_sup_many:'بانتظار الموردين',
+    hl_mov_one:'وطلب واحد مع مورّدك', hl_mov_many:'مع مورّدك',
+    hl_nothing:'لا شيء بانتظارك — كل طلب مفتوح لديك في يد الموردين.',
+    hl_all_quiet:'لا شيء يحتاج انتباهك الآن.',
+    // ── ماذا يحدث بعد النشر ──
+    next_h:'ماذا يحدث بعد أن ترسل طلبك',
+    next_1:'نحوّل وصفك إلى طلب يستطيع الموردون تسعيره، ونرسله إلى الموردين المطابقين في الإمارات — دون اسمك أو رقمك.',
+    next_2:'تعود عروضهم إلى هذه الشاشة. معظم الطلبات يصلها أول عرض خلال 48 ساعة، ويصلك بريد عند وصول كل عرض.',
+    next_3:'تقارنها جنبًا إلى جنب مجانًا. تبقى أسماء الموردين مخفية حتى تختار أحدهم.',
+    next_4:'كشف المورّد يكلّف 3% من قيمة عرضه، ولا شيء غير ذلك. وهو قابل للاسترداد إذا لم يردّ خلال 3 أيام عمل.',
     // ── الهيكل ──
     nav_main:'تنقل البوابة', nav_work:'العمل', nav_collaborate:'التعاون', nav_intelligence:'الذكاء',
     nav_account:'الحساب', nav_overview:'نظرة عامة', nav_requests:'طلباتي', nav_more:'المزيد',
@@ -510,6 +540,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   const [unread, setUnread] = useState(0);
   const [pd, setPd] = useState(null); const [pdFailed, setPdFailed] = useState(false);
   const [qtext, setQtext] = useState('');
+  const [ballFilter, setBallFilter] = useState('all');
   // my_inquiries carries the customer's stored locale (customer_api, 5 Aug 2026). This is the only
   // call the portal makes that has it — `me` serves it too, but the portal never calls `me`, which
   // is why the field was on the wire for months with nothing listening. The handler upstream
@@ -568,13 +599,35 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // the list it filters. Matching is over the fields a customer would actually recall about their
   // own request — what it was for, where, and its reference.
   const needle = qtext.trim().toLowerCase();
-  const shown = needle ? inqs.filter((i) => [i.summary, i.category, i.emirate, i.status, i.rfq_no].some((f) => String(f || '').toLowerCase().includes(needle))) : inqs;
   // Two facts the six old tiles could not state, both derived from rows already on screen:
   // how many requests are actually WAITING ON THE CUSTOMER (two or more quotes is the exact
   // condition under which a comparison exists to decide), and how many reveals they have paid for —
   // the only money a customer ever pays us, and the thing "Spend" was quietly standing in for.
   const awaiting = inqs.filter((i) => (i.quotes || []).length >= 2 && !(i.quotes || []).some((q) => q.revealed)).length;
   const reveals = inqs.filter((i) => (i.quotes || []).some((q) => q.revealed)).length;
+  // ── WHOSE MOVE IS IT ──────────────────────────────────────────────────────────────────────────
+  // "I wish I could see, on one screen, which of my requests is waiting on ME versus waiting on a
+  // supplier." The portal already knew this per request — it is exactly what the lifecycle pill
+  // says — but only one request at a time, and only if you read every rail on the page. The answer
+  // is a partition of rfqState, so it costs no request and CANNOT disagree with the pill on the row
+  // it summarises: same function, same input, one screen up.
+  const ballOf = (i) => {
+    const st = rfqState(i, i.quotes || []);
+    if (st === 'closed') return 'done';
+    if (st === 'revealed') return 'moving';          // you paid; you and the supplier are talking
+    if (st === 'matching') return 'suppliers';       // posted, nobody has quoted yet
+    return 'you';                                    // quoting / quotes_in — a decision is open
+  };
+  const ball = { you: 0, suppliers: 0, moving: 0, done: 0 };
+  for (const i of inqs) ball[ballOf(i)] += 1;
+  const liveCount = ball.you + ball.suppliers + ball.moving;
+  // Both filters are over the rows already on screen, so they cost no request and cannot disagree
+  // with the list they filter. Matching is over the fields a customer would actually recall about
+  // their own request — what it was for, where, and its reference.
+  const shown = inqs
+    .filter((i) => ballFilter === 'all' || ballOf(i) === ballFilter)
+    .filter((i) => !needle || [i.summary, i.category, i.emirate, i.status, i.rfq_no].some((f) => String(f || '').toLowerCase().includes(needle)));
+  const filtered = ballFilter !== 'all' || !!needle;
   const onlyRequests = view === 'requests';
   // WHERE THIS PORTAL CAN GO, WRITTEN OUT.
   //
@@ -603,6 +656,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     onSignOut={onSignOut} view={view} onView={navigate} token={token}
     customerName={(ov && ov.customer && ov.customer.name) || ''}
     unread={unread} alerts={alertsCount} alertList={(ov && ov.alerts) || []} order={ov && ov.layout && ov.layout.order}
+    suggestions={assistantOffers(lang, inqs, ballOf)}
   >
   {MODULES.some((m) => m[0] === view) ? (
     <ModuleWindow id={view} onClose={() => setView('home')} token={token} lang={lang} inqs={inqs} onChanged={refresh} twin={ov && ov.twin} />
@@ -625,9 +679,16 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
             {onlyRequests ? t(lang, 'nav_requests')
               : greetingOf(lang) + ((ov && ov.customer && ov.customer.name) ? ((lang === 'ar' ? '، ' : ', ') + ov.customer.name) : '')}
           </h1>
+          {/* THE HEADLINE ANSWERS "WHOSE MOVE IS IT", because that is the question the customer
+              opened the page with. ov.headline is written by customer_portal from the server's own
+              stats and does not know this list: on the screen measured 13 Aug it read "Nothing
+              needs your attention right now" directly above a tile saying one decision was
+              awaiting the customer. A sentence derived from the rows on screen cannot contradict
+              them. The server's headline is still shown when there are no requests to speak for. */}
           <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-relaxed text-muted-foreground">
             {onlyRequests
               ? (inqs.length + ' ' + t(lang, inqs.length === 1 ? 'req_one' : 'req_many'))
+              : liveCount ? ballHeadline(lang, ball)
               : ((ov && ov.headline) || t(lang, 'welcome_sub'))}
           </p>
         </div>
@@ -717,6 +778,23 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         </button>) : null}
     </div>
     {inqs.length > 0 && <input type="search" className={S.field} placeholder={t(lang, 'search_requests')} aria-label={t(lang, 'search_requests')} value={qtext} onChange={(e) => setQtext(e.target.value)} />}
+    {/* The same partition as the headline, as a filter. A chip with a zero behind it is not
+        rendered: a control that can only ever produce an empty list is a dead end with a number
+        on it. Same reasoning as the disabled "Compare quotes" quick action. */}
+    {inqs.length > 1 && (
+      <div className="mt-2.5 flex flex-wrap gap-2" role="group" aria-label={t(lang, 'your_requests')}>
+        {[['all', inqs.length], ['you', ball.you], ['suppliers', ball.suppliers], ['moving', ball.moving], ['done', ball.done]]
+          .filter(([k, n]) => k === 'all' || n > 0)
+          .map(([k, n]) => (
+            <button key={k} type="button" onClick={() => setBallFilter(k)} aria-pressed={ballFilter === k}
+              className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                ballFilter === k ? 'border-primary/45 bg-primary/12 text-primary' : 'border-border bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground')}>
+              {t(lang, 'ball_' + k)}
+              <span className="tabular-nums opacity-70">{n}</span>
+            </button>
+          ))}
+      </div>
+    )}
     {/* THE EMPTY STATE THAT TELLS THEM WHAT HAPPENS NEXT. It was one grey sentence in a box; on a
         brand-new account — which is every account on day one — it was the main thing on the screen.
         A first-time customer needs to know what posting a request actually does before they do it. */}
@@ -732,9 +810,10 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
           <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">{t(lang, 'empty_body')}</p>
           <Button className="mt-4 gap-1.5" onClick={() => setShowNew(true)}><Plus className="h-4 w-4" aria-hidden />{t(lang, 'post_first')}</Button>
         </div>
+        <WhatHappensNext lang={lang} />
       </Card>
-    ) : (needle && !shown.length) ? <Card className="mt-3 p-5"><div className={S.sub}>{t(lang, 'no_search_match')}</div></Card>
-      : needle ? <div className={cn(S.list, 'mt-3')}>{shown.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} />)}</div>
+    ) : (filtered && !shown.length) ? <Card className="mt-3 p-5"><div className={S.sub}>{t(lang, needle ? 'no_search_match' : 'ball_none_you')}</div></Card>
+      : filtered ? <div className={cn(S.list, 'mt-3')}>{shown.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} />)}</div>
       // The overview shows the five most recent and links to the full list; My requests shows all.
       // Mapped then sliced, rather than sliced then mapped, so this stays the dashboard's list over
       // `inqs` — the thing the entry-not-login-dashboard leg reads to tell a workspace carrying live
@@ -754,6 +833,81 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
 // a procurement customer actually does. Every one is a real destination that already exists — a new
 // request, the comparison inside a request, the drawing upload inside the intake, and the
 // assistant. Nothing here is a placeholder.
+// "I wish the assistant offered me the next thing instead of waiting to be asked."
+//
+// The panel opened with three constants — status / how many quotes / what next — shown identically
+// to an account that has never posted anything and to one with three quotes sitting undecided. The
+// first of those is unanswerable on a new account and the third is the only one that ever varies.
+//
+// These are built from the same rows the dashboard is already rendering, so the offer is about the
+// customer's actual position, and it names the request rather than describing a category of
+// request: "Which of the 3 quotes on my HVAC request should I choose?" is a question a procurement
+// manager would type; "What is the status of my requests?" is a menu item. Capped at three — a list
+// of offers long enough to need reading is a form.
+function assistantOffers(lang, inqs, ballOf) {
+  const ar = lang === 'ar';
+  const out = [];
+  const label = (i) => i.category || (ar ? 'طلبي' : 'my request');
+  if (!inqs.length) {
+    out.push(ar ? 'ماذا يحدث بعد أن أنشر طلبي؟' : 'What happens after I post a request?');
+    out.push(ar ? 'كم يكلّفني كشف مورّد؟' : 'What does it cost me to reveal a supplier?');
+    out.push(ar ? 'ما المعلومات التي يحتاجها المورّدون لتسعير عملي؟' : 'What do suppliers need to know to price my job?');
+    return out;
+  }
+  const decide = inqs.filter((i) => ballOf(i) === 'you');
+  const waiting = inqs.filter((i) => ballOf(i) === 'suppliers');
+  const moving = inqs.filter((i) => ballOf(i) === 'moving');
+  if (decide.length) {
+    const i = decide[0]; const n = (i.quotes || []).length;
+    out.push(ar ? `أي عرض من العروض الـ${n} على طلب ${label(i)} ينبغي أن أختار؟`
+                : `Which of the ${n} quotes on my ${label(i)} request should I choose?`);
+    out.push(ar ? 'كم سيكلّفني كشف المورّد صاحب أقل سعر؟' : 'What would it cost me to reveal the cheapest supplier?');
+  }
+  if (waiting.length && out.length < 3) {
+    const i = waiting[0];
+    out.push(ar ? `لماذا لم يصلني عرض بعد على طلب ${label(i)}؟` : `Why has no one quoted my ${label(i)} request yet?`);
+  }
+  if (moving.length && out.length < 3) {
+    out.push(ar ? 'ما الخطوة التالية مع المورّد الذي كشفته؟' : 'What happens next with the supplier I revealed?');
+  }
+  if (out.length < 3) out.push(t(lang, 'asst_s3'));
+  return out.slice(0, 3);
+}
+// "I wish it told me what happens after I post, without me having to ask."
+//
+// The empty state said the first request "takes about a minute" and that posting and comparing are
+// free. Both true, and neither answers the question a procurement manager is actually holding
+// before they hand a job to a platform they have not used: who sees this, when do I hear back, and
+// what does it cost me. The four steps are the product as it actually runs — the 3% and the 3
+// working days are pricing_config.standard_reveal_rate and refund_window_working_days, the same
+// two numbers customer_api charges on.
+function WhatHappensNext({ lang }) {
+  const steps = ['next_1', 'next_2', 'next_3', 'next_4'];
+  return (
+    <div className="mx-auto mt-6 max-w-[62ch] border-t border-border pt-5 text-start">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t(lang, 'next_h')}</div>
+      <ol className="mt-2.5 space-y-2.5">
+        {steps.map((k, n) => (
+          <li key={k} className="flex gap-3">
+            <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/12 text-[11px] font-bold text-primary tabular-nums">{n + 1}</span>
+            <span className="min-w-0 text-[13px] leading-relaxed text-muted-foreground">{t(lang, k)}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+// The headline sentence for the whose-move split. Built from counts, never from a template with a
+// zero in it: "0 requests are waiting on you" is a sentence no one should have to read.
+function ballHeadline(lang, ball) {
+  const parts = [];
+  if (ball.you) parts.push(ball.you === 1 ? t(lang, 'hl_you_one') : ball.you + ' ' + t(lang, 'hl_you_many'));
+  if (ball.suppliers) parts.push(ball.suppliers === 1 ? t(lang, 'hl_sup_one') : ball.suppliers + ' ' + t(lang, 'hl_sup_many'));
+  if (ball.moving) parts.push(ball.moving === 1 ? t(lang, 'hl_mov_one') : ball.moving + ' ' + t(lang, 'hl_mov_many'));
+  if (!parts.length) return t(lang, 'hl_all_quiet');
+  if (!ball.you) return t(lang, 'hl_nothing');
+  return parts.join(lang === 'ar' ? '، ' : ' · ') + '.';
+}
 function QuickActions({ lang, onNew, onView, comparable }) {
   const rtl = lang === 'ar';
   // A BUTTON THAT CANNOT DO ITS JOB SHOULD SAY SO, NOT PRETEND. "Compare quotes" navigated to My
@@ -968,12 +1122,28 @@ function DetailFacts({ inq, lang }) {
   if (!rows.length && !drawing) return null;
   return (<div className="rounded-lg border border-border bg-secondary/20 p-3"><div className={cn(S.sub, 'font-semibold mb-1.5 text-foreground')}>{lang === 'ar' ? 'تفاصيل الطلب' : 'Request details'}</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">{rows.slice(0, 14).map((r, i) => (<div key={i} className={S.sub}><span className="capitalize text-muted-foreground">{r[0]}: </span><span className="text-foreground">{r[1]}</span></div>))}</div>{drawing}</div>);
 }
+// A CODE IS NOT A SENTENCE. `note` is written by quote_compare FOR the customer ("not enough quotes
+// to compare yet") and is rendered as-is. `error` is written for us — and quote_compare's own catch
+// is `J({ error: String(e.message) }, 500)`, so an unhandled Postgres or Deno message would be
+// rendered as the whole card. MEASURED 13 Aug 2026 on a real request screen: a card containing the
+// single word `not_found`, between "Trades: hvac" and "Your request reached 9 suppliers".
+const compareErrText = (code, lang) => {
+  const c = String(code || '');
+  if (c === 'ai_unavailable') return lang === 'ar'
+    ? 'خدمة المقارنة غير متاحة مؤقتًا. عروضك محفوظة — يمكنك مقارنتها بنفسك أدناه والمحاولة لاحقًا.'
+    : 'The comparison service is briefly unavailable. Your quotes are safe — you can still compare them yourself below, and this will fill in when it returns.';
+  if (c === 'unauthorized') return lang === 'ar' ? 'انتهت جلستك. يُرجى تسجيل الدخول من جديد.' : 'Your session has expired. Please sign in again.';
+  if (c === 'not_your_inquiry') return lang === 'ar' ? 'هذا الطلب ليس ضمن طلباتك.' : 'That request is not on your account.';
+  return lang === 'ar'
+    ? 'تعذّر إعداد تقرير المقارنة. عروضك لم تتأثر — يُرجى المحاولة مرة أخرى.'
+    : 'We could not prepare the comparison report. Your quotes are unaffected — please try again.';
+};
 function Comparison({ inqId, token, lang }) {
-  const [a, setA] = useState(null); const [busy, setBusy] = useState(true); const [note, setNote] = useState('');
-  useEffect(() => { let on = true; setBusy(true); call('quote_compare', { inquiry_id: inqId, lang }, token).then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) setA(j.analysis); else setNote((j && (j.note || j.error)) || ''); }).catch(() => { if (on) { setBusy(false); } }); return () => { on = false; }; }, [inqId, lang]);
+  const [a, setA] = useState(null); const [busy, setBusy] = useState(true); const [note, setNote] = useState(''); const [code, setCode] = useState('');
+  useEffect(() => { let on = true; setBusy(true); setCode(''); call('quote_compare', { inquiry_id: inqId, lang }, token).then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) setA(j.analysis); else if (j && j.note) setNote(j.note); else if (j && j.error) { setCode(String(j.error)); setNote(compareErrText(j.error, lang)); } else setNote(''); }).catch(() => { if (on) { setBusy(false); } }); return () => { on = false; }; }, [inqId, lang]);
   const arr = (x) => Array.isArray(x) ? x : [];
   if (busy) return (<div className="rounded-lg border border-primary/30 bg-primary/5 p-3.5"><div className={cn(S.sub, 'text-primary')}>{lang === 'ar' ? 'يُعدّ خبيرنا تقرير المقارنة…' : 'Our expert is preparing your comparison report…'}</div></div>);
-  if (!a) return note ? (<div className="rounded-lg border border-border bg-secondary/20 p-3"><div className={S.sub}>{note}</div></div>) : null;
+  if (!a) return note ? (<div className="rounded-lg border border-border bg-secondary/20 p-3" title={code || undefined}><div className={S.sub}>{note}</div></div>) : null;
   return (<div className="rounded-lg border border-primary/30 bg-primary/5 p-3.5">
     <div className={cn(S.sub, 'font-bold text-primary mb-1')}>{(lang === 'ar' ? 'تقرير المقارنة من الخبير' : 'Expert comparison report') + (a.trade ? ' · ' + a.trade : '')}</div>
     {a.bottom_line ? <div className={cn(S.sub, 'text-foreground font-semibold mb-1.5')}>{a.bottom_line}</div> : null}

@@ -63,9 +63,25 @@ const CHANNELS = ['chat', 'whatsapp', 'email', 'call'];
 // for every customer who stored theirs with a +971 or a space.
 const digits = (v: unknown) => String(v ?? '').replace(/\D+/g, '').replace(/^00971/, '971').replace(/^0/, '971');
 
-async function otherChannels(cust: { id: string; phone?: string | null }) {
+// THE WHATSAPP CHANNEL NEEDS A VERIFIED NUMBER, NOT A TYPED ONE.
+//
+// wa_messages has no customer_id — the phone number is the only key, and this join was the only
+// thing standing between a customer and someone else's WhatsApp history with QuotesDone. It checked
+// that the number was PRESENT. `customers.phone` is whatever the account typed; `phone_verified` is
+// whether they proved they hold it. MEASURED 13 Aug 2026 on production: three customer rows, two of
+// them sharing one number, and one row carrying an UNVERIFIED number — which this join would have
+// honoured. E-mail needs no equivalent gate: it is joined on the address in the JWT, and the OTP
+// login is itself the proof of that address.
+//
+// The rule is exactly "can they already read this thread in WhatsApp?": whoever receives messages
+// at that number can, and verification is how we know they do. Both readers — the list here and
+// `channel_thread` — go through this one predicate.
+const waPhoneOf = (cust: { phone?: string | null; phone_verified?: boolean | null }) =>
+  cust.phone_verified === true ? digits(cust.phone) : '';
+
+async function otherChannels(cust: { id: string; phone?: string | null; phone_verified?: boolean | null }) {
   const out: any[] = [];
-  const phone = digits(cust.phone);
+  const phone = waPhoneOf(cust);
   if (phone.length >= 9) {
     const { data: wa } = await admin.from('wa_messages')
       .select('id,wa_from,wa_to,inbound,reply,created_at').order('created_at', { ascending: false }).limit(200);
@@ -110,7 +126,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
 
     const { data: supLead } = await admin.from('leads').select('id,company_name,banned').eq('claimed_by', email).maybeSingle();
-    const { data: cust } = await admin.from('customers').select('id,banned,phone,email').eq('email', email).maybeSingle();
+    // phone_verified is read here because waPhoneOf gates the WhatsApp channel on it — see the note
+    // above otherChannels. Selecting `phone` without it is what made an unverified number usable.
+    const { data: cust } = await admin.from('customers').select('id,banned,phone,email,phone_verified').eq('email', email).maybeSingle();
 
     if (action === 'threads') {
       const out: any[] = [];
@@ -134,6 +152,71 @@ Deno.serve(async (req) => {
         return J({ ok: true, role: 'customer', threads: out, channels: CHANNELS });
       }
       return J({ ok: true, role: null, threads: [] });
+    }
+
+    // ── OPENING ONE OF THE OTHER THREE CHANNELS ────────────────────────────────────────────────
+    // MEASURED 13 Aug 2026, as the customer: `threads` listed "QuotesDone on WhatsApp" (10 messages)
+    // and "QuotesDone by e-mail" (1 unread) for djzaino@outlook.com, and NOTHING could open either.
+    // otherChannels() returns a SUMMARY per channel with inquiry_id: null — and the only reader of a
+    // thread was `action: 'thread'`, which rejects a null inquiry_id at the door (400). So the count
+    // was served, the unread badge counted it, the row was clickable, and the messages behind it
+    // were unreachable from any customer-authed endpoint. A finished capability with no entry point.
+    //
+    // THE JOIN KEY IS THE CUSTOMER'S OWN IDENTITY, exactly as otherChannels already does it: their
+    // own phone on wa_messages, their own e-mail on inbound_messages, their own customer_id on
+    // customer_calls. Nothing is joined through a supplier, so this cannot leak the identity the
+    // reveal fee sells — the same safety story as the list it opens.
+    if (action === 'channel_thread') {
+      if (!cust) return J({ error: 'forbidden' }, 403);
+      const channel = String(body.channel || '');
+      if (channel === 'whatsapp') {
+        const phone = waPhoneOf(cust);
+        if (phone.length < 9) return J({ ok: true, channel, counterpart: 'QuotesDone on WhatsApp', messages: [], note: 'Your WhatsApp history appears here once your mobile number is verified on your account — we only match this channel to a number you have proven you hold.' });
+        const { data: wa } = await admin.from('wa_messages')
+          .select('id,wa_from,wa_to,inbound,reply,created_at').order('created_at', { ascending: false }).limit(200);
+        const mine = (wa || []).filter((m: Record<string, unknown>) => digits(m.wa_from) === phone || digits(m.wa_to) === phone);
+        // One row holds BOTH sides of the exchange: `inbound` is what the customer sent us and
+        // `reply` is what we sent back. Rendering it as one message would attribute their own words
+        // to us, so the row is split into the two messages it actually is.
+        const messages: Record<string, unknown>[] = [];
+        for (const m of mine.slice().reverse()) {
+          if (m.inbound) messages.push({ id: String(m.id) + ':in', sender: 'customer', body: clip(m.inbound, 4000), created_at: m.created_at });
+          if (m.reply) messages.push({ id: String(m.id) + ':out', sender: 'quotesdone', body: clip(m.reply, 4000), created_at: m.created_at });
+        }
+        return J({ ok: true, channel, counterpart: 'QuotesDone on WhatsApp', chat_status: 'open', messages });
+      }
+      if (channel === 'email') {
+        // Same strict address shape as otherChannels — an address that cannot appear in a PostgREST
+        // `or` filter unambiguously is not queried at all.
+        const cEmail = String((cust as Record<string, unknown>).email || '').toLowerCase();
+        if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(cEmail)) return J({ ok: true, channel, counterpart: 'QuotesDone by e-mail', messages: [] });
+        const { data: em } = await admin.from('inbound_messages')
+          .select('id,from_email,to_email,subject,ai_summary,body,created_at,replied_at')
+          .or(`from_email.eq.${cEmail},to_email.eq.${cEmail}`)
+          .order('created_at', { ascending: true }).limit(50);
+        const messages = (em || []).map((r: Record<string, unknown>) => ({
+          id: String(r.id), sender: String(r.from_email || '').toLowerCase() === cEmail ? 'customer' : 'quotesdone',
+          subject: r.subject || null, body: clip(r.body || r.ai_summary, 8000), created_at: r.created_at,
+          replied_at: r.replied_at || null,
+        }));
+        // Opening the thread is what "read" means on e-mail — there is no per-message read flag on
+        // inbound_messages, and `unread` is computed from replied_at, which only WE can set. So the
+        // badge is reported here rather than cleared: claiming it read would be a write we cannot
+        // honour, and a badge that clears without the thing behind it changing is a lie.
+        return J({ ok: true, channel, counterpart: 'QuotesDone by e-mail', chat_status: 'open', messages, unread_note: 'Unread here means our team has not replied yet.' });
+      }
+      if (channel === 'call') {
+        const { data: calls } = await admin.from('customer_calls')
+          .select('id,direction,status,started_at,duration_s,summary,inquiry_id')
+          .eq('customer_id', cust.id).order('started_at', { ascending: true }).limit(50);
+        const messages = (calls || []).map((c: Record<string, unknown>) => ({
+          id: String(c.id), sender: c.direction === 'inbound' ? 'customer' : 'quotesdone',
+          body: clip(c.summary || (String(c.direction || '') + ' call, ' + String(c.status || '')), 4000),
+          created_at: c.started_at, duration_s: c.duration_s ?? null, inquiry_id: c.inquiry_id || null,
+        }));
+        return J({ ok: true, channel, counterpart: 'Calls', chat_status: 'open', messages });
+      }
+      return J({ error: 'unknown channel' }, 400);
     }
 
     const inquiry_id = String(body.inquiry_id || ''); const supplier_id = Number(body.supplier_id || 0);
