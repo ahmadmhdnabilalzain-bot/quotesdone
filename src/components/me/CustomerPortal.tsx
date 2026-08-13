@@ -114,7 +114,9 @@ const T = {
     acct_saved:'Saved.', acct_unverified:'Not verified yet',
     acct_reverify:'Saved. Your new mobile needs verifying — reload this page and we will send you a code.',
     acct_phone_warn:'Changing your mobile will un-verify it. You will be asked to confirm the new number with a code before you can post a request.',
-    acct_device_note:'Appearance is remembered on this device. Your language is saved to your account and follows you to any device you sign in on.' },
+    acct_device_note:'Appearance is remembered on this device. Your language is saved to your account and follows you to any device you sign in on.',
+    req_one:'request', req_many:'requests',
+    qa_compare_off:'Needs a request with two or more quotes' },
   ar: { brand_sub:'طلباتي', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_requests:'جارٍ تحميل طلباتك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', create_account_title:'أنشئ حسابك',
     signup_sub:'أدخل بريدك الإلكتروني وسننشئ حسابك فورًا. ستضيف اسمك وتاريخ ميلادك وتتحقق من رقم جوالك في الخطوة التالية.',
@@ -186,7 +188,9 @@ const T = {
     acct_saved:'تم الحفظ.', acct_unverified:'لم يتم التحقق بعد',
     acct_reverify:'تم الحفظ. رقمك الجديد يحتاج إلى تحقق — أعد تحميل الصفحة وسنرسل لك رمزًا.',
     acct_phone_warn:'تغيير رقم جوالك سيلغي التحقق منه. سيُطلب منك تأكيد الرقم الجديد برمز قبل أن تتمكن من نشر طلب.',
-    acct_device_note:'يُحفظ المظهر على هذا الجهاز. أما لغتك فتُحفظ في حسابك وتتبعك على أي جهاز تسجّل الدخول منه.' }
+    acct_device_note:'يُحفظ المظهر على هذا الجهاز. أما لغتك فتُحفظ في حسابك وتتبعك على أي جهاز تسجّل الدخول منه.',
+    req_one:'طلب', req_many:'طلبات',
+    qa_compare_off:'يحتاج إلى طلب وردّه عرضان أو أكثر' }
 };
 const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
@@ -298,6 +302,27 @@ export function CustomerPortal() {
     try { const l = initLang(); if (l !== 'en') setLangState(l); } catch (_e) {}
     try { const tk = localStorage.getItem('qd-cust-token'); if (tk) { setToken(tk); setPhase('app'); } } catch (_e) {}
     SB.auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-cust-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-cust-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); } }).catch(() => {});
+    // THE PORTAL SIGNED PEOPLE OUT EVERY HOUR WHILE HOLDING A VALID REFRESH TOKEN (13 Aug 2026).
+    //
+    // A Supabase access token lives 60 minutes. This client is created with autoRefreshToken:true
+    // and the refresh token is stored, so supabase-js WAS quietly minting a fresh one on schedule —
+    // and nothing here listened. `call()` sends the `token` state captured at mount, so at the
+    // 60-minute mark every request began returning 401 and Authed showed "Your session has expired.
+    // Please sign in again." to a customer whose session had not expired at all. Found by leaving
+    // the portal open for an hour while clicking through it.
+    //
+    // One listener. TOKEN_REFRESHED carries the new access token; SIGNED_OUT carries null and must
+    // NOT be mistaken for a refresh failure, so the phase is only ever moved forward here.
+    let sub;
+    try {
+      sub = SB.auth.onAuthStateChange((_evt, ss) => {
+        const at = ss && ss.access_token;
+        if (!at) return;
+        setToken(at);
+        try { localStorage.setItem('qd-cust-token', at); if (ss.refresh_token) localStorage.setItem('qd-cust-refresh', ss.refresh_token); } catch (_e) {}
+      });
+    } catch (_e) {}
+    return () => { try { sub && sub.data && sub.data.subscription && sub.data.subscription.unsubscribe(); } catch (_e) {} };
   }, []);
   const setLang = (l) => { try { localStorage.setItem('qd-lang', l); } catch (_e) {} setLangState(l); };
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
@@ -394,13 +419,35 @@ function Login({ onAuth, lang }) {
 }
 function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, onServedLocale }) {
   const [k, setK] = useState(null); const [err, setErr] = useState('');
-  const load = () => { setErr(''); call('kyc', { action: 'state' }, token).then((j) => { if (j && j.error === 'unauthorized') setErr('unauth'); else setK(j || {}); }).catch(() => setErr('net')); };
+  // A 401 IS A QUESTION BEFORE IT IS A VERDICT. The stored access token can be an hour old — the
+  // page may have been restored from localStorage long after it was minted — and the refresh token
+  // beside it is still good. Ask for a new session ONCE before telling somebody their session has
+  // expired; the auth listener in CustomerPortal picks the new token up from there. If the refresh
+  // also fails, the session really is over and the message is true.
+  const load = (retried) => {
+    setErr('');
+    call('kyc', { action: 'state' }, token).then(async (j) => {
+      if (j && j.error === 'unauthorized') {
+        if (retried) { setErr('unauth'); return; }
+        try {
+          const rt = localStorage.getItem('qd-cust-refresh') || '';
+          const { data } = await SB.auth.refreshSession(rt ? { refresh_token: rt } : undefined);
+          if (data && data.session && data.session.access_token) return; // the listener re-renders with the new token
+        } catch (_e) {}
+        setErr('unauth');
+        return;
+      }
+      setK(j || {});
+    }).catch(() => setErr('net'));
+  };
   useEffect(() => { load(); }, [token]);
   if (err === 'unauth') return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'session_expired')}</div><Button className="w-full mt-3" onClick={onSignOut}>{t(lang, 'tab_signin')}</Button></Card></div></>;
-  if (err) return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'load_failed')}</div><Button className="w-full mt-3" onClick={load}>{t(lang, 'retry')}</Button></Card></div></>;
+  if (err) return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'load_failed')}</div>{/* () => load(), not load: a click handler passes the MouseEvent as the first argument, which
+        would arrive as `retried` and skip the one refresh attempt this retry exists to make. */}
+    <Button className="w-full mt-3" onClick={() => load()}>{t(lang, 'retry')}</Button></Card></div></>;
   if (!k) return <>{strip}<div className={S.center}>{t(lang, 'loading')}</div></>;
   const complete = k.full_name && k.phone_verified && k.email_verified && k.terms_signed;
-  if (!complete) return <>{strip}<ProfileGate token={token} lang={lang} onDone={load} /></>;
+  if (!complete) return <>{strip}<ProfileGate token={token} lang={lang} onDone={() => load()} /></>;
   return <Dashboard token={token} lang={lang} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang} onSignOut={onSignOut} onServedLocale={onServedLocale} />;
 }
 function ProfileGate({ token, lang, onDone }) {
@@ -566,15 +613,22 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         THE DUPLICATE IS GONE: the attention count and ov.headline both rendered "Nothing needs your
         attention right now." one under the other, in two differently-styled boxes, on the screen he
         opened. The count is a number and belongs on a tile; the headline is the sentence. */}
+    {/* EVERY DESTINATION SAYS WHERE YOU ARE. Clicking "My requests" used to leave the Overview's
+        "Good morning, ahmad test" at the top of it — the greeting is the Overview's identity, and a
+        page that borrows another page's title is a page you cannot tell you have arrived at. The
+        module panes each carry their own h1; these two now do too. */}
     <section className="mb-5 overflow-hidden rounded-2xl border border-border bg-card/70 p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="font-head text-[24px] font-extrabold leading-tight tracking-tight text-foreground sm:text-[28px]">
             {/* Arabic uses its own comma (U+060C) and puts no space before it. */}
-            {greetingOf(lang) + ((ov && ov.customer && ov.customer.name) ? ((lang === 'ar' ? '، ' : ', ') + ov.customer.name) : '')}
+            {onlyRequests ? t(lang, 'nav_requests')
+              : greetingOf(lang) + ((ov && ov.customer && ov.customer.name) ? ((lang === 'ar' ? '، ' : ', ') + ov.customer.name) : '')}
           </h1>
           <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-relaxed text-muted-foreground">
-            {(ov && ov.headline) || t(lang, 'welcome_sub')}
+            {onlyRequests
+              ? (inqs.length + ' ' + t(lang, inqs.length === 1 ? 'req_one' : 'req_many'))
+              : ((ov && ov.headline) || t(lang, 'welcome_sub'))}
           </p>
         </div>
         <Button size="sm" className="shrink-0 gap-1.5" onClick={() => setShowNew((v) => !v)}>
@@ -613,7 +667,8 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
       </div>
     ))}
 
-    {!onlyRequests && <QuickActions lang={lang} onNew={() => setShowNew(true)} onView={setView} />}
+    {!onlyRequests && <QuickActions lang={lang} onNew={() => setShowNew(true)} onView={navigate}
+      comparable={inqs.filter((i) => (i.quotes || []).length >= 2).length} />}
     {/* §2 THE PROFILE, ON THE ENTRY SCREEN. Six KPI tiles say what the customer has DONE; the twin
         says who they ARE — industry, live projects, the suppliers they keep coming back to, the
         categories they actually buy, their approval chain, and how much of that profile we hold.
@@ -699,11 +754,17 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
 // a procurement customer actually does. Every one is a real destination that already exists — a new
 // request, the comparison inside a request, the drawing upload inside the intake, and the
 // assistant. Nothing here is a placeholder.
-function QuickActions({ lang, onNew, onView }) {
+function QuickActions({ lang, onNew, onView, comparable }) {
   const rtl = lang === 'ar';
+  // A BUTTON THAT CANNOT DO ITS JOB SHOULD SAY SO, NOT PRETEND. "Compare quotes" navigated to My
+  // requests unconditionally, so on a new account — which is every account on day one — it landed
+  // the customer on an empty list with nothing to compare and no explanation. Comparison needs a
+  // request carrying at least TWO quotes; that is the same threshold quote_compare itself runs on.
+  // Below it the control is disabled and carries the reason, rather than spending a click on a
+  // dead end.
   const rows = [
     { icon: Plus, label: 'qa_new', run: onNew },
-    { icon: Scale, label: 'qa_compare', run: () => onView('requests') },
+    { icon: Scale, label: 'qa_compare', run: () => onView('requests'), off: comparable === 0, why: 'qa_compare_off' },
     { icon: Upload, label: 'qa_upload', run: onNew },
     { icon: Sparkles, label: 'qa_ask', run: () => { const el = document.getElementById('qd-ask'); if (el) el.focus(); } },
   ];
@@ -712,12 +773,16 @@ function QuickActions({ lang, onNew, onView }) {
       <h2 className="mb-2 font-head text-[13px] font-bold uppercase tracking-[0.08em] text-muted-foreground/70">{t(lang, 'quick_actions')}</h2>
       {/* One column below 420px: at 375 a two-up grid truncated every label to "New req…". */}
       <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 lg:grid-cols-4">
-        {rows.map(({ icon: Icon, label, run }) => (
-          <button key={label} type="button" onClick={run}
-            className="group flex items-center gap-3 rounded-xl border border-border bg-card/60 px-3.5 py-3 text-start transition-[border-color,transform] duration-200 hover:border-primary/40 motion-safe:hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary"><Icon className="h-4 w-4" aria-hidden /></span>
-            <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">{t(lang, label)}</span>
-            <ArrowRight className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5', rtl && 'rotate-180 group-hover:-translate-x-0.5')} aria-hidden />
+        {rows.map(({ icon: Icon, label, run, off, why }) => (
+          <button key={label} type="button" onClick={run} disabled={!!off} title={off ? t(lang, why) : undefined}
+            className={cn('group flex items-center gap-3 rounded-xl border border-border bg-card/60 px-3.5 py-3 text-start transition-[border-color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              off ? 'cursor-not-allowed opacity-55' : 'hover:border-primary/40 motion-safe:hover:-translate-y-0.5')}>
+            <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-lg', off ? 'bg-secondary/60 text-muted-foreground' : 'bg-primary/12 text-primary')}><Icon className="h-4 w-4" aria-hidden /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-semibold text-foreground">{t(lang, label)}</span>
+              {off ? <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{t(lang, why)}</span> : null}
+            </span>
+            {!off ? <ArrowRight className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5', rtl && 'rotate-180 group-hover:-translate-x-0.5')} aria-hidden /> : null}
           </button>
         ))}
       </div>
