@@ -106,5 +106,59 @@ check('every refusal or recovery carries its attempt count',
   (Number(j2?.verify_failed) === 0 && !/"recovered"/.test(d2)) || retried,
   `verify_failed=${j2?.verify_failed}, detail=${d2.slice(0, 200)}`);
 
+// ── case 3: an ADVERSARIAL page, built to defeat the first pass ────────────────────────────────
+//
+// WHY IT EXISTS. Cases 1 and 2 both pass the verifier on the first attempt, so neither has ever
+// reached the retry — the thing this file is named after. Reported as "unexercised" for days,
+// which is true and useless: it does not say whether the retry works or whether the first pass is
+// simply good.
+//
+// drawing_watermarked.png is aimed at the gap in that reasoning. Redaction of a drawing is aimed
+// at TITLE BLOCKS and CORNERS — the note at the retry site says so outright, and the two refusals
+// it has ever seen were a corner logo and a REVISIONS block. This fixture carries the identity
+// TWICE: once in a title block bottom-right where a first pass expects it, and once as a 46pt
+// watermark rotated -28 degrees straight across the middle of the sheet, over the drawing itself,
+// where nothing is aimed.
+//
+// WHAT HAPPENED, 13 Aug 2026 on staging: it passed on the FIRST attempt, verify_detail [], and the
+// published JPG was pulled out of storage and LOOKED AT rather than trusted. Both watermark lines
+// and the whole title block are blacked out; nothing identifying survives. So the retry is still
+// unexercised, and the reason is now measured rather than assumed: the first pass keeps winning,
+// including against a page built specifically to beat it.
+//
+// DO NOT TREAT A PASS HERE AS PROOF THE RETRY WORKS. It proves the opposite is not needed on this
+// input. The retry branch stays unexecuted until a page genuinely refuses.
+console.log('\n── case 3: an adversarial page — identity in a diagonal watermark, away from the title block ──');
+const watermarked = readFileSync('scripts/staging/fixtures/drawing_watermarked.png').toString('base64');
+const t2 = Date.now();
+const r3 = await fetch(`https://${REF}.supabase.co/functions/v1/drawing_redact`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ __secret: secret, images: [{ mime: 'image/png', data: watermarked }] }),
+});
+const j3 = await r3.json().catch(() => ({}));
+console.log(`drawing_redact HTTP ${r3.status} in ${((Date.now() - t2) / 1000).toFixed(1)}s: ${JSON.stringify(j3).slice(0, 600)}`);
+check('case 3 answered 200', r3.status === 200, `HTTP ${r3.status}`);
+check('case 3 accounted for every page', j3 && (j3.pages_out + j3.skipped) === j3.pages_in,
+  `out=${j3?.pages_out} skipped=${j3?.skipped} in=${j3?.pages_in}`);
+// THE GATE IS THE ASSERTION, not the yield. A page the verifier refused must never be published,
+// whether it refused once or twice.
+check('case 3 published nothing the verifier refused', j3 && j3.pages_out === j3.pages_verified,
+  `pages_out=${j3?.pages_out} pages_verified=${j3?.pages_verified}`);
+const d3 = JSON.stringify(j3?.verify_detail || []);
+const retried3 = /"attempts":\s*2/.test(d3);
+console.log(`INFO  case 3 verify_detail: ${d3.slice(0, 500)}`);
+console.log(`INFO  a second attempt ${retried3 ? 'RAN — the retry path is exercised' : 'did not run; the first pass cleared this page too'}`);
+check('case 3 records an attempt count whenever it refused or recovered',
+  (Number(j3?.verify_failed) === 0 && !/"recovered"/.test(d3)) || retried3,
+  `verify_failed=${j3?.verify_failed}, detail=${d3.slice(0, 200)}`);
+
 console.log(failures ? `\nFAILURES: ${failures}` : '\nALL CHECKS PASSED');
+// SAY IT OUT LOUD RATHER THAN LEAVING IT TO BE INFERRED FROM A GREEN RUN. Three fixtures, none
+// refused, so the retry branch has still never executed. A green run of this file means the gate
+// held and the ledger is honest — it does NOT mean the retry works.
+const anyRetry = [d2, d3].some((d) => /"attempts":\s*2/.test(d));
+console.log(anyRetry
+  ? 'RETRY PATH: exercised in this run.'
+  : 'RETRY PATH: STILL UNEXERCISED — all fixtures passed on the first attempt. Do not quote a yield, '
+    + 'and do not read a green run above as evidence that the retry works.');
 process.exit(failures ? 1 : 0);
