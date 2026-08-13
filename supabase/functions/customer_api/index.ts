@@ -515,8 +515,28 @@ Deno.serve(async (req) => {
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'Not signed in' }, 401);
     const email = user.email.toLowerCase();
-    let { data: cust } = await admin.from('customers').select('*').eq('email', email).maybeSingle();
-    if (!cust) { const ins = await admin.from('customers').insert({ email }).select('*').maybeSingle(); cust = ins.data; }
+    // THIS ENDPOINT USED TO MANUFACTURE A CUSTOMER ACCOUNT FOR WHOEVER CALLED IT (13 Aug 2026).
+    //
+    //     if (!cust) { await admin.from('customers').insert({ email }) ... }
+    //
+    // Any authenticated identity that touched customer_api became a customer. Measured: the
+    // duplicate management@quotesdone.com row was retired at 20:30 and a NEW one appeared at
+    // 21:01:05 with a different id, full_name null and phone null - the exact shape of
+    // insert({ email }), and this is the only line in the estate that writes it. The admin address
+    // is admin_emails[0]; it is not a buyer, and a buyer account under it is what made the identity
+    // defect read as "the account screen shows the wrong e-mail" in the first place.
+    //
+    // It is also redundant on the legitimate path: login_otp's email branch already inserts the
+    // customers row when a real customer verifies their code (the 12 Aug fix - a first-time
+    // customer had no row to UPDATE, so email_verified stayed false and every RFQ was refused).
+    // A customer JWT can only come from mintSession there, so by the time anyone reaches this line
+    // with a genuine buyer session the row exists. What was left was the case this must NOT serve:
+    // staff and admin sessions silently acquiring buyer accounts.
+    //
+    // Refusing matches what stripe_checkout and stripe_confirm already answer on the same
+    // condition ('No customer profile', 403) rather than inventing a new vocabulary for it.
+    const { data: cust } = await admin.from('customers').select('*').eq('email', email).maybeSingle();
+    if (!cust) return J({ error: 'No customer profile', hint: 'This signed-in identity has no customer account. Customer accounts are created when a buyer verifies their sign-in code, not by reading this endpoint.' }, 403);
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
     // BANNED CUSTOMER (27 Jul 2026). messages_api auto-bans a buyer who pushes contact details
     // off-platform (it writes customers.banned = true) but customer_api never read that column,
