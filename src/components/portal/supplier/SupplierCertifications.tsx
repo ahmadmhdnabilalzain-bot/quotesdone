@@ -16,6 +16,7 @@
 // guarding against.
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
 
 type Lang = 'en' | 'ar';
 type Cert = {
@@ -28,8 +29,8 @@ type Payload = {
   summary?: { held?: number; total?: number; expired?: number; expiring?: number; blocking_missing?: number };
 };
 
-const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const FN = SUPA_FN;
+const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
   const r = await fetch(FN + '/' + path, {

@@ -18,6 +18,7 @@
 // "not recorded", never "0 units", because 0 units means out of stock and that is a different claim.
 import React, { useEffect, useState } from 'react';
 import SupplierCatalogUpload from './SupplierCatalogUpload';
+import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
 
 type Variant = {
   sku?: string | null; attributes?: Record<string, unknown> | null;
@@ -38,8 +39,8 @@ type Payload = {
 };
 type Lang = 'en' | 'ar';
 
-const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const FN = SUPA_FN;
+const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
   const r = await fetch(FN + '/' + path, {

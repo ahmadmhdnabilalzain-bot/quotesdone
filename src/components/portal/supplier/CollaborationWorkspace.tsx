@@ -19,6 +19,7 @@
 // timeline.pct is NULL before anything has happened, not 0%. A relationship that has not started is
 // not a relationship that is 0% complete.
 import React, { useCallback, useEffect, useState } from 'react';
+import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
 
 type FileRow = { name?: string | null; kind?: string | null; category?: string; created_at?: string };
 type Workspace = {
@@ -37,8 +38,8 @@ type Payload = {
 };
 type Lang = 'en' | 'ar';
 
-const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const FN = SUPA_FN;
+const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
   const r = await fetch(FN + '/' + path, {
