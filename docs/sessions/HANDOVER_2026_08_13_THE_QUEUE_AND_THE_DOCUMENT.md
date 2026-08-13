@@ -455,3 +455,41 @@ saying anything about a portal.
 
 **Next session starts here, before anything else on the list.** This is the product a customer
 sees, and he has now seen it.
+
+### Addendum 2 — root cause of the "supplier tabs", found before starting the overhaul
+
+`/en/me` renders `CustomerPortal` BARE — `src/app/[locale]/me/page.tsx` is three lines and adds no
+shell. `CustomerPortal.tsx` itself has exactly two tabs, Sign in / Create account, and no supplier
+surface anywhere in its 1,046 lines. So the irrelevant tabs are not in the portal at all.
+
+They are in **`src/components/SiteHeader.tsx`**, which renders ONE STATIC AUDIENCE-BLIND NAV on
+every page of the site, including the signed-in customer portal:
+
+```
+{ href: '/#how',   label: how }        marketing anchor, dead on /me
+{ href: '/#why',   label: why }        marketing anchor, dead on /me
+{ href: '/portal', label: suppliers }  THE SUPPLIER PORTAL, shown to a signed-in customer
+{ href: '/blog/',  label: blog }
+```
+
+Two defects in one array. The `/#how` and `/#why` anchors point at sections of the HOME page, so on
+`/me` they are links that scroll nowhere. And `/portal` invites a customer into the supplier portal.
+
+**The fix is not to delete items from the list — it is that the list has no concept of audience.**
+The header must know who is looking at it and render their navigation: a signed-in customer wants
+My requests / New request / Quotes / Account, not four marketing links. The data to decide already
+exists client-side (the portal holds the session) and server-side (`fn_identify_contact`).
+
+**Scope of the overhaul the founder asked for, in his words: "think of yourself doing an upgrade to
+a company like Oracle. that's the standard at least."** Not only visuals — functionality. Three
+tracks:
+
+1. **Audience-correct navigation and information architecture** (root cause above).
+2. **The assistant.** He calls the widget "a dumb chat bot". Compare it against `wa_inbound`, which
+   received `fn_wa_context` on 13 Aug and now answers from live scoped data; the site widget may
+   still be on the older FAQ-and-facts prompt with no live context. Diagnose before rewriting.
+3. **The visual design.** "Extremely basic, static, super outdated."
+
+**And the standing rule this earned: open it in a browser first.** Every one of his three findings
+is visible in ten seconds on the rendered page and invisible in the source — which is how they
+survived a session that read the source and never looked.
