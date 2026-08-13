@@ -176,10 +176,10 @@ export function PredictiveIntelligence({ token, lang = 'en', horizonDays = 365, 
   return (
     <section className={cn('flex flex-col gap-4', className)} dir={lang === 'ar' ? 'rtl' : 'ltr'} aria-labelledby="qd-predict">
       <header>
-        <h2 id="qd-predict" className="text-xl font-extrabold text-foreground">
-          {tr(lang, 'predict')}
-        </h2>
-        <p className="mt-1 max-w-[76ch] text-[13px] leading-relaxed text-muted-foreground">{tr(lang, 'predict_sub')}</p>
+        {/* ModuleWindow already renders "What you may need next" as the h1. This heading also said
+            "What you WILL need next" one line under a nav item that says "may" - a forecast built
+            from an account with no history does not get to promise. See the note in OrdersList. */}
+        <p id="qd-predict" className="max-w-[76ch] text-[13px] leading-relaxed text-muted-foreground">{tr(lang, 'predict_sub')}</p>
       </header>
 
       {error ? (

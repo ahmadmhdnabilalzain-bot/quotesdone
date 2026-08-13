@@ -157,8 +157,29 @@ Deno.serve(async (req) => {
         return J({ error: AMBIGUOUS_MSG, ambiguous: true }, 409);
       }
       const acctEmail = owner ? owner.email : null;
-      // Do not send (and pay for) an SMS to a number that has no account. Tell the user first.
-      if (!acctEmail && !allowSignup) return J({ error: "This mobile number isn't linked to a QuotesDone account yet. Please sign in with the email you registered with, or create your account first.", no_account: true }, 404);
+      // AN UNKNOWN NUMBER IS REFUSED WHETHER OR NOT THE CALLER SAID "SIGN ME UP" (13 Aug 2026).
+      //
+      // allow_signup used to let this through to Twilio, and the flow could not complete: `send`
+      // writes the phone_verifications row with email:'' for an unknown number, and `verify` then
+      // has no account to resolve, so it answers "No account is registered with this number.
+      // Please sign in with your email, or sign up first." - to somebody who had just tapped sign
+      // up, AFTER we had paid to text them. Measured end to end: send returned 200 known:false and
+      // left a row with an empty email.
+      //
+      // It is not a bug to fix by making verify create the account. Email is the identity here
+      // (customers_email_lower_uidx), so an account created from a handset alone would have no
+      // identity at all - no address to send a quote to, nothing for the ~20 server-side lookups
+      // that key on email, and nothing a second device could ever sign in with. A phone confirms
+      // an identity; it cannot mint one. So the sign-up path is email, and the refusal now happens
+      // before the spend and says what to do instead.
+      if (!acctEmail) {
+        if (allowSignup) {
+          await logRun('error', { sms_signup_refused: 1, kind }, 'login_otp refused to send a sign-up SMS to a number with no account. No SMS was sent and no Twilio charge was incurred. This is deliberate: email is the identity, so a phone alone cannot create an account, and letting this through only produced a paid-for code that verify would refuse. Sign-up is by email.');
+          return J({ error: 'We cannot create an account from a mobile number - your email address is what identifies your account. Please sign up with your email, and you can add your mobile straight afterwards.', no_account: true, signup_by_email: true }, 404);
+        }
+        // Do not send (and pay for) an SMS to a number that has no account. Tell the user first.
+        return J({ error: "This mobile number isn't linked to a QuotesDone account yet. Please sign in with the email you registered with, or create your account first.", no_account: true }, 404);
+      }
       const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet. Please sign in with your email.' }, 503);
 
       // Caller-level and global ceilings. Checked BEFORE the Twilio call so a blocked attempt costs nothing.
