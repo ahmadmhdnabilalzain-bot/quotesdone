@@ -6,6 +6,7 @@
 //   node --test scripts/checks/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
 import { readSource, extractDispatched, extractClassification } from './extract_os_actions.mjs';
 
 const src = readSource();
@@ -22,6 +23,61 @@ test('every dispatched action is explicitly classified', () => {
   assert.deepEqual(missing, [],
     `these os_api actions have no classification: ${missing.join(', ')}. ` +
     'Add each to ACTION_CLASS and to public.control_mode_action before shipping.');
+});
+
+// ── THE SECOND LIST, WHICH THIS FILE KNEW ABOUT AND NEVER CHECKED ──────────────────────────────
+//
+// The test above already tells you to "add each to ACTION_CLASS and to public.control_mode_action".
+// It then only ever compared the code against ITSELF. Both gates refuse independently — that is
+// the design — but nothing kept the two lists in step, and by 13 Aug 2026 they had drifted by
+// eleven: ACTION_CLASS 73, control_mode_action 90, and 11 actions in the code that the database
+// had never heard of.
+//
+// The symptom was not a quiet one, it was just aimed at the wrong person. The database gate refuses
+// an unregistered action with `action_classification_required`, and the console renders that as the
+// Control Mode panel — so opening System Health asked the founder for a code sent to his phone in
+// order to look at a dashboard. Eight of the eleven were read_only.
+//
+// ONLY ONE DIRECTION IS ASSERTED, and the reason is measured rather than assumed. The first draft
+// also asserted the reverse — registered in the database, absent from the code — and it failed on
+// 28 actions: action_decide, po_approve, cancel_inquiry, gl_post, task_create and the rest. They
+// are all dispatched by os_ops. control_mode_action is SHARED across os_api and os_ops, so this
+// file cannot see the whole of the other side and an assertion that it can would fail for a
+// non-reason on every run. The direction that matters is checked: an action the code will dispatch
+// and the database will refuse is the one that reaches a human as a challenge.
+const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
+  || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
+
+test('every classified action is registered in public.control_mode_action, with the same classification', async (t) => {
+  if (!mgmtToken) {
+    t.skip('no SUPABASE_ACCESS_TOKEN and no local access token, so the database gate cannot be read. '
+      + 'The two lists are compared from a session that has the management token; the code-only '
+      + 'assertions above still ran.');
+    return;
+  }
+  const r = await fetch('https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/database/query', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + mgmtToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: 'select action, classification from public.control_mode_action' }),
+  });
+  assert.ok(r.ok, `could not read control_mode_action: ${r.status}`);
+  const rows = await r.json();
+  const db = new Map(rows.map((x) => [x.action, x.classification]));
+
+  const missing = [...classified.keys()].filter((a) => !db.has(a)).sort();
+  assert.deepEqual(missing, [], `classified in os_api but NOT registered in public.control_mode_action: `
+    + `${missing.join(', ')}. The database gate refuses these as unclassified, and the console shows `
+    + `that refusal to the founder as a Control Mode challenge — including for read_only screens.`);
+
+  const disagree = [...classified].filter(([a, c]) => db.has(a) && db.get(a) !== c)
+    .map(([a, c]) => `${a}: code=${c} db=${db.get(a)}`).sort();
+  assert.deepEqual(disagree, [], `the two gates classify these differently: ${disagree.join('; ')}`);
+
+  // Reported, never asserted — see the note above: the table is shared with os_ops, so a row this
+  // file cannot account for is usually os_ops's and not a fault.
+  const dbOnly = [...db.keys()].filter((a) => !classified.has(a));
+  console.log(`os_api actions: ${classified.size} classified, all registered. `
+    + `control_mode_action holds ${db.size}, of which ${dbOnly.length} belong to another function (os_ops).`);
 });
 
 test('no classification is left behind for an action that no longer exists', () => {
