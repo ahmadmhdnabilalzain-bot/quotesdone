@@ -920,7 +920,19 @@ function QuickActions({ lang, onNew, onView, comparable }) {
     { icon: Plus, label: 'qa_new', run: onNew },
     { icon: Scale, label: 'qa_compare', run: () => onView('requests'), off: comparable === 0, why: 'qa_compare_off' },
     { icon: Upload, label: 'qa_upload', run: onNew },
-    { icon: Sparkles, label: 'qa_ask', run: () => { const el = document.getElementById('qd-ask'); if (el) el.focus(); } },
+    // A BUTTON HAS TO DO SOMETHING WHERE THE FINGER IS. This focused #qd-ask and stopped there: on
+    // the dashboard that put a caret in a field at the top of the page and changed nothing else,
+    // and at 375 the top bar collapses the field to an icon, so "Ask the assistant" moved a caret
+    // the customer could not see. Submitting the empty form is the shell's own path to opening the
+    // panel (submitAsk: no text -> setAsstOpen(true)), so this reuses it rather than adding a
+    // second way in that could disagree with the first.
+    { icon: Sparkles, label: 'qa_ask', run: () => {
+      const el = document.getElementById('qd-ask');
+      if (!el) return;
+      el.focus();
+      const form = el.closest('form');
+      if (form) form.requestSubmit();
+    } },
   ];
   return (
     <section className="mb-5" aria-label={t(lang, 'quick_actions')}>
