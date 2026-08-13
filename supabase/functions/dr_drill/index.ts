@@ -119,7 +119,42 @@ Deno.serve(async (req)=>{
     }
     // Clears anything older than three minutes rather than the whole table, so nothing another
     // chain is mid-way through is ever deleted underneath it.
-    const { error:wipeErr } = await sb.from('dr_restore').delete().lt('drill_at', new Date(Date.now()-180e3).toISOString());
+    // BATCHED, BECAUSE ONE STATEMENT COULD NOT FINISH (13 Aug 2026).
+    //
+    // This was a single conditional DELETE. On 12 Aug at 20:31 it returned "canceling statement due
+    // to statement timeout" against a dr_restore holding a quarter of a million rows, and the drill
+    // then counted three runs stacked on top of each other:
+    //
+    //   kb_chunks      95,983 expected   287,949 restored   exactly 3x
+    //   dept_library    1,456 expected     4,368 restored   exactly 3x
+    //   ops_knowledge   3,735 expected    11,205 restored   exactly 3x
+    //
+    // It reported 7 of 11 tables "not proven restorable". The backups were fine — the two runs at
+    // 20:35 and 20:40, once the table was small enough to clear, both came back 11/11 with 0 failed.
+    // What actually failed was the drill's own housekeeping, and the failure mode is the dangerous
+    // one: not "the backup is bad" but "the verdict on the backup cannot be trusted".
+    //
+    // TRUNCATE is NOT the fix. The predicate is load-bearing — see the comment above: anything
+    // another chain is mid-way through must survive, and the 180-second guard is a check-then-act
+    // that a table-wide wipe would race. Bounded passes keep the predicate and keep every statement
+    // small enough to finish. 40 x 5,000 clears 200,000 rows; the loop stops early the moment a
+    // pass comes back empty, which is the normal case.
+    let wiped = 0, wipePasses = 0; let wipeErr: { message?: string } | null = null;
+    const cutoff = new Date(Date.now()-180e3).toISOString();
+    for (; wipePasses < 40; wipePasses++) {
+      const { data: stale, error: selErr } = await sb.from('dr_restore').select('id').lt('drill_at', cutoff).limit(5000);
+      if (selErr) { wipeErr = selErr; break; }
+      if (!stale || !stale.length) break;
+      const { error: delErr } = await sb.from('dr_restore').delete().in('id', stale.map((r: { id: number }) => r.id));
+      if (delErr) { wipeErr = delErr; break; }
+      wiped += stale.length;
+    }
+    // Still not empty after the pass budget is the same untrustworthy state as a timeout, and is
+    // reported as such rather than being carried silently into the row counts.
+    if (!wipeErr && wipePasses >= 40) {
+      const { count: left } = await sb.from('dr_restore').select('*', { count:'exact', head:true }).lt('drill_at', cutoff);
+      if (left) wipeErr = { message: 'cleared '+wiped+' row(s) in 40 passes and '+left+' still remain' };
+    }
     if(wipeErr) failNotes.push('Could not clear the dr_restore staging table before the drill, so restored-row counts are compared against leftover rows from a previous run and the drill result cannot be trusted: '+String(wipeErr.message||wipeErr)+'. ');
     queue = TABLES.map(([t,key])=>({ t, key, page:0, rows:0, restored:0, key_ok:null, npages:-1 }));
   }
