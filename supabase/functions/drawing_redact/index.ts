@@ -40,6 +40,51 @@ Weigh what you report. A page is refused entirely on your answer, and refusing a
 Return STRICT JSON ONLY: {"clean": true, "found": []} or {"clean": false, "found": ["consultant name top right", "phone number in title block"]}.
 If you cannot read the image, or you are unsure, answer {"clean": false, "found": ["uncertain"]}.`;
 
+// THE SECOND PASS WAS BEING TOLD EXACTLY WHERE TO LOOK AND NOBODY LISTENED.
+//
+// verifyPage returns a precise, located list — "Company name/logo visible in bottom right corner
+// (appears to be a triangular architectural firm logo with text)", "REVISIONS block in the title
+// block area". That list was written to drawing_redaction_runs.verify_detail and used for nothing
+// else: the loop below did `skipped++; continue`. So the system knew what was still showing, knew
+// roughly where, and published nothing — on a product whose whole promise is that a customer can
+// share a drawing.
+//
+// The blanket right-22%/bottom-12% fallback that was tried and removed on 13 Aug failed because it
+// was aimed at a GUESS about where identity lives. This is aimed at the answer: the detector gets a
+// second look at ONE page with the verifier's own findings as its brief, and covers those. Bounded
+// to a single extra attempt per refused page, so a drawing costs at most one extra detect and one
+// extra verify per page that actually failed.
+const RETRY_SYS = `You are re-redacting ONE page of a construction drawing that has already been redacted once and REFUSED by an independent checker. You are given the page exactly as it stands now, and the checker's own list of what is STILL visible.
+Your job is to cover EXACTLY what the checker named, and nothing else. Work out where each named item is on the page and return a box over it, generously sized — a box slightly too big is free, a box slightly too small means the page is refused again.
+Do NOT cover the technical drawing, dimensions, room names, grid bubbles, north arrow, legend symbols, view titles, scale notations or note text. Those are what the supplier needs in order to quote, and the checker has been told not to report them.
+Areas already filled solid black are done; do not box them again.
+Return STRICT JSON ONLY: {"regions":[{"x":0.80,"y":0.88,"w":0.20,"h":0.12}]} — x,y,w,h are fractions 0..1 of the page (x,y = top-left corner). If you genuinely cannot locate any of the named items, return {"regions":[]}.`;
+
+// A FAILED MEASUREMENT IS NOT A LEAK. The verifier is instructed to answer "uncertain" when it
+// cannot read the image, and this function's own error paths emit verify_truncated /
+// verify_unparseable / verify_exception. Those four say NOTHING about whether the page is clean —
+// they say the check did not run. Masking more of the page in response is aiming at nothing; the
+// right answer is to ask again. A page that stays unreadable is still refused, so the gate holds.
+const NO_ANSWER = new Set(['uncertain', 'verify_truncated', 'verify_unparseable', 'verify_exception']);
+const isNoAnswer = (found: string[]) => found.length > 0 && found.every((f) => NO_ANSWER.has(String(f).trim()));
+
+async function retryRegions(key: string, jpgB64: string, found: string[]): Promise<Array<{x:number;y:number;w:number;h:number}>> {
+  try {
+    const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: key, fn: 'drawing_redact', temperature: 0, sys: RETRY_SYS,
+        input: [{ role: 'user', content: [
+          { type: 'text', text: 'The checker refused this page. It reported, verbatim:\n- ' + found.join('\n- ') + '\n\nCover exactly those. Return the JSON.' },
+          { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + jpgB64 } }] }] }) });
+    const jd = await r.json();
+    if (jd?.truncated === true || jd?.finish_reason === 'length') return [];
+    const parsed = parseJson(jd?.content || '');
+    const regions = Array.isArray(parsed?.regions) ? parsed.regions : [];
+    return regions
+      .map((g: any) => ({ x: Number(g.x) || 0, y: Number(g.y) || 0, w: Number(g.w) || 0, h: Number(g.h) || 0 }))
+      .filter((g: any) => g.w > 0 && g.h > 0);
+  } catch (_e) { return []; }
+}
+
 async function verifyPage(key: string, jpgB64: string): Promise<{ clean: boolean; found: string[] }> {
   try {
     const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -179,16 +224,20 @@ Deno.serve(async (req) => {
         const b = (imgs[i] && (imgs[i].b64 || imgs[i].data)) || imgs[i];
         let img = await Image.decode(b64ToBytes(String(b)));
         if (img.width > MAXW) img = img.resize(MAXW, Image.RESIZE_AUTO);
-        const W = img.width, H = img.height;
-        for (const g of regions) {
-          let x = Math.floor((g.x - MARGIN) * W), y = Math.floor((g.y - MARGIN) * H);
-          let w = Math.ceil((g.w + 2 * MARGIN) * W), h = Math.ceil((g.h + 2 * MARGIN) * H);
-          x = Math.max(0, Math.min(x, W - 1)); y = Math.max(0, Math.min(y, H - 1));
-          w = Math.max(1, Math.min(w, W - x)); h = Math.max(1, Math.min(h, H - y));
-          const box = new Image(w, h).fill(0x000000ff);
-          img.composite(box, x, y);
-        }
-        const jpg = await img.encodeJPEG(82);
+        // Boxing is its own step now because the retry below has to do it again, with regions the
+        // verifier asked for rather than the ones the first detection pass guessed at.
+        const paint = (target: any, gs: Array<{x:number;y:number;w:number;h:number}>) => {
+          const W2 = target.width, H2 = target.height;
+          for (const g of gs) {
+            let x = Math.floor((g.x - MARGIN) * W2), y = Math.floor((g.y - MARGIN) * H2);
+            let w = Math.ceil((g.w + 2 * MARGIN) * W2), h = Math.ceil((g.h + 2 * MARGIN) * H2);
+            x = Math.max(0, Math.min(x, W2 - 1)); y = Math.max(0, Math.min(y, H2 - 1));
+            w = Math.max(1, Math.min(w, W2 - x)); h = Math.max(1, Math.min(h, H2 - y));
+            target.composite(new Image(w, h).fill(0x000000ff), x, y);
+          }
+        };
+        paint(img, regions);
+        let jpg = await img.encodeJPEG(82);
         // Adversarial second pass over what the supplier will actually see. Fails closed.
         //
         // A BLANKET TITLE-BLOCK FALLBACK WAS TRIED HERE AND REMOVED (13 Aug 2026). Masking the
@@ -198,8 +247,31 @@ Deno.serve(async (req) => {
         // out a third of a drawing for no measured gain, so it is not here. What the verifier
         // actually still reports on the two refused pages is a logo in a corner and a REVISIONS
         // block — not the title strip. Anything that replaces this should be aimed there.
-        const vr = await verifyPage(key, bytesToB64(jpg));
-        if (!vr.clean) { verifyFailed++; skipped++; verifyDetail.push({ page: i, found: vr.found }); continue; }
+        let vr = await verifyPage(key, bytesToB64(jpg));
+        let attempt = 1;
+        if (!vr.clean) {
+          // ONE more attempt, and its shape depends on what the refusal actually was.
+          if (isNoAnswer(vr.found)) {
+            // The check did not run. Re-ask the same image; nothing about the page is known to be
+            // wrong, so masking more of it would be aiming at nothing.
+            attempt = 2;
+            vr = await verifyPage(key, bytesToB64(jpg));
+          } else {
+            // The check ran and named what is left. Cover exactly that, then re-verify.
+            const extra = await retryRegions(key, bytesToB64(jpg), vr.found);
+            if (extra.length) {
+              attempt = 2;
+              paint(img, extra);
+              jpg = await img.encodeJPEG(82);
+              vr = await verifyPage(key, bytesToB64(jpg));
+            }
+          }
+        }
+        // Still refused after the second attempt: unchanged behaviour, the page is not published.
+        // The ledger now records which attempt decided it, so "the retry never helps" is a query
+        // rather than an opinion the next session has to take on trust.
+        if (!vr.clean) { verifyFailed++; skipped++; verifyDetail.push({ page: i, attempts: attempt, found: vr.found }); continue; }
+        if (attempt > 1) verifyDetail.push({ page: i, attempts: attempt, recovered: true });
         verified++;
         const path = `${prefix}_p${i}.jpg`;
         const up = await admin.storage.from('drawing-files').upload(path, jpg, { contentType: 'image/jpeg', upsert: true });
