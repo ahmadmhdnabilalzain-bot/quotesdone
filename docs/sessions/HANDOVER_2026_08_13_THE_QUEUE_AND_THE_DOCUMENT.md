@@ -230,6 +230,29 @@ anchor strings, each asserted to appear exactly once first. `fn_founder_brief` i
 compose your email; retyping it to change four lines is how a transcription error reaches your
 inbox. Both projects verified byte-identical afterwards: `md5 25c6b29f6053454adab6de24725059ff`.
 
+## 7 — A failed attempt was a life sentence, and eight of the ten were my predecessor's timeout
+
+Applying the lens to my own fix: **has the retry path ever run?** It does not exist.
+`fn_agent_action_work_sweep` skips any `agent_action` that already has an `action_execution` row —
+any row, at any status — and the comment explains why: `idempotency_key` is UNIQUE, so re-sweeping
+a previously failed item died on a 23505 during the first drain. The reasoning was sound and the
+consequence was not noticed: **one failure is permanent.** The item stays `pending` for ever, the
+sweep never looks at it again, and nothing anywhere says so.
+
+Measured on production: **10 auto-policy rows pending and blocked by a failed attempt**, with
+nothing live or succeeded beside them. **Eight of the ten failed for our own reason** — the
+70-second timeout in §1b. We hung up on eight employees mid-sentence, recorded "the model returned
+nothing", and made that verdict final.
+
+The key now carries the attempt (`agent_action:<id>` then `agent_action:<id>#2`), two attempts and
+no more so a genuinely unsettleable item stops rather than looping on the bill, and
+`exhausted_two_attempts` is returned as its own number so *"we have stopped trying"* is never
+counted as *"we are working on it"*.
+
+Probed in an aborted transaction: run 1 queued exactly those 10 with `#2` keys — ids 2326, 2763,
+2773, 2777, 2778, 2781, 2812, 2814, 2818, 2819, precisely the ones that failed on 10–12 Aug — and
+run 2 queued 0. Then run for real: **10 queued**, `eligible_remaining 0`, `exhausted_two_attempts 0`.
+
 ---
 
 ## Sweep
