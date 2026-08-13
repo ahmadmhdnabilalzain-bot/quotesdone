@@ -691,7 +691,17 @@ function HealthPanel({ onNav }: { onNav: (id: string) => void }) {
   const [rec, setRec] = React.useState<any>(null);
   const [err, setErr] = React.useState('');
   const [busy, setBusy] = React.useState(false);
-  const load = React.useCallback(() => { setBusy(true); setErr(''); Promise.all([osHealth('health'), osHealth('reconcile')]).then(([a, b]: any) => { setH(a); setRec(b); }).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
+  const [aiq, setAiq] = React.useState<any>(null);
+  // ai_quality_snapshots has been written nightly since 10 Jul and had ZERO readers in src/ —
+  // 1,219 rows the founder could not see. Fetched alongside health rather than as its own screen:
+  // "are my agents being overruled" is a system-health question, and a number nobody passes on the
+  // way to something else is a number nobody reads. It fails to null on its own without taking
+  // health down with it — this panel already loads two independent things.
+  const load = React.useCallback(() => {
+    setBusy(true); setErr('');
+    osHealth('ai_quality').then((q: any) => setAiq(q)).catch(() => setAiq(null));
+    Promise.all([osHealth('health'), osHealth('reconcile')]).then(([a, b]: any) => { setH(a); setRec(b); }).catch((e: any) => setErr(e.message)).finally(() => setBusy(false));
+  }, []);
   React.useEffect(() => { load(); }, [load]);
   if (err && !h) return <Card className='p-6 text-sm text-destructive'>Could not load system health: {err}</Card>;
   if (!h) return <div className='text-muted-foreground text-sm'>Loading system health…</div>;
@@ -703,6 +713,53 @@ function HealthPanel({ onNav }: { onNav: (id: string) => void }) {
         <Badge className={cn('ml-1', ok ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400')}>{ok ? 'All healthy' : 'Needs attention'}</Badge>
         <Button variant='outline' className='h-8 text-xs ml-auto' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
       </div>
+      {/* WHERE YOUR AGENTS ARE BEING OVERRULED. Written nightly since 10 Jul, read by nothing until
+          now. Sorted worst-first by override rate, then by volume — an agent rejected 100% of the
+          time on 2 actions and one rejected 30% on 400 are different problems, and the count is on
+          the row so they can be told apart. Agents nobody has overruled are not listed: a table of
+          37 zeroes hides the one row that matters. */}
+      {aiq && aiq.rows && aiq.rows.length ? (
+        <Card className='overflow-hidden'>
+          <div className='px-4 py-3 border-b border-border flex flex-wrap items-baseline gap-x-2 gap-y-1'>
+            <span className='text-sm font-semibold'>AI decision quality</span>
+            <span className='text-xs text-muted-foreground'>
+              {aiq.override_pct_overall != null ? aiq.override_pct_overall + '% of ' : ''}
+              {aiq.actions_30d_total} proposed action(s) in 30 days were overruled by a human · {aiq.agents} agents · {aiq.nights_held} nights held
+            </span>
+          </div>
+          <div className='p-4'>
+            <p className='text-xs text-muted-foreground mb-3 max-w-[80ch]'>{aiq.meaning}</p>
+            {(() => {
+              const overruled = (aiq.rows || []).filter((r: any) => Number(r.override_pct) > 0);
+              if (!overruled.length) {
+                return <div className='text-sm text-muted-foreground'>No agent had a suggestion overruled in the last 30 days. {aiq.agents} agents proposed {aiq.actions_30d_total} action(s).</div>;
+              }
+              return (
+                <div className='space-y-1.5'>
+                  {overruled
+                    .slice()
+                    .sort((a: any, b: any) => (Number(b.override_pct) - Number(a.override_pct)) || (Number(b.actions_30d) - Number(a.actions_30d)))
+                    .map((r: any) => (
+                      <div key={r.agent} className='flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm border-b border-border/30 py-1'>
+                        <span className='font-medium'>{r.agent}</span>
+                        <span className='inline-flex items-baseline gap-2'>
+                          <span className={cn('font-semibold tabular-nums', Number(r.override_pct) >= 50 ? 'text-destructive' : 'text-amber-400')}>{r.override_pct}%</span>
+                          <span className='text-xs text-muted-foreground tabular-nums'>of {r.actions_30d}</span>
+                          {/* A delta is only stated when there IS history to compare with. */}
+                          {r.delta != null && Number(r.delta) !== 0 ? (
+                            <span className={cn('text-xs tabular-nums', Number(r.delta) > 0 ? 'text-destructive' : 'text-emerald-400')}>
+                              {Number(r.delta) > 0 ? '+' : ''}{r.delta} vs {r.nights_of_history}-night avg
+                            </span>
+                          ) : r.nights_of_history === 0 ? <span className='text-xs text-muted-foreground'>first night</span> : null}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              );
+            })()}
+          </div>
+        </Card>
+      ) : null}
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
         <Card className='overflow-hidden'>
           <div className='px-4 py-3 border-b border-border text-sm font-semibold'>Operations</div>
