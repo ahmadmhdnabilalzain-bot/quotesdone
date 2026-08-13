@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 // Row #5 §3/§4/§6/§13 — kept in its own file deliberately; see the TABS comment below.
 import SupplierTwin from './supplier/SupplierTwin';
@@ -304,6 +304,7 @@ export function SupplierPortal() {
   const [token, setToken] = useState('');
   const [phase, setPhase] = useState('login');
   const [mounted, setMounted] = useState(false);
+  const [invite, setInvite] = useState(null);
   // THE INVITATION'S TOKEN HAD NOWHERE TO LAND (12 Aug 2026).
   //
   // supplier_api's `claim` action is complete and hardened - it takes body.t, looks the lead up by
@@ -339,9 +340,20 @@ export function SupplierPortal() {
     setMounted(true);
     try { setLang(initLang()); } catch (_e) {}
     // Capture ?t= before anything else can navigate away from it.
+    //
+    // AND RESOLVE IT TO A COMPANY NAME (13 Aug 2026). The invitation is addressed "Dear Al Ain Glass
+    // & Mirrors Factory L.L.C." and the page it links to opened on a generic marketing hero with a
+    // sign-in box headed "Welcome back" — to someone who by definition has no account. claim_lookup
+    // exists for exactly this check, is public by design, takes only the unguessable token, and had
+    // no caller anywhere in src/. 81 invitations sent, 0 registrations. The token is already in the
+    // URL; naming the company costs one request and turns "who are you and why should I sign up"
+    // into "this is your listing, claim it".
     try {
       const t = new URLSearchParams(window.location.search).get('t') || '';
-      if (UUID_RE.test(t)) sessionStorage.setItem(CLAIM_KEY, t);
+      if (UUID_RE.test(t)) {
+        sessionStorage.setItem(CLAIM_KEY, t);
+        call('claim_lookup', { t }).then((j) => { if (j && j.ok) setInvite(j); }).catch(() => {});
+      }
     } catch (_e) {}
     try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
     SB.auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); claimIfInvited(ss.access_token); } }).catch(() => {});
@@ -364,23 +376,61 @@ export function SupplierPortal() {
         </div>
       </header>
       {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
+        {/* An invited supplier is told whose listing this is, before anything else on the page. */}
+        {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
         {/* §1 — the supplier meets the product before the sign-in box, not after it. */}
         {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
-        {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} /></div>}
+        {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && invite.claimable ? 'signup' : 'signin'} /></div>}
         {phase === 'app' && <Dashboard token={token} lang={lang} />}
       </>)}
     </div>
   );
 }
-function Login({ onAuth, lang }) {
-  const [mode, setMode] = useState('signin'); const [step, setStep] = useState('id'); const [id, setId] = useState(''); const [code, setCode] = useState(''); const [ident, setIdent] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+// WHOSE LISTING THIS IS. Rendered only when the URL carried a valid invitation token that
+// claim_lookup resolved. `already_claimed` is a real outcome, not an error: a colleague at the same
+// company may have registered first, and telling them that is better than a sign-up form that fails
+// at the end with "This company is already claimed by another account."
+function InviteBanner({ invite, lang, onStart }) {
+  const ar = lang === 'ar';
+  const name = invite.company_name || (ar ? 'شركتك' : 'your company');
+  const taken = !invite.claimable;
+  return (
+    <section className="mx-auto w-full max-w-3xl px-4 pt-6" dir={ar ? 'rtl' : 'ltr'}>
+      <Card className="qd-panel p-5">
+        <div className="text-[11px] uppercase tracking-[0.18em] text-primary">
+          {ar ? 'دعوة شخصية' : 'Your invitation'}
+        </div>
+        {/* dir="auto" — a Latin company name inside an RTL page otherwise renders its trailing
+            "L.L.C." punctuation on the wrong side. */}
+        <div dir="auto" className="mt-1.5 text-[19px] font-extrabold leading-tight text-foreground">{name}</div>
+        {invite.emirate ? <div className={cn(S.sub, 'mt-0.5')}>{invite.emirate}</div> : null}
+        <div className={cn(S.sub, 'mt-3 max-w-[62ch]')}>
+          {taken
+            ? (ar ? 'هذه الشركة مسجّلة بالفعل على QuotesDone. إن كان زميل لك قد سجّلها، اطلب منه إضافتك — أو سجّل الدخول بالبريد الذي استُخدم.'
+                  : 'This company is already registered on QuotesDone. If a colleague claimed it, ask them to add you — or sign in with the email they used.')
+            : (ar ? 'هذه القائمة محجوزة لشركتك. بياناتك موجودة لدينا بالفعل من السجل التجاري العام — لا تملأ نموذجًا فارغًا، بل تصحّح ما نعرفه وتؤكّده. أنشئ حسابك للمطالبة بها.'
+                  : 'This listing is reserved for your company. We already hold your details from the public trade directory — you are not filling in a blank form, you are correcting what we have and confirming it. Create your account to claim it.')}
+        </div>
+        {!taken && <Button className="mt-4" onClick={onStart}>{ar ? 'المطالبة بقائمة شركتي' : 'Claim my listing'}</Button>}
+      </Card>
+    </section>
+  );
+}
+function Login({ onAuth, lang, startMode }) {
+  const [mode, setMode] = useState(startMode === 'signup' ? 'signup' : 'signin'); const [step, setStep] = useState('id'); const [id, setId] = useState(''); const [code, setCode] = useState(''); const [ident, setIdent] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const isSignup = mode === 'signup';
+  // claim_lookup resolves after mount, so startMode arrives late and cannot be a useState initial
+  // value. Flip to sign-up when the invitation lands, unless the supplier has already chosen a tab
+  // themselves — a link that only ever reaches someone without an account should not open on
+  // "Welcome back", but it must not override a deliberate choice either.
+  const swapped = useRef(false);
+  useEffect(() => { if (startMode === 'signup' && !swapped.current) setMode('signup'); }, [startMode]);
   const looksEmail = (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v || '').trim());
   const send = async () => { const v = id.trim(); if (!v) return; if (isSignup && !looksEmail(v)) { setMsg(t(lang, 'signup_email_only')); return; } setBusy(true); setMsg('');
     try { const g = await call('role_guard', { user_kind: 'supplier', identifier: v }); if (g && g.conflict === 'customer') { setBusy(false); setMsg(t(lang, 'conflict_customer')); return; } } catch (_e) {}
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'supplier', identifier: v, allow_signup: isSignup }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg((j && j.error) || t(lang, 'err_code_send')); };
   const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg((j && j.error) || t(lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
-  const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
+  const swap = (m) => { swapped.current = true; setMode(m); setStep('id'); setMsg(''); setCode(''); };
   return (
     <div className={S.center}><Card className="qd-login qd-panel w-full max-w-[410px] p-6 sm:p-7">
       <div className="mb-5 flex flex-col items-center text-center">
@@ -470,7 +520,7 @@ function Dashboard({ token, lang }) {
         {/* Severity reads as a leading indicator dot rather than a thick side-stripe, and these are
             real buttons — they were clickable divs, so keyboard users could not reach them at all. */}
         {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => <button key={i} type="button" className="qd-panel qd-panel-hover w-full text-start px-4 py-3.5 cursor-pointer flex items-start gap-3" onClick={() => setTab(a.action === 'documents' ? 'documents' : 'rfqs')}><span aria-hidden className={cn('mt-[7px] h-2 w-2 rounded-full shrink-0', a.severity === 'high' ? 'bg-red-400' : a.severity === 'medium' ? 'bg-amber-300' : 'bg-primary')} /><span className="flex flex-col gap-0.5 min-w-0"><b className="text-[13.5px] text-white">{a.title}</b><span className="text-muted-foreground text-xs leading-[1.6]">{a.detail}</span></span></button>)}</div>}
-        <EligibilityPanel token={token} lang={lang} goProfile={() => setTab('profile')} goDocs={() => setTab('documents')} />
+        <EligibilityPanel token={token} lang={lang} goProfile={() => setTab('profile')} goDocs={() => setTab('documents')} goScope={() => setTab('scope')} />
         {/* §4's assistant has to name a concrete gap AND quantify what closing it is worth. The
             counts come from fn_supplier_document_impact, so "6 more opportunities" is a count of
             open enquiries in this supplier's trade rather than the spec's illustrative figure. */}
@@ -526,22 +576,24 @@ function Dashboard({ token, lang }) {
 // the real clauses in match_suppliers_kw rather than a guess at them, and separates what BLOCKS
 // matching from what only IMPROVES ranking. Conflating those would be worse than silence: a
 // supplier who fixes five cosmetic things and still gets nothing stops trusting the product.
-function EligibilityPanel({ token, lang, goProfile, goDocs }) {
+function EligibilityPanel({ token, lang, goProfile, goDocs, goScope }) {
   const [e, setE] = useState(null);
   const ar = lang === 'ar';
   useEffect(() => { call('supplier_portal', { action: 'eligibility' }, token).then((j) => { if (j && j.ok) setE(j); }); }, [token]);
   if (!e) return null;
   const blocking = e.blocking || []; const improving = e.improving || [];
-  const go = (fix) => { if (fix === 'documents') goDocs(); else if (fix === 'profile') goProfile(); };
+  const go = (fix) => { if (fix === 'documents') goDocs(); else if (fix === 'profile') goProfile(); else if (fix === 'scope') goScope(); };
   const Row = ({ it, tone }) => (
     <li className="flex items-start gap-2.5">
       <span className={cn('mt-[7px] h-1.5 w-1.5 rounded-full shrink-0', tone === 'block' ? 'bg-red-500' : 'bg-primary')} />
       <div className="flex-1">
         <div className="text-[13.5px] font-semibold text-foreground">{it.title}</div>
         <div className={S.sub}>{it.detail}</div>
-        {(it.fix === 'profile' || it.fix === 'documents') && (
+        {(it.fix === 'profile' || it.fix === 'documents' || it.fix === 'scope') && (
           <button className="mt-1 text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" onClick={() => go(it.fix)}>
-            {it.fix === 'documents' ? (ar ? 'إلى المستندات ←' : 'Go to Documents →') : (ar ? 'إلى الملف ←' : 'Go to Profile →')}
+            {it.fix === 'documents' ? (ar ? 'إلى المستندات ←' : 'Go to Documents →')
+              : it.fix === 'scope' ? (ar ? 'تأكيد نطاق عملي ←' : 'Confirm my scope →')
+              : (ar ? 'إلى الملف ←' : 'Go to Profile →')}
           </button>
         )}
       </div>

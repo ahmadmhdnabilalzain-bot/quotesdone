@@ -510,6 +510,31 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
       const registered = !!r.registration_submitted_at || r.source === 'self_registered' || String(r.approval_status || '') === 'approved';
       if (!registered) blocking.push({ code:'not_registered', title:'Your registration is not submitted', detail:'Only registered suppliers receive requests. Complete your company profile to submit it.', fix:'profile' });
 
+      // THE GATE THIS PANEL WAS MISSING (13 Aug 2026).
+      //
+      // Everything above evaluates match_suppliers_kw. The path that actually builds a shortlist is
+      // fn_match_capability, and its candidate CTE opens with `where sc.confirmed_at is not null`.
+      // So a supplier who had registered but not confirmed their scope was shown a green "Eligible
+      // for matching" badge and an EMPTY "Stopping requests reaching you" list, while being excluded
+      // from every RFQ at the first WHERE clause. Measured on 13 Aug by nulling confirmed_at for the
+      // one confirmed supplier: eligibility returned {eligible:true, blocking:[]} and
+      // fn_match_capability(['hvac']) returned 0 rows in the same minute.
+      //
+      // It is a BLOCKING item, not an improving one. The pre-existing 'confirm_scope' entry below is
+      // in `improving`, only appears when the capability agent left a pending confirmation row with
+      // questions, and reads as optional polish — which is the opposite of what it is. This is the
+      // difference between 1 supplier an RFQ can reach and 15,306.
+      let capConfirmed = false;
+      try {
+        const { data: cap } = await admin.from('supplier_capabilities')
+          .select('confirmed_at').eq('supplier_id', sup.id).maybeSingle();
+        capConfirmed = !!cap?.confirmed_at;
+      } catch (_e) { /* on a read failure do not invent a green badge */ }
+      if (!capConfirmed) blocking.push({ code:'scope_unconfirmed',
+        title:'Confirm what your company can quote for',
+        detail:'We never guess a supplier’s scope on their behalf, so no request is sent to you until you have confirmed it yourself. We have already filled in the trades and role we hold for your company — you only correct them and press confirm. It takes about a minute, once.',
+        fix:'scope' });
+
       // Discoverability: the query matches on sector OR keywords across these four columns.
       // With all of them empty a supplier is unreachable no matter how many requests come in.
       const kwCols = ['products','services','categories','capability_summary'];
