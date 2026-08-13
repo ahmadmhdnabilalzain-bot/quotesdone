@@ -14,7 +14,15 @@
 --                     severity_had_no_definition_so_every_reader_invented_one.sql (#211).
 --
 -- Both definitions are BYTE-IDENTICAL ON BOTH PROJECTS already — md5(pg_get_functiondef) agrees
--- between htdblwldjkcgjvmqkbeh and pglpqrhvozwepymcuunn — so nothing here changes behaviour on
+-- between the production and staging projects — so nothing here changes behaviour on
+--
+-- REF LITERALS REMOVED 13 Aug 2026. This file was written as a record and never re-applied, so
+-- nobody had discovered that qd_guard REFUSES it: assertNoProductionLiteral sees the production ref
+-- in this header and, correctly, will not let a file carrying it be applied to a branch. A record
+-- that cannot be applied is not a record of anything — the next change to either routine has to go
+-- somewhere, and it went into the STALE fn_founder_brief.sql first, which promoted an older and
+-- smaller body over the live one until sql_files_match_live caught it. Two project refs in a
+-- comment were the whole obstacle; the names are enough.
 -- either. This file is the missing RECORD, captured verbatim from pg_get_functiondef, exactly as
 -- the_files_were_stale_not_the_database.sql did for the eight reconciled on 12 Aug.
 --
@@ -48,6 +56,7 @@ declare
   v_fraud int := 0; v_match_now numeric; v_match_prev numeric;
   v_ai_cost numeric := 0; v_ai_cost_prev numeric := 0; v_ai_delta numeric := 0;
   v_opp text; v_goal numeric; v_goal_j jsonb;
+  v_scope_confirmed int; v_scope_total int;   -- the supply side of matching accuracy, 13 Aug 2026
 begin
   select split_part(coalesce(value,'management@quotesdone.com'),',',1) into v_owner from app_secrets where key='admin_emails';
   if v_owner is null then v_owner := 'management@quotesdone.com'; end if;
@@ -212,6 +221,25 @@ begin
      where i.created_at between now() - interval '60 days' and now() - interval '30 days';
   exception when others then v_match_now := null; v_match_prev := null; end;
 
+  -- THE SUPPLY SIDE OF MATCHING ACCURACY (13 Aug 2026).
+  --
+  -- The line above reports the share of RFQs that reached a supplier. It cannot report the reason a
+  -- share is low, and right now the reason is one number: fn_match_capability's candidate CTE opens
+  -- with `where sc.confirmed_at is not null`, and of 15,306 suppliers holding capability data
+  -- exactly ONE has confirmed. So the marketplace can shortlist at most one supplier for any
+  -- request, whatever the customer asks for.
+  --
+  -- It is on System Health as "Suppliers an RFQ can reach". The daily e-mail is a separate surface
+  -- and never carried it, so the founder could read "0% of RFQs matched" every morning and not be
+  -- told that no volume of RFQs could change it. A count without its reason sends you to the wrong
+  -- budget: "no supplier matches that" reads as buy more suppliers; "15,306 hold it and one has
+  -- confirmed" reads as chase confirmations.
+  begin
+    select count(*) filter (where sc.confirmed_at is not null), count(*)
+      into v_scope_confirmed, v_scope_total
+      from public.supplier_capabilities sc;
+  exception when others then v_scope_confirmed := null; v_scope_total := null; end;
+
   -- AI COST: what the company spent on model calls, 30 days against the 30 before.
   begin
     select round(coalesce(sum(cost_aed),0),2) into v_ai_cost from public.ai_cost_log
@@ -274,6 +302,10 @@ begin
     E'\n'||'QUALITY, COST AND OPPORTUNITY'||E'\n'||
     '- Fraud rejected: '||v_fraud||' supplier registration(s) refused or banned'||E'\n'||
     '- Matching accuracy: '||coalesce(v_match_now::text,'0')||'% of RFQs matched to a supplier (30d), previous 30d '||coalesce(v_match_prev::text,'0')||'%'||E'\n'||
+    '- Suppliers an RFQ can reach: '||coalesce(v_scope_confirmed::text,'?')||' of '||coalesce(v_scope_total::text,'?')||' holding capability data have confirmed their own scope'||
+      case when coalesce(v_scope_confirmed,0) < 2
+           then ' — fn_match_capability gates on that confirmation, so a shortlist cannot exceed '||coalesce(v_scope_confirmed::text,'0')||' whatever a customer asks for'
+           else '' end||E'\n'||
     '- AI cost: AED '||coalesce(v_ai_cost::text,'0')||' over 30d, previous 30d AED '||coalesce(v_ai_cost_prev::text,'0')||' ('||case when v_ai_delta >= 0 then '+' else '' end||coalesce(v_ai_delta::text,'0')||')'||E'\n'||
     '- Monthly goal attainment: '||coalesce(v_goal::text,'not measurable')||
       case when v_goal is not null then '% across '||coalesce(v_goal_j->>'goals_measured','?')||' of '||
