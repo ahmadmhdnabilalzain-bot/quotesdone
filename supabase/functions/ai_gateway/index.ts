@@ -192,7 +192,10 @@ Deno.serve(async (req) => {
     const body = (await req.json().catch(() => ({}))) as Body;
       // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
-    const __auth = await requireInternal(admin, body?.__secret, 'ai_gateway');
+    // body.fn — what the caller says it is — is passed so that a call authenticated by the LEGACY
+    // shared secret records who claimed to make it. It is read again at fnName below for routing;
+    // the audit could not see it, which is why five legacy uses have no attributable caller.
+    const __auth = await requireInternal(admin, body?.__secret, 'ai_gateway', body?.fn);
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
 
     // Utility path: embed text for callers that need a vector (FAQ backfill, semantic search).
