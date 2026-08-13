@@ -117,6 +117,15 @@ raised authority grant. That is not an obstacle; it is the audit trail.
   `org_action_executor.notifies_human` before any sweep touches it.
 - **A PARTIAL scorer run is not a score.** Look for `SPEC FILE #3 (executive UI) on <ref>: N/152`,
   and treat a check reporting ERROR as infrastructure, not as a finding.
+- **Signing a portal in by hand needs THREE keys, not two.** The usual recipe sets `qd-cust-token`
+  and `qd-cust-refresh`, and misses **`qd-cust-auth`** — the Supabase client's own persisted session
+  (it uses a custom `storageKey`; there is no `sb-…-auth-token`). Sign in that way and the next
+  reload silently restores the PREVIOUS account from `qd-cust-auth`, because the mount effect calls
+  `SB.auth.getSession()` and writes what it finds back over `qd-cust-token`. This looks exactly like
+  an account-mixup bug in the product and is not one: the real UI path goes through `onAuth`, which
+  calls `SB.auth.setSession` and keeps both stores in step. Either sign in through the actual
+  screens, or call `setSession` yourself. Suppliers have the same shape with `qd-sup-*`.
+  (13 Aug 2026: nearly reported as a defect; the harness was wrong, not the code.)
 - Do **not** run a pack scorecard against the same project while the Row #3 scorer runs.
 - **Read the dates.** A 24-hour failure window keeps showing failures that were fixed hours earlier.
   Start every session with `select now() at time zone 'utc';` — Dubai is UTC+4.
