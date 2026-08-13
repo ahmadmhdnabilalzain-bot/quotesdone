@@ -153,7 +153,14 @@ Deno.serve(async (req) => {
       // Refuse an ambiguous number BEFORE the Twilio call: a code we could not attribute to one
       // account is a code we must not act on, so sending it would only cost money and mislead.
       if (owner && 'ambiguous' in owner) {
-        await logRun('error', { ambiguous_phone: 1, kind }, 'login_otp refused an SMS sign-in because more than one ' + kind + ' account carries this mobile number. No SMS was sent and no Twilio charge was incurred. This is the guard working, not a fault: a shared number cannot select a person. The caller was asked to sign in with their email instead.');
+        // 'skipped', not 'error'. fn_os_health_brief counts agent_runs where status in
+        // ('error','failed') and puts the total on the founder's health panel as
+        // agent_runs_failed_24h. A guard doing exactly what it was built to do is not a failure,
+        // and logging it as one taught the panel to report ~12 failures a day that were the
+        // system working. 'skipped' already exists in this column alongside info and warn, and
+        // the metric excludes it, so the refusal is still on the record and no longer counted as
+        // a fault. The note is unchanged - the reasoning is the point of writing it down.
+        await logRun('skipped', { ambiguous_phone: 1, kind }, 'login_otp refused an SMS sign-in because more than one ' + kind + ' account carries this mobile number. No SMS was sent and no Twilio charge was incurred. This is the guard working, not a fault: a shared number cannot select a person. The caller was asked to sign in with their email instead.');
         return J({ error: AMBIGUOUS_MSG, ambiguous: true }, 409);
       }
       const acctEmail = owner ? owner.email : null;
@@ -174,7 +181,9 @@ Deno.serve(async (req) => {
       // before the spend and says what to do instead.
       if (!acctEmail) {
         if (allowSignup) {
-          await logRun('error', { sms_signup_refused: 1, kind }, 'login_otp refused to send a sign-up SMS to a number with no account. No SMS was sent and no Twilio charge was incurred. This is deliberate: email is the identity, so a phone alone cannot create an account, and letting this through only produced a paid-for code that verify would refuse. Sign-up is by email.');
+          // 'skipped' for the same reason as the ambiguity refusal above: expected, routine, and
+          // not a fault. This one fires every time somebody tries to sign up with a phone number.
+          await logRun('skipped', { sms_signup_refused: 1, kind }, 'login_otp refused to send a sign-up SMS to a number with no account. No SMS was sent and no Twilio charge was incurred. This is deliberate: email is the identity, so a phone alone cannot create an account, and letting this through only produced a paid-for code that verify would refuse. Sign-up is by email.');
           return J({ error: 'We cannot create an account from a mobile number - your email address is what identifies your account. Please sign up with your email, and you can add your mobile straight afterwards.', no_account: true, signup_by_email: true }, 404);
         }
         // Do not send (and pay for) an SMS to a number that has no account. Tell the user first.
