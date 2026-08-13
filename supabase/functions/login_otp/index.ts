@@ -81,13 +81,47 @@ async function resolveAdminEmailByPhone(e164: string): Promise<string | null> {
   const first = (await sec('admin_emails') || '').split(',')[0]?.trim().toLowerCase();
   return first || null;
 }
-async function resolveEmailByPhone(kind: string, e164: string): Promise<string | null> { const adminEmail = await resolveAdminEmailByPhone(e164); if (adminEmail) return adminEmail; const last9 = e164.slice(-9); if (kind === 'supplier') { const { data } = await admin.from('leads').select('claimed_by,phone').not('claimed_by', 'is', null).ilike('phone', '%' + last9).limit(1); return (data && data[0] && (data[0] as any).claimed_by) || null; } const { data } = await admin.from('customers').select('email,phone').ilike('phone', '%' + last9).limit(1); return (data && data[0] && (data[0] as any).email) || null; }
+// A PHONE NUMBER IS NOT AN IDENTITY (13 Aug 2026). The founder registered as a customer with
+// djzaino@outlook.com, signed in on his mobile, and /me showed him management@quotesdone.com —
+// somebody else's account. Three production records agree on why: app_secrets.admin_mfa_phone is
+// his mobile (+971509319355), admin_emails[0] is management@quotesdone.com, and the line below
+// consulted resolveAdminEmailByPhone FIRST and UNCONDITIONALLY — before it ever looked at `kind`.
+// So a customer signing in by SMS from an admin's number was handed the admin's account every
+// time. The 19:44:14 phone_verifications row records that resolver returning
+// management@quotesdone.com, and auth.users.last_sign_in_at for that address is 19:44:27.
+//
+// The admin branch was added on 10 Aug to give the OS a mobile sign-in (b0bc419). That was right;
+// putting it in the SHARED resolver was not. It now runs only for kind='admin', which /os sends.
+//
+// AND THE OTHER TWO BRANCHES COULD NOT BE TRUSTED EITHER: both were ilike + limit(1) with no
+// ORDER BY, so with two rows on one number Postgres returned whichever it liked. Two customers
+// share +971509319355 on production today. In the UAE a number is shared by families, colleagues
+// and one office landline for a whole company, so `customers.phone` is deliberately NOT unique —
+// see the comment on the column. The consequence of allowing it to repeat is that a phone may
+// only ever CONFIRM an identity, never SELECT one: if a number maps to more than one account we
+// refuse and ask for the email rather than guess which person is holding the handset.
+type PhoneOwner = { email: string } | { ambiguous: true } | null;
+async function resolveEmailByPhone(kind: string, e164: string): Promise<PhoneOwner> {
+  if (kind === 'admin') { const e = await resolveAdminEmailByPhone(e164); return e ? { email: e } : null; }
+  const last9 = e164.replace(/\D/g, '').slice(-9);
+  const col = kind === 'supplier' ? 'claimed_by' : 'email';
+  const q = kind === 'supplier'
+    ? admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).ilike('phone', '%' + last9).limit(5)
+    : admin.from('customers').select('email').not('email', 'is', null).ilike('phone', '%' + last9).limit(5);
+  const { data } = await q;
+  const owners = [...new Set((data || []).map((r: any) => String(r[col] || '').trim().toLowerCase()).filter(Boolean))];
+  if (owners.length > 1) return { ambiguous: true };
+  return owners.length ? { email: owners[0] } : null;
+}
+const AMBIGUOUS_MSG = 'More than one QuotesDone account uses this mobile number, so we cannot tell which one is yours. Please sign in with your email address instead.';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
-    const kind = body.user_kind === 'supplier' ? 'supplier' : 'customer';
+    // Three kinds, not two. 'admin' is /os and is the ONLY kind that resolves a phone through
+    // app_secrets.admin_mfa_phone; an unknown value still falls to 'customer', the least privileged.
+    const kind = body.user_kind === 'supplier' ? 'supplier' : (body.user_kind === 'admin' ? 'admin' : 'customer');
     const idRaw = String(body.identifier || '').trim();
     const allowSignup = body.allow_signup === true;
     const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
@@ -110,10 +144,22 @@ Deno.serve(async (req) => {
       }
       const e164 = toE164(idRaw);
       if (!e164) return J({ error: 'Enter a valid email address or UAE mobile number.' }, 400);
-      const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet. Please sign in with your email.' }, 503);
-      const acctEmail = await resolveEmailByPhone(kind, e164);
+      // WHO owns this number is decided BEFORE whether we can text it. Resolution is one indexed
+      // query and needs no Twilio; running the credential check first meant a project without SMS
+      // configured answered 503 to everything, so neither the ambiguity refusal nor the
+      // no-account refusal could be exercised on staging at all - the guard was untestable on
+      // half the estate. Identity first also fails fast before touching an external service.
+      const owner = await resolveEmailByPhone(kind, e164);
+      // Refuse an ambiguous number BEFORE the Twilio call: a code we could not attribute to one
+      // account is a code we must not act on, so sending it would only cost money and mislead.
+      if (owner && 'ambiguous' in owner) {
+        await logRun('error', { ambiguous_phone: 1, kind }, 'login_otp refused an SMS sign-in because more than one ' + kind + ' account carries this mobile number. No SMS was sent and no Twilio charge was incurred. This is the guard working, not a fault: a shared number cannot select a person. The caller was asked to sign in with their email instead.');
+        return J({ error: AMBIGUOUS_MSG, ambiguous: true }, 409);
+      }
+      const acctEmail = owner ? owner.email : null;
       // Do not send (and pay for) an SMS to a number that has no account. Tell the user first.
       if (!acctEmail && !allowSignup) return J({ error: "This mobile number isn't linked to a QuotesDone account yet. Please sign in with the email you registered with, or create your account first.", no_account: true }, 404);
+      const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet. Please sign in with your email.' }, 503);
 
       // Caller-level and global ceilings. Checked BEFORE the Twilio call so a blocked attempt costs nothing.
       const ipOk = await rl('login_otp_sms_ip:' + ip, SMS_PER_IP_HOUR, 3600);
@@ -193,7 +239,10 @@ Deno.serve(async (req) => {
             const ins = await admin.from('customers').insert({ email, email_verified: true });
             if (ins.error) await admin.from('customers').update({ email_verified: true }).eq('email', email);
           }
-        } else await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email);
+        } else if (kind === 'supplier') await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email);
+        // kind === 'admin' writes neither: the founder is not a customers row and not a claimed
+        // lead. Before the third kind existed /os sent 'customer', so an admin email sign-in fell
+        // into the else and ran an UPDATE on leads.claimed_by for the admin address.
         const s = await mintSession(email); if (!s) return J({ error: 'Could not start your session. Please try again.' }, 500);
         return J({ ok: true, ...s, user_kind: kind, email });
       }
@@ -203,9 +252,14 @@ Deno.serve(async (req) => {
         const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Code: code }) });
         const jd = await r.json(); if (jd?.status !== 'approved') return J({ error: 'Incorrect or expired code.' }, 400);
       } catch (e) { return J({ error: 'Verification failed, please try again.', detail: String((e as Error)?.message || e) }, 502); }
-      const { data: pv } = await admin.from('phone_verifications').select('email').eq('phone', e164).not('email', 'eq', '').order('created_at', { ascending: false }).maybeSingle();
-      let email = (pv as any)?.email || '';
-      if (!email) email = (await resolveEmailByPhone(kind, e164)) || '';
+      // HISTORY IS NOT IDENTITY. This used to take the newest phone_verifications row for the
+      // number and sign the caller in as whoever that row named — so on a shared handset you were
+      // logged in as the last person who had asked for a code on it. That is the second half of
+      // the same defect as the admin short-circuit, and it is gone: the account tables are the
+      // only authority on who owns an address, and an ambiguous number is refused, not guessed.
+      const owner = await resolveEmailByPhone(kind, e164);
+      if (owner && 'ambiguous' in owner) return J({ error: AMBIGUOUS_MSG, ambiguous: true }, 409);
+      const email = owner ? owner.email : '';
       if (!email) return J({ error: 'No account is registered with this number. Please sign in with your email, or sign up first.' }, 404);
       if (kind === 'customer') await admin.from('customers').update({ phone_verified: true }).eq('email', email);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', e164).is('used_at', null);

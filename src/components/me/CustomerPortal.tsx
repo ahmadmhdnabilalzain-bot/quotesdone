@@ -23,7 +23,7 @@ import { PredictiveIntelligence, NegotiationAssistant } from '@/components/porta
 // §2 the Company Digital Twin, §9 Supplier Discovery and §17 Customer AI Memory. fn_twin,
 // v_digital_twin, customer_score and customer_preference were all built and read only by os_api —
 // the staff console — so the customer could not see their own profile or correct it.
-import { CompanyTwin, SupplierDiscovery, CustomerMemory } from '@/components/portal/twin';
+import { CompanyTwin, SupplierDiscovery, CustomerMemory, DecisionSupport } from '@/components/portal/twin';
 // THE SHELL. The portal was a stack of cards under ten grey pills; this is the application frame
 // the founder asked for — persistent grouped sidebar, a top bar whose widest element is the
 // assistant, a mobile tab bar, and the assistant docked in the layout rather than floating in a
@@ -66,7 +66,7 @@ const T = {
     payment_pending:'Your payment is still being processed. Please refresh this page in a moment — do not pay again. Keep this page open so we can finish confirming it.',
     payment_failed:"We couldn't confirm your payment yet. Please keep this page link and email management@quotesdone.com if you were charged.",
     mod_spatial:'Project room', mod_documents:'Documents', mod_approvals:'Approvals', mod_orders:'Orders',
-    mod_predict:'What you may need next', mod_profile:'Company profile', mod_account:'Account', open_module:'Open', theme_light:'Light mode', theme_dark:'Dark mode',
+    mod_predict:'What you may need next', mod_profile:'Buying profile', mod_account:'Account', open_module:'Open', theme_light:'Light mode', theme_dark:'Dark mode',
     unread_message:'unread message', unread_messages:'unread messages',
     acct_title:'Your account', acct_sub:'What we hold for you, and the preferences this device remembers.',
     acct_name:'Name', acct_email:'Email', acct_phone:'Mobile', acct_locale:'Language on your profile', acct_since:'Customer since',
@@ -155,7 +155,7 @@ const T = {
     payment_pending:'لا تزال عملية الدفع قيد المعالجة. يُرجى تحديث الصفحة بعد قليل — لا تدفع مرة أخرى. أبقِ هذه الصفحة مفتوحة حتى نُكمل التأكيد.',
     payment_failed:'تعذّر تأكيد عملية الدفع حتى الآن. يُرجى الاحتفاظ برابط هذه الصفحة ومراسلتنا على management@quotesdone.com إذا تم خصم المبلغ.',
     mod_spatial:'غرفة المشروع', mod_documents:'المستندات', mod_approvals:'الموافقات', mod_orders:'أوامر الشراء',
-    mod_predict:'ما قد تحتاجه لاحقًا', mod_profile:'ملف الشركة', mod_account:'الحساب', open_module:'فتح', theme_light:'الوضع الفاتح', theme_dark:'الوضع الداكن',
+    mod_predict:'ما قد تحتاجه لاحقًا', mod_profile:'ملف المشتريات', mod_account:'الحساب', open_module:'فتح', theme_light:'الوضع الفاتح', theme_dark:'الوضع الداكن',
     unread_message:'رسالة غير مقروءة', unread_messages:'رسائل غير مقروءة',
     acct_title:'حسابك', acct_sub:'ما نحتفظ به لك، والتفضيلات التي يتذكرها هذا الجهاز.',
     acct_name:'الاسم', acct_email:'البريد الإلكتروني', acct_phone:'الجوال', acct_locale:'اللغة في ملفك', acct_since:'عميل منذ',
@@ -735,6 +735,11 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         categories they actually buy, their approval chain, and how much of that profile we hold.
         It is the same object the Company profile window opens, rendered from the overview payload
         the dashboard already has, so opening the portal costs no extra call. */}
+    {/* ABOVE the twin, and above the request list, because it is the only thing on this screen
+        that tells the customer what to DO. It renders nothing at all when there is nothing to
+        recommend, nothing quiet and no category history, so it never occupies the best space on
+        the page with an empty heading. */}
+    {!onlyRequests && <div className="mb-5"><DecisionSupport token={token} lang={lang === 'ar' ? 'ar' : 'en'} /></div>}
     {!onlyRequests && ov && ov.twin ? <div className="mb-5"><CompanyTwin twin={ov.twin} lang={lang === 'ar' ? 'ar' : 'en'} /></div> : null}
     {/* ── THE PROJECTS / FINANCIAL / SUPPLIER-NETWORK PANELS (§1, §4) ──────────────────────────
         Every figure below is nullable and every one of them says which absence is true rather than
@@ -1510,7 +1515,33 @@ function ModuleWindow({ id, onClose, token, lang, inqs, onChanged, twin }) {
       {id === 'predict' && <PredictiveIntelligence token={token} lang={l2} />}
       {/* §2 the twin, §9 discovery and §17 the memory — three surfaces whose backends were complete
           and whose only reader was os_api, the staff console. They share one window because they
-          are one subject: what the system knows about this customer and what it does with it. */}
+          are one subject: what the system knows about this customer and what it does with it.
+
+          WHY A "COMPANY PROFILE" WAS ON A BUYER'S SCREEN, AND WHY IT IS NOW A BUYING PROFILE
+          (13 Aug 2026, asked directly by the founder: "A customer is a person buying a service. A
+          company profile is a supplier concept — trade licence, products, services, catalogues. On
+          a customer's screen it is at best noise and at worst asking for personal or business data
+          we have no reason to hold. My instinct is: take it out.")
+
+          The instinct was right about the LABEL and wrong about the PANEL, and the difference is
+          worth writing down because the label is what he saw. Opened at 1280 signed in as a real
+          customer, every field on this window is measured:
+
+            CompanyTwin        read-only. industry, live projects, suppliers this customer has PAID
+                               to reveal, the categories they actually buy, their approval chain.
+                               No input of any kind. Nothing writes customers.industry from any
+                               customer surface - grepped customer_api and kyc, no writer exists.
+            SupplierDiscovery  a text box for trades + an emirate, running the same matcher a real
+                               request would. That is a buyer's tool.
+            CustomerMemory     standing preferences (supplier locality, payment terms, certification)
+                               that are applied to future RFQs.
+
+          There is no trade licence, no catalogue, no products, no services and no company-identity
+          field anywhere on it — it asks for nothing and holds nothing we were not already given by
+          the customer's own buying. What it had was a supplier-side name imported onto a buyer's
+          screen, which is exactly what it read as. So: renamed, not removed. Deleting it would have
+          thrown away the standing preferences that shape every future RFQ and the matcher preview,
+          to fix a word. */}
       {id === 'profile' && <div className="flex flex-col gap-3">
         <CompanyTwin twin={twin} lang={l2} />
         <SupplierDiscovery token={token} lang={l2} />

@@ -200,6 +200,18 @@ Deno.serve(async (req) => {
                  degraded: degraded.length ? degraded : undefined });
     }
 
+    // THE PORTAL SAID WHAT HAPPENED AND NEVER HELPED THEM DECIDE (13 Aug 2026). Three answers,
+    // one round trip, all of it computed in fn_customer_decision_support from this customer's own
+    // rows: which quote to take and what choosing it costs in dirhams and days; what a job like
+    // theirs is running at and how many UAE suppliers can actually quote it; and which of their
+    // requests has gone quiet with the action that moves it. Every branch has an honest empty
+    // state - on the day this shipped the estate held 0 inquiries and 0 quotes.
+    if (action === 'decision_support') {
+      const { data, error: de } = await admin.rpc('fn_customer_decision_support', { p_customer: cust.id });
+      if (de) return J({ error: de.message }, 500);
+      return J({ ok: true, ...(data || {}) });
+    }
+
     // §21: the customer fixes a panel where they want it. Written straight back so the next
     // overview returns source:'saved' and stops re-ranking underneath them.
     if (action === 'save_layout') {

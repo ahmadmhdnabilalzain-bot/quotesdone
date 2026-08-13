@@ -904,7 +904,12 @@ function LoginCard({ onDone }: { onDone: (e: string) => void }) {
   const otp = async (action: 'send' | 'verify') => {
     const r = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/login_otp`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, identifier: id, user_kind: 'customer', ...(action === 'verify' ? { code: code.trim() } : {}) }),
+      // 'admin', not 'customer' (13 Aug 2026). This screen claimed to be a customer so that the
+      // shared phone resolver would reach app_secrets.admin_mfa_phone. It worked, and it made
+      // every CUSTOMER signing in by SMS from that same number land on the admin's account —
+      // the founder's own /me showed him management@quotesdone.com. login_otp now has a third
+      // kind and only this one consults admin_mfa_phone.
+      body: JSON.stringify({ action, identifier: id, user_kind: 'admin', ...(action === 'verify' ? { code: code.trim() } : {}) }),
     });
     return { r, j: await r.json().catch(() => ({})) } as { r: Response; j: Record<string, unknown> };
   };
