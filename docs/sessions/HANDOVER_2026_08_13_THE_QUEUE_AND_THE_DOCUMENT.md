@@ -357,7 +357,10 @@ green.)*
 
 ## Sweep
 
-- **Row #3: 127/152 (84%)** on production, scorer run to completion. Unchanged — no regression.
+- **Row #3: 128/152 (84%)** on production, scorer run to completion twice — 127/152 mid-session and
+  **128/152** at the end. `s33-replay-six-tracks` is no longer in the NOT MET list where it was at
+  the start; the three at the tail are now s32, s34, s36. **I have not measured what flipped s33**
+  and am not claiming my changes did — only that the number moved and the name left the list.
 - **Portal gates 23/23 on BOTH projects.**
 - **`project_parity.mjs` → BOTH PROJECTS IN SYNC.** Both new tables carry RLS on both projects
   (`table WITHOUT rls: prod 0, staging 0`) because the DDL declares it — the event-trigger trap was
