@@ -59,10 +59,10 @@ export function CompanyTwin({ twin, lang = 'en' }: { twin: Twin | null; lang?: s
   if (!twin) {
     return (
       <Card className="p-3.5">
-        <div className={S.label}>{L(lang, 'Company profile', 'ملف الشركة')}</div>
+        <div className={S.label}>{L(lang, 'What we have learned about your buying', 'ما تعلّمناه عن مشترياتك')}</div>
         <div className={cn(S.sub, 'mt-1')}>
-          {L(lang, 'Your profile has not been built yet. It appears once your first request is in.',
-                   'لم يُبنَ ملفك بعد. سيظهر بعد أول طلب لك.')}
+          {L(lang, 'Nothing yet. This fills in from your own requests, starting with your first one.',
+                   'لا شيء بعد. يمتلئ هذا من طلباتك أنت، ابتداءً من أول طلب.')}
         </div>
       </Card>
     );
@@ -75,7 +75,7 @@ export function CompanyTwin({ twin, lang = 'en' }: { twin: Twin | null; lang?: s
   return (
     <Card className="p-3.5">
       <div className="flex items-baseline justify-between gap-2">
-        <div className={S.label}>{L(lang, 'AI business profile', 'الملف الذكي للشركة')}</div>
+        <div className={S.label}>{L(lang, 'What we have learned about your buying', 'ما تعلّمناه عن مشترياتك')}</div>
         {pct !== null ? (
           <div className={S.sub} title={L(lang, 'How much of your profile we actually hold — it is a count of known facts, not a rating of you.',
                                                 'نسبة ما نعرفه فعليًا عن ملفك — عدّ لحقائق معروفة، وليس تقييمًا لك.')}>
@@ -124,8 +124,12 @@ export function CompanyTwin({ twin, lang = 'en' }: { twin: Twin | null; lang?: s
 
       {pct !== null && pct < 100 ? (
         <div className={cn(S.sub, 'mt-2.5')}>
-          {L(lang, 'Add your industry and payment preferences in Settings to sharpen supplier matching.',
-                   'أضف قطاعك وتفضيلات الدفع في الإعدادات لتحسين مطابقة الموردين.')}
+          {/* THIS SENTENCE POINTED AT A SCREEN THAT DOES NOT EXIST. There is no Settings in the
+              customer portal - the standing preferences it means are the block directly below on
+              this same window, and sending a customer looking for a Settings page they will never
+              find is worse than saying nothing. */}
+          {L(lang, 'Set your standing preferences below and every new request carries them to the suppliers we match.',
+                   'حدّد تفضيلاتك الثابتة أدناه، وسيحملها كل طلب جديد إلى الموردين الذين نطابقهم.')}
         </div>
       ) : null}
     </Card>

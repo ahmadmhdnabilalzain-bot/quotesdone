@@ -4,3 +4,4 @@ export { CompanyTwin } from './CompanyTwin';
 export type { Twin } from './CompanyTwin';
 export { SupplierDiscovery } from './SupplierDiscovery';
 export { CustomerMemory } from './CustomerMemory';
+export { DecisionSupport } from './DecisionSupport';
