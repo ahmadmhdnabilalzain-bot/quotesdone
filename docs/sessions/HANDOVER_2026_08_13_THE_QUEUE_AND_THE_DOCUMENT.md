@@ -230,6 +230,29 @@ anchor strings, each asserted to appear exactly once first. `fn_founder_brief` i
 compose your email; retyping it to change four lines is how a transcription error reaches your
 inbox. Both projects verified byte-identical afterwards: `md5 25c6b29f6053454adab6de24725059ff`.
 
+## 7 — A failed attempt was a life sentence, and eight of the ten were my predecessor's timeout
+
+Applying the lens to my own fix: **has the retry path ever run?** It does not exist.
+`fn_agent_action_work_sweep` skips any `agent_action` that already has an `action_execution` row —
+any row, at any status — and the comment explains why: `idempotency_key` is UNIQUE, so re-sweeping
+a previously failed item died on a 23505 during the first drain. The reasoning was sound and the
+consequence was not noticed: **one failure is permanent.** The item stays `pending` for ever, the
+sweep never looks at it again, and nothing anywhere says so.
+
+Measured on production: **10 auto-policy rows pending and blocked by a failed attempt**, with
+nothing live or succeeded beside them. **Eight of the ten failed for our own reason** — the
+70-second timeout in §1b. We hung up on eight employees mid-sentence, recorded "the model returned
+nothing", and made that verdict final.
+
+The key now carries the attempt (`agent_action:<id>` then `agent_action:<id>#2`), two attempts and
+no more so a genuinely unsettleable item stops rather than looping on the bill, and
+`exhausted_two_attempts` is returned as its own number so *"we have stopped trying"* is never
+counted as *"we are working on it"*.
+
+Probed in an aborted transaction: run 1 queued exactly those 10 with `#2` keys — ids 2326, 2763,
+2773, 2777, 2778, 2781, 2812, 2814, 2818, 2819, precisely the ones that failed on 10–12 Aug — and
+run 2 queued 0. Then run for real: **10 queued**, `eligible_remaining 0`, `exhausted_two_attempts 0`.
+
 ---
 
 ## Sweep
@@ -264,11 +287,17 @@ know why the earlier run reported it; I am reporting what measured.
    `supplier_risk_complaints` (119 rows, still writing) and `improvement_question` have no helper.
 3. **7 of the 22 unread tables remain** — unchanged from the previous handover.
 4. **The three missing pack zips** are still file recovery, and the number is 10 artefacts, not 6.
-5. **39 `agent_actions` sit in `needs_review` and nothing drains them** (§6). Deliberately left: the
-   status was set by something, and I will not empty a queue just because it is full. The next
-   session should find the writer — `fn_chief_of_staff` is the first place to look — and decide
-   whether `needs_review` means "a person must look" or is a state nothing ever leaves. The brief
-   now reports the count every morning so it cannot go quiet again.
+5. **39 `agent_actions` sit in `needs_review` and nothing drains them** (§6). Deliberately left, and
+   I found the writer before stopping: **`trg_action_gate`**, a BEFORE trigger on `agent_actions`
+   that maps a row's kind onto an RBAC action, asks `fn_should_escalate`, and holds it for review
+   when the authority check blocks it. So `needs_review` is not neglect — **it is a security
+   decision**, and draining it would have been overriding an authority gate, not tidying a queue.
+   That settles what to do (nothing, for now) and sharpens the real question: **28 of the 39 are
+   plain handoffs from `docs` (Document Controller) to `it`**, and it is not obvious why a
+   documentation handoff needs an authority escalation at all. Either the gate's kind→action
+   mapping is catching `handoff` too widely, or those rows genuinely need someone — and nobody has
+   ever been told either way. Start at `trg_action_gate`'s `action := case …` mapping and at
+   `fn_should_escalate`. The brief now reports the count every morning so it cannot go quiet again.
 
 ## The one thing only you can do
 
