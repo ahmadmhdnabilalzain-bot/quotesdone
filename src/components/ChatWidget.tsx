@@ -24,7 +24,12 @@ const T = {
 
 // Render text safely: escape, then linkify emails / URLs / internal paths.
 // Each link is wrapped in <bdi> so it stays readable inside Arabic (right-to-left) text.
-function render(text: string) {
+//
+// EXPORTED because the portal now has an assistant surface of its own and a second copy of this
+// would be a second copy of the bidi rule. Half the UAE market reads the Arabic; an email address
+// or a +971 number rendered without isolation scrambles inside an RTL paragraph, and a rule that
+// exists twice is a rule that will be applied once.
+export function render(text: string) {
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   let h = esc(text);
   h = h.replace(/(https?:\/\/[^\s<]+)/g, (m) => `<bdi><a href="${m}" target="_blank" rel="noopener noreferrer" style="color:#2DD4BF;font-weight:600">${m}</a></bdi>`);
@@ -50,7 +55,10 @@ export function ChatWidget() {
   useEffect(() => { if (open) { if (!msgs.length) setMsgs([{ role: 'assistant', content: t.greet }]); setTimeout(() => inpRef.current?.focus(), 60); } }, [open]);
 
   // Never show the public assistant inside the internal OS console.
-  if (/(^|\/)os(\/|$)/.test(pathname)) return null;
+  // The OS console has its own copilot. /me now has one too, docked in the portal shell and signed
+  // in — so on the portal this bubble was a SECOND assistant in the corner, the weaker one, with no
+  // session and no account data. Two assistants on one screen is worse than either alone.
+  if (/(^|\/)(os|me)(\/|$)/.test(pathname)) return null;
 
   const send = async () => {
     const m = val.trim();

@@ -8,7 +8,9 @@
     "login": "Sign in",
     "getQuotes": "Get quotes",
     "menu": "Menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "myPortal": "My portal",
+    "supplierPortal": "Supplier portal"
   },
   "hero": {
     "badge": "The UAE's anonymous quote marketplace",
@@ -19,10 +21,22 @@
     "ctaPrimary": "Get quotes",
     "ctaSupplier": "Join as a supplier",
     "proof": [
-      { "k": "7 Emirates", "v": "covered nationwide" },
-      { "k": "3% fee", "v": "only when you choose" },
-      { "k": "Verified", "v": "licence-checked suppliers" },
-      { "k": "Anonymous", "v": "by default, always" }
+      {
+        "k": "7 Emirates",
+        "v": "covered nationwide"
+      },
+      {
+        "k": "3% fee",
+        "v": "only when you choose"
+      },
+      {
+        "k": "Verified",
+        "v": "licence-checked suppliers"
+      },
+      {
+        "k": "Anonymous",
+        "v": "by default, always"
+      }
     ],
     "briefText": "SPC flooring, 250 sqm villa in Dubai, supply & install.",
     "live": "Live",

@@ -24,7 +24,12 @@ import { PredictiveIntelligence, NegotiationAssistant } from '@/components/porta
 // v_digital_twin, customer_score and customer_preference were all built and read only by os_api —
 // the staff console — so the customer could not see their own profile or correct it.
 import { CompanyTwin, SupplierDiscovery, CustomerMemory } from '@/components/portal/twin';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+// THE SHELL. The portal was a stack of cards under ten grey pills; this is the application frame
+// the founder asked for — persistent grouped sidebar, a top bar whose widest element is the
+// assistant, a mobile tab bar, and the assistant docked in the layout rather than floating in a
+// corner. See the header of PortalShell.tsx for what was on the screen before and why.
+import { PortalShell, StatTile, StatusPill, rfqState } from './PortalShell';
+import { FileText, MessageSquareQuote, BellRing, KeyRound, Plus, Sparkles, Upload, Scale, ArrowRight, ChevronDown, Lock, Check } from 'lucide-react';
 // expires_at / expired were served on every quote and never shown. The branch that phrases them
 // decides whether a customer pays a reveal fee on a lapsed price, so it lives in a file that can be
 // executed — see quoteExpiry.test.mjs — rather than inline in this one.
@@ -54,7 +59,7 @@ const T = {
     verify_mobile:'Verify your mobile', verify_email_h:'Verify your email', verified:'✓ verified', send_sms:'Send SMS code', verify:'Verify',
     send_email_code:'Send email code', enter_mobile_first:'Enter your mobile first.', accept_pre:'I accept the QuotesDone ', terms_link:'Terms & Conditions',
     accept_post:'.', finish_continue:'Finish & continue', finishing:'Finishing…', must_accept:'Please accept the terms.',
-    my_requests:'My requests', messages:'Messages', projects:'Projects', back_requests:'← Back to requests', new_request:'+ New request', close:'Close',
+    my_requests:'My requests', messages:'Messages', projects:'Projects', back_requests:'← Back to requests', new_request:'New request', close:'Close',
     k_requests:'Requests', k_open:'Open', k_quotes:'Quotes received', k_avg:'Avg quotes/req', k_hired:'Hired', k_spend:'Spend',
     your_requests:'Your requests', no_requests:'No requests yet. ', post_first:'Post your first request', describe_job:' — describe the job in text, voice, a photo, or a drawing.',
     request_sent:'Request sent — matching you with suppliers now.', payment_confirmed:'Payment confirmed — supplier contact unlocked below.',
@@ -76,7 +81,36 @@ const T = {
     timeline_progress:'of the timeline elapsed',
     savings_unknown:'Potential savings needs at least two quotes on one request before it can be measured.',
     savings_potential:'Potential savings across your quotes',
-    search_requests:'Search your requests…', no_search_match:'No request matches that search.' },
+    search_requests:'Search your requests…', no_search_match:'No request matches that search.',
+    // ── shell ──
+    nav_main:'Portal navigation', nav_work:'Work', nav_collaborate:'Collaborate', nav_intelligence:'Intelligence',
+    nav_account:'Account', nav_overview:'Overview', nav_requests:'My requests', nav_more:'More',
+    nav_collapse:'Collapse menu', alerts_label:'Alerts',
+    ask_ph:'Ask about your requests, quotes or documents…', ask_ph_short:'Ask the assistant…',
+    asst_title:'Procurement assistant', asst_sub:'Answers from your own account',
+    asst_ph:'Ask anything about your account…', asst_send:'Send', asst_thinking:'Thinking',
+    asst_greet:'I can see your account, so ask me about your own requests, the quotes on them, your documents or your verification — as well as how QuotesDone works.',
+    asst_s1:'What is the status of my requests?', asst_s2:'How many quotes have I received?', asst_s3:'What do I need to do next?',
+    asst_err:'Something went wrong. Please try that again.',
+    // ── request lifecycle ──
+    st_matching:'Matching', st_quoting:'Quoting', st_quotes_in:'Quotes in', st_revealed:'Revealed', st_closed:'Closed',
+    k_awaiting:'Awaiting your decision', k_reveals:'Reveals',
+    k_open_hint:'Requests still collecting quotes', k_quotes_hint:'Across all your requests',
+    k_awaiting_hint:'Requests with two or more quotes to compare', k_reveals_hint:'The 3% facilitation fee is the only fee you pay',
+    quick_actions:'Quick actions', qa_new:'New request', qa_compare:'Compare quotes', qa_upload:'Upload a drawing', qa_ask:'Ask the assistant',
+    welcome_sub:'Here is where your requests stand today.',
+    empty_title:'Your first request takes about a minute',
+    empty_body:'Describe the job in text, voice, a photo or a drawing. We structure it, send it anonymously to matching UAE suppliers, and their quotes come back here to compare side by side. Posting and comparing are free.',
+    spread_title:'Quote spread', spread_locked:'Supplier names and exact prices unlock when you reveal',
+    spread_pre:'quotes in · around', spread_none:'No quotes to compare yet.',
+    journey_title:'Request journey',
+    jr_described:'Described', jr_structured:'Structured', jr_matched:'Matched', jr_quotes:'Quotes arriving', jr_compare:'Compare', jr_reveal:'Reveal',
+    view_all:'View all',
+    auth_h:'One request. Every quote worth having.',
+    auth_sub:'Describe a job once — in text, voice, a photo or a drawing. We structure it and send it anonymously to vetted UAE suppliers, and their quotes come back for you to compare side by side.',
+    auth_p1:'Posting a request and comparing quotes is free.',
+    auth_p2:'Nobody sees who you are, and you do not see who they are, until you decide.',
+    auth_p3:'You pay a 3% facilitation fee only when you reveal a supplier. There is nothing else to pay.' },
   ar: { brand_sub:'طلباتي', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_requests:'جارٍ تحميل طلباتك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', create_account_title:'أنشئ حسابك',
     signup_sub:'أدخل بريدك الإلكتروني وسننشئ حسابك فورًا. ستضيف اسمك وتاريخ ميلادك وتتحقق من رقم جوالك في الخطوة التالية.',
@@ -93,7 +127,7 @@ const T = {
     verify_mobile:'تحقّق من جوالك', verify_email_h:'تحقّق من بريدك', verified:'✓ تم التحقق', send_sms:'أرسل رمز الرسالة النصية', verify:'تحقّق',
     send_email_code:'أرسل رمز البريد', enter_mobile_first:'أدخل رقم جوالك أولًا.', accept_pre:'أوافق على ', terms_link:'الشروط والأحكام',
     accept_post:' الخاصة بمنصة QuotesDone.', finish_continue:'إنهاء ومتابعة', finishing:'جارٍ الإنهاء…', must_accept:'يُرجى الموافقة على الشروط.',
-    my_requests:'طلباتي', messages:'الرسائل', projects:'المشاريع', back_requests:'→ العودة إلى الطلبات', new_request:'+ طلب جديد', close:'إغلاق',
+    my_requests:'طلباتي', messages:'الرسائل', projects:'المشاريع', back_requests:'→ العودة إلى الطلبات', new_request:'طلب جديد', close:'إغلاق',
     k_requests:'الطلبات', k_open:'المفتوحة', k_quotes:'العروض المستلمة', k_avg:'متوسط العروض/طلب', k_hired:'المُتعاقد معهم', k_spend:'الإنفاق',
     your_requests:'طلباتك', no_requests:'لا توجد طلبات بعد. ', post_first:'انشر طلبك الأول', describe_job:' — صِف العمل نصًا أو صوتًا أو بصورة أو برسم.',
     request_sent:'تم إرسال الطلب — نطابقك مع المورّدين الآن.', payment_confirmed:'تم تأكيد الدفع — تم فتح بيانات تواصل المورّد أدناه.',
@@ -115,7 +149,36 @@ const T = {
     timeline_progress:'من الجدول الزمني مضى',
     savings_unknown:'يحتاج قياس التوفير المحتمل إلى عرضين على الأقل لنفس الطلب.',
     savings_potential:'التوفير المحتمل عبر عروضك',
-    search_requests:'ابحث في طلباتك…', no_search_match:'لا يوجد طلب يطابق هذا البحث.' }
+    search_requests:'ابحث في طلباتك…', no_search_match:'لا يوجد طلب يطابق هذا البحث.',
+    // ── الهيكل ──
+    nav_main:'تنقل البوابة', nav_work:'العمل', nav_collaborate:'التعاون', nav_intelligence:'الذكاء',
+    nav_account:'الحساب', nav_overview:'نظرة عامة', nav_requests:'طلباتي', nav_more:'المزيد',
+    nav_collapse:'طيّ القائمة', alerts_label:'التنبيهات',
+    ask_ph:'اسأل عن طلباتك أو عروض الأسعار أو مستنداتك…', ask_ph_short:'اسأل المساعد…',
+    asst_title:'مساعد المشتريات', asst_sub:'يجيب من حسابك أنت',
+    asst_ph:'اسأل أي شيء عن حسابك…', asst_send:'إرسال', asst_thinking:'جارٍ التفكير',
+    asst_greet:'أستطيع الاطلاع على حسابك، فاسألني عن طلباتك أنت، والعروض الواردة عليها، ومستنداتك، وحالة التحقق — وكذلك عن كيفية عمل QuotesDone.',
+    asst_s1:'ما حالة طلباتي؟', asst_s2:'كم عرض سعر وصلني؟', asst_s3:'ما الخطوة التالية المطلوبة مني؟',
+    asst_err:'حدث خطأ. يُرجى المحاولة مرة أخرى.',
+    // ── دورة حياة الطلب ──
+    st_matching:'قيد المطابقة', st_quoting:'قيد التسعير', st_quotes_in:'وردت العروض', st_revealed:'تم الكشف', st_closed:'مغلق',
+    k_awaiting:'بانتظار قرارك', k_reveals:'عمليات الكشف',
+    k_open_hint:'طلبات ما زالت تجمع العروض', k_quotes_hint:'عبر جميع طلباتك',
+    k_awaiting_hint:'طلبات وردها عرضان أو أكثر للمقارنة', k_reveals_hint:'رسوم التيسير 3% هي الرسوم الوحيدة التي تدفعها',
+    quick_actions:'إجراءات سريعة', qa_new:'طلب جديد', qa_compare:'قارن العروض', qa_upload:'ارفع رسمًا', qa_ask:'اسأل المساعد',
+    welcome_sub:'هذا موقف طلباتك اليوم.',
+    empty_title:'طلبك الأول يستغرق دقيقة تقريبًا',
+    empty_body:'صِف العمل نصًا أو صوتًا أو بصورة أو برسم. نقوم ببنيته وإرساله بشكل مجهول إلى الموردين المطابقين في الإمارات، وتعود عروضهم هنا لمقارنتها جنبًا إلى جنب. النشر والمقارنة مجانًا.',
+    spread_title:'نطاق العروض', spread_locked:'تُفتح أسماء الموردين والأسعار الدقيقة عند الكشف',
+    spread_pre:'عرض وارد · بحدود', spread_none:'لا توجد عروض للمقارنة بعد.',
+    journey_title:'مسار الطلب',
+    jr_described:'الوصف', jr_structured:'التنظيم', jr_matched:'المطابقة', jr_quotes:'ورود العروض', jr_compare:'المقارنة', jr_reveal:'الكشف',
+    view_all:'عرض الكل',
+    auth_h:'طلب واحد. وكل عرض سعر يستحق.',
+    auth_sub:'صِف العمل مرة واحدة — نصًا أو صوتًا أو بصورة أو برسم. نقوم ببنيته ونرسله بشكل مجهول إلى موردين معتمدين في الإمارات، وتعود عروضهم لتقارنها جنبًا إلى جنب.',
+    auth_p1:'نشر الطلب ومقارنة العروض مجانًا.',
+    auth_p2:'لا أحد يعرف هويتك، ولا تعرف هويتهم، حتى تقرر أنت.',
+    auth_p3:'تدفع رسوم تيسير 3% فقط عند كشف المورّد. لا شيء آخر تدفعه.' }
 };
 const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
@@ -248,21 +311,57 @@ export function CustomerPortal() {
   const doSignOut = () => { try { localStorage.removeItem('qd-cust-token'); localStorage.removeItem('qd-cust-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB.auth.signOut().catch(() => {}); } catch (_e) {} };
   const rtl = lang === 'ar';
   if (!mounted) return null;
-  return (<div dir={rtl ? 'rtl' : 'ltr'} data-theme={theme} className="osx min-h-screen bg-background text-foreground" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-    <header className="sticky top-0 z-10 flex items-center justify-between px-5 py-3.5 bg-card/70 backdrop-blur border-b border-border">
-      <a className="text-base font-extrabold text-foreground no-underline" href="/">QuotesDone <span className="text-primary font-bold">{t(lang, 'brand_sub')}</span></a>
-      <div className="flex gap-2 items-center">
-        <Button asChild variant="outline" size="sm"><a href="/">{t(lang, 'home')}</a></Button>
-        <Button variant="outline" size="sm" onClick={() => setLang(rtl ? 'en' : 'ar')}>{rtl ? 'EN' : 'عربي'}</Button>
-        <Button variant="outline" size="sm" onClick={swapTheme} aria-label={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')} title={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')}>{theme === 'dark' ? '☀' : '☾'}</Button>
-        {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
-      </div>
-    </header>
-    {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
-      {phase === 'login' && <Login onAuth={onAuth} lang={lang} />}
-      {phase === 'app' && <Authed token={token} lang={lang} onSignOut={doSignOut} onServedLocale={onServedLocale} />}
+  // THE STRIP IS FOR THE DOORWAY, NOT THE HOUSE. Signing in and completing a profile are two
+  // single-card screens with no navigation to render; the marketing-style bar is right there and
+  // wrong the moment the customer is actually inside, which is where PortalShell takes over.
+  const strip = (<header className="sticky top-0 z-10 flex items-center justify-between px-5 py-3.5 bg-card/70 backdrop-blur border-b border-border">
+    <a className="text-base font-extrabold text-foreground no-underline" href="/">QuotesDone <span className="text-primary font-bold">{t(lang, 'brand_sub')}</span></a>
+    <div className="flex gap-2 items-center">
+      <Button asChild variant="outline" size="sm"><a href="/">{t(lang, 'home')}</a></Button>
+      <Button variant="outline" size="sm" onClick={() => setLang(rtl ? 'en' : 'ar')}>{rtl ? 'EN' : 'عربي'}</Button>
+      <Button variant="outline" size="sm" onClick={swapTheme} aria-label={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')} title={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')}>{theme === 'dark' ? '☀' : '☾'}</Button>
+      {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
+    </div>
+  </header>);
+  return (<div dir={rtl ? 'rtl' : 'ltr'} data-theme={theme} className="osx min-h-screen bg-background text-foreground">
+    {!mounted ? <>{strip}<div className={S.center}>{t(lang, 'loading')}</div></> : (<>
+      {phase === 'login' && <>{strip}<Login onAuth={onAuth} lang={lang} /></>}
+      {phase === 'app' && <Authed token={token} lang={lang} strip={strip} theme={theme} onSwapTheme={swapTheme} onSetLang={setLang} onSignOut={doSignOut} onServedLocale={onServedLocale} />}
     </>)}
   </div>);
+}
+// THE DOORWAY GOT THE SAME TREATMENT AS THE HOUSE.
+//
+// Signing in and finishing a profile were a single 400px card floating in the middle of an
+// otherwise empty dark page — the same "extremely basic" the founder described about the portal
+// behind it, on the screen a customer sees FIRST. This is the standard two-column product sign-in:
+// the promise on one side, the form on the other, and on a phone just the form, because a phone
+// has no room for a column of reassurance above the field you came to type in.
+//
+// The three lines are the product's actual terms, not marketing filler — free to post, anonymous
+// until you choose, 3% only on a reveal. A customer deciding whether to sign up is deciding about
+// exactly those three facts.
+function AuthShell({ lang, children }) {
+  const rtl = lang === 'ar';
+  const points = ['auth_p1', 'auth_p2', 'auth_p3'];
+  return (
+    <div className="mx-auto grid w-full max-w-[1080px] items-center gap-10 px-5 py-10 md:min-h-[76vh] md:grid-cols-[1.05fr_minmax(380px,420px)] md:py-16">
+      <div className="hidden md:block">
+        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/15 font-head text-[20px] font-extrabold text-primary">Q</span>
+        <h1 className="mt-5 font-head text-[30px] font-extrabold leading-[1.15] tracking-tight text-foreground">{t(lang, 'auth_h')}</h1>
+        <p className="mt-3 max-w-[46ch] text-[14px] leading-relaxed text-muted-foreground">{t(lang, 'auth_sub')}</p>
+        <ul className="mt-7 flex flex-col gap-3.5">
+          {points.map((k) => (
+            <li key={k} className="flex items-start gap-3">
+              <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary"><Check className="h-3.5 w-3.5" aria-hidden /></span>
+              <span className="text-[13.5px] leading-relaxed text-foreground/90">{t(lang, k)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="w-full justify-self-center md:justify-self-end">{children}</div>
+    </div>
+  );
 }
 function Login({ onAuth, lang }) {
   const [mode, setMode] = useState('signin'); const [step, setStep] = useState('id'); const [id, setId] = useState(''); const [code, setCode] = useState(''); const [ident, setIdent] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
@@ -273,25 +372,28 @@ function Login({ onAuth, lang }) {
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'customer', identifier: v, allow_signup: isSignup }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg((j && j.error) || t(lang, 'err_code_send')); };
   const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg((j && j.error) || t(lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
   const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
-  return (<div className={S.center}><Card className="w-full max-w-[400px] p-5">
-    <div className={cn(S.tabsWrap, 'mb-3.5')}><button className={cn(S.tab, !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
-    <div className={S.h1}>{isSignup ? t(lang, 'create_account_title') : t(lang, 'welcome_back')}</div>
-    <div className={cn(S.sub, 'mt-1')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
+  return (<AuthShell lang={lang}><Card className="w-full p-6 sm:p-7">
+    <div className={cn(S.tabsWrap, 'mb-4 w-full')} role="tablist">
+      <button role="tab" aria-selected={!isSignup} className={cn(S.tab, 'flex-1', !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button>
+      <button role="tab" aria-selected={isSignup} className={cn(S.tab, 'flex-1', isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button>
+    </div>
+    <div className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{isSignup ? t(lang, 'create_account_title') : t(lang, 'welcome_back')}</div>
+    <div className={cn(S.sub, 'mt-1.5')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
     {step === 'id' ? (<><Input className="mt-3" placeholder={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /><Button className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button></>)
       : (<><Input className="mt-3" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /><div className={S.hint}>{t(lang, 'junk_note')}</div><Button className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button><Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button></>)}
     {msg && <div className={S.err}>{msg}</div>}
-  </Card></div>);
+  </Card></AuthShell>);
 }
-function Authed({ token, lang, onSignOut, onServedLocale }) {
+function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, onServedLocale }) {
   const [k, setK] = useState(null); const [err, setErr] = useState('');
   const load = () => { setErr(''); call('kyc', { action: 'state' }, token).then((j) => { if (j && j.error === 'unauthorized') setErr('unauth'); else setK(j || {}); }).catch(() => setErr('net')); };
   useEffect(() => { load(); }, [token]);
-  if (err === 'unauth') return <div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'session_expired')}</div><Button className="w-full mt-3" onClick={onSignOut}>{t(lang, 'tab_signin')}</Button></Card></div>;
-  if (err) return <div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'load_failed')}</div><Button className="w-full mt-3" onClick={load}>{t(lang, 'retry')}</Button></Card></div>;
-  if (!k) return <div className={S.center}>{t(lang, 'loading')}</div>;
+  if (err === 'unauth') return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'session_expired')}</div><Button className="w-full mt-3" onClick={onSignOut}>{t(lang, 'tab_signin')}</Button></Card></div></>;
+  if (err) return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'load_failed')}</div><Button className="w-full mt-3" onClick={load}>{t(lang, 'retry')}</Button></Card></div></>;
+  if (!k) return <>{strip}<div className={S.center}>{t(lang, 'loading')}</div></>;
   const complete = k.full_name && k.phone_verified && k.email_verified && k.terms_signed;
-  if (!complete) return <ProfileGate token={token} lang={lang} onDone={load} />;
-  return <Dashboard token={token} lang={lang} onServedLocale={onServedLocale} />;
+  if (!complete) return <>{strip}<ProfileGate token={token} lang={lang} onDone={load} /></>;
+  return <Dashboard token={token} lang={lang} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang} onSignOut={onSignOut} onServedLocale={onServedLocale} />;
 }
 function ProfileGate({ token, lang, onDone }) {
   const [st, setSt] = useState(null);
@@ -311,9 +413,9 @@ function ProfileGate({ token, lang, onDone }) {
   const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg((j && j.error) || t(lang, 'err_incorrect')); };
   const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms' }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg((j && j.error) || t(lang, 'load_failed')); };
   const profileDone = st.full_name && st.phone && st.dob;
-  return (<div className={S.center}><Card className="w-full max-w-[440px] p-5">
-    <div className={S.h1}>{t(lang, 'gate_title')}</div>
-    <div className={S.sub}>{t(lang, 'gate_sub')}</div>
+  return (<AuthShell lang={lang}><Card className="w-full p-6 sm:p-7">
+    <div className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{t(lang, 'gate_title')}</div>
+    <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'gate_sub')}</div>
     <Input className="mt-3" placeholder={t(lang, 'full_name')} value={full_name} onChange={(e) => setFullName(e.target.value)} />
     <Input className="mt-3" placeholder={t(lang, 'mobile_ph')} value={phone} onChange={(e) => setPhone(e.target.value)} />
     <div className={cn(S.sub, 'mt-3 mb-1')}>{t(lang, 'dob_label')}</div>
@@ -335,9 +437,9 @@ function ProfileGate({ token, lang, onDone }) {
       </>}
     </>}
     {msg && <div className={S.err}>{msg}</div>}
-  </Card></div>);
+  </Card></AuthShell>);
 }
-function Dashboard({ token, lang, onServedLocale }) {
+function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onServedLocale }) {
   const [ov, setOv] = useState(null); const [data, setData] = useState(null); const [err, setErr] = useState(''); const [note, setNote] = useState(''); const [showNew, setShowNew] = useState(false);
   // WHY THIS IS NO LONGER A `view`. Messages and Projects were whole-surface early returns: opening
   // either REPLACED the dashboard, which is the full-page navigation §21 asks the portal not to
@@ -346,8 +448,11 @@ function Dashboard({ token, lang, onServedLocale }) {
   // so the KPIs, the alerts and the assistant stay mounted underneath and no module needs a
   // "back to requests" button to undo a navigation that never happened.
   const [view, setView] = useState('');
-  // §21: bound to THIS render's overview so the bar re-sorts when the layout does.
-  const barOrder = (id) => moduleBarOrder(id, ov && ov.layout);
+  const rtl = lang === 'ar';
+  // THE UNREAD COUNT MOVED UP ONE LEVEL. It used to be fetched by a badge inside the module bar;
+  // the sidebar and the mobile tab bar both need it now, and two components fetching the same
+  // number is how two components come to disagree about it.
+  const [unread, setUnread] = useState(0);
   const [pd, setPd] = useState(null); const [pdFailed, setPdFailed] = useState(false);
   const [qtext, setQtext] = useState('');
   // my_inquiries carries the customer's stored locale (customer_api, 5 Aug 2026). This is the only
@@ -367,11 +472,17 @@ function Dashboard({ token, lang, onServedLocale }) {
   const loadPd = () => call('project_api', { action: 'dashboard' }, token)
     .then((j) => { if (j && j.ok && j.dashboard) setPd(j.dashboard); else setPdFailed(true); })
     .catch(() => setPdFailed(true));
-  const refresh = () => { loadInq(); loadOv(); loadPd(); };
+  // Silent by design: a badge that cannot load must not put an error where a count goes, and the
+  // inbox reports its own failure when the customer opens it.
+  const loadUnread = () => call('messages_api', { action: 'threads' }, token)
+    .then((j) => setUnread(((j && j.threads) || []).reduce((n, th) => n + (Number(th.unread) || 0), 0)))
+    .catch(() => {});
+  const refresh = () => { loadInq(); loadOv(); loadPd(); loadUnread(); };
   useEffect(() => {
     loadOv();
     loadInq();
     loadPd();
+    loadUnread();
     const sid = new URLSearchParams(location.search).get('session_id');
     // Only drop session_id from the URL once the payment is confirmed — it is the customer's
     // only reference for retrying or chasing a payment that did not go through.
@@ -390,7 +501,10 @@ function Dashboard({ token, lang, onServedLocale }) {
     const iv = setInterval(() => { if (visible()) loadInq(); }, 60000);
     return () => { document.removeEventListener('visibilitychange', onVis); clearInterval(iv); };
   }, [token]);
-  if (!ov && !data) return <div className={S.center}>{t(lang, 'loading_requests')}</div>;
+  // THE SHELL MOUNTS FIRST AND THE CONTENT FILLS IN. This was an early return to a centred
+  // "Loading your requests…" with no navigation at all, so the first thing a customer saw was a
+  // blank page that then became a different page. The frame is knowable before the data is.
+  const booting = !ov && !data;
   const s = (ov && ov.stats) || {}; const inqs = (data && data.inquiries) || [];
   const alertsCount = Number((ov && ov.alerts_count) ?? ((ov && ov.alerts) || []).length) || 0;
   const projects = (pd && Array.isArray(pd.projects)) ? pd.projects : [];
@@ -400,70 +514,89 @@ function Dashboard({ token, lang, onServedLocale }) {
   // own request — what it was for, where, and its reference.
   const needle = qtext.trim().toLowerCase();
   const shown = needle ? inqs.filter((i) => [i.summary, i.category, i.emirate, i.status, i.rfq_no].some((f) => String(f || '').toLowerCase().includes(needle))) : inqs;
-  return (<div className={cn(S.wrap, 'pb-24 sm:pb-6')}>
-    {/* §1 asks the opening screen to greet by time of day AND company name. The name was already on
-        the wire (customer_portal emits customer.name) and rendered alone; the hour is the client's,
-        because the server does not know which timezone the customer is sitting in. */}
-    <div className="flex justify-between items-center flex-wrap gap-3 mb-3"><div><div className="text-[22px] font-extrabold text-foreground">{greetingOf(lang) + ((ov && ov.customer && ov.customer.name) ? (', ' + ov.customer.name) : '')}</div><div className={S.sub}>{t(lang, 'my_requests')}</div></div><div className="flex gap-2"><Button size="sm" onClick={() => setShowNew((v) => !v)}>{showNew ? t(lang, 'close') : t(lang, 'new_request')}</Button></div></div>
-    {/* THE ATTENTION LINE. customer_portal has returned alerts_count on every overview call since
-        the portal was written and nothing read it — the cards were rendered, the sentence that says
-        how many decisions are waiting was not. Zero is stated as zero rather than hidden, because
-        "nothing needs you right now" is the answer a customer opening the portal wants most. */}
-    <div className={cn('rounded-lg border px-3.5 py-2.5 mb-3 text-[13px] font-semibold', alertsCount > 0 ? 'border-primary/35 bg-primary/10 text-primary' : 'border-border bg-secondary/20 text-muted-foreground')}>
-      {alertsCount > 0 ? (alertsCount + ' ' + t(lang, alertsCount === 1 ? 'attention_one' : 'attention_many')) : t(lang, 'attention_none')}
-    </div>
-    {/* §1 THE ASSISTANT'S OWN SENTENCE. The count above says HOW MANY; this says WHICH ONE and why
-        it is first. It is written by customer_portal — one line built from the highest-severity
-        alert outstanding — rather than assembled here, so the sentence the customer reads is the
-        sentence the server can be held to. When nothing is outstanding it says so plainly. */}
-    {ov && ov.headline ? (
-      <div className="mb-3 flex items-start gap-2 rounded-lg border border-border bg-card px-3.5 py-2.5">
-        <span aria-hidden className="mt-[1px] text-[13px]">🤖</span>
-        <p className="text-[13.5px] text-foreground">{ov.headline}</p>
-      </div>
-    ) : null}
-    {/* THE MODULE BAR. A row on a desktop, a bottom-anchored bar on a phone — where a thumb is.
-        §21 ORDERS IT PER CUSTOMER. customer_portal returns layout.order, ranked by what this
-        customer actually has outstanding (approvals blocking work first, then live projects), and
-        a panel the customer pinned by hand comes back at the front and is never re-ranked
-        underneath them. An unknown key from the server is IGNORED rather than rendered as a dead
-        button, and any module the server did not mention is appended in its declared order, so a
-        module added to the product later cannot disappear because the layout predates it. */}
-    <div className="fixed bottom-0 inset-x-0 z-20 flex gap-1.5 overflow-x-auto border-t border-border bg-card/90 backdrop-blur px-3 py-2 sm:static sm:mb-4 sm:flex-wrap sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('home') }} onClick={() => setView('home')}>{t(lang, 'home')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('projects') }} onClick={() => setView('projects')}>{t(lang, 'projects')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('spatial') }} onClick={() => setView('spatial')}>{t(lang, 'mod_spatial')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('documents') }} onClick={() => setView('documents')}>{t(lang, 'mod_documents')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('messages') }} onClick={() => setView('messages')}>{t(lang, 'messages')}<UnreadBadge token={token} lang={lang} /></Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('orders') }} onClick={() => setView('orders')}>{t(lang, 'mod_orders')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('approvals') }} onClick={() => setView('approvals')}>{t(lang, 'mod_approvals')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('predict') }} onClick={() => setView('predict')}>{t(lang, 'mod_predict')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('profile') }} onClick={() => setView('profile')}>{t(lang, 'mod_profile')}</Button>
-      <Button size="sm" variant="secondary" className="shrink-0 transition-colors duration-200" style={{ order: barOrder('account') }} onClick={() => setView('account')}>{t(lang, 'mod_account')}</Button>
-    </div>
-    {/* project_api ships seven customer-authed actions and had zero callers in src/. Linking an RFQ
-        to a project needs the customer's own RFQ list, which this component already holds —
-        top-level rows only, since a child of a combined project is sourced through its parent. */}
+  // Two facts the six old tiles could not state, both derived from rows already on screen:
+  // how many requests are actually WAITING ON THE CUSTOMER (two or more quotes is the exact
+  // condition under which a comparison exists to decide), and how many reveals they have paid for —
+  // the only money a customer ever pays us, and the thing "Spend" was quietly standing in for.
+  const awaiting = inqs.filter((i) => (i.quotes || []).length >= 2 && !(i.quotes || []).some((q) => q.revealed)).length;
+  const reveals = inqs.filter((i) => (i.quotes || []).some((q) => q.revealed)).length;
+  const onlyRequests = view === 'requests';
+  return (<PortalShell
+    lang={lang} t={(k) => t(lang, k)} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang}
+    onSignOut={onSignOut} view={view} onView={setView} token={token}
+    customerName={(ov && ov.customer && ov.customer.name) || ''}
+    unread={unread} alerts={alertsCount} alertList={(ov && ov.alerts) || []} order={ov && ov.layout && ov.layout.order}
+  >
+  {MODULES.some((m) => m[0] === view) ? (
     <ModuleWindow id={view} onClose={() => setView('home')} token={token} lang={lang} inqs={inqs} onChanged={refresh} twin={ov && ov.twin} />
+  ) : (
+  <div className="mx-auto w-full max-w-[1240px] px-4 py-5 sm:px-6">
+    {/* THE WELCOME BAND. §1 asks the opening screen to greet by time of day AND company name; the
+        hour is the CLIENT'S, because the server does not know which timezone the customer is in.
+        THE DUPLICATE IS GONE: the attention count and ov.headline both rendered "Nothing needs your
+        attention right now." one under the other, in two differently-styled boxes, on the screen he
+        opened. The count is a number and belongs on a tile; the headline is the sentence. */}
+    <section className="mb-5 overflow-hidden rounded-2xl border border-border bg-card/70 p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="font-head text-[24px] font-extrabold leading-tight tracking-tight text-foreground sm:text-[28px]">
+            {/* Arabic uses its own comma (U+060C) and puts no space before it. */}
+            {greetingOf(lang) + ((ov && ov.customer && ov.customer.name) ? ((lang === 'ar' ? '، ' : ', ') + ov.customer.name) : '')}
+          </h1>
+          <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-relaxed text-muted-foreground">
+            {(ov && ov.headline) || t(lang, 'welcome_sub')}
+          </p>
+        </div>
+        <Button size="sm" className="shrink-0 gap-1.5" onClick={() => setShowNew((v) => !v)}>
+          <Plus className="h-4 w-4" aria-hidden />{showNew ? t(lang, 'close') : t(lang, 'new_request')}
+        </Button>
+      </div>
+    </section>
+
     {note && <div className={S.note}>{note}</div>}
-    {showNew && <NewRequest token={token} onDone={() => { setShowNew(false); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => setShowNew(false)} />}
-    {ov && !!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => <div key={i} className={cn('rounded-lg border border-border bg-card px-3.5 py-3 flex flex-col gap-0.5 border-l-4', a.severity === 'high' ? 'border-l-red-500' : a.severity === 'medium' ? 'border-l-amber-400' : 'border-l-primary')}><b className="text-[13.5px] text-foreground">{a.title}</b><span className="text-muted-foreground text-xs">{a.detail}</span></div>)}</div>}
-    {ov && <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5 mb-4">
-      <Kpi label={t(lang, 'k_requests')} v={s.inquiries_total ?? 0} /><Kpi label={t(lang, 'k_open')} v={s.open_inquiries ?? 0} /><Kpi label={t(lang, 'k_quotes')} v={s.quotes_received ?? 0} />
-      <Kpi label={t(lang, 'k_avg')} v={s.avg_quotes_per_inquiry ?? 0} /><Kpi label={t(lang, 'k_hired')} v={s.deals ?? 0} /><Kpi label={t(lang, 'k_spend')} v={aed(s.total_spend)} />
-    </div>}
+    {showNew && <div className="mb-5"><NewRequest token={token} onDone={() => { setShowNew(false); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => setShowNew(false)} /></div>}
+
+    {/* The severity marker was a 4px border-l — which is both a well-worn generated-UI tell and,
+        more to the point here, LEFT: in Arabic it lands on the wrong edge of the card. A tinted
+        glyph carries the same three levels, on the correct side, in both directions. */}
+    {ov && !!(ov.alerts || []).length && <div className="mb-5 flex flex-col gap-2">{ov.alerts.map((a, i) => (
+      <div key={i} className="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3">
+        <span className={cn('mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg',
+          a.severity === 'high' ? 'bg-red-500/15 text-red-400' : a.severity === 'medium' ? 'bg-amber-400/15 text-amber-300' : 'bg-primary/15 text-primary')}>
+          <BellRing className="h-3.5 w-3.5" aria-hidden />
+        </span>
+        <div className="min-w-0"><b className="text-[13.5px] text-foreground">{a.title}</b>
+          <div className="text-xs leading-relaxed text-muted-foreground">{a.detail}</div></div>
+      </div>))}</div>}
+
+    {!onlyRequests && (ov ? (
+      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile icon={FileText} label={t(lang, 'k_open')} value={s.open_inquiries ?? 0} hint={t(lang, 'k_open_hint')} />
+        <StatTile icon={MessageSquareQuote} label={t(lang, 'k_quotes')} value={s.quotes_received ?? 0} hint={t(lang, 'k_quotes_hint')} />
+        <StatTile icon={BellRing} label={t(lang, 'k_awaiting')} value={awaiting} hint={t(lang, 'k_awaiting_hint')} tone={awaiting > 0 ? 'accent' : 'default'} />
+        <StatTile icon={KeyRound} label={t(lang, 'k_reveals')} value={reveals} hint={t(lang, 'k_reveals_hint')} />
+      </div>
+    ) : (
+      // A skeleton, not a spinner: the tiles are already four boxes, so show four boxes.
+      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-hidden>
+        {[0, 1, 2, 3].map((i) => <Card key={i} className="h-[104px] motion-safe:animate-pulse bg-secondary/25" />)}
+      </div>
+    ))}
+
+    {!onlyRequests && <QuickActions lang={lang} onNew={() => setShowNew(true)} onView={setView} />}
     {/* §2 THE PROFILE, ON THE ENTRY SCREEN. Six KPI tiles say what the customer has DONE; the twin
         says who they ARE — industry, live projects, the suppliers they keep coming back to, the
         categories they actually buy, their approval chain, and how much of that profile we hold.
         It is the same object the Company profile window opens, rendered from the overview payload
         the dashboard already has, so opening the portal costs no extra call. */}
-    {ov && ov.twin ? <div className="mb-4"><CompanyTwin twin={ov.twin} lang={lang === 'ar' ? 'ar' : 'en'} /></div> : null}
+    {!onlyRequests && ov && ov.twin ? <div className="mb-5"><CompanyTwin twin={ov.twin} lang={lang === 'ar' ? 'ar' : 'en'} /></div> : null}
     {/* ── THE PROJECTS / FINANCIAL / SUPPLIER-NETWORK PANELS (§1, §4) ──────────────────────────
         Every figure below is nullable and every one of them says which absence is true rather than
         printing a zero that reads as a measurement. timeline_pct is null for a project with no
         target date, so no bar is drawn for it; supplier_count is a count and 0 is a real answer;
         avg_savings_pct is null until two quotes have landed on the same RFQ, and printing 0% there
         would tell a customer their price spread is zero when it is simply not yet known. */}
+    {!onlyRequests && <>
     <div className={cn(S.h2, 'mt-[18px] mb-1')}>{t(lang, 'active_projects')}</div>
     {pdFailed ? <Card className="p-5"><div className={S.sub}>{t(lang, 'projects_failed')}</div></Card>
       : !pd ? <Card className="p-5"><div className={S.sub}>{t(lang, 'loading')}</div></Card>
@@ -490,18 +623,74 @@ function Dashboard({ token, lang, onServedLocale }) {
         </div>
         <div className={cn(S.sub, 'mt-2')}>{savingsPct == null ? t(lang, 'savings_unknown') : (t(lang, 'savings_potential') + ': ' + savingsPct + '%')}</div>
       </>)}
-    <div className={cn(S.h2, 'mt-[18px] mb-1')}>{t(lang, 'your_requests')}</div>
+    </>}
+    <div className="mb-2 mt-[22px] flex items-center justify-between gap-3">
+      <h2 className="font-head text-[16px] font-bold tracking-tight text-foreground">{t(lang, 'your_requests')}</h2>
+      {!onlyRequests && inqs.length > 3 ? (
+        <button type="button" onClick={() => setView('requests')} className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-primary">
+          {t(lang, 'view_all')}<ArrowRight className={cn('h-3.5 w-3.5', rtl && 'rotate-180')} aria-hidden />
+        </button>) : null}
+    </div>
     {inqs.length > 0 && <input type="search" className={S.field} placeholder={t(lang, 'search_requests')} aria-label={t(lang, 'search_requests')} value={qtext} onChange={(e) => setQtext(e.target.value)} />}
-    {!inqs.length ? <Card className="p-5"><div className={S.sub}>{t(lang, 'no_requests')}<button className="text-primary font-semibold" onClick={() => setShowNew(true)}>{t(lang, 'post_first')}</button>{t(lang, 'describe_job')}</div></Card>
-      : !needle ? <div className={S.list}>{inqs.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} />)}</div>
-      : !shown.length ? <Card className="p-5"><div className={S.sub}>{t(lang, 'no_search_match')}</div></Card>
-      : <div className={S.list}>{shown.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} />)}</div>}
+    {/* THE EMPTY STATE THAT TELLS THEM WHAT HAPPENS NEXT. It was one grey sentence in a box; on a
+        brand-new account — which is every account on day one — it was the main thing on the screen.
+        A first-time customer needs to know what posting a request actually does before they do it. */}
+    {booting ? (
+      <div className="mt-3 flex flex-col gap-3" aria-busy="true" aria-label={t(lang, 'loading_requests')}>
+        {[0, 1, 2].map((i) => <Card key={i} className="h-[86px] motion-safe:animate-pulse bg-secondary/25" />)}
+      </div>
+    ) : !inqs.length ? (
+      <Card className="mt-3 p-6 sm:p-8">
+        <div className="mx-auto max-w-[54ch] text-center">
+          <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/12 text-primary"><Sparkles className="h-5 w-5" aria-hidden /></span>
+          <h3 className="mt-3 font-head text-[17px] font-bold text-foreground">{t(lang, 'empty_title')}</h3>
+          <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">{t(lang, 'empty_body')}</p>
+          <Button className="mt-4 gap-1.5" onClick={() => setShowNew(true)}><Plus className="h-4 w-4" aria-hidden />{t(lang, 'post_first')}</Button>
+        </div>
+      </Card>
+    ) : (() => {
+        const rows = needle ? shown : (onlyRequests ? inqs : inqs.slice(0, 5));
+        if (needle && !shown.length) return <Card className="mt-3 p-5"><div className={S.sub}>{t(lang, 'no_search_match')}</div></Card>;
+        return <div className={cn(S.list, 'mt-3')}>{rows.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} />)}</div>;
+      })()}
     {/* fn_customer_stats computes history_12m on EVERY overview call and nothing drew it; recharts
         and ui/chart.tsx were installed with no importers, so the customer product contained zero
         charts. Each chart states what is true when there is nothing to draw rather than rendering
         a flat line at zero, which reads as a real but quiet year. */}
-    <SpendingIntelligence stats={s} inquiries={inqs} lang={lang === 'ar' ? 'ar' : 'en'} />
-  </div>);
+    {!onlyRequests && <div className="mt-5"><SpendingIntelligence stats={s} inquiries={inqs} lang={lang === 'ar' ? 'ar' : 'en'} /></div>}
+  </div>
+  )}
+  </PortalShell>);
+}
+
+// THE QUICK ACTIONS RAIL. Reference A carries a stack of icon+label rows; ours are the four things
+// a procurement customer actually does. Every one is a real destination that already exists — a new
+// request, the comparison inside a request, the drawing upload inside the intake, and the
+// assistant. Nothing here is a placeholder.
+function QuickActions({ lang, onNew, onView }) {
+  const rtl = lang === 'ar';
+  const rows = [
+    { icon: Plus, label: 'qa_new', run: onNew },
+    { icon: Scale, label: 'qa_compare', run: () => onView('requests') },
+    { icon: Upload, label: 'qa_upload', run: onNew },
+    { icon: Sparkles, label: 'qa_ask', run: () => { const el = document.getElementById('qd-ask'); if (el) el.focus(); } },
+  ];
+  return (
+    <section className="mb-5" aria-label={t(lang, 'quick_actions')}>
+      <h2 className="mb-2 font-head text-[13px] font-bold uppercase tracking-[0.08em] text-muted-foreground/70">{t(lang, 'quick_actions')}</h2>
+      {/* One column below 420px: at 375 a two-up grid truncated every label to "New req…". */}
+      <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 lg:grid-cols-4">
+        {rows.map(({ icon: Icon, label, run }) => (
+          <button key={label} type="button" onClick={run}
+            className="group flex items-center gap-3 rounded-xl border border-border bg-card/60 px-3.5 py-3 text-start transition-[border-color,transform] duration-200 hover:border-primary/40 motion-safe:hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary"><Icon className="h-4 w-4" aria-hidden /></span>
+            <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">{t(lang, label)}</span>
+            <ArrowRight className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5', rtl && 'rotate-180 group-hover:-translate-x-0.5')} aria-hidden />
+          </button>
+        ))}
+      </div>
+    </section>
+  );
 }
 function InquiryCard({ inq, token, onChange, lang }) {
   if (inq.is_combined && Array.isArray(inq.children)) { return (<Card className="p-4 mb-3.5 border-primary/30"><div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">{lang === 'ar' ? 'مشروع متعدد التخصصات' : 'Combined project'}</span><span className={S.sub}>{lang === 'ar' ? (inq.children.length + ' طلب منفصل لموردين متخصصين') : (inq.children.length + ' separate requests to specialist suppliers')}</span></div>{inq.summary ? <div className={cn(S.sub, 'mb-2')}>{inq.summary}</div> : null}<div className="space-y-2.5">{inq.children.map((c) => <InquiryCard key={c.id} inq={c} token={token} onChange={onChange} lang={lang} />)}</div></Card>); }
@@ -534,9 +723,24 @@ function InquiryCard({ inq, token, onChange, lang }) {
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); } }}>
       {/* rfq_no is on every my_inquiries row and was rendered nowhere, so the customer had no
           reference to quote back to us — only a uuid they never see. */}
-      <div><b className="capitalize">{inq.category || 'Request'}</b>{inq.rfq_no ? <span className="ms-1.5 rounded bg-secondary/60 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground align-middle">{inq.rfq_no}</span> : null} - {inq.emirate || ''}{inq.boq && inq.boq.boq ? ' - BOQ ' + inq.boq.boq.length + ' items' : ''}
-        <div className={S.sub}>{quotes.length} quote{quotes.length === 1 ? '' : 's'} - <span className="capitalize">{inq.status}</span>{inq.editable ? ' - editable ' + inq.edit_minutes_left + 'm' : ''}</div></div>
-      <div className="text-right"><span className="text-primary font-semibold">{open ? (lang === 'ar' ? 'إخفاء التفاصيل' : 'Hide details') : (quotes.length ? (lang === 'ar' ? 'العروض والتفاصيل' : 'Open project') : (lang === 'ar' ? 'عرض التفاصيل' : 'Open project'))}</span></div>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* OUR lifecycle, not a marketplace's idea of "Processing". The five states are derived
+              from facts the row already carries; see rfqState in PortalShell. */}
+          <StatusPill state={rfqState(inq, quotes)} t={(k) => t(lang, k)} />
+          <b className="capitalize">{inq.category || 'Request'}</b>
+          {inq.rfq_no ? <span className="rounded bg-secondary/60 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{inq.rfq_no}</span> : null}
+        </div>
+        <div className={cn(S.sub, 'mt-1')}>{[inq.emirate || null,
+          quotes.length + ' ' + (lang === 'ar' ? 'عرض' : ('quote' + (quotes.length === 1 ? '' : 's'))),
+          (inq.boq && inq.boq.boq) ? (inq.boq.boq.length + (lang === 'ar' ? ' بند' : ' line items')) : null,
+          inq.editable ? ((lang === 'ar' ? 'قابل للتعديل ' : 'editable ') + inq.edit_minutes_left + 'm') : null,
+        ].filter(Boolean).join(' · ')}</div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1 text-primary font-semibold text-[13px]">
+        <span className="hidden sm:inline">{open ? (lang === 'ar' ? 'إخفاء التفاصيل' : 'Hide details') : (lang === 'ar' ? 'عرض التفاصيل' : 'Open request')}</span>
+        <ChevronDown className={cn('h-4 w-4 transition-transform duration-300', open && 'rotate-180')} aria-hidden />
+      </div>
     </div>
     {inq.summary && !editing && <div className={cn(S.sub, 'mt-1.5')}>{inq.summary}</div>}
     {editing && <div className="mt-2">
@@ -555,9 +759,10 @@ function InquiryCard({ inq, token, onChange, lang }) {
       <Button variant="link" className="px-0 h-auto text-red-400" disabled={canceling} onClick={doCancel}>{canceling ? 'Cancelling...' : 'Cancel request'}</Button>
     </div>}
     {err && <div className={S.err}>{err}</div>}
-    <div className="flex items-center gap-1.5 mt-2 text-[11px] flex-wrap">{(lang === 'ar' ? RFQ_STAGES.ar : RFQ_STAGES.en).map((s, si) => (<span key={s} className={cn('flex items-center gap-1', si <= stepIdx ? 'text-primary font-semibold' : 'text-muted-foreground/70')}>{si > 0 ? <span className="text-muted-foreground/40">›</span> : null}<span className={cn('inline-block w-1.5 h-1.5 rounded-full', si <= stepIdx ? 'bg-primary' : 'bg-muted-foreground/40')} />{s}</span>))}</div>
+    <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} />
     {open && <div className="mt-3 border-t border-border pt-3 flex flex-col gap-3">
       <Timeline inq={inq} quotes={quotes} anyRevealed={anyRevealed} lang={lang} />
+      <QuoteSpread quotes={quotes} lang={lang} />
       {/* §3 THE ASSISTANT AFTER THE REQUEST EXISTS. NewRequest unmounts the moment the RFQ is
           created, and the only other door — a chat thread — is gated on a PAID REVEAL, so a
           customer with a live RFQ and no revealed quote had no way to ask anything at all. This
@@ -984,17 +1189,32 @@ function UnreadBadge({ token, lang }) {
   return <span className="ms-1.5 inline-block rounded-full bg-primary text-primary-foreground px-1.5 text-[10px] font-bold"
     title={unread + ' ' + t(lang, unread === 1 ? 'unread_message' : 'unread_messages')}>{unread}</span>;
 }
-// One floating window, whichever module is open. Nothing here fetches: each surface owns its own
-// endpoint, its own loading state and its own empty state, and this component decides only where
-// they appear and what the window is called.
+// A MODULE IS A PAGE NOW, NOT A POP-UP.
+//
+// These opened as a Dialog over the dashboard, and the reason was sound at the time: navigating to
+// a module used to REPLACE the whole screen, which unmounted the KPIs and stranded the intake
+// assistant, so a window that floated above kept them alive underneath.
+//
+// The shell removes that constraint. The sidebar, the top bar and the assistant persist across
+// every destination, so a module can own the main region without unmounting anything the customer
+// needs — and a sidebar item that opens a modal is the tell that a screen is a dashboard wearing an
+// application's clothes. Nothing here fetches: each surface still owns its endpoint, its loading
+// state and its empty state.
 function ModuleWindow({ id, onClose, token, lang, inqs, onChanged, twin }) {
   const l2 = lang === 'ar' ? 'ar' : 'en';
-  // 'home' is a real destination in the module bar and it is the dashboard itself, so it opens no
-  // window: the guard is the module entry, not a non-empty string.
+  const rtl = lang === 'ar';
   const entry = MODULES.find((m) => m[0] === id);
-  return (<Dialog open={!!entry} onOpenChange={(o) => { if (!o) onClose(); }}>
-    <DialogContent className="max-w-[min(1060px,96vw)] max-h-[88vh] overflow-y-auto bg-card/85 backdrop-blur transition-opacity duration-200">
-      <DialogHeader><DialogTitle>{entry ? t(lang, entry[1]) : ''}</DialogTitle></DialogHeader>
+  if (!entry) return null;
+  return (<section className="mx-auto w-full max-w-[1240px] px-4 py-5 sm:px-6">
+    <div className="mb-4 flex items-center gap-3">
+      <button type="button" onClick={onClose}
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={t(lang, 'nav_overview')}>
+        <ArrowRight className={cn('h-4 w-4', !rtl && 'rotate-180')} aria-hidden />
+      </button>
+      <h1 className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{t(lang, entry[1])}</h1>
+    </div>
+    <div className="flex flex-col gap-3">
       {id === 'projects' && <ProjectsModule token={token} lang={l2} linkableRfqs={inqs.map((i) => ({ id: i.id, summary: i.summary, category: i.category }))} onOpenRfq={onClose} onChanged={onChanged} />}
       {id === 'spatial' && <SpatialModule token={token} lang={l2} inquiries={inqs} onOpenRfq={onClose} />}
       {id === 'documents' && <DocumentVault token={token} lang={l2} />}
@@ -1011,8 +1231,8 @@ function ModuleWindow({ id, onClose, token, lang, inqs, onChanged, twin }) {
         <CustomerMemory token={token} lang={l2} />
       </div>}
       {id === 'account' && <AccountSettings token={token} lang={lang} />}
-    </DialogContent>
-  </Dialog>);
+    </div>
+  </section>);
 }
 // customer_api action='me' has served the customer's own row since the portal was written and no
 // file in src/ ever called it — the account the customer holds was the one thing they could not
@@ -1044,3 +1264,100 @@ function AccountSettings({ token, lang }) {
   </div>);
 }
 function Kpi({ label, v }) { return <Card className="p-3.5"><div className="text-[19px] font-extrabold text-foreground">{v}</div><div className="text-[11.5px] text-muted-foreground mt-1">{label}</div></Card>; }
+
+// THE REQUEST'S OWN JOURNEY. What stood here was five words separated by chevrons with 1.5px dots —
+// technically a stepper, visually a sentence. The stage a request is at is the single thing a
+// customer opening the portal wants to know, so it gets a rail: completed segments filled, the
+// current one pulsing, the rest quiet. `matched` is substituted into the third label when the
+// server knows the number, because "Matched to 8 suppliers" is a fact and "Matched" is a mood.
+//
+// Horizontal on a desktop, and the labels drop to a single current-stage line under 640px rather
+// than wrapping into three lines of chevrons on a phone.
+const JOURNEY = ['jr_described', 'jr_structured', 'jr_matched', 'jr_quotes', 'jr_compare', 'jr_reveal'];
+function Journey({ idx, lang, matched }) {
+  // rfqStageIdx returns 0..4 over five RFQ stages; the journey the founder asked for has six, with
+  // "structured" split out of "sent". Map rather than invent: a stage must never be claimed.
+  const step = [0, 2, 3, 4, 5][Math.max(0, Math.min(4, Number(idx) || 0))];
+  const label = (k, i) => (i === 2 && Number(matched) > 0)
+    ? (lang === 'ar' ? ('مطابقة مع ' + matched + ' مورّد') : ('Matched to ' + matched + ' suppliers'))
+    : t(lang, k);
+  return (
+    <div className="mt-3">
+      <div className="flex items-center gap-1">
+        {JOURNEY.map((k, i) => (
+          <div key={k} className="flex min-w-0 flex-1 items-center gap-1">
+            <span className={cn('h-1.5 flex-1 rounded-full transition-colors duration-500',
+              i < step ? 'bg-primary' : i === step ? 'bg-primary/55 motion-safe:animate-pulse' : 'bg-secondary/70')} />
+          </div>
+        ))}
+      </div>
+      <div className="mt-1.5 hidden items-center justify-between gap-2 sm:flex">
+        {JOURNEY.map((k, i) => (
+          <span key={k} className={cn('min-w-0 flex-1 truncate text-[10.5px]',
+            i < step ? 'text-muted-foreground' : i === step ? 'font-semibold text-primary' : 'text-muted-foreground/50',
+            i === 0 ? 'text-start' : i === JOURNEY.length - 1 ? 'text-end' : 'text-center')}>{label(k, i)}</span>
+        ))}
+      </div>
+      <div className="mt-1.5 text-[11.5px] font-semibold text-primary sm:hidden">{label(JOURNEY[step], step)}</div>
+    </div>
+  );
+}
+
+// THE QUOTE SPREAD, IN BOTH STATES — and this is the one rule no amount of design may break.
+//
+// PRE-REVEAL: a count and a band rounded to the nearest 1,000. NOT five bars. A chart that plots
+// each quote as its own bar before the customer has paid to reveal is exactly the picture that
+// destroys what the marketplace sells, even when every bar is labelled "Supplier A" — the shape of
+// the market is the thing being bought.
+// POST-REVEAL: everything, because they have bought it. Lowest highlighted.
+//
+// The rounding is done HERE and also in SQL (fn_wa_context) for the conversational channel. This
+// component is given the same prices the rest of the card already holds and chooses not to draw
+// them; the SQL path is given a band and could not draw them if it wanted to.
+function QuoteSpread({ quotes, lang }) {
+  const priced = (quotes || []).filter((q) => Number(q.price) > 0);
+  if (!priced.length) return null;
+  const anyRevealed = priced.some((q) => q.revealed);
+  const vals = priced.map((q) => Number(q.price));
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const roundK = (n) => Math.round(n / 1000) * 1000;
+  return (
+    <div className="rounded-lg border border-border bg-secondary/20 p-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <b className="text-[13px] text-foreground">{t(lang, 'spread_title')}</b>
+        {!anyRevealed ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2 py-1 text-[11px] font-medium text-muted-foreground">
+            <Lock className="h-3 w-3" aria-hidden />{t(lang, 'spread_locked')}
+          </span>
+        ) : null}
+      </div>
+      {!anyRevealed ? (
+        <>
+          <div className="mt-2.5 text-[15px] font-bold text-foreground">
+            {priced.length + ' ' + t(lang, 'spread_pre') + ' ' + aed(roundK(vals.reduce((a, b) => a + b, 0) / vals.length))}
+          </div>
+          {/* One band. Not one bar per quote. */}
+          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-secondary/70">
+            <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-primary/35 via-primary/70 to-primary/35 motion-safe:transition-[width] motion-safe:duration-700" style={{ marginInlineStart: '25%' }} />
+          </div>
+        </>
+      ) : (
+        <div className="mt-2.5 flex flex-col gap-1.5">
+          {priced.slice().sort((a, b) => Number(a.price) - Number(b.price)).map((q, i) => {
+            const pct = hi === lo ? 100 : Math.max(12, Math.round(((Number(q.price) - lo) / (hi - lo)) * 70) + 30);
+            return (
+              <div key={q.id} className="flex items-center gap-2">
+                <span className="w-[104px] shrink-0 truncate text-[11.5px] text-muted-foreground">{q.supplier_name || q.label}</span>
+                <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-secondary/70">
+                  <span className={cn('block h-full rounded-full motion-safe:transition-[width] motion-safe:duration-700', i === 0 ? 'bg-primary' : 'bg-primary/45')} style={{ width: pct + '%' }} />
+                </span>
+                <span className={cn('w-[92px] shrink-0 text-end text-[11.5px] tabular-nums', i === 0 ? 'font-bold text-primary' : 'text-foreground')}>{aed(q.price)}</span>
+                {i === 0 ? <Check className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden /> : <span className="w-3.5 shrink-0" />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
