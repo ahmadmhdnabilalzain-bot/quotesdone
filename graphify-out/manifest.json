@@ -5,17 +5,17 @@
     "semantic_hash": "03cee293c42813621a39cb7a63498201"
   },
   "messages/ar.json": {
-    "mtime": 1785671428.5376205,
-    "ast_hash": "fd3a14499f0829825649993613292c92",
+    "mtime": 1786587848.254387,
+    "ast_hash": "a7aee560e85f30e641d8132ed98278af",
     "semantic_hash": ""
   },
   "messages/en.json": {
-    "mtime": 1785671428.5376205,
-    "ast_hash": "8c437b9d1c60e3b4805013cc6ea1d91e",
+    "mtime": 1786587848.25692,
+    "ast_hash": "1b28b81fe2738a65fbb95f797f36cf9e",
     "semantic_hash": ""
   },
   "next-env.d.ts": {
-    "mtime": 1786530614.184867,
+    "mtime": 1786548530.2381327,
     "ast_hash": "d0f8375ae1199dc7acd3977fc33b78b8",
     "semantic_hash": ""
   },
@@ -185,8 +185,8 @@
     "semantic_hash": ""
   },
   "src/components/ChatWidget.tsx": {
-    "mtime": 1786136626.010854,
-    "ast_hash": "efd4946db1a4f4478e97297809040597",
+    "mtime": 1786587848.267752,
+    "ast_hash": "8b1a6424bad920ac4aab41288dac976f",
     "semantic_hash": ""
   },
   "src/components/ContactInner.tsx": {
@@ -255,8 +255,8 @@
     "semantic_hash": ""
   },
   "src/components/SiteHeader.tsx": {
-    "mtime": 1785671428.5544212,
-    "ast_hash": "271cc4a9de49d44bee93fa73ba76d0e4",
+    "mtime": 1786587848.2697515,
+    "ast_hash": "85a080874a00b14d2ff12bb861919e21",
     "semantic_hash": ""
   },
   "src/components/WhyAnonymous.tsx": {
@@ -265,18 +265,18 @@
     "semantic_hash": ""
   },
   "src/components/me/CustomerPortal.tsx": {
-    "mtime": 1786226428.833272,
-    "ast_hash": "751696b10cf302dff84d4ea73c0b975d",
+    "mtime": 1786587848.2727506,
+    "ast_hash": "5b10ac7a6b444541fc8a1ba83375be84",
     "semantic_hash": ""
   },
   "src/components/osx/OsxShell.tsx": {
-    "mtime": 1786533424.9558418,
-    "ast_hash": "6deaa21ca943c5d91f50039bb86e4fe5",
+    "mtime": 1786570809.3006968,
+    "ast_hash": "5d0a86a2ca7e604f2fb6cb75629fc356",
     "semantic_hash": ""
   },
   "src/components/portal/SupplierPortal.tsx": {
-    "mtime": 1786532806.087251,
-    "ast_hash": "48724b1bf811dad2c084e62e9299d5b3",
+    "mtime": 1786570809.302703,
+    "ast_hash": "b65eea42b8516c872dd4d604a1899824",
     "semantic_hash": ""
   },
   "src/components/ui/badge.tsx": {
@@ -405,8 +405,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/agent_brain/index.ts": {
-    "mtime": 1786537112.8152783,
-    "ast_hash": "e7e1376a113f9bf289f44516cdb3cdf3",
+    "mtime": 1786580963.0553677,
+    "ast_hash": "74744a131459a1aa241bf03119ccccac",
     "semantic_hash": ""
   },
   "supabase/functions/agent_learnings_report/index.ts": {
@@ -415,13 +415,13 @@
     "semantic_hash": ""
   },
   "supabase/functions/agents/index.ts": {
-    "mtime": 1786337788.3050356,
-    "ast_hash": "c9df40a0034d611ec2e542cba5e969e5",
+    "mtime": 1786551923.3699088,
+    "ast_hash": "47b461b68ccd2a164b83229f6eb9bc8f",
     "semantic_hash": ""
   },
   "supabase/functions/ai_health/index.ts": {
-    "mtime": 1785774985.139192,
-    "ast_hash": "c4c45e6f03406dc4dfd6a56bd2c3ff66",
+    "mtime": 1786557992.62901,
+    "ast_hash": "ed10dcf2da62f258a56dc5dab726abfa",
     "semantic_hash": ""
   },
   "supabase/functions/alert_founder/index.ts": {
@@ -460,8 +460,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/backup/index.ts": {
-    "mtime": 1786136626.086621,
-    "ast_hash": "83d7398910ec79e4ff47bf3eb36f9a31",
+    "mtime": 1786562133.0526955,
+    "ast_hash": "cd4b6666c8b15a211a0ec5196bf1d61b",
     "semantic_hash": ""
   },
   "supabase/functions/blog_weekly/index.ts": {
@@ -495,8 +495,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/compliance_archive/index.ts": {
-    "mtime": 1786443209.4661045,
-    "ast_hash": "b142c63090b107733279860863bb1311",
+    "mtime": 1786554136.8746543,
+    "ast_hash": "d7bebf6a970afe129c94e3394e5e77df",
     "semantic_hash": ""
   },
   "supabase/functions/contact_submit/index.ts": {
@@ -515,8 +515,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/customer_api/index.ts": {
-    "mtime": 1786476203.7047858,
-    "ast_hash": "c08dbd9748031bddbf59469717d91255",
+    "mtime": 1786571414.3519483,
+    "ast_hash": "f437140c384ff85e8753fa386bd03f59",
     "semantic_hash": ""
   },
   "supabase/functions/customer_portal/index.ts": {
@@ -545,8 +545,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/dispatch_inquiry/index.ts": {
-    "mtime": 1786226428.9249268,
-    "ast_hash": "92937114c9c206f4828af22999bebe40",
+    "mtime": 1786571414.3519483,
+    "ast_hash": "297d2d1a38dc1cef34741f4002c25343",
     "semantic_hash": ""
   },
   "supabase/functions/doc_extract/index.ts": {
@@ -565,8 +565,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/dr_drill/index.ts": {
-    "mtime": 1786136626.1005843,
-    "ast_hash": "f2ec8af93fb3ea86ad6287f1096575cd",
+    "mtime": 1786570809.3046727,
+    "ast_hash": "3f7c05161aead36cf27033823505fccd",
     "semantic_hash": ""
   },
   "supabase/functions/drawing_boq/index.ts": {
@@ -575,8 +575,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/drawing_redact/index.ts": {
-    "mtime": 1786136626.1015887,
-    "ast_hash": "438f66c862538294a1f89c7797737e98",
+    "mtime": 1786570809.3046727,
+    "ast_hash": "bff3daccfa58fcf29242bc1328c4f243",
     "semantic_hash": ""
   },
   "supabase/functions/dropbox_backup/index.ts": {
@@ -750,8 +750,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/kyc/index.ts": {
-    "mtime": 1785771417.8335688,
-    "ast_hash": "3e7efea6c99f865a967dbe03ece6452b",
+    "mtime": 1786570809.3046727,
+    "ast_hash": "51b87e835d10075721b9556ae36fb836",
     "semantic_hash": ""
   },
   "supabase/functions/learn_gaps/index.ts": {
@@ -785,8 +785,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/login_otp/index.ts": {
-    "mtime": 1786384751.0794487,
-    "ast_hash": "bf138caf7f957f07fe4b19d5a7b54b84",
+    "mtime": 1786548290.2593732,
+    "ast_hash": "636ff871d00d8bd147e38b5817dc61c6",
     "semantic_hash": ""
   },
   "supabase/functions/make_pdf/index.ts": {
@@ -1050,8 +1050,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/site_assistant/index.ts": {
-    "mtime": 1785774985.1424317,
-    "ast_hash": "38a47ecbdaa523e869703ed0c80234a8",
+    "mtime": 1786587848.2767575,
+    "ast_hash": "57b00790837e929ff49324b5d0432adb",
     "semantic_hash": ""
   },
   "supabase/functions/site_deploy/index.ts": {
@@ -1175,8 +1175,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/wa_inbound/index.ts": {
-    "mtime": 1786475218.3604367,
-    "ast_hash": "97bff6bf88f8d23dab76de1bd9240c70",
+    "mtime": 1786578050.7015765,
+    "ast_hash": "97c63202bc599a357fdcc33e2f2271a1",
     "semantic_hash": ""
   },
   "supabase/functions/wa_optin_set/index.ts": {
@@ -1322,56 +1322,6 @@
   "docs/WEBSITE.md": {
     "mtime": 1784718419.4571052,
     "ast_hash": "4bbaae18be14533613b0186265e52d99",
-    "semantic_hash": ""
-  },
-  ".claude-flow/daemon-state.json": {
-    "mtime": 1786543027.704803,
-    "ast_hash": "edbdd21c0d735e68e72ffd2bf83f5f0e",
-    "semantic_hash": ""
-  },
-  ".claude-flow/harness-active-policy.json": {
-    "mtime": 1786226428.4166374,
-    "ast_hash": "a7c682c85bced90679d06ed7844c8a69",
-    "semantic_hash": ""
-  },
-  ".claude-flow/metrics/backup.json": {
-    "mtime": 1786525817.7666402,
-    "ast_hash": "b314d5f211f3198979cabbc32b2db6ed",
-    "semantic_hash": ""
-  },
-  ".claude-flow/metrics/codebase-map.json": {
-    "mtime": 1786542667.8506882,
-    "ast_hash": "672fdfc83e7e7a672315655afd630d64",
-    "semantic_hash": ""
-  },
-  ".claude-flow/metrics/consolidation.json": {
-    "mtime": 1786543027.704803,
-    "ast_hash": "d2b587e494f7adc255486f6bd712d687",
-    "semantic_hash": ""
-  },
-  ".claude-flow/metrics/harness-loop.json": {
-    "mtime": 1786541587.8330894,
-    "ast_hash": "3bdff0afe503a5dfc2a0cac44973d24e",
-    "semantic_hash": ""
-  },
-  ".claude-flow/metrics/performance.json": {
-    "mtime": 1786542907.856254,
-    "ast_hash": "fec5ebad3e326fde43ad9437b0dc1662",
-    "semantic_hash": ""
-  },
-  ".claude-flow/metrics/security-audit.json": {
-    "mtime": 1786542788.2241638,
-    "ast_hash": "0bd421a62877e299946f311e12c2a38e",
-    "semantic_hash": ""
-  },
-  ".claude-flow/metrics/test-gaps.json": {
-    "mtime": 1786542547.8014019,
-    "ast_hash": "80f9ed0dfbf3851e7462267467eb56fc",
-    "semantic_hash": ""
-  },
-  ".claude-flow/neural/stats.json": {
-    "mtime": 1786542984.3997512,
-    "ast_hash": "7a01c545c18c481980aa5f6aeae8a163",
     "semantic_hash": ""
   },
   ".claude/proven-config.json": {
@@ -1590,8 +1540,8 @@
     "semantic_hash": ""
   },
   "scripts/apply_sql.mjs": {
-    "mtime": 1786226428.6916711,
-    "ast_hash": "4ab2bb6d4de7a97f21c3ef76496e9eee",
+    "mtime": 1786554136.872658,
+    "ast_hash": "bedafb5784784b3759dd2e506d179a55",
     "semantic_hash": ""
   },
   "scripts/audit-screenshots.mjs": {
@@ -2120,8 +2070,8 @@
     "semantic_hash": ""
   },
   "scripts/staging/journey_test.mjs": {
-    "mtime": 1786136625.9240575,
-    "ast_hash": "578e63cb9ee3cd631582c3debb8ca621",
+    "mtime": 1786548290.2593732,
+    "ast_hash": "5d7f4e8d4702f0ca22d86d37c279eea8",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/component_10.mjs": {
@@ -2175,8 +2125,8 @@
     "semantic_hash": ""
   },
   "scripts/staging/seed_staging_secrets.mjs": {
-    "mtime": 1786136625.951581,
-    "ast_hash": "55c3b50b4a2db1fb5de9e6b54686152a",
+    "mtime": 1786570809.296279,
+    "ast_hash": "93632df1c2c823180516cc2919f3c730",
     "semantic_hash": ""
   },
   "scripts/staging/smoke_staging.mjs": {
@@ -3190,8 +3140,8 @@
     "semantic_hash": ""
   },
   "scripts/staging/os2_blueprint/sections_21_40.mjs": {
-    "mtime": 1786242511.5978012,
-    "ast_hash": "e5aec07dd05475d7c7b037646c494a09",
+    "mtime": 1786545530.3936565,
+    "ast_hash": "2b28c693dfab7479bd93de6c4e29a6a8",
     "semantic_hash": ""
   },
   "scripts/staging/os2_blueprint/ui_closure.mjs": {
@@ -4855,8 +4805,8 @@
     "semantic_hash": ""
   },
   "scripts/kb/pack_scorecard.mjs": {
-    "mtime": 1786467030.2466998,
-    "ast_hash": "f1b21441d317f45eb26ef4c1d934beb0",
+    "mtime": 1786570809.2796702,
+    "ast_hash": "f31b67b95651bedccf631e2c21657070",
     "semantic_hash": ""
   },
   "scripts/kb/sync_executor_classification.mjs": {
@@ -6565,8 +6515,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/action_worker/index.ts": {
-    "mtime": 1786487355.5366113,
-    "ast_hash": "ad31cbc35619f4dc3148f1d4f1f308f2",
+    "mtime": 1786578050.7003787,
+    "ast_hash": "c225cc84b28b0dc5156d0a519e140848",
     "semantic_hash": ""
   },
   "supabase/functions/boq_fixture_check/index.ts": {
@@ -12752,6 +12702,406 @@
   "docs/sessions/HANDOVER_2026_08_12_PART3_THE_COMPANY_ASSIGNED_ITS_WORK_TO_NOBODY.md": {
     "mtime": 1786542994.6677823,
     "ast_hash": "664d360fd13ad76b3490577f8ed39a87",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_recommendation_that_cannot_say_what_it_assumed.sql": {
+    "mtime": 1786551923.3699088,
+    "ast_hash": "d0566a6081d9be41fb9fb82022b5698f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_report_that_arrives_as_a_document.sql": {
+    "mtime": 1786578050.6952274,
+    "ast_hash": "3a56f28c499ee51a170a92327a63e904",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_call_lands_inside_a_ceiling.sql": {
+    "mtime": 1786570809.2796702,
+    "ast_hash": "ca4ae9dfaaad98a619f80486402dd46e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_recommendation_can_now_say_what_else_was_considered.sql": {
+    "mtime": 1786546143.3287916,
+    "ast_hash": "cbf6b755830b4c2163a6129452ec666d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_wa_context_revoke_on_both.sql": {
+    "mtime": 1786575082.0030842,
+    "ast_hash": "0858838c88c37dcda9a433beda4bd8ed",
+    "semantic_hash": ""
+  },
+  "scripts/sql/founder_directive_gets_its_rls.sql": {
+    "mtime": 1786573682.3086743,
+    "ast_hash": "4ef802956ce60257a210882839b6797c",
+    "semantic_hash": ""
+  },
+  "scripts/sql/marketing_says_what_a_zero_might_also_mean.sql": {
+    "mtime": 1786551923.3699088,
+    "ast_hash": "a89f284727505e7687f0ec4e56d11e82",
+    "semantic_hash": ""
+  },
+  "scripts/sql/one_column_two_units.sql": {
+    "mtime": 1786570809.2796702,
+    "ast_hash": "dc56e257cc5328f9cc2cbf7eb3272302",
+    "semantic_hash": ""
+  },
+  "scripts/sql/operations_ai_now_says_how_each_of_its_six_alerts_is_wrong.sql": {
+    "mtime": 1786551923.3699088,
+    "ast_hash": "391b37bab045991f95866f266b974428",
+    "semantic_hash": ""
+  },
+  "scripts/sql/six_simulations_six_shapes_and_nothing_to_compare.sql": {
+    "mtime": 1786543790.23504,
+    "ast_hash": "ee508643c1c2495daf65d5b3cff8bee4",
+    "semantic_hash": ""
+  },
+  "scripts/sql/sixteen_routines_stop_naming_their_own_project.sql": {
+    "mtime": 1786554136.8736553,
+    "ast_hash": "a14c9dd18bf1c01448d941513bb292cd",
+    "semantic_hash": ""
+  },
+  "scripts/sql/strategy_says_what_it_took_on_trust.sql": {
+    "mtime": 1786570809.2796702,
+    "ast_hash": "7a4d43d9a0763f1a7785ff9c12ba031b",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_calls_that_belonged_to_no_department.sql": {
+    "mtime": 1786570809.2796702,
+    "ast_hash": "885f3cedc95f20e92444693213d34054",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_capability_retry_cron_and_its_registry_row.sql": {
+    "mtime": 1786552397.6417766,
+    "ast_hash": "0f809575a265eadbd7018ba3c11e801e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_channel_gets_its_own_eyes.sql": {
+    "mtime": 1786574807.407234,
+    "ast_hash": "0245f0509e9be5fef5eed4cd14c84ca8",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_code_was_entered_before_there_was_anywhere_to_record_it.sql": {
+    "mtime": 1786548290.2593732,
+    "ast_hash": "80d2dc5e32ec58ccd3e8b033d8fefa5e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_company_emitted_payment_received_to_nobody.sql": {
+    "mtime": 1786546492.50287,
+    "ast_hash": "cbec74dcb55a92fc55266e3c052dbc7e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_counter_that_asked_for_the_old_name.sql": {
+    "mtime": 1786570809.2880175,
+    "ast_hash": "53a2ca8a39cb6145c63bdaf8a1cbe3ed",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_curator_admits_what_indexed_does_not_prove.sql": {
+    "mtime": 1786551923.3699088,
+    "ast_hash": "7ee0b8e7ec963f55984bad53ab7b727c",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_demand_path_can_now_be_walked_by_something.sql": {
+    "mtime": 1786544838.2784798,
+    "ast_hash": "e0478b372144edf868d3569dea7324eb",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_document_controller_states_what_it_took_on_trust.sql": {
+    "mtime": 1786551923.3699088,
+    "ast_hash": "d03074f09bb2243e39580ef3c2643cd2",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_exam_that_examined_the_catalogue_instead_of_the_staff.sql": {
+    "mtime": 1786570809.2880175,
+    "ast_hash": "b54d74ba1278f6fc0669540ce0971a2a",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_first_workflow_whose_steps_something_can_actually_run.sql": {
+    "mtime": 1786544729.165924,
+    "ast_hash": "b9fe55bde61c82e9b572c17f5719b31d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_five_wrappers_that_could_not_carry_a_reason.sql": {
+    "mtime": 1786551923.3699088,
+    "ast_hash": "120941ff39972b887b6eae363c19f3ff",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_founder_can_change_things_by_text.sql": {
+    "mtime": 1786573682.3086743,
+    "ast_hash": "1d06f5f0e7640569c430b47ac8483e7f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_hand_written_map_fell_behind_the_spending.sql": {
+    "mtime": 1786558828.8699255,
+    "ast_hash": "c8878586109df9bc3b1e785080f3cd54",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_hot_lead_and_the_gap_state_their_terms.sql": {
+    "mtime": 1786570916.9595044,
+    "ast_hash": "0ed7d0041ccff60c66ddea0aa0c47345",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_last_workflow_and_the_generic_execute_step_stays_manual.sql": {
+    "mtime": 1786545337.420109,
+    "ast_hash": "172b36e4911ff7b8b3e9291910e2cfdc",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_licence_arrived_and_nothing_read_it.sql": {
+    "mtime": 1786578050.6952274,
+    "ast_hash": "4040bd4b82847831496439dc0f7364a9",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_licence_arrived_and_nothing_read_it_2.sql": {
+    "mtime": 1786578050.6962278,
+    "ast_hash": "38f08f38bb88149149f60a240f5e87f4",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_outage_that_only_rang_once.sql": {
+    "mtime": 1786570809.2880175,
+    "ast_hash": "332ca7dfc9b0fffc380f3f304627a324",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_pause_that_would_have_fired_on_a_healthy_list.sql": {
+    "mtime": 1786570809.2880175,
+    "ast_hash": "4ed410d913443de196a96cba2a06118b",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_queue_that_had_nobody_to_hand_it_to.sql": {
+    "mtime": 1786578050.6972275,
+    "ast_hash": "e7995c3d321f3ad246ff585813095197",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_reflection_budget_counted_what_had_finished.sql": {
+    "mtime": 1786556925.1127305,
+    "ast_hash": "622cf3495dac4921711a0351155de4d1",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_reflection_budget_gets_a_number_and_a_reason.sql": {
+    "mtime": 1786570809.2880175,
+    "ast_hash": "d6e2fbb5b02353b15b5c6f9cab81eb94",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_registration_workflow_classified_without_waking_fifty_six_parked_runs.sql": {
+    "mtime": 1786545123.4441745,
+    "ast_hash": "bbdb15794dda5fd1ae01310aa4f3840d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_rfq_redispatch_cron_and_its_registry_row.sql": {
+    "mtime": 1786550645.3859327,
+    "ast_hash": "f65d59477d1ed8c808a1f10b2c799ae8",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_rfq_that_arrived_before_its_supplier_existed.sql": {
+    "mtime": 1786550645.3859327,
+    "ast_hash": "c41bd2545dda18afa5f6410a0412ac5a",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_risk_scan_names_its_proxies.sql": {
+    "mtime": 1786570809.2880175,
+    "ast_hash": "c08b54e94fb6ac373d89365473b7759d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_spend_guard_said_the_ceiling_did_not_exist.sql": {
+    "mtime": 1786558493.5200734,
+    "ast_hash": "ac1e62e4d2337c8984dc17dc7ec3c3ac",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_stale_brief_that_nobody_had_read_either.sql": {
+    "mtime": 1786551923.3699088,
+    "ast_hash": "bc1e8216803f573b98aab27bcd35b445",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_step_that_refunds_a_card_had_no_gate_at_all.sql": {
+    "mtime": 1786545230.6239328,
+    "ast_hash": "cc2ccd2ec4bf9165002b7ba01b1cae45",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_supplier_could_ask_but_could_not_change.sql": {
+    "mtime": 1786578050.6982281,
+    "ast_hash": "aac33ec16f45b7dfef94f8f57f837c6e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_supplier_the_matcher_could_not_see.sql": {
+    "mtime": 1786552397.6417766,
+    "ast_hash": "eafc722ef072f386fea174e0624964d3",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_switch_that_governed_nothing.sql": {
+    "mtime": 1786570809.2880175,
+    "ast_hash": "9e7a3a1b01a05b6e2b308a46b01c7f0e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_tally_still_counted_a_word_the_runner_stopped_saying.sql": {
+    "mtime": 1786545811.577034,
+    "ast_hash": "5863370d5d9362cc2c27e134883f5b50",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_tidy_up_that_stopped_the_sessions_expiring.sql": {
+    "mtime": 1786570809.2880175,
+    "ast_hash": "947690faa06e4c22b521694dbf66ef63",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_trainer_that_would_have_posted_to_the_wrong_company.sql": {
+    "mtime": 1786551923.3699088,
+    "ast_hash": "3c95e903d7910ae30fecd7285c96d899",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_two_signing_triggers_must_never_refuse_a_signature.sql": {
+    "mtime": 1786554136.8736553,
+    "ast_hash": "bc3de95c198246f301c0799aa22f9cb5",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_two_triggers_on_the_critical_path_stop_naming_their_own_project.sql": {
+    "mtime": 1786554136.8736553,
+    "ast_hash": "36923eb9d921d60a4253dd58e01cc4b9",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_workflow_that_can_ban_a_supplier_automates_only_the_reading.sql": {
+    "mtime": 1786545024.6947994,
+    "ast_hash": "4ac7981a45a5d8270860241b6e7b259d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/twenty_thousand_suppliers_rated_zero_for_work_never_offered.sql": {
+    "mtime": 1786556097.8967412,
+    "ast_hash": "8b7baefaa9c046d91a55fc788fe6e3fb",
+    "semantic_hash": ""
+  },
+  "scripts/sql/two_drills_in_one_staging_table.sql": {
+    "mtime": 1786570809.2880175,
+    "ast_hash": "d1ecba1788c33cef4134816d3b29cada",
+    "semantic_hash": ""
+  },
+  "scripts/sql/two_more_workflows_and_nothing_that_talks_to_a_customer_fires_itself.sql": {
+    "mtime": 1786544955.7243476,
+    "ast_hash": "d946bc5732c85039a838344deb42a653",
+    "semantic_hash": ""
+  },
+  "scripts/sql/what_the_employee_is_supposed_to_know.sql": {
+    "mtime": 1786570809.2880175,
+    "ast_hash": "97ea340125b8d34b4fddf6508326f74c",
+    "semantic_hash": ""
+  },
+  "scripts/staging/make_fixture_licence_pdf.mjs": {
+    "mtime": 1786578050.6992319,
+    "ast_hash": "e4432b9d972900b2e524b02ec97cbba8",
+    "semantic_hash": ""
+  },
+  "scripts/staging/prove_boq_real_drawing.mjs": {
+    "mtime": 1786570809.2880175,
+    "ast_hash": "177325145e6c7f25a77b76625edd87a3",
+    "semantic_hash": ""
+  },
+  "docs/sessions/HANDOVER_2026_08_12_PART4_TEN_WORKFLOWS_AND_A_COUNTER_THAT_INVERTED_ITSELF.md": {
+    "mtime": 1786546015.2977123,
+    "ast_hash": "fe25b6843140f4f9380932411d1e6d3d",
+    "semantic_hash": ""
+  },
+  "docs/sessions/HANDOVER_2026_08_12_PART5_THE_SIGN_IN_CODE_DID_NOT_COUNT.md": {
+    "mtime": 1786548532.812762,
+    "ast_hash": "2a23192471d75c9a105fdeef80936c5a",
+    "semantic_hash": ""
+  },
+  "docs/sessions/HANDOVER_2026_08_12_PART6_DEAD_ON_ARRIVAL.md": {
+    "mtime": 1786550645.3859327,
+    "ast_hash": "91dcd9c1d6c6a917c6ea84430f48464f",
+    "semantic_hash": ""
+  },
+  "docs/sessions/HANDOVER_2026_08_13_THE_DOOR_THE_DRILL_AND_FOUR_LIARS.md": {
+    "mtime": 1786571442.6186292,
+    "ast_hash": "0ea62fe3906ccc669e90678523e7a1de",
+    "semantic_hash": ""
+  },
+  "docs/sessions/HANDOVER_2026_08_13_THE_QUEUE_AND_THE_DOCUMENT.md": {
+    "mtime": 1786583779.4146843,
+    "ast_hash": "534c0615becff656e5b5ad2cc9056934",
+    "semantic_hash": ""
+  },
+  "docs/sessions/PROMPT_NEXT_SESSION_FINISH_WHAT_IS_PENDING.md": {
+    "mtime": 1786563275.1037025,
+    "ast_hash": "05640efec3e4e296380b96927c69bcb2",
+    "semantic_hash": ""
+  },
+  "docs/sessions/PROMPT_NEXT_SESSION_THE_BRIEF_IS_READY_AND_NO_INQUIRY_EXISTS.md": {
+    "mtime": 1786547414.2318628,
+    "ast_hash": "8e87005233f0f9f973f0b8a6ee2ddc9c",
+    "semantic_hash": ""
+  },
+  "docs/sessions/PROMPT_NEXT_SESSION_THE_COMMAND_CENTRE.md": {
+    "mtime": 1786575082.0020845,
+    "ast_hash": "0cdb7df7876a557be36df65f531078a9",
+    "semantic_hash": ""
+  },
+  "lic.pdf.dataurl.txt": {
+    "mtime": 1786576804.9004538,
+    "ast_hash": "996fa7350c033f6c4479116c0b23e8a8",
+    "semantic_hash": ""
+  },
+  "lic.pdf": {
+    "mtime": 1786576804.899235,
+    "ast_hash": "548ee1eb328f8f761e6f0a748f7519eb",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_failed_attempt_was_a_life_sentence.sql": {
+    "mtime": 1786579421.8320718,
+    "ast_hash": "f53aa47b4b6aff3f97053da221a713ac",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_assistant_could_not_see_who_was_asking.sql": {
+    "mtime": 1786587848.2599137,
+    "ast_hash": "d396931b4aaff0764eb9c9b82da696d6",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_bounce_rate_was_one_number_over_two_populations.sql": {
+    "mtime": 1786582357.9327142,
+    "ast_hash": "c6fa17c6a71ceec516d3ba584feca4d0",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_customer_facing_assistant_was_unmapped.sql": {
+    "mtime": 1786587848.2629137,
+    "ast_hash": "16ed77b91bd14741422adadddeeb9367",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_daily_brief_added_his_queue_to_the_machines.sql": {
+    "mtime": 1786579007.103606,
+    "ast_hash": "ae0acc7eba8f14f5bca8d145a9d6b992",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_line_i_nearly_shipped_was_the_same_lie.sql": {
+    "mtime": 1786579007.103606,
+    "ast_hash": "7aa2246342918c1bb8412eaebc1aeefb",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_ramp_went_quiet_exactly_when_it_mattered.sql": {
+    "mtime": 1786579822.2521427,
+    "ast_hash": "41ad2eebdf7b76c5e555a1041720098b",
+    "semantic_hash": ""
+  },
+  "src/components/AudienceNav.tsx": {
+    "mtime": 1786587848.264751,
+    "ast_hash": "226dc4e83baf82a2a65dc31ffde22db6",
+    "semantic_hash": ""
+  },
+  "src/components/me/PortalShell.tsx": {
+    "mtime": 1786587848.27375,
+    "ast_hash": "2dabed85938ff7f3d12232dde1cbd3a0",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/page-2026-08-13T02-22-24-030Z.yml": {
+    "mtime": 1786587744.0311565,
+    "ast_hash": "44232e80ea9810ddb1a533b5a125848c",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/page-2026-08-13T02-22-31-852Z.yml": {
+    "mtime": 1786587751.8579214,
+    "ast_hash": "b19eb873912394982bd39298865a5790",
+    "semantic_hash": ""
+  },
+  "docs/sessions/PROMPT_NEXT_SESSION_THE_CUSTOMER_PORTAL.md": {
+    "mtime": 1786584225.7790956,
+    "ast_hash": "2a11fb28af2a34f581c474f171f75f6d",
+    "semantic_hash": ""
+  },
+  "final-1280.png": {
+    "mtime": 1786587758.0407557,
+    "ast_hash": "8c3b1869b24952e8a2df442c5a7f3e13",
     "semantic_hash": ""
   }
 }
