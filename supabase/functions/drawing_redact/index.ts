@@ -40,6 +40,36 @@ Weigh what you report. A page is refused entirely on your answer, and refusing a
 Return STRICT JSON ONLY: {"clean": true, "found": []} or {"clean": false, "found": ["consultant name top right", "phone number in title block"]}.
 If you cannot read the image, or you are unsure, answer {"clean": false, "found": ["uncertain"]}.`;
 
+// ── DO NOT ROUTE THESE CALLS TO model_policy.redaction_detection. MEASURED 13 Aug 2026. ────────
+//
+// The obvious change, and it is wrong. model_policy holds a row `redaction_detection` whose
+// rationale reads "must include independent post-redaction verification and fail closed" — written
+// for exactly these calls. Neither passes a task_class, so fn_ai_route matches nothing and says so
+// in its own `why`: 'no policy for "drawing_redact_verify", fell back to general_drafting'.
+//
+//                        model                          max_tokens   cache
+//   what runs today      ~anthropic/claude-haiku-latest        900    true
+//   redaction_detection  google/gemini-3.1-flash-lite         1200   false
+//
+// Passing task_class:'redaction_detection' was tried on staging and measured against the same
+// three fixtures before and after. Before: all three pages cleared the verifier and published.
+// After: cases 1 and 3 were REFUSED, and verify_detail named the fixture's eight planted
+// identifiers verbatim — AL NAHDA CONSULTANTS, MR OMAR BIN FAISAL, VILLA 42, PLOT 345-8871,
+// +971 4 555 1234, info@alnahda-consult.ae, AN-2026-114 — as still legible.
+//
+// THE PUBLISHED JPGs WERE THEN PULLED FROM drawing-files AND LOOKED AT. Both are correctly
+// redacted: on case 1 the whole title block is one solid black rectangle, and on case 3 the
+// diagonal watermark is covered by a staircase of black boxes across the sheet plus the title
+// block. Nothing the verifier "found" is visible in either image. It reported what a title block
+// USUALLY contains, primed by its own prompt, from an area that is solid black.
+//
+// So the pack's policy would make the redactor worse in the way that matters least visibly: it
+// refuses correctly-cleaned drawings, and it fills verify_detail with fiction that the next
+// session would read as evidence of a leak. A policy that exists and governs nothing is normally a
+// build order. This one was measured first, and the measurement said no. Reverted; production was
+// never changed. If the model is revisited, re-run scripts/staging/prove_redaction_retry.mjs and
+// LOOK AT THE JPG before believing either verifier.
+//
 // THE SECOND PASS WAS BEING TOLD EXACTLY WHERE TO LOOK AND NOBODY LISTENED.
 //
 // verifyPage returns a precise, located list — "Company name/logo visible in bottom right corner
