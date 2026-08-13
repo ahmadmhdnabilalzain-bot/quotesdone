@@ -170,7 +170,15 @@ slugs.forEach((f, i) => {
 console.log('\n--- verifying against the DEPLOYED bundle ---');
 const notVerified = [];
 let pass = 0;
+// PACE THE LOOP, DO NOT ONLY RECOVER FROM IT. The 429 retry took a 130-function deploy from
+// 120 verified to 129, and translate_page still exhausted five attempts — because the loop fires
+// one request per function back to back and the retry only starts helping AFTER the limit is
+// already hit. A small gap keeps the whole run under it instead: 120ms x 130 adds ~16s to a job
+// that already takes minutes, and the backoff stays as the safety net for a genuinely busy API.
+// Skipped entirely for small deploys, which never came near the limit.
+const PACE_MS = slugs.length > 20 ? 120 : 0;
 for (const f of slugs) {
+  if (PACE_MS) await new Promise((s) => setTimeout(s, PACE_MS));
   try {
     const m = await api(`/functions/${f}`);
     // A first deploy has no previous version, so "bumped" is satisfied by the function existing.
