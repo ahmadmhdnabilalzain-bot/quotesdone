@@ -85,7 +85,7 @@ const T = {
     // ── shell ──
     nav_main:'Portal navigation', nav_work:'Work', nav_collaborate:'Collaborate', nav_intelligence:'Intelligence',
     nav_account:'Account', nav_overview:'Overview', nav_requests:'My requests', nav_more:'More',
-    nav_collapse:'Collapse menu', alerts_label:'Alerts and assistant',
+    nav_collapse:'Collapse menu', alerts_label:'Alerts',
     ask_ph:'Ask about your requests, quotes or documents…', ask_ph_short:'Ask the assistant…',
     asst_title:'Procurement assistant', asst_sub:'Answers from your own account',
     asst_ph:'Ask anything about your account…', asst_send:'Send', asst_thinking:'Thinking',
@@ -105,7 +105,12 @@ const T = {
     spread_pre:'quotes in · around', spread_none:'No quotes to compare yet.',
     journey_title:'Request journey',
     jr_described:'Described', jr_structured:'Structured', jr_matched:'Matched', jr_quotes:'Quotes arriving', jr_compare:'Compare', jr_reveal:'Reveal',
-    view_all:'View all' },
+    view_all:'View all',
+    auth_h:'One request. Every quote worth having.',
+    auth_sub:'Describe a job once — in text, voice, a photo or a drawing. We structure it and send it anonymously to vetted UAE suppliers, and their quotes come back for you to compare side by side.',
+    auth_p1:'Posting a request and comparing quotes is free.',
+    auth_p2:'Nobody sees who you are, and you do not see who they are, until you decide.',
+    auth_p3:'You pay a 3% facilitation fee only when you reveal a supplier. There is nothing else to pay.' },
   ar: { brand_sub:'طلباتي', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_requests:'جارٍ تحميل طلباتك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', create_account_title:'أنشئ حسابك',
     signup_sub:'أدخل بريدك الإلكتروني وسننشئ حسابك فورًا. ستضيف اسمك وتاريخ ميلادك وتتحقق من رقم جوالك في الخطوة التالية.',
@@ -148,7 +153,7 @@ const T = {
     // ── الهيكل ──
     nav_main:'تنقل البوابة', nav_work:'العمل', nav_collaborate:'التعاون', nav_intelligence:'الذكاء',
     nav_account:'الحساب', nav_overview:'نظرة عامة', nav_requests:'طلباتي', nav_more:'المزيد',
-    nav_collapse:'طيّ القائمة', alerts_label:'التنبيهات والمساعد',
+    nav_collapse:'طيّ القائمة', alerts_label:'التنبيهات',
     ask_ph:'اسأل عن طلباتك أو عروض الأسعار أو مستنداتك…', ask_ph_short:'اسأل المساعد…',
     asst_title:'مساعد المشتريات', asst_sub:'يجيب من حسابك أنت',
     asst_ph:'اسأل أي شيء عن حسابك…', asst_send:'إرسال', asst_thinking:'جارٍ التفكير',
@@ -168,7 +173,12 @@ const T = {
     spread_pre:'عرض وارد · بحدود', spread_none:'لا توجد عروض للمقارنة بعد.',
     journey_title:'مسار الطلب',
     jr_described:'الوصف', jr_structured:'التنظيم', jr_matched:'المطابقة', jr_quotes:'ورود العروض', jr_compare:'المقارنة', jr_reveal:'الكشف',
-    view_all:'عرض الكل' }
+    view_all:'عرض الكل',
+    auth_h:'طلب واحد. وكل عرض سعر يستحق.',
+    auth_sub:'صِف العمل مرة واحدة — نصًا أو صوتًا أو بصورة أو برسم. نقوم ببنيته ونرسله بشكل مجهول إلى موردين معتمدين في الإمارات، وتعود عروضهم لتقارنها جنبًا إلى جنب.',
+    auth_p1:'نشر الطلب ومقارنة العروض مجانًا.',
+    auth_p2:'لا أحد يعرف هويتك، ولا تعرف هويتهم، حتى تقرر أنت.',
+    auth_p3:'تدفع رسوم تيسير 3% فقط عند كشف المورّد. لا شيء آخر تدفعه.' }
 };
 const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
@@ -320,6 +330,39 @@ export function CustomerPortal() {
     </>)}
   </div>);
 }
+// THE DOORWAY GOT THE SAME TREATMENT AS THE HOUSE.
+//
+// Signing in and finishing a profile were a single 400px card floating in the middle of an
+// otherwise empty dark page — the same "extremely basic" the founder described about the portal
+// behind it, on the screen a customer sees FIRST. This is the standard two-column product sign-in:
+// the promise on one side, the form on the other, and on a phone just the form, because a phone
+// has no room for a column of reassurance above the field you came to type in.
+//
+// The three lines are the product's actual terms, not marketing filler — free to post, anonymous
+// until you choose, 3% only on a reveal. A customer deciding whether to sign up is deciding about
+// exactly those three facts.
+function AuthShell({ lang, children }) {
+  const rtl = lang === 'ar';
+  const points = ['auth_p1', 'auth_p2', 'auth_p3'];
+  return (
+    <div className="mx-auto grid w-full max-w-[1080px] items-center gap-10 px-5 py-10 md:min-h-[76vh] md:grid-cols-[1.05fr_minmax(380px,420px)] md:py-16">
+      <div className="hidden md:block">
+        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/15 font-head text-[20px] font-extrabold text-primary">Q</span>
+        <h1 className="mt-5 font-head text-[30px] font-extrabold leading-[1.15] tracking-tight text-foreground">{t(lang, 'auth_h')}</h1>
+        <p className="mt-3 max-w-[46ch] text-[14px] leading-relaxed text-muted-foreground">{t(lang, 'auth_sub')}</p>
+        <ul className="mt-7 flex flex-col gap-3.5">
+          {points.map((k) => (
+            <li key={k} className="flex items-start gap-3">
+              <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary"><Check className="h-3.5 w-3.5" aria-hidden /></span>
+              <span className="text-[13.5px] leading-relaxed text-foreground/90">{t(lang, k)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="w-full justify-self-center md:justify-self-end">{children}</div>
+    </div>
+  );
+}
 function Login({ onAuth, lang }) {
   const [mode, setMode] = useState('signin'); const [step, setStep] = useState('id'); const [id, setId] = useState(''); const [code, setCode] = useState(''); const [ident, setIdent] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const isSignup = mode === 'signup';
@@ -329,14 +372,17 @@ function Login({ onAuth, lang }) {
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'customer', identifier: v, allow_signup: isSignup }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg((j && j.error) || t(lang, 'err_code_send')); };
   const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg((j && j.error) || t(lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
   const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
-  return (<div className={S.center}><Card className="w-full max-w-[400px] p-5">
-    <div className={cn(S.tabsWrap, 'mb-3.5')}><button className={cn(S.tab, !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
-    <div className={S.h1}>{isSignup ? t(lang, 'create_account_title') : t(lang, 'welcome_back')}</div>
-    <div className={cn(S.sub, 'mt-1')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
+  return (<AuthShell lang={lang}><Card className="w-full p-6 sm:p-7">
+    <div className={cn(S.tabsWrap, 'mb-4 w-full')} role="tablist">
+      <button role="tab" aria-selected={!isSignup} className={cn(S.tab, 'flex-1', !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button>
+      <button role="tab" aria-selected={isSignup} className={cn(S.tab, 'flex-1', isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button>
+    </div>
+    <div className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{isSignup ? t(lang, 'create_account_title') : t(lang, 'welcome_back')}</div>
+    <div className={cn(S.sub, 'mt-1.5')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
     {step === 'id' ? (<><Input className="mt-3" placeholder={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /><Button className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button></>)
       : (<><Input className="mt-3" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /><div className={S.hint}>{t(lang, 'junk_note')}</div><Button className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button><Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button></>)}
     {msg && <div className={S.err}>{msg}</div>}
-  </Card></div>);
+  </Card></AuthShell>);
 }
 function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, onServedLocale }) {
   const [k, setK] = useState(null); const [err, setErr] = useState('');
@@ -367,9 +413,9 @@ function ProfileGate({ token, lang, onDone }) {
   const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg((j && j.error) || t(lang, 'err_incorrect')); };
   const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms' }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg((j && j.error) || t(lang, 'load_failed')); };
   const profileDone = st.full_name && st.phone && st.dob;
-  return (<div className={S.center}><Card className="w-full max-w-[440px] p-5">
-    <div className={S.h1}>{t(lang, 'gate_title')}</div>
-    <div className={S.sub}>{t(lang, 'gate_sub')}</div>
+  return (<AuthShell lang={lang}><Card className="w-full p-6 sm:p-7">
+    <div className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{t(lang, 'gate_title')}</div>
+    <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'gate_sub')}</div>
     <Input className="mt-3" placeholder={t(lang, 'full_name')} value={full_name} onChange={(e) => setFullName(e.target.value)} />
     <Input className="mt-3" placeholder={t(lang, 'mobile_ph')} value={phone} onChange={(e) => setPhone(e.target.value)} />
     <div className={cn(S.sub, 'mt-3 mb-1')}>{t(lang, 'dob_label')}</div>
@@ -391,7 +437,7 @@ function ProfileGate({ token, lang, onDone }) {
       </>}
     </>}
     {msg && <div className={S.err}>{msg}</div>}
-  </Card></div>);
+  </Card></AuthShell>);
 }
 function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onServedLocale }) {
   const [ov, setOv] = useState(null); const [data, setData] = useState(null); const [err, setErr] = useState(''); const [note, setNote] = useState(''); const [showNew, setShowNew] = useState(false);
@@ -479,7 +525,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     lang={lang} t={(k) => t(lang, k)} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang}
     onSignOut={onSignOut} view={view} onView={setView} token={token}
     customerName={(ov && ov.customer && ov.customer.name) || ''}
-    unread={unread} alerts={alertsCount} order={ov && ov.layout && ov.layout.order}
+    unread={unread} alerts={alertsCount} alertList={(ov && ov.alerts) || []} order={ov && ov.layout && ov.layout.order}
   >
   {MODULES.some((m) => m[0] === view) ? (
     <ModuleWindow id={view} onClose={() => setView('home')} token={token} lang={lang} inqs={inqs} onChanged={refresh} twin={ov && ov.twin} />

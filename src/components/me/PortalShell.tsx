@@ -276,11 +276,12 @@ const rankOf = (id, order) => {
 
 export function PortalShell({
   lang, t, theme, onSwapTheme, onSetLang, onSignOut,
-  view, onView, customerName, unread = 0, alerts = 0, token, order, children,
+  view, onView, customerName, unread = 0, alerts = 0, alertList = [], token, order, children,
 }) {
   const rtl = lang === 'ar';
   const [collapsed, setCollapsed] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
   const [asstOpen, setAsstOpen] = useState(false);
   const [seed, setSeed] = useState('');
   const [q, setQ] = useState('');
@@ -305,7 +306,7 @@ export function PortalShell({
   useEffect(() => {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === 'k') { e.preventDefault(); searchRef.current && searchRef.current.focus(); }
-      if (e.key === 'Escape') { setMoreOpen(false); }
+      if (e.key === 'Escape') { setMoreOpen(false); setBellOpen(false); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -426,12 +427,42 @@ export function PortalShell({
               </div>
             </form>
 
-            <button type="button" onClick={() => setAsstOpen(true)}
-              aria-label={t('alerts_label')} title={t('alerts_label')}
-              className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <Bell className="h-[18px] w-[18px]" aria-hidden />
-              {alerts > 0 ? <span className="absolute end-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" aria-hidden /> : null}
-            </button>
+            {/* A BELL MUST SHOW WHAT IT COUNTS. customer_portal returns the alerts themselves, not
+                only alerts_count, so the dot has a list behind it. A notification control that
+                opens something other than the notifications is the same defect this codebase keeps
+                finding: an instrument reporting on a different subject to the one it names. */}
+            <div className="relative shrink-0">
+              <button type="button" onClick={() => setBellOpen((v) => !v)}
+                aria-label={t('alerts_label')} aria-expanded={bellOpen}
+                className="relative grid h-10 w-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <Bell className="h-[18px] w-[18px]" aria-hidden />
+                {alerts > 0 ? <span className="absolute end-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" aria-hidden /> : null}
+              </button>
+              {bellOpen && (
+                <>
+                  <button type="button" aria-label={t('close')} onClick={() => setBellOpen(false)} className="fixed inset-0 z-40 cursor-default" />
+                  <div className="absolute end-0 z-50 mt-2 w-[min(360px,calc(100vw-24px))] overflow-hidden rounded-xl border border-border bg-card shadow-lg motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200">
+                    <div className="border-b border-border px-4 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] text-muted-foreground/70">{t('alerts_label')}</div>
+                    {!alertList.length ? (
+                      <p className="px-4 py-4 text-[13px] text-muted-foreground">{t('attention_none')}</p>
+                    ) : (
+                      <ul className="max-h-[60vh] divide-y divide-border overflow-y-auto">
+                        {alertList.map((a, i) => (
+                          <li key={i} className="flex items-start gap-3 px-4 py-3">
+                            <span className={cn('mt-0.5 h-2 w-2 shrink-0 rounded-full',
+                              a.severity === 'high' ? 'bg-red-400' : a.severity === 'medium' ? 'bg-amber-300' : 'bg-primary')} aria-hidden />
+                            <div className="min-w-0">
+                              <div className="text-[13px] font-semibold text-foreground">{a.title}</div>
+                              {a.detail ? <div className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">{a.detail}</div> : null}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
 
             <button type="button" onClick={() => go('account')}
               className="flex shrink-0 items-center gap-2 rounded-xl py-1 ps-1 pe-2 transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
