@@ -105,6 +105,55 @@ for (const [label, project] of Object.entries(PROJECTS)) {
   });
 }
 
+// READING WHO YOU ARE MUST NOT CREATE WHO YOU ARE.
+//
+// customer_api opened with `if (!cust) insert({ email })`, so ANY authenticated identity that
+// touched it became a customer. Measured: the duplicate management@quotesdone.com row was retired
+// at 20:30 on 13 Aug and a NEW one appeared at 21:01:05 with a different id, full_name null and
+// phone null - the shape of that insert, and the only line in the estate that writes it. Deleting
+// the row was futile while the endpoint kept re-creating it.
+//
+// It was redundant on the legitimate path too: login_otp's email branch already inserts the row
+// when a buyer verifies their code, and a customer JWT can only come from mintSession there.
+// This asserts the count does not move when an authenticated non-customer reads the endpoint.
+for (const [label, project] of Object.entries(PROJECTS)) {
+  test(`customer_api does not manufacture an account on ${label}`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
+
+    const admins = await q(project, `select value from app_secrets where key='admin_emails'`);
+    const adminEmail = String(admins[0]?.value || '').split(',')[0].trim().toLowerCase();
+    assert.ok(adminEmail, 'admin_emails is unset, so this check has no non-customer identity to use');
+
+    const before = await q(project, `select count(*)::int n from public.customers`);
+    const hasRow = await q(project, `select count(*)::int n from public.customers where lower(btrim(email)) = '${adminEmail}'`);
+    // If the admin address genuinely holds a customer account this check cannot tell creation from
+    // a pre-existing row, so say so rather than pass on a technicality.
+    assert.equal(Number(hasRow[0].n), 0,
+      `${adminEmail} holds a customers row, so this check cannot prove the endpoint stopped creating them. Retire that row first.`);
+
+    const code = '246813';
+    await q(project, `insert into public.email_verifications (email, token_hash, purpose, user_kind, expires_at)
+      values ('${adminEmail}', encode(hmac('${code}', (select value from app_secrets where key='otp_hmac_key'), 'sha256'), 'hex'),
+              'login', 'admin', now() + interval '5 minutes')`);
+
+    const mint = await fetch(`https://${project}.supabase.co/functions/v1/login_otp`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'verify', user_kind: 'admin', identifier: adminEmail, code }),
+    }).then((r) => r.json());
+    assert.ok(mint.access_token, `could not mint an admin session: ${JSON.stringify(mint).slice(0, 160)}`);
+
+    const me = await fetch(`https://${project}.supabase.co/functions/v1/customer_api`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + mint.access_token },
+      body: JSON.stringify({ action: 'me' }),
+    });
+    assert.equal(me.status, 403, `an identity with no customer account must be refused, got ${me.status}`);
+
+    const after = await q(project, `select count(*)::int n from public.customers`);
+    assert.equal(Number(after[0].n), Number(before[0].n),
+      'reading customer_api created a customers row - the endpoint is manufacturing accounts again');
+  });
+}
+
 // THE AMBIGUITY GUARD, EXERCISED FOR REAL. Two accounts, one number, one HTTP call. Staging only:
 // this inserts and removes rows, and it must never be run against live customer data.
 test('two accounts on one number are refused, not guessed (staging)', async (t) => {
