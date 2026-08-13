@@ -251,7 +251,15 @@ counted as *"we are working on it"*.
 
 Probed in an aborted transaction: run 1 queued exactly those 10 with `#2` keys — ids 2326, 2763,
 2773, 2777, 2778, 2781, 2812, 2814, 2818, 2819, precisely the ones that failed on 10–12 Aug — and
-run 2 queued 0. Then run for real: **10 queued**, `eligible_remaining 0`, `exhausted_two_attempts 0`.
+run 2 queued 0. Then run for real: **10 queued**, `eligible_remaining 0`.
+
+**Result: 9 of the 10 settled.** The tenth failed again at `latency_ms 107,070` — 107 seconds
+against the new 105-second ceiling. It is a genuinely long item, not a regression, and it is now on
+its second failure, so the sweep will stop offering it and `exhausted_two_attempts` will count it
+once the collector marks the row. That is the design working: two attempts, then say so, rather
+than retry for ever on the bill or fail silently. I did not raise the timeout again to chase it —
+the executor's own ceiling is 120s, so there are only fifteen seconds left to give, and an item
+that needs more than that needs looking at rather than waiting for.
 
 ## 8 — I watched the invite ramp, as asked. It goes silent exactly when it matters.
 
