@@ -23,6 +23,12 @@ const WS: Record<string, string> = {
   'ws.fraud': 'fn_ws_fraud', 'ws.refunds': 'fn_ws_refunds', 'ws.intelligence': 'fn_ws_intelligence',
   'ws.exec_home': 'fn_ws_exec_home', 'ws.company_os': 'fn_ws_company_os',
   'ws.notifications': 'fn_ws_notifications', 'ws.live_company': 'fn_ws_live_company',
+  // fn_founder_queue existed and its own comment named the gap it still had: "Nothing surfaces
+  // them. Not the OS dashboard, not an email, not the command channel." It reached the WhatsApp
+  // channel through fn_wa_context; the dashboard was the half still missing, and 27 decisions had
+  // been waiting there for up to 36 days - core legal documents missing, customers and suppliers
+  // have not accepted current terms, auth hardening review, open fraud flags.
+  'ws.founder_queue': 'fn_founder_queue',
 };
 // ---- ACTION CLASSIFICATION (2 Aug 2026, Phase 1 hardening) -------------------------------------
 // Every action this function will route, classified, with no default. It feeds two independent
@@ -67,6 +73,7 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   'ws.reports': 'read_only', 'ws.strategy': 'read_only', 'ws.governance': 'read_only',
   'ws.fraud': 'read_only', 'ws.refunds': 'read_only', 'ws.intelligence': 'read_only',
   'ws.exec_home': 'read_only', 'ws.company_os': 'read_only', 'ws.notifications': 'read_only', 'ws.live_company': 'read_only',
+  'ws.founder_queue': 'read_only',
   transcribe: 'read_only',
 };
 

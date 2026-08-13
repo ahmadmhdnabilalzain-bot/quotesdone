@@ -1253,6 +1253,65 @@ function PipelineTracker({ onNav }: { onNav: (id: string) => void }) {
   );
 }
 
+// THE DECISIONS WAITING ON HIM, RANKED OLDEST FIRST.
+//
+// Every figure comes from ws.founder_queue -> fn_founder_queue, which counts agent_actions joined
+// to agent_action_kind_policy where policy = 'founder'. Nothing is computed here and nothing is
+// estimated: an item is on this list because a named agent raised it and the policy table says
+// only he can answer it.
+//
+// It renders NOTHING when the queue is empty, so a cleared queue gives the console its clean
+// canvas back rather than a heading over a green tick. The age is the point of the whole panel -
+// the oldest item had been sitting for 36 days when this was written - so it is the one figure
+// given emphasis, and anything past a week is called out rather than left as a number to compare.
+function FounderQueue() {
+  const [q, setQ] = React.useState<any>(null);
+  const [state, setState] = React.useState<'loading' | 'ok' | 'failed'>('loading');
+  React.useEffect(() => {
+    let on = true;
+    osApi('ws.founder_queue', { p_limit: 8 })
+      .then((d: any) => { if (on) { setQ(d || {}); setState('ok'); } })
+      .catch(() => { if (on) setState('failed'); });
+    return () => { on = false; };
+  }, []);
+
+  if (state === 'loading') return null;
+  if (state === 'failed') {
+    return <div className='text-sm text-muted-foreground'>Your decision queue could not be read just now. Ask for a status, approve a supplier, draft content, or attach an invoice and tell me what to do with it.</div>;
+  }
+  const items: any[] = Array.isArray(q?.waiting_on_you) ? q.waiting_on_you : [];
+  const total = Number(q?.waiting_on_you_total) || 0;
+  const oldest = Number(q?.oldest_days) || 0;
+  const machine = Number(q?.machine_is_working_on) || 0;
+  if (!total) {
+    return <div className='text-sm text-muted-foreground'>Nothing is waiting on you. Ask for a status, approve a supplier, draft content, log a finance entry, or attach an invoice and tell me what to do with it.</div>;
+  }
+  return (
+    <div className='space-y-3'>
+      <div className='flex items-baseline gap-2 flex-wrap'>
+        <span className='text-sm font-semibold text-foreground'>{total} {total === 1 ? 'decision is' : 'decisions are'} waiting on you</span>
+        {oldest > 0 ? <span className={cn('text-xs', oldest >= 7 ? 'text-destructive font-semibold' : 'text-muted-foreground')}>oldest {oldest} days</span> : null}
+        {machine > 0 ? <span className='text-xs text-muted-foreground'>· the machine is working on {machine} of its own</span> : null}
+      </div>
+      <div className='divide-y divide-border/40 rounded-lg border border-border/60'>
+        {items.map((it: any) => (
+          <div key={String(it.id)} className='px-3 py-2 flex items-start justify-between gap-3'>
+            <div className='min-w-0'>
+              <div className='text-[13px] text-foreground'>{it.title || it.kind}</div>
+              <div className='text-[11px] text-muted-foreground'>{it.from ? String(it.from) : 'unattributed'} · {String(it.kind || '').replace(/_/g, ' ')}</div>
+            </div>
+            <span className={cn('text-[11px] shrink-0 tabular-nums', Number(it.age_days) >= 7 ? 'text-destructive' : 'text-muted-foreground')}>
+              {Number(it.age_days) || 0}d
+            </span>
+          </div>
+        ))}
+      </div>
+      {total > items.length ? <div className='text-[11px] text-muted-foreground'>and {total - items.length} more — Escalations has the full list.</div> : null}
+      <div className='text-xs text-muted-foreground pt-1'>Or instruct me directly: ask for a status, approve a supplier, draft content, log a finance entry, or attach an invoice.</div>
+    </div>
+  );
+}
+
 function Console() {
   const [msgs, setMsgs] = React.useState<{ role: string; content: string }[]>([]);
   const [text, setText] = React.useState(''); const [atts, setAtts] = React.useState<{ name: string; text: string }[]>([]); const [busy, setBusy] = React.useState(false); const [confirm, setConfirm] = React.useState<{ token: string; reply: string } | null>(null);
@@ -1334,7 +1393,18 @@ function Console() {
         <span className='text-muted-foreground'>Monthly goal <b className='text-foreground tabular-nums'>{eh.goal_progress_pct != null ? eh.goal_progress_pct + '%' : '—'}</b></span>
       </div>
       <div className='flex-1 overflow-auto p-4 space-y-3'>
-        {!msgs.length ? <div className='text-sm text-muted-foreground'>Ask for a status, approve a supplier, draft content, log a finance entry, or attach an invoice and tell me what to do with it.</div> : null}
+        {/* WHAT NEEDS HIM, ON THE SCREEN HE ACTUALLY OPENS.
+            The console's empty state was one line of instructions and ~650px of void, on the one
+            screen the founder opens to run the company - which is what "the dashboard is still
+            basic" means. Measured at the same moment from fn_founder_queue: 27 decisions waiting
+            on him, the oldest 36 days, including "Core legal documents missing", "Customers have
+            not accepted current terms", "Auth hardening review" and "Open fraud flags".
+            fn_founder_queue's own comment had already named the gap - "Nothing surfaces them. Not
+            the OS dashboard, not an email, not the command channel" - and it since reached the
+            WhatsApp channel and nothing else. No new figures are computed here; this renders the
+            answer that already existed. It replaces the instruction line only when there is
+            something to show, so an empty queue returns the console to a clean canvas. */}
+        {!msgs.length ? <FounderQueue /> : null}
         {msgs.map((m, i) => (<div key={i} className={cn('max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm whitespace-pre-wrap', m.role === 'user' ? 'ml-auto bg-primary text-primary-foreground' : 'bg-foreground/5')}>{m.content}</div>))}
         {busy ? <div className='text-sm text-muted-foreground'>…</div> : null}
         {confirm ? <div className='flex gap-2'><Button size='sm' onClick={() => decide('confirm')}>Confirm</Button><Button size='sm' variant='outline' onClick={() => decide('cancel')}>Cancel</Button></div> : null}
