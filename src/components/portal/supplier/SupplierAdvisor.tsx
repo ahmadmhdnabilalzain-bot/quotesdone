@@ -16,6 +16,7 @@
 // — and each links to the tab that fixes it. That is the truthful answer to "why am I losing":
 // today it is "you are not yet eligible to compete", and that is worth saying.
 import React, { useEffect, useState } from 'react';
+import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
 
 type Rec = {
   key: string; action: string; why: string;
@@ -32,8 +33,8 @@ type Advice = {
 };
 type Lang = 'en' | 'ar';
 
-const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const FN = SUPA_FN;
+const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
   const r = await fetch(FN + '/' + path, {

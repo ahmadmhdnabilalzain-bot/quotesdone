@@ -180,10 +180,32 @@ as $function$
       'total', (select count(*) from peers),
       'in_my_area', (select count(*) from peers_here),
       -- The number a scraped list hides: how many competitors can receive an RFQ at all.
+      --
+      -- COUNTED ON THE GATE THAT DECIDES, 13 Aug 2026. This asked fn_is_matchable — verified,
+      -- banned, blocked, approval, closed, strikes — and called the answer "able to receive an RFQ".
+      -- The path that builds an RFQ shortlist is fn_match_capability, whose candidate CTE ALSO
+      -- requires supplier_capabilities.confirmed_at. 15,306 suppliers hold capability data and 1 has
+      -- confirmed, so a peer could pass every clause counted here and still be unreachable. Both
+      -- legs now, because the label names the RFQ.
       'matchable', (
         select count(*) from peers p
         where public.fn_is_matchable(p.verified, p.banned, p.matching_blocked,
                                      p.approval_status, p.permanently_closed, p.chat_strikes)
+          and exists (select 1 from public.supplier_capabilities sc
+                      where sc.supplier_id = p.id and sc.confirmed_at is not null)
+      ),
+      -- AND WHETHER THE READER IS ONE OF THEM. `peers` excludes self (l.id <> me.id), so every
+      -- figure in this block is a fact about OTHER companies — yet the panel rendered a constant
+      -- note reading "None of them is verified, so none can currently be matched to work —
+      -- INCLUDING YOU" whenever matchable was 0. On 13 Aug that sentence was shown to MERIDIAN MEP:
+      -- the one supplier in the estate that IS reachable, and the only one that had done the work.
+      -- A claim about the reader has to be computed about the reader.
+      'me_matchable', (
+        select public.fn_is_matchable(m.verified, m.banned, m.matching_blocked,
+                                      m.approval_status, m.permanently_closed, m.chat_strikes)
+           and exists (select 1 from public.supplier_capabilities sc
+                       where sc.supplier_id = m.id and sc.confirmed_at is not null)
+        from public.leads m where m.id = p_lead_id
       ),
       -- Group FIRST, build the json after. `group by 1` over a jsonb_build_object containing
       -- count(*) raises 42803: the grouping key would be an expression containing an aggregate.

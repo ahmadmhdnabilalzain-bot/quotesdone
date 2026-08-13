@@ -12,6 +12,7 @@
 // gap visible and gives the supplier the one thing worth doing about it. The counter at the top
 // counts the gap on purpose.
 import React, { useEffect, useMemo, useState } from 'react';
+import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
 
 type Lang = 'en' | 'ar';
 type Attrs = Record<string, unknown>;
@@ -20,8 +21,8 @@ type Product = {
   category_slug?: string; subcategory_slug?: string; status?: string; attributes?: Attrs;
 };
 
-const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const FN = SUPA_FN;
+const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
   const r = await fetch(FN + '/' + path, {

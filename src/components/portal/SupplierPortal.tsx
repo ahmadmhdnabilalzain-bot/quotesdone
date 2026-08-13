@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 // Row #5 §3/§4/§6/§13 — kept in its own file deliberately; see the TABS comment below.
 import SupplierTwin from './supplier/SupplierTwin';
@@ -203,6 +203,17 @@ function CapabilityConfirmPanel({ token, lang }) {
   const [roles, setRoles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  // WHAT WE ALREADY BELIEVE, FIRST. Measured on a 375x812 phone: the vocabulary renders 40 trade
+  // chips and 8 role chips in taxonomy sort order, so the four this company actually holds were
+  // scattered through the list and the confirm button sat 2,547px down — 3.1 screens of scrolling.
+  // The header above says this is a CONFIRMATION screen and not a form; a supplier cannot correct a
+  // proposal they have to hunt for. Pinned once, from the row as loaded, and never re-sorted on a
+  // toggle: chips that jump under a thumb are worse than chips in the wrong order.
+  const [pinned, setPinned] = useState({ trades: [], roles: [] });
+  const order = (vocab, pin) => {
+    const p = new Set(pin);
+    return [...(vocab || [])].sort((a, b) => (p.has(b.code) ? 1 : 0) - (p.has(a.code) ? 1 : 0));
+  };
 
   const load = async () => {
     setSt((s) => ({ ...s, loading: true, err: '' }));
@@ -211,6 +222,7 @@ function CapabilityConfirmPanel({ token, lang }) {
       const cap = j.capability || null;
       setTrades((cap && cap.trades) || []);
       setRoles((cap && cap.roles) || []);
+      setPinned({ trades: (cap && cap.trades) || [], roles: (cap && cap.roles) || [] });
       setSt({ loading: false, err: '', confirmed: !!j.confirmed, cap, vocab: j.vocabulary || { trades: [], roles: [] } });
     } else {
       setSt((s) => ({ ...s, loading: false, err: (j && (j.error || j.detail)) || 'load_err' }));
@@ -263,7 +275,7 @@ function CapabilityConfirmPanel({ token, lang }) {
       <div className="mt-4">
         <div className="text-sm opacity-70 mb-2">{ar ? 'التخصصات' : 'Trades'}</div>
         <div className="flex flex-wrap gap-2">
-          {(st.vocab.trades || []).map((tr) => (
+          {order(st.vocab.trades, pinned.trades).map((tr) => (
             <button key={tr.code} type="button" className={chip(trades.includes(tr.code))}
                     onClick={() => toggle(trades, setTrades, tr.code)}>{tr.label || tr.code}</button>
           ))}
@@ -273,7 +285,7 @@ function CapabilityConfirmPanel({ token, lang }) {
       <div className="mt-4">
         <div className="text-sm opacity-70 mb-2">{ar ? 'دورك' : 'Your role'}</div>
         <div className="flex flex-wrap gap-2">
-          {(st.vocab.roles || []).map((r) => (
+          {order(st.vocab.roles, pinned.roles).map((r) => (
             <button key={r.code} type="button" className={chip(roles.includes(r.code))}
                     onClick={() => toggle(roles, setRoles, r.code)}>{r.label || r.code}</button>
           ))}
@@ -290,11 +302,27 @@ function CapabilityConfirmPanel({ token, lang }) {
       {st.err && st.cap ? <div className="mt-3 text-sm text-red-400">{String(st.err)}</div> : null}
       {saved ? <div className="mt-3 text-sm text-emerald-400">{ar ? 'تم التأكيد.' : 'Confirmed.'}</div> : null}
 
-      <Button className="mt-4" disabled={busy || !trades.length || !roles.length} onClick={confirm}>
-        {busy ? (ar ? 'جارٍ الحفظ…' : 'Saving…')
-              : st.confirmed ? (ar ? 'تحديث النطاق' : 'Update my scope')
-                             : (ar ? 'تأكيد نطاق عملي' : 'Confirm my scope')}
-      </Button>
+      {/* STICKY, BECAUSE OF WHERE IT WAS. On a 375x812 phone this button rendered at y=2547 —
+          3.1 screens below the fold, past 48 chips, after a 366px tab strip. The ask that unlocks
+          every RFQ was the last thing on the longest screen in the portal. It now travels with the
+          thumb, and carries the count so a supplier can see what they are confirming without
+          scrolling back up. Unconfirmed only: once the scope is confirmed this is an edit screen
+          and a permanently docked bar would be noise. */}
+      {/* pe-16 on mobile: the docked assistant bubble is position:fixed at the bottom-end corner and
+          sits above this bar, and it was covering 29px of the button. A chat launcher must not eat
+          the edge of the one control that unlocks every RFQ. */}
+      <div className={cn('mt-4', !st.confirmed && 'sticky bottom-0 -mx-5 -mb-5 px-5 pe-16 sm:pe-5 pb-5 pt-3 bg-card/85 backdrop-blur-md border-t border-border')}>
+        {!st.confirmed && (
+          <div className={cn(S.sub, 'mb-2')}>
+            {ar ? `${trades.length} تخصص · ${roles.length} دور` : `${trades.length} trade${trades.length === 1 ? '' : 's'} · ${roles.length} role${roles.length === 1 ? '' : 's'} selected`}
+          </div>
+        )}
+        <Button className="w-full sm:w-auto" disabled={busy || !trades.length || !roles.length} onClick={confirm}>
+          {busy ? (ar ? 'جارٍ الحفظ…' : 'Saving…')
+                : st.confirmed ? (ar ? 'تحديث النطاق' : 'Update my scope')
+                               : (ar ? 'تأكيد نطاق عملي' : 'Confirm my scope')}
+        </Button>
+      </div>
     </Card>
   );
 }
@@ -304,6 +332,7 @@ export function SupplierPortal() {
   const [token, setToken] = useState('');
   const [phase, setPhase] = useState('login');
   const [mounted, setMounted] = useState(false);
+  const [invite, setInvite] = useState(null);
   // THE INVITATION'S TOKEN HAD NOWHERE TO LAND (12 Aug 2026).
   //
   // supplier_api's `claim` action is complete and hardened - it takes body.t, looks the lead up by
@@ -339,9 +368,20 @@ export function SupplierPortal() {
     setMounted(true);
     try { setLang(initLang()); } catch (_e) {}
     // Capture ?t= before anything else can navigate away from it.
+    //
+    // AND RESOLVE IT TO A COMPANY NAME (13 Aug 2026). The invitation is addressed "Dear Al Ain Glass
+    // & Mirrors Factory L.L.C." and the page it links to opened on a generic marketing hero with a
+    // sign-in box headed "Welcome back" — to someone who by definition has no account. claim_lookup
+    // exists for exactly this check, is public by design, takes only the unguessable token, and had
+    // no caller anywhere in src/. 81 invitations sent, 0 registrations. The token is already in the
+    // URL; naming the company costs one request and turns "who are you and why should I sign up"
+    // into "this is your listing, claim it".
     try {
       const t = new URLSearchParams(window.location.search).get('t') || '';
-      if (UUID_RE.test(t)) sessionStorage.setItem(CLAIM_KEY, t);
+      if (UUID_RE.test(t)) {
+        sessionStorage.setItem(CLAIM_KEY, t);
+        call('claim_lookup', { t }).then((j) => { if (j && j.ok) setInvite(j); }).catch(() => {});
+      }
     } catch (_e) {}
     try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
     SB.auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); claimIfInvited(ss.access_token); } }).catch(() => {});
@@ -364,23 +404,61 @@ export function SupplierPortal() {
         </div>
       </header>
       {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
+        {/* An invited supplier is told whose listing this is, before anything else on the page. */}
+        {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
         {/* §1 — the supplier meets the product before the sign-in box, not after it. */}
         {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
-        {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} /></div>}
+        {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && invite.claimable ? 'signup' : 'signin'} /></div>}
         {phase === 'app' && <Dashboard token={token} lang={lang} />}
       </>)}
     </div>
   );
 }
-function Login({ onAuth, lang }) {
-  const [mode, setMode] = useState('signin'); const [step, setStep] = useState('id'); const [id, setId] = useState(''); const [code, setCode] = useState(''); const [ident, setIdent] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+// WHOSE LISTING THIS IS. Rendered only when the URL carried a valid invitation token that
+// claim_lookup resolved. `already_claimed` is a real outcome, not an error: a colleague at the same
+// company may have registered first, and telling them that is better than a sign-up form that fails
+// at the end with "This company is already claimed by another account."
+function InviteBanner({ invite, lang, onStart }) {
+  const ar = lang === 'ar';
+  const name = invite.company_name || (ar ? 'شركتك' : 'your company');
+  const taken = !invite.claimable;
+  return (
+    <section className="mx-auto w-full max-w-3xl px-4 pt-6" dir={ar ? 'rtl' : 'ltr'}>
+      <Card className="qd-panel p-5">
+        <div className="text-[11px] uppercase tracking-[0.18em] text-primary">
+          {ar ? 'دعوة شخصية' : 'Your invitation'}
+        </div>
+        {/* dir="auto" — a Latin company name inside an RTL page otherwise renders its trailing
+            "L.L.C." punctuation on the wrong side. */}
+        <div dir="auto" className="mt-1.5 text-[19px] font-extrabold leading-tight text-foreground">{name}</div>
+        {invite.emirate ? <div className={cn(S.sub, 'mt-0.5')}>{invite.emirate}</div> : null}
+        <div className={cn(S.sub, 'mt-3 max-w-[62ch]')}>
+          {taken
+            ? (ar ? 'هذه الشركة مسجّلة بالفعل على QuotesDone. إن كان زميل لك قد سجّلها، اطلب منه إضافتك — أو سجّل الدخول بالبريد الذي استُخدم.'
+                  : 'This company is already registered on QuotesDone. If a colleague claimed it, ask them to add you — or sign in with the email they used.')
+            : (ar ? 'هذه القائمة محجوزة لشركتك. بياناتك موجودة لدينا بالفعل من السجل التجاري العام — لا تملأ نموذجًا فارغًا، بل تصحّح ما نعرفه وتؤكّده. أنشئ حسابك للمطالبة بها.'
+                  : 'This listing is reserved for your company. We already hold your details from the public trade directory — you are not filling in a blank form, you are correcting what we have and confirming it. Create your account to claim it.')}
+        </div>
+        {!taken && <Button className="mt-4" onClick={onStart}>{ar ? 'المطالبة بقائمة شركتي' : 'Claim my listing'}</Button>}
+      </Card>
+    </section>
+  );
+}
+function Login({ onAuth, lang, startMode }) {
+  const [mode, setMode] = useState(startMode === 'signup' ? 'signup' : 'signin'); const [step, setStep] = useState('id'); const [id, setId] = useState(''); const [code, setCode] = useState(''); const [ident, setIdent] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const isSignup = mode === 'signup';
+  // claim_lookup resolves after mount, so startMode arrives late and cannot be a useState initial
+  // value. Flip to sign-up when the invitation lands, unless the supplier has already chosen a tab
+  // themselves — a link that only ever reaches someone without an account should not open on
+  // "Welcome back", but it must not override a deliberate choice either.
+  const swapped = useRef(false);
+  useEffect(() => { if (startMode === 'signup' && !swapped.current) setMode('signup'); }, [startMode]);
   const looksEmail = (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v || '').trim());
   const send = async () => { const v = id.trim(); if (!v) return; if (isSignup && !looksEmail(v)) { setMsg(t(lang, 'signup_email_only')); return; } setBusy(true); setMsg('');
     try { const g = await call('role_guard', { user_kind: 'supplier', identifier: v }); if (g && g.conflict === 'customer') { setBusy(false); setMsg(t(lang, 'conflict_customer')); return; } } catch (_e) {}
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'supplier', identifier: v, allow_signup: isSignup }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg((j && j.error) || t(lang, 'err_code_send')); };
   const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg((j && j.error) || t(lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
-  const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
+  const swap = (m) => { swapped.current = true; setMode(m); setStep('id'); setMsg(''); setCode(''); };
   return (
     <div className={S.center}><Card className="qd-login qd-panel w-full max-w-[410px] p-6 sm:p-7">
       <div className="mb-5 flex flex-col items-center text-center">
@@ -470,7 +548,7 @@ function Dashboard({ token, lang }) {
         {/* Severity reads as a leading indicator dot rather than a thick side-stripe, and these are
             real buttons — they were clickable divs, so keyboard users could not reach them at all. */}
         {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => <button key={i} type="button" className="qd-panel qd-panel-hover w-full text-start px-4 py-3.5 cursor-pointer flex items-start gap-3" onClick={() => setTab(a.action === 'documents' ? 'documents' : 'rfqs')}><span aria-hidden className={cn('mt-[7px] h-2 w-2 rounded-full shrink-0', a.severity === 'high' ? 'bg-red-400' : a.severity === 'medium' ? 'bg-amber-300' : 'bg-primary')} /><span className="flex flex-col gap-0.5 min-w-0"><b className="text-[13.5px] text-white">{a.title}</b><span className="text-muted-foreground text-xs leading-[1.6]">{a.detail}</span></span></button>)}</div>}
-        <EligibilityPanel token={token} lang={lang} goProfile={() => setTab('profile')} goDocs={() => setTab('documents')} />
+        <EligibilityPanel token={token} lang={lang} goProfile={() => setTab('profile')} goDocs={() => setTab('documents')} goScope={() => setTab('scope')} />
         {/* §4's assistant has to name a concrete gap AND quantify what closing it is worth. The
             counts come from fn_supplier_document_impact, so "6 more opportunities" is a count of
             open enquiries in this supplier's trade rather than the spec's illustrative figure. */}
@@ -526,22 +604,24 @@ function Dashboard({ token, lang }) {
 // the real clauses in match_suppliers_kw rather than a guess at them, and separates what BLOCKS
 // matching from what only IMPROVES ranking. Conflating those would be worse than silence: a
 // supplier who fixes five cosmetic things and still gets nothing stops trusting the product.
-function EligibilityPanel({ token, lang, goProfile, goDocs }) {
+function EligibilityPanel({ token, lang, goProfile, goDocs, goScope }) {
   const [e, setE] = useState(null);
   const ar = lang === 'ar';
   useEffect(() => { call('supplier_portal', { action: 'eligibility' }, token).then((j) => { if (j && j.ok) setE(j); }); }, [token]);
   if (!e) return null;
   const blocking = e.blocking || []; const improving = e.improving || [];
-  const go = (fix) => { if (fix === 'documents') goDocs(); else if (fix === 'profile') goProfile(); };
+  const go = (fix) => { if (fix === 'documents') goDocs(); else if (fix === 'profile') goProfile(); else if (fix === 'scope') goScope(); };
   const Row = ({ it, tone }) => (
     <li className="flex items-start gap-2.5">
       <span className={cn('mt-[7px] h-1.5 w-1.5 rounded-full shrink-0', tone === 'block' ? 'bg-red-500' : 'bg-primary')} />
       <div className="flex-1">
         <div className="text-[13.5px] font-semibold text-foreground">{it.title}</div>
         <div className={S.sub}>{it.detail}</div>
-        {(it.fix === 'profile' || it.fix === 'documents') && (
+        {(it.fix === 'profile' || it.fix === 'documents' || it.fix === 'scope') && (
           <button className="mt-1 text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" onClick={() => go(it.fix)}>
-            {it.fix === 'documents' ? (ar ? 'إلى المستندات ←' : 'Go to Documents →') : (ar ? 'إلى الملف ←' : 'Go to Profile →')}
+            {it.fix === 'documents' ? (ar ? 'إلى المستندات ←' : 'Go to Documents →')
+              : it.fix === 'scope' ? (ar ? 'تأكيد نطاق عملي ←' : 'Confirm my scope →')
+              : (ar ? 'إلى الملف ←' : 'Go to Profile →')}
           </button>
         )}
       </div>
@@ -1057,7 +1137,19 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const DateField = ({ label, k }) => (<div style={{ flex: 1, minWidth: 150 }}><div className={S.sub} style={{ fontSize: 11 }}>{label}</div><Input type="date" style={{ colorScheme: 'dark' }} value={f[k] || ''} onChange={(e) => set(k, e.target.value)} /></div>);
   return (<Card className="qd-panel p-5">
     <div className={S.h2}>{t(lang, 'pf_company')}</div>
-    <div className={cn(S.sub, 'mb-2')}>{t(lang, 'registering_pre')}<b>{me.company_name}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</div>
+    {/* THE SCREEN HAS TO KNOW WHICH OF ITS TWO JOBS IT IS DOING (13 Aug 2026). This copy and the
+        button below were unconditional, so an APPROVED company opened Profile and read "Registering
+        MERIDIAN MEP CONTRACTING LLC… Registration is free until 31 July 2027" above a button
+        marked "Submit for approval" — two inches under a green Approved badge in its own header.
+        The form is genuinely both things: it registers a new supplier and it is the only place an
+        existing one can correct a typo that decides which requests reach them. It just never said
+        which. */}
+    <div className={cn(S.sub, 'mb-2')}>
+      {isEdit
+        ? (lang === 'ar' ? <>تحرير ملف <b>{me.company_name}</b>. ما تكتبه هنا يحدّد الطلبات التي تصلك — احفظ التغييرات في الأسفل.</>
+                         : <>Editing the profile for <b>{me.company_name}</b>. What you write here decides which requests reach you; save your changes at the bottom.</>)
+        : <>{t(lang, 'registering_pre')}<b>{me.company_name}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</>}
+    </div>
     <div className={cn(S.sub, 'font-semibold mt-1.5')}>{t(lang, 'pf_emirates')}</div>
     <div className="flex gap-2 flex-wrap mt-2">{EMIRATES.map((e) => <button key={e} className={cn(S.chip, emirates.includes(e) && S.chipOn)} onClick={() => toggleEm(e)}>{e}</button>)}</div>
 
@@ -1125,7 +1217,11 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
 
 
     <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/supplier-agreement" target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
-    <Button className="w-full mt-3" disabled={busy || uploading} onClick={save}>{busy ? t(lang, 'submitting') : t(lang, 'submit_approval')}</Button>
+    {/* "Submit for approval" on the edit screen asks an already-approved company to apply again. */}
+    <Button className="w-full mt-3" disabled={busy || uploading} onClick={save}>
+      {busy ? (isEdit ? (lang === 'ar' ? 'جارٍ الحفظ…' : 'Saving…') : t(lang, 'submitting'))
+            : isEdit ? (lang === 'ar' ? 'حفظ التغييرات' : 'Save changes') : t(lang, 'submit_approval')}
+    </Button>
     {msg && <div className={S.err}>{msg}</div>}
   </Card>);
 }

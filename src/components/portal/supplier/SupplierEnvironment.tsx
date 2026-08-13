@@ -22,13 +22,14 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Html, OrbitControls, RoundedBox, Text, useGLTF } from '@react-three/drei';
 import type { Mesh } from 'three';
 import RendererCapability, { useRenderer } from './RendererCapability';
+import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
 
 type Stock = { available?: number; reserved?: number; in_production?: number; skus?: number };
 type Payload = { stock?: Stock; product_count?: number; category_count?: number };
 type Lang = 'en' | 'ar';
 
-const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const FN = SUPA_FN;
+const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
   const r = await fetch(FN + '/' + path, {

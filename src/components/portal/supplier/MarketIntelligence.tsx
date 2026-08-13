@@ -13,7 +13,17 @@
 //
 // The competitor half is not a consolation prize. "4,276 companies compete with you in Abu Dhabi,
 // and 0 of them can currently receive an RFQ" is genuinely useful and completely true.
+//
+// ── AND IT STOPPED BEING TRUE THE MOMENT A SUPPLIER FINISHED (13 Aug 2026) ──────────────────────
+// "0 of them" is a count of PEERS: fn_supplier_market's peers CTE opens with `l.id <> me.id`. The
+// note beneath it said "...so none can currently be matched to work — including you", a constant,
+// and that last clause is a claim about the reader which the number cannot support. Rendered on
+// production to MERIDIAN MEP: verified, approved, scope confirmed, and the one company in the whole
+// estate that fn_match_capability actually returns. The panel told it that it could not be matched.
+// `matchable` now counts on both legs of the real gate and `me_matchable` is computed about the
+// reader, so a supplier who has done the work is told they are ahead instead of being told a lie.
 import React, { useEffect, useState } from 'react';
+import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
 
 type Blocked = { available?: boolean; value?: unknown; basis?: string; population?: number; note?: string };
 type Trend = Blocked & {
@@ -30,14 +40,15 @@ type Market = {
   sector?: string | null;
   population?: 'demo' | 'live';
   competitors?: { available?: boolean; basis?: string; total?: number; in_my_area?: number;
-                  matchable?: number; by_emirate?: { emirate: string; count: number }[] };
+                  matchable?: number; me_matchable?: boolean;
+                  by_emirate?: { emirate: string; count: number }[] };
   market_composition?: { available?: boolean; basis?: string; segments?: { name: string; count: number }[] };
   demand_trend?: Trend; most_requested?: TopCat; avg_market_price?: Price;
 };
 type Lang = 'en' | 'ar';
 
-const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const FN = SUPA_FN;
+const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
   const r = await fetch(FN + '/' + path, {
@@ -55,7 +66,12 @@ const T = {
     demandTrend: 'Demand trend', mostRequested: 'Most requested', avgPrice: 'Average market price',
     notAvailable: 'not available yet', loading: 'Reading the market…',
     sector: 'sector', companies: 'companies', none: 'none',
-    matchableNote: 'None of them is verified, so none can currently be matched to work — including you.',
+    // Two notes, because "including you" is a claim about the reader and `matchable` counts only
+    // their competitors — fn_supplier_market's `peers` CTE opens with `l.id <> me.id`. On 13 Aug
+    // 2026 the single constant note told MERIDIAN MEP, the one supplier in the estate an RFQ could
+    // reach, that it could not be matched to work. me_matchable is now computed about the reader.
+    matchableNoteBlocked: 'None of them can currently be matched to work — and nor can you. Confirm what your company can quote for, on the My scope tab, and you are the first.',
+    matchableNoteAhead: 'You can. None of them can — a request in your trade reaches you and not them.',
     thisPeriod: 'enquiries in the last 14 days', priorPeriod: 'in the 14 before',
     shareOf: 'of all enquiries', newDemand: 'new', perWeek: 'Enquiries per week',
     median: 'median', quartiles: 'middle half', range: 'range', from: 'from',
@@ -67,7 +83,8 @@ const T = {
     demandTrend: 'اتجاه الطلب', mostRequested: 'الأكثر طلبًا', avgPrice: 'متوسط سعر السوق',
     notAvailable: 'غير متاح بعد', loading: 'جارٍ قراءة السوق…',
     sector: 'القطاع', companies: 'شركة', none: 'لا يوجد',
-    matchableNote: 'لا أحد منهم موثّق، لذا لا يمكن مطابقة أي منهم بالعمل — بما فيهم أنت.',
+    matchableNoteBlocked: 'لا يمكن مطابقة أي منهم بالعمل — ولا أنت. أكّد ما يمكن لشركتك تسعيره من تبويب «نطاق عملي» وتكون الأول.',
+    matchableNoteAhead: 'أنت تستطيع. لا أحد منهم يستطيع — الطلب في تخصصك يصلك أنت دونهم.',
     thisPeriod: 'طلب خلال ١٤ يومًا الماضية', priorPeriod: 'في الـ١٤ يومًا قبلها',
     shareOf: 'من إجمالي الطلبات', newDemand: 'جديد', perWeek: 'الطلبات أسبوعيًا',
     median: 'الوسيط', quartiles: 'النصف الأوسط', range: 'المدى', from: 'من',
@@ -187,7 +204,8 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
           </div>
         </div>
         {(c.matchable ?? 0) === 0 && (c.total ?? 0) > 0 && (
-          <p className="text-[10px] opacity-45 mt-2 leading-snug">{t(lang, 'matchableNote')}</p>
+          <p className={'text-[10px] mt-2 leading-snug ' + (c.me_matchable ? 'text-emerald-400/80' : 'opacity-45')}>
+            {t(lang, c.me_matchable ? 'matchableNoteAhead' : 'matchableNoteBlocked')}</p>
         )}
       </section>
 

@@ -24,6 +24,7 @@
 // therefore permanently unmet BY DECISION, not by omission, and must never be quietly satisfied.
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
 
 type Lang = 'en' | 'ar';
 type Rung = { tier: string; needs: string };
@@ -34,8 +35,8 @@ type Payload = {
   benefits_active?: boolean; affects_matching?: boolean; benefits_note?: string;
 };
 
-const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const FN = SUPA_FN;
+const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
   const r = await fetch(FN + '/' + path, {

@@ -22,6 +22,7 @@
 // its own sentence, because a supplier who thinks their catalogue was read will not re-upload it.
 import React, { useRef, useState } from 'react';
 import { motion } from 'motion/react';
+import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
 
 type Lang = 'en' | 'ar';
 type Result = {
@@ -30,8 +31,8 @@ type Result = {
   status?: string; why?: string; error?: string;
 };
 
-const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const FN = SUPA_FN;
+const ANON = SUPA_ANON;
 
 // The same call() every sibling component uses. The first version hand-rolled its fetch, which
 // worked and was still wrong: the endpoint name never appeared as a literal next to `call(` or

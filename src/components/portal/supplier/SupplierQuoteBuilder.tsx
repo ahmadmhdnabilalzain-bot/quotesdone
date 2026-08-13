@@ -20,6 +20,7 @@
 // the same approval gate, the same registration gate and the same identity scrubbing. A supplier
 // cannot reach a quote the platform would otherwise refuse by coming through this door instead.
 import React, { useEffect, useMemo, useState } from 'react';
+import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
 
 type Lang = 'en' | 'ar';
 // The field names are fn_supplier_opportunities', read off the live payload rather than guessed:
@@ -41,8 +42,8 @@ type Rec = {
                  recommended_action?: string; basis?: string };
 };
 
-const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const FN = SUPA_FN;
+const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
   const r = await fetch(FN + '/' + path, {

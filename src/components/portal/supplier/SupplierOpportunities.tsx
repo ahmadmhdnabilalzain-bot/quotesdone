@@ -17,6 +17,7 @@
 // statement about the supplier that the platform is in no position to make.
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
 
 type Lang = 'en' | 'ar';
 type Reason = { key: string; applies: boolean; available?: boolean; text: string; similar_jobs?: number };
@@ -32,8 +33,8 @@ type Payload = {
   opportunities?: Opportunity[];
 };
 
-const FN = (process.env.NEXT_PUBLIC_SUPABASE_URL || '') + '/functions/v1';
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const FN = SUPA_FN;
+const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
   const r = await fetch(FN + '/' + path, {
