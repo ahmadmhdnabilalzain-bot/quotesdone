@@ -203,6 +203,17 @@ function CapabilityConfirmPanel({ token, lang }) {
   const [roles, setRoles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  // WHAT WE ALREADY BELIEVE, FIRST. Measured on a 375x812 phone: the vocabulary renders 40 trade
+  // chips and 8 role chips in taxonomy sort order, so the four this company actually holds were
+  // scattered through the list and the confirm button sat 2,547px down — 3.1 screens of scrolling.
+  // The header above says this is a CONFIRMATION screen and not a form; a supplier cannot correct a
+  // proposal they have to hunt for. Pinned once, from the row as loaded, and never re-sorted on a
+  // toggle: chips that jump under a thumb are worse than chips in the wrong order.
+  const [pinned, setPinned] = useState({ trades: [], roles: [] });
+  const order = (vocab, pin) => {
+    const p = new Set(pin);
+    return [...(vocab || [])].sort((a, b) => (p.has(b.code) ? 1 : 0) - (p.has(a.code) ? 1 : 0));
+  };
 
   const load = async () => {
     setSt((s) => ({ ...s, loading: true, err: '' }));
@@ -211,6 +222,7 @@ function CapabilityConfirmPanel({ token, lang }) {
       const cap = j.capability || null;
       setTrades((cap && cap.trades) || []);
       setRoles((cap && cap.roles) || []);
+      setPinned({ trades: (cap && cap.trades) || [], roles: (cap && cap.roles) || [] });
       setSt({ loading: false, err: '', confirmed: !!j.confirmed, cap, vocab: j.vocabulary || { trades: [], roles: [] } });
     } else {
       setSt((s) => ({ ...s, loading: false, err: (j && (j.error || j.detail)) || 'load_err' }));
@@ -263,7 +275,7 @@ function CapabilityConfirmPanel({ token, lang }) {
       <div className="mt-4">
         <div className="text-sm opacity-70 mb-2">{ar ? 'التخصصات' : 'Trades'}</div>
         <div className="flex flex-wrap gap-2">
-          {(st.vocab.trades || []).map((tr) => (
+          {order(st.vocab.trades, pinned.trades).map((tr) => (
             <button key={tr.code} type="button" className={chip(trades.includes(tr.code))}
                     onClick={() => toggle(trades, setTrades, tr.code)}>{tr.label || tr.code}</button>
           ))}
@@ -273,7 +285,7 @@ function CapabilityConfirmPanel({ token, lang }) {
       <div className="mt-4">
         <div className="text-sm opacity-70 mb-2">{ar ? 'دورك' : 'Your role'}</div>
         <div className="flex flex-wrap gap-2">
-          {(st.vocab.roles || []).map((r) => (
+          {order(st.vocab.roles, pinned.roles).map((r) => (
             <button key={r.code} type="button" className={chip(roles.includes(r.code))}
                     onClick={() => toggle(roles, setRoles, r.code)}>{r.label || r.code}</button>
           ))}
@@ -290,11 +302,27 @@ function CapabilityConfirmPanel({ token, lang }) {
       {st.err && st.cap ? <div className="mt-3 text-sm text-red-400">{String(st.err)}</div> : null}
       {saved ? <div className="mt-3 text-sm text-emerald-400">{ar ? 'تم التأكيد.' : 'Confirmed.'}</div> : null}
 
-      <Button className="mt-4" disabled={busy || !trades.length || !roles.length} onClick={confirm}>
-        {busy ? (ar ? 'جارٍ الحفظ…' : 'Saving…')
-              : st.confirmed ? (ar ? 'تحديث النطاق' : 'Update my scope')
-                             : (ar ? 'تأكيد نطاق عملي' : 'Confirm my scope')}
-      </Button>
+      {/* STICKY, BECAUSE OF WHERE IT WAS. On a 375x812 phone this button rendered at y=2547 —
+          3.1 screens below the fold, past 48 chips, after a 366px tab strip. The ask that unlocks
+          every RFQ was the last thing on the longest screen in the portal. It now travels with the
+          thumb, and carries the count so a supplier can see what they are confirming without
+          scrolling back up. Unconfirmed only: once the scope is confirmed this is an edit screen
+          and a permanently docked bar would be noise. */}
+      {/* pe-16 on mobile: the docked assistant bubble is position:fixed at the bottom-end corner and
+          sits above this bar, and it was covering 29px of the button. A chat launcher must not eat
+          the edge of the one control that unlocks every RFQ. */}
+      <div className={cn('mt-4', !st.confirmed && 'sticky bottom-0 -mx-5 -mb-5 px-5 pe-16 sm:pe-5 pb-5 pt-3 bg-card/85 backdrop-blur-md border-t border-border')}>
+        {!st.confirmed && (
+          <div className={cn(S.sub, 'mb-2')}>
+            {ar ? `${trades.length} تخصص · ${roles.length} دور` : `${trades.length} trade${trades.length === 1 ? '' : 's'} · ${roles.length} role${roles.length === 1 ? '' : 's'} selected`}
+          </div>
+        )}
+        <Button className="w-full sm:w-auto" disabled={busy || !trades.length || !roles.length} onClick={confirm}>
+          {busy ? (ar ? 'جارٍ الحفظ…' : 'Saving…')
+                : st.confirmed ? (ar ? 'تحديث النطاق' : 'Update my scope')
+                               : (ar ? 'تأكيد نطاق عملي' : 'Confirm my scope')}
+        </Button>
+      </div>
     </Card>
   );
 }
