@@ -40,14 +40,49 @@ Deno.serve(async (req)=>{
     const {data:cfg,error:cfgErr}=await admin.from('pricing_config').select('*').eq('id',1).maybeSingle();
     if(cfgErr||!cfg) cfgErrMsg='pricing_config row id=1 could not be read, so the reveal-fee maths could not be verified at all and a wrong fee could be charged to customers without any test catching it: '+String(cfgErr?.message||'no pricing_config row')+'. ';
     // 1) fee math
-    T('fee(10000)=3%', revealFee(10000,cfg)===Math.round(10000*Number(cfg.standard_reveal_rate)*100)/100, 'got '+revealFee(10000,cfg));
-    T('fee(0)=0', revealFee(0,cfg)===0);
-    T('fee is monotonic', revealFee(50000,cfg) >= revealFee(10000,cfg));
-    T('fee never exceeds cap', revealFee(1e12,cfg) <= Number(cfg.standard_reveal_cap));
+    //
+    // THE SUITE DETECTED THE MISSING CONFIG AND THEN DEREFERENCED IT ANYWAY (13 Aug 2026).
+    // The line above builds a careful cfgErrMsg for exactly this case, and the fee assertions two
+    // lines down read cfg.standard_reveal_rate regardless. With no pricing_config row, revealFee
+    // threw on `cfg.promo_until`, the whole runner died before it reached the security and Stripe
+    // checks below, and the message it had just written was never logged - the throw happens long
+    // before the logRun at the bottom. Measured: money_verify on staging 1 attempt, 1 failure,
+    // HTTP 200 with {"ok":false,"passed":0,"failed":1,"results":[{"name":"runner","pass":false,
+    // "detail":"Cannot read properties of null (reading 'promo_until')"}]} - and NOT ONE recorded
+    // attempt on production. The money invariants have never verified anything on either project.
+    //
+    // A missing config is now a FAILED assertion with the reason attached, not a crash, and the
+    // fee block is skipped rather than run against null. Everything after it - the anon-readability
+    // regressions on customers/transactions/app_secrets, the Stripe live-key and charges_enabled
+    // checks, the no-auth guards on the money endpoints - now runs on a project that has no
+    // pricing_config row, which is the case where those checks matter most.
+    T('pricing_config is readable', !!cfg, cfgErrMsg || 'no pricing_config row id=1');
+    if(cfg){
+      T('fee(10000)=3%', revealFee(10000,cfg)===Math.round(10000*Number(cfg.standard_reveal_rate)*100)/100, 'got '+revealFee(10000,cfg));
+      T('fee(0)=0', revealFee(0,cfg)===0);
+      T('fee is monotonic', revealFee(50000,cfg) >= revealFee(10000,cfg));
+      T('fee never exceeds cap', revealFee(1e12,cfg) <= Number(cfg.standard_reveal_cap));
+    }
     // 2) stripe config
     const sk=await sec('stripe_secret_key');
-    T('stripe key is LIVE', sk.startsWith('sk_live_'), 'key_mode='+(sk.slice(0,8)));
-    if(sk){ const ar=await fetch('https://api.stripe.com/v1/account',{headers:{Authorization:'Bearer '+sk}}); const aj=await ar.json(); T('stripe charges_enabled', aj?.charges_enabled===true, JSON.stringify(aj?.charges_enabled)); }
+    // WHICH PROJECT THIS IS DECIDES WHAT "CORRECT" MEANS FOR A STRIPE KEY.
+    //
+    // 'stripe key is LIVE' was asserted unconditionally, so on staging - which must never hold
+    // live payment credentials - it could only ever fail. A check that cannot pass on the project
+    // it runs against is not a standard, it is noise that trains you to ignore a red line.
+    //
+    // Inverted rather than skipped, because the staging case is worth asserting in its own right:
+    // a live secret key appearing on a non-production project is a real incident, and nothing in
+    // the estate was looking for it.
+    const PROD_REF='htdblwldjkcgjvmqkbeh';
+    const selfRef=(Deno.env.get('SUPABASE_URL')||'').replace(/^https?:\/\//,'').split('.')[0];
+    const isProd=selfRef===PROD_REF;
+    if(isProd){
+      T('stripe key is LIVE', sk.startsWith('sk_live_'), 'key_mode='+(sk.slice(0,8)));
+      if(sk){ const ar=await fetch('https://api.stripe.com/v1/account',{headers:{Authorization:'Bearer '+sk}}); const aj=await ar.json(); T('stripe charges_enabled', aj?.charges_enabled===true, JSON.stringify(aj?.charges_enabled)); }
+    } else {
+      T('stripe key is NOT live off production', !sk.startsWith('sk_live_'), 'a LIVE Stripe secret key is present on '+(selfRef||'a non-production project')+' - remove it');
+    }
     // 3) security regressions - sensitive tables must NOT be anon-readable
     const ri=await restGet('reveal_invoices?select=*&limit=1'); T('reveal_invoices not anon-readable', ri.status===401||ri.status===403||(ri.body&&ri.body.code==='42501')||(Array.isArray(ri.body)&&ri.body.length===0), 'status '+ri.status+' '+JSON.stringify(ri.body).slice(0,80));
     const cu=await restGet('customers?select=*&limit=1'); T('customers denied to anon', cu.status===401||cu.status===403||(cu.body&&cu.body.code==='42501'), 'status '+cu.status);

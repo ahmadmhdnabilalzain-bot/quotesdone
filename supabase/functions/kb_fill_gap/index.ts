@@ -28,7 +28,46 @@ Deno.serve(async (req) => {
     else { const tok = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim(); if (tok) { const { data: u } = await admin.auth.getUser(tok); const em = u?.user?.email || ''; if (em && await isAdmin(em)) ok = true; } }
     if (!ok) return J({ error: 'unauthorized' }, 401);
 
-    const category = String(body?.category || '').trim(); const label = String(body?.label || category).trim();
+    // AN EXECUTOR THAT COULD ONLY EVER BE CALLED WRONG (13 Aug 2026).
+    //
+    // action_execution for knowledge_fill_gap: 0 succeeded, 3 failed, all with 400
+    // category_required, and 8 more still queued behind them. It has never once run.
+    //
+    // The caller is fn_workflow_step_sweep, which builds the request from
+    // workflow_step_run.input and passes it through faithfully. That input is the step's own
+    // description - {"gate":null,"step":"Decay confidence past the review date"} - and NO
+    // workflow_step_run row of ANY action_class has ever carried a `category`: 0 out of 1,000+
+    // rows across 15 classes. So the one caller this executor has could never satisfy the one
+    // argument it demands. org_action_executor.params, the per-executor payload template that
+    // exists for exactly this, is {} on the row.
+    //
+    // kb_deepen - the sibling executor, same table, same dispatcher - already solved this: given
+    // no agent it picks the roster agent with the FEWEST deep topics and grows the thinnest
+    // first. That is why it has 85 successes against this one's zero, on payloads just as empty.
+    // This is that fallback, and for "fill a gap" it is not a convenience but the definition:
+    // the gap to fill is the category with the least knowledge behind it.
+    //
+    // MEASURED when this was written: 88 active category agents, and 64 of them have ZERO
+    // kb_chunks. There is no shortage of real gaps to pick from, and none of them is invented -
+    // the choice comes from counting rows that exist.
+    let category = String(body?.category || '').trim();
+    let label = String(body?.label || category).trim();
+    let picked = false;
+    if (!category) {
+      const { data: roster } = await admin.from('category_agents').select('slug,name').eq('active', true);
+      const cats = (roster || []).filter((c: any) => c && c.slug);
+      if (!cats.length) return J({ error: 'category_required', detail: 'no category was supplied and category_agents holds no active row to choose from' }, 400);
+      // One count per category. The roster is ~88 rows, so this is 88 head-counts, not a scan.
+      let best: { slug: string; name: string; n: number } | null = null;
+      for (const c of cats) {
+        const { count } = await admin.from('kb_chunks').select('id', { count: 'exact', head: true }).eq('category', c.slug);
+        const n = count || 0;
+        if (!best || n < best.n) best = { slug: String(c.slug), name: String(c.name || c.slug), n };
+        if (best.n === 0) break; // nothing can be thinner than empty; stop counting
+      }
+      if (!best) return J({ error: 'category_required', detail: 'no category could be chosen' }, 400);
+      category = best.slug; label = best.name; picked = true;
+    }
     if (!category) return J({ error: 'category_required' }, 400);
     const key = await sec('cred_fn_ai'); if (!key) return J({ error: 'no_llm_key' }, 500);
 
@@ -41,6 +80,9 @@ Deno.serve(async (req) => {
     const { data: ins, error } = await admin.from('kb_chunks').insert(rows).select('id');
     if (error) return J({ error: error.message }, 500);
     try { await admin.from('agent_actions').insert({ agent: 'knowledge_curator', status: 'done', title: `Filled knowledge gap: ${label}`, risk: 'low', recommendation: `Generated ${rows.length} chunks for ${category}` }); } catch (_e) {}
-    return J({ ok: true, inserted: (ins?.length || rows.length), category });
+    // `picked` says whether the caller named this category or we chose it as the thinnest. A
+    // sweep reading these rows back must be able to tell "the workflow asked for X" from "nobody
+    // asked, so we grew the emptiest one".
+    return J({ ok: true, inserted: (ins?.length || rows.length), category, label, auto_selected: picked });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 });
