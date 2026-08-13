@@ -29,7 +29,7 @@ import { CompanyTwin, SupplierDiscovery, CustomerMemory, DecisionSupport } from 
 // assistant, a mobile tab bar, and the assistant docked in the layout rather than floating in a
 // corner. See the header of PortalShell.tsx for what was on the screen before and why.
 import { PortalShell, StatTile, StatusPill, rfqState } from './PortalShell';
-import { FileText, MessageSquareQuote, BellRing, KeyRound, Plus, Sparkles, Upload, Scale, ArrowRight, ChevronDown, Lock, Check } from 'lucide-react';
+import { FileText, MessageSquareQuote, BellRing, KeyRound, Plus, X, Sparkles, Upload, Scale, ArrowRight, ChevronDown, Lock, Check } from 'lucide-react';
 // expires_at / expired were served on every quote and never shown. The branch that phrases them
 // decides whether a customer pays a reveal fee on a lapsed price, so it lives in a file that can be
 // executed — see quoteExpiry.test.mjs — rather than inline in this one.
@@ -355,6 +355,19 @@ export function CustomerPortal() {
     return () => { try { sub && sub.data && sub.data.subscription && sub.data.subscription.unsubscribe(); } catch (_e) {} };
   }, []);
   const setLang = (l) => { try { localStorage.setItem('qd-lang', l); } catch (_e) {} setLangState(l); };
+
+  // THE DOCUMENT ITSELF NEVER LEARNED IT HAD SWITCHED LANGUAGE (13 Aug 2026). Measured in the
+  // browser with the portal fully in Arabic: document.documentElement.dir was "ltr" and .lang was
+  // "en". Every panel sets dir="rtl" on its own <section>, which is why the SCREENSHOT looks
+  // correct and hid this - but the root element is what a screen reader reads to choose a voice
+  // and pronunciation rules, so an Arabic portal was being announced as English. It is also what
+  // the browser uses for hyphenation, quotation marks, and the direction of anything that does not
+  // carry a dir of its own. The panels keep their local dir; this sets the thing above them.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.lang = lang === 'ar' ? 'ar' : 'en';
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  }, [lang]);
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
   // THE STORED PROFILE LOCALE. customers.locale has existed all along and the portal could not
   // honour it: my_inquiries did not serve it (fixed 5 Aug 2026) and this component decided language
@@ -470,7 +483,14 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
       setK(j || {});
     }).catch(() => setErr('net'));
   };
-  useEffect(() => { load(); }, [token]);
+  // DO NOT ASK AN AUTHENTICATED ENDPOINT WHO WE ARE BEFORE WE HAVE A TOKEN. This ran on the first
+  // render, when `token` is still '' because it is read from localStorage and from
+  // SB.auth.getSession() inside an effect that has not resolved yet. Measured on a signed-in
+  // customer: two 401s against /kyc in the console on every load, before the real call succeeded.
+  // Wrong in three ways - it spends a round trip per mount, it puts a red error in the console of
+  // a working page so a real one is easy to miss, and it burns the one refresh attempt the
+  // `retried` flag exists to protect. The effect re-runs when the token arrives, so waiting is free.
+  useEffect(() => { if (token) load(); }, [token]);
   if (err === 'unauth') return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'session_expired')}</div><Button className="w-full mt-3" onClick={onSignOut}>{t(lang, 'tab_signin')}</Button></Card></div></>;
   if (err) return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'load_failed')}</div>{/* () => load(), not load: a click handler passes the MouseEvent as the first argument, which
         would arrive as `retried` and skip the one refresh attempt this retry exists to make. */}
@@ -693,7 +713,10 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
           </p>
         </div>
         <Button size="sm" className="shrink-0 gap-1.5" onClick={() => setShowNew((v) => !v)}>
-          <Plus className="h-4 w-4" aria-hidden />{showNew ? t(lang, 'close') : t(lang, 'new_request')}
+          {/* The label flips to "Close" but the icon did not, so the open intake carried a button
+              reading "+ Close" - a plus sign on the control that dismisses the thing. */}
+          {showNew ? <X className="h-4 w-4" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
+          {showNew ? t(lang, 'close') : t(lang, 'new_request')}
         </Button>
       </div>
     </section>
@@ -1574,7 +1597,14 @@ function AccountSettings({ token, lang, onChanged }) {
   const load = () => call('customer_api', { action: 'me' }, token)
     .then((j) => { if (j && j.customer) { setMe(j.customer); setName(j.customer.full_name || ''); setPhone(j.customer.phone || ''); } else setErr(t(lang, 'acct_failed')); })
     .catch(() => setErr(t(lang, 'acct_failed')));
-  useEffect(() => { load(); }, [token]);
+  // DO NOT ASK AN AUTHENTICATED ENDPOINT WHO WE ARE BEFORE WE HAVE A TOKEN. This ran on the first
+  // render, when `token` is still '' because it is read from localStorage and from
+  // SB.auth.getSession() inside an effect that has not resolved yet. Measured on a signed-in
+  // customer: two 401s against /kyc in the console on every load, before the real call succeeded.
+  // Wrong in three ways - it spends a round trip per mount, it puts a red error in the console of
+  // a working page so a real one is easy to miss, and it burns the one refresh attempt the
+  // `retried` flag exists to protect. The effect re-runs when the token arrives, so waiting is free.
+  useEffect(() => { if (token) load(); }, [token]);
   if (err) return <div className={S.err}>{err}</div>;
   if (!me) return <div className={S.sub}>{t(lang, 'loading')}</div>;
   const since = me.created_at ? new Date(me.created_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';

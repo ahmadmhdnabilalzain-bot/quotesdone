@@ -127,11 +127,15 @@ export function OrdersList({ token, lang = 'en', onOpenRfq, className }: OrdersL
 
   return (
     <section className={cn('flex flex-col gap-4', className)} dir={lang === 'ar' ? 'rtl' : 'ltr'} aria-labelledby="qd-orders">
+      {/* NO SECOND "Orders" HEADING. ModuleWindow already renders the module's name as the h1 the
+          moment you click it in the nav, so repeating it here printed "Orders / Orders" down the
+          screen - and the same stutter appeared on Projects, Approvals, Project room and What you
+          may need next. The subtitle is the part that says something, so it stays; aria-labelledby
+          now points at it. Where a module's own heading DIFFERS from the nav label - Documents ->
+          "Document vault", Messages -> "Communication center" - it reads as a subtitle and is left
+          alone. */}
       <header>
-        <h2 id="qd-orders" className="text-xl font-extrabold text-foreground">
-          {tr(lang, 'orders')}
-        </h2>
-        <p className="mt-1 text-[13px] text-muted-foreground">{tr(lang, 'orders_sub')}</p>
+        <p id="qd-orders" className="text-[13px] text-muted-foreground">{tr(lang, 'orders_sub')}</p>
       </header>
 
       {error ? (

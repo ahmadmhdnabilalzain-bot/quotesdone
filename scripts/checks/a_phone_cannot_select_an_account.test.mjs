@@ -78,6 +78,33 @@ for (const [label, project] of Object.entries(PROJECTS)) {
   });
 }
 
+// A PHONE CANNOT MINT AN IDENTITY EITHER, AND THE REFUSAL MUST HAPPEN BEFORE THE SPEND.
+//
+// allow_signup used to let an unknown number through to Twilio. The flow could not complete: `send`
+// writes the phone_verifications row with email:'' for an unknown number, and `verify` then has no
+// account to resolve, so it answered "No account is registered with this number... sign up first" -
+// to somebody who had just tapped sign up, AFTER we had paid to text them. Measured end to end on
+// production before the fix: send returned 200 known:false and left a row with an empty email.
+//
+// Not fixable by having verify create the account: email is the identity (customers_email_lower_uidx),
+// so an account minted from a handset alone would have no address to send a quote to and nothing
+// the ~20 server-side lookups could key on.
+for (const [label, project] of Object.entries(PROJECTS)) {
+  test(`a mobile number cannot create an account on ${label}`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
+    const { status, body } = await fetch(`https://${project}.supabase.co/functions/v1/login_otp`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'send', user_kind: 'customer', identifier: UNKNOWN, allow_signup: true }),
+    }).then(async (r) => ({ status: r.status, body: await r.json().catch(() => ({})) }));
+
+    assert.equal(status, 404, `expected 404, got ${status} ${JSON.stringify(body)}`);
+    assert.equal(body.signup_by_email, true, 'the refusal must name email as the way to sign up');
+    // The point of the guard is that it happens BEFORE Twilio. A 200 here would mean we paid to
+    // send a code that verify is going to refuse.
+    assert.notEqual(status, 200, 'an SMS was sent for a sign-up that cannot complete');
+  });
+}
+
 // THE AMBIGUITY GUARD, EXERCISED FOR REAL. Two accounts, one number, one HTTP call. Staging only:
 // this inserts and removes rows, and it must never be run against live customer data.
 test('two accounts on one number are refused, not guessed (staging)', async (t) => {

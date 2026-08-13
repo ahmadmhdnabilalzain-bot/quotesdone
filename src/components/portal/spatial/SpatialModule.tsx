@@ -89,7 +89,7 @@ export function SpatialModule({ token, lang = 'en', projectId, inquiries = NO_IN
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <div className="text-[15px] font-bold text-foreground">{tx(lang, 'room_title')}</div>
+        {/* ModuleWindow already renders "Project room" as the h1. See the note in OrdersList. */}
         <div className="text-[13px] text-muted-foreground">{tx(lang, 'room_sub')}</div>
       </div>
 

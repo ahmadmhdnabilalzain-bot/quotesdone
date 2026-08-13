@@ -53,8 +53,8 @@ export function ProjectList({ token, lang = 'en', onOpen, onCreate, refreshKey =
     <section className={cn('flex flex-col gap-4', className)} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-extrabold text-foreground">{tr(lang, 'projects')}</h2>
-          <p className="mt-1 text-[13px] text-muted-foreground">{tr(lang, 'projects_sub')}</p>
+          {/* ModuleWindow already renders "Projects" as the h1. See the note in OrdersList. */}
+          <p className="text-[13px] text-muted-foreground">{tr(lang, 'projects_sub')}</p>
         </div>
         {onCreate ? (
           <Button type="button" onClick={onCreate}>

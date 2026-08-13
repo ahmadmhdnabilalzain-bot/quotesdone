@@ -247,10 +247,8 @@ export function ApprovalChain({ token, lang = 'en', onOpenRfq, className }: Appr
   return (
     <section className={cn('flex flex-col gap-4', className)} dir={lang === 'ar' ? 'rtl' : 'ltr'} aria-labelledby="qd-approvals">
       <header>
-        <h2 id="qd-approvals" className="text-xl font-extrabold text-foreground">
-          {tr(lang, 'approvals')}
-        </h2>
-        <p className="mt-1 text-[13px] text-muted-foreground">{tr(lang, 'approvals_sub')}</p>
+        {/* ModuleWindow already renders "Approvals" as the h1. See the note in OrdersList. */}
+        <p id="qd-approvals" className="text-[13px] text-muted-foreground">{tr(lang, 'approvals_sub')}</p>
       </header>
 
       {error ? (

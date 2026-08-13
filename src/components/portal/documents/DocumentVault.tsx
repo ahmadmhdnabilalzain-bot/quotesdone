@@ -399,13 +399,19 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
         </div>
       ) : null}
 
-      {/* EMPTY. The endpoint always says WHY, and its sentence is printed verbatim. */}
+      {/* EMPTY. The endpoint always says WHY, and its sentence is printed verbatim.
+          THE HEADING IS THE FALLBACK, NOT A COMPANION. res.note already OPENS with the same
+          sentence this heading holds, so rendering both printed "Nothing has been filed to your
+          vault yet." twice in a row - once bold, then again as the first words of the paragraph
+          under it. The server sentence is the fuller one and the one this component is documented
+          to print verbatim, so it wins; the local string is shown only when there is no note. */}
       {res && !docs.length ? (
         <Card className="p-5">
-          <div className="text-[15px] font-bold text-foreground">
-            {res.empty_reason === 'no_customer_record' ? w.empty_no_customer : w.empty_generic}
-          </div>
-          {res.note ? <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{res.note}</p> : null}
+          {res.note
+            ? <p className="text-[13px] leading-relaxed text-muted-foreground">{res.note}</p>
+            : <div className="text-[15px] font-bold text-foreground">
+                {res.empty_reason === 'no_customer_record' ? w.empty_no_customer : w.empty_generic}
+              </div>}
         </Card>
       ) : null}
 
