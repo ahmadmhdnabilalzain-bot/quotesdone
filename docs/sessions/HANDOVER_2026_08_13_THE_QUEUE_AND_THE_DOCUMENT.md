@@ -253,6 +253,49 @@ Probed in an aborted transaction: run 1 queued exactly those 10 with `#2` keys �
 2773, 2777, 2778, 2781, 2812, 2814, 2818, 2819, precisely the ones that failed on 10–12 Aug — and
 run 2 queued 0. Then run for real: **10 queued**, `eligible_remaining 0`, `exhausted_two_attempts 0`.
 
+## 8 — I watched the invite ramp, as asked. It goes silent exactly when it matters.
+
+Measured on production at 00:10 UTC: `invite_enabled true`, `invite_daily_cap 10`,
+`invite_max_bounce_rate 0.05`, and **7-day sends 29, bounces 3 — a rate of 10.3%, twice the pause
+threshold.** The last `invite_ramp` run was 08:45 on 12 Aug and it recorded `PAUSED: invite_enabled
+is false`, because you turned invites on later that evening. The next run is 08:45 today.
+
+Here is what it would have done. `v_sent7` (29) ≥ 20 and `v_rate` (0.103) ≥ 0.05, so it takes the
+throttle branch: `v_new := greatest(10, floor(10 × 0.5)) = 10`. Then:
+
+```
+if v_new <> v_cur then          <- 10 <> 10 is FALSE
+  update app_secrets ...
+  insert into agent_runs ...    <- the only record this function writes
+  if v_new < v_cur then
+    insert into founder_alerts  <- the only warning it raises
+```
+
+**Both the record and the warning live inside a condition that cannot be true once the cap is at
+its floor.** A list bouncing at twice the pause threshold produces no `agent_runs` row and no alert
+at all, and the cron reports success. The louder the problem, the quieter the instrument — because
+loudness was gated on the cap still having room to fall.
+
+That is backwards. *"I would throttle you but you are already as slow as I can make you"* is more
+serious than a throttle, not less: it is the ramp saying it has run out of ways to protect the
+sending domain short of stopping.
+
+Fixed, narrowly: the `agent_runs` row is written on **every** run (a daily instrument that files a
+report only on days it changed something cannot answer "is this healthy", which is the only
+question anyone asks it), the run is recorded with status `error` in that state so the existing
+failure watchers see it, and a `crit` founder alert fires for the case that used to be silent.
+Also corrected: the throttle alert asserted *"Hard auto-pause still triggers at 8%"* — the value
+became 0.05 on 12 Aug and the string did not. It now reads the live number out of `app_secrets`.
+
+Probed on production, rolled back: `runs_written 1`, `status error`, `alerts 1`, and the text
+*"THROTTLE WANTED BUT ALREADY AT THE FLOOR: 7d bounce 10.3% (3/29) >= 5% … Hard auto-pause triggers
+at 5.0% or 5 hard bounces in the window, and 3 have been recorded."*
+
+**This is a judgement for you, not for me.** The list is bouncing at 10.3% and the hard pause needs
+5 hard bounces where there are 3. I have not paused it and I have not re-verified the list — that
+is a commercial call about your sending domain. From 08:45 today the ramp will say so every
+morning instead of saying nothing.
+
 ---
 
 ## Sweep
