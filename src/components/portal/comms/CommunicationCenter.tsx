@@ -10,12 +10,22 @@
 //     documents      customer_documents, attached per conversation by link.ts — provably, never guessed
 //     RFQ + supplier every thread is keyed by (inquiry_id, supplier_id) and both are shown on it
 //
-//   NOT SERVED, and said so rather than staged
-//     WhatsApp   wa_messages exists and holds rows; messages_api does not open it and no
-//                customer-authed endpoint exposes it. A "WhatsApp (0)" tab would be a claim.
-//     Email      inbound_messages, likewise.
-//     Calls      production has NO table that logs a call against an inquiry, supplier or customer.
-//                Not an empty one — none.
+//   SERVED SINCE 7 AUG, AND RENDERED HERE SINCE 13 AUG
+//     WhatsApp   wa_messages, joined on the customer's OWN phone number
+//     E-mail     inbound_messages, joined on their OWN e-mail address
+//     Calls      customer_calls, joined on their OWN customer_id
+//
+//   THE THREE LINES ABOVE USED TO READ "NOT SERVED, and said so rather than staged". That was true
+//   when it was written and false by the time a customer read it. otherChannels() landed in
+//   messages_api on 7 Aug; this file was not told. MEASURED 13 Aug 2026, signed in as a real
+//   customer: the inbox rendered a WhatsApp row (10 messages) and an e-mail row (1 unread) directly
+//   underneath its own sentence saying they "are not routed into your inbox yet — so nothing here
+//   is hiding them". The rows were there. Both keyed to "null:null", so React logged a duplicate
+//   key and clicking the unread e-mail opened the WhatsApp thread, which then failed to load
+//   because `action:'thread'` rejects a null inquiry_id. A page cannot be trusted about what it
+//   does not hold if it is wrong about what it does.
+//
+//   NOT SERVED, and still said so rather than staged
 //     Project    neither public.messages nor public.chat_threads carries project_id, and the thread
 //                payload has no project. The RFQ->project link exists on inquiries and would close
 //                this, but it is not in anything this surface can read.
@@ -34,10 +44,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { DocumentRow, listDocuments, type VaultDocument } from '../documents';
 import {
-  listThreads, openThread, requestChat, sendMessage,
-  type ChatMessage, type Lang, type ThreadResponse, type ThreadSummary,
+  listThreads, openChannel, openThread, requestChat, sendMessage,
+  type Channel, type ChannelThreadResponse, type ChatMessage, type Lang, type ThreadResponse, type ThreadSummary,
 } from './api';
-import { documentCount, linkDocuments, threadKey, type ThreadDocuments } from './link';
+import { documentCount, isChannelThread, linkDocuments, threadKey, type ThreadDocuments } from './link';
 
 // ---- words --------------------------------------------------------------------------------------
 const EN = {
@@ -46,9 +56,17 @@ const EN = {
   carries_h: 'What this inbox carries',
   carries_chat: 'Your in-portal chat with suppliers you have revealed, on the request it belongs to.',
   carries_docs: 'The documents filed against that request, and the revealed supplier’s own licence and certificates.',
-  carries_not_wa: 'WhatsApp and email reach QuotesDone and are handled by our team, but they are not routed into your inbox yet — so nothing here is hiding them.',
-  carries_not_calls: 'Phone calls are not logged against your requests anywhere on the platform.',
+  carries_wa: 'Your own WhatsApp, e-mail and call history with QuotesDone — matched to you by your own number and address, and readable here.',
   carries_not_project: 'A conversation is attached to its request and its supplier. It is not yet attached to a project.',
+  ch_whatsapp: 'WhatsApp', ch_email: 'E-mail', ch_call: 'Calls', ch_chat: 'Supplier chat',
+  ch_with_qd: 'With QuotesDone',
+  ch_note: 'This is your own correspondence with QuotesDone, not with a supplier. Nothing you write to a supplier appears here.',
+  ch_msgs: 'messages', ch_msg_one: 'message',
+  ch_empty: 'Nothing on this channel yet.',
+  ch_us: 'QuotesDone',
+  ch_err: 'Could not open this channel.',
+  ch_readonly: 'Replying by WhatsApp or e-mail reaches our team the usual way — there is no composer here, because a message typed here would not be delivered on that channel.',
+  ch_call_dur: 'duration',
   loading: 'Loading your conversations…',
   retry: 'Retry',
   back: '← Back to conversations',
@@ -97,9 +115,17 @@ const AR: typeof EN = {
   carries_h: 'ما يحتويه هذا الصندوق',
   carries_chat: 'محادثتك داخل المنصة مع المورّدين الذين كشفت عنهم، على الطلب الذي تخصّه.',
   carries_docs: 'المستندات المُرفقة بذلك الطلب، ورخصة وشهادات المورّد الذي كشفت عنه.',
-  carries_not_wa: 'رسائل واتساب والبريد الإلكتروني تصل إلى QuotesDone ويتولاها فريقنا، لكنها لا تُوجَّه إلى صندوقك بعد — فلا شيء هنا يخفيها.',
-  carries_not_calls: 'المكالمات الهاتفية غير مسجّلة على طلباتك في أي مكان بالمنصة.',
+  carries_wa: 'سجلّك أنت على واتساب والبريد الإلكتروني والمكالمات مع QuotesDone — مطابَق عليك برقمك وبريدك، ويمكنك قراءته هنا.',
   carries_not_project: 'المحادثة مرتبطة بطلبها وبالمورّد. وهي غير مرتبطة بمشروع بعد.',
+  ch_whatsapp: 'واتساب', ch_email: 'البريد الإلكتروني', ch_call: 'المكالمات', ch_chat: 'محادثة المورّد',
+  ch_with_qd: 'مع QuotesDone',
+  ch_note: 'هذه مراسلاتك أنت مع QuotesDone، وليست مع مورّد. لا يظهر هنا شيء مما تكتبه لمورّد.',
+  ch_msgs: 'رسائل', ch_msg_one: 'رسالة',
+  ch_empty: 'لا يوجد شيء على هذه القناة بعد.',
+  ch_us: 'QuotesDone',
+  ch_err: 'تعذّر فتح هذه القناة.',
+  ch_readonly: 'الردّ عبر واتساب أو البريد الإلكتروني يصل إلى فريقنا بالطريقة المعتادة — لا يوجد صندوق كتابة هنا، لأن رسالة تُكتب هنا لن تُسلَّم على تلك القناة.',
+  ch_call_dur: 'المدة',
   loading: 'جارٍ تحميل محادثاتك…',
   retry: 'إعادة المحاولة',
   back: '→ العودة إلى المحادثات',
@@ -167,11 +193,81 @@ function CarriesNote({ lang }: { lang: Lang }) {
       <ul className="mt-2 space-y-1.5 text-[12.5px] leading-relaxed">
         <li className="text-foreground">{w.carries_chat}</li>
         <li className="text-foreground">{w.carries_docs}</li>
-        <li className="text-muted-foreground">{w.carries_not_wa}</li>
-        <li className="text-muted-foreground">{w.carries_not_calls}</li>
+        <li className="text-foreground">{w.carries_wa}</li>
         <li className="text-muted-foreground">{w.carries_not_project}</li>
       </ul>
     </Card>
+  );
+}
+
+const CHANNEL_WORD: Record<string, keyof typeof EN> = {
+  whatsapp: 'ch_whatsapp', email: 'ch_email', call: 'ch_call', chat: 'ch_chat',
+};
+
+// ---- one of the customer's own channels with QuotesDone ------------------------------------------
+// Read-only on purpose, and the page says why: messages_api has no writer for wa_messages or
+// inbound_messages, so a composer here would take a reply and drop it. Same rule as the missing
+// paperclip on the supplier chat — a control that appears to work and silently discards is worse
+// than no control.
+function ChannelView({ token, lang, thread, onBack }: {
+  token: string; lang: Lang; thread: ThreadSummary; onBack: () => void;
+}) {
+  const w = W(lang);
+  const channel = (thread.channel || 'chat') as Channel;
+  const [data, setData] = React.useState<ChannelThreadResponse | null>(null);
+  const [err, setErr] = React.useState('');
+
+  React.useEffect(() => {
+    let live = true;
+    setErr(''); setData(null);
+    openChannel(token, channel).then((r) => {
+      if (!live) return;
+      if (!r.ok) { setErr(r.error === 'unauthorized' || r.error === 'forbidden' ? w.err_session : w.ch_err); return; }
+      setData(r.data);
+    });
+    return () => { live = false; };
+  }, [token, channel, w.err_session, w.ch_err]);
+
+  const messages = data?.messages || [];
+  return (
+    <section className="flex flex-col gap-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <Button type="button" variant="link" className="h-auto self-start px-0" onClick={onBack}>{w.back}</Button>
+
+      <Card className="p-4">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-[16px] font-extrabold text-foreground">{thread.counterpart}</div>
+            <div className="mt-0.5 text-[12.5px] text-muted-foreground">{w[CHANNEL_WORD[channel]]} · {w.ch_with_qd}</div>
+          </div>
+          <Badge variant="secondary">{w[CHANNEL_WORD[channel]]}</Badge>
+        </div>
+        <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{w.ch_note}</p>
+      </Card>
+
+      {err ? (
+        <Card className="p-4"><div role="alert" className="text-[13px] font-semibold text-destructive">{err}</div></Card>
+      ) : null}
+
+      <Card className="flex flex-col overflow-hidden p-0">
+        <div className="max-h-[52vh] min-h-[120px] flex-1 space-y-2.5 overflow-y-auto px-4 py-3">
+          {!data && !err ? <Skeleton className="h-16 w-full rounded-lg" />
+            : messages.length ? messages.map((m: ChatMessage) => (
+              <div key={m.id} className={cn('flex', m.sender === 'customer' ? 'justify-end' : 'justify-start')}>
+                <div className={cn('max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[13.5px] leading-relaxed',
+                  m.sender === 'customer' ? 'bg-primary text-primary-foreground' : 'border border-border bg-secondary/60 text-foreground')}>
+                  {m.subject ? <div className="mb-1 font-semibold">{m.subject}</div> : null}
+                  {m.body}
+                  <div className={cn('mt-1 text-[10.5px]', m.sender === 'customer' ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
+                    {m.sender === 'customer' ? w.you : w.ch_us} · {fmtWhen(m.created_at, lang)}
+                    {m.duration_s != null ? ` · ${w.ch_call_dur} ${m.duration_s}s` : ''}
+                  </div>
+                </div>
+              </div>
+            )) : <div className="text-[13px] text-muted-foreground">{data?.note || w.ch_empty}</div>}
+        </div>
+        <div className="border-t border-border px-4 py-3 text-[12px] leading-relaxed text-muted-foreground">{w.ch_readonly}</div>
+      </Card>
+    </section>
   );
 }
 
@@ -394,14 +490,21 @@ export function CommunicationCenter({ token, lang = 'en', onOpenRfq, refreshKey 
   const open = threads?.find((t) => threadKey(t) === openKey) || null;
 
   if (open) {
+    // A channel row has no inquiry_id and no supplier_id, so ConversationView's openThread would be
+    // a 400 every time. It gets its own reader.
     return (
       <div className={className}>
-        <ConversationView
-          token={token} lang={lang} thread={open}
-          docs={linked.byThread[threadKey(open)] || { rfq: [], supplier: [] }}
-          onBack={() => { setOpenKey(null); setReloads((n) => n + 1); }}
-          onOpenRfq={onOpenRfq}
-        />
+        {isChannelThread(open) ? (
+          <ChannelView token={token} lang={lang} thread={open}
+            onBack={() => { setOpenKey(null); setReloads((n) => n + 1); }} />
+        ) : (
+          <ConversationView
+            token={token} lang={lang} thread={open}
+            docs={linked.byThread[threadKey(open)] || { rfq: [], supplier: [] }}
+            onBack={() => { setOpenKey(null); setReloads((n) => n + 1); }}
+            onOpenRfq={onOpenRfq}
+          />
+        )}
       </div>
     );
   }
@@ -440,13 +543,18 @@ export function CommunicationCenter({ token, lang = 'en', onOpenRfq, refreshKey 
           {threads.map((t) => {
             const k = threadKey(t);
             const n = documentCount(linked.byThread[k]);
+            const isCh = isChannelThread(t);
             return (
               <Card key={k} className="cursor-pointer p-4 transition-colors hover:border-primary/40" onClick={() => setOpenKey(k)}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="text-[14px] font-bold text-foreground">{t.counterpart}</div>
+                    {/* "Request: WhatsApp" was on screen for a week. A channel is not an RFQ, and
+                        labelling it as one makes the customer look for a request that never existed. */}
                     <div className="mt-0.5 text-[12px] text-muted-foreground">
-                      <span className="font-semibold">{w.rfq}:</span> {t.subject}
+                      {isCh
+                        ? <>{w.ch_with_qd}{t.count ? ` · ${t.count} ${t.count === 1 ? w.ch_msg_one : w.ch_msgs}` : ''}</>
+                        : <><span className="font-semibold">{w.rfq}:</span> {t.subject}</>}
                     </div>
                     <div className="mt-1 truncate text-[12.5px] text-muted-foreground">{t.last || w.no_messages}</div>
                   </div>
@@ -456,7 +564,9 @@ export function CommunicationCenter({ token, lang = 'en', onOpenRfq, refreshKey 
                         {t.unread} {w.unread}
                       </span>
                     ) : null}
-                    <span className="text-[11.5px] text-muted-foreground">{statusWord(t.chat_status, lang)}</span>
+                    <span className="text-[11.5px] text-muted-foreground">
+                      {isCh ? w[CHANNEL_WORD[t.channel || 'chat']] : statusWord(t.chat_status, lang)}
+                    </span>
                     {n ? <span className="text-[11.5px] text-muted-foreground">{n} {n === 1 ? w.doc_one : w.docs}</span> : null}
                     {t.last_at ? <span className="text-[11px] text-muted-foreground">{fmtWhen(t.last_at, lang)}</span> : null}
                   </div>

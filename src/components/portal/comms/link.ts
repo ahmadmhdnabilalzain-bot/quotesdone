@@ -28,6 +28,8 @@
 
 /** The fields of a messages_api thread this module uses. */
 export interface LinkableThread {
+  /** 'chat' when absent. The whatsapp / email / call rows carry a NULL inquiry_id and supplier_id. */
+  channel?: string;
   inquiry_id: string;
   supplier_id: number | string;
 }
@@ -53,8 +55,22 @@ export interface LinkResult<D> {
   unlinkable: D[];
 }
 
-/** The key both surfaces use for a conversation. Same shape CustomerPortal already keys rows by. */
-export const threadKey = (t: LinkableThread): string => `${t.inquiry_id}:${t.supplier_id}`;
+/**
+ * The key both surfaces use for a conversation. Same shape CustomerPortal already keys rows by.
+ *
+ * THE CHANNEL IS PART OF THE KEY, and it is not decoration. WhatsApp, e-mail and calls all carry
+ * inquiry_id: null and supplier_id: null, so `${inquiry_id}:${supplier_id}` produced the literal
+ * string "null:null" for every one of them. Measured 13 Aug 2026 signed in as a real customer with
+ * a WhatsApp row and an e-mail row: React logged a duplicate-key error, and `threads.find(t =>
+ * threadKey(t) === openKey)` returned the FIRST match — so clicking the unread e-mail opened the
+ * WhatsApp conversation. Two rows that are not the same conversation must not have the same key.
+ */
+export const threadKey = (t: LinkableThread): string =>
+  `${t.channel || 'chat'}:${t.inquiry_id}:${t.supplier_id}`;
+
+/** A channel row is the customer's own correspondence with QuotesDone, not a supplier chat. */
+export const isChannelThread = (t: LinkableThread): boolean =>
+  !!t.channel && t.channel !== 'chat';
 
 /**
  * Attach each document to every conversation that PROVABLY owns it.

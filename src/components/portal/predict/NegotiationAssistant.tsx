@@ -80,6 +80,10 @@ export interface NegotiationAssistantProps {
 export function NegotiationAssistant({ token, quoteId, lang = 'en', className }: NegotiationAssistantProps) {
   const [negotiation, setNegotiation] = React.useState<Negotiation | null>(null);
   const [error, setError] = React.useState('');
+  // The raw code, kept OFF the screen and ON the element. Support can read it from the DOM or a
+  // screenshot's tooltip; the customer reads a sentence. See errText in ./strings for what was
+  // on this screen before.
+  const [errCode, setErrCode] = React.useState('');
   const [reloads, setReloads] = React.useState(0);
 
   React.useEffect(() => {
@@ -91,10 +95,12 @@ export function NegotiationAssistant({ token, quoteId, lang = 'en', className }:
     let live = true;
     setNegotiation(null);
     setError('');
+    setErrCode('');
     call('negotiation_assistant', { action: 'guidance', quote_id: quoteId }, token).then((res) => {
       if (!live) return;
       if (!res.ok) {
         setError(errText(lang, res.error));
+        setErrCode(String(res.error || ''));
         return;
       }
       // The one cast, at the wire boundary. ./model is the transcription of what
@@ -120,7 +126,8 @@ export function NegotiationAssistant({ token, quoteId, lang = 'en', className }:
       </header>
 
       {error ? (
-        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-[13px] text-destructive">
+        <div role="alert" title={errCode || undefined}
+          className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-[13px] text-destructive">
           <span className="font-semibold">
             {tr(lang, 'err_load_neg')} {error}
           </span>
