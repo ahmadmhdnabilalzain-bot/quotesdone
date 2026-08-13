@@ -48,7 +48,32 @@ Deno.serve(async (req) => {
       return J({ error: 'unauthorized' }, 401);
     }
     const { data: inq, error: inqErr } = await admin.from('inquiries').select('id,customer_id,summary,category,emirate,budget,raw_input,spec,boq').eq('id', inquiry_id).maybeSingle();
-    if (!inq) { await logRun('error', { compared: 0, inquiry_loaded: 0 }, 'quote_compare could not load inquiry ' + String(inquiry_id).slice(0, 60) + ' (' + String(inqErr?.message || 'no such row').slice(0, 120) + '), so the customer requested a comparison of their quotes and received a not_found instead — they cannot act on the quotes they already paid attention to.'); return J({ error: 'not_found' }, 404); }
+    // A MALFORMED ID IS NOT A STALLED CUSTOMER (13 Aug 2026).
+    //
+    // This logged status='error' for ANY failure to load the inquiry and asserted, in every case,
+    // that "the customer requested a comparison of their quotes and received a not_found instead —
+    // they cannot act on the quotes they already paid attention to."
+    //
+    // In the 24 hours before this was written the only callers were the platform's own harnesses:
+    // fx-1 and fx-2 at 01:59 and bbbbbbbb-2222-4bbb-8bbb-bbbbbbbbbbbb at 07:14 and 07:21. `fx-1` is
+    // not a UUID, so Postgres refuses it with 22P02 before any row is looked for. There are 0
+    // inquiries in the estate; there was no customer to strand. Seven error rows a day, aggregated
+    // by the `it` watcher into "N agent run(s) failed in last 24h" — 459 of those incidents in 30
+    // days, the single largest source of recommendations in the founder's queue.
+    //
+    // THE RESPONSE IS UNCHANGED — 404 not_found was always right, and the API contract is not the
+    // defect. Only the run classification is. An id that cannot be a UUID is a caller mistake and
+    // is recorded as such; a well-formed UUID with no row stays an error, because that one really
+    // could be a customer whose inquiry has gone missing.
+    if (!inq) {
+      const malformed = /invalid input syntax for type uuid/i.test(String(inqErr?.message || ''));
+      await logRun(malformed ? 'ok' : 'error',
+        { compared: 0, inquiry_loaded: 0, ...(malformed ? { bad_request: 1 } : {}) },
+        malformed
+          ? ('quote_compare was called with "' + String(inquiry_id).slice(0, 60) + '", which is not a UUID, so no inquiry was looked for and 404 not_found was returned. That is a caller sending a malformed id — a harness or a stale link — and not a customer left unable to compare their quotes.')
+          : ('quote_compare could not load inquiry ' + String(inquiry_id).slice(0, 60) + ' (' + String(inqErr?.message || 'no such row').slice(0, 120) + '), so the customer requested a comparison of their quotes and received a not_found instead — they cannot act on the quotes they already paid attention to.'));
+      return J({ error: 'not_found' }, 404);
+    }
     if (!isAdmin && inq.customer_id !== cust.id) { await logRun('error', { compared: 0, ownership_violation: 1 }, 'quote_compare blocked an ownership violation (403): a signed-in customer requested the quote comparison for inquiry ' + String(inquiry_id).slice(0, 60) + ' which belongs to a different customer. Anonymised competitor pricing was NOT disclosed.'); return J({ error: 'not_your_inquiry' }, 403); }
     const MAX_COMPARE = 120;
     const MAX_ITEMS_PER_QUOTE = 40;
