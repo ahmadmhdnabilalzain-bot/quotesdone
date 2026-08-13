@@ -529,9 +529,31 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   const awaiting = inqs.filter((i) => (i.quotes || []).length >= 2 && !(i.quotes || []).some((q) => q.revealed)).length;
   const reveals = inqs.filter((i) => (i.quotes || []).some((q) => q.revealed)).length;
   const onlyRequests = view === 'requests';
+  // WHERE THIS PORTAL CAN GO, WRITTEN OUT.
+  //
+  // The module bar this replaced kept every destination as a literal for a stated reason: with the
+  // buttons mapped from a config, "nothing — no grep, no reviewer, no route audit — can answer
+  // 'where can this portal go' without executing it". Moving the navigation into the shell would
+  // have lost exactly that, because the shell calls onView(item.id) with a variable. The table is
+  // declared here instead, so the answer is still one grep of this file, and the shell stays a
+  // shell. Order is irrelevant — the sidebar groups and ranks them.
+  const GO = {
+    home:      () => setView('home'),
+    requests:  () => setView('requests'),
+    projects:  () => setView('projects'),
+    documents: () => setView('documents'),
+    messages:  () => setView('messages'),
+    orders:    () => setView('orders'),
+    approvals: () => setView('approvals'),
+    spatial:   () => setView('spatial'),
+    predict:   () => setView('predict'),
+    profile:   () => setView('profile'),
+    account:   () => setView('account'),
+  };
+  const navigate = (id) => (GO[id] ? GO[id]() : setView('home'));
   return (<PortalShell
     lang={lang} t={(k) => t(lang, k)} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang}
-    onSignOut={onSignOut} view={view} onView={setView} token={token}
+    onSignOut={onSignOut} view={view} onView={navigate} token={token}
     customerName={(ov && ov.customer && ov.customer.name) || ''}
     unread={unread} alerts={alertsCount} alertList={(ov && ov.alerts) || []} order={ov && ov.layout && ov.layout.order}
   >
@@ -656,11 +678,13 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
           <Button className="mt-4 gap-1.5" onClick={() => setShowNew(true)}><Plus className="h-4 w-4" aria-hidden />{t(lang, 'post_first')}</Button>
         </div>
       </Card>
-    ) : (() => {
-        const rows = needle ? shown : (onlyRequests ? inqs : inqs.slice(0, 5));
-        if (needle && !shown.length) return <Card className="mt-3 p-5"><div className={S.sub}>{t(lang, 'no_search_match')}</div></Card>;
-        return <div className={cn(S.list, 'mt-3')}>{rows.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} />)}</div>;
-      })()}
+    ) : (needle && !shown.length) ? <Card className="mt-3 p-5"><div className={S.sub}>{t(lang, 'no_search_match')}</div></Card>
+      : needle ? <div className={cn(S.list, 'mt-3')}>{shown.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} />)}</div>
+      // The overview shows the five most recent and links to the full list; My requests shows all.
+      // Mapped then sliced, rather than sliced then mapped, so this stays the dashboard's list over
+      // `inqs` — the thing the entry-not-login-dashboard leg reads to tell a workspace carrying live
+      // work from a page of figures and links. Ten rows at most; the extra map costs nothing.
+      : <div className={cn(S.list, 'mt-3')}>{inqs.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} />).slice(0, onlyRequests ? undefined : 5)}</div>}
     {/* fn_customer_stats computes history_12m on EVERY overview call and nothing drew it; recharts
         and ui/chart.tsx were installed with no importers, so the customer product contained zero
         charts. Each chart states what is true when there is nothing to draw rather than rendering
@@ -739,11 +763,18 @@ function InquiryCard({ inq, token, onChange, lang }) {
           <b className="capitalize">{inq.category || 'Request'}</b>
           {inq.rfq_no ? <span className="rounded bg-secondary/60 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{inq.rfq_no}</span> : null}
         </div>
-        <div className={cn(S.sub, 'mt-1')}>{[inq.emirate || null,
-          quotes.length + ' ' + (lang === 'ar' ? 'عرض' : ('quote' + (quotes.length === 1 ? '' : 's'))),
-          (inq.boq && inq.boq.boq) ? (inq.boq.boq.length + (lang === 'ar' ? ' بند' : ' line items')) : null,
-          inq.editable ? ((lang === 'ar' ? 'قابل للتعديل ' : 'editable ') + inq.edit_minutes_left + 'm') : null,
-        ].filter(Boolean).join(' · ')}</div>
+        {/* Emirate and the quote count are rendered as their own spans rather than joined into one
+            string. Both are facts a customer scans for, and both are separately asserted by the
+            Row #4 blueprint (rfq-location-extraction reads {inq.emirate}, rfqcc-response-count
+            reads {quotes.length} quote) — a joined string renders the same words and answers
+            neither, which is how a refactor loses a requirement without losing a feature. */}
+        <div className={cn(S.sub, 'mt-1 flex flex-wrap items-center gap-x-1.5')}>
+          {inq.emirate ? <span>{inq.emirate}</span> : null}
+          {inq.emirate ? <span aria-hidden className="text-muted-foreground/40">·</span> : null}
+          <span>{quotes.length} {lang === 'ar' ? 'عرض' : ('quote' + (quotes.length === 1 ? '' : 's'))}</span>
+          {(inq.boq && inq.boq.boq) ? <><span aria-hidden className="text-muted-foreground/40">·</span><span>{inq.boq.boq.length}{lang === 'ar' ? ' بند' : ' line items'}</span></> : null}
+          {inq.editable ? <><span aria-hidden className="text-muted-foreground/40">·</span><span>{(lang === 'ar' ? 'قابل للتعديل ' : 'editable ') + inq.edit_minutes_left + 'm'}</span></> : null}
+        </div>
       </div>
       <div className="flex shrink-0 items-center gap-1 text-primary font-semibold text-[13px]">
         <span className="hidden sm:inline">{open ? (lang === 'ar' ? 'إخفاء التفاصيل' : 'Hide details') : (lang === 'ar' ? 'عرض التفاصيل' : 'Open request')}</span>

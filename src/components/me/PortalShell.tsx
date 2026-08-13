@@ -127,7 +127,8 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t }) {
       aria-label={t('asst_title')}
       className={cn(
         'fixed inset-y-0 z-40 flex w-full flex-col border-border bg-card/95 backdrop-blur-xl',
-        'end-0 sm:w-[420px] sm:border-s',
+        // max-w, not w: a fixed 420px panel is 45px wider than a 375px viewport and cannot shrink.
+        'end-0 sm:w-full sm:max-w-[420px] sm:border-s',
         'motion-safe:animate-in motion-safe:slide-in-from-bottom-4 sm:motion-safe:slide-in-from-right-4 motion-safe:duration-300',
       )}
     >
