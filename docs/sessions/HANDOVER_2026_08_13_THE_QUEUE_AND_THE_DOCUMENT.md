@@ -304,6 +304,55 @@ at 5.0% or 5 hard bounces in the window, and 3 have been recorded."*
 is a commercial call about your sending domain. From 08:45 today the ramp will say so every
 morning instead of saying nothing.
 
+## 9 — s36: one live writer was left, and the gate is arithmetic, not effort
+
+`s36-recommendation-seven-fields` requires seven fields non-null on **every** `agent_actions` row in
+a **rolling 30-day window** that carries a recommendation. Measured across the 1,309 rows in that
+window:
+
+| field | missing |
+|---|---|
+| evidence, risk, confidence | **0** |
+| assumptions, expected_impact, cost | **1,307** |
+| alternatives | **1,208** |
+
+Read the writer, not the age of the row, and the list of "kinds still missing s36" shrinks to one.
+`supplier_risk_complaints` wrote 22 rows without the columns up to 21:20 and **both** rows since
+22:20 carry all three — its helper shipped last night and has been correct ever since, so the brief
+listing it as outstanding is stale, exactly as the previous handover warned. Every other kind that
+has written since the helpers shipped is compliant too.
+
+**One live writer was still producing rows without them, and it is the largest in the table:**
+`agent_brain`'s handoff insert — 191 rows in 30 days, setting none of the four. The four fields now
+live in the `@@ACTIONS@@` contract so the employee states its own terms, and an omitted key is
+stored as `NULL`: a handoff that did not say what it assumed is recorded as not having said it.
+Boilerplate would satisfy the scorer and tell the next reader nothing, which is the failure this
+column set exists to prevent.
+
+Proven on staging through the deployed function. A handoff to `legal` came back with:
+
+- **assumptions** — *"The T&C change is already finalised and published somewhere suppliers can
+  access it — I have not verified this"*, and *"No supplier has been individually notified of the
+  change yet, based on the fact that zero have re-accepted"*
+- **alternatives** — *"Could have routed to onboarding since they own the supplier registration flow
+  mechanically, but the legal exposure judgment is Legal's call, not Onboarding's"*
+- **impact** — *"100% of active suppliers will have accepted the current T&C version, closing the
+  enforceability gap"*
+- **cost** — *"Legal Counsel's time for exposure review and flow design; likely a comms/tooling ask
+  onto CTO or onboarding"*
+
+Real terms. The first assumption volunteers that it has not been verified, which is the point.
+
+**The gate still cannot pass this month and that is arithmetic, not a shortfall.** A rolling 30-day
+window over every historical row cannot flip until the last non-compliant row ages out — **mid
+September at the earliest**, even if every writer were perfect from tonight. Do not read a NOT MET
+here in August as a writer still being broken; check the newest rows instead.
+
+*(CI note: `typecheck the edge functions` failed once on this branch with `Failed caching npm
+package '@mediapipe/tasks-vision' — error reading a body from connection`. Infrastructure, not
+code: `deno check` passed locally and `deploy changed functions` passed on the same commit. Re-ran,
+green.)*
+
 ---
 
 ## Sweep
@@ -334,8 +383,8 @@ know why the earlier run reported it; I am reporting what measured.
    with and without), so the obvious next move is already known not to work, and the repro loop is
    ~65s and several vision calls per run. It needs a session that can afford to iterate on it, not
    the tail of this one. `create_inquiry` still fail-closes on a partial set, which is correct.
-2. **`s36-recommendation-seven-fields` is still NOT MET** on the Row #3 scorer.
-   `supplier_risk_complaints` (119 rows, still writing) and `improvement_question` have no helper.
+2. **`s36-recommendation-seven-fields` is still NOT MET** and cannot flip before mid-September — see
+   §9. The last live non-compliant writer is fixed; what remains is the rolling window aging out.
 3. **7 of the 22 unread tables remain** — unchanged from the previous handover.
 4. **The three missing pack zips** are still file recovery, and the number is 10 artefacts, not 6.
 5. **39 `agent_actions` sit in `needs_review` and nothing drains them** (§6). Deliberately left, and
