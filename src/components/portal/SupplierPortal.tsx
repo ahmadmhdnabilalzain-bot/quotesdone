@@ -1137,7 +1137,19 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const DateField = ({ label, k }) => (<div style={{ flex: 1, minWidth: 150 }}><div className={S.sub} style={{ fontSize: 11 }}>{label}</div><Input type="date" style={{ colorScheme: 'dark' }} value={f[k] || ''} onChange={(e) => set(k, e.target.value)} /></div>);
   return (<Card className="qd-panel p-5">
     <div className={S.h2}>{t(lang, 'pf_company')}</div>
-    <div className={cn(S.sub, 'mb-2')}>{t(lang, 'registering_pre')}<b>{me.company_name}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</div>
+    {/* THE SCREEN HAS TO KNOW WHICH OF ITS TWO JOBS IT IS DOING (13 Aug 2026). This copy and the
+        button below were unconditional, so an APPROVED company opened Profile and read "Registering
+        MERIDIAN MEP CONTRACTING LLC… Registration is free until 31 July 2027" above a button
+        marked "Submit for approval" — two inches under a green Approved badge in its own header.
+        The form is genuinely both things: it registers a new supplier and it is the only place an
+        existing one can correct a typo that decides which requests reach them. It just never said
+        which. */}
+    <div className={cn(S.sub, 'mb-2')}>
+      {isEdit
+        ? (lang === 'ar' ? <>تحرير ملف <b>{me.company_name}</b>. ما تكتبه هنا يحدّد الطلبات التي تصلك — احفظ التغييرات في الأسفل.</>
+                         : <>Editing the profile for <b>{me.company_name}</b>. What you write here decides which requests reach you; save your changes at the bottom.</>)
+        : <>{t(lang, 'registering_pre')}<b>{me.company_name}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</>}
+    </div>
     <div className={cn(S.sub, 'font-semibold mt-1.5')}>{t(lang, 'pf_emirates')}</div>
     <div className="flex gap-2 flex-wrap mt-2">{EMIRATES.map((e) => <button key={e} className={cn(S.chip, emirates.includes(e) && S.chipOn)} onClick={() => toggleEm(e)}>{e}</button>)}</div>
 
@@ -1205,7 +1217,11 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
 
 
     <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/supplier-agreement" target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
-    <Button className="w-full mt-3" disabled={busy || uploading} onClick={save}>{busy ? t(lang, 'submitting') : t(lang, 'submit_approval')}</Button>
+    {/* "Submit for approval" on the edit screen asks an already-approved company to apply again. */}
+    <Button className="w-full mt-3" disabled={busy || uploading} onClick={save}>
+      {busy ? (isEdit ? (lang === 'ar' ? 'جارٍ الحفظ…' : 'Saving…') : t(lang, 'submitting'))
+            : isEdit ? (lang === 'ar' ? 'حفظ التغييرات' : 'Save changes') : t(lang, 'submit_approval')}
+    </Button>
     {msg && <div className={S.err}>{msg}</div>}
   </Card>);
 }
