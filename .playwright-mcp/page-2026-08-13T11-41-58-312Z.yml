@@ -1,0 +1,36 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - link "QuotesDone Supplier Portal" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e9]:
+        - button "عربي" [ref=e10] [cursor=pointer]
+        - link "Home" [ref=e11] [cursor=pointer]:
+          - /url: /
+    - generic [ref=e12]:
+      - paragraph [ref=e13]: For suppliers, manufacturers and contractors in the UAE
+      - heading "Grow your business with AI-powered procurement" [level=1] [ref=e14]
+      - paragraph [ref=e15]: Tell us about your company in your own words. We build your profile, read your catalog, and put the work that fits you in front of you first.
+      - generic [ref=e16]:
+        - button "Become a Verified Supplier" [ref=e17] [cursor=pointer]
+        - button "See How It Works" [ref=e18] [cursor=pointer]
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e27]: Welcome back
+        - generic [ref=e28]: Sign in with the email or mobile you registered with.
+      - generic [ref=e29]:
+        - button "Sign in" [ref=e30] [cursor=pointer]
+        - button "Create account" [ref=e31] [cursor=pointer]
+      - textbox "Email or mobile" [ref=e32]
+      - button "Send me a code" [ref=e33] [cursor=pointer]
+  - dialog "We use cookies" [ref=e34]:
+    - generic [ref=e36]:
+      - text: We use essential cookies to run QuotesDone, plus optional analytics cookies to improve it. You can accept or decline the optional ones.
+      - link "Cookie Policy" [ref=e37] [cursor=pointer]:
+        - /url: /cookie-policy
+    - generic [ref=e38]:
+      - button "Accept all" [ref=e39] [cursor=pointer]
+      - button "Essential only" [ref=e40] [cursor=pointer]
+  - button "Ask QuotesDone" [ref=e42] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e50] [cursor=pointer]
+  - alert [ref=e54]

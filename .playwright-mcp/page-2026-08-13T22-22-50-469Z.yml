@@ -1,0 +1,101 @@
+- generic [active] [ref=f12e1]:
+  - generic [ref=f12e2]:
+    - complementary [ref=f12e3]:
+      - generic [ref=f12e4]:
+        - generic [ref=f12e5]: Q
+        - generic [ref=f12e6]: QuotesDone OS
+      - navigation [ref=f12e7]:
+        - button "Command Console" [ref=f12e8] [cursor=pointer]
+        - button "Overview" [ref=f12e12] [cursor=pointer]
+        - button "Escalations" [ref=f12e19] [cursor=pointer]
+        - button "RFQs & Procurement" [ref=f12e23] [cursor=pointer]
+        - button "Suppliers" [ref=f12e28] [cursor=pointer]
+        - button "Customers" [ref=f12e34] [cursor=pointer]
+        - button "Finance" [ref=f12e41] [cursor=pointer]
+        - button "Smart Engine" [ref=f12e45] [cursor=pointer]
+        - button "Knowledge" [ref=f12e49] [cursor=pointer]
+        - button "Intake Audio" [ref=f12e54] [cursor=pointer]
+        - button "Operations" [ref=f12e57] [cursor=pointer]
+        - button "Governance" [ref=f12e62] [cursor=pointer]
+        - button "Assistant" [ref=f12e68] [cursor=pointer]
+        - button "Analytics" [ref=f12e72] [cursor=pointer]
+        - button "Marketing" [ref=f12e76] [cursor=pointer]
+        - button "Strategy" [ref=f12e81] [cursor=pointer]
+        - button "Intelligence" [ref=f12e86] [cursor=pointer]
+        - button "Operating System & map" [ref=f12e98] [cursor=pointer]
+        - button "Company memory" [ref=f12e105] [cursor=pointer]
+        - button "Documents" [ref=f12e110] [cursor=pointer]
+        - button "Company" [ref=f12e115] [cursor=pointer]
+        - button "Reports" [ref=f12e121] [cursor=pointer]
+        - button "Fraud" [ref=f12e126] [cursor=pointer]
+        - button "Refunds" [ref=f12e130] [cursor=pointer]
+        - button "Audit log" [ref=f12e135] [cursor=pointer]
+        - button "Settings" [ref=f12e140] [cursor=pointer]
+        - button "Automation" [ref=f12e143] [cursor=pointer]
+        - button "Categories" [ref=f12e149] [cursor=pointer]
+        - button "Content" [ref=f12e154] [cursor=pointer]
+        - button "System Health" [ref=f12e159] [cursor=pointer]
+        - button "Support" [ref=f12e163] [cursor=pointer]
+      - button "Sign out" [ref=f12e173] [cursor=pointer]
+    - generic [ref=f12e177]:
+      - banner [ref=f12e178]:
+        - generic [ref=f12e179]:
+          - generic [ref=f12e180]:
+            - button "New 0" [ref=f12e181] [cursor=pointer]:
+              - generic [ref=f12e182]: New
+              - generic [ref=f12e183]: "0"
+            - generic [ref=f12e184]: ›
+          - generic [ref=f12e185]:
+            - button "Matched 0" [ref=f12e186] [cursor=pointer]:
+              - generic [ref=f12e187]: Matched
+              - generic [ref=f12e188]: "0"
+            - generic [ref=f12e189]: ›
+          - generic [ref=f12e190]:
+            - button "Quoted 0" [ref=f12e191] [cursor=pointer]:
+              - generic [ref=f12e192]: Quoted
+              - generic [ref=f12e193]: "0"
+            - generic [ref=f12e194]: ›
+          - generic [ref=f12e195]:
+            - button "Revealed 0" [ref=f12e196] [cursor=pointer]:
+              - generic [ref=f12e197]: Revealed
+              - generic [ref=f12e198]: "0"
+            - generic [ref=f12e199]: ›
+          - button "Won 0" [ref=f12e201] [cursor=pointer]:
+            - generic [ref=f12e202]: Won
+            - generic [ref=f12e203]: "0"
+        - button "Search or run a command ⌘K" [ref=f12e204] [cursor=pointer]:
+          - generic [ref=f12e208]: Search or run a command
+          - generic [ref=f12e209]: ⌘K
+        - button "Observe" [ref=f12e210] [cursor=pointer]
+        - button "Notifications" [ref=f12e215] [cursor=pointer]
+        - generic "Live activity" [ref=f12e219]: idle
+      - generic "Double-click title or use ⧉ to pop out to a floating window" [ref=f12e223] [cursor=pointer]:
+        - generic [ref=f12e226]: Command Console
+        - button "Pop out to floating window" [ref=f12e227]
+      - main [ref=f12e232]:
+        - generic [ref=f12e234]:
+          - generic [ref=f12e235]:
+            - generic [ref=f12e236]: ✦
+            - generic [ref=f12e237]:
+              - generic [ref=f12e238]: Command Console
+              - generic [ref=f12e239]: Instruct the Secretary — it acts across the team.
+          - generic [ref=f12e240]:
+            - generic [ref=f12e241]: Company health —
+            - generic [ref=f12e242]: Revenue today —
+            - generic [ref=f12e243]: Active suppliers —
+            - generic [ref=f12e244]: Active customers —
+            - generic [ref=f12e245]: Live workflow — runs/24h
+            - generic [ref=f12e246]: AI collaboration — handoffs/24h
+            - generic [ref=f12e247]: Knowledge growth — revisions/7d
+            - generic [ref=f12e248]: Infrastructure uptime —
+            - generic [ref=f12e249]: AI employees working — / —
+            - generic [ref=f12e250]: Monthly goal —
+          - generic [ref=f12e251]: Ask for a status, approve a supplier, draft content, log a finance entry, or attach an invoice and tell me what to do with it.
+          - generic [ref=f12e253]:
+            - button [ref=f12e254] [cursor=pointer]
+            - button "Speak to the OS" [ref=f12e257] [cursor=pointer]
+            - button "Good morning — speak the overnight brief" [ref=f12e259] [cursor=pointer]
+            - textbox "Type an instruction… (⌘+Enter to send)" [ref=f12e263]
+            - button [ref=f12e264] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=f12e273] [cursor=pointer]
+  - alert [ref=f12e277]

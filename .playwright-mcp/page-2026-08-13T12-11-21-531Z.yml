@@ -1,0 +1,14 @@
+- generic [active] [ref=f15e1]:
+  - generic [ref=f15e2]:
+    - banner [ref=f15e3]:
+      - link "QuotesDone Supplier Portal" [ref=f15e4] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f15e9]:
+        - button "عربي" [ref=f15e10] [cursor=pointer]
+        - link "Home" [ref=f15e11] [cursor=pointer]:
+          - /url: /
+        - button "Sign out" [ref=f15e12] [cursor=pointer]
+    - generic [ref=f15e13]: Loading your dashboard…
+  - button "Ask QuotesDone" [ref=f15e15] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=f15e23] [cursor=pointer]
+  - alert [ref=f15e27]

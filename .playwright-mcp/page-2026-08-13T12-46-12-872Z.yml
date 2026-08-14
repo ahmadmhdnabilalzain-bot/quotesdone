@@ -1,0 +1,21 @@
+- generic [active] [ref=f24e1]:
+  - generic [ref=f24e2]:
+    - banner [ref=f24e3]:
+      - link "QuotesDone Supplier Portal" [ref=f24e4] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f24e9]:
+        - button "عربي" [ref=f24e10] [cursor=pointer]
+        - link "Home" [ref=f24e11] [cursor=pointer]:
+          - /url: /
+        - button "Sign out" [ref=f24e12] [cursor=pointer]
+    - generic [ref=f24e13]: Loading your dashboard…
+  - dialog "We use cookies" [ref=f24e14]:
+    - generic [ref=f24e16]:
+      - text: We use essential cookies to run QuotesDone, plus optional analytics cookies to improve it. You can accept or decline the optional ones.
+      - link "Cookie Policy" [ref=f24e17] [cursor=pointer]:
+        - /url: /cookie-policy
+    - generic [ref=f24e18]:
+      - button "Accept all" [ref=f24e19] [cursor=pointer]
+      - button "Essential only" [ref=f24e20] [cursor=pointer]
+  - button "Ask QuotesDone" [ref=f24e22] [cursor=pointer]
+  - alert [ref=f24e25]

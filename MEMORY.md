@@ -1,0 +1,10 @@
+- [Apify paused until ~Feb 2027](apify-paused-until-2027.md) — supplier scraping deliberately cancelled 10 Aug 2026; work the existing 20,470 leads first; s26-discover-suppliers must NOT be "fixed".
+- [Embedding is free, not OpenRouter](embedding-is-free-not-openrouter.md) — kb_embed uses in-region gte-small; batch above 5 returns HTTP 546, so add invocations, never batch size.
+- [Two queues, two vocabularies](two-queues-two-vocabularies.md) — the 199 pending agent_actions cannot be drained by the executor path, and org_tasks is already 439 deep at 3/hour.
+- [Addressed to an identity nobody models](addressed-to-an-identity-nobody-models.md) — the recurring root cause and the trigger+alias fix shape; instance 4 is still open.
+- [Finished capability with no entry point](finished-capability-with-no-entry-point.md) — five on 12 Aug: capability_agent, claim_lookup, supplier_api claim, the invite body, /claim. Nothing fails, so no watcher sees it. Ask what the user CLICKS.
+- [Instrument measuring the wrong subject is the lens](instrument-measuring-wrong-subject-is-the-lens.md) — "is this number measuring what its name says?" found four defects in one session, none of which had failed.
+- [Promote carries the definition, not the grants](promote-carries-the-definition-not-the-grants.md) — apply_sql --promote sends only the routine body to production; a REVOKE in the same file lands on staging only and leaves the function anon-executable in prod.
+- [A phone may confirm, never select](a-phone-may-confirm-never-select.md) — email is unique and IS the identity; phone deliberately repeats in the UAE, so an ambiguous number is refused 409, never guessed.
+- [Reading who you are must not create it](reading-who-you-are-must-not-create-it.md) — delete a row and look again later; if it comes back you have not found the writer. customer_api auto-vivified customer accounts for any identity.
+- [Group per class, not in aggregate](group-per-class-not-in-aggregate.md) — 662 ok / 50 failed hid two classes that had NEVER succeeded; also: does every executor KIND have a runner?

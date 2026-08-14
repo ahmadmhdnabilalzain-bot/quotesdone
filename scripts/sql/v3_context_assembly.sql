@@ -1,8 +1,6 @@
 -- The V3 assembler is a distinct name: fn_agent_context already exists in two text-returning
 -- overloads that every edge function calls. A third overload of the same name would have been
 -- resolvable by argument count today and ambiguous the first time a default changed.
-drop function if exists public.fn_agent_context(text, text, text, text, integer);
-
 -- Stage 5 — one authoritative context-assembly path.
 --
 -- Before this, an agent's prompt was built from agent_knowledge rows filtered by agent_key
@@ -164,7 +162,9 @@ begin
         from (select * from agent_knowledge
                where agent_key = p_agent_key
                  and layer = 'experience'
-                 and validation_status in ('validated','author_verified')
+                 -- 'validated' only. A proposed lesson and an author-verified note are not the
+                 -- same thing as a lesson someone other than its author has confirmed.
+                 and validation_status = 'validated'
                  and (valid_until is null or valid_until >= current_date)
                order by coalesce(confidence, 0) desc, updated_at desc nulls last
                limit 8) e), '[]'::jsonb));

@@ -75,7 +75,27 @@ Deno.serve(async (req) => {
       // Resolve the image: an already-Postiz image passes through; a plain image_url is uploaded first.
       let image: any[] = Array.isArray(body.image) ? body.image : [];
       if ((!image.length) && body.image_url) {
-        const obj = await uploadToPostiz(key, B, String(body.image_url));
+        // A published image has to have been LOOKED AT. The gate answers about the bytes that
+        // are about to go out, not about the url, so a regenerated image is unreviewed by
+        // construction. The digest is computed here from the same fetch the upload uses.
+        const src = String(body.image_url);
+        const subjectId = String(body.subject_id || src);
+        let digest = '';
+        try {
+          const raw = new Uint8Array(await (await fetch(src)).arrayBuffer());
+          const d = await crypto.subtle.digest('SHA-256', raw.slice().buffer as ArrayBuffer);
+          digest = [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+        } catch (_e) { /* an unfetchable image is caught by the gate below as "no digest" */ }
+        const { data: gate } = await admin.rpc('fn_artifact_publish_blocked',
+          { p_subject_type: 'social_post', p_subject_id: subjectId, p_sha256: digest || null });
+        if (!gate || (gate as Record<string, unknown>).blocked) {
+          await admin.from('agent_runs').insert({ agent: 'postiz_publish', started_at: started,
+            finished_at: new Date().toISOString(), status: 'error',
+            counts: { blocked_by_artifact_review: 1 },
+            note: 'refused to publish an image that has no passing artifact_review for these exact bytes' });
+          return J({ error: 'artifact_review_required', gate, subject_id: subjectId, artifact_sha256: digest || null }, 409);
+        }
+        const obj = await uploadToPostiz(key, B, src);
         if (obj && !obj.error && obj.id) image = [{ id: obj.id, path: obj.path || obj.url }];
       }
       const wanted = (Array.isArray(body.channels) ? body.channels : []).map((c: any) => String(c).toLowerCase());

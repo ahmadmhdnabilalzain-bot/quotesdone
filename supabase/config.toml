@@ -67,6 +67,9 @@ verify_jwt = false
 [functions.apify_scrape]
 verify_jwt = false
 
+[functions.artifact_review]
+verify_jwt = false
+
 [functions.archive_rfq]
 verify_jwt = false
 

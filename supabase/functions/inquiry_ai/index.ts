@@ -183,6 +183,18 @@ Deno.serve(async (req) => {
     if (!ai.out_of_scope) {
       try {
         const chk = (specs || []).find((s: { category: string; fields: unknown }) => s.category === ai.category);
+        // The curated category_specs row is keyed on the customer-facing trade slug and NONE
+        // of its 56 keys matches a route in the 86-route catalogue, so on its own it left 30
+        // routes with no checklist at all. fn_category_checklist resolves the slug to a route
+        // and returns the packaged question bank and minimum-sufficient policy for it. It is
+        // additive: the curated fields still go in, and a route it cannot resolve returns the
+        // resolver's clarifying question rather than a guess.
+        let pkg: Record<string, unknown> | null = null;
+        try {
+          const { data: pk } = await admin.rpc('fn_category_checklist',
+            { p_category: ai.category || '', p_label: ai.label || null, p_text: String(ai.summary || '').slice(0, 400) });
+          pkg = pk && typeof pk === 'object' ? pk as Record<string, unknown> : null;
+        } catch (_e) { /* packaged checklist is additive; never blocks intake */ }
         const draft = Array.isArray(ai.missing) ? ai.missing : [];
         const estParts: { text?: string; img?: { mime: string; data: string } }[] = [];
         if (expert) estParts.push({ text: 'YOU ARE ' + expert.name + ', QuotesDone\'s expert sales estimator for this exact trade. Reason with the depth and instincts of a specialist who prices this every day.' });
@@ -190,6 +202,15 @@ Deno.serve(async (req) => {
         if (expert && expert.persona) estParts.push({ text: 'YOUR PERSONA / STYLE:\n' + String(expert.persona).slice(0, 1500) });
         estParts.push({ text: 'CATEGORY: ' + (ai.category || 'unknown') + (ai.label ? (' (' + ai.label + ')') : '') });
         estParts.push({ text: 'REFERENCE CHECKLIST for this category (minimum fields; JSON, may be empty):\n' + JSON.stringify(chk?.fields || []) });
+        if (pkg && pkg.route_resolved) {
+          estParts.push({ text: 'ROUTE: ' + String(pkg.route_name || '') + ' (' + String(pkg.route_key || '') + ')' });
+          estParts.push({ text: 'CATEGORY QUESTION BANK for this route — field, question and why it changes the price. Use it as the floor, not the ceiling:\n' + JSON.stringify(pkg.packaged_questions || []) });
+          estParts.push({ text: 'MANDATORY FIELDS — the brief cannot go to suppliers until every one of these is answered:\n' + JSON.stringify(pkg.mandatory_fields || []) });
+          estParts.push({ text: 'NEVER INFER these — if the customer has not said it, ASK. Guessing any of them produces a quote nobody can honour:\n' + JSON.stringify(pkg.never_infer || []) });
+          if (pkg.stop_rule) estParts.push({ text: 'STOP RULE — stop asking once this holds:\n' + String(pkg.stop_rule) });
+        } else if (pkg && pkg.clarification) {
+          estParts.push({ text: 'ROUTING IS AMBIGUOUS. Do not assume a trade. Ask this first:\n' + String(pkg.clarification) });
+        }
         estParts.push({ text: 'SUPPLIER-FACING SUMMARY:\n' + String(ai.summary || '') });
         estParts.push({ text: 'DETAILS ALREADY CAPTURED (spec JSON):\n' + JSON.stringify(ai.spec || {}) });
         estParts.push({ text: 'DRAFT QUESTIONS already prepared (consolidate + dedupe + extend these into the FINAL list):\n' + JSON.stringify(draft) });

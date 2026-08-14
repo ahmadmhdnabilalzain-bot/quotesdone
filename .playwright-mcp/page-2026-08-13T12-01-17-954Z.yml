@@ -1,0 +1,28 @@
+- generic [active] [ref=f9e1]:
+  - generic [ref=f9e2]:
+    - banner [ref=f9e3]:
+      - link "QuotesDone بوابة المورّدين" [ref=f9e4] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f9e9]:
+        - button "EN" [ref=f9e10] [cursor=pointer]
+        - link "الرئيسية" [ref=f9e11] [cursor=pointer]:
+          - /url: /
+    - generic [ref=f9e12]:
+      - paragraph [ref=f9e13]: للمورّدين والمصنّعين والمقاولين في الإمارات
+      - heading "نمِّ أعمالك مع مشتريات مدعومة بالذكاء الاصطناعي" [level=1] [ref=f9e14]
+      - paragraph [ref=f9e15]: أخبرنا عن شركتك بكلماتك. ننشئ ملفك، ونقرأ كتالوجك، ونضع أمامك العمل الذي يناسبك أولًا.
+      - generic [ref=f9e16]:
+        - button "كن مورّدًا موثّقًا" [ref=f9e17] [cursor=pointer]
+        - button "شاهد كيف يعمل" [ref=f9e18] [cursor=pointer]
+    - generic [ref=f9e21]:
+      - generic [ref=f9e22]:
+        - generic [ref=f9e27]: مرحبًا بعودتك
+        - generic [ref=f9e28]: سجّل الدخول بالبريد الإلكتروني أو رقم الجوال المسجّل.
+      - generic [ref=f9e29]:
+        - button "تسجيل الدخول" [ref=f9e30] [cursor=pointer]
+        - button "إنشاء حساب" [ref=f9e31] [cursor=pointer]
+      - textbox "البريد الإلكتروني أو الجوال" [ref=f9e32]
+      - button "أرسل لي رمزًا" [ref=f9e33] [cursor=pointer]
+  - button "Ask QuotesDone" [ref=f9e35] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=f9e43] [cursor=pointer]
+  - alert [ref=f9e47]

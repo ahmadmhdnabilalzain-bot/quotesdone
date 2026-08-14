@@ -1,0 +1,68 @@
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e21]:
+    - navigation "Portal navigation" [ref=f3e298]:
+      - generic [ref=f3e23]:
+        - generic [ref=f3e24]: Q
+        - generic [ref=f3e25]:
+          - generic [ref=f3e26]: QuotesDone
+          - generic [ref=f3e27]: My Requests
+      - generic [ref=f3e28]:
+        - generic [ref=f3e29]:
+          - generic [ref=f3e30]: Work
+          - generic [ref=f3e31]:
+            - button "Overview" [ref=f3e458] [cursor=pointer]
+            - button "My requests" [ref=f3e465] [cursor=pointer]
+            - button "Documents" [ref=f3e470] [cursor=pointer]
+            - button "Orders" [ref=f3e477] [cursor=pointer]
+        - generic [ref=f3e63]:
+          - generic [ref=f3e64]: Collaborate
+          - generic [ref=f3e65]:
+            - button "Messages 1" [ref=f3e489] [cursor=pointer]:
+              - generic [ref=f3e493]: Messages
+              - generic [ref=f3e494]: "1"
+            - button "Projects" [ref=f3e495] [cursor=pointer]
+            - button "Approvals" [ref=f3e499] [cursor=pointer]
+            - button "Project room" [ref=f3e504] [cursor=pointer]
+        - generic [ref=f3e86]:
+          - generic [ref=f3e87]: Intelligence
+          - generic [ref=f3e88]:
+            - button "What you may need next" [ref=f3e509] [cursor=pointer]
+            - button "Buying profile" [ref=f3e513] [cursor=pointer]
+        - generic [ref=f3e99]:
+          - generic [ref=f3e100]: Account
+          - button "Account" [ref=f3e519] [cursor=pointer]
+      - button "Collapse menu" [expanded] [ref=f3e366] [cursor=pointer]
+    - generic [ref=f3e114]:
+      - banner [ref=f3e115]:
+        - generic [ref=f3e116]:
+          - search [ref=f3e117]:
+            - generic [ref=f3e118]: Ask about your requests, quotes or documents…
+            - generic [ref=f3e119]:
+              - textbox "Ask about your requests, quotes or documents…" [ref=f3e367]
+              - generic: ⌘K
+          - button "Alerts" [ref=f3e368] [cursor=pointer]
+          - button "A ahmad test" [ref=f3e126] [cursor=pointer]:
+            - generic [ref=f3e127]: A
+            - generic [ref=f3e128]: ahmad test
+          - generic [ref=f3e129]:
+            - button "العربية" [ref=f3e369] [cursor=pointer]: ع
+            - button "Light mode" [ref=f3e370] [cursor=pointer]
+            - button "Sign out" [ref=f3e371] [cursor=pointer]
+      - main [ref=f3e142]:
+        - generic [ref=f3e525]:
+          - generic [ref=f3e526]:
+            - button "Overview" [ref=f3e527] [cursor=pointer]
+            - heading "Documents" [level=1] [ref=f3e530]
+          - generic [ref=f3e532]:
+            - generic [ref=f3e533]:
+              - heading "Document vault" [level=2] [ref=f3e534]
+              - paragraph [ref=f3e535]: Every drawing you upload, every quotation file a supplier sends you, and the licences and certificates of suppliers you have revealed — searchable by what is inside them, not just by file name.
+            - generic [ref=f3e536]:
+              - generic [ref=f3e537]: Ask your documents a question
+              - searchbox "Ask your documents a question" [ref=f3e538]
+              - button "Ask" [disabled]
+            - generic [ref=f3e539]:
+              - generic [ref=f3e540]: Nothing has been filed to your vault yet.
+              - paragraph [ref=f3e541]: Nothing has been filed to your vault yet. Documents appear here when you attach a drawing to a request, when a supplier sends a quotation file, and — once you reveal a supplier — their trade licence and certificates.
+  - button "Open Next.js Dev Tools" [ref=f3e16] [cursor=pointer]
+  - alert [ref=f3e20]

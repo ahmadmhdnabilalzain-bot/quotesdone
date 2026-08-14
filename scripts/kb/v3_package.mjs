@@ -7,6 +7,12 @@ import crypto from 'node:crypto';
 
 export const CERT_FILE_RE = /CERTIFICATION_CASES|CERTIFICATION_QUESTIONS|ANSWER_KEY|evaluation_cases\.jsonl$/i;
 
+// The checksum of a whole-document record is the file digest AND the parser that turned it
+// into structured data. Without this a parser fix never reaches the database: the file has
+// not changed, so an idempotent importer correctly reports "unchanged" and the improved
+// structured_data is silently never written. Bump on any change to yamlScalars/classify.
+export const PARSER_VERSION = 'p2-yaml-blocks';
+
 export function sha256(buf) {
   return crypto.createHash('sha256').update(buf).digest('hex');
 }
@@ -20,21 +26,77 @@ export function walk(dir, out = []) {
   return out;
 }
 
-// Minimal YAML reader: the package uses a flat/nested subset (block maps, block
-// sequences, scalars, folded continuation lines). We do not need full YAML —
-// we need the scalar identity fields plus the whole document as text.
+// YAML subset reader. The package uses block maps, block sequences, scalars and
+// folded continuation lines — no anchors, no flow collections, no multi-document.
+// A scalars-only reader was not enough: the category question banks and the
+// minimum-sufficient policies carry their whole value in block sequences, and the
+// runtime has to query those as structured data, not as prose.
 export function yamlScalars(text) {
-  const out = {};
-  const lines = text.split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const m = /^([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)$/.exec(lines[i]);
-    if (!m) continue;
-    let v = m[2].trim();
-    if (v === '' || v === '|' || v === '>') continue;      // block or nested
-    v = v.replace(/^['"]|['"]$/g, '');
-    out[m[1]] = v;
+  const raw = text.split(/\r?\n/);
+  // Join folded continuation lines (a wrapped scalar is indented further than its key).
+  const lines = [];
+  for (const line of raw) {
+    if (!line.trim() || /^\s*#/.test(line)) continue;
+    const isEntry = /^\s*(-\s|[A-Za-z_][\w.-]*\s*:)/.test(line);
+    if (!isEntry && lines.length) { lines[lines.length - 1] += ' ' + line.trim(); continue; }
+    lines.push(line.replace(/\s+$/, ''));
   }
-  return out;
+
+  const scalar = (v) => {
+    const s = String(v).trim().replace(/^['"]|['"]$/g, '');
+    if (s === 'true') return true;
+    if (s === 'false') return false;
+    if (s === 'null' || s === '~') return null;
+    if (/^-?\d+$/.test(s)) return Number(s);
+    if (/^-?\d*\.\d+$/.test(s)) return Number(s);
+    return s;
+  };
+  const indentOf = (l) => l.length - l.replace(/^\s*/, '').length;
+
+  const isSeq = (l) => /^\s*-(\s|$)/.test(l);
+
+  // Parse the block starting at `i` whose entries sit at indent `ind`.
+  function block(i, ind) {
+    if (isSeq(lines[i])) {
+      const arr = [];
+      while (i < lines.length && indentOf(lines[i]) === ind && isSeq(lines[i])) {
+        const rest = lines[i].slice(ind + 1).replace(/^\s/, '');
+        if (/^[A-Za-z_][\w.-]*\s*:/.test(rest)) {
+          // a mapping whose first key shares the dash line; its siblings are indented
+          // Everything more deeply indented belongs to this item, including its own
+          // nested block sequences. Only a dash back at `ind` starts the next item.
+          const sub = [rest];
+          let j = i + 1;
+          while (j < lines.length && indentOf(lines[j]) > ind) {
+            sub.push(lines[j].slice(ind + 2)); j++;
+          }
+          arr.push(yamlScalars(sub.join('\n')));
+          i = j;
+        } else { arr.push(scalar(rest)); i++; }
+      }
+      return [arr, i];
+    }
+    const obj = {};
+    while (i < lines.length && indentOf(lines[i]) === ind && !isSeq(lines[i])) {
+      const m = /^\s*([A-Za-z_][\w.-]*)\s*:\s*(.*)$/.exec(lines[i]);
+      if (!m) { i++; continue; }
+      const key = m[1]; const inline = m[2].trim();
+      if (inline && !/^[|>][-+]?$/.test(inline)) { obj[key] = scalar(inline); i++; continue; }
+      // The value is the block that follows. A block sequence may sit at the SAME
+      // indent as its key — that is legal YAML and the package uses it everywhere.
+      const j = i + 1;
+      if (j < lines.length && (indentOf(lines[j]) > ind || (indentOf(lines[j]) === ind && isSeq(lines[j])))) {
+        const [val, next] = block(j, indentOf(lines[j]));
+        obj[key] = val; i = next;
+      } else { obj[key] = null; i++; }
+    }
+    return [obj, i];
+  }
+
+  try {
+    const [val] = block(0, lines.length ? indentOf(lines[0]) : 0);
+    return val && typeof val === 'object' ? val : {};
+  } catch { return {}; }
 }
 
 export function readJsonl(file) {
@@ -221,7 +283,7 @@ export function* records(rootDir, packageVersion = '2026.08.14') {
       title: (structured && (structured.title || structured.role_title || structured.name)) || c.base,
       content: text,
       structured_data: structured,
-      source_path: c.rel, checksum: fileSum,
+      source_path: c.rel, checksum: sha256(Buffer.from(fileSum + ':' + PARSER_VERSION)),
       deterministic: DETERMINISTIC.has(layer) && ext !== '.md',
       runtime_eligible: !c.isCert,
       is_certification: c.isCert,
