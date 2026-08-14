@@ -37,7 +37,7 @@ name: deploy edge functions
 on:
   push:
     branches: ['**']
-    paths: ['supabase/functions/**', 'supabase/config.toml']
+    paths: ['supabase/functions/**', 'supabase/config.toml', '.github/workflows/deploy-functions.yml']
   workflow_dispatch:
     inputs:
       target:
