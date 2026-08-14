@@ -101,6 +101,19 @@ alter table public.agent_tool_call enable row level security;
 -- ---------------------------------------------------------------------------------------------
 -- Returns the tools this agent is allowed to hold. Callers pass the agent key; the role and
 -- department come from the roster, so a prompt cannot widen its own tool set.
+--
+-- THIS FILE COULD NOT BE RE-APPLIED, AND THAT BLOCKED THREE OTHERS (14 Aug 2026).
+-- v3_repair_14_tool_credential adds required_credential to this function's return type, so on any
+-- project where 14 has run, the live fn_agent_tools returns 12 columns and this 11-column CREATE OR
+-- REPLACE is refused: "cannot change return type of existing function". Re-running this file then
+-- aborted before it reached the agent_tool and agent_tool_call TABLES - which is why production had
+-- neither, and why v3_repair_08, 09 and 14 each failed there on a missing relation rather than on
+-- anything of their own. One stale signature held four files out of production.
+--
+-- v3_repair_14 already drops before it creates, for exactly this reason. This is the same line, so
+-- that 01 -> ... -> 14 applies cleanly in order however many times it is run. The revoke/grant
+-- pair below restores the ACL that DROP removes.
+drop function if exists public.fn_agent_tools(text, text);
 create or replace function public.fn_agent_tools(p_agent_key text, p_kind text default null)
 returns table (
   tool_id text, purpose text, kind text, impl_kind text, impl_target text,
