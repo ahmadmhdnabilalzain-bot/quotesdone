@@ -26,6 +26,7 @@ const arg = (k, d) => {
 const REF = arg('ref', '');
 const LIVE = Number(arg('live', '0'));
 const OUT = arg('out', 'docs/agents/ROLE_RUNTIME_SMOKE_RESULTS.csv');
+const LIVE_TIER = arg('live-tier', '');
 if (!REF) { console.error('usage: --ref=<project-ref> [--live=N] [--out=path]'); process.exit(2); }
 
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
@@ -95,6 +96,7 @@ select role_id, display_name, runtime_agent_key, runtime_mode, primary_departmen
        (activation_conditions is not null and activation_conditions::text <> 'null') as has_activation,
        (output_contracts     is not null and output_contracts::text     <> 'null') as has_output_contract,
        (escalation_targets   is not null and escalation_targets::text   <> 'null') as has_escalation,
+       (select a.routing_tier from org_agents a where a.agent_key = ctx.runtime_agent_key) as routing_tier,
        (public.fn_ai_route(p_fn=>'agent_brain', p_agent_key=>runtime_agent_key)->>'tier')  as routed_tier,
        (public.fn_ai_route(p_fn=>'agent_brain', p_agent_key=>runtime_agent_key)->>'model') as routed_model,
        (public.fn_ai_route(p_fn=>'agent_brain', p_agent_key=>runtime_agent_key)->>'use_llm') as route_allows
@@ -165,7 +167,11 @@ for (const r of roles) {
     let model_outcome = 'not_attempted';
     let model_evidence = '';
     let latency = '';
-    if (LIVE > 0 && live < LIVE && secret) {
+    // --live-tier restricts live execution to roles on one routing tier. Used because OpenRouter
+    // refuses the large tier on credit while the medium tier is affordable: this runs the roles
+    // that CAN run rather than reporting the whole suite as blocked by the 67 that cannot.
+    const tierOk = !LIVE_TIER || r.routing_tier === LIVE_TIER;
+    if (LIVE > 0 && live < LIVE && secret && tierOk) {
       const out = await runLive(r.runtime_agent_key, sc.build(r));
       live += 1;
       latency = out.ms;
@@ -185,6 +191,7 @@ for (const r of roles) {
       authority_rows: r.authority_rows,
       has_owned_decisions: r.has_owned, has_forbidden_decisions: r.has_forbidden,
       has_activation_conditions: r.has_activation, has_escalation_targets: r.has_escalation,
+      routing_tier: r.routing_tier,
       routed_tier: r.routed_tier, routed_model: r.routed_model, route_allows_llm: r.route_allows,
       preconditions_failed: failed.join(' '),
       preconditions_verdict: failed.length ? 'FAIL' : 'PASS',

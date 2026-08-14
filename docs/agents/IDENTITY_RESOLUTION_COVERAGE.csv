@@ -1,20 +1,22 @@
 routine,identity_params,language,security_definer,resolves_canonically,compares_identity,performs_writes,risk,verdict
 fn_agent_autonomy_blocked,p_agent_key,sql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
-fn_agent_context,p_agent_key,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
-fn_agent_context,p_agent_key,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
+fn_agent_context,p_agent_key,plpgsql,true,true,true,false,comparison_resolved,OK - resolves
+fn_agent_context,p_agent_key,plpgsql,true,true,true,false,comparison_resolved,OK - resolves
 fn_agent_context_capped,p_agent_key,plpgsql,true,true,false,false,reads_only,OK - resolves
 fn_agent_context_v3,p_agent_key,plpgsql,true,true,true,false,comparison_resolved,OK - resolves
 fn_agent_decision,p_agent,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
 fn_agent_handoff_inbox,p_agent_key,sql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
-fn_agent_institutional_memory,p_agent_key,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
+fn_agent_institutional_memory,p_agent_key,plpgsql,true,true,true,false,comparison_resolved,OK - resolves
+fn_agent_tool_allowed,p_agent_key,sql,true,false,false,false,reads_only,OK - no identity comparison
+fn_agent_tools,p_agent_key,sql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
 fn_ai_confidence_prior,p_agent_key,sql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
 fn_ai_gate,p_actor,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
 fn_ai_route,p_agent_key,plpgsql,true,true,true,false,comparison_resolved,OK - resolves
 fn_ap_pay,p_by,plpgsql,true,false,false,false,reads_only,OK - no identity comparison
 fn_approval_decide,p_actor,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
-fn_assign_training,p_agent_key,plpgsql,true,false,true,true,alias_breaks_comparison,MUST RESOLVE
+fn_assign_training,p_agent_key,plpgsql,true,true,true,true,comparison_resolved,OK - resolves
 fn_budget_create,p_by,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
-fn_check_spend,p_agent,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
+fn_check_spend,p_agent,plpgsql,true,true,true,false,comparison_resolved,OK - resolves
 fn_context_slice,p_role_ids,sql,true,true,false,false,reads_only,OK - resolves
 fn_control_mode_challenge_start,p_actor_email,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
 fn_control_mode_close,p_actor_email,plpgsql,true,false,true,true,alias_breaks_comparison,MUST RESOLVE
@@ -24,14 +26,18 @@ fn_control_mode_status,p_actor_email,sql,true,false,true,false,alias_breaks_comp
 fn_decide,p_actor,plpgsql,true,true,true,true,comparison_resolved,OK - resolves
 fn_emit,p_actor,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
 fn_employee_kpi_trend,p_agent_key,sql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
-fn_employee_scorecard,p_agent_key,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
+fn_employee_scorecard,p_agent_key,plpgsql,true,true,true,false,comparison_resolved,OK - resolves
 fn_entity_comment_add,p_author,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
-fn_exam_revert,p_agent_key,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
+fn_exam_revert,p_agent_key,plpgsql,true,true,true,false,comparison_resolved,OK - resolves
 fn_fa_acquire,p_by,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
 fn_fa_dispose,p_by,plpgsql,true,false,false,false,reads_only,OK - no identity comparison
 fn_founder_apply_setting,p_actor,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
 fn_fraud_resolve,p_by,plpgsql,true,false,false,false,reads_only,OK - no identity comparison
-fn_handoff_answer,p_agent_key,plpgsql,true,false,true,true,alias_breaks_comparison,MUST RESOLVE
+fn_handoff_amend,p_agent_key,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
+fn_handoff_answer,p_agent_key,plpgsql,true,true,true,true,comparison_resolved,OK - resolves
+fn_handoff_close,p_agent_key,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
+fn_handoff_notify,p_agent_key,plpgsql,true,false,true,true,alias_breaks_comparison,MUST RESOLVE
+fn_handoff_respond,p_agent_key,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
 fn_inbox_send,p_by,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
 fn_inquiry_answer_set,p_actor,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
 fn_inquiry_answer_supersede,p_actor,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
@@ -60,7 +66,7 @@ fn_os_incident_open,p_actor,plpgsql,true,false,false,false,reads_only,OK - no id
 fn_os_incident_resolve,p_actor,plpgsql,true,false,false,false,reads_only,OK - no identity comparison
 fn_os_settings_revert,p_actor,plpgsql,true,false,false,false,reads_only,OK - no identity comparison
 fn_os_settings_set,p_actor,plpgsql,true,false,false,false,reads_only,OK - no identity comparison
-fn_outcome_open,p_actor,plpgsql,true,false,true,true,alias_breaks_comparison,MUST RESOLVE
+fn_outcome_open,p_actor,plpgsql,true,true,true,true,comparison_resolved,OK - resolves
 fn_owning_os,p_agent,sql,true,false,false,false,reads_only,OK - no identity comparison
 fn_p2c1_fixture_satisfy,p_actor,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
 fn_p2c1_rollback_stage_b,p_actor,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
@@ -79,12 +85,14 @@ fn_prompt_draft,p_by,plpgsql,true,false,false,true,stores_identity_only,OK - no 
 fn_prompt_publish,p_owner,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
 fn_prompt_reject_draft,p_by,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
 fn_prompt_rollback,p_by,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
-fn_propose_lesson,p_agent_key,plpgsql,true,false,true,true,alias_breaks_comparison,MUST RESOLVE
+fn_propose_lesson,p_agent_key,plpgsql,true,true,true,true,comparison_resolved,OK - resolves
 fn_record_context_retrieval,p_agent_key,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
+fn_record_tool_call,p_agent_key p_role_id,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
 fn_refund_amount_resolve,p_by,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
 fn_report_recommendation_approve,p_by,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
-fn_retrieval_leak_check,p_agent_key,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
+fn_retrieval_leak_check,p_agent_key,plpgsql,true,true,true,false,comparison_resolved,OK - resolves
 fn_retrieval_probe,p_agent_key,plpgsql,true,false,false,false,reads_only,OK - no identity comparison
+fn_revenue_cascade,p_role,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
 fn_review_decide,p_by,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
 fn_review_submit,p_author,plpgsql,true,true,false,true,stores_identity_only,OK - resolves
 fn_role_manager_chain,p_role,sql,false,true,false,false,reads_only,OK - resolves
@@ -96,6 +104,8 @@ fn_trade_confirm,p_actor,plpgsql,true,false,true,true,alias_breaks_comparison,MU
 fn_trade_identify,p_actor,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
 fn_trade_reject,p_actor,plpgsql,true,false,true,true,alias_breaks_comparison,MUST RESOLVE
 fn_trade_remove,p_actor,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
+fn_unsafe_block,p_actor,plpgsql,true,false,false,true,stores_identity_only,OK - no identity comparison
+fn_unsafe_escalation_route,p_actor,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
 fn_workflow_actor_resolve,p_actor,plpgsql,true,true,false,false,reads_only,OK - resolves
 fn_ws_agent_ops,p_agent,plpgsql,true,false,true,false,alias_breaks_comparison,MUST RESOLVE
 match_suppliers,p_role,sql,false,false,true,false,alias_breaks_comparison,MUST RESOLVE
