@@ -67,7 +67,8 @@ by the behavioural test, not by reading the code.
 | `fn_decide` | `not_connected` | the 20k-char engine still has no caller. The trace it was written to fill is now filled by the trigger; wiring `fn_decide` itself is a separate change with its own behavioural evidence. |
 | `playbook_for` | `not_connected` | superseded in practice by `fn_category_checklist`; left in place rather than deleted in the same session that replaced its function |
 | `cert.*` | empty by design | the evaluator loads it; see `V3_CERTIFICATION_HANDOFF.md` |
-| vision review of video | `not_connected` | `artifact_review` measures and reviews still images. Representative frames and transitions for video are not implemented. |
+| vision review of video | `connected` | `artifact_review` reads MP4/MOV duration and display size from the container with no decoder (verified: 320x176, 10.027s on a known sample), and reviews supplied frames in playback order for per-frame defects AND broken transitions. A video with no frames is blocked, never passed. |
+| frame production | `not_connected` | the reviewer needs frames and nothing in the repository produces them yet. The producing pipeline must send `frames: [url, ...]` — poster plus 3 to 8 stills in playback order. Until it does, every video is blocked, which is the correct state. |
 | training at scale | `connected, not exercised` | `agent_train` drives an agent through unseen cases and scores them, proven on both projects. It has been run for five agents, not ninety-three: every case is two model calls, so it runs on demand and not on a cron. No role has completed a remediation cycle yet, which is why none is `training_passed`. |
 | 25.6% of the training corpus | `not_scorable` | 4,574 of 17,890 cases state no requirement this grader can read. Coverage went 55.8% → 74.4% once the extractor learned the twenty key names the families actually use; the rest carry only a situation and a task. |
 

@@ -32,6 +32,7 @@
 import { readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { mgmtRead, PROD_REF } from './qd_guard.mjs';
+import { recordBlueprintRun, printBlueprintDiff } from './blueprint_history.mjs';
 import { REF as STAGE } from './demo_factory.mjs';
 
 const TARGET = process.argv.includes('--staging') ? STAGE : PROD_REF;
@@ -137,4 +138,9 @@ if (!ONLY && rows.length !== TOTAL) console.log(`  !! ${rows.length} checks ran,
 if (JSON_OUT) { writeFileSync(JSON_OUT, JSON.stringify({ target: TARGET, total: TOTAL, met, rows }, null, 1)); console.log(`\n  full evidence written to ${JSON_OUT}`); }
 console.log(`\nSPEC FILE #4 (customer portal) on ${TARGET}: ${met}/${rows.length}` +
             ` (${(100 * met / (rows.length || 1)).toFixed(0)}%) of ${TOTAL} requirement(s)`);
+// WHAT MOVED. A score with no history cannot answer that; on 14 Aug 2026 this one read
+// 136/152 in the morning and 135/152 in the evening and the difference was unrecoverable.
+await recordBlueprintRun('row4_customer_portal', TARGET, rows);
+await printBlueprintDiff('row4_customer_portal', TARGET, mgmtRead);
+
 process.exit(met === rows.length && !shortfall && !errs.length && (ONLY || rows.length === TOTAL) ? 0 : 1);

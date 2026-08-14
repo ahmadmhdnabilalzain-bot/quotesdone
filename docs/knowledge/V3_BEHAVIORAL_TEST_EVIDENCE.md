@@ -1,7 +1,7 @@
 # V3 behavioural test evidence
 
 14 August 2026. `scripts/checks/v3_runtime_behaviour.test.mjs`, run with
-`node --test scripts/checks/`. **50 tests, 50 passing, on BOTH projects** (25 each).
+`node --test scripts/checks/`. **52 tests, 52 passing, on BOTH projects** (26 each).
 
 No test asserts on a source string. Every one calls the function an agent calls. Writes run
 inside a `DO` block that ends in `raise exception`, so the effect is measured and then rolled
@@ -56,6 +56,7 @@ back — the test proves the write without leaving one.
 |---|---|
 | an artifact cannot be published without a passing review of those bytes | no digest → blocked; unreviewed digest → blocked; passing review → unblocked; **regenerated image (different bytes) → blocked again** |
 | the creator cannot be the only reviewer | the trigger refuses `author_agent = reviewer_agent` on a passing review |
+| every channel marketing publishes to has a video spec with a duration bound | >=6 video specs, 0 without a max duration, 0 that forbid mp4, and 0 vertical formats with a safe zone under 10% |
 
 Additionally measured against the live `artifact_review` function (not part of the suite,
 because it depends on an external URL):
@@ -67,6 +68,17 @@ because it depends on an external URL):
   split is why both checks exist.
 - A 512×512 asset failed `width_below_minimum:512<600` against the generic spec.
 - `author_agent = reviewer_agent` returned HTTP 409.
+
+Video, measured the same way against a sample with known properties:
+
+- `mov_bbb.mp4` read as **320x176, 10.027 seconds, container mp42** from `moov/mvhd` and the
+  video track's `tkhd` — no decoder involved.
+- Against an Instagram Reel slot it failed on width, height and aspect, and on
+  `video_frames_required`: with no frames supplied the reviewer refused to pass and said
+  "no frames supplied, so nothing about this video was actually seen".
+- With three real brand frames supplied it reviewed each and caught a transition defect no
+  single-frame check could: *"frame 2 -> 3: abrupt background colour change from light to dark
+  navy; mark size reduces significantly; wordmark disappears entirely without fade."*
 
 ## Certification separation
 
