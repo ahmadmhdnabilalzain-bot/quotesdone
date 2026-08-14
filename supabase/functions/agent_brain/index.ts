@@ -95,8 +95,13 @@ async function runWithTools(
   history: any[], msg: string, correlationId: string,
 ): Promise<ToolLoopResult> {
   const out: ToolLoopResult = { content: null, truncated: false, requested: [], executed: [], refs: [], steps: 0, failClosed: null, llmError: null };
-  const specs = await toolsFor(agentKey, 'read');
   const rich = llmRichFor(agentKey);
+  // A registry that cannot be reached is a FAILURE, not an empty tool set. Answering anyway would
+  // silently reproduce the certification's own finding - an agent reasoning from prompt memory
+  // while everything downstream reads it as a normal turn.
+  let specs;
+  try { specs = await toolsFor(agentKey, 'read'); }
+  catch (e) { out.failClosed = 'tool_registry_unreachable'; out.llmError = String((e as Error)?.message || e); return out; }
 
   // No tools granted: behave exactly as before, but still surface truncation.
   if (!specs.length) {
@@ -595,7 +600,22 @@ Deno.serve(async (req)=>{
         confidence: conf === null ? null : String(conf),
         // Uncertainty is recorded as the agent's own stated basis, not inferred for it.
         uncertainty: conf === null ? 'not stated by the agent' : (conf < 0.4 ? 'guessing — needs a specialist, a source or an answered question' : conf < 0.7 ? 'reasoned from partial information' : 'had the facts and the expertise'),
-        escalation_decision: (acts?.handoffs?.length ? 'handed_off' : incomplete ? 'blocked' : 'within_authority'),
+        // ESCALATION IS NOT DELEGATION. The first version of this recorded any handoff as
+        // 'handed_off', which made a lateral hand to a peer specialist indistinguishable from
+        // going up the reporting line for authority — and a regression check reading it then
+        // reported normal delegation as over-escalation. The direction is resolved from the
+        // roster: a handoff to this agent's own manager is an escalation, anything else is
+        // delegation, and neither is a guess.
+        escalation_decision: await (async () => {
+          if (incomplete) return 'blocked';
+          const tos = (acts?.handoffs ?? []).map((h:any)=>String(h?.to||'').toLowerCase()).filter(Boolean);
+          if (!tos.length) return 'within_authority';
+          try {
+            const { data:me } = await admin.from('org_agents').select('manager_key').eq('agent_key', key).maybeSingle();
+            const mgr = String(me?.manager_key || '').toLowerCase();
+            return (mgr && tos.includes(mgr)) ? 'escalated' : 'delegated';
+          } catch (_e) { return 'delegated'; }
+        })(),
         // Which knowledge this turn actually retrieved, read back from the recording table rather
         // than asserted. fn_agent_context_capped writes agent_context_retrieval on every assembly;
         // taking the newest row for this agent since the turn began ties the trace to real records.

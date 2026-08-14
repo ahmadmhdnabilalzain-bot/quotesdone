@@ -51,11 +51,38 @@ async function sha256(s: string): Promise<string> {
   return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** Tools this agent may hold, resolved server-side from the roster. A prompt cannot widen this. */
+/**
+ * Tools this agent may hold, resolved server-side from the roster. A prompt cannot widen this.
+ *
+ * AN UNREACHABLE REGISTRY IS NOT AN EMPTY ONE. The first version of this ended
+ *     if (error || !Array.isArray(data)) return [];
+ * and that one line reproduced, inside this remediation, the exact defect the certification was
+ * measuring. Dropping and recreating fn_agent_tools to add a column left PostgREST's schema cache
+ * stale; every subsequent .rpc() returned an error; this function swallowed it and answered "no
+ * tools"; and 36 consecutive regression cases ran with zero tools in ~7 seconds each and looked
+ * like a model choosing not to use them. Measured: tool calls stopped dead at 14:24 UTC, the minute
+ * of the DROP.
+ *
+ * "Could not reach the registry" and "this agent is granted nothing" must never be the same event.
+ * The error is now recorded and rethrown so the caller fails closed instead of quietly degrading.
+ */
 export async function toolsFor(agentKey: string, kind?: 'read' | 'write'): Promise<ToolSpec[]> {
   const { data, error } = await admin.rpc('fn_agent_tools', { p_agent_key: agentKey, p_kind: kind ?? null });
-  if (error || !Array.isArray(data)) return [];
-  return data as ToolSpec[];
+  if (error) {
+    try {
+      await admin.from('agent_runs').insert({
+        agent: 'agent_tool_registry', status: 'error',
+        started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+        counts: { signal: 'registry_unreachable', agent_key: agentKey },
+        note: 'fn_agent_tools could not be reached for ' + agentKey + ': ' + String(error.message || error).slice(0, 300) +
+              '. Every agent served while this persists runs with NO TOOLS and that is indistinguishable ' +
+              'from a model choosing not to call one. If the function was just replaced, PostgREST needs ' +
+              "notify pgrst, 'reload schema'.",
+      });
+    } catch (_e) { /* never let the signal be the thing that fails */ }
+    throw new Error('tool_registry_unreachable: ' + String(error.message || error));
+  }
+  return Array.isArray(data) ? (data as ToolSpec[]) : [];
 }
 
 /** Registry rows -> OpenAI function definitions for the `tools` request field. */

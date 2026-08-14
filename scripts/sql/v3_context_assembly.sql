@@ -43,7 +43,7 @@ as $$
       or (p_layer = 'role_specific'       and role_key = any(coalesce(p_role_ids, '{}')))
       or (p_layer = 'category_specialist' and category_key = p_category)
        )
-       and (p_q is null or tsv @@ p_q or true)
+       and (p_q is null or tsv @@ p_q)   -- "or true" removed: it disabled this filter entirely
   ), ranked as (
     select *, sum(least(length(content), 1800)) over (order by rank desc, record_id
                                                       rows between unbounded preceding and current row) as running
@@ -119,7 +119,7 @@ begin
     'max_open_tasks', v_agent.max_open_tasks);
 
   if p_task_text is not null and length(p_task_text) > 1 then
-    v_q := websearch_to_tsquery('english', p_task_text);
+    v_q := public.fn_task_tsquery(p_task_text);
   end if;
 
   -- 2. DETERMINISTIC RULES — structured, complete, never similarity-ranked.

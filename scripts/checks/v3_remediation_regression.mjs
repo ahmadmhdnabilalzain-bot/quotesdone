@@ -198,12 +198,21 @@ async function structural() {
       'no agent is both the director and the reviewer-auditor of its own department',
       `${cross.n} self-approval identities`);
 
+    // A CHECK THAT COULD NEVER PASS. This read s.s?.unresolved_cross_seniority while the function
+    // emits unresolved_cross_seniority_COLLISIONS, so the `?? 1` fallback always applied and the
+    // check failed while its own printed payload read 0. A guard that cannot pass is as useless as
+    // one that cannot fail - it just fails in the honest direction. Key corrected, and the read is
+    // now asserted so a future rename fails loudly instead of silently defaulting.
     const st = await hasFn('fn_role_isolation_status');
     if (st) {
-      const s = await one(`select fn_role_isolation_status() s`);
+      const s = (await one(`select fn_role_isolation_status() s`)).s ?? {};
+      const key = 'unresolved_cross_seniority_collisions';
+      const present = Object.prototype.hasOwnProperty.call(s, key);
       rec('structural', 'role_isolation', 'STR-ROLE-003',
-        Number(s.s?.unresolved_cross_seniority ?? 1) === 0,
-        'zero unresolved cross-seniority collisions', JSON.stringify(s.s));
+        present && Number(s[key]) === 0,
+        present ? 'zero unresolved cross-seniority collisions'
+                : `fn_role_isolation_status no longer emits "${key}" — the check is reading a key that does not exist`,
+        JSON.stringify(s).slice(0, 300));
     } else {
       rec('structural', 'role_isolation', 'STR-ROLE-003', false,
         'fn_role_isolation_status exists', 'NOT BUILT');
