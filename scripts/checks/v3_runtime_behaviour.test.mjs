@@ -19,6 +19,10 @@ const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 
+// CI runs `npm test` with no SUPABASE_ACCESS_TOKEN — the checks workflow deliberately holds
+// no database secret — so every test here skips there and runs locally, where the token is.
+// Without the guard all 50 failed in CI at ~20ms each on a 401, which looks like a data
+// failure and is not one.
 const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh', staging: 'pglpqrhvozwepymcuunn' };
 
 async function post(project, query) {
@@ -56,7 +60,8 @@ const one = (rows) => rows[0];
 
 for (const [name, ref] of Object.entries(PROJECTS)) {
   // ── roster ────────────────────────────────────────────────────────────────────
-  test(`${name}: every packaged department resolves to a live runtime department`, async () => {
+  test(`${name}: every packaged department resolves to a live runtime department`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `select
       (select count(*) from org_department_alias) aliases,
       (select count(distinct packaged_department) from org_department_alias) packaged,
@@ -66,7 +71,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.equal(Number(r.dangling), 0, 'every alias must point at an active department');
   });
 
-  test(`${name}: all 96 packaged roles resolve and every active agent has an identity`, async () => {
+  test(`${name}: all 96 packaged roles resolve and every active agent has an identity`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `select
       (select count(distinct packaged_role_id) from org_role_identity) roles,
       (select count(distinct agent_key) from org_role_identity) agents,
@@ -79,7 +85,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.equal(Number(r.orphan_identity), 0, 'no identity may name an agent that does not exist');
   });
 
-  test(`${name}: all 86 category identities are bound to a live route`, async () => {
+  test(`${name}: all 86 category identities are bound to a live route`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `select
       (select count(*) from org_category_identity) identities,
       (select count(*) from org_category_identity c
@@ -89,7 +96,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
   });
 
   // ── retrieval ─────────────────────────────────────────────────────────────────
-  test(`${name}: an agent's context carries identity, company core, department, role and rules`, async () => {
+  test(`${name}: an agent's context carries identity, company core, department, role and rules`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `with c as (select fn_agent_context_v3('cfo', 'finance_decision',
         'overdue invoice collections authority threshold', null, 24000) x)
       select (x->'identity'->>'agent_key') agent,
@@ -113,7 +121,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.ok(Number(r.knowledge_count) > 0, 'the assembly must name the records it used');
   });
 
-  test(`${name}: another department's role knowledge is NOT retrieved`, async () => {
+  test(`${name}: another department's role knowledge is NOT retrieved`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `with c as (select fn_agent_context_v3('cfo', null, 'collections', null, 24000) x)
       select coalesce((select count(*) from jsonb_array_elements(x->'role_knowledge') e
         join ops_knowledge k on k.record_id = e->>'record_id'
@@ -123,7 +132,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.equal(Number(r.foreign_role), 0, 'retrieval must not hand an agent another role\'s corpus');
   });
 
-  test(`${name}: the character budget is respected`, async () => {
+  test(`${name}: the character budget is respected`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `select
       length(fn_agent_context_capped('cfo', 6000, 'collections')) small,
       length(fn_agent_context_capped('cfo', 24000, 'collections')) large`));
@@ -131,7 +141,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.ok(Number(r.small) <= 6000 * 1.2, `a 6,000-char budget returned ${r.small} characters`);
   });
 
-  test(`${name}: the context path records the knowledge ids it retrieved`, async () => {
+  test(`${name}: the context path records the knowledge ids it retrieved`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const raised = await probe(ref, `
       declare n0 int; n1 int; r agent_context_retrieval; t text;
       begin
@@ -148,7 +159,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.equal(m[3], 'cfo');
   });
 
-  test(`${name}: a decided agent action writes a decision trace naming those records`, async () => {
+  test(`${name}: a decided agent action writes a decision trace naming those records`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const raised = await probe(ref, `
       declare v_kind text; v_agent text; v_id bigint; v_before int; v_after int; v_refs jsonb;
       begin
@@ -172,7 +184,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
   });
 
   // ── management ────────────────────────────────────────────────────────────────
-  test(`${name}: a director's context carries its own department's goals and the revenue target`, async () => {
+  test(`${name}: a director's context carries its own department's goals and the revenue target`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `with c as (select fn_agent_context_v3('cfo', 'planning',
         'set this quarter''s departmental objectives', null, 24000) x)
       select jsonb_array_length(x->'company_objective') goals,
@@ -187,7 +200,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
       'the AED 1,000,000 target is the objective every department chain hangs from');
   });
 
-  test(`${name}: a KPI record is retrieved as a structured rule, not as prose`, async () => {
+  test(`${name}: a KPI record is retrieved as a structured rule, not as prose`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `with c as (select fn_agent_context_v3('cfo', null, 'collections', null, 24000) x)
       select (select count(*) from jsonb_array_elements(x->'deterministic_rules') e
                where e->>'layer' = 'kpi') kpi_rules,
@@ -198,7 +212,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
   });
 
   // ── freshness ─────────────────────────────────────────────────────────────────
-  test(`${name}: knowledge past its review date is labelled stale, not silently served as current`, async () => {
+  test(`${name}: knowledge past its review date is labelled stale, not silently served as current`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const raised = await probe(ref, `
       declare rid text; before text; after text; swept jsonb; in_ctx int;
       begin
@@ -218,7 +233,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
   });
 
   // ── category specialists ──────────────────────────────────────────────────────
-  test(`${name}: every one of the 86 routes returns its own qualification corpus`, async () => {
+  test(`${name}: every one of the 86 routes returns its own qualification corpus`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `with r as (
         select fn_category_checklist(k.expected_catalog_slug, k.catalog_name, null) c
           from kb_operational_route k)
@@ -235,14 +251,16 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.equal(Number(r.with_never_infer), 86, 'every route must say what may never be inferred');
   });
 
-  test(`${name}: two different routes return different question banks`, async () => {
+  test(`${name}: two different routes return different question banks`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `select
       (fn_category_checklist('aluminium-and-glass-suppliers', null, null)->'packaged_questions')
         = (fn_category_checklist('catering-companies', null, null)->'packaged_questions') same`));
     assert.equal(r.same, false, 'a route-specific corpus that is identical for two trades is not route-specific');
   });
 
-  test(`${name}: quote readiness blocks on the missing mandatory fields and names them`, async () => {
+  test(`${name}: quote readiness blocks on the missing mandatory fields and names them`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `select
       fn_category_quote_ready('aluminium-and-glass-suppliers', '{"scope":"12 windows"}'::jsonb) partial,
       fn_category_quote_ready('aluminium-and-glass-suppliers',
@@ -254,7 +272,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.equal(r.complete.ready, true, 'a complete brief must pass');
   });
 
-  test(`${name}: ambiguous routing asks instead of guessing`, async () => {
+  test(`${name}: ambiguous routing asks instead of guessing`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `select fn_category_checklist('general', 'General', null) c`));
     assert.equal(r.c.route_resolved, false);
     assert.ok(r.c.clarification || r.c.candidates.length !== 1,
@@ -262,7 +281,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
   });
 
   // ── learning ──────────────────────────────────────────────────────────────────
-  test(`${name}: one observation is not a lesson, and an author cannot validate its own`, async () => {
+  test(`${name}: one observation is not a lesson, and an author cannot validate its own`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const raised = await probe(ref, `
       declare a text := 'collections'; r1 jsonb; r2 jsonb; lid bigint; vs jsonb; vm jsonb; before int; after int; ctx jsonb;
       begin
@@ -288,7 +308,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
   });
 
   // ── remediation ───────────────────────────────────────────────────────────────
-  test(`${name}: remediation retests on unseen cases and gates autonomy until it improves`, async () => {
+  test(`${name}: remediation retests on unseen cases and gates autonomy until it improves`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const raised = await probe(ref, `
       declare a text := 'collections'; rid bigint; p1 jsonb; p2 jsonb; ov int; s1 jsonb; s2 jsonb; g0 jsonb; g1 jsonb;
       begin
@@ -313,7 +334,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.equal(m[7], 'false', 'autonomy must be restored once the retest passes');
   });
 
-  test(`${name}: training assigned for a competency contains only that competency`, async () => {
+  test(`${name}: training assigned for a competency contains only that competency`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const raised = await probe(ref, `
       declare a text := 'cfo'; comp text; r jsonb; wrong int; dept_pool int;
       begin
@@ -339,7 +361,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
   });
 
   // ── visual ────────────────────────────────────────────────────────────────────
-  test(`${name}: an artifact cannot be published without a passing review of those bytes`, async () => {
+  test(`${name}: an artifact cannot be published without a passing review of those bytes`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const raised = await probe(ref, `
       declare g0 jsonb; g1 jsonb; g2 jsonb; g3 jsonb;
       begin
@@ -360,7 +383,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.match(raised, /regenerated=no_review_for_these_bytes/);
   });
 
-  test(`${name}: the creator cannot be the only reviewer of a published artifact`, async () => {
+  test(`${name}: the creator cannot be the only reviewer of a published artifact`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = await post(ref, `do $$ begin
       insert into artifact_review (subject_type, subject_id, artifact_url, artifact_sha256,
         author_agent, reviewer_agent, verdict)
@@ -374,7 +398,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
   });
 
   // ── certification separation ──────────────────────────────────────────────────
-  test(`${name}: no certification material reached the runtime corpus`, async () => {
+  test(`${name}: no certification material reached the runtime corpus`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `select
       (select count(*) from ops_knowledge where layer = 'certification') in_knowledge,
       (select count(*) from ops_knowledge
@@ -389,7 +414,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.equal(Number(r.answers), 0, 'a builder session must not hold an answer key');
   });
 
-  test(`${name}: the certification island is unreachable by the runtime roles`, async () => {
+  test(`${name}: the certification island is unreachable by the runtime roles`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `select
       has_schema_privilege('anon','cert','USAGE') anon_usage,
       has_schema_privilege('authenticated','cert','USAGE') auth_usage,
@@ -408,7 +434,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.equal(r.rls_on, true);
   });
 
-  test(`${name}: certification results are append-only`, async () => {
+  test(`${name}: certification results are append-only`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = await post(ref, `do $$ declare rid uuid; begin
       insert into cert.certification_result (question_id, agent_key, raw_output, evaluator)
         values ('probe-q','cfo','answer','probe-evaluator') returning result_id into rid;
@@ -420,7 +447,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
   });
 
   // ── readiness ─────────────────────────────────────────────────────────────────
-  test(`${name}: no role is claimed as independently certified by a builder session`, async () => {
+  test(`${name}: no role is claimed as independently certified by a builder session`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `select
       count(*) filter (where readiness = 'certified_for_defined_role_scope') certified,
       count(*) total from org_role_identity`));
@@ -430,7 +458,8 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
   });
 
   // ── ingestion integrity ───────────────────────────────────────────────────────
-  test(`${name}: the imported corpus matches the delivery's declared counts`, async () => {
+  test(`${name}: the imported corpus matches the delivery's declared counts`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
     const r = one(await q(ref, `select
       (select count(*) from agent_training_case where generation = 'V3') v3_cases,
       (select count(*) from agent_training_case where generation='V3' and case_family='role_adversarial') adv,
