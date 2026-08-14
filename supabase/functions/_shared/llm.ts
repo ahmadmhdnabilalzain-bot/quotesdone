@@ -52,6 +52,48 @@ export interface LlmDefaults {
   rateWindowS?: number;
 }
 
+// V3 REMEDIATION (14 Aug 2026) — WHY THIS FILE GREW A SECOND ENTRY POINT.
+//
+// The first independent certification (V3-COR-0A782DA90B10) recorded two runtime facts that both
+// terminate in this module, and neither is a model weakness:
+//
+//   TOOL_NOT_CONNECTED, 2,284 of 2,284 questions. ai_gateway has supported OpenAI-shape tool
+//   calling since it was written - it accepts `tools`/`tool_choice`, forwards them to OpenRouter,
+//   routes to a tools-capable model, and returns `tool_calls` on the way back. Exactly one edge
+//   function ever used it. Every other caller reaches the gateway THROUGH THIS FILE, and this file
+//   had no `tools` field in its request body and ended with
+//       return typeof j.content === 'string' ? j.content : null;
+//   which discards `tool_calls` even when the gateway returns them. The agents were not failing to
+//   use tools; they were structurally unable to hold one.
+//
+//   OUTPUT_CONTRACT_ERROR, 135 truncations, 100% of them on the large tier used for consequential
+//   work. The gateway detects truncation precisely - it returns `finish_reason` and
+//   `truncated: finishReason === 'length'` - and the same one-line return above threw both away.
+//   A truncated answer arrived at 31 call sites as an ordinary string with its ending missing, and
+//   nothing downstream could tell it apart from a complete one.
+//
+// The public 3-arg contract is deliberately UNCHANGED: makeLlm still returns string | null and not
+// one of the existing call sites needs editing. makeLlmRich exposes the envelope the gateway was
+// always sending, so a caller that needs tools or needs to fail closed on truncation can have both.
+export type ToolCall = { id: string; type?: string; function: { name: string; arguments: string } };
+export interface LlmResult {
+  content: string | null;
+  message: any | null;         // full assistant message, for tool-loop replay
+  tool_calls: ToolCall[];
+  finish_reason: string | null;
+  truncated: boolean;          // finish_reason === 'length' — the answer LOST ITS ENDING
+  used_llm: boolean;
+  http_status: number;
+  error: string | null;        // set when the call failed; distinguishes refusal from breakage
+}
+export interface LlmCallOpts {
+  tools?: any[];               // OpenAI-shape function definitions
+  toolChoice?: any;
+  messages?: any[];            // full OpenAI array; required to replay assistant tool_calls verbatim
+}
+const EMPTY = (e: string | null, status = 0, used = true): LlmResult =>
+  ({ content: null, message: null, tool_calls: [], finish_reason: null, truncated: false, used_llm: used, http_status: status, error: e });
+
 // Best-effort calling-function name. This is what the gateway classifies on, so it is now
 // load-bearing rather than decorative.
 function guessFn(): string {
@@ -120,7 +162,14 @@ async function gatewayCredential(fnName: string): Promise<string> {
   return legacy;
 }
 
-export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) {
+/**
+ * Rich client. Returns the whole gateway envelope: content, the assistant message (so a tool loop
+ * can replay it), tool_calls, finish_reason and truncated. Never throws.
+ *
+ * Callers that need tools or truncation-awareness use this. Everything else keeps using makeLlm,
+ * which is a narrowing wrapper around it and is byte-compatible with the old contract.
+ */
+export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) {
   const dMax = def.max ?? 700;
   const dTo = def.timeoutMs ?? 25000;
   const fnName = def.fn || guessFn();
@@ -130,7 +179,7 @@ export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) 
   // is byte-stable between calls passes it here, and ai_gateway marks ONLY that half cacheable.
   // Passing a prefix that is not actually stable is worse than passing none: a cache write costs
   // 1.25x the input rate and a prefix that never repeats never earns it back.
-  return async function llm(sys: string, input: string | Msg[], max: number = dMax, sysStable = ''): Promise<string | null> {
+  return async function llmRich(sys: string, input: string | Msg[], max: number = dMax, sysStable = '', opts: LlmCallOpts = {}): Promise<LlmResult> {
     const ac = new AbortController();
     const to = setTimeout(() => ac.abort(), dTo + 5000); // gateway has its own 25s per attempt
     try {
@@ -139,7 +188,7 @@ export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) 
         await logAuth('no_credential', fnName, 'error',
           fnName + ' has neither app_secrets.cred_fn_' + fnName + ' nor inbound_secret, so it cannot ' +
           'authenticate to ai_gateway and every model call from it returns null.');
-        return null;
+        return EMPTY('no_credential');
       }
 
       const r = await fetch(GATEWAY, {
@@ -201,6 +250,14 @@ export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) 
           rate_window_s: def.rateWindowS ?? null,
           // The caller's ladder is recorded for audit but does not override policy.
           caller_ladder: models,
+          // TOOLS. The gateway has always accepted these three; nothing that reached it through
+          // this module ever sent them. `tools` makes fn_ai_route require a tools-capable model
+          // (inferCaps), and want_message asks for the assistant message back intact so a loop can
+          // replay `assistant(tool_calls)` -> `tool(result)` verbatim on the next turn. `messages`
+          // is how that replay is delivered: the gateway prefers it over sys+input.
+          ...(opts.tools && opts.tools.length ? { tools: opts.tools, want_message: true } : {}),
+          ...(opts.toolChoice != null ? { tool_choice: opts.toolChoice } : {}),
+          ...(opts.messages && opts.messages.length ? { messages: opts.messages } : {}),
         }),
         signal: ac.signal,
       });
@@ -218,30 +275,72 @@ export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) 
           'ai_gateway REFUSED the credential presented by ' + fnName + ' (HTTP ' + r.status + ', ' +
           String(j?.error || 'forbidden') + '). Every model call from this function is returning null and its ' +
           'callers cannot tell that apart from a deliberate refusal. Check internal_credential_audit for the reason.');
-        return null;
+        return EMPTY('gateway_forbidden', r.status);
       }
       if (r.status === 503 && j?.error === 'credential_check_unavailable') {
         await logAuth('verifier_unavailable', fnName, 'error',
           'ai_gateway could not reach the credential verifier for ' + fnName + ', so the call was refused ' +
           'rather than allowed. Model calls are failing closed - correct, but silent to the caller.');
-        return null;
+        return EMPTY('credential_check_unavailable', r.status);
       }
       if (!r.ok && !j) {
         await logAuth('gateway_error', fnName, 'error',
           'ai_gateway returned HTTP ' + r.status + ' with no JSON body for ' + fnName + '.');
-        return null;
+        return EMPTY('gateway_http_' + r.status, r.status);
       }
-      if (!j) return null;
+      if (!j) return EMPTY('no_body', r.status);
 
-      // A deterministic refusal or a budget halt is a legitimate "no". Returning null here is
-      // correct and matches the old contract: callers already handle a null model response.
-      if (j.used_llm === false && !j.content) return null;
+      // A deterministic refusal or a budget halt is a legitimate "no", and it is NOT an error.
+      // used_llm:false with no content means policy answered instead of a model.
+      if (j.used_llm === false && !j.content) return EMPTY(null, r.status, false);
 
-      return typeof j.content === 'string' ? j.content : null;
-    } catch (_e) {
-      return null;
+      // The envelope the gateway has always returned and this module used to throw away.
+      const calls: ToolCall[] = Array.isArray(j.tool_calls) ? j.tool_calls : [];
+      const fr = typeof j.finish_reason === 'string' ? j.finish_reason : null;
+      return {
+        content: typeof j.content === 'string' ? j.content : null,
+        message: j.message ?? null,
+        tool_calls: calls,
+        finish_reason: fr,
+        // Trust the gateway's own flag first; fall back to the reason it derives it from.
+        truncated: j.truncated === true || fr === 'length',
+        used_llm: j.used_llm !== false,
+        http_status: r.status,
+        error: !r.ok ? ('gateway_http_' + r.status) : null,
+      };
+    } catch (e) {
+      // An abort here is OUR client timeout, not the model declining. Naming it matters: a prior
+      // incident spent hours on "the model returned nothing" that was an 8-of-10 client abort.
+      const aborted = (e as any)?.name === 'AbortError';
+      return EMPTY(aborted ? 'client_timeout_' + (dTo + 5000) + 'ms' : 'client_error');
     } finally {
       clearTimeout(to);
     }
+  };
+}
+
+/**
+ * The original contract, unchanged: returns the response string or null, never throws.
+ * 31 call sites depend on exactly this and none of them need editing.
+ *
+ * NOTE ON TRUNCATION. This wrapper still returns the string even when the gateway reports the
+ * answer was cut at the token ceiling, because silently turning a truncated answer into null would
+ * change behaviour under 31 callers that have never had to handle it. What it no longer does is
+ * hide the fact: the truncation is recorded against the caller so it is visible, and any caller
+ * that must fail closed on an incomplete answer uses makeLlmRich and reads `truncated`.
+ */
+export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) {
+  const rich = makeLlmRich(models, def);
+  const fnName = def.fn || guessFn();
+  return async function llm(sys: string, input: string | Msg[], max?: number, sysStable = ''): Promise<string | null> {
+    const res = await rich(sys, input, max as number, sysStable);
+    if (res.truncated) {
+      await logAuth('output_truncated', fnName, 'error',
+        fnName + ' received a TRUNCATED model answer (finish_reason=length). The response is ' +
+        'missing its ending and this caller uses the string-only contract, so nothing downstream ' +
+        'can detect it. Either lower the prompt/context size or move this caller to makeLlmRich ' +
+        'and fail closed on result.truncated.');
+    }
+    return res.content;
   };
 }
