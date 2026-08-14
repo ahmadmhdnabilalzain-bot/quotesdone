@@ -343,7 +343,27 @@ for (const [label, ref] of Object.entries(PROJECTS)) {
     assert.equal(Number(r.c.overlays_active), 86);
   });
 
-  // ---- 12. Authority refusal ------------------------------------------------------------------
+  // ---- 12. The target operating model still reaches every department -------------------------
+  it('every active department resolves target departments and decision rules', async () => {
+    // ops_kb_stage.department_crosswalk is keyed on the PRODUCTION department key and is the only
+    // table outside `public` that is. The merge did not touch it, so fn_ops_department_context
+    // returned 0 targets and 0 rules for every new department and the "TARGET OPERATING MODEL"
+    // block silently left every moved employee's context. The pack scorecard caught it at 36/37.
+    const rows = await q(ref, `select d.dept_key,
+        jsonb_array_length(coalesce(fn_ops_department_context(d.dept_key,null,2)->'target_departments','[]')) tdepts,
+        jsonb_array_length(coalesce(fn_ops_department_context(d.dept_key,null,2)->'decision_rules','[]')) rules
+      from org_departments d where d.active order by d.sort`);
+    assert.equal(rows.length, 10);
+    for (const r of rows) {
+      assert.ok(Number(r.tdepts) > 0, `${r.dept_key} maps to no target department`);
+      assert.ok(Number(r.rules) > 0, `${r.dept_key} resolves no decision rule`);
+    }
+    const ctx = await one(ref, `select position('TARGET OPERATING MODEL' in c) tom
+      from (select public.fn_agent_context('procurement', 24000) c) z`);
+    assert.ok(Number(ctx.tom) > 0, 'fn_agent_context no longer emits the target operating model');
+  });
+
+  // ---- 13. Authority refusal ------------------------------------------------------------------
   it('raising a department tier without a stated reason is refused', async () => {
     const r = await post(ref, `do $$ begin
       insert into org_authority (dept_key, action_class, max_tier, threshold_aed, note)

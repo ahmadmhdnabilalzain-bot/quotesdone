@@ -13,7 +13,7 @@ crm_and_revenue_operations,CRM & Revenue Operations Manager,growth,event_driven_
 government_relations,Government & Enterprise Relations Manager,growth,on_demand_specialist,invoked by a manager as a tool; no standing state,gov_relations_mgr,0,0,5
 marketing_director,Marketing Director,growth,event_driven_operator,wakes on a named event and executes inside its authority,marketing,1,6,5
 marketing_performance_analyst,Marketing Performance Analyst,growth,event_driven_operator,wakes on a named event and executes inside its authority,marketing_analyst,1,0,4
-partnerships,Partnerships Manager,growth,on_demand_specialist,invoked by a manager as a tool; no standing state,partnerships_mgr,0,0,0
+partnerships,Partnerships Manager,growth,on_demand_specialist,invoked by a manager as a tool; no standing state,partnerships_mgr,0,0,5
 social_media_and_community,Social Media & Community Manager,growth,event_driven_operator,wakes on a named event and executes inside its authority,marketing_social,0,0,5
 visual_design,Visual Design Director,growth,on_demand_specialist,invoked by a manager as a tool; no standing state,marketing_design,0,0,5
 communications_manager,Communications Manager,customer_experience,event_driven_operator,wakes on a named event and executes inside its authority,comms_manager,0,3,0
@@ -123,7 +123,7 @@ spec_fitout,Interior & Fit-Out Specialist,marketplace,on_demand_specialist,invok
 spec_industrial,Industrial & Energy Specialist,marketplace,on_demand_specialist,invoked by a manager as a tool; no standing state,spec_industrial,1,0,6
 spec_mep,MEP Specialist,marketplace,on_demand_specialist,invoked by a manager as a tool; no standing state,spec_mep,1,0,6
 supplier_coverage,Supplier Coverage & Liquidity Specialist,marketplace,on_demand_specialist,invoked by a manager as a tool; no standing state,supplier_coverage,0,0,0
-supplier_onboarding_specialist,Supplier Onboarding Specialist,marketplace,event_driven_operator,wakes on a named event and executes inside its authority,onboarding,1,1275,0
+supplier_onboarding_specialist,Supplier Onboarding Specialist,marketplace,event_driven_operator,wakes on a named event and executes inside its authority,onboarding,1,1275,1
 supplier_retention,Supplier Retention Specialist,marketplace,on_demand_specialist,invoked by a manager as a tool; no standing state,supplier_retention,0,0,0
 supplier_verification,Supplier Verification Reviewer,marketplace,independent_reviewer,holds stop authority and never approves work it authored,supplier_verification,1,0,0
 ai_architect,AI Architect,product_eng,on_demand_specialist,invoked by a manager as a tool; no standing state,ai_architect,0,0,0
@@ -171,7 +171,7 @@ process_improvement_manager,Process Improvement Manager,people_ops,event_driven_
 project_coordinator,Project Coordinator (PMO),people_ops,event_driven_operator,wakes on a named event and executes inside its authority,project_coordinator,0,0,6
 recruitment_specialist,Recruitment Specialist,people_ops,on_demand_specialist,invoked by a manager as a tool; no standing state,recruitment_specialist,0,0,4
 ai_quality_reviewer,AI Quality Assurance Reviewer,assurance,independent_reviewer,holds stop authority and never approves work it authored,ai_qa_specialist,0,0,0
-cybersecurity_engineer,Cybersecurity Engineer,assurance,independent_reviewer,holds stop authority and never approves work it authored,security,1,1245,0
+cybersecurity_engineer,Cybersecurity Engineer,assurance,independent_reviewer,holds stop authority and never approves work it authored,security,1,1246,0
 it_operations_engineer,IT Operations & Site Reliability Engineer,assurance,event_driven_operator,wakes on a named event and executes inside its authority,it,0,5,5
 quality_and_release_director,QA & Release Management Director,assurance,scheduled_manager,owns a department outcome and reviews on a cadence,qa_manager,2,0,6
 test_automation_engineer,Test Automation Reviewer,assurance,independent_reviewer,holds stop authority and never approves work it authored,test_automation_eng,0,0,0

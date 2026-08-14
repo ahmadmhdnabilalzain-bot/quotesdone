@@ -1,6 +1,6 @@
 # The target agent organisation
 
-Generated from `htdblwldjkcgjvmqkbeh` at 2026-08-14 12:47:34.996114 UTC. Ten primary departments, 90 accountable
+Generated from `htdblwldjkcgjvmqkbeh` at 2026-08-14 13:21:25.48994 UTC. Ten primary departments, 90 accountable
 roles and 86 category overlays.
 
 Every role belongs to one primary department, reports to one primary manager, owns defined
@@ -285,7 +285,7 @@ through `fn_specialist_invoke`, which records the invocation and leaves the mana
   "company_goals_measurable": 31,
   "unlinked_department_objectives": 29,
   "role_kpis_with_a_measured_actual": 85,
-  "open_work_with_one_accountable_owner": 319,
+  "open_work_with_one_accountable_owner": 325,
   "department_objectives_linked_to_a_company_goal": 56
 }
 ```

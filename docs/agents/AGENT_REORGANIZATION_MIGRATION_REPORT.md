@@ -151,6 +151,17 @@ Self-review rows written since the fix: **0**.
 - **The OS map collapsed arbitrarily.** Merging 25 department rows into 10 left `os_department`
   holding whichever predecessor's OS survived de-duplication: Marketplace pointed at the Knowledge
   OS. `fn_owning_os` and `fn_org_task_cross_os_guard` both read that map. Reassigned deliberately.
+- **The target operating model stopped reaching every merged department.**
+  `ops_kb_stage.department_crosswalk` maps a **production** department key onto the packaged target
+  departments and is the only table outside `public` keyed that way, so the migration did not touch
+  it: `fn_ops_department_context('marketplace')` returned 0 target departments and 0 decision rules
+  where `procurement` returned 3 and 30, and the `# THE TARGET OPERATING MODEL` block silently left
+  every moved employee's context. **The pack scorecard caught it** — IN USE fell from 37/37 to
+  36/37 with "decision rules enabled + in decider context — probe returned 0". Rebuilt by inverting
+  `org_department_alias`, which the migration had already repointed; all ten departments now
+  resolve targets and rules, including `people_ops` (`admin_operations`) and `assurance`
+  (`qa_testing`), which had **no** production mapping at all before today. IN USE is back to
+  **37/37 on both projects**, and a behavioural test now guards it.
 - **Two canonical aliases resolved at the role layer but not the agent layer**, so
   `fn_org_agent_resolve('site_reliability_engineer')` returned null — and a null addressee is
   rewritten to `brief` and marked escalated, which looks like a routing decision and is a missing
@@ -212,6 +223,7 @@ scripts/sql/org_reorg_05_overlays_and_cascade.sql   86 overlays, authority backf
 scripts/sql/org_reorg_06_compat_gaps.sql            merged-key aliases, OS coverage
 scripts/sql/org_reorg_07_os_map.sql                 OS map assigned deliberately
 scripts/sql/org_reorg_08_findings.sql               three findings the tests produced
+scripts/sql/org_reorg_09_target_model_crosswalk.sql the crosswalk the pack scorecard found
 ```
 
 Each was applied with `node scripts/apply_sql.mjs <file> --promote --ddl`, which posts identical
