@@ -1377,20 +1377,47 @@ function Console() {
   return (
     <Card className='flex flex-col h-[calc(100vh-140px)]'>
       <div className='px-5 py-3 border-b border-border flex items-center gap-2'><div className='h-8 w-8 rounded-lg bg-primary text-primary-foreground grid place-items-center font-bold'>✦</div><div><div className='font-semibold text-sm'>Command Console</div><div className='text-xs text-muted-foreground'>Instruct the Secretary — it acts across the team.</div></div></div>
-      <div className='px-5 py-2 border-b border-border/60 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px]'>
-        <span className='text-muted-foreground'>Company health <b className='text-foreground tabular-nums'>{eh.health_index ?? '—'}</b>{eh.mood ? ' · ' + titleCase(String(eh.mood)) : ''}</span>
-        <span className='text-muted-foreground'>Revenue today <b className='text-foreground tabular-nums'>{eh.revenue_today != null ? aed(eh.revenue_today) : '—'}</b></span>
-        <span className='text-muted-foreground'>Active suppliers <b className='text-foreground tabular-nums'>{eh.suppliers_active ?? '—'}</b></span>
-        <span className='text-muted-foreground'>Active customers <b className='text-foreground tabular-nums'>{eh.customers_active ?? '—'}</b></span>
-        {/* The four boards the command centre measured constantly and showed nowhere. Same strip as
-            company health and revenue, because the point of a command centre is that they are on
-            ONE screen — six boards across six modules is a sidebar. */}
-        <span className='text-muted-foreground'>Live workflow <b className='text-foreground tabular-nums'>{eh.workflow_runs_24h ?? '—'}</b> runs/24h</span>
-        <span className='text-muted-foreground'>AI collaboration <b className='text-foreground tabular-nums'>{eh.handoffs_24h ?? '—'}</b> handoffs/24h</span>
-        <span className='text-muted-foreground'>Knowledge growth <b className='text-foreground tabular-nums'>{eh.knowledge_revisions_7d ?? '—'}</b> revisions/7d</span>
-        <span className='text-muted-foreground'>Infrastructure uptime <b className='text-foreground tabular-nums'>{eh.uptime_pct_24h != null ? eh.uptime_pct_24h + '%' : '—'}</b></span>
-        <span className='text-muted-foreground'>AI employees working <b className='text-foreground tabular-nums'>{eh.employees_working ?? '—'}</b> / {eh.employees ?? '—'}</span>
-        <span className='text-muted-foreground'>Monthly goal <b className='text-foreground tabular-nums'>{eh.goal_progress_pct != null ? eh.goal_progress_pct + '%' : '—'}</b></span>
+      {/* THREE TIERS, NOT TEN EQUAL FIGURES (14 Aug 2026).
+          This strip was ten <span>s of identical size and colour wrapped into one line, and the
+          founder's objection to it was exact: "Revenue today AED 0 has the same visual weight as
+          Knowledge growth 1747 revisions". It did — same 11px, same muted label, same bold value —
+          so the eye had no way to find the number the company exists to move, and the biggest digit
+          on the row belonged to the least consequential measure.
+
+          The order is what the company is FOR, then the market it serves, then the machine:
+            1. money and mission   — revenue, goal, health. Largest, full contrast.
+            2. the marketplace     — customers, suppliers, employees actually working.
+            3. the machine         — workflow, handoffs, knowledge, uptime. Ambient by design:
+                                     these are healthy-by-default and only worth the founder's eye
+                                     when they are not.
+          AED 0 is deliberately shown at the top weight rather than softened. Zero revenue on a
+          pre-revenue day is the most important true fact on the screen, and shrinking it to spare
+          the look of the dashboard would be the interface telling him a comfortable story. */}
+      <div className='px-5 py-2.5 border-b border-border/60 space-y-1.5'>
+        <div className='flex flex-wrap items-baseline gap-x-6 gap-y-1'>
+          <span className='text-muted-foreground text-[11px]'>Revenue today{' '}
+            <b className='text-foreground tabular-nums text-base font-semibold'>{eh.revenue_today != null ? aed(eh.revenue_today) : '—'}</b>
+            {eh.revenue_30d != null ? <span className='text-muted-foreground'> · {aed(eh.revenue_30d)} over 30d</span> : null}</span>
+          <span className='text-muted-foreground text-[11px]'>Monthly goal{' '}
+            <b className='text-foreground tabular-nums text-base font-semibold'>{eh.goal_progress_pct != null ? eh.goal_progress_pct + '%' : '—'}</b></span>
+          <span className='text-muted-foreground text-[11px]'>Company health{' '}
+            <b className='text-foreground tabular-nums text-base font-semibold'>{eh.health_index ?? '—'}</b>
+            {eh.mood ? <span className='text-muted-foreground'> · {titleCase(String(eh.mood))}</span> : null}</span>
+        </div>
+        <div className='flex flex-wrap items-baseline gap-x-5 gap-y-1 text-xs'>
+          <span className='text-muted-foreground'>Active customers <b className='text-foreground tabular-nums'>{eh.customers_active ?? '—'}</b></span>
+          <span className='text-muted-foreground'>Active suppliers <b className='text-foreground tabular-nums'>{eh.suppliers_active ?? '—'}</b></span>
+          <span className='text-muted-foreground'>AI employees working <b className='text-foreground tabular-nums'>{eh.employees_working ?? '—'}</b> / {eh.employees ?? '—'}</span>
+        </div>
+        {/* The four boards the command centre measured constantly and showed nowhere. Kept on this
+            screen, because the point of a command centre is that they are on ONE screen — six
+            boards across six modules is a sidebar — but sized as the telemetry they are. */}
+        <div className='flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[11px] text-muted-foreground'>
+          <span>Live workflow <b className='tabular-nums'>{eh.workflow_runs_24h ?? '—'}</b> runs/24h</span>
+          <span>AI collaboration <b className='tabular-nums'>{eh.handoffs_24h ?? '—'}</b> handoffs/24h</span>
+          <span>Knowledge growth <b className='tabular-nums'>{eh.knowledge_revisions_7d ?? '—'}</b> revisions/7d</span>
+          <span>Infrastructure uptime <b className='tabular-nums'>{eh.uptime_pct_24h != null ? eh.uptime_pct_24h + '%' : '—'}</b></span>
+        </div>
       </div>
       <div className='flex-1 overflow-auto p-4 space-y-3'>
         {/* WHAT NEEDS HIM, ON THE SCREEN HE ACTUALLY OPENS.
