@@ -20,13 +20,13 @@
       "dept_alias": 25,
       "category_identity": 86,
       "route_map": 16,
-      "runs": 6,
+      "runs": 7,
       "cert_in_runtime": 0,
       "cert_questions": 0,
       "cert_answers": 0,
       "cert_results": 0,
       "artifact_reviews": 0,
-      "retrievals": 18,
+      "retrievals": 20,
       "traces": 6
     },
     "layers": [
@@ -175,13 +175,13 @@
       {
         "package_version": "2026.08.14",
         "generation": "V3",
-        "status": "running",
+        "status": "failed",
         "inserted": null,
         "updated": null,
         "unchanged": null,
         "rejected": null,
         "errors": null,
-        "finished_at": null
+        "finished_at": "2026-08-14 08:07:54.328117+00"
       },
       {
         "package_version": "2026.08.14",
@@ -237,6 +237,17 @@
         "rejected": "0",
         "errors": "0",
         "finished_at": "2026-08-14 07:44:39.956943+00"
+      },
+      {
+        "package_version": "2026.08.14",
+        "generation": "V3",
+        "status": "ok",
+        "inserted": "0",
+        "updated": "0",
+        "unchanged": "25715",
+        "rejected": "0",
+        "errors": "0",
+        "finished_at": "2026-08-14 08:08:16.992665+00"
       }
     ]
   },
@@ -261,13 +272,13 @@
       "dept_alias": 25,
       "category_identity": 86,
       "route_map": 16,
-      "runs": 4,
+      "runs": 5,
       "cert_in_runtime": 0,
       "cert_questions": 0,
       "cert_answers": 0,
       "cert_results": 0,
       "artifact_reviews": 2,
-      "retrievals": 16,
+      "retrievals": 18,
       "traces": 1
     },
     "layers": [
@@ -456,6 +467,17 @@
         "rejected": "0",
         "errors": "0",
         "finished_at": "2026-08-14 07:42:36.821006+00"
+      },
+      {
+        "package_version": "2026.08.14",
+        "generation": "V3",
+        "status": "ok",
+        "inserted": "0",
+        "updated": "0",
+        "unchanged": "25715",
+        "rejected": "0",
+        "errors": "0",
+        "finished_at": "2026-08-14 08:08:09.950694+00"
       }
     ]
   }
