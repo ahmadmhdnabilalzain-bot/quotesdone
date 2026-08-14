@@ -3186,14 +3186,18 @@ function CompanyOsApp() {
 function IntelligenceApp() {
   const S = useWs('ws.strategy'); const F = useWs('ws.finance'); const A = useWs('ws.analytics');
   const I = useWs('ws.intelligence');
+  // CUSTOMER BEHAVIOUR was the one of the nine intelligence items with no route to this screen.
+  // customer_health carries engagement, satisfaction and a risk tier per customer; fn_ws_customers
+  // named the view but returned only identity columns, so none of it ever reached a component.
+  const CB = useWs('ws.customer_behavior');
   const [sel, setSel] = React.useState<any>(null);
   const [scenario, setScenario] = React.useState(''); const [simResult, setSimResult] = React.useState<any>(null); const [simBusy, setSimBusy] = React.useState(false);
   const runScenario = async () => { setSimBusy(true); try { setSimResult(await osApi('simulate', { question: scenario, scenario })); } catch (e: any) { setSimResult({ error: e?.message || 'simulation failed' }); } setSimBusy(false); };
   // Approving a simulation records it in the same ledger every other approval lands in, pointing
   // back at the simulations row it came from.
   const approveSimulation = async () => { setSimBusy(true); try { await osApi('simulation_approve', { scenario, result: simResult }); } catch (_e) {} setSimBusy(false); };
-  const busy = S.busy || F.busy || A.busy || I.busy;
-  const reloadAll = React.useCallback(() => { S.load(); F.load(); A.load(); I.load(); }, [S.load, F.load, A.load, I.load]);
+  const busy = S.busy || F.busy || A.busy || I.busy || CB.busy;
+  const reloadAll = React.useCallback(() => { S.load(); F.load(); A.load(); I.load(); CB.load(); }, [S.load, F.load, A.load, I.load, CB.load]);
   const err = S.err || F.err || A.err || I.err;
   if (err && !S.d && !F.d && !A.d && !I.d) return <Card className='p-6 text-sm text-destructive'>Could not load Intelligence: {err}</Card>;
 
@@ -3209,6 +3213,10 @@ function IntelligenceApp() {
   // Supply-side coverage: the categories with live demand and too few suppliers behind them.
   const coverage_gaps = (S.d?.under_supplied || []) as any[];
   const mk = A.d?.marketplace || {};
+  // customer_health: engagement, satisfaction and risk tier per customer. `customers` travels with
+  // the averages on purpose — an average over two people is not a trend, and the screen must not
+  // let it read as one. churn_rate_pct is null by design; the note says why.
+  const cb = CB.d || {}; const cbRows = (cb.rows || []) as any[];
 
   return (<div className='space-y-4'>
     <AppHeader icon={Brain} title='Intelligence' onRefresh={reloadAll} busy={busy}
@@ -3225,6 +3233,33 @@ function IntelligenceApp() {
       ['AI spend 30d', spend.total_aed != null ? aed(spend.total_aed) : '—'],
       ['Growth in 30d', growth_probability.growth_probability_pct != null ? growth_probability.growth_probability_pct + '%' : '—'],
     ]} />
+
+    {/* CUSTOMER BEHAVIOUR. The averages carry their sample size in the header, because an average
+        over two customers is not a trend and this screen must not let it read as one. Churn is
+        shown as "not measured" with the reason, never as 0% — no customer is old enough to have
+        lapsed, and a 0% churn rate would be the most flattering possible lie about that. */}
+    <SectionCard title='Customer behaviour' count={cbRows.length}
+      right={<span className='text-[11px] text-muted-foreground'>
+        health {cb.avg_health ?? '—'} · engagement {cb.avg_engagement ?? '—'} · satisfaction {cb.avg_satisfaction ?? '—'}
+        {cb.customers ? ' (mean of ' + cb.customers + ')' : ''} · churn {cb.churn_rate_pct != null ? cb.churn_rate_pct + '%' : 'not measured'}
+      </span>}>
+      {cbRows.length ? <div className='divide-y divide-border'>{cbRows.map((c: any, i: number) => (
+        <div key={i} className='px-4 py-2.5 text-sm flex items-center gap-3'>
+          <div className='min-w-0 flex-1'>
+            <div className='truncate font-medium'>{c.name || c.email || 'customer'}</div>
+            <div className='text-[11px] text-muted-foreground'>
+              {c.total_inq ?? 0} RFQ(s), {c.active_inq ?? 0} active, {c.stalled_inq ?? 0} stalled
+              {c.last_activity ? ' · last active ' + String(c.last_activity).slice(0, 10) : ' · no activity recorded'}
+            </div>
+          </div>
+          <div className='flex items-center gap-2 shrink-0'>
+            {c.dormant ? <Chip label='Dormant' tone='amber' /> : null}
+            {c.risk_tier ? <Chip label={titleCase(String(c.risk_tier))} tone={statusTone(String(c.risk_tier))} /> : null}
+            <Chip label={'Health ' + (c.health ?? '—')} tone='slate' />
+          </div>
+        </div>))}</div>
+        : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>{cb.churn_note || 'No customers on the book yet.'}</div>}
+    </SectionCard>
 
     <SectionCard title='Top risks' count={risks.length}>{risks.length ? <div className='divide-y divide-border'>{risks.map((r: any, i: number) => (
       <button key={i} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
