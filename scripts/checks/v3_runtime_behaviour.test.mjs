@@ -313,6 +313,31 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.equal(m[7], 'false', 'autonomy must be restored once the retest passes');
   });
 
+  test(`${name}: training assigned for a competency contains only that competency`, async () => {
+    const raised = await probe(ref, `
+      declare a text := 'cfo'; comp text; r jsonb; wrong int; dept_pool int;
+      begin
+        select c.competency into comp from agent_training_case c
+          join org_role_identity i on i.packaged_role_id = c.scope_key and i.agent_key = a
+         where c.scope_type = 'role' and c.competency is not null limit 1;
+        r := fn_assign_training(a, comp, 'practice', 4);
+        select count(*) into wrong from jsonb_array_elements(r->'cases') x
+          join agent_training_case c on c.case_id = x->>'case_id'
+         where c.competency is distinct from comp;
+        select count(*) into dept_pool from agent_training_case
+         where scope_type = 'department'
+           and scope_key = (select packaged_department from org_role_identity where agent_key = a limit 1);
+        raise exception 'assigned=% off_competency=% dept_pool=%', r->>'assigned', wrong, dept_pool;
+      end;`);
+    const m = /assigned=(\d+) off_competency=(\d+) dept_pool=(\d+)/.exec(raised);
+    assert.ok(m, raised);
+    assert.ok(Number(m[1]) > 0, 'a competency-scoped request must return cases');
+    // AND binds tighter than OR: without parentheses the competency filter applied only to
+    // the department branch and every role case slipped through it.
+    assert.equal(m[2], '0', 'remediation for one competency must not hand out cases from another');
+    assert.ok(Number(m[3]) > 0, 'the agent\'s packaged department must resolve to a real case pool');
+  });
+
   // ── visual ────────────────────────────────────────────────────────────────────
   test(`${name}: an artifact cannot be published without a passing review of those bytes`, async () => {
     const raised = await probe(ref, `

@@ -142,8 +142,10 @@ begin
   with pool as (
     select c.case_id, c.case_family, c.competency, c.scope_key
       from agent_training_case c
-     where (c.scope_type = 'role' and c.scope_key = any(v_roles))
-        or (c.scope_type = 'department' and c.scope_key = v_dept)
+     -- The parentheses matter: AND binds tighter than OR, so without them the competency
+     -- filter applied only to the department branch and every role case slipped past it.
+     where ((c.scope_type = 'role' and c.scope_key = any(v_roles))
+         or (c.scope_type = 'department' and c.scope_key = v_dept))
        and (p_competency is null or c.competency = p_competency)
   ), unseen as (
     select p.* from pool p

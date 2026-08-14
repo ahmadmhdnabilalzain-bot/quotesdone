@@ -1,7 +1,7 @@
 # V3 behavioural test evidence
 
 14 August 2026. `scripts/checks/v3_runtime_behaviour.test.mjs`, run with
-`node --test scripts/checks/`. **48 tests, 48 passing, on BOTH projects** (24 each).
+`node --test scripts/checks/`. **50 tests, 50 passing, on BOTH projects** (25 each).
 
 No test asserts on a source string. Every one calls the function an agent calls. Writes run
 inside a `DO` block that ends in `raise exception`, so the effect is measured and then rolled
@@ -47,6 +47,7 @@ back — the test proves the write without leaving one.
 
 | test | asserts |
 |---|---|
+| training assigned for a competency contains only that competency | 0 off-competency cases; the packaged department resolves to a real case pool |
 | remediation retests on unseen cases and gates autonomy until it improves | 5 practice and 5 retest cases with **0 overlap**; autonomy blocked while open; a 0.45 score leaves it `retesting`; a 0.9 score passes and unblocks |
 
 ## Visual
@@ -95,5 +96,6 @@ Both were real, and both were found by the tests rather than by reading the code
    `company_goals` holds `year_1` and `quarter` and has never held `company`. Every agent's
    context said the company had no objective. Fixed to rank the agent's own department's goals
    first, then the financial ones — which is where the AED 1,000,000 target lives.
-2. The probe helper mis-parsed the management API's escaped newline, so two assertions compared
+2. **fn_assign_training ignored the competency filter for role cases.** AND binds tighter than OR, so `(role) or (department) and (competency)` applied the filter to the department branch only. A remediation for one competency would have handed out cases from another. Found while writing the test that now asserts it.
+3. The probe helper mis-parsed the management API's escaped newline, so two assertions compared
    `'cfo\nCONTEXT:'` with `'cfo'`. A test-harness bug, fixed in the helper.
