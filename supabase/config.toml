@@ -604,6 +604,9 @@ verify_jwt = false
 [functions.uptime_check]
 verify_jwt = false
 
+[functions.video_produce]
+verify_jwt = false
+
 [functions.vercel_status]
 verify_jwt = false
 
