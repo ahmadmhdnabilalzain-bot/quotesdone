@@ -37,6 +37,9 @@ verify_jwt = false
 [functions.action_worker]
 verify_jwt = false
 
+[functions.agent_train]
+verify_jwt = false
+
 [functions.agent_act]
 verify_jwt = false
 
