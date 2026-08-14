@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QuotesDone Agent Runtime Context",
+  "type": "object",
+  "required": [
+    "task_id",
+    "agent_id",
+    "role_id",
+    "department_id",
+    "manager_role_id",
+    "company_objective",
+    "task_class",
+    "knowledge",
+    "tools",
+    "authority",
+    "budgets"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "agent_id": {
+      "type": "string"
+    },
+    "role_id": {
+      "type": "string"
+    },
+    "department_id": {
+      "type": "string"
+    },
+    "manager_role_id": {
+      "type": "string"
+    },
+    "company_objective": {
+      "type": "object",
+      "required": [
+        "target",
+        "target_date",
+        "company_stage"
+      ],
+      "properties": {
+        "target": {
+          "const": "AED 1,000,000 revenue"
+        },
+        "target_date": {
+          "const": "2027-08-31"
+        },
+        "company_stage": {
+          "type": "string"
+        }
+      }
+    },
+    "task_class": {
+      "type": "string"
+    },
+    "risk_class": {
+      "type": "string"
+    },
+    "language": {
+      "enum": [
+        "en",
+        "ar",
+        "mixed"
+      ]
+    },
+    "knowledge": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "knowledge_id",
+          "version",
+          "layer",
+          "source_freshness"
+        ],
+        "properties": {
+          "knowledge_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "layer": {
+            "type": "string"
+          },
+          "source_freshness": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "tool_id",
+          "permission"
+        ],
+        "properties": {
+          "tool_id": {
+            "type": "string"
+          },
+          "permission": {
+            "enum": [
+              "allow",
+              "deny",
+              "gated"
+            ]
+          }
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "tier",
+        "allowed_actions",
+        "forbidden_actions"
+      ],
+      "properties": {
+        "tier": {
+          "type": "string"
+        },
+        "allowed_actions": {
+          "type": "array"
+        },
+        "forbidden_actions": {
+          "type": "array"
+        }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "required": [
+        "max_input_tokens",
+        "max_output_tokens",
+        "max_cost_usd"
+      ],
+      "properties": {
+        "max_input_tokens": {
+          "type": "integer"
+        },
+        "max_output_tokens": {
+          "type": "integer"
+        },
+        "max_cost_usd": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}
