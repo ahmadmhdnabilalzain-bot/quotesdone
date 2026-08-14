@@ -68,6 +68,17 @@ because it depends on an external URL):
 - A 512×512 asset failed `width_below_minimum:512<600` against the generic spec.
 - `author_agent = reviewer_agent` returned HTTP 409.
 
+Video, measured the same way against a sample with known properties:
+
+- `mov_bbb.mp4` read as **320x176, 10.027 seconds, container mp42** from `moov/mvhd` and the
+  video track's `tkhd` — no decoder involved.
+- Against an Instagram Reel slot it failed on width, height and aspect, and on
+  `video_frames_required`: with no frames supplied the reviewer refused to pass and said
+  "no frames supplied, so nothing about this video was actually seen".
+- With three real brand frames supplied it reviewed each and caught a transition defect no
+  single-frame check could: *"frame 2 -> 3: abrupt background colour change from light to dark
+  navy; mark size reduces significantly; wordmark disappears entirely without fade."*
+
 ## Certification separation
 
 | test | asserts |
