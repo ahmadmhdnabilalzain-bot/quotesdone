@@ -79,16 +79,38 @@ declare
   v_q          tsquery;
   v_scope      text[];
   v_role       record;
+  v_key        text;
 begin
+  -- RESOLVE AT THE BOUNDARY. Measured 14 Aug 2026: of 68 routines taking an agent, actor or
+  -- assignee argument, exactly ONE resolved it. This is the path every employee turn goes through,
+  -- and it did two wrong things: `fn_agent_context_v3('chief_of_staff')` — a canonical role id this
+  -- reorganisation publishes — answered "unknown agent", while
+  -- `fn_agent_context_v3('analytics_director')` — an employee merged away this morning — happily
+  -- assembled a full context, because the lookup never checked `active`.
+  --
+  -- The second is the dangerous one: a deactivated employee that still assembles is a deactivated
+  -- employee that can still act.
+  v_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+
   select a.agent_key, a.department, a.role, a.title, a.manager_key, a.seniority,
          a.responsibilities, a.max_open_tasks, a.active, d.name dept_name, d.charter, d.north_star
     into v_agent
     from org_agents a
     left join org_departments d on d.dept_key = a.department
-   where a.agent_key = p_agent_key;
+   where a.agent_key = v_key;
 
   if v_agent.agent_key is null then
-    return jsonb_build_object('error', 'unknown agent', 'agent_key', p_agent_key);
+    return jsonb_build_object('error', 'unknown agent', 'agent_key', p_agent_key,
+                              'resolved_to', v_key);
+  end if;
+
+  if not coalesce(v_agent.active, false) then
+    return jsonb_build_object(
+      'error', 'inactive employee',
+      'agent_key', p_agent_key, 'resolved_to', v_key,
+      'detail', 'this employee is not active — it was merged away or stood down. Address the '
+                ||'surviving role instead; fn_org_agent_resolve names it. A context assembled for '
+                ||'an inactive employee is a context that lets it act.');
   end if;
 
   v_scope := public.fn_dept_scope(v_agent.department);
