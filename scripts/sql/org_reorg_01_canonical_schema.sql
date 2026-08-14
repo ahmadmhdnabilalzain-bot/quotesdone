@@ -255,8 +255,26 @@ language sql stable as $$
   select 'agent_without_role', a.agent_key, 'active org_agents row maps to no active org_role'
     from public.org_agents a
    where a.active and not exists (select 1 from public.org_role r
-          where r.status='active' and r.runtime_agent_key = a.agent_key);
+          where r.status='active' and r.runtime_agent_key = a.agent_key)
+  union all
+  -- A PACKAGED ROLE HELD ONLY BY A DEACTIVATED EMPLOYEE IS ADDRESSED BY NOBODY.
+  -- fn_agent_context_v3 collects v_role_ids from org_role_identity and retrieves role-scoped
+  -- knowledge with `role_key = any(v_role_ids)`. Merging an employee away moved its address, its
+  -- work and its KPIs, and left its packaged identity behind: 3 of the 96 packaged roles and 80
+  -- runtime-eligible knowledge records stopped reaching anyone on 14 Aug 2026, silently, because
+  -- retrieval that returns fewer rows looks exactly like a quiet system.
+  select 'packaged_role_unreachable', i.packaged_role_id,
+         'held only by inactive employee(s): '||string_agg(distinct i.agent_key, ', ')
+         ||'; '||(select count(*)::text from public.ops_knowledge k
+                   where k.role_key = i.packaged_role_id and k.runtime_eligible)
+         ||' runtime-eligible knowledge record(s) unreachable through the role layer'
+    from public.org_role_identity i
+   where not exists (select 1 from public.org_role_identity x
+                       join public.org_agents a on a.agent_key = x.agent_key and a.active
+                      where x.packaged_role_id = i.packaged_role_id)
+   group by i.packaged_role_id;
 $$;
+alter function public.fn_org_role_violations() set search_path to 'public';
 
 -- ---------------------------------------------------------------------------------------------
 -- Views the OS screens and the tests read.
