@@ -2102,5 +2102,20 @@
   "2100": "a_villa_owner_does_not_say_joinery.sql",
   "2101": "cron_for_the_habit_learner_registered_in_the_same_change.sql",
   "2102": "cron_for_the_rehearsal_registered_in_the_same_change.sql",
-  "2103": "the_revoke_landed_on_staging_only.sql"
+  "2103": "the_revoke_landed_on_staging_only.sql",
+  "2104": "alert_founder/index.ts",
+  "2105": "analytics_recommend/index.ts",
+  "2106": "content_revise/index.ts",
+  "2107": "quote_pdf/index.ts",
+  "2108": "retention_purge/index.ts",
+  "2109": "sync_routines_from_production.mjs",
+  "2110": "ai_health/index.ts",
+  "2111": "external-api-slow.mjs",
+  "2112": "platform-bot-protection.mjs",
+  "2113": "supplier_review/index.ts",
+  "2114": "wa_optin_set/index.ts",
+  "2115": "a_198k_faq_in_a_prompt_slot_that_holds_24k.sql",
+  "2116": "the_canonical_answers_queued_behind_26000_rows.sql",
+  "2117": "the_highest_priority_knowledge_row_reaches_nobody.sql",
+  "2118": "the_reflection_ceiling_was_priced_at_half_what_it_costs.sql"
 }
