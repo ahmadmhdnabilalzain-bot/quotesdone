@@ -430,6 +430,36 @@ function SettingRow({ s, onSaved }: { s: any; onSaved: (key: string, val: string
   );
 }
 
+// WHAT THE OS HAS LEARNED ABOUT HOW THE FOUNDER DECIDES.
+// Every habit carries its sample size, and one below the evidence floor is labelled an observation
+// rather than presented as a preference — n=1 dressed as "he always does this" is the same defect
+// as a scorer reporting 100% on a file it could not read. Presentation adapts to these; governance
+// does not, and nothing here changes an authority or a gate.
+function FounderHabits() {
+  const [d, setD] = React.useState<any>(null);
+  React.useEffect(() => { osApi('founder_habits').then(setD).catch(() => {}); }, []);
+  const rows = (d?.rows || []) as any[];
+  if (!d) return null;
+  return (<Card className='p-4 space-y-2'>
+    <div className='flex flex-wrap items-baseline gap-2'>
+      <h2 className='text-sm font-semibold'>What the OS has learned about how you decide</h2>
+      <span className='text-[11px] text-muted-foreground'>
+        {d.habits_confident ?? 0} of {d.habits_total ?? 0} clear the {d.evidence_floor ?? 3}-observation floor
+        {d.learned_at ? ' · learned ' + String(d.learned_at).slice(0, 10) : ''}
+      </span>
+    </div>
+    {rows.length ? <div className='divide-y divide-border'>{rows.map((h: any, i: number) => (
+      <div key={i} className='py-2 text-sm flex items-start gap-3'>
+        <div className='min-w-0 flex-1'>
+          <div>{h.text}</div>
+          <div className='text-[11px] text-muted-foreground'>{h.habit_key} · {h.sample_n} observation(s)</div>
+        </div>
+        <Chip label={h.confident ? 'Habit' : 'Not enough evidence yet'} tone={h.confident ? 'slate' : 'amber'} />
+      </div>))}</div>
+      : <div className='text-sm text-muted-foreground'>Nothing observed yet.</div>}
+    <div className='text-[11px] text-muted-foreground'>{d.note}</div>
+  </Card>);
+}
 function SettingsPanel() {
   const [d, setD] = React.useState<any[] | null>(null);
   const [err, setErr] = React.useState('');
@@ -443,6 +473,7 @@ function SettingsPanel() {
   return (
     <div className='space-y-5'>
       <div className='flex flex-wrap items-center gap-2'><SlidersHorizontal className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Settings</h1><span className='text-xs text-muted-foreground md:ml-2'>Business configuration. API keys and secrets are managed separately and never appear here. Every change is audit-logged and reversible.</span></div>
+      <FounderHabits />
       {groups.map((g) => (
         <Card key={g} className='overflow-hidden'>
           <div className='px-4 py-3 border-b border-border text-sm font-semibold'>{g}</div>
@@ -1377,20 +1408,47 @@ function Console() {
   return (
     <Card className='flex flex-col h-[calc(100vh-140px)]'>
       <div className='px-5 py-3 border-b border-border flex items-center gap-2'><div className='h-8 w-8 rounded-lg bg-primary text-primary-foreground grid place-items-center font-bold'>✦</div><div><div className='font-semibold text-sm'>Command Console</div><div className='text-xs text-muted-foreground'>Instruct the Secretary — it acts across the team.</div></div></div>
-      <div className='px-5 py-2 border-b border-border/60 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px]'>
-        <span className='text-muted-foreground'>Company health <b className='text-foreground tabular-nums'>{eh.health_index ?? '—'}</b>{eh.mood ? ' · ' + titleCase(String(eh.mood)) : ''}</span>
-        <span className='text-muted-foreground'>Revenue today <b className='text-foreground tabular-nums'>{eh.revenue_today != null ? aed(eh.revenue_today) : '—'}</b></span>
-        <span className='text-muted-foreground'>Active suppliers <b className='text-foreground tabular-nums'>{eh.suppliers_active ?? '—'}</b></span>
-        <span className='text-muted-foreground'>Active customers <b className='text-foreground tabular-nums'>{eh.customers_active ?? '—'}</b></span>
-        {/* The four boards the command centre measured constantly and showed nowhere. Same strip as
-            company health and revenue, because the point of a command centre is that they are on
-            ONE screen — six boards across six modules is a sidebar. */}
-        <span className='text-muted-foreground'>Live workflow <b className='text-foreground tabular-nums'>{eh.workflow_runs_24h ?? '—'}</b> runs/24h</span>
-        <span className='text-muted-foreground'>AI collaboration <b className='text-foreground tabular-nums'>{eh.handoffs_24h ?? '—'}</b> handoffs/24h</span>
-        <span className='text-muted-foreground'>Knowledge growth <b className='text-foreground tabular-nums'>{eh.knowledge_revisions_7d ?? '—'}</b> revisions/7d</span>
-        <span className='text-muted-foreground'>Infrastructure uptime <b className='text-foreground tabular-nums'>{eh.uptime_pct_24h != null ? eh.uptime_pct_24h + '%' : '—'}</b></span>
-        <span className='text-muted-foreground'>AI employees working <b className='text-foreground tabular-nums'>{eh.employees_working ?? '—'}</b> / {eh.employees ?? '—'}</span>
-        <span className='text-muted-foreground'>Monthly goal <b className='text-foreground tabular-nums'>{eh.goal_progress_pct != null ? eh.goal_progress_pct + '%' : '—'}</b></span>
+      {/* THREE TIERS, NOT TEN EQUAL FIGURES (14 Aug 2026).
+          This strip was ten <span>s of identical size and colour wrapped into one line, and the
+          founder's objection to it was exact: "Revenue today AED 0 has the same visual weight as
+          Knowledge growth 1747 revisions". It did — same 11px, same muted label, same bold value —
+          so the eye had no way to find the number the company exists to move, and the biggest digit
+          on the row belonged to the least consequential measure.
+
+          The order is what the company is FOR, then the market it serves, then the machine:
+            1. money and mission   — revenue, goal, health. Largest, full contrast.
+            2. the marketplace     — customers, suppliers, employees actually working.
+            3. the machine         — workflow, handoffs, knowledge, uptime. Ambient by design:
+                                     these are healthy-by-default and only worth the founder's eye
+                                     when they are not.
+          AED 0 is deliberately shown at the top weight rather than softened. Zero revenue on a
+          pre-revenue day is the most important true fact on the screen, and shrinking it to spare
+          the look of the dashboard would be the interface telling him a comfortable story. */}
+      <div className='px-5 py-2.5 border-b border-border/60 space-y-1.5'>
+        <div className='flex flex-wrap items-baseline gap-x-6 gap-y-1'>
+          <span className='text-muted-foreground text-[11px]'>Revenue today{' '}
+            <b className='text-foreground tabular-nums text-base font-semibold'>{eh.revenue_today != null ? aed(eh.revenue_today) : '—'}</b>
+            {eh.revenue_30d != null ? <span className='text-muted-foreground'> · {aed(eh.revenue_30d)} over 30d</span> : null}</span>
+          <span className='text-muted-foreground text-[11px]'>Monthly goal{' '}
+            <b className='text-foreground tabular-nums text-base font-semibold'>{eh.goal_progress_pct != null ? eh.goal_progress_pct + '%' : '—'}</b></span>
+          <span className='text-muted-foreground text-[11px]'>Company health{' '}
+            <b className='text-foreground tabular-nums text-base font-semibold'>{eh.health_index ?? '—'}</b>
+            {eh.mood ? <span className='text-muted-foreground'> · {titleCase(String(eh.mood))}</span> : null}</span>
+        </div>
+        <div className='flex flex-wrap items-baseline gap-x-5 gap-y-1 text-xs'>
+          <span className='text-muted-foreground'>Active customers <b className='text-foreground tabular-nums'>{eh.customers_active ?? '—'}</b></span>
+          <span className='text-muted-foreground'>Active suppliers <b className='text-foreground tabular-nums'>{eh.suppliers_active ?? '—'}</b></span>
+          <span className='text-muted-foreground'>AI employees working <b className='text-foreground tabular-nums'>{eh.employees_working ?? '—'}</b> / {eh.employees ?? '—'}</span>
+        </div>
+        {/* The four boards the command centre measured constantly and showed nowhere. Kept on this
+            screen, because the point of a command centre is that they are on ONE screen — six
+            boards across six modules is a sidebar — but sized as the telemetry they are. */}
+        <div className='flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[11px] text-muted-foreground'>
+          <span>Live workflow <b className='tabular-nums'>{eh.workflow_runs_24h ?? '—'}</b> runs/24h</span>
+          <span>AI collaboration <b className='tabular-nums'>{eh.handoffs_24h ?? '—'}</b> handoffs/24h</span>
+          <span>Knowledge growth <b className='tabular-nums'>{eh.knowledge_revisions_7d ?? '—'}</b> revisions/7d</span>
+          <span>Infrastructure uptime <b className='tabular-nums'>{eh.uptime_pct_24h != null ? eh.uptime_pct_24h + '%' : '—'}</b></span>
+        </div>
       </div>
       <div className='flex-1 overflow-auto p-4 space-y-3'>
         {/* WHAT NEEDS HIM, ON THE SCREEN HE ACTUALLY OPENS.
@@ -3159,14 +3217,18 @@ function CompanyOsApp() {
 function IntelligenceApp() {
   const S = useWs('ws.strategy'); const F = useWs('ws.finance'); const A = useWs('ws.analytics');
   const I = useWs('ws.intelligence');
+  // CUSTOMER BEHAVIOUR was the one of the nine intelligence items with no route to this screen.
+  // customer_health carries engagement, satisfaction and a risk tier per customer; fn_ws_customers
+  // named the view but returned only identity columns, so none of it ever reached a component.
+  const CB = useWs('ws.customer_behavior');
   const [sel, setSel] = React.useState<any>(null);
   const [scenario, setScenario] = React.useState(''); const [simResult, setSimResult] = React.useState<any>(null); const [simBusy, setSimBusy] = React.useState(false);
   const runScenario = async () => { setSimBusy(true); try { setSimResult(await osApi('simulate', { question: scenario, scenario })); } catch (e: any) { setSimResult({ error: e?.message || 'simulation failed' }); } setSimBusy(false); };
   // Approving a simulation records it in the same ledger every other approval lands in, pointing
   // back at the simulations row it came from.
   const approveSimulation = async () => { setSimBusy(true); try { await osApi('simulation_approve', { scenario, result: simResult }); } catch (_e) {} setSimBusy(false); };
-  const busy = S.busy || F.busy || A.busy || I.busy;
-  const reloadAll = React.useCallback(() => { S.load(); F.load(); A.load(); I.load(); }, [S.load, F.load, A.load, I.load]);
+  const busy = S.busy || F.busy || A.busy || I.busy || CB.busy;
+  const reloadAll = React.useCallback(() => { S.load(); F.load(); A.load(); I.load(); CB.load(); }, [S.load, F.load, A.load, I.load, CB.load]);
   const err = S.err || F.err || A.err || I.err;
   if (err && !S.d && !F.d && !A.d && !I.d) return <Card className='p-6 text-sm text-destructive'>Could not load Intelligence: {err}</Card>;
 
@@ -3182,6 +3244,10 @@ function IntelligenceApp() {
   // Supply-side coverage: the categories with live demand and too few suppliers behind them.
   const coverage_gaps = (S.d?.under_supplied || []) as any[];
   const mk = A.d?.marketplace || {};
+  // customer_health: engagement, satisfaction and risk tier per customer. `customers` travels with
+  // the averages on purpose — an average over two people is not a trend, and the screen must not
+  // let it read as one. churn_rate_pct is null by design; the note says why.
+  const cb = CB.d || {}; const cbRows = (cb.rows || []) as any[];
 
   return (<div className='space-y-4'>
     <AppHeader icon={Brain} title='Intelligence' onRefresh={reloadAll} busy={busy}
@@ -3198,6 +3264,33 @@ function IntelligenceApp() {
       ['AI spend 30d', spend.total_aed != null ? aed(spend.total_aed) : '—'],
       ['Growth in 30d', growth_probability.growth_probability_pct != null ? growth_probability.growth_probability_pct + '%' : '—'],
     ]} />
+
+    {/* CUSTOMER BEHAVIOUR. The averages carry their sample size in the header, because an average
+        over two customers is not a trend and this screen must not let it read as one. Churn is
+        shown as "not measured" with the reason, never as 0% — no customer is old enough to have
+        lapsed, and a 0% churn rate would be the most flattering possible lie about that. */}
+    <SectionCard title='Customer behaviour' count={cbRows.length}
+      right={<span className='text-[11px] text-muted-foreground'>
+        health {cb.avg_health ?? '—'} · engagement {cb.avg_engagement ?? '—'} · satisfaction {cb.avg_satisfaction ?? '—'}
+        {cb.customers ? ' (mean of ' + cb.customers + ')' : ''} · churn {cb.churn_rate_pct != null ? cb.churn_rate_pct + '%' : 'not measured'}
+      </span>}>
+      {cbRows.length ? <div className='divide-y divide-border'>{cbRows.map((c: any, i: number) => (
+        <div key={i} className='px-4 py-2.5 text-sm flex items-center gap-3'>
+          <div className='min-w-0 flex-1'>
+            <div className='truncate font-medium'>{c.name || c.email || 'customer'}</div>
+            <div className='text-[11px] text-muted-foreground'>
+              {c.total_inq ?? 0} RFQ(s), {c.active_inq ?? 0} active, {c.stalled_inq ?? 0} stalled
+              {c.last_activity ? ' · last active ' + String(c.last_activity).slice(0, 10) : ' · no activity recorded'}
+            </div>
+          </div>
+          <div className='flex items-center gap-2 shrink-0'>
+            {c.dormant ? <Chip label='Dormant' tone='amber' /> : null}
+            {c.risk_tier ? <Chip label={titleCase(String(c.risk_tier))} tone={statusTone(String(c.risk_tier))} /> : null}
+            <Chip label={'Health ' + (c.health ?? '—')} tone='slate' />
+          </div>
+        </div>))}</div>
+        : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>{cb.churn_note || 'No customers on the book yet.'}</div>}
+    </SectionCard>
 
     <SectionCard title='Top risks' count={risks.length}>{risks.length ? <div className='divide-y divide-border'>{risks.map((r: any, i: number) => (
       <button key={i} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>

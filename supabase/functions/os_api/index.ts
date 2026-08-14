@@ -74,6 +74,16 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   'ws.fraud': 'read_only', 'ws.refunds': 'read_only', 'ws.intelligence': 'read_only',
   'ws.exec_home': 'read_only', 'ws.company_os': 'read_only', 'ws.notifications': 'read_only', 'ws.live_company': 'read_only',
   'ws.founder_queue': 'read_only',
+  // The nightly graph_rebuild_daily has been drawing a map of the company since it was written and
+  // nothing could reach it: no browser-reachable routine named graph_nodes or graph_edges.
+  company_map: 'read_only',
+  // Customer behaviour was the one of the Intelligence Center's nine items with no route to the
+  // screen: customer_health carries engagement, satisfaction and a risk tier, and fn_ws_customers
+  // returned only identity columns, so none of it ever left the database.
+  'ws.customer_behavior': 'read_only',
+  // What the OS has observed about how the founder decides. Read-only by construction: presentation
+  // may adapt to a habit, governance may not.
+  founder_habits: 'read_only',
   transcribe: 'read_only',
 };
 
@@ -286,6 +296,9 @@ Deno.serve(async (req) => {
     if (action === 'activity') { const { data, error } = await admin.rpc('fn_entity_activity', { p_entity: String(body?.entity || ''), p_id: String(body?.id || '') }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'comment_add') { const { data, error } = await admin.rpc('fn_entity_comment_add', { p_entity: String(body?.entity || ''), p_id: String(body?.id || ''), p_author: email, p_body: String(body?.body || '') }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'nav') { const { data, error } = await admin.rpc('fn_os_nav'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
+    if (action === 'company_map') { const { data, error } = await admin.rpc('fn_company_map', { p_per_class: Number(body?.per_class || 40) }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    if (action === 'ws.customer_behavior') { const { data, error } = await admin.rpc('fn_ws_customer_behavior'); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
+    if (action === 'founder_habits') { const { data, error } = await admin.rpc('fn_founder_habits'); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'ws.suppliers') { const { data, error } = await admin.rpc('fn_ws_suppliers', { p: body?.params || {} }); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
     if (action === 'ws.supplier') { const { data, error } = await admin.rpc('fn_ws_supplier_360', { p_id: Number(body?.id) }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'ws.customer') { const { data, error } = await admin.rpc('fn_ws_customer_360', { p_id: String(body?.id) }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
