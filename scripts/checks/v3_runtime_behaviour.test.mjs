@@ -397,6 +397,24 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
       'the author-is-not-reviewer trigger must refuse, not the assertion below it');
   });
 
+  test(`${name}: every channel marketing publishes to has a video spec with a duration bound`, async (t) => {
+    if (!mgmtToken) { t.skip('no management token'); return; }
+    const r = one(await q(ref, `select
+      count(*) filter (where kind in ('video','reel','short')) video_specs,
+      count(*) filter (where kind in ('video','reel','short') and max_duration_s is null) no_max_duration,
+      count(*) filter (where kind in ('video','reel','short')
+        and not ('video/mp4' = any(allowed_mime))) mp4_not_allowed,
+      count(*) filter (where kind in ('reel','short') and safe_zone_pct < 0.10) vertical_safe_zone_too_small
+      from artifact_platform_spec`));
+    assert.ok(Number(r.video_specs) >= 6, 'the channels marketing uses need their own video constraints');
+    assert.equal(Number(r.no_max_duration), 0, 'a video spec without a duration bound cannot fail a too-long clip');
+    assert.equal(Number(r.mp4_not_allowed), 0, 'an image-only allowed_mime would fail every video on format');
+    // A caption inside a 5% margin is inside the frame and invisible in the app: the platform's
+    // own caption, avatar and action rail cover the top and bottom of a vertical video.
+    assert.equal(Number(r.vertical_safe_zone_too_small), 0,
+      'vertical formats need a safe zone wide enough for the platform UI that covers them');
+  });
+
   // ── certification separation ──────────────────────────────────────────────────
   test(`${name}: no certification material reached the runtime corpus`, async (t) => {
     if (!mgmtToken) { t.skip('no management token'); return; }
