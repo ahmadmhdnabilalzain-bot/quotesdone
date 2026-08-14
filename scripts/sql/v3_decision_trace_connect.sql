@@ -34,21 +34,11 @@ language sql security definer set search_path = public as $$
 $$;
 revoke all on function fn_context_retrieval_prune() from public;
 
--- The recorder. Separate from fn_agent_context_v3 because that one is STABLE and must remain
--- so — it is called inside SELECTs.
-create or replace function fn_record_context_retrieval(
-  p_agent_key text, p_task_class text, p_category text,
-  p_ids text[], p_budget integer, p_chars integer
-) returns bigint
-language sql volatile security definer set search_path = public as $$
-  insert into agent_context_retrieval
-    (agent_key, task_class, category_key, knowledge_ids, knowledge_count, budget_chars, chars_returned)
-  values (p_agent_key, p_task_class, p_category, coalesce(p_ids,'{}'),
-          coalesce(array_length(p_ids,1),0), p_budget, p_chars)
-  returning id;
-$$;
-revoke all on function fn_record_context_retrieval(text, text, text, text[], integer, integer) from public;
-grant execute on function fn_record_context_retrieval(text, text, text, text[], integer, integer) to service_role;
+-- The recorder lived here first and now lives in v3_knowledge_usage_is_visible.sql, which
+-- also writes kb_usage_log. Two files defining one routine is how a repository stops being able
+-- to reproduce production: both landed in the same squash commit, so "the newest file that
+-- defines this routine" had no ordering to work with and sql_files_match_live reported drift
+-- against the wrong one. The definition is not duplicated here.
 
 -- Every decided agent action leaves a trace. The knowledge ids come from that agent's most
 -- recent context assembly; the window is stated rather than implied, and a trace written with
