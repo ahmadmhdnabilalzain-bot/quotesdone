@@ -29,6 +29,22 @@ declare
   v_scope      text[];
   v_role       record;
 begin
+  -- RESOLVE BEFORE CONTEXT ASSEMBLY (14 Aug 2026).
+  --
+  -- This lookup was `where a.agent_key = p_agent_key` against org_agents, so it only ever answered
+  -- to a runtime agent_key. Measured: fn_agent_context_v3('chief_of_staff') returned
+  -- {"error":"unknown agent"} - and chief_of_staff is not a stale string, it is brief's own
+  -- role_id in org_role. fn_org_agent_resolve('chief_of_staff') has always returned 'brief'.
+  --
+  -- This is the hottest path in the company: agent_brain, action_worker, dept_plan, agent_act and
+  -- exec_agents all assemble context through here. An employee addressed by its canonical role id,
+  -- a merged-away key, a packaged role id or a job title got no context at all - not a failure,
+  -- an empty prompt - while the resolver that answers all four sat one call away.
+  --
+  -- Section 2 of the closure brief requires identity to be resolved BEFORE context assembly. This
+  -- is that line. coalesce keeps an unknown key unknown, so the refusal below still fires.
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+
   select a.agent_key, a.department, a.role, a.title, a.manager_key, a.seniority,
          a.responsibilities, a.max_open_tasks, a.active, d.name dept_name, d.charter, d.north_star
     into v_agent
