@@ -88,9 +88,9 @@ because it depends on an external URL):
 |---|---|
 | the imported corpus matches the delivery's declared counts | 2,304 / 1,152 / 1,152 / 768 / 672 / 2,924 = **8,972** V3 training cases; 96 roles and 86 categories with their own knowledge |
 
-## Two tests that failed first
+## Three defects the tests found
 
-Both were real, and both were found by the tests rather than by reading the code.
+Two were real, and both were found by the tests rather than by reading the code.
 
 1. **`company_objective` was always empty.** The assembler filtered `horizon = 'company'`;
    `company_goals` holds `year_1` and `quarter` and has never held `company`. Every agent's
