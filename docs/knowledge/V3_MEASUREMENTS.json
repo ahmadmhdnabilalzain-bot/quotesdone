@@ -26,8 +26,8 @@
       "cert_answers": 0,
       "cert_results": 0,
       "artifact_reviews": 0,
-      "retrievals": 20,
-      "traces": 6
+      "retrievals": 55,
+      "traces": 7
     },
     "layers": [
       {
@@ -278,7 +278,7 @@
       "cert_answers": 0,
       "cert_results": 0,
       "artifact_reviews": 2,
-      "retrievals": 18,
+      "retrievals": 61,
       "traces": 1
     },
     "layers": [
