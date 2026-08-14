@@ -36,8 +36,8 @@ Put everything else — the evidence you used, the alternatives you weighed, you
 evidence you are missing, the postconditions and the review plan — inside "reasoning" as plain
 prose. Do not add keys.
 
-A ten-key object was tried first and the model ran out of tokens closing it, so the answer was
-lost and the agent looked incompetent. Five keys and prose leaves the reasoning intact.
+Keep "reasoning" under 250 words. The gateway stops you at about 900 tokens whatever is asked
+for, so length is not thoroughness here — a long answer simply loses its ending.
 
 If the case does not give you enough to decide, say so in reasoning and set authority to
 "escalate" or "refuse". Inventing a fact you were not given is the worst possible answer.`;
@@ -90,12 +90,40 @@ function parseJson(s: unknown): Record<string, unknown> {
 function requirements(p: Record<string, unknown>): { moves: string[]; fails: string[]; task: string } {
   const arr = (v: unknown) => Array.isArray(v) ? v.map((x) => typeof x === 'string' ? x : JSON.stringify(x)) : [];
   const gold = (p.gold_standard ?? {}) as Record<string, unknown>;
+
+  // Some families state the requirement as an OBJECT whose KEYS are the requirements —
+  // must_flag, must_identify_missing_or_conflict, best_next_question, do_not,
+  // reject_raw_lowest_price_logic. Reading only arrays missed all 2,924 V3 category cases.
+  // A key that forbids something is an automatic fail, not a move.
+  const flat = (v: unknown, into: { moves: string[]; fails: string[] }) => {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) {
+      if (typeof v === 'string' && v.trim()) into.moves.push(v);
+      return;
+    }
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+      const text = `${k}: ${typeof val === 'string' ? val : JSON.stringify(val)}`.slice(0, 300);
+      (/^(do_not|reject|never|avoid|must_not)/i.test(k) ? into.fails : into.moves).push(text);
+    }
+  };
+  const flattened = { moves: [] as string[], fails: [] as string[] };
+  flat(p.gold_standard, flattened);
+  flat(p.expected, flattened);
+  flat(p.expected_behavior, flattened);
+  // MEASURED, NOT ASSUMED. The first version of this list knew eight keys and found nothing in
+  // 7,906 of the 17,890 cases — 44% of the corpus, including EVERY role_cross_department and
+  // EVERY department_management case. They were not unscorable; the extractor was reading for
+  // keys the packaged families do not use. `gold_requirements` alone covers 1,440 of them.
   const moves = [
     ...arr(p.required_expert_moves), ...arr(p.required_actions), ...arr(p.required_output),
     ...arr(p.minimum_required_findings), ...arr(p.expert_response_pattern),
     ...arr(gold.minimum_output), ...arr(gold.decision_sequence), ...arr(p.required_analysis),
+    ...arr(p.gold_requirements), ...arr(p.must_demonstrate), ...arr(p.expected_behavior),
+    ...arr(p.quote_review_requirements), ...arr(p.gold_reasoning_steps),
+    ...arr(p.role_specific_requirements), ...arr(p.scoring_dimensions),
+    ...flattened.moves,
   ];
-  const fails = [...arr(p.automatic_fail), ...arr(p.common_wrong_answers), ...arr(p.common_traps)];
+  const fails = [...arr(p.automatic_fail), ...arr(p.common_wrong_answers), ...arr(p.common_traps),
+    ...arr(p.unsafe_failures), ...arr(p.common_inexpert_response), ...flattened.fails];
   const task = String(p.task || p.situation || p.scenario || p.title || '');
   return { moves: [...new Set(moves)].slice(0, 20), fails: [...new Set(fails)].slice(0, 12), task };
 }
@@ -158,32 +186,38 @@ Deno.serve(async (req) => {
       }
       try {
         const answerPrompt = context + '\n\n# TRAINING CASE\n' + JSON.stringify(payload).slice(0, 5000);
-        const a = await callGw(cred.value, ANSWER_SYS, answerPrompt, 3000);
+        const a = await callGw(cred.value, ANSWER_SYS, answerPrompt, 1500);
         const answer = parseJson(a.content);
-        // A CUT-OFF ANSWER MEASURES THE BUDGET, NOT THE EMPLOYEE. The first run scored two
-        // cases at zero and the grader said exactly why: "The answer is empty ({})". The model
-        // had written a good answer; finish_reason was "length", so the JSON never closed and
-        // the parser gave up. Recording that as a competency failure would have been a lie
-        // about the agent, so it is recorded as a runner fault and left unscored.
-        if (!Object.keys(answer).length) {
-          const why = a.truncated || a.finish_reason === 'length'
-            ? 'answer truncated at the token ceiling before its JSON closed'
-            : 'answer contained no parseable JSON';
+        const answerText = String(a.content ?? '').trim();
+        // GRADE WHAT THE AGENT WROTE, NOT WHETHER ITS JSON CLOSED.
+        //
+        // The first version parsed the answer and graded the object, so a reply cut off at the
+        // token ceiling parsed to {} and the grader honestly reported "The answer is empty".
+        // Raising the ceiling did not help: the gateway returns 900 output tokens whatever
+        // `max` asks for — measured at 1,100, 3,000 and 4,000, all 900 with
+        // finish_reason "length". The ceiling is the gateway's, not this function's.
+        //
+        // So the grader now reads the RAW text. A truncated answer still shows most of the
+        // professional moves it made and is scored on them; only an answer with no content at
+        // all is unscorable. The parsed object is used for the optional detail fields when it
+        // happens to be there.
+        if (!answerText) {
           await admin.from('agent_training_attempt').update({
-            score: null, passed: null, failure_class: 'runner_truncated',
+            score: null, passed: null, failure_class: 'no_answer_returned',
             model: String(a.model || ''), input_tokens: a.input_tokens,
             output_tokens: a.output_tokens, cost_aed: a.cost_aed,
-            detail: { error: why, finish_reason: a.finish_reason },
+            detail: { error: 'the model returned no content', finish_reason: a.finish_reason },
           }).eq('agent_key', agentKey).eq('case_id', caseId).eq('purpose', purpose);
           costAed += a.cost_aed;
-          results.push({ case_id: caseId, unscored: why });
+          results.push({ case_id: caseId, unscored: 'the model returned no content' });
           continue;
         }
 
         const gradePrompt = 'CASE TASK:\n' + req0.task
           + '\n\nREQUIRED PROFESSIONAL MOVES:\n' + JSON.stringify(req0.moves)
           + '\n\nAUTOMATIC FAIL IF THE ANSWER DID ANY OF THESE:\n' + JSON.stringify(req0.fails)
-          + '\n\nTHE ANSWER:\n' + JSON.stringify(answer).slice(0, 4000);
+          + '\n\nTHE ANSWER (raw; it may be cut off at the end — grade the moves it did make, '
+          + 'and do not penalise it for stopping mid-sentence):\n' + answerText.slice(0, 5000);
         const g = await callGw(cred.value, GRADE_SYS, gradePrompt, 700);
         const grade = parseJson(g?.content);
 
@@ -201,7 +235,8 @@ Deno.serve(async (req) => {
           failure_class: autoFail ? String(grade.automatic_fail_reason || 'automatic_fail')
             : passed ? null : 'missing_required_moves',
           detail: { moves_missing: grade.moves_missing ?? [], notes: grade.notes ?? null,
-                    answer_confidence: answer.confidence ?? null, authority: answer.authority ?? null },
+                    answer_confidence: answer.confidence ?? null, authority: answer.authority ?? null,
+                    answer_truncated: a.truncated || a.finish_reason === 'length' },
         }).eq('agent_key', agentKey).eq('case_id', caseId).eq('purpose', purpose);
 
         results.push({ case_id: caseId, score, passed, automatic_fail: autoFail,
