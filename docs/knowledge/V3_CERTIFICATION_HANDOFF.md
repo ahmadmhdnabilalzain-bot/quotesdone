@@ -141,5 +141,5 @@ consequential executors stay advisory.
 
 **No role has been labelled human-equivalent, expert, or independently certified by this
 session.** The corpus is imported, the runtime retrieves it, the traces name it, the loops
-gate on it, and 42 behavioural tests pass on both projects. That is a system ready to be
+gate on it, and 50 behavioural tests pass on both projects. That is a system ready to be
 examined — not a system that has passed one.

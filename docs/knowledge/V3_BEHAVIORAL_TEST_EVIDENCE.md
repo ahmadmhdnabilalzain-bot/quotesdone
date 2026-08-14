@@ -90,7 +90,7 @@ because it depends on an external URL):
 
 ## Three defects the tests found
 
-Two were real, and both were found by the tests rather than by reading the code.
+Two were real defects in the runtime and the third was a harness bug. All three were found by running the tests, not by reading the code.
 
 1. **`company_objective` was always empty.** The assembler filtered `horizon = 'company'`;
    `company_goals` holds `year_1` and `quarter` and has never held `company`. Every agent's

@@ -22,7 +22,7 @@ task / event / customer request
 
 | path | caller proved | evidence |
 |---|---|---|
-| `fn_agent_context_v3` | `fn_agent_context(text,integer,text)` | 42/42 behavioural tests |
+| `fn_agent_context_v3` | `fn_agent_context(text,integer,text)` | 50/50 behavioural tests |
 | `fn_agent_context(text,integer,text)` | `fn_agent_context_capped` | already called by `agent_brain`, `action_worker`, `dept_plan`, `agent_act`, `blog_weekly`, `boost_recommend`, `content_revise`, `designer`, `knowledge_exam` |
 | `fn_record_context_retrieval` | `fn_agent_context(text,integer,text)` | one row per assembly; measured 63 knowledge ids for `cfo` |
 | `z90_agent_action_decision_trace` | any decided `agent_actions` row | probe: 1 trace, knowledge ids carried through |
