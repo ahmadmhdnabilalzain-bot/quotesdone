@@ -333,14 +333,43 @@ export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) 
   const rich = makeLlmRich(models, def);
   const fnName = def.fn || guessFn();
   return async function llm(sys: string, input: string | Msg[], max?: number, sysStable = ''): Promise<string | null> {
-    const res = await rich(sys, input, max as number, sysStable);
+    let res = await rich(sys, input, max as number, sysStable);
+
+    // ONE CONTROLLED REPAIR, THEN FAIL CLOSED (14 Aug 2026).
+    //
+    // This used to log the truncation and RETURN THE TRUNCATED STRING anyway - as its own comment
+    // said: "nothing downstream can detect it". Measured under Gate B of the Agent Runtime
+    // Connection Blueprint: 12 of 60 routed employee calls (20%) finished with
+    // finish_reason=length, and every one of those half-sentences was handed to a caller that
+    // believed it had a complete answer. Raising the ceiling from 1000 to 2000 took it to 4 of 33
+    // (12%) - better, and still not zero, because the p90 stays pinned at whatever the ceiling is.
+    // A censored distribution cannot be fixed by moving the censor.
+    //
+    // OUTPUT_AND_TRUNCATION_POLICY.md is explicit: never execute a truncated consequential output,
+    // and permit at most one controlled repair call by default. So: ask once more, explicitly for
+    // a shorter answer, and if that is still cut off return null rather than a fragment.
     if (res.truncated) {
-      await logAuth('output_truncated', fnName, 'error',
-        fnName + ' received a TRUNCATED model answer (finish_reason=length). The response is ' +
-        'missing its ending and this caller uses the string-only contract, so nothing downstream ' +
-        'can detect it. Either lower the prompt/context size or move this caller to makeLlmRich ' +
-        'and fail closed on result.truncated.');
+      await logAuth('output_truncated', fnName, 'warn',
+        fnName + ' received a TRUNCATED model answer (finish_reason=length); retrying once with an '
+        + 'explicit brevity instruction before failing closed.');
+      const brief = sys
+        + '\n\nIMPORTANT: your previous answer was cut off by the output limit. Answer the same '
+        + 'question again, complete, and materially shorter. Lead with the decision or the refusal. '
+        + 'Omit preamble, restatement and worked reasoning.';
+      res = await rich(brief, input, max as number, sysStable);
     }
+
+    if (res.truncated) {
+      // Deliberately distinct from "the model declined": a refusal is a decision, a fragment is
+      // not. The caller still receives null on the string contract, but the ledger says which.
+      await logAuth('output_truncated_failed_closed', fnName, 'error',
+        fnName + ' returned NO ANSWER: the model answer was still truncated after one repair '
+        + 'attempt, so the fragment was withheld rather than passed off as a complete answer. '
+        + 'Reduce the prompt/context for this caller, or move it to makeLlmRich and handle '
+        + 'result.truncated explicitly.');
+      return null;
+    }
+
     return res.content;
   };
 }

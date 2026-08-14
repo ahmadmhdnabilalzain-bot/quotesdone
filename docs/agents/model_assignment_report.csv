@@ -1,0 +1,91 @@
+role_id,display_name,department,runtime_mode,routing_tier,task_class,tier,model,fallback,max_tokens,use_llm
+ai_quality_reviewer,AI Quality Assurance Reviewer,assurance,independent_reviewer,reviewer_auditor,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+cybersecurity_engineer,Cybersecurity Engineer,assurance,independent_reviewer,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+it_operations_engineer,IT Operations & Site Reliability Engineer,assurance,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+quality_and_release_director,QA & Release Management Director,assurance,scheduled_manager,reviewer_auditor,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+test_automation_engineer,Test Automation Reviewer,assurance,independent_reviewer,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+communications_manager,Communications Manager,customer_experience,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+customer_onboarding,Customer Onboarding Specialist,customer_experience,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+customer_retention,Customer Retention Specialist,customer_experience,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+customer_success_director,Customer Success Director,customer_experience,scheduled_manager,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+customer_support,Customer Support Specialist,customer_experience,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+lifecycle_channel_operations,Lifecycle Channel Operations Specialist,customer_experience,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+rfq_success,RFQ Success Specialist,customer_experience,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+business_intelligence_analyst,Business Intelligence Analyst,data_intel,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+category_curator,Category Knowledge Curator,data_intel,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+data_engineer,Data Engineer,data_intel,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+data_intelligence_director,Data & Intelligence Director,data_intel,scheduled_manager,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+forecasting_analyst,Forecasting Analyst,data_intel,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+knowledge_director,Knowledge Director,data_intel,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+knowledge_engineer,Knowledge Engineer,data_intel,event_driven_operator,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+knowledge_validator,Knowledge Validator,data_intel,independent_reviewer,reviewer_auditor,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+market_intelligence_analyst,Market Intelligence Analyst,data_intel,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+supplier_intelligence_analyst,Supplier Intelligence Analyst,data_intel,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+taxonomy_manager,Taxonomy Governance Manager,data_intel,on_demand_specialist,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+ceo,Chief Executive (AI),exec,scheduled_manager,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+chief_of_staff,Chief of Staff,exec,scheduled_manager,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+chief_performance_officer,Chief Performance Officer,exec,scheduled_manager,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+organization_designer,Organisation Design Lead,exec,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+strategy_director,Strategy Director,exec,on_demand_specialist,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+accounts_payable,Accounts Payable Specialist,finance,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+billing_operations,Billing & Reconciliation Specialist,finance,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+cfo,Chief Financial Officer,finance,scheduled_manager,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+collections_and_revenue_assurance,Collections & Revenue Assurance Specialist,finance,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+financial_controller,Financial Controller,finance,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+fpna_analyst,FP&A Analyst,finance,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+payments_and_billing_manager,Payments & Billing Manager,finance,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+account_management,Account Manager,growth,on_demand_specialist,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+brand_and_creative,Brand & Creative Manager,growth,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+business_development,Business Development Manager,growth,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+chief_revenue_officer,Chief Revenue Officer,growth,scheduled_manager,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+content_strategy_and_copy,Content Strategy & Copy Specialist,growth,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+crm_and_revenue_operations,CRM & Revenue Operations Manager,growth,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+government_relations,Government & Enterprise Relations Manager,growth,on_demand_specialist,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+marketing_director,Marketing Director,growth,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+marketing_performance_analyst,Marketing Performance Analyst,growth,event_driven_operator,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+partnerships,Partnerships Manager,growth,on_demand_specialist,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+social_media_and_community,Social Media & Community Manager,growth,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+visual_design,Visual Design Director,growth,on_demand_specialist,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+compliance_and_privacy_officer,Compliance & Privacy Officer,legal,independent_reviewer,reviewer_auditor,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+contract_manager,Contract Manager,legal,on_demand_specialist,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+fraud_analyst,Fraud Reviewer,legal,independent_reviewer,reviewer_auditor,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+general_counsel,General Counsel,legal,scheduled_manager,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+moderation_specialist,Content Moderation Reviewer,legal,independent_reviewer,reviewer_auditor,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+risk_and_governance_manager,Risk & Governance Manager,legal,independent_reviewer,reviewer_auditor,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+trust_and_safety_manager,Trust & Safety Manager,legal,event_driven_operator,reviewer_auditor,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+boq_analyst,BOQ & Specification Analyst,marketplace,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+document_intelligence_manager,Document Intelligence Manager,marketplace,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+drawing_analyst,Drawing & CAD Analyst,marketplace,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+inquiry_quality_analyst,Inquiry Quality & Scoring Analyst,marketplace,event_driven_operator,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+inquiry_router,Inquiry Router,marketplace,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+marketplace_director,Marketplace Director,marketplace,scheduled_manager,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+quote_evaluation,Quote Evaluation Specialist,marketplace,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+rfq_qualification_manager,RFQ Qualification Manager,marketplace,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+spec_commercial,Commercial Services Specialist,marketplace,on_demand_specialist,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+spec_construction,Construction & Civil Specialist,marketplace,on_demand_specialist,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+spec_fitout,Interior & Fit-Out Specialist,marketplace,on_demand_specialist,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+spec_industrial,Industrial & Energy Specialist,marketplace,on_demand_specialist,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+spec_mep,MEP Specialist,marketplace,on_demand_specialist,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+supplier_coverage,Supplier Coverage & Liquidity Specialist,marketplace,on_demand_specialist,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+supplier_onboarding_specialist,Supplier Onboarding Specialist,marketplace,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+supplier_retention,Supplier Retention Specialist,marketplace,on_demand_specialist,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+supplier_verification,Supplier Verification Reviewer,marketplace,independent_reviewer,reviewer_auditor,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+chief_operating_officer,Chief Operating Officer,people_ops,scheduled_manager,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+culture_and_performance_manager,Culture & Performance Manager,people_ops,on_demand_specialist,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+document_operations_specialist,Document Operations Specialist,people_ops,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+hr_director,HR Director,people_ops,on_demand_specialist,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+learning_and_development_manager,Learning & Development Manager,people_ops,on_demand_specialist,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+process_improvement_manager,Process Improvement Manager,people_ops,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+project_coordinator,Project Coordinator (PMO),people_ops,event_driven_operator,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+recruitment_specialist,Recruitment Specialist,people_ops,on_demand_specialist,operations_specialist,routine_employee_reasoning,medium,google/gemini-3.5-flash,anthropic/claude-sonnet-5,2000,true
+ai_architect,AI Architect,product_eng,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+ai_director,AI Director,product_eng,on_demand_specialist,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+backend_engineer,Backend Engineer,product_eng,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+cto,Chief Technology Officer,product_eng,scheduled_manager,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+engineering_manager,Engineering Manager,product_eng,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+frontend_engineer,Frontend Engineer,product_eng,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+model_evaluator,Model Evaluation Reviewer,product_eng,independent_reviewer,reviewer_auditor,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+product_manager,Product Manager,product_eng,event_driven_operator,director,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+product_optimization_engineer,Product Optimisation Engineer,product_eng,event_driven_operator,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+prompt_engineer,Agent & Prompt Engineer,product_eng,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
+solution_architect,Solution Architect,product_eng,on_demand_specialist,analyst_controller,agent_reasoning,large,anthropic/claude-sonnet-5,anthropic/claude-opus-4.8,8000,true
