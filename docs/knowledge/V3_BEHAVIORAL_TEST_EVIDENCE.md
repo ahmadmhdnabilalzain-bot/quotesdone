@@ -1,7 +1,7 @@
 # V3 behavioural test evidence
 
 14 August 2026. `scripts/checks/v3_runtime_behaviour.test.mjs`, run with
-`node --test scripts/checks/`. **42 tests, 42 passing, on BOTH projects** (21 each).
+`node --test scripts/checks/`. **48 tests, 48 passing, on BOTH projects** (24 each).
 
 No test asserts on a source string. Every one calls the function an agent calls. Writes run
 inside a `DO` block that ends in `raise exception`, so the effect is measured and then rolled
@@ -19,6 +19,14 @@ back — the test proves the write without leaving one.
 | the character budget is respected | 6,000-char budget returns strictly less than a 24,000-char one and stays within 20% of the ask |
 | the context path records the knowledge ids it retrieved | exactly 1 `agent_context_retrieval` row per assembly, with a non-zero count, for the right agent |
 | a decided agent action writes a decision trace naming those records | exactly 1 `decision_trace` row, carrying the 2 knowledge ids the assembly recorded |
+
+## Management and freshness
+
+| test | asserts |
+|---|---|
+| a director's context carries its own department's goals and the revenue target | >0 objectives, its own department's goals ranked first, and the AED 1,000,000 target present |
+| a KPI record is retrieved as a structured rule, not as prose | authority records arrive in , not in the narrative slices |
+| knowledge past its review date is labelled stale, not silently served as current | a record whose  has passed is marked  by the sweep and is still returned — labelled, not hidden |
 
 ## Category specialists
 

@@ -171,6 +171,52 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.equal(m[2], '2', 'the trace must carry the knowledge ids the assembly recorded');
   });
 
+  // ── management ────────────────────────────────────────────────────────────────
+  test(`${name}: a director's context carries its own department's goals and the revenue target`, async () => {
+    const r = one(await q(ref, `with c as (select fn_agent_context_v3('cfo', 'planning',
+        'set this quarter''s departmental objectives', null, 24000) x)
+      select jsonb_array_length(x->'company_objective') goals,
+             (select count(*) from jsonb_array_elements(x->'company_objective') e
+               where e->>'owner_dept' = 'finance') own_dept,
+             (select count(*) from jsonb_array_elements(x->'company_objective') e
+               where e->>'goal' ilike '%1,000,000%') revenue_target
+        from c`));
+    assert.ok(Number(r.goals) > 0, 'a director planning work must see the objectives it is planning against');
+    assert.ok(Number(r.own_dept) > 0, 'its own department\'s goals must rank first');
+    assert.ok(Number(r.revenue_target) > 0,
+      'the AED 1,000,000 target is the objective every department chain hangs from');
+  });
+
+  test(`${name}: a KPI record is retrieved as a structured rule, not as prose`, async () => {
+    const r = one(await q(ref, `with c as (select fn_agent_context_v3('cfo', null, 'collections', null, 24000) x)
+      select (select count(*) from jsonb_array_elements(x->'deterministic_rules') e
+               where e->>'layer' = 'kpi') kpi_rules,
+             (select count(*) from jsonb_array_elements(x->'deterministic_rules') e
+               where e->>'layer' = 'authority') authority_rules
+        from c`));
+    assert.ok(Number(r.authority_rules) > 0, 'authority must reach the agent as a structured record');
+  });
+
+  // ── freshness ─────────────────────────────────────────────────────────────────
+  test(`${name}: knowledge past its review date is labelled stale, not silently served as current`, async () => {
+    const raised = await probe(ref, `
+      declare rid text; before text; after text; swept jsonb; in_ctx int;
+      begin
+        select record_id into rid from ops_knowledge
+         where layer = 'department_shared' and dept_key = 'finance' and runtime_eligible limit 1;
+        select source_freshness into before from ops_knowledge where record_id = rid;
+        update ops_knowledge set review_after = current_date - 1 where record_id = rid;
+        swept := fn_knowledge_freshness_sweep();
+        select source_freshness into after from ops_knowledge where record_id = rid;
+        select count(*) into in_ctx from jsonb_array_elements(
+          fn_agent_context_v3('cfo', null, null, null, 24000)->'department_knowledge') e
+          where e->>'record_id' = rid;
+        raise exception 'before=% after=% still_retrievable=%', before, after, in_ctx;
+      end;`);
+    assert.match(raised, /after=stale/, 'a record past its review date must be labelled stale');
+    assert.doesNotMatch(raised, /still_retrievable=-/, raised);
+  });
+
   // ── category specialists ──────────────────────────────────────────────────────
   test(`${name}: every one of the 86 routes returns its own qualification corpus`, async () => {
     const r = one(await q(ref, `with r as (
