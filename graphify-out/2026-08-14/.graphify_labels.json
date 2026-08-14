@@ -2117,5 +2117,6 @@
   "2115": "a_198k_faq_in_a_prompt_slot_that_holds_24k.sql",
   "2116": "the_canonical_answers_queued_behind_26000_rows.sql",
   "2117": "the_highest_priority_knowledge_row_reaches_nobody.sql",
-  "2118": "the_reflection_ceiling_was_priced_at_half_what_it_costs.sql"
+  "2118": "the_reflection_ceiling_was_priced_at_half_what_it_costs.sql",
+  "2119": "the_generic_word_outranked_the_specific_phrase.sql"
 }

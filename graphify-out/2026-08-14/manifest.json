@@ -13773,5 +13773,20 @@
     "mtime": 1786682642.486118,
     "ast_hash": "173fdfe7ce6c3751c22881eb4ecd7bbf",
     "semantic_hash": ""
+  },
+  "scripts/sql/957_planned_steps_no_executor_could_ever_match.sql": {
+    "mtime": 1786685994.1170826,
+    "ast_hash": "c2bfe9ca49c065b5b3f3f7ce7826f459",
+    "semantic_hash": ""
+  },
+  "scripts/sql/marble_worktop_and_tiling_matched_nothing.sql": {
+    "mtime": 1786684209.1914868,
+    "ast_hash": "5624c08d2104c116ac60b955ac961354",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_generic_word_outranked_the_specific_phrase.sql": {
+    "mtime": 1786684941.8945844,
+    "ast_hash": "511608bad9564dd82e4dfe06ea3c18c1",
+    "semantic_hash": ""
   }
 }
