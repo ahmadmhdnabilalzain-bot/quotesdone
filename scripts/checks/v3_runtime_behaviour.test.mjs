@@ -393,11 +393,17 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     const r = one(await q(ref, `select
       has_schema_privilege('anon','cert','USAGE') anon_usage,
       has_schema_privilege('authenticated','cert','USAGE') auth_usage,
+      has_schema_privilege('service_role','cert','USAGE') service_usage,
+      has_table_privilege('service_role','cert.certification_answer_key','SELECT') service_answers,
       (select count(*) from pg_policies where schemaname = 'cert') policies,
       (select bool_and(relrowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace
         where n.nspname='cert' and c.relkind='r') rls_on`));
     assert.equal(r.anon_usage, false, 'anon must not reach the certification schema');
     assert.equal(r.auth_usage, false, 'authenticated must not reach the certification schema');
+    // The one that actually matters: every edge function runs as service_role, and
+    // service_role bypasses RLS. If it had USAGE here, RLS would be no boundary at all.
+    assert.equal(r.service_usage, false, 'service_role bypasses RLS, so it must not reach the cert schema');
+    assert.equal(r.service_answers, false, 'no runtime path may read an answer key');
     assert.equal(Number(r.policies), 0, 'RLS with no policy is the boundary; a policy would open it');
     assert.equal(r.rls_on, true);
   });

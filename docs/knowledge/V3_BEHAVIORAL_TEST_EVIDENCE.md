@@ -73,7 +73,7 @@ because it depends on an external URL):
 | test | asserts |
 |---|---|
 | no certification material reached the runtime corpus | 0 `ops_knowledge` rows with layer `certification`; 0 rows from a certification file path; 0 certification cases in `agent_training_case`; **0 rows in `cert.certification_answer_key`** |
-| the certification island is unreachable by the runtime roles | `anon` and `authenticated` have no `USAGE` on schema `cert`; RLS on with **zero policies**, which denies every non-owner role |
+| the certification island is unreachable by the runtime roles | `anon`, `authenticated` AND `service_role` have no `USAGE` on schema `cert` and no SELECT on the answer key; RLS on with **zero policies**. service_role is the one that matters: every edge function runs as it, and it bypasses RLS — if it had USAGE, RLS would be no boundary at all |
 | certification results are append-only | an `UPDATE` on `cert.certification_result` raises |
 
 ## Readiness

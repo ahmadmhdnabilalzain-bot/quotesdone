@@ -25,8 +25,10 @@ Loading them is the evaluator's decision, not the builder's.
 
 Schema `cert`, created empty on both projects, with `USAGE` granted to nobody. Row-level
 security is enabled on all three tables with **zero policies**, which denies every non-owner
-role — `anon` and `authenticated` included, and those are the roles a runtime agent reaches
-the database as.
+role. Measured on both projects: `anon`, `authenticated` and — the one that matters —
+`service_role` have no `USAGE` on the schema and no SELECT on the answer key. Every edge
+function runs as `service_role` and `service_role` bypasses RLS, so a grant there would have
+made the RLS boundary decorative. Only the `postgres` owner can reach it.
 
 ### `cert.certification_question`
 ```
