@@ -1,3 +1,0 @@
-- generic [active] [ref=f17e1]:
-  - button "Ask QuotesDone" [ref=f17e3] [cursor=pointer]
-  - button "Open Next.js Dev Tools" [ref=f17e11] [cursor=pointer]
