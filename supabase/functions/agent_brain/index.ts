@@ -223,8 +223,31 @@ async function retrieve(key:string, msg:string){
 }
 async function context(key:string){
   const since7=new Date(Date.now()-7*864e5).toISOString();
-  const { data:mine } = await admin.from('agent_actions').select('id,kind,title,risk,recommendation,status,detail,created_at').eq('agent',key).order('id',{ascending:false}).limit(15);
-  const { data:runs } = await admin.from('agent_runs').select('agent,status,finished_at,counts').order('id',{ascending:false}).limit(12);
+  // TWO JSONB BLOBS NOBODY READ, CUT MID-OBJECT BY A .slice() (14 Aug 2026).
+  //
+  // This selected `detail` on 15 agent_actions rows and `counts` on 12 agent_runs rows, and the
+  // caller then did JSON.stringify(ctx).slice(0, 9000). Measured during the spend audit:
+  // agent_brain is 93% input tokens and AED 107.87 of the AED 211.41 spent on AI in 30 days, and
+  // this snapshot is up to 9,000 of the ~48,000 characters it sends every turn.
+  //
+  // `detail` is the executor's working record — for a handoff it holds {from, from_name,
+  // requested_at}; for a worked item it holds the ENTIRE 20,000-character deliverable under
+  // `detail.deliverable`, written by action_worker. Fifteen of those, most of the way through a
+  // 9,000-character budget, is how the snapshot filled: the employee was being handed back the
+  // full text of work it had already done, in place of the live company figures the same block
+  // exists to carry. `counts` is the same shape for runs — prompt_chars, stable_chars, history
+  // turns: instrumentation about a previous call, not context for this one.
+  //
+  // The blunt .slice(0, 9000) then cut whatever survived mid-object, so the JSON the model
+  // received routinely did not parse. Dropping the two blobs is what makes the slice stop biting,
+  // which matters more than the tokens: the company figures live at the END of this object and
+  // were the first thing the truncation removed.
+  //
+  // recommendation is capped rather than dropped — it is the one field that says what the item
+  // actually asks for, and 240 characters is enough to recognise it. Nothing else is removed.
+  const { data:mineRaw } = await admin.from('agent_actions').select('id,kind,title,risk,recommendation,status,created_at').eq('agent',key).order('id',{ascending:false}).limit(15);
+  const mine = (mineRaw||[]).map((m:any)=>({ ...m, recommendation: String(m.recommendation??'').slice(0,240) }));
+  const { data:runs } = await admin.from('agent_runs').select('agent,status,finished_at').order('id',{ascending:false}).limit(12);
   const { data:dues } = await admin.from('supplier_dues').select('amount_due,fine_amount,status').not('status','in','(paid,waived)');
   let dueSum=0,dueCnt=0; for(const d of (dues||[])){ dueCnt++; dueSum+=Number(d.amount_due||0)+Number(d.fine_amount||0); }
   const [pendAll,kyc,refunds,drafts,inq7,q7,sup,cust,sec7]=await Promise.all([
@@ -248,7 +271,11 @@ async function context(key:string){
     cntT('customers'),
     cntT('security_events',(q)=>q.gte('created_at',since7))
   ]);
-  return { my_pending_items:mine||[], recent_agent_runs:runs||[], company:{ suppliers:sup, customers:cust, inquiries_7d:inq7, quotes_7d:q7, pending_approvals_all:pendAll, kyc_pending:kyc, refunds_requested:refunds, marketing_drafts:drafts, security_events_7d:sec7, supplier_dues_outstanding:{count:dueCnt,total_aed:Math.round(dueSum)} } };
+  // company FIRST. The 9,000-character slice below cuts from the END, and these are the figures
+  // the system prompt tells the employee are the ONLY valid source for operational numbers — they
+  // were last in the object and so were the first thing any truncation deleted.
+  return { company:{ suppliers:sup, customers:cust, inquiries_7d:inq7, quotes_7d:q7, pending_approvals_all:pendAll, kyc_pending:kyc, refunds_requested:refunds, marketing_drafts:drafts, security_events_7d:sec7, supplier_dues_outstanding:{count:dueCnt,total_aed:Math.round(dueSum)} },
+           my_pending_items:mine||[], recent_agent_runs:runs||[] };
 }
 
 Deno.serve(async (req)=>{
