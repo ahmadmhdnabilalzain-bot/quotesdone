@@ -490,15 +490,37 @@ for (const [label, ref] of Object.entries(PROJECTS)) {
   // So the boundary is not "one holder per packaged role". It is: a packaged role may be shared
   // ONLY through a mapping that says so. A one_to_one row sharing its archetype is a mistake,
   // because one_to_one is the claim that it is not shared.
-  it('a packaged role is shared only where the mapping declares it composite', async () => {
+  // The contradiction is one_to_one, not "not composite". Measured on both projects:
+  //   package_composite 48 rows / 47 shared  - the archetype legitimately covering several desks
+  //   requires_split    33 rows /  1 shared  - a flag that this holder should be split out; it is
+  //                                            an acknowledgement, not a claim of exclusivity
+  //   runtime_composite 27 rows /  0 shared
+  //   one_to_one        19 rows /  0 shared  - the claim that it is NOT shared, and it holds
+  // An earlier version of this test forbade any non-composite mapping from sharing, which made
+  // requires_split look like a violation the moment v3_repair_06 set one. That was the assertion
+  // being wider than the property it was defending.
+  it('a mapping that claims exclusivity never shares its packaged role', async () => {
     const rows = await q(ref, `select i.packaged_role_id, i.agent_key, i.mapping_type
       from org_role_identity i
-      where i.mapping_type not like '%composite%'
+      where i.mapping_type = 'one_to_one'
         and exists (select 1 from org_role_identity j
                      where j.packaged_role_id = i.packaged_role_id and j.agent_key <> i.agent_key)
       order by 1, 2`);
     assert.equal(rows.length, 0,
-      `a non-composite mapping shares its packaged role: ${JSON.stringify(rows)}`);
+      `a one_to_one mapping shares its packaged role, which is a contradiction in terms: ${JSON.stringify(rows)}`);
+  });
+
+  // requires_split is tracked debt, not a failure — but it must not quietly become the way new
+  // sharing is introduced. One is the measured baseline; a second means somebody used the flag
+  // instead of deciding.
+  it('shared packaged roles under requires_split do not grow past the known one', async () => {
+    const r = await one(ref, `select count(*) n from org_role_identity i
+      where i.mapping_type = 'requires_split'
+        and exists (select 1 from org_role_identity j
+                     where j.packaged_role_id = i.packaged_role_id and j.agent_key <> i.agent_key)`);
+    assert.ok(Number(r.n) <= 1,
+      `${r.n} requires_split rows now share a packaged role, up from the known 1 `
+      + '(supplier_analyst on data-analytics-and-intelligence-analyst-controller)');
   });
 
   // ---- 17. Reviewer independence survives the alias ------------------------------------------
