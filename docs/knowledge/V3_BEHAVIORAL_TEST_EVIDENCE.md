@@ -25,8 +25,8 @@ back — the test proves the write without leaving one.
 | test | asserts |
 |---|---|
 | a director's context carries its own department's goals and the revenue target | >0 objectives, its own department's goals ranked first, and the AED 1,000,000 target present |
-| a KPI record is retrieved as a structured rule, not as prose | authority records arrive in , not in the narrative slices |
-| knowledge past its review date is labelled stale, not silently served as current | a record whose  has passed is marked  by the sweep and is still returned — labelled, not hidden |
+| a KPI record is retrieved as a structured rule, not as prose | authority records arrive in `deterministic_rules`, not in the narrative slices |
+| knowledge past its review date is labelled stale, not silently served as current | a record whose `review_after` has passed is marked `stale` by the sweep and is still returned — labelled, not hidden |
 
 ## Category specialists
 
