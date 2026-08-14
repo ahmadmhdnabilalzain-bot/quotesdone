@@ -119,9 +119,11 @@ select fn_category_quote_ready('<route slug>', '<spec jsonb>');
 | `certified_for_defined_role_scope` | **0** | **0** |
 
 **No role reached `independent_certification_pending`.** That rung requires `training_passed`,
-and no agent has yet been driven through a training case by a runner — the loop is built,
-tested and gated, but it has not been run in anger. Claiming the rung would be claiming a
-result nobody produced.
+which requires a completed remediation cycle. The loop has now been run in anger — `agent_train`
+drove five agents through unseen packaged cases on both projects and scored them against each
+case's own requirements (cfo 0.875, quote_evaluation 0.85, spec_fitout 0.525, spec_mep 0.625) —
+but none of those was a remediation cycle opened on a failure and closed on a retest. Claiming
+the rung would be claiming a result nobody produced.
 
 `fn_role_readiness_recompute()` raises if `certified_for_defined_role_scope` ever appears, so
 the one word that belongs to the evaluator cannot be set by a build.

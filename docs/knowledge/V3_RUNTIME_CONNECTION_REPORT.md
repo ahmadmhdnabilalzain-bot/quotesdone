@@ -31,7 +31,8 @@ task / event / customer request
 | `fn_artifact_publish_blocked` | `postiz_publish` | refuses to upload an image with no passing review of those bytes |
 | `artifact_review` edge function | `org_action_executor` class `artifact.review`, invoked by `cos_execute` | measured a real 1859×460 PNG and failed it for an Instagram feed slot |
 | `fn_propose_lesson` / `fn_validate_lesson` | learning loop; retrieval reads `validated` only | proposed lesson invisible, validated lesson retrievable |
-| `fn_assign_training` / `fn_remediation_step` | remediation loop | 5 practice + 5 retest cases, 0 overlap |
+| `fn_assign_training` / `fn_remediation_step` | `agent_train` edge function | 5 practice + 5 retest cases, 0 overlap |
+| `agent_train` edge function | `org_action_executor` class `agent.train`, invoked by `cos_execute` | ran on both projects: real answers, real scores, real cost |
 | `fn_role_readiness_recompute` | cron `v3_role_readiness_daily` | readiness derived from evidence daily |
 | `fn_knowledge_freshness_sweep` | cron `v3_knowledge_freshness_daily` | stale records labelled, not hidden |
 
@@ -67,7 +68,8 @@ by the behavioural test, not by reading the code.
 | `playbook_for` | `not_connected` | superseded in practice by `fn_category_checklist`; left in place rather than deleted in the same session that replaced its function |
 | `cert.*` | empty by design | the evaluator loads it; see `V3_CERTIFICATION_HANDOFF.md` |
 | vision review of video | `not_connected` | `artifact_review` measures and reviews still images. Representative frames and transitions for video are not implemented. |
-| training execution | `not_connected` | the loop assigns, scores and gates, but no agent has yet been driven through a training case by a runner. This is why no role can be `training_passed`. |
+| training at scale | `connected, not exercised` | `agent_train` drives an agent through unseen cases and scores them, proven on both projects. It has been run for five agents, not ninety-three: every case is two model calls, so it runs on demand and not on a cron. No role has completed a remediation cycle yet, which is why none is `training_passed`. |
+| 25.6% of the training corpus | `not_scorable` | 4,574 of 17,890 cases state no requirement this grader can read. Coverage went 55.8% → 74.4% once the extractor learned the twenty key names the families actually use; the rest carry only a situation and a task. |
 
 ## Readiness
 
