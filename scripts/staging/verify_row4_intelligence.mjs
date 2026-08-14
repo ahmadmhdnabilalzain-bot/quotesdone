@@ -120,9 +120,17 @@ try {
                   (${num(S3)}, 0.44, 31.0, 5, 0, 1.12, 3.1, 0.51, now())
            on conflict (lead_id) do nothing`);
 
+  // THE FIXTURE HAS TO OBEY THE PRODUCT'S OWN RULE (14 Aug 2026). `reviews_reason_required` requires
+  // a comment of at least 10 characters — a review must carry a real reason, not a word — and this
+  // fixture said 'good', four characters. The insert therefore threw 23514 and killed the whole
+  // script AFTER it had already printed "146/147", so every run today was a PARTIAL run reporting a
+  // complete-looking score. A partial scorer run is not a score.
+  // The constraint is correct product behaviour and is NOT relaxed; the fixture is what was wrong.
   await w(`insert into public.reviews (supplier_id, customer_id, inquiry_id, rating, comment,
                                        r_communication, r_quality, r_punctuality, r_documentation, r_after_sales, r_compliance)
-           values (${num(S1)}, ${q(ids.customer)}, ${q(I_ALU_PAST)}, 4, 'good', 4, 5, 4, 4, 3, 4)`);
+           values (${num(S1)}, ${q(ids.customer)}, ${q(I_ALU_PAST)}, 4,
+                   'Good work overall — on time, clean handover, minor snag on documentation.',
+                   4, 5, 4, 4, 3, 4)`);
 
   // ── 2. §8 — the reference number ──────────────────────────────────────────────────────────────
   const refs = await rows(`select rfq_no from public.inquiries where id in
