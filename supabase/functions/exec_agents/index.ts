@@ -23,9 +23,66 @@ const OFFICERS: Record<string, { name: string; rpc: string; brief: string }> = {
   competitive: { name: 'Competitive Intelligence Officer', rpc: 'fn_strategy_metrics', brief: 'Assess QuotesDone competitive position from internal proxies (category coverage vs demand, response rate, savings). Note explicitly that live competitor tracking needs an external data connector (SEO/ads/traffic) to be complete, and list what to monitor.' }
 };
 
+// ELEVEN STRATEGIC REPORTS A DAY, EACH, ABOUT A MARKETPLACE WITH NO ACTIVITY (14 Aug 2026).
+//
+// MEASURED ON PRODUCTION over the four days 10-13 Aug: exec_reports holds 44-45 rows per officer —
+// about ELEVEN per officer per day, six officers — and exec_agents made 379 model calls in that
+// window for AED 18.44, 15.5% of all AI spend. Over the same four days the marketplace took 0
+// inquiries, 0 quotes and 0 trades, so `metrics` was very often byte-identical between runs.
+//
+// Only ONE of them is ever read. exec-intel-quantified-recommendation, and every other consumer,
+// reads the NEWEST report per officer — this function's own header says so. So ten of every eleven
+// reports per officer per day were synthesised, billed, filed, and never looked at.
+//
+// The table already says what the intended cadence was: exec_reports.period is a DATE. One report
+// per officer per period is what the schema has always implied; nothing enforced it.
+//
+// THE GUARD IS ON THE INPUT, NOT THE CLOCK, WHICH MATTERS. Refusing by time alone would suppress a
+// genuine report when something real happened at 11am. This compares the METRICS: if a report
+// already exists for this officer and period AND the metrics rpc returns exactly what that report
+// was built from, there is nothing new to say and the model is not called. The moment a single
+// number moves, a fresh report is produced immediately, on the same tick, with no delay.
+//
+// So the officers keep their hourly heartbeat and stop paying for it when nothing has changed.
+// Trading will make the metrics move constantly and the reports will resume at full rate by
+// themselves — this throttles silence, not work.
+function metricsFingerprint(m: unknown): string {
+  // Stable across key order, so a jsonb round-trip cannot look like a change.
+  const norm = (v: any): any =>
+    Array.isArray(v) ? v.map(norm)
+      : (v && typeof v === 'object')
+        ? Object.keys(v).sort().reduce((o: any, kk) => { o[kk] = norm(v[kk]); return o; }, {})
+        : v;
+  try { return JSON.stringify(norm(m ?? {})); } catch { return ''; }
+}
+
 async function runOfficer(k: string): Promise<any> {
   const cfg = OFFICERS[k]; if (!cfg) return { error: 'unknown officer' };
   const { data: metrics } = await admin.rpc(cfg.rpc);
+
+  // NOTHING NEW TO SAY. See the block above.
+  const period = new Date().toISOString().slice(0, 10);
+  try {
+    const { data: prior } = await admin.from('exec_reports')
+      .select('id,metrics').eq('officer', k).eq('period', period)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (prior && metricsFingerprint(prior.metrics) === metricsFingerprint(metrics)) {
+      // note is a TRUE SENTENCE here, not null. fn_action_invoke_collect fills
+      // org_tasks.result.deliverable from this field, and ten routines read it. The failure path
+      // below returns null on purpose — a deliverable synthesised from a run that reached no model
+      // would be a lie. This is the opposite case: the run succeeded, the officer looked, and the
+      // finding is that nothing has changed. Saying so is the deliverable.
+      return { officer: k, report_id: prior.id, filed: false, unchanged: true,
+               recommendations: 0, ai: false, attempts: 0,
+               note: cfg.name + ' reviewed the live metrics and they are identical to report '
+                   + prior.id + ', already filed for ' + period + '. Nothing has changed since that '
+                   + 'report, so it stands as this period\'s position and no new synthesis was '
+                   + 'commissioned.',
+               reason: 'metrics unchanged since report ' + prior.id + ' for ' + period
+                     + '; no model was called' };
+    }
+  } catch (_e) { /* a failed lookup must not stop an officer reporting */ }
+
   const sys = 'You are ' + cfg.name + ' for QuotesDone, the UAE anonymous B2B quotation marketplace. ' + cfg.brief + ' Be concrete, specific to the numbers, and honest about small sample sizes. Return ONLY JSON: {"summary":string,"findings":[string],"recommendations":[{"action":string,"impact":"high|medium|low","effort":"high|medium|low","confidence":number}]}. 3-6 findings, 3-6 recommendations, most important first.';
   // ONE RETRY, THEN THE TRUTH. Measured on production 9 Aug 2026: three of six officers —
   // competitive, product_ux and strategy — had filed reports carrying the fallback summary
@@ -52,7 +109,7 @@ async function runOfficer(k: string): Promise<any> {
       parsed = reparsed; raw = retry;
     } else if (!parsed && reparsed) { parsed = reparsed; raw = retry; }
   }
-  const row: any = { officer: k, period: new Date().toISOString().slice(0, 10), metrics: metrics || {},
+  const row: any = { officer: k, period, metrics: metrics || {},
     summary: parsed?.summary || ('Metrics captured; AI synthesis unavailable this run.'),
     findings: Array.isArray(parsed?.findings) ? parsed.findings : [],
     recommendations: Array.isArray(parsed?.recommendations) ? parsed.recommendations : [] };
