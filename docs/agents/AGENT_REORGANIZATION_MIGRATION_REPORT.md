@@ -224,6 +224,7 @@ scripts/sql/org_reorg_06_compat_gaps.sql            merged-key aliases, OS cover
 scripts/sql/org_reorg_07_os_map.sql                 OS map assigned deliberately
 scripts/sql/org_reorg_08_findings.sql               three findings the tests produced
 scripts/sql/org_reorg_09_target_model_crosswalk.sql the crosswalk the pack scorecard found
+scripts/sql/org_reorg_10_search_path.sql          search_path pinned on the ten routines added here
 ```
 
 Each was applied with `node scripts/apply_sql.mjs <file> --promote --ddl`, which posts identical
