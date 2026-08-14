@@ -625,8 +625,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/exec_agents/index.ts": {
-    "mtime": 1786682524.8755882,
-    "ast_hash": "c04c37af38f59836d726418d4c038079",
+    "mtime": 1786697323.037451,
+    "ast_hash": "0f6d873ef175dfa31249b81a0a9714f7",
     "semantic_hash": ""
   },
   "supabase/functions/export_all_knowledge/index.ts": {
@@ -695,8 +695,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/inquiry_ai/index.ts": {
-    "mtime": 1785769836.4658446,
-    "ast_hash": "64be0d9c23e2707bfcc2917d6ca0ec44",
+    "mtime": 1786693681.136821,
+    "ast_hash": "f3ba912f656c918538bcf248b9ffb78a",
     "semantic_hash": ""
   },
   "supabase/functions/inquiry_dedup_check/index.ts": {
@@ -880,8 +880,8 @@
     "semantic_hash": "b43f55aab0fc3f2e3d899ab5da90e65a"
   },
   "supabase/functions/postiz_publish/index.ts": {
-    "mtime": 1785769836.4825873,
-    "ast_hash": "59ce87b589d85c33f43cb656b5144cef",
+    "mtime": 1786694269.6682365,
+    "ast_hash": "caf0cf1ea8dcca9418b092e823a4015e",
     "semantic_hash": ""
   },
   "supabase/functions/profile_ai/index.ts": {
@@ -2430,8 +2430,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/dept_plan/index.ts": {
-    "mtime": 1786136626.097633,
-    "ast_hash": "d7d67b2440964f3fc53aba12aeff932a",
+    "mtime": 1786688500.855007,
+    "ast_hash": "4d19debc0ad80fe5c3cf280ec9418c74",
     "semantic_hash": ""
   },
   "supabase/functions/github_sync/index.ts": {
@@ -12285,8 +12285,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/deploy-functions.yml": {
-    "mtime": 1786226428.4333615,
-    "ast_hash": "4f32d5373d241dc06e14dff4fae8308b",
+    "mtime": 1786690104.886953,
+    "ast_hash": "979f313e7bf88f3f2018ab9e35926aca",
     "semantic_hash": ""
   },
   ".github/workflows/project-parity.yml": {
@@ -13787,6 +13787,171 @@
   "scripts/sql/the_generic_word_outranked_the_specific_phrase.sql": {
     "mtime": 1786684941.8945844,
     "ast_hash": "511608bad9564dd82e4dfe06ea3c18c1",
+    "semantic_hash": ""
+  },
+  "docs/knowledge/V3_MEASUREMENTS.json": {
+    "mtime": 1786695601.0409577,
+    "ast_hash": "0e0fe91991b616a5bb390c6580096024",
+    "semantic_hash": ""
+  },
+  "docs/knowledge/V3_ROLE_IDENTITY.json": {
+    "mtime": 1786691608.0965192,
+    "ast_hash": "a72e6440e7d246c55e0902e34ce95505",
+    "semantic_hash": ""
+  },
+  "scripts/checks/v3_runtime_behaviour.test.mjs": {
+    "mtime": 1786698247.9588058,
+    "ast_hash": "bbc0ca86d2c85e27719c1ba698701687",
+    "semantic_hash": ""
+  },
+  "scripts/kb/v3_crosswalk.mjs": {
+    "mtime": 1786691595.5900078,
+    "ast_hash": "6c34b9222bde3ef6d3d6e954f77c7516",
+    "semantic_hash": ""
+  },
+  "scripts/kb/v3_identity_load.mjs": {
+    "mtime": 1786692562.7746704,
+    "ast_hash": "b9121faaa879e7fa40519608f31cab8f",
+    "semantic_hash": ""
+  },
+  "scripts/kb/v3_import.mjs": {
+    "mtime": 1786692446.6215715,
+    "ast_hash": "8e41de02a21c939591dbba4753a47f79",
+    "semantic_hash": ""
+  },
+  "scripts/kb/v3_inventory.mjs": {
+    "mtime": 1786691269.0428393,
+    "ast_hash": "3dcd9cb99fb76f05b10c4e6767dd227a",
+    "semantic_hash": ""
+  },
+  "scripts/kb/v3_package.mjs": {
+    "mtime": 1786693254.480889,
+    "ast_hash": "ad233f8ff1f3278da24bcba1201d7f1b",
+    "semantic_hash": ""
+  },
+  "scripts/kb/v3_report.mjs": {
+    "mtime": 1786694825.9463296,
+    "ast_hash": "9a7d236acd10b24776826178e14d5f0b",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_event_dispatch_live_after_the_recurrence_cooldown.sql": {
+    "mtime": 1786695303.3254716,
+    "ast_hash": "91fba7aa4231356155323362db13ba12",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_model_autoswitch_live_after_the_timeout_repricing.sql": {
+    "mtime": 1786695303.7144382,
+    "ast_hash": "3ca2df9020c2c63a6f0c553cca452d1f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_autoswitch_repriced_our_own_timeouts.sql": {
+    "mtime": 1786688500.8530073,
+    "ast_hash": "6c4d118e11762a3f0f29f47f3280144f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_artifact_review.sql": {
+    "mtime": 1786693920.84502,
+    "ast_hash": "e9bfb3e7973afc1da08077a9eedf6a50",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_artifact_review_wiring.sql": {
+    "mtime": 1786694109.9081035,
+    "ast_hash": "79f8be8fa84f6efd43b9be4690e1a436",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_category_route_map.sql": {
+    "mtime": 1786693592.974893,
+    "ast_hash": "a585ed1d59b67bdff2026de6f58d29e3",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_category_runtime.sql": {
+    "mtime": 1786693602.1888535,
+    "ast_hash": "2aed0ab794ce067510542b09a6fad19d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_context_assembly.sql": {
+    "mtime": 1786694537.573006,
+    "ast_hash": "395dc1f84e92994178967dea8ea6a0ae",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_context_recording.sql": {
+    "mtime": 1786692866.246524,
+    "ast_hash": "6feeeaa39575b447660fed0ca4a7e433",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_decision_trace_connect.sql": {
+    "mtime": 1786692789.5235956,
+    "ast_hash": "c765e1de6c77768534cf328546900803",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_grants.sql": {
+    "mtime": 1786695466.703739,
+    "ast_hash": "466ed4b218d4df9906528c1a3969b8f2",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_health_jobs.sql": {
+    "mtime": 1786694794.5431151,
+    "ast_hash": "641b4aa7c31380cf2f9e63e9828125fd",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_ingestion_undo.sql": {
+    "mtime": 1786692171.3561516,
+    "ast_hash": "5da06c2391e41dc9b23061225ee68b0e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_knowledge_runtime_schema.sql": {
+    "mtime": 1786691707.3602712,
+    "ast_hash": "32454b440ba8d76d120db988a2812853",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_knowledge_usage_is_visible.sql": {
+    "mtime": 1786696174.700833,
+    "ast_hash": "a1303e78803d94e41691dcb760464618",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_learning_and_remediation.sql": {
+    "mtime": 1786698068.6169167,
+    "ast_hash": "19440f9129fec88a470b894dee5b72b9",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_officers_get_an_identity.sql": {
+    "mtime": 1786697300.8416674,
+    "ast_hash": "2994f8f9d905b11e2f68b9a7e7fc61a4",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v3_readiness.sql": {
+    "mtime": 1786694737.6230526,
+    "ast_hash": "7c8caccfadbbe245b064c85381e27c8d",
+    "semantic_hash": ""
+  },
+  "supabase/functions/artifact_review/index.ts": {
+    "mtime": 1786694006.2274752,
+    "ast_hash": "317a8c6fe2fae390b5f59a2720efc30f",
+    "semantic_hash": ""
+  },
+  "docs/knowledge/V3_BEHAVIORAL_TEST_EVIDENCE.md": {
+    "mtime": 1786698341.2833982,
+    "ast_hash": "f79b74de8fccad1eed72d52232bd5d9d",
+    "semantic_hash": ""
+  },
+  "docs/knowledge/V3_CERTIFICATION_HANDOFF.md": {
+    "mtime": 1786698341.2833982,
+    "ast_hash": "f4dba3fd9832e6e52f8f932af4a8d46a",
+    "semantic_hash": ""
+  },
+  "docs/knowledge/V3_INGESTION_REPORT.md": {
+    "mtime": 1786694956.1781888,
+    "ast_hash": "4e30e5e5f0e32c08c5dfed384f016b58",
+    "semantic_hash": ""
+  },
+  "docs/knowledge/V3_RUNTIME_CONNECTION_REPORT.md": {
+    "mtime": 1786698341.3816032,
+    "ast_hash": "76bb96d6cc99e5b7a5001018184f582a",
+    "semantic_hash": ""
+  },
+  "docs/knowledge/V3_RUNTIME_ROLE_RECONCILIATION.md": {
+    "mtime": 1786694923.3300927,
+    "ast_hash": "c99c334130486da12701959028dbb5fb",
     "semantic_hash": ""
   }
 }

@@ -37,6 +37,9 @@ verify_jwt = false
 [functions.action_worker]
 verify_jwt = false
 
+[functions.agent_train]
+verify_jwt = false
+
 [functions.agent_act]
 verify_jwt = false
 
@@ -65,6 +68,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.apify_scrape]
+verify_jwt = false
+
+[functions.artifact_review]
 verify_jwt = false
 
 [functions.archive_rfq]

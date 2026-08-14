@@ -21377,6 +21377,17 @@
       "norm_label": "ref"
     },
     {
+      "label": "957_planned_steps_no_executor_could_ever_match.sql",
+      "file_type": "code",
+      "source_file": "scripts/sql/957_planned_steps_no_executor_could_ever_match.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_sql_957_planned_steps_no_executor_could_ever_match",
+      "community": 580,
+      "community_name": "20260729141515_supplier_documentation_scoreboard_view.sql",
+      "norm_label": "957_planned_steps_no_executor_could_ever_match.sql"
+    },
+    {
       "label": "a_198k_faq_in_a_prompt_slot_that_holds_24k.sql",
       "file_type": "code",
       "source_file": "scripts/sql/a_198k_faq_in_a_prompt_slot_that_holds_24k.sql",
@@ -26558,6 +26569,17 @@
       "norm_label": "public.v_operating_manual"
     },
     {
+      "label": "marble_worktop_and_tiling_matched_nothing.sql",
+      "file_type": "code",
+      "source_file": "scripts/sql/marble_worktop_and_tiling_matched_nothing.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_sql_marble_worktop_and_tiling_matched_nothing",
+      "community": 596,
+      "community_name": "20260802172746_p2_c1_stage_b_fix_alias_ambiguity_counting.sql",
+      "norm_label": "marble_worktop_and_tiling_matched_nothing.sql"
+    },
+    {
       "label": "marketing_budget_decision.sql",
       "file_type": "code",
       "source_file": "scripts/sql/marketing_budget_decision.sql",
@@ -30098,6 +30120,17 @@
       "community": 1974,
       "community_name": "@supabase/supabase-js",
       "norm_label": "public.trg_action_gate()"
+    },
+    {
+      "label": "the_generic_word_outranked_the_specific_phrase.sql",
+      "file_type": "code",
+      "source_file": "scripts/sql/the_generic_word_outranked_the_specific_phrase.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_sql_the_generic_word_outranked_the_specific_phrase",
+      "community": 2119,
+      "community_name": "the_generic_word_outranked_the_specific_phrase.sql",
+      "norm_label": "the_generic_word_outranked_the_specific_phrase.sql"
     },
     {
       "label": "the_hand_written_map_fell_behind_the_spending.sql",
@@ -43504,8 +43537,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_locale_console_page",
-      "community": 554,
-      "community_name": "20260728080201_lead_haystack_view.sql",
+      "community": 359,
+      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
       "norm_label": "console/page.tsx"
     },
     {
@@ -43515,8 +43548,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_app_locale_console_page_metadata",
-      "community": 554,
-      "community_name": "20260728080201_lead_haystack_view.sql",
+      "community": 359,
+      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
       "norm_label": "metadata"
     },
     {
@@ -43526,8 +43559,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_app_locale_console_page_consolepage",
-      "community": 554,
-      "community_name": "20260728080201_lead_haystack_view.sql",
+      "community": 359,
+      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
       "norm_label": "consolepage()"
     },
     {
@@ -44439,8 +44472,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_chatwidget",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "chatwidget.tsx"
     },
     {
@@ -44450,8 +44483,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_chatwidget_msg",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "msg"
     },
     {
@@ -44461,8 +44494,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_chatwidget_t",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "t"
     },
     {
@@ -44472,8 +44505,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_components_chatwidget_render",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "render()"
     },
     {
@@ -44483,8 +44516,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_chatwidget_chatwidget",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "chatwidget()"
     },
     {
@@ -45748,8 +45781,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_me_portalshell",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "portalshell.tsx"
     },
     {
@@ -45759,8 +45792,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_components_me_portalshell_nav_groups",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "nav_groups"
     },
     {
@@ -45770,8 +45803,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_components_me_portalshell_mobile_primary",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "mobile_primary"
     },
     {
@@ -45781,8 +45814,8 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "src_components_me_portalshell_askassistant",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "askassistant()"
     },
     {
@@ -45792,8 +45825,8 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "src_components_me_portalshell_assistantpanel",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "assistantpanel()"
     },
     {
@@ -45803,8 +45836,8 @@
       "source_location": "L210",
       "_origin": "ast",
       "id": "src_components_me_portalshell_stattile",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "stattile()"
     },
     {
@@ -45814,8 +45847,8 @@
       "source_location": "L236",
       "_origin": "ast",
       "id": "src_components_me_portalshell_rfq_state",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "rfq_state"
     },
     {
@@ -45836,8 +45869,8 @@
       "source_location": "L252",
       "_origin": "ast",
       "id": "src_components_me_portalshell_statuspill",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "statuspill()"
     },
     {
@@ -45847,8 +45880,8 @@
       "source_location": "L275",
       "_origin": "ast",
       "id": "src_components_me_portalshell_pinned",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "pinned"
     },
     {
@@ -45858,8 +45891,8 @@
       "source_location": "L276",
       "_origin": "ast",
       "id": "src_components_me_portalshell_rankof",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "rankof()"
     },
     {
@@ -45869,8 +45902,8 @@
       "source_location": "L283",
       "_origin": "ast",
       "id": "src_components_me_portalshell_portalshell",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "portalshell()"
     },
     {
@@ -50434,8 +50467,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_projects_parts",
-      "community": 161,
-      "community_name": "vt_scan/index.ts",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "projects/parts.tsx"
     },
     {
@@ -50445,8 +50478,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_portal_projects_parts_stat",
-      "community": 161,
-      "community_name": "vt_scan/index.ts",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "stat()"
     },
     {
@@ -50467,8 +50500,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_components_portal_projects_parts_bar",
-      "community": 161,
-      "community_name": "vt_scan/index.ts",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "bar()"
     },
     {
@@ -50478,8 +50511,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_components_portal_projects_parts_listskeleton",
-      "community": 161,
-      "community_name": "vt_scan/index.ts",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "listskeleton()"
     },
     {
@@ -51831,8 +51864,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor",
-      "community": 580,
-      "community_name": "20260729141515_supplier_documentation_scoreboard_view.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplieradvisor.tsx"
     },
     {
@@ -51842,8 +51875,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_rec",
-      "community": 580,
-      "community_name": "20260729141515_supplier_documentation_scoreboard_view.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "rec"
     },
     {
@@ -51853,8 +51886,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_advice",
-      "community": 580,
-      "community_name": "20260729141515_supplier_documentation_scoreboard_view.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "advice"
     },
     {
@@ -51864,8 +51897,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_lang",
-      "community": 580,
-      "community_name": "20260729141515_supplier_documentation_scoreboard_view.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "lang"
     },
     {
@@ -51875,8 +51908,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_call",
-      "community": 580,
-      "community_name": "20260729141515_supplier_documentation_scoreboard_view.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "call()"
     },
     {
@@ -51886,8 +51919,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_t",
-      "community": 580,
-      "community_name": "20260729141515_supplier_documentation_scoreboard_view.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "t"
     },
     {
@@ -51897,8 +51930,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_sev",
-      "community": 580,
-      "community_name": "20260729141515_supplier_documentation_scoreboard_view.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "sev"
     },
     {
@@ -51908,8 +51941,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_supplieradvisor",
-      "community": 580,
-      "community_name": "20260729141515_supplier_documentation_scoreboard_view.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplieradvisor()"
     },
     {
@@ -52117,8 +52150,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplierdocumentimpact.tsx"
     },
     {
@@ -52128,8 +52161,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact_lang",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "lang"
     },
     {
@@ -52139,8 +52172,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact_doc",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "doc"
     },
     {
@@ -52150,8 +52183,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact_impact",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "impact"
     },
     {
@@ -52161,8 +52194,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact_call",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "call()"
     },
     {
@@ -52172,8 +52205,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact_t",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "t"
     },
     {
@@ -52183,8 +52216,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact_supplierdocumentimpact",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplierdocumentimpact()"
     },
     {
@@ -52656,8 +52689,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernegotiation",
-      "community": 3,
-      "community_name": "cn",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "suppliernegotiation.tsx"
     },
     {
@@ -52667,8 +52700,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernegotiation_lang",
-      "community": 3,
-      "community_name": "cn",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "lang"
     },
     {
@@ -52678,8 +52711,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernegotiation_scenario",
-      "community": 3,
-      "community_name": "cn",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "scenario"
     },
     {
@@ -52689,8 +52722,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernegotiation_payload",
-      "community": 3,
-      "community_name": "cn",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "payload"
     },
     {
@@ -52700,8 +52733,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernegotiation_call",
-      "community": 3,
-      "community_name": "cn",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "call()"
     },
     {
@@ -52711,8 +52744,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernegotiation_t",
-      "community": 3,
-      "community_name": "cn",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "t"
     },
     {
@@ -52722,8 +52755,8 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernegotiation_suppliernegotiation",
-      "community": 3,
-      "community_name": "cn",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "suppliernegotiation()"
     },
     {
@@ -52854,8 +52887,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieronboarding",
-      "community": 596,
-      "community_name": "20260802172746_p2_c1_stage_b_fix_alias_ambiguity_counting.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplieronboarding.tsx"
     },
     {
@@ -52865,8 +52898,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieronboarding_lang",
-      "community": 596,
-      "community_name": "20260802172746_p2_c1_stage_b_fix_alias_ambiguity_counting.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "lang"
     },
     {
@@ -52876,8 +52909,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieronboarding_msg",
-      "community": 596,
-      "community_name": "20260802172746_p2_c1_stage_b_fix_alias_ambiguity_counting.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "msg"
     },
     {
@@ -52887,8 +52920,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieronboarding_profile",
-      "community": 596,
-      "community_name": "20260802172746_p2_c1_stage_b_fix_alias_ambiguity_counting.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "profile"
     },
     {
@@ -52898,8 +52931,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieronboarding_call",
-      "community": 596,
-      "community_name": "20260802172746_p2_c1_stage_b_fix_alias_ambiguity_counting.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "call()"
     },
     {
@@ -52909,8 +52942,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieronboarding_t",
-      "community": 596,
-      "community_name": "20260802172746_p2_c1_stage_b_fix_alias_ambiguity_counting.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "t"
     },
     {
@@ -52920,8 +52953,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieronboarding_fields",
-      "community": 596,
-      "community_name": "20260802172746_p2_c1_stage_b_fix_alias_ambiguity_counting.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "fields"
     },
     {
@@ -52931,8 +52964,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieronboarding_empty",
-      "community": 596,
-      "community_name": "20260802172746_p2_c1_stage_b_fix_alias_ambiguity_counting.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "empty"
     },
     {
@@ -52942,8 +52975,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieronboarding_supplieronboarding",
-      "community": 596,
-      "community_name": "20260802172746_p2_c1_stage_b_fix_alias_ambiguity_counting.sql",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplieronboarding()"
     },
     {
@@ -54163,8 +54196,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_button",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 161,
+      "community_name": "vt_scan/index.ts",
       "norm_label": "button.tsx"
     },
     {
@@ -54174,8 +54207,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_ui_button_buttonvariants",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 161,
+      "community_name": "vt_scan/index.ts",
       "norm_label": "buttonvariants"
     },
     {
@@ -54185,8 +54218,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_ui_button_buttonprops",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 161,
+      "community_name": "vt_scan/index.ts",
       "norm_label": "buttonprops"
     },
     {
@@ -54196,8 +54229,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_ui_button_button",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 161,
+      "community_name": "vt_scan/index.ts",
       "norm_label": "button"
     },
     {
@@ -54537,8 +54570,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu",
-      "community": 359,
-      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "dropdown-menu.tsx"
     },
     {
@@ -54548,8 +54581,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenusubtrigger",
-      "community": 359,
-      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "dropdownmenusubtrigger"
     },
     {
@@ -54559,8 +54592,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenusubcontent",
-      "community": 359,
-      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "dropdownmenusubcontent"
     },
     {
@@ -54570,8 +54603,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenucontent",
-      "community": 359,
-      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "dropdownmenucontent"
     },
     {
@@ -54581,8 +54614,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenuitem",
-      "community": 359,
-      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "dropdownmenuitem"
     },
     {
@@ -54592,8 +54625,8 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenucheckboxitem",
-      "community": 359,
-      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "dropdownmenucheckboxitem"
     },
     {
@@ -54603,8 +54636,8 @@
       "source_location": "L120",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenuradioitem",
-      "community": 359,
-      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "dropdownmenuradioitem"
     },
     {
@@ -54614,8 +54647,8 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenulabel",
-      "community": 359,
-      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "dropdownmenulabel"
     },
     {
@@ -54625,8 +54658,8 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenuseparator",
-      "community": 359,
-      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "dropdownmenuseparator"
     },
     {
@@ -54636,8 +54669,8 @@
       "source_location": "L172",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenushortcut",
-      "community": 359,
-      "community_name": "20260802171500_p2_03_expectation_ledger_entry_classification.sql",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "dropdownmenushortcut()"
     },
     {
@@ -54845,8 +54878,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_skeleton",
-      "community": 161,
-      "community_name": "vt_scan/index.ts",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "skeleton.tsx"
     },
     {
@@ -54856,8 +54889,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_components_ui_skeleton_skeleton",
-      "community": 161,
-      "community_name": "vt_scan/index.ts",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "skeleton()"
     },
     {
@@ -55395,8 +55428,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_supaenv",
-      "community": 69,
-      "community_name": "@radix-ui/react-separator",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supaenv.ts"
     },
     {
@@ -55406,8 +55439,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_utils",
-      "community": 161,
-      "community_name": "vt_scan/index.ts",
+      "community": 3,
+      "community_name": "cn",
       "norm_label": "utils.ts"
     },
     {
@@ -346855,5 +346888,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "6e8eea8e6214b8f8ab5c3b5ad9e3ec91ae89c04a"
+  "built_at_commit": "55fb3aa90aaa02179615ccc91319c2a7c2b805ca"
 }

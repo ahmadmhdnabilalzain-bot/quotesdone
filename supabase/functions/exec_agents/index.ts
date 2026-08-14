@@ -83,7 +83,24 @@ async function runOfficer(k: string): Promise<any> {
     }
   } catch (_e) { /* a failed lookup must not stop an officer reporting */ }
 
-  const sys = 'You are ' + cfg.name + ' for QuotesDone, the UAE anonymous B2B quotation marketplace. ' + cfg.brief + ' Be concrete, specific to the numbers, and honest about small sample sizes. Return ONLY JSON: {"summary":string,"findings":[string],"recommendations":[{"action":string,"impact":"high|medium|low","effort":"high|medium|low","confidence":number}]}. 3-6 findings, 3-6 recommendations, most important first.';
+  // THE OFFICER'S OWN CONTEXT. Until 14 Aug 2026 this prompt was the hard-coded brief and the
+  // metrics, and nothing else: six officers filed a report every day with none of their
+  // department's SOPs, decision rules, authority or role knowledge in front of them, and left no
+  // knowledge-usage record behind. None of the six keys existed in org_agents or org_agent_alias
+  // either, so no role identity covered the work they filed. The alias rows added with this
+  // change are what let the one context path resolve them.
+  let brain = '';
+  try {
+    const { data: al } = await admin.from('org_agent_alias').select('agent_key').eq('alias', k).maybeSingle();
+    if (al?.agent_key) {
+      const { data } = await admin.rpc('fn_agent_context_capped',
+        { p_agent_key: al.agent_key, p_max_chars: 7000, p_query: cfg.brief });
+      brain = data ? String(data) : '';
+    }
+  } catch (_e) { /* an officer must still report if its context cannot be assembled */ }
+
+  const sys = (brain ? brain + '\n\n' : '')
+    + 'You are ' + cfg.name + ' for QuotesDone, the UAE anonymous B2B quotation marketplace. ' + cfg.brief + ' Be concrete, specific to the numbers, and honest about small sample sizes. Return ONLY JSON: {"summary":string,"findings":[string],"recommendations":[{"action":string,"impact":"high|medium|low","effort":"high|medium|low","confidence":number}]}. 3-6 findings, 3-6 recommendations, most important first.';
   // ONE RETRY, THEN THE TRUTH. Measured on production 9 Aug 2026: three of six officers —
   // competitive, product_ux and strategy — had filed reports carrying the fallback summary
   // "Metrics captured; AI synthesis unavailable this run.", zero findings and zero
