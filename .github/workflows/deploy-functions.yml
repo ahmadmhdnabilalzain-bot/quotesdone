@@ -22,11 +22,30 @@
 # than two implementations that drift.
 #
 # ── WHAT THIS DOES AND DOES NOT DO ──────────────────────────────────────────────────────────────
-# Push to any branch     -> deploy the CHANGED functions to STAGING, after deno check.
-# Manual dispatch        -> deploy to production, and only when someone types the project ref.
+# Push to a branch       -> deploy the CHANGED functions to STAGING, after deno check.
+# Push to main           -> STAGING, then PRODUCTION with the same resolved slug set.
+# Manual dispatch        -> the one project ref someone typed, and nothing else.
 #
-# Production is never automatic. That is deliberate and matches the -IMeanProduction flag the
-# PowerShell script has always required.
+# ── "PRODUCTION IS NEVER AUTOMATIC" USED TO BE WRITTEN HERE, AND IT COST US (14 Aug 2026) ────────
+# It was deliberate, and it was wrong for a reason nobody had measured: production then moved only
+# when somebody remembered to dispatch this workflow by hand, and the dispatch input DEFAULTS to the
+# staging ref — so the easy path was the wrong one and the correct path was an act of memory.
+#
+# Measured across all 199 functions on both projects: 168 deployed bundles differed. Most was
+# harmless dependency drift (every function imports jsr:@supabase/supabase-js@2, floating on major,
+# so a July build resolved 2.108.2 against staging's 2.112.3). But cos_execute and dept_plan shared
+# the SAME dependency version and still differed by exactly 5,839 bytes each — an identical delta
+# across two functions means a shared module, and production was carrying an older compiled
+# _shared/internal_auth.ts than the repo. Merged in #316, live on staging and only staging since
+# 13 Aug. First-party code, merged, CI-green, and not in production for a day.
+#
+# Reason 1 in the list above — "production currently runs an unmerged branch" — was the original
+# justification and it has expired: main is what production runs now, which is why the promotion is
+# keyed to a push to main and not to any branch.
+#
+# The safety that mattered is kept, and is stricter than a flag: production is a SEPARATE step that
+# runs only after the staging deploy succeeds, so a bundle that cannot reach staging can never reach
+# production. deploy_functions.mjs still enforces all four rules below for both targets.
 #
 # ── REQUIRED SECRET ─────────────────────────────────────────────────────────────────────────────
 #   SUPABASE_ACCESS_TOKEN   a personal access token from https://supabase.com/dashboard/account/tokens
@@ -37,7 +56,7 @@ name: deploy edge functions
 on:
   push:
     branches: ['**']
-    paths: ['supabase/functions/**', 'supabase/config.toml']
+    paths: ['supabase/functions/**', 'supabase/config.toml', '.github/workflows/deploy-functions.yml']
   workflow_dispatch:
     inputs:
       target:
@@ -87,6 +106,8 @@ jobs:
             echo "ref=${{ github.event.inputs.target }}" >> "$GITHUB_OUTPUT"
             echo "slugs=${{ github.event.inputs.slugs }}" >> "$GITHUB_OUTPUT"
             echo "base=${{ github.sha }}~1" >> "$GITHUB_OUTPUT"
+            # A dispatch already names its own target, so it never promotes on top of it.
+            echo "promote=false" >> "$GITHUB_OUTPUT"
           else
             before='${{ github.event.before }}'
             case "$before" in
@@ -95,6 +116,25 @@ jobs:
             echo "ref=${{ env.STAGING_REF }}" >> "$GITHUB_OUTPUT"
             echo "slugs=" >> "$GITHUB_OUTPUT"
             echo "base=$before" >> "$GITHUB_OUTPUT"
+            # ── PRODUCTION WAS ONLY EVER AS CURRENT AS THE LAST MANUAL DEPLOY (14 Aug 2026) ───────
+            # This workflow deployed a push to STAGING_REF and stopped there, so production only
+            # moved when somebody remembered to dispatch it with the production ref typed by hand —
+            # and the dispatch input defaults to staging, so the easy path was the wrong one.
+            #
+            # MEASURED: 168 of 199 production bundles differed from staging. Most was dependency
+            # drift (functions import jsr:@supabase/supabase-js@2, floating on major, so production
+            # ran 2.108.2 against staging's 2.112.3), but cos_execute and dept_plan shared the same
+            # dependency version and still differed by exactly 5,839 bytes each — production was
+            # carrying an OLDER compiled _shared/internal_auth.ts than the repo. That change was
+            # merged in #316 and had been live on staging, and only staging, since 13 Aug.
+            #
+            # A merge to main is the point at which the repo becomes the truth, so that is where the
+            # promotion belongs. Other branches still deploy to staging alone.
+            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              echo "promote=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "promote=false" >> "$GITHUB_OUTPUT"
+            fi
           fi
 
       # Print the set before doing anything to it. "Deployed nothing" and "had nothing to deploy"
@@ -152,3 +192,32 @@ jobs:
           if [ "${{ steps.scope.outputs.ref }}" = "${{ env.PRODUCTION_REF }}" ]; then prod="--production"; fi
           node scripts/deploy_functions.mjs --ref=${{ steps.scope.outputs.ref }} $prod \
             ${{ steps.scope.outputs.slugs || format('--changed --base={0}', steps.scope.outputs.base) }}
+
+      # ── AND THEN PRODUCTION ──────────────────────────────────────────────────────────────────
+      # Deliberately a SEPARATE step, after the staging deploy, rather than a loop over both refs:
+      # if staging fails, this step does not run, so a broken bundle cannot reach production by
+      # being second in a list. The same resolved slug set is used for both, so the two projects
+      # move together or not at all.
+      #
+      # deploy_functions.mjs takes --changed --base itself, and its own logic widens the set to
+      # every importer when anything under _shared moves — that widening is what production has been
+      # missing, not the tooling. Passing the identical arguments is the point.
+      - name: Deploy to production
+        if: steps.gate.outputs.configured == 'true' && steps.scope.outputs.promote == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          node scripts/deploy_functions.mjs --ref=${{ env.PRODUCTION_REF }} --production \
+            ${{ steps.scope.outputs.slugs || format('--changed --base={0}', steps.scope.outputs.base) }}
+
+      # An announcement, so a run that promoted and a run that did not are distinguishable in the
+      # log without reading the step conditions.
+      - name: Say whether production was promoted
+        run: |
+          if [ "${{ steps.scope.outputs.promote }}" = "true" ] && [ "${{ steps.gate.outputs.configured }}" = "true" ]; then
+            echo "promoted to production (${{ env.PRODUCTION_REF }})"
+          elif [ "${{ steps.scope.outputs.promote }}" = "true" ]; then
+            echo "::warning title=Not promoted::main was pushed but SUPABASE_ACCESS_TOKEN is not set, so production was NOT updated."
+          else
+            echo "staging only — not a push to main (event ${{ github.event_name }}, ref ${{ github.ref }})"
+          fi
