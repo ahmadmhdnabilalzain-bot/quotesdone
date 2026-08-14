@@ -22,11 +22,30 @@
 # than two implementations that drift.
 #
 # ── WHAT THIS DOES AND DOES NOT DO ──────────────────────────────────────────────────────────────
-# Push to any branch     -> deploy the CHANGED functions to STAGING, after deno check.
-# Manual dispatch        -> deploy to production, and only when someone types the project ref.
+# Push to a branch       -> deploy the CHANGED functions to STAGING, after deno check.
+# Push to main           -> STAGING, then PRODUCTION with the same resolved slug set.
+# Manual dispatch        -> the one project ref someone typed, and nothing else.
 #
-# Production is never automatic. That is deliberate and matches the -IMeanProduction flag the
-# PowerShell script has always required.
+# ── "PRODUCTION IS NEVER AUTOMATIC" USED TO BE WRITTEN HERE, AND IT COST US (14 Aug 2026) ────────
+# It was deliberate, and it was wrong for a reason nobody had measured: production then moved only
+# when somebody remembered to dispatch this workflow by hand, and the dispatch input DEFAULTS to the
+# staging ref — so the easy path was the wrong one and the correct path was an act of memory.
+#
+# Measured across all 199 functions on both projects: 168 deployed bundles differed. Most was
+# harmless dependency drift (every function imports jsr:@supabase/supabase-js@2, floating on major,
+# so a July build resolved 2.108.2 against staging's 2.112.3). But cos_execute and dept_plan shared
+# the SAME dependency version and still differed by exactly 5,839 bytes each — an identical delta
+# across two functions means a shared module, and production was carrying an older compiled
+# _shared/internal_auth.ts than the repo. Merged in #316, live on staging and only staging since
+# 13 Aug. First-party code, merged, CI-green, and not in production for a day.
+#
+# Reason 1 in the list above — "production currently runs an unmerged branch" — was the original
+# justification and it has expired: main is what production runs now, which is why the promotion is
+# keyed to a push to main and not to any branch.
+#
+# The safety that mattered is kept, and is stricter than a flag: production is a SEPARATE step that
+# runs only after the staging deploy succeeds, so a bundle that cannot reach staging can never reach
+# production. deploy_functions.mjs still enforces all four rules below for both targets.
 #
 # ── REQUIRED SECRET ─────────────────────────────────────────────────────────────────────────────
 #   SUPABASE_ACCESS_TOKEN   a personal access token from https://supabase.com/dashboard/account/tokens
