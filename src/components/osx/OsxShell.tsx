@@ -430,6 +430,36 @@ function SettingRow({ s, onSaved }: { s: any; onSaved: (key: string, val: string
   );
 }
 
+// WHAT THE OS HAS LEARNED ABOUT HOW THE FOUNDER DECIDES.
+// Every habit carries its sample size, and one below the evidence floor is labelled an observation
+// rather than presented as a preference — n=1 dressed as "he always does this" is the same defect
+// as a scorer reporting 100% on a file it could not read. Presentation adapts to these; governance
+// does not, and nothing here changes an authority or a gate.
+function FounderHabits() {
+  const [d, setD] = React.useState<any>(null);
+  React.useEffect(() => { osApi('founder_habits').then(setD).catch(() => {}); }, []);
+  const rows = (d?.rows || []) as any[];
+  if (!d) return null;
+  return (<Card className='p-4 space-y-2'>
+    <div className='flex flex-wrap items-baseline gap-2'>
+      <h2 className='text-sm font-semibold'>What the OS has learned about how you decide</h2>
+      <span className='text-[11px] text-muted-foreground'>
+        {d.habits_confident ?? 0} of {d.habits_total ?? 0} clear the {d.evidence_floor ?? 3}-observation floor
+        {d.learned_at ? ' · learned ' + String(d.learned_at).slice(0, 10) : ''}
+      </span>
+    </div>
+    {rows.length ? <div className='divide-y divide-border'>{rows.map((h: any, i: number) => (
+      <div key={i} className='py-2 text-sm flex items-start gap-3'>
+        <div className='min-w-0 flex-1'>
+          <div>{h.text}</div>
+          <div className='text-[11px] text-muted-foreground'>{h.habit_key} · {h.sample_n} observation(s)</div>
+        </div>
+        <Chip label={h.confident ? 'Habit' : 'Not enough evidence yet'} tone={h.confident ? 'slate' : 'amber'} />
+      </div>))}</div>
+      : <div className='text-sm text-muted-foreground'>Nothing observed yet.</div>}
+    <div className='text-[11px] text-muted-foreground'>{d.note}</div>
+  </Card>);
+}
 function SettingsPanel() {
   const [d, setD] = React.useState<any[] | null>(null);
   const [err, setErr] = React.useState('');
@@ -443,6 +473,7 @@ function SettingsPanel() {
   return (
     <div className='space-y-5'>
       <div className='flex flex-wrap items-center gap-2'><SlidersHorizontal className='h-5 w-5 text-primary' /><h1 className='text-lg font-bold'>Settings</h1><span className='text-xs text-muted-foreground md:ml-2'>Business configuration. API keys and secrets are managed separately and never appear here. Every change is audit-logged and reversible.</span></div>
+      <FounderHabits />
       {groups.map((g) => (
         <Card key={g} className='overflow-hidden'>
           <div className='px-4 py-3 border-b border-border text-sm font-semibold'>{g}</div>
