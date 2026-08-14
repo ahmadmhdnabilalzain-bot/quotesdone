@@ -33,7 +33,24 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 // model_policy.chief_of_staff_decision was raised 2000 -> 4000 on both projects at the same time,
 // because the first fixed production run measured 1,725 output tokens — 86% of 2000, which is the
 // same mid-distribution position that made license_extract (74-78%) worth fixing before it failed.
-const llm = makeLlm(SONNET_FIRST, { max: 8000, temperature: 0.35 });
+// THE WALL WAS 27 SECONDS AND THE WORK TAKES UP TO 44 (14 Aug 2026).
+//
+// No timeoutMs here meant makeLlm's 25s default. _shared/llm.ts declares client_timeout_ms as
+// dTo + 5000 and ai_gateway sets its wall to declared - 3000, so this function ran against a
+// 27,000 ms wall. Measured on production over 14 days, chief_of_staff_decision on sonnet-5:
+//
+//   ok=true   49 calls   9,329-43,732 ms   avg 6,986 in / 1,597 out tokens
+//   ok=false  16 calls  27,036-55,052 ms   prompt_tokens 0, output_tokens 0, EVERY ONE
+//
+// Zero tokens in both directions on all sixteen: the model never produced anything. The minimum,
+// 27,036 ms, is that 27-second wall to the millisecond. These are our own aborts, not the model
+// answering badly — while legitimate successes run to 43.7s.
+//
+// IT WAS NOT A FREE FAILURE. fn_model_autoswitch read those sixteen as model failure, scored the
+// class at 75.4% against its 85% floor, and promoted chief_of_staff_decision to opus-4.8 at 04:35
+// on 14 Aug — roughly 2.3x the cost per call. Opus is SLOWER, so a timeout is answered by a model
+// more likely to time out. 60s gives the 43.7s worst observed success comfortable room.
+const llm = makeLlm(SONNET_FIRST, { max: 8000, temperature: 0.35, timeoutMs: 60000 });
 
 // CEILING, NOT A GRANT. This set can only REFUSE autonomy; it can never confer it. The tier itself
 // comes from fn_dept_authority (see planDept). Until 4 Aug 2026 this same set WAS the decision, and
