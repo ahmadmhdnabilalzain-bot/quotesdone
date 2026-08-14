@@ -27,9 +27,33 @@ const FNDIR = join(root, 'supabase', 'functions');
 const target = process.env.QD_LLM_SRC || join(FNDIR, '_shared', 'llm.ts');
 const src = readFileSync(target, 'utf8');
 
-const bodyStart = src.indexOf('return async function llm(');
-assert.ok(bodyStart > 0, 'the llm() request path is gone from _shared/llm.ts - this guard is now testing nothing');
+// THE REQUEST PATH MOVED, THE BEHAVIOUR DID NOT (14 Aug 2026).
+//
+// This anchored on `return async function llm(` and sliced to the end of the file. makeLlm was
+// then refactored into a thin wrapper - `const rich = makeLlmRich(...)`, and llm() just awaits it
+// and checks res.truncated - so the slice stopped containing the fetch, the credential call and
+// the status handling, and BOTH assertions below failed while every one of those things was still
+// present and correct in makeLlmRich.
+//
+// That is a guard reporting on the wrong subject, not a regression: gatewayCredential(fnName) is
+// called at the top of the request, and 401/403/503 are each read and logged before any content
+// check. Anchoring on makeLlmRich tests the function that actually talks to ai_gateway.
+//
+// The llm() wrapper is asserted separately below to be exactly that - a wrapper - so this cannot
+// silently start passing again if a second, unguarded request path is ever added to llm().
+const bodyStart = src.indexOf('export function makeLlmRich(');
+assert.ok(bodyStart > 0,
+  'makeLlmRich is gone from _shared/llm.ts - the gateway request path has moved again and this '
+  + 'guard is now testing nothing. Re-anchor it on whatever function calls fetch() against ai_gateway.');
 const requestPath = src.slice(bodyStart);
+
+test('llm() reaches the gateway only through the guarded request path', () => {
+  const wrapper = src.slice(src.indexOf('export function makeLlm('));
+  assert.ok(wrapper.length > 0, 'makeLlm is gone from _shared/llm.ts');
+  assert.doesNotMatch(wrapper, /await fetch\(/,
+    'makeLlm now calls fetch() itself instead of delegating to makeLlmRich, so it has a second '
+    + 'request path that the credential and status assertions in this file do not cover.');
+});
 
 test('the request path presents a scoped credential, not the shared secret', () => {
   assert.match(src, /async function gatewayCredential\(/,
