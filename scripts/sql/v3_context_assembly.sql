@@ -203,11 +203,20 @@ begin
     'category_key', p_category_key,
     -- The current company objective is a live fact, not a knowledge file: it is read from
     -- company_goals every time a context is assembled.
+    --
+    -- The first version of this filtered `horizon = 'company'`. company_goals holds 'year_1'
+    -- and 'quarter' and has never held 'company', so every context said the objective was []
+    -- — a filter on a value no path writes. The agent's own department's goals come first,
+    -- then the financial ones, which is where the AED 1,000,000 revenue target lives.
     'company_objective', coalesce((
       select jsonb_agg(jsonb_build_object('key', key, 'goal', goal, 'metric', metric,
                                           'target', target_value, 'unit', unit, 'period', period,
-                                          'owner_dept', owner_dept))
-        from company_goals where active and horizon = 'company' limit 6), '[]'::jsonb),
+                                          'owner_dept', owner_dept, 'horizon', horizon))
+        from (select * from company_goals
+               where active
+               order by (owner_dept is not distinct from v_agent.department) desc,
+                        (category = 'Financial') desc, sort
+               limit 8) g), '[]'::jsonb),
     'budget_chars', v_budget,
     'knowledge_ids', to_jsonb(v_ids),
     'knowledge_count', coalesce(array_length(v_ids, 1), 0),

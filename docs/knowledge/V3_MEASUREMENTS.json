@@ -1,0 +1,462 @@
+{
+  "production": {
+    "stats": {
+      "ops_total": 8256,
+      "ops_from_package": 7825,
+      "ops_v3": 920,
+      "ops_v2": 6905,
+      "ops_retrievable": 8256,
+      "ops_deterministic": 3314,
+      "ops_layers": 11,
+      "roles_with_knowledge": 96,
+      "cats_with_knowledge": 86,
+      "training_total": 17890,
+      "training_v3": 8972,
+      "training_v2": 8918,
+      "identity_rows": 130,
+      "packaged_roles": 96,
+      "agents_with_identity": 94,
+      "agents_active": 93,
+      "dept_alias": 25,
+      "category_identity": 86,
+      "route_map": 16,
+      "runs": 6,
+      "cert_in_runtime": 0,
+      "cert_questions": 0,
+      "cert_answers": 0,
+      "cert_results": 0,
+      "artifact_reviews": 0,
+      "retrievals": 18,
+      "traces": 6
+    },
+    "layers": [
+      {
+        "layer": "department_shared",
+        "n": 2024,
+        "det": 0
+      },
+      {
+        "layer": "source_reference",
+        "n": 1031,
+        "det": 1031
+      },
+      {
+        "layer": "failure_mode",
+        "n": 980,
+        "det": 288
+      },
+      {
+        "layer": "authority",
+        "n": 806,
+        "det": 806
+      },
+      {
+        "layer": "policy",
+        "n": 743,
+        "det": 646
+      },
+      {
+        "layer": "role_specific",
+        "n": 576,
+        "det": 0
+      },
+      {
+        "layer": "decision_playbook",
+        "n": 552,
+        "det": 0
+      },
+      {
+        "layer": "category_specialist",
+        "n": 516,
+        "det": 0
+      },
+      {
+        "layer": "kpi",
+        "n": 360,
+        "det": 360
+      },
+      {
+        "layer": "remediation",
+        "n": 183,
+        "det": 183
+      },
+      {
+        "layer": "company_core",
+        "n": 54,
+        "det": 0
+      }
+    ],
+    "families": [
+      {
+        "generation": "V2",
+        "case_family": "case",
+        "n": 7026
+      },
+      {
+        "generation": "V2",
+        "case_family": "category_case",
+        "n": 1892
+      },
+      {
+        "generation": "V3",
+        "case_family": "category_case",
+        "n": 2924
+      },
+      {
+        "generation": "V3",
+        "case_family": "role_adversarial",
+        "n": 2304
+      },
+      {
+        "generation": "V3",
+        "case_family": "role_tool",
+        "n": 1152
+      },
+      {
+        "generation": "V3",
+        "case_family": "role_uncertainty",
+        "n": 1152
+      },
+      {
+        "generation": "V3",
+        "case_family": "role_cross_department",
+        "n": 768
+      },
+      {
+        "generation": "V3",
+        "case_family": "department_management",
+        "n": 672
+      }
+    ],
+    "mapping": [
+      {
+        "mapping_type": "package_composite",
+        "n": 53,
+        "roles": 19
+      },
+      {
+        "mapping_type": "one_to_one",
+        "n": 41,
+        "roles": 41
+      },
+      {
+        "mapping_type": "runtime_composite",
+        "n": 36,
+        "roles": 36
+      }
+    ],
+    "readiness": [
+      {
+        "readiness": "restricted_to_advisory",
+        "n": 47
+      },
+      {
+        "readiness": "runtime_mapped",
+        "n": 36
+      },
+      {
+        "readiness": "knowledge_imported",
+        "n": 34
+      },
+      {
+        "readiness": "live_data_connected",
+        "n": 7
+      },
+      {
+        "readiness": "decision_trace_connected",
+        "n": 5
+      },
+      {
+        "readiness": "blocked",
+        "n": 1
+      }
+    ],
+    "runs": [
+      {
+        "package_version": "2026.08.14",
+        "generation": "V3",
+        "status": "running",
+        "inserted": null,
+        "updated": null,
+        "unchanged": null,
+        "rejected": null,
+        "errors": null,
+        "finished_at": null
+      },
+      {
+        "package_version": "2026.08.14",
+        "generation": "V3",
+        "status": "ok",
+        "inserted": "11890",
+        "updated": "0",
+        "unchanged": "13825",
+        "rejected": "0",
+        "errors": "0",
+        "finished_at": "2026-08-14 07:30:00.057232+00"
+      },
+      {
+        "package_version": "2026.08.14",
+        "generation": "V3",
+        "status": "ok",
+        "inserted": "0",
+        "updated": "0",
+        "unchanged": "25715",
+        "rejected": "0",
+        "errors": "0",
+        "finished_at": "2026-08-14 07:30:40.329591+00"
+      },
+      {
+        "package_version": "2026.08.14",
+        "generation": "V3",
+        "status": "ok",
+        "inserted": "0",
+        "updated": "0",
+        "unchanged": "25715",
+        "rejected": "0",
+        "errors": "0",
+        "finished_at": "2026-08-14 07:30:40.495515+00"
+      },
+      {
+        "package_version": "2026.08.14",
+        "generation": "V3",
+        "status": "ok",
+        "inserted": "0",
+        "updated": "3605",
+        "unchanged": "22110",
+        "rejected": "0",
+        "errors": "0",
+        "finished_at": "2026-08-14 07:44:40.260682+00"
+      },
+      {
+        "package_version": "2026.08.14",
+        "generation": "V3",
+        "status": "ok",
+        "inserted": "0",
+        "updated": "3605",
+        "unchanged": "22110",
+        "rejected": "0",
+        "errors": "0",
+        "finished_at": "2026-08-14 07:44:39.956943+00"
+      }
+    ]
+  },
+  "staging": {
+    "stats": {
+      "ops_total": 8256,
+      "ops_from_package": 7825,
+      "ops_v3": 920,
+      "ops_v2": 6905,
+      "ops_retrievable": 8256,
+      "ops_deterministic": 3314,
+      "ops_layers": 11,
+      "roles_with_knowledge": 96,
+      "cats_with_knowledge": 86,
+      "training_total": 17890,
+      "training_v3": 8972,
+      "training_v2": 8918,
+      "identity_rows": 130,
+      "packaged_roles": 96,
+      "agents_with_identity": 94,
+      "agents_active": 93,
+      "dept_alias": 25,
+      "category_identity": 86,
+      "route_map": 16,
+      "runs": 4,
+      "cert_in_runtime": 0,
+      "cert_questions": 0,
+      "cert_answers": 0,
+      "cert_results": 0,
+      "artifact_reviews": 2,
+      "retrievals": 16,
+      "traces": 1
+    },
+    "layers": [
+      {
+        "layer": "department_shared",
+        "n": 2024,
+        "det": 0
+      },
+      {
+        "layer": "source_reference",
+        "n": 1031,
+        "det": 1031
+      },
+      {
+        "layer": "failure_mode",
+        "n": 980,
+        "det": 288
+      },
+      {
+        "layer": "authority",
+        "n": 806,
+        "det": 806
+      },
+      {
+        "layer": "policy",
+        "n": 743,
+        "det": 646
+      },
+      {
+        "layer": "role_specific",
+        "n": 576,
+        "det": 0
+      },
+      {
+        "layer": "decision_playbook",
+        "n": 552,
+        "det": 0
+      },
+      {
+        "layer": "category_specialist",
+        "n": 516,
+        "det": 0
+      },
+      {
+        "layer": "kpi",
+        "n": 360,
+        "det": 360
+      },
+      {
+        "layer": "remediation",
+        "n": 183,
+        "det": 183
+      },
+      {
+        "layer": "company_core",
+        "n": 54,
+        "det": 0
+      }
+    ],
+    "families": [
+      {
+        "generation": "V2",
+        "case_family": "case",
+        "n": 7026
+      },
+      {
+        "generation": "V2",
+        "case_family": "category_case",
+        "n": 1892
+      },
+      {
+        "generation": "V3",
+        "case_family": "category_case",
+        "n": 2924
+      },
+      {
+        "generation": "V3",
+        "case_family": "role_adversarial",
+        "n": 2304
+      },
+      {
+        "generation": "V3",
+        "case_family": "role_uncertainty",
+        "n": 1152
+      },
+      {
+        "generation": "V3",
+        "case_family": "role_tool",
+        "n": 1152
+      },
+      {
+        "generation": "V3",
+        "case_family": "role_cross_department",
+        "n": 768
+      },
+      {
+        "generation": "V3",
+        "case_family": "department_management",
+        "n": 672
+      }
+    ],
+    "mapping": [
+      {
+        "mapping_type": "package_composite",
+        "n": 53,
+        "roles": 19
+      },
+      {
+        "mapping_type": "one_to_one",
+        "n": 41,
+        "roles": 41
+      },
+      {
+        "mapping_type": "runtime_composite",
+        "n": 36,
+        "roles": 36
+      }
+    ],
+    "readiness": [
+      {
+        "readiness": "restricted_to_advisory",
+        "n": 47
+      },
+      {
+        "readiness": "runtime_mapped",
+        "n": 36
+      },
+      {
+        "readiness": "knowledge_imported",
+        "n": 34
+      },
+      {
+        "readiness": "live_data_connected",
+        "n": 8
+      },
+      {
+        "readiness": "decision_trace_connected",
+        "n": 4
+      },
+      {
+        "readiness": "blocked",
+        "n": 1
+      }
+    ],
+    "runs": [
+      {
+        "package_version": "2026.08.14",
+        "generation": "V3",
+        "status": "running",
+        "inserted": null,
+        "updated": null,
+        "unchanged": null,
+        "rejected": null,
+        "errors": null,
+        "finished_at": null
+      },
+      {
+        "package_version": "2026.08.14",
+        "generation": "V3",
+        "status": "ok",
+        "inserted": "0",
+        "updated": "0",
+        "unchanged": "25715",
+        "rejected": "0",
+        "errors": "0",
+        "finished_at": "2026-08-14 07:22:21.574477+00"
+      },
+      {
+        "package_version": "2026.08.14",
+        "generation": "V3",
+        "status": "ok",
+        "inserted": "0",
+        "updated": "3605",
+        "unchanged": "22110",
+        "rejected": "0",
+        "errors": "0",
+        "finished_at": "2026-08-14 07:42:28.779395+00"
+      },
+      {
+        "package_version": "2026.08.14",
+        "generation": "V3",
+        "status": "ok",
+        "inserted": "0",
+        "updated": "0",
+        "unchanged": "25715",
+        "rejected": "0",
+        "errors": "0",
+        "finished_at": "2026-08-14 07:42:36.821006+00"
+      }
+    ]
+  }
+}

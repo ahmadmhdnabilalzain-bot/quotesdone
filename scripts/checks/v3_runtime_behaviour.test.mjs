@@ -1,0 +1,377 @@
+// V3 KNOWLEDGE RUNTIME — BEHAVIOURAL TESTS.
+//
+// These do not assert on source strings. Every one of them runs the real runtime path an
+// agent runs: fn_agent_context / fn_agent_context_v3 for retrieval, fn_category_checklist
+// and fn_category_quote_ready for the category specialists, fn_propose_lesson and
+// fn_validate_lesson for the learning loop, fn_assign_training for remediation, and
+// fn_artifact_publish_blocked for the visual gate.
+//
+// Writes are done inside an aborted transaction so a test never leaves a row behind. The
+// pattern is the founder's: perform the write, count the effect, raise with the counts, read
+// the counts out of the error message.
+//
+//   node --test scripts/checks/
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
+
+const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
+  || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
+
+const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh', staging: 'pglpqrhvozwepymcuunn' };
+
+async function post(project, query) {
+  for (let attempt = 0; ; attempt++) {
+    const r = await fetch(`https://api.supabase.com/v1/projects/${project}/database/query`, {
+      method: 'POST', headers: { Authorization: 'Bearer ' + mgmtToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    const text = await r.text();
+    // A mass of failures with the other project passing is throttling, not a finding.
+    if (r.status === 429 && attempt < 5) { await new Promise((s) => setTimeout(s, 1500 * 2 ** attempt)); continue; }
+    return { ok: r.ok, status: r.status, text };
+  }
+}
+
+const q = async (project, query) => {
+  const r = await post(project, query);
+  assert.ok(r.ok, `query failed on ${project}: ${r.status} ${r.text}`);
+  return JSON.parse(r.text);
+};
+
+// Run a DO block that ends in `raise exception`, and return what it raised. The transaction
+// is rolled back by the raise, so the write is proven without being kept.
+const probe = async (project, body) => {
+  const r = await post(project, `do $$ ${body} $$;`);
+  assert.equal(r.ok, false, `probe should have raised on ${project}, got: ${r.text}`);
+  // The management API returns the error as JSON, so the newline before CONTEXT arrives
+  // escaped as the two characters \ and n. Match both shapes.
+  const m = /P0001:\s+([\s\S]*?)(?:\\n|\n)CONTEXT/.exec(r.text) || /P0001:\s+([^"]*)/.exec(r.text);
+  assert.ok(m, `probe raised something other than its assertion on ${project}: ${r.text}`);
+  return m[1];
+};
+
+const one = (rows) => rows[0];
+
+for (const [name, ref] of Object.entries(PROJECTS)) {
+  // ── roster ────────────────────────────────────────────────────────────────────
+  test(`${name}: every packaged department resolves to a live runtime department`, async () => {
+    const r = one(await q(ref, `select
+      (select count(*) from org_department_alias) aliases,
+      (select count(distinct packaged_department) from org_department_alias) packaged,
+      (select count(*) from org_department_alias a
+         where not exists (select 1 from org_departments d where d.dept_key = a.dept_key and d.active)) dangling`));
+    assert.equal(Number(r.packaged), 24, 'the delivery names 24 departments');
+    assert.equal(Number(r.dangling), 0, 'every alias must point at an active department');
+  });
+
+  test(`${name}: all 96 packaged roles resolve and every active agent has an identity`, async () => {
+    const r = one(await q(ref, `select
+      (select count(distinct packaged_role_id) from org_role_identity) roles,
+      (select count(distinct agent_key) from org_role_identity) agents,
+      (select count(*) from org_agents a where a.active
+         and not exists (select 1 from org_role_identity i where i.agent_key = a.agent_key)) without_identity,
+      (select count(*) from org_role_identity i
+         where not exists (select 1 from org_agents a where a.agent_key = i.agent_key)) orphan_identity`));
+    assert.equal(Number(r.roles), 96, 'all 96 packaged roles must be resolved');
+    assert.equal(Number(r.without_identity), 0, 'no active agent may run without a role identity');
+    assert.equal(Number(r.orphan_identity), 0, 'no identity may name an agent that does not exist');
+  });
+
+  test(`${name}: all 86 category identities are bound to a live route`, async () => {
+    const r = one(await q(ref, `select
+      (select count(*) from org_category_identity) identities,
+      (select count(*) from org_category_identity c
+         where not exists (select 1 from kb_operational_route r where r.catalog_num = c.catalog_num)) dangling`));
+    assert.equal(Number(r.identities), 86);
+    assert.equal(Number(r.dangling), 0);
+  });
+
+  // ── retrieval ─────────────────────────────────────────────────────────────────
+  test(`${name}: an agent's context carries identity, company core, department, role and rules`, async () => {
+    const r = one(await q(ref, `with c as (select fn_agent_context_v3('cfo', 'finance_decision',
+        'overdue invoice collections authority threshold', null, 24000) x)
+      select (x->'identity'->>'agent_key') agent,
+             (x->'identity'->>'packaged_department') pkg_dept,
+             jsonb_array_length(x->'identity'->'packaged_role_ids') role_ids,
+             jsonb_array_length(x->'deterministic_rules') rules,
+             jsonb_array_length(x->'company_core') core,
+             jsonb_array_length(x->'department_knowledge') dept,
+             jsonb_array_length(x->'role_knowledge') role,
+             jsonb_array_length(x->'company_objective') objective,
+             jsonb_array_length(x->'tools') tools,
+             (x->>'knowledge_count')::int knowledge_count
+        from c`));
+    assert.equal(r.agent, 'cfo');
+    assert.equal(r.pkg_dept, 'finance');
+    assert.ok(Number(r.role_ids) >= 1, 'the agent must know which packaged role it holds');
+    assert.ok(Number(r.rules) > 0, 'deterministic rules must be retrieved as structured records');
+    assert.ok(Number(r.dept) > 0, 'department knowledge must be inherited');
+    assert.ok(Number(r.role) > 0, 'role knowledge must be retrieved');
+    assert.ok(Number(r.objective) > 0, 'the current company objective is read live, not remembered');
+    assert.ok(Number(r.knowledge_count) > 0, 'the assembly must name the records it used');
+  });
+
+  test(`${name}: another department's role knowledge is NOT retrieved`, async () => {
+    const r = one(await q(ref, `with c as (select fn_agent_context_v3('cfo', null, 'collections', null, 24000) x)
+      select coalesce((select count(*) from jsonb_array_elements(x->'role_knowledge') e
+        join ops_knowledge k on k.record_id = e->>'record_id'
+        where k.role_key is not null
+          and k.role_key not in (select packaged_role_id from org_role_identity where agent_key='cfo')), 0) foreign_role
+      from c`));
+    assert.equal(Number(r.foreign_role), 0, 'retrieval must not hand an agent another role\'s corpus');
+  });
+
+  test(`${name}: the character budget is respected`, async () => {
+    const r = one(await q(ref, `select
+      length(fn_agent_context_capped('cfo', 6000, 'collections')) small,
+      length(fn_agent_context_capped('cfo', 24000, 'collections')) large`));
+    assert.ok(Number(r.small) < Number(r.large), 'a smaller budget must return less context');
+    assert.ok(Number(r.small) <= 6000 * 1.2, `a 6,000-char budget returned ${r.small} characters`);
+  });
+
+  test(`${name}: the context path records the knowledge ids it retrieved`, async () => {
+    const raised = await probe(ref, `
+      declare n0 int; n1 int; r agent_context_retrieval; t text;
+      begin
+        select count(*) into n0 from agent_context_retrieval;
+        t := fn_agent_context_capped('cfo', 24000, 'collections authority');
+        select count(*) into n1 from agent_context_retrieval;
+        select * into r from agent_context_retrieval order by id desc limit 1;
+        raise exception 'rows=% count=% agent=%', n1 - n0, r.knowledge_count, r.agent_key;
+      end;`);
+    const m = /rows=(\d+) count=(\d+) agent=(\S+)/.exec(raised);
+    assert.ok(m, raised);
+    assert.equal(m[1], '1', 'one retrieval row per assembly');
+    assert.ok(Number(m[2]) > 0, 'the retrieval must name at least one knowledge record');
+    assert.equal(m[3], 'cfo');
+  });
+
+  test(`${name}: a decided agent action writes a decision trace naming those records`, async () => {
+    const raised = await probe(ref, `
+      declare v_kind text; v_agent text; v_id bigint; v_before int; v_after int; v_refs jsonb;
+      begin
+        select kind into v_kind from agent_action_kind_policy limit 1;
+        select agent_key into v_agent from org_agents where active order by agent_key limit 1;
+        select count(*) into v_before from decision_trace;
+        perform fn_record_context_retrieval(v_agent, 'behaviour_test', null,
+                array['probe-a','probe-b'], 24000, 1000);
+        insert into agent_actions (agent, kind, status, risk, title, detail, confidence, escalated)
+          values (v_agent, v_kind, 'proposed', 'low', 'behaviour test', '{}'::jsonb, 0.7, false)
+          returning id into v_id;
+        update agent_actions set decided_at = now(), decided_by = 'test', status = 'approved' where id = v_id;
+        select count(*) into v_after from decision_trace;
+        select knowledge_refs into v_refs from decision_trace where entity_id = v_id::text limit 1;
+        raise exception 'traces=% ids=%', v_after - v_before, v_refs->>'knowledge_count';
+      end;`);
+    const m = /traces=(\d+) ids=(\d+)/.exec(raised);
+    assert.ok(m, raised);
+    assert.equal(m[1], '1', 'a decided action must leave exactly one trace');
+    assert.equal(m[2], '2', 'the trace must carry the knowledge ids the assembly recorded');
+  });
+
+  // ── category specialists ──────────────────────────────────────────────────────
+  test(`${name}: every one of the 86 routes returns its own qualification corpus`, async () => {
+    const r = one(await q(ref, `with r as (
+        select fn_category_checklist(k.expected_catalog_slug, k.catalog_name, null) c
+          from kb_operational_route k)
+      select count(*) total,
+             count(*) filter (where (c->>'route_resolved')::boolean) resolved,
+             count(*) filter (where jsonb_array_length(c->'packaged_questions') > 0) with_questions,
+             count(*) filter (where jsonb_array_length(c->'mandatory_fields') > 0) with_mandatory,
+             count(*) filter (where jsonb_array_length(c->'never_infer') > 0) with_never_infer
+        from r`));
+    assert.equal(Number(r.total), 86);
+    assert.equal(Number(r.resolved), 86, 'every route must resolve to its own corpus');
+    assert.equal(Number(r.with_questions), 86);
+    assert.equal(Number(r.with_mandatory), 86);
+    assert.equal(Number(r.with_never_infer), 86, 'every route must say what may never be inferred');
+  });
+
+  test(`${name}: two different routes return different question banks`, async () => {
+    const r = one(await q(ref, `select
+      (fn_category_checklist('aluminium-and-glass-suppliers', null, null)->'packaged_questions')
+        = (fn_category_checklist('catering-companies', null, null)->'packaged_questions') same`));
+    assert.equal(r.same, false, 'a route-specific corpus that is identical for two trades is not route-specific');
+  });
+
+  test(`${name}: quote readiness blocks on the missing mandatory fields and names them`, async () => {
+    const r = one(await q(ref, `select
+      fn_category_quote_ready('aluminium-and-glass-suppliers', '{"scope":"12 windows"}'::jsonb) partial,
+      fn_category_quote_ready('aluminium-and-glass-suppliers',
+        (select jsonb_object_agg(f, 'answered')
+           from jsonb_array_elements_text(
+             fn_category_checklist('aluminium-and-glass-suppliers', null, null)->'mandatory_fields') f)) complete`));
+    assert.equal(r.partial.ready, false, 'a brief missing mandatory fields cannot go to suppliers');
+    assert.ok(r.partial.missing.length > 0, 'the block must name what is missing');
+    assert.equal(r.complete.ready, true, 'a complete brief must pass');
+  });
+
+  test(`${name}: ambiguous routing asks instead of guessing`, async () => {
+    const r = one(await q(ref, `select fn_category_checklist('general', 'General', null) c`));
+    assert.equal(r.c.route_resolved, false);
+    assert.ok(r.c.clarification || r.c.candidates.length !== 1,
+      'an unresolved route must return a clarifying question, not a silent pick');
+  });
+
+  // ── learning ──────────────────────────────────────────────────────────────────
+  test(`${name}: one observation is not a lesson, and an author cannot validate its own`, async () => {
+    const raised = await probe(ref, `
+      declare a text := 'collections'; r1 jsonb; r2 jsonb; lid bigint; vs jsonb; vm jsonb; before int; after int; ctx jsonb;
+      begin
+        r1 := fn_propose_lesson(a,'t','statement','{"observations":[{"id":1}]}'::jsonb,0.6);
+        r2 := fn_propose_lesson(a,'t','statement','{"observations":[{"id":1},{"id":2}]}'::jsonb,0.6);
+        lid := (r2->>'lesson_id')::bigint;
+        ctx := fn_agent_context_v3(a, null, 'statement', null, 24000);
+        before := jsonb_array_length(ctx->'validated_experience');
+        vs := fn_validate_lesson(lid, a, 'validated', 'self');
+        vm := fn_validate_lesson(lid, 'cfo', 'validated', 'reviewed');
+        ctx := fn_agent_context_v3(a, null, 'statement', null, 24000);
+        after := jsonb_array_length(ctx->'validated_experience');
+        raise exception 'one=% two=% self=% mgr=% before=% after=%',
+          r1->>'reason', r2->>'validation_status', vs->>'reason', vm->>'status', before, after;
+      end;`);
+    assert.match(raised, /one=insufficient_evidence/);
+    assert.match(raised, /two=proposed/);
+    assert.match(raised, /self=self_validation_refused/);
+    assert.match(raised, /mgr=validated/);
+    const m = /before=(\d+) after=(\d+)/.exec(raised);
+    assert.ok(m, raised);
+    assert.equal(Number(m[2]), Number(m[1]) + 1, 'a validated lesson becomes retrievable and a proposed one does not');
+  });
+
+  // ── remediation ───────────────────────────────────────────────────────────────
+  test(`${name}: remediation retests on unseen cases and gates autonomy until it improves`, async () => {
+    const raised = await probe(ref, `
+      declare a text := 'collections'; rid bigint; p1 jsonb; p2 jsonb; ov int; s1 jsonb; s2 jsonb; g0 jsonb; g1 jsonb;
+      begin
+        rid := fn_open_remediation(a,'unsupported_claim','evidence_discipline','{}'::jsonb);
+        g0 := fn_agent_autonomy_blocked(a);
+        p1 := fn_assign_training(a, null, 'practice', 5);
+        p2 := fn_assign_training(a, null, 'retest', 5);
+        select count(*) into ov from jsonb_array_elements(p1->'cases') x
+          join jsonb_array_elements(p2->'cases') y on x->>'case_id' = y->>'case_id';
+        s1 := fn_remediation_step(rid, 0.45, 0.1);
+        s2 := fn_remediation_step(rid, 0.9, 0.1);
+        g1 := fn_agent_autonomy_blocked(a);
+        raise exception 'practice=% retest=% overlap=% blocked0=% s1=% s2=% blocked1=%',
+          p1->>'assigned', p2->>'assigned', ov, g0->>'blocked', s1->>'status', s2->>'status', g1->>'blocked';
+      end;`);
+    const m = /practice=(\d+) retest=(\d+) overlap=(\d+) blocked0=(\w+) s1=(\w+) s2=(\w+) blocked1=(\w+)/.exec(raised);
+    assert.ok(m, raised);
+    assert.ok(Number(m[1]) > 0 && Number(m[2]) > 0, 'training must actually be assigned');
+    assert.equal(m[3], '0', 'a retest on cases the agent has already seen measures memory, not competence');
+    assert.equal(m[4], 'true', 'an open remediation must block consequential autonomy');
+    assert.equal(m[6], 'passed');
+    assert.equal(m[7], 'false', 'autonomy must be restored once the retest passes');
+  });
+
+  // ── visual ────────────────────────────────────────────────────────────────────
+  test(`${name}: an artifact cannot be published without a passing review of those bytes`, async () => {
+    const raised = await probe(ref, `
+      declare g0 jsonb; g1 jsonb; g2 jsonb; g3 jsonb;
+      begin
+        g0 := fn_artifact_publish_blocked('social_post','probe', null);
+        g1 := fn_artifact_publish_blocked('social_post','probe','aaaa');
+        insert into artifact_review (subject_type, subject_id, artifact_url, artifact_sha256, revision,
+          bytes, mime, width, height, author_agent, reviewer_agent, verdict)
+        values ('social_post','probe','https://example.invalid/a.png','aaaa',1,10,'image/png',1200,630,
+                'marketing_content','marketing_design','pass');
+        g2 := fn_artifact_publish_blocked('social_post','probe','aaaa');
+        g3 := fn_artifact_publish_blocked('social_post','probe','bbbb');
+        raise exception 'nodigest=% unreviewed=% passing=% regenerated=%',
+          g0->>'reason', g1->>'reason', g2->>'blocked', g3->>'reason';
+      end;`);
+    assert.match(raised, /nodigest=no_artifact_digest/);
+    assert.match(raised, /unreviewed=no_review_for_these_bytes/);
+    assert.match(raised, /passing=false/);
+    assert.match(raised, /regenerated=no_review_for_these_bytes/);
+  });
+
+  test(`${name}: the creator cannot be the only reviewer of a published artifact`, async () => {
+    const r = await post(ref, `do $$ begin
+      insert into artifact_review (subject_type, subject_id, artifact_url, artifact_sha256,
+        author_agent, reviewer_agent, verdict)
+      values ('social_post','self','https://example.invalid/x.png','cccc',
+              'marketing_design','marketing_design','pass');
+      raise exception 'SHOULD NOT REACH HERE';
+    end $$;`);
+    assert.equal(r.ok, false);
+    assert.match(r.text, /cannot be its only reviewer/,
+      'the author-is-not-reviewer trigger must refuse, not the assertion below it');
+  });
+
+  // ── certification separation ──────────────────────────────────────────────────
+  test(`${name}: no certification material reached the runtime corpus`, async () => {
+    const r = one(await q(ref, `select
+      (select count(*) from ops_knowledge where layer = 'certification') in_knowledge,
+      (select count(*) from ops_knowledge
+        where source_path ilike '%CERTIFICATION_CASES%' or source_path ilike '%ANSWER_KEY%') cert_paths,
+      (select count(*) from agent_training_case
+        where case_family = 'certification_case' or case_id ilike '%cert-v2%') in_training,
+      (select count(*) from cert.certification_question) questions,
+      (select count(*) from cert.certification_answer_key) answers`));
+    assert.equal(Number(r.in_knowledge), 0, 'certification material must not be runtime-retrievable');
+    assert.equal(Number(r.cert_paths), 0, 'no certification file may have been ingested as knowledge');
+    assert.equal(Number(r.in_training), 0, 'certification cases are not training cases');
+    assert.equal(Number(r.answers), 0, 'a builder session must not hold an answer key');
+  });
+
+  test(`${name}: the certification island is unreachable by the runtime roles`, async () => {
+    const r = one(await q(ref, `select
+      has_schema_privilege('anon','cert','USAGE') anon_usage,
+      has_schema_privilege('authenticated','cert','USAGE') auth_usage,
+      (select count(*) from pg_policies where schemaname = 'cert') policies,
+      (select bool_and(relrowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+        where n.nspname='cert' and c.relkind='r') rls_on`));
+    assert.equal(r.anon_usage, false, 'anon must not reach the certification schema');
+    assert.equal(r.auth_usage, false, 'authenticated must not reach the certification schema');
+    assert.equal(Number(r.policies), 0, 'RLS with no policy is the boundary; a policy would open it');
+    assert.equal(r.rls_on, true);
+  });
+
+  test(`${name}: certification results are append-only`, async () => {
+    const r = await post(ref, `do $$ declare rid uuid; begin
+      insert into cert.certification_result (question_id, agent_key, raw_output, evaluator)
+        values ('probe-q','cfo','answer','probe-evaluator') returning result_id into rid;
+      update cert.certification_result set score = 1 where result_id = rid;
+      raise exception 'SHOULD NOT REACH HERE';
+    end $$;`);
+    assert.equal(r.ok, false);
+    assert.match(r.text, /append-only/, 'an evaluator result must not be editable after the fact');
+  });
+
+  // ── readiness ─────────────────────────────────────────────────────────────────
+  test(`${name}: no role is claimed as independently certified by a builder session`, async () => {
+    const r = one(await q(ref, `select
+      count(*) filter (where readiness = 'certified_for_defined_role_scope') certified,
+      count(*) total from org_role_identity`));
+    assert.equal(Number(r.certified), 0,
+      'certified_for_defined_role_scope may only be set by the independent evaluator');
+    assert.ok(Number(r.total) > 0);
+  });
+
+  // ── ingestion integrity ───────────────────────────────────────────────────────
+  test(`${name}: the imported corpus matches the delivery's declared counts`, async () => {
+    const r = one(await q(ref, `select
+      (select count(*) from agent_training_case where generation = 'V3') v3_cases,
+      (select count(*) from agent_training_case where generation='V3' and case_family='role_adversarial') adv,
+      (select count(*) from agent_training_case where generation='V3' and case_family='role_tool') tool,
+      (select count(*) from agent_training_case where generation='V3' and case_family='role_uncertainty') unc,
+      (select count(*) from agent_training_case where generation='V3' and case_family='role_cross_department') cross_d,
+      (select count(*) from agent_training_case where generation='V3' and case_family='department_management') dept,
+      (select count(*) from agent_training_case where generation='V3' and case_family='category_case') cat,
+      (select count(distinct role_key) from ops_knowledge where role_key is not null) roles_with_knowledge,
+      (select count(distinct category_key) from ops_knowledge where category_key is not null) cats_with_knowledge`));
+    assert.equal(Number(r.adv), 2304);
+    assert.equal(Number(r.tool), 1152);
+    assert.equal(Number(r.unc), 1152);
+    assert.equal(Number(r.cross_d), 768);
+    assert.equal(Number(r.dept), 672);
+    assert.equal(Number(r.cat), 2924);
+    assert.equal(Number(r.v3_cases), 8972, 'the delivery declares 8,972 V3 training cases');
+    assert.equal(Number(r.roles_with_knowledge), 96);
+    assert.equal(Number(r.cats_with_knowledge), 86);
+  });
+}
