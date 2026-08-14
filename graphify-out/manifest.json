@@ -405,8 +405,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/agent_brain/index.ts": {
-    "mtime": 1786580963.0553677,
-    "ast_hash": "74744a131459a1aa241bf03119ccccac",
+    "mtime": 1786680362.7488544,
+    "ast_hash": "b04e67471c64a19c3c52eed3a30da46b",
     "semantic_hash": ""
   },
   "supabase/functions/agent_learnings_report/index.ts": {
@@ -625,8 +625,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/exec_agents/index.ts": {
-    "mtime": 1786540119.889285,
-    "ast_hash": "b453147064902dfe04d3e1f08e9f0dec",
+    "mtime": 1786682524.8755882,
+    "ast_hash": "c04c37af38f59836d726418d4c038079",
     "semantic_hash": ""
   },
   "supabase/functions/export_all_knowledge/index.ts": {
@@ -13707,6 +13707,86 @@
   "scripts/sql/the_revoke_landed_on_staging_only.sql": {
     "mtime": 1786671319.6746635,
     "ast_hash": "bb3fa5d604cd0cf07aab4a0d5f9bdf60",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_budget_guard_that_could_never_fire.sql": {
+    "mtime": 1786679501.8564126,
+    "ast_hash": "090d9379b138377f4eae91bb2aafcfa7",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_prefix_that_moved_four_times_in_forty_five_minutes.sql": {
+    "mtime": 1786679501.8623464,
+    "ast_hash": "9ab02cd9b3fcfc43479238bec6b850fe",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_question_that_was_answered_three_hours_ago.sql": {
+    "mtime": 1786679501.8623464,
+    "ast_hash": "91e4f096d23cc800604d00172d70faf0",
+    "semantic_hash": ""
+  },
+  "scripts/sql/my_own_cron_was_the_undocumented_one.sql": {
+    "mtime": 1786680024.0694766,
+    "ast_hash": "7ee25a48cc209c9469a5506cc72b6bfe",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_cooldown_i_just_shipped_could_never_fire.sql": {
+    "mtime": 1786679501.8623464,
+    "ast_hash": "60a21cfb102cb5482a1ed1ef52f7de77",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_gate_cited_its_own_code_and_called_it_sources.sql": {
+    "mtime": 1786674077.5137875,
+    "ast_hash": "752d78696523ef217b6ebcc9e5c03e24",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_invite_cap_moved_and_the_ledger_never_heard.sql": {
+    "mtime": 1786673497.1407642,
+    "ast_hash": "369c4aa6022bc9c8925cdcfef5daf1db",
+    "semantic_hash": ""
+  },
+  "scripts/sql/turn_the_prompt_cache_on_now_that_the_prefix_holds_still.sql": {
+    "mtime": 1786679501.8623464,
+    "ast_hash": "5b2650416f2c45f8611699cc5434e6cb",
+    "semantic_hash": ""
+  },
+  "docs/audits/AI_SPEND_2026_08_14.md": {
+    "mtime": 1786683443.5565944,
+    "ast_hash": "950ef575948640c95c3427b44ccee4c9",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_198k_faq_in_a_prompt_slot_that_holds_24k.sql": {
+    "mtime": 1786682195.8198562,
+    "ast_hash": "ce423479ff19ac7f5c64b0fcfd9047db",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_canonical_answers_queued_behind_26000_rows.sql": {
+    "mtime": 1786682195.8241374,
+    "ast_hash": "a2a061a11e3a28d770889dac60074195",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_highest_priority_knowledge_row_reaches_nobody.sql": {
+    "mtime": 1786682195.8241374,
+    "ast_hash": "18e75c1d0646f6d330bb59e3a33a43cd",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_reflection_ceiling_was_priced_at_half_what_it_costs.sql": {
+    "mtime": 1786682642.486118,
+    "ast_hash": "173fdfe7ce6c3751c22881eb4ecd7bbf",
+    "semantic_hash": ""
+  },
+  "scripts/sql/957_planned_steps_no_executor_could_ever_match.sql": {
+    "mtime": 1786685994.1170826,
+    "ast_hash": "c2bfe9ca49c065b5b3f3f7ce7826f459",
+    "semantic_hash": ""
+  },
+  "scripts/sql/marble_worktop_and_tiling_matched_nothing.sql": {
+    "mtime": 1786684209.1914868,
+    "ast_hash": "5624c08d2104c116ac60b955ac961354",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_generic_word_outranked_the_specific_phrase.sql": {
+    "mtime": 1786684941.8945844,
+    "ast_hash": "511608bad9564dd82e4dfe06ea3c18c1",
     "semantic_hash": ""
   }
 }

@@ -1,16 +1,16 @@
 # Graph Report - quotesdone  (2026-08-14)
 
 ## Corpus Check
-- 2653 files · ~3,884,320 words
+- 2656 files · ~3,886,362 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 13926 nodes · 17135 edges · 2119 communities (1576 shown, 543 thin omitted)
+- 13929 nodes · 17135 edges · 2120 communities (1576 shown, 544 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 157 edges (avg confidence: 0.6)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6e8eea8e`
+- Built from commit: `55fb3aa9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -544,7 +544,6 @@
 - 20260728205222_fn_faq_answer_volatile.sql
 - 20260728234811_model_capabilities_and_capability_aware_routing.sql
 - 20260728234853_fn_ai_route_capability_aware.sql
-- 20260729141515_supplier_documentation_scoreboard_view.sql
 - 20260729141532_customer_master_tracker_view.sql
 - 20260802112720_drawing_redaction_runs_provenance.sql
 - 20260802122221_kb_rollback_public_wrapper.sql
@@ -560,7 +559,6 @@
 - 20260802170233_p2_c1_stage_a_selftest_fix_corroboration_case.sql
 - 20260802170345_p2_c1_stage_a_selftest_fix_test12_measurement.sql
 - 20260802170530_p2_c1_stage_a_mep_subcategory_review_matrix.sql
-- 20260802172746_p2_c1_stage_b_fix_alias_ambiguity_counting.sql
 - 20260802173005_p2_c1_stage_b_fix_legacy_identity_workstream_count.sql
 - 20260802173318_p2_c1_stage_b_regression_tests.sql
 - 20260802173350_p2_c1_stage_b_regression_tests_fix_ambiguous_passed.sql
@@ -1344,7 +1342,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (2119 total, 543 thin omitted)
+## Communities (2120 total, 544 thin omitted)
 
 ### Community 0 - "OsxShell.tsx"
 Cohesion: 0.11
@@ -1360,7 +1358,7 @@ Nodes (54): metadata, AccountSettings(), aed(), assistantOffers(), Authed(), bal
 
 ### Community 3 - "cn"
 Cohesion: 0.04
-Nodes (61): metadata, metadata, Lang, Lang, T, call(), Lang, Payload (+53 more)
+Nodes (68): metadata, metadata, Bar(), ListSkeleton(), Stat(), Lang, Lang, T (+60 more)
 
 ### Community 4 - "agents/index.ts"
 Cohesion: 0.13
@@ -1607,8 +1605,8 @@ Cohesion: 0.25
 Nodes (6): admin, CONTENT, dbxToken(), EDITABLE, READONLY, sec()
 
 ### Community 69 - "@radix-ui/react-separator"
-Cohesion: 0.05
-Nodes (48): ChatWidget(), Msg, render(), T, askAssistant(), AssistantPanel(), MOBILE_PRIMARY, NAV_GROUPS (+40 more)
+Cohesion: 0.10
+Nodes (25): CompanyTwin(), Fact(), L(), S, Twin, CustomerMemory(), FIELDS, L() (+17 more)
 
 ### Community 70 - "resend_webhook/index.ts"
 Cohesion: 0.25
@@ -1912,7 +1910,7 @@ Nodes (4): admin, WHY: this wrote attacker-controllable text into app_secrets.vo
 
 ### Community 161 - "vt_scan/index.ts"
 Cohesion: 0.10
-Nodes (49): ApiResult, projectApi(), aed(), CLOSED_RFQ_STATUSES, DerivedStats, deriveStats(), elapsedPct(), fmtDate() (+41 more)
+Nodes (48): ApiResult, projectApi(), aed(), CLOSED_RFQ_STATUSES, DerivedStats, deriveStats(), elapsedPct(), fmtDate() (+40 more)
 
 ### Community 162 - "badge.tsx"
 Cohesion: 0.06
@@ -2538,10 +2536,6 @@ Nodes (19): §B10 The Agent Brain — 8, §B11 Product Knowledge Not AI Generate
 Cohesion: 0.11
 Nodes (17): C, colDDL(), deferredCons, deferredDefaults, deferredIdx, exprFnNames, fkOut, fks (+9 more)
 
-### Community 359 - "20260802171500_p2_03_expectation_ledger_entry_classification.sql"
-Cohesion: 0.20
-Nodes (9): DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut(), DropdownMenuSubContent (+1 more)
-
 ### Community 360 - "20260802174756_p2_c1_stage_b5_evidence_score_semantics.sql"
 Cohesion: 0.17
 Nodes (18): public.action_execution, public.company_event, public.comparison_candidate_v2, public.comparison_run_v2, public.customer_organization, public.customer_organization_member, public.customer_preference, public.decision_trace (+10 more)
@@ -3099,8 +3093,8 @@ Cohesion: 0.24
 Nodes (7): call(), CardId, Lang, Metric, num(), SupplierInsightBoard(), T
 
 ### Community 554 - "20260728080201_lead_haystack_view.sql"
-Cohesion: 0.12
-Nodes (13): metadata, Command, CommandDialog(), CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList (+5 more)
+Cohesion: 0.15
+Nodes (12): Command, CommandDialog(), CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, DialogContent (+4 more)
 
 ### Community 555 - "20260728103435_invite_balance_across_canonical_categories.sql"
 Cohesion: 0.29
@@ -3159,8 +3153,8 @@ Cohesion: 0.09
 Nodes (25): mgmtWriteData(), post(), sleep(), APPLY, BATCH_FOR, batchOf(), _colCache, copyTable() (+17 more)
 
 ### Community 570 - "20260728193632_fn_company_reflect_fix_actor_column.sql"
-Cohesion: 0.25
-Nodes (7): Adj, call(), Cat, Graph, Lang, SupplierKnowledgeGraph(), T
+Cohesion: 0.04
+Nodes (46): ChatWidget(), Msg, render(), T, askAssistant(), AssistantPanel(), MOBILE_PRIMARY, NAV_GROUPS (+38 more)
 
 ### Community 571 - "20260728193932_fn_company_indices_no_inline_scoreboard.sql"
 Cohesion: 0.13
@@ -3197,10 +3191,6 @@ Nodes (7): public.fn_derive_supplier_registration_state(), public.fn_supplier_re
 ### Community 579 - "20260728234853_fn_ai_route_capability_aware.sql"
 Cohesion: 0.25
 Nodes (4): public.dead_letter, public.v_dead_letter_open, public.v_supplier_exception_board, public.v_supplier_match_exclusions
-
-### Community 580 - "20260729141515_supplier_documentation_scoreboard_view.sql"
-Cohesion: 0.29
-Nodes (7): Advice, call(), Lang, Rec, SEV, SupplierAdvisor(), T
 
 ### Community 581 - "20260729141532_customer_master_tracker_view.sql"
 Cohesion: 0.36
@@ -3261,10 +3251,6 @@ Nodes (7): H, keys, list, pre, q, svc, token
 ### Community 595 - "20260802170530_p2_c1_stage_a_mep_subcategory_review_matrix.sql"
 Cohesion: 0.25
 Nodes (7): existing, H, keys, preExisting, q, svc, token
-
-### Community 596 - "20260802172746_p2_c1_stage_b_fix_alias_ambiguity_counting.sql"
-Cohesion: 0.22
-Nodes (6): EMPTY, FIELDS, Lang, Msg, Profile, T
 
 ### Community 597 - "20260802173005_p2_c1_stage_b_fix_legacy_identity_workstream_count.sql"
 Cohesion: 0.14
@@ -4381,17 +4367,17 @@ Nodes (4): computeBotShare(), gate(), metadata, totalRequestsFromSignals()
 ## Knowledge Gaps
 - **6241 isolated node(s):** `deploy-codex.sh script`, `deploy.sh script`, `HERE`, `LIBRARY_PATH`, `SERVICE_DIMENSION` (+6236 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **543 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **544 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `w()` connect `gen_category_knowledge/index.ts` to `20260728191919_os_independent_knowledge_and_weekly_improvement.sql`, `customer_api/index.ts`, `verify_phase1.mjs`, `sync_org_config_to_staging.mjs`, `verify_repo_production_parity.mjs`, `doc_reminder/index.ts`, `supplier_api/index.ts`, `dropbox_backup/index.ts`?**
-  _High betweenness centrality (0.044) - this node is a cross-community bridge._
-- **Why does `cn()` connect `cn` to `vt_scan/index.ts`, `CustomerPortal.tsx`, `gen_category_knowledge/index.ts`, `verify_review_chain.mjs`, `@radix-ui/react-separator`, `inbound_email/index.ts`, `20260802171500_p2_03_expectation_ledger_entry_classification.sql`, `20260728080201_lead_haystack_view.sql`, `doc_reminder/index.ts`, `marketing_draft/index.ts`, `sync_staging_reference.mjs`, `20260802173318_p2_c1_stage_b_regression_tests.sql`, `20260728193932_fn_company_indices_no_inline_scoreboard.sql`, `backfill_production_embeddings.mjs`, `20260728194112_fn_what_if_fix_scenario_type.sql`, `doc_extract/index.ts`?**
-  _High betweenness centrality (0.028) - this node is a cross-community bridge._
-- **Why does `mgmtRead()` connect `sync_org_config_to_staging.mjs` to `uptime_check/index.ts`, `customer_api/index.ts`, `verify_portal_blueprint.mjs`, `verify_os_knowledge_cluster.mjs`, `export_leads_csv/index.ts`, `verify_approval_chain.mjs`, `pending_digest/index.ts`, `20260803161926_audit_53_55_refund_status_and_reconciliation_visibility.sql`, `prompt_improve/index.ts`, `verify_event_contract.mjs`, `verify_spec_architecture.mjs`, `kb_import/index.ts`, `meta_ads/index.ts`, `20260802124315_kb_deterministic_bilingual_router.sql`, `@radix-ui/react-dropdown-menu`, `20260728193453_fn_challenge_fix_false_negative_and_rank1_severity.sql`, `export_cat_knowledge/index.ts`, `sync_routines_from_production.mjs`, `verify_taxonomy.mjs`, `20260802165742_p2_c1_stage_a_flag_consistency_split_fields_for_review.sql`, `verify_phase1.mjs`, `portal/page.tsx`, `verify_agent_knowledge.mjs`, `SONNET_FIRST`, `20260802173350_p2_c1_stage_b_regression_tests_fix_ambiguous_passed.sql`, `20260802144014_p1_07_refunds_ledger.sql`, `quote_pdf/index.ts`, `quote_pdf/index.ts`, `20260802143708_p1_04d_control_mode_otp_hash_match.sql`, `schema_dump_not_replayable.test.mjs`, `make_xlsx/index.ts`, `pdpl_erase/index.ts`, `retention_purge/index.ts`?**
-  _High betweenness centrality (0.022) - this node is a cross-community bridge._
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
+- **Why does `cn()` connect `cn` to `vt_scan/index.ts`, `CustomerPortal.tsx`, `gen_category_knowledge/index.ts`, `verify_review_chain.mjs`, `inbound_email/index.ts`, `@radix-ui/react-separator`, `20260728080201_lead_haystack_view.sql`, `doc_reminder/index.ts`, `marketing_draft/index.ts`, `sync_staging_reference.mjs`, `20260802173318_p2_c1_stage_b_regression_tests.sql`, `20260728193932_fn_company_indices_no_inline_scoreboard.sql`, `20260728193632_fn_company_reflect_fix_actor_column.sql`, `backfill_production_embeddings.mjs`, `20260728194112_fn_what_if_fix_scenario_type.sql`, `doc_extract/index.ts`?**
+  _High betweenness centrality (0.033) - this node is a cross-community bridge._
+- **Why does `requireInternal()` connect `agent_learnings_report/index.ts` to `pdf_native/index.ts`, `agents/index.ts`, `secretary_act/index.ts`, `site_deploy/index.ts`, `route_inquiry/index.ts`, `agent_brain/index.ts`, `agent_autogen/index.ts`, `compliance_archive/index.ts`, `dropbox_backup/index.ts`, `send_outbox/index.ts`, `send_whatsapp/index.ts`, `wa_inbound/index.ts`, `collections_legal/index.ts`, `finance_ingest/index.ts`, `learn_gaps/index.ts`, `doc_render/index.ts`, `inquiry_parse/index.ts`, `license_extract/index.ts`, `match/index.ts`, `profile_ai/index.ts`, `quote_compare/index.ts`, `enrich_capability/index.ts`, `make_pdf/index.ts`, `mobile_otp/index.ts`, `money_tests/index.ts`, `alert_founder/index.ts`, `analytics_recommend/index.ts`, `refunds_api/index.ts`, `content_revise/index.ts`, `quote_pdf/index.ts`, `archive_rfq/index.ts`, `assets_ingest/index.ts`, `ai_health/index.ts`, `drawing_boq/index.ts`, `dropbox_sync/index.ts`, `drawing_redact/index.ts`, `kb_ingest/index.ts`, `supplier_review/index.ts`, `retention_purge/index.ts`, `wa_optin_set/index.ts`, `send_sms/index.ts`, `yello_scrape/index.ts`, `cad_convert/index.ts`, `legal_review/index.ts`, `match_eval/index.ts`, `quote_review/index.ts`, `20260802175148_p2_c1_stage_b5_identify_normalised_and_scored.sql`, `apify_scrape/index.ts`, `cost_snapshot/index.ts`, `email_cron/index.ts`, `kb_embed/index.ts`, `postiz_publish/index.ts`, `wa_templates_watch/index.ts`, `backup/index.ts`, `blog_weekly/index.ts`, `embed_leads/index.ts`, `extract_text/index.ts`, `qa_suite/index.ts`, `seo_gen/index.ts`, `social_stage/index.ts`, `translate_page/index.ts`, `email_triage/index.ts`, `kb_ingest_text/index.ts`, `20260728154559_harden_function_privileges_and_search_path.sql`, `20260728172404_fn_outcome_evaluate_grade_and_retire.sql`, `import_ops_knowledge.mjs`, `doc_extract/index.ts`, `ai_gateway/index.ts`, `cos_execute/index.ts`, `dept_plan/index.ts`, `kb_deepen/index.ts`, `dropbox_sync/index.ts`, `marketing_image/index.ts`, `pdpl_erase/index.ts`, `export_leads_csv/index.ts`, `20260728205157_semantic_cache_and_no_ai_layer.sql`, `external-api-slow.mjs`, `platform-fluid-compute.mjs`, `usage-spike-triage.mjs`, `reg_fetch/index.ts`, `20260728173045_ceo_cascade_and_department_kpi_tracking.sql`, `20260728173145_ai_economy_attribute_spend_and_enforce_budgets.sql`, `intent_router/index.ts`?**
+  _High betweenness centrality (0.026) - this node is a cross-community bridge._
 - **What connects `deploy-codex.sh script`, `deploy.sh script`, `HERE` to the rest of the system?**
   _6241 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `OsxShell.tsx` be split into smaller, more focused modules?**
