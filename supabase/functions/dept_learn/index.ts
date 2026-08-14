@@ -73,6 +73,15 @@ Deno.serve(async (req) => {
       const secret = await sec('cred_fn_dept_learn');
       const keys = (depts || []).map((d: any) => d.dept_key);
       await Promise.all(keys.map((k: string) => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, dept_key: k }), signal: AbortSignal.timeout(2500) }).catch(() => {})));
+      // dept_learn has written ZERO agent_runs rows in 30 days, so fn_runner_silence_watch cannot
+      // watch it at all: it re-derives cadence from agent_runs, and a runner with no rows is not
+      // among the 139 it knows about. The daily cron has fired every day regardless. One row per
+      // fan-out makes the learning loop observable.
+      await admin.from('agent_runs').insert({
+        agent: 'dept_learn', started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+        status: 'ok', counts: { departments: keys.length },
+        note: `Fanned out the daily learning pass to ${keys.length} active department(s): ${keys.join(', ')}.`,
+      });
       return J({ ok: true, fanned_out: keys.length });
     }
     return J({ error: 'provide dept_key or all:true' }, 400);

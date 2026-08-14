@@ -1,6 +1,6 @@
 # Reporting and committee graph
 
-Generated from `htdblwldjkcgjvmqkbeh` at 2026-08-14 12:47:34.996114 UTC by `scripts/agents/export_org_docs.mjs`. Every line is read
+Generated from `htdblwldjkcgjvmqkbeh` at 2026-08-14 13:21:25.48994 UTC by `scripts/agents/export_org_docs.mjs`. Every line is read
 from `org_role`, `org_role_committee` and `org_departments`; nothing here is authored twice.
 
 Exactly one primary manager per role, no cycles (enforced by `a10_org_role_no_cycle`), and the

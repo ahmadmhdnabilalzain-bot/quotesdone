@@ -343,7 +343,78 @@ for (const [label, ref] of Object.entries(PROJECTS)) {
     assert.equal(Number(r.c.overlays_active), 86);
   });
 
-  // ---- 12. Authority refusal ------------------------------------------------------------------
+  // ---- 12. The target operating model still reaches every department -------------------------
+  it('every active department resolves target departments and decision rules', async () => {
+    // ops_kb_stage.department_crosswalk is keyed on the PRODUCTION department key and is the only
+    // table outside `public` that is. The merge did not touch it, so fn_ops_department_context
+    // returned 0 targets and 0 rules for every new department and the "TARGET OPERATING MODEL"
+    // block silently left every moved employee's context. The pack scorecard caught it at 36/37.
+    const rows = await q(ref, `select d.dept_key,
+        jsonb_array_length(coalesce(fn_ops_department_context(d.dept_key,null,2)->'target_departments','[]')) tdepts,
+        jsonb_array_length(coalesce(fn_ops_department_context(d.dept_key,null,2)->'decision_rules','[]')) rules
+      from org_departments d where d.active order by d.sort`);
+    assert.equal(rows.length, 10);
+    for (const r of rows) {
+      assert.ok(Number(r.tdepts) > 0, `${r.dept_key} maps to no target department`);
+      assert.ok(Number(r.rules) > 0, `${r.dept_key} resolves no decision rule`);
+    }
+    const ctx = await one(ref, `select position('TARGET OPERATING MODEL' in c) tom
+      from (select public.fn_agent_context('procurement', 24000) c) z`);
+    assert.ok(Number(ctx.tom) > 0, 'fn_agent_context no longer emits the target operating model');
+  });
+
+  // ---- 13. The resolver is ON the path every employee turn goes through -----------------------
+  it('context assembly resolves canonical, legacy, merged and packaged identifiers', async () => {
+    // Of 68 routines taking an agent/actor/assignee argument, one resolved. This is the path
+    // agent_brain, action_worker, dept_plan, agent_act and exec_agents all reach context through.
+    const r = await one(ref, `select
+      fn_agent_context_v3('chief_of_staff')->'identity'->>'agent_key' canonical,
+      fn_agent_context_v3('brief')->'identity'->>'agent_key' legacy,
+      fn_agent_context_v3('analytics_director')->'identity'->>'agent_key' merged,
+      fn_agent_context_v3('legal-and-compliance-director')->'identity'->>'agent_key' packaged,
+      fn_org_agent_resolve('Marketplace Director') new_title,
+      fn_org_agent_resolve('Procurement Director') old_title`);
+    assert.equal(r.canonical, 'brief', 'the canonical role id does not reach its employee');
+    assert.equal(r.legacy, 'brief');
+    assert.equal(r.merged, 'intel_director', 'a merged-away key does not reach its survivor');
+    assert.equal(r.packaged, 'legal', 'a packaged role id does not reach its employee');
+    assert.equal(r.new_title, 'procurement', 'the canonical job title does not resolve');
+    assert.equal(r.old_title, 'procurement', 'the previous job title stopped resolving');
+  });
+
+  it('an inactive employee gets no context, and an unknown one gets no context', async () => {
+    // Before the fix fn_agent_context_v3('analytics_director') assembled a full context for an
+    // employee merged away that morning, because the lookup never checked `active`. A context is
+    // what lets an employee act.
+    const r = await one(ref, `select
+      left(fn_agent_context_capped('no_such_agent_xyz', 3000, 'x'), 24) unknown_capped,
+      (select count(*) from org_agents a where a.active
+         and (fn_agent_context_v3(a.agent_key)->>'error') is not null) active_refused,
+      (select count(*) from org_agents a where not a.active
+         and coalesce(fn_org_agent_resolve(a.agent_key), a.agent_key) = a.agent_key
+         and (fn_agent_context_v3(a.agent_key)->>'error') is null) inactive_assembled`);
+    assert.match(r.unknown_capped, /No such employee/,
+      'an unknown employee still receives an assembled context');
+    assert.equal(Number(r.active_refused), 0, 'an ACTIVE employee was refused a context');
+    assert.equal(Number(r.inactive_assembled), 0,
+      'an inactive employee with no surviving alias still assembles a context');
+  });
+
+  it('all 96 packaged knowledge roles reach an active canonical role', async () => {
+    const r = await one(ref, `select
+      (select count(distinct packaged_role_id) from org_role_identity) packaged,
+      (select count(*) from (
+         select i.packaged_role_id from org_role_identity i
+          where not exists (select 1 from org_role_identity x
+                              join org_agents a on a.agent_key = x.agent_key and a.active
+                             where x.packaged_role_id = i.packaged_role_id)
+          group by 1) z) unreachable`);
+    assert.equal(Number(r.packaged), 96, 'the packaged role count moved');
+    assert.equal(Number(r.unreachable), 0,
+      'a packaged role is held only by a deactivated employee, so its knowledge reaches nobody');
+  });
+
+  // ---- 14. Authority refusal ------------------------------------------------------------------
   it('raising a department tier without a stated reason is refused', async () => {
     const r = await post(ref, `do $$ begin
       insert into org_authority (dept_key, action_class, max_tier, threshold_aed, note)

@@ -1,7 +1,7 @@
 # Agent orchestration — test evidence
 
-**14 August 2026.** `node --test scripts/checks/org_reorg_behaviour.test.mjs` — **48 tests, 48 pass,
-0 fail**, 24 assertions run twice: once against production `htdblwldjkcgjvmqkbeh` and once against
+**14 August 2026.** `node --test scripts/checks/org_reorg_behaviour.test.mjs` — **50 tests, 50 pass,
+0 fail**, 25 assertions run twice: once against production `htdblwldjkcgjvmqkbeh` and once against
 staging `pglpqrhvozwepymcuunn`.
 
 None of these asserts on a source string, on a function merely existing, or on a row count a seed
@@ -120,6 +120,16 @@ than one that names it.
 `fn_category_specialist_scorecard(1)` over a one-day window with no inquiries must return `null` for
 `routing_accuracy`, `supplier_response_rate` and `valid_quotations`, each with a stated basis, and
 never 0 or 100. `pct(got, 0) = 100` is how 56 unmeasured company goals once scored as perfect.
+
+### The target operating model still reaches every department
+All ten active departments must resolve at least one packaged target department and at least one
+decision rule through `fn_ops_department_context`, and `fn_agent_context('procurement')` must still
+contain the `TARGET OPERATING MODEL` block. **This one was found by the pack scorecard, not by a
+test** — IN USE fell to 36/37 with "decision rules enabled + in decider context — probe returned 0"
+— because `ops_kb_stage.department_crosswalk` is keyed on the production department key and the
+migration did not touch it. The test exists now so the next merge cannot repeat it. Measured after
+the fix: exec 2/20, growth 3/30, customer_experience 2/20, marketplace 5/50, product_eng 3/30,
+data_intel 2/20, finance 2/20, legal 2/20, people_ops 2/20, assurance 2/20 (targets/rules).
 
 ### Authority refusal
 Inserting an `org_authority` row that raises a tier without `app.change_reason` set in the same

@@ -270,7 +270,34 @@ Deno.serve(async (req) => {
       const secret = await sec('cred_fn_dept_plan');
       const keys = (depts || []).map((d: any) => d.dept_key);
       await Promise.all(keys.map((k: string) => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, dept_key: k }), signal: AbortSignal.timeout(2500) }).catch(() => {})));
-      return J({ ok: true, fanned_out: keys.length, departments: keys });
+
+      // A RUN ROW ON EVERY FAN-OUT, INCLUDING THE ONE WHERE NOBODY PLANS.
+      //
+      // planDept writes to agent_runs only when it actually plans, and it returns early for any
+      // department already holding OPEN_TASK_CAP open tasks. Measured on production 14 Aug 2026:
+      // nine of the ten departments hold 18 to 115 open tasks, so the daily cron fires, every
+      // department is skipped, and NOTHING is written. dept_plan then shows 7 runs across 3 active
+      // days in 30 — and fn_runner_silence_watch, which re-derives cadence from agent_runs,
+      // classifies it as on-demand and never alerts. A watcher that learns "is this running?" from
+      // rows the runner only writes on success cannot ever see it stop.
+      //
+      // The skip picture is computed here rather than collected from the children, because the
+      // fan-out is fire-and-forget with a 2.5s abort and has no results to collect.
+      const skipped: string[] = []; const eligible: string[] = [];
+      for (const k of keys) {
+        const { count } = await admin.from('org_tasks').select('id', { count: 'exact', head: true })
+          .eq('dept_key', k).in('status', ['assigned', 'in_progress']);
+        ((count || 0) >= OPEN_TASK_CAP ? skipped : eligible).push(k + ':' + (count || 0));
+      }
+      await admin.from('agent_runs').insert({
+        agent: 'dept_plan', started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+        status: eligible.length ? 'ok' : 'skipped',
+        counts: { departments: keys.length, eligible: eligible.length, skipped: skipped.length, cap: OPEN_TASK_CAP },
+        note: eligible.length
+          ? `Fanned out to ${keys.length} department(s); ${eligible.length} under the ${OPEN_TASK_CAP}-open-task cap and planning (${eligible.join(', ')}); ${skipped.length} skipped for carrying unstarted work (${skipped.join(', ')}).`
+          : `Fanned out to ${keys.length} department(s) and NONE planned: every one holds at least ${OPEN_TASK_CAP} open tasks (${skipped.join(', ')}). The company's planning loop is stopped until that backlog is owned or closed — this row exists so that is visible rather than silent.`,
+      });
+      return J({ ok: true, fanned_out: keys.length, departments: keys, eligible, skipped });
     }
     return J({ error: 'provide dept_key or all:true' }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
