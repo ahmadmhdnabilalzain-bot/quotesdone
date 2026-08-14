@@ -434,7 +434,56 @@ Deno.serve(async (req) => {
       : ((hasBinary || (body.plugins && body.plugins.length)) ? 55000 : 55000);
     const deadlineAt = t0 + wallBudgetMs;
     let deadlineHit = false;
-    const ladder = [model, ...(fallback && fallback !== model ? [fallback] : [])];
+    // V3 REMEDIATION (14 Aug 2026) — THE BREAKER GETS ITS ENTRY POINT.
+    //
+    // v3_repair_10_infra_reliability.sql built a working failure taxonomy, an append-only attempt
+    // ledger and a circuit breaker, and an adversarial re-verification then found the thing that
+    // makes all of it worthless: NOTHING CALLED IT. fn_llm_preflight, fn_record_llm_attempt and
+    // fn_llm_retry_allowed matched only the .sql file itself; llm_attempt and llm_route_health both
+    // held 0 rows while qwen/qwen3.7-plus continued failing 152 times out of 152. A breaker no
+    // caller consults cannot fail anything closed. It is the same defect shape the certification
+    // was measuring, one layer down.
+    //
+    // This is the seam it belongs at: the gateway is the only place that knows the resolved route,
+    // owns the ladder, and runs the attempts. Everything below records THE FIRST ATTEMPT SEPARATELY
+    // from the retries, which is the property the certification insisted on — a retry must never
+    // mask an unreliable first attempt.
+    const requestId = crypto.randomUUID();
+    let attemptNo = 0;
+    const fullLadder = [model, ...(fallback && fallback !== model ? [fallback] : [])];
+    // Preflight each route. An open circuit removes that route from this call rather than letting
+    // it burn the wall budget. Note fn_llm_preflight answers allowed=true for a null/unknown route,
+    // so an unresolved id is NOT silently blocked here — it is passed through and recorded.
+    const ladder: string[] = [];
+    const skipped: { route: string; reason: string }[] = [];
+    for (const m of fullLadder) {
+      try {
+        const { data: pf } = await admin.rpc('fn_llm_preflight', { p_model: m });
+        if (pf && pf.allowed === false) { skipped.push({ route: m, reason: String(pf.class_key ?? 'circuit_open') }); continue; }
+      } catch (_e) { /* preflight must never be the reason a call cannot happen */ }
+      ladder.push(m);
+    }
+    // Every route on the ladder is open-circuit: fail CLOSED and say so, rather than retrying into
+    // a wall and reporting it as a model failure.
+    if (!ladder.length && fullLadder.length) {
+      return J({ ok: false, used_llm: false, outcome: 'circuit_open',
+        error: 'every model route for this task class is open-circuit',
+        routes: skipped, task_class: route.task_class, cost_usd: 0 }, 503);
+    }
+    // attempt_no is assigned SERVER-SIDE by fn_record_llm_attempt and cannot be set by this caller.
+    // That is deliberate: it is what makes first-attempt success un-fakeable from up here.
+    const recordAttempt = async (routeUsed: string, ok: boolean, latencyMs: number, errText: string, fr?: string) => {
+      attemptNo++;
+      try {
+        await admin.rpc('fn_record_llm_attempt', { p: {
+          request_id: requestId, model_route: routeUsed, ok,
+          latency_ms: latencyMs, err_excerpt: ok ? null : String(errText || '').slice(0, 400),
+          fn: String(body.fn ?? 'unknown'), agent_key: body.agent ?? null,
+          task_class: route.task_class ?? null, tier: route.tier ?? null,
+          finish_reason: fr ?? null,
+        }});
+      } catch (_e) { /* the ledger must not take down the call; its absence shows in the report */ }
+    };
     const wantStream = body.stream === true && route.stream === true;
 
     let out: string | null = null;
@@ -454,6 +503,7 @@ Deno.serve(async (req) => {
         // An attempt needs a few seconds to be worth starting at all.
         const msLeft = deadlineAt - Date.now();
         if (msLeft < 4000) { deadlineHit = true; break; }
+        const attemptStartedAt = Date.now();   // per-attempt clock, for the reliability ledger
         const ac = new AbortController();
         // Vision and audio payloads are large and slow; 25s is right for chat and far too tight
         // for a three-page scanned licence. Give the modality paths room rather than logging a
@@ -528,11 +578,17 @@ Deno.serve(async (req) => {
             outMsg = msg; used = m; usage = j?.usage || {};
             finishReason = String(j?.choices?.[0]?.finish_reason
                                   || j?.choices?.[0]?.native_finish_reason || '');
+            await recordAttempt(m, true, Date.now() - attemptStartedAt, '', finishReason);
             break;
           }
           lastErr = JSON.stringify(j?.error || j).slice(0, 200);
+          // An empty completion IS a failure even though the HTTP call succeeded. This is exactly
+          // the 220-of-228 case: a valid chat.completion body carrying no content, which every
+          // monitor read as a healthy response.
+          await recordAttempt(m, false, Date.now() - attemptStartedAt, lastErr);
         } catch (e) {
           lastErr = String((e as Error)?.message || e).slice(0, 200);
+          await recordAttempt(m, false, Date.now() - attemptStartedAt, lastErr);
         } finally { clearTimeout(to); }
       }
       if (outMsg || deadlineHit) break;

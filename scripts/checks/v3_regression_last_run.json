@@ -1,0 +1,302 @@
+{
+ "provenance": {
+  "commit": "4594ae28d5e604fb79510e425630755c82c7e3a5",
+  "tracked_tree_dirty": true,
+  "staging_ref": "pglpqrhvozwepymcuunn",
+  "ops_knowledge_rows": 8256,
+  "kb_chunks": 95920,
+  "agents_active": 90,
+  "role_identities": 133,
+  "tools_registered": 10,
+  "executors_active": 59,
+  "migration_head": "20260810233339",
+  "utc_now": "2026-08-14 14:57:56.801045",
+  "models_2h": {}
+ },
+ "structural": {
+  "numerator": 27,
+  "denominator": 29,
+  "pct": 93.1
+ },
+ "behavioural": null,
+ "by_area": {
+  "tools": {
+   "structural_pass": 6,
+   "structural_total": 6,
+   "behavioural_pass": 0,
+   "behavioural_total": 0
+  },
+  "traces": {
+   "structural_pass": 4,
+   "structural_total": 4,
+   "behavioural_pass": 0,
+   "behavioural_total": 0
+  },
+  "knowledge_retrieval": {
+   "structural_pass": 8,
+   "structural_total": 8,
+   "behavioural_pass": 0,
+   "behavioural_total": 0
+  },
+  "role_isolation": {
+   "structural_pass": 1,
+   "structural_total": 3,
+   "behavioural_pass": 0,
+   "behavioural_total": 0
+  },
+  "revenue_linkage": {
+   "structural_pass": 2,
+   "structural_total": 2,
+   "behavioural_pass": 0,
+   "behavioural_total": 0
+  },
+  "authority": {
+   "structural_pass": 3,
+   "structural_total": 3,
+   "behavioural_pass": 0,
+   "behavioural_total": 0
+  },
+  "infrastructure": {
+   "structural_pass": 3,
+   "structural_total": 3,
+   "behavioural_pass": 0,
+   "behavioural_total": 0
+  }
+ },
+ "structural_results": [
+  {
+   "layer": "structural",
+   "area": "tools",
+   "id": "STR-TOOL-001",
+   "passed": true,
+   "detail": "a tool registry exists and is populated",
+   "measured": "10 active tools"
+  },
+  {
+   "layer": "structural",
+   "area": "tools",
+   "id": "STR-TOOL-002",
+   "passed": true,
+   "detail": "an unknown agent is granted no tools (fails closed)",
+   "measured": "nobody=0"
+  },
+  {
+   "layer": "structural",
+   "area": "tools",
+   "id": "STR-TOOL-003",
+   "passed": true,
+   "detail": "tool grants differ by department (authorisation actually discriminates)",
+   "measured": "cfo=9 onboarding=10"
+  },
+  {
+   "layer": "structural",
+   "area": "tools",
+   "id": "STR-TOOL-004",
+   "passed": true,
+   "detail": "a tool outside the department grant is refused",
+   "measured": "cfo->supplier_360 allowed=false"
+  },
+  {
+   "layer": "structural",
+   "area": "tools",
+   "id": "STR-TOOL-005",
+   "passed": true,
+   "detail": "the ledger distinguishes ok_empty from error",
+   "measured": "constraint carries ok_empty: true"
+  },
+  {
+   "layer": "structural",
+   "area": "tools",
+   "id": "STR-TOOL-006",
+   "passed": true,
+   "detail": "every successful tool result was hashed before the model saw it",
+   "measured": "ok=110 unhashed=0"
+  },
+  {
+   "layer": "structural",
+   "area": "traces",
+   "id": "STR-TRACE-001",
+   "passed": true,
+   "detail": "agent turns write a decision trace",
+   "measured": "71 agent-turn traces of 81"
+  },
+  {
+   "layer": "structural",
+   "area": "traces",
+   "id": "STR-TRACE-002",
+   "passed": true,
+   "detail": "the completeness monitor executes without error",
+   "measured": "48 incomplete rows"
+  },
+  {
+   "layer": "structural",
+   "area": "traces",
+   "id": "STR-TRACE-003",
+   "passed": true,
+   "detail": "agent-turn traces carry role, authority and output status",
+   "measured": "n=71 no_role=0 no_auth=0 no_status=0 no_evidence=43"
+  },
+  {
+   "layer": "structural",
+   "area": "traces",
+   "id": "STR-TRACE-004",
+   "passed": true,
+   "detail": "a sealed trace refuses an evidence edit (proven against state, not error text)",
+   "measured": "sealed=true edit_blocked=true"
+  },
+  {
+   "layer": "structural",
+   "area": "knowledge_retrieval",
+   "id": "STR-KB-cfo-ontopic",
+   "passed": true,
+   "detail": "an on-topic task retrieves query-matched knowledge",
+   "measured": "matched=11/11 has_gap=false"
+  },
+  {
+   "layer": "structural",
+   "area": "knowledge_retrieval",
+   "id": "STR-KB-qa_manager-ontopic",
+   "passed": true,
+   "detail": "an on-topic task retrieves query-matched knowledge",
+   "measured": "matched=10/10 has_gap=false"
+  },
+  {
+   "layer": "structural",
+   "area": "knowledge_retrieval",
+   "id": "STR-KB-onboarding-ontopic",
+   "passed": true,
+   "detail": "an on-topic task retrieves query-matched knowledge",
+   "measured": "matched=10/10 has_gap=false"
+  },
+  {
+   "layer": "structural",
+   "area": "knowledge_retrieval",
+   "id": "STR-KB-cfo-nonsense",
+   "passed": true,
+   "detail": "an unmatchable task reports a gap rather than pretending",
+   "measured": "matched=0/12 has_gap=true"
+  },
+  {
+   "layer": "structural",
+   "area": "knowledge_retrieval",
+   "id": "STR-KB-GAP-INSTRUCTION",
+   "passed": true,
+   "detail": "a retrieval gap carries an explicit escalation instruction",
+   "measured": "present"
+  },
+  {
+   "layer": "structural",
+   "area": "knowledge_retrieval",
+   "id": "STR-KB-LEAK-cfo",
+   "passed": true,
+   "detail": "no other role's role-specific knowledge reaches this agent",
+   "measured": "foreign_role_records=0"
+  },
+  {
+   "layer": "structural",
+   "area": "knowledge_retrieval",
+   "id": "STR-KB-LEAK-qa_manager",
+   "passed": true,
+   "detail": "no other role's role-specific knowledge reaches this agent",
+   "measured": "foreign_role_records=0"
+  },
+  {
+   "layer": "structural",
+   "area": "knowledge_retrieval",
+   "id": "STR-KB-LEAK-onboarding",
+   "passed": true,
+   "detail": "no other role's role-specific knowledge reaches this agent",
+   "measured": "foreign_role_records=0"
+  },
+  {
+   "layer": "structural",
+   "area": "role_isolation",
+   "id": "STR-ROLE-001",
+   "passed": true,
+   "detail": "baseline: runtime agents serving more than one packaged role",
+   "measured": "26 agents"
+  },
+  {
+   "layer": "structural",
+   "area": "role_isolation",
+   "id": "STR-ROLE-002",
+   "passed": false,
+   "detail": "no agent is both the director and the reviewer-auditor of its own department",
+   "measured": "18 self-approval identities"
+  },
+  {
+   "layer": "structural",
+   "area": "role_isolation",
+   "id": "STR-ROLE-003",
+   "passed": false,
+   "detail": "zero unresolved cross-seniority collisions",
+   "measured": "{\"decisions\":{\"block\":13,\"split\":30,\"isolate\":19,\"restrict_to_advisory\":5},\"collisions\":26,\"measured_at\":\"2026-08-14T14:58:04.980154+00:00\",\"readiness_drift\":0,\"mapping_type_drift\":0,\"roles_in_collision\":65,\"certification_dispositions\":{\"NOT_CONNECTED\":5,\"BLOCKED_CRITICAL_FAILURE\":13},\"guard_review_"
+  },
+  {
+   "layer": "structural",
+   "area": "revenue_linkage",
+   "id": "STR-REV-001",
+   "passed": true,
+   "detail": "the company revenue objective exists as a single canonical row",
+   "measured": "1 rows"
+  },
+  {
+   "layer": "structural",
+   "area": "revenue_linkage",
+   "id": "STR-REV-002",
+   "passed": true,
+   "detail": "departments carry objectives that can be reconciled upward",
+   "measured": "10 of 10 departments have an active objective"
+  },
+  {
+   "layer": "structural",
+   "area": "authority",
+   "id": "STR-AUTH-001",
+   "passed": true,
+   "detail": "department x action-class authority is modelled",
+   "measured": "781 rows"
+  },
+  {
+   "layer": "structural",
+   "area": "authority",
+   "id": "STR-AUTH-002",
+   "passed": true,
+   "detail": "unsafe classes have runnable detectors and none of them errors",
+   "measured": "classes=9 with_detector=7 not_measurable=2 erroring=0"
+  },
+  {
+   "layer": "structural",
+   "area": "authority",
+   "id": "STR-AUTH-003",
+   "passed": true,
+   "detail": "classes that cannot be checked are declared NOT_MEASURABLE rather than silently passing",
+   "measured": "2 declared not measurable"
+  },
+  {
+   "layer": "structural",
+   "area": "infrastructure",
+   "id": "STR-INF-001",
+   "passed": true,
+   "detail": "the attempt ledger is written by the live call path (the breaker has an entry point)",
+   "measured": "attempts=243 requests=123 route_health=4"
+  },
+  {
+   "layer": "structural",
+   "area": "infrastructure",
+   "id": "STR-INF-002",
+   "passed": true,
+   "detail": "a route with no attempts reports NULL, never 100%",
+   "measured": "rows scoring 100% on zero input: 0"
+  },
+  {
+   "layer": "structural",
+   "area": "infrastructure",
+   "id": "STR-INF-003",
+   "passed": true,
+   "detail": "first attempts are recorded separately and are countable",
+   "measured": "first_attempts=123 of 243 attempts"
+  }
+ ],
+ "behavioural_trials": [],
+ "unauthorised_tool_attempts_blocked": 0
+}

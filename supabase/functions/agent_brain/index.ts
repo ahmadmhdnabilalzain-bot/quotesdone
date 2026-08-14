@@ -16,7 +16,8 @@
 // (5) assistant-posture line replaced by the chairman doctrine (default to action within
 // authority; gated work is prepared and routed, not abandoned).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { makeLlm, OPUS_FIRST, SONNET_FIRST } from '../_shared/llm.ts';
+import { makeLlm, makeLlmRich, OPUS_FIRST, SONNET_FIRST } from '../_shared/llm.ts';
+import { toolsFor, toOpenAiTools, callTool } from '../_shared/tools.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA = Deno.env.get('SUPABASE_URL')!;
@@ -56,6 +57,103 @@ async function cntT(t:string, mod?:(q:any)=>any){ let q=admin.from(t).select('id
 // memory_retrieval path at max:160 against a 14,110-token main call, so it is a rounding error in
 // the bill, and its callers take no key to pass.
 const llmFor = (agent: string) => makeLlm(OPUS_FIRST, { max: 8000, timeoutMs: 70000, agent });
+
+// V3 REMEDIATION (14 Aug 2026) — THE TOOL LOOP, THE TRUNCATION GATE AND THE TRACE.
+//
+// Certification V3-COR-0A782DA90B10 measured three things about this path, all of them structural:
+//   TOOL_NOT_CONNECTED            2,284/2,284 — tool_calls recorded, tool_results empty on every row
+//   TRACE_OR_OBSERVABILITY_FAILURE 2,284/2,284 — decision_trace_id null on every row
+//   OUTPUT_CONTRACT_ERROR           135        — all of them finish_reason 'length', all on one route
+//
+// This agent could not hold a tool because _shared/llm.ts discarded tool_calls, and it could not
+// detect a truncated answer because the same line discarded finish_reason. Both are fixed there;
+// what follows is this function taking delivery of them.
+const llmRichFor = (agent: string) => makeLlmRich(OPUS_FIRST, { max: 8000, timeoutMs: 70000, agent });
+
+const MAX_TOOL_STEPS = 4;
+
+type ToolLoopResult = {
+  content: string | null;
+  truncated: boolean;
+  requested: string[];
+  executed: string[];
+  refs: { tool: string; status: string; hash: string | null; rows: number; call_id: string | null }[];
+  steps: number;
+  failClosed: string | null;   // set when a fail_closed tool did not answer
+  llmError: string | null;
+};
+
+/**
+ * Run the model with its authorised tools until it stops asking for them.
+ *
+ * The tools offered come from fn_agent_tools, resolved from the roster — the prompt cannot widen
+ * its own set. Nothing is forced: an agent that needs no tool simply never calls one, which is why
+ * tool_choice is left at the provider default rather than 'required'.
+ */
+async function runWithTools(
+  agentKey: string, sysVolatile: string, sysStable: string,
+  history: any[], msg: string, correlationId: string,
+): Promise<ToolLoopResult> {
+  const out: ToolLoopResult = { content: null, truncated: false, requested: [], executed: [], refs: [], steps: 0, failClosed: null, llmError: null };
+  const rich = llmRichFor(agentKey);
+  // A registry that cannot be reached is a FAILURE, not an empty tool set. Answering anyway would
+  // silently reproduce the certification's own finding - an agent reasoning from prompt memory
+  // while everything downstream reads it as a normal turn.
+  let specs;
+  try { specs = await toolsFor(agentKey, 'read'); }
+  catch (e) { out.failClosed = 'tool_registry_unreachable'; out.llmError = String((e as Error)?.message || e); return out; }
+
+  // No tools granted: behave exactly as before, but still surface truncation.
+  if (!specs.length) {
+    const r = await rich(sysVolatile, [...history, { role: 'user', content: msg }], 8000, sysStable);
+    out.content = r.content; out.truncated = r.truncated; out.llmError = r.error;
+    return out;
+  }
+
+  const tools = toOpenAiTools(specs);
+  // The gateway prefers `messages` over sys+input, which is what lets us replay assistant tool_calls
+  // and their results verbatim on the next turn.
+  const messages: any[] = [
+    { role: 'system', content: sysStable ? sysStable + '\n' + sysVolatile : sysVolatile },
+    ...history.map(h => ({ role: h.role, content: h.content })),
+    { role: 'user', content: msg },
+  ];
+
+  for (let step = 0; step < MAX_TOOL_STEPS; step++) {
+    out.steps = step + 1;
+    const r = await rich(sysVolatile, msg, 8000, sysStable, { tools, messages });
+    out.truncated = out.truncated || r.truncated;
+    out.llmError = r.error;
+    if (r.error) return out;
+
+    const calls = r.tool_calls ?? [];
+    if (!calls.length) { out.content = r.content; return out; }
+
+    // Replay the assistant turn verbatim; the provider requires it before the tool results.
+    messages.push(r.message ?? { role: 'assistant', content: r.content ?? '', tool_calls: calls });
+
+    for (const c of calls) {
+      const name = c?.function?.name ?? '';
+      let args: any = {};
+      try { args = JSON.parse(c?.function?.arguments || '{}'); } catch (_e) { args = {}; }
+      out.requested.push(name);
+      const res = await callTool(name, args, { agentKey, correlationId });
+      if (res.status === 'ok' || res.status === 'ok_empty') out.executed.push(name);
+      out.refs.push({ tool: name, status: res.status, hash: res.result_hash, rows: res.rows, call_id: res.call_id });
+      // A fail-closed tool that did not answer stops the task. The agent does not get to
+      // substitute an assumption for the live figure it was told to fetch.
+      const spec = specs.find(s => s.tool_id === name);
+      if (spec?.failure_behaviour === 'fail_closed' && !['ok', 'ok_empty'].includes(res.status)) {
+        out.failClosed = `${name}:${res.status}`;
+      }
+      messages.push({ role: 'tool', tool_call_id: c.id, content: res.rendered.slice(0, 8000) });
+    }
+    if (out.failClosed) return out;
+  }
+
+  // Ran out of steps still asking for tools. That is a real outcome, not an answer.
+  return out;
+}
 async function llmFast(sys:string, user:string){ try{ const secret=await sec('cred_fn_agent_brain'); if(!secret) return ''; const r=await fetch(SUPA+'/functions/v1/ai_gateway',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:secret,fn:'agent_brain',task_class:'memory_retrieval',sys,input:user,max:160,temperature:0}),signal:AbortSignal.timeout(20000)}); const j=await r.json(); return j?.content||''; }catch(_e){ return ''; } }
 
 // Lint gate: a candidate memory that matches any active forbidden-language rule is refused.
@@ -378,15 +476,35 @@ Deno.serve(async (req)=>{
     const sysStable = stableCtx ? (base+persona+instr+stableCtx) : '';
     const sysVolatile = (stableCtx ? '' : base+persona+instr)+volatileCtx+kb+inbox
       +'\n\nLIVE DATA SNAPSHOT (read-only, captured just now):\n'+JSON.stringify(ctx).slice(0,9000);
-    const llmOut=await llmFor(key)(sysVolatile,[...history,{role:'user',content:msg}],8000,sysStable);
+    // V3 REMEDIATION. One correlation id ties this turn's tool calls and its decision trace
+    // together, so "which evidence did this decision actually rest on" is answerable afterwards.
+    const correlationId = crypto.randomUUID();
+    const loop = await runWithTools(key, sysVolatile, sysStable, history, msg, correlationId);
+    const llmOut = loop.content;
     // 10 Aug 2026: an empty model return has always produced this apology AND an agent_runs row
     // reading status 'ok'. `it` was found timing out at ~56s twice in a row while its run log said
     // it had worked — and its ONE prior success took 53,139 ms on a 30,821-token prompt, so it had
     // been three seconds from this cliff for some time with nothing saying so. Same silent failure
     // exec_agents was fixed for in session 2. Recorded truthfully below.
     const llmFailed = !llmOut;
-    const rawReply=llmOut||'I could not reach the AI service just now — please try again in a moment.';
-    let [clean,acts]=splitActions(rawReply); let finalReply=clean||rawReply; const notes:string[]=[];
+    // A TRUNCATED OR FAIL-CLOSED ANSWER IS NOT AN ANSWER. Certification recorded 135 truncations,
+    // every one of them on the tier used for consequential work: the JSON never closes, the
+    // structured tail is lost, and the reply arrives looking ordinary with its ending missing.
+    // Executing the actions parsed out of a half-written reply is the defect; refusing to is the fix.
+    const incomplete = loop.truncated ? 'truncated'
+                     : loop.failClosed ? 'tool_unavailable'
+                     : (loop.steps >= MAX_TOOL_STEPS && !llmOut) ? 'tool_loop_exhausted' : null;
+    const rawReply = incomplete
+      ? (loop.truncated
+          ? 'I could not complete this answer — my response hit the output limit and was cut off. I have not acted on the incomplete reasoning. Please narrow the question or ask for one part at a time.'
+          : loop.failClosed
+            ? 'I could not complete this task: the live data I need was not retrievable (' + loop.failClosed + '). I am not answering from memory in its place, so this needs escalation or a retry once the source is back.'
+            : 'I could not complete this task within the tool budget for this turn.')
+      : (llmOut || 'I could not reach the AI service just now — please try again in a moment.');
+    // Actions are parsed only from a COMPLETE reply.
+    let [clean,acts] = incomplete ? [rawReply, null as any] : splitActions(rawReply);
+    let finalReply=clean||rawReply; const notes:string[]=[];
+    if (incomplete) notes.push('incomplete:'+incomplete);
     if(acts&&Array.isArray(acts.handoffs)){
       for(const h of acts.handoffs.slice(0,5)){
         const to=String(h?.to||'').toLowerCase(); if(!VALID_AGENTS.includes(to)||to===key) continue;
@@ -447,16 +565,80 @@ Deno.serve(async (req)=>{
     // employee that ran; without this row nothing downstream — performance, trend, workload —
     // can say anything about them. Keyed by agent_key so it joins to org_agents.
     try{
-      await admin.from('agent_runs').insert({ agent:key, status:llmFailed?'error':'ok',
+      await admin.from('agent_runs').insert({ agent:key, status:(llmFailed||incomplete)?'error':'ok',
         started_at:new Date(runStartedAt).toISOString(), finished_at:new Date().toISOString(),
         counts:{ prompt_chars:sysStable.length+sysVolatile.length,
                  stable_chars:sysStable.length, volatile_chars:sysVolatile.length,
-                 history_turns:history.length, llm_returned_nothing:llmFailed },
+                 history_turns:history.length, llm_returned_nothing:llmFailed,
+                 // V3 remediation: the three facts the certification could not see.
+                 incomplete:incomplete, truncated:loop.truncated,
+                 tools_requested:loop.requested.length, tools_executed:loop.executed.length,
+                 tool_steps:loop.steps, correlation_id:correlationId },
         note:(llmFailed
           ? 'The model returned nothing, so this employee did not answer. Prompt was '
             +(sysStable.length+sysVolatile.length)+' characters ('+sysStable.length+' cacheable). Ask: '
+          : incomplete
+            ? 'INCOMPLETE ('+incomplete+'): the reply was not acted on. '
           : '')+msg.slice(0,180) });
     }catch(_e){}
+
+    // ── THE DECISION TRACE. ────────────────────────────────────────────────────────────────────
+    // decision_trace held 1 row against 204 agent_actions when this was written, and
+    // decision_trace_id was null on all 2,407 certification execution rows. Nothing in this runtime
+    // was auditable after the fact. Every consequential turn now leaves one row naming who decided,
+    // under which role, on what evidence, with which tools, at what confidence, and what happens
+    // next — and it is sealed so the evidence cannot be edited afterwards.
+    try{
+      const conf = (acts && typeof acts.confidence === 'number') ? acts.confidence : null;
+      const { data:traceId } = await admin.rpc('fn_write_decision_trace', { p: {
+        correlation_id: correlationId,
+        agent_key: key,
+        decision_type: 'agent_brain_turn',
+        task_class: 'agent_reasoning',
+        entity_type: 'agent_chat',
+        proposed_action: String(finalReply).slice(0, 2000),
+        confidence: conf === null ? null : String(conf),
+        // Uncertainty is recorded as the agent's own stated basis, not inferred for it.
+        uncertainty: conf === null ? 'not stated by the agent' : (conf < 0.4 ? 'guessing — needs a specialist, a source or an answered question' : conf < 0.7 ? 'reasoned from partial information' : 'had the facts and the expertise'),
+        // ESCALATION IS NOT DELEGATION. The first version of this recorded any handoff as
+        // 'handed_off', which made a lateral hand to a peer specialist indistinguishable from
+        // going up the reporting line for authority — and a regression check reading it then
+        // reported normal delegation as over-escalation. The direction is resolved from the
+        // roster: a handoff to this agent's own manager is an escalation, anything else is
+        // delegation, and neither is a guess.
+        escalation_decision: await (async () => {
+          if (incomplete) return 'blocked';
+          const tos = (acts?.handoffs ?? []).map((h:any)=>String(h?.to||'').toLowerCase()).filter(Boolean);
+          if (!tos.length) return 'within_authority';
+          try {
+            const { data:me } = await admin.from('org_agents').select('manager_key').eq('agent_key', key).maybeSingle();
+            const mgr = String(me?.manager_key || '').toLowerCase();
+            return (mgr && tos.includes(mgr)) ? 'escalated' : 'delegated';
+          } catch (_e) { return 'delegated'; }
+        })(),
+        // Which knowledge this turn actually retrieved, read back from the recording table rather
+        // than asserted. fn_agent_context_capped writes agent_context_retrieval on every assembly;
+        // taking the newest row for this agent since the turn began ties the trace to real records.
+        knowledge_refs: await (async () => {
+          try {
+            const { data } = await admin.from('agent_context_retrieval')
+              .select('knowledge_ids').eq('agent_key', key)
+              .gte('created_at', new Date(runStartedAt).toISOString())
+              .order('created_at', { ascending: false }).limit(1);
+            return (data?.[0]?.knowledge_ids as string[]) ?? [];
+          } catch (_e) { return []; }
+        })(),
+        evidence_refs: loop.refs.map(r => ({ tool: r.tool, status: r.status, hash: r.hash, rows: r.rows })),
+        tools_requested: loop.requested,
+        tools_executed: loop.executed,
+        tool_result_refs: loop.refs,
+        outcome_status: incomplete ? 'blocked' : 'pending',
+        final_status: incomplete ?? (llmFailed ? 'no_answer' : 'answered'),
+        assumptions: (acts?.handoffs ?? []).flatMap((h:any)=>Array.isArray(h?.assumptions)?h.assumptions:[]),
+        alternatives: (acts?.handoffs ?? []).flatMap((h:any)=>Array.isArray(h?.alternatives)?h.alternatives:[]),
+      }});
+      if (traceId) await admin.rpc('fn_seal_decision_trace', { p_id: traceId });
+    }catch(_e){ /* a trace failure must not take the answer down, but it is visible in the view */ }
     // A thought, every turn — not only when the founder says "remember". employee-current-thoughts
     // asks what the employee is thinking, and it was written on a keyword match roughly never.
     // ...unless there was no thought. Storing the apology as the employee's current reasoning is

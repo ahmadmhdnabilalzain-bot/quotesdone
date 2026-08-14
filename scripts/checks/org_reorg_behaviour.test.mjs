@@ -209,7 +209,12 @@ for (const [label, ref] of Object.entries(PROJECTS)) {
       values ('social_post','reorg-probe-2','marketplace','procurement','procurement','dept_review','approve');
       raise exception 'SELF APPROVAL NOT REFUSED';
     end $$;`);
-    assert.ok(/review_chain_no_self_approval_ck/i.test(r.text),
+    // Either guard refusing is a pass. The CHECK constraint still exists and still fires on its
+    // own; since 14 Aug 2026 the a00_ BEFORE trigger simply gets there first, and it is strictly
+    // stronger — the CHECK compares the two columns as written, the trigger resolves both sides
+    // and so also catches the case where author and reviewer are one employee under two names.
+    // Asserting on the constraint NAME would have made a stronger guard look like a regression.
+    assert.ok(/review_chain_no_self_approval_ck|refuses a self-review/i.test(r.text),
       `a self-approval insert was accepted: ${r.text}`);
   });
 
@@ -432,5 +437,175 @@ for (const [label, ref] of Object.entries(PROJECTS)) {
         and not exists (select 1 from employee_authority e
           where e.agent_key=r.runtime_agent_key and e.action_class='review_block' and e.max_tier='autonomous')`);
     assert.equal(Number(r.n), 0, 'an independent reviewer cannot actually block anything');
+  });
+
+  // ---- 15. The canonical shape, frozen -------------------------------------------------------
+  // The founder froze the ten-department structure on 14 Aug 2026. These numbers are not targets
+  // to reach; they are the accepted organisation, and a change to any of them is a reorganisation
+  // that must be a deliberate commit rather than a side effect.
+  it('the canonical organisation shape holds', async () => {
+    const r = await one(ref, `select
+      (select count(*) from org_departments where coalesce(active,false)) active_depts,
+      (select count(*) from org_departments where merged_into is not null) merged_rows,
+      (select count(*) from org_role where status='active' and runtime_mode<>'knowledge_overlay') accountable,
+      (select count(*) from org_role where status='active' and runtime_mode='knowledge_overlay') overlays,
+      (select count(distinct packaged_role_id) from org_role_identity) packaged,
+      (select count(distinct agent_key) from org_role_identity) identity_agents,
+      (select count(*) from fn_org_role_violations()) violations,
+      -- every merged department points at a department that is actually alive
+      (select count(*) from org_departments d where d.merged_into is not null and not exists
+        (select 1 from org_departments c where c.dept_key=d.merged_into and coalesce(c.active,false))) merged_to_dead,
+      -- no accountable role without an identity, no identity without a live employee
+      (select count(*) from org_role r where r.status='active' and r.runtime_mode<>'knowledge_overlay'
+        and not exists (select 1 from org_role_identity i where i.agent_key=r.runtime_agent_key)) role_without_identity,
+      (select count(*) from org_role_identity i where not exists
+        (select 1 from org_agents a where a.agent_key=i.agent_key and a.active)) identity_without_employee,
+      -- knowledge scoped to a department that no longer exists would be retrieved by nobody
+      (select count(*) from ops_knowledge k where k.runtime_eligible and k.supersession_state='current'
+        and k.dept_key is not null and not exists
+        (select 1 from org_departments d where d.dept_key=k.dept_key)) orphaned_knowledge,
+      (select count(*) from org_agents a where a.active and a.manager_key=a.agent_key) self_managed`);
+    assert.equal(Number(r.active_depts), 10, 'the ten-department structure is frozen');
+    assert.equal(Number(r.merged_rows), 22, '22 departments were merged away');
+    assert.equal(Number(r.accountable), 90, '90 accountable runtime roles');
+    assert.equal(Number(r.overlays), 86, '86 category overlays');
+    assert.equal(Number(r.packaged), 96, 'all 96 packaged roles are held');
+    assert.equal(Number(r.identity_agents), 90, 'the 90 accountable roles are the identity holders');
+    assert.equal(Number(r.violations), 0, 'fn_org_role_violations() must return no rows');
+    assert.equal(Number(r.merged_to_dead), 0, 'a department merged into a dead department');
+    assert.equal(Number(r.role_without_identity), 0, 'an accountable role with no packaged identity');
+    assert.equal(Number(r.identity_without_employee), 0,
+      'a packaged identity naming an employee the merge deactivated — resolves, so nothing fails');
+    assert.equal(Number(r.orphaned_knowledge), 0, 'knowledge scoped to a department that no longer exists');
+    assert.equal(Number(r.self_managed), 0, 'an employee is its own manager');
+  });
+
+  // ---- 16. Ambiguity is confined to the composite mappings that declare it -------------------
+  // DECIDED 14 Aug 2026, not merely reported. 22 packaged roles resolve to more than one active
+  // employee — marketing-operations-specialist is held by five real marketing desks. That is the
+  // package_composite pattern: the knowledge pack ships archetypes, the company has desks, and one
+  // archetype legitimately covers several. Forcing one holder each would either delete real desks
+  // or invent fake archetypes, and the structure is frozen.
+  //
+  // So the boundary is not "one holder per packaged role". It is: a packaged role may be shared
+  // ONLY through a mapping that says so. A one_to_one row sharing its archetype is a mistake,
+  // because one_to_one is the claim that it is not shared.
+  // The contradiction is one_to_one, not "not composite". Measured on both projects:
+  //   package_composite 48 rows / 47 shared  - the archetype legitimately covering several desks
+  //   requires_split    33 rows /  1 shared  - a flag that this holder should be split out; it is
+  //                                            an acknowledgement, not a claim of exclusivity
+  //   runtime_composite 27 rows /  0 shared
+  //   one_to_one        19 rows /  0 shared  - the claim that it is NOT shared, and it holds
+  // An earlier version of this test forbade any non-composite mapping from sharing, which made
+  // requires_split look like a violation the moment v3_repair_06 set one. That was the assertion
+  // being wider than the property it was defending.
+  it('a mapping that claims exclusivity never shares its packaged role', async () => {
+    const rows = await q(ref, `select i.packaged_role_id, i.agent_key, i.mapping_type
+      from org_role_identity i
+      where i.mapping_type = 'one_to_one'
+        and exists (select 1 from org_role_identity j
+                     where j.packaged_role_id = i.packaged_role_id and j.agent_key <> i.agent_key)
+      order by 1, 2`);
+    assert.equal(rows.length, 0,
+      `a one_to_one mapping shares its packaged role, which is a contradiction in terms: ${JSON.stringify(rows)}`);
+  });
+
+  // requires_split is tracked debt, not a failure — but it must not quietly become the way new
+  // sharing is introduced. One is the measured baseline; a second means somebody used the flag
+  // instead of deciding.
+  it('shared packaged roles under requires_split do not grow past the known one', async () => {
+    const r = await one(ref, `select count(*) n from org_role_identity i
+      where i.mapping_type = 'requires_split'
+        and exists (select 1 from org_role_identity j
+                     where j.packaged_role_id = i.packaged_role_id and j.agent_key <> i.agent_key)`);
+    assert.ok(Number(r.n) <= 1,
+      `${r.n} requires_split rows now share a packaged role, up from the known 1 `
+      + '(supplier_analyst on data-analytics-and-intelligence-analyst-controller)');
+  });
+
+  // ---- 17. Reviewer independence survives the alias ------------------------------------------
+  // Measured on production 14 Aug 2026 BEFORE the fix: passing the author under an alias defeated
+  // the self-review guard in all ten departments, because fn_pick_reviewer compared raw strings
+  // and every head carries aliases. A guard that only holds for one spelling of the author is not
+  // a guard, so this asserts the behaviour for the alias, not for the canonical key.
+  it('an author passed under an alias is never returned as its own reviewer', async () => {
+    const rows = await q(ref, `with h as (
+        select d.dept_key, d.lead_agent, al.alias
+        from org_departments d
+        join org_agent_alias al on al.agent_key = d.lead_agent and al.alias <> d.lead_agent
+        where coalesce(d.active,false) and d.lead_agent is not null)
+      select h.dept_key, h.lead_agent, h.alias,
+             public.fn_pick_reviewer(h.dept_key, h.alias)->>'reviewer' reviewer
+        from h`);
+    assert.ok(rows.length >= 10, `expected every department head to carry an alias, got ${rows.length} rows`);
+    for (const row of rows) {
+      assert.notEqual(row.reviewer, row.lead_agent,
+        `${row.dept_key}: author "${row.alias}" resolves to ${row.lead_agent}, who was returned as its own reviewer`);
+    }
+  });
+
+  it('review_chain refuses a self-review written straight to the table', async () => {
+    const r = await post(ref, `do $$ begin
+      insert into review_chain (subject_type, subject_id, dept_key, author_agent, reviewer_agent,
+                                stage, decision, reason, confidence)
+      select 'probe','zz_selfreview_probe', d.dept_key, d.lead_agent, al.alias,
+             'dept_review','approve','probe',1.0
+        from org_departments d
+        join org_agent_alias al on al.agent_key = d.lead_agent and al.alias <> d.lead_agent
+       where coalesce(d.active,false) limit 1;
+      raise exception 'SELF REVIEW NOT REFUSED';
+    end $$;`);
+    assert.ok(/refuses a self-review/i.test(r.text),
+      `review_chain accepted an alias self-review by direct insert: ${r.text}`);
+  });
+
+  // ---- 18. Every dirham is inside some ceiling ------------------------------------------------
+  // Measured before the fix: 64% of staging's month-to-date AI spend was outside every budget,
+  // 29.87 AED with no dept_key and 37.87 AED under 22 department keys the merge had removed. The
+  // halt could not bite on money no budget could see.
+  it('no month-to-date AI spend falls outside every department ceiling', async () => {
+    const r = await one(ref, `with m as (
+        select * from ai_cost_log where occurred_at >= date_trunc('month', now()))
+      select round(coalesce(sum(cost_aed),0),2) total,
+             round(coalesce(sum(cost_aed) filter (where dept_key is null),0),2) no_dept,
+             round(coalesce(sum(cost_aed) filter (where dept_key is not null and not exists
+               (select 1 from department_budget b
+                 where m.dept_key = any(public.fn_dept_scope(b.dept_key)))),0),2) no_ceiling
+        from m`);
+    // Rows written before the attribution fix keep their NULL; this asserts the SHARE now, and the
+    // trigger test below asserts that a NEW un-departmented call cannot land outside a ceiling.
+    const outside = Number(r.no_dept) + Number(r.no_ceiling);
+    const pct = Number(r.total) > 0 ? (100 * outside) / Number(r.total) : 0;
+    assert.ok(pct < 35,
+      `${pct.toFixed(1)}% of this month's AI spend is outside every ceiling `
+      + `(${r.no_dept} AED with no department, ${r.no_ceiling} AED under a department with no budget)`);
+  });
+
+  it('a new AI cost row cannot be logged outside every ceiling, and the halt fires', async () => {
+    const out = await probe(ref, `
+  declare v_dept text; v_canon text; v_before text; v_after text; v_burn numeric;
+begin
+  insert into ai_cost_log (occurred_at, fn, model_used, prompt_tokens, output_tokens, cost_aed, ok)
+  values (now(),'drawing_redact','probe',1,1,0,true) returning dept_key into v_dept;
+
+  insert into ai_cost_log (occurred_at, fn, dept_key, model_used, prompt_tokens, output_tokens, cost_aed, ok)
+  values (now(),'zz_probe','marketing','probe',1,1,0,true) returning dept_key into v_canon;
+
+  v_before := public.fn_ai_route(p_fn=>'agent_brain', p_dept_key=>'growth')->>'use_llm';
+  select monthly_aed * 0.96 into v_burn from department_budget where dept_key='growth';
+  insert into ai_cost_log (occurred_at, fn, dept_key, model_used, prompt_tokens, output_tokens, cost_aed, ok)
+  values (now(),'zz_probe_burn','growth','probe',1,1, v_burn, true);
+  v_after := public.fn_ai_route(p_fn=>'agent_brain', p_dept_key=>'growth')->>'use_llm';
+
+  v_out := v_dept || '/' || v_canon || '/' || v_before || '/' || v_after;
+end;`);
+    const [dept, canon, before, after] = out.trim().split('/');
+    assert.equal(dept, 'marketplace',
+      'an un-departmented drawing_redact call was logged with no department, so no ceiling can see it');
+    assert.equal(canon, 'growth',
+      'a call logged under the merged-away key "marketing" was not canonicalised to growth');
+    assert.equal(before, 'true', 'growth was already halted before the probe burned its budget');
+    assert.equal(after, 'false',
+      'the department budget halt did not fire after 96% of the budget was spent');
   });
 }
