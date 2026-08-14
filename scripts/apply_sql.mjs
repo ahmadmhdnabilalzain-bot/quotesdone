@@ -126,6 +126,42 @@ if (offenders.length) {
   process.exit(3);
 }
 
+// A BODY MAY NOT BE PROMOTED AHEAD OF THE ROUTINE IT CALLS (14 Aug 2026).
+//
+// Same asymmetry as the DDL rule below, one layer up. A routine that calls public.fn_x() compiles
+// and promotes happily; plpgsql resolves the callee at RUN time, so if fn_x exists on staging and
+// not on production, the promotion succeeds, every digest matches, and the function throws the
+// first time production calls it.
+//
+// Nearly triggered on this very file: two sessions converged scripts/sql/org_reorg_04_runtime.sql,
+// and the merged version had fn_agent_context_v3 calling a new helper fn_task_tsquery that existed
+// on staging only. Promoting it would have made EVERY employee context assembly on production
+// throw — the single hottest path in the company — while staging stayed green.
+//
+// project_parity would not have caught it either: that is a SHAPE check over columns and views, and
+// a missing function is neither.
+const CALLEE = /public\.((?:fn|trg|qd|run)_[a-z0-9_]+)\s*\(/g;
+const selfDefined = new Set(uniq.map(n => n.toLowerCase()));
+const called = new Set();
+for (const d of stageDefs) for (const m of String(d.d).matchAll(CALLEE)) called.add(m[1].toLowerCase());
+if (DDL) for (const m of sql.matchAll(CALLEE)) called.add(m[1].toLowerCase());
+const wanted = [...called].filter(c => !selfDefined.has(c));
+if (wanted.length) {
+  const rows = await mgmtRead(PROD_REF, `select distinct lower(p.proname) n
+      from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+     where ns.nspname='public' and lower(p.proname) in (${wanted.map(w => `'${w}'`).join(',')})`);
+  const have = new Set(rows.map(r => r.n));
+  const missing = wanted.filter(w => !have.has(w));
+  if (missing.length) {
+    console.error('REFUSED: this file promotes a routine that calls something production does not have.');
+    console.error('plpgsql resolves a callee at run time, so this would deploy cleanly, match every');
+    console.error('digest, and then throw the first time production ran it.');
+    for (const m of missing) console.error(`  missing on ${PROD_REF}: public.${m}()`);
+    console.error('Fix: promote the file that DEFINES those routines first, then re-run this one.');
+    process.exit(4);
+  }
+}
+
 // DDL FIRST, ALWAYS. A function body promoted before the column it selects exists fails on
 // production while reporting success on staging, which is the exact asymmetry this whole promotion
 // rule exists to prevent.
