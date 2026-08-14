@@ -28,8 +28,10 @@ const SUPA = Deno.env.get('SUPABASE_URL')!;
 export type ToolSpec = {
   tool_id: string; purpose: string; kind: string; impl_kind: string; impl_target: string;
   input_schema: any; timeout_seconds: number; max_attempts: number; backoff: string;
-  failure_behaviour: string; requires_current_data: boolean;
+  failure_behaviour: string; requires_current_data: boolean; required_credential?: string | null;
 };
+/** The app_secrets key the registry declares for this tool, if any. */
+const spec_credential = (s: ToolSpec) => s.required_credential ?? null;
 
 export type ToolOutcome = {
   tool_id: string;
@@ -142,7 +144,18 @@ async function runOnce(spec: ToolSpec, args: any, agentKey: string, timeoutMs: n
         // The agent key is bound from the roster. A model asking about someone else's inbox is
         // asking for another identity's work; it does not get to name the key.
         case 'handoff_inbox':        return { p_agent_key: agentKey };
-        default:                     return args ?? {};
+        default: {
+          // GENERIC MAPPING. The first version of this returned the model's raw argument names
+          // straight to .rpc(), so any tool registered by another workstream failed with
+          // "Could not find the function public.fn_x(dept) in the schema cache" - the tool existed,
+          // its parameter was p_dept, and the dispatcher had no idea. Measured live: 3 of 3
+          // handoff_stalled calls failed exactly this way.
+          // Every routine in this codebase prefixes its parameters with p_, so that is the default;
+          // an argument already prefixed is passed through untouched.
+          const outArgs: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(args ?? {})) outArgs[k.startsWith('p_') ? k : 'p_' + k] = v;
+          return outArgs;
+        }
       }
     })();
     // ops_knowledge_search / dept_library_search default the department to the caller's own.
@@ -156,9 +169,18 @@ async function runOnce(spec: ToolSpec, args: any, agentKey: string, timeoutMs: n
   }
 
   if (spec.impl_kind === 'edge_function') {
+    // CREDENTIALS. The first version presented inbound_secret and every kb_search call came back
+    // edge_403 (measured: 3 of 3). Internal functions are behind fn_internal_auth, which checks
+    // that the PRESENTING credential is scoped to call the target - the shared secret is not.
+    // Prefer the registry's declared credential, then the caller-scoped one, then the legacy shared
+    // secret last. A 403 here is a wiring fault, not a refusal, and it must not read like one.
     const secret = await (async () => {
-      const { data } = await admin.from('app_secrets').select('value').eq('key', 'inbound_secret').maybeSingle();
-      return (data?.value as string) || '';
+      for (const key of [spec_credential(spec), 'cred_fn_agent_brain', 'inbound_secret']) {
+        if (!key) continue;
+        const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle();
+        if (data?.value) return data.value as string;
+      }
+      return '';
     })();
     const r = await withTimeout(sig => fetch(`${SUPA}/functions/v1/${spec.impl_target}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
