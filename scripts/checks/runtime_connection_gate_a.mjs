@@ -146,6 +146,28 @@ for (const [label, ref] of Object.entries(PROJECTS)) {
     'org_agents.routing_tier now selects the task class in fn_ai_route; before 14 Aug 2026 that branch could never fire.');
   check(label, 'A14', 'decision trace / tool call / handoff tables present', 3, K('trace_tables'),
     K('trace_tables') === 3, 'EXISTING_PARTIAL_REPAIR', '');
+  // A MANAGER THAT HAS NEVER RUN IS NOT A MANAGER. The package splits the 12 managers 6 persistent
+  // / 6 scheduled and live collapses them to 12 scheduled - but NOTHING in the database reads
+  // either mode (0 routines mention it), so that split would be naming, not behaviour, and the
+  // package's own policy says a row without a consumer is not an implementation.
+  //
+  // The behavioural question underneath it is this one, and it fails: measured 14 Aug 2026, four of
+  // the twelve have no agent_runs row EVER - cpo, sales_director, cto and intel_director, three of
+  // them department heads. Their departments therefore have no manager cadence at all, whatever the
+  // mode column says. This is recorded here rather than fixed, because giving them a schedule is
+  // activation and the instruction was to stop before it.
+  const [mgr] = await sql(ref, `with m as (
+      select runtime_agent_key k from org_role
+       where status='active' and runtime_mode in ('scheduled_manager','persistent_manager'))
+    select count(*) total,
+           count(*) filter (where not exists (select 1 from agent_runs r where r.agent = m.k)) never_ran,
+           coalesce(string_agg(m.k, ' ') filter (where not exists
+             (select 1 from agent_runs r where r.agent = m.k)), '') who
+      from m`);
+  check(label, 'A16', `every manager has executed at least once (${mgr.who || 'all have'})`,
+    0, Number(mgr.never_ran), Number(mgr.never_ran) === 0, 'MISSING_BUILD',
+    'Four of twelve managers have never produced an agent_runs row. Giving them a cadence is activation, deliberately not done.');
+
   check(label, 'A15', 'cost guardrails: every department has a budget', 10, K('budgets'),
     K('budgets') >= 10, 'EXISTING_PARTIAL_REPAIR',
     'department_budget.spent_aed was dead and both ceiling readers were blind to 22 merged-away dept keys; fixed 14 Aug 2026 and the halt proven to fire.');
