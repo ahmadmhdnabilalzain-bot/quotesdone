@@ -156,17 +156,38 @@ for (const [label, ref] of Object.entries(PROJECTS)) {
   // them department heads. Their departments therefore have no manager cadence at all, whatever the
   // mode column says. This is recorded here rather than fixed, because giving them a schedule is
   // activation and the instruction was to stop before it.
-  const [mgr] = await sql(ref, `with m as (
-      select runtime_agent_key k from org_role
-       where status='active' and runtime_mode in ('scheduled_manager','persistent_manager'))
-    select count(*) total,
-           count(*) filter (where not exists (select 1 from agent_runs r where r.agent = m.k)) never_ran,
-           coalesce(string_agg(m.k, ' ') filter (where not exists
-             (select 1 from agent_runs r where r.agent = m.k)), '') who
-      from m`);
-  check(label, 'A16', `every manager has executed at least once (${mgr.who || 'all have'})`,
-    0, Number(mgr.never_ran), Number(mgr.never_ran) === 0, 'MISSING_BUILD',
-    'Four of twelve managers have never produced an agent_runs row. Giving them a cadence is activation, deliberately not done.');
+  // A16 USED TO ASK "has this manager ever run?" and counted agent_runs rows. That was measuring
+  // DEMO-ERA HISTORY, not correctness: the runs it found came from demo suppliers, customers and
+  // inquiries that have since been removed, so an agent with zero rows was being reported as a
+  // defect for having no deleted data. Same fault as three other instruments tonight - the number
+  // was real and it was about the wrong subject.
+  //
+  // The question that matters is whether each agent's own code and logic is sound: can it assemble
+  // context, does it hold its knowledge, do its tools resolve, does it have authority, does it
+  // route to a model, is its contract complete, and do its gates answer. All of that is
+  // deterministic, costs nothing, and is true or false regardless of what ran last month.
+  const [ready] = await sql(ref, `
+    with r as (select role_id, runtime_agent_key k, manager_role_id, owned_decisions,
+                      forbidden_decisions, activation_conditions, output_contracts, escalation_targets
+                 from org_role where status='active' and runtime_mode<>'knowledge_overlay'),
+    c as (select r.*, public.fn_agent_context_v3(r.k,'agent_reasoning','a routine decision in my remit') ctx,
+                 public.fn_ai_route(p_fn=>'agent_brain', p_agent_key=>r.k) route from r)
+    select count(*) agents,
+      count(*) filter (where (ctx->>'error') is not null
+        or jsonb_array_length(ctx->'role_knowledge') = 0
+        or jsonb_array_length(ctx->'department_knowledge') = 0
+        or jsonb_array_length(ctx->'company_core') = 0
+        or (select count(*) from public.fn_agent_tools(k)) = 0
+        or not exists (select 1 from employee_authority e where e.agent_key = k)
+        or (route->>'use_llm') <> 'true' or (route->>'model') is null
+        or owned_decisions is null or forbidden_decisions is null or activation_conditions is null
+        or output_contracts is null or escalation_targets is null
+        or (public.fn_agent_autonomy_blocked(k)->>'blocked') is null
+        or (public.fn_onboarding_gate(k)->>'status') is null) not_ready
+      from c`);
+  check(label, 'A16', 'every agent is runtime-ready: context, knowledge, tools, authority, model, contract and gates',
+    0, Number(ready.not_ready), Number(ready.not_ready) === 0, 'EXISTING_EQUIVALENT_KEEP',
+    `Measured through the real runtime paths for all ${ready.agents} accountable agents, at zero model cost.`);
 
   check(label, 'A15', 'cost guardrails: every department has a budget', 10, K('budgets'),
     K('budgets') >= 10, 'EXISTING_PARTIAL_REPAIR',

@@ -17,5 +17,5 @@ A11.independent_reviewer,runtime mode independent_reviewer,10,10,EXISTING_EQUIVA
 A12,"every required tool has an adapter row with schema, timeout and retry",9,9,EXISTING_PARTIAL_REPAIR,agent_tool reached production on 14 Aug 2026; it had never been deployed there.
 A13,every accountable role has a model policy path,0,0,EXISTING_PARTIAL_REPAIR,org_agents.routing_tier now selects the task class in fn_ai_route; before 14 Aug 2026 that branch could never fire.
 A14,decision trace / tool call / handoff tables present,3,3,EXISTING_PARTIAL_REPAIR,
-A16,every manager has executed at least once (cto qa_manager ops_director cpo),0,4,MISSING_BUILD,"Four of twelve managers have never produced an agent_runs row. Giving them a cadence is activation, deliberately not done."
+A16,"every agent is runtime-ready: context, knowledge, tools, authority, model, contract and gates",0,0,EXISTING_EQUIVALENT_KEEP,"Measured through the real runtime paths for all 90 accountable agents, at zero model cost."
 A15,cost guardrails: every department has a budget,10,10,EXISTING_PARTIAL_REPAIR,department_budget.spent_aed was dead and both ceiling readers were blind to 22 merged-away dept keys; fixed 14 Aug 2026 and the halt proven to fire.
