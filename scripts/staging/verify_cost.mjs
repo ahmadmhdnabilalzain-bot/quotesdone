@@ -21,7 +21,9 @@ import { assertNotProduction, mgmtRead, mgmtWrite } from './qd_guard.mjs';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const REF = assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'verify cost');
+// REHOMED 15 AUG 2026: this defaulted to 'pglpqrhvozwepymcuunn', a project deleted that morning.
+// The target now comes from demo_factory, which is the single place that decides it.
+import { REF } from './demo_factory.mjs';
 const BASE = `https://${REF}.supabase.co`;
 const LIVE = process.argv.includes('--live');
 

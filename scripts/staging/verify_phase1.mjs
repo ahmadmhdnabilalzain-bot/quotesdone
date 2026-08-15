@@ -9,7 +9,9 @@ import { execSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { mgmtRead, PROD_REF, assertNotProduction } from './qd_guard.mjs';
 
-const REF = assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'verify');
+// REHOMED 15 AUG 2026: this defaulted to 'pglpqrhvozwepymcuunn', a project deleted that morning.
+// The target now comes from demo_factory, which is the single place that decides it.
+import { REF } from './demo_factory.mjs';
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
 

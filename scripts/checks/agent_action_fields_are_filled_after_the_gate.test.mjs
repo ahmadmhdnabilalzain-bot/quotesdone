@@ -34,7 +34,9 @@ const q = async (project, query) => {
   return r.json();
 };
 
-for (const [label, project] of [['production', 'htdblwldjkcgjvmqkbeh'], ['staging', 'pglpqrhvozwepymcuunn']]) {
+// staging was a second target until its Supabase project was deleted on 15 Aug 2026; the same
+// assertions now run against production alone.
+for (const [label, project] of [['production', 'htdblwldjkcgjvmqkbeh']]) {
   test(`the field filler fires after the gate on ${label}`, async (t) => {
     if (!mgmtToken) { t.skip('no management token, so trigger order cannot be read'); return; }
     const rows = await q(project,

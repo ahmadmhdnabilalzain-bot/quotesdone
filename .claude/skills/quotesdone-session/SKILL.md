@@ -1,6 +1,6 @@
 ---
 name: quotesdone-session
-description: "ALWAYS APPLY on the QuotesDone repository. The founder's standing working rules: run continuously without check-ins, report only the single completion line or an honest hand-over, verify by execution in the same turn, deploy to BOTH Supabase projects, merge via PR, and never fabricate data to turn a gate green. Load this before doing any QuotesDone work — it governs how the session is run, not what is built."
+description: "ALWAYS APPLY on the QuotesDone repository. The founder's standing working rules: run continuously without check-ins, report only the single completion line or an honest hand-over, verify by execution in the same turn, deploy to the ONE Supabase project, merge via PR, and never fabricate data to turn a gate green. Load this before doing any QuotesDone work — it governs how the session is run, not what is built."
 ---
 
 # QuotesDone — how this founder wants the session run
@@ -68,8 +68,9 @@ hand-over and keep working on everything else). Re-asking is how a session stall
 
 ## 4. "Fixed" has a specific meaning here
 
-A thing is fixed when it is **deployed to both Supabase projects and verified by measurement in the
-same turn**. Not when it typechecks. Not when it reads correctly. Not "left for a later session".
+A thing is fixed when it is **deployed and verified by measurement in the same turn**. Not when it
+typechecks. Not when it reads correctly. Not "left for a later session". (This said "deployed to
+both Supabase projects" until 15 Aug 2026; see §5 — there is one.)
 
 - **Verify by EXECUTION, in the same turn.** Assert on a 200 **and** on a non-zero effect —
   `quote_compare` returned `{ok:false}` at HTTP 200 for weeks.
@@ -81,15 +82,31 @@ same turn**. Not when it typechecks. Not when it reads correctly. Not "left for 
 - **Never weaken a check.** A check that passes when the thing it checks is broken is worse than no
   check: it converts an outage into confidence.
 
-## 5. Both projects, always
+## 5. One project — and the read-back is what survived
 
-Production `htdblwldjkcgjvmqkbeh`, staging `pglpqrhvozwepymcuunn`. Nothing is left on staging.
+**There is ONE Supabase project: `htdblwldjkcgjvmqkbeh`.** Staging `pglpqrhvozwepymcuunn` was
+DELETED on 15 Aug 2026 at the founder's instruction — *"I don't want anything in staging that can
+affect our build up process by giving us old references which got upgraded, also anything that can
+cost me extra money"*. Do not recreate it, do not deploy to it, do not write a check that reads it.
+
+This rule used to say "deploy to BOTH projects, always". What it was really protecting was never the
+second project — it was the **read-back**: a routine is deployed when its definition has been read
+back out of the database and matched against the file, not when a POST returned 200. That is intact.
 
 ```bash
-node scripts/apply_sql.mjs <file.sql> --promote --ddl        # staging, then production, byte-identical
-node scripts/deploy_functions.mjs --ref=<ref> [--production] <slugs>
-node scripts/checks/project_parity.mjs                       # must print BOTH PROJECTS IN SYNC
+node scripts/apply_sql.mjs <file.sql>                        # DRY RUN — guards only, no write
+node scripts/apply_sql.mjs <file.sql> --apply --ddl          # apply, then read the definition back
+node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production <slugs>
+node scripts/checks/sql_files_match_live.test.mjs            # repo scripts/sql ↔ live prosrc
+node scripts/checks/export_from_either_source_is_identical.mjs
 ```
+
+- `--promote` is still accepted as an alias for `--apply`; it means the same thing now.
+- A bare `apply_sql.mjs <file>` used to mean "staging only, nothing production sees". It is now a
+  DRY RUN, so that muscle memory stays safe rather than becoming a live write.
+- Fixture scripts (`scripts/staging/`) target the one project and refuse to write unless
+  `QD_FIXTURES=1` is set for the run. `assertNotProduction` is NOT weakened — `mgmtFixture` is a
+  separate door, the same way `mgmtWriteData` is. Prefer an aborted-transaction probe over both.
 
 - `deno check` is the green build for edge functions.
 - Any function importing `_shared/llm.ts` must be named in the audit-95 credential migration or CI
@@ -145,12 +162,18 @@ been wrong more than once. **Re-measure before building the fix it proposes.**
 
 Before the one line — or before an honest hand-over:
 
-1. GitHub Actions, Vercel, both Supabase projects swept for failures
+1. GitHub Actions, Vercel and the Supabase project swept for failures
    *(a zero-step Actions job means quota, not code)*
 2. Row #3 scorer run **to completion** — `node scripts/staging/verify_os2_blueprint.mjs`
-3. Pack scorecard re-run on **both** projects — `node scripts/kb/pack_scorecard.mjs --ref=… --packs=…`
-4. `fn_os_portals_gates()` on **both**
-5. `node scripts/checks/project_parity.mjs` → BOTH PROJECTS IN SYNC
+3. Pack scorecard — `node scripts/kb/pack_scorecard.mjs --ref=… --packs=…`
+4. `fn_os_portals_gates()`
+5. `node scripts/checks/sql_files_match_live.test.mjs` → 0 missing, 0 drifted
+6. `node scripts/checks/export_from_either_source_is_identical.mjs` → byte-identical
+7. `node scripts/verify_deploy_parity.mjs --all` → every edge function carries the repo's code
+
+Steps 5–7 replace `project_parity.mjs`, retired 15 Aug 2026 with the project it compared against.
+See `docs/agents/RETIRED_TWO_PROJECT_CHECKS.md`. **Do not reintroduce a check that reads
+`pglpqrhvozwepymcuunn`** — it 404s, and a 404 read as "no drift" is a green light over nothing.
 
 Only when all of it is clean does the one line go out.
 

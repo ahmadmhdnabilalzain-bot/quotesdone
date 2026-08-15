@@ -1,0 +1,11 @@
+﻿department_id,department_name,head_role_id,primary_outcome,executive_committee
+exec,Executive & Strategy,ceo,"Translate the AED 1,000,000 revenue target into company priorities, resolve cross-company constraints, allocate resources and hold departments accountable.",True
+growth_revenue,Growth & Revenue,sales_director,"Acquire qualified customers and suppliers, create demand, convert pipeline and improve commercial performance.",True
+customer_experience_communications,Customer Experience & Communications,customer_success_director,"Move customers from onboarding to successful inquiry, quotation, reveal, retention and advocacy with clear lifecycle communication.",False
+marketplace_supplier_network,Marketplace & Supplier Network,marketplace_director,"Turn customer needs into supplier-ready briefs, maintain supplier liquidity and quality, and produce quoteable, comparable marketplace outcomes.",True
+product_engineering_ai,"Product, Engineering & AI",cpo,"Build, operate and improve the QuotesDone product, agent runtime, integrations and AI systems safely and efficiently.",True
+data_intelligence_knowledge,"Data, Intelligence & Knowledge",intel_director,"Convert company data, market evidence and validated knowledge into decisions, forecasts and reusable organizational intelligence.",True
+finance,Finance & Payments,cfo,"Protect cash, accounting integrity, revenue assurance, payment operations, forecasts, budgets and investor-quality financial reporting.",True
+legal,"Legal, Compliance, Risk & Trust",general_counsel,"Protect legal, regulatory, privacy, contractual, fraud, trust and governance boundaries while enabling lawful growth.",True
+people_company_operations,People & Company Operations,ops_director,"Keep the autonomous company organized, staffed, documented, coordinated and continuously improved.",True
+assurance_security_reliability,"Independent Assurance, Security & Reliability",qa_manager,"Independently verify quality, security, privacy, model safety and reliability, with authority to block unsafe work.",True

@@ -15,10 +15,14 @@
 // moves nothing that was not public.
 //
 //   node scripts/staging/sync_staging_assets.mjs [--dry]
-import { assertNotProduction, PROD_REF, mgmtRead } from './qd_guard.mjs';
+import { resolveStagingRef, PROD_REF, mgmtRead } from './qd_guard.mjs';
 import { readFileSync } from 'node:fs';
 
-const REF = assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'asset sync');
+// 15 AUG 2026: this tool's whole job is standing a SECOND project up from this one, and there is
+// no second project — pglpqrhvozwepymcuunn was deleted. It is kept rather than retired because it
+// works unchanged the day a new staging project exists; it now REFUSES instead of defaulting to a
+// ref that 404s, because a sync reporting success against nothing is the worst outcome available.
+const REF = resolveStagingRef(process.env.QD_STAGING_REF);
 const DRY = process.argv.includes('--dry');
 const BUCKET = 'brand';
 

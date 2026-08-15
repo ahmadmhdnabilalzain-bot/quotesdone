@@ -6,8 +6,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { mgmtRead, PROD_REF } from '../staging/qd_guard.mjs';
 
-const STAGE = 'pglpqrhvozwepymcuunn';
-const REFS = { production: PROD_REF, staging: STAGE };
+// staging (pglpqrhvozwepymcuunn) was a second target until its Supabase project was deleted on
+// 15 Aug 2026; the same six measurements now run against production alone.
+const REFS = { production: PROD_REF };
 
 const STATS = `select
   (select count(*) from ops_knowledge) ops_total,
@@ -65,7 +66,7 @@ const dir = path.join(process.cwd(), 'docs', 'knowledge');
 fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(path.join(dir, 'V3_MEASUREMENTS.json'), JSON.stringify(out, null, 2));
 console.log(JSON.stringify({
-  production: out.production.stats, staging: out.staging.stats,
+  production: out.production.stats,
   mapping: out.production.mapping, readiness: out.production.readiness,
   layers: out.production.layers, families_v3: out.production.families.filter((f) => f.generation === 'V3'),
 }, null, 2));

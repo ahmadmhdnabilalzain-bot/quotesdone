@@ -6,16 +6,34 @@
 // source of truth, so the catalogue is the authority, not the repo - and applies only the
 // statements that mention a missing table.
 //
-// It refuses to run against production.
+// REHOMED 15 AUG 2026, AND HALF OF IT WAS RETIRED RATHER THAN REPOINTED.
 //
-//   node scripts/staging/apply_missing_objects.mjs [--apply]
+// It resolved 'pglpqrhvozwepymcuunn', deleted that morning. The DIFF half keeps all its value on
+// one project and the question just changes owner: it used to ask "what does staging lack that
+// production has", it now asks "what does the database lack that supabase/schema/full_schema.sql
+// describes" — which is the drift this repo has been bitten by twice.
+//
+// The --apply half is gone. It was a second, unverified write path into what is now the only
+// database: it posts dump statements and reports the HTTP result, with no read-back and none of the
+// guards apply_sql.mjs carries (a dead project ref, a callee that does not exist yet, DDL ordering).
+// Keeping it pointed at the live project would have made the riskiest tool in the repo the one with
+// the least verification behind it. It now prints the statements and names the tool that applies
+// them properly, which is the mandated deploy path anyway.
+//
+//   node scripts/staging/apply_missing_objects.mjs
 import { readFileSync } from 'node:fs';
 import { splitStatements, repairDumpSectionBreaks } from './sql_split.mjs';
-import { mgmtRead, mgmtWrite, PROD_REF, assertNotProduction } from './qd_guard.mjs';
+import { mgmtRead, mgmtWrite, PROD_REF } from './qd_guard.mjs';
+import { REF } from './demo_factory.mjs';
 
 const SCHEMA_FILE = 'C:/Users/Opera/quotesdone/supabase/schema/full_schema.sql';
-const REF = assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'apply missing');
-const APPLY = process.argv.includes('--apply');
+if (process.argv.includes('--apply')) {
+  console.error('--apply was retired on 15 Aug 2026 with the staging project. This reports the gap;');
+  console.error('apply it with `node scripts/apply_sql.mjs <file.sql> --apply`, which reads the');
+  console.error('definition back out of the database afterwards. This never did.');
+  process.exit(2);
+}
+const APPLY = false;
 
 // ---- enum types first ------------------------------------------------------------------------
 // fn_schema_export() emits EXTENSIONS, SEQUENCES, TABLES, CONSTRAINTS, INDEXES, VIEWS, FUNCTIONS,
@@ -88,9 +106,13 @@ const all = splitStatements(body);
 // intent: the function exists and calls STAGING's own endpoints. qd_guard still refuses anything
 // that reaches it carrying the production literal, because the rewrite happens first and is
 // asserted below.
-const localize = (sql) => sql.split(PROD_REF).join(REF);
+// With one project the rewrite is the identity, and the assertion below would then fire on every
+// statement that legitimately names this project's own ref — turning the safety check into a
+// guaranteed throw. It stays armed for the day a second project exists again.
+const SAME_PROJECT = REF === PROD_REF;
+const localize = (sql) => (SAME_PROJECT ? sql : sql.split(PROD_REF).join(REF));
 const assertLocalized = (sql) => {
-  if (sql.includes(PROD_REF)) throw new Error('localize() failed to remove the production ref');
+  if (!SAME_PROJECT && sql.includes(PROD_REF)) throw new Error('localize() failed to remove the production ref');
   return sql;
 };
 
@@ -98,7 +120,11 @@ const wanted = all.filter(s => missing.some(t => new RegExp(`\\b${t}\\b`).test(s
   .map(s => assertLocalized(localize(s)));
 
 console.log(`statements parsed ${all.length}, referencing a missing table: ${wanted.length}`);
-if (!APPLY) { console.log('\nDRY RUN - nothing applied. Re-run with --apply.'); process.exit(0); }
+if (!APPLY) {
+  console.log('\nREPORT ONLY — this tool no longer writes. Anything listed above belongs in a new');
+  console.log('scripts/sql file applied with `node scripts/apply_sql.mjs <file> --apply`.');
+  process.exit(0);
+}
 
 let pending = wanted.slice();
 for (let pass = 1; pass <= 5 && pending.length; pass++) {

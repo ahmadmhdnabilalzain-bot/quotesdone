@@ -1,6 +1,6 @@
 // AGENT COMPANY REORGANISATION — BEHAVIOURAL TESTS.
 //
-// Every test here runs the real runtime path, on BOTH projects. None of them asserts on a source
+// Every test here runs the real runtime path, on production. None of them asserts on a source
 // string, a row count that a seed could satisfy, or a function merely existing. Where a behaviour
 // must NOT occur, the test constructs the input that would make it occur and asserts the refusal:
 // a new guard returning zero proves nothing until you force it to fire.
@@ -19,7 +19,9 @@ const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
 
 // CI runs `npm test` with no SUPABASE_ACCESS_TOKEN, so these skip there and run locally. Without
 // the guard every one fails on a 401 that reads like a data failure and is not one.
-const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh', staging: 'pglpqrhvozwepymcuunn' };
+// staging was a second target until its Supabase project was deleted on 15 Aug 2026; the same
+// assertions now run against production alone.
+const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh' };
 
 async function post(project, query) {
   for (let attempt = 0; ; attempt++) {

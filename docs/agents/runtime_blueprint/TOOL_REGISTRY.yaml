@@ -1,0 +1,247 @@
+version: v2026.08.14
+standard_result_envelope:
+  required_fields:
+  - tool_call_id
+  - tool_id
+  - status
+  - data_hash
+  - source_timestamp
+  - freshness
+  - latency_ms
+  - cost_usd
+  - retryable
+  - trace_id
+  status_values:
+  - success
+  - empty
+  - error
+  - timeout
+  - unauthorized
+  - stale
+  - blocked
+  rule: Only status=success with a non-null data_hash may be treated as evidence.
+    Empty/error/timeout/unauthorized/stale are explicit evidence gaps, never successful
+    data.
+tools:
+- tool_id: company.goal_context
+  provider: Supabase
+  purpose: Current company stage, AED 1M trajectory, department objectives and budget
+    context.
+  writes: false
+- tool_id: knowledge.retrieve
+  provider: Supabase + embeddings + rerank
+  purpose: Retrieve scoped company/department/role/task/category/experience knowledge.
+  writes: false
+- tool_id: knowledge.gap_create
+  provider: Supabase
+  purpose: Record missing or stale knowledge with owner and required resolution.
+  writes: true
+- tool_id: decision_trace.write
+  provider: Supabase
+  purpose: Append-only decision/evidence/model/tool trace.
+  writes: true
+- tool_id: workflow.task_read
+  provider: Supabase
+  purpose: Read assigned tasks and workflow state.
+  writes: false
+- tool_id: workflow.task_write
+  provider: Supabase
+  purpose: Create/update scoped tasks with idempotency.
+  writes: true
+- tool_id: workflow.handoff
+  provider: Supabase
+  purpose: Create evidence-complete cross-department handoffs.
+  writes: true
+- tool_id: kpi.read
+  provider: Supabase/analytics
+  purpose: Read current KPI definitions and results.
+  writes: false
+- tool_id: kpi.write
+  provider: Supabase
+  purpose: Write measured KPI observations and review records.
+  writes: true
+- tool_id: crm.read
+  provider: Supabase
+  purpose: Read CRM pipeline and account state.
+  writes: false
+- tool_id: crm.write
+  provider: Supabase
+  purpose: Write scoped CRM activity and stage updates.
+  writes: true
+- tool_id: customer.read
+  provider: Supabase
+  purpose: Read authorized customer records.
+  writes: false
+- tool_id: customer.write
+  provider: Supabase
+  purpose: Write scoped customer workflow changes.
+  writes: true
+- tool_id: supplier.read
+  provider: Supabase
+  purpose: Read authorized supplier profiles, capability and documents.
+  writes: false
+- tool_id: supplier.write
+  provider: Supabase
+  purpose: Write scoped supplier workflow changes.
+  writes: true
+- tool_id: inquiry.read
+  provider: Supabase
+  purpose: Read inquiry, safe brief, questions, answers and evidence.
+  writes: false
+- tool_id: inquiry.write
+  provider: Supabase
+  purpose: Write scoped inquiry qualification state.
+  writes: true
+- tool_id: quote.read
+  provider: Supabase
+  purpose: Read authorized quotation and comparison data.
+  writes: false
+- tool_id: quote.write
+  provider: Supabase
+  purpose: Write scoped quote review/publication state.
+  writes: true
+- tool_id: dispatch.propose
+  provider: Supabase
+  purpose: Propose recipient list and safe brief; no external side effect.
+  writes: true
+- tool_id: dispatch.execute_gated
+  provider: Supabase + Resend/Twilio
+  purpose: Idempotent dispatch after all mandatory gates and authority pass.
+  writes: true
+  consequential: true
+- tool_id: document.extract
+  provider: Document pipeline
+  purpose: Extract text/structure with source/page provenance.
+  writes: true
+- tool_id: drawing.inspect
+  provider: Vision/document pipeline
+  purpose: Analyze actual drawing/image pages with provenance.
+  writes: true
+- tool_id: asset.read
+  provider: Supabase Storage/Dropbox
+  purpose: Read authorized files/assets.
+  writes: false
+- tool_id: asset.write
+  provider: Supabase Storage/Dropbox
+  purpose: Write versioned authorized assets.
+  writes: true
+- tool_id: image.generate
+  provider: Configured image provider
+  purpose: Generate visual draft from approved brief.
+  writes: true
+- tool_id: image.inspect
+  provider: Vision model + deterministic validators
+  purpose: Inspect actual image revision, logo, text, bounds and brand quality.
+  writes: true
+- tool_id: video.inspect
+  provider: Frame extraction + vision + media validators
+  purpose: Inspect actual video frames, transitions and technical properties.
+  writes: true
+- tool_id: resend.send
+  provider: Resend
+  purpose: Send allowlisted or production transactional email through outbox.
+  writes: true
+- tool_id: twilio.send
+  provider: Twilio
+  purpose: Send authorized SMS/WhatsApp through caps and outbox.
+  writes: true
+- tool_id: meta.insights
+  provider: Meta
+  purpose: Read campaign/content performance.
+  writes: false
+- tool_id: meta.publish
+  provider: Meta/Postiz
+  purpose: Publish approved content.
+  writes: true
+  consequential: true
+- tool_id: analytics.query
+  provider: Supabase/BI
+  purpose: Run approved read-only analytical queries.
+  writes: false
+- tool_id: apify.run
+  provider: Apify
+  purpose: Run bounded supplier/market discovery actors.
+  writes: true
+- tool_id: web.official_research
+  provider: Approved web search
+  purpose: Retrieve current authoritative information with source metadata.
+  writes: false
+- tool_id: github.read
+  provider: GitHub
+  purpose: Read repository, issues and PRs.
+  writes: false
+- tool_id: github.write_branch
+  provider: GitHub
+  purpose: Write scoped branch/PR changes.
+  writes: true
+- tool_id: vercel.preview_deploy
+  provider: Vercel
+  purpose: Deploy preview/staging only.
+  writes: true
+- tool_id: vercel.production_deploy_gated
+  provider: Vercel
+  purpose: Production deploy only after independent release approval.
+  writes: true
+  consequential: true
+- tool_id: supabase.migrate_staging
+  provider: Supabase
+  purpose: Apply committed staging migrations.
+  writes: true
+- tool_id: supabase.deploy_function_staging
+  provider: Supabase
+  purpose: Deploy committed edge functions to staging.
+  writes: true
+- tool_id: observability.read
+  provider: Supabase/Vercel/Sentry-equivalent
+  purpose: Read logs, traces, health and incidents.
+  writes: false
+- tool_id: stripe.read
+  provider: Stripe
+  purpose: Read payment/refund/test state.
+  writes: false
+- tool_id: stripe.test_action
+  provider: Stripe test mode
+  purpose: Execute controlled test-mode payments/refunds.
+  writes: true
+- tool_id: stripe.live_action_gated
+  provider: Stripe live mode
+  purpose: Execute live money movement only through authority and Control Mode.
+  writes: true
+  consequential: true
+- tool_id: finance.read
+  provider: Supabase/Stripe
+  purpose: Read ledgers, budgets, forecasts and reconciliations.
+  writes: false
+- tool_id: finance.write
+  provider: Supabase
+  purpose: Write controlled accounting/finance records.
+  writes: true
+- tool_id: legal.document_read
+  provider: Supabase/Dropbox
+  purpose: Read authorized legal documents and versions.
+  writes: false
+- tool_id: audit.read
+  provider: Supabase
+  purpose: Read immutable audit and decision records.
+  writes: false
+- tool_id: qa.run
+  provider: CI/Playwright/API tests
+  purpose: Run behavioral, security, concurrency and regression tests.
+  writes: true
+- tool_id: security.scan
+  provider: Security tooling
+  purpose: Run security, secret, dependency and policy scans.
+  writes: true
+- tool_id: action.block
+  provider: Authority runtime
+  purpose: Block unsafe, unauthorized or incomplete action with reason.
+  writes: true
+- tool_id: godaddy.dns_read
+  provider: GoDaddy
+  purpose: Read DNS configuration.
+  writes: false
+- tool_id: godaddy.dns_write_gated
+  provider: GoDaddy
+  purpose: Write approved DNS changes only.
+  writes: true
+  consequential: true

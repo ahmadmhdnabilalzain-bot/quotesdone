@@ -472,8 +472,19 @@ Deno.serve(async (req) => {
     }
     // attempt_no is assigned SERVER-SIDE by fn_record_llm_attempt and cannot be set by this caller.
     // That is deliberate: it is what makes first-attempt success un-fakeable from up here.
-    const recordAttempt = async (routeUsed: string, ok: boolean, latencyMs: number, errText: string, fr?: string) => {
+    // A RETRY'S COST WAS REAL MONEY THAT NOTHING RECORDED (15 Aug 2026). llm_attempt has
+    // prompt_tokens, output_tokens and cost_aed, fn_record_llm_attempt already accepts and inserts
+    // all three — and this caller sent nine fields, none of them among the three. Measured: 666
+    // llm_attempt rows, 0 with a cost. The money itself is not missing (ai_cost_log holds 4,336
+    // priced rows), but it is recorded once per REQUEST, against the model that finally answered.
+    // When a request climbs the fallback ladder, the tokens burned by the attempts that failed
+    // first are attributable to nothing at all. `u` is the usage block from the attempt being
+    // recorded; the AED is derived in the database from the same pricing source ai_cost_log uses,
+    // so there is no second pricing implementation up here to drift.
+    // deno-lint-ignore no-explicit-any
+    const recordAttempt = async (routeUsed: string, ok: boolean, latencyMs: number, errText: string, fr?: string, u?: any) => {
       attemptNo++;
+      const det = (u?.prompt_tokens_details || {}) as Record<string, number>;
       try {
         await admin.rpc('fn_record_llm_attempt', { p: {
           request_id: requestId, model_route: routeUsed, ok,
@@ -481,6 +492,11 @@ Deno.serve(async (req) => {
           fn: String(body.fn ?? 'unknown'), agent_key: body.agent ?? null,
           task_class: route.task_class ?? null, tier: route.tier ?? null,
           finish_reason: fr ?? null,
+          // Left absent rather than zeroed when the provider returned no usage block: 0 would make
+          // "this attempt was free" indistinguishable from "nobody recorded what it cost".
+          prompt_tokens: u?.prompt_tokens ?? null,
+          output_tokens: u?.completion_tokens ?? null,
+          cached_in_tokens: det.cached_tokens ?? u?.cache_read_input_tokens ?? u?.cached_tokens ?? 0,
         }});
       } catch (_e) { /* the ledger must not take down the call; its absence shows in the report */ }
     };
@@ -578,7 +594,7 @@ Deno.serve(async (req) => {
             outMsg = msg; used = m; usage = j?.usage || {};
             finishReason = String(j?.choices?.[0]?.finish_reason
                                   || j?.choices?.[0]?.native_finish_reason || '');
-            await recordAttempt(m, true, Date.now() - attemptStartedAt, '', finishReason);
+            await recordAttempt(m, true, Date.now() - attemptStartedAt, '', finishReason, j?.usage);
             break;
           }
           lastErr = JSON.stringify(j?.error || j).slice(0, 200);

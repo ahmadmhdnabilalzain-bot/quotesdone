@@ -30,10 +30,23 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 async function policyInt(k: string, dflt: number){ const { data } = await admin.from('decision_policy').select('value').eq('key', k).maybeSingle(); const n = Number((data as any)?.value); return Number.isFinite(n) && n > 0 ? n : dflt; }
 const LOCK_STALE_MS = 120000;
 
+// THE ACCOUNTABLE OWNER OF THIS STEP (15 Aug 2026). Until now supplier selection had no canonical
+// owner at all: workflow_step rfq_handling #5 read "domain specialist", which resolves to nobody,
+// and this function's own records named 'dispatch_inquiry' (a runner) and 'operations_ai' (which
+// resolves to the Operations Director, in a different department from the work). The canonical
+// owner is the Supplier Matching & Dispatch Operator, whose physical agent_key is spec_commercial.
+//
+// agent_runs.agent deliberately stays 'dispatch_inquiry': agent_expectations registers that name
+// as a `code` runner and watches it for silence, so renaming it would blind that watcher. The
+// OWNER goes in counts, where it is queryable without breaking the runner identity.
+const OWNER_ROLE = 'spec_commercial';           // Supplier Matching & Dispatch Operator
+const COVERAGE_OWNER = 'supplier_coverage';     // Supplier Coverage & Liquidity Specialist
+
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
   try {
-    await admin.from('agent_runs').insert({ agent: 'dispatch_inquiry', status, counts,
+    await admin.from('agent_runs').insert({ agent: 'dispatch_inquiry', status,
+      counts: { ...counts, accountable_role: OWNER_ROLE },
       note: String(note || '').slice(0, 500),
       started_at: new Date(T0).toISOString(), finished_at: new Date().toISOString() });
   } catch (_e) { /* never let logging block dispatch */ }
@@ -231,10 +244,14 @@ Deno.serve(async (req) => {
       let flagged = true;
       try {
         await admin.from('agent_actions').insert({
-          agent: 'operations_ai', kind: 'coverage_gap', status: 'pending', risk: 'medium',
+          // Was 'operations_ai', which resolves to the Operations Director — a different department
+          // from the work. The dispatch operator OBSERVES the gap; the Supplier Coverage & Liquidity
+          // Specialist owns closing it, which is this role's recorded handoff target.
+          agent: OWNER_ROLE, kind: 'coverage_gap', status: 'pending', risk: 'medium',
           title: 'RFQ had no matchable seller' + (inq.category ? (': ' + inq.category) : ''),
           recommendation: 'A finalized customer RFQ (' + label + ') produced ZERO genuine seller matches — a supply-coverage gap. Consider acquiring/onboarding sellers in this trade+emirate. No sellers were contacted.',
-          detail: { signal: 'coverage_gap:' + inquiryId, inquiry_id: inquiryId, category: inq.category, emirate: inq.emirate, primary_trade: route.primary_trade, evaluated: route.evaluated },
+          detail: { signal: 'coverage_gap:' + inquiryId, inquiry_id: inquiryId, category: inq.category, emirate: inq.emirate, primary_trade: route.primary_trade, evaluated: route.evaluated,
+                    accountable_role: OWNER_ROLE, handoff_to: COVERAGE_OWNER },
           // s36 (13 Aug 2026): same three assumptions as create_inquiry's flag, plus the one this
           // path can state and that one cannot — how many candidates were actually looked at.
           assumptions: [
@@ -281,17 +298,49 @@ Deno.serve(async (req) => {
       if (!Number.isFinite(n) || max <= 0) return null;
       return Math.round(Math.min(1, Math.max(0, n / max)) * 1000) / 1000;
     };
+    // A REFUSED SUPPLIER WAS COUNTED AS A NOTIFIED ONE (15 Aug 2026). a00_unsafe_match_eligibility
+    // re-validates each supplier at the moment of insert — banned, matching_blocked, permanently
+    // closed, licence expired — and on a refusal it writes the unsafe ledger and RETURNS NULL. A
+    // BEFORE trigger returning null is not an error: PostgREST answers 201 with no row, so
+    // `error` was null, `inserted++` ran, and the supplier went into sent_ids having been
+    // deliberately refused. routing.fanout then over-reported the reach of the RFQ, and because
+    // the redispatch sweep only retries a fanout RECORDED as 0, an RFQ whose every match was
+    // refused looked dispatched and was never retried.
+    //
+    // .select('id') makes the difference visible: rows.length is what actually landed. The
+    // refusals are kept as the exclusion ledger rather than discarded, because "why did this
+    // supplier not get it" is the question the operator exists to be able to answer.
     let inserted = 0; const sent_ids: number[] = []; let insertErrors = 0; let lastInsertErr = '';
+    const excluded: { supplier_id: number; reason: string }[] = [];
     for (const f of pick) {
       const reason = String((route.primary_trade ? route.primary_trade + ' — ' : '') + (f.reason || 'genuine capability match')).slice(0, 300);
-      const { error } = await admin.from('inquiry_matches').insert({ inquiry_id: inquiryId, supplier_id: Number(f.id), similarity: sim01(f.score, 100), match_reason: reason, sent_at: new Date().toISOString() });
-      if (!error) { inserted++; sent_ids.push(Number(f.id)); }
-      else { insertErrors++; lastInsertErr = String(error.message || '').slice(0, 200); }
+      const { data: landed, error } = await admin.from('inquiry_matches')
+        .insert({ inquiry_id: inquiryId, supplier_id: Number(f.id), similarity: sim01(f.score, 100), match_reason: reason, sent_at: new Date().toISOString() })
+        .select('id');
+      if (error) { insertErrors++; lastInsertErr = String(error.message || '').slice(0, 200); continue; }
+      if (landed && landed.length) { inserted++; sent_ids.push(Number(f.id)); }
+      else {
+        // No error and no row: the eligibility guard refused this supplier between routing and
+        // assignment. That is the guard working, not a failure — but it is an exclusion and it
+        // must be recorded as one rather than counted as a contact.
+        excluded.push({ supplier_id: Number(f.id), reason: 'refused at assignment by the supplier eligibility guard (banned, matching-blocked, permanently closed, or expired licence)' });
+      }
+    }
+    // Every candidate the adjudicator evaluated but did not put forward is also an exclusion. The
+    // fanout cap is a reason too, and a silent cap reads as "nobody else was suitable".
+    for (const f of fitsAll) {
+      const id = Number(f.id);
+      if (!id || sent_ids.includes(id) || excluded.some((e) => e.supplier_id === id)) continue;
+      excluded.push({
+        supplier_id: id,
+        reason: already.has(id) ? 'already matched to this inquiry'
+          : `not selected: fanout capped at ${MAX_FANOUT}`,
+      });
     }
 
     const outcome = (pick.length && inserted === 0) ? 'dispatch_failed' : 'dispatched';
-    await admin.from('inquiries').update({ routing: { ...routing, ...decisionBase, outcome, fanout: inserted, fit_ids: sent_ids, capped, max_fanout: MAX_FANOUT } }).eq('id', inquiryId);
-    const counts = { inquiry_id: inquiryId, outcome, notified: inserted, attempted: pick.length, insert_errors: insertErrors, capped, max_fanout: MAX_FANOUT, category: inq.category, emirate: inq.emirate, forced: force };
+    await admin.from('inquiries').update({ routing: { ...routing, ...decisionBase, outcome, fanout: inserted, fit_ids: sent_ids, capped, max_fanout: MAX_FANOUT, excluded, accountable_role: OWNER_ROLE } }).eq('id', inquiryId);
+    const counts = { inquiry_id: inquiryId, outcome, notified: inserted, attempted: pick.length, insert_errors: insertErrors, excluded: excluded.length, capped, max_fanout: MAX_FANOUT, category: inq.category, emirate: inq.emirate, forced: force, accountable_role: OWNER_ROLE };
 
     if (pick.length && inserted === 0) {
       // v4: no longer reported as a successful dispatch.

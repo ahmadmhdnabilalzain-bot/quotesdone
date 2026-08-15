@@ -10,10 +10,17 @@
 //   node scripts/staging/smoke_staging.mjs [--keep]
 //
 // --keep leaves the synthetic user behind for follow-up work; the default deletes it.
-import { assertNotProduction, mgmtWrite } from './qd_guard.mjs';
+// REHOMED 15 AUG 2026 — kept, not deleted. workflow_ownership_alignment.test.mjs defers to this
+// capped smoke for the paid half of its claim, so deleting it would have quietly hollowed out a
+// check that still reported green. It resolved 'pglpqrhvozwepymcuunn', deleted that morning.
+//
+// IT CANNOT BE RUN TODAY AND THAT IS DELIBERATE: it makes live agent calls, and every provider
+// route is held open-circuit in llm_route_health at the founder's instruction. Rehoming it is not
+// releasing it. When the hold is lifted, this needs QD_FIXTURES=1 like every other fixture path.
+import { mgmtFixture } from './qd_guard.mjs';
+import { REF } from './demo_factory.mjs';
 import { readFileSync } from 'node:fs';
 
-const REF = assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'smoke test');
 const BASE = `https://${REF}.supabase.co`;
 const KEEP = process.argv.includes('--keep');
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
@@ -132,7 +139,7 @@ for (const [slug, body] of FNS) {
 if (userId && !KEEP) {
   let removed = -1;
   try {
-    const n = await mgmtWrite(REF, `
+    const n = await mgmtFixture(REF, `
       with c as (delete from public.customers where lower(email) = lower('${email}') returning 1),
            i as (delete from public.inquiry_intake where lower(email) = lower('${email}') returning 1),
            v as (delete from public.email_verifications where lower(email) = lower('${email}') returning 1)

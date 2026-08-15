@@ -49,7 +49,9 @@ const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 
-for (const [label, project] of [['production', 'htdblwldjkcgjvmqkbeh'], ['staging', 'pglpqrhvozwepymcuunn']]) {
+// staging was a second target until its Supabase project was deleted on 15 Aug 2026; the same
+// assertions now run against production alone.
+for (const [label, project] of [['production', 'htdblwldjkcgjvmqkbeh']]) {
   test(`the index the upsert names still exists on ${label}`, async (t) => {
     if (!mgmtToken) { t.skip('no management token, so the live index cannot be read'); return; }
     const r = await fetch(`https://api.supabase.com/v1/projects/${project}/database/query`, {

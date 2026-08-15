@@ -37,7 +37,9 @@ const q = async (project, query) => {
   return r.json();
 };
 
-for (const [label, project] of [['production', 'htdblwldjkcgjvmqkbeh'], ['staging', 'pglpqrhvozwepymcuunn']]) {
+// staging was a second target until its Supabase project was deleted on 15 Aug 2026; the same
+// assertions now run against production alone.
+for (const [label, project] of [['production', 'htdblwldjkcgjvmqkbeh']]) {
   test(`the capability chase can select a row on ${label}`, async (t) => {
     if (!mgmtToken) {
       t.skip('no SUPABASE_ACCESS_TOKEN and no local access token, so the live routine cannot be read');

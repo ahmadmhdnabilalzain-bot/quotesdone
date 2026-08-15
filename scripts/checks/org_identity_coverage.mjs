@@ -60,8 +60,18 @@ select proname, args, lang, security_definer,
           from regexp_matches(args, '(${IDENT_PARAM}[a-z_]*)', 'g') m) as identity_params,
        (def ~ '${RESOLVERS}')                                          as resolves,
        -- the risk test: does the body COMPARE an identity parameter, or filter a table by one?
-       (def ~ '(=|<>|is distinct from)\\s*${IDENT_PARAM}[a-z_]*'
-        or def ~ '(agent_key|actor|assignee[a-z_]*|owner[a-z_]*|author[a-z_]*|reviewer[a-z_]*)\\s*=\\s*p_') as compares_identity,
+       --
+       -- AN ASSIGNMENT IS NOT A COMPARISON. The first version of this test could not tell
+       -- "update t set approved_by = p_by" from "where approved_by = p_by", so it reported
+       -- fn_po_approve, fn_trade_confirm, fn_trade_reject and the four fn_control_mode_* routines
+       -- as MUST RESOLVE forever - seven permanent false positives in a list whose whole purpose
+       -- is that it only ever shrinks. Recording an approver's name is not defeated by an alias;
+       -- TESTING one is. The SET list of every UPDATE is stripped before the risk regex runs, so
+       -- what is left is predicates.
+       (regexp_replace(def, '\\mset\\M[\\s\\S]*?(?=\\mwhere\\M|\\mreturning\\M|;)', ' ', 'gi')
+          ~ '(=|<>|is distinct from)\\s*${IDENT_PARAM}[a-z_]*'
+        or regexp_replace(def, '\\mset\\M[\\s\\S]*?(?=\\mwhere\\M|\\mreturning\\M|;)', ' ', 'gi')
+          ~ '(agent_key|actor|assignee[a-z_]*|owner[a-z_]*|author[a-z_]*|reviewer[a-z_]*)\\s*=\\s*p_') as compares_identity,
        -- does it write a new row carrying the identity? new writes must use the canonical id.
        (def ~ 'insert\\s+into')                                        as writes
   from f

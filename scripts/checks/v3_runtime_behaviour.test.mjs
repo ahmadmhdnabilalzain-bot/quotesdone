@@ -23,7 +23,9 @@ const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
 // no database secret — so every test here skips there and runs locally, where the token is.
 // Without the guard all 50 failed in CI at ~20ms each on a 401, which looks like a data
 // failure and is not one.
-const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh', staging: 'pglpqrhvozwepymcuunn' };
+// staging was a second target until its Supabase project was deleted on 15 Aug 2026; the same
+// assertions now run against production alone.
+const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh' };
 
 async function post(project, query) {
   for (let attempt = 0; ; attempt++) {

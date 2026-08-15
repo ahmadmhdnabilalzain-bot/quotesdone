@@ -1,15 +1,25 @@
 # "Both projects" was a claim this estate made constantly and had never counted. On 2026-08-10 the
 # first count found 602 objects of drift: one table, six triggers, 127 cron jobs, four tables with
-# RLS off, and 464 SECURITY DEFINER functions that staging's anon role could execute and
-# production's could not.
+# RLS off, and 464 SECURITY DEFINER functions that STAGING's anon role could execute and
+# production's could not. All of it was closed, and this workflow existed so it could not silently
+# come back.
 #
-# All of it is closed. This exists so it cannot silently come back.
+# 15 AUG 2026 — THE SUBJECT CHANGED, THE JOB DID NOT. Staging (pglpqrhvozwepymcuunn) was deleted at
+# the founder's instruction, so `scripts/checks/project_parity.mjs` no longer had two projects to
+# compare and was retired with it (see docs/agents/RETIRED_TWO_PROJECT_CHECKS.md). Note which side
+# the 464 anon-executable functions were on: staging's. Deleting staging closed that finding by
+# construction rather than leaving it open.
 #
-# DAILY RATHER THAN PER-PR, deliberately. The check makes ~14 queries against both live projects;
-# running it on every pull request would add live-database latency to every review and give the same
-# answer forty times a day. Drift arrives from applying SQL by hand, not from merging a branch, so a
-# daily read is the right cadence for what actually causes it.
-name: project parity
+# What replaces it is the same question asked of the one project that exists — is the code in this
+# repository the code that is actually running? — which is the drift that can still happen, because
+# it arrives from applying SQL by hand rather than from merging a branch.
+#
+#   sql_files_match_live      : every routine in scripts/sql vs its live prosrc (349 at last run)
+#   export_from_either_source : the database's own schema export vs supabase/schema/full_schema.sql
+#
+# DAILY RATHER THAN PER-PR, for the reason it always was: these read the live database, and drift
+# does not arrive on a merge.
+name: repo and database agree
 
 on:
   schedule:
@@ -18,15 +28,21 @@ on:
 
 jobs:
   parity:
-    name: production and staging hold the same objects
+    name: the database is running what this repository says
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # sql_files_match_live ranks files by git commit time
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      # No npm install: the check uses fetch and node:fs only.
-      - name: Compare the two projects
+      # No npm install: both checks use fetch and node:fs only.
+      - name: Every routine in scripts/sql is what is live
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: node scripts/checks/project_parity.mjs
+        run: node scripts/checks/sql_files_match_live.test.mjs
+      - name: The schema export matches the committed schema
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/checks/export_from_either_source_is_identical.mjs

@@ -1,0 +1,26 @@
+﻿source_department_id,source_department_name,target_department_id,migration_action
+marketplace_procurement,Marketplace & Procurement,marketplace_supplier_network,absorbed
+marketing,Marketing,growth_revenue,absorbed
+customer_success,Customer Success,customer_experience_communications,absorbed
+finance,Finance,finance,survivor
+administration_operations,Administration & Operations,people_company_operations,absorbed
+ai_department,AI Department,product_engineering_ai,absorbed
+engineering,Engineering,product_engineering_ai,absorbed
+exec,Executive Office,exec,survivor
+hr_people_operations,HR & People Operations,people_company_operations,absorbed
+intelligence,Intelligence,data_intelligence_knowledge,absorbed
+legal,Legal & Compliance,legal,survivor
+business_development,Business Development,growth_revenue,absorbed
+data_analytics,Data & Analytics,data_intelligence_knowledge,absorbed
+document_intelligence,Document Intelligence,marketplace_supplier_network,absorbed
+evolution,Evolution,exec,absorbed
+it_cybersecurity,IT & Cybersecurity,assurance_security_reliability,absorbed
+knowledge_engineering,Knowledge Engineering,data_intelligence_knowledge,absorbed
+notification_communication,Notification & Communication,customer_experience_communications,absorbed
+qa_testing,QA & Testing,assurance_security_reliability,absorbed
+rfq_inquiry_intelligence,RFQ & Inquiry Intelligence,marketplace_supplier_network,absorbed
+sales_crm,Sales & CRM,growth_revenue,absorbed
+supplier_knowledge,Supplier Knowledge,marketplace_supplier_network,absorbed
+supplier_success,Supplier Success,marketplace_supplier_network,absorbed
+trust_safety,Trust & Safety,legal,absorbed
+payment,Payment,finance,absorbed

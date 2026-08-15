@@ -1,0 +1,21 @@
+requirement,detail,expected,actual,status,note
+A1,10 active canonical departments,10,10,EXISTING_EQUIVALENT_KEEP,"Package uses longer dept keys (growth_revenue, marketplace_supplier_network). Live keys are the merged canonical set and every package key resolves through org_agent_alias / fn_dept_canonical. Not renamed: the master prompt forbids renaming working identities to match names."
+A2,90 accountable active roles,90,90,EXISTING_EQUIVALENT_KEEP,
+A3,86 category overlays,86,86,EXISTING_EQUIVALENT_KEEP,
+A4,96 packaged identities on active roles,96,96,EXISTING_EQUIVALENT_KEEP,
+A5,no identity naming an inactive employee,0,0,EXISTING_PARTIAL_REPAIR,Six such rows were removed on 14 Aug 2026 (org_reorg_17).
+A6,0 orphan runtime-eligible knowledge rows,0,0,EXISTING_BETTER_KEEP,"fn_dept_scope scopes retrieval over absorbed keys instead of rewriting 5,775 knowledge rows."
+A7,0 manager/reporting cycles,0,0,EXISTING_EQUIVALENT_KEEP,
+A8,0 self-management,0,0,EXISTING_EQUIVALENT_KEEP,
+A9,"0 creator/reviewer effective-identity collisions since the guard (285 pre-guard, preserved)",0,0,EXISTING_PARTIAL_REPAIR,"Measured on EFFECTIVE canonical identity, not raw strings. 285 pre-guard rows are preserved and classified in HISTORICAL_SELF_REVIEW_REGISTER.csv. The alias bypass was live in all ten departments and was closed on 14 Aug 2026 by resolving in fn_pick_reviewer/fn_review_submit plus a BEFORE INSERT trigger on review_chain. The pre-existing CHECK constraint is NOT VALID and compares raw strings, so it never saw the alias case."
+A10,fn_org_role_violations() empty,0,0,EXISTING_EQUIVALENT_KEEP,
+A11.persistent_manager,runtime mode persistent_manager,6,0,EXISTING_PARTIAL_REPAIR,"Live collapses persistent_manager and scheduled_manager into scheduled_manager=12. The package splits them 6/6. Same 12 managers, one less distinction - a real but small gap."
+A11.scheduled_manager,runtime mode scheduled_manager,6,12,EXISTING_PARTIAL_REPAIR,"Live collapses persistent_manager and scheduled_manager into scheduled_manager=12. The package splits them 6/6. Same 12 managers, one less distinction - a real but small gap."
+A11.on_demand_specialist,runtime mode on_demand_specialist,35,35,EXISTING_EQUIVALENT_KEEP,
+A11.event_driven_operator,runtime mode event_driven_operator,33,33,EXISTING_EQUIVALENT_KEEP,
+A11.independent_reviewer,runtime mode independent_reviewer,10,10,EXISTING_EQUIVALENT_KEEP,
+A12,"every required tool has an adapter row with schema, timeout and retry",9,9,EXISTING_PARTIAL_REPAIR,agent_tool reached production on 14 Aug 2026; it had never been deployed there.
+A13,every accountable role has a model policy path,0,0,EXISTING_PARTIAL_REPAIR,org_agents.routing_tier now selects the task class in fn_ai_route; before 14 Aug 2026 that branch could never fire.
+A14,decision trace / tool call / handoff tables present,3,3,EXISTING_PARTIAL_REPAIR,
+A16,"every agent is runtime-ready: context, knowledge, tools, authority, model, contract and gates",0,0,EXISTING_EQUIVALENT_KEEP,"Measured through the real runtime paths for all 90 accountable agents, at zero model cost."
+A15,cost guardrails: every department has a budget,10,10,EXISTING_PARTIAL_REPAIR,department_budget.spent_aed was dead and both ceiling readers were blind to 22 merged-away dept keys; fixed 14 Aug 2026 and the halt proven to fire.

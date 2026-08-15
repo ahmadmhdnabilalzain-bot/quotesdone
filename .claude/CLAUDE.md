@@ -5,8 +5,8 @@ When the user types `/graphify`, use the installed graphify skill or instruction
 # quotesdone-session — ALWAYS APPLY
 - **quotesdone-session** (`.claude/skills/quotesdone-session/SKILL.md`) — the founder's standing
   working rules for this repository: run continuously without check-ins, report only the single
-  completion line or an honest hand-over, verify by execution in the same turn, deploy to BOTH
-  Supabase projects, merge via PR, never fabricate data to turn a gate green.
+  completion line or an honest hand-over, verify by execution in the same turn, deploy to the ONE
+  Supabase project, merge via PR, never fabricate data to turn a gate green.
 
 Load this skill at the START of every session on this repository, before any other work and without
 being asked. It governs HOW the session is run; the session brief in `docs/sessions/` governs WHAT

@@ -17,9 +17,13 @@
 // copies that shape rather than granting broadly to make the error go away.
 //
 //   node scripts/staging/sync_staging_grants.mjs [--apply]
-import { mgmtRead, mgmtWrite, PROD_REF, assertNotProduction } from './qd_guard.mjs';
+import { mgmtRead, mgmtWrite, PROD_REF, resolveStagingRef } from './qd_guard.mjs';
 
-const REF = assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'grant sync');
+// 15 AUG 2026: this tool's whole job is standing a SECOND project up from this one, and there is
+// no second project — pglpqrhvozwepymcuunn was deleted. It is kept rather than retired because it
+// works unchanged the day a new staging project exists; it now REFUSES instead of defaulting to a
+// ref that 404s, because a sync reporting success against nothing is the worst outcome available.
+const REF = resolveStagingRef(process.env.QD_STAGING_REF);
 const APPLY = process.argv.includes('--apply');
 
 const GRANT_Q = `select grantee, table_name, string_agg(distinct privilege_type, ',' order by privilege_type) as privs

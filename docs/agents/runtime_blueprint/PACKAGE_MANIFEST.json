@@ -1,0 +1,39 @@
+{
+  "package_id": "QuotesDone-Agent-Runtime-Connection-Blueprint",
+  "version": "v2026.08.14",
+  "created_at": "2026-08-14T00:00:00Z",
+  "company_target": {
+    "revenue_aed": 1000000,
+    "target_date": "2027-08-31"
+  },
+  "counts": {
+    "departments": 10,
+    "roles": 90,
+    "category_overlays": 86,
+    "handoffs": 25,
+    "persistent_managers": 6,
+    "scheduled_managers": 6,
+    "event_driven_operators": 33,
+    "on_demand_specialists": 35,
+    "independent_reviewers": 10
+  },
+  "model_policy_checked_on": "2026-08-14",
+  "intended_user": "Claude Code builder session",
+  "certification_material_included": false,
+  "notes": [
+    "Compare with existing code and preserve demonstrably better implementations.",
+    "Do not run full V3 certification until readiness gates pass."
+  ],
+  "key_files": [
+    "EXACT_CONNECTION_MAP.md",
+    "ROLE_CONNECTION_MATRIX.csv",
+    "CATEGORY_OVERLAY_CONNECTION_MATRIX.csv",
+    "MODEL_ASSIGNMENT_BY_ROLE.md",
+    "MODEL_ROUTING_POLICY.yaml",
+    "TOOL_REGISTRY.yaml",
+    "DECISION_TRACE_CONTRACT.md",
+    "KNOWLEDGE_RETRIEVAL_CONTRACT.md",
+    "CROSS_DEPARTMENT_HANDOFFS.csv",
+    "CLAUDE_MASTER_IMPLEMENTATION_PROMPT.md"
+  ]
+}
