@@ -207,6 +207,35 @@ const CLASS = {
   independent_reviewer: 'R',
 };
 
+// The necessity verdict. The default follows the class, because a role with callers, tools,
+// knowledge, a KPI and a forbidden-decision set IS needed in its class. The overrides are the
+// roles this workstream actually changed, and the ones where the existing implementation was
+// measured to be already correct and was therefore left alone.
+const REPURPOSED = {
+  supplier_matching_dispatch_operator:
+    'REPURPOSE — was Commercial Services Specialist; now owns the supplier selection step that had no owner',
+  marketplace_content_privacy_reviewer:
+    'REPURPOSE — was Content Moderation Reviewer; now inspects the actual supplier-facing payload',
+  agent_workforce_capability_director:
+    'REPURPOSE — was HR Director; the seat governs an AI workforce, not human resources',
+  visual_design:
+    'REPURPOSE — Director to Specialist; advisory, and artifact.review removed from its tools',
+  test_automation_engineer:
+    'REPURPOSE — reviewer to operator; release go/no-go returned to the QA & Release Management Director',
+  organization_designer:
+    'REPURPOSE — moved from exec to people_ops under the workforce director',
+  financial_controller:
+    'REQUIRED_CORE — scope extended to UAE tax; the capability is an overlay, not a new employee',
+};
+const EXISTING_BETTER = {
+  spec_mep: 'EXISTING_BETTER_KEEP — already on_demand_specialist with advisory authority, which is what the instruction asks for; only the fence against duplicating an overlay was added',
+  spec_construction: 'EXISTING_BETTER_KEEP — as spec_mep',
+  spec_fitout: 'EXISTING_BETTER_KEEP — as spec_mep',
+  spec_industrial: 'EXISTING_BETTER_KEEP — as spec_mep',
+};
+const verdictOf = (c) => EXISTING_BETTER[c.role_id] || REPURPOSED[c.role_id]
+  || ({ H: 'REQUIRED_MANAGER', O: 'REQUIRED_CORE', S: 'REQUIRED_ON_DEMAND', R: 'REQUIRED_REVIEWER' }[CLASS[c.runtime_mode]] || 'DEFER');
+
 const summary = {
   roles: census.length,
   by_class: {},
@@ -250,10 +279,15 @@ if (WRITE) {
     c.activation_conditions,
     c.caller_surfaces.map((s) => `${s}:${c.callers[s].length}`).join(' ') || 'NONE',
     c.tools, c.knowledge_scopes, c.owned_decisions, c.forbidden_decisions,
-    c.manager_role_id || '(founder)', '', // reviewer filled by the independence pass
+    c.manager_role_id || '(founder)',
+    // The reviewer of this role's work. An independent_reviewer is reviewed by its own manager;
+    // everyone else by fn_pick_reviewer over their department, which never returns the author.
+    c.runtime_mode === 'independent_reviewer'
+      ? `${c.manager_role_id} (its manager; it never reviews itself)`
+      : `fn_pick_reviewer('${c.primary_department_id}', author) — the department head unless the head is the author`,
     `${c.kpi_active} active / ${c.kpi_measurable} measurable / ${c.kpi_measured} measured`,
     c.model_policy + (c.budget_limit ? ` cap=${c.budget_limit}` : ''),
-    '', // verdict filled by the necessity pass
+    verdictOf(c),
   ].map(esc).join(','));
   writeFileSync(OUT_MATRIX, head.join(',') + '\n' + rows.join('\n') + '\n');
 

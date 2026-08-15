@@ -394,6 +394,42 @@ end $$;`);
     assert.equal(m[2], '1', 'an ELIGIBLE supplier was refused - the guard is refusing everything');
   });
 
+  test(`${name}: the two money ledgers price a call identically`, async () => {
+    // fn_llm_log carries its AED arithmetic inline; fn_usd_to_aed names the same peg for the
+    // per-attempt ledger. Two pricing implementations drift, so this re-derives the ratio from
+    // what fn_llm_log actually produces rather than trusting a constant. Run in an aborted
+    // transaction so the probe row never lands in ai_cost_log.
+    const r = await post(ref, `do $$
+declare v_aed numeric; v_usd numeric; v_model text;
+begin
+  select model_used into v_model from ai_cost_log where cost_aed > 0 order by occurred_at desc limit 1;
+  if v_model is null then raise exception 'PROBE SKIP no priced call to derive the ratio from'; end if;
+  select fn_llm_log('probe',null,null,'general',v_model,'probe','medium',100000,10000,false,null,10,true) into v_aed;
+  select fn_model_cost_usd(v_model, 100000, 10000, 0) into v_usd;
+  raise exception 'PROBE ledger_ratio=% named_peg=%',
+    round(v_aed / nullif(v_usd,0), 6), round(fn_usd_to_aed(), 6);
+end $$;`);
+    if (/PROBE SKIP/.test(r.text)) return;
+    const m = /PROBE ledger_ratio=([\d.]+) named_peg=([\d.]+)/.exec(r.text);
+    assert.ok(m, `probe produced no ratio: ${r.text}`);
+    // Compared to three decimals, not exactly. fn_llm_log rounds the AED it returns, so the
+    // derived ratio carries that rounding and an exact match would fail on noise rather than on
+    // a real disagreement. Three decimals still catches any actual change of peg.
+    const [ledger, peg] = [Number(m[1]), Number(m[2])];
+    assert.ok(Math.abs(ledger - peg) < 0.001,
+      `ai_cost_log prices a call at ${ledger} AED/USD and llm_attempt at ${peg} - the two ledgers `
+      + 'disagree about what the same call cost');
+  });
+
+  test(`${name}: a model call records its tokens and its cost against the role`, () => {
+    const src = readFileSync('supabase/functions/ai_gateway/index.ts', 'utf8');
+    assert.match(src, /prompt_tokens: u\?\.prompt_tokens/,
+      'the gateway records an attempt without its token usage again, so a retry on the fallback '
+      + 'ladder costs real money that is attributable to nothing');
+    assert.match(src, /recordAttempt\(m, true, Date\.now\(\) - attemptStartedAt, '', finishReason, j\?\.usage\)/,
+      'the successful attempt is recorded without passing the usage block it has in scope');
+  });
+
   test(`${name}: dispatch counts rows that landed, not the absence of an error`, () => {
     const src = readFileSync('supabase/functions/dispatch_inquiry/index.ts', 'utf8');
     assert.match(src, /\.select\('id'\)/,
