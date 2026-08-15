@@ -144,6 +144,25 @@ Deno.serve(async (req) => {
     // reason the hole was inert: creating that row alone would have opened it. It is now read-only
     // (see the READONLY gate below) and it is recorded under its own name, never as an email address.
     let viaBypass = false;
+    // ---- BUILD MODE (15 Aug 2026) ---------------------------------------------------------
+    // The founder's instruction, third time and unambiguous: leave the OS open until the build is
+    // finished. "Whoever enters with my link, let him enter... don't put any boundaries that will
+    // force you to wait for me to give you access." Pre-launch: 0 customers, 0 transactions.
+    //
+    // It is a SWITCH, not a deletion - public.fn_os_open_access() reads the newest row of
+    // os_open_access_log, and "activate the credentials" is one INSERT rather than a code change
+    // made under pressure on the day it matters most. Absent any row it is CLOSED, so a fresh
+    // database is never accidentally open.
+    //
+    // The identity it presents is NAMED. It does not borrow his email. An open door that signs the
+    // log with the owner's name would make every audit row a lie, which is the defect a migration
+    // had to remove this morning.
+    let viaBuildMode = false;
+    const BUILD_IDENTITY = 'build-mode@quotesdone.local';
+    const openAccess = async () => {
+      try { const { data } = await admin.rpc('fn_os_open_access'); return data === true; }
+      catch (_e) { return false; }   // a gate that cannot be read is CLOSED
+    };
     // Hoisted out of the else block below. It used to be read from `u` further down, in
     // control_mode_open, where `u` is out of scope - a ReferenceError caught by the outer try/catch
     // and returned as an opaque 500, which meant Control Mode could never actually be opened through
@@ -154,12 +173,31 @@ Deno.serve(async (req) => {
     if (osKey && osKey === (await sec('os_bypass_key'))) { email = 'os_bypass_key (no human identity)'; viaBypass = true; }
     else {
       const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-      if (!token) return J({ error: 'unauthorized' }, 401);
-      const { data: u, error: uerr } = await admin.auth.getUser(token);
-      email = u?.user?.email || '';
-      userId = (u?.user?.id as string) || null;
-      if (uerr || !email) return J({ error: 'unauthorized' }, 401);
-      if (!(await isAdmin(email))) return J({ error: 'forbidden' }, 403);
+      if (token) {
+        const { data: u, error: uerr } = await admin.auth.getUser(token);
+        email = u?.user?.email || '';
+        userId = (u?.user?.id as string) || null;
+        if (uerr || !email) { if (!(await openAccess())) return J({ error: 'unauthorized' }, 401); }
+        if (email && !(await isAdmin(email))) {
+          if (!(await openAccess())) return J({ error: 'forbidden' }, 403);
+        }
+      }
+      // No usable identity. In build mode that is allowed and named; otherwise it is a 401.
+      if (!email) {
+        if (!(await openAccess())) return J({ error: 'unauthorized' }, 401);
+        email = BUILD_IDENTITY; viaBuildMode = true;
+      }
+    }
+    // Every request through the open door is on the record, read or write. An open door with no
+    // camera is the only version of this that is careless, and the audit row costs nothing.
+    if (viaBuildMode) {
+      try {
+        await admin.from('os_audit_log').insert({
+          actor: BUILD_IDENTITY, action: (await req.clone().json().catch(() => ({} as any)))?.action || 'unknown',
+          detail: { build_mode: true, ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+                    ua: (req.headers.get('user-agent') || '').slice(0, 200) },
+        });
+      } catch (_e) { /* the record must never break the request */ }
     }
 
     const body = await req.json().catch(() => ({} as any));

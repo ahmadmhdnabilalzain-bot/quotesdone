@@ -237,8 +237,23 @@ export default function OsxShell() {
 
   React.useEffect(() => {
     let sub: any;
-    supa.auth.getSession().then(({ data }) => { setEmail(data.session?.user?.email || ''); setReady(true); });
-    sub = supa.auth.onAuthStateChange((_e, s) => setEmail(s?.user?.email || '')).data.subscription;
+    // BUILD MODE (15 Aug 2026). The founder: "whoever enters with my link, let him enter… there's
+    // no access for me now, there doesn't require. That's how it should be." The backend already
+    // answers without a session while public.fn_os_open_access() is true; this stops the SHELL
+    // demanding a sign-in the API no longer wants. Asking the API rather than a build flag matters:
+    // one switch closes both, so "activate the credentials" cannot half-close the door.
+    supa.auth.getSession().then(async ({ data }) => {
+      const signedIn = data.session?.user?.email || '';
+      if (signedIn) { setEmail(signedIn); setReady(true); return; }
+      // osApi() unwraps to j.data and `ping` carries no data field, so the RETURN VALUE says
+      // nothing. What answers the question is whether it threw: a closed door is a 401 and
+      // unwrap() raises on it. Reading r.user here would have been undefined every time and the
+      // shell would have shown the sign-in screen for ever.
+      try { await osApi('ping'); setEmail('build-mode@quotesdone.local'); }
+      catch (_e) { setEmail(''); }   // door closed: the sign-in screen is correct
+      setReady(true);
+    });
+    sub = supa.auth.onAuthStateChange((_e, s) => { if (s?.user?.email) setEmail(s.user.email); }).data.subscription;
     const onKey = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPaletteOpen((o) => !o); } };
     window.addEventListener('keydown', onKey);
     return () => { try { sub?.unsubscribe(); } catch (_e) {} window.removeEventListener('keydown', onKey); };
@@ -1371,11 +1386,21 @@ function Console() {
   const renderPlan = (d: any) => {
     if (d?.status === 'clarification_required') return d.clarification || 'I need one more detail before I can route that.';
     if (d?.status === 'refused') return (d.blocker || 'That instruction is refused.') + '\n\nNothing was created.';
+    // A control command — status, cancel, reprioritise, explain — asks a question or moves an
+    // existing command. It creates no work by design, and saying "0 task(s) created, owned by ."
+    // reads as a failure. Caught the first time this was used through the browser.
+    if (d?.control_command) {
+      return [`Understood as ${d?.intent}.`,
+              'Nothing was created — this asks about work that already exists.',
+              `Command ${d?.command_id}.`].join('\n');
+    }
     const wf = (d?.workflow_ids || []).join(', ');
     const owners: string[] = [d?.primary_owner, ...(d?.child_owners || [])].filter(Boolean);
     const lines = [
       `Understood as ${d?.intent}${wf ? ' → ' + wf : ''}.`,
-      `${d?.tasks_created} task(s) created, owned by ${owners.join(', ')}.`,
+      owners.length
+        ? `${d?.tasks_created} task(s) created, owned by ${owners.join(', ')}.`
+        : `${d?.tasks_created} task(s) created.`,
       d?.priority ? `Priority ${d.priority}${d?.due_at ? ', due ' + new Date(d.due_at).toLocaleDateString() : ''}.` : '',
       (d?.category_overlays_invoked || []).length ? `Category overlay consulted: ${d.category_overlays_invoked.join(', ')}.` : '',
       d?.founder_approval_required ? 'This one needs your decision — it is in your inbox.' : '',
