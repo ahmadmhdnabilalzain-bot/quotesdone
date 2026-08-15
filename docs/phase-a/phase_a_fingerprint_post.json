@@ -1,0 +1,32 @@
+{
+  "fingerprint": {
+    "departments": {
+      "rows": 32,
+      "sha256": "055e0f7adf854c365c926b9e3175663e3aac407e6f0f785da316c9370dfddb7b"
+    },
+    "roles": {
+      "rows": 180,
+      "sha256": "3e341243064ab2f936d140a57bfbb6cc204a5c886b63686aa6b001fd06dc6b94"
+    },
+    "categories": {
+      "rows": 86,
+      "sha256": "f231fb862c452ee6f653f9c270116db39de8d38e15620bfd2e89a75ccc9787f5"
+    },
+    "workflow_steps": {
+      "rows": 184,
+      "sha256": "ab586627c77b58d41fc5c4a1166416d1f8be20a9480feae361ff7aa4ce60960f"
+    },
+    "reserved": {
+      "rows": 11,
+      "sha256": "605818d3478111a03053ea8b7f5f6ef3e5e83c1446ab9bba75390f2c34f621c8"
+    },
+    "agents": {
+      "rows": 95,
+      "sha256": "2550888360e7ec6c34fd4c06054db2438b8a24fd451ec02651aa0bdf2245c1b6"
+    },
+    "ORGANIZATION": {
+      "rows": 588,
+      "sha256": "fb391763232487e4d4e0a394f89bf5166034ed0ac262733b7e8225b0782722c5"
+    }
+  }
+}

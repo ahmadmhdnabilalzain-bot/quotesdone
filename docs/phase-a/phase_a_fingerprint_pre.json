@@ -1,0 +1,44 @@
+{
+  "captured_utc": "2026-08-15 04:43:16",
+  "project_ref": "htdblwldjkcgjvmqkbeh",
+  "git_head": "a9f272ecf0deb0fa6692dd6071c3650b9dda8769",
+  "migration_head": "20260811081746",
+  "counts": {
+    "active_departments": 10,
+    "accountable_roles": 90,
+    "category_overlays": 86,
+    "other_overlays": [
+      "tax_overlay_uae"
+    ]
+  },
+  "fingerprint": {
+    "departments": {
+      "rows": 32,
+      "sha256": "055e0f7adf854c365c926b9e3175663e3aac407e6f0f785da316c9370dfddb7b"
+    },
+    "roles": {
+      "rows": 177,
+      "sha256": "a3b2a1ed87491d6aca3ebe772121b022ef5f4d8902595284f360b4f0786e6b53"
+    },
+    "categories": {
+      "rows": 86,
+      "sha256": "f231fb862c452ee6f653f9c270116db39de8d38e15620bfd2e89a75ccc9787f5"
+    },
+    "workflow_steps": {
+      "rows": 184,
+      "sha256": "afa05987fcafbc9c8352f73924f2b105b3187f6f7ede71b571b229100963b99b"
+    },
+    "reserved": {
+      "rows": 11,
+      "sha256": "605818d3478111a03053ea8b7f5f6ef3e5e83c1446ab9bba75390f2c34f621c8"
+    },
+    "agents": {
+      "rows": 94,
+      "sha256": "d4a03a66d4ac1c1aee3523db2b5347237dd2bb2fd95de7430ca6cf355db35bef"
+    },
+    "ORGANIZATION": {
+      "rows": 584,
+      "sha256": "cc87a7baedc92314fe1e8ae81a1275f1d3b654ada707a181419c464aa903cf69"
+    }
+  }
+}
