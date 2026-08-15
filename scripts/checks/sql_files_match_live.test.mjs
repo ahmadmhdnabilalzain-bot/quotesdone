@@ -64,28 +64,47 @@ const tokens = (s) => (String(s).match(/[A-Za-z_$][\w$]*|\d+(?:\.\d+)?|'(?:[^']|
 
 // Newest-first commit order for the files, so "the newest file that defines this routine" is a fact
 // about history and not about the filesystem.
-let order = [];
-try {
-  order = execSync(`git log --name-only --pretty=format: -- ${DIR}`, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })
-    .split('\n').map(s => s.trim()).filter(s => s.startsWith(DIR));
-} catch (_e) { /* not a git checkout; fall back to readdir order */ }
+// Rank by COMMIT, not by line number within the log.  The line-number version silently ordered
+// files inside one commit by git's own listing order, so two files added together — say
+// phase_c_12 and phase_c_13, where 13 supersedes 12 — came out in the wrong order and the check
+// reported drift against a routine that was perfectly in step.  The commit is the fact about
+// history; the filename breaks the tie inside it.
 const rank = new Map();
-order.forEach((f, i) => { if (!rank.has(f)) rank.set(f, i); });   // first appearance = newest commit
+try {
+  const log = execSync(`git log --name-only --pretty=format:%x01%H -- ${DIR}`,
+    { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
+  let commitIndex = -1;
+  for (const raw of log.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith('')) { commitIndex += 1; continue; }
+    if (line.startsWith(DIR) && !rank.has(line)) rank.set(line, commitIndex);  // 0 = newest commit
+  }
+} catch (_e) { /* not a git checkout; fall back to readdir order */ }
 
 const files = readdirSync(DIR).filter(f => f.endsWith('.sql'))
   .map(f => `${DIR}/${f}`.replace(/\\/g, '/'))
   .sort((a, b) => (rank.has(a) ? rank.get(a) : 1e9) - (rank.has(b) ? rank.get(b) : 1e9));
 
-// routine name -> { file, body } from the NEWEST file that defines it
-const newest = new Map();
+// routine name -> every definition from the NEWEST COMMIT that defines it.
+//
+// Two files in ONE commit can both define a routine — phase_c_12 and phase_c_13 do, and so do
+// containment_wording_no_false_positive and demo_rehearsal_containment.  Which of them was applied
+// last is NOT a fact git records, so this check does not guess it.  It keeps every candidate from
+// that commit and accepts live if it matches ANY of them; if live matches none, that is drift and
+// all the candidates are named.  Guessing an order would have made the check report drift against
+// a routine that is perfectly in step, which is worse than saying the history is ambiguous.
+const newest = new Map();                               // name -> { rank, candidates: [{file, body}] }
 for (const f of files) {
   if (!existsSync(f)) continue;
+  const fRank = rank.has(f) ? rank.get(f) : 1e9;
   const src = readFileSync(f, 'utf8');
   const re = /create\s+or\s+replace\s+function\s+(?:public\.)?([a-z0-9_]+)\s*\(/gi;
   let m;
   while ((m = re.exec(src))) {
     const name = m[1].toLowerCase();
-    if (newest.has(name)) continue;                     // an older file; the newest already won
+    const known = newest.get(name);
+    if (known && known.rank < fRank) continue;          // an older commit; the newest already won
     // body between the first $tag$ after the header and its closing twin
     const rest = src.slice(m.index);
     const tag = rest.match(/as\s+(\$[a-z_]*\$)/i);
@@ -93,7 +112,9 @@ for (const f of files) {
     const start = rest.indexOf(tag[1], rest.indexOf(tag[0])) + tag[1].length;
     const end = rest.indexOf(tag[1], start);
     if (end < 0) continue;
-    newest.set(name, { file: f, body: rest.slice(start, end) });
+    const entry = { file: f, body: rest.slice(start, end) };
+    if (known && known.rank === fRank) known.candidates.push(entry);
+    else newest.set(name, { rank: fRank, candidates: [entry] });
   }
 }
 
@@ -115,10 +136,12 @@ for (const row of live) {                               // overloads: keep every
 }
 
 const missing = [], drifted = [], ok = [];
-for (const [name, { file, body }] of newest) {
+for (const [name, { candidates }] of newest) {
   const bodies = byName.get(name);
-  if (!bodies) { missing.push({ name, file }); continue; }
-  if (bodies.includes(tokens(body))) ok.push(name); else drifted.push({ name, file });
+  const where = candidates.map(c => c.file).join(' | ');
+  if (!bodies) { missing.push({ name, file: where }); continue; }
+  if (candidates.some(c => bodies.includes(tokens(c.body)))) ok.push(name);
+  else drifted.push({ name, file: where });
 }
 
 console.log(`scripts/sql defines ${newest.size} routine(s) across ${files.length} file(s)`);
