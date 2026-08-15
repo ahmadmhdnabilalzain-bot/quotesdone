@@ -141,6 +141,25 @@ against `fn_usd_to_aed()`, so the two ledgers cannot quietly disagree about what
 6. **A tool existed on staging and not on production** (`handoff_stalled`), so one project's agents
    could call something the other's could not.
 
+## Observed, not claimed as a defect: decision-trace coverage
+
+`v_executions_without_decision_trace` returns **847 of 851 rows on production** and 35 on staging.
+That looks like a finding and is not reported as one, because the instrument has not been shown to
+be measuring the right subject.
+
+The view left-joins `action_execution` to `decision_trace` on `correlation_id`. `fn_execution_run`
+writes both and its own comment says the view "stays empty for anything this engine produced" — and
+the four production rows that DO carry a trace are from 6 August, the period that engine ran. Every
+row since is from a different executor set (`action_worker`, `kb_deepen`, `cost_snapshot`,
+`exec_agents`, `knowledge_exam`, `money_tests`, …) which does not go through `fn_execution_run`.
+Production's most recent `decision_trace` is dated **15 August** and comes from the agent path,
+which traces through `fn_write_decision_trace` in `agent_brain`.
+
+So the honest reading is: **two populations that were never joined**, not 847 untraced decisions.
+Establishing which of those executors is genuinely required to emit a trace is a separate piece of
+work with its own scope, and it is recorded here rather than quietly fixed or quietly omitted.
+Nothing in this workstream changed either side of it.
+
 ## Boundaries of these measurements
 
 - The 13 workflow tests assert **registry** properties — owner, order, resolvability, no overlay

@@ -137,6 +137,17 @@ truncated outputs.
 and by forced guards, not by a live inquiry travelling it. The eligibility probe reports SKIP on
 production for that reason rather than passing over absent data.
 
+### One thing left open, deliberately, with its measurement
+
+`v_executions_without_decision_trace` returns **847 of 851** on production. It is **not** reported
+as a defect, because the instrument has not been shown to measure the right subject: the view joins
+`action_execution` to `decision_trace` on `correlation_id`, `fn_execution_run` writes both and says
+so in its own comment, and every production row since 10 Aug comes from a *different* executor set
+(`action_worker`, `kb_deepen`, `cost_snapshot`, `exec_agents`, …) that does not use that engine.
+Production's newest `decision_trace` is 15 Aug, written by `agent_brain`. Two populations that were
+never joined, most likely — but establishing which executors are genuinely required to emit a trace
+is its own piece of work. Nothing in the 15 Aug pass touched either side.
+
 ## Open engineering, free to do, not yet done
 
 - **Cross-department handoffs do not work.** `handoff_contract` has 0 rows on both projects and
