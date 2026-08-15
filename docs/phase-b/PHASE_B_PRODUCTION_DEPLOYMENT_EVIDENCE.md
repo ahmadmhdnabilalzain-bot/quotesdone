@@ -25,8 +25,18 @@ were posted.
 | 7 | `scripts/sql/phase_b_07_crosswalk.sql` | 294 | `502e067a4dcba0ebc631f17e676eb6bf33b0f8b112fc24721170d9672552973a` |
 | 8 | `scripts/sql/phase_b_08_validators.sql` | 19 | `c66c6a1281e62670cbff90f2b9347332911ca00486a67f1b07c5e8df55c743b2` |
 
+A ninth file was applied after the security advisor was read:
+`scripts/sql/phase_b_09_pin_function_search_path.sql`. All eight Phase B functions were flagged
+`function_search_path_mutable`, and for the three trigger functions that is not cosmetic — a
+trigger runs with the `search_path` of whoever is writing, so a caller could shadow
+`public.org_role` and the guard would pass while checking the wrong table. None is
+`SECURITY DEFINER`, so it is not privilege escalation; `ALTER FUNCTION … SET` changes no body,
+and 77/77 invariants and 18/18 guards still pass afterwards. All eight now read back with
+`proconfig = search_path=public, pg_temp`.
+
 **Exact rollback:** `scripts/sql/phase_b_workflow_closure_rollback.sql`
-sha256 `a64833d57ce1f5a53ae99a66a0d942fcb73fe50b3ef7d20b73a5d5f3a9768995`
+sha256 `a64833d57ce1f5a53ae99a66a0d942fcb73fe50b3ef7d20b73a5d5f3a9768995` (updated after the
+search_path change to note that dropping a function drops its setting with it).
 
 The SQL is generated from the checksummed package by `scripts/phase_b/gen_migration.mjs`, and
 `scripts/checks/phase_b_invariants.test.mjs` regenerates it on every run and fails if a single
@@ -149,10 +159,38 @@ repository, and a stale measurement left behind after a rollback is worse than n
 node scripts/phase_b/inventory_estate.mjs > docs/phase-b/_inventory.json && node scripts/phase_b/build_crosswalk.mjs
 ```
 
-## Zero paid inference
+## Zero paid inference, measured rather than asserted
 
-No OpenRouter request, no other paid provider call, no LLM invocation of any kind occurred
-during Phase B. All 8 routes in `llm_route_health` remain held open-circuit until 2126-08-15;
-the hold was not released and no request was made against it.
+```sql
+select count(*) from public.ai_cost_log where occurred_at >= '2026-08-15 06:00:00+00';  -- 0
+select coalesce(sum(cost_aed),0) from public.ai_cost_log
+ where occurred_at >= '2026-08-15 06:00:00+00';                                          -- 0
+select max(occurred_at) from public.ai_cost_log;              -- 2026-08-15 02:51:33 UTC
+select count(*) from public.llm_route_health where open_until > now();                   -- 8
+```
 
-Paid inference cost for Phase B: **USD 0.00**.
+The last AI call this project ever made was at 02:51:33 UTC — three seconds before the hold was
+placed at `open_until = 2126-08-15 02:51:36`, and hours before this session began. Zero calls and
+zero cost since.
+
+All 8 routes remain held open-circuit. The hold was not released and no request was made against
+it. Paid inference cost for Phase B: **USD 0.00**.
+
+## End-of-session sweep
+
+| check | result |
+| --- | --- |
+| GitHub Actions on both PRs | all green (#395, #396) |
+| Vercel | deployment completed, both PRs |
+| `scripts/checks/sql_files_match_live.test.mjs` | 357 live and identical, 0 missing, 0 drifted |
+| `node scripts/verify_deploy_parity.mjs --all` | 202 functions carry the repo's code; 4 unverifiable for lack of a distinctive literal (`auth_api`, `dev_login`, `qa_login`, `src_io`) — recorded as UNVERIFIED, not verified |
+| `fn_os_portals_gates()` | 23 of 23 gates met |
+| Row #3 blueprint scorer | 130/152, **no verdict changed since the previous recorded run** |
+| `fn_phase_a_baseline_drift()` | 0 rows |
+| security advisor, Phase B objects | 17 tables have RLS enabled with no policy — the locked default; `anon` cannot SELECT any of them. 8 function `search_path` warnings, all now fixed. |
+
+One pre-existing item this sweep surfaced and Phase B did not cause:
+`export_from_either_source_is_identical.mjs` reports that the cron commands for `uptime_check`
+and `cost_snapshot` hard-code `https://htdblwldjkcgjvmqkbeh.supabase.co/...`, so an export naming
+its own project cannot be byte-identical to one taken elsewhere. Both jobs predate this session
+and appear in the preflight cron inventory. Parameterising them is Phase C work.
