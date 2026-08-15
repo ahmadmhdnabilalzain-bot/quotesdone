@@ -11,6 +11,9 @@
 --
 --   node scripts/apply_sql.mjs scripts/sql/phase_a_rollback.sql --apply --ddl
 
+set lock_timeout = '5s';
+set statement_timeout = '60s';
+
 -- ---- registries created by Phase A -------------------------------------------------------
 drop table if exists public.org_workflow_ownership;
 alter table public.org_role drop column if exists necessity_status;
@@ -26,7 +29,8 @@ update public.org_role_committee set note=null where committee_key='exec_committ
 -- gone, or the constraint would be rejected against rows that still violate it.
 alter table public.org_role_committee drop constraint if exists org_role_committee_seat_ck;
 alter table public.org_role_committee add constraint org_role_committee_seat_ck
-  check (seat = any (array['chair','member','observer','secretary']));
+  check (seat = any (array['chair','member','observer','secretary'])) not valid;
+alter table public.org_role_committee validate constraint org_role_committee_seat_ck;
 
 -- ---- change 5: tax_overlay_uae -----------------------------------------------------------
 update public.org_role set status='active',
@@ -95,16 +99,3 @@ begin
     then raise exception 'ROLLBACK: a Phase A role survived the rollback'; end if;
   raise notice 'PHASE A ROLLBACK COMPLETE: pre-change organisation restored.';
 end $$;
-
--- ---- follow-up migration 20260815051500 ---------------------------------------------------
--- Applied after the main Phase A file; its inverse belongs here so one rollback restores both.
-update public.org_tasks set assigned_agent = 'gov_relations_mgr', updated_at = now()
- where assigned_agent = 'partnerships_mgr' and status in ('assigned','in_progress')
-   and id in (select id from public.org_tasks where assigned_agent='partnerships_mgr'
-              order by created_at limit 5);
-update public.org_role set evaluation_suite = null where role_id = 'product_ux_designer';
-
-delete from public.org_agent_alias where alias = 'gov_relations_mgr';
-
-delete from public.employee_workflow where agent_key = 'product_ux_designer';
-delete from public.org_role_identity where agent_key = 'product_ux_designer';

@@ -18,6 +18,14 @@
 -- ROLLBACK: scripts/sql/phase_a_rollback.sql — retirements are reversed by status, not by
 -- re-creation, because nothing here deletes a historical row.
 
+-- TIMEOUTS FIRST, BECAUSE THE ALTERS BELOW TAKE AN ACCESS EXCLUSIVE LOCK. Caught by the
+-- migration linter in CI, and it was right: org_role is read by every context assembly in the
+-- company, so an ALTER that waits behind a long transaction blocks reads, writes and schema
+-- changes for as long as it waits. With a lock_timeout the migration fails fast and rolls back
+-- whole rather than holding the hottest table in the estate.
+set lock_timeout = '5s';
+set statement_timeout = '60s';
+
 -- ============================================================================================
 -- PRECONDITIONS. Exact expected baseline. A mismatch means this file is being applied to an
 -- organisation that is not the one it was generated against, and it must not proceed.
@@ -89,9 +97,14 @@ revoke all on public.org_workflow_ownership from anon, authenticated;
 -- 'observer' would have been the quiet kind of wrong — the migration would have passed and the
 -- committee's composition would have said something the package did not.
 -- Found by the aborted rehearsal, at 23514, with nothing applied.
+-- NOT VALID then VALIDATE, also from the linter: adding a CHECK outright scans the table and
+-- blocks writes for the scan. NOT VALID takes the constraint immediately for new rows, and
+-- VALIDATE then re-reads the existing ones under a lock that does not block readers or writers.
+-- The end state is identical; only the window during which the table is held differs.
 alter table public.org_role_committee drop constraint if exists org_role_committee_seat_ck;
 alter table public.org_role_committee add constraint org_role_committee_seat_ck
-  check (seat = any (array['chair','member','observer','secretary','standing_adviser']));
+  check (seat = any (array['chair','member','observer','secretary','standing_adviser'])) not valid;
+alter table public.org_role_committee validate constraint org_role_committee_seat_ck;
 
 -- ============================================================================================
 -- CHANGE 1 of 6 — RENAME. Chief Performance Officer -> Corporate Performance Director.

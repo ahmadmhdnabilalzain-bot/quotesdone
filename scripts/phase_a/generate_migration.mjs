@@ -69,6 +69,14 @@ w(`-- re-creation, because nothing here deletes a historical row.`);
 w('');
 
 // ================================================================================================
+w(`-- TIMEOUTS FIRST, BECAUSE THE ALTERS BELOW TAKE AN ACCESS EXCLUSIVE LOCK. Caught by the`);
+w(`-- migration linter in CI, and it was right: org_role is read by every context assembly in the`);
+w(`-- company, so an ALTER that waits behind a long transaction blocks reads, writes and schema`);
+w(`-- changes for as long as it waits. With a lock_timeout the migration fails fast and rolls back`);
+w(`-- whole rather than holding the hottest table in the estate.`);
+w(`set lock_timeout = '5s';`);
+w(`set statement_timeout = '60s';`);
+w(``);
 w(`-- ============================================================================================`);
 w(`-- PRECONDITIONS. Exact expected baseline. A mismatch means this file is being applied to an`);
 w(`-- organisation that is not the one it was generated against, and it must not proceed.`);
@@ -142,9 +150,14 @@ w(`-- and an adviser is expected to speak and is not counted in the decision. Ma
 w(`-- 'observer' would have been the quiet kind of wrong — the migration would have passed and the`);
 w(`-- committee's composition would have said something the package did not.`);
 w(`-- Found by the aborted rehearsal, at 23514, with nothing applied.`);
+w(`-- NOT VALID then VALIDATE, also from the linter: adding a CHECK outright scans the table and`);
+w(`-- blocks writes for the scan. NOT VALID takes the constraint immediately for new rows, and`);
+w(`-- VALIDATE then re-reads the existing ones under a lock that does not block readers or writers.`);
+w(`-- The end state is identical; only the window during which the table is held differs.`);
 w(`alter table public.org_role_committee drop constraint if exists org_role_committee_seat_ck;`);
 w(`alter table public.org_role_committee add constraint org_role_committee_seat_ck`);
-w(`  check (seat = any (array['chair','member','observer','secretary','standing_adviser']));`);
+w(`  check (seat = any (array['chair','member','observer','secretary','standing_adviser'])) not valid;`);
+w(`alter table public.org_role_committee validate constraint org_role_committee_seat_ck;`);
 w('');
 
 // ---- change 1: rename ---------------------------------------------------------------------------
@@ -487,6 +500,9 @@ r(`-- superseded roles were RETIRED, so this is a status flip plus the removal o
 r(`--`);
 r(`--   node scripts/apply_sql.mjs scripts/sql/phase_a_rollback.sql --apply --ddl`);
 r('');
+r(`set lock_timeout = '5s';`);
+r(`set statement_timeout = '60s';`);
+r('');
 r(`-- ---- registries created by Phase A -------------------------------------------------------`);
 r(`drop table if exists public.org_workflow_ownership;`);
 r(`alter table public.org_role drop column if exists necessity_status;`);
@@ -502,7 +518,8 @@ r(`-- The seat vocabulary goes back to four. This runs AFTER the two standing-ad
 r(`-- gone, or the constraint would be rejected against rows that still violate it.`);
 r(`alter table public.org_role_committee drop constraint if exists org_role_committee_seat_ck;`);
 r(`alter table public.org_role_committee add constraint org_role_committee_seat_ck`);
-r(`  check (seat = any (array['chair','member','observer','secretary']));`);
+r(`  check (seat = any (array['chair','member','observer','secretary'])) not valid;`);
+r(`alter table public.org_role_committee validate constraint org_role_committee_seat_ck;`);
 r('');
 r(`-- ---- change 5: tax_overlay_uae -----------------------------------------------------------`);
 r(`update public.org_role set status='active',`);
