@@ -15,11 +15,17 @@ import { createHash } from 'node:crypto';
 import { REPO } from './lib/package.mjs';
 import { sql } from './lib/db.mjs';
 
+// DEPLOY ORDER, not file order.  apply_sql refuses a file whose bindings name a routine that is
+// not deployed yet, which caught two real ordering mistakes on the way in: 02 depends on
+// fn_phase_c_reviewer_independent from 03, and the seven binding files depend on 08.  The list
+// below is the order that actually applied cleanly, so the rehearsal and the deployment agree.
 export const MIGRATION_FILES = [
   'phase_c_01_identity_and_registry_schema.sql',
-  'phase_c_02_authority_and_founder_boundary.sql',
   'phase_c_03_runtime_core.sql',
+  'phase_c_02_authority_and_founder_boundary.sql',
   'phase_c_04_command_center.sql',
+  'phase_c_08_runtime_writers.sql',
+  'phase_c_09_invariants.sql',
   'phase_c_05_registry_load.sql',
   'phase_c_06_components_part01.sql',
   'phase_c_06_components_part02.sql',
@@ -33,8 +39,6 @@ export const MIGRATION_FILES = [
   'phase_c_07_binding_06_event_binding.sql',
   'phase_c_07_binding_07_gate_binding.sql',
   'phase_c_07_binding_08_rule_binding.sql',
-  'phase_c_08_runtime_writers.sql',
-  'phase_c_09_invariants.sql',
 ];
 
 const SQL_DIR = join(REPO, 'scripts', 'sql');

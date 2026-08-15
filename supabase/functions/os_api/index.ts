@@ -85,6 +85,22 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   // may adapt to a habit, governance may not.
   founder_habits: 'read_only',
   transcribe: 'read_only',
+  // ---- PHASE C: the Founder Command Center ------------------------------------------------
+  // The founder gives an order; the Chief of Staff turns it into a command plan and real tasks
+  // owned by exact canonical employees, in ONE transaction, before this function answers.
+  //
+  // `founder_command` is MUTATING and it is the only one of the four that is. It cannot reach a
+  // side-effecting executor directly: fn_founder_command_submit classifies against a registered
+  // rule table and writes a command, a plan and tasks — nothing else. An unrecognised or unsafe
+  // instruction produces a clarification or a refusal and creates no work.
+  //
+  // The other three read. `founder_command_status` and `founder_command_inbox` are what the
+  // founder looks at; `founder_command_control` cancels, reprioritises, supersedes and explains,
+  // and is mutating for the obvious reason.
+  founder_command: 'mutating',
+  founder_command_control: 'mutating',
+  founder_command_status: 'read_only',
+  founder_command_inbox: 'read_only',
 };
 
 const OSAPI_MUTATIONS = new Set(Object.keys(ACTION_CLASS).filter((a) => ACTION_CLASS[a] === 'mutating'));
@@ -402,6 +418,53 @@ Deno.serve(async (req) => {
       }
       const filename = 'knowledge-' + (ak ? ak.replace(/[^a-z0-9-]+/gi, '_') : 'all-agents') + '.md';
       return J({ ok: true, data: { filename, markdown: md, count: rows.length } });
+    }
+
+    // ---- PHASE C: the Founder Command Center ---------------------------------------------
+    // Everything below is deterministic. No model is called on this path: fn_founder_command_submit
+    // classifies against public.phase_c_command_rule, which is DATA — `select * from
+    // phase_c_command_rule order by rule_order` shows exactly how any sentence will be routed.
+    if (action === 'founder_command') {
+      const text = String(body?.message || body?.text || '').trim();
+      if (!text) return J({ error: 'message_required', hint: 'Say what you want done.' }, 400);
+      // The client key is what makes a double-tap safe: the same key returns the SAME command
+      // rather than a second one. A caller that supplies none gets one derived from the message,
+      // so a retried request cannot open two commands either.
+      const idem = String(body?.idempotency_key || '').trim()
+        || 'os:' + email + ':' + [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))]
+             .map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+      const { data, error } = await admin.rpc('fn_founder_command_submit', {
+        p_founder_identity: email, p_text: text, p_idempotency_key: idem,
+        p_ctx: { channel: 'command_center', session_id: body?.session_id ?? null },
+      });
+      if (error) return J({ error: error.message }, 500);
+      // A refusal that arrives as data is still a refusal, and it must not read as success.
+      // deno-lint-ignore no-explicit-any
+      const d = data as any;
+      if (d && d.ok === false) return J({ error: d.error || 'command_refused', data: d }, 403);
+      return J({ ok: true, user: email, data });
+    }
+    if (action === 'founder_command_status') {
+      const { data, error } = await admin.rpc('fn_founder_command_status', { p_ref: String(body?.ref || body?.command_id || '') });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, user: email, data });
+    }
+    if (action === 'founder_command_control') {
+      const { data, error } = await admin.rpc('fn_founder_command_control', {
+        p_command_id: Number(body?.command_id || 0),
+        p_op: String(body?.op || ''), p_target: String(body?.target || ''),
+        p_value: body?.value != null ? String(body.value) : null,
+      });
+      if (error) return J({ error: error.message }, 500);
+      // deno-lint-ignore no-explicit-any
+      const d = data as any;
+      if (d && d.ok === false) return J({ error: d.error || 'control_refused', data: d }, 409);
+      return J({ ok: true, user: email, data });
+    }
+    if (action === 'founder_command_inbox') {
+      const { data, error } = await admin.rpc('fn_founder_command_inbox', { p_limit: Number(body?.limit || 25) });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, user: email, data });
     }
 
     if (WS[action]) { const { data, error } = await admin.rpc(WS[action]); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
