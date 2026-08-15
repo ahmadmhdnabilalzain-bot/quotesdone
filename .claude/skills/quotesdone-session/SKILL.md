@@ -171,6 +171,16 @@ Before the one line — or before an honest hand-over:
 6. `node scripts/checks/export_from_either_source_is_identical.mjs` → byte-identical
 7. `node scripts/verify_deploy_parity.mjs --all` → every edge function carries the repo's code
 
+8. `select * from public.fn_phase_a_baseline_drift();` → **0 rows**
+
+**PHASE A IS FROZEN** — founder-approved 15 Aug 2026, tagged `phase-a-founder-approved-2026-08-15`,
+baseline in `org_phase_baseline`. Step 8 is how you know it still is. Do not change the number of
+departments, canonical roles or category overlays: a statement-level guard refuses it unless
+`set local app.phase_a_change_reason = 'PACR-nnn: …'` is set in the same transaction, and that
+reason means a real change request with evidence and his approval — not a sentence to get past the
+guard. Changing a role's tools, knowledge, KPI or title is NOT frozen; that is the deferred
+later-phase work. See `docs/phase-a/PHASE_A_FOUNDER_APPROVED_BASELINE.md`.
+
 Steps 5–7 replace `project_parity.mjs`, retired 15 Aug 2026 with the project it compared against.
 See `docs/agents/RETIRED_TWO_PROJECT_CHECKS.md`. **Do not reintroduce a check that reads
 `pglpqrhvozwepymcuunn`** — it 404s, and a 404 read as "no drift" is a green light over nothing.
