@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, osPages, osHealth, osIncidents, SUPA_URL } from '@/lib/osClient';
+import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, osPages, osHealth, osIncidents, SUPA_URL, founderCommand, founderCommandThread } from '@/lib/osClient';
 import { cn } from '@/lib/utils';
 function ReportViewer({ id }: { id: number }) {
   const [st, setSt] = React.useState<'idle' | 'load' | 'done' | 'err'>('load');
@@ -1350,16 +1350,68 @@ function Console() {
   React.useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, busy]);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const onFile = async (f: File) => { const rd = new FileReader(); rd.onload = async () => { try { const d = await osApi('extract_doc', { filename: f.name, mime: f.type, b64: String(rd.result || '') }); if (d?.ok && d.text) setAtts((a) => [...a, { name: f.name, text: d.text }]); } catch (_e) {} }; rd.readAsDataURL(f); };
+  // ── AN ORDER GOES TO THE COMMAND ROUTER, NOT TO THE CHAT AGENT (15 Aug 2026) ────────────────
+  // This box has always sent everything to `secretary_chat`, which drives an LLM agent. Phase C
+  // built the canonical command channel — deterministic router, atomic task creation against exact
+  // canonical employees, traces — and shipped it with no control in the UI. The founder sent a real
+  // command and production recorded NOTHING, at any layer, because there was nothing to send it
+  // through. This is that control.
+  //
+  // The order matters and is deliberate:
+  //
+  //   1. `founder_command` first. Deterministic, free, and the only path that creates real work
+  //      owned by named employees. If the registry recognises the instruction, that IS the answer.
+  //   2. Only when the registry has no intent for the text at all (confidence 0, no matched rule)
+  //      does it fall through to the conversational agent — which is a PAID path and currently
+  //      held open-circuit, so it will say so rather than pretend.
+  //
+  // A clarification or a refusal from the router is shown as-is. Neither creates work, and neither
+  // is retried against the agent: "I can route this but not safely yet" is an answer, not a failure.
+  const [plans, setPlans] = React.useState<Record<number, any>>({});
+  const renderPlan = (d: any) => {
+    if (d?.status === 'clarification_required') return d.clarification || 'I need one more detail before I can route that.';
+    if (d?.status === 'refused') return (d.blocker || 'That instruction is refused.') + '\n\nNothing was created.';
+    const wf = (d?.workflow_ids || []).join(', ');
+    const owners: string[] = [d?.primary_owner, ...(d?.child_owners || [])].filter(Boolean);
+    const lines = [
+      `Understood as ${d?.intent}${wf ? ' → ' + wf : ''}.`,
+      `${d?.tasks_created} task(s) created, owned by ${owners.join(', ')}.`,
+      d?.priority ? `Priority ${d.priority}${d?.due_at ? ', due ' + new Date(d.due_at).toLocaleDateString() : ''}.` : '',
+      (d?.category_overlays_invoked || []).length ? `Category overlay consulted: ${d.category_overlays_invoked.join(', ')}.` : '',
+      d?.founder_approval_required ? 'This one needs your decision — it is in your inbox.' : '',
+      d?.founder_initiated_only ? 'Founder-reserved: the work is research and a proposal, not a commitment.' : '',
+      `Command ${d?.command_id}. I will report progress here.`,
+    ].filter(Boolean);
+    return lines.join('\n');
+  };
   const send = async () => {
     const t = text.trim(); const a = atts.slice(); if (!t && !a.length) return; setText(''); setAtts([]); setConfirm(null);
     const shown = t + (a.length ? '  [' + a.map((x) => x.name).join(', ') + ']' : '');
     setMsgs((m) => [...m, { role: 'user', content: shown }]); setBusy(true);
     try {
+      // An instruction with no text is a document hand-off, which is the agent's job, not an order.
+      if (t) {
+        const d: any = await founderCommand(t);
+        if (d?.command_id) {
+          setPlans((p) => ({ ...p, [d.command_id]: d }));
+          setMsgs((m) => [...m, { role: 'assistant', content: renderPlan(d) }]);
+          setBusy(false); return;
+        }
+        // intent AMBIGUOUS with no matched rule = the registry has never heard of this. Fall
+        // through to the conversational agent rather than answering with a shrug.
+      }
       const hist = [...msgs].slice(-8);
       const d = await osApi('secretary_chat', { message: t || 'Please handle the attached document.', history: hist, attachments: a });
       setMsgs((m) => [...m, { role: 'assistant', content: d?.reply || 'Done.' }]);
       if (d?.needs_confirmation && d?.confirm_token) setConfirm({ token: d.confirm_token, reply: d.reply || '' });
-    } catch (e: any) { setMsgs((m) => [...m, { role: 'assistant', content: 'Error: ' + (e?.message || 'could not reach the Secretary') }]); }
+    } catch (e: any) {
+      // A Control Mode refusal already opens the panel via the window event in osClient; the text
+      // here has to say what to do rather than read as "your account is wrong".
+      const msg = e?.name === 'ControlModeError'
+        ? 'Giving an order changes something, so it needs Control Mode open. The panel is on screen — open it and send this again.'
+        : 'Error: ' + (e?.message || 'could not reach the Command Center');
+      setMsgs((m) => [...m, { role: 'assistant', content: msg }]);
+    }
     setBusy(false);
   };
   const decide = async (decision: string) => { if (!confirm) return; const tok = confirm.token; setConfirm(null); setBusy(true); try { const d = await osApi('secretary_chat', { confirm_token: tok, decision }); setMsgs((m) => [...m, { role: 'assistant', content: d?.reply || (decision === 'confirm' ? 'Done.' : 'Cancelled.') }]); } catch (_e) { setMsgs((m) => [...m, { role: 'assistant', content: 'Could not complete that.' }]); } setBusy(false); };
@@ -1405,6 +1457,22 @@ function Console() {
   const [eh, setEh] = React.useState<any>({});
   const loadHome = React.useCallback(() => { osApi('ws.exec_home').then(setEh).catch(() => {}); }, []);
   React.useEffect(() => { loadHome(); const t = setInterval(loadHome, 30000); return () => clearInterval(t); }, [loadHome]);
+
+  // The return leg, on the same 30s beat as everything else on this screen. Only commands issued
+  // in THIS session are followed — the full history lives in the founder inbox, and repeating it
+  // here would turn a conversation into a log.
+  const [threads, setThreads] = React.useState<Record<number, any>>({});
+  const loadThreads = React.useCallback(() => {
+    const ids = Object.keys(plans).map(Number);
+    if (!ids.length) return;
+    Promise.all(ids.map((id) => founderCommandThread(id).catch(() => null)))
+      .then((rows) => {
+        const next: Record<number, any> = {};
+        for (const th of rows) if (th && (th as any).command_id) next[(th as any).command_id] = th;
+        setThreads(next);
+      });
+  }, [plans]);
+  React.useEffect(() => { loadThreads(); const t = setInterval(loadThreads, 30000); return () => clearInterval(t); }, [loadThreads]);
   return (
     <Card className='flex flex-col h-[calc(100vh-140px)]'>
       <div className='px-5 py-3 border-b border-border flex items-center gap-2'><div className='h-8 w-8 rounded-lg bg-primary text-primary-foreground grid place-items-center font-bold'>✦</div><div><div className='font-semibold text-sm'>Command Console</div><div className='text-xs text-muted-foreground'>Instruct the Secretary — it acts across the team.</div></div></div>
@@ -1466,6 +1534,50 @@ function Console() {
         {msgs.map((m, i) => (<div key={i} className={cn('max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm whitespace-pre-wrap', m.role === 'user' ? 'ml-auto bg-primary text-primary-foreground' : 'bg-foreground/5')}>{m.content}</div>))}
         {busy ? <div className='text-sm text-muted-foreground'>…</div> : null}
         {confirm ? <div className='flex gap-2'><Button size='sm' onClick={() => decide('confirm')}>Confirm</Button><Button size='sm' variant='outline' onClick={() => decide('cancel')}>Cancel</Button></div> : null}
+        {/* PROGRESS AND COMPLETION RETURN TO THE FOUNDER — the last link of the chain.
+            A command used to reach `tasks_created` and stay there for ever: nothing moved it when
+            an employee started, got stuck or finished. The state is now derived from its tasks at
+            the moment a task moves, so it cannot lag and cannot silently stop, and this is where
+            the founder reads it — in the same thread he gave the order in, not on another screen. */}
+        {Object.keys(threads).length ? (
+          <div className='space-y-2 pt-1'>
+            {Object.values(threads).map((th: any) => (
+              <div key={th.command_id} className='rounded-xl border border-border bg-background/60 px-3.5 py-2.5 text-sm'>
+                <div className='flex items-center justify-between gap-3'>
+                  <span className='font-medium'>Command {th.command_id}</span>
+                  <Badge variant={th.state === 'completed' ? 'default' : th.state === 'partially_blocked' ? 'destructive' : 'secondary'}>
+                    {String(th.state || '').replace(/_/g, ' ')}
+                  </Badge>
+                </div>
+                {(th.workflows || []).length ? <div className='text-xs text-muted-foreground pt-0.5'>{th.workflows.join(' · ')}</div> : null}
+                <div className='pt-1.5 space-y-1'>
+                  {(th.tasks || []).map((t: any) => (
+                    <div key={t.task_id} className='flex items-baseline justify-between gap-3 text-xs'>
+                      <span className='text-muted-foreground'>
+                        <b className='text-foreground'>{t.owner_name || t.owner}</b>
+                        {t.department ? ' · ' + t.department : ''}
+                        {t.blocker ? <span className='text-destructive'> — blocked: {t.blocker}</span> : null}
+                      </span>
+                      <span className='tabular-nums text-muted-foreground'>{String(t.state || '').replace(/_/g, ' ')}</span>
+                    </div>
+                  ))}
+                </div>
+                {(th.progress || []).length ? (
+                  <div className='pt-2 space-y-1 border-t border-border/60 mt-2'>
+                    {th.progress.map((n: any) => (
+                      <div key={n.note_id} className='text-xs text-muted-foreground'>
+                        <b className='text-foreground'>{n.by_name || n.by}</b>: {n.note}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {th.completion?.summary
+                  ? <div className='pt-2 mt-2 border-t border-border/60 text-xs'>{th.completion.summary}</div>
+                  : null}
+              </div>
+            ))}
+          </div>
+        ) : null}
         <div ref={endRef} />
       </div>
       {atts.length ? <div className='px-4 flex flex-wrap gap-1.5'>{atts.map((a, i) => (<Badge key={i} variant='secondary' className='cursor-pointer' onClick={() => setAtts((x) => x.filter((_, j) => j !== i))}>📄 {a.name} ✕</Badge>))}</div> : null}

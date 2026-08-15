@@ -119,6 +119,74 @@ export async function osApi(action: string, body: Record<string, any> = {}) {
   const j = await r.json().catch(() => ({} as any));
   return unwrap(r, j, action);
 }
+// ── THE FOUNDER COMMAND CENTER (15 Aug 2026) ──────────────────────────────────────────────────
+// Phase C built the command channel end to end — deterministic router, atomic task creation, exact
+// canonical owners, traces — registered it in both gates, deployed it, and gave it NO CONTROL IN
+// THE UI. The founder sent a real command and production recorded nothing at any layer, because
+// there was nothing for it to travel through. `src/` did not contain the string `founder_command`.
+//
+// These four are that missing link. They are thin on purpose: osApi already carries the session
+// token, the Control Mode gate handling and the error shapes.
+//
+// A note on which path an instruction takes. The Console has always spoken to `secretary_chat`,
+// which drives an LLM agent — a PAID path, currently held open-circuit. An ORDER now goes to
+// `founder_command` first: deterministic, free, and the only path that creates canonical tasks
+// against exact employees. Only when the registry has no intent for the text at all does the
+// Console fall back to the conversational agent.
+
+export type FounderCommandResult = {
+  ok: boolean;
+  command_id?: number;
+  status?: 'tasks_created' | 'clarification_required' | 'refused' | 'accepted';
+  intent?: string;
+  outcome?: string;
+  interpretation?: string;
+  workflow_ids?: string[];
+  task_ids?: number[];
+  owner?: string;
+  primary_owner?: string;
+  child_owners?: string[];
+  category_overlays_invoked?: string[];
+  tasks_created?: number;
+  priority?: string;
+  due_at?: string;
+  founder_approval_required?: boolean;
+  founder_initiated_only?: boolean;
+  clarification?: string;
+  blocker?: string;
+  trace_id?: number;
+  duplicate_of_idempotency_key?: string;
+};
+
+/**
+ * Issue a founder command. `idempotencyKey` is what makes a double-tap safe: the same key returns
+ * the SAME command rather than a second one. When none is supplied os_api derives one from the
+ * message text, so a retried request cannot open two commands either.
+ */
+export async function founderCommand(message: string, idempotencyKey?: string): Promise<FounderCommandResult> {
+  return await osApi('founder_command', { message, ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}) });
+}
+
+/** One command, its plan, its tasks, their owners and blockers. Read-only — no Control Mode. */
+export async function founderCommandStatus(ref: string | number) {
+  return await osApi('founder_command_status', { ref: String(ref) });
+}
+
+/** Cancel, reprioritise, supersede or explain. Mutating. */
+export async function founderCommandControl(commandId: number, op: 'cancel' | 'reprioritize' | 'supersede' | 'explain', target?: string | number, value?: string) {
+  return await osApi('founder_command_control', { command_id: commandId, op, target: String(target ?? commandId), ...(value ? { value } : {}) });
+}
+
+/** What the founder is looking at: recent commands, what is open, blocked, and awaiting his refund decision. */
+export async function founderCommandInbox(limit = 25) {
+  return await osApi('founder_command_inbox', { limit });
+}
+
+/** The founder-facing thread for one command, including every progress note and the completion. */
+export async function founderCommandThread(commandId: number) {
+  return await osApi('founder_command_thread', { command_id: commandId });
+}
+
 export async function osReportBody(id: number) {
   const { data: { session } } = await supa.auth.getSession();
   const token = session?.access_token;
