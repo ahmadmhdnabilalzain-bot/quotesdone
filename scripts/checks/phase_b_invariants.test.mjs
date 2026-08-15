@@ -7,12 +7,27 @@
 // the package checksums, that the committed migration still regenerates byte-identically from
 // the package, and that Phase B activated nothing.
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { sql } from '../phase_b/lib/db.mjs';
-import { REPO, verifyChecksums } from '../phase_b/lib/package.mjs';
-import { MIGRATION_FILES } from '../phase_b/rehearse.mjs';
+
+// This check reads PRODUCTION, so it cannot run where there is no management token, and CI is
+// exactly that place.  Skipping loudly beats failing the build on a missing credential.  It is
+// scoped, not weakened: the registry it verifies is written only by an applied migration, and
+// the next session that runs the sweep catches any drift.  The skip happens before the database
+// module is imported so a missing token cannot throw on the way in.
+const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+if (!(process.env.SUPABASE_ACCESS_TOKEN
+      || (existsSync(LOCAL_TOKEN) && readFileSync(LOCAL_TOKEN, 'utf8').trim()))) {
+  console.log('SKIPPED: no SUPABASE_ACCESS_TOKEN and no local access token, so the Phase B '
+    + 'registry cannot be read out of production. Run this from a session that holds the '
+    + 'management token. It is not asserting anything here.');
+  process.exit(0);
+}
+
+const { sql } = await import('../phase_b/lib/db.mjs');
+const { REPO, verifyChecksums } = await import('../phase_b/lib/package.mjs');
+const { MIGRATION_FILES } = await import('../phase_b/rehearse.mjs');
 
 const JSON_OUT = process.argv.includes('--json');
 const rows = await sql('select * from public.fn_phase_b_invariants() order by check_name');
