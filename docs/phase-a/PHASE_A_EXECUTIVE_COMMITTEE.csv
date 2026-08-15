@@ -4,7 +4,7 @@ exec_committee,Executive Committee,chief_of_staff,Chief of Staff,secretary
 exec_committee,Executive Committee,cfo,Chief Financial Officer,member
 exec_committee,Executive Committee,chief_operating_officer,Chief Operating Officer,member
 exec_committee,Executive Committee,chief_revenue_officer,Chief Revenue Officer,member
-exec_committee,Executive Committee,cto,Chief Technology Officer,member
+exec_committee,Executive Committee,cto,Chief Product & Technology Officer,member
 exec_committee,Executive Committee,customer_success_director,Customer Success Director,member
 exec_committee,Executive Committee,data_intelligence_director,Data & Intelligence Director,member
 exec_committee,Executive Committee,general_counsel,General Counsel,member
@@ -23,7 +23,7 @@ release_gate,Release Gate,ai_quality_reviewer,AI Quality Assurance Reviewer,memb
 release_gate,Release Gate,cybersecurity_engineer,Cybersecurity Engineer,member
 release_gate,Release Gate,it_operations_engineer,IT Operations & Site Reliability Engineer,member
 release_gate,Release Gate,test_automation_engineer,Test Automation Engineer,member
-release_gate,Release Gate,cto,Chief Technology Officer,observer
+release_gate,Release Gate,cto,Chief Product & Technology Officer,observer
 revenue_council,Revenue Council,chief_revenue_officer,Chief Revenue Officer,chair
 revenue_council,Revenue Council,business_development,Business Development Manager,member
 revenue_council,Revenue Council,cfo,Chief Financial Officer,member

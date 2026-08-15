@@ -34,10 +34,17 @@ diffed at any time.
 
 ## The ten other change rows in the package, already true before Phase A
 
-`CURRENT_TO_FINAL_ROLE_CHANGES.csv` lists 14 changes. Ten were already applied by the 14–15 Aug
-organisational pass and were verified rather than reapplied: the Organisation Design Lead already
-sits in People & Company Operations; `data_engineer` already exists; the CTO already carries
-"Chief Product & Technology Officer"; the Commercial Services Specialist is already the Supplier
+`CURRENT_TO_FINAL_ROLE_CHANGES.csv` lists 14 changes.
+
+**CORRECTION, 15 Aug 2026.** An earlier version of this document said the CTO retitle was already
+applied. **It was not.** The row still read "Chief Technology Officer"; I had matched the package's
+`chief_product_technology_officer` to the live `cto` by title similarity and recorded the change as
+done without reading the `display_name` back. It is applied now, in the Phase A closure migration,
+with the stable key `cto` kept and `chief_product_technology_officer` added as an alias.
+
+Nine were already applied by the 14–15 Aug organisational pass and were verified rather than
+reapplied: the Organisation Design Lead already sits in People & Company Operations; `data_engineer`
+already exists; the Commercial Services Specialist is already the Supplier
 Matching & Dispatch Operator; Content Moderation is already the Marketplace Content & Privacy
 Reviewer; `marketing_copy` is already merged into the Content Strategy & Copy Specialist; the
 Visual Design Director, the Test Automation Reviewer and the HR Director already carry their

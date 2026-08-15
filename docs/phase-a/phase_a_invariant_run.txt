@@ -56,13 +56,13 @@ PASS  no role owns a founder-reserved decision  — 0 boundary violations
 PASS  no historical department row was deleted  — 0 all 32 present
 PASS  four roles are retired, none deleted  — 4
 PASS  every retired role kept its rationale  — 0 documented
-PASS  the alias table grew rather than shrank  — 167
+FAIL  the alias table grew rather than shrank  — 168 (expected 167)
 
 ── Cost ──────────────────────────────────────────────────────────────────────
 PASS  OpenRouter requests during Phase A = 0  — 0 request(s)
-PASS  paid inference cost during Phase A = USD 0.00  — USD 0.00
+PASS  paid inference cost during Phase A = AED 0.00 / USD 0.00  — AED 0.00
 PASS  the provider hold is still in place  — 8 route(s) held open-circuit
 
 ==============================================================================
-48 passed, 0 failed
-PHASE_A_READY_FOR_FOUNDER_APPROVAL
+47 passed, 1 failed
+PHASE_A_NOT_READY — execute scripts/sql/phase_a_rollback.sql

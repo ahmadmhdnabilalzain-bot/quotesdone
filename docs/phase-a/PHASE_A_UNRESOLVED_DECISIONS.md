@@ -6,6 +6,21 @@ pass. These are the things that would be dishonest to leave unsaid.
 
 ---
 
+## 0. How to read a zero, after the closure corrections
+
+There are now **two** instruments, because there are two subjects:
+
+| function | asks | result |
+|---|---|---|
+| `fn_phase_a_organization_violations()` | is the ORGANISATION correct? | **0 rows** |
+| `fn_phase_a_deferred_items()` | what is this phase forbidden to close? | **4 rows**, all `DEFERRED_TO_LATER_PHASES` |
+| `fn_org_role_violations()` | can every employee WORK? | **4 rows**, unchanged and untouched |
+
+`fn_org_role_violations` was **not weakened, redefined or scoped down** to produce the zero. It keeps
+asking whether an employee can work and keeps answering "not yet" for the Product/UX Designer. The
+new function is narrower on purpose and does not test tools, imported knowledge, live KPI bindings,
+model policies, decision traces or provider connections.
+
 ## 1. `product_ux_designer` is defined but not activated — Phase B, not the founder
 
 `fn_org_role_violations()` returned **0 before Phase A and returns 4 after**, all four against this
@@ -35,9 +50,11 @@ Three reasons the count was not taken back to zero:
    count, is a worse outcome than a red check — it is the exact shape of the silent over-grant this
    estate has been bitten by before.
 
-The role is **inert** in the meantime, and the follow-up migration asserts it rather than claiming
-it: it owns no workflow, no workflow step addresses it, no route or cron invokes it, and
-`model_policy` is null so it could not make a paid call even if something did.
+The role is **runtime-deferred**, and that is now a declared fact rather than an inference:
+`org_role.runtime_enabled` is **false** for it, and the column comment states that FALSE means
+"deliberately not yet runtime-activated" and never "optional or retained to make a count". It owns
+step 2 of W22 — experience design and UX acceptance criteria — so it is accountable for something
+real, and `model_policy` is null so it could not make a paid call even if something invoked it.
 
 **What closes it:** Phase B gives it a KPI, a knowledge scope, an authority row and whatever tool it
 genuinely needs. Not before.
