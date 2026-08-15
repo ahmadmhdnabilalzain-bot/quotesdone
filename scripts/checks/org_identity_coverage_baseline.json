@@ -1,23 +1,12 @@
 {
   "note": "Routines that compare an identity parameter without resolving it first. This list may only ever SHRINK. A new name here means a new routine can be defeated by an alias - see the header of scripts/checks/org_identity_coverage.mjs for the measured example.",
-  "measured_at": "2026-08-14",
+  "measured_at": "2026-08-15",
   "known_unresolved": [
-    "fn_agent_autonomy_blocked",
-    "fn_agent_handoff_inbox",
-    "fn_agent_tools",
     "fn_approval_decide",
     "fn_control_mode_close",
     "fn_control_mode_open",
     "fn_control_mode_require",
     "fn_control_mode_status",
-    "fn_handoff_amend",
-    "fn_handoff_close",
-    "fn_handoff_notify",
-    "fn_handoff_respond",
-    "fn_onboarding_gate",
-    "fn_revenue_cascade",
-    "fn_unsafe_escalation_route",
-    "fn_ws_agent_ops",
     "match_suppliers",
     "match_suppliers_kw"
   ]
