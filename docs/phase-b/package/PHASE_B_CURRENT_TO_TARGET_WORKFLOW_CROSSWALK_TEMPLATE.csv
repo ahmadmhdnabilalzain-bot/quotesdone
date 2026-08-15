@@ -1,0 +1,31 @@
+﻿current_artifact_type,current_artifact_name,repository_or_database_location,current_trigger_or_caller,current_owner_or_actor,current_states_or_outcomes,target_workflow_id,target_step_id,target_classification,duplicate_or_conflicting_path,historical_compatibility_required,phase_c_wiring_action,evidence_command,evidence_result,notes
+,,,,,,W01,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Founder mandate to company objectives
+,,,,,,W02,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Company target miss and corrective management
+,,,,,,W03,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Customer acquisition
+,,,,,,W04,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Customer registration and onboarding
+,,,,,,W05,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Inquiry intake and qualification
+,,,,,,W06,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Category routing
+,,,,,,W07,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Document/BOQ/drawing processing
+,,,,,,W08,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Supplier-safe payload and file approval
+,,,,,,W09,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Supplier onboarding
+,,,,,,W10,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Supplier verification
+,,,,,,W11,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Supplier coverage and acquisition gaps
+,,,,,,W12,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Supplier matching and dispatch
+,,,,,,W13,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Supplier notification delivery
+,,,,,,W14,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Quotation submission and evaluation
+,,,,,,W15,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Customer comparison and reveal
+,,,,,,W16,,TO_BE_RECONCILED,,yes,,,,"Canonical workflow: Payment, billing and reconciliation"
+,,,,,,W17,,TO_BE_RECONCILED,,yes,,,,"Canonical workflow: Refund, dispute and fraud"
+,,,,,,W18,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Customer support and retention
+,,,,,,W19,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Supplier retention
+,,,,,,W20,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Marketing content lifecycle
+,,,,,,W21,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Strategic partnership development
+,,,,,,W22,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Product discovery to delivery
+,,,,,,W23,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: AI/model/prompt change
+,,,,,,W24,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Release and production approval
+,,,,,,W25,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Data reporting and forecasting
+,,,,,,W26,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Knowledge creation and validation
+,,,,,,W27,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Financial planning and accounting close
+,,,,,,W28,,TO_BE_RECONCILED,,yes,,,,"Canonical workflow: Legal, compliance and risk review"
+,,,,,,W29,,TO_BE_RECONCILED,,yes,,,,Canonical workflow: Security incident and reliability recovery
+,,,,,,W30,,TO_BE_RECONCILED,,yes,,,,"Canonical workflow: Agent performance, remediation and organization design"

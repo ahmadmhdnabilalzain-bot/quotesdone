@@ -1,0 +1,11 @@
+﻿placeholder_id,type,meaning,resolution_rule
+founder,external_decision_boundary,Founder identity; permitted only for explicit founder-reserved review/approval steps.,Must resolve to the authenticated founder approval record; never to an AI role.
+relevant_category_overlay,single_or_set_overlay,The confirmed on-demand overlay(s) for the inquiry/quote category scope.,Resolve from the approved canonical route set; overlays cannot receive prohibited authority.
+relevant_domain_specialist,single_dynamic_role,"One of MEP, Construction & Civil, Interior & Fit-Out, or Industrial & Energy specialists.",Resolve only when multi-category coordination requires it.
+department_heads,dynamic_role_set,Heads of departments affected by the company objective or performance issue.,"Resolve from canonical department heads; contributors only, never a shared accountable owner."
+affected_department_head,single_dynamic_role,Head of the department whose KPI/outcome is materially affected.,Resolve from the canonical KPI/department ownership mapping.
+relevant_business_owner,single_dynamic_role,Canonical owner of the business workflow affected by an AI/release/data/legal change.,Resolve from Phase B workflow registry.
+business_owner,single_dynamic_role,Canonical owner of the business workflow affected by a release/post-deploy check.,Resolve from Phase B workflow registry.
+relevant_manager,single_dynamic_role,Primary canonical manager of the role/capability under remediation.,Resolve from the frozen Phase A reporting graph.
+current_step_owner,runtime_placeholder,Effective canonical owner of the step emitting a blocked event.,Resolve from the workflow step registry.
+workflow_engine,system_actor,Deterministic system component that records lifecycle events; not an accountable employee.,May emit structural events but cannot make business decisions.
