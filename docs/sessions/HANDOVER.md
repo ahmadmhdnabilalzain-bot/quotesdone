@@ -137,6 +137,19 @@ truncated outputs.
 and by forced guards, not by a live inquiry travelling it. The eligibility probe reports SKIP on
 production for that reason rather than passing over absent data.
 
+### End-of-session sweep, 15 Aug
+
+| | |
+|---|---|
+| GitHub Actions | PR #387 all checks pass. The 14 Aug `deploy changed functions` failure was **throttling** — `route_inquiry` and `transcribe` redeployed to both projects and verified. |
+| Vercel | 0 runtime errors in 24h |
+| Row #3 scorer | **134/152 (88%)** on production, ran to completion. Its one "REGRESSED" line, `lobby-departments-busy-indicator`, was a **429 ThrottlerException** from this session's own API load: re-run alone it scores **1/1 FIXED**, so the clean figure is 135/152. The other 17 NOT MET are the pre-existing executive-UI backlog and include `s26-discover-suppliers`, which is deliberately paused. |
+| `fn_os_portals_gates()` | 22/22 met on **both** projects |
+| `project_parity` | **BOTH PROJECTS IN SYNC** |
+| `npm test` | 32/32, exit 0 |
+| Alignment suites | 76/76 on both projects |
+| Pack scorecard | **could not run** — it needs `--packs=<extracted packs dir>`, and no extracted corpus exists in this working tree. Substituted a direct comparison: `kb_stage` is **identical on both projects**, 115,148 records over 73 package ids and 1,005 files, every package's row count equal. That is not the scorecard and is not claimed to be. |
+
 ### One thing left open, deliberately, with its measurement
 
 `v_executions_without_decision_trace` returns **847 of 851** on production. It is **not** reported
