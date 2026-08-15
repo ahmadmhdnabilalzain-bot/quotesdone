@@ -1,0 +1,109 @@
+{
+  "phase": "A",
+  "approved_by": "founder",
+  "approved_at": "2026-08-15T06:00:00Z",
+  "project_ref": "htdblwldjkcgjvmqkbeh",
+  "final_commit": "d5107300fbb4cb1a334c886ae4cb7448bb7bd936",
+  "final_commit_subject": "Merge pull request #391 from ahmadmhdnabilalzain-bot/phase-a/closure-corrections",
+  "counts": {
+    "active_departments": 10,
+    "canonical_roles": 90,
+    "category_overlays": 86,
+    "department_heads": 10,
+    "phase_a_violations": 0,
+    "deferred_items": 4,
+    "organizational_workflows": 30,
+    "retired_roles": 4
+  },
+  "organization_fingerprint": {
+    "rows": 588,
+    "sha256": "231e0389902aa6c7ea30983463996bf6133182eef45c6e3e51043246eb235a01"
+  },
+  "registries": {
+    "departments": {
+      "rows": 10,
+      "database_sha256": "03542ee0121c3dd5e9a2d79b3a9608ca298c2142aa1ba7114ee6778cf1c3399d",
+      "committed_artefact": "docs/phase-a/PHASE_A_DEPARTMENT_REGISTRY.csv",
+      "artefact_sha256": "ae4a0d5fcf759fe368591deb6277fcfbde21d7a9e756e8cc36298962e39b19b3"
+    },
+    "roles": {
+      "rows": 90,
+      "database_sha256": "18f27e1d006448dc9d82962468258eb6adf33eb75bd871fde7f7afe4df177b59",
+      "committed_artefact": "docs/phase-a/PHASE_A_CANONICAL_ROLE_REGISTRY.csv",
+      "artefact_sha256": "b2b097af00efef9c1536ee8efc879be6f736794dad78cc8969435056c8a7a839"
+    },
+    "reporting_graph": {
+      "rows": 90,
+      "database_sha256": "4c8af326127d5d1521a5eb470dfa9d7f6c6bf76bae19bbb0e5bd1be75d7b32c5",
+      "committed_artefact": "docs/phase-a/PHASE_A_REPORTING_GRAPH.csv",
+      "artefact_sha256": "3b273215747402257bd9d301f58371c777d1cceec82edec7e9e6a00fddbd9eff"
+    },
+    "category_overlays": {
+      "rows": 86,
+      "database_sha256": "7a77bd1a2de6eb7916a3824585aff2251d6057020f34653dfb8207d1045dc3f1",
+      "committed_artefact": "docs/phase-a/PHASE_A_CATEGORY_OVERLAY_REGISTRY.csv",
+      "artefact_sha256": "62df01deb38870ee7527d7f194c6abc10d86468d72d23f0089f53447a4f12cc0"
+    },
+    "workflow_ownership": {
+      "rows": 30,
+      "database_sha256": "9e2c8bb7592ca3e349d42d9a5557797bd278aefe2053d948290b3a49acff3b08",
+      "committed_artefact": "docs/phase-a/PHASE_A_WORKFLOW_OWNERSHIP.csv",
+      "artefact_sha256": "8f6df87683bdd6b516698e990534ff456b31e709581477535c917a7eebd14473"
+    },
+    "founder_reserved": {
+      "rows": 11,
+      "database_sha256": "c9e1ce14850f4dddff1521c21ede31748d4a07178011b1658b5699fcd1dd1297",
+      "committed_artefact": "docs/phase-a/PHASE_A_FOUNDER_RESERVED_DECISIONS.md",
+      "artefact_sha256": "3c2f619ca6c5c6c2ba3f252ee30749f5c0afc5239a107728e761e4b214b3721b"
+    }
+  },
+  "migrations": [
+    {
+      "version": "20260815050000",
+      "file": "supabase/migrations/20260815050000_phase_a_organization_closure.sql",
+      "sha256": "5d9b7067adf8bf1e59c173e3342ce1f6ad22700a62131ca380471b0a2c013bd9"
+    },
+    {
+      "version": "20260815051500",
+      "file": "supabase/migrations/20260815051500_phase_a_followup_orphaned_work_and_evaluation.sql",
+      "sha256": "d0a302542bf4dc4a21079e5fcf17c29873e901fc88a9fec12d654d84869eab7d"
+    },
+    {
+      "version": "20260815052500",
+      "file": "supabase/migrations/20260815052500_phase_a_the_role_resolved_but_the_employee_did_not.sql",
+      "sha256": "d650f1fd06a9f59442915ed1adbaf7cf77ae5b0e1baa6dcccdadb5ac91fdde07"
+    },
+    {
+      "version": "20260815053000",
+      "file": "supabase/migrations/20260815053000_phase_a_the_new_role_had_no_identity_and_no_caller.sql",
+      "sha256": "1c5a651885532f2d66fa6ada62633b1bdc7b40f0e20ab8c1c57b4adf569c826a"
+    },
+    {
+      "version": "20260815060000",
+      "file": "supabase/migrations/20260815060000_phase_a_closure_corrections.sql",
+      "sha256": "72b97977f3dab396abe6a0ed12af971c8e6984432e8f34c660cb834a45c16ae6"
+    },
+    {
+      "version": "20260815061500",
+      "file": "supabase/migrations/20260815061500_phase_a_the_merge_left_a_stale_identity.sql",
+      "sha256": "043fce931a7aec8f9a28e02eded4b30963848216502599f86484b3b83cb632a9"
+    }
+  ],
+  "rollbacks": [
+    {
+      "file": "scripts/sql/phase_a_rollback.sql",
+      "sha256": "a0f77dca0ee7e07632f9b8685f022b122a8f7b18219d478f936bc6d45b0fde71"
+    },
+    {
+      "file": "scripts/sql/phase_a_closure_rollback.sql",
+      "sha256": "cd4ce93f9dfca7437cbabe4504b4f40fd5e45ea74365595327d3d5232c19b48f"
+    }
+  ],
+  "migration_provenance": "Applied by the production-direct protocol (scripts/apply_sql.mjs posts the committed bytes and reads the definitions back), NOT by the Supabase migration runner. They are therefore deliberately absent from supabase_migrations.schema_migrations; inventing runner rows would claim a provenance that did not happen. The file digest above is the version that means anything.",
+  "deferred_to_later_phases": [
+    "no_authority:product_ux_designer",
+    "no_knowledge:product_ux_designer",
+    "no_kpi:product_ux_designer",
+    "no_tools:product_ux_designer"
+  ]
+}
