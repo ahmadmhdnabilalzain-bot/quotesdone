@@ -34,7 +34,10 @@ const check = (ok, what, detail = '') => {
 // An action in the edge function but not the database made read-only screens demand a phone code
 // once already.  Both directions are checked.
 const src = readFileSync(join(REPO, 'supabase', 'functions', 'os_api', 'index.ts'), 'utf8');
-const inCode = new Set([...src.matchAll(/^\s{2}(founder_command[a-z_]*):\s*'(read_only|mutating|mode_control)'/gm)]
+// Every classification os_api knows, so adding a fourth one cannot make this check quietly
+// under-count the actions it is supposed to be comparing.
+const CLASSES = 'read_only|mutating|mode_control|founder_gated';
+const inCode = new Set([...src.matchAll(new RegExp(`^\\s{2}(founder_command[a-z_]*):\\s*'(?:${CLASSES})'`, 'gm'))]
   .map(m => m[1]));
 const inDb = new Set((await sql(
   `select action, classification, requires_control from public.control_mode_action
@@ -75,6 +78,35 @@ for (const r of gateRows) {
   check(r.requires_control === want,
     `${r.action}: requires_control=${r.requires_control} matches classification=${r.classification}`);
 }
+
+// ---------------------------------------------------------------- 1c. THE EXEMPTION IS CONTAINED
+// founder_gated takes the founder's own channel out of Control Mode. Three things have to remain
+// true or the exemption becomes a hole, and each has been wrong somewhere in this estate before:
+//   * it stays AUDITED — otherwise the relaxed control leaves no record;
+//   * it stays OUT of the x-os-key preview bypass, which is read-only by construction;
+//   * it stays PINNED to the two founder-command actions and cannot spread to other mutations.
+const founderGated = gateRows.filter(r => r.classification === 'founder_gated').map(r => r.action);
+check(founderGated.length === 2 && founderGated.every(a => ['founder_command', 'founder_command_control'].includes(a)),
+      'founder_gated covers exactly the two founder-command actions', founderGated.join(', '));
+check(/ACTION_CLASS\[a\] === 'founder_gated'/.test(src),
+      'os_api audits founder_gated actions alongside mutating ones');
+check(/filter\(\(a\) => ACTION_CLASS\[a\] === 'read_only'/.test(src),
+      'the x-os-key preview bypass still allows only read_only, so it cannot reach the command channel');
+// The pin, forced to fire rather than assumed: a mutation that is not a founder command must not be
+// able to take the exemption. Runs inside a transaction that always rolls back.
+let pinned = false;
+try {
+  await sql(`do $p$ begin
+    update public.control_mode_action set classification = 'founder_gated' where action = 'inbox_send';
+    raise exception 'PIN_DID_NOT_FIRE';
+  end $p$;`);
+} catch (e) {
+  pinned = /control_mode_action_founder_gated_pinned/.test(String(e.message));
+  if (/PIN_DID_NOT_FIRE/.test(String(e.message))) pinned = false;
+}
+check(pinned, 'the database refuses founder_gated on any other mutating action');
+check((await sql(`select classification c from public.control_mode_action where action = 'inbox_send'`))[0].c === 'mutating',
+      'inbox_send is still Control-Mode gated after the injection');
 
 // ---------------------------------------------------------------- 2. the routine is deployed
 const deployed = (await sql(

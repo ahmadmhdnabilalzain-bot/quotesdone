@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
-import { readSource, extractDispatched, extractClassification } from './extract_os_actions.mjs';
+import { readSource, extractDispatched, extractClassification, ACTION_CLASSES } from './extract_os_actions.mjs';
 
 const src = readSource();
 const dispatched = extractDispatched(src);
@@ -86,8 +86,12 @@ test('no classification is left behind for an action that no longer exists', () 
     `ACTION_CLASS lists actions os_api no longer dispatches: ${stale.join(', ')}`);
 });
 
-test('every classification is one of the three legal values', () => {
-  const legal = new Set(['read_only', 'mutating', 'mode_control']);
+test('every classification is one of the legal values', () => {
+  // One list, shared with the parser in extract_os_actions.mjs. Two copies would drift, and the
+  // drift is silent in the worst direction: a class the parser knows but this test rejects, or a
+  // class this test allows but the parser cannot see — which reads as "dispatched but
+  // unclassified" and fires the loudest alarm in the file for the most boring reason.
+  const legal = new Set(ACTION_CLASSES);
   const bad = [...classified].filter(([, c]) => !legal.has(c)).map(([a, c]) => `${a}=${c}`);
   assert.deepEqual(bad, [], `illegal classification values: ${bad.join(', ')}`);
 });
@@ -98,6 +102,26 @@ test('mode_control is pinned to Control Mode plumbing only', () => {
   const allowed = new Set(['control_mode_status', 'control_mode_open', 'control_mode_close', 'control_mode_challenge']);
   const leaked = [...classified].filter(([a, c]) => c === 'mode_control' && !allowed.has(a)).map(([a]) => a);
   assert.deepEqual(leaked, [], `mode_control must not be used for ordinary actions: ${leaked.join(', ')}`);
+});
+
+test('founder_gated is pinned to the founder command channel only', () => {
+  // The second class allowed past Control Mode, added 15 Aug 2026 so the founder's own channel
+  // stops demanding a phone code for every order. It is a real control - the caller must be in
+  // phase_c_founder_identity - but it is still an EXEMPTION, and an exemption that can spread is a
+  // loophole. Enumerated here and pinned by control_mode_action_founder_gated_pinned in the
+  // database, so both layers have to be defeated at once.
+  const allowed = new Set(['founder_command', 'founder_command_control']);
+  const leaked = [...classified].filter(([a, c]) => c === 'founder_gated' && !allowed.has(a)).map(([a]) => a);
+  assert.deepEqual(leaked, [], `founder_gated must not be used for ordinary actions: ${leaked.join(', ')}`);
+});
+
+test('founder_gated actions are still audited and still outside the preview bypass', () => {
+  // The two halves that make the exemption survivable. Losing either is silent: the action keeps
+  // working, and only the record of it disappears.
+  assert.match(src, /ACTION_CLASS\[a\] === 'mutating' \|\| ACTION_CLASS\[a\] === 'founder_gated'/,
+    'founder_gated actions must be in OSAPI_MUTATIONS so os_api writes an audit row for them');
+  assert.match(src, /ACTION_CLASS\[a\] === 'read_only' && !BYPASS_DENY\.has\(a\)/,
+    'the x-os-key preview bypass must still allow only read_only actions');
 });
 
 test('a new mutating action cannot execute until it is classified', () => {

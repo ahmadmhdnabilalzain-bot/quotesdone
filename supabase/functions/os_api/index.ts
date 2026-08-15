@@ -45,7 +45,11 @@ const WS: Record<string, string> = {
 // secretary_chat drives an agent that acts and was unregistered, so it was ungated; and `record`
 // was registered as mutating although fn_os_record is STABLE, so opening any record would have
 // demanded a phone code. Both are correct below.
-type ActionClass = 'read_only' | 'mutating' | 'mode_control';
+// founder_gated (15 Aug 2026): it WRITES, so it is audited and the preview key cannot reach it,
+// but Control Mode does not apply — the control is the founder-identity allow-list in
+// public.phase_c_founder_identity, which a stolen admin session does not satisfy. A CHECK in the
+// database pins the class to the two founder-command actions so it cannot spread.
+type ActionClass = 'read_only' | 'mutating' | 'mode_control' | 'founder_gated';
 const ACTION_CLASS: Record<string, ActionClass> = {
   control_mode_status: 'mode_control', control_mode_open: 'mode_control',
   control_mode_close: 'mode_control', control_mode_challenge: 'mode_control',
@@ -97,8 +101,8 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   // The other three read. `founder_command_status` and `founder_command_inbox` are what the
   // founder looks at; `founder_command_control` cancels, reprioritises, supersedes and explains,
   // and is mutating for the obvious reason.
-  founder_command: 'mutating',
-  founder_command_control: 'mutating',
+  founder_command: 'founder_gated',
+  founder_command_control: 'founder_gated',
   founder_command_status: 'read_only',
   founder_command_inbox: 'read_only',
   // The founder-facing thread: what he said, what was understood, who has it, where each of them
@@ -107,7 +111,12 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   founder_command_thread: 'read_only',
 };
 
-const OSAPI_MUTATIONS = new Set(Object.keys(ACTION_CLASS).filter((a) => ACTION_CLASS[a] === 'mutating'));
+// What gets an audit row. founder_gated is included deliberately: it is not Control-Mode gated, and
+// that is exactly why the record of what was done under the relaxed control has to exist. Dropping
+// it here would have been the silent half of the exemption.
+const OSAPI_MUTATIONS = new Set(
+  Object.keys(ACTION_CLASS).filter((a) => ACTION_CLASS[a] === 'mutating' || ACTION_CLASS[a] === 'founder_gated'),
+);
 // What the x-os-key preview bypass may reach. Narrower than read_only on purpose: two actions read
 // before they do anything, but still cost something a static string should not be able to spend.
 //   report_pdf   - renders and stores a PDF object in the finance-reports bucket
