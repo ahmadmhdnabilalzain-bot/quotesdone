@@ -179,10 +179,17 @@ await eq('the alias table grew rather than shrank', `select count(*) from org_ro
 
 sect('Cost');
 {
-  const spend = await one(`select count(*) n, coalesce(sum(cost_usd),0) usd from ai_cost_log
-    where ts > timestamptz '2026-08-15 04:40:00+00'`).catch(() => ({ n: 0, usd: 0 }));
+  // NO CATCH HERE, AND THE COLUMN NAME IS THE REASON. The first version of this read `cost_usd`,
+  // which does not exist — the column is `cost_aed` — and wrapped the query in
+  // `.catch(() => ({ n: 0, usd: 0 }))`. So a query that ERRORED reported zero requests and zero
+  // cost, and the cost invariant passed while measuring nothing at all. That is the exact defect
+  // this estate keeps finding in its own instruments: an absent input scoring as satisfied. A
+  // broken cost check is worse than no cost check, because the founder is reading it.
+  const spend = await one(`select count(*) n, coalesce(sum(cost_aed),0) aed from ai_cost_log
+    where occurred_at > timestamptz '2026-08-15 04:40:00+00'`);
   check('OpenRouter requests during Phase A = 0', Number(spend.n) === 0, `${spend.n} request(s)`);
-  check('paid inference cost during Phase A = USD 0.00', Number(spend.usd) === 0, `USD ${Number(spend.usd).toFixed(2)}`);
+  check('paid inference cost during Phase A = AED 0.00 / USD 0.00', Number(spend.aed) === 0,
+    `AED ${Number(spend.aed).toFixed(2)}`);
   const held = await one(`select count(*) n from llm_route_health where open_until is not null`);
   check('the provider hold is still in place', Number(held.n) >= 8, `${held.n} route(s) held open-circuit`);
 }
