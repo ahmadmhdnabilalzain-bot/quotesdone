@@ -69,3 +69,9 @@ begin
     then raise exception 'ROLLBACK: the UX designer did not return to its pre-correction definition'; end if;
   raise notice 'PHASE A CLOSURE ROLLBACK COMPLETE: pre-correction organisation restored.';
 end $$;
+
+-- ---- follow-up 20260815061500: the stale identity row -------------------------------------
+insert into public.org_role_identity (agent_key, packaged_role_id, packaged_department, archetype, mapping_type, readiness, package_version)
+  select 'gov_relations_mgr', packaged_role_id, packaged_department, archetype, mapping_type, readiness, package_version
+    from public.org_role_identity where agent_key = 'partnerships_mgr'
+  on conflict do nothing;

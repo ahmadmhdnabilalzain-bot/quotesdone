@@ -175,7 +175,13 @@ await zero('no historical department row was deleted',
 await eq('four roles are retired, none deleted', `select count(*) from org_role where status='retired'`, 4);
 await zero('every retired role kept its rationale',
   `select role_id from org_role where status='retired' and rationale not like '%RETIRED by Phase A%'`, 'documented');
-await eq('the alias table grew rather than shrank', `select count(*) from org_role_alias`, 167);
+{
+  // A FLOOR, NOT AN EXACT COUNT. The check is named 'grew rather than shrank' and asserting an
+  // exact number made it fail the moment Phase A closure added a legitimate alias. 167 is the
+  // count after the first Phase A deployment; the invariant is that it never goes below it.
+  const n = Number(Object.values(await one(`select count(*) from org_role_alias`))[0]);
+  check('the alias table grew rather than shrank', n >= 167, `${n} (floor 167)`);
+}
 
 sect('Cost');
 {
