@@ -40,7 +40,9 @@ const defOf = async (project) => {
   return String(rows[0].def);
 };
 
-for (const [label, project] of [['production', 'htdblwldjkcgjvmqkbeh'], ['staging', 'pglpqrhvozwepymcuunn']]) {
+// staging was a second target until its Supabase project was deleted on 15 Aug 2026; the same
+// assertions now run against production alone.
+for (const [label, project] of [['production', 'htdblwldjkcgjvmqkbeh']]) {
   test(`the invite ramp consults company_calendar on ${label}`, async (t) => {
     if (!mgmtToken) { t.skip('no management token, so the live routine cannot be read'); return; }
     const def = await defOf(project);

@@ -29,7 +29,9 @@ const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 
-const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh', staging: 'pglpqrhvozwepymcuunn' };
+// staging (pglpqrhvozwepymcuunn) was a second target until its Supabase project was deleted on
+// 15 Aug 2026; the same assertions now run against production alone.
+const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh' };
 
 async function post(project, query) {
   for (let attempt = 0; ; attempt++) {

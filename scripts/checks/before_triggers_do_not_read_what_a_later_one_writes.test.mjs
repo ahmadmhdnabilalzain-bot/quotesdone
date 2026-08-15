@@ -57,7 +57,9 @@ from reads r
 join writes w on w.tbl = r.tbl and w.col = r.col and w.tgname > r.tgname
 order by 1, 2, 3`;
 
-for (const [label, project] of [['production', 'htdblwldjkcgjvmqkbeh'], ['staging', 'pglpqrhvozwepymcuunn']]) {
+// staging was a second target until its Supabase project was deleted on 15 Aug 2026; the same
+// assertions now run against production alone.
+for (const [label, project] of [['production', 'htdblwldjkcgjvmqkbeh']]) {
   test(`no BEFORE trigger reads a column a later one writes on ${label}`, async (t) => {
     if (!mgmtToken) { t.skip('no management token, so pg_trigger cannot be read'); return; }
     const r = await fetch(`https://api.supabase.com/v1/projects/${project}/database/query`, {

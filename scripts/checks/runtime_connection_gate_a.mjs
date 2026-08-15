@@ -4,7 +4,7 @@
 // checks that must pass BEFORE any paid smoke test. Every one of them is answerable from the
 // database and the package, so this costs nothing to run and can run as often as you like.
 //
-//   node scripts/checks/runtime_connection_gate_a.mjs                  # both projects
+//   node scripts/checks/runtime_connection_gate_a.mjs                  # production
 //   node scripts/checks/runtime_connection_gate_a.mjs --write          # + reconciliation CSV
 //
 // It compares the LIVE runtime against the package. Where they differ it does not assume the
@@ -17,7 +17,10 @@ const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 if (!token) { console.log('SKIP gate A: no SUPABASE_ACCESS_TOKEN (expected in CI)'); process.exit(0); }
 
-const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh', staging: 'pglpqrhvozwepymcuunn' };
+// staging ('pglpqrhvozwepymcuunn') was a second target until that Supabase project was deleted on
+// 15 Aug 2026; the same assertions now run against production alone. The loop stays, so adding a
+// target back is one entry.
+const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh' };
 const PKG = 'docs/agents/runtime_blueprint';
 const WRITE = process.argv.includes('--write');
 
@@ -216,5 +219,5 @@ if (WRITE) {
   console.log('\nwrote docs/agents/runtime_connection_reconciliation.csv');
 }
 
-console.log(`\nGate A total failures across both projects: ${failed}`);
+console.log(`\nGate A total failures on production: ${failed}`);
 process.exitCode = failed ? 1 : 0;
