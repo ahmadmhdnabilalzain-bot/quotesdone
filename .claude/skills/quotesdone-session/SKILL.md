@@ -172,6 +172,31 @@ Before the one line — or before an honest hand-over:
 7. `node scripts/verify_deploy_parity.mjs --all` → every edge function carries the repo's code
 
 8. `select * from public.fn_phase_a_baseline_drift();` → **0 rows**
+9. `select * from public.fn_phase_b_baseline_drift();` → **0 rows**
+
+**PHASE B IS FROZEN** — founder-approved 15 Aug 2026, tagged `phase-b-founder-approved-2026-08-15`,
+baseline in `org_phase_baseline` where `phase = 'B'`. Step 9 is how you know it still is.
+
+The approved architecture is 30 workflows · 257 steps · 161 handoffs · 56 objects · 54 rules ·
+32 gates · 50 exceptions · 34 SLAs · 347 events · 14/35 workflow states and transitions ·
+11/19 step · 10 founder boundaries · 719 crosswalk classifications.
+
+You may not change workflow ownership, workflow order, states or transitions, gates, business
+rules, handoff accountability, category-overlay authority or founder boundaries without a formal
+Phase B change request — `docs/phase-b/PHASE_B_CHANGE_REQUEST_TEMPLATE.md`, eleven required
+elements — stated in the same transaction as `set local app.phase_b_change_reason = 'PBCR-nnn: …'`.
+`z90_phase_b_freeze` sits on 11 tables and compares a DIGEST, not a count, so swapping two step
+owners is refused even though no row count moves. Proved: 9/9 subjects refused, hatch opens.
+
+**Not frozen, deliberately:** SLA values (master spec §14 lets management adjust them), the
+crosswalk (Phase C must re-measure it), and `phase_b_exception` / `phase_b_business_object` /
+`phase_b_event` (not in the founder's list — drift reports them, nothing guards them at write
+time). See `docs/phase-b/PHASE_B_FOUNDER_APPROVED_BASELINE.md`.
+
+**Phase B approval does NOT claim the runtime works.** Seven wiring gaps are recorded in
+`public.phase_b_phase_c_wiring_gap` as Phase C work — 12 of 19 runtime workflows have never run,
+407 execution paths have no accountable role, 64 edge functions have no caller. Do not report any
+of those as Phase B defects.
 
 **PHASE A IS FROZEN** — founder-approved 15 Aug 2026, tagged `phase-a-founder-approved-2026-08-15`,
 baseline in `org_phase_baseline`. Step 8 is how you know it still is. Do not change the number of

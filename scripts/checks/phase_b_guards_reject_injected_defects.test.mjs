@@ -55,6 +55,19 @@ const mustAffect = stmt => `do $inject$ begin
   if not found then raise exception 'INJECTION MISSED: the statement matched no row'; end if;
 end $inject$;`;
 
+// Since Phase B was frozen on 15 Aug 2026, z90_phase_b_freeze fires at STATEMENT END on the
+// registry tables. Cases whose own guard is a BEFORE trigger, a CHECK or a foreign key are
+// refused before that and are unaffected. But the three cases that deliberately let the write
+// land and then query for the anomaly now hit the freeze first — so they would report
+// "refused, but not for the expected reason" and stop measuring what they name.
+//
+// They declare a change reason, which is exactly what a legitimate change does. The freeze then
+// steps aside and the specific guard under test is the thing being exercised again. The freeze
+// itself is covered by its own case below, so this buys silence nowhere.
+const underChangeRequest = body =>
+  `set local app.phase_b_change_reason = 'PBCR-000: injected-defect suite exercises a specific `
+  + `guard; this transaction always rolls back';\n${body}`;
+
 const CASES = [
   {
     name: 'missing owner',
@@ -110,7 +123,7 @@ const CASES = [
   {
     name: 'unknown next step',
     why: 'a step pointing at a target that does not exist is an unreachable branch',
-    sql: `${mustAffect(`update public.phase_b_workflow_step
+    sql: underChangeRequest(`${mustAffect(`update public.phase_b_workflow_step
              set next_step_if_pass = 'W01-S99' where step_id = 'W01-S01'`)}
           do $$ declare n bigint; begin
             select count(*) into n from public.phase_b_workflow_step s
@@ -119,7 +132,7 @@ const CASES = [
                and not exists (select 1 from public.phase_b_workflow_step t where t.step_id = s.next_step_if_pass);
             if n = 0 then raise exception 'GUARD DID NOT DETECT the dangling next_step reference'; end if;
             raise exception 'DETECTED % dangling next_step reference(s)', n;
-          end $$;`,
+          end $$;`),
     expect: /DETECTED \d+ dangling next_step reference/i,
   },
   {
@@ -143,7 +156,7 @@ const CASES = [
   {
     name: 'creator/reviewer alias collision',
     why: 'the same employee under two names must still collide',
-    sql: `update public.phase_b_workflow_step
+    sql: underChangeRequest(`update public.phase_b_workflow_step
              set independent_reviewer_role_id = 'risk_governance_manager'
            where step_id = (select step_id from public.phase_b_workflow_step
                              where accountable_role_id = 'risk_and_governance_manager' order by step_id limit 1);
@@ -154,7 +167,7 @@ const CASES = [
                  = public.fn_phase_b_resolve_role(accountable_role_id);
             if n = 0 then raise exception 'GUARD DID NOT DETECT the alias collision'; end if;
             raise exception 'DETECTED % alias collision(s)', n;
-          end $$;`,
+          end $$;`),
     expect: /DETECTED \d+ alias collision/i,
   },
   {
@@ -190,7 +203,7 @@ const CASES = [
   {
     name: 'owner change with no handoff contract',
     why: 'every owner-to-owner transition needs a contract, not a message',
-    sql: `${mustAffect(`delete from public.phase_b_handoff where handoff_id = '${ids.w12_handoff}'`)}
+    sql: underChangeRequest(`${mustAffect(`delete from public.phase_b_handoff where handoff_id = '${ids.w12_handoff}'`)}
           do $$ declare n bigint; begin
             select count(*) into n from public.phase_b_workflow_step s
               join public.phase_b_workflow_step t on t.step_id = s.next_step_if_pass
@@ -199,8 +212,25 @@ const CASES = [
                                 where h.from_step_id = s.step_id and h.to_step_id = t.step_id);
             if n = 0 then raise exception 'GUARD DID NOT DETECT the missing handoff'; end if;
             raise exception 'DETECTED % owner change(s) with no contract', n;
-          end $$;`,
+          end $$;`),
     expect: /DETECTED \d+ owner change\(s\) with no contract/i,
+  },
+  {
+    name: 'frozen architecture changed with no change request',
+    why: 'Phase B was approved and frozen; an owner swap must be refused even though no count moves',
+    sql: mustAffect(`update public.phase_b_workflow_step
+             set accountable_role_id = 'ceo'
+           where step_id = 'W01-S02' and accountable_role_id <> 'ceo'`),
+    expect: /PHASE B IS FROZEN/i,
+  },
+  {
+    name: 'frozen architecture changed WITH a change request',
+    why: 'the freeze must be a gate, not a wall — a declared change request has to open it',
+    sql: underChangeRequest(`${mustAffect(`update public.phase_b_workflow_step
+             set accountable_role_id = 'ceo'
+           where step_id = 'W01-S02' and accountable_role_id <> 'ceo'`)}
+          do $$ begin raise exception 'HATCH OPENED as designed'; end $$;`),
+    expect: /HATCH OPENED as designed/i,
   },
   {
     name: 'exception escalating to its own detector',
