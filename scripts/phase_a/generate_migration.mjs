@@ -33,6 +33,7 @@ const q = (v) => (v === null || v === undefined || v === '') ? 'null' : `'${Stri
 const T = {
   roles: csv('PHASE_A_CANONICAL_ROLE_REGISTRY'),
   flows: csv('PHASE_A_WORKFLOW_OWNERSHIP'),
+  overlays: csv('PHASE_A_CATEGORY_OVERLAY_REGISTRY'),
   committee: csv('PHASE_A_EXECUTIVE_COMMITTEE'),
 };
 const cross = JSON.parse(readFileSync('docs/phase-a/phase_a_crosswalk.json', 'utf8'));
@@ -132,6 +133,18 @@ w(`);`);
 w(`comment on table public.org_workflow_ownership is 'Phase A: the 30 organizational workflows and the single role accountable for each. Contributors are recorded and are deliberately NOT owners.';`);
 w(`alter table public.org_workflow_ownership enable row level security;`);
 w(`revoke all on public.org_workflow_ownership from anon, authenticated;`);
+w(``);
+w(`-- A FIFTH COMMITTEE SEAT, because the package needs one the vocabulary did not have. The seat`);
+w(`-- check allowed chair, member, observer and secretary. The Phase A registry seats the Corporate`);
+w(`-- Performance Director and the Strategy Director as STANDING ADVISERS, which is neither of the`);
+w(`-- two it would otherwise collapse into: a member carries the decision, an observer only watches,`);
+w(`-- and an adviser is expected to speak and is not counted in the decision. Mapping it onto`);
+w(`-- 'observer' would have been the quiet kind of wrong — the migration would have passed and the`);
+w(`-- committee's composition would have said something the package did not.`);
+w(`-- Found by the aborted rehearsal, at 23514, with nothing applied.`);
+w(`alter table public.org_role_committee drop constraint if exists org_role_committee_seat_ck;`);
+w(`alter table public.org_role_committee add constraint org_role_committee_seat_ck`);
+w(`  check (seat = any (array['chair','member','observer','secretary','standing_adviser']));`);
 w('');
 
 // ---- change 1: rename ---------------------------------------------------------------------------
@@ -147,6 +160,16 @@ w(`--`);
 w(`-- The physical runtime key stays 'cpo'. Renaming that too would orphan every log line, KPI row`);
 w(`-- and routine literal that names it, for no organizational gain: role_id is the clear name,`);
 w(`-- agent_key is the physical one, and both resolve.`);
+w(`-- ORDER IS LOAD-BEARING, AND THE REHEARSAL IS WHAT FOUND IT. org_role_one_per_agent_ux is a`);
+w(`-- PARTIAL unique index on runtime_agent_key WHERE status='active' — one active role per runtime`);
+w(`-- employee. Inserting the new row first put two active roles on 'cpo' and the migration refused`);
+w(`-- itself with 23505 inside the aborted rehearsal, which is exactly where that belongs. The old`);
+w(`-- row is retired FIRST, which drops it out of the partial index; the new row then takes the`);
+w(`-- physical key. A retired role holding a live employee would have been wrong anyway.`);
+w(`update public.org_role set status = 'retired',`);
+w(`  rationale = coalesce(rationale,'') || ' RETIRED by Phase A: renamed to corporate_performance_director.'`);
+w(` where role_id = 'chief_performance_officer';`);
+w(``);
 w(`insert into public.org_role (role_id, display_name, primary_department_id, manager_role_id,`);
 w(`    runtime_mode, runtime_agent_key, responsibilities, owned_decisions, forbidden_decisions,`);
 w(`    activation_conditions, required_inputs, output_contracts, tools, knowledge_scopes,`);
@@ -168,9 +191,6 @@ w(`insert into public.org_role_alias (alias, role_id, kind, reason) values`);
 w(`  ('chief_performance_officer', 'corporate_performance_director', 'legacy_role_id',`);
 w(`   'Phase A rename. Anything that still addresses the old canonical id resolves here rather than to nobody.')`);
 w(`  on conflict (alias) do update set role_id = excluded.role_id;`);
-w(`update public.org_role set status = 'retired',`);
-w(`  rationale = coalesce(rationale,'') || ' RETIRED by Phase A: renamed to corporate_performance_director.'`);
-w(` where role_id = 'chief_performance_officer';`);
 w('');
 
 // ---- change 2: merge ----------------------------------------------------------------------------
@@ -185,6 +205,13 @@ w(`--`);
 w(`-- The merged role takes the UNION of what both owned and both were forbidden, not the`);
 w(`-- intersection. A merge that quietly drops a forbidden decision widens authority, and that is`);
 w(`-- exactly the kind of silent grant this estate has been bitten by before.`);
+w(`-- Retired first, for the partial-index reason documented in change 1: the merged role takes`);
+w(`-- partnerships_mgr, and two active roles cannot hold one runtime employee. The SELECT below`);
+w(`-- still reads both rows — retiring changes their status, not their content.`);
+w(`update public.org_role set status = 'retired',`);
+w(`  rationale = coalesce(rationale,'') || ' RETIRED by Phase A: merged into strategic_partnerships_government_relations_manager.'`);
+w(` where role_id in ('partnerships','government_relations');`);
+w(``);
 w(`insert into public.org_role (role_id, display_name, primary_department_id, manager_role_id,`);
 w(`    runtime_mode, runtime_agent_key, responsibilities, owned_decisions, forbidden_decisions,`);
 w(`    activation_conditions, required_inputs, output_contracts, tools, knowledge_scopes,`);
@@ -215,9 +242,6 @@ w(`insert into public.org_role_alias (alias, role_id, kind, reason) values`);
 w(`  ('partnerships','strategic_partnerships_government_relations_manager','legacy_role_id','Phase A merge.'),`);
 w(`  ('government_relations','strategic_partnerships_government_relations_manager','legacy_role_id','Phase A merge.')`);
 w(`  on conflict (alias) do update set role_id = excluded.role_id;`);
-w(`update public.org_role set status = 'retired',`);
-w(`  rationale = coalesce(rationale,'') || ' RETIRED by Phase A: merged into strategic_partnerships_government_relations_manager.'`);
-w(` where role_id in ('partnerships','government_relations');`);
 w(``);
 w(`-- The two runtime employees become one. gov_relations_mgr is stood down; leaving it active would`);
 w(`-- leave an employee that no active canonical role owns, which is its own invariant failure.`);
@@ -291,6 +315,15 @@ w(`-- Retired, not deleted, and the rollback is a status flip.`);
 w(`update public.org_role set status = 'retired',`);
 w(`  rationale = coalesce(rationale,'') || ' RETIRED by Phase A: not in the 86-entry category overlay registry and declaring none of the governance fields an overlay must have. UAE VAT/corporate-tax coordination sits with the Financial Controller per CURRENT_TO_FINAL_ROLE_CHANGES.csv.'`);
 w(` where role_id = 'tax_overlay_uae';`);
+w(``);
+w(`-- AND IT RESOLVES TO THE ROLE THAT NOW CARRIES THE WORK, which the postcondition below insisted`);
+w(`-- on: a retired role with no alias resolves to nobody, and anything still addressing UAE tax`);
+w(`-- would have gone nowhere silently. The alias is not cosmetic — it is the difference between`);
+w(`-- "this moved to the Financial Controller" and "this vanished".`);
+w(`insert into public.org_role_alias (alias, role_id, kind, reason) values`);
+w(`  ('tax_overlay_uae', 'financial_controller', 'legacy_role_id',`);
+w(`   'Phase A: UAE VAT and corporate-tax coordination is an expanded Financial Controller scope, not a standing overlay.')`);
+w(`  on conflict (alias) do update set role_id = excluded.role_id;`);
 w('');
 
 // ---- change 6: registries -----------------------------------------------------------------------
@@ -304,6 +337,17 @@ for (const r of T.roles) {
   const live = RESOLVE.get(r.canonical_role_id);
   if (!live) continue;
   w(`update public.org_role set necessity_status = ${q(r.necessity_status)}, necessity_reason = ${q(r.organizational_purpose)} where role_id = ${q(live)};`);
+}
+w(``);
+w(`-- AND THE 86 OVERLAYS, which the postcondition caught during the rehearsal. The invariant says`);
+w(`-- "every role has a necessity status and explicit reason" — every role, not every accountable`);
+w(`-- role. The package carries necessity_status on the canonical role registry and not on the`);
+w(`-- overlay registry, so the obvious move was to narrow the check to the 90. That would have been`);
+w(`-- weakening a check to fit the data. An overlay's necessity is decidable without the package`);
+w(`-- inventing a column: it exists on demand, for exactly one category, and the registry says which.`);
+for (const o of T.overlays) {
+  const live = `category_overlay_${String(o.catalog_num).padStart(3, '0')}_${o.canonical_slug}`;
+  w(`update public.org_role set necessity_status = 'REQUIRED_ON_DEMAND', necessity_reason = ${q(`On-demand category overlay for ${o.category_name}. Invoked by ${o.invocation_role_id}; owned operationally by ${o.accountable_manager_role_id}; knowledge governed by ${o.knowledge_owner_role_id} and validated by ${o.knowledge_validator_role_id}. Cannot decide: ${o.cannot_decide}`)} where role_id = ${q(live)};`);
 }
 w(``);
 w(`-- The 30 organizational workflows and their single accountable owner.`);
@@ -454,11 +498,17 @@ r(`delete from public.org_role_committee where committee_key='exec_committee' an
 r(`update public.org_role_committee set seat='observer', note=null where committee_key='exec_committee' and role_id='quality_and_release_director';`);
 r(`update public.org_role_committee set seat='member' where committee_key='exec_committee' and role_id='corporate_performance_director';`);
 r(`update public.org_role_committee set note=null where committee_key='exec_committee';`);
+r(`-- The seat vocabulary goes back to four. This runs AFTER the two standing-adviser seats are`);
+r(`-- gone, or the constraint would be rejected against rows that still violate it.`);
+r(`alter table public.org_role_committee drop constraint if exists org_role_committee_seat_ck;`);
+r(`alter table public.org_role_committee add constraint org_role_committee_seat_ck`);
+r(`  check (seat = any (array['chair','member','observer','secretary']));`);
 r('');
 r(`-- ---- change 5: tax_overlay_uae -----------------------------------------------------------`);
 r(`update public.org_role set status='active',`);
 r(`  rationale = replace(rationale, ' RETIRED by Phase A: not in the 86-entry category overlay registry and declaring none of the governance fields an overlay must have. UAE VAT/corporate-tax coordination sits with the Financial Controller per CURRENT_TO_FINAL_ROLE_CHANGES.csv.', '')`);
 r(` where role_id='tax_overlay_uae';`);
+r(`delete from public.org_role_alias where alias='tax_overlay_uae';`);
 r('');
 r(`-- ---- change 4: the created role ----------------------------------------------------------`);
 r(`delete from public.org_role where role_id='product_ux_designer';`);
@@ -471,9 +521,6 @@ r(` where role_id='model_evaluator';`);
 r(`update public.org_agents set department='product_eng', manager_key='ai_director' where agent_key='model_evaluator';`);
 r('');
 r(`-- ---- change 2: the merge -----------------------------------------------------------------`);
-r(`update public.org_role set status='active',`);
-r(`  rationale = replace(rationale, ' RETIRED by Phase A: merged into strategic_partnerships_government_relations_manager.', '')`);
-r(` where role_id in ('partnerships','government_relations');`);
 r(`update public.org_agents set active=true where agent_key='gov_relations_mgr';`);
 r(`-- the aliases that were repointed at the merged role go back to the two they described.`);
 r(`update public.org_role_alias set role_id='partnerships' where alias='partnerships_mgr';`);
@@ -483,17 +530,23 @@ r(`update public.workflow_step set actor_role='government_relations' where workf
 r(`update public.org_role set manager_role_id='business_development' where manager_role_id='strategic_partnerships_government_relations_manager';`);
 r(`update public.org_role_committee set role_id='partnerships' where role_id='strategic_partnerships_government_relations_manager';`);
 r(`delete from public.org_role where role_id='strategic_partnerships_government_relations_manager';`);
+r(`-- same reason: partnerships_mgr returns to the original role only once the merged one is gone.`);
+r(`update public.org_role set status='active',`);
+r(`  rationale = replace(rationale, ' RETIRED by Phase A: merged into strategic_partnerships_government_relations_manager.', '')`);
+r(` where role_id in ('partnerships','government_relations');`);
 r('');
 r(`-- ---- change 1: the rename ----------------------------------------------------------------`);
-r(`update public.org_role set status='active',`);
-r(`  rationale = replace(rationale, ' RETIRED by Phase A: renamed to corporate_performance_director.', '')`);
-r(` where role_id='chief_performance_officer';`);
 r(`update public.org_role_alias set role_id='chief_performance_officer' where alias='cpo';`);
 r(`delete from public.org_role_alias where alias='chief_performance_officer';`);
 r(`update public.org_role_committee set role_id='chief_performance_officer' where role_id='corporate_performance_director';`);
 r(`update public.org_role set manager_role_id='chief_performance_officer' where manager_role_id='corporate_performance_director';`);
 r(`update public.workflow_step set actor_role='chief_performance_officer' where workflow_key='change_deployment' and step_no=9;`);
 r(`delete from public.org_role where role_id='corporate_performance_director';`);
+r(`-- only now: the partial unique index allows one ACTIVE role per runtime employee, so 'cpo'`);
+r(`-- cannot come back to the original row until the renamed one is gone.`);
+r(`update public.org_role set status='active',`);
+r(`  rationale = replace(rationale, ' RETIRED by Phase A: renamed to corporate_performance_director.', '')`);
+r(` where role_id='chief_performance_officer';`);
 r('');
 r(`-- ---- prove the pre-change shape is back ---------------------------------------------------`);
 r(`do $$`);

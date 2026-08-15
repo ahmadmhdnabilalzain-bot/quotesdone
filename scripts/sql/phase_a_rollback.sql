@@ -22,11 +22,17 @@ delete from public.org_role_committee where committee_key='exec_committee' and r
 update public.org_role_committee set seat='observer', note=null where committee_key='exec_committee' and role_id='quality_and_release_director';
 update public.org_role_committee set seat='member' where committee_key='exec_committee' and role_id='corporate_performance_director';
 update public.org_role_committee set note=null where committee_key='exec_committee';
+-- The seat vocabulary goes back to four. This runs AFTER the two standing-adviser seats are
+-- gone, or the constraint would be rejected against rows that still violate it.
+alter table public.org_role_committee drop constraint if exists org_role_committee_seat_ck;
+alter table public.org_role_committee add constraint org_role_committee_seat_ck
+  check (seat = any (array['chair','member','observer','secretary']));
 
 -- ---- change 5: tax_overlay_uae -----------------------------------------------------------
 update public.org_role set status='active',
   rationale = replace(rationale, ' RETIRED by Phase A: not in the 86-entry category overlay registry and declaring none of the governance fields an overlay must have. UAE VAT/corporate-tax coordination sits with the Financial Controller per CURRENT_TO_FINAL_ROLE_CHANGES.csv.', '')
  where role_id='tax_overlay_uae';
+delete from public.org_role_alias where alias='tax_overlay_uae';
 
 -- ---- change 4: the created role ----------------------------------------------------------
 delete from public.org_role where role_id='product_ux_designer';
@@ -39,9 +45,6 @@ update public.org_role set primary_department_id='product_eng', manager_role_id=
 update public.org_agents set department='product_eng', manager_key='ai_director' where agent_key='model_evaluator';
 
 -- ---- change 2: the merge -----------------------------------------------------------------
-update public.org_role set status='active',
-  rationale = replace(rationale, ' RETIRED by Phase A: merged into strategic_partnerships_government_relations_manager.', '')
- where role_id in ('partnerships','government_relations');
 update public.org_agents set active=true where agent_key='gov_relations_mgr';
 -- the aliases that were repointed at the merged role go back to the two they described.
 update public.org_role_alias set role_id='partnerships' where alias='partnerships_mgr';
@@ -51,17 +54,23 @@ update public.workflow_step set actor_role='government_relations' where workflow
 update public.org_role set manager_role_id='business_development' where manager_role_id='strategic_partnerships_government_relations_manager';
 update public.org_role_committee set role_id='partnerships' where role_id='strategic_partnerships_government_relations_manager';
 delete from public.org_role where role_id='strategic_partnerships_government_relations_manager';
+-- same reason: partnerships_mgr returns to the original role only once the merged one is gone.
+update public.org_role set status='active',
+  rationale = replace(rationale, ' RETIRED by Phase A: merged into strategic_partnerships_government_relations_manager.', '')
+ where role_id in ('partnerships','government_relations');
 
 -- ---- change 1: the rename ----------------------------------------------------------------
-update public.org_role set status='active',
-  rationale = replace(rationale, ' RETIRED by Phase A: renamed to corporate_performance_director.', '')
- where role_id='chief_performance_officer';
 update public.org_role_alias set role_id='chief_performance_officer' where alias='cpo';
 delete from public.org_role_alias where alias='chief_performance_officer';
 update public.org_role_committee set role_id='chief_performance_officer' where role_id='corporate_performance_director';
 update public.org_role set manager_role_id='chief_performance_officer' where manager_role_id='corporate_performance_director';
 update public.workflow_step set actor_role='chief_performance_officer' where workflow_key='change_deployment' and step_no=9;
 delete from public.org_role where role_id='corporate_performance_director';
+-- only now: the partial unique index allows one ACTIVE role per runtime employee, so 'cpo'
+-- cannot come back to the original row until the renamed one is gone.
+update public.org_role set status='active',
+  rationale = replace(rationale, ' RETIRED by Phase A: renamed to corporate_performance_director.', '')
+ where role_id='chief_performance_officer';
 
 -- ---- prove the pre-change shape is back ---------------------------------------------------
 do $$
