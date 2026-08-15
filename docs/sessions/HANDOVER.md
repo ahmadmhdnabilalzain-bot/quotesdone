@@ -105,6 +105,38 @@ filters (`match_suppliers`, `match_suppliers_kw`). Each was examined individuall
    account action only he can take.
 3. **Four managers have no cadence.** Giving them one is activation.
 
+## 15 Aug — the role/workflow alignment pass (PR #387)
+
+The founder asked for the 10-department / 90-role organisation to be **corrected against the actual
+workflow**, not rebuilt. Done and merged-ready; six documents in `docs/agents/FINAL_*`.
+
+What it found, all measured before being fixed:
+
+- The step that decides **which suppliers see a customer's RFQ had no owner**. `workflow_step`
+  `rfq_handling` #5 read `domain specialist`, which resolves to nobody.
+- `rfq_handling` had **no supplier-safe payload / privacy review step at all**, and no
+  document-processing, readiness-scoring or message-delivery step.
+- **20 of 90 roles were named by nothing** across seven surfaces. Now 0.
+- **The designer was the default reviewer of its own artifact** — `artifact_review` defaulted
+  `reviewer_agent` to `marketing_design`, the Visual Design Director's own runtime key, and both
+  guards compared identities raw.
+- **A refused supplier was counted as a notified one.** The eligibility guard returns null, which is
+  not an error, so `if (!error) inserted++` counted a refusal as a contact and `routing.fanout`
+  over-reported the RFQ's reach.
+- **Whoever took the reveal payment reconciled their own charge.**
+- `employee_workflow` held **157 rows on production and 0 on staging**.
+- A step run had sat **queued since 10 Aug addressed to `Director`**, which resolves to nobody.
+- **A retry's cost was money nothing recorded** — `llm_attempt` had 666 rows and 0 with a cost.
+  (`ai_cost_log` *does* price every request; the gap was per-attempt, on the fallback ladder.)
+
+Evidence: 60/60 + 16/16 deterministic tests on both projects, `fn_os_portals_gates()` 22/22 met on
+both, `project_parity` IN SYNC, and a capped staging smoke of 16 scenarios at **AED 3.23** with 0
+truncated outputs.
+
+**Still not exercised end to end: production holds 0 inquiries.** The chain is proved by registry
+and by forced guards, not by a live inquiry travelling it. The eligibility probe reports SKIP on
+production for that reason rather than passing over absent data.
+
 ## Open engineering, free to do, not yet done
 
 - **Cross-department handoffs do not work.** `handoff_contract` has 0 rows on both projects and
