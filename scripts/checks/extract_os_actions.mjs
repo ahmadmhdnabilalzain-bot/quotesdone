@@ -36,14 +36,23 @@ export function extractDispatched(rawSrc) {
   return out;
 }
 
-/** The declared classification table: action -> 'read_only' | 'mutating' | 'mode_control'. */
+/**
+ * Every classification os_api may declare. Kept as a named list, not inlined into the regex,
+ * because a class the PARSER does not know reads as "dispatched but unclassified" — which is the
+ * loudest failure this checker has, and it fired on `founder_gated` the day that class was added
+ * correctly to both gates. Extending the vocabulary is a deliberate act; add the value here and
+ * pin it in os_action_classification.test.mjs, as mode_control and founder_gated both are.
+ */
+export const ACTION_CLASSES = ['read_only', 'mutating', 'mode_control', 'founder_gated'];
+
+/** The declared classification table: action -> one of ACTION_CLASSES. */
 export function extractClassification(rawSrc) {
   const src = stripComments(rawSrc);
   const block = src.match(/const\s+ACTION_CLASS\s*:\s*Record<string,\s*ActionClass>\s*=\s*\{([\s\S]*?)\n\};/);
   if (!block) return null; // not yet declared - the checker reports this as a failure, not a crash
   const out = new Map();
   // Keys are quoted only when they have to be (ws.exec), so both forms are accepted.
-  const entry = new RegExp(`(?:'(${NAME})'|(${NAME}))\\s*:\\s*'(read_only|mutating|mode_control)'`, 'g');
+  const entry = new RegExp(`(?:'(${NAME})'|(${NAME}))\\s*:\\s*'(${ACTION_CLASSES.join('|')})'`, 'g');
   for (const m of block[1].matchAll(entry)) out.set(m[1] || m[2], m[3]);
   return out;
 }
