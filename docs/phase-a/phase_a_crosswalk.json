@@ -1,0 +1,722 @@
+[
+  {
+    "target": "ceo",
+    "title": "Chief Executive — AI CEO",
+    "dept": "exec",
+    "action": "KEEP",
+    "live": "ceo",
+    "how": "canonical id"
+  },
+  {
+    "target": "chief_of_staff",
+    "title": "Chief of Staff",
+    "dept": "exec",
+    "action": "RENAME",
+    "live": "chief_of_staff",
+    "how": "canonical id"
+  },
+  {
+    "target": "corporate_performance_director",
+    "title": "Corporate Performance Director",
+    "dept": "exec",
+    "action": "RENAME",
+    "live": null,
+    "how": "UNMATCHED"
+  },
+  {
+    "target": "strategy_director",
+    "title": "Strategy Director",
+    "dept": "exec",
+    "action": "KEEP",
+    "live": "strategy_director",
+    "how": "canonical id"
+  },
+  {
+    "target": "marketplace_director",
+    "title": "Marketplace Director",
+    "dept": "marketplace_supplier_network",
+    "action": "RENAME",
+    "live": "marketplace_director",
+    "how": "canonical id"
+  },
+  {
+    "target": "supplier_verification_reviewer",
+    "title": "Supplier Verification Reviewer",
+    "dept": "marketplace_supplier_network",
+    "action": "RENAME",
+    "live": "supplier_verification",
+    "how": "legacy alias supplier_verification"
+  },
+  {
+    "target": "rfq_qualification_manager",
+    "title": "RFQ Qualification Manager",
+    "dept": "marketplace_supplier_network",
+    "action": "KEEP",
+    "live": "rfq_qualification_manager",
+    "how": "canonical id"
+  },
+  {
+    "target": "inquiry_router",
+    "title": "Inquiry Router",
+    "dept": "marketplace_supplier_network",
+    "action": "KEEP",
+    "live": "inquiry_router",
+    "how": "canonical id"
+  },
+  {
+    "target": "inquiry_quality_scoring_analyst",
+    "title": "Inquiry Quality & Scoring Analyst",
+    "dept": "marketplace_supplier_network",
+    "action": "RENAME",
+    "live": "inquiry_quality_analyst",
+    "how": "display title"
+  },
+  {
+    "target": "quote_evaluation_specialist",
+    "title": "Quote Evaluation Specialist",
+    "dept": "marketplace_supplier_network",
+    "action": "RENAME",
+    "live": "quote_evaluation",
+    "how": "legacy alias quote_evaluation"
+  },
+  {
+    "target": "supplier_onboarding_specialist",
+    "title": "Supplier Onboarding Specialist",
+    "dept": "marketplace_supplier_network",
+    "action": "RENAME",
+    "live": "supplier_onboarding_specialist",
+    "how": "canonical id"
+  },
+  {
+    "target": "document_intelligence_manager",
+    "title": "Document Intelligence Manager",
+    "dept": "marketplace_supplier_network",
+    "action": "KEEP",
+    "live": "document_intelligence_manager",
+    "how": "canonical id"
+  },
+  {
+    "target": "boq_specification_analyst",
+    "title": "BOQ & Specification Analyst",
+    "dept": "marketplace_supplier_network",
+    "action": "RENAME",
+    "live": "boq_analyst",
+    "how": "legacy alias boq_analyst"
+  },
+  {
+    "target": "drawing_cad_analyst",
+    "title": "Drawing & CAD Analyst",
+    "dept": "marketplace_supplier_network",
+    "action": "RENAME",
+    "live": "drawing_analyst",
+    "how": "legacy alias drawing_analyst"
+  },
+  {
+    "target": "mep_domain_specialist",
+    "title": "MEP Domain Specialist",
+    "dept": "marketplace_supplier_network",
+    "action": "REPURPOSE",
+    "live": "spec_mep",
+    "how": "legacy alias spec_mep"
+  },
+  {
+    "target": "construction_civil_domain_specialist",
+    "title": "Construction & Civil Domain Specialist",
+    "dept": "marketplace_supplier_network",
+    "action": "REPURPOSE",
+    "live": "spec_construction",
+    "how": "legacy alias spec_construction"
+  },
+  {
+    "target": "interior_fitout_domain_specialist",
+    "title": "Interior & Fit-Out Domain Specialist",
+    "dept": "marketplace_supplier_network",
+    "action": "REPURPOSE",
+    "live": "spec_fitout",
+    "how": "legacy alias spec_fitout"
+  },
+  {
+    "target": "industrial_energy_domain_specialist",
+    "title": "Industrial & Energy Domain Specialist",
+    "dept": "marketplace_supplier_network",
+    "action": "REPURPOSE",
+    "live": "spec_industrial",
+    "how": "legacy alias spec_industrial"
+  },
+  {
+    "target": "supplier_matching_dispatch_operator",
+    "title": "Supplier Matching & Dispatch Operator",
+    "dept": "marketplace_supplier_network",
+    "action": "REPURPOSE",
+    "live": "supplier_matching_dispatch_operator",
+    "how": "canonical id"
+  },
+  {
+    "target": "supplier_coverage_liquidity_specialist",
+    "title": "Supplier Coverage & Liquidity Specialist",
+    "dept": "marketplace_supplier_network",
+    "action": "RENAME",
+    "live": "supplier_coverage",
+    "how": "legacy alias supplier_coverage"
+  },
+  {
+    "target": "supplier_retention_specialist",
+    "title": "Supplier Retention Specialist",
+    "dept": "marketplace_supplier_network",
+    "action": "KEEP",
+    "live": "supplier_retention",
+    "how": "legacy alias supplier_retention"
+  },
+  {
+    "target": "chief_revenue_officer",
+    "title": "Chief Revenue Officer",
+    "dept": "growth_revenue",
+    "action": "RENAME",
+    "live": "chief_revenue_officer",
+    "how": "canonical id"
+  },
+  {
+    "target": "marketing_director",
+    "title": "Marketing Director",
+    "dept": "growth_revenue",
+    "action": "RENAME",
+    "live": "marketing_director",
+    "how": "canonical id"
+  },
+  {
+    "target": "brand_creative_manager",
+    "title": "Brand & Creative Manager",
+    "dept": "growth_revenue",
+    "action": "RENAME",
+    "live": "brand_and_creative",
+    "how": "display title"
+  },
+  {
+    "target": "business_development_manager",
+    "title": "Business Development Manager",
+    "dept": "growth_revenue",
+    "action": "RENAME",
+    "live": "business_development",
+    "how": "display title"
+  },
+  {
+    "target": "crm_revenue_operations_manager",
+    "title": "CRM & Revenue Operations Manager",
+    "dept": "growth_revenue",
+    "action": "RENAME",
+    "live": "crm_and_revenue_operations",
+    "how": "display title"
+  },
+  {
+    "target": "marketing_performance_analyst",
+    "title": "Marketing Performance Analyst",
+    "dept": "growth_revenue",
+    "action": "RENAME",
+    "live": "marketing_performance_analyst",
+    "how": "canonical id"
+  },
+  {
+    "target": "social_media_community_manager",
+    "title": "Social Media & Community Manager",
+    "dept": "growth_revenue",
+    "action": "RENAME",
+    "live": "social_media_and_community",
+    "how": "display title"
+  },
+  {
+    "target": "account_manager",
+    "title": "Account Manager",
+    "dept": "growth_revenue",
+    "action": "RENAME",
+    "live": "account_management",
+    "how": "display title"
+  },
+  {
+    "target": "content_strategy_copy_specialist",
+    "title": "Content Strategy & Copy Specialist",
+    "dept": "growth_revenue",
+    "action": "MERGE",
+    "live": "content_strategy_and_copy",
+    "how": "display title"
+  },
+  {
+    "target": "visual_design_specialist",
+    "title": "Visual Design Specialist",
+    "dept": "growth_revenue",
+    "action": "RENAME",
+    "live": "visual_design",
+    "how": "display title"
+  },
+  {
+    "target": "strategic_partnerships_government_relations_manager",
+    "title": "Strategic Partnerships & Government Relations Manager",
+    "dept": "growth_revenue",
+    "action": "MERGE",
+    "live": null,
+    "how": "UNMATCHED"
+  },
+  {
+    "target": "data_intelligence_director",
+    "title": "Data & Intelligence Director",
+    "dept": "data_intelligence_knowledge",
+    "action": "MERGE",
+    "live": "data_intelligence_director",
+    "how": "canonical id"
+  },
+  {
+    "target": "knowledge_validator",
+    "title": "Knowledge Validator",
+    "dept": "data_intelligence_knowledge",
+    "action": "KEEP",
+    "live": "knowledge_validator",
+    "how": "canonical id"
+  },
+  {
+    "target": "knowledge_director",
+    "title": "Knowledge Director",
+    "dept": "data_intelligence_knowledge",
+    "action": "KEEP",
+    "live": "knowledge_director",
+    "how": "canonical id"
+  },
+  {
+    "target": "knowledge_engineer",
+    "title": "Knowledge Engineer",
+    "dept": "data_intelligence_knowledge",
+    "action": "RENAME",
+    "live": "knowledge_engineer",
+    "how": "canonical id"
+  },
+  {
+    "target": "category_knowledge_curator",
+    "title": "Category Knowledge Curator",
+    "dept": "data_intelligence_knowledge",
+    "action": "RENAME",
+    "live": "category_curator",
+    "how": "legacy alias category_curator"
+  },
+  {
+    "target": "business_intelligence_analyst",
+    "title": "Business Intelligence Analyst",
+    "dept": "data_intelligence_knowledge",
+    "action": "MERGE",
+    "live": "business_intelligence_analyst",
+    "how": "canonical id"
+  },
+  {
+    "target": "data_engineer",
+    "title": "Data Engineer",
+    "dept": "data_intelligence_knowledge",
+    "action": "CREATE",
+    "live": "data_engineer",
+    "how": "canonical id"
+  },
+  {
+    "target": "forecasting_analyst",
+    "title": "Forecasting Analyst",
+    "dept": "data_intelligence_knowledge",
+    "action": "RENAME",
+    "live": "forecasting_analyst",
+    "how": "canonical id"
+  },
+  {
+    "target": "market_intelligence_analyst",
+    "title": "Market Intelligence Analyst",
+    "dept": "data_intelligence_knowledge",
+    "action": "RENAME",
+    "live": "market_intelligence_analyst",
+    "how": "canonical id"
+  },
+  {
+    "target": "supplier_intelligence_analyst",
+    "title": "Supplier Intelligence Analyst",
+    "dept": "data_intelligence_knowledge",
+    "action": "MERGE",
+    "live": "supplier_intelligence_analyst",
+    "how": "canonical id"
+  },
+  {
+    "target": "taxonomy_governance_manager",
+    "title": "Taxonomy Governance Manager",
+    "dept": "data_intelligence_knowledge",
+    "action": "RENAME",
+    "live": "taxonomy_manager",
+    "how": "legacy alias taxonomy_manager"
+  },
+  {
+    "target": "chief_product_technology_officer",
+    "title": "Chief Product & Technology Officer",
+    "dept": "product_engineering_ai",
+    "action": "RENAME",
+    "live": "cto",
+    "how": "legacy alias cto"
+  },
+  {
+    "target": "product_manager",
+    "title": "Product Manager",
+    "dept": "product_engineering_ai",
+    "action": "REPURPOSE",
+    "live": "product_manager",
+    "how": "canonical id"
+  },
+  {
+    "target": "product_ux_designer",
+    "title": "Product/UX Designer",
+    "dept": "product_engineering_ai",
+    "action": "CREATE",
+    "live": null,
+    "how": "UNMATCHED"
+  },
+  {
+    "target": "product_optimisation_engineer",
+    "title": "Product Optimisation Engineer",
+    "dept": "product_engineering_ai",
+    "action": "RENAME",
+    "live": "product_optimization_engineer",
+    "how": "display title"
+  },
+  {
+    "target": "ai_director",
+    "title": "AI Director",
+    "dept": "product_engineering_ai",
+    "action": "KEEP",
+    "live": "ai_director",
+    "how": "canonical id"
+  },
+  {
+    "target": "ai_architect",
+    "title": "AI Architect",
+    "dept": "product_engineering_ai",
+    "action": "KEEP",
+    "live": "ai_architect",
+    "how": "canonical id"
+  },
+  {
+    "target": "agent_prompt_engineer",
+    "title": "Agent & Prompt Engineer",
+    "dept": "product_engineering_ai",
+    "action": "RENAME",
+    "live": "prompt_engineer",
+    "how": "legacy alias prompt_engineer"
+  },
+  {
+    "target": "solution_architect",
+    "title": "Solution Architect",
+    "dept": "product_engineering_ai",
+    "action": "KEEP",
+    "live": "solution_architect",
+    "how": "canonical id"
+  },
+  {
+    "target": "engineering_manager",
+    "title": "Engineering Manager",
+    "dept": "product_engineering_ai",
+    "action": "RENAME",
+    "live": "engineering_manager",
+    "how": "canonical id"
+  },
+  {
+    "target": "backend_engineer",
+    "title": "Backend Engineer",
+    "dept": "product_engineering_ai",
+    "action": "KEEP",
+    "live": "backend_engineer",
+    "how": "canonical id"
+  },
+  {
+    "target": "frontend_engineer",
+    "title": "Frontend Engineer",
+    "dept": "product_engineering_ai",
+    "action": "KEEP",
+    "live": "frontend_engineer",
+    "how": "canonical id"
+  },
+  {
+    "target": "cfo",
+    "title": "Chief Financial Officer",
+    "dept": "finance_payments",
+    "action": "KEEP",
+    "live": "cfo",
+    "how": "canonical id"
+  },
+  {
+    "target": "financial_controller",
+    "title": "Financial Controller",
+    "dept": "finance_payments",
+    "action": "REPURPOSE",
+    "live": "financial_controller",
+    "how": "canonical id"
+  },
+  {
+    "target": "payments_billing_manager",
+    "title": "Payments & Billing Manager",
+    "dept": "finance_payments",
+    "action": "RENAME",
+    "live": "payments_and_billing_manager",
+    "how": "display title"
+  },
+  {
+    "target": "billing_reconciliation_specialist",
+    "title": "Billing & Reconciliation Specialist",
+    "dept": "finance_payments",
+    "action": "RENAME",
+    "live": "billing_operations",
+    "how": "display title"
+  },
+  {
+    "target": "accounts_payable_specialist",
+    "title": "Accounts Payable Specialist",
+    "dept": "finance_payments",
+    "action": "RENAME",
+    "live": "accounts_payable",
+    "how": "display title"
+  },
+  {
+    "target": "collections_revenue_assurance_specialist",
+    "title": "Collections & Revenue Assurance Specialist",
+    "dept": "finance_payments",
+    "action": "RENAME",
+    "live": "collections_and_revenue_assurance",
+    "how": "display title"
+  },
+  {
+    "target": "fp_a_analyst",
+    "title": "FP&A Analyst",
+    "dept": "finance_payments",
+    "action": "RENAME",
+    "live": "fpna_analyst",
+    "how": "display title"
+  },
+  {
+    "target": "general_counsel",
+    "title": "General Counsel",
+    "dept": "legal_compliance_risk_trust",
+    "action": "RENAME",
+    "live": "general_counsel",
+    "how": "canonical id"
+  },
+  {
+    "target": "compliance_privacy_officer",
+    "title": "Compliance & Privacy Officer",
+    "dept": "legal_compliance_risk_trust",
+    "action": "RENAME",
+    "live": "compliance_and_privacy_officer",
+    "how": "display title"
+  },
+  {
+    "target": "risk_governance_manager",
+    "title": "Risk & Governance Manager",
+    "dept": "legal_compliance_risk_trust",
+    "action": "RENAME",
+    "live": "risk_and_governance_manager",
+    "how": "display title"
+  },
+  {
+    "target": "fraud_reviewer",
+    "title": "Fraud Reviewer",
+    "dept": "legal_compliance_risk_trust",
+    "action": "RENAME",
+    "live": "fraud_analyst",
+    "how": "legacy alias fraud_analyst"
+  },
+  {
+    "target": "marketplace_content_privacy_reviewer",
+    "title": "Marketplace Content & Privacy Reviewer",
+    "dept": "legal_compliance_risk_trust",
+    "action": "REPURPOSE",
+    "live": "marketplace_content_privacy_reviewer",
+    "how": "canonical id"
+  },
+  {
+    "target": "trust_safety_manager",
+    "title": "Trust & Safety Manager",
+    "dept": "legal_compliance_risk_trust",
+    "action": "RENAME",
+    "live": "trust_and_safety_manager",
+    "how": "display title"
+  },
+  {
+    "target": "contract_manager",
+    "title": "Contract Manager",
+    "dept": "legal_compliance_risk_trust",
+    "action": "RENAME",
+    "live": "contract_manager",
+    "how": "canonical id"
+  },
+  {
+    "target": "customer_success_director",
+    "title": "Customer Success Director",
+    "dept": "customer_experience_communications",
+    "action": "RENAME",
+    "live": "customer_success_director",
+    "how": "canonical id"
+  },
+  {
+    "target": "communications_manager",
+    "title": "Communications Manager",
+    "dept": "customer_experience_communications",
+    "action": "RENAME",
+    "live": "communications_manager",
+    "how": "canonical id"
+  },
+  {
+    "target": "customer_onboarding_specialist",
+    "title": "Customer Onboarding Specialist",
+    "dept": "customer_experience_communications",
+    "action": "RENAME",
+    "live": "customer_onboarding",
+    "how": "display title"
+  },
+  {
+    "target": "customer_support_specialist",
+    "title": "Customer Support Specialist",
+    "dept": "customer_experience_communications",
+    "action": "RENAME",
+    "live": "customer_support",
+    "how": "display title"
+  },
+  {
+    "target": "customer_retention_specialist",
+    "title": "Customer Retention Specialist",
+    "dept": "customer_experience_communications",
+    "action": "RENAME",
+    "live": "customer_retention",
+    "how": "display title"
+  },
+  {
+    "target": "rfq_success_specialist",
+    "title": "RFQ Success Specialist",
+    "dept": "customer_experience_communications",
+    "action": "KEEP",
+    "live": "rfq_success",
+    "how": "legacy alias rfq_success"
+  },
+  {
+    "target": "lifecycle_channel_operations_specialist",
+    "title": "Lifecycle Channel Operations Specialist",
+    "dept": "customer_experience_communications",
+    "action": "MERGE",
+    "live": "lifecycle_channel_operations",
+    "how": "display title"
+  },
+  {
+    "target": "coo",
+    "title": "Chief Operating Officer",
+    "dept": "people_company_operations",
+    "action": "RENAME",
+    "live": "chief_operating_officer",
+    "how": "display title"
+  },
+  {
+    "target": "process_improvement_manager",
+    "title": "Process Improvement Manager",
+    "dept": "people_company_operations",
+    "action": "RENAME",
+    "live": "process_improvement_manager",
+    "how": "canonical id"
+  },
+  {
+    "target": "project_coordinator_pmo",
+    "title": "Project Coordinator — PMO",
+    "dept": "people_company_operations",
+    "action": "RENAME",
+    "live": "project_coordinator",
+    "how": "legacy alias project_coordinator"
+  },
+  {
+    "target": "document_operations_specialist",
+    "title": "Document Operations Specialist",
+    "dept": "people_company_operations",
+    "action": "RENAME",
+    "live": "document_operations_specialist",
+    "how": "canonical id"
+  },
+  {
+    "target": "agent_workforce_capability_director",
+    "title": "Agent Workforce & Capability Director",
+    "dept": "people_company_operations",
+    "action": "RENAME",
+    "live": "agent_workforce_capability_director",
+    "how": "canonical id"
+  },
+  {
+    "target": "culture_performance_manager",
+    "title": "Culture & Performance Manager",
+    "dept": "people_company_operations",
+    "action": "RENAME",
+    "live": "culture_and_performance_manager",
+    "how": "display title"
+  },
+  {
+    "target": "learning_development_manager",
+    "title": "Learning & Development Manager",
+    "dept": "people_company_operations",
+    "action": "RENAME",
+    "live": "learning_and_development_manager",
+    "how": "display title"
+  },
+  {
+    "target": "recruitment_specialist",
+    "title": "Recruitment Specialist",
+    "dept": "people_company_operations",
+    "action": "KEEP",
+    "live": "recruitment_specialist",
+    "how": "canonical id"
+  },
+  {
+    "target": "organisation_design_lead",
+    "title": "Organisation Design Lead",
+    "dept": "people_company_operations",
+    "action": "MOVE",
+    "live": "organization_designer",
+    "how": "display title"
+  },
+  {
+    "target": "qa_release_management_director",
+    "title": "QA & Release Management Director",
+    "dept": "assurance_security_reliability",
+    "action": "RENAME",
+    "live": "quality_and_release_director",
+    "how": "display title"
+  },
+  {
+    "target": "cybersecurity_engineer",
+    "title": "Cybersecurity Engineer",
+    "dept": "assurance_security_reliability",
+    "action": "RENAME",
+    "live": "cybersecurity_engineer",
+    "how": "canonical id"
+  },
+  {
+    "target": "ai_quality_assurance_reviewer",
+    "title": "AI Quality Assurance Reviewer",
+    "dept": "assurance_security_reliability",
+    "action": "RENAME",
+    "live": "ai_quality_reviewer",
+    "how": "display title"
+  },
+  {
+    "target": "model_evaluation_reviewer",
+    "title": "Model Evaluation Reviewer",
+    "dept": "assurance_security_reliability",
+    "action": "MOVE",
+    "live": "model_evaluator",
+    "how": "legacy alias model_evaluator"
+  },
+  {
+    "target": "test_automation_engineer",
+    "title": "Test Automation Engineer",
+    "dept": "assurance_security_reliability",
+    "action": "RENAME",
+    "live": "test_automation_engineer",
+    "how": "canonical id"
+  },
+  {
+    "target": "it_operations_site_reliability_engineer",
+    "title": "IT Operations & Site Reliability Engineer",
+    "dept": "assurance_security_reliability",
+    "action": "MERGE",
+    "live": "it_operations_engineer",
+    "how": "display title"
+  }
+]
