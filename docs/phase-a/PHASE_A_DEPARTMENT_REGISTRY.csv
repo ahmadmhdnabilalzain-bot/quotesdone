@@ -1,0 +1,11 @@
+department_id,department_name,head_role_id,head_agent_key,accountable_roles,active
+assurance,"Independent Assurance, Security & Reliability",quality_and_release_director,qa_manager,6,true
+customer_experience,Customer Experience & Communications,customer_success_director,followup,7,true
+data_intel,"Data, Intelligence & Knowledge",data_intelligence_director,intel_director,11,true
+exec,Executive & Strategy,ceo,ceo,4,true
+finance,Finance & Payments,cfo,cfo,7,true
+growth,Growth & Revenue,chief_revenue_officer,sales_director,11,true
+legal,"Legal, Compliance, Risk & Trust",general_counsel,legal,7,true
+marketplace,Marketplace & Supplier Network,marketplace_director,procurement,17,true
+people_ops,People & Company Operations,chief_operating_officer,ops_director,9,true
+product_eng,"Product, Engineering & AI",cto,cto,11,true

@@ -95,3 +95,11 @@ begin
     then raise exception 'ROLLBACK: a Phase A role survived the rollback'; end if;
   raise notice 'PHASE A ROLLBACK COMPLETE: pre-change organisation restored.';
 end $$;
+
+-- ---- follow-up migration 20260815051500 ---------------------------------------------------
+-- Applied after the main Phase A file; its inverse belongs here so one rollback restores both.
+update public.org_tasks set assigned_agent = 'gov_relations_mgr', updated_at = now()
+ where assigned_agent = 'partnerships_mgr' and status in ('assigned','in_progress')
+   and id in (select id from public.org_tasks where assigned_agent='partnerships_mgr'
+              order by created_at limit 5);
+update public.org_role set evaluation_suite = null where role_id = 'product_ux_designer';
