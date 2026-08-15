@@ -101,6 +101,10 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   founder_command_control: 'mutating',
   founder_command_status: 'read_only',
   founder_command_inbox: 'read_only',
+  // The founder-facing thread: what he said, what was understood, who has it, where each of them
+  // is, every progress note, and how it ended. Read-only, because "report progress back to me"
+  // must never be gated behind a phone code.
+  founder_command_thread: 'read_only',
 };
 
 const OSAPI_MUTATIONS = new Set(Object.keys(ACTION_CLASS).filter((a) => ACTION_CLASS[a] === 'mutating'));
@@ -464,6 +468,12 @@ Deno.serve(async (req) => {
     if (action === 'founder_command_inbox') {
       const { data, error } = await admin.rpc('fn_founder_command_inbox', { p_limit: Number(body?.limit || 25) });
       if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, user: email, data });
+    }
+    if (action === 'founder_command_thread') {
+      const { data, error } = await admin.rpc('fn_founder_command_thread', { p_command_id: Number(body?.command_id || 0) });
+      if (error) return J({ error: error.message }, 500);
+      if (!data) return J({ error: 'not_found', command_id: body?.command_id }, 404);
       return J({ ok: true, user: email, data });
     }
 

@@ -39,10 +39,33 @@ const inCode = new Set([...src.matchAll(/^\s{2}(founder_command[a-z_]*):\s*'(rea
 const inDb = new Set((await sql(
   `select action, classification, requires_control from public.control_mode_action
    where action like 'founder_command%'`)).map(r => r.action));
-check(inCode.size === 4, 'os_api classifies 4 command-centre actions', [...inCode].join(', '));
-check(inDb.size === 4, 'control_mode_action classifies 4 command-centre actions', [...inDb].join(', '));
+// The two sets must MATCH each other, not a number written here. An earlier version asserted "4"
+// and went red the moment a fifth action was added correctly to both gates — a check that fails on
+// correct work teaches people to ignore it.
+check(inCode.size > 0, 'os_api classifies the command-centre actions', [...inCode].sort().join(', '));
+check(inCode.size === inDb.size, 'both gates classify the same number of actions',
+      `os_api ${inCode.size}, database ${inDb.size}`);
 for (const a of inCode) check(inDb.has(a), `${a} is registered in the database gate too`);
 for (const a of inDb) check(inCode.has(a), `${a} is classified in os_api too`);
+
+// ---------------------------------------------------------------- 1b. THE FRONTEND CALLS IT
+// This is the check whose absence cost a real founder command. Phase C registered the actions in
+// both gates, deployed the function, verified the routines — and `src/` contained no reference to
+// `founder_command` at all, so there was no control for an instruction to travel through. The
+// founder sent one and production recorded nothing, at any layer.
+//
+// A classified, deployed, gated action that no client calls is not an entry point.
+const clientSrc = ['src/lib/osClient.ts', 'src/components/osx/OsxShell.tsx']
+  .map(p => (existsSync(join(REPO, p)) ? readFileSync(join(REPO, p), 'utf8') : ''))
+  .join('\n');
+for (const a of inCode) {
+  check(new RegExp(`['"\`]${a}['"\`]`).test(clientSrc),
+        `${a} is actually called from the founder-facing client`);
+}
+check(/founderCommand\s*\(/.test(clientSrc),
+      'the Command Console sends an order through the canonical router');
+check(/founderCommandThread\s*\(/.test(clientSrc),
+      'the Command Console reads progress back from the same command');
 
 const gateRows = await sql(
   `select action, classification, requires_control from public.control_mode_action
