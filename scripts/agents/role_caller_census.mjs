@@ -103,6 +103,14 @@ const execRows = await q(`
          coalesce(target,'') as target, active
     from org_action_executor`);
 
+// workflow_step is the STEP-LEVEL ownership surface and the one the founder's chain is expressed
+// in: actor_role is the accountable owner of one step. employee_workflow is coarser — it records
+// participation in a whole workflow, and it records TEN owners for rfq_handling — so it cannot
+// answer "who owns this step" on its own. Both are read; a role owning a step is a caller.
+const stepRows = await q(`
+  select workflow_key, step_no, actor_role,
+         coalesce(fn_org_agent_resolve(actor_role), fn_org_role_resolve(actor_role), actor_role) as resolved
+    from workflow_step`);
 const wfRows = await q(`select agent_key, workflow_key, role_in_workflow from employee_workflow`);
 const toolRows = await q(`
   select tool_id, array_to_string(coalesce(authorised_roles,'{}'),';') as roles,
@@ -157,6 +165,8 @@ const census = roles.map((r) => {
   const edgeCallers = edgeFiles.filter((f) => anyId(f.text))
     .map((f) => f.path.replace(/\\/g, '/').replace('supabase/functions/', '').replace(/\/index\.ts$/, ''));
   const execCallers = execRows.filter((e) => anyId(`${e.owner_os} ${e.target}`)).map((e) => e.action_class);
+  const stepCallers = stepRows.filter((s) => ids.has(s.resolved) || ids.has(s.actor_role))
+    .map((s) => `${s.workflow_key}#${s.step_no}`);
   const wfCallers = wfRows.filter((w) => ids.has(w.agent_key)).map((w) => `${w.workflow_key}:${w.role_in_workflow}`);
   const toolGrants = toolRows.filter((t) => (t.roles || '').split(';').some((x) => ids.has(x))).map((t) => t.tool_id);
 
@@ -165,7 +175,7 @@ const census = roles.map((r) => {
 
   const callers = {
     sql: sqlCallers, cron: cronCallers, edge: edgeCallers,
-    executor: [...new Set(execCallers)], workflow: wfCallers, tool: toolGrants,
+    executor: [...new Set(execCallers)], step: stepCallers, workflow: wfCallers, tool: toolGrants,
   };
   const callerTotal = Object.values(callers).reduce((a, b) => a + b.length, 0);
 
@@ -236,7 +246,7 @@ if (WRITE) {
     'forbidden_decisions', 'manager', 'reviewer', 'kpi_causal_chain', 'cost_policy', 'status'];
   const rows = census.map((c) => [
     c.role_id, c.display_name, c.primary_department_id, CLASS[c.runtime_mode] || '?', c.runtime_mode,
-    c.callers.workflow.join(' | ') || '(none recorded)',
+    [...c.callers.step, ...c.callers.workflow].join(' | ') || '(none recorded)',
     c.activation_conditions,
     c.caller_surfaces.map((s) => `${s}:${c.callers[s].length}`).join(' ') || 'NONE',
     c.tools, c.knowledge_scopes, c.owned_decisions, c.forbidden_decisions,
@@ -248,10 +258,12 @@ if (WRITE) {
   writeFileSync(OUT_MATRIX, head.join(',') + '\n' + rows.join('\n') + '\n');
 
   const ahead = ['role_id', 'class', 'runtime_mode', 'activation_event', 'caller_surfaces',
-    'sql_callers', 'cron_callers', 'edge_callers', 'executor_callers', 'runs', 'actions', 'reviews', 'tasks', 'runtime_evidence'];
+    'workflow_steps_owned', 'sql_callers', 'cron_callers', 'edge_callers', 'executor_callers',
+    'runs', 'actions', 'reviews', 'tasks', 'runtime_evidence'];
   const arows = census.map((c) => [
     c.role_id, CLASS[c.runtime_mode] || '?', c.runtime_mode, c.activation_conditions,
     c.caller_surfaces.join(' '),
+    c.callers.step.join(' '),
     c.callers.sql.slice(0, 12).join(' '), c.callers.cron.join(' '),
     c.callers.edge.slice(0, 12).join(' '), c.callers.executor.slice(0, 12).join(' '),
     c.runs, c.actions, c.reviews, c.tasks, c.runtime_evidence,
