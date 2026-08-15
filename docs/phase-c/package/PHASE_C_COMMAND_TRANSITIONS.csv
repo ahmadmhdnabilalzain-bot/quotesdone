@@ -1,0 +1,25 @@
+from_state,to_state,condition
+received,interpreting,command intake accepted
+interpreting,clarification_required,low confidence/required parameter missing
+clarification_required,interpreting,founder clarification received
+interpreting,accepted,safe interpretation complete
+interpreting,refused,forbidden/unsafe/outside registered architecture
+accepted,routed,workflow and role targets resolve
+routed,tasks_created,command and tasks committed atomically
+tasks_created,in_progress,child execution starts
+in_progress,partially_blocked,child blocker opens
+partially_blocked,in_progress,blocker resolved
+in_progress,completed,all closure criteria pass
+partially_blocked,completed,all blockers resolved and closure passes
+received,cancelled,founder cancels before routing
+accepted,cancelled,founder cancels before task creation
+routed,cancelled,safe cancellation before execution
+tasks_created,cancelled,task cancellation/compensation accepted
+in_progress,cancelled,workflow cancellation policy accepts
+received,failed,technical intake failure
+interpreting,failed,parser/registry failure
+routed,failed,atomic task creation fails
+in_progress,failed,unrecoverable system failure
+received,superseded,new command explicitly replaces
+accepted,superseded,new command explicitly replaces
+tasks_created,superseded,new command replaces and child tasks compensated/cancelled
