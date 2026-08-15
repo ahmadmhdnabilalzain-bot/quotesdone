@@ -1,0 +1,11 @@
+boundary_id,boundary_name,definition,workflow_scope,decision_owner,phase_b_enforcement
+FDR-001,Equity and ownership,"Equity, ownership, cap table, valuation, fundraising, investor admission, sale, merger or winding-up.",W01;W21;W27;W28,founder,No operational role may approve or execute.
+FDR-002,Commercial pricing model,"Reveal fee, supplier subscription price/start, founding exemption and supplier commission policy.",W04;W09;W15;W16;W17;W27;W28,founder,Systems may calculate only from approved configuration.
+FDR-003,Company revenue objective,"AED 1,000,000 revenue target and target date.",W01;W02;W03;W25;W27,founder,Management may operationalize but not replace.
+FDR-004,Country and marketplace model,"Country entry/exit, material marketplace-model change or change to who pays whom.",W01;W21;W28,founder,Strategy may propose; no execution before approval.
+FDR-005,Company identity and permanent policy,"Company name, brand ownership, core positioning and permanent material policy.",W01;W03;W20;W28,founder,Departments operate within approved policy.
+FDR-006,Spending above authority,Spend above approved budgets or unbudgeted commitment above founder threshold.,W01;W02;W03;W21;W27,founder,CFO/CEO escalate with impact.
+FDR-007,Binding legal commitments,"Legal commitments outside approved templates, limits and delegated authority.",W21;W28,founder,General Counsel blocks until approval.
+FDR-008,Senior human/equity compensation,Equity compensation and senior human commitments outside approved plans.,W30,founder,Agent workforce may propose only.
+FDR-009,Consequential autonomy activation,Production activation of consequential autonomy where founder approval is required.,W23;W24;W30,founder,No phase may activate without explicit approval.
+FDR-010,Permanent material risk acceptance,"Permanent acceptance of material legal, financial, security, privacy or reputational risk.",W17;W24;W28;W29,founder,Risk may recommend; founder decides.
