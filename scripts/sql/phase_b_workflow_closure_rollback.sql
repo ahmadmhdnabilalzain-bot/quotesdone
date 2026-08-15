@@ -53,6 +53,9 @@ drop table if exists public.phase_b_step_state;
 drop table if exists public.phase_b_workflow_state;
 
 -- ---- functions ----
+-- These carry `set search_path = public, pg_temp` from
+-- scripts/sql/phase_b_09_pin_function_search_path.sql; dropping the function drops the setting
+-- with it, so that file needs no separate rollback.
 drop function if exists public.fn_phase_b_invariants();
 drop function if exists public.fn_phase_b_closure_blockers(text, text[], bigint, bigint);
 drop function if exists public.fn_phase_b_step_transition_allowed(text, text);
