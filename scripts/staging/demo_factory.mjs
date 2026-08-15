@@ -42,12 +42,27 @@
 //     node scripts/staging/demo_factory.mjs --purge       delete the accumulated litter
 //     node scripts/staging/demo_factory.mjs --purge --dry-run
 //     node scripts/staging/demo_factory.mjs --corpus 100  build a matching corpus (add --keep)
-import { assertNotProduction, mgmtRead, mgmtWrite } from './qd_guard.mjs';
+import { assertNotProduction, mgmtRead, mgmtFixture, PROD_REF } from './qd_guard.mjs';
 import { readFileSync } from 'node:fs';
 import { randomBytes, createHmac } from 'node:crypto';
 
-export const REF = assertNotProduction(
-  process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'demo factory');
+// THE TARGET, REHOMED 15 AUG 2026 — AND WHY THIS ONE LINE MATTERED MORE THAN IT LOOKS.
+//
+// It used to read `assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn')`.
+// pglpqrhvozwepymcuunn was deleted that morning, so this default made every importer target a
+// project that does not exist — and 75 files import REF from here, 28 of them only to use it as a
+// default --ref for a read. A grep for the dead ref found 39 files; 87 actually reached it, because
+// this line is the indirection the other 48 came through. Fixing the export fixes all of them at
+// once; retargeting them one by one would have missed the ones that never spell the ref out.
+//
+// Resolution order, deliberately: an explicit QD_STAGING_REF wins, so the day a new staging project
+// exists this file needs no edit. With none set it resolves the one project that does exist. The
+// WRITE path is what keeps that honest — see mgmtFixture in qd_guard.mjs. assertNotProduction is
+// still applied to an explicitly-supplied ref, so a typo that lands on production is still refused;
+// it is only the implicit default that is allowed to be the live project.
+export const REF = process.env.QD_STAGING_REF
+  ? assertNotProduction(process.env.QD_STAGING_REF, 'demo factory')
+  : PROD_REF;
 export const BASE = `https://${REF}.supabase.co`;
 
 // ---- SQL literals ----------------------------------------------------------------------------
@@ -258,12 +273,12 @@ export async function makeCustomer(run, opts = {}) {
     if (opts.verified !== false) await verifyEmailByOtp(email, 'customer');
     if (opts.terms !== false) await call('kyc', u.jwt, { action: 'accept_terms', user_kind: 'customer', email });
     if (locale !== 'en') {
-      await mgmtWrite(REF, `update public.customers set locale=${q(locale)} where id=${q(u.id)}`, 'customer locale');
+      await mgmtFixture(REF, `update public.customers set locale=${q(locale)} where id=${q(u.id)}`, 'customer locale');
     }
   } else {
     // tos_version is read from app_secrets by kyc so the acceptance records WHICH document was
     // signed; the SQL path records the same version rather than inventing one.
-    await mgmtWrite(REF,
+    await mgmtFixture(REF,
       `insert into public.customers (id, email, full_name, phone, email_verified, locale
          ${opts.terms === false ? '' : ', tos_accepted_at, tos_version'})
        values (${q(u.id)}, ${q(email)}, ${q(fullName)}, ${q(phone)},
@@ -288,7 +303,7 @@ export async function verifyEmailByOtp(email, userKind = 'customer', code = '424
   const key = (await mgmtRead(REF, "select value from public.app_secrets where key='otp_hmac_key'"))[0]?.value;
   if (!key) throw new Error('otp_hmac_key missing from staging app_secrets');
   const hash = createHmac('sha256', key).update(code).digest('hex');
-  await mgmtWrite(REF,
+  await mgmtFixture(REF,
     `insert into public.email_verifications (email, token_hash, purpose, user_kind, expires_at)
      values (${q(email)}, ${q(hash)}, 'login', ${q(userKind)}, now() + interval '10 minutes')`, 'seed otp');
   return call('login_otp', null, { action: 'verify', identifier: email, code, user_kind: userKind });
@@ -423,7 +438,7 @@ export async function makeSupplier(run, opts = {}) {
     // license_expiry: trg_leads_a_licence_gate is UPDATE OF those three columns, so an UPDATE that
     // does not name them short-circuits the gate. Match case-insensitively - the API lowercases
     // claimed_by before storing it.
-    await mgmtWrite(REF,
+    await mgmtFixture(REF,
       `update public.leads
           set approval_status='approved', verified=true,
               tags = (select array(select distinct unnest(coalesce(tags,'{}'::text[])
@@ -434,7 +449,7 @@ export async function makeSupplier(run, opts = {}) {
       if (cred) await call('enrich_capability', null, { __secret: cred, lead_id: leadId });
     }
   } else {
-    const ins = await mgmtWrite(REF,
+    const ins = await mgmtFixture(REF,
       `insert into public.leads
          (company_name, emirate, city, claimed, claimed_by, email, contact_name, phone,
           company_type, products, services, description, service_emirates, source,
@@ -454,10 +469,10 @@ export async function makeSupplier(run, opts = {}) {
   }
 
   if (opts.capability === 'agent') await confirmCapability(leadId, profile);
-  else if (opts.capability !== false) await mgmtWrite(REF, capabilityInsert(leadId, profile), 'demo capability');
+  else if (opts.capability !== false) await mgmtFixture(REF, capabilityInsert(leadId, profile), 'demo capability');
   // The API path stamps the tag in its approval UPDATE; the SQL path stamps it in the INSERT.
   // Belt and braces for the api path where create_company may have raced the update.
-  await mgmtWrite(REF,
+  await mgmtFixture(REF,
     `update public.leads set tags = (select array(select distinct unnest(coalesce(tags,'{}'::text[])
        || ARRAY['qd_demo', ${RUN_TAG_COL(run.tag)}]::text[]))) where id=${num(leadId)}`, 'tag demo supplier');
 
@@ -475,7 +490,7 @@ export async function makeSupplier(run, opts = {}) {
  */
 export async function makeLicenceGatedSupplier(run, opts = {}) {
   const s = await makeSupplier(run, { ...opts, capability: opts.capability !== false });
-  await mgmtWrite(REF,
+  await mgmtFixture(REF,
     `update public.leads
         set license_doc_path = ${q(opts.license_doc_path || `supplier-docs/demo/${run.tag}/licence.pdf`)},
             trade_license_no = ${q(opts.trade_license_no ?? null)},
@@ -569,7 +584,7 @@ export async function makeInquiry(run, opts = {}) {
     return { id, customerId: cust.customerId, category: trade, trades: [trade], status, intake };
   }
 
-  const ins = await mgmtWrite(REF,
+  const ins = await mgmtFixture(REF,
     `insert into public.inquiries
        (customer_id, category, emirate, role_needed, raw_input, summary, keywords, trades,
         status, budget, scope_type, brief_source, urgency, drawing_file_path, drawing_file_name,
@@ -615,7 +630,7 @@ export async function makeRequirement(run, opts = {}) {
   if (!inquiry) throw new Error('makeRequirement needs { inquiry }');
   const trade = opts.trade || inquiry.category || 'aluminium';
   const t = TRADES[trade] || TRADES.aluminium;
-  await mgmtWrite(REF,
+  await mgmtFixture(REF,
     `insert into public.inquiry_requirement
        (inquiry_id, trades_required, role_required, emirate, authority_required, products_norm,
         brands_specified, project_type, value_band, scope_type, confidence, missing_fields,
@@ -664,7 +679,7 @@ function rfqReadySpec(trade, opts) {
     ), '{}'::jsonb) || ${jb(base)})`;
 }
 
-const tagInquiry = (run, id) => mgmtWrite(REF,
+const tagInquiry = (run, id) => mgmtFixture(REF,
   `update public.inquiries
       set provenance = coalesce(provenance,'{}'::jsonb) || ${jb({ qd_run: run.tag, source: 'demo_factory' })}
     where id = ${q(id)}`, 'tag demo inquiry');
@@ -732,7 +747,7 @@ export async function makeQuote(run, opts = {}) {
     return { id: row.id, status: row.status, submittable: row.submittable, amount };
   }
 
-  const ins = await mgmtWrite(REF,
+  const ins = await mgmtFixture(REF,
     `insert into public.quotes
        (inquiry_id, supplier_id, quote_amount, notes, status, source, lead_time, validity,
         warranty, payment_terms, scope, conditions, exclusions, anonymized)
@@ -765,7 +780,7 @@ export async function makeReveal(run, opts = {}) {
     throw new Error('makeReveal needs { quote, inquiry, supplier, customer }');
   }
   const fee = opts.reveal_fee ?? 150;
-  const ins = await mgmtWrite(REF,
+  const ins = await mgmtFixture(REF,
     `insert into public.transactions
        (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee,
         customer_price, fee_status, revealed_at, paid_by, payment_ref)
@@ -821,7 +836,7 @@ export async function makeBulkCorpus(run, opts = {}) {
       ARRAY['qd_demo', ${RUN_TAG_COL(run.tag)}]::text[])`).join(',\n');
 
   // license_doc_path is absent from the column list ON PURPOSE - see makeSupplier's note.
-  const ins = await mgmtWrite(REF,
+  const ins = await mgmtFixture(REF,
     `insert into public.leads
        (company_name, emirate, city, claimed, claimed_by, email, contact_name, phone,
         company_type, products, services, description, service_emirates, source,
@@ -845,7 +860,7 @@ export async function makeBulkCorpus(run, opts = {}) {
       ${num(p.completeness)}, 'confirmed', now(), now(),
       ${num(p.min_project_value)}, ${num(p.max_project_value)}, ${arr(p.coverage_emirates)})`;
   }).join(',\n');
-  await mgmtWrite(REF,
+  await mgmtFixture(REF,
     `insert into public.supplier_capabilities
        (supplier_id, trades, roles, products_norm, project_types, brands, exclusions,
         authority_approvals, source_docs, confidence, missing_fields, excluded_trades,
@@ -857,7 +872,7 @@ export async function makeBulkCorpus(run, opts = {}) {
   if (withAuth) for (const s of suppliers) {
     const u = await mkAuthUser(run, s.email);
     s.jwt = u.jwt; s.authUserId = u.id;
-    await mgmtWrite(REF,
+    await mgmtFixture(REF,
       `update public.leads set claimed=true, claimed_by=${q(s.email)} where id=${num(s.leadId)}`,
       'claim corpus supplier');
   }
@@ -988,7 +1003,7 @@ async function deleteObjects(bucket, paths) {
 }
 
 const delCount = async (label, sql) => {
-  const rows = await mgmtWrite(REF, `with d as (${sql} returning 1) select count(*)::int n from d`, label);
+  const rows = await mgmtFixture(REF, `with d as (${sql} returning 1) select count(*)::int n from d`, label);
   return Number(rows?.[0]?.n ?? 0);
 };
 
@@ -1414,7 +1429,7 @@ export async function selftest() {
       // been deleted. A counter can only catch a row that something wrote. Write all three shapes:
       // 'leads' is what fn_supplier_exception_sweep records, 'inquiries' is the coverage_gap
       // route_inquiry writes when a dispatch finds no capable supplier, 'quotes' completes the set.
-      const seeded = await mgmtWrite(REF, `with i as (
+      const seeded = await mgmtFixture(REF, `with i as (
           insert into public.agent_actions (agent, kind, target_table, target_id) values
             ('operations_ai', 'coverage_gap',  'inquiries', ${q(String(inq.id))}),
             ('operations_ai', 'selftest_probe','quotes',    ${q(String(qa.id))}),

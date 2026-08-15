@@ -33,7 +33,10 @@ const BLOCK = `
 
 const MARK = "  return jsonb_build_object('kind',p_kind,'decision',decision,'confidence',conf,'reasons',reasons,";
 
-for (const ref of ['htdblwldjkcgjvmqkbeh', 'pglpqrhvozwepymcuunn']) {
+// 15 Aug 2026: one project. pglpqrhvozwepymcuunn was deleted, and a loop that still named it ran
+// every statement twice — once for real, once into a management API 400 this script prints and
+// moves past, which reads in the log exactly like a partial success.
+for (const ref of ['htdblwldjkcgjvmqkbeh']) {
   const def = (await q(ref, `select pg_get_functiondef(p.oid) def from pg_proc p
       join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='fn_decide'`))[0]?.def;
   if (!def) { console.log(ref, 'fn_decide ABSENT'); continue; }

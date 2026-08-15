@@ -94,7 +94,10 @@ const EDITS = [
 ];
 
 let bad = 0;
-for (const ref of ['pglpqrhvozwepymcuunn', 'htdblwldjkcgjvmqkbeh']) {
+// 15 Aug 2026: one project. pglpqrhvozwepymcuunn was deleted, and a loop that still named it ran
+// every statement twice — once for real, once into a management API 400 this script prints and
+// moves past, which reads in the log exactly like a partial success.
+for (const ref of ['htdblwldjkcgjvmqkbeh']) {
   let def = (await q(ref, `select pg_get_functiondef(p.oid) def from pg_proc p
       join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='fn_founder_brief'`))[0]?.def;
   if (!def) { console.log(ref, 'fn_founder_brief ABSENT'); bad++; continue; }
@@ -112,7 +115,10 @@ for (const ref of ['pglpqrhvozwepymcuunn', 'htdblwldjkcgjvmqkbeh']) {
 if (bad) { console.error(`${bad} project(s)/marker(s) failed`); process.exit(1); }
 
 // PROVE IT. Run the brief in a transaction that rolls itself back, and read the three lines.
-for (const ref of ['pglpqrhvozwepymcuunn', 'htdblwldjkcgjvmqkbeh']) {
+// 15 Aug 2026: one project. pglpqrhvozwepymcuunn was deleted, and a loop that still named it ran
+// every statement twice — once for real, once into a management API 400 this script prints and
+// moves past, which reads in the log exactly like a partial success.
+for (const ref of ['htdblwldjkcgjvmqkbeh']) {
   try {
     await q(ref, `do $$ declare b text; begin
       perform public.fn_founder_brief();

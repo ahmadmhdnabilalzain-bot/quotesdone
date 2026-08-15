@@ -24,11 +24,16 @@
 //   node scripts/verify_deploy_parity.mjs                 # functions touched in the last 20 commits
 //   node scripts/verify_deploy_parity.mjs --since=HEAD~50  # wider window
 //   node scripts/verify_deploy_parity.mjs --all            # every function in the repo
-//   node scripts/verify_deploy_parity.mjs --staging-only   # skip production
+//
+// `--staging-only` WAS REMOVED WITH THE STAGING PROJECT (15 Aug 2026), rather than left pointing at
+// a ref that no longer resolves. Kept, it would have been the worst kind of flag: every GET against
+// the dead project 404s, 404 is read as NOT DEPLOYED, and the run would have failed 202 out of 202
+// functions — or, had the 404 been treated as a skip instead, printed "DEPLOY PARITY OK" over an
+// empty set of projects. A flag whose only remaining behaviour is to measure nothing is worse than
+// no flag: it reads exactly like a scoped check. Passing it now exits non-zero and says why.
 import { execSync } from 'node:child_process';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 
-const STAGING_REF = 'pglpqrhvozwepymcuunn';
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const FN_DIR = 'supabase/functions';
 
@@ -40,9 +45,12 @@ const token = (process.env.SUPABASE_ACCESS_TOKEN
   || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
 const H = { Authorization: 'Bearer ' + token };
 
-const REFS = has('staging-only')
-  ? { staging: STAGING_REF }
-  : { staging: STAGING_REF, production: PROD_REF };
+if (has('staging-only')) {
+  console.error('--staging-only was removed with the staging project on 15 Aug 2026. There is one');
+  console.error(`project (${PROD_REF}); scoping this check to the other one can only measure nothing.`);
+  process.exit(2);
+}
+const REFS = { production: PROD_REF };
 
 // ---- which functions to check -------------------------------------------------------------------
 function slugsToCheck() {

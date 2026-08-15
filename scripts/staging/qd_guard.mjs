@@ -127,6 +127,44 @@ export async function mgmtWriteData(ref, sql, where = 'data copy') {
   return post(ref, sql);
 }
 
+// FIXTURE WRITE ON THE ONLY PROJECT LEFT (15 Aug 2026).
+//
+// Staging was deleted at the founder's instruction. Everything above stays exactly as it was —
+// assertNotProduction still refuses production for every migration, cleanup and rebuild path, and
+// mgmtWrite is unchanged. This is a THIRD door with its own lock, the same shape as mgmtWriteData
+// above, and it exists because the alternative was to delete the fixture suite.
+//
+// The suite is real coverage: a 685-line end-to-end journey, the intake-routing probe that pins two
+// live defects, and the demo factory 75 files import from. Retargeting it by weakening
+// assertNotProduction would have removed the guard from the 30-odd migration and rebuild scripts
+// that share it, to serve the ~20 that make fixtures. So the guard keeps its meaning and the
+// fixtures ask for an exemption out loud:
+//
+//   * QD_FIXTURES=1 must be set in the environment. There is no default and no fallback — a script
+//     run without it refuses before the first byte reaches the network, which is what a bare
+//     `node scripts/staging/journey_test.mjs` did when it targeted a project that no longer exists.
+//   * Every row a run creates carries its run tag, and teardown derives what to delete FROM THE
+//     DATABASE rather than from a hand-maintained list. That was already true; it is now the thing
+//     standing between a fixture run and live data.
+//
+// WHAT THIS IS NOT: it is not a rollback. The management API gives each POST its own implicit
+// transaction and a fixture crosses HTTP — auth users are minted through the Auth admin API and
+// edge functions connect on their own sessions — so no single aborted transaction can cover a
+// journey. Pure-SQL assertions SHOULD use the aborted-transaction probe instead of this door, and
+// most checks in scripts/checks do. This is for the ones that genuinely cannot.
+export async function mgmtFixture(ref, sql, where = 'fixture') {
+  if (process.env.QD_FIXTURES !== '1') {
+    throw new ProductionRefusal(
+      `${where} wanted to write fixture data to ${ref}, and QD_FIXTURES is not set to 1. ` +
+      'This is live data. Set QD_FIXTURES=1 for the run if you mean it; every row is tagged and ' +
+      'torn down in a finally, but nothing here is inside a transaction that can roll back.');
+  }
+  if (typeof ref !== 'string' || !/^[a-z]{20}$/.test(ref)) {
+    throw new ProductionRefusal(`fixture target ${JSON.stringify(ref)} is not a valid project ref`);
+  }
+  return post(ref, sql);
+}
+
 // READ: production permitted, writes refused.
 const WRITE_RE = /\b(insert|update|delete|truncate|drop|alter|create|grant|revoke|comment\s+on|refresh\s+materialized|vacuum|reindex|call|do)\b/i;
 export async function mgmtRead(ref, sql, where = 'read') {

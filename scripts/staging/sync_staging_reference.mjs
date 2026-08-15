@@ -17,9 +17,13 @@
 // jsonb, timestamps, enums - round-trips without hand-built SQL literals.
 //
 //   node scripts/staging/sync_staging_reference.mjs [--apply]
-import { mgmtRead, mgmtWrite, mgmtWriteData, PROD_REF, assertNotProduction } from './qd_guard.mjs';
+import { mgmtRead, mgmtWrite, mgmtWriteData, PROD_REF, resolveStagingRef } from './qd_guard.mjs';
 
-const REF = assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'reference sync');
+// 15 AUG 2026: this tool's whole job is standing a SECOND project up from this one, and there is
+// no second project — pglpqrhvozwepymcuunn was deleted. It is kept rather than retired because it
+// works unchanged the day a new staging project exists; it now REFUSES instead of defaulting to a
+// ref that 404s, because a sync reporting success against nothing is the worst outcome available.
+const REF = resolveStagingRef(process.env.QD_STAGING_REF);
 const APPLY = process.argv.includes('--apply');
 const BATCH = 500;
 // Declared here, not next to insertableCols() below it: the copy loop runs at module top level

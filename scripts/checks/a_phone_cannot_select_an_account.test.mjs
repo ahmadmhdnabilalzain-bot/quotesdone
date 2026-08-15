@@ -37,7 +37,11 @@ const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 
-const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh', staging: 'pglpqrhvozwepymcuunn' };
+// ONE PROJECT since 15 Aug 2026. This used to loop over { production, staging }; staging was
+// deleted, and left in place every assertion below would have run twice — once for real, once
+// against a ref that 404s. The `send` helper reads a non-200 as a refusal, so half of these tests
+// would have gone on PASSING on a project that does not exist.
+const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh' };
 // A number in no account and in no admin_mfa_phone. 5-series is a real UAE mobile prefix, so it
 // exercises toE164 rather than being rejected as malformed before the resolver is reached.
 const UNKNOWN = '+971500000042';
@@ -154,14 +158,31 @@ for (const [label, project] of Object.entries(PROJECTS)) {
   });
 }
 
-// THE AMBIGUITY GUARD, EXERCISED FOR REAL. Two accounts, one number, one HTTP call. Staging only:
-// this inserts and removes rows, and it must never be run against live customer data.
-test('two accounts on one number are refused, not guessed (staging)', async (t) => {
+// THE AMBIGUITY GUARD, EXERCISED FOR REAL. Two accounts, one number, one HTTP call.
+//
+// REHOMED 15 AUG 2026, AND IT IS THE ONE CHECK IN THIS FILE THAT CANNOT BE MADE ROLLBACK-SAFE.
+// Said plainly rather than dressed up: the guard lives in the login_otp edge function, which
+// connects on its own session, so it cannot see rows inside an uncommitted transaction. The
+// aborted-transaction probe used everywhere else in this repo is not available here. The choice was
+// to delete a guard that pins a real 13 Aug defect, or to run it against the one project with the
+// fixtures visible for the duration of a single HTTP call. It runs — under three conditions:
+//
+//   1. it refuses outright if the fixture number is carried by ANY existing row, so it can never
+//      touch a real customer or read someone else's account as its own fixture;
+//   2. the rows use the estate's demo convention — `ZZ DEMO — …` and @example.invalid — so anything
+//      that ever leaks is identifiable on sight rather than looking like a customer;
+//   3. the removal is ASSERTED, not assumed. `finally` deletes them and the test then counts back
+//      to zero, so a leak fails this check instead of hiding inside it.
+test('two accounts on one number are refused, not guessed', async (t) => {
   if (!mgmtToken) { t.skip('no management token'); return; }
-  const project = PROJECTS.staging;
+  const project = PROJECTS.production;
   const cleanup = () => q(project, `delete from public.customers where email in ('zz-demo-shared-a@example.invalid','zz-demo-shared-b@example.invalid')`);
 
   await cleanup();
+  const squatters = await q(project, `select count(*)::int n from public.customers where phone = '${SHARED}'`);
+  assert.equal(Number(squatters[0].n), 0,
+    `${SHARED} is carried by a real customers row. This check would then be inserting fixtures `
+    + 'alongside live data and asserting against a mix of the two. Pick another fixture number.');
   try {
     await q(project, `insert into public.customers (full_name, email, phone) values
       ('ZZ DEMO - shared handset A','zz-demo-shared-a@example.invalid','${SHARED}'),
@@ -177,6 +198,14 @@ test('two accounts on one number are refused, not guessed (staging)', async (t) 
     assert.match(String(body.error || ''), /sign in with your email/i, 'the refusal must tell the caller what to do instead');
   } finally {
     await cleanup();
+    // ASSERTED, NOT ASSUMED. A delete that matched nothing returns 200 exactly like one that
+    // matched two rows, and this is the only place in the estate that puts a fixture next to live
+    // customer data. If it ever leaks, this line is what says so.
+    const left = await q(project, `select count(*)::int n from public.customers
+       where email in ('zz-demo-shared-a@example.invalid','zz-demo-shared-b@example.invalid')
+          or phone = '${SHARED}'`);
+    assert.equal(Number(left[0].n), 0,
+      'the ambiguity fixtures were not removed — there is demo data on the live project right now');
   }
 });
 

@@ -24,7 +24,9 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { mgmtRead } from '../staging/qd_guard.mjs';
 
-const REF = 'pglpqrhvozwepymcuunn';
+// 15 Aug 2026: was 'pglpqrhvozwepymcuunn', deleted that morning. This makes live agent calls and
+// stays held while every OpenRouter route is open-circuit in llm_route_health.
+const REF = 'htdblwldjkcgjvmqkbeh';
 const ARGS = process.argv.slice(2);
 const BEHAVIOURAL = ARGS.includes('--behavioural');
 const TRIALS = Number((ARGS.find(a => a.startsWith('--trials=')) || '--trials=1').split('=')[1]);

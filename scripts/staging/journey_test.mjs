@@ -7,12 +7,17 @@
 // It refuses to run against production. It prints status codes and truncated bodies, never tokens.
 //
 //   node scripts/staging/journey_test.mjs [--keep]
-import { assertNotProduction, mgmtRead, mgmtWrite } from './qd_guard.mjs';
-import { teardown } from './demo_factory.mjs';
+// REHOMED 15 AUG 2026 — kept, not deleted. 685 lines of end-to-end journey is the only coverage in
+// the repo that walks a customer from sign-up to a revealed quote, and staging was deleted that
+// morning. It now targets the one project that exists, and every write goes through mgmtFixture,
+// which refuses unless QD_FIXTURES=1 is set for the run. Read the note on that function before you
+// use it: this crosses HTTP, so nothing here is inside a transaction that can roll back. The
+// teardown is tag-derived and runs in a finally; that is what stands between this and live data.
+import { mgmtRead, mgmtFixture } from './qd_guard.mjs';
+import { teardown, REF } from './demo_factory.mjs';
 import { readFileSync } from 'node:fs';
 import { createHmac, randomBytes } from 'node:crypto';
 
-const REF = assertNotProduction(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn', 'journey test');
 const BASE = `https://${REF}.supabase.co`;
 const KEEP = process.argv.includes('--keep');
 const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
@@ -118,7 +123,7 @@ const OTP = '424242';
 const otpKey = (await mgmtRead(REF, "select value from public.app_secrets where key='otp_hmac_key'"))[0]?.value;
 if (otpKey) {
   const hash = createHmac('sha256', otpKey).update(OTP).digest('hex');
-  await mgmtWrite(REF,
+  await mgmtFixture(REF,
     `insert into public.email_verifications (email, token_hash, purpose, user_kind, expires_at)
      values ('${cust.email}', '${hash}', 'login', 'customer', now() + interval '10 minutes')`,
     'seed otp');
@@ -406,7 +411,7 @@ step('supplier accepts terms', r.status === 200, `HTTP ${r.status} ${r.text}`);
 // Match case-insensitively: the API lowercases the address before storing claimed_by, so an
 // exact-match update on the mixed-case address silently touched zero rows and the step failed
 // with approval_status=none while the UPDATE itself reported success.
-await mgmtWrite(REF,
+await mgmtFixture(REF,
   `update public.leads set approval_status = 'approved', verified = true,
        tags = (select array(select distinct unnest(coalesce(tags,'{}'::text[])
                 || ARRAY['qd_demo', 'qd_run:${RUN}']::text[])))
@@ -451,7 +456,7 @@ if (companyId && dispatchCred) {
   // for 'executes' that is contractor, installer, maintenance or turnkey_fitout. The fixture
   // previously listed 'executes' itself, which is not a code, so the role gate silently excluded
   // a supplier that passed confirmed_at, trade overlap, excluded_trades and fn_is_matchable.
-  await mgmtWrite(REF,
+  await mgmtFixture(REF,
     `insert into public.supplier_capabilities
        (supplier_id, trades, roles, products_norm, project_types, exclusions,
         authority_approvals, source_docs, confidence, missing_fields, excluded_trades,
@@ -570,13 +575,13 @@ async function standUpSupplier(tag, companyName, amount) {
     service_emirates: ['Dubai', 'Sharjah'],
   });
   await call('kyc', s.jwt, { action: 'accept_terms', user_kind: 'supplier', email: s.email });
-  await mgmtWrite(REF,
+  await mgmtFixture(REF,
     `update public.leads set approval_status='approved', verified=true,
        tags = (select array(select distinct unnest(coalesce(tags,'{}'::text[])
                 || ARRAY['qd_demo', 'qd_run:${RUN}']::text[])))
       where lower(claimed_by) = lower('${s.email}')`, 'approve supplier');
   await call('enrich_capability', null, { __secret: dispatchCred, lead_id: cid });
-  await mgmtWrite(REF,
+  await mgmtFixture(REF,
     `insert into public.supplier_capabilities
        (supplier_id, trades, roles, products_norm, project_types, exclusions,
         authority_approvals, source_docs, confidence, missing_fields, excluded_trades,
@@ -719,7 +724,7 @@ if (!KEEP) {
   }
   // The reference-photo redaction runs, matched on the output paths this run knows.
   if (photoPaths.filter(Boolean).length) {
-    await mgmtWrite(REF,
+    await mgmtFixture(REF,
       `delete from public.drawing_redaction_runs
         where customer_id is null and owner_email is null
           and output_paths && ARRAY[${photoPaths.filter(Boolean).map((p) => `'${p.replace(/'/g, "''")}'`).join(',')}]::text[]`,

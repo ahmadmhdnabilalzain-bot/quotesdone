@@ -17,9 +17,14 @@
 //   node seed_staging_secrets.mjs [--apply]
 //
 // Without --apply it reports and writes nothing. It prints key NAMES and actions only, never a value.
-import { mgmtRead, mgmtWrite, PROD_REF } from './qd_guard.mjs';
+import { mgmtRead, mgmtWrite, PROD_REF, resolveStagingRef } from './qd_guard.mjs';
 
-const STAGING = process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn';
+// 15 AUG 2026: this tool's whole job is standing a SECOND project up from this one, and there is
+// no second project — pglpqrhvozwepymcuunn was deleted. It is kept rather than retired because it
+// works unchanged the day a new staging project exists; it now REFUSES instead of defaulting to a
+// ref that 404s, because a sync reporting success against nothing is the worst outcome available.
+const REF = resolveStagingRef(process.env.QD_STAGING_REF);
+const STAGING = REF;
 const APPLY = process.argv.includes('--apply');
 
 const WITHHOLD = new Map([

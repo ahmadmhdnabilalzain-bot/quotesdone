@@ -2,7 +2,7 @@
 #
 # Usage:
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy_functions.ps1 `
-#              -ProjectRef pglpqrhvozwepymcuunn slug_a slug_b ...
+#              -ProjectRef htdblwldjkcgjvmqkbeh slug_a slug_b ...
 #
 #   Production requires -IMeanProduction as well. That is deliberate: this script was pinned to
 #   the production ref in three places, so the only deploy tool in the repo could only ever target

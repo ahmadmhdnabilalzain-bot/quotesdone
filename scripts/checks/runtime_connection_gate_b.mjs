@@ -19,7 +19,10 @@ const arg = (k, d) => {
   const h = process.argv.find((a) => a.startsWith(`--${k}=`));
   return h ? h.slice(k.length + 3) : d;
 };
-const REF = arg('ref', 'pglpqrhvozwepymcuunn');
+// 15 Aug 2026: the default was a project deleted that morning. Staging was only ever a DEFAULT here
+// — this makes live agent calls, so it stays held while every OpenRouter route is open-circuit in
+// llm_route_health. Retargeting the default is not releasing the hold.
+const REF = arg('ref', 'htdblwldjkcgjvmqkbeh');
 const CASES = Number(arg('cases', '30'));
 const USD_CAP = Number(arg('usd', '3'));
 const AED_CAP = USD_CAP * 3.6725;          // AED is pegged to USD at 3.6725

@@ -17,10 +17,12 @@
 // on ok:true.
 //
 //   node scripts/staging/verify_intake_routing.mjs
-import { withRun, makeCustomer } from './demo_factory.mjs';
-import { mgmtRead, resolveStagingRef } from './qd_guard.mjs';
-
-const REF = resolveStagingRef(process.env.QD_STAGING_REF || 'pglpqrhvozwepymcuunn');
+// REHOMED 15 AUG 2026. This resolved 'pglpqrhvozwepymcuunn' — a project deleted that morning — so
+// it had stopped pinning the two live defects it was written for and was failing on a management
+// API 400 instead. The target now comes from demo_factory, which is the one place that decides it,
+// and the fixture writes go through the QD_FIXTURES door in qd_guard.mjs.
+import { withRun, makeCustomer, REF } from './demo_factory.mjs';
+import { mgmtRead } from './qd_guard.mjs';
 const checks = [];
 const ok = (name, pass, detail) => {
   checks.push({ name, pass });
