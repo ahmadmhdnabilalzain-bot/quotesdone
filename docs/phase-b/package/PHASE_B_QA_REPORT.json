@@ -1,0 +1,54 @@
+{
+  "package_version": "2026.08.15",
+  "phase": "B",
+  "execution_mode": "production_direct_zero_paid_inference",
+  "counts": {
+    "workflows": 30,
+    "steps": 257,
+    "handoffs": 161,
+    "cross_department_handoffs": 47,
+    "business_objects": 56,
+    "business_rules": 54,
+    "exceptions": 50,
+    "sla_policies": 34,
+    "gates": 32,
+    "events": 347,
+    "workflow_states": 14,
+    "workflow_transitions": 35,
+    "step_states": 11,
+    "step_transitions": 19,
+    "unique_workflow_ids": 30,
+    "unique_step_ids": 257,
+    "unique_handoff_ids": 161,
+    "unique_event_ids": 347,
+    "unknown_step_owners": 0,
+    "unknown_reviewers": 0,
+    "exact_creator_reviewer_collisions": 0,
+    "roles_represented": 90,
+    "roles_missing": [],
+    "departments_represented": 10,
+    "workflow_profiles": 25
+  },
+  "additional_counts": {
+    "dynamic_actor_placeholders": 10,
+    "workflow_detail_files": 30
+  },
+  "checks": {
+    "all_workflow_ids_unique": true,
+    "all_step_ids_unique": true,
+    "all_handoff_ids_unique": true,
+    "all_event_ids_unique": true,
+    "unknown_step_owners_zero": true,
+    "unknown_reviewers_zero": true,
+    "creator_reviewer_exact_collisions_zero": true,
+    "all_90_roles_represented": true,
+    "all_10_departments_represented": true,
+    "all_30_workflow_detail_files_present": true,
+    "event_consumers_valid": true
+  },
+  "notes": [
+    "Effective creator/reviewer alias collisions must still be checked against the production canonical identity resolver.",
+    "Current-code path reconciliation is intentionally a Claude execution deliverable, not prefilled by the package.",
+    "No runtime activation, tool/model connection or synthetic business execution is part of Phase B."
+  ]
+}

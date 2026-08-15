@@ -1,0 +1,35 @@
+﻿sla_policy_id,name,workflow_scope,target,classification,breach_action
+SLA-ACK-INSTANT,Immediate system acknowledgement,all customer/supplier submissions,1 minute,Internal target; not a public promise,Escalate to service-health owner if no acknowledgement.
+SLA-IDENTITY-VERIFY,Identity verification delivery,W04/W09,5 minutes,Internal target,Retry permitted channel; escalate terminal delivery failure.
+SLA-CUSTOMER-ONBOARD,Customer onboarding completion,W04,30 minutes when customer inputs are complete,Internal target,Escalate unresolved verification/duplicate issue.
+SLA-SUPPLIER-ONBOARD,Supplier onboarding completeness review,W09,4 business hours after complete submission,Internal target,Notify missing requirements; do not auto-approve.
+SLA-SUPPLIER-VERIFY,Supplier independent verification,W10,1 business day after complete evidence,Internal target,Escalate high-risk/fraud/legal issues.
+SLA-INQUIRY-FIRST-RESPONSE,Inquiry first qualification response,W05,5 minutes,Internal target,Open service exception if no response.
+SLA-CUSTOMER-INPUT,Customer missing-information response window,W05/W06,24 hours default; configurable by inquiry,Operational configuration,Reminder then expire/close or continue by policy.
+SLA-DOCUMENT-STANDARD,Standard document processing,W07,15 minutes,Internal target,Escalate unreadable/complex documents.
+SLA-DOCUMENT-COMPLEX,Complex BOQ/drawing/CAD processing,W07,2 hours,Internal target,Escalate to domain specialist or request clarification.
+SLA-PRIVACY-REVIEW,Supplier-safe package review,W08,30 minutes after complete candidate,Internal target,Block dispatch until resolved.
+SLA-DISPATCH,Dispatch after safe approval,W12,15 minutes,Internal target,Escalate no-eligible-supplier or technical failure.
+SLA-HANDOFF-CRITICAL,Critical handoff acceptance,critical workflows,15 minutes,Internal target,Escalate to receiving manager and Chief of Staff.
+SLA-HANDOFF-STANDARD,Standard handoff acceptance,non-critical workflows,4 hours,Internal target,Escalate to receiving manager.
+SLA-NOTIFICATION,Approved notification first attempt,W13,5 minutes,Internal target,Retry eligible failure; terminal escalation.
+SLA-SUPPLIER-ACK,Supplier inquiry acknowledgement,W14,4 hours,Operational default,Reminder; then no-response state.
+SLA-QUOTE-WINDOW,Supplier quotation window,W14,48 hours default; inquiry-configurable,Operational default,Reminder; close/extend only by accountable owner.
+SLA-COMPARISON-PUBLISH,Comparison publication after readiness,W15,30 minutes,Internal target,Escalate privacy/data mismatch.
+SLA-PAYMENT-CONFIRM,Payment confirmation and reconciliation,W16,5 minutes after provider event,Internal target,Open reconciliation exception.
+SLA-REFUND-TRIAGE,Refund/dispute first triage,W17,4 business hours,Internal target,Escalate fraud/legal/material financial risk.
+SLA-SUPPORT-ACK,Customer support acknowledgement,W18,15 minutes,Internal target,Escalate service backlog.
+SLA-SUPPORT-RESOLVE,Normal support resolution,W18,4 business hours,Internal target,Specialist handoff if unresolved.
+SLA-SUPPLIER-RETENTION,Supplier retention diagnosis,W19,1 business day after signal,Internal target,Escalate verification/conduct issue.
+SLA-CONTENT-REVIEW,Marketing asset review,W20,4 hours,Internal target,Do not publish unreviewed asset.
+SLA-PARTNERSHIP-QUALIFY,Partnership qualification,W21,2 business days,Internal target,Close unqualified opportunity.
+SLA-PRODUCT-TRIAGE,Product request triage,W22,1 business day,Internal target,Escalate critical user/security issue.
+SLA-AI-CHANGE-REVIEW,AI change independent review,W23,Defined per change; default 1 business day,Internal target,Block release while unmeasured.
+SLA-RELEASE-DECISION,Release decision after complete evidence,W24,2 hours,Internal target,Incomplete/error checks remain unmeasured.
+SLA-REPORTING,Scheduled reporting publication,W25,By approved reporting calendar,Internal target,Escalate source/data-quality block.
+SLA-KNOWLEDGE-VALIDATE,Knowledge validation,W26,2 business days,Internal target,Keep draft unavailable until validated.
+SLA-FINANCIAL-CLOSE,Monthly financial close,W27,5 business days after period end,Internal target,Critical reconciliation blocks close.
+SLA-LEGAL-REVIEW,Standard legal/compliance review,W28,2 business days,Internal target,Urgent/material cases use critical escalation.
+SLA-INCIDENT-P0,Critical incident acknowledgement/containment,W29,5 minutes / 15 minutes,Internal critical target,"Immediate executive, security and risk escalation."
+SLA-INCIDENT-P1,High incident acknowledgement/containment,W29,15 minutes / 60 minutes,Internal critical target,Escalate to QA/SRE/security.
+SLA-REMEDIATION,Critical capability remediation plan,W30,1 business day,Internal target,Role remains restricted until verified.

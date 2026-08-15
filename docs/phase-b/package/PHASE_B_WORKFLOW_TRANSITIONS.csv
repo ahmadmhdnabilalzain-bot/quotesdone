@@ -1,0 +1,36 @@
+﻿from_state,to_state,condition
+draft,queued,Workflow accepted for processing.
+draft,cancelled,Authorized cancellation before work begins.
+queued,active,Accountable owner starts work.
+queued,cancelled,Authorized cancellation before execution.
+active,waiting_input,Required external/internal evidence is missing.
+active,waiting_handoff,Next owner must accept a handoff.
+active,waiting_review,Independent review is required.
+active,blocked,A hard gate or named blocker prevents work.
+active,approved,Decision/review passes but closure actions remain.
+active,rejected,Decision/review fails and correction/closure follows.
+active,failed,Execution fails.
+active,completed,All required steps and closure criteria are satisfied.
+active,cancelled,Authorized cancellation.
+waiting_input,active,Required input arrives and is accepted.
+waiting_input,expired,Input deadline expires.
+waiting_input,cancelled,Authorized cancellation.
+waiting_handoff,active,Receiving owner accepts the handoff.
+waiting_handoff,blocked,Receiving owner rejects an incomplete/invalid handoff.
+waiting_handoff,cancelled,Authorized cancellation.
+waiting_review,active,Reviewer requests correction and work resumes.
+waiting_review,approved,Reviewer approves.
+waiting_review,rejected,Reviewer rejects.
+waiting_review,blocked,Review cannot proceed due to missing evidence/conflict.
+blocked,active,Blocker is resolved and evidence is accepted.
+blocked,failed,Blocker is terminal or cannot be resolved.
+blocked,cancelled,Authorized cancellation.
+approved,active,Required post-approval execution begins.
+approved,completed,Approval is the final required end state.
+rejected,active,A permitted correction or appeal begins.
+rejected,completed,Rejection is the final required end state.
+failed,active,A permitted retry/recovery begins.
+failed,cancelled,Failure is closed without retry.
+expired,active,Authorized reopen/restart.
+expired,cancelled,Expired case closed.
+completed,superseded,A new approved version/cycle replaces the completed record.
