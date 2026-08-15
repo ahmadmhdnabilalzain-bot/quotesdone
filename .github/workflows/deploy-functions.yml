@@ -60,16 +60,16 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'Project ref to deploy to. Type the production ref to mean production.'
+        description: 'Project ref to deploy to. There is only one project now; this exists so a dispatch still has to name it deliberately.'
         required: true
-        default: pglpqrhvozwepymcuunn
+        default: htdblwldjkcgjvmqkbeh
       slugs:
         description: 'Space-separated function names. Leave blank to deploy what changed in the last commit.'
         required: false
         default: ''
 
 env:
-  STAGING_REF: pglpqrhvozwepymcuunn
+  # STAGING_REF is gone with the staging branch it named (deleted 15 Aug 2026). One project, one ref.
   PRODUCTION_REF: htdblwldjkcgjvmqkbeh
 
 jobs:
@@ -113,7 +113,18 @@ jobs:
             case "$before" in
               ''|0000000000000000000000000000000000000000) before="${{ github.sha }}~1" ;;
             esac
-            echo "ref=${{ env.STAGING_REF }}" >> "$GITHUB_OUTPUT"
+            # ── THERE IS NO STAGING ANY MORE (15 Aug 2026) ───────────────────────────────────────
+            # The founder deleted the staging branch: "from now on there is no staging branches. we
+            # directly build, test, pass then production." `list_projects` now returns exactly one
+            # project. This line used to name STAGING_REF, which no longer resolves to anything —
+            # every push would have deployed into a project that does not exist.
+            #
+            # The safety that mattered is kept and is now stricter, not looser. Deploying is gated
+            # on the branch instead of on a second environment: a push to main deploys to
+            # production, and a push to any other branch resolves the same slug set, prints it, and
+            # TYPECHECKS it, but the deploy step below does not run. Build, test, pass, then
+            # production — with the typecheck as the gate that used to be staging.
+            echo "ref=${{ env.PRODUCTION_REF }}" >> "$GITHUB_OUTPUT"
             echo "slugs=" >> "$GITHUB_OUTPUT"
             echo "base=$before" >> "$GITHUB_OUTPUT"
             # ── PRODUCTION WAS ONLY EVER AS CURRENT AS THE LAST MANUAL DEPLOY (14 Aug 2026) ───────
@@ -181,8 +192,13 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # Gated on the BRANCH now that there is no staging to absorb a bad bundle first. A dispatch
+      # names its own target and is trusted; a push deploys only from main. Everything else has
+      # already been printed and typechecked above, which is the "test, pass" half.
       - name: Deploy
-        if: steps.gate.outputs.configured == 'true'
+        if: >-
+          steps.gate.outputs.configured == 'true'
+          && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main')
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -202,22 +218,21 @@ jobs:
       # deploy_functions.mjs takes --changed --base itself, and its own logic widens the set to
       # every importer when anything under _shared moves — that widening is what production has been
       # missing, not the tooling. Passing the identical arguments is the point.
-      - name: Deploy to production
-        if: steps.gate.outputs.configured == 'true' && steps.scope.outputs.promote == 'true'
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: |
-          node scripts/deploy_functions.mjs --ref=${{ env.PRODUCTION_REF }} --production \
-            ${{ steps.scope.outputs.slugs || format('--changed --base={0}', steps.scope.outputs.base) }}
+      # The separate "Deploy to production" step is gone. It existed to promote a bundle from
+      # staging to production AFTER staging accepted it, so a broken bundle could not reach
+      # production by being second in a list. With one project the Deploy step above IS the
+      # production deploy, and running a second identical deploy would only make the log lie about
+      # how many places the code went.
 
-      # An announcement, so a run that promoted and a run that did not are distinguishable in the
+      # An announcement, so a run that deployed and a run that did not are distinguishable in the
       # log without reading the step conditions.
-      - name: Say whether production was promoted
+      - name: Say whether production was updated
         run: |
-          if [ "${{ steps.scope.outputs.promote }}" = "true" ] && [ "${{ steps.gate.outputs.configured }}" = "true" ]; then
-            echo "promoted to production (${{ env.PRODUCTION_REF }})"
-          elif [ "${{ steps.scope.outputs.promote }}" = "true" ]; then
-            echo "::warning title=Not promoted::main was pushed but SUPABASE_ACCESS_TOKEN is not set, so production was NOT updated."
+          deployable='${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}'
+          if [ "$deployable" = "true" ] && [ "${{ steps.gate.outputs.configured }}" = "true" ]; then
+            echo "deployed to production (${{ env.PRODUCTION_REF }})"
+          elif [ "$deployable" = "true" ]; then
+            echo "::warning title=Not deployed::this run was deployable but SUPABASE_ACCESS_TOKEN is not set, so production was NOT updated."
           else
-            echo "staging only — not a push to main (event ${{ github.event_name }}, ref ${{ github.ref }})"
+            echo "typechecked only — not main and not a dispatch (event ${{ github.event_name }}, ref ${{ github.ref }}). There is no staging to deploy to; production moves from main."
           fi
