@@ -1,0 +1,14 @@
+state,definition,terminal
+received,Raw founder message recorded; no work yet.,NO
+interpreting,Deterministic registry/parser evaluating scope.,NO
+clarification_required,Command cannot be safely routed without one clarification.,NO
+accepted,Interpretation accepted and plan ready.,NO
+routed,Exact workflow/role plan resolved.,NO
+tasks_created,All immediate tasks created atomically.,NO
+in_progress,At least one child task executing.,NO
+partially_blocked,One or more child tasks blocked; command owner still active.,NO
+completed,All required child tasks closed and completion summary delivered.,YES
+cancelled,Founder or permitted workflow cancellation completed.,YES
+refused,"Unsafe, forbidden or unsupported command refused with reason.",YES
+superseded,Replaced by a newer founder command.,YES
+failed,System failure prevented safe routing/execution; incident/task created.,YES

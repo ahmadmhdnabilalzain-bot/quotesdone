@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Canonical Event Outbox",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "outbox_id",
+    "event_id",
+    "workflow_id",
+    "business_object_id",
+    "dedupe_key",
+    "payload",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "outbox_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workflow_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "business_object_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "business_object_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "producer_role_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "system_actor_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "accountable_role_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dedupe_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "payload": {
+      "type": "object"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "claimed",
+        "delivered",
+        "retry_wait",
+        "dead_letter",
+        "cancelled",
+        "superseded"
+      ]
+    },
+    "attempts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "next_attempt_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "delivered_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "trace_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

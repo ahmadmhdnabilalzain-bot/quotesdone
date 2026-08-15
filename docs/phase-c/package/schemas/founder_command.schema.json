@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Founder Command",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command_id",
+    "session_id",
+    "founder_identity_id",
+    "raw_message_id",
+    "status",
+    "command_owner_role_id",
+    "created_at",
+    "idempotency_key"
+  ],
+  "properties": {
+    "command_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "founder_identity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "raw_message_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "raw_text_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "received",
+        "interpreting",
+        "clarification_required",
+        "accepted",
+        "routed",
+        "tasks_created",
+        "in_progress",
+        "partially_blocked",
+        "completed",
+        "cancelled",
+        "refused",
+        "superseded",
+        "failed"
+      ]
+    },
+    "command_owner_role_id": {
+      "const": "chief_of_staff"
+    },
+    "intent_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "workflow_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "primary_task_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "P0",
+        "P1",
+        "P2",
+        "P3"
+      ]
+    },
+    "due_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "trace_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}
