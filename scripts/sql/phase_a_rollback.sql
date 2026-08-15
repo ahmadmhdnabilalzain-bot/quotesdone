@@ -105,3 +105,6 @@ update public.org_tasks set assigned_agent = 'gov_relations_mgr', updated_at = n
 update public.org_role set evaluation_suite = null where role_id = 'product_ux_designer';
 
 delete from public.org_agent_alias where alias = 'gov_relations_mgr';
+
+delete from public.employee_workflow where agent_key = 'product_ux_designer';
+delete from public.org_role_identity where agent_key = 'product_ux_designer';
