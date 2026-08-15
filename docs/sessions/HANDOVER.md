@@ -38,15 +38,20 @@ discussing money with him.
 
 ## The phase plan (his structure, agreed)
 
-**Phase A — identity and structure. COMPLETE.**
-**Phase B — knowledge per agent. NOT STARTED. This is next.**
+**Phase A — identity and structure. IN PROGRESS. NOT COMPLETE.**
+**Phase B — knowledge per agent. NOT STARTED.**
 **Phase C — departmental linkage. NOT STARTED.**
 
-Do not begin Phase B until he says so, and do not touch Phase C before B is finished.
+> I reported Phase A closed on 15 Aug. **The founder said it is not** — *"no phase A has alot of
+> work still."* He is the judge of when a phase is done, not the checks. Do not re-declare it
+> complete. Ask him what remains, or work what he names, and take the checks below as evidence of
+> what has been verified so far — not as a verdict that the phase is finished.
+
+Do not begin Phase B until he says Phase A is done. Do not touch Phase C before B is finished.
 
 ---
 
-## Phase A — what was proven (all free, both projects)
+## Phase A — what has been VERIFIED so far (not a completion claim)
 
 | | |
 |---|---|
