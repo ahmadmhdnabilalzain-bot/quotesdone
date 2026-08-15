@@ -391,6 +391,20 @@ const SEQ_CASES = [
 
 let pass = 0, fail = 0;
 
+// The baseline every injection is measured against. Taken BEFORE the first probe so a real
+// founder command sitting in the table is simply part of the baseline, not a failure.
+const before = await (async () => (await sql(`select
+  (select count(*) from public.phase_c_task) tasks,
+  (select count(*) from public.founder_command) cmds,
+  (select count(*) from public.founder_command_message) msgs,
+  (select count(*) from public.founder_approval_request) appr,
+  (select count(*) from public.phase_c_workflow_run) runs,
+  (select count(*) from public.phase_c_event_outbox) outbox,
+  (select count(*) from public.phase_c_trace) traces,
+  (select count(*) from public.phase_c_handoff_run) handoffs,
+  (select count(*) from public.founder_release_approval) release_appr,
+  (select count(*) from public.phase_c_component where component_id like 'probe:%') probe_components`))[0])();
+
 for (const [name, body, expect] of CASES) {
   // The injection runs, then the transaction is aborted by a RAISE either way.  If the guard
   // fired we see its message; if it did NOT fire we see INJECTION_SURVIVED, which is a failure.
@@ -447,8 +461,13 @@ for (const [name, decls, body, expect] of SEQ_CASES) {
   else { fail++; console.log(`FAIL  ${name}\n        expected to start with: ${expect}\n        got: ${got.slice(0, 300)}`); }
 }
 
-// Nothing may have survived.
-const left = (await sql(`select
+// Nothing may have survived — measured as a DELTA, not as an absolute.
+//
+// This asserted `=== 0` on every table, which only ever worked because the database was empty. The
+// moment a real founder command existed it went red for five tables while all 55 injections were
+// still being refused correctly — a check that fails on real data teaches people to ignore it, and
+// this one would have hidden a genuine regression behind its own noise.
+const countsNow = async () => (await sql(`select
   (select count(*) from public.phase_c_task) tasks,
   (select count(*) from public.founder_command) cmds,
   (select count(*) from public.founder_command_message) msgs,
@@ -459,11 +478,18 @@ const left = (await sql(`select
   (select count(*) from public.phase_c_handoff_run) handoffs,
   (select count(*) from public.founder_release_approval) release_appr,
   (select count(*) from public.phase_c_component where component_id like 'probe:%') probe_components`))[0];
-console.log('\nleftover after every aborted injection: ' + JSON.stringify(left));
-for (const [k, v] of Object.entries(left)) {
-  if (k === 'release_appr') {
-    if (Number(v) !== 1) { console.error(`FAIL: founder_release_approval is ${v}, expected the 1 historical row`); fail++; }
-  } else if (Number(v) !== 0) { console.error(`FAIL: ${k} left ${v} row(s) behind`); fail++; }
+
+const after = await countsNow();
+console.log('\nrow counts before/after every aborted injection:');
+for (const [k, v] of Object.entries(after)) {
+  const b = Number(before[k]), a = Number(v);
+  if (a !== b) { console.error(`FAIL: ${k} moved ${b} -> ${a}; an injection was not rolled back`); fail++; }
+  else console.log(`  ok   ${k.padEnd(18)} ${a} (unchanged)`);
+}
+// Probe components must be absent outright — they are named, so their presence is unambiguous
+// rather than a delta.
+if (Number(after.probe_components) !== 0) {
+  console.error(`FAIL: ${after.probe_components} probe component(s) persisted`); fail++;
 }
 
 console.log(`\n${pass}/${pass + fail} injected defects refused`);
