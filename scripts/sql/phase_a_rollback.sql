@@ -103,3 +103,5 @@ update public.org_tasks set assigned_agent = 'gov_relations_mgr', updated_at = n
    and id in (select id from public.org_tasks where assigned_agent='partnerships_mgr'
               order by created_at limit 5);
 update public.org_role set evaluation_suite = null where role_id = 'product_ux_designer';
+
+delete from public.org_agent_alias where alias = 'gov_relations_mgr';
