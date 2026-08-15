@@ -175,11 +175,30 @@ Deno.serve(async (req) => {
     const url = String(body.artifact_url || '');
     const platform = String(body.platform || 'generic');
     const kind = String(body.kind || 'image');
+    // THE DEFAULT REVIEWER WAS THE AUTHOR (15 Aug 2026). This defaulted to 'marketing_design',
+    // which is the runtime agent_key of the Visual Design Director — the agent that produces these
+    // artifacts. So unless a caller named someone else, the designer reviewed its own work, and
+    // the guard below could not see it because `visual_design` !== `marketing_design` as strings
+    // even though fn_org_agent_resolve maps both to the same employee. The default is now the
+    // artifact-QA path: AI Quality Assurance Reviewer (ai_qa_specialist).
     const authorAgent = body.author_agent ? String(body.author_agent) : null;
-    const reviewerAgent = String(body.reviewer_agent || 'marketing_design');
+    const reviewerAgent = String(body.reviewer_agent || 'ai_quality_reviewer');
     if (!subjectType || !subjectId || !url) return J({ error: 'subject_type, subject_id and artifact_url are required' }, 400);
-    if (authorAgent && authorAgent === reviewerAgent) {
-      return J({ error: 'the agent that produced this artifact cannot be its only reviewer', author_agent: authorAgent }, 409);
+    // RESOLVE BEFORE COMPARING. Same fix review_chain got on 14 Aug and this path did not: an alias
+    // is a different string for the same employee, so a raw comparison answers "independent" for
+    // exactly the case this guard exists to refuse. Refusing here — before the artifact is fetched
+    // and before any vision call — also means a self-review costs nothing rather than a model call.
+    const canon = async (id: string | null) => {
+      if (!id) return null;
+      const { data } = await admin.rpc('fn_org_agent_resolve', { p_addressee: id });
+      return (typeof data === 'string' && data) ? data : id;
+    };
+    const [authorCanon, reviewerCanon] = await Promise.all([canon(authorAgent), canon(reviewerAgent)]);
+    if (authorCanon && authorCanon === reviewerCanon) {
+      return J({
+        error: 'the agent that produced this artifact cannot be its only reviewer',
+        author_agent: authorAgent, reviewer_agent: reviewerAgent, resolves_to: authorCanon,
+      }, 409);
     }
 
     // 1. the actual bytes
@@ -352,7 +371,11 @@ Deno.serve(async (req) => {
       artifact_sha256: digest, revision, bytes: buf.length,
       mime: dim?.mime || headerMime || null, width: dim?.width || null, height: dim?.height || null,
       aspect_ratio: dim && dim.height ? Number((dim.width / dim.height).toFixed(4)) : null,
-      author_agent: authorAgent, reviewer_agent: reviewerAgent,
+      // The CANONICAL identities, not what the caller happened to type. Storing the raw strings
+      // would leave this table carrying two names for one employee, and force every later reader
+      // to re-resolve before it could compare them. The trigger canonicalises too; doing it here as
+      // well means the row the caller is shown matches the row that was stored.
+      author_agent: authorCanon, reviewer_agent: reviewerCanon,
       deterministic: det, vision, verdict, failures,
     }, { onConflict: 'subject_type,subject_id,artifact_sha256,revision' }).select().single();
     if (error) return J({ error: error.message }, 500);
