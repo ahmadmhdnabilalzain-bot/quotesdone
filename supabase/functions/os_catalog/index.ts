@@ -17,11 +17,24 @@ Deno.serve(async (req) => {
   try {
     if (req.method === 'OPTIONS') return J({ ok: true });
     const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
-    if (!token) return J({ error: 'unauthorized' }, 401);
-    const { data: u, error: uerr } = await admin.auth.getUser(token);
-    const email = u?.user?.email || '';
-    if (uerr || !email) return J({ error: 'unauthorized' }, 401);
-    if (!(await isAdmin(email))) return J({ error: 'forbidden' }, 403);
+    // BUILD MODE — the same open door os_api has carried since 15 Aug 2026. Seven OS surfaces
+    // were each written with their own auth preamble and only os_api was ever taught about the
+    // open door, which is why those tabs answered "Session expired" while the console beside
+    // them worked. Read every request, never cached: "activate the credentials" closes all seven
+    // with one INSERT. Absent any row it is CLOSED, and a gate that cannot be read is CLOSED.
+    // The identity is NAMED rather than borrowed — an open door signing the audit log with the
+    // founder's own email would make every row of that log a lie.
+    const openAccess = async () => {
+      try { const { data } = await admin.rpc('fn_os_open_access'); return data === true; }
+      catch (_e) { return false; }
+    };
+    let viaBuildMode = false;
+    if (!token) { if (await openAccess()) viaBuildMode = true; else return J({ error: 'unauthorized' }, 401); }
+    const { data: u, error: uerr } = viaBuildMode ? { data: null as any, error: null as any } : await admin.auth.getUser(token);
+    let email = u?.user?.email || '';
+    if (!viaBuildMode && (uerr || !email)) { if (await openAccess()) viaBuildMode = true; else return J({ error: 'unauthorized' }, 401); }
+    if (viaBuildMode) email = 'build-mode@quotesdone.local';
+    else if (!(await isAdmin(email))) return J({ error: 'forbidden' }, 403);
 
     const b = await req.json().catch(() => ({} as any));
     const action = String(b?.action || '');

@@ -383,25 +383,25 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.os_automation]
-verify_jwt = true
+verify_jwt = false
 
 [functions.os_catalog]
-verify_jwt = true
+verify_jwt = false
 
 [functions.os_health]
-verify_jwt = true
+verify_jwt = false
 
 [functions.os_incidents]
-verify_jwt = true
+verify_jwt = false
 
 [functions.os_ops]
-verify_jwt = true
+verify_jwt = false
 
 [functions.os_pages]
-verify_jwt = true
+verify_jwt = false
 
 [functions.os_settings]
-verify_jwt = true
+verify_jwt = false
 
 [functions.pdf_native]
 verify_jwt = false
