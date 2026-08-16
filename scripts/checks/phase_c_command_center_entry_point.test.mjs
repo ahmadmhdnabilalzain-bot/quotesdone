@@ -24,6 +24,15 @@ if (!hasToken) {
 }
 const { sql } = await import('../phase_c/lib/db.mjs');
 
+// Taken BEFORE the probe, so the closing assertion is a DELTA. It used to assert these four tables
+// were globally EMPTY - a claim about the whole company, not about this probe - and it went red for
+// good the moment the Phase C audit sent a real founder command over HTTPS.
+const before = (await sql(`select
+  (select count(*) from public.founder_command_message) m,
+  (select count(*) from public.founder_command) c,
+  (select count(*) from public.phase_c_task) t,
+  (select count(*) from public.founder_approval_request) a`))[0];
+
 let fail = 0;
 const check = (ok, what, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'}  ${what}${detail ? '  — ' + detail : ''}`);
@@ -86,7 +95,7 @@ for (const r of gateRows) {
 //   * it stays OUT of the x-os-key preview bypass, which is read-only by construction;
 //   * it stays PINNED to the two founder-command actions and cannot spread to other mutations.
 const founderGated = gateRows.filter(r => r.classification === 'founder_gated').map(r => r.action);
-check(founderGated.length === 2 && founderGated.every(a => ['founder_command', 'founder_command_control'].includes(a)),
+check(founderGated.length === 3 && founderGated.every(a => ['founder_command', 'founder_command_control', 'founder_command_clarify'].includes(a)),
       'founder_gated covers exactly the two founder-command actions', founderGated.join(', '));
 check(/ACTION_CLASS\[a\] === 'founder_gated'/.test(src),
       'os_api audits founder_gated actions alongside mutating ones');
@@ -231,8 +240,10 @@ const after = (await sql(`select
   (select count(*) from public.founder_command) c,
   (select count(*) from public.phase_c_task) t,
   (select count(*) from public.founder_approval_request) a`))[0];
-check(Number(after.m) === 0 && Number(after.c) === 0 && Number(after.t) === 0 && Number(after.a) === 0,
-      'the probe left no founder message, command, task or approval behind', JSON.stringify(after));
+const delta = Object.fromEntries(Object.keys(after).map(k => [k, Number(after[k]) - Number(before[k])]));
+check(Object.values(delta).every(v => v === 0),
+      'the probe left no founder message, command, task or approval behind',
+      JSON.stringify(delta) + ` (table totals ${JSON.stringify(after)})`);
 
 console.log(`\n${fail === 0 ? 'COMMAND CENTER ENTRY POINT VERIFIED' : `${fail} check(s) failed`}`);
 process.exit(fail === 0 ? 0 : 1);
