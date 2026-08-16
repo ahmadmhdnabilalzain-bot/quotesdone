@@ -1311,30 +1311,21 @@ scripts/sql/kernel_k0_founder_authentication.sql
 scripts/sql/the_founder_has_a_name.sql
 scripts/sql/kernel_k1_baseline_append_only.sql
 scripts/sql/kernel_k4_cancellation.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/kernel_k12_paid_provider_gate.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/kernel_k8_refund_only_founder_approval.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/kernel_k7_internal_review.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 # KERNEL K5 -> K2 -> K2b. This order is a dependency, not a preference: K2 emits through
 # fn_kernel_outbox_emit and reads fn_kernel_assert_not_in_delivery, both created by K5; K2b calls
 # fn_kernel_workflow_start, created by K2.
 scripts/sql/kernel_k5_factual_outbox.sql
 scripts/sql/kernel_k2_workflow_start.sql
 scripts/sql/kernel_k2b_founder_submit_calls_kernel.sql
-scripts/sql/kernel_k5_factual_outbox.sql
-scripts/sql/kernel_k2_workflow_start.sql
-scripts/sql/kernel_k2b_founder_submit_calls_kernel.sql
 scripts/sql/kernel_k5b_worker_points_at_the_kernel.sql
 scripts/sql/kernel_k6_trace_ledger.sql
-scripts/sql/kernel_k6_trace_ledger.sql
+scripts/sql/kernel_k13a_legacy_ingress_no_reemit.sql
+
+scripts/sql/kernel_k11_component_exposure.sql
