@@ -1338,3 +1338,8 @@ scripts/sql/kernel_k3_step_engine.sql
 scripts/sql/kernel_k3b_graph_validation.sql
 scripts/sql/kernel_k10_trigger_inbox.sql
 scripts/sql/kernel_s3_system_execution_traces.sql
+
+scripts/sql/kernel_k13_retire_old_runtime.sql
+scripts/sql/kernel_k3c_run_trace_follows_the_run.sql
+
+scripts/sql/kernel_s0b_ledger_follows_the_manifest.sql
