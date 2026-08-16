@@ -110,7 +110,11 @@ test('founder_gated is pinned to the founder command channel only', () => {
   // phase_c_founder_identity - but it is still an EXEMPTION, and an exemption that can spread is a
   // loophole. Enumerated here and pinned by control_mode_action_founder_gated_pinned in the
   // database, so both layers have to be defeated at once.
-  const allowed = new Set(['founder_command', 'founder_command_control']);
+  // founder_command_clarify joined them on 16 Aug 2026: answering a clarification can create the
+  // tasks the original instruction could not safely produce, so it writes and it is audited. The
+  // same three names are pinned by control_mode_action_founder_gated_pinned in the database — the
+  // list is widened in both layers together or not at all, which is the whole point of having two.
+  const allowed = new Set(['founder_command', 'founder_command_control', 'founder_command_clarify']);
   const leaked = [...classified].filter(([a, c]) => c === 'founder_gated' && !allowed.has(a)).map(([a]) => a);
   assert.deepEqual(leaked, [], `founder_gated must not be used for ordinary actions: ${leaked.join(', ')}`);
 });
