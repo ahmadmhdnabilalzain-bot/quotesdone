@@ -1,0 +1,309 @@
+-- ============================================================================================
+-- KERNEL K4 — ONE CANCELLATION SERVICE
+--
+-- What the audit measured, live, on 16 Aug 2026:
+--
+--   founder_command 227 is 'cancelled' (closed_at 10:50:13) and its four command tasks 785-788 are
+--   'cancelled'. Its derived workflow run 96 is still 'queued' and its task 794, accountable to
+--   marketing_director, is still 'queued'.
+--
+-- The old cancellation lived inside fn_founder_command_control and reached exactly two object
+-- kinds: the command, and the tasks carrying that command_id. Everything the command's EVENT went
+-- on to create — the run, its step runs, the task the ingress created with command_id NULL, the
+-- handoffs, the undelivered outbox rows — was outside its reach. The founder cancelled his
+-- instruction and an employee kept the work.
+--
+-- This is one service. It takes a subject, walks every object reachable from it, closes each one
+-- with its own sealed trace, and then ASSERTS the postcondition the founder stated:
+--
+--     "A cancelled command may leave no queued derived work."
+--
+-- The assertion is the point. A propagation that silently misses a table is the same defect wearing
+-- a longer function; the raise at the end is what makes the sweep mean something. If it fires, the
+-- transaction rolls back and nothing is half-cancelled.
+-- ============================================================================================
+
+-- --------------------------------------------------------- 1. a plan is a plan, and it can close
+-- founder_command_plan had no lifecycle at all: a row appeared and stayed, so a cancelled command
+-- kept a plan that read as live. Two nullable-with-default columns, no rewrite of history.
+alter table public.founder_command_plan
+  add column if not exists state text not null default 'active',
+  add column if not exists closed_at timestamptz;
+
+do $ck$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'founder_command_plan_state_ck') then
+    alter table public.founder_command_plan
+      add constraint founder_command_plan_state_ck
+      check (state in ('active','cancelled','superseded','completed'));
+  end if;
+end $ck$;
+
+-- ------------------------------------------------------------------- 2. the cancellation service
+create or replace function public.fn_kernel_cancel(p_input jsonb)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare
+  v_kind     text := coalesce(p_input->>'subject_kind', '');
+  v_ref      text := coalesce(p_input->>'subject_ref', '');
+  v_op       text := coalesce(nullif(p_input->>'op',''), 'cancel');
+  v_reason   text := coalesce(nullif(btrim(p_input->>'reason'),''), '');
+  v_actor    text := coalesce(p_input->>'actor', '');
+  v_terminal text;
+  v_command  bigint;
+  v_runs     bigint[] := '{}';
+  v_founder  text;
+  r          record;
+  v_trace    bigint;
+  n_cmd int := 0; n_plan int := 0; n_run int := 0; n_step int := 0;
+  n_task int := 0; n_handoff int := 0; n_outbox int := 0; n_trace int := 0;
+  v_left_tasks int; v_left_runs int; v_left_steps int; v_left_handoffs int; v_left_outbox int;
+begin
+  if v_op not in ('cancel','supersede') then
+    raise exception 'fn_kernel_cancel: op must be cancel or supersede, got %', v_op using errcode = '22023';
+  end if;
+  v_terminal := case when v_op = 'cancel' then 'cancelled' else 'superseded' end;
+
+  -- A cancellation with no stated reason is an unexplained disappearance in the audit trail.
+  if v_reason = '' then
+    raise exception 'fn_kernel_cancel: a reason is required' using errcode = '23514';
+  end if;
+
+  -- ---- resolve the subject ------------------------------------------------------------------
+  if v_kind = 'founder_command' then
+    -- Only the founder may cancel his own instruction. K0 put the one verifier in the estate;
+    -- this is the second caller of it, not a second copy of it.
+    v_founder := public.fn_phase_c_require_founder(v_actor);
+    v_command := nullif(regexp_replace(v_ref, '\D', '', 'g'), '')::bigint;
+    if v_command is null or not exists (select 1 from public.founder_command where command_id = v_command) then
+      return jsonb_build_object('ok', false, 'error', 'not_found', 'subject_ref', v_ref);
+    end if;
+    select coalesce(array_agg(run_id), '{}') into v_runs
+      from public.phase_c_workflow_run where command_id = v_command;
+
+  elsif v_kind = 'workflow_run' then
+    -- An autonomous run has no founder in the loop; the actor is recorded, not authenticated as
+    -- the founder, because requiring a founder here would make autonomous cleanup impossible.
+    v_runs := array[nullif(regexp_replace(v_ref, '\D', '', 'g'), '')::bigint];
+    if v_runs[1] is null or not exists (select 1 from public.phase_c_workflow_run where run_id = v_runs[1]) then
+      return jsonb_build_object('ok', false, 'error', 'not_found', 'subject_ref', v_ref);
+    end if;
+    select command_id into v_command from public.phase_c_workflow_run where run_id = v_runs[1];
+
+  else
+    raise exception 'fn_kernel_cancel: subject_kind must be founder_command or workflow_run, got %',
+      v_kind using errcode = '22023';
+  end if;
+
+  -- ---- (a) the command --------------------------------------------------------------------
+  if v_command is not null then
+    if exists (select 1 from public.founder_command
+                where command_id = v_command and state not in ('cancelled','superseded','completed')) then
+      if not exists (select 1 from public.phase_c_command_transition t
+                      join public.founder_command c on c.command_id = v_command
+                     where t.from_state = c.state and t.to_state = v_terminal) then
+        return jsonb_build_object('ok', false, 'error', 'transition_not_permitted',
+          'from', (select state from public.founder_command where command_id = v_command),
+          'to', v_terminal,
+          'message', 'The command state model does not allow this move. Nothing was cancelled.');
+      end if;
+      update public.founder_command
+         set state = v_terminal,
+             superseded_by = case when v_op = 'supersede'
+                                  then nullif(regexp_replace(coalesce(p_input->>'superseded_by',''), '\D','','g'),'')::bigint
+                                  else superseded_by end,
+             closed_at = now()
+       where command_id = v_command;
+      n_cmd := 1;
+    end if;
+
+    -- ---- (b) the command plan --------------------------------------------------------------
+    update public.founder_command_plan
+       set state = v_terminal, closed_at = now()
+     where command_id = v_command and state = 'active';
+    get diagnostics n_plan = row_count;
+  end if;
+
+  -- ---- (c) the workflow runs --------------------------------------------------------------
+  for r in select * from public.phase_c_workflow_run
+            where run_id = any(v_runs)
+              and state not in ('cancelled','superseded','completed','failed') loop
+    v_trace := public.fn_phase_c_trace_write('TRACE-WORKFLOW', jsonb_build_object(
+      'subject_kind','workflow_run', 'subject_ref', r.run_id::text, 'run_id', r.run_id,
+      'command_id', r.command_id, 'actor_role_id', coalesce(nullif(v_founder,''),'system'),
+      'system_actor_id','system.workflow_engine',
+      'state_before', r.state, 'state_after', v_terminal,
+      'evidence_refs', jsonb_build_array(jsonb_build_object('reason', v_reason, 'actor', v_actor)),
+      'status','sealed'));
+    update public.phase_c_workflow_run
+       set state = v_terminal, closed_at = now(),
+           closure_evidence = coalesce(closure_evidence,'{}'::jsonb)
+             || jsonb_build_object('cancelled_reason', v_reason, 'cancelled_by', v_actor,
+                                   'cancelled_at', now(), 'trace_id', v_trace)
+     where run_id = r.run_id;
+    n_run := n_run + 1;
+  end loop;
+
+  -- ---- (d) the open step runs -------------------------------------------------------------
+  for r in select * from public.phase_c_workflow_step_run
+            where run_id = any(v_runs)
+              and state not in ('cancelled','completed','failed','superseded') loop
+    v_trace := public.fn_phase_c_trace_write('TRACE-STEP', jsonb_build_object(
+      'subject_kind','step_run', 'subject_ref', r.step_run_id::text,
+      'run_id', r.run_id, 'step_run_id', r.step_run_id,
+      'actor_role_id', r.accountable_role_id, 'system_actor_id','system.workflow_engine',
+      'state_before', r.state, 'state_after', v_terminal,
+      'evidence_refs', jsonb_build_array(jsonb_build_object('reason', v_reason, 'actor', v_actor)),
+      'status','sealed'));
+    update public.phase_c_workflow_step_run
+       set state = v_terminal, finished_at = now(), trace_id = coalesce(trace_id, v_trace),
+           failure_reason = case when failure_reason = '' then 'cancelled: ' || v_reason else failure_reason end
+     where step_run_id = r.step_run_id;
+    n_step := n_step + 1;
+  end loop;
+
+  -- ---- (e) the tasks, BY COMMAND AND BY RUN ------------------------------------------------
+  -- The old sweep matched on command_id alone. Task 794 carries command_id NULL and run_id 96, which
+  -- is exactly how it survived its own command's cancellation.
+  for r in select * from public.phase_c_task
+            where ((v_command is not null and command_id = v_command) or run_id = any(v_runs))
+              and state in ('queued','assigned','accepted','in_progress','blocked') loop
+    v_trace := public.fn_phase_c_trace_write('TRACE-TASK', jsonb_build_object(
+      'subject_kind','task', 'subject_ref', r.task_id::text, 'task_id', r.task_id,
+      'command_id', r.command_id, 'run_id', r.run_id,
+      'actor_role_id', coalesce(nullif(v_founder,''),'system'),
+      'manager_role_id', r.manager_role_id, 'system_actor_id','system.command_router',
+      'state_before', r.state, 'state_after', v_terminal,
+      'evidence_refs', jsonb_build_array(jsonb_build_object('reason', v_reason, 'actor', v_actor)),
+      'status','sealed'));
+    update public.phase_c_task
+       set state = v_terminal, closed_at = now(), trace_id = v_trace
+     where task_id = r.task_id;
+    n_task := n_task + 1;
+  end loop;
+
+  -- ---- (f) the pending handoffs ------------------------------------------------------------
+  for r in select * from public.phase_c_handoff_run
+            where run_id = any(v_runs) and status = 'open' loop
+    v_trace := public.fn_phase_c_trace_write('TRACE-HANDOFF', jsonb_build_object(
+      'subject_kind','handoff_run', 'subject_ref', r.handoff_run_id::text, 'run_id', r.run_id,
+      'actor_role_id', r.sending_role_id, 'system_actor_id','system.workflow_engine',
+      'state_before', r.status, 'state_after','cancelled',
+      'evidence_refs', jsonb_build_array(jsonb_build_object('reason', v_reason, 'actor', v_actor)),
+      'status','sealed'));
+    update public.phase_c_handoff_run
+       set status = 'cancelled', decided_at = now(), trace_id = coalesce(trace_id, v_trace)
+     where handoff_run_id = r.handoff_run_id;
+    n_handoff := n_handoff + 1;
+  end loop;
+
+  -- ---- (g) the undelivered outbox rows -----------------------------------------------------
+  -- Delivered rows are NOT touched: a delivered event is a fact that happened, and rewriting it
+  -- would be falsifying history. Only what has not yet left the queue is stopped.
+  update public.phase_c_event_outbox
+     set status = 'superseded',
+         last_error = 'CANCELLED ' || to_char(now(),'YYYY-MM-DD') || ': ' || v_reason
+                   || ' (fn_kernel_cancel, subject ' || v_kind || ':' || v_ref || ')'
+   where status in ('pending','claimed','retry_wait')
+     and ( (v_command is not null and (payload->>'command_id') = v_command::text)
+        or (payload->>'run_id') in (select rr::text from unnest(v_runs) as rr) );
+  get diagnostics n_outbox = row_count;
+
+  -- ---- (h) seal every open trace whose subject was just closed -----------------------------
+  update public.phase_c_trace
+     set status = 'sealed', sealed_at = now()
+   where sealed_at is null
+     and ( (v_command is not null and command_id = v_command)
+        or run_id = any(v_runs)
+        or task_id in (select task_id from public.phase_c_task
+                        where (v_command is not null and command_id = v_command)
+                           or run_id = any(v_runs)) );
+  get diagnostics n_trace = row_count;
+
+  -- ---- (i) THE POSTCONDITION ---------------------------------------------------------------
+  -- "A cancelled command may leave no queued derived work." Asserted, not asserted about.
+  select count(*) into v_left_tasks from public.phase_c_task
+   where ((v_command is not null and command_id = v_command) or run_id = any(v_runs))
+     and state in ('queued','assigned','accepted','in_progress','blocked');
+  select count(*) into v_left_runs from public.phase_c_workflow_run
+   where run_id = any(v_runs) and state not in ('cancelled','superseded','completed','failed');
+  select count(*) into v_left_steps from public.phase_c_workflow_step_run
+   where run_id = any(v_runs) and state not in ('cancelled','completed','failed','superseded');
+  select count(*) into v_left_handoffs from public.phase_c_handoff_run
+   where run_id = any(v_runs) and status = 'open';
+  select count(*) into v_left_outbox from public.phase_c_event_outbox
+   where status in ('pending','claimed','retry_wait')
+     and ( (v_command is not null and (payload->>'command_id') = v_command::text)
+        or (payload->>'run_id') in (select rr::text from unnest(v_runs) as rr) );
+
+  if v_left_tasks + v_left_runs + v_left_steps + v_left_handoffs + v_left_outbox > 0 then
+    raise exception
+      'fn_kernel_cancel left derived work behind: tasks=% runs=% steps=% handoffs=% outbox=%',
+      v_left_tasks, v_left_runs, v_left_steps, v_left_handoffs, v_left_outbox
+      using errcode = '23514',
+            hint = 'The propagation missed a table. Nothing was cancelled — the transaction is rolled back.';
+  end if;
+
+  return jsonb_build_object('ok', true, 'op', v_op, 'subject_kind', v_kind, 'subject_ref', v_ref,
+    'command_id', v_command, 'run_ids', to_jsonb(v_runs), 'actor', v_actor, 'reason', v_reason,
+    'closed', jsonb_build_object('command', n_cmd, 'plan', n_plan, 'workflow_runs', n_run,
+      'step_runs', n_step, 'tasks', n_task, 'handoffs', n_handoff, 'outbox_superseded', n_outbox,
+      'traces_sealed', n_trace),
+    'queued_derived_work_remaining', 0);
+end $fn$;
+
+revoke all on function public.fn_kernel_cancel(jsonb) from public;
+grant execute on function public.fn_kernel_cancel(jsonb) to service_role;
+
+-- ---------------------------------------------------------------- 3. the invariant that watches it
+-- Denominator over the FULL population, never a filtered one. The Phase C correction added
+-- denominators to four trace checks and left the population filters that hid the failing rows.
+create or replace function public.fn_kernel_orphaned_work()
+returns table (check_name text, expected text, actual text, ok boolean)
+language sql stable security definer set search_path to 'public', 'pg_temp' as $q$
+  with dead as (
+    select c.command_id from public.founder_command c where c.state in ('cancelled','superseded')
+  ), dead_runs as (
+    select r.run_id from public.phase_c_workflow_run r
+     where r.command_id in (select command_id from dead)
+        or r.state in ('cancelled','superseded')
+  )
+  select 'live_tasks_of_cancelled_commands',  '0',
+         count(*) filter (where t.state in ('queued','assigned','accepted','in_progress','blocked'))::text
+           || ' of ' || count(*)::text,
+         count(*) filter (where t.state in ('queued','assigned','accepted','in_progress','blocked')) = 0
+    from public.phase_c_task t
+   where t.command_id in (select command_id from dead) or t.run_id in (select run_id from dead_runs)
+  union all
+  select 'live_runs_of_cancelled_commands', '0',
+         count(*) filter (where r.state not in ('cancelled','superseded','completed','failed'))::text
+           || ' of ' || count(*)::text,
+         count(*) filter (where r.state not in ('cancelled','superseded','completed','failed')) = 0
+    from public.phase_c_workflow_run r where r.command_id in (select command_id from dead)
+  union all
+  select 'live_step_runs_of_cancelled_runs', '0',
+         count(*) filter (where s.state not in ('cancelled','completed','failed','superseded'))::text
+           || ' of ' || count(*)::text,
+         count(*) filter (where s.state not in ('cancelled','completed','failed','superseded')) = 0
+    from public.phase_c_workflow_step_run s where s.run_id in (select run_id from dead_runs)
+  union all
+  select 'open_handoffs_of_cancelled_runs', '0',
+         count(*) filter (where h.status = 'open')::text || ' of ' || count(*)::text,
+         count(*) filter (where h.status = 'open') = 0
+    from public.phase_c_handoff_run h where h.run_id in (select run_id from dead_runs)
+  union all
+  select 'undelivered_outbox_of_cancelled_commands', '0',
+         count(*) filter (where o.status in ('pending','claimed','retry_wait'))::text
+           || ' of ' || count(*)::text,
+         count(*) filter (where o.status in ('pending','claimed','retry_wait')) = 0
+    from public.phase_c_event_outbox o
+   where (o.payload->>'command_id') in (select command_id::text from dead)
+  union all
+  select 'open_traces_of_cancelled_subjects', '0',
+         count(*) filter (where tr.sealed_at is null)::text || ' of ' || count(*)::text,
+         count(*) filter (where tr.sealed_at is null) = 0
+    from public.phase_c_trace tr
+   where tr.command_id in (select command_id from dead) or tr.run_id in (select run_id from dead_runs);
+$q$;
+
+revoke all on function public.fn_kernel_orphaned_work() from public;
+grant execute on function public.fn_kernel_orphaned_work() to service_role;
