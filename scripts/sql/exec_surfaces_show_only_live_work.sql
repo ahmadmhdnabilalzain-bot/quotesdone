@@ -99,6 +99,19 @@ begin
     from decision_log
     where route_to is not null and route_to <> 'auto'
       and created_at >= public.fn_os_fresh_start_at()
+      -- HELD FOR REVIEW MEANS SOMETHING IS STILL WAITING ON A HUMAN. This card had no such test:
+      -- it listed every routed decision, so a decision whose action had been cancelled or already
+      -- decided still sat under the heading "held for review". The founder found one this way
+      -- immediately after the stand-down - decision_log 2627, the audit trail of the same
+      -- agent_action the stand-down had cancelled at the same microsecond.
+      --
+      -- decision_log is append-only by trigger, so the row cannot be edited or removed and should
+      -- not be: it is the record that the gate ran. What was wrong is the claim made about it.
+      -- A decision is held only while its action is open; a decision that never produced an action
+      -- was never queued for anyone and does not belong on a review list either.
+      and exists (select 1 from public.agent_actions a
+                   where a.decision_log_id = decision_log.id
+                     and a.status in ('pending','needs_review'))
     order by created_at desc limit 8
   ) z;
 
