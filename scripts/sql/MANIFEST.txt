@@ -1322,3 +1322,7 @@ scripts/sql/kernel_k8_refund_only_founder_approval.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/kernel_k7_internal_review.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
