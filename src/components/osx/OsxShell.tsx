@@ -60,7 +60,20 @@ const MODULES: Mod[] = [
   { id: 'finance', label: 'Finance', icon: DollarSign, ws: 'ws.finance' },
   { id: 'agents', label: 'Smart Engine', icon: Sparkles, ws: 'ws.agents' },
   { id: 'knowledge', label: 'Knowledge', icon: BookOpen, kind: 'knowledge' },
-  { id: 'intake_audio', label: 'Intake Audio', icon: AudioLines, kind: 'intake_audio' },
+  // REMOVED 16 Aug 2026 — Intake Audio and Support.
+  //
+  // Intake Audio was a demo. Its panel carried a "Demo sample" chip and played a bundled
+  // Recording (2).m4a; both tables it would read hold zero rows, so it has never shown the founder
+  // one real thing. "Intake audio is not clear" was him looking at a fixture.
+  //
+  // Support was an incident desk with a "Report & notify founder" form — a human help channel in a
+  // company he is building to run without one. His words: "support tab is not needed as the
+  // company is fully automated."
+  //
+  // Both panels and both os_* backends are left in place, untouched. This removes the two entries
+  // from MODULES, which is the ONLY nav registration — the sidebar, the Ctrl+K palette and popOut
+  // all resolve through MODULES, so deleting the entry removes every entry point at once and adds
+  // one back if either is ever wanted again.
   { id: 'operations', label: 'Operations', icon: Settings2, ws: 'ws.operations' },
   { id: 'governance', label: 'Governance', icon: Scale, ws: 'ws.governance' },
   { id: 'ea', label: 'Assistant', icon: Calendar, ws: 'ws.ea' },
@@ -81,7 +94,6 @@ const MODULES: Mod[] = [
   { id: 'catalog', label: 'Categories', icon: ListChecks, kind: 'catalog' },
   { id: 'content', label: 'Content', icon: Newspaper, kind: 'content' },
   { id: 'health', label: 'System Health', icon: Activity, kind: 'health' },
-  { id: 'support', label: 'Support', icon: LifeBuoy, kind: 'support' },
 ];
 const PIPELINE = [ ['sent','New'], ['matched','Matched'], ['quoted','Quoted'], ['revealed','Revealed'], ['completed','Won'] ];
 
