@@ -160,7 +160,13 @@ begin
   end if;
 
   if v_alerts > 0 then
-    select value into v_secret from app_secrets where key = 'inbound_secret';
+    -- cred_db_internal, NOT the legacy shared inbound_secret. Rebuilding this function from its
+    -- 26 Jul migration text carried the old shared-secret read back in with it, and
+    -- schema_dump_not_replayable caught it: the live definition had already been migrated by
+    -- audit 9.5 / WI-001 and the file I rebuilt from predated that. Same credential
+    -- fn_resilience_watch uses to reach alert_founder. A guard refusing your own code is the
+    -- guard working.
+    select value into v_secret from app_secrets where key = 'cred_db_internal';
     perform net.http_post(
       url := v_url,
       headers := '{"Content-Type":"application/json"}'::jsonb,

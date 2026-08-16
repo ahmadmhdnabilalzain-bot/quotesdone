@@ -1,3 +1,16 @@
+-- ================================================================================================
+-- QuotesDone — FULL SCHEMA EXPORT
+-- Captured 2026-08-16T04:27:19.412Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+--
+-- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
+-- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
+-- replaying scripts/sql in order is not one either — those files are records of changes that
+-- were applied, not a schema.
+--
+-- Regenerate with: node scripts/checks/export_from_either_source_is_identical.mjs --write
+-- Verify with the same command and no flag: it fails if the database and this file disagree.
+-- ================================================================================================
+-- ===== END BANNER — the schema export begins below, and IS compared byte for byte =====
 -- QuotesDone — FULL SCHEMA EXPORT (generated from live DB, project htdblwldjkcgjvmqkbeh)
 -- Excludes: secret VALUES (key names listed below), and table ROW DATA (PII).
 -- Order is best-effort; this is a faithful reference mirror, not a guaranteed one-click restore.
@@ -50655,7 +50668,13 @@ begin
   end if;
 
   if v_alerts > 0 then
-    select value into v_secret from app_secrets where key = 'inbound_secret';
+    -- cred_db_internal, NOT the legacy shared inbound_secret. Rebuilding this function from its
+    -- 26 Jul migration text carried the old shared-secret read back in with it, and
+    -- schema_dump_not_replayable caught it: the live definition had already been migrated by
+    -- audit 9.5 / WI-001 and the file I rebuilt from predated that. Same credential
+    -- fn_resilience_watch uses to reach alert_founder. A guard refusing your own code is the
+    -- guard working.
+    select value into v_secret from app_secrets where key = 'cred_db_internal';
     perform net.http_post(
       url := v_url,
       headers := '{"Content-Type":"application/json"}'::jsonb,
