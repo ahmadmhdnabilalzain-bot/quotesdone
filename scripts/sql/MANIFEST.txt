@@ -1314,3 +1314,7 @@ scripts/sql/kernel_k4_cancellation.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/kernel_k12_paid_provider_gate.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
