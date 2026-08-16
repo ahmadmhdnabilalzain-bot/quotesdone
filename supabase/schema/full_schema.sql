@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-16T04:27:19.412Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-16T04:39:51.372Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -7583,7 +7583,7 @@ ALTER TABLE public.subcategory_trade_contribution ADD CONSTRAINT subcategory_tra
 ALTER TABLE public.task_commercial_effect ADD CONSTRAINT task_commercial_effect_window_sane CHECK (((measurement_window_days IS NULL) OR ((measurement_window_days >= 1) AND (measurement_window_days <= 730))));
 ALTER TABLE public.task_commercial_effect ADD CONSTRAINT task_commercial_effect_claim_is_complete CHECK (((no_commercial_effect AND (no_effect_reason IS NOT NULL) AND (length(btrim(no_effect_reason)) >= 10) AND (causal_kpi_chain IS NULL) AND (terminal_goal_key IS NULL)) OR ((NOT no_commercial_effect) AND (causal_kpi_chain IS NOT NULL) AND (array_length(causal_kpi_chain, 1) >= 1) AND (terminal_goal_key IS NOT NULL) AND (expected_leading_indicator IS NOT NULL) AND (expected_outcome IS NOT NULL) AND (expected_cost_aed IS NOT NULL) AND (risk IS NOT NULL) AND (measurement_window_days IS NOT NULL) AND (measurement_window_days > 0) AND (owner_agent_key IS NOT NULL) AND (review_trigger IS NOT NULL) AND (review_date IS NOT NULL))));
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_label_check CHECK ((btrim(label) <> ''::text));
-ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_domain_check CHECK ((domain = ANY (ARRAY['action_kind'::text, 'notification_type'::text])));
+ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_domain_check CHECK ((domain = ANY (ARRAY['action_kind'::text, 'notification_type'::text, 'customer_signal'::text])));
 ALTER TABLE public.unsafe_block ADD CONSTRAINT unsafe_block_disposition_check CHECK ((disposition = ANY (ARRAY['blocked'::text, 'escalated'::text, 'allowed_with_caveat'::text])));
 ALTER TABLE public.unsafe_class ADD CONSTRAINT unsafe_class_detector_chk CHECK ((((detector_status = 'LIVE'::text) AND (detector_fn IS NOT NULL) AND (not_measurable_reason IS NULL)) OR ((detector_status = 'NOT_MEASURABLE'::text) AND (detector_fn IS NULL) AND (length(COALESCE(not_measurable_reason, ''::text)) >= 40))));
 ALTER TABLE public.unsafe_class ADD CONSTRAINT unsafe_class_detector_status_check CHECK ((detector_status = ANY (ARRAY['LIVE'::text, 'NOT_MEASURABLE'::text])));
@@ -14119,7 +14119,12 @@ CREATE OR REPLACE FUNCTION public.fn_agent_actions_fill_alternatives()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare d record; v_amt text;
+declare
+  -- WAS `d record`. A record that is never assigned raises 55000 on the first field reference;
+  -- these three are null when the lookup is skipped, and null is answerable.
+  v_alts     jsonb;
+  v_decision text;
+  v_amt      text;
 begin
   -- Nothing to do once every field the caller could supply is already there.
   if NEW.alternatives is not null and NEW.assumptions is not null
@@ -14128,21 +14133,21 @@ begin
   end if;
 
   if NEW.decision_log_id is not null then
-    select l.alternatives, l.reasons, l.decision into d
+    select l.alternatives, l.decision into v_alts, v_decision
       from public.decision_log l where l.id = NEW.decision_log_id;
   end if;
 
   if NEW.alternatives is null
-     and d.alternatives is not null
-     and d.alternatives::text not in ('null', '[]', '{}') then
-    NEW.alternatives := d.alternatives;
+     and v_alts is not null
+     and v_alts::text not in ('null', '[]', '{}') then
+    NEW.alternatives := v_alts;
   end if;
 
   if NEW.assumptions is null then
     NEW.assumptions := jsonb_build_array(
       'The action context recorded in detail is accurate as supplied by ' || coalesce(NEW.agent, 'the agent') || '.',
       'fn_should_escalate and fn_authorize were evaluated on that context'
-        || case when d.decision is not null then ' and returned ' || d.decision || '.' else '.' end);
+        || case when v_decision is not null then ' and returned ' || v_decision || '.' else '.' end);
   end if;
 
   if NEW.expected_impact is null then
@@ -20677,7 +20682,7 @@ begin
     if not exists (select 1 from agent_actions a where a.kind='customer_escalation' and a.detail->>'signal'=rec.sig and a.detail->>'ref'=rec.ref and a.status in ('pending','needs_review')) then
       insert into agent_actions(agent,kind,status,risk,title,recommendation,detail,target_table,target_id)
       values('customer_success','customer_escalation','pending',rec.risk,
-        'Customer '||rec.sig||': '||rec.who, rec.msg,
+        public.fn_ui_label('customer_signal', rec.sig)||': '||rec.who, rec.msg,
         jsonb_build_object('signal',rec.sig,'ref',rec.ref,'customer',rec.who),
         'customers', rec.cid::text);
       n_esc:=n_esc+1;
@@ -28231,7 +28236,7 @@ CREATE OR REPLACE FUNCTION public.fn_index_slowdown_watch()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare n int := 0; r record; v_moved text;
+declare n int := 0; r record; v_moved text; v_ins int;
 begin
   for r in
     select z.index_name, z.measured_on, z.score, z.prev, z.dims, z.prev_dims
@@ -28270,8 +28275,14 @@ begin
                          'fell_by', round(r.prev - r.score, 2), 'measured_on', r.measured_on,
                          'dimensions_down', v_moved),
       format('Find the cause of the %s fall before it compounds. The dimensions above are where it came from; the drop is arithmetic, the reason is not, and only one of those two is in the data.', r.index_name),
-      'process');
-    n := n + 1;
+      'process')
+    -- The partial unique index gets the final say. Its predicate is repeated verbatim so the
+    -- arbiter resolves to evolution_proposal_dedupe_idx and nothing else.
+    on conflict (trigger_kind, subject, change_class) where status = 'proposed' do nothing;
+    -- Count what was written, not what was attempted: a duplicate that was skipped is not an
+    -- investigation raised, and the note at the bottom is read as if it were.
+    get diagnostics v_ins = row_count;
+    n := n + v_ins;
   end loop;
 
   insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
