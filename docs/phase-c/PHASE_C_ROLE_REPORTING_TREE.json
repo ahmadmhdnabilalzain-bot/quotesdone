@@ -1,0 +1,841 @@
+{
+  "role_id": "founder",
+  "display_title": "Founder - Ahmad Alzain",
+  "type": "founder",
+  "reports_to": null,
+  "direct_reports": [
+    {
+      "role_id": "ceo",
+      "display_title": "Chief Executive — AI CEO",
+      "class": "H",
+      "department_id": "exec",
+      "department_name": "Executive & Strategy",
+      "reports_to": "founder",
+      "direct_reports": [
+        {
+          "role_id": "cfo",
+          "display_title": "Chief Financial Officer",
+          "class": "H",
+          "department_id": "finance_payments",
+          "department_name": "Finance & Payments",
+          "reports_to": "ceo",
+          "direct_reports": [
+            {
+              "role_id": "financial_controller",
+              "display_title": "Financial Controller",
+              "class": "O",
+              "department_id": "finance_payments",
+              "department_name": "Finance & Payments",
+              "reports_to": "cfo",
+              "direct_reports": [
+                {
+                  "role_id": "accounts_payable_specialist",
+                  "display_title": "Accounts Payable Specialist",
+                  "class": "O",
+                  "department_id": "finance_payments",
+                  "department_name": "Finance & Payments",
+                  "reports_to": "financial_controller",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "billing_reconciliation_specialist",
+                  "display_title": "Billing & Reconciliation Specialist",
+                  "class": "O",
+                  "department_id": "finance_payments",
+                  "department_name": "Finance & Payments",
+                  "reports_to": "financial_controller",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "collections_revenue_assurance_specialist",
+                  "display_title": "Collections & Revenue Assurance Specialist",
+                  "class": "O",
+                  "department_id": "finance_payments",
+                  "department_name": "Finance & Payments",
+                  "reports_to": "financial_controller",
+                  "direct_reports": []
+                }
+              ]
+            },
+            {
+              "role_id": "fp_a_analyst",
+              "display_title": "FP&A Analyst",
+              "class": "S",
+              "department_id": "finance_payments",
+              "department_name": "Finance & Payments",
+              "reports_to": "cfo",
+              "direct_reports": []
+            },
+            {
+              "role_id": "payments_billing_manager",
+              "display_title": "Payments & Billing Manager",
+              "class": "O",
+              "department_id": "finance_payments",
+              "department_name": "Finance & Payments",
+              "reports_to": "cfo",
+              "direct_reports": []
+            }
+          ]
+        },
+        {
+          "role_id": "chief_of_staff",
+          "display_title": "Chief of Staff",
+          "class": "H",
+          "department_id": "exec",
+          "department_name": "Executive & Strategy",
+          "reports_to": "ceo",
+          "direct_reports": []
+        },
+        {
+          "role_id": "chief_product_technology_officer",
+          "display_title": "Chief Product & Technology Officer",
+          "class": "H",
+          "department_id": "product_engineering_ai",
+          "department_name": "Product, Engineering & AI",
+          "reports_to": "ceo",
+          "direct_reports": [
+            {
+              "role_id": "ai_director",
+              "display_title": "AI Director",
+              "class": "O",
+              "department_id": "product_engineering_ai",
+              "department_name": "Product, Engineering & AI",
+              "reports_to": "chief_product_technology_officer",
+              "direct_reports": [
+                {
+                  "role_id": "agent_prompt_engineer",
+                  "display_title": "Agent & Prompt Engineer",
+                  "class": "S",
+                  "department_id": "product_engineering_ai",
+                  "department_name": "Product, Engineering & AI",
+                  "reports_to": "ai_director",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "ai_architect",
+                  "display_title": "AI Architect",
+                  "class": "S",
+                  "department_id": "product_engineering_ai",
+                  "department_name": "Product, Engineering & AI",
+                  "reports_to": "ai_director",
+                  "direct_reports": []
+                }
+              ]
+            },
+            {
+              "role_id": "engineering_manager",
+              "display_title": "Engineering Manager",
+              "class": "O",
+              "department_id": "product_engineering_ai",
+              "department_name": "Product, Engineering & AI",
+              "reports_to": "chief_product_technology_officer",
+              "direct_reports": [
+                {
+                  "role_id": "backend_engineer",
+                  "display_title": "Backend Engineer",
+                  "class": "S",
+                  "department_id": "product_engineering_ai",
+                  "department_name": "Product, Engineering & AI",
+                  "reports_to": "engineering_manager",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "frontend_engineer",
+                  "display_title": "Frontend Engineer",
+                  "class": "S",
+                  "department_id": "product_engineering_ai",
+                  "department_name": "Product, Engineering & AI",
+                  "reports_to": "engineering_manager",
+                  "direct_reports": []
+                }
+              ]
+            },
+            {
+              "role_id": "product_manager",
+              "display_title": "Product Manager",
+              "class": "O",
+              "department_id": "product_engineering_ai",
+              "department_name": "Product, Engineering & AI",
+              "reports_to": "chief_product_technology_officer",
+              "direct_reports": [
+                {
+                  "role_id": "product_ux_designer",
+                  "display_title": "Product/UX Designer",
+                  "class": "S",
+                  "department_id": "product_engineering_ai",
+                  "department_name": "Product, Engineering & AI",
+                  "reports_to": "product_manager",
+                  "direct_reports": []
+                }
+              ]
+            },
+            {
+              "role_id": "product_optimisation_engineer",
+              "display_title": "Product Optimisation Engineer",
+              "class": "O",
+              "department_id": "product_engineering_ai",
+              "department_name": "Product, Engineering & AI",
+              "reports_to": "chief_product_technology_officer",
+              "direct_reports": []
+            },
+            {
+              "role_id": "solution_architect",
+              "display_title": "Solution Architect",
+              "class": "S",
+              "department_id": "product_engineering_ai",
+              "department_name": "Product, Engineering & AI",
+              "reports_to": "chief_product_technology_officer",
+              "direct_reports": []
+            }
+          ]
+        },
+        {
+          "role_id": "chief_revenue_officer",
+          "display_title": "Chief Revenue Officer",
+          "class": "H",
+          "department_id": "growth_revenue",
+          "department_name": "Growth & Revenue",
+          "reports_to": "ceo",
+          "direct_reports": [
+            {
+              "role_id": "account_manager",
+              "display_title": "Account Manager",
+              "class": "S",
+              "department_id": "growth_revenue",
+              "department_name": "Growth & Revenue",
+              "reports_to": "chief_revenue_officer",
+              "direct_reports": []
+            },
+            {
+              "role_id": "business_development_manager",
+              "display_title": "Business Development Manager",
+              "class": "O",
+              "department_id": "growth_revenue",
+              "department_name": "Growth & Revenue",
+              "reports_to": "chief_revenue_officer",
+              "direct_reports": []
+            },
+            {
+              "role_id": "crm_revenue_operations_manager",
+              "display_title": "CRM & Revenue Operations Manager",
+              "class": "O",
+              "department_id": "growth_revenue",
+              "department_name": "Growth & Revenue",
+              "reports_to": "chief_revenue_officer",
+              "direct_reports": []
+            },
+            {
+              "role_id": "marketing_director",
+              "display_title": "Marketing Director",
+              "class": "O",
+              "department_id": "growth_revenue",
+              "department_name": "Growth & Revenue",
+              "reports_to": "chief_revenue_officer",
+              "direct_reports": [
+                {
+                  "role_id": "brand_creative_manager",
+                  "display_title": "Brand & Creative Manager",
+                  "class": "O",
+                  "department_id": "growth_revenue",
+                  "department_name": "Growth & Revenue",
+                  "reports_to": "marketing_director",
+                  "direct_reports": [
+                    {
+                      "role_id": "visual_design_specialist",
+                      "display_title": "Visual Design Specialist",
+                      "class": "S",
+                      "department_id": "growth_revenue",
+                      "department_name": "Growth & Revenue",
+                      "reports_to": "brand_creative_manager",
+                      "direct_reports": []
+                    }
+                  ]
+                },
+                {
+                  "role_id": "content_strategy_copy_specialist",
+                  "display_title": "Content Strategy & Copy Specialist",
+                  "class": "S",
+                  "department_id": "growth_revenue",
+                  "department_name": "Growth & Revenue",
+                  "reports_to": "marketing_director",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "marketing_performance_analyst",
+                  "display_title": "Marketing Performance Analyst",
+                  "class": "O",
+                  "department_id": "growth_revenue",
+                  "department_name": "Growth & Revenue",
+                  "reports_to": "marketing_director",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "social_media_community_manager",
+                  "display_title": "Social Media & Community Manager",
+                  "class": "O",
+                  "department_id": "growth_revenue",
+                  "department_name": "Growth & Revenue",
+                  "reports_to": "marketing_director",
+                  "direct_reports": []
+                }
+              ]
+            },
+            {
+              "role_id": "strategic_partnerships_government_relations_manager",
+              "display_title": "Strategic Partnerships & Government Relations Manager",
+              "class": "S",
+              "department_id": "growth_revenue",
+              "department_name": "Growth & Revenue",
+              "reports_to": "chief_revenue_officer",
+              "direct_reports": []
+            }
+          ]
+        },
+        {
+          "role_id": "coo",
+          "display_title": "Chief Operating Officer",
+          "class": "H",
+          "department_id": "people_company_operations",
+          "department_name": "People & Company Operations",
+          "reports_to": "ceo",
+          "direct_reports": [
+            {
+              "role_id": "agent_workforce_capability_director",
+              "display_title": "Agent Workforce & Capability Director",
+              "class": "O",
+              "department_id": "people_company_operations",
+              "department_name": "People & Company Operations",
+              "reports_to": "coo",
+              "direct_reports": [
+                {
+                  "role_id": "culture_performance_manager",
+                  "display_title": "Culture & Performance Manager",
+                  "class": "S",
+                  "department_id": "people_company_operations",
+                  "department_name": "People & Company Operations",
+                  "reports_to": "agent_workforce_capability_director",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "learning_development_manager",
+                  "display_title": "Learning & Development Manager",
+                  "class": "S",
+                  "department_id": "people_company_operations",
+                  "department_name": "People & Company Operations",
+                  "reports_to": "agent_workforce_capability_director",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "organisation_design_lead",
+                  "display_title": "Organisation Design Lead",
+                  "class": "S",
+                  "department_id": "people_company_operations",
+                  "department_name": "People & Company Operations",
+                  "reports_to": "agent_workforce_capability_director",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "recruitment_specialist",
+                  "display_title": "Recruitment Specialist",
+                  "class": "S",
+                  "department_id": "people_company_operations",
+                  "department_name": "People & Company Operations",
+                  "reports_to": "agent_workforce_capability_director",
+                  "direct_reports": []
+                }
+              ]
+            },
+            {
+              "role_id": "document_operations_specialist",
+              "display_title": "Document Operations Specialist",
+              "class": "O",
+              "department_id": "people_company_operations",
+              "department_name": "People & Company Operations",
+              "reports_to": "coo",
+              "direct_reports": []
+            },
+            {
+              "role_id": "process_improvement_manager",
+              "display_title": "Process Improvement Manager",
+              "class": "O",
+              "department_id": "people_company_operations",
+              "department_name": "People & Company Operations",
+              "reports_to": "coo",
+              "direct_reports": []
+            },
+            {
+              "role_id": "project_coordinator_pmo",
+              "display_title": "Project Coordinator — PMO",
+              "class": "O",
+              "department_id": "people_company_operations",
+              "department_name": "People & Company Operations",
+              "reports_to": "coo",
+              "direct_reports": []
+            }
+          ]
+        },
+        {
+          "role_id": "corporate_performance_director",
+          "display_title": "Corporate Performance Director",
+          "class": "H",
+          "department_id": "exec",
+          "department_name": "Executive & Strategy",
+          "reports_to": "ceo",
+          "direct_reports": []
+        },
+        {
+          "role_id": "customer_success_director",
+          "display_title": "Customer Success Director",
+          "class": "H",
+          "department_id": "customer_experience_communications",
+          "department_name": "Customer Experience & Communications",
+          "reports_to": "ceo",
+          "direct_reports": [
+            {
+              "role_id": "communications_manager",
+              "display_title": "Communications Manager",
+              "class": "O",
+              "department_id": "customer_experience_communications",
+              "department_name": "Customer Experience & Communications",
+              "reports_to": "customer_success_director",
+              "direct_reports": [
+                {
+                  "role_id": "lifecycle_channel_operations_specialist",
+                  "display_title": "Lifecycle Channel Operations Specialist",
+                  "class": "O",
+                  "department_id": "customer_experience_communications",
+                  "department_name": "Customer Experience & Communications",
+                  "reports_to": "communications_manager",
+                  "direct_reports": []
+                }
+              ]
+            },
+            {
+              "role_id": "customer_onboarding_specialist",
+              "display_title": "Customer Onboarding Specialist",
+              "class": "O",
+              "department_id": "customer_experience_communications",
+              "department_name": "Customer Experience & Communications",
+              "reports_to": "customer_success_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "customer_retention_specialist",
+              "display_title": "Customer Retention Specialist",
+              "class": "O",
+              "department_id": "customer_experience_communications",
+              "department_name": "Customer Experience & Communications",
+              "reports_to": "customer_success_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "customer_support_specialist",
+              "display_title": "Customer Support Specialist",
+              "class": "O",
+              "department_id": "customer_experience_communications",
+              "department_name": "Customer Experience & Communications",
+              "reports_to": "customer_success_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "rfq_success_specialist",
+              "display_title": "RFQ Success Specialist",
+              "class": "O",
+              "department_id": "customer_experience_communications",
+              "department_name": "Customer Experience & Communications",
+              "reports_to": "customer_success_director",
+              "direct_reports": []
+            }
+          ]
+        },
+        {
+          "role_id": "data_intelligence_director",
+          "display_title": "Data & Intelligence Director",
+          "class": "H",
+          "department_id": "data_intelligence_knowledge",
+          "department_name": "Data, Intelligence & Knowledge",
+          "reports_to": "ceo",
+          "direct_reports": [
+            {
+              "role_id": "business_intelligence_analyst",
+              "display_title": "Business Intelligence Analyst",
+              "class": "S",
+              "department_id": "data_intelligence_knowledge",
+              "department_name": "Data, Intelligence & Knowledge",
+              "reports_to": "data_intelligence_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "data_engineer",
+              "display_title": "Data Engineer",
+              "class": "S",
+              "department_id": "data_intelligence_knowledge",
+              "department_name": "Data, Intelligence & Knowledge",
+              "reports_to": "data_intelligence_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "forecasting_analyst",
+              "display_title": "Forecasting Analyst",
+              "class": "S",
+              "department_id": "data_intelligence_knowledge",
+              "department_name": "Data, Intelligence & Knowledge",
+              "reports_to": "data_intelligence_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "knowledge_director",
+              "display_title": "Knowledge Director",
+              "class": "O",
+              "department_id": "data_intelligence_knowledge",
+              "department_name": "Data, Intelligence & Knowledge",
+              "reports_to": "data_intelligence_director",
+              "direct_reports": [
+                {
+                  "role_id": "category_knowledge_curator",
+                  "display_title": "Category Knowledge Curator",
+                  "class": "O",
+                  "department_id": "data_intelligence_knowledge",
+                  "department_name": "Data, Intelligence & Knowledge",
+                  "reports_to": "knowledge_director",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "knowledge_engineer",
+                  "display_title": "Knowledge Engineer",
+                  "class": "O",
+                  "department_id": "data_intelligence_knowledge",
+                  "department_name": "Data, Intelligence & Knowledge",
+                  "reports_to": "knowledge_director",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "taxonomy_governance_manager",
+                  "display_title": "Taxonomy Governance Manager",
+                  "class": "S",
+                  "department_id": "data_intelligence_knowledge",
+                  "department_name": "Data, Intelligence & Knowledge",
+                  "reports_to": "knowledge_director",
+                  "direct_reports": []
+                }
+              ]
+            },
+            {
+              "role_id": "knowledge_validator",
+              "display_title": "Knowledge Validator",
+              "class": "R",
+              "department_id": "data_intelligence_knowledge",
+              "department_name": "Data, Intelligence & Knowledge",
+              "reports_to": "data_intelligence_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "market_intelligence_analyst",
+              "display_title": "Market Intelligence Analyst",
+              "class": "S",
+              "department_id": "data_intelligence_knowledge",
+              "department_name": "Data, Intelligence & Knowledge",
+              "reports_to": "data_intelligence_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "supplier_intelligence_analyst",
+              "display_title": "Supplier Intelligence Analyst",
+              "class": "S",
+              "department_id": "data_intelligence_knowledge",
+              "department_name": "Data, Intelligence & Knowledge",
+              "reports_to": "data_intelligence_director",
+              "direct_reports": []
+            }
+          ]
+        },
+        {
+          "role_id": "general_counsel",
+          "display_title": "General Counsel",
+          "class": "H",
+          "department_id": "legal_compliance_risk_trust",
+          "department_name": "Legal, Compliance, Risk & Trust",
+          "reports_to": "ceo",
+          "direct_reports": [
+            {
+              "role_id": "compliance_privacy_officer",
+              "display_title": "Compliance & Privacy Officer",
+              "class": "R",
+              "department_id": "legal_compliance_risk_trust",
+              "department_name": "Legal, Compliance, Risk & Trust",
+              "reports_to": "general_counsel",
+              "direct_reports": [
+                {
+                  "role_id": "marketplace_content_privacy_reviewer",
+                  "display_title": "Marketplace Content & Privacy Reviewer",
+                  "class": "R",
+                  "department_id": "legal_compliance_risk_trust",
+                  "department_name": "Legal, Compliance, Risk & Trust",
+                  "reports_to": "compliance_privacy_officer",
+                  "direct_reports": []
+                }
+              ]
+            },
+            {
+              "role_id": "contract_manager",
+              "display_title": "Contract Manager",
+              "class": "S",
+              "department_id": "legal_compliance_risk_trust",
+              "department_name": "Legal, Compliance, Risk & Trust",
+              "reports_to": "general_counsel",
+              "direct_reports": []
+            },
+            {
+              "role_id": "risk_governance_manager",
+              "display_title": "Risk & Governance Manager",
+              "class": "R",
+              "department_id": "legal_compliance_risk_trust",
+              "department_name": "Legal, Compliance, Risk & Trust",
+              "reports_to": "general_counsel",
+              "direct_reports": []
+            },
+            {
+              "role_id": "trust_safety_manager",
+              "display_title": "Trust & Safety Manager",
+              "class": "O",
+              "department_id": "legal_compliance_risk_trust",
+              "department_name": "Legal, Compliance, Risk & Trust",
+              "reports_to": "general_counsel",
+              "direct_reports": [
+                {
+                  "role_id": "fraud_reviewer",
+                  "display_title": "Fraud Reviewer",
+                  "class": "R",
+                  "department_id": "legal_compliance_risk_trust",
+                  "department_name": "Legal, Compliance, Risk & Trust",
+                  "reports_to": "trust_safety_manager",
+                  "direct_reports": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "role_id": "marketplace_director",
+          "display_title": "Marketplace Director",
+          "class": "H",
+          "department_id": "marketplace_supplier_network",
+          "department_name": "Marketplace & Supplier Network",
+          "reports_to": "ceo",
+          "direct_reports": [
+            {
+              "role_id": "document_intelligence_manager",
+              "display_title": "Document Intelligence Manager",
+              "class": "O",
+              "department_id": "marketplace_supplier_network",
+              "department_name": "Marketplace & Supplier Network",
+              "reports_to": "marketplace_director",
+              "direct_reports": [
+                {
+                  "role_id": "boq_specification_analyst",
+                  "display_title": "BOQ & Specification Analyst",
+                  "class": "S",
+                  "department_id": "marketplace_supplier_network",
+                  "department_name": "Marketplace & Supplier Network",
+                  "reports_to": "document_intelligence_manager",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "drawing_cad_analyst",
+                  "display_title": "Drawing & CAD Analyst",
+                  "class": "S",
+                  "department_id": "marketplace_supplier_network",
+                  "department_name": "Marketplace & Supplier Network",
+                  "reports_to": "document_intelligence_manager",
+                  "direct_reports": []
+                }
+              ]
+            },
+            {
+              "role_id": "quote_evaluation_specialist",
+              "display_title": "Quote Evaluation Specialist",
+              "class": "O",
+              "department_id": "marketplace_supplier_network",
+              "department_name": "Marketplace & Supplier Network",
+              "reports_to": "marketplace_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "rfq_qualification_manager",
+              "display_title": "RFQ Qualification Manager",
+              "class": "O",
+              "department_id": "marketplace_supplier_network",
+              "department_name": "Marketplace & Supplier Network",
+              "reports_to": "marketplace_director",
+              "direct_reports": [
+                {
+                  "role_id": "construction_civil_domain_specialist",
+                  "display_title": "Construction & Civil Domain Specialist",
+                  "class": "S",
+                  "department_id": "marketplace_supplier_network",
+                  "department_name": "Marketplace & Supplier Network",
+                  "reports_to": "rfq_qualification_manager",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "industrial_energy_domain_specialist",
+                  "display_title": "Industrial & Energy Domain Specialist",
+                  "class": "S",
+                  "department_id": "marketplace_supplier_network",
+                  "department_name": "Marketplace & Supplier Network",
+                  "reports_to": "rfq_qualification_manager",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "inquiry_quality_scoring_analyst",
+                  "display_title": "Inquiry Quality & Scoring Analyst",
+                  "class": "O",
+                  "department_id": "marketplace_supplier_network",
+                  "department_name": "Marketplace & Supplier Network",
+                  "reports_to": "rfq_qualification_manager",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "inquiry_router",
+                  "display_title": "Inquiry Router",
+                  "class": "O",
+                  "department_id": "marketplace_supplier_network",
+                  "department_name": "Marketplace & Supplier Network",
+                  "reports_to": "rfq_qualification_manager",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "interior_fitout_domain_specialist",
+                  "display_title": "Interior & Fit-Out Domain Specialist",
+                  "class": "S",
+                  "department_id": "marketplace_supplier_network",
+                  "department_name": "Marketplace & Supplier Network",
+                  "reports_to": "rfq_qualification_manager",
+                  "direct_reports": []
+                },
+                {
+                  "role_id": "mep_domain_specialist",
+                  "display_title": "MEP Domain Specialist",
+                  "class": "S",
+                  "department_id": "marketplace_supplier_network",
+                  "department_name": "Marketplace & Supplier Network",
+                  "reports_to": "rfq_qualification_manager",
+                  "direct_reports": []
+                }
+              ]
+            },
+            {
+              "role_id": "supplier_coverage_liquidity_specialist",
+              "display_title": "Supplier Coverage & Liquidity Specialist",
+              "class": "S",
+              "department_id": "marketplace_supplier_network",
+              "department_name": "Marketplace & Supplier Network",
+              "reports_to": "marketplace_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "supplier_matching_dispatch_operator",
+              "display_title": "Supplier Matching & Dispatch Operator",
+              "class": "O",
+              "department_id": "marketplace_supplier_network",
+              "department_name": "Marketplace & Supplier Network",
+              "reports_to": "marketplace_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "supplier_onboarding_specialist",
+              "display_title": "Supplier Onboarding Specialist",
+              "class": "O",
+              "department_id": "marketplace_supplier_network",
+              "department_name": "Marketplace & Supplier Network",
+              "reports_to": "marketplace_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "supplier_retention_specialist",
+              "display_title": "Supplier Retention Specialist",
+              "class": "S",
+              "department_id": "marketplace_supplier_network",
+              "department_name": "Marketplace & Supplier Network",
+              "reports_to": "marketplace_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "supplier_verification_reviewer",
+              "display_title": "Supplier Verification Reviewer",
+              "class": "R",
+              "department_id": "marketplace_supplier_network",
+              "department_name": "Marketplace & Supplier Network",
+              "reports_to": "marketplace_director",
+              "direct_reports": []
+            }
+          ]
+        },
+        {
+          "role_id": "qa_release_management_director",
+          "display_title": "QA & Release Management Director",
+          "class": "H",
+          "department_id": "assurance_security_reliability",
+          "department_name": "Independent Assurance, Security & Reliability",
+          "reports_to": "ceo",
+          "direct_reports": [
+            {
+              "role_id": "ai_quality_assurance_reviewer",
+              "display_title": "AI Quality Assurance Reviewer",
+              "class": "R",
+              "department_id": "assurance_security_reliability",
+              "department_name": "Independent Assurance, Security & Reliability",
+              "reports_to": "qa_release_management_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "cybersecurity_engineer",
+              "display_title": "Cybersecurity Engineer",
+              "class": "R",
+              "department_id": "assurance_security_reliability",
+              "department_name": "Independent Assurance, Security & Reliability",
+              "reports_to": "qa_release_management_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "it_operations_site_reliability_engineer",
+              "display_title": "IT Operations & Site Reliability Engineer",
+              "class": "O",
+              "department_id": "assurance_security_reliability",
+              "department_name": "Independent Assurance, Security & Reliability",
+              "reports_to": "qa_release_management_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "model_evaluation_reviewer",
+              "display_title": "Model Evaluation Reviewer",
+              "class": "R",
+              "department_id": "assurance_security_reliability",
+              "department_name": "Independent Assurance, Security & Reliability",
+              "reports_to": "qa_release_management_director",
+              "direct_reports": []
+            },
+            {
+              "role_id": "test_automation_engineer",
+              "display_title": "Test Automation Engineer",
+              "class": "O",
+              "department_id": "assurance_security_reliability",
+              "department_name": "Independent Assurance, Security & Reliability",
+              "reports_to": "qa_release_management_director",
+              "direct_reports": []
+            }
+          ]
+        },
+        {
+          "role_id": "strategy_director",
+          "display_title": "Strategy Director",
+          "class": "S",
+          "department_id": "exec",
+          "department_name": "Executive & Strategy",
+          "reports_to": "ceo",
+          "direct_reports": []
+        }
+      ]
+    }
+  ]
+}

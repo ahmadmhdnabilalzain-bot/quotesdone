@@ -3,8 +3,8 @@
   "approved_by": "founder",
   "approved_at": "2026-08-15T06:00:00Z",
   "project_ref": "htdblwldjkcgjvmqkbeh",
-  "final_commit": "d5107300fbb4cb1a334c886ae4cb7448bb7bd936",
-  "final_commit_subject": "Merge pull request #391 from ahmadmhdnabilalzain-bot/phase-a/closure-corrections",
+  "final_commit": "b72d25f372099708d6635f4a6e73a150db01358a",
+  "final_commit_subject": "The reporting map had nothing to check it against",
   "counts": {
     "active_departments": 10,
     "canonical_roles": 90,
@@ -17,7 +17,7 @@
   },
   "organization_fingerprint": {
     "rows": 588,
-    "sha256": "231e0389902aa6c7ea30983463996bf6133182eef45c6e3e51043246eb235a01"
+    "sha256": "cc35b66c21d1e17798a40df0dc26bb4e5815e284e476b749601bd98ece7ff4c9"
   },
   "registries": {
     "departments": {
@@ -28,15 +28,15 @@
     },
     "roles": {
       "rows": 90,
-      "database_sha256": "18f27e1d006448dc9d82962468258eb6adf33eb75bd871fde7f7afe4df177b59",
+      "database_sha256": "5660e2b248dd9a4a6c184c29ab773bfc0af38036adce928fdb5da7dafcd71584",
       "committed_artefact": "docs/phase-a/PHASE_A_CANONICAL_ROLE_REGISTRY.csv",
-      "artefact_sha256": "b2b097af00efef9c1536ee8efc879be6f736794dad78cc8969435056c8a7a839"
+      "artefact_sha256": "132017ddabf6b5e12e2ef7de2e96d1a1d6e67a0bcee42cfb8b33334dd327557d"
     },
     "reporting_graph": {
       "rows": 90,
-      "database_sha256": "4c8af326127d5d1521a5eb470dfa9d7f6c6bf76bae19bbb0e5bd1be75d7b32c5",
+      "database_sha256": "692dd64e5e8faa2786cf2b075d8f24b7a94755811a321aec2f02383fa6c93643",
       "committed_artefact": "docs/phase-a/PHASE_A_REPORTING_GRAPH.csv",
-      "artefact_sha256": "3b273215747402257bd9d301f58371c777d1cceec82edec7e9e6a00fddbd9eff"
+      "artefact_sha256": "2b5775c95c3b314c4d4348091d894065f67c61301837629469305a7cf2a09043"
     },
     "category_overlays": {
       "rows": 86,
