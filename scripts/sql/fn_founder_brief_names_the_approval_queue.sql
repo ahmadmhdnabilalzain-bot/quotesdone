@@ -1,0 +1,322 @@
+-- fn_founder_brief — the definition as it stands after the approval-queue figure was added.
+--
+-- scripts/sql/the_brief_never_named_his_one_approval_queue.sql performs the change as a targeted
+-- substitution on pg_get_functiondef(), because editing three anchors in a 300-line routine is a
+-- smaller and more reviewable diff than restating the whole body. But that leaves the REPOSITORY
+-- without the resulting definition, and scripts/checks/sql_files_match_live.test.mjs is right to
+-- refuse it: it reported fn_founder_brief as DRIFTED the moment the substitution was applied,
+-- because the newest file defining it no longer matched production.
+--
+-- So this file carries the definition read back OUT of the database after the change, verbatim.
+-- That is the repository's own rule — a routine reaches production by posting a verified definition
+-- and reading it back, never by retyping a body — applied in the direction it is usually needed
+-- less often: the database moved first, so the file is brought to the database rather than the
+-- other way round.
+--
+-- The only difference from the previous file is the approval-queue figure:
+--   * v_fa_pending declared
+--   * counted from public.founder_approval_request where state = 'pending'
+--   * printed in NEEDS YOU TODAY, every day, beside the refund requests figure
+
+CREATE OR REPLACE FUNCTION public.fn_founder_brief()
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_owner text; v_run bigint; v_fq jsonb; v_fq_n int := 0; v_fq_age int; v_fq_list text;
+  v_auto_q int := 0; v_stalled int := 0;
+  v_reg int; v_cust int; v_inq7 int; v_q7 int; v_deals int; v_rev numeric;
+  v_pend int; v_kyc int; v_refunds int; v_reviews int;
+  v_hot int; v_gap int; v_newsup int; v_newcust int;
+  v_bd_q int; v_bd_sent int; v_chat_open int; v_viol int;
+  v_officer text; v_health jsonb;
+  v_topcats text; v_qpr numeric; v_conv numeric;
+  v_expired int; v_crit int; v_crit_noise int := 0; v_decisions text; v_dn int := 0; v_fa_pending int := 0;
+  v_body text; v_subj text;
+  v_auto_cleared int; v_auto_appr int; v_handled text;   -- Phase B additions
+  v_obj_open int := 0; v_obj_await int := 0; v_obj_done24 int := 0; v_task_done24 int := 0; v_obj_line text;  -- Org-foundation additions
+  -- The four figures the overnight brief never carried: fraud rejected, matching accuracy,
+  -- AI cost, and the emerging opportunity. Plus goal attainment, so the brief states progress
+  -- against a target rather than only activity.
+  v_fraud int := 0; v_match_now numeric; v_match_prev numeric;
+  v_ai_cost numeric := 0; v_ai_cost_prev numeric := 0; v_ai_delta numeric := 0;
+  v_opp text; v_goal numeric; v_goal_j jsonb;
+  v_scope_confirmed int; v_scope_total int;   -- the supply side of matching accuracy, 13 Aug 2026
+begin
+  select split_part(coalesce(value,'management@quotesdone.com'),',',1) into v_owner from app_secrets where key='admin_emails';
+  if v_owner is null then v_owner := 'management@quotesdone.com'; end if;
+  insert into agent_runs(agent, started_at) values ('brief', now()) returning id into v_run;
+
+  begin select coalesce(registered_supplier_count(),0) into v_reg; exception when others then v_reg := 0; end;
+  select count(*) into v_cust from customers;
+  select count(*) into v_inq7 from inquiries where created_at >= now()-interval '7 days';
+  select count(*) into v_q7 from quotes where created_at >= now()-interval '7 days';
+  select count(*) into v_deals from transactions;
+  select coalesce(sum(coalesce(reveal_fee,app_fee,0)),0) into v_rev from transactions where coalesce(fee_status,'')<>'refunded' and coalesce(refund_status,'')<>'approved';
+  select count(*) into v_pend from agent_actions where status in ('pending','held_for_review','proposed','open','needs_review');
+  select count(*) into v_kyc from leads where approval_status='pending';
+  select count(*) into v_refunds from transactions where refund_status='requested';
+  select count(*) into v_reviews from inbound_messages where needs_review=true;
+  select count(distinct i.id) into v_hot from inquiries i join quotes q on q.inquiry_id=i.id left join transactions t on t.inquiry_id=i.id where t.id is null and i.status not in ('completed','accepted','closed','cancelled');
+  select count(*) into v_gap from inquiries i where i.status not in ('completed','accepted','closed','cancelled') and not exists (select 1 from inquiry_matches m where m.inquiry_id=i.id);
+  select count(*) into v_newsup from leads where registration_submitted_at >= now()-interval '7 days';
+  select count(*) into v_newcust from customers where created_at >= now()-interval '7 days';
+  select count(*) into v_bd_q from outreach where status='queued';
+  select count(*) into v_bd_sent from outreach where status='sent';
+  select count(*) into v_chat_open from chat_threads where status='open';
+  select count(*) into v_viol from chat_violations where created_at >= now()-interval '7 days';
+
+  begin select public.fn_health_index() into v_health; exception when others then v_health := null; end;
+
+  begin
+    select string_agg(cat,', ') into v_topcats from (
+      select coalesce(nullif(category,''),'(uncategorized)') cat, count(*) n
+      from inquiries where created_at>=now()-interval '7 days'
+      group by 1 order by n desc limit 3) z;
+  exception when others then v_topcats := null; end;
+
+  begin
+    select round(avg(qc),1) into v_qpr from (
+      select count(*) qc from quotes q join inquiries i on i.id=q.inquiry_id
+      where i.created_at>=now()-interval '30 days' group by q.inquiry_id) z;
+  exception when others then v_qpr := null; end;
+  begin
+    select round(100.0*count(distinct t.inquiry_id)/nullif(count(distinct i.id),0),1) into v_conv
+    from inquiries i left join transactions t on t.inquiry_id=i.id
+    where i.created_at>=now()-interval '30 days';
+  exception when others then v_conv := null; end;
+
+  begin select count(*) into v_expired from leads where license_expiry is not null and license_expiry < current_date and coalesce(approval_status,'')='approved'; exception when others then v_expired:=0; end;
+    -- SEVERITY HAS SEVEN SPELLINGS AND THIS COUNTED ONE (fixed 11 Aug 2026). founder_alerts.level
+  -- carries error(92) warn(51) high(44) critical(41) info(21) warning(2) action(1). Reading only
+  -- 'critical' hid every alert written by a routine that spells it 'error' or 'high'. Measured over
+  -- the 24h before this change: 9 visible, 24 actually severe, 15 INVISIBLE - and 7 of the 9
+  -- visible were 'AI credit low', which the founder has said explicitly does not gate his work.
+  -- So he was shown 9 alerts of which 2 mattered, while 15 that mattered were not shown at all.
+  select count(*) into v_crit from founder_alerts
+   where public.fn_alert_severe(level)
+     and event not ilike 'AI credit low%'
+     and created_at >= now() - interval '24 hours';
+  select count(*) into v_crit_noise from founder_alerts
+   where event ilike 'AI credit low%' and created_at >= now() - interval '24 hours';
+
+  begin
+    select string_agg('- ['||label||'] '||act, E'\n')
+    into v_officer
+    from (
+      select case er.officer
+               when 'strategy' then 'Strategy' when 'operations' then 'Ops'
+               when 'procurement_quality' then 'Quality' when 'data_science' then 'Data'
+               when 'product_ux' then 'Product' when 'competitive' then 'Compete' else er.officer end as label,
+             left(coalesce(rec->>'action',''),160) as act,
+             case lower(coalesce(rec->>'impact','')) when 'high' then 0 when 'medium' then 1 else 2 end as ord
+      from (select distinct on (officer) officer, recommendations, created_at from exec_reports order by officer, created_at desc) er,
+           lateral jsonb_array_elements(er.recommendations) rec
+      where coalesce(rec->>'action','') <> ''
+      order by ord, label limit 5
+    ) z;
+  exception when others then v_officer := null; end;
+
+  -- Phase B: what the Chief of Staff handled autonomously in the last 24h.
+  select count(*) into v_auto_cleared from agent_actions
+    where decided_by='chief_of_staff (auto)' and decided_at >= now()-interval '24 hours';
+  begin
+    select count(*) into v_auto_appr from leads
+      where approval_decided_by='chief_of_staff (auto)' and approved_at >= now()-interval '24 hours';
+  exception when others then v_auto_appr := 0; end;
+  begin
+    -- SUBJECTS, NOT A TALLY. "ops_alert: 3" tells the founder nothing about what was raised for
+    -- him, and these rows are then CLOSED. The window also moves from 24 hours to 7 days so that a
+    -- row created outside the last day is reported before it is marked digested rather than after.
+    select string_agg('- ['||to_char(created_at,'DD Mon HH24:MI')||'] '||type||': '||
+                      coalesce(nullif(subject,''),'(no subject)'), E'\n' order by created_at desc)
+      into v_handled
+    from (select type, subject, created_at from notifications
+          where status='digest' and created_at >= now()-interval '7 days'
+          order by created_at desc limit 25) z;
+  exception when others then v_handled := null; end;
+
+  -- Org foundation: the founder's objectives and how the organization is executing them.
+  begin
+    select count(*) into v_obj_open from org_objectives where status in ('open','in_progress','blocked');
+    select count(*) into v_obj_done24 from org_objectives where status='done' and closed_at >= now()-interval '24 hours';
+    select count(*) into v_task_done24 from org_tasks where status='done' and updated_at >= now()-interval '24 hours';
+    select count(*) into v_obj_await from org_tasks t
+      where t.status in ('proposed','escalated')
+        and exists (select 1 from org_objectives o where o.id=t.objective_id and o.status in ('open','in_progress','blocked'));
+    select string_agg(
+        '- "'||left(o.objective,80)||'" — '||
+        (select count(*) from org_tasks t where t.objective_id=o.id and t.status='done')||'/'||
+        (select count(*) from org_tasks t where t.objective_id=o.id)||' tasks done'||
+        case when (select count(*) from org_tasks t where t.objective_id=o.id and t.status in ('proposed','escalated'))>0
+             then ', '||(select count(*) from org_tasks t where t.objective_id=o.id and t.status in ('proposed','escalated'))||' awaiting you'
+             else '' end,
+        E'\n' order by o.id desc)
+      into v_obj_line from org_objectives o where o.status in ('open','in_progress','blocked');
+  exception when others then v_obj_open:=0; v_obj_await:=0; v_obj_done24:=0; v_task_done24:=0; v_obj_line:=null; end;
+
+  -- HIS QUEUE, SEPARATE FROM THE MACHINE'S. fn_founder_queue counts only kinds
+  -- agent_action_kind_policy marks 'founder' — the ones no agent may settle — and ages them.
+  begin
+    v_fq := public.fn_founder_queue(5);
+    v_fq_n := coalesce((v_fq->>'waiting_on_you_total')::int, 0);
+    v_fq_age := (v_fq->>'oldest_days')::int;
+    -- The two halves of "not his", counted separately because only one of them is moving.
+    select count(*) into v_auto_q from public.agent_actions a
+      join public.agent_action_kind_policy p on p.kind = a.kind and p.policy = 'auto'
+     where a.status = 'pending';
+    select count(*) into v_stalled from public.agent_actions a
+     where a.status in ('held_for_review','proposed','open','needs_review')
+       and not exists (select 1 from public.agent_action_kind_policy q
+                        where q.kind = a.kind and q.policy = 'founder');
+    select string_agg('     · '||(x->>'kind')||' from '||(x->>'from')||' — '||(x->>'title')||
+                      ' ('||(x->>'age_days')||'d)', E'\n')
+      into v_fq_list from jsonb_array_elements(v_fq->'waiting_on_you') x;
+  exception when others then v_fq_n := 0; v_fq_age := null; v_fq_list := null; end;
+
+  select count(*) into v_fa_pending from public.founder_approval_request where state = 'pending';
+  v_decisions := '';
+  if v_kyc > 0 then v_dn:=v_dn+1; v_decisions := v_decisions||v_dn||'. Approve/deny '||v_kyc||' supplier KYC application(s)'||E'\n'; end if;
+  if v_refunds > 0 then v_dn:=v_dn+1; v_decisions := v_decisions||v_dn||'. Resolve '||v_refunds||' refund request(s)'||E'\n'; end if;
+  if v_obj_await > 0 then v_dn:=v_dn+1; v_decisions := v_decisions||v_dn||'. '||v_obj_await||' objective step(s) awaiting your approval/input'||E'\n'; end if;
+  if v_fq_n > 0 then v_dn:=v_dn+1; v_decisions := v_decisions||v_dn||'. Settle '||v_fq_n||
+    ' item(s) no agent is allowed to decide'||
+    case when v_fq_age is not null then ' — the oldest has been waiting '||v_fq_age||' day(s)' else '' end||
+    E'\n'||coalesce(v_fq_list||E'\n','');
+  end if;
+  if v_expired > 0 then v_dn:=v_dn+1; v_decisions := v_decisions||v_dn||'. Review '||v_expired||' supplier(s) with EXPIRED trade licence'||E'\n'; end if;
+  if v_crit > 0 then v_dn:=v_dn+1; v_decisions := v_decisions||v_dn||'. Address '||v_crit||' severe alert(s) raised in last 24h (critical/error/high'||case when v_crit_noise>0 then '; '||v_crit_noise||' AI-credit notice(s) excluded' else '' end||')'||E'\n'; end if;
+  if v_dn = 0 then v_decisions := 'None outstanding.'||E'\n'; end if;
+
+  v_subj := 'QuotesDone daily brief — '||to_char(now() at time zone 'Asia/Dubai','Dy DD Mon');
+
+  -- FRAUD REJECTED: supplier registrations refused, all-time and this week.
+  begin select count(*) into v_fraud from public.leads
+     where coalesce(approval_status,'') in ('rejected','banned') or coalesce(banned,false);
+  exception when others then v_fraud := 0; end;
+
+  -- MATCHING ACCURACY: the share of live RFQs that reached at least one supplier, this 30 days
+  -- against the 30 before it. Precisely what it says — not a model score dressed up as one.
+  begin
+    select round(100.0 * count(*) filter (where exists (select 1 from public.inquiry_matches m where m.inquiry_id = i.id))
+                 / greatest(count(*),1))
+      into v_match_now from public.inquiries i where i.created_at > now() - interval '30 days';
+    select round(100.0 * count(*) filter (where exists (select 1 from public.inquiry_matches m where m.inquiry_id = i.id))
+                 / greatest(count(*),1))
+      into v_match_prev from public.inquiries i
+     where i.created_at between now() - interval '60 days' and now() - interval '30 days';
+  exception when others then v_match_now := null; v_match_prev := null; end;
+
+  -- THE SUPPLY SIDE OF MATCHING ACCURACY (13 Aug 2026).
+  --
+  -- The line above reports the share of RFQs that reached a supplier. It cannot report the reason a
+  -- share is low, and right now the reason is one number: fn_match_capability's candidate CTE opens
+  -- with `where sc.confirmed_at is not null`, and of 15,306 suppliers holding capability data
+  -- exactly ONE has confirmed. So the marketplace can shortlist at most one supplier for any
+  -- request, whatever the customer asks for.
+  --
+  -- It is on System Health as "Suppliers an RFQ can reach". The daily e-mail is a separate surface
+  -- and never carried it, so the founder could read "0% of RFQs matched" every morning and not be
+  -- told that no volume of RFQs could change it. A count without its reason sends you to the wrong
+  -- budget: "no supplier matches that" reads as buy more suppliers; "15,306 hold it and one has
+  -- confirmed" reads as chase confirmations.
+  begin
+    select count(*) filter (where sc.confirmed_at is not null), count(*)
+      into v_scope_confirmed, v_scope_total
+      from public.supplier_capabilities sc;
+  exception when others then v_scope_confirmed := null; v_scope_total := null; end;
+
+  -- AI COST: what the company spent on model calls, 30 days against the 30 before.
+  begin
+    select round(coalesce(sum(cost_aed),0),2) into v_ai_cost from public.ai_cost_log
+      where occurred_at > now() - interval '30 days';
+    select round(coalesce(sum(cost_aed),0),2) into v_ai_cost_prev from public.ai_cost_log
+      where occurred_at between now() - interval '60 days' and now() - interval '30 days';
+    v_ai_delta := v_ai_cost - v_ai_cost_prev;
+  exception when others then v_ai_cost := 0; v_ai_cost_prev := 0; v_ai_delta := 0; end;
+
+  -- THE EMERGING OPPORTUNITY the company detected on its own.
+  begin select o.title into v_opp from public.opportunity o where o.status = 'open'
+     order by o.value_score desc nulls last, o.created_at desc limit 1;
+  exception when others then v_opp := null; end;
+
+  -- GOAL ATTAINMENT against the monthly targets the goal ledger keeps.
+  -- least(100.0, NULL) is 100.0 in PostgreSQL, so the previous inline version scored every
+  -- UNMEASURED goal as a perfect 100 and averaged them with the two that were real. It also read
+  -- last month's rows and ignored direction. fn_goal_attainment does all three correctly and
+  -- returns the denominator, which is what stops a percentage being quoted without its base.
+  begin
+    v_goal_j := public.fn_goal_attainment('monthly');
+    v_goal := (v_goal_j->>'pct')::numeric;
+  exception when others then v_goal := null; v_goal_j := null; end;
+
+  v_body :=
+    'Good morning. Here is your QuotesDone snapshot.'||E'\n\n'||
+    'HANDLED FOR YOU (last 24h): auto-cleared '||v_auto_cleared||' routine item(s)'||
+      case when v_auto_appr>0 then ', auto-approved '||v_auto_appr||' licence-clean supplier(s)' else '' end||'.'||
+      case when v_handled is not null then E'\n'||v_handled else '' end||E'\n\n'||
+    'MARKETPLACE HEALTH: '||coalesce(v_health->>'index','—')||'/100 ('||coalesce(v_health->>'band','no data')||')'||
+      case when coalesce(v_health->>'note','')<>'' then '  — '||(v_health->>'note') else '' end||E'\n\n'||
+    'OBJECTIVES (what the organization is driving for you)'||E'\n'||
+    '- Active objectives: '||v_obj_open||'  ·  tasks completed (24h): '||v_task_done24||'  ·  objectives closed (24h): '||v_obj_done24||E'\n'||
+      case when v_obj_line is not null and v_obj_line<>'' then v_obj_line||E'\n' else '' end||E'\n'||
+    'NEEDS YOU TODAY'||E'\n'||
+    '- Waiting on YOU: '||v_fq_n||' item(s) no agent may settle'||
+      case when v_fq_age is not null then ' (oldest '||v_fq_age||'d)' else '' end||
+      ' plus '||v_kyc||' supplier KYC — these are yours'||E'\n'||
+    '- The machine is working on: '||v_auto_q||' item(s) it will settle itself within the hour'||E'\n'||
+    case when v_stalled > 0 then
+      '- NOT MOVING: '||v_stalled||' item(s) sit in needs_review / proposed / open. The worker only '||
+      'selects status=pending, so nothing is draining these. They are not yours to decide and they '||
+      'are not being done either.'||E'\n'
+    else '' end||
+    '- Refund requests: '||v_refunds||E'\n'||
+    '- Awaiting your approval: '||v_fa_pending||' refund decision(s) — the only routine approval that reaches you'||E'\n'||
+    '- Inbound emails to review: '||v_reviews||E'\n'||
+    '- Hot leads (quotes in, not revealed): '||v_hot||E'\n'||
+    '- Supply gaps (demand, no supplier matched): '||v_gap||E'\n'||
+    '- Chat: '||v_chat_open||' open, '||v_viol||' policy flag(s) this week'||E'\n\n'||
+    'THIS WEEK'||E'\n'||
+    '- New inquiries: '||v_inq7||'  ·  quotes: '||v_q7||E'\n'||
+    '- Avg quotes/RFQ (30d): '||coalesce(v_qpr::text,'—')||'  ·  Conversion (30d): '||coalesce(v_conv::text,'—')||'%'||E'\n'||
+    '- New customers: '||v_newcust||'  ·  new supplier registrations: '||v_newsup||E'\n'||
+    '- Deals (reveals) all-time: '||v_deals||'  ·  revenue recognized: AED '||round(v_rev)||E'\n'||
+    '- Top categories (7d): '||coalesce(v_topcats,'—')||E'\n\n'||
+    'GROWTH'||E'\n'||
+    '- Suppliers registered: '||v_reg||'  ·  BD invites queued: '||v_bd_q||'  ·  sent: '||v_bd_sent||E'\n'||
+    case when v_officer is not null and v_officer <> '' then E'\n'||'OFFICER PRIORITIES (from weekly analysis)'||E'\n'||v_officer||E'\n' else '' end ||
+    E'\n'||'DECISIONS NEEDED'||E'\n'||v_decisions||
+    E'\n'||'QUALITY, COST AND OPPORTUNITY'||E'\n'||
+    '- Fraud rejected: '||v_fraud||' supplier registration(s) refused or banned'||E'\n'||
+    '- Matching accuracy: '||coalesce(v_match_now::text,'0')||'% of RFQs matched to a supplier (30d), previous 30d '||coalesce(v_match_prev::text,'0')||'%'||E'\n'||
+    '- Suppliers an RFQ can reach: '||coalesce(v_scope_confirmed::text,'?')||' of '||coalesce(v_scope_total::text,'?')||' holding capability data have confirmed their own scope'||
+      case when coalesce(v_scope_confirmed,0) < 2
+           then ' — fn_match_capability gates on that confirmation, so a shortlist cannot exceed '||coalesce(v_scope_confirmed::text,'0')||' whatever a customer asks for'
+           else '' end||E'\n'||
+    '- AI cost: AED '||coalesce(v_ai_cost::text,'0')||' over 30d, previous 30d AED '||coalesce(v_ai_cost_prev::text,'0')||' ('||case when v_ai_delta >= 0 then '+' else '' end||coalesce(v_ai_delta::text,'0')||')'||E'\n'||
+    '- Monthly goal attainment: '||coalesce(v_goal::text,'not measurable')||
+      case when v_goal is not null then '% across '||coalesce(v_goal_j->>'goals_measured','?')||' of '||
+             coalesce(v_goal_j->>'goals_total','?')||' goals that carry a measured actual for '||
+             coalesce(v_goal_j->>'period','this period')||
+             ' (the rest have no measure and are NOT counted as met)'
+           else ' — no goal has a measured actual for this period' end||E'\n'||
+    '- Emerging opportunity: '||coalesce(v_opp,'none detected')||E'\n'||
+    E'\n'||'Open your dashboard: https://quotesdone.com/os  (Ops for live status; Governance for officer reports).';
+
+  insert into notifications(type,to_email,to_role,channel,subject,body) values ('founder_brief',v_owner,'admin','email',v_subj,v_body);
+  -- AND into founder_alerts, because that is where the console reads alerts from. Before this the
+  -- newest row matching /brief/ was an unrelated error alert whose text contained the word.
+  insert into public.founder_alerts(level, event, detail, channel)
+    values ('info', 'Overnight founder brief', v_body, 'os');
+
+  -- ONLY WHAT WAS ACTUALLY REPORTED. This closed EVERY digest row regardless of age, so anything
+  -- older than the brief's own reporting window was marked handled without the founder ever seeing
+  -- it. The window here and the window above are the same window on purpose.
+  update notifications set status='digested'
+   where status='digest' and created_at >= now()-interval '7 days' and created_at <= now();
+
+  update agent_runs set finished_at=now(), status='ok', counts=jsonb_build_object('approvals',v_pend,'hot',v_hot,'gaps',v_gap,'bd_queued',v_bd_q,'kyc',v_kyc,'health',(v_health->>'index'),'decisions',v_dn,'auto_cleared_24h',v_auto_cleared,'objectives_open',v_obj_open) where id=v_run;
+end;$function$
+;
