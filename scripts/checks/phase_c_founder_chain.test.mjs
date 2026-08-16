@@ -27,6 +27,14 @@ if (!hasToken) {
 }
 const { sql } = await import('../phase_c/lib/db.mjs');
 
+// Taken BEFORE anything runs, so the closing assertion can compare a delta instead of asserting
+// that the company has never received a founder command.
+const before = (await sql(`select
+  (select count(*) from public.founder_command_message) m,
+  (select count(*) from public.founder_command) c,
+  (select count(*) from public.phase_c_task) t,
+  (select count(*) from public.founder_command_progress_note) n`))[0];
+
 let fail = 0;
 const check = (ok, what, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'}  ${what}${detail ? '  — ' + detail : ''}`);
@@ -172,13 +180,20 @@ check(Number(res.traces) >= 2, 'the command’s own traces are attached', `${res
 check(Number(res.outbox_rows) === 1, 'the canonical event was emitted once', `${res.outbox_rows}`);
 
 // nothing survived
-const after = (await sql(`select
+// A DELTA, not an absolute count. This asserted the four tables were globally EMPTY, which is a
+// claim about the whole company rather than about this probe. It held only while no real founder
+// command had ever been sent; the moment the Phase C audit sent one over HTTPS it went permanently
+// red with every other assertion in the file still green. "My probe left nothing" and "the table is
+// empty" are different subjects, and only the first one is this test's business.
+const COUNTS = `select
   (select count(*) from public.founder_command_message) m,
   (select count(*) from public.founder_command) c,
   (select count(*) from public.phase_c_task) t,
-  (select count(*) from public.founder_command_progress_note) n`))[0];
-check(Object.values(after).every(v => Number(v) === 0),
-      'the probe left nothing behind', JSON.stringify(after));
+  (select count(*) from public.founder_command_progress_note) n`;
+const after = (await sql(COUNTS))[0];
+const delta = Object.fromEntries(Object.keys(after).map(k => [k, Number(after[k]) - Number(before[k])]));
+check(Object.values(delta).every(v => v === 0),
+      'the probe left nothing behind', JSON.stringify(delta) + ` (table totals ${JSON.stringify(after)})`);
 
 console.log(`\n${fail === 0 ? 'FOUNDER CHAIN VERIFIED END TO END' : `${fail} check(s) failed`}`);
 process.exit(fail === 0 ? 0 : 1);

@@ -102,6 +102,10 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   // founder looks at; `founder_command_control` cancels, reprioritises, supersedes and explains,
   // and is mutating for the obvious reason.
   founder_command: 'founder_gated',
+  // The founder answers a clarification in the same thread. It WRITES (it can create the tasks the
+  // original instruction could not safely produce), so it is founder_gated exactly like the command
+  // itself, not read_only.
+  founder_command_clarify: 'founder_gated',
   founder_command_control: 'founder_gated',
   founder_command_status: 'read_only',
   founder_command_inbox: 'read_only',
@@ -493,6 +497,18 @@ Deno.serve(async (req) => {
       // deno-lint-ignore no-explicit-any
       const d = data as any;
       if (d && d.ok === false) return J({ error: d.error || 'command_refused', data: d }, 403);
+      return J({ ok: true, user: email, data });
+    }
+    if (action === 'founder_command_clarify') {
+      const answer = String(body?.answer ?? body?.text ?? '').trim();
+      if (!answer) return J({ error: 'answer_required', hint: 'Say what you want and it will route.' }, 400);
+      const { data, error } = await admin.rpc('fn_founder_command_clarify', {
+        p_command_id: Number(body?.command_id || 0), p_answer: answer,
+      });
+      if (error) return J({ error: error.message }, 500);
+      // deno-lint-ignore no-explicit-any
+      const d = data as any;
+      if (d && d.ok === false) return J({ error: d.error || 'clarify_refused', data: d }, 409);
       return J({ ok: true, user: email, data });
     }
     if (action === 'founder_command_status') {

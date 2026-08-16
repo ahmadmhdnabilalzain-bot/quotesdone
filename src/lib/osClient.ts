@@ -183,6 +183,11 @@ export async function founderCommandInbox(limit = 25) {
 }
 
 /** The founder-facing thread for one command, including every progress note and the completion. */
+/** Answer a clarification in the same command thread. One command id; the original message is kept. */
+export async function founderCommandClarify(commandId: number, answer: string) {
+  return await osApi('founder_command_clarify', { command_id: commandId, answer });
+}
+
 export async function founderCommandThread(commandId: number) {
   return await osApi('founder_command_thread', { command_id: commandId });
 }

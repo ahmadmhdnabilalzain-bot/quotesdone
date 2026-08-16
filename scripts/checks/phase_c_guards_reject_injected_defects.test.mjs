@@ -292,10 +292,15 @@ const VALUE_CASES = [
    `select (public.fn_phase_c_outbox_emit((select event_id from public.phase_b_event limit 1),'probe','{}'::jsonb,'probe:dedupe')
          = public.fn_phase_c_outbox_emit((select event_id from public.phase_b_event limit 1),'probe','{}'::jsonb,'probe:dedupe'))::text`,
    'true'],
+  // W01-S02 has a declared predecessor, so the ORDER check answered first and this case was
+  // measuring out_of_order while its name claimed it measured ownership. Injected on the entry
+  // step instead, where ownership is the only thing in the way — and with a real output, because
+  // a completing step no longer hashes the empty string.
   ['the wrong employee cannot advance a frozen step',
    `select public.fn_phase_c_step_advance(
-      public.fn_phase_c_workflow_start('W01','probe-step','{}'::jsonb),
-      'W01-S02','chief_of_staff','{}'::jsonb)->>'error'`,
+      public.fn_phase_c_workflow_start('W05','probe-step','{}'::jsonb),
+      public.fn_phase_c_entry_step('W05'),'chief_of_staff',
+      jsonb_build_object('output', jsonb_build_object('status','completed','output','probe')))->>'error'`,
    'not_the_accountable_owner'],
   ['an overlay outside its declared scope cannot own a step',
    `select public.fn_phase_c_step_owner_valid('W01-S01','category_overlay_004_formwork-and-scaffolding-suppliers')::text`,
@@ -334,8 +339,11 @@ const SEQ_CASES = [
   ['a retry opens a NEW step run and preserves the first attempt',
    `declare r bigint; a jsonb; b jsonb;`,
    `r := public.fn_phase_c_workflow_start('W01','probe-retry','{}'::jsonb);
-    a := public.fn_phase_c_step_advance(r, 'W01-S01', 'chief_of_staff', '{}'::jsonb);
-    b := public.fn_phase_c_step_advance(r, 'W01-S01', 'chief_of_staff', '{}'::jsonb);
+    -- a completing step must now carry a real output: hashing the empty string was the defect.
+    a := public.fn_phase_c_step_advance(r, 'W01-S01', 'chief_of_staff',
+           jsonb_build_object('output', jsonb_build_object('status','completed','output','attempt one')));
+    b := public.fn_phase_c_step_advance(r, 'W01-S01', 'chief_of_staff',
+           jsonb_build_object('output', jsonb_build_object('status','completed','output','attempt two')));
     v := 'attempts=' || (a->>'attempt') || ',' || (b->>'attempt')
       || '|first_preserved=' || ((b->>'first_attempt_id') = (a->>'step_run_id'))::text
       || '|rows=' || (select count(*)::text from public.phase_c_workflow_step_run
