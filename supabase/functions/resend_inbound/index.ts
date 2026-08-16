@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
     let lead: any = null;
     if (from) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
     let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = [];
-    let lostAttachments = 0; let uploadFailures = 0; let classifyFailures = 0; let refusedAttachments = 0;
+    let lostAttachments = 0; let uploadFailures = 0; let classifyFailures = 0; let refusedAttachments = 0; let classifySkipped = 0;
     for (const a of atts.slice(0,6)) {
       const fname = String(a.filename || a.name || 'document').slice(0,180);
       const mime = String(a.content_type || a.contentType || 'application/octet-stream');
@@ -257,7 +257,20 @@ Deno.serve(async (req) => {
       if (key) {
         const content:any[] = [{ type:'text', text:`Email from supplier ${lead?.company_name||from}. Subject: ${subject}. Body: ${text}. Attached file: ${fname} (${mime}). Classify this document.` }];
         if (/^image\//.test(sniffedMime)) { try { content.push({ type:'image_url', image_url:{ url:`data:${sniffedMime};base64,${bytesToB64(bytes)}` } }); } catch {} }
-        try {
+        // ZERO-COST GUARD (16 Aug 2026, Phase C correction 9). This is the estate's only direct
+        // POST to OpenRouter's /chat/completions - real paid inference, on a path an inbound
+        // supplier email triggers, and it consulted nothing. Every other caller reaches the
+        // provider through ai_gateway, which calls fn_llm_preflight. This one asks the same
+        // question the gateway asks, and a gate it cannot read is CLOSED.
+        let paidAllowed = false;
+        try { const { data } = await admin.rpc('fn_os_paid_ai_allowed'); paidAllowed = data === true; } catch { paidAllowed = false; }
+        if (['1', 'true', 'yes', 'on'].includes(String(Deno.env.get('NO_PAID_AI') ?? Deno.env.get('OPENROUTER_DISABLED') ?? '').toLowerCase())) paidAllowed = false;
+        if (!paidAllowed) {
+          // Not a failure: the document is stored and the lead is recorded either way. The
+          // classification is simply absent, and says so, rather than being guessed for free.
+          ai = { ...ai, summary: 'skipped_due_to_zero_cost_mode: attachment stored and linked; no classification, because every paid inference route is held.' };
+          classifySkipped++;
+        } else try {
           // NOT migrated to ai_gateway: this call attaches image content for image attachments and the gateway does not proxy image payloads yet.
           const r = await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,max_tokens:500,temperature:0.1,messages:[{role:'system',content:SYS},{role:'user',content}]})});
           const jd = await r.json(); if (r.ok) ai = { ...ai, ...parseJson(jd?.choices?.[0]?.message?.content||'{}') }; else classifyFailures++;
@@ -304,7 +317,7 @@ Deno.serve(async (req) => {
       try{ await admin.from('notifications').insert({ type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
     }
     if (from && from !== 'onboarding@resend.dev' && stored>0 && lead) await admin.from('notifications').insert({ type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body:`Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s) and updated your records.`, status:'queued' });
-    const counts = { from, matched_lead: lead?.id||null, attachments: atts.length, stored, refused_attachments: refusedAttachments, lost_attachments: lostAttachments, upload_failures: uploadFailures, classify_failures: classifyFailures, applied: appliedSummary.length, signature_verified: 1 };
+    const counts = { from, matched_lead: lead?.id||null, attachments: atts.length, stored, refused_attachments: refusedAttachments, lost_attachments: lostAttachments, upload_failures: uploadFailures, classify_failures: classifyFailures, classify_skipped_zero_cost: classifySkipped, applied: appliedSummary.length, signature_verified: 1 };
     if (lostAttachments || uploadFailures) await logRun('error', counts, 'INBOUND DOCUMENTS LOST - ' + lostAttachments + ' attachment(s) could not be downloaded from Resend and ' + uploadFailures + ' failed to upload to storage. Sender: ' + from + ', subject: ' + subject.slice(0, 120));
     else if (atts.length || stored) await logRun('ok', counts, appliedSummary.length ? ('applied: ' + appliedSummary.join('; ').slice(0, 300)) : (lead ? '' : 'no matching lead for sender'));
     return J({ ok: true, matched_lead: lead?.id||null, stored, reviews, applied: appliedSummary });

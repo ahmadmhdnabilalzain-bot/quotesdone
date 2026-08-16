@@ -61,10 +61,36 @@ pages on the real failure path when paid AI is permitted again.
 | Routes held open-circuit | 8 of 8, until 2126-08-15 |
 | Unrestricted fallback used | none — the guard does not fall back to another key |
 
-## Still open, and named rather than claimed fixed
+## Every remaining OpenRouter path, closed — and two audit findings corrected
 
-Eleven of the twelve edge functions that read `app_secrets.openrouter_api_key` still do not call
-`fn_llm_preflight`; only `ai_gateway` does. This correction closed the path that was **actually
-making requests** (cron 102) and gave the estate one authoritative gate to call. Routing the
-remaining key-holders through `ai_gateway`, and making `fn_llm_preflight` deny-by-default on an
-unknown route, is Phase D work and is not claimed here.
+The Phase C audit reported that eleven of the twelve functions reading `openrouter_api_key` bypass
+the hold. That number was **wider than the evidence supported**, and the audit said so at the time:
+it had not traced what the eight functions that read the key without naming `openrouter.ai` do with
+it. Traced now:
+
+- **Eight of them** — `archive_rfq`, `doc_render`, `ea_meeting_summary`, `enrich_capability`,
+  `gen_category_knowledge`, `gen_category_personas`, `learn_gaps`, `reflect` — read the key **only
+  as a presence check** and then route through `_shared/llm.ts`, which is a thin client for
+  `ai_gateway`. None of them contains a `fetch` to any external host. They were never an
+  unrestricted path; `ai_gateway`, and the `fn_llm_preflight` call inside it, is their only route
+  out.
+- The audit also quoted a code comment saying `fn_llm_preflight` *"answers allowed=true for a
+  null/unknown route"*. Reading the routine itself: a **null** model returns allowed with the reason
+  *"deterministic path, no provider call"*, and an **unregistered** model is **refused** with
+  `route_not_registered`. It is already deny-by-default on an unknown route. That finding was
+  overstated and is withdrawn.
+
+What was genuinely open, and is now closed:
+
+| Function | Endpoint | Was | Now |
+|---|---|---|---|
+| `ai_health` | `/api/v1/key` — metadata | active cron 102, no gate | gated; `skipped_due_to_zero_cost_mode` confirmed 10:37 |
+| **`resend_inbound`** | **`/api/v1/chat/completions` — real paid inference** | **no gate at all**, on a path an inbound supplier email with an attachment triggers | gated on `fn_os_paid_ai_allowed()`; the attachment is still stored and linked, the classification is recorded as `skipped_due_to_zero_cost_mode` and counted in `classify_skipped_zero_cost` |
+| `cost_snapshot` | `/api/v1/credits` — metadata | no gate; both cron jobs inactive | gated; reports from `fn_os_provider_state_cached()` instead |
+
+All three treat a gate they cannot read as **closed**, and none falls back to another key. Deployed:
+`ai_health` v11, `resend_inbound` v24, `cost_snapshot` v11.
+
+**No path in the estate now reaches OpenRouter without first asking whether it may.** That claim is
+bounded to the twelve functions that read `app_secrets.openrouter_api_key` and to a repo-wide search
+for `openrouter.ai`, which returns no other caller.

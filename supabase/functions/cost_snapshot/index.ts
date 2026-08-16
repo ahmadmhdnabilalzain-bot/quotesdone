@@ -48,7 +48,17 @@ Deno.serve(async (req) => {
   const d30 = new Date(Date.now() - 30 * 864e5).toISOString();
   // --- real OpenRouter spend ---
   let or: any = { ok: false };
-  try { const key = await sec('openrouter_api_key'); if (key) { const r = await fetch('https://openrouter.ai/api/v1/credits', { headers: { 'Authorization': 'Bearer ' + key } }); const j = await r.json(); const dt = j?.data || {}; or = { ok: true, total_credits: dt.total_credits, total_usage: dt.total_usage, remaining: (Number(dt.total_credits || 0) - Number(dt.total_usage || 0)) }; } } catch (e) { or = { ok: false, error: String((e as Error)?.message || e).slice(0, 80) }; }
+  // ZERO-COST GUARD (16 Aug 2026). /credits is free metadata, not inference, but the boundary the
+  // founder set is 'no outbound request to OpenRouter' - so while any route is held this reports
+  // from the state the database already holds instead. Both of this function's cron jobs are
+  // inactive today; the guard is here so reactivating one cannot quietly reopen the door.
+  let paidOk = false;
+  try { const { data } = await admin.rpc('fn_os_paid_ai_allowed'); paidOk = data === true; } catch { paidOk = false; }
+  if (['1','true','yes','on'].includes(String(Deno.env.get('NO_PAID_AI') ?? Deno.env.get('OPENROUTER_DISABLED') ?? '').toLowerCase())) paidOk = false;
+  if (!paidOk) {
+    const { data: cached } = await admin.rpc('fn_os_provider_state_cached');
+    or = { ok: false, skipped: 'skipped_due_to_zero_cost_mode', cached };
+  } else try { const key = await sec('openrouter_api_key'); if (key) { const r = await fetch('https://openrouter.ai/api/v1/credits', { headers: { 'Authorization': 'Bearer ' + key } }); const j = await r.json(); const dt = j?.data || {}; or = { ok: true, total_credits: dt.total_credits, total_usage: dt.total_usage, remaining: (Number(dt.total_credits || 0) - Number(dt.total_usage || 0)) }; } } catch (e) { or = { ok: false, error: String((e as Error)?.message || e).slice(0, 80) }; }
 
   // --- BURN RATE + RUNWAY, and an alarm that actually fires -------------------------------
   // WHY THIS EXISTS. On 29 Jul 2026 the balance was found at $1.48 with nobody warned. Nothing
