@@ -45,6 +45,31 @@ update public.org_phase_baseline b
                                   r.role_id||'|'||coalesce(r.manager_role_id,'founder')||'|'||r.primary_department_id x
                              from public.org_role r
                             where r.status='active' and r.runtime_mode <> 'knowledge_overlay') s))),
+       -- The organisation fingerprint, recomputed with the same six sources and the same ordering
+       -- scripts/phase_a/freeze.mjs uses. Nothing reads this value at write time — it is a recorded
+       -- fingerprint rather than an enforced one — but a baseline document carrying a fingerprint of
+       -- an organisation that no longer exists is a document that lies quietly. Confirmed identical
+       -- to the value freeze.mjs computed independently in Node before this was written:
+       -- cc35b66c21d1e17798a40df0dc26bb4e5815e284e476b749601bd98ece7ff4c9.
+       organization_sha256 = (
+         with
+         d as (select string_agg(dept_key||'|'||name||'|'||active::text||'|'||coalesce(lead_agent,''), chr(10) order by dept_key) x from public.org_departments),
+         r as (select string_agg(role_id||'|'||display_name||'|'||primary_department_id||'|'||coalesce(manager_role_id,'')
+                 ||'|'||runtime_mode||'|'||coalesce(runtime_agent_key,'')||'|'||status||'|'||coalesce(evaluation_suite,'')
+                 ||'|'||coalesce(array_length(owned_decisions,1),0)::text||'|'||coalesce(array_length(forbidden_decisions,1),0)::text,
+                 chr(10) order by role_id) x from public.org_role),
+         c as (select string_agg(category_key, chr(10) order by category_key) x from public.org_category_identity),
+         w as (select string_agg(workflow_key||'|'||step_no::text||'|'||step||'|'||coalesce(actor_role,''), chr(10) order by workflow_key, step_no) x from public.workflow_step),
+         f as (select string_agg(decision_key, chr(10) order by decision_key) x from public.founder_reserved_decision),
+         a as (select string_agg(agent_key||'|'||department||'|'||active::text||'|'||coalesce(manager_key,''), chr(10) order by agent_key) x from public.org_agents)
+         select encode(sha256(convert_to(
+           'departments'||chr(10)||d.x||chr(10)||'--'||chr(10)||
+           'roles'||chr(10)||r.x||chr(10)||'--'||chr(10)||
+           'categories'||chr(10)||c.x||chr(10)||'--'||chr(10)||
+           'workflow_steps'||chr(10)||w.x||chr(10)||'--'||chr(10)||
+           'reserved'||chr(10)||f.x||chr(10)||'--'||chr(10)||
+           'agents'||chr(10)||a.x, 'UTF8')), 'hex')
+         from d, r, c, w, f, a),
        note = b.note || E'\n\nPACR-001, 16 Aug 2026: the reporting graph was reconciled to the '
               'founder-approved QuotesDone Reporting and Chain-of-Command Map v2026.08.16 — 23 '
               'manager edges and 3 role classes. The 15 Aug baseline agreed with the live database '
