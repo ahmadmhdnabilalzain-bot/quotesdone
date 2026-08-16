@@ -83,10 +83,26 @@ Deno.serve(async (req) => {
     if (osKey && osKey === (await sec('os_bypass_key'))) { email = 'os_bypass_key (no human identity)'; viaBypass = true; }
     else {
       const token = (req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'').trim();
-      if (!token) return J({ error: 'unauthorized' }, 401);
-      const { data: u, error: uerr } = await admin.auth.getUser(token);
-      email = u?.user?.email || ''; if (uerr || !email) return J({ error: 'unauthorized' }, 401);
-      if (!(await isAdmin(email))) return J({ error: 'forbidden' }, 403);
+      // BUILD MODE — the same open door os_api has carried since 15 Aug 2026, and its absence
+      // here is exactly why this tab answered "Session expired" while the console beside it
+      // worked. The gate is READ every request and never cached, so "activate the credentials"
+      // closes it with the single INSERT it was always meant to be; absent any row it is CLOSED,
+      // and a gate that cannot be read is CLOSED. The identity is NAMED rather than borrowed,
+      // because an open door signing the audit log with the founder's own email would make
+      // every row of that log a lie.
+      const openAccess = async () => {
+        try { const { data } = await admin.rpc('fn_os_open_access'); return data === true; }
+        catch (_e) { return false; }
+      };
+      let viaBuildMode = false;
+      if (!token) { if (await openAccess()) viaBuildMode = true; else return J({ error: 'unauthorized' }, 401); }
+      if (!viaBuildMode) {
+        const { data: u, error: uerr } = await admin.auth.getUser(token);
+        email = u?.user?.email || '';
+        if (uerr || !email) { if (await openAccess()) viaBuildMode = true; else return J({ error: 'unauthorized' }, 401); }
+      }
+      if (viaBuildMode) email = 'build-mode@quotesdone.local';
+      else if (!(await isAdmin(email))) return J({ error: 'forbidden' }, 403);
     }
     const b = await req.json().catch(() => ({} as any));
     const action = String(b?.action || '');
