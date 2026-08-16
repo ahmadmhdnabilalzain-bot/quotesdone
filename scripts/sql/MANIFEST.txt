@@ -1328,7 +1328,9 @@ scripts/sql/kernel_k5b_worker_points_at_the_kernel.sql
 scripts/sql/kernel_k6_trace_ledger.sql
 scripts/sql/kernel_k13a_legacy_ingress_no_reemit.sql
 
-scripts/sql/kernel_k11_component_exposure.sqlscripts/sql/kernel_k5c_invariant_reads_the_new_types.sql
+scripts/sql/kernel_k11_component_exposure.sql
+scripts/sql/kernel_k5c_invariant_reads_the_new_types.sql
+scripts/sql/kernel_k2c_clarify_calls_kernel.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded

@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, osPages, osHealth, osIncidents, SUPA_URL, founderCommand, founderCommandThread } from '@/lib/osClient';
+import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, osPages, osHealth, osIncidents, SUPA_URL, founderCommand, founderCommandThread, founderCommandClarify, founderCommandControl } from '@/lib/osClient';
 import { cn } from '@/lib/utils';
 function ReportViewer({ id }: { id: number }) {
   const [st, setSt] = React.useState<'idle' | 'load' | 'done' | 'err'>('load');
@@ -1400,6 +1400,17 @@ function Console() {
   // A clarification or a refusal from the router is shown as-is. Neither creates work, and neither
   // is retried against the agent: "I can route this but not safely yet" is an answer, not a failure.
   const [plans, setPlans] = React.useState<Record<number, any>>({});
+  // KERNEL K9 — THE CLARIFICATION IS A CONTINUATION, NOT A NEW ORDER.
+  //
+  // fn_founder_command_clarify existed, worked, kept ONE command id and never edited the original
+  // message — and had ZERO callers. Typing the answer into this composer called founder_command
+  // again, which created a SECOND command; the first stayed open in the inbox for ever, because
+  // clarification_required was the only state of the eight with no terminal exit until K4 added one.
+  // A finished capability with no entry point is a defect this estate has paid for repeatedly, and
+  // it is only closed when a control the founder actually touches reaches the routine.
+  //
+  // Holding the id in state is what makes the NEXT thing he types a reply rather than a new order.
+  const [awaitingClarification, setAwaitingClarification] = React.useState<number | null>(null);
   const renderPlan = (d: any) => {
     if (d?.status === 'clarification_required') return d.clarification || 'I need one more detail before I can route that.';
     if (d?.status === 'refused') return (d.blocker || 'That instruction is refused.') + '\n\nNothing was created.';
@@ -1431,11 +1442,24 @@ function Console() {
     const shown = t + (a.length ? '  [' + a.map((x) => x.name).join(', ') + ']' : '');
     setMsgs((m) => [...m, { role: 'user', content: shown }]); setBusy(true);
     try {
+      // K9: if the last command asked a question, this text is the ANSWER to it. Same thread, same
+      // command id, no second command. The answer is appended to founder_command_clarification with
+      // its own timestamp; the original raw_text is never edited.
+      if (t && awaitingClarification) {
+        const d: any = await founderCommandClarify(awaitingClarification, t);
+        if (d?.command_id) {
+          setPlans((p) => ({ ...p, [d.command_id]: d }));
+          setAwaitingClarification(d?.status === 'clarification_required' ? d.command_id : null);
+          setMsgs((m) => [...m, { role: 'assistant', content: renderPlan(d) }]);
+          setBusy(false); return;
+        }
+      }
       // An instruction with no text is a document hand-off, which is the agent's job, not an order.
       if (t) {
         const d: any = await founderCommand(t);
         if (d?.command_id) {
           setPlans((p) => ({ ...p, [d.command_id]: d }));
+          setAwaitingClarification(d?.status === 'clarification_required' ? d.command_id : null);
           setMsgs((m) => [...m, { role: 'assistant', content: renderPlan(d) }]);
           setBusy(false); return;
         }
@@ -1453,6 +1477,26 @@ function Console() {
         ? 'Giving an order changes something, so it needs Control Mode open. The panel is on screen — open it and send this again.'
         : 'Error: ' + (e?.message || 'could not reach the Command Center');
       setMsgs((m) => [...m, { role: 'assistant', content: msg }]);
+    }
+    setBusy(false);
+  };
+  // K9: cancellation from the same thread, through the canonical service. The reply is shown as a
+  // message rather than a toast, because the founder asked in this thread and the answer belongs here.
+  const cancelCommand = async (commandId: number) => {
+    setBusy(true);
+    try {
+      const d: any = await founderCommandControl(commandId, 'cancel');
+      if (d?.ok === false) {
+        setMsgs((m) => [...m, { role: 'assistant', content: `Command ${commandId} was not cancelled: ${d?.message || d?.error}` }]);
+      } else {
+        setAwaitingClarification((c) => (c === commandId ? null : c));
+        setMsgs((m) => [...m, { role: 'assistant', content:
+          `Command ${commandId} cancelled. ${d?.child_tasks_closed ?? 0} task(s) closed, and the work its event had started is closed with it.` }]);
+        const th = await founderCommandThread(commandId).catch(() => null);
+        if (th) setThreads((x) => ({ ...x, [commandId]: th }));
+      }
+    } catch (e: any) {
+      setMsgs((m) => [...m, { role: 'assistant', content: 'Could not cancel: ' + (e?.message || 'unknown error') }]);
     }
     setBusy(false);
   };
@@ -1606,9 +1650,18 @@ function Console() {
               <div key={th.command_id} className='rounded-xl border border-border bg-background/60 px-3.5 py-2.5 text-sm'>
                 <div className='flex items-center justify-between gap-3'>
                   <span className='font-medium'>Command {th.command_id}</span>
-                  <Badge variant={th.state === 'completed' ? 'default' : th.state === 'partially_blocked' ? 'destructive' : 'secondary'}>
-                    {String(th.state || '').replace(/_/g, ' ')}
-                  </Badge>
+                  <div className='flex items-center gap-2'>
+                    {/* K9: cancel lives in the thread the order was given in. It calls the canonical
+                        cancellation service, so it reaches the run, the step runs, the tasks the
+                        event created and the undelivered outbox rows — not just the command. */}
+                    {!['completed', 'cancelled', 'superseded'].includes(String(th.state || '')) ? (
+                      <Button size='sm' variant='ghost' className='h-6 px-2 text-[11px]' disabled={busy}
+                        onClick={() => cancelCommand(th.command_id)}>Cancel</Button>
+                    ) : null}
+                    <Badge variant={th.state === 'completed' ? 'default' : th.state === 'partially_blocked' ? 'destructive' : 'secondary'}>
+                      {String(th.state || '').replace(/_/g, ' ')}
+                    </Badge>
+                  </div>
                 </div>
                 {(th.workflows || []).length ? <div className='text-xs text-muted-foreground pt-0.5'>{th.workflows.join(' · ')}</div> : null}
                 <div className='pt-1.5 space-y-1'>
