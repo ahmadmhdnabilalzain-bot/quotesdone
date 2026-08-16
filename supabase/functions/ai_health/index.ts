@@ -45,9 +45,37 @@ Deno.serve(async (req) => {
     const admin_email = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
     const THRESHOLD = 2; // consecutive failures before we page
 
-    let ok = false; let detail = '';
-    if (!key) { detail = 'no openrouter_api_key configured'; }
-    else {
+    // ZERO-COST MODE (16 Aug 2026, Phase C correction 9). The founder holds every OpenRouter route
+    // open-circuit until he releases it, and this job hit https://openrouter.ai/api/v1/key every
+    // fifteen minutes regardless - six outbound requests to the provider inside a 37-minute Phase C
+    // audit window. The calls were free (/key is metadata, not inference) but the boundary was "no
+    // outbound request to OpenRouter", and a caller that never consults the hold is exactly the
+    // shape that lets a paid one through later.
+    //
+    // Cost governance is not removed: while the hold is on, the check reports from the state the
+    // database already holds. It does NOT fall back to another key, and it does not guess.
+    let ok = false; let detail = ''; let skipped = false;
+    let allowed = false;
+    try {
+      const { data } = await admin.rpc('fn_os_paid_ai_allowed');
+      allowed = data === true;
+    } catch (_e) { allowed = false; }   // a gate that cannot be read is CLOSED
+    const envHold = ['1', 'true', 'yes', 'on'].includes(
+      String(Deno.env.get('NO_PAID_AI') ?? Deno.env.get('OPENROUTER_DISABLED') ?? '').toLowerCase());
+
+    if (!allowed || envHold) {
+      skipped = true;
+      const { data: cached } = await admin.rpc('fn_os_provider_state_cached');
+      const c = (cached ?? {}) as Record<string, unknown>;
+      // Not "ok" in the sense of "the provider answered" - ok here means the estate is in the state
+      // the founder asked for. Saying otherwise would page someone for a deliberate hold.
+      ok = true;
+      detail = 'skipped_due_to_zero_cost_mode: ' + String(c.routes_held ?? '?') + '/'
+             + String(c.routes_total ?? '?') + ' routes held until ' + String(c.held_until ?? 'unknown')
+             + '; key_present=' + String(c.key_present) + '; no request was made to any paid provider';
+    } else if (!key) {
+      detail = 'no openrouter_api_key configured';
+    } else {
       try {
         const ctrl = new AbortController(); const tt = setTimeout(() => ctrl.abort(), 8000);
         const r = await fetch('https://openrouter.ai/api/v1/key', { headers: { 'Authorization': 'Bearer ' + key }, signal: ctrl.signal });
@@ -59,7 +87,7 @@ Deno.serve(async (req) => {
     const prior = parseInt((await sec('ai_health_fails')) || '0', 10) || 0;
 
     // record a heartbeat run (best-effort)
-    try { await admin.from('agent_runs').insert({ agent: 'ai_health', started_at: started, finished_at: new Date().toISOString(), status: ok ? 'ok' : 'error', counts: { authorised: 1, consecutive_fails: ok ? 0 : prior + 1, detail }, note: ok ? 'ai_health confirmed the OpenRouter gateway and API key are reachable. AI-dependent agents are operating normally.' : ('ai_health could not reach the AI provider (' + detail + '). This is failure ' + (prior + 1) + ' in a row; paging happens at ' + THRESHOLD + '. AI-dependent steps are degraded and intake is on keyword fallback.') }); } catch (_e) { /* */ }
+    try { await admin.from('agent_runs').insert({ agent: 'ai_health', started_at: started, finished_at: new Date().toISOString(), status: ok ? 'ok' : 'error', counts: { authorised: 1, consecutive_fails: ok ? 0 : prior + 1, detail }, note: skipped ? ('ai_health made NO request to any paid provider: ' + detail) : ok ? 'ai_health confirmed the OpenRouter gateway and API key are reachable. AI-dependent agents are operating normally.' : ('ai_health could not reach the AI provider (' + detail + '). This is failure ' + (prior + 1) + ' in a row; paging happens at ' + THRESHOLD + '. AI-dependent steps are degraded and intake is on keyword fallback.') }); } catch (_e) { /* */ }
 
     if (ok) {
       if (prior >= THRESHOLD) {
