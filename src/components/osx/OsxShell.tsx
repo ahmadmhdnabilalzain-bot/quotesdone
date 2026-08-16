@@ -1252,7 +1252,7 @@ function NotificationsBell({ pulse, onNav }: { pulse: number; onNav: (id: string
             {items.length ? items.map((n: any, i: number) => (
               <button key={i} onClick={() => { setOpen(false); onNav(routeFor(n.type)); }} className='w-full text-left py-3 hover:bg-foreground/5 transition-colors flex items-start gap-3'>
                 <span className='mt-1 h-2 w-2 rounded-full bg-primary shrink-0'></span>
-                <div className='min-w-0'><div className='text-sm font-medium'>{n.subject || titleCase(String(n.type || 'notification'))}</div><div className='text-xs text-muted-foreground'>{titleCase(String(n.type || ''))} · {new Date(n.created_at).toLocaleString()}</div></div>
+                <div className='min-w-0'><div className='text-sm font-medium'>{n.subject || n.type_label || titleCase(String(n.type || 'notification'))}</div><div className='text-xs text-muted-foreground'>{n.type_label || titleCase(String(n.type || ''))} · {new Date(n.created_at).toLocaleString()}</div></div>
               </button>
             )) : <div className='py-6 text-sm text-muted-foreground'>No notifications right now.</div>}
           </div>
@@ -1343,8 +1343,13 @@ function FounderQueue() {
         {items.map((it: any) => (
           <div key={String(it.id)} className='px-3 py-2 flex items-start justify-between gap-3'>
             <div className='min-w-0'>
-              <div className='text-[13px] text-foreground'>{it.title || it.kind}</div>
-              <div className='text-[11px] text-muted-foreground'>{it.from ? String(it.from) : 'unattributed'} · {String(it.kind || '').replace(/_/g, ' ')}</div>
+              {/* `kind` is the routing key, `kind_label` is English. This line used to print
+                  String(kind).replace(/_/g,' '), which is how the founder's decision queue came to
+                  read "legal · legal flag" and "security · security incident". The label is
+                  resolved once in the database (fn_ui_label) so the bell, this queue and the
+                  escalations page cannot drift into three different wordings. */}
+              <div className='text-[13px] text-foreground'>{it.title || it.kind_label || it.kind}</div>
+              <div className='text-[11px] text-muted-foreground'>{it.from ? String(it.from) : 'unattributed'} · {it.kind_label || String(it.kind || '').replace(/_/g, ' ')}</div>
             </div>
             <span className={cn('text-[11px] shrink-0 tabular-nums', Number(it.age_days) >= 7 ? 'text-destructive' : 'text-muted-foreground')}>
               {Number(it.age_days) || 0}d
@@ -1522,12 +1527,25 @@ function Console() {
           <span className='text-muted-foreground text-[11px]'>Revenue today{' '}
             <b className='text-foreground tabular-nums text-base font-semibold'>{eh.revenue_today != null ? aed(eh.revenue_today) : '—'}</b>
             {eh.revenue_30d != null ? <span className='text-muted-foreground'> · {aed(eh.revenue_30d)} over 30d</span> : null}</span>
+          {/* THE DENOMINATOR TRAVELS WITH THE PERCENTAGE (16 Aug 2026).
+              His words about this strip: "I don't know actually from where they're getting the
+              figures". For these two he was right to ask, and the answer was already in the same
+              payload and thrown away one line before rendering. 49.1% is 49.1% across 22 MEASURED
+              goals of 61 — 39 goals this month have a target and no measurement at all — and
+              fn_ws_exec_home has returned goal_measured and goal_count all along, carrying the rule
+              in its own comment: "no surface publishes a percentage without the coverage it rests
+              on". The database obeyed it; the screen did not. */}
           <span className='text-muted-foreground text-[11px]'>Monthly goal{' '}
-            <b className='text-foreground tabular-nums text-base font-semibold'>{eh.goal_progress_pct != null ? eh.goal_progress_pct + '%' : '—'}</b></span>
+            <b className='text-foreground tabular-nums text-base font-semibold'>{eh.goal_progress_pct != null ? eh.goal_progress_pct + '%' : '—'}</b>
+            {eh.goal_count != null ? <span className='text-muted-foreground'> · {eh.goal_measured ?? 0} of {eh.goal_count} goals measured</span> : null}</span>
           <span className='text-muted-foreground text-[11px]'>Company health{' '}
             <b className='text-foreground tabular-nums text-base font-semibold'>{eh.health_index ?? '—'}</b>
             {eh.mood ? <span className='text-muted-foreground'> · {titleCase(String(eh.mood))}</span> : null}</span>
         </div>
+        {/* And the sentence that explains the health figure, which fn_health_index computes, returns
+            as `health_note`, and the screen discarded. He was told the company needs attention and
+            not told what or why, when the cause and its magnitude were in the same response. */}
+        {eh.health_note ? <div className='text-[11px] text-muted-foreground'>{eh.health_note}</div> : null}
         <div className='flex flex-wrap items-baseline gap-x-5 gap-y-1 text-xs'>
           <span className='text-muted-foreground'>Active customers <b className='text-foreground tabular-nums'>{eh.customers_active ?? '—'}</b></span>
           <span className='text-muted-foreground'>Active suppliers <b className='text-foreground tabular-nums'>{eh.suppliers_active ?? '—'}</b></span>
@@ -1538,7 +1556,13 @@ function Console() {
             boards across six modules is a sidebar — but sized as the telemetry they are. */}
         <div className='flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[11px] text-muted-foreground'>
           <span>Live workflow <b className='tabular-nums'>{eh.workflow_runs_24h ?? '—'}</b> runs/24h</span>
-          <span>AI collaboration <b className='tabular-nums'>{eh.handoffs_24h ?? '—'}</b> handoffs/24h</span>
+          {/* "AI collaboration 26 handoffs/24h" WAS EVENT DELIVERIES (fixed in SQL, 16 Aug 2026).
+              A handoff is one employee formally accepting accountable work from another — packet,
+              acceptance criteria, return owner. Real handoff runs: 0. The 26 were rows on the
+              message bus. Both are shown, each under its own name; the handoff figure reading 0 is
+              the honest state of the runtime, not a regression. */}
+          <span>Handoffs <b className='tabular-nums'>{eh.handoffs_24h ?? '—'}</b>/24h</span>
+          <span>Events delivered <b className='tabular-nums'>{eh.events_delivered_24h ?? '—'}</b>/24h</span>
           <span>Knowledge growth <b className='tabular-nums'>{eh.knowledge_revisions_7d ?? '—'}</b> revisions/7d</span>
           <span>Infrastructure uptime <b className='tabular-nums'>{eh.uptime_pct_24h != null ? eh.uptime_pct_24h + '%' : '—'}</b></span>
         </div>
@@ -1700,7 +1724,9 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
         <StatTile label='Company health' value={eh.health_index != null ? eh.health_index + ' / 100' : '—'} hint={eh.mood ? titleCase(String(eh.mood)) : undefined} onClick={() => onNav('health')} />
         <StatTile label='Revenue today (AED)' value={eh.revenue_today != null ? aed(eh.revenue_today) : '—'} onClick={() => onNav('finance')} />
         <StatTile label='Revenue this month (AED)' value={eh.revenue_30d != null ? aed(eh.revenue_30d) : '—'} hint='rolling 30 days' onClick={() => onNav('finance')} />
-        <StatTile label={'Monthly goal progress'} value={eh.goal_progress_pct != null ? eh.goal_progress_pct + '%' : '—'} hint={eh.goal_count ? eh.goal_count + ' ' + String(eh.goal_horizon || '') + ' targets' : undefined} onClick={() => onNav('company')} />
+        {/* The hint said "61 monthly targets", which reads as 61 things being tracked. 39 of them
+            have no measurement at all, so the percentage rests on 22. Say which. */}
+        <StatTile label={'Monthly goal progress'} value={eh.goal_progress_pct != null ? eh.goal_progress_pct + '%' : '—'} hint={eh.goal_count ? (eh.goal_measured ?? 0) + ' of ' + eh.goal_count + ' ' + String(eh.goal_horizon || '') + ' goals measured' : undefined} onClick={() => onNav('company')} />
         <StatTile label='Active customers' value={eh.customers_active} onClick={() => onNav('customers')} />
         <StatTile label='Active suppliers' value={eh.suppliers_active} hint='quoting in 30 days' onClick={() => onNav('suppliers')} />
         <StatTile label='AI employees working' value={(eh.employees_working ?? '—') + ' / ' + (eh.employees ?? '—')} hint='ran in the last 24 hours' onClick={() => onNav('agents')} />
@@ -1726,7 +1752,12 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
         <StatTile label='Agent runs today' value={eh.agent_runs_24h != null ? Number(eh.agent_runs_24h).toLocaleString() : '—'} hint='last 24 hours' onClick={() => onNav('agents')} />
         <StatTile label='Workflows run today' value={eh.workflow_runs_24h ?? '—'} hint='last 24 hours' onClick={() => onNav('operations')} />
         <StatTile label='Events on the bus' value={eh.events_24h != null ? Number(eh.events_24h).toLocaleString() : '—'} hint='last 24 hours' onClick={() => onNav('company_os')} />
-        <StatTile label='Handoffs delivered' value={eh.handoffs_24h != null ? Number(eh.handoffs_24h).toLocaleString() : '—'} hint='last 24 hours' onClick={() => onNav('operations')} />
+        {/* Was 'Handoffs delivered' reading event_delivery — a tile whose label and whose source
+            were about different things. Now each is itself: 'Events on the bus' above is company
+            events, this is the message bus, and a handoff is counted only when one employee
+            formally accepts accountable work from another. */}
+        <StatTile label='Events delivered' value={eh.events_delivered_24h != null ? Number(eh.events_delivered_24h).toLocaleString() : '—'} hint='message bus, last 24 hours' onClick={() => onNav('operations')} />
+        <StatTile label='Handoffs between employees' value={eh.handoffs_24h != null ? Number(eh.handoffs_24h).toLocaleString() : '—'} hint='accepted work, last 24 hours' onClick={() => onNav('operations')} />
         <StatTile label='Decisions waiting' value={eh.decisions_open ?? '—'} hint='review queue' onClick={() => onNav('escalations')} />
         <StatTile label='Open tasks' value={eh.tasks_open ?? '—'} hint='across every department' onClick={() => onNav('operations')} />
         <StatTile label='Knowledge updated' value={eh.knowledge_revisions_7d != null ? Number(eh.knowledge_revisions_7d).toLocaleString() : '—'} hint='revisions in 7 days' onClick={() => onNav('knowledge')} />
@@ -1845,10 +1876,10 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
       {attention.length ? <Card className='overflow-hidden'>
         <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Agent decisions held for review<Badge variant='secondary'>{attention.length}</Badge></div>
         <div className='divide-y divide-border'>{attention.map((a: any) => (
-          <div key={a.id} onClick={() => setRow({ entity: 'agent_action', id: a.id, title: titleCase(String(a.kind || 'decision')), row: a })} className='px-4 py-3 flex items-center justify-between gap-3 hover:bg-foreground/5 transition-colors cursor-pointer'>
+          <div key={a.id} onClick={() => setRow({ entity: 'agent_action', id: a.id, title: (a.kind_label || titleCase(String(a.kind || 'decision'))), row: a })} className='px-4 py-3 flex items-center justify-between gap-3 hover:bg-foreground/5 transition-colors cursor-pointer'>
             {/* Every action explains itself: which OS owned it, why, and what happened after —
                 and clicking it opens the full record, which is where the explanation lives. */}
-            <div className='min-w-0'><div className='text-sm truncate flex items-center gap-2'>{titleCase(String(a.kind || 'decision'))} · <span className='text-muted-foreground'>{a.actor}</span>{a.os ? <Chip label={titleCase(String(a.os)) + ' OS'} tone='slate' /> : null}{a.risk ? <Chip label={a.risk} tone={riskTone(String(a.risk))} /> : null}</div>
+            <div className='min-w-0'><div className='text-sm truncate flex items-center gap-2'>{(a.kind_label || titleCase(String(a.kind || 'decision')))} · <span className='text-muted-foreground'>{a.actor}</span>{a.os ? <Chip label={titleCase(String(a.os)) + ' OS'} tone='slate' /> : null}{a.risk ? <Chip label={a.risk} tone={riskTone(String(a.risk))} /> : null}</div>
               <div className='text-xs text-muted-foreground truncate'>{a.title || a.decision} → {a.route_to}</div>
               {Array.isArray(a.reasons) && a.reasons.length ? <div className='text-[11px] text-muted-foreground truncate'>Why: {a.reasons.join(' · ')}</div> : null}
               {a.outcome ? <div className='text-[11px] text-muted-foreground truncate'>After: {a.outcome}</div> : null}
@@ -2829,7 +2860,7 @@ function OperationsApp() {
   return (<div className='space-y-4'>
     <AppHeader icon={Settings2} title='Operations' onRefresh={load} busy={busy} badge={k.high_risk ? <Badge className='bg-red-500/15 text-red-600 border-0'>{k.high_risk} high risk</Badge> : null} />
     <KpiRow items={[['Open tasks', k.tasks_open], ['Decisions 24h', k.decisions_24h], ['Approvals pending', k.approvals_pending], ['Disputes', k.disputes], ['High risk', k.high_risk], ['Held for review', held.length]]} />
-    {held.length ? <SectionCard title='Decisions held for review' count={held.length}><div className='divide-y divide-border'>{held.map((a: any) => (<div key={a.id} className='px-4 py-3 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{titleCase(String(a.kind || 'decision'))}<span className='text-muted-foreground text-xs'>{a.actor}</span><Chip label={titleCase(String(a.decision))} tone={statusTone(String(a.decision))} /></div><div className='text-xs text-muted-foreground'>→ {a.route_to} · {fmt(a.created_at)}</div></div><div className='flex gap-1.5 shrink-0'><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>Approve</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>Reject</Button></div></div>))}</div></SectionCard> : null}
+    {held.length ? <SectionCard title='Decisions held for review' count={held.length}><div className='divide-y divide-border'>{held.map((a: any) => (<div key={a.id} className='px-4 py-3 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{(a.kind_label || titleCase(String(a.kind || 'decision')))}<span className='text-muted-foreground text-xs'>{a.actor}</span><Chip label={titleCase(String(a.decision))} tone={statusTone(String(a.decision))} /></div><div className='text-xs text-muted-foreground'>→ {a.route_to} · {fmt(a.created_at)}</div></div><div className='flex gap-1.5 shrink-0'><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>Approve</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>Reject</Button></div></div>))}</div></SectionCard> : null}
     <SectionCard title='Open tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
     {approvals.length ? <SectionCard title='Approvals pending' count={approvals.length}><div className='p-4'><div className='mb-2 flex flex-wrap gap-1.5'>{(approvals as any[]).map((a: any, i: number) => (<button key={i} onClick={() => setRow({ id: a.id ?? i, title: String(a.title || 'Action'), row: a })} className='text-[11px] rounded border border-border px-1.5 py-0.5 hover:bg-foreground/5'>Open #{a.id ?? i}</button>))}</div><ReadableObject data={approvals} /></div></SectionCard> : null}
     {row ? <RecordDrawer frame0={{ entity: 'agent_action', id: row.id, title: row.title, row: row.row }} onClose={() => setRow(null)} /> : null}
