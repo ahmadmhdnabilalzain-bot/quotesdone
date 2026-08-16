@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-16T08:36:42.040Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-16T08:44:32.861Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -25279,7 +25279,7 @@ declare
   v_bd_q int; v_bd_sent int; v_chat_open int; v_viol int;
   v_officer text; v_health jsonb;
   v_topcats text; v_qpr numeric; v_conv numeric;
-  v_expired int; v_crit int; v_crit_noise int := 0; v_decisions text; v_dn int := 0;
+  v_expired int; v_crit int; v_crit_noise int := 0; v_decisions text; v_dn int := 0; v_fa_pending int := 0;
   v_body text; v_subj text;
   v_auto_cleared int; v_auto_appr int; v_handled text;   -- Phase B additions
   v_obj_open int := 0; v_obj_await int := 0; v_obj_done24 int := 0; v_task_done24 int := 0; v_obj_line text;  -- Org-foundation additions
@@ -25422,6 +25422,7 @@ begin
       into v_fq_list from jsonb_array_elements(v_fq->'waiting_on_you') x;
   exception when others then v_fq_n := 0; v_fq_age := null; v_fq_list := null; end;
 
+  select count(*) into v_fa_pending from public.founder_approval_request where state = 'pending';
   v_decisions := '';
   if v_kyc > 0 then v_dn:=v_dn+1; v_decisions := v_decisions||v_dn||'. Approve/deny '||v_kyc||' supplier KYC application(s)'||E'\n'; end if;
   if v_refunds > 0 then v_dn:=v_dn+1; v_decisions := v_decisions||v_dn||'. Resolve '||v_refunds||' refund request(s)'||E'\n'; end if;
@@ -25518,6 +25519,7 @@ begin
       'are not being done either.'||E'\n'
     else '' end||
     '- Refund requests: '||v_refunds||E'\n'||
+    '- Awaiting your approval: '||v_fa_pending||' refund decision(s) — the only routine approval that reaches you'||E'\n'||
     '- Inbound emails to review: '||v_reviews||E'\n'||
     '- Hot leads (quotes in, not revealed): '||v_hot||E'\n'||
     '- Supply gaps (demand, no supplier matched): '||v_gap||E'\n'||
