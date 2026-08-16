@@ -346,6 +346,39 @@ or founder boundary was modified.
 
 ---
 
+## "Would it have passed if automation were not paused?"
+
+The obvious challenge to FAIL 1, FAIL 2 and FAIL 4, and it was tested rather than argued.
+
+**The stand-down deactivated jobs; it did not delete them.** `cron.job` holds **205** jobs — 22 active, 183
+inactive. The scheduler is alive: 190,018 runs in the last 30 days, last fired 2026-08-16 10:05 UTC. A paused
+Phase C dispatcher would therefore still be present with `active = false`.
+
+No Phase C dispatcher exists in that table in either state. The single job matching a `workflow_start` pattern
+is `workflow_start_due` → `fn_workflow_start_due(1440)`, which is the **legacy** engine over `company_event`
+and `workflow`; `prosrc ilike '%phase_c%'` on it is **false**.
+
+The deeper measurement: **zero routines outside the `fn_phase_c*` family call `fn_phase_c_task_create`,
+`fn_phase_c_workflow_start`, `fn_phase_c_step_advance` or `fn_phase_c_handoff_open`**, and no edge function
+calls them either — a repo-wide search returns only test files, `scripts/phase_c/build_bindings.mjs`, two
+`scripts/sql` files and `supabase/schema/full_schema.sql`. The runtime has no caller anywhere. Nothing was
+switched off; nothing was ever wired in.
+
+| Failure | Sensitive to the pause? |
+|---|---|
+| FAIL 1 (gates 8, 9) — no tasks, no events | **No.** The entry points were invoked *directly and live* in this audit. They returned `ok:true` and produced zero tasks and zero events. A scheduler cannot change what a routine does when it is called. |
+| FAIL 2 (gate 13) — no traces | **No.** Cron executed nine times during the audit window and `phase_c_trace` gained nothing from any of them. That is the running case, measured. |
+| FAIL 4 (gate 6) — `EV-W01-STARTED` for a W20 command | **No.** Observed on a live authenticated HTTPS request; the event id is a hard-coded literal in `fn_founder_command_submit`. |
+| FAIL 5 (gate 6) — tasks created with `trace_id NULL` | **No.** Same live request. |
+| FAIL 6, 7, 8 (gates 4, 14, 18) | **No.** Registry rows, state-model rows, and a committed file. |
+| FAIL 3 (gate 16) — six OpenRouter requests | **Inverted.** They occurred *because* cron job 102 was still active. A complete pause would have made that half of gate 16 pass. |
+
+The pause explains none of the eight failures, and one of them exists only because the pause was incomplete.
+
+The genuine boundary is a different and narrower one, already stated below: with no live external event
+source, this audit could not measure what a real customer event would do. That gap sits *upstream* of the
+runtime and does not rescue it — the entry points, called directly, still delivered no work to anyone.
+
 ## Artifacts
 
 | File | Contents |
