@@ -1331,6 +1331,10 @@ scripts/sql/kernel_k13a_legacy_ingress_no_reemit.sql
 scripts/sql/kernel_k11_component_exposure.sql
 scripts/sql/kernel_k5c_invariant_reads_the_new_types.sql
 scripts/sql/kernel_k2c_clarify_calls_kernel.sql
-[INFO] Recording command outcome: printf
+scripts/sql/kernel_s0_routine_ownership.sql
+scripts/sql/kernel_s2_historical_repair.sql
 
-[OK] Command outcome recorded
+scripts/sql/kernel_k3_step_engine.sql
+scripts/sql/kernel_k3b_graph_validation.sql
+scripts/sql/kernel_k10_trigger_inbox.sql
+scripts/sql/kernel_s3_system_execution_traces.sql

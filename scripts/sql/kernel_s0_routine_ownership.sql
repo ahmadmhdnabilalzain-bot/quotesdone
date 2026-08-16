@@ -1,0 +1,1549 @@
+-- ============================================================================================
+-- KERNEL S0 — THE SOURCE-OF-TRUTH OWNERSHIP GATE
+--
+-- THE CONTRADICTION THIS RESOLVES. On 16 Aug 2026 the schema export was identical, deploy parity
+-- was 202/202, and scripts/checks/canonical_routines.test.mjs reported repo->live drift 2 and
+-- live->repo drift 480. Those numbers were all true and they were talking about different
+-- populations. 480 was never a defect list; it was an UNCLASSIFIED list, and nothing in the
+-- repository could say which of those routines QuotesDone is even supposed to own.
+--
+-- The received explanation was that most of the 480 is Supabase- and extension-managed code.
+-- MEASURED, THAT IS FALSE. Every routine the check counted is already non-extension by its own
+-- pg_depend filter, and every non-extension routine in `public` on this project is owned by
+-- `postgres`:
+--     public / postgres        953   (plpgsql 683, sql 270)   <- application estate
+--     public / supabase_admin  145   (all C, all pg_depend deptype 'e')
+-- The managed estate is not hiding inside the 480. The 480 is application code with no entry in
+-- the apply order — which is a different problem, and a smaller one.
+--
+-- WHAT THIS FILE BUILDS
+--   1. public.kernel_routine_ownership — one row per live routine in every non-system schema:
+--      identity, ownership class, the RULE that produced the class, the evidence, and (for the one
+--      class that permits it) a written justification.
+--   2. public.fn_kernel_routine_ownership(p_proname, p_identity_args) — the DERIVATION. It reads
+--      pg_depend, pg_namespace and pg_proc.proowner, plus the repository provenance recorded on
+--      the row, and returns the class those facts support. It never classifies by name pattern.
+--   3. a00_kernel_routine_ownership_guard — refuses any hand-written class the derivation does not
+--      support, in BOTH directions.
+--   4. The resolution of the two conflicts named in the brief (section D below).
+--
+-- THE RULES, in precedence order. Every one is a fact a reader can re-run.
+--   R1_PG_DEPEND_EXTENSION           pg_depend deptype 'e' names an extension    -> EXTENSION_MANAGED
+--   R2_PLATFORM_ROLE_IN_PLATFORM_SCHEMA  proowner is a platform role AND the schema is one of the
+--                                    managed product schemas (auth, storage, realtime, vault,
+--                                    graphql_public, pgbouncer, net, cron, ...)  -> SUPABASE_MANAGED
+--   R3_PLATFORM_ROLE_IN_EXTENSIONS_SCHEMA  proowner is a platform role, schema `extensions`, and
+--                                    NO extension owns it — the platform's own bootstrap glue
+--                                    (pgrst_ddl_watch, grant_pg_cron_access, ...) -> PLATFORM_INTERNAL
+--   R2B_PLATFORM_ROLE                proowner is a platform role anywhere else   -> SUPABASE_MANAGED
+--   R4_MANIFEST_DEFINES_IT           a scripts/sql/MANIFEST.txt file carries a create-or-replace
+--                                    for it                            -> QUOTESDONE_APPLICATION
+--   R5_TRACKED_SQL_OUTSIDE_MANIFEST  no manifest file does, but a tracked *.sql elsewhere in the
+--                                    repository does (migrations_history, the schema mirror,
+--                                    holdout_v2_eval, ai-organization) -> HISTORICAL_APPLICATION
+--   R6_NO_PROVENANCE_RECORDED        nothing above -> refused unless a row records source_kind
+--                                    'NONE' with a written justification
+--                                        -> INTENTIONALLY_UNTRACKED_WITH_JUSTIFICATION
+--
+--   R1..R3 need no repository input at all: they are seeded by INSERT ... SELECT over pg_proc
+--   calling the derivation, so they are re-derivable on any project with one statement. R4 and R5
+--   are repository facts a database cannot see, so they arrive as literal rows — one per routine,
+--   each naming its file — and scripts/checks/application_source_of_truth.test.mjs re-derives
+--   every one of them from the repository on each run. The database guard closes the
+--   catalog direction; the check closes the repository direction. Neither alone is enough.
+--
+-- MEASURED CLASS COUNTS AT THE TIME OF WRITING (1223 routines, every non-system schema):
+--   QUOTESDONE_APPLICATION                        474
+--   HISTORICAL_APPLICATION                        485
+--   EXTENSION_MANAGED                             218   (vector 118, pg_trgm 31, and 69 in
+--                                                        extensions/net/cron/vault)
+--   SUPABASE_MANAGED                               38
+--   PLATFORM_INTERNAL                               6
+--   INTENTIONALLY_UNTRACKED_WITH_JUSTIFICATION      2
+--   Per-routine detail: docs/phase-c-kernel/S0_ROUTINE_OWNERSHIP.csv
+--
+-- READ-ONLY WHERE IT COUNTS. This file creates one table, two functions and one trigger, and
+-- re-states two existing routines with bodies BYTE-IDENTICAL to what is already live (section D).
+-- It changes no business behaviour.
+-- ============================================================================================
+
+-- ============================================================================================
+-- SECTION D — THE TWO NAMED CONFLICTS. WHAT ACTUALLY DIFFERS, AND WHAT WAS DECIDED.
+--
+-- Both are the fn_phase_c_event_ingress shape exactly: two files defining one routine, committed
+-- in the SAME commit, so the manifest's within-commit tie-break (numeric prefix, then filename)
+-- decided canon alphabetically. Alphabetical order is not apply order, and in both cases it put
+-- the SUPERSEDED file last.
+--
+-- D1. zzz_fn_notifications_demo_guard
+--     files: containment_wording_no_false_positive.sql  and  demo_rehearsal_containment.sql
+--            both committed in 02b427b, 2026-08-11.
+--     WHAT DIFFERS — two things, and only these two:
+--       (a) `~* '@example\.invalid$'`  became  `~* '@example[.]invalid$'`. Identical regex; a
+--           literal dot either way. Cosmetic.
+--       (b) THE SUBSTANTIVE ONE. last_error said "...the recipient is not @example.invalid...".
+--           fn_demo_marker_scan reads every text column looking for the demo marker, so a guard
+--           that stamps `@example.invalid` into its own held rows can never let the teardown proof
+--           reach zero. The correction rewords it to "a reserved .invalid address" and carries the
+--           comment explaining why.
+--     VERDICT: containment_wording_no_false_positive.sql is the CORRECTION and it DID land — it is
+--     what production runs. demo_rehearsal_containment.sql, which the manifest called canonical, is
+--     the ORIGINAL. Applying it would put the false positive back.
+--
+-- D2. fn_delete_proposer
+--     files: a_decision_that_reopens_next_week_is_not_a_decision.sql  and
+--            five_delete_proposals_decided_and_two_of_them_were_miscounted.sql
+--            both committed in 2137e32, 2026-08-12.
+--     WHAT DIFFERS:
+--       (a) live carries the whole "THE DECISION HOLDS UNTIL THE FACT CHANGES" block — v_prev, the
+--           suppression of a category already answered keep/keep_with_reason/retire at the same
+--           count or smaller, the `reopened_over` detail field, and the run note that says how many
+--           were newly opened. The manifest-canonical file has NONE of it.
+--       (b) the manifest-canonical file carries a three-line SQL COMMENT recording the 11 Aug
+--           miscount correction. The counting SQL itself is character-identical in both files: the
+--           correction to the count landed, only the comment about it did not.
+--     VERDICT: applying the manifest-canonical file would DELETE a shipped feature to recover a
+--     comment. a_decision_that_reopens_next_week_is_not_a_decision.sql is the later definition and
+--     it is what production runs. The lost comment is preserved above the routine here.
+--
+-- HOW BOTH ARE RESOLVED: the K13a pattern, in the direction the evidence points. Only these two
+-- routines' definitions are lifted — no historical feature migration is re-applied — into this
+-- file, which is appended at the bottom of MANIFEST.txt and therefore becomes the ONE current
+-- source file for each. The bodies are byte-identical to live prosrc, so applying this file is a
+-- no-op for both routines, and CREATE OR REPLACE preserves their ACLs
+-- (postgres=X/postgres, service_role=X/postgres — neither grants PUBLIC).
+-- ============================================================================================
+
+-- D1 RESOLVED. Body lifted verbatim from scripts/sql/containment_wording_no_false_positive.sql,
+-- which is what production runs. Applying it is a no-op; what changes is which file the manifest
+-- names as the ONE current source for this routine.
+create or replace function public.zzz_fn_notifications_demo_guard()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $function$
+declare v_on boolean;
+begin
+  select coalesce((d.value #>> '{}')::boolean, false) into v_on
+    from public.decision_policy d where d.key = 'demo_rehearsal_active';
+  if not coalesce(v_on, false) then return NEW; end if;
+
+  -- RFC 2606 reserves .invalid as permanently undeliverable. Anything else, including NULL, is
+  -- treated as possibly real and held. Failing closed is the whole point of this trigger.
+  if coalesce(NEW.to_email, '') ~* '@example[.]invalid$' then return NEW; end if;
+
+  NEW.status := 'held';
+  -- Deliberately does NOT contain the marker pattern: fn_demo_marker_scan reads every text column,
+  -- and a guard that stamps the pattern on its own rows can never let the teardown proof reach zero.
+  NEW.last_error := 'HELD by zzz_notifications_demo_guard: decision_policy.demo_rehearsal_active is '
+                 || 'true and the recipient is not a reserved .invalid address. Release with '
+                 || 'fn_notifications_release_held() once the rehearsal is torn down.';
+  return NEW;
+exception when others then
+  NEW.status := 'held';
+  NEW.last_error := 'HELD by zzz_notifications_demo_guard (guard itself errored: ' || sqlerrm || ')';
+  return NEW;
+end $function$;
+
+
+-- D2 RESOLVED. Body lifted verbatim from
+-- scripts/sql/a_decision_that_reopens_next_week_is_not_a_decision.sql, which is what production
+-- runs. The comment below is the ONE thing carried across from
+-- five_delete_proposals_decided_and_two_of_them_were_miscounted.sql; the counting SQL it explains
+-- is character-identical in both files and is already live.
+--
+--   CORRECTED 11 Aug 2026 (orphan_agent_expectations). Was: not exists in org_agents and no cron
+--   job. That counted 33, of which 31 were aliases the resolver knows (chief_of_staff -> brief)
+--   and kind='code' job names, which agent_runs uses on purpose. True count 2.
+CREATE OR REPLACE FUNCTION public.fn_delete_proposer()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_out jsonb := '[]'::jsonb; c record; v_n int; v_id bigint; v_prev record;
+  v_specs jsonb := jsonb_build_array(
+    jsonb_build_object('category','model_policy_by_identity_target_employee','agent','ai_director','risk','low',
+      'title_suffix','imported model-policy rows that name no employee',
+      'sql', $s$select count(*) from model_policy_by_identity where scope='target_employee'$s$,
+      'why','96 rows scoped target_employee, 0 matching an org_agents.agent_key. DECIDED 11 Aug 2026: KEEP. They are the pack''s TARGET ORG CHART - department, title, manager and authority_tier for 96 roles - not dead routing config. routing_tier superseded their MODEL choice, not their org design. fn_ai_route reads only scope=''current_agent'', so they route nothing.'),
+    jsonb_build_object('category','decorative_company_goals','agent','analytics_director','risk','medium',
+      'title_suffix','Company goals that cannot be missed and cannot pull anything down',
+      'sql', $s$select count(*) from company_goals g where g.active and coalesce(g.measure_sql,'')='' and coalesce(g.no_measure_reason,'')='' and not exists (select 1 from department_objective d where d.goal_key=g.key and d.active)$s$,
+      'why','Active, no measure_sql, no department objective, AND no recorded reason why. A goal that cannot be measured cannot be missed. Giving it a measure or a written reason both count; leaving it silent does not.'),
+    jsonb_build_object('category','orphan_agent_expectations','agent','it','risk','low',
+      'title_suffix','agent_expectations rows watching something that does not exist',
+      'sql', $s$select count(*) from agent_expectations e where public.fn_org_agent_resolve(e.agent) is null and coalesce(e.kind,'') <> 'code' and not exists (select 1 from cron.job j where j.jobname ilike '%'||e.agent||'%' or j.command ilike '%'||e.agent||'%')$s$,
+      'why','Resolves to no employee through key OR alias, is not a code/job name, and matches no cron job. Each one can raise a silence alarm about a thing that cannot run, which is how an employee gets dispatched to diagnose nothing.'),
+    jsonb_build_object('category','unmeasurable_employee_kpis','agent','analytics_director','risk','medium',
+      'title_suffix','Employee KPIs with a target and no way to measure it',
+      'sql', $s$select count(*) from employee_kpi k where k.active and coalesce(k.measure_sql,'')='' and coalesce(k.no_measure_reason,'')=''$s$,
+      'why','An employee is told it is judged on something nobody can score, and nobody has written down why. Most need an instrument or demand that does not exist yet rather than deletion - a recorded reason closes this, a silent row does not.'),
+    jsonb_build_object('category','inactive_org_agents','agent','hr_director','risk','low',
+      'title_suffix','Employees marked inactive and still on the books',
+      'sql', $s$select count(*) from org_agents where not coalesce(active,true)$s$,
+      'why','An inactive employee still resolves in manager chains and still appears in joins that do not filter on active. Either reactivate it or remove it deliberately.')
+  );
+begin
+  for c in select * from jsonb_array_elements(v_specs) as t(spec)
+  loop
+    execute (c.spec->>'sql') into v_n;
+    if coalesce(v_n,0) = 0 then continue; end if;
+
+    select id into v_id from public.agent_actions
+     where kind = 'delete_proposal' and detail->>'category' = c.spec->>'category'
+       and status = 'needs_review' limit 1;
+    if v_id is not null then
+      update public.agent_actions
+         set title = v_n || ' — ' || (c.spec->>'title_suffix'),
+             detail = coalesce(detail,'{}'::jsonb) || jsonb_build_object(
+               'count', v_n, 'why', c.spec->>'why', 'counted_by', c.spec->>'sql',
+               'counted_at', now())
+       where id = v_id;
+      continue;
+    end if;
+
+    -- THE DECISION HOLDS UNTIL THE FACT CHANGES. A category answered 'keep' is not asked again at
+    -- the same size or smaller. It IS asked again if the count grows past what was accepted, which
+    -- is a different question about a different number.
+    select (detail->>'count')::int as n, detail->>'decision' as decision
+      into v_prev
+      from public.agent_actions
+     where kind = 'delete_proposal' and detail->>'category' = c.spec->>'category'
+       and detail ? 'decision'
+     order by id desc limit 1;
+    if found and v_prev.decision in ('keep','keep_with_reason','retire')
+       and v_n <= coalesce(v_prev.n, 0) then
+      continue;
+    end if;
+
+    insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail)
+    values (c.spec->>'agent', 'delete_proposal', 'needs_review', c.spec->>'risk',
+            v_n || ' — ' || (c.spec->>'title_suffix'),
+            'Decide deliberately: remove, retire (active=false), or keep with a stated reason. Do not close this without one of the three.',
+            jsonb_build_object('category', c.spec->>'category', 'count', v_n,
+              'why', c.spec->>'why', 'counted_by', c.spec->>'sql', 'counted_at', now(),
+              'reopened_over', case when v_prev.n is null then null else v_prev.n end,
+              'proposes','review for removal — this routine never deletes anything'));
+    v_out := v_out || jsonb_build_array(jsonb_build_object('category', c.spec->>'category', 'count', v_n));
+  end loop;
+
+  insert into public.agent_runs(agent, status, counts, note, started_at, finished_at)
+  values ('delete_proposer','ok', jsonb_build_object('opened', jsonb_array_length(v_out)),
+          'delete proposals refreshed; ' || jsonb_array_length(v_out) || ' newly opened', now(), now());
+  return v_out;
+end
+$function$;
+
+
+-- ============================================================================================
+-- SECTION A — THE OWNERSHIP LEDGER
+-- ============================================================================================
+create table if not exists public.kernel_routine_ownership (
+  schema_name        text        not null,
+  routine_name       text        not null,
+  identity_args      text        not null default '',
+  ownership_class    text        not null,
+  classified_by_rule text        not null,
+  evidence           text        not null,
+  -- source_kind is the REPOSITORY provenance, which is an input to the derivation, not a verdict.
+  -- CATALOG means "no repository input was supplied; the catalogue alone decides".
+  source_kind        text        not null,
+  source_file        text,
+  justification      text,
+  recorded_at        timestamptz not null default now(),
+  constraint kernel_routine_ownership_pk
+    primary key (schema_name, routine_name, identity_args),
+  constraint kernel_routine_ownership_class_ck check (ownership_class in (
+    'QUOTESDONE_APPLICATION', 'SUPABASE_MANAGED', 'EXTENSION_MANAGED', 'PLATFORM_INTERNAL',
+    'HISTORICAL_APPLICATION', 'INTENTIONALLY_UNTRACKED_WITH_JUSTIFICATION')),
+  constraint kernel_routine_ownership_source_ck check (source_kind in (
+    'MANIFEST', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'CATALOG', 'NONE')),
+  -- A justification is required for EXACTLY one class and forbidden for the other five. Written as
+  -- an equality of two booleans so it fails in both directions: an untracked routine cannot be
+  -- filed with a blank excuse, and a tracked one cannot be given prose instead of a file.
+  constraint kernel_routine_ownership_justification_ck check (
+    (ownership_class = 'INTENTIONALLY_UNTRACKED_WITH_JUSTIFICATION')
+      = (justification is not null and length(btrim(justification)) >= 60)),
+  constraint kernel_routine_ownership_source_file_ck check (
+    (source_kind in ('MANIFEST', 'TRACKED_SQL_OUTSIDE_MANIFEST')) = (source_file is not null))
+);
+
+comment on table public.kernel_routine_ownership is
+  'Which routines QuotesDone owns as application source, which belong to Supabase or an extension, '
+  'and the mechanically re-runnable rule that decided each. Written by kernel_s0; guarded by '
+  'a00_kernel_routine_ownership_guard; re-derived from the repository by '
+  'scripts/checks/application_source_of_truth.test.mjs.';
+
+alter table public.kernel_routine_ownership enable row level security;
+revoke all on public.kernel_routine_ownership from public;
+grant select, insert, update, delete on public.kernel_routine_ownership to service_role;
+
+-- ============================================================================================
+-- SECTION A2 — THE DERIVATION
+--
+-- p_proname may be bare ('fn_x', resolved against search_path) or schema-qualified
+-- ('kb_stage.trg_archive_record_version'). Qualification is not decoration: trg_archive_record_version()
+-- exists in BOTH kb_stage and ops_kb_stage with the same identity args, and a bare name that
+-- matches more than one schema is answered AMBIGUOUS_WITHOUT_SCHEMA rather than guessed. Every
+-- seeded row below qualifies.
+--
+-- p_source_kind exists so the guard trigger can hand in the row's own provenance. An AFTER-row
+-- trigger reading the table it fires on is a snapshot question nobody should have to think about
+-- twice; passing the value removes the question. Called with two arguments — the form the brief
+-- names — it looks the provenance up itself.
+-- ============================================================================================
+create or replace function public.fn_kernel_routine_ownership(
+  p_proname text,
+  p_identity_args text default '',
+  p_source_kind text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $s0_derive$
+declare
+  v_want_sch  text;
+  v_want_name text;
+  v_args      text := coalesce(p_identity_args, '');
+  v_matches   int;
+  v_sch       text;
+  v_owner     text;
+  v_ext       text;
+  v_lang      text;
+  v_src       text;
+  v_file      text;
+  v_class     text;
+  v_rule      text;
+  v_evidence  text;
+  -- The platform's own roles. Membership is read from pg_proc.proowner, which is a catalogue fact,
+  -- not from the routine's name.
+  c_platform_roles constant text[] := array[
+    'supabase_admin', 'supabase_auth_admin', 'supabase_storage_admin', 'supabase_functions_admin',
+    'supabase_realtime_admin', 'authenticator', 'pgbouncer', 'pgsodium_keyholder'];
+  -- The managed product schemas. `extensions` is deliberately NOT here — see R3.
+  c_platform_schemas constant text[] := array[
+    'auth', 'storage', 'realtime', 'vault', 'graphql', 'graphql_public', 'pgbouncer', 'net',
+    'cron', 'pgsodium', 'supabase_functions', 'supabase_migrations', '_realtime', '_analytics',
+    '_supavisor'];
+begin
+  if position('.' in coalesce(p_proname, '')) > 0 then
+    v_want_sch  := split_part(p_proname, '.', 1);
+    v_want_name := split_part(p_proname, '.', 2);
+  else
+    v_want_sch  := null;
+    v_want_name := p_proname;
+  end if;
+
+  select count(*) into v_matches
+    from pg_proc p
+    join pg_namespace ns on ns.oid = p.pronamespace
+   where p.proname = v_want_name
+     and pg_get_function_identity_arguments(p.oid) = v_args
+     and ns.nspname not in ('pg_catalog', 'information_schema', 'pg_toast')
+     and (v_want_sch is null or ns.nspname = v_want_sch);
+
+  if v_matches = 0 then
+    -- Not a verdict in the allowed class list, so the guard refuses any row claiming ownership of
+    -- a routine that is not there. A ledger of code that does not exist is not a ledger.
+    return jsonb_build_object(
+      'ownership_class', 'ABSENT_FROM_CATALOG',
+      'rule', 'R0_NOT_IN_PG_PROC',
+      'evidence', format('no pg_proc entry for %s(%s) in any non-system schema', p_proname, v_args),
+      'schema_name', null, 'identity_args', v_args);
+  end if;
+  if v_matches > 1 then
+    return jsonb_build_object(
+      'ownership_class', 'AMBIGUOUS_WITHOUT_SCHEMA',
+      'rule', 'R0B_MORE_THAN_ONE_SCHEMA_MATCHES',
+      'evidence', format('%s routines named %s(%s) — qualify the name with its schema',
+                         v_matches, p_proname, v_args),
+      'schema_name', null, 'identity_args', v_args);
+  end if;
+
+  -- Exactly one match. SELECT INTO here cannot leave the targets null-by-accident: the count above
+  -- proved the row exists, and every column selected is NOT NULL in the catalogue except v_ext.
+  select ns.nspname,
+         pg_get_userbyid(p.proowner),
+         (select e.extname
+            from pg_depend d
+            join pg_extension e on e.oid = d.refobjid
+           where d.objid = p.oid and d.deptype = 'e'
+           limit 1),
+         l.lanname
+    into v_sch, v_owner, v_ext, v_lang
+    from pg_proc p
+    join pg_namespace ns on ns.oid = p.pronamespace
+    join pg_language l on l.oid = p.prolang
+   where p.proname = v_want_name
+     and pg_get_function_identity_arguments(p.oid) = v_args
+     and ns.nspname not in ('pg_catalog', 'information_schema', 'pg_toast')
+     and (v_want_sch is null or ns.nspname = v_want_sch);
+
+  v_src := p_source_kind;
+  if v_src is null then
+    select k.source_kind, k.source_file
+      into v_src, v_file
+      from public.kernel_routine_ownership k
+     where k.schema_name = v_sch
+       and k.routine_name = v_want_name
+       and k.identity_args = v_args;
+    -- No row: SELECT INTO leaves both null, which is the correct reading — nothing has been
+    -- recorded about this routine's repository provenance.
+  end if;
+
+  if v_ext is not null then
+    v_class := 'EXTENSION_MANAGED';
+    v_rule  := 'R1_PG_DEPEND_EXTENSION';
+    v_evidence := format('pg_depend deptype=e binds %s.%s to extension %s', v_sch, v_want_name, v_ext);
+  elsif v_owner = any (c_platform_roles) and v_sch = any (c_platform_schemas) then
+    v_class := 'SUPABASE_MANAGED';
+    v_rule  := 'R2_PLATFORM_ROLE_IN_PLATFORM_SCHEMA';
+    v_evidence := format('proowner=%s in managed schema %s', v_owner, v_sch);
+  elsif v_owner = any (c_platform_roles) and v_sch = 'extensions' then
+    v_class := 'PLATFORM_INTERNAL';
+    v_rule  := 'R3_PLATFORM_ROLE_IN_EXTENSIONS_SCHEMA';
+    v_evidence := format('proowner=%s in schema extensions and NO extension owns it '
+                         '(no pg_depend deptype=e) — platform bootstrap glue', v_owner);
+  elsif v_owner = any (c_platform_roles) then
+    v_class := 'SUPABASE_MANAGED';
+    v_rule  := 'R2B_PLATFORM_ROLE';
+    v_evidence := format('proowner=%s (a platform role) in schema %s', v_owner, v_sch);
+  elsif v_src = 'MANIFEST' then
+    v_class := 'QUOTESDONE_APPLICATION';
+    v_rule  := 'R4_MANIFEST_DEFINES_IT';
+    v_evidence := format('owner=%s, no extension, and a scripts/sql/MANIFEST.txt file defines it%s',
+                         v_owner, coalesce(': ' || v_file, ''));
+  elsif v_src = 'TRACKED_SQL_OUTSIDE_MANIFEST' then
+    v_class := 'HISTORICAL_APPLICATION';
+    v_rule  := 'R5_TRACKED_SQL_OUTSIDE_MANIFEST';
+    v_evidence := format('owner=%s, no MANIFEST file defines it, tracked SQL elsewhere does%s',
+                         v_owner, coalesce(': ' || v_file, ''));
+  elsif v_src = 'NONE' then
+    v_class := 'INTENTIONALLY_UNTRACKED_WITH_JUSTIFICATION';
+    v_rule  := 'R6_NO_SOURCE_ANYWHERE_JUSTIFIED';
+    v_evidence := format('owner=%s, lang=%s, and no tracked *.sql in the repository creates it',
+                         v_owner, v_lang);
+  else
+    -- Application-owned and nothing said where it came from. Not a class; the guard refuses it.
+    v_class := 'NO_PROVENANCE_RECORDED';
+    v_rule  := 'R6_NO_PROVENANCE_RECORDED';
+    v_evidence := format('owner=%s in schema %s is not platform-owned, and source_kind is %s — '
+                         'the repository has not been asked where this came from',
+                         v_owner, v_sch, coalesce(v_src, 'unrecorded'));
+  end if;
+
+  return jsonb_build_object(
+    'ownership_class', v_class,
+    'rule', v_rule,
+    'evidence', v_evidence,
+    'schema_name', v_sch,
+    'identity_args', v_args,
+    'owner', v_owner,
+    'extension', v_ext);
+end
+$s0_derive$;
+
+revoke all on function public.fn_kernel_routine_ownership(text, text, text) from public;
+grant execute on function public.fn_kernel_routine_ownership(text, text, text) to service_role;
+
+-- ============================================================================================
+-- SECTION B — THE GUARD, IN BOTH DIRECTIONS
+--
+-- It refuses a recorded class the derivation does not produce, whichever way the lie points:
+--   * a QuotesDone routine filed as SUPABASE_MANAGED or EXTENSION_MANAGED — hiding application
+--     source inside the managed exclusion so the gate stops counting it;
+--   * platform or extension code filed as QUOTESDONE_APPLICATION — claiming code we do not own,
+--     which puts a permanent unfixable drift in the gate.
+-- Both are proved to fire in kernel_s0_routine_ownership.REHEARSAL.md.
+--
+-- AFTER, not BEFORE: the derivation is handed NEW.source_kind directly, so it needs nothing from
+-- the table, but an AFTER trigger also means the row's own CHECK constraints have already been
+-- enforced and the guard is never the thing that reports a malformed row.
+-- ============================================================================================
+create or replace function public.a00_kernel_routine_ownership_guard()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $s0_guard$
+declare
+  v_d       jsonb;
+  v_derived text;
+begin
+  v_d := public.fn_kernel_routine_ownership(
+           NEW.schema_name || '.' || NEW.routine_name, NEW.identity_args, NEW.source_kind);
+  v_derived := v_d->>'ownership_class';
+
+  if v_derived is distinct from NEW.ownership_class then
+    raise exception
+      'kernel_routine_ownership refuses %.%(%): recorded class %, but the facts support %. Rule %. %',
+      NEW.schema_name, NEW.routine_name, NEW.identity_args, NEW.ownership_class, v_derived,
+      v_d->>'rule', v_d->>'evidence'
+      using errcode = '23514';
+  end if;
+
+  if NEW.classified_by_rule is distinct from (v_d->>'rule') then
+    raise exception
+      'kernel_routine_ownership refuses %.%(%): recorded rule % is not the rule that fired (%). %',
+      NEW.schema_name, NEW.routine_name, NEW.identity_args, NEW.classified_by_rule,
+      v_d->>'rule', v_d->>'evidence'
+      using errcode = '23514';
+  end if;
+
+  return null;
+end
+$s0_guard$;
+
+revoke all on function public.a00_kernel_routine_ownership_guard() from public;
+grant execute on function public.a00_kernel_routine_ownership_guard() to service_role;
+
+drop trigger if exists a00_kernel_routine_ownership_guard on public.kernel_routine_ownership;
+create trigger a00_kernel_routine_ownership_guard
+  after insert or update on public.kernel_routine_ownership
+  for each row execute function public.a00_kernel_routine_ownership_guard();
+
+-- ============================================================================================
+-- SECTION C1 — THE MANAGED ESTATE, SEEDED BY RULE, WITH NO LITERALS AT ALL
+--
+-- R1, R2, R2B and R3 need nothing from the repository, so this statement IS the classification:
+-- re-run it on any project and it produces the same answer from that project's catalogue. Nothing
+-- here can be tuned, because there is nothing here to tune.
+-- ============================================================================================
+insert into public.kernel_routine_ownership
+  (schema_name, routine_name, identity_args, ownership_class, classified_by_rule, evidence, source_kind)
+select d.sch, d.nm, d.args, d.j->>'ownership_class', d.j->>'rule', d.j->>'evidence', 'CATALOG'
+  from (
+    select ns.nspname sch, p.proname nm, pg_get_function_identity_arguments(p.oid) args,
+           public.fn_kernel_routine_ownership(
+             ns.nspname || '.' || p.proname,
+             pg_get_function_identity_arguments(p.oid),
+             'CATALOG') j
+      from pg_proc p
+      join pg_namespace ns on ns.oid = p.pronamespace
+     where ns.nspname not in ('pg_catalog', 'information_schema', 'pg_toast')
+       and p.prokind in ('f', 'p')
+  ) d
+ where d.j->>'ownership_class' in ('EXTENSION_MANAGED', 'SUPABASE_MANAGED', 'PLATFORM_INTERNAL')
+    on conflict (schema_name, routine_name, identity_args) do update
+   set ownership_class    = excluded.ownership_class,
+       classified_by_rule = excluded.classified_by_rule,
+       evidence           = excluded.evidence,
+       source_kind        = excluded.source_kind,
+       source_file        = excluded.source_file,
+       justification      = excluded.justification,
+       recorded_at        = now();
+
+-- ============================================================================================
+-- SECTION C2 — THE APPLICATION ESTATE, ONE ROW PER ROUTINE, EACH NAMING ITS FILE
+--
+-- A database cannot see a git tree, so these are literals. Every one of them is re-derived from
+-- the repository by scripts/checks/application_source_of_truth.test.mjs on every run: the check
+-- reads MANIFEST.txt and `git ls-files "*.sql"`, recomputes source_kind and source_file, and
+-- counts any row the repository does not support. A wrong literal here is a red gate, not a
+-- silent one.
+--
+-- source_file for a MANIFEST row is the LAST manifest file that defines the routine — position in
+-- MANIFEST.txt, never git commit time. That tie is what hid fn_phase_c_event_ingress for a day.
+-- ============================================================================================
+insert into public.kernel_routine_ownership
+  (schema_name, routine_name, identity_args, ownership_class, classified_by_rule, evidence,
+   source_kind, source_file, justification)
+values
+  ('cert', 'no_mutation', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 491', 'MANIFEST', 'scripts/sql/v3_knowledge_runtime_schema.sql', null),
+  ('holdout_v2', 'fn_eff', 'p_comp jsonb, p_td jsonb, p_trade text, p_component text', 'INTENTIONALLY_UNTRACKED_WITH_JUSTIFICATION', 'R6_NO_SOURCE_ANYWHERE_JUSTIFIED', 'owner=postgres, lang=sql, and no tracked *.sql in the repository creates it', 'NONE', null, 'Private V3 holdout-evaluation schema. Measured 17 Aug 2026: 0 routines outside holdout_v2 reference it, 0 cron jobs reference it, and anon holds no USAGE on the schema, so the PUBLIC EXECUTE grant is unreachable. It scores an eval, it is not business logic, and putting the eval harness under the business apply order would make every eval run a schema change.'),
+  ('holdout_v2', 'fn_run_pending', 'p_run_id integer, p_limit integer', 'INTENTIONALLY_UNTRACKED_WITH_JUSTIFICATION', 'R6_NO_SOURCE_ANYWHERE_JUSTIFIED', 'owner=postgres, lang=plpgsql, and no tracked *.sql in the repository creates it', 'NONE', null, 'Private V3 holdout-evaluation schema. Measured 17 Aug 2026: 0 routines outside holdout_v2 reference it, 0 cron jobs reference it, and anon holds no USAGE on the schema, so the PUBLIC EXECUTE grant is unreachable. It scores an eval, it is not business logic, and putting the eval harness under the business apply order would make every eval run a schema change.'),
+  ('holdout_v2', 'trg_immutable', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'holdout_v2_eval/phase2_load.sql', null),
+  ('holdout_v2', 'trg_seal_guard', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'holdout_v2_eval/phase2_load.sql', null),
+  ('kb_stage', 'rollback_ingestion_run', 'p_run_id uuid', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802122112_kb_stage_record_versioning_trigger.sql', null),
+  ('kb_stage', 'trg_archive_record_version', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802122112_kb_stage_record_versioning_trigger.sql', null),
+  ('ops_kb_stage', 'trg_archive_record_version', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802131757_ops_kb_stage_schema_2026_08_02.sql', null),
+  ('public', '_kb_next_ver', 'k text, r text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115335_knowledge_governance.sql', null),
+  ('public', '_next_docver', 'p_type text, p_id text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706105544_document_versioning.sql', null),
+  ('public', '_rfq_answered', 'v text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260729140842_rfq_category_required_field_gate.sql', null),
+  ('public', '_rfq_concept', 'k text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260729140842_rfq_category_required_field_gate.sql', null),
+  ('public', 'a00_llm_attempt_immutable', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 519', 'MANIFEST', 'scripts/sql/v3_repair_10_infra_reliability.sql', null),
+  ('public', 'add_working_days', 'd date, n integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260609151015_monetization_v2_pricing_engine.sql', null),
+  ('public', 'ai_rec', 'p_sig text, p_cond boolean, p_risk text, p_title text, p_reco text, p_assumptions jsonb, p_impact text, p_cost text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 386', 'MANIFEST', 'scripts/sql/the_five_wrappers_that_could_not_carry_a_reason.sql', null),
+  ('public', 'auth_uid_by_email', 'p_email text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260625183944_auth_uid_by_email_helper.sql', null),
+  ('public', 'block_disposable_signup', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260629221309_fraud_guard_disposable_signup.sql', null),
+  ('public', 'canary_scan', 'haystack text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'dedupe_it_incident', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260625073856_dedupe_it_incidents.sql', null),
+  ('public', 'doc_rec', 'p_sig text, p_cond boolean, p_risk text, p_title text, p_reco text, p_assumptions jsonb, p_impact text, p_cost text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 386', 'MANIFEST', 'scripts/sql/the_five_wrappers_that_could_not_carry_a_reason.sql', null),
+  ('public', 'enqueue_supplier_invites', 'p_cap integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 438, canonical over 3 earlier file(s)', 'MANIFEST', 'scripts/sql/the_company_wrote_down_when_not_to_send_and_nothing_read_it.sql', null),
+  ('public', 'ensure_category_agent', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260625074340_auto_create_category_agent.sql', null),
+  ('public', 'fin_alert', 'p_sig text, p_risk text, p_title text, p_reco text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709083220_fn_finance_ai_agent.sql', null),
+  ('public', 'fn_accrue_dues_interest', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260719012830_supplier_economics_founding_exemption_and_clawback.sql', null),
+  ('public', 'fn_action_invoke_collect', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 361, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/the_biggest_producer_spoke_a_word_the_extractor_did_not_know.sql', null),
+  ('public', 'fn_action_invoke_dispatch', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 419, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_queue_that_had_nobody_to_hand_it_to.sql', null),
+  ('public', 'fn_action_invoke_rpc', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 447', 'MANIFEST', 'scripts/sql/the_rpc_half_of_the_executor_table_had_no_runner.sql', null),
+  ('public', 'fn_action_policies', 'p_kind text, p_confidence numeric', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 154', 'MANIFEST', 'scripts/sql/actions_explain_policies.sql', null),
+  ('public', 'fn_action_queue_sweep', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 193, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/fn_action_queue_sweep_two_defects.sql', null),
+  ('public', 'fn_add_working_days', 'p_from timestamp with time zone, p_days integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260721183105_working_day_arithmetic.sql', null),
+  ('public', 'fn_agent_action_resolve_addressee', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 316, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_files_were_stale_not_the_database.sql', null),
+  ('public', 'fn_agent_action_trace', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 513, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/v3_repair_11_trace_convergence.sql', null),
+  ('public', 'fn_agent_action_trace_ins', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 509', 'MANIFEST', 'scripts/sql/v3_repair_02_decision_trace.sql', null),
+  ('public', 'fn_agent_action_trace_row', 'a agent_actions', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 509', 'MANIFEST', 'scripts/sql/v3_repair_02_decision_trace.sql', null),
+  ('public', 'fn_agent_action_work_sweep', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 424, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/a_failed_attempt_was_a_life_sentence.sql', null),
+  ('public', 'fn_agent_actions_fill_alternatives', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 622, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/the_founder_could_not_decide_twenty_of_his_own_actions.sql', null),
+  ('public', 'fn_agent_autonomy_blocked', 'p_agent_key text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 541, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_26_autonomy_gate_resolves.sql', null),
+  ('public', 'fn_agent_context', 'p_agent_key text, p_max_chars integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 536, canonical over 6 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_21_resolve_before_compare.sql', null),
+  ('public', 'fn_agent_context', 'p_agent_key text, p_max_chars integer, p_query text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 536, canonical over 6 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_21_resolve_before_compare.sql', null),
+  ('public', 'fn_agent_context_capped', 'p_agent_key text, p_max_chars integer, p_query text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 539, canonical over 6 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_24_context_assembly_is_not_stable.sql', null),
+  ('public', 'fn_agent_context_head_refresh', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 466', 'MANIFEST', 'scripts/sql/a_prefix_that_moved_four_times_in_forty_five_minutes.sql', null),
+  ('public', 'fn_agent_context_v3', 'p_agent_key text, p_task_class text, p_task_text text, p_category_key text, p_budget_chars integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 512', 'MANIFEST', 'scripts/sql/v3_repair_05_ctx_v3_query.sql', null),
+  ('public', 'fn_agent_decision', 'p_agent text, p_kind text, p_title text, p_recommendation text, p_confidence numeric, p_evidence jsonb, p_risk text, p_detail jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709110630_agent_governance_canon_and_decisions.sql', null),
+  ('public', 'fn_agent_handoff_inbox', 'p_agent_key text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 542, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_27_both_sides_resolve.sql', null),
+  ('public', 'fn_agent_inbox_closable_kinds', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 201, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/inbox_closable_all_but_money.sql', null),
+  ('public', 'fn_agent_institutional_memory', 'p_agent_key text, p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 536, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_21_resolve_before_compare.sql', null),
+  ('public', 'fn_agent_silence_watch', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 255', 'MANIFEST', 'scripts/sql/cron_watchdogs_stop_timing_out.sql', null),
+  ('public', 'fn_agent_tool_allowed', 'p_agent_key text, p_tool_id text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 508', 'MANIFEST', 'scripts/sql/v3_repair_01_tool_registry.sql', null),
+  ('public', 'fn_agent_tools', 'p_agent_key text, p_kind text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 546, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_31_tool_eligibility_resolves.sql', null),
+  ('public', 'fn_agents_board', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260725200438_rfq_customers_agents_boards.sql', null),
+  ('public', 'fn_ai_confidence_prior', 'p_agent_key text, p_task_class text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 538, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_23_resolve_in_sql_bodies.sql', null),
+  ('public', 'fn_ai_gate', 'p_answer text, p_sources jsonb, p_confidence numeric, p_action text, p_actor text, p_attrs jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 71, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/escalation_names_a_party.sql', null),
+  ('public', 'fn_ai_quality_watch', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 433, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/a_snapshot_whose_grain_was_not_one_row_per_agent.sql', null),
+  ('public', 'fn_ai_route', 'p_task_class text, p_dept_key text, p_confidence numeric, p_fn text, p_escalate boolean, p_require_caps text[], p_agent_key text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 535, canonical over 6 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_20_routing_tier_reaches_the_employee.sql', null),
+  ('public', 'fn_ai_route_tier_rank', 'p_tier text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728235000_fn_ai_route_capability_substitute_respects_tier.sql', null),
+  ('public', 'fn_ai_spend_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 530, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_15_spend_meter.sql', null),
+  ('public', 'fn_ai_trainer', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 388', 'MANIFEST', 'scripts/sql/the_trainer_that_would_have_posted_to_the_wrong_company.sql', null),
+  ('public', 'fn_alert_severe', 'p_level text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 312', 'MANIFEST', 'scripts/sql/severity_had_no_definition_so_every_reader_invented_one.sql', null),
+  ('public', 'fn_answer_precedence_rank', 'p answer_precedence', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802190000_p2_c1_stage_a_mep_model.sql', null),
+  ('public', 'fn_ap_bill_dupe_guard', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727014208_duplicate_invoice_control.sql', null),
+  ('public', 'fn_ap_duplicate_scan', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727014208_duplicate_invoice_control.sql', null),
+  ('public', 'fn_ap_pay', 'p_bill bigint, p_date date, p_amount numeric, p_from_account text, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101015_erp_po_functions.sql', null),
+  ('public', 'fn_ap_pay_block_held', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727021634_refusals_must_leave_a_row.sql', null),
+  ('public', 'fn_approval_decide', 'p_request uuid, p_actor uuid, p_decision text, p_note text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 72', 'MANIFEST', 'scripts/sql/approvals_and_orders.sql', null),
+  ('public', 'fn_approval_list', 'p_customer uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 72', 'MANIFEST', 'scripts/sql/approvals_and_orders.sql', null),
+  ('public', 'fn_approval_policy_match', 'p_org uuid, p_entity_type text, p_amount numeric, p_category text, p_emirate text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 72', 'MANIFEST', 'scripts/sql/approvals_and_orders.sql', null),
+  ('public', 'fn_approval_raise_on_award', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 72', 'MANIFEST', 'scripts/sql/approvals_and_orders.sql', null),
+  ('public', 'fn_approval_trace_audit', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 134', 'MANIFEST', 'scripts/sql/governance_monitors.sql', null),
+  ('public', 'fn_archetype_tier', 'p_archetype text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 515', 'MANIFEST', 'scripts/sql/v3_repair_06_role_isolation.sql', null),
+  ('public', 'fn_artifact_publish_blocked', 'p_subject_type text, p_subject_id text, p_sha256 text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 481', 'MANIFEST', 'scripts/sql/v3_artifact_review.sql', null),
+  ('public', 'fn_artifact_review_valid', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 547, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_align_01_reviewer_independence_resolves.sql', null),
+  ('public', 'fn_assign_founding_rank', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260719012830_supplier_economics_founding_exemption_and_clawback.sql', null),
+  ('public', 'fn_assign_founding_ranks', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803182044_founding_rank_on_verification.sql', null),
+  ('public', 'fn_assign_training', 'p_agent_key text, p_competency text, p_purpose text, p_n integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 536, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_21_resolve_before_compare.sql', null),
+  ('public', 'fn_audit_prune', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728173008_audit_every_agent_action.sql', null),
+  ('public', 'fn_authority_rank', 'p text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803155820_audit_74_autonomy_mechanically_blocked_while_p0_open.sql', null),
+  ('public', 'fn_authorize', 'p_email text, p_action text, p_attrs jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115642_rbac_abac_policy_v2.sql', null),
+  ('public', 'fn_autonomy_audit', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724062250_autonomy_self_audit.sql', null),
+  ('public', 'fn_autonomy_audit_run', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724062250_autonomy_self_audit.sql', null),
+  ('public', 'fn_autonomy_check', 'p_kind text, p_target_table text, p_recommendation text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708123847_autonomy_policy_engine.sql', null),
+  ('public', 'fn_autonomy_class', 'p_kind text, p_target_table text, p_recommendation text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'ai-organization/db-functions/fn_autonomy_class.sql', null),
+  ('public', 'fn_autonomy_control_guard', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803155820_audit_74_autonomy_mechanically_blocked_while_p0_open.sql', null),
+  ('public', 'fn_autonomy_dispose', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708123847_autonomy_policy_engine.sql', null),
+  ('public', 'fn_autonomy_status', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803155820_audit_74_autonomy_mechanically_blocked_while_p0_open.sql', null),
+  ('public', 'fn_backup_watch', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 404', 'MANIFEST', 'scripts/sql/the_outage_that_only_rang_once.sql', null),
+  ('public', 'fn_ban_overdue_dues', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260719012830_supplier_economics_founding_exemption_and_clawback.sql', null),
+  ('public', 'fn_bi_snapshot', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727004408_bi_innovation_simulation_evolution_collaboration.sql', null),
+  ('public', 'fn_binding_constraint', 'p_days integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 517', 'MANIFEST', 'scripts/sql/v3_repair_08_revenue_cascade.sql', null),
+  ('public', 'fn_blueprint_regressions', 'p_spec text, p_ref text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 497', 'MANIFEST', 'scripts/sql/blueprint_results_have_a_history.sql', null),
+  ('public', 'fn_blueprint_result_prune', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 497', 'MANIFEST', 'scripts/sql/blueprint_results_have_a_history.sql', null),
+  ('public', 'fn_board_report', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 312', 'MANIFEST', 'scripts/sql/severity_had_no_definition_so_every_reader_invented_one.sql', null),
+  ('public', 'fn_board_review', 'p_subject text, p_subject_ref text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728193559_company_consciousness_and_ai_board.sql', null),
+  ('public', 'fn_boq_fixture_score', 'p_fixture_id bigint, p_actual jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 336', 'MANIFEST', 'scripts/sql/the_boq_pipeline_had_no_way_to_be_wrong.sql', null),
+  ('public', 'fn_brand_scan', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727002216_brand_protection_and_secops.sql', null),
+  ('public', 'fn_budget_available', 'p_dept text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 530', 'MANIFEST', 'scripts/sql/org_reorg_15_spend_meter.sql', null),
+  ('public', 'fn_budget_create', 'p_name text, p_year integer, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101644_erp_budgeting.sql', null),
+  ('public', 'fn_budget_rollup', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 171, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/budget_machine_empty_case.sql', null),
+  ('public', 'fn_budget_set', 'p_budget bigint, p_account text, p_month date, p_amount numeric', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101644_erp_budgeting.sql', null),
+  ('public', 'fn_budget_set_annual', 'p_budget bigint, p_account text, p_amount numeric', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101644_erp_budgeting.sql', null),
+  ('public', 'fn_bump_exam_question', 'p_id bigint', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260726145252_knowledge_exam_helpers.sql', null),
+  ('public', 'fn_cancel_inquiry', 'p_inquiry uuid, p_customer uuid, p_reason text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_capability_enrich_sweep', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 390', 'MANIFEST', 'scripts/sql/the_supplier_the_matcher_could_not_see.sql', null),
+  ('public', 'fn_capability_verify', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 147', 'MANIFEST', 'scripts/sql/fn_capability_verify.sql', null),
+  ('public', 'fn_cascade_refresh', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 517', 'MANIFEST', 'scripts/sql/v3_repair_08_revenue_cascade.sql', null),
+  ('public', 'fn_category_checklist', 'p_category text, p_label text, p_text text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 484', 'MANIFEST', 'scripts/sql/v3_category_runtime.sql', null),
+  ('public', 'fn_category_expert_ref', 'p_category text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724160651_comparison_agent_expert_knowledge_and_supplier_coaching.sql', null),
+  ('public', 'fn_category_knowledge', 'p_category text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_category_knowledge_promote', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_category_questions', 'p_category text, p_lang text, p_limit integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_category_quote_ready', 'p_category text, p_spec jsonb, p_label text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 484', 'MANIFEST', 'scripts/sql/v3_category_runtime.sql', null),
+  ('public', 'fn_category_readiness_recompute', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 495', 'MANIFEST', 'scripts/sql/v3_readiness.sql', null),
+  ('public', 'fn_category_sales', 'p_min_age_hours integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 412', 'MANIFEST', 'scripts/sql/the_hot_lead_and_the_gap_state_their_terms.sql', null),
+  ('public', 'fn_category_specialist_scorecard', 'p_days integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 560, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/the_repo_and_the_database_disagreed_about_two_routines.sql', null),
+  ('public', 'fn_ceo_questions', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728173424_weekly_executive_meeting_and_ceo_self_questioning.sql', null),
+  ('public', 'fn_challenge', 'p_proposal text, p_proposed_by text, p_challenger text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 138', 'MANIFEST', 'scripts/sql/challenge_reason_from_prior_outcomes.sql', null),
+  ('public', 'fn_check_licence_activity', 'p_subject_id text, p_content text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727013957_licence_activity_check_and_executable_standards.sql', null),
+  ('public', 'fn_check_licence_expiry', 'p_subject_id text, p_content text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727013957_licence_activity_check_and_executable_standards.sql', null),
+  ('public', 'fn_check_spend', 'p_dept text, p_amount numeric, p_agent text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 536, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_21_resolve_before_compare.sql', null),
+  ('public', 'fn_chief_of_staff', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708123029_agent_chief_of_staff.sql', null),
+  ('public', 'fn_classify_llm_failure', 'p_err text, p_http_status integer, p_finish_reason text, p_model text, p_latency_ms integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 560, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_repo_and_the_database_disagreed_about_two_routines.sql', null),
+  ('public', 'fn_collections', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260623204455_docs_collections.sql', null),
+  ('public', 'fn_company_brief', 'p_max_chars integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727005941_supplier_intelligence_and_shared_company_brief.sql', null),
+  ('public', 'fn_company_facts_sync', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803173357_audit_44_company_facts_sync_must_state_start_date.sql', null),
+  ('public', 'fn_company_faq_sync', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_company_indices', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728193744_reputation_maturity_energy_and_marketplace_health.sql', null),
+  ('public', 'fn_company_map', 'p_per_class integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 454', 'MANIFEST', 'scripts/sql/the_company_brain_had_no_reader.sql', null),
+  ('public', 'fn_company_reflect', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 36', 'MANIFEST', 'scripts/sql/bus_contract_close.sql', null),
+  ('public', 'fn_company_situation', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727010021_rename_shared_situation_brief.sql', null),
+  ('public', 'fn_company_snapshot', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 161', 'MANIFEST', 'scripts/sql/snapshot_carries_customers.sql', null),
+  ('public', 'fn_company_state', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_context_retrieval_prune', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 487', 'MANIFEST', 'scripts/sql/v3_decision_trace_connect.sql', null),
+  ('public', 'fn_context_slice', 'p_dept text, p_role_ids text[], p_category text, p_layer text, p_q tsquery, p_budget integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 510', 'MANIFEST', 'scripts/sql/v3_repair_03_retrieval.sql', null),
+  ('public', 'fn_control_mode_challenge_minutes', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802150755_p1h_02_control_mode_purpose_bound_challenge.sql', null),
+  ('public', 'fn_control_mode_challenge_start', 'p_actor_email text, p_code_hash text, p_ip text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802150755_p1h_02_control_mode_purpose_bound_challenge.sql', null),
+  ('public', 'fn_control_mode_close', 'p_actor_email text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802143520_p1_04_observe_and_control_mode.sql', null),
+  ('public', 'fn_control_mode_identity_active', 'p_email text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802154210_p1h_06_control_mode_single_identity.sql', null),
+  ('public', 'fn_control_mode_minutes', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802143520_p1_04_observe_and_control_mode.sql', null),
+  ('public', 'fn_control_mode_open', 'p_actor_email text, p_reason text, p_challenge_id uuid, p_nonce text, p_code text, p_user_id uuid, p_ip text, p_ua text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802143520_p1_04_observe_and_control_mode.sql', null),
+  ('public', 'fn_control_mode_require', 'p_actor_email text, p_action text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 611', 'MANIFEST', 'scripts/sql/phase_c_19_founder_gated_action_class.sql', null),
+  ('public', 'fn_control_mode_session_mfa_is_real', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803173632_audit_36_control_mode_session_cannot_be_forged.sql', null),
+  ('public', 'fn_control_mode_status', 'p_actor_email text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 623', 'MANIFEST', 'scripts/sql/control_mode_pill_stops_claiming_a_lock_that_is_off.sql', null),
+  ('public', 'fn_control_mode_sweep', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 409', 'MANIFEST', 'scripts/sql/the_tidy_up_that_stopped_the_sessions_expiring.sql', null),
+  ('public', 'fn_cos_work_gate', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 340', 'MANIFEST', 'scripts/sql/sixty_percent_of_the_bill_was_the_company_thinking_about_itself.sql', null),
+  ('public', 'fn_cost_per_os', 'p_days integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 306', 'MANIFEST', 'scripts/sql/cost_per_os_that_admits_what_it_cannot_see.sql', null),
+  ('public', 'fn_cron_liveness', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724014606_layer2_cron_liveness_rpc.sql', null),
+  ('public', 'fn_cron_ran', 'p_jobname text, p_within interval', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728190150_conductor_check_cron_history_not_agent_runs.sql', null),
+  ('public', 'fn_customer_decision_support', 'p_customer uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 442', 'MANIFEST', 'scripts/sql/fn_customer_decision_support.sql', null),
+  ('public', 'fn_customer_document_refs', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 73', 'MANIFEST', 'scripts/sql/documents_customer_vault.sql', null),
+  ('public', 'fn_customer_documents', 'p_q text, p_kind text, p_lim integer, p_related_refs text[]', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 73', 'MANIFEST', 'scripts/sql/documents_customer_vault.sql', null),
+  ('public', 'fn_customer_forecast', 'p_customer uuid, p_horizon_days integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 75', 'MANIFEST', 'scripts/sql/row4_customer_forecast.sql', null),
+  ('public', 'fn_customer_orders', 'p_customer uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 72', 'MANIFEST', 'scripts/sql/approvals_and_orders.sql', null),
+  ('public', 'fn_customer_preference_learn', 'p_customer_id uuid, p_stated jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 28', 'MANIFEST', 'scripts/sql/fn_customer_preference.sql', null),
+  ('public', 'fn_customer_savings', 'p_customer uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 76', 'MANIFEST', 'scripts/sql/row4_customer_savings.sql', null),
+  ('public', 'fn_customer_stats', 'p_customer uuid', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_customer_success', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 621', 'MANIFEST', 'scripts/sql/customer_success_titles_are_english.sql', null),
+  ('public', 'fn_customer_supplier_score', 'p_customer uuid, p_supplier bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 77', 'MANIFEST', 'scripts/sql/row4_customer_supplier_score.sql', null),
+  ('public', 'fn_customers_board', 'p_search text, p_limit integer, p_offset integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260725200438_rfq_customers_agents_boards.sql', null),
+  ('public', 'fn_data_metrics', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706021848_executive_intelligence_layer.sql', null),
+  ('public', 'fn_day_conductor', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728172824_bos_daily_conductor_one_operating_rhythm.sql', null),
+  ('public', 'fn_dbx_category', 'p_lead_id bigint', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260729141623_dropbox_category_folder_from_catalog_86.sql', null),
+  ('public', 'fn_dbx_safe', 'x text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260710155830_doc_backups_structured_tree.sql', null),
+  ('public', 'fn_decide', 'p_kind text, p_ctx jsonb, p_actor text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 316, canonical over 3 earlier file(s)', 'MANIFEST', 'scripts/sql/the_files_were_stale_not_the_database.sql', null),
+  ('public', 'fn_decision_conflict_scan', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 134', 'MANIFEST', 'scripts/sql/governance_monitors.sql', null),
+  ('public', 'fn_decision_gate', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 58, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/fn_decision_gate_authority_register.sql', null),
+  ('public', 'fn_decision_outcomes', 'p_kind text, p_days integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 59', 'MANIFEST', 'scripts/sql/fn_execution_run.sql', null),
+  ('public', 'fn_decision_trace_immutable', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 509', 'MANIFEST', 'scripts/sql/v3_repair_02_decision_trace.sql', null),
+  ('public', 'fn_delete_proposer', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 671, canonical over 3 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_s0_routine_ownership.sql', null),
+  ('public', 'fn_demo_marker_scan', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 285', 'MANIFEST', 'scripts/sql/demo_rehearsal_containment.sql', null),
+  ('public', 'fn_dept_authority', 'p_dept text, p_action_class text, p_amount_aed numeric', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724020640_org_foundation_kernel_ledger_permissions.sql', null),
+  ('public', 'fn_dept_can_plan', 'p_dept_key text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728230844_channel_decisions_task_cap_and_quality_loop.sql', null),
+  ('public', 'fn_dept_canonical', 'p_dept text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 501', 'MANIFEST', 'scripts/sql/org_reorg_02_departments.sql', null),
+  ('public', 'fn_dept_library_search', 'p_dept text, p_query text, p_limit integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724061538_dept_library_store.sql', null),
+  ('public', 'fn_dept_objective_measure', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 293', 'MANIFEST', 'scripts/sql/every_layer_measures_itself_except_the_two_that_matter.sql', null),
+  ('public', 'fn_dept_scope', 'p_dept text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 501', 'MANIFEST', 'scripts/sql/org_reorg_02_departments.sql', null),
+  ('public', 'fn_derive_supplier_registration_state', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803035619_single_source_supplier_registration_state_audit_4_2.sql', null),
+  ('public', 'fn_dispatch_agent_knowledge_gaps', 'p_stale_days integer, p_thin_min integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 387', 'MANIFEST', 'scripts/sql/the_stale_brief_that_nobody_had_read_either.sql', null),
+  ('public', 'fn_dispute_open', 'p_stripe_dispute_id text, p_stripe_charge_id text, p_payment_ref text, p_amount_aed numeric, p_reason text, p_evidence_due_by timestamp with time zone', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727085320_fn_dispute_open.sql', null),
+  ('public', 'fn_doc_control', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260623204455_docs_collections.sql', null),
+  ('public', 'fn_doc_diff', 'p_type text, p_id text, p_va integer, p_vb integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706105544_document_versioning.sql', null),
+  ('public', 'fn_doc_expiry_scan', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115422_supplier_capability_model.sql', null),
+  ('public', 'fn_doc_final_notice', 'p_days integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260721131409_supplier_doc_final_notice_email_and_whatsapp.sql', null),
+  ('public', 'fn_doc_history', 'p_type text, p_id text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706105544_document_versioning.sql', null),
+  ('public', 'fn_document_controller', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 385', 'MANIFEST', 'scripts/sql/the_document_controller_states_what_it_took_on_trust.sql', null),
+  ('public', 'fn_dropbox_list', 'p_prefix text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_dues_to_escalate', 'p_days integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_ea_agenda', 'p_days integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 631, canonical over 3 earlier file(s)', 'MANIFEST', 'scripts/sql/operations_assistance_company_reports.sql', null),
+  ('public', 'fn_ea_assistant', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709101112_ea_tables_agenda_agent.sql', null),
+  ('public', 'fn_edge_health_scan', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728200511_edge_heartbeat_watchdog.sql', null),
+  ('public', 'fn_edit_inquiry', 'p_inquiry uuid, p_customer uuid, p_patch jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 302', 'MANIFEST', 'scripts/sql/a_requirements_change_left_every_quote_answering_the_old_question.sql', null),
+  ('public', 'fn_email_sendable', 'p_email text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 353', 'MANIFEST', 'scripts/sql/eight_thousand_domains_nobody_had_ever_asked_whether_they_accept_mail.sql', null),
+  ('public', 'fn_emit', 'p_event_type text, p_entity_type text, p_entity_id text, p_actor text, p_payload jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 33', 'MANIFEST', 'scripts/sql/fn_emit_and_os_review.sql', null),
+  ('public', 'fn_emit_budget_exceeded', 'p_dept text, p_amount numeric, p_requested_by text, p_purpose text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727021634_refusals_must_leave_a_row.sql', null),
+  ('public', 'fn_emit_campaign_launched', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 179', 'MANIFEST', 'scripts/sql/event_emitters_five_missing_classes.sql', null),
+  ('public', 'fn_emit_competitor_pricing_changed', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 179', 'MANIFEST', 'scripts/sql/event_emitters_five_missing_classes.sql', null),
+  ('public', 'fn_emit_customer_registered', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 179', 'MANIFEST', 'scripts/sql/event_emitters_five_missing_classes.sql', null),
+  ('public', 'fn_emit_event', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_emit_health_degraded', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 187', 'MANIFEST', 'scripts/sql/emit_health_degraded.sql', null),
+  ('public', 'fn_emit_invoice_received', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727014358_connect_event_emitters_to_subscriptions.sql', null),
+  ('public', 'fn_emit_metric_alerts', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 51, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/fn_emit_metric_alerts.sql', null),
+  ('public', 'fn_emit_regulation_changed', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 186', 'MANIFEST', 'scripts/sql/emit_regulation_changed.sql', null),
+  ('public', 'fn_emit_rfq_classified', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 189', 'MANIFEST', 'scripts/sql/emit_rfq_classified.sql', null),
+  ('public', 'fn_emit_supplier_applied', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727014358_connect_event_emitters_to_subscriptions.sql', null),
+  ('public', 'fn_emit_supplier_approved', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 179', 'MANIFEST', 'scripts/sql/event_emitters_five_missing_classes.sql', null),
+  ('public', 'fn_emit_task_assigned', 'p_lookback_minutes integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 68', 'MANIFEST', 'scripts/sql/fn_emit_task_assigned.sql', null),
+  ('public', 'fn_emit_test_failed', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727014358_connect_event_emitters_to_subscriptions.sql', null),
+  ('public', 'fn_emit_test_failed_ins', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727014358_connect_event_emitters_to_subscriptions.sql', null),
+  ('public', 'fn_employee_kpi_measure', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 300, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/performance_becomes_a_trend_not_a_point.sql', null),
+  ('public', 'fn_employee_kpi_trend', 'p_agent_key text, p_days integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 538, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_23_resolve_in_sql_bodies.sql', null),
+  ('public', 'fn_employee_responsibilities_backfill', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 294', 'MANIFEST', 'scripts/sql/fourteen_employees_knew_their_job_but_one_column_was_blank.sql', null),
+  ('public', 'fn_employee_scorecard', 'p_agent_key text, p_max_chars integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 536, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_21_resolve_before_compare.sql', null),
+  ('public', 'fn_enable_dropbox_sync', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_enforce_rls_on_new_tables', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708095708_guardrail_force_rls_on_new_public_tables.sql', null),
+  ('public', 'fn_enqueue_doc_backups', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260710154511_doc_backups_table_and_enqueue.sql', null),
+  ('public', 'fn_entity_activity', 'p_entity text, p_id text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 118', 'MANIFEST', 'scripts/sql/fn_entity_activity.sql', null),
+  ('public', 'fn_entity_comment_add', 'p_entity text, p_id text, p_author text, p_body text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260725194822_entity_activity_and_comments.sql', null),
+  ('public', 'fn_entity_files', 'p_entity text, p_id text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709112810_fn_entity_files.sql', null),
+  ('public', 'fn_eval_run', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706103127_ai_evaluation_scaffold.sql', null),
+  ('public', 'fn_eval_snapshot', 'p_days integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706103127_ai_evaluation_scaffold.sql', null),
+  ('public', 'fn_event_consolidate', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 316, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/the_files_were_stale_not_the_database.sql', null),
+  ('public', 'fn_event_dispatch', 'p_lookback_minutes integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 479, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/fn_event_dispatch_live_after_the_recurrence_cooldown.sql', null),
+  ('public', 'fn_evolution_scan', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 316, canonical over 3 earlier file(s)', 'MANIFEST', 'scripts/sql/the_files_were_stale_not_the_database.sql', null),
+  ('public', 'fn_exam_pick_agent', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 403', 'MANIFEST', 'scripts/sql/the_exam_that_examined_the_catalogue_instead_of_the_staff.sql', null),
+  ('public', 'fn_exam_revert', 'p_agent_key text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 536', 'MANIFEST', 'scripts/sql/org_reorg_21_resolve_before_compare.sql', null),
+  ('public', 'fn_exception_alerts', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 312', 'MANIFEST', 'scripts/sql/severity_had_no_definition_so_every_reader_invented_one.sql', null),
+  ('public', 'fn_exec_meeting', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 177, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/fn_exec_meeting_priorities_approvable.sql', null),
+  ('public', 'fn_execution_run', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 59', 'MANIFEST', 'scripts/sql/fn_execution_run.sql', null),
+  ('public', 'fn_execution_sweep', 'p_stall_minutes integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 52', 'MANIFEST', 'scripts/sql/fn_execution_sweep.sql', null),
+  ('public', 'fn_experience_promote', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'ai-organization/db-functions/fn_experience_promote.sql', null),
+  ('public', 'fn_experiment_assign', 'p_key text, p_subject text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706120703_feature_flags_and_experiments.sql', null),
+  ('public', 'fn_experiment_record', 'p_key text, p_subject text, p_event text, p_value numeric', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706120703_feature_flags_and_experiments.sql', null),
+  ('public', 'fn_experiment_results', 'p_key text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706120703_feature_flags_and_experiments.sql', null),
+  ('public', 'fn_expiring_docs', 'p_days integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_external_authority', 'p_query text, p_max_chars integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 288', 'MANIFEST', 'scripts/sql/layer_4_external_authority_reaches_the_employee.sql', null),
+  ('public', 'fn_fa_acquire', 'p_name text, p_category text, p_acquire_date date, p_cost numeric, p_salvage numeric, p_life_months integer, p_in_service date, p_fund_account text, p_post_gl boolean, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101529_erp_fixed_assets.sql', null),
+  ('public', 'fn_fa_depreciate', 'p_asset bigint, p_period date', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101529_erp_fixed_assets.sql', null),
+  ('public', 'fn_fa_dispose', 'p_asset bigint, p_date date, p_proceeds numeric, p_proceeds_account text, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101529_erp_fixed_assets.sql', null),
+  ('public', 'fn_fa_run_depreciation', 'p_period date', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101529_erp_fixed_assets.sql', null),
+  ('public', 'fn_faq_answer', 'p_text text, p_min_rank numeric, p_embedding vector, p_min_similarity numeric', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728205157_semantic_cache_and_no_ai_layer.sql', null),
+  ('public', 'fn_field_normalise', 'p_field_id text, p_value text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802190000_p2_c1_stage_a_mep_model.sql', null),
+  ('public', 'fn_field_value_allowed', 'p_field_id text, p_value text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802200400_p2_c1_stage_b_blockers_and_value_domain.sql', null),
+  ('public', 'fn_finance_ai', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709083220_fn_finance_ai_agent.sql', null),
+  ('public', 'fn_finance_forecast', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709083034_finance_forecast_and_kpis.sql', null),
+  ('public', 'fn_flag', 'p_key text, p_ctx jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706120703_feature_flags_and_experiments.sql', null),
+  ('public', 'fn_founder_apply_setting', 'p_key text, p_value text, p_inbound text, p_actor text, p_channel text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 414', 'MANIFEST', 'scripts/sql/the_founder_can_change_things_by_text.sql', null),
+  ('public', 'fn_founder_approval_refund_only', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 583', 'MANIFEST', 'scripts/sql/phase_c_02_authority_and_founder_boundary.sql', null),
+  ('public', 'fn_founder_brief', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 637, canonical over 4 earlier file(s)', 'MANIFEST', 'scripts/sql/fn_founder_brief_names_the_approval_queue.sql', null),
+  ('public', 'fn_founder_command_clarify', 'p_command_id bigint, p_answer text, p_actor text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 670, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_k2c_clarify_calls_kernel.sql', null),
+  ('public', 'fn_founder_command_classify', 'p_text text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 585', 'MANIFEST', 'scripts/sql/phase_c_04_command_center.sql', null),
+  ('public', 'fn_founder_command_control', 'p_command_id bigint, p_op text, p_target text, p_value text, p_actor text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 655, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_k0_founder_authentication.sql', null),
+  ('public', 'fn_founder_command_duplicate_result', 'p_command_id bigint, p_key text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 614', 'MANIFEST', 'scripts/sql/phase_c_22_duplicate_returns_same_shape.sql', null),
+  ('public', 'fn_founder_command_inbox', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 605', 'MANIFEST', 'scripts/sql/phase_c_14_command_center_entry_point.sql', null),
+  ('public', 'fn_founder_command_message_immutable', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 585', 'MANIFEST', 'scripts/sql/phase_c_04_command_center.sql', null),
+  ('public', 'fn_founder_command_progress_add', 'p_command_id bigint, p_task_id bigint, p_author text, p_note text, p_evidence jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 609', 'MANIFEST', 'scripts/sql/phase_c_17_command_progress_returns_to_founder.sql', null),
+  ('public', 'fn_founder_command_rollup', 'p_command_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 609', 'MANIFEST', 'scripts/sql/phase_c_17_command_progress_returns_to_founder.sql', null),
+  ('public', 'fn_founder_command_state_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 585', 'MANIFEST', 'scripts/sql/phase_c_04_command_center.sql', null),
+  ('public', 'fn_founder_command_status', 'p_ref text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 585', 'MANIFEST', 'scripts/sql/phase_c_04_command_center.sql', null),
+  ('public', 'fn_founder_command_submit', 'p_founder_identity text, p_text text, p_idempotency_key text, p_ctx jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 664, canonical over 4 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_k2b_founder_submit_calls_kernel.sql', null),
+  ('public', 'fn_founder_command_thread', 'p_command_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 609', 'MANIFEST', 'scripts/sql/phase_c_17_command_progress_returns_to_founder.sql', null),
+  ('public', 'fn_founder_command_trace_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 666, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_k6_trace_ledger.sql', null),
+  ('public', 'fn_founder_habits', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 457', 'MANIFEST', 'scripts/sql/the_os_never_learned_who_it_works_for.sql', null),
+  ('public', 'fn_founder_habits_learn', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 457', 'MANIFEST', 'scripts/sql/the_os_never_learned_who_it_works_for.sql', null),
+  ('public', 'fn_founder_queue', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 625, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/os_surfaces_read_from_the_fresh_start.sql', null),
+  ('public', 'fn_founder_settings', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 414', 'MANIFEST', 'scripts/sql/the_founder_can_change_things_by_text.sql', null),
+  ('public', 'fn_fraud_resolve', 'p_subject_type text, p_subject_id text, p_action text, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260711172528_fn_fraud_resolve_for_os3.sql', null),
+  ('public', 'fn_fraud_scan', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706004528_fraud_detection.sql', null),
+  ('public', 'fn_freeze_supplier_brief', 'p_inquiry_id uuid, p_reason text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803034256_immutable_supplier_brief_frozen_at_dispatch_audit_9_3.sql', null),
+  ('public', 'fn_gate_state_satisfies', 's gate_state', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802200100_p2_c1_stage_b_ownership_references_and_gate_states.sql', null),
+  ('public', 'fn_gl_entry', 'p_date date, p_memo text, p_source text, p_ref text, p_lines jsonb, p_created_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708100414_erp_gl_double_entry_core.sql', null),
+  ('public', 'fn_gl_journal_immutable', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708100414_erp_gl_double_entry_core.sql', null),
+  ('public', 'fn_gl_lines_immutable', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708100414_erp_gl_double_entry_core.sql', null),
+  ('public', 'fn_gl_net_income', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708100414_erp_gl_double_entry_core.sql', null),
+  ('public', 'fn_gl_post', 'p_journal bigint', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708100414_erp_gl_double_entry_core.sql', null),
+  ('public', 'fn_gl_reverse', 'p_journal bigint, p_date date, p_memo text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708100414_erp_gl_double_entry_core.sql', null),
+  ('public', 'fn_gl_sync_business', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101918_erp_gl_sync_business_events.sql', null),
+  ('public', 'fn_goal_attainment', 'p_horizon text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 256', 'MANIFEST', 'scripts/sql/goal_period_rolls_forward.sql', null),
+  ('public', 'fn_goal_decompose', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 297', 'MANIFEST', 'scripts/sql/the_target_decomposes_by_routine_not_by_hand.sql', null),
+  ('public', 'fn_goal_period_refresh', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 256', 'MANIFEST', 'scripts/sql/goal_period_rolls_forward.sql', null),
+  ('public', 'fn_governance_stamp', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 273', 'MANIFEST', 'scripts/sql/governance_stamp_evidence_is_not_conditional_on_confidence.sql', null),
+  ('public', 'fn_graph_rebuild', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 458, canonical over 3 earlier file(s)', 'MANIFEST', 'scripts/sql/eighty_four_edges_pointing_at_a_node_kind_that_does_not_exist.sql', null),
+  ('public', 'fn_graph_supplier_market', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 107', 'MANIFEST', 'scripts/sql/fn_graph_supplier_market.sql', null),
+  ('public', 'fn_group_dispatch_report', 'p_group_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 316, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_files_were_stale_not_the_database.sql', null),
+  ('public', 'fn_handoff_amend', 'p_id bigint, p_agent_key text, p_patch jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 545, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_30_last_seven_identity_gates.sql', null),
+  ('public', 'fn_handoff_answer', 'p_id bigint, p_agent_key text, p_answer text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 536, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_21_resolve_before_compare.sql', null),
+  ('public', 'fn_handoff_close', 'p_id bigint, p_agent_key text, p_closure_evidence jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 545, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_30_last_seven_identity_gates.sql', null),
+  ('public', 'fn_handoff_contract_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 516', 'MANIFEST', 'scripts/sql/v3_repair_07_handoff_contract.sql', null),
+  ('public', 'fn_handoff_criteria', 'p jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 516', 'MANIFEST', 'scripts/sql/v3_repair_07_handoff_contract.sql', null),
+  ('public', 'fn_handoff_notify', 'p_agent_key text, p_content text, p_source text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 545, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_30_last_seven_identity_gates.sql', null),
+  ('public', 'fn_handoff_open', 'p jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 516', 'MANIFEST', 'scripts/sql/v3_repair_07_handoff_contract.sql', null),
+  ('public', 'fn_handoff_respond', 'p_id bigint, p_agent_key text, p_decision text, p_reason text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 545, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_30_last_seven_identity_gates.sql', null),
+  ('public', 'fn_handoff_stalled', 'p_dept text, p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 516', 'MANIFEST', 'scripts/sql/v3_repair_07_handoff_contract.sql', null),
+  ('public', 'fn_health_index', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 278, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/exec_home_stops_scoring_the_unmeasured.sql', null),
+  ('public', 'fn_idea_rescore', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727004408_bi_innovation_simulation_evolution_collaboration.sql', null),
+  ('public', 'fn_idea_score', 'p_value numeric, p_effort text, p_confidence numeric', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727004408_bi_innovation_simulation_evolution_collaboration.sql', null),
+  ('public', 'fn_identify_contact', 'p_phone text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 241', 'MANIFEST', 'scripts/sql/fn_identify_contact_knows_the_founder.sql', null),
+  ('public', 'fn_improvement_handover', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 60', 'MANIFEST', 'scripts/sql/fn_improvement_handover.sql', null),
+  ('public', 'fn_improvement_plan_refresh', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 45, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/memory_cluster_routines.sql', null),
+  ('public', 'fn_inbox_list', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 625', 'MANIFEST', 'scripts/sql/os_surfaces_read_from_the_fresh_start.sql', null),
+  ('public', 'fn_inbox_send', 'p_id bigint, p_body text, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708125005_inbound_email_triage.sql', null),
+  ('public', 'fn_index_slowdown_watch', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 620, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/index_slowdown_watch_lets_the_constraint_decide.sql', null),
+  ('public', 'fn_inquiry_answer_confirm', 'p_group_id bigint, p_field_id text, p_value text, p_confirmed_by text, p_reason text, p_workstream_ids bigint[]', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802190000_p2_c1_stage_a_mep_model.sql', null),
+  ('public', 'fn_inquiry_answer_set', 'p_group_id bigint, p_field_id text, p_value text, p_precedence answer_precedence, p_source_kind text, p_actor text, p_unit text, p_workstream_ids bigint[], p_document jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802190000_p2_c1_stage_a_mep_model.sql', null),
+  ('public', 'fn_inquiry_answer_supersede', 'p_live_id bigint, p_group_id bigint, p_field_id text, p_value text, p_unit text, p_scope text, p_precedence answer_precedence, p_source_kind text, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802190300_p2_c1_stage_a_supersede_ordering_fix.sql', null),
+  ('public', 'fn_inquiry_dispatch_eligible', 'p_inquiry_id uuid', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803032509_canonical_inquiry_dispatch_eligibility_audit_9_4.sql', null),
+  ('public', 'fn_inquiry_interpret', 'p_group_id bigint, p_customer_text text, p_structured jsonb, p_documents jsonb, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802181524_p2_c1_stage_b6_scope_detection_and_resolution.sql', null),
+  ('public', 'fn_inquiry_workstream_activate', 'p_group_id bigint, p_trade_key text, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802190000_p2_c1_stage_a_mep_model.sql', null),
+  ('public', 'fn_inquiry_workstream_deactivate', 'p_group_id bigint, p_trade_key text, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802190000_p2_c1_stage_a_mep_model.sql', null),
+  ('public', 'fn_intake_slug_for_catalog', 'p_catalog_slug text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_internal_auth', 'p_secret text, p_function text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql', null),
+  ('public', 'fn_internal_credential_audit_immutable', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql', null),
+  ('public', 'fn_internal_credential_hash', 'p_secret text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql', null),
+  ('public', 'fn_internal_credential_issue', 'p_context text, p_scope text[], p_label text, p_expires_at timestamp with time zone', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql', null),
+  ('public', 'fn_internal_credential_retire', 'p_id bigint, p_reason text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql', null),
+  ('public', 'fn_internal_credential_rotate', 'p_context text, p_label text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql', null),
+  ('public', 'fn_inv_adjust', 'p_item bigint, p_qty_delta numeric, p_unit_cost numeric, p_offset_account text, p_date date, p_memo text, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101325_erp_inventory_functions.sql', null),
+  ('public', 'fn_inv_issue', 'p_item bigint, p_qty numeric, p_date date, p_ref_type text, p_ref_id text, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101325_erp_inventory_functions.sql', null),
+  ('public', 'fn_inv_receive', 'p_item bigint, p_qty numeric, p_unit_cost numeric, p_date date, p_ref_type text, p_ref_id text, p_post_gl boolean, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101325_erp_inventory_functions.sql', null),
+  ('public', 'fn_invite_ramp', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 432, canonical over 3 earlier file(s)', 'MANIFEST', 'scripts/sql/the_files_were_stale_again_the_ramp_and_the_brief.sql', null),
+  ('public', 'fn_invite_status_on_send', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 343', 'MANIFEST', 'scripts/sql/fiftyseven_suppliers_were_invited_to_click_a_button_that_was_not_there.sql', null),
+  ('public', 'fn_invite_week_activate', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_is_matchable', 'p_verified boolean, p_banned boolean, p_matching_blocked boolean, p_approval_status text, p_permanently_closed boolean, p_chat_strikes integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803181750_matching_single_predicate.sql', null),
+  ('public', 'fn_is_working_day', 'p_date date', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260721183105_working_day_arithmetic.sql', null),
+  ('public', 'fn_jsonb_is_empty', 'j jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 518', 'MANIFEST', 'scripts/sql/v3_repair_09_unsafe_safeguards.sql', null),
+  ('public', 'fn_jsonb_text_array', 'j jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803034256_immutable_supplier_brief_frozen_at_dispatch_audit_9_3.sql', null),
+  ('public', 'fn_kb_approve', 'p_revision bigint, p_reviewer text, p_notes text, p_publish boolean', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 544', 'MANIFEST', 'scripts/sql/org_reorg_29_kb_approve_certifies_what_it_did.sql', null),
+  ('public', 'fn_kb_corpus_integrity', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 284, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/corpus_integrity_counts_content_not_rows.sql', null),
+  ('public', 'fn_kb_gov_approve', 'p_kind text, p_id text, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709090556_knowledge_hybrid_publish_gate.sql', null),
+  ('public', 'fn_kb_next_question', 'p_catalog_num integer, p_answered jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802125615_kb_runtime_next_question_and_retrieval.sql', null),
+  ('public', 'fn_kb_reconcile', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724030452_knowledge_reconcile_and_executor.sql', null),
+  ('public', 'fn_kb_retrieve', 'p_catalog_num integer, p_query text, p_limit integer, p_modules text[]', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 221', 'MANIFEST', 'scripts/sql/fn_kb_retrieve_honours_activation.sql', null),
+  ('public', 'fn_kb_route', 'p_text text, p_limit integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802124315_kb_deterministic_bilingual_router.sql', null),
+  ('public', 'fn_kb_route_activation_blocked', 'p_catalog_num integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 222', 'MANIFEST', 'scripts/sql/fn_kb_route_activation_blocked_fix_array_append.sql', null),
+  ('public', 'fn_kb_route_decide', 'p_text text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 316, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/the_files_were_stale_not_the_database.sql', null),
+  ('public', 'fn_kb_route_test_run', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 223', 'MANIFEST', 'scripts/sql/fn_kb_route_test_run.sql', null),
+  ('public', 'fn_kb_submit_revision', 'p_kind text, p_ref text, p_content text, p_author text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115335_knowledge_governance.sql', null),
+  ('public', 'fn_kb_validate', 'p_content text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115335_knowledge_governance.sql', null),
+  ('public', 'fn_kernel_assert_not_in_delivery', 'p_writer text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 662', 'MANIFEST', 'scripts/sql/kernel_k5_factual_outbox.sql', null),
+  ('public', 'fn_kernel_cancel', 'p_input jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 658', 'MANIFEST', 'scripts/sql/kernel_k4_cancellation.sql', null),
+  ('public', 'fn_kernel_component_exposure_state', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 668', 'MANIFEST', 'scripts/sql/kernel_k11_component_exposure.sql', null),
+  ('public', 'fn_kernel_component_reachability', 'p_component_id text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 668', 'MANIFEST', 'scripts/sql/kernel_k11_component_exposure.sql', null),
+  ('public', 'fn_kernel_event_consume', 'p_outbox_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 662', 'MANIFEST', 'scripts/sql/kernel_k5_factual_outbox.sql', null),
+  ('public', 'fn_kernel_founder_approval_state', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 660', 'MANIFEST', 'scripts/sql/kernel_k8_refund_only_founder_approval.sql', null),
+  ('public', 'fn_kernel_founder_routing_is_refund_only', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 660', 'MANIFEST', 'scripts/sql/kernel_k8_refund_only_founder_approval.sql', null),
+  ('public', 'fn_kernel_in_delivery', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 662', 'MANIFEST', 'scripts/sql/kernel_k5_factual_outbox.sql', null),
+  ('public', 'fn_kernel_orphaned_work', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 658', 'MANIFEST', 'scripts/sql/kernel_k4_cancellation.sql', null),
+  ('public', 'fn_kernel_outbox_deliver', 'p_limit integer, p_worker text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 662', 'MANIFEST', 'scripts/sql/kernel_k5_factual_outbox.sql', null),
+  ('public', 'fn_kernel_outbox_emit', 'p_input jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 662', 'MANIFEST', 'scripts/sql/kernel_k5_factual_outbox.sql', null),
+  ('public', 'fn_kernel_paid_provider_gate', 'p_model text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 659', 'MANIFEST', 'scripts/sql/kernel_k12_paid_provider_gate.sql', null),
+  ('public', 'fn_kernel_paid_provider_state', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 659', 'MANIFEST', 'scripts/sql/kernel_k12_paid_provider_gate.sql', null),
+  ('public', 'fn_kernel_review_decide', 'p_input jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 661', 'MANIFEST', 'scripts/sql/kernel_k7_internal_review.sql', null),
+  ('public', 'fn_kernel_review_integrity', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 661', 'MANIFEST', 'scripts/sql/kernel_k7_internal_review.sql', null),
+  ('public', 'fn_kernel_reviewer_independent', 'p_creator text, p_reviewer text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 661', 'MANIFEST', 'scripts/sql/kernel_k7_internal_review.sql', null),
+  ('public', 'fn_kernel_sla_due', 'p_sla_policy_id text, p_from timestamp with time zone', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 662', 'MANIFEST', 'scripts/sql/kernel_k5_factual_outbox.sql', null),
+  ('public', 'fn_kernel_trace_integrity', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_kernel_workflow_start', 'p_input jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 663', 'MANIFEST', 'scripts/sql/kernel_k2_workflow_start.sql', null),
+  ('public', 'fn_knowledge_curator', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 384', 'MANIFEST', 'scripts/sql/the_curator_admits_what_indexed_does_not_prove.sql', null),
+  ('public', 'fn_knowledge_decay', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728174103_activate_knowledge_decay.sql', null),
+  ('public', 'fn_knowledge_exam_summary', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260726145047_knowledge_exam_tables.sql', null),
+  ('public', 'fn_knowledge_freshness_sweep', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 493', 'MANIFEST', 'scripts/sql/v3_learning_and_remediation.sql', null),
+  ('public', 'fn_knowledge_gap', 'p_ctx jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 510', 'MANIFEST', 'scripts/sql/v3_repair_03_retrieval.sql', null),
+  ('public', 'fn_knowledge_gaps', 'p_stale_days integer, p_thin_min integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260726142450_knowledge_gap_loop.sql', null),
+  ('public', 'fn_knowledge_provenance_stamp', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 440, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_placeholder_ran_first_so_the_citation_never_ran.sql', null),
+  ('public', 'fn_knowledge_rollback', 'p_run uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 490', 'MANIFEST', 'scripts/sql/v3_ingestion_undo.sql', null),
+  ('public', 'fn_kpi_review', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728171053_fn_kpi_review_weekly_turn_missed_kpis_into_work.sql', null),
+  ('public', 'fn_kpi_scoreboard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 314', 'MANIFEST', 'scripts/sql/a_zero_target_is_a_target.sql', null),
+  ('public', 'fn_kv_block', 'obj jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709105024_reporting_registry_generator_kpis.sql', null),
+  ('public', 'fn_lead_lifecycle_stage', 'l leads', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260729132605_lead_lifecycle_stage_backfill_and_selfmaintenance.sql', null),
+  ('public', 'fn_lead_role_codes', 'p_business_role text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 344', 'MANIFEST', 'scripts/sql/the_derived_scope_had_no_role_so_no_supplier_could_ever_confirm_it.sql', null),
+  ('public', 'fn_lead_time_interval', 'p_text text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 96', 'MANIFEST', 'scripts/sql/fn_rating_due.sql', null),
+  ('public', 'fn_leads_derive_owner_email_verified', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 359', 'MANIFEST', 'scripts/sql/the_supplier_verified_their_email_before_the_company_existed.sql', null),
+  ('public', 'fn_leads_exception_invariant', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803161058_audit_65_supplier_state_invariants_and_dead_letter.sql', null),
+  ('public', 'fn_leads_licence_gate_rerun', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 74', 'MANIFEST', 'scripts/sql/matching_verified_invariant_and_similarity_range.sql', null),
+  ('public', 'fn_leads_retrade', 'p_limit integer, p_after bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 348, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_backfill_got_slower_the_more_of_it_was_done.sql', null),
+  ('public', 'fn_leads_retrade_stale', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 348', 'MANIFEST', 'scripts/sql/the_backfill_got_slower_the_more_of_it_was_done.sql', null),
+  ('public', 'fn_learning_loop_sweep', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 61', 'MANIFEST', 'scripts/sql/fn_learning_loop_backstop.sql', null),
+  ('public', 'fn_legal_ai', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709095057_fn_legal_ai_agent.sql', null),
+  ('public', 'fn_lint_outbound', 'p_hours integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724151238_qa_helpers_quote_score_and_outbound_lint.sql', null),
+  ('public', 'fn_llm_cache_get', 'p_key text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727005033_llm_cache_and_cost_governor_rpc.sql', null),
+  ('public', 'fn_llm_cache_lookup', 'p_key text, p_embedding vector, p_task_class text, p_min_similarity numeric', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728205157_semantic_cache_and_no_ai_layer.sql', null),
+  ('public', 'fn_llm_cache_put', 'p_key text, p_fn text, p_task_class text, p_model text, p_response text, p_ttl_minutes integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727005033_llm_cache_and_cost_governor_rpc.sql', null),
+  ('public', 'fn_llm_cache_store', 'p_key text, p_fn text, p_task_class text, p_model text, p_response text, p_ttl_minutes integer, p_embedding vector, p_saved_usd numeric', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728205157_semantic_cache_and_no_ai_layer.sql', null),
+  ('public', 'fn_llm_drift_watch', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_llm_log', 'p_fn text, p_dept text, p_agent text, p_task_class text, p_model text, p_because text, p_tier text, p_prompt_tokens integer, p_output_tokens integer, p_cached boolean, p_cache_key text, p_latency_ms integer, p_ok boolean, p_confidence numeric, p_cached_in integer, p_cache_write integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 277, canonical over 3 earlier file(s)', 'MANIFEST', 'scripts/sql/could_be_cheaper_looks_at_the_spender.sql', null),
+  ('public', 'fn_llm_preflight', 'p_model text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 519', 'MANIFEST', 'scripts/sql/v3_repair_10_infra_reliability.sql', null),
+  ('public', 'fn_llm_retry_allowed', 'p_class_key text, p_attempt_no integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 519', 'MANIFEST', 'scripts/sql/v3_repair_10_infra_reliability.sql', null),
+  ('public', 'fn_management_decision_review', 'p_department text, p_days integer, p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 514, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/v3_repair_12_trace_view_typeguard.sql', null),
+  ('public', 'fn_marketing_ai', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 382, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/marketing_says_what_a_zero_might_also_mean.sql', null),
+  ('public', 'fn_marketing_blog_publish', 'p_id uuid, p_published boolean, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260726130146_fn_marketing_studio.sql', null),
+  ('public', 'fn_marketing_library_search', 'p_query text, p_limit integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724045224_marketing_library_store.sql', null),
+  ('public', 'fn_marketing_studio', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260726130146_fn_marketing_studio.sql', null),
+  ('public', 'fn_marketplace_analytics', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706003936_marketplace_analytics.sql', null),
+  ('public', 'fn_match_capability', 'p_trades text[], p_need text, p_products text[], p_brands text[], p_project_type text, p_value numeric, p_emirate text, p_limit integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260721163931_fn_match_capability_gated.sql', null),
+  ('public', 'fn_matching_strike_limit', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803181750_matching_single_predicate.sql', null),
+  ('public', 'fn_memory_search', 'p_q text, p_kinds text[], p_lim integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_mep_full_scope', 'p_text_norm text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802210000_p2_c1_stage_b5_evidence_and_arabic.sql', null),
+  ('public', 'fn_metric_class', 'p_label text, p_metric text, p_unit text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 517', 'MANIFEST', 'scripts/sql/v3_repair_08_revenue_cascade.sql', null),
+  ('public', 'fn_model_autoswitch', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 480, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/fn_model_autoswitch_live_after_the_timeout_repricing.sql', null),
+  ('public', 'fn_model_benchmark', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 110', 'MANIFEST', 'scripts/sql/fn_model_feedback_loop_reads_the_written_table.sql', null),
+  ('public', 'fn_model_catalog_drift', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 228', 'MANIFEST', 'scripts/sql/pack_artefacts_get_readers.sql', null),
+  ('public', 'fn_model_cost_usd', 'p_model text, p_in_tokens integer, p_out_tokens integer, p_cached_in_tokens integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728204813_ai_model_registry.sql', null),
+  ('public', 'fn_monthly_report', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115731_monthly_quarterly_reports.sql', null),
+  ('public', 'fn_negotiation_guidance', 'p_customer uuid, p_quote uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 79', 'MANIFEST', 'scripts/sql/row4_negotiation_guidance.sql', null),
+  ('public', 'fn_norm_roles', 'p_text text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260721151117_capability_record_and_inquiry_requirement.sql', null),
+  ('public', 'fn_norm_text', 'p_text text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802210000_p2_c1_stage_b5_evidence_and_arabic.sql', null),
+  ('public', 'fn_norm_trades', 'p_text text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 362', 'MANIFEST', 'scripts/sql/four_thousand_suppliers_lost_to_a_hyphen.sql', null),
+  ('public', 'fn_normalize_founder_alert_level', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260722144103_os_audit_h17_normalize_founder_alert_level.sql', null),
+  ('public', 'fn_notifications_dead_letter_held', 'p_days integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803161058_audit_65_supplier_state_invariants_and_dead_letter.sql', null),
+  ('public', 'fn_notifications_digest', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724012451_phase_b_digest_trigger_and_brief.sql', null),
+  ('public', 'fn_notifications_release_held', 'p_max integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803161058_audit_65_supplier_state_invariants_and_dead_letter.sql', null),
+  ('public', 'fn_notify_matched_supplier', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_notify_supplier', 'p_transaction uuid, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260721183702_refund_escalation_working_days.sql', null),
+  ('public', 'fn_objective_cascade', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 504', 'MANIFEST', 'scripts/sql/org_reorg_05_overlays_and_cascade.sql', null),
+  ('public', 'fn_officer_recs', 'n integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_onboarding_gate', 'p_agent text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 542', 'MANIFEST', 'scripts/sql/org_reorg_27_both_sides_resolve.sql', null),
+  ('public', 'fn_onboarding_ingest_runs', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'ai-organization/db-functions/fn_onboarding_ingest_runs.sql', null),
+  ('public', 'fn_open_remediation', 'p_agent_key text, p_failure_class text, p_competency text, p_detail jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 493', 'MANIFEST', 'scripts/sql/v3_learning_and_remediation.sql', null),
+  ('public', 'fn_operations_ai', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 402, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_counter_that_asked_for_the_old_name.sql', null),
+  ('public', 'fn_opportunity_scan', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 456, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/the_keyword_question_was_guarded_on_a_table_with_no_rows.sql', null),
+  ('public', 'fn_ops_authority_check', 'p_dept_key text, p_action_class text, p_amount_aed numeric, p_risk text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802133419_ops_runtime_authority_context_and_supplier_link.sql', null),
+  ('public', 'fn_ops_dashboard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 312', 'MANIFEST', 'scripts/sql/severity_had_no_definition_so_every_reader_invented_one.sql', null),
+  ('public', 'fn_ops_department_context', 'p_dept_key text, p_topic text, p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 224, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/fn_ops_department_context_all_projections.sql', null),
+  ('public', 'fn_ops_knowledge_search', 'p_dept text, p_query text, p_limit integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_ops_metrics', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706021848_executive_intelligence_layer.sql', null),
+  ('public', 'fn_ops_run_scenarios', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802133532_ops_scenario_harness_and_gate_gap_view.sql', null),
+  ('public', 'fn_ops_scenarios_sweep', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 225', 'MANIFEST', 'scripts/sql/fn_ops_scenarios_sweep.sql', null),
+  ('public', 'fn_ops_watch', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260718191000_ops_watch_observes_silence_watchdog.sql', null),
+  ('public', 'fn_org_action_executor_guard', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803152843_audit_95_constrain_action_executor_registry.sql', null),
+  ('public', 'fn_org_agent_resolve', 'p_addressee text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 325, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_engine_had_no_employee_side_and_no_name_for_its_own_staff.sql', null),
+  ('public', 'fn_org_authority_guard', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803155820_audit_74_autonomy_mechanically_blocked_while_p0_open.sql', null),
+  ('public', 'fn_org_exec_invite', 'p_cap integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724025336_supplier_success_executors_and_registry.sql', null),
+  ('public', 'fn_org_exec_knowledge_fill', 'p_limit integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724030452_knowledge_reconcile_and_executor.sql', null),
+  ('public', 'fn_org_export', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724142835_org_export_and_nightly_github_sync.sql', null),
+  ('public', 'fn_org_phase_baseline_append_only', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 657', 'MANIFEST', 'scripts/sql/kernel_k1_baseline_append_only.sql', null),
+  ('public', 'fn_org_role_agent', 'p_any text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 500', 'MANIFEST', 'scripts/sql/org_reorg_01_canonical_schema.sql', null),
+  ('public', 'fn_org_role_resolve', 'p_any text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 500', 'MANIFEST', 'scripts/sql/org_reorg_01_canonical_schema.sql', null),
+  ('public', 'fn_org_role_violations', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 500', 'MANIFEST', 'scripts/sql/org_reorg_01_canonical_schema.sql', null),
+  ('public', 'fn_org_scorecard', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724020640_org_foundation_kernel_ledger_permissions.sql', null),
+  ('public', 'fn_org_task_assign', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 503, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_04_runtime.sql', null),
+  ('public', 'fn_org_task_autonomy_brake', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803155820_audit_74_autonomy_mechanically_blocked_while_p0_open.sql', null),
+  ('public', 'fn_org_task_cross_os_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 36', 'MANIFEST', 'scripts/sql/bus_contract_close.sql', null),
+  ('public', 'fn_org_task_execute_sweep', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 249, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/executor_notifies_human.sql', null),
+  ('public', 'fn_org_task_root_cause_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 45', 'MANIFEST', 'scripts/sql/memory_cluster_routines.sql', null),
+  ('public', 'fn_os_ai_quality', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 434', 'MANIFEST', 'scripts/sql/the_quality_table_nothing_read.sql', null),
+  ('public', 'fn_os_automation_list', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724173529_phase2_automation_backend.sql', null),
+  ('public', 'fn_os_automation_reschedule', 'p_jobid bigint, p_schedule text, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724173529_phase2_automation_backend.sql', null),
+  ('public', 'fn_os_automation_run', 'p_jobid bigint, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724173529_phase2_automation_backend.sql', null),
+  ('public', 'fn_os_automation_set_active', 'p_jobid bigint, p_active boolean, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724173529_phase2_automation_backend.sql', null),
+  ('public', 'fn_os_catalog_get', 'p_category text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724215953_phase3_catalog_backend.sql', null),
+  ('public', 'fn_os_catalog_list', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724215953_phase3_catalog_backend.sql', null),
+  ('public', 'fn_os_catalog_save_fields', 'p_category text, p_fields jsonb, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724215953_phase3_catalog_backend.sql', null),
+  ('public', 'fn_os_catalog_spec_delete', 'p_id bigint, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724215953_phase3_catalog_backend.sql', null),
+  ('public', 'fn_os_catalog_spec_upsert', 'p_id bigint, p_spec_group text, p_aspect text, p_label text, p_regex text, p_mandatory boolean, p_note text, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724215953_phase3_catalog_backend.sql', null),
+  ('public', 'fn_os_catalog_test_gate', 'p_category text, p_sample text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724215953_phase3_catalog_backend.sql', null),
+  ('public', 'fn_os_command', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 627, canonical over 4 earlier file(s)', 'MANIFEST', 'scripts/sql/exec_surfaces_show_only_live_work.sql', null),
+  ('public', 'fn_os_dashboard_viz', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260725190115_fn_os_dashboard_viz.sql', null),
+  ('public', 'fn_os_detail', 'p_entity text, p_id text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_os_fresh_start_at', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 624', 'MANIFEST', 'scripts/sql/os_fresh_start_watermark.sql', null),
+  ('public', 'fn_os_health', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 435, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_number_that_gates_every_rfq_was_on_no_screen.sql', null),
+  ('public', 'fn_os_health_brief', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 39', 'MANIFEST', 'scripts/sql/fn_os_health_brief.sql', null),
+  ('public', 'fn_os_improve', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 36', 'MANIFEST', 'scripts/sql/bus_contract_close.sql', null),
+  ('public', 'fn_os_incident_list', 'p_status text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260725094235_phase5_incidents_runbooks.sql', null),
+  ('public', 'fn_os_incident_open', 'p_title text, p_kind text, p_severity text, p_detail jsonb, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260725094235_phase5_incidents_runbooks.sql', null),
+  ('public', 'fn_os_incident_resolve', 'p_id bigint, p_resolution text, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260725094235_phase5_incidents_runbooks.sql', null),
+  ('public', 'fn_os_knowledge_query', 'p_os_key text, p_topic text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 40', 'MANIFEST', 'scripts/sql/fn_os_knowledge_query.sql', null),
+  ('public', 'fn_os_list', 'p_entity text, p_params jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_os_memory', 'p_q text, p_from date, p_to date', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 119', 'MANIFEST', 'scripts/sql/fn_os_search.sql', null),
+  ('public', 'fn_os_nav', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706180809_os_framework_workspaces.sql', null),
+  ('public', 'fn_os_objective_measure', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 47', 'MANIFEST', 'scripts/sql/os_objective_measures.sql', null),
+  ('public', 'fn_os_open_access', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 613', 'MANIFEST', 'scripts/sql/phase_c_21_build_mode_open_os.sql', null),
+  ('public', 'fn_os_paid_ai_allowed', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 650', 'MANIFEST', 'scripts/sql/phase_c_37_zero_cost_provider_guard.sql', null),
+  ('public', 'fn_os_portals_gates', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 232', 'MANIFEST', 'scripts/sql/fn_os_portals_gates.sql', null),
+  ('public', 'fn_os_provider_state_cached', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 650', 'MANIFEST', 'scripts/sql/phase_c_37_zero_cost_provider_guard.sql', null),
+  ('public', 'fn_os_reconcile', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260725003301_phase4_health_reconcile.sql', null),
+  ('public', 'fn_os_record', 'p_entity text, p_id text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706180809_os_framework_workspaces.sql', null),
+  ('public', 'fn_os_review', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 33', 'MANIFEST', 'scripts/sql/fn_emit_and_os_review.sql', null),
+  ('public', 'fn_os_runbooks', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260725094235_phase5_incidents_runbooks.sql', null),
+  ('public', 'fn_os_search', 'p_q text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 119', 'MANIFEST', 'scripts/sql/fn_os_search.sql', null),
+  ('public', 'fn_os_selftest', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_os_settings_history', 'p_key text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724171826_phase1_os_settings_fns.sql', null),
+  ('public', 'fn_os_settings_list', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724171826_phase1_os_settings_fns.sql', null),
+  ('public', 'fn_os_settings_revert', 'p_key text, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724171826_phase1_os_settings_fns.sql', null),
+  ('public', 'fn_os_settings_set', 'p_key text, p_value text, p_actor text, p_confirm boolean', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724171826_phase1_os_settings_fns.sql', null),
+  ('public', 'fn_otp_hash', 'p_code text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802143708_p1_04d_control_mode_otp_hash_match.sql', null),
+  ('public', 'fn_outcome_evaluate', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 355, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/seventeen_lessons_from_four_readings_and_none_of_them_earned.sql', null),
+  ('public', 'fn_outcome_open', 'p_actor text, p_decision text, p_subject_type text, p_subject_id text, p_expected_kpi_id bigint, p_rationale text, p_evidence jsonb, p_direction text, p_measure_after interval', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 536', 'MANIFEST', 'scripts/sql/org_reorg_21_resolve_before_compare.sql', null),
+  ('public', 'fn_overlay_for_category', 'p_category_key text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 503', 'MANIFEST', 'scripts/sql/org_reorg_04_runtime.sql', null),
+  ('public', 'fn_owning_os', 'p_agent text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 240, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/fn_owning_os_resolves_desks_and_roles.sql', null),
+  ('public', 'fn_p2c1_b7_regression', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802205400_p2_c1_stage_b7_regression_suite.sql', null),
+  ('public', 'fn_p2c1_disposition_tests', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802181851_p2_c1_stage_b6_dispatch_integration_and_tests.sql', null),
+  ('public', 'fn_p2c1_fixture_satisfy', 'p_group bigint, p_ws bigint, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802190200_p2_c1_stage_a_teardown_and_fixture.sql', null),
+  ('public', 'fn_p2c1_holdout_checksum', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802181006_p2_c1_stage_b6_frozen_holdout_schema.sql', null),
+  ('public', 'fn_p2c1_holdout_run', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802182259_p2_c1_stage_b6_holdout_runner.sql', null),
+  ('public', 'fn_p2c1_holdout_verify_seal', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802181006_p2_c1_stage_b6_frozen_holdout_schema.sql', null),
+  ('public', 'fn_p2c1_lang_parity_suite', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802210200_p2_c1_stage_b5_test_suites.sql', null),
+  ('public', 'fn_p2c1_no_active_trade_blocker', 'p_out jsonb, p_opt jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802182230_p2_c1_stage_b6_blocker_rename_compat.sql', null),
+  ('public', 'fn_p2c1_rollback_stage_b', 'p_mode text, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802210300_p2_c1_stage_b5_operator_rollback.sql', null),
+  ('public', 'fn_p2c1_rollback_stage_b6', 'p_mode text, p_actor text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 10', 'MANIFEST', 'scripts/sql/stage_b6_rollback_completion.sql', null),
+  ('public', 'fn_p2c1_rollback_stage_b7', 'p_mode text, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802205500_p2_c1_stage_b7_operator_rollback.sql', null),
+  ('public', 'fn_p2c1_run_lang_case', 'p_case_key text, p_lang text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802210200_p2_c1_stage_b5_test_suites.sql', null),
+  ('public', 'fn_p2c1_scope_rule_tests', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802210200_p2_c1_stage_b5_test_suites.sql', null),
+  ('public', 'fn_p2c1_stage_a_selftest', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802190400_p2_c1_stage_a_selftest.sql', null),
+  ('public', 'fn_p2c1_stage_b_regression', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802200500_p2_c1_stage_b_selftest.sql', null),
+  ('public', 'fn_p2c1_stage_b_selftest', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802200500_p2_c1_stage_b_selftest.sql', null),
+  ('public', 'fn_page_high_agent_action', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260722144434_os_audit_h18_page_high_agent_actions.sql', null),
+  ('public', 'fn_pdpl_erase_plan', 'p_email text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260710223646_pdpl_dsar_workflow.sql', null),
+  ('public', 'fn_pdpl_export', 'p_email text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 29', 'MANIFEST', 'scripts/sql/fn_pdpl_customer_preference.sql', null),
+  ('public', 'fn_pdpl_redact', 'p_request_id uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 29', 'MANIFEST', 'scripts/sql/fn_pdpl_customer_preference.sql', null),
+  ('public', 'fn_period_report', 'p_type text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 148', 'MANIFEST', 'scripts/sql/period_report_competitive_section.sql', null),
+  ('public', 'fn_phase1_disarm', 'p_actor text, p_reason text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803040541_phase1_rollback_controls_audit_8_3.sql', null),
+  ('public', 'fn_phase1_disarmed', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803040541_phase1_rollback_controls_audit_8_3.sql', null),
+  ('public', 'fn_phase1_rearm', 'p_actor text, p_reason text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803040541_phase1_rollback_controls_audit_8_3.sql', null),
+  ('public', 'fn_phase1_rollback_log_immutable', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803040541_phase1_rollback_controls_audit_8_3.sql', null),
+  ('public', 'fn_phase1_rollback_rehearse', 'p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803040541_phase1_rollback_controls_audit_8_3.sql', null),
+  ('public', 'fn_phase1_status', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803040541_phase1_rollback_controls_audit_8_3.sql', null),
+  ('public', 'fn_phase_a_baseline_drift', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations/20260815070000_phase_a_frozen_founder_approved.sql', null),
+  ('public', 'fn_phase_a_deferred_items', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations/20260815060000_phase_a_closure_corrections.sql', null),
+  ('public', 'fn_phase_a_freeze_guard', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations/20260815070000_phase_a_frozen_founder_approved.sql', null),
+  ('public', 'fn_phase_a_organization_violations', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations/20260815060000_phase_a_closure_corrections.sql', null),
+  ('public', 'fn_phase_b_baseline_drift', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 577', 'MANIFEST', 'scripts/sql/phase_b_11_baseline_functions.sql', null),
+  ('public', 'fn_phase_b_closure_blockers', 'p_workflow_id text, p_completed_steps text[], p_open_blockers bigint, p_open_handoffs bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 567', 'MANIFEST', 'scripts/sql/phase_b_01_workflow_registry_schema.sql', null),
+  ('public', 'fn_phase_b_effective_errata', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 576', 'MANIFEST', 'scripts/sql/phase_b_10_gate_attachment.sql', null),
+  ('public', 'fn_phase_b_freeze_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 579', 'MANIFEST', 'scripts/sql/phase_b_13_freeze_guard.sql', null),
+  ('public', 'fn_phase_b_gate_attachment', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 576', 'MANIFEST', 'scripts/sql/phase_b_10_gate_attachment.sql', null),
+  ('public', 'fn_phase_b_handoff_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 567', 'MANIFEST', 'scripts/sql/phase_b_01_workflow_registry_schema.sql', null),
+  ('public', 'fn_phase_b_invariants', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 574', 'MANIFEST', 'scripts/sql/phase_b_08_validators.sql', null),
+  ('public', 'fn_phase_b_owner_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 567', 'MANIFEST', 'scripts/sql/phase_b_01_workflow_registry_schema.sql', null),
+  ('public', 'fn_phase_b_resolve_role', 'p_token text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 567', 'MANIFEST', 'scripts/sql/phase_b_01_workflow_registry_schema.sql', null),
+  ('public', 'fn_phase_b_step_transition_allowed', 'p_from text, p_to text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 567', 'MANIFEST', 'scripts/sql/phase_b_01_workflow_registry_schema.sql', null),
+  ('public', 'fn_phase_b_structure_digest', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 577', 'MANIFEST', 'scripts/sql/phase_b_11_baseline_functions.sql', null),
+  ('public', 'fn_phase_b_transition_allowed', 'p_from text, p_to text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 567', 'MANIFEST', 'scripts/sql/phase_b_01_workflow_registry_schema.sql', null),
+  ('public', 'fn_phase_b_workflow_owner_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 567', 'MANIFEST', 'scripts/sql/phase_b_01_workflow_registry_schema.sql', null),
+  ('public', 'fn_phase_c_actor_may_own', 'p_token text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 582', 'MANIFEST', 'scripts/sql/phase_c_01_identity_and_registry_schema.sql', null),
+  ('public', 'fn_phase_c_authority_check', 'p_action_class text, p_actor text, p_reviewer text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 583', 'MANIFEST', 'scripts/sql/phase_c_02_authority_and_founder_boundary.sql', null),
+  ('public', 'fn_phase_c_baseline_drift', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 600', 'MANIFEST', 'scripts/sql/phase_c_09_invariants.sql', null),
+  ('public', 'fn_phase_c_command_specificity', 'p_text text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 585', 'MANIFEST', 'scripts/sql/phase_c_04_command_center.sql', null),
+  ('public', 'fn_phase_c_component_classification_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 668', 'MANIFEST', 'scripts/sql/kernel_k11_component_exposure.sql', null),
+  ('public', 'fn_phase_c_entry_step', 'p_workflow_id text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 644', 'MANIFEST', 'scripts/sql/phase_c_31_autonomous_entry_creates_work.sql', null),
+  ('public', 'fn_phase_c_event_binding_status', 'p_event_id text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 646', 'MANIFEST', 'scripts/sql/phase_c_33_event_binding_status.sql', null),
+  ('public', 'fn_phase_c_event_binding_status_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 646', 'MANIFEST', 'scripts/sql/phase_c_33_event_binding_status.sql', null),
+  ('public', 'fn_phase_c_event_consume', 'p_outbox_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 652, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/phase_c_39_consumer_must_not_reemit.sql', null),
+  ('public', 'fn_phase_c_event_ingress', 'p_event_id text, p_business_object_id text, p_ctx jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 667, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_k13a_legacy_ingress_no_reemit.sql', null),
+  ('public', 'fn_phase_c_founder_identity_human_only', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 655', 'MANIFEST', 'scripts/sql/kernel_k0_founder_authentication.sql', null),
+  ('public', 'fn_phase_c_gate_evaluate', 'p_gate_id text, p_evidence jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 584', 'MANIFEST', 'scripts/sql/phase_c_03_runtime_core.sql', null),
+  ('public', 'fn_phase_c_gates_for_step', 'p_step_id text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 603', 'MANIFEST', 'scripts/sql/phase_c_12_step_gate_scope_fix.sql', null),
+  ('public', 'fn_phase_c_handoff_decide', 'p_handoff_run_id bigint, p_decision text, p_actor text, p_ctx jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 599', 'MANIFEST', 'scripts/sql/phase_c_08_runtime_writers.sql', null),
+  ('public', 'fn_phase_c_handoff_open', 'p_run_id bigint, p_handoff_id text, p_packet jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 602, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/phase_c_11_handoff_sla_alias_fix.sql', null),
+  ('public', 'fn_phase_c_handoff_overdue', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 599', 'MANIFEST', 'scripts/sql/phase_c_08_runtime_writers.sql', null),
+  ('public', 'fn_phase_c_handoff_packet_valid', 'p_handoff_id text, p_packet jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 599', 'MANIFEST', 'scripts/sql/phase_c_08_runtime_writers.sql', null),
+  ('public', 'fn_phase_c_handoff_sender_retains', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 584', 'MANIFEST', 'scripts/sql/phase_c_03_runtime_core.sql', null),
+  ('public', 'fn_phase_c_invariants', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 669, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_k5c_invariant_reads_the_new_types.sql', null),
+  ('public', 'fn_phase_c_knowledge_scope', 'p_role text, p_workflow text, p_category text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 599', 'MANIFEST', 'scripts/sql/phase_c_08_runtime_writers.sql', null),
+  ('public', 'fn_phase_c_lifecycle_event', 'p_workflow_id text, p_lifecycle text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 643', 'MANIFEST', 'scripts/sql/phase_c_30_command_trace_lifecycle.sql', null),
+  ('public', 'fn_phase_c_no_new_founder_approval_path', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 583', 'MANIFEST', 'scripts/sql/phase_c_02_authority_and_founder_boundary.sql', null),
+  ('public', 'fn_phase_c_non_refund_founder_approvals', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 583', 'MANIFEST', 'scripts/sql/phase_c_02_authority_and_founder_boundary.sql', null),
+  ('public', 'fn_phase_c_outbox_claim', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 584', 'MANIFEST', 'scripts/sql/phase_c_03_runtime_core.sql', null),
+  ('public', 'fn_phase_c_outbox_deliver', 'p_limit integer, p_worker text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 645', 'MANIFEST', 'scripts/sql/phase_c_32_event_delivery_backbone.sql', null),
+  ('public', 'fn_phase_c_outbox_emit', 'p_event_id text, p_producer text, p_payload jsonb, p_dedupe text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 654, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/phase_c_41_outbox_carries_its_trace.sql', null),
+  ('public', 'fn_phase_c_outbox_settle', 'p_outbox_id bigint, p_ok boolean, p_downstream_ref text, p_error text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 584', 'MANIFEST', 'scripts/sql/phase_c_03_runtime_core.sql', null),
+  ('public', 'fn_phase_c_output_validate', 'p_contract text, p_output jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 584', 'MANIFEST', 'scripts/sql/phase_c_03_runtime_core.sql', null),
+  ('public', 'fn_phase_c_overlay_invoke', 'p_overlay_id text, p_ctx jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 599', 'MANIFEST', 'scripts/sql/phase_c_08_runtime_writers.sql', null),
+  ('public', 'fn_phase_c_overlay_may_not_dispatch', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 601, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/phase_c_10_command_overlay_and_raise_fixes.sql', null),
+  ('public', 'fn_phase_c_refund_decision_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 660, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_k8_refund_only_founder_approval.sql', null),
+  ('public', 'fn_phase_c_refund_decision_immutable', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 660', 'MANIFEST', 'scripts/sql/kernel_k8_refund_only_founder_approval.sql', null),
+  ('public', 'fn_phase_c_reporting_map_drift', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 634', 'MANIFEST', 'scripts/sql/the_reporting_map_had_nothing_to_check_it_against.sql', null),
+  ('public', 'fn_phase_c_require_founder', 'p_actor text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 655', 'MANIFEST', 'scripts/sql/kernel_k0_founder_authentication.sql', null),
+  ('public', 'fn_phase_c_resolve_actor', 'p_token text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 582', 'MANIFEST', 'scripts/sql/phase_c_01_identity_and_registry_schema.sql', null),
+  ('public', 'fn_phase_c_reviewer_independent', 'p_creator text, p_reviewer text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 584', 'MANIFEST', 'scripts/sql/phase_c_03_runtime_core.sql', null),
+  ('public', 'fn_phase_c_role_context', 'p_role text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 599', 'MANIFEST', 'scripts/sql/phase_c_08_runtime_writers.sql', null),
+  ('public', 'fn_phase_c_rule_check', 'p_rule_id text, p_context jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 584', 'MANIFEST', 'scripts/sql/phase_c_03_runtime_core.sql', null),
+  ('public', 'fn_phase_c_step_advance', 'p_run_id bigint, p_step_id text, p_actor text, p_body jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 644, canonical over 4 earlier file(s)', 'MANIFEST', 'scripts/sql/phase_c_31_autonomous_entry_creates_work.sql', null),
+  ('public', 'fn_phase_c_step_event', 'p_step_id text, p_lifecycle text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 644', 'MANIFEST', 'scripts/sql/phase_c_31_autonomous_entry_creates_work.sql', null),
+  ('public', 'fn_phase_c_step_owner_valid', 'p_step_id text, p_owner text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 599', 'MANIFEST', 'scripts/sql/phase_c_08_runtime_writers.sql', null),
+  ('public', 'fn_phase_c_step_run_trace_committed', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 666', 'MANIFEST', 'scripts/sql/kernel_k6_trace_ledger.sql', null),
+  ('public', 'fn_phase_c_step_run_trace_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 666', 'MANIFEST', 'scripts/sql/kernel_k6_trace_ledger.sql', null),
+  ('public', 'fn_phase_c_step_run_trace_subject', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 666', 'MANIFEST', 'scripts/sql/kernel_k6_trace_ledger.sql', null),
+  ('public', 'fn_phase_c_task_create', 'p_body jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 601, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/phase_c_10_command_overlay_and_raise_fixes.sql', null),
+  ('public', 'fn_phase_c_task_state_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 584', 'MANIFEST', 'scripts/sql/phase_c_03_runtime_core.sql', null),
+  ('public', 'fn_phase_c_task_trace_committed', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 666', 'MANIFEST', 'scripts/sql/kernel_k6_trace_ledger.sql', null),
+  ('public', 'fn_phase_c_task_trace_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 666, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_k6_trace_ledger.sql', null),
+  ('public', 'fn_phase_c_task_trace_subject', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 666, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_k6_trace_ledger.sql', null),
+  ('public', 'fn_phase_c_task_transition', 'p_task_id bigint, p_to_state text, p_actor text, p_ctx jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 609, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/phase_c_17_command_progress_returns_to_founder.sql', null),
+  ('public', 'fn_phase_c_task_transition_allowed', 'p_from text, p_to text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 584', 'MANIFEST', 'scripts/sql/phase_c_03_runtime_core.sql', null),
+  ('public', 'fn_phase_c_tool_authorized', 'p_role text, p_tool text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 599', 'MANIFEST', 'scripts/sql/phase_c_08_runtime_writers.sql', null),
+  ('public', 'fn_phase_c_trace_advance', 'p_trace_id bigint, p_state_after text, p_seal boolean, p_body jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 666, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_k6_trace_ledger.sql', null),
+  ('public', 'fn_phase_c_trace_append_only', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 584', 'MANIFEST', 'scripts/sql/phase_c_03_runtime_core.sql', null),
+  ('public', 'fn_phase_c_trace_coverage', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 649', 'MANIFEST', 'scripts/sql/phase_c_36_trace_policy_and_invariants.sql', null),
+  ('public', 'fn_phase_c_trace_write', 'p_policy text, p_body jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 666, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_k6_trace_ledger.sql', null),
+  ('public', 'fn_phase_c_workflow_start', 'p_workflow_id text, p_business_object_id text, p_ctx jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 644, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/phase_c_31_autonomous_entry_creates_work.sql', null),
+  ('public', 'fn_phase_c_workflow_state_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 584', 'MANIFEST', 'scripts/sql/phase_c_03_runtime_core.sql', null),
+  ('public', 'fn_phase_c_workflow_transition_allowed', 'p_from text, p_to text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 584', 'MANIFEST', 'scripts/sql/phase_c_03_runtime_core.sql', null),
+  ('public', 'fn_pick_reviewer', 'p_dept_key text, p_author text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 531, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_16_reviewer_identity.sql', null),
+  ('public', 'fn_po_approve', 'p_po bigint, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101015_erp_po_functions.sql', null),
+  ('public', 'fn_po_bill', 'p_po bigint, p_bill_no text, p_bill_date date, p_due date, p_vat numeric, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101015_erp_po_functions.sql', null),
+  ('public', 'fn_po_create', 'p_vendor bigint, p_order_date date, p_expected date, p_memo text, p_lines jsonb, p_created_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101015_erp_po_functions.sql', null),
+  ('public', 'fn_po_orders_link', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 72', 'MANIFEST', 'scripts/sql/approvals_and_orders.sql', null),
+  ('public', 'fn_po_receive', 'p_po bigint, p_recv jsonb, p_date date, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708101015_erp_po_functions.sql', null),
+  ('public', 'fn_policy_consistency_check', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'ai-organization/db-functions/fn_policy_consistency_check.sql', null),
+  ('public', 'fn_policy_lint_kb_chunks', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_price_confidence', 'p_category text, p_amount numeric', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706003512_price_confidence.sql', null),
+  ('public', 'fn_procurement_analysis', 'p_id uuid', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708131849_procurement_analysis.sql', null),
+  ('public', 'fn_promote_memory', 'p_memory_id bigint, p_category text, p_by text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 45', 'MANIFEST', 'scripts/sql/memory_cluster_routines.sql', null),
+  ('public', 'fn_promote_memory_sweep', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 45', 'MANIFEST', 'scripts/sql/memory_cluster_routines.sql', null),
+  ('public', 'fn_prompt_approve_draft', 'p_key text, p_version integer, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709094419_prompt_draft_and_approve.sql', null),
+  ('public', 'fn_prompt_draft', 'p_key text, p_content text, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709094419_prompt_draft_and_approve.sql', null),
+  ('public', 'fn_prompt_get', 'p_key text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706120612_prompt_registry_and_rules_engine.sql', null),
+  ('public', 'fn_prompt_publish', 'p_key text, p_content text, p_owner text, p_rollout integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706120612_prompt_registry_and_rules_engine.sql', null),
+  ('public', 'fn_prompt_reject_draft', 'p_key text, p_version integer, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709094419_prompt_draft_and_approve.sql', null),
+  ('public', 'fn_prompt_rollback', 'p_key text, p_to_version integer, p_by text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 540', 'MANIFEST', 'scripts/sql/org_reorg_25_rollback_is_not_an_approval_route.sql', null),
+  ('public', 'fn_propose_lesson', 'p_agent_key text, p_topic text, p_statement text, p_evidence jsonb, p_confidence numeric, p_valid_until date', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 536, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_21_resolve_before_compare.sql', null),
+  ('public', 'fn_protect_app_secret', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727112442_protect_critical_app_secrets.sql', null),
+  ('public', 'fn_protect_gate_secrets', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260719002214_protect_gate_secrets_from_deletion.sql', null),
+  ('public', 'fn_provision_category_call', 'p_raw text, p_lead bigint, p_hint text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_quality_metrics', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706021848_executive_intelligence_layer.sql', null),
+  ('public', 'fn_quality_snapshot_resolve_agent', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 245', 'MANIFEST', 'scripts/sql/quality_snapshot_addressee_resolution.sql', null),
+  ('public', 'fn_quarterly_report', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115731_monthly_quarterly_reports.sql', null),
+  ('public', 'fn_query_platform', 'p_topic text, p_args jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724003746_fn_query_platform_agent_network.sql', null),
+  ('public', 'fn_quote_category_score', 'p_quote text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724153309_category_aware_quote_gate.sql', null),
+  ('public', 'fn_quote_category_score_text', 'p_category text, p_text text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724153713_pure_category_scorer_for_qa.sql', null),
+  ('public', 'fn_quote_coach', 'p_quote uuid', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708133952_quote_structured_gate_support.sql', null),
+  ('public', 'fn_quote_coach_text', 'p_quote text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724160651_comparison_agent_expert_knowledge_and_supplier_coaching.sql', null),
+  ('public', 'fn_quote_recompute_submittable', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708133952_quote_structured_gate_support.sql', null),
+  ('public', 'fn_quote_score_json', 'p_quote jsonb, p_items jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724151238_qa_helpers_quote_score_and_outbound_lint.sql', null),
+  ('public', 'fn_quote_spec_group', 'p_category text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724153309_category_aware_quote_gate.sql', null),
+  ('public', 'fn_quote_structured_score', 'p_quote text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115247_structured_quotation_model_v2.sql', null),
+  ('public', 'fn_rate_limit', 'p_bucket text, p_limit integer, p_window_seconds integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728205157_semantic_cache_and_no_ai_layer.sql', null),
+  ('public', 'fn_rating_due', 'p_now timestamp with time zone', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 96', 'MANIFEST', 'scripts/sql/fn_rating_due.sql', null),
+  ('public', 'fn_reallocate', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 171', 'MANIFEST', 'scripts/sql/budget_machine_empty_case.sql', null),
+  ('public', 'fn_recert_rotate', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'ai-organization/db-functions/fn_recert_rotate.sql', null),
+  ('public', 'fn_reconcile_doc_blocks', 'p_grace_days integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260721131333_supplier_doc_expiry_gate_reminder_and_suspension.sql', null),
+  ('public', 'fn_reconcile_licence_blocks', 'p_grace_days integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_record_context_retrieval', 'p_agent_key text, p_task_class text, p_category text, p_ids text[], p_budget integer, p_chars integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 492', 'MANIFEST', 'scripts/sql/v3_knowledge_usage_is_visible.sql', null),
+  ('public', 'fn_record_llm_attempt', 'p jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 554, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_align_08_attempt_level_cost.sql', null),
+  ('public', 'fn_record_tool_call', 'p_correlation uuid, p_agent_key text, p_role_id text, p_tool_id text, p_args jsonb, p_status text, p_result_hash text, p_result_rows integer, p_result_bytes integer, p_error text, p_attempt integer, p_latency_ms integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 508', 'MANIFEST', 'scripts/sql/v3_repair_01_tool_registry.sql', null),
+  ('public', 'fn_refresh_lead_lifecycle', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260729132605_lead_lifecycle_stage_backfill_and_selfmaintenance.sql', null),
+  ('public', 'fn_refund_amount_resolve', 'p_stripe_refund_id text, p_amount_fils bigint, p_by text, p_source text, p_note text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802154511_p1h_08_refund_views_exclude_unknown_amounts.sql', null),
+  ('public', 'fn_refund_decide', 'p_refund_id bigint, p_approve boolean, p_decided_by text, p_note text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802144014_p1_07_refunds_ledger.sql', null),
+  ('public', 'fn_refund_quarantine', 'p_stripe_refund_id text, p_event_type text, p_reason text, p_payload jsonb, p_stripe_event_id text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802154400_p1h_07_refund_transition_matrix_and_unknown_amounts.sql', null),
+  ('public', 'fn_refund_request', 'p_amount_fils bigint, p_reason_code text, p_requested_by text, p_inquiry_id uuid, p_customer_id uuid, p_supplier_lead_id bigint, p_quote_id uuid, p_payment_intent text, p_charge_id text, p_note text, p_transaction_id uuid', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802144014_p1_07_refunds_ledger.sql', null),
+  ('public', 'fn_refund_settle', 'p_stripe_refund_id text, p_status text, p_amount_fils bigint, p_payment_intent text, p_charge_id text, p_failure_reason text, p_amount_source text, p_stripe_event_id text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802144014_p1_07_refunds_ledger.sql', null),
+  ('public', 'fn_refund_state', 'p_transaction uuid', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260721183702_refund_escalation_working_days.sql', null),
+  ('public', 'fn_refund_transition_allowed', 'p_from text, p_to text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802154400_p1h_07_refund_transition_matrix_and_unknown_amounts.sql', null),
+  ('public', 'fn_refunds_settled_at', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803161926_audit_53_55_refund_status_and_reconciliation_visibility.sql', null),
+  ('public', 'fn_register_document', 'p_bucket text, p_path text, p_kind text, p_ref_table text, p_ref_id text, p_file_name text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 73', 'MANIFEST', 'scripts/sql/documents_customer_vault.sql', null),
+  ('public', 'fn_regulation_propagate', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727015727_regulatory_change_propagation.sql', null),
+  ('public', 'fn_regulation_watch', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 134', 'MANIFEST', 'scripts/sql/governance_monitors.sql', null),
+  ('public', 'fn_reliability_report', 'p_days integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 519', 'MANIFEST', 'scripts/sql/v3_repair_10_infra_reliability.sql', null),
+  ('public', 'fn_remediation_step', 'p_id bigint, p_score numeric, p_cost_aed numeric', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 493', 'MANIFEST', 'scripts/sql/v3_learning_and_remediation.sql', null),
+  ('public', 'fn_report_drilldown', 'p_metric text, p_days integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 132', 'MANIFEST', 'scripts/sql/fn_report_drilldown.sql', null),
+  ('public', 'fn_report_flag', 'p_title text, p_risk text, p_rec text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709105131_fn_reporting_ai_agent.sql', null),
+  ('public', 'fn_report_generate', 'p_kind text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709105024_reporting_registry_generator_kpis.sql', null),
+  ('public', 'fn_report_recommendation_approve', 'p_report_id bigint, p_index integer, p_by text, p_source text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 133', 'MANIFEST', 'scripts/sql/fn_report_recommendation_approve.sql', null),
+  ('public', 'fn_report_skeleton', 'p_title text, p_exec text, p_sections jsonb, p_decisions jsonb, p_appendix text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706104234_weekly_board_report.sql', null),
+  ('public', 'fn_reporting_ai', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709105131_fn_reporting_ai_agent.sql', null),
+  ('public', 'fn_reputation_recompute', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 365, canonical over 3 earlier file(s)', 'MANIFEST', 'scripts/sql/seventy_five_employees_were_rated_one_point_above_probation_for_doing_nothing.sql', null),
+  ('public', 'fn_require_grounding', 'p_answer text, p_sources jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115822_grounding_enforcement.sql', null),
+  ('public', 'fn_resilience_watch', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 431', 'MANIFEST', 'scripts/sql/a_refusal_log_with_no_reader.sql', null),
+  ('public', 'fn_resolve_cat_agent', 'cat text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 108', 'MANIFEST', 'scripts/sql/fn_resolve_cat_agent_trade_bridge.sql', null),
+  ('public', 'fn_resync_supplier_registration_state', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803035619_single_source_supplier_registration_state_audit_4_2.sql', null),
+  ('public', 'fn_retrieval_leak_check', 'p_agent_key text, p_task_text text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 536, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_21_resolve_before_compare.sql', null),
+  ('public', 'fn_retrieval_probe', 'p_agent_key text, p_task_text text, p_category_key text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 510', 'MANIFEST', 'scripts/sql/v3_repair_03_retrieval.sql', null),
+  ('public', 'fn_revenue_cascade', 'p_dept text, p_role text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 545, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_30_last_seven_identity_gates.sql', null),
+  ('public', 'fn_revenue_trajectory', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 517', 'MANIFEST', 'scripts/sql/v3_repair_08_revenue_cascade.sql', null),
+  ('public', 'fn_review_decide', 'p_kind text, p_ref_id bigint, p_decision text, p_comment text, p_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724060712_founder_review_gates.sql', null),
+  ('public', 'fn_review_pending', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724060712_founder_review_gates.sql', null),
+  ('public', 'fn_review_submit', 'p_subject_type text, p_subject_id text, p_dept_key text, p_author text, p_content text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 531, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_16_reviewer_identity.sql', null),
+  ('public', 'fn_rfq_board', 'p_search text, p_limit integer, p_offset integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260725200438_rfq_customers_agents_boards.sql', null),
+  ('public', 'fn_rfq_redispatch_sweep', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 380', 'MANIFEST', 'scripts/sql/the_rfq_that_arrived_before_its_supplier_existed.sql', null),
+  ('public', 'fn_rfq_required_check', 'i inquiries', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260729140842_rfq_category_required_field_gate.sql', null),
+  ('public', 'fn_rfq_score', 'i inquiries', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115127_rfq_completeness_gate_v2.sql', null),
+  ('public', 'fn_role_handoff', 'p_from text, p_to text, p_subject_type text, p_subject_id text, p_reason text, p_payload jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 503', 'MANIFEST', 'scripts/sql/org_reorg_04_runtime.sql', null),
+  ('public', 'fn_role_identity_isolation_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 515', 'MANIFEST', 'scripts/sql/v3_repair_06_role_isolation.sql', null),
+  ('public', 'fn_role_isolation_status', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 515', 'MANIFEST', 'scripts/sql/v3_repair_06_role_isolation.sql', null),
+  ('public', 'fn_role_manager_chain', 'p_role text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 500', 'MANIFEST', 'scripts/sql/org_reorg_01_canonical_schema.sql', null),
+  ('public', 'fn_role_of', 'p_email text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115642_rbac_abac_policy_v2.sql', null),
+  ('public', 'fn_role_readiness_recompute', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 515, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/v3_repair_06_role_isolation.sql', null),
+  ('public', 'fn_route_party', 'p_name text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 67', 'MANIFEST', 'scripts/sql/decide_routes_to_a_party.sql', null),
+  ('public', 'fn_routing_tier_model', 'p_agent_key text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 538, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_23_resolve_in_sql_bodies.sql', null),
+  ('public', 'fn_rules_eval', 'p_ctx jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706120612_prompt_registry_and_rules_engine.sql', null),
+  ('public', 'fn_run_vt', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260623203120_fn_run_vt_v2.sql', null),
+  ('public', 'fn_runner_silence_watch', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 259', 'MANIFEST', 'scripts/sql/runner_silence_watch.sql', null),
+  ('public', 'fn_scan_new_supplier_categories', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_scenario_expectation_change', 'p_scenario_id text, p_new_expected text, p_reason text, p_work_item text, p_changed_by text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802162637_p2_02_scenario_expectation_change_ledger.sql', null),
+  ('public', 'fn_scenario_rehearse', 'p_scenario_key text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 462, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/my_own_rehearsal_looked_for_a_literal_name.sql', null),
+  ('public', 'fn_scenario_rehearse_all', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 459', 'MANIFEST', 'scripts/sql/a_staffing_check_is_not_a_rehearsal.sql', null),
+  ('public', 'fn_scenario_run', 'p_scenario_key text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 280, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/scenario_run_says_staffed_not_ready.sql', null),
+  ('public', 'fn_scenario_run_all', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 375, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_tally_still_counted_a_word_the_runner_stopped_saying.sql', null),
+  ('public', 'fn_scenario_verdict', 'p_scenario_id text, p_actual text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802162637_p2_02_scenario_expectation_change_ledger.sql', null),
+  ('public', 'fn_schema_export', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724165215_fn_schema_export.sql', null),
+  ('public', 'fn_scope_apply', 'p_group_id bigint, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802181524_p2_c1_stage_b6_scope_detection_and_resolution.sql', null),
+  ('public', 'fn_scope_clause_map', 'p_text_norm text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802205100_p2_c1_stage_b7_scope_detect_semantic.sql', null),
+  ('public', 'fn_scope_clauses', 'p_text_norm text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802181524_p2_c1_stage_b6_scope_detection_and_resolution.sql', null),
+  ('public', 'fn_scope_detect', 'p_group_id bigint, p_customer_text text, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802181524_p2_c1_stage_b6_scope_detection_and_resolution.sql', null),
+  ('public', 'fn_scope_inverse', 'p_disposition text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802181524_p2_c1_stage_b6_scope_detection_and_resolution.sql', null),
+  ('public', 'fn_scope_party', 'p_clause_norm text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802205100_p2_c1_stage_b7_scope_detect_semantic.sql', null),
+  ('public', 'fn_scope_sentences', 'p_text_norm text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802205100_p2_c1_stage_b7_scope_detect_semantic.sql', null),
+  ('public', 'fn_scope_supply_attribution', 'p_clause_norm text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802205100_p2_c1_stage_b7_scope_detect_semantic.sql', null),
+  ('public', 'fn_seal_decision_trace', 'p_id uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 509', 'MANIFEST', 'scripts/sql/v3_repair_02_decision_trace.sql', null),
+  ('public', 'fn_secops_test', 'sample text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727002216_brand_protection_and_secops.sql', null),
+  ('public', 'fn_security_ai', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709095941_security_kpis_and_agent.sql', null),
+  ('public', 'fn_security_audit', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260710200947_security_audit_trail.sql', null),
+  ('public', 'fn_security_audit_immutable', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260710200947_security_audit_trail.sql', null),
+  ('public', 'fn_security_scan', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260623202029_fn_security_scan.sql', null),
+  ('public', 'fn_security_selfaudit', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'ai-organization/db-functions/fn_security_selfaudit.sql', null),
+  ('public', 'fn_select_model', 'p_task_class text, p_dept_key text, p_confidence numeric', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260726224936_model_router_and_cost_views.sql', null),
+  ('public', 'fn_self_review', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260726233527_self_evolution_engine.sql', null),
+  ('public', 'fn_seniority_rank', 'p text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260727013906_review_gate_fail_closed_and_delegation.sql', null),
+  ('public', 'fn_should_escalate', 'ctx jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 429, canonical over 3 earlier file(s)', 'MANIFEST', 'scripts/sql/the_rule_against_repeating_a_failure_held_only_the_reports.sql', null),
+  ('public', 'fn_simulate', 'p_scenario jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 367', 'MANIFEST', 'scripts/sql/six_simulations_six_shapes_and_nothing_to_compare.sql', null),
+  ('public', 'fn_sla_watch', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 190', 'MANIFEST', 'scripts/sql/emit_sla_breached.sql', null),
+  ('public', 'fn_smoke', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724075640_fn_smoke_returns_jsonb.sql', null),
+  ('public', 'fn_sop_update', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 45', 'MANIFEST', 'scripts/sql/memory_cluster_routines.sql', null),
+  ('public', 'fn_specialist_invoke', 'p_manager text, p_specialist text, p_subject_type text, p_subject_id text, p_reason text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 503', 'MANIFEST', 'scripts/sql/org_reorg_04_runtime.sql', null),
+  ('public', 'fn_spend_concentration_check', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 307', 'MANIFEST', 'scripts/sql/the_company_notices_it_is_thinking_about_itself.sql', null),
+  ('public', 'fn_split_inquiry', 'p_parent uuid, p_trades text[]', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260721164229_fn_split_inquiry_by_trade.sql', null),
+  ('public', 'fn_strategy_ai', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 400', 'MANIFEST', 'scripts/sql/strategy_says_what_it_took_on_trust.sql', null),
+  ('public', 'fn_strategy_metrics', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706021848_executive_intelligence_layer.sql', null),
+  ('public', 'fn_strategy_rec', 'p_title text, p_risk text, p_rec text, p_assumptions jsonb, p_impact text, p_cost text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 400', 'MANIFEST', 'scripts/sql/strategy_says_what_it_took_on_trust.sql', null),
+  ('public', 'fn_strategy_risk', 'p_cat text, p_title text, p_like integer, p_impact integer, p_mit text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709105933_strategy_intel_risk_kpis.sql', null),
+  ('public', 'fn_strategy_scan', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709105933_strategy_intel_risk_kpis.sql', null),
+  ('public', 'fn_stripe_event_seen', 'p_event_id text, p_type text, p_status text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724163144_cto_audit_stripe_event_seen_fn.sql', null),
+  ('public', 'fn_subscription_billing_run', 'p_dry_run boolean', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802151535_p1h_04_single_source_supplier_pricing.sql', null),
+  ('public', 'fn_supersede_lesson', 'p_old bigint, p_new bigint, p_reason text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 493', 'MANIFEST', 'scripts/sql/v3_learning_and_remediation.sql', null),
+  ('public', 'fn_supplier_advisor', 'p_lead_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 88', 'MANIFEST', 'scripts/sql/fn_supplier_advisor.sql', null),
+  ('public', 'fn_supplier_apply_change', 'p_phone text, p_field text, p_value text, p_inbound text, p_quote_id uuid, p_channel text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 420', 'MANIFEST', 'scripts/sql/the_supplier_could_ask_but_could_not_change.sql', null),
+  ('public', 'fn_supplier_autoapprove_clean', 'p_limit integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260724025336_supplier_success_executors_and_registry.sql', null),
+  ('public', 'fn_supplier_capability_chase', 'p_days integer, p_max_chases integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 437', 'MANIFEST', 'scripts/sql/the_chase_filtered_on_two_statuses_that_do_not_exist.sql', null),
+  ('public', 'fn_supplier_capability_derive', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 350, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_role_backfill_ran_once_and_the_deriver_kept_writing_rows_without_one.sql', null),
+  ('public', 'fn_supplier_capability_score', 'l leads', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115422_supplier_capability_model.sql', null),
+  ('public', 'fn_supplier_certifications', 'p_lead_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 101', 'MANIFEST', 'scripts/sql/fn_supplier_certifications.sql', null),
+  ('public', 'fn_supplier_changeable', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 420', 'MANIFEST', 'scripts/sql/the_supplier_could_ask_but_could_not_change.sql', null),
+  ('public', 'fn_supplier_document_impact', 'p_lead_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 103', 'MANIFEST', 'scripts/sql/fn_supplier_document_impact.sql', null),
+  ('public', 'fn_supplier_exception_close', 'p_lead_id bigint, p_outcome text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802143106_p1_03_supplier_exception_window_and_queue.sql', null),
+  ('public', 'fn_supplier_exception_days', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802143106_p1_03_supplier_exception_window_and_queue.sql', null),
+  ('public', 'fn_supplier_exception_open', 'p_lead_id bigint, p_reason text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802143106_p1_03_supplier_exception_window_and_queue.sql', null),
+  ('public', 'fn_supplier_exception_sweep', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802143106_p1_03_supplier_exception_window_and_queue.sql', null),
+  ('public', 'fn_supplier_expiries', 'p_supplier_id bigint', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_supplier_knowledge_graph', 'p_lead_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 107', 'MANIFEST', 'scripts/sql/fn_graph_supplier_market.sql', null),
+  ('public', 'fn_supplier_licence_gate', 'p_license_doc_path text, p_trade_license_no text, p_license_expiry date', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803161324_audit_63_licence_gate_in_the_database_not_one_surface.sql', null),
+  ('public', 'fn_supplier_market', 'p_lead_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 90', 'MANIFEST', 'scripts/sql/fn_supplier_market.sql', null),
+  ('public', 'fn_supplier_matchable', 'p_lead_id bigint', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803161058_audit_65_supplier_state_invariants_and_dead_letter.sql', null),
+  ('public', 'fn_supplier_negotiation', 'p_quote_id uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 100', 'MANIFEST', 'scripts/sql/fn_supplier_negotiation.sql', null),
+  ('public', 'fn_supplier_network_map', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 89', 'MANIFEST', 'scripts/sql/fn_supplier_network_map.sql', null),
+  ('public', 'fn_supplier_opportunities', 'p_lead_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 95', 'MANIFEST', 'scripts/sql/fn_supplier_opportunities.sql', null),
+  ('public', 'fn_supplier_product_match', 'p_inquiry_id uuid, p_lead_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 102', 'MANIFEST', 'scripts/sql/fn_supplier_product_match.sql', null),
+  ('public', 'fn_supplier_products', 'p_lead_id bigint, p_query text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 87', 'MANIFEST', 'scripts/sql/fn_supplier_products.sql', null),
+  ('public', 'fn_supplier_quality', 'p_lead_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 93', 'MANIFEST', 'scripts/sql/supplier_rating_model.sql', null),
+  ('public', 'fn_supplier_quote_recommend', 'p_lead_id bigint, p_inquiry_id uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 104', 'MANIFEST', 'scripts/sql/fn_supplier_quote_recommend.sql', null),
+  ('public', 'fn_supplier_registration_state', 'p_lead_id bigint', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803035619_single_source_supplier_registration_state_audit_4_2.sql', null),
+  ('public', 'fn_supplier_risk_monitor', 'p_signal text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 407, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_risk_scan_names_its_proxies.sql', null),
+  ('public', 'fn_supplier_score_refresh', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 394, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/twenty_thousand_suppliers_rated_zero_for_work_never_offered.sql', null),
+  ('public', 'fn_supplier_stats', 'p_supplier_id bigint', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_supplier_subscription', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802151535_p1h_04_single_source_supplier_pricing.sql', null),
+  ('public', 'fn_supplier_success', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709080840_fn_supplier_success_agent.sql', null),
+  ('public', 'fn_supplier_tier', 'p_lead_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 98', 'MANIFEST', 'scripts/sql/fn_supplier_tier.sql', null),
+  ('public', 'fn_supplier_twin', 'p_lead_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 83', 'MANIFEST', 'scripts/sql/fn_supplier_twin.sql', null),
+  ('public', 'fn_supplier_workspaces', 'p_lead_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 91', 'MANIFEST', 'scripts/sql/fn_supplier_workspaces.sql', null),
+  ('public', 'fn_suppliers_board', 'p_search text, p_sector text, p_limit integer, p_offset integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260725193552_fn_suppliers_board.sql', null),
+  ('public', 'fn_supply_gap_scan', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728190701_supplier_supply_gap_engine.sql', null),
+  ('public', 'fn_supply_health', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'fn_task_approve', 'p_dry_run boolean', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 21', 'MANIFEST', 'scripts/sql/fn_task_approve.sql', null),
+  ('public', 'fn_task_commercial_effect', 'p jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 517', 'MANIFEST', 'scripts/sql/v3_repair_08_revenue_cascade.sql', null),
+  ('public', 'fn_task_is_demand', 'p_action_class text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 340', 'MANIFEST', 'scripts/sql/sixty_percent_of_the_bill_was_the_company_thinking_about_itself.sql', null),
+  ('public', 'fn_task_lesson', 'p_task_id bigint, p_outcome text, p_review jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 61, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/fn_learning_loop_backstop.sql', null),
+  ('public', 'fn_task_review', 'p_task_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 63, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/fn_task_review_ownership_routing.sql', null),
+  ('public', 'fn_task_tsquery', 'p_text text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 511', 'MANIFEST', 'scripts/sql/v3_repair_04_task_query.sql', null),
+  ('public', 'fn_term_matches', 'p_text_norm text, p_pattern_norm text, p_lang text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 316, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_files_were_stale_not_the_database.sql', null),
+  ('public', 'fn_term_position', 'p_text_norm text, p_pattern_norm text, p_lang text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802182107_p2_c1_stage_b6_fix_regex_aware_term_position.sql', null),
+  ('public', 'fn_terms_integrity', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803022202_pin_supplier_terms_version_to_content_hash.sql', null),
+  ('public', 'fn_terms_version', 'p_kind text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803022030_legal_version_single_source_and_immutable_acceptance.sql', null),
+  ('public', 'fn_text_matches_pattern', 'p_text text, p_pattern text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802200200_p2_c1_stage_b_trade_identification_model.sql', null),
+  ('public', 'fn_tool_readiness', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 227', 'MANIFEST', 'scripts/sql/fn_tool_readiness.sql', null),
+  ('public', 'fn_trace_edit_is_blocked', 'p_id uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 520', 'MANIFEST', 'scripts/sql/v3_repair_13_trace_edit_probe.sql', null),
+  ('public', 'fn_trade_confirm', 'p_group_id bigint, p_trade_key text, p_actor text, p_reason text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802200300_p2_c1_stage_b_trade_identification_functions.sql', null),
+  ('public', 'fn_trade_identify', 'p_group_id bigint, p_customer_text text, p_structured jsonb, p_documents jsonb, p_actor text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802200300_p2_c1_stage_b_trade_identification_functions.sql', null),
+  ('public', 'fn_trade_reject', 'p_group_id bigint, p_trade_key text, p_actor text, p_reason text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802200300_p2_c1_stage_b_trade_identification_functions.sql', null),
+  ('public', 'fn_trade_remove', 'p_group_id bigint, p_trade_key text, p_actor text, p_reason text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802200300_p2_c1_stage_b_trade_identification_functions.sql', null),
+  ('public', 'fn_twin', 'p_kind text, p_id text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 81', 'MANIFEST', 'scripts/sql/portal_row4_schema.sql', null),
+  ('public', 'fn_ui_label', 'p_domain text, p_key text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 618', 'MANIFEST', 'scripts/sql/ui_labels_for_machine_keys.sql', null),
+  ('public', 'fn_undo', 'p_undo_id uuid, p_reason text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728172908_undo_log_make_reversal_real.sql', null),
+  ('public', 'fn_unsafe_block', 'p_class_key text, p_actor text, p_subject_table text, p_subject_ref text, p_action text, p_detail jsonb, p_correlation_id uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 518', 'MANIFEST', 'scripts/sql/v3_repair_09_unsafe_safeguards.sql', null),
+  ('public', 'fn_unsafe_check_credential_exposure', 'p_since timestamp with time zone', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 518', 'MANIFEST', 'scripts/sql/v3_repair_09_unsafe_safeguards.sql', null),
+  ('public', 'fn_unsafe_check_double_refund', 'p_since timestamp with time zone', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 518', 'MANIFEST', 'scripts/sql/v3_repair_09_unsafe_safeguards.sql', null),
+  ('public', 'fn_unsafe_check_fail_open_authz', 'p_since timestamp with time zone', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 518', 'MANIFEST', 'scripts/sql/v3_repair_09_unsafe_safeguards.sql', null),
+  ('public', 'fn_unsafe_check_ineligible_match', 'p_since timestamp with time zone', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 518', 'MANIFEST', 'scripts/sql/v3_repair_09_unsafe_safeguards.sql', null),
+  ('public', 'fn_unsafe_check_unintended_recipient', 'p_since timestamp with time zone', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 518', 'MANIFEST', 'scripts/sql/v3_repair_09_unsafe_safeguards.sql', null),
+  ('public', 'fn_unsafe_check_unlogged_provider', 'p_since timestamp with time zone', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 518', 'MANIFEST', 'scripts/sql/v3_repair_09_unsafe_safeguards.sql', null),
+  ('public', 'fn_unsafe_check_unstated_assumption', 'p_since timestamp with time zone', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 518', 'MANIFEST', 'scripts/sql/v3_repair_09_unsafe_safeguards.sql', null),
+  ('public', 'fn_unsafe_escalation_route', 'p_class_key text, p_actor text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 545, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_30_last_seven_identity_gates.sql', null),
+  ('public', 'fn_unsafe_guard_status', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 518', 'MANIFEST', 'scripts/sql/v3_repair_09_unsafe_safeguards.sql', null),
+  ('public', 'fn_unsafe_liveness_probe', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 518', 'MANIFEST', 'scripts/sql/v3_repair_09_unsafe_safeguards.sql', null),
+  ('public', 'fn_unsafe_match_eligibility_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 518', 'MANIFEST', 'scripts/sql/v3_repair_09_unsafe_safeguards.sql', null),
+  ('public', 'fn_usd_to_aed', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 554', 'MANIFEST', 'scripts/sql/org_align_08_attempt_level_cost.sql', null),
+  ('public', 'fn_validate_lesson', 'p_lesson_id bigint, p_validator text, p_verdict text, p_reason text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 536, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_21_resolve_before_compare.sql', null),
+  ('public', 'fn_voice_metrics', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706021848_executive_intelligence_layer.sql', null),
+  ('public', 'fn_wa_context', 'p_audience text, p_phone text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 427, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/the_assistant_could_not_see_who_was_asking.sql', null),
+  ('public', 'fn_wa_fanout', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260701135157_whatsapp_notification_fanout.sql', null),
+  ('public', 'fn_wa_lead_id', 'p_phone text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 421', 'MANIFEST', 'scripts/sql/the_licence_arrived_and_nothing_read_it_2.sql', null),
+  ('public', 'fn_watch_failed_runs', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 616', 'MANIFEST', 'scripts/sql/failed_run_watch_stops_reporting_the_hold.sql', null),
+  ('public', 'fn_watch_health', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260726230144_failed_run_alerting.sql', null),
+  ('public', 'fn_what_if', 'p_question text, p_change jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 450, canonical over 4 earlier file(s)', 'MANIFEST', 'scripts/sql/a_simulation_that_never_said_what_it_moved.sql', null),
+  ('public', 'fn_workflow_actor_coverage', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 325', 'MANIFEST', 'scripts/sql/the_engine_had_no_employee_side_and_no_name_for_its_own_staff.sql', null),
+  ('public', 'fn_workflow_actor_resolve', 'p_run uuid, p_actor text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 325', 'MANIFEST', 'scripts/sql/the_engine_had_no_employee_side_and_no_name_for_its_own_staff.sql', null),
+  ('public', 'fn_workflow_run_follow_task', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 325', 'MANIFEST', 'scripts/sql/the_engine_had_no_employee_side_and_no_name_for_its_own_staff.sql', null),
+  ('public', 'fn_workflow_start', 'p_workflow_key text, p_trigger_event_id bigint, p_entity_type text, p_entity_id text, p_context jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 325, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_engine_had_no_employee_side_and_no_name_for_its_own_staff.sql', null),
+  ('public', 'fn_workflow_start_due', 'p_lookback_minutes integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 41', 'MANIFEST', 'scripts/sql/fn_workflow_start.sql', null),
+  ('public', 'fn_workflow_step_claim', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 341, canonical over 4 earlier file(s)', 'MANIFEST', 'scripts/sql/the_dispatchers_ceiling_counted_revenue_work_against_reflection.sql', null),
+  ('public', 'fn_workflow_step_done', 'p_run uuid, p_step_no integer, p_output jsonb, p_status text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 41', 'MANIFEST', 'scripts/sql/fn_workflow_start.sql', null),
+  ('public', 'fn_workflow_step_release', 'p_step_run_id bigint, p_reason text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 328', 'MANIFEST', 'scripts/sql/wiring_for_the_employee_side_of_the_engine.sql', null),
+  ('public', 'fn_workflow_step_sweep', 'p_limit integer', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 447, canonical over 6 earlier file(s)', 'MANIFEST', 'scripts/sql/the_rpc_half_of_the_executor_table_had_no_runner.sql', null),
+  ('public', 'fn_working_days_between', 'p_from timestamp with time zone, p_to timestamp with time zone', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260721183105_working_day_arithmetic.sql', null),
+  ('public', 'fn_write_decision_trace', 'p jsonb', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 509', 'MANIFEST', 'scripts/sql/v3_repair_02_decision_trace.sql', null),
+  ('public', 'fn_ws_agent_ops', 'p_agent text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 543, canonical over 3 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_28_workspace_resolves.sql', null),
+  ('public', 'fn_ws_agents', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 633, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/smart_engine_counts_the_workforce.sql', null),
+  ('public', 'fn_ws_ai', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706180809_os_framework_workspaces.sql', null),
+  ('public', 'fn_ws_analytics', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706180809_os_framework_workspaces.sql', null),
+  ('public', 'fn_ws_company', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 632, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/operations_company_remaining_lists.sql', null),
+  ('public', 'fn_ws_company_os', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 338, canonical over 4 earlier file(s)', 'MANIFEST', 'scripts/sql/the_engine_itself_had_no_screen.sql', null),
+  ('public', 'fn_ws_customer_360', 'p_id uuid', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 30', 'MANIFEST', 'scripts/sql/fn_ws_customer_360.sql', null),
+  ('public', 'fn_ws_customer_behavior', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 455', 'MANIFEST', 'scripts/sql/the_intelligence_centre_could_not_see_a_customer.sql', null),
+  ('public', 'fn_ws_customers', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706180809_os_framework_workspaces.sql', null),
+  ('public', 'fn_ws_documents', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706180809_os_framework_workspaces.sql', null),
+  ('public', 'fn_ws_ea', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709101415_fn_ws_ea.sql', null),
+  ('public', 'fn_ws_exec', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 627, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/exec_surfaces_show_only_live_work.sql', null),
+  ('public', 'fn_ws_exec_home', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 615, canonical over 5 earlier file(s)', 'MANIFEST', 'scripts/sql/exec_home_handoffs_are_handoffs.sql', null),
+  ('public', 'fn_ws_finance', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708110544_erp_ws_finance_cfo.sql', null),
+  ('public', 'fn_ws_fraud', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260711165521_os3_fraud_refunds_workspaces.sql', null),
+  ('public', 'fn_ws_governance', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 625, canonical over 3 earlier file(s)', 'MANIFEST', 'scripts/sql/os_surfaces_read_from_the_fresh_start.sql', null),
+  ('public', 'fn_ws_intelligence', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 114', 'MANIFEST', 'scripts/sql/fn_ws_intelligence.sql', null),
+  ('public', 'fn_ws_knowledge', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 275', 'MANIFEST', 'scripts/sql/knowledge_workspace_shows_what_was_used.sql', null),
+  ('public', 'fn_ws_live_company', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 130', 'MANIFEST', 'scripts/sql/fn_ws_live_company.sql', null),
+  ('public', 'fn_ws_marketing', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709084634_fn_ws_marketing.sql', null),
+  ('public', 'fn_ws_marketplace', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706180809_os_framework_workspaces.sql', null),
+  ('public', 'fn_ws_notifications', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 625, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/os_surfaces_read_from_the_fresh_start.sql', null),
+  ('public', 'fn_ws_operations', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 632, canonical over 4 earlier file(s)', 'MANIFEST', 'scripts/sql/operations_company_remaining_lists.sql', null),
+  ('public', 'fn_ws_refunds', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260711165521_os3_fraud_refunds_workspaces.sql', null),
+  ('public', 'fn_ws_reports', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 631, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/operations_assistance_company_reports.sql', null),
+  ('public', 'fn_ws_rfq_360', 'p_id uuid', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708114138_erp_ws_rfq_360.sql', null),
+  ('public', 'fn_ws_strategy', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709110104_fn_ws_strategy.sql', null),
+  ('public', 'fn_ws_supplier_360', 'p_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 120', 'MANIFEST', 'scripts/sql/fn_ws_supplier_360.sql', null),
+  ('public', 'fn_ws_suppliers', 'p jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706180809_os_framework_workspaces.sql', null),
+  ('public', 'funnel_metrics', 'days integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260619150926_disputes_lifecycle_funnel.sql', null),
+  ('public', 'hook_password_verification_attempt', 'event jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260710203007_failed_login_hook_and_fraud_score.sql', null),
+  ('public', 'is_disposable_email', 'p_email text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260629214950_improvements_foundation.sql', null),
+  ('public', 'kb_begin_run', 'p_package_id text, p_version text, p_sha text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802123553_kb_stage_rpc_write_path.sql', null),
+  ('public', 'kb_dump_migrations', 'p_since text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802130025_kb_dump_migrations_and_late_schema_fixes.sql', null),
+  ('public', 'kb_finish_run', 'p_run_id uuid, p_status text, p_inserted bigint, p_updated bigint, p_rejected bigint, p_report jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802123553_kb_stage_rpc_write_path.sql', null),
+  ('public', 'kb_get_hashes', 'p_package_id text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802123553_kb_stage_rpc_write_path.sql', null),
+  ('public', 'kb_match', 'query_embedding vector, match_count integer, p_category text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260710220249_kb_semantic_search.sql', null),
+  ('public', 'kb_norm', 'p text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802124315_kb_deterministic_bilingual_router.sql', null),
+  ('public', 'kb_query', 'p_query text, p_category text, p_limit integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706015539_regulation_library_and_rag.sql', null),
+  ('public', 'kb_stage_upsert', 'p_target text, p_rows jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802123553_kb_stage_rpc_write_path.sql', null),
+  ('public', 'kb_sync', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706015539_regulation_library_and_rag.sql', null),
+  ('public', 'kn_task', 'p_sig text, p_cond boolean, p_risk text, p_title text, p_reco text, p_assumptions jsonb, p_impact text, p_cost text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 386', 'MANIFEST', 'scripts/sql/the_five_wrappers_that_could_not_carry_a_reason.sql', null),
+  ('public', 'leg_flag', 'p_sig text, p_cond boolean, p_risk text, p_title text, p_reco text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709095057_fn_legal_ai_agent.sql', null),
+  ('public', 'margin_rate', 'amount numeric', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations/20200101000000_baseline_tables_created_out_of_band.sql', null),
+  ('public', 'mark_site_dirty', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260628202434_auto_publish_site_on_content_change.sql', null),
+  ('public', 'mask_contact', 's text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'mask_contacts', 't text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260630172659_quote_leak_guard.sql', null),
+  ('public', 'mask_contacts_jsonb', 'j jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260729141449_durable_masking_on_inquiries.sql', null),
+  ('public', 'mask_name', 't text, nm text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803032305_harden_inquiry_masking_for_supplier_safe_view.sql', null),
+  ('public', 'match_suppliers', 'query_embedding vector, match_count integer, p_emirate text, p_role text, p_product text, p_min_rating numeric', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260606233953_match_function_and_index.sql', null),
+  ('public', 'match_suppliers_kw', 'p_keywords text[], p_category text, p_emirate text, p_role text, p_min_rating numeric, p_limit integer, p_multi boolean', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260607094054_match_suppliers_kw_rpc.sql', null),
+  ('public', 'mdm_normalize', 'p_kind text, p_raw text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706101759_mdm_master_data_management.sql', null),
+  ('public', 'mkt_rec', 'p_sig text, p_cond boolean, p_risk text, p_title text, p_reco text, p_assumptions jsonb, p_impact text, p_cost text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 386', 'MANIFEST', 'scripts/sql/the_five_wrappers_that_could_not_carry_a_reason.sql', null),
+  ('public', 'notify_new_quote_sms', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260619131912_new_quote_sms_trigger.sql', null),
+  ('public', 'ops_begin_run', 'p_package text, p_version text, p_sha text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802131915_ops_kb_stage_write_path_and_rollback.sql', null),
+  ('public', 'ops_finish_run', 'p_run_id uuid, p_status text, p_ins bigint, p_upd bigint, p_skip bigint, p_rej bigint, p_detail jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802131915_ops_kb_stage_write_path_and_rollback.sql', null),
+  ('public', 'ops_get_files', 'p_run_id uuid', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802131915_ops_kb_stage_write_path_and_rollback.sql', null),
+  ('public', 'ops_rec', 'p_sig text, p_cond boolean, p_risk text, p_title text, p_reco text, p_assumptions jsonb, p_impact text, p_cost text', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 386', 'MANIFEST', 'scripts/sql/the_five_wrappers_that_could_not_carry_a_reason.sql', null),
+  ('public', 'ops_rollback_run', 'p_run_id uuid', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802131915_ops_kb_stage_write_path_and_rollback.sql', null),
+  ('public', 'ops_stage_upsert', 'p_target text, p_rows jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802131915_ops_kb_stage_write_path_and_rollback.sql', null),
+  ('public', 'playbook_for', 'p_category text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706015936_qualification_playbooks.sql', null),
+  ('public', 'qd_norm_customer_ver', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803022030_legal_version_single_source_and_immutable_acceptance.sql', null),
+  ('public', 'qd_norm_supplier_ver', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803022030_legal_version_single_source_and_immutable_acceptance.sql', null),
+  ('public', 'qd_notify_refund_request', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'qd_on_due_paid', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'qd_on_refund_resolved', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260719012830_supplier_economics_founding_exemption_and_clawback.sql', null),
+  ('public', 'qd_project_ref', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 391', 'MANIFEST', 'scripts/sql/sixteen_routines_stop_naming_their_own_project.sql', null),
+  ('public', 'qd_recompute_response', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'qd_reveal_nudges', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260711231319_localize_reveal_nudges_arabic.sql', null),
+  ('public', 'qd_sign_customer', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 392', 'MANIFEST', 'scripts/sql/the_two_signing_triggers_must_never_refuse_a_signature.sql', null),
+  ('public', 'qd_sign_supplier', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 392', 'MANIFEST', 'scripts/sql/the_two_signing_triggers_must_never_refuse_a_signature.sql', null),
+  ('public', 'quote_gate', 'p_category text, p_quote jsonb', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706020039_quotation_evaluation_standard.sql', null),
+  ('public', 'recent_duplicate_inquiry', 'p_customer uuid, p_summary text, p_window interval', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260629214950_improvements_foundation.sql', null),
+  ('public', 'recompute_supplier_rating', 'p_supplier bigint', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260609160319_ratings_and_reviews.sql', null),
+  ('public', 'registered_supplier_count', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260609151015_monetization_v2_pricing_engine.sql', null),
+  ('public', 'reveal_fee', 'amount numeric, at_time timestamp with time zone', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260609151015_monetization_v2_pricing_engine.sql', null),
+  ('public', 'rl_check', 'p_key text, p_limit integer, p_seconds integer', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'rollback_ingestion_run', 'p_run_id uuid', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802122221_kb_rollback_public_wrapper.sql', null),
+  ('public', 'run_agent', 'p_job text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'run_auto_deploy', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260619154458_auto_deploy_wiring.sql', null),
+  ('public', 'run_doc_reminders', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708130418_doc_reminders_runner.sql', null),
+  ('public', 'run_health_check', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260620121502_health_monitoring.sql', null),
+  ('public', 'run_no_quote_nudges', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260620114145_workflow_completion_expiry_noquotes.sql', null),
+  ('public', 'run_pending_digest', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260628224433_pending_suppliers_digest_cron.sql', null),
+  ('public', 'run_reveal_nudges', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260619150926_disputes_lifecycle_funnel.sql', null),
+  ('public', 'run_rfq_clarify', 'p_dry_run boolean', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708131431_rfq_qualification_gate_and_clarify.sql', null),
+  ('public', 'run_site_autodeploy', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260628202434_auto_publish_site_on_content_change.sql', null),
+  ('public', 'scrub_inquiry_contacts', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260729141449_durable_masking_on_inquiries.sql', null),
+  ('public', 'scrub_quote_contacts', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260630172659_quote_leak_guard.sql', null),
+  ('public', 'sec_incident', 'p_sig text, p_cond boolean, p_sev text, p_title text, p_reco text', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709095941_security_kpis_and_agent.sql', null),
+  ('public', 'trg_action_gate', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 464, canonical over 6 earlier file(s)', 'MANIFEST', 'scripts/sql/the_gate_cited_its_own_code_and_called_it_sources.sql', null),
+  ('public', 'trg_agent_knowledge_metadata', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 440, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/the_placeholder_ran_first_so_the_citation_never_ran.sql', null),
+  ('public', 'trg_ai_cost_attribute', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 530, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/org_reorg_15_spend_meter.sql', null),
+  ('public', 'trg_audit_agent_run', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728173008_audit_every_agent_action.sql', null),
+  ('public', 'trg_autodispatch_inquiry', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 393', 'MANIFEST', 'scripts/sql/the_two_triggers_on_the_critical_path_stop_naming_their_own_project.sql', null),
+  ('public', 'trg_block_banned_inquiry', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'trg_company_event_dispatch', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 165, canonical over 1 earlier file(s)', 'MANIFEST', 'scripts/sql/trg_company_event_dispatch_lookback.sql', null),
+  ('public', 'trg_company_faq_sync', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'trg_customer_abandon_ban', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'trg_declog_immutable', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115523_unified_decision_engine.sql', null),
+  ('public', 'trg_enrich_capability', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 393', 'MANIFEST', 'scripts/sql/the_two_triggers_on_the_critical_path_stop_naming_their_own_project.sql', null),
+  ('public', 'trg_expectation_ledger_append_only', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802162637_p2_02_scenario_expectation_change_ledger.sql', null),
+  ('public', 'trg_expectation_work_item_real', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802162637_p2_02_scenario_expectation_change_ledger.sql', null),
+  ('public', 'trg_gate_incomplete_match', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260708131431_rfq_qualification_gate_and_clarify.sql', null),
+  ('public', 'trg_goal_cascade', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728173045_ceo_cascade_and_department_kpi_tracking.sql', null),
+  ('public', 'trg_health_check_agent_threshold', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728202759_fix_agent_runs_availability_metric.sql', null),
+  ('public', 'trg_holdout_expectations_immutable', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802181006_p2_c1_stage_b6_frozen_holdout_schema.sql', null),
+  ('public', 'trg_holdout_record_immutable', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802183212_p2_c1_holdout_v1_result_of_record.sql', null),
+  ('public', 'trg_ingest_case_lessons', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706110716_closed_case_learning_loop.sql', null),
+  ('public', 'trg_inquiry_answer_value_domain', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802200400_p2_c1_stage_b_blockers_and_value_domain.sql', null),
+  ('public', 'trg_inquiry_answer_value_immutable', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802190000_p2_c1_stage_a_mep_model.sql', null),
+  ('public', 'trg_inquiry_enrich', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 28', 'MANIFEST', 'scripts/sql/fn_customer_preference.sql', null),
+  ('public', 'trg_inquiry_gate_state_sync', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802200100_p2_c1_stage_b_ownership_references_and_gate_states.sql', null),
+  ('public', 'trg_inquiry_received', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260619150926_disputes_lifecycle_funnel.sql', null),
+  ('public', 'trg_invite_cap_allocation', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 463', 'MANIFEST', 'scripts/sql/the_invite_cap_moved_and_the_ledger_never_heard.sql', null),
+  ('public', 'trg_kb_version', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115335_knowledge_governance.sql', null),
+  ('public', 'trg_leads_lifecycle_stage', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260729132605_lead_lifecycle_stage_backfill_and_selfmaintenance.sql', null),
+  ('public', 'trg_learn_customer_preference', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 28', 'MANIFEST', 'scripts/sql/fn_customer_preference.sql', null),
+  ('public', 'trg_mask_quote_contact', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'trg_mep_pattern_norm', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802210000_p2_c1_stage_b5_evidence_and_arabic.sql', null),
+  ('public', 'trg_org_role_no_cycle', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 500', 'MANIFEST', 'scripts/sql/org_reorg_01_canonical_schema.sql', null),
+  ('public', 'trg_org_role_no_reserved_decision', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 549', 'MANIFEST', 'scripts/sql/org_align_03_ownership_and_reserved.sql', null),
+  ('public', 'trg_org_role_touch', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 500', 'MANIFEST', 'scripts/sql/org_reorg_01_canonical_schema.sql', null),
+  ('public', 'trg_p2c1_append_only', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations-superseded-consolidated/20260802190000_p2_c1_stage_a_mep_model.sql', null),
+  ('public', 'trg_pages_dirty', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260619154458_auto_deploy_wiring.sql', null),
+  ('public', 'trg_pricing_facts', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'trg_quote_committed_hash', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'trg_quote_expiry', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260620114145_workflow_completion_expiry_noquotes.sql', null),
+  ('public', 'trg_quote_items_rescore', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709122521_quote_quality_reads_line_items.sql', null),
+  ('public', 'trg_quote_items_roll', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115247_structured_quotation_model_v2.sql', null),
+  ('public', 'trg_quote_quality', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706021029_quote_gate_trigger_v2.sql', null),
+  ('public', 'trg_refunds_touch', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802144014_p1_07_refunds_ledger.sql', null),
+  ('public', 'trg_reg_gov_fn', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260709090556_knowledge_hybrid_publish_gate.sql', null),
+  ('public', 'trg_reg_inquiry_doc', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706102534_document_intelligence_registry.sql', null),
+  ('public', 'trg_reg_lead_docs', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706102534_document_intelligence_registry.sql', null),
+  ('public', 'trg_reg_quote_doc', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706102534_document_intelligence_registry.sql', null),
+  ('public', 'trg_reveal_receipt', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260619150926_disputes_lifecycle_funnel.sql', null),
+  ('public', 'trg_reveal_window', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260619150926_disputes_lifecycle_funnel.sql', null),
+  ('public', 'trg_review_chain_no_self_review', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 531', 'MANIFEST', 'scripts/sql/org_reorg_16_reviewer_identity.sql', null),
+  ('public', 'trg_rfq_complete', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115127_rfq_completeness_gate_v2.sql', null),
+  ('public', 'trg_scenario_expected_needs_ledger', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802162637_p2_02_scenario_expectation_change_ledger.sql', null),
+  ('public', 'trg_scope_marker_norm', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260802181351_p2_c1_stage_b6_scope_disposition_schema.sql', null),
+  ('public', 'trg_self_reg_category', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/schema/full_schema.sql', null),
+  ('public', 'trg_step_run_actor_is_a_real_employee', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 551', 'MANIFEST', 'scripts/sql/org_align_05_payment_split_and_last_five.sql', null),
+  ('public', 'trg_supplier_brief_immutable', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260803034256_immutable_supplier_brief_frozen_at_dispatch_audit_9_3.sql', null),
+  ('public', 'trg_supplier_capability', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706115422_supplier_capability_model.sql', null),
+  ('public', 'trg_undo_capture', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260728172908_undo_log_make_reversal_real.sql', null),
+  ('public', 'trg_version_document', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706105544_document_versioning.sql', null),
+  ('public', 'trg_version_quote', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706105544_document_versioning.sql', null),
+  ('public', 'trg_version_rfq', '', 'HISTORICAL_APPLICATION', 'R5_TRACKED_SQL_OUTSIDE_MANIFEST', 'no MANIFEST file defines it; tracked SQL outside the manifest does', 'TRACKED_SQL_OUTSIDE_MANIFEST', 'supabase/migrations_history/20260706110043_rfq_inquiry_versioning.sql', null),
+  ('public', 'zzz_fn_notifications_demo_guard', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT', 'MANIFEST.txt line 671, canonical over 2 earlier file(s)', 'MANIFEST', 'scripts/sql/kernel_s0_routine_ownership.sql', null)
+    on conflict (schema_name, routine_name, identity_args) do update
+   set ownership_class    = excluded.ownership_class,
+       classified_by_rule = excluded.classified_by_rule,
+       evidence           = excluded.evidence,
+       source_kind        = excluded.source_kind,
+       source_file        = excluded.source_file,
+       justification      = excluded.justification,
+       recorded_at        = now();
+
+-- ============================================================================================
+-- SECTION C3 — WHAT THIS FILE ITSELF CREATES
+--
+-- kernel_s0 adds two routines, so kernel_s0 must own them. Recording this by hand rather than by
+-- a catalogue sweep keeps the invariant "every application routine names the file that creates it"
+-- true of this file too.
+-- ============================================================================================
+insert into public.kernel_routine_ownership
+  (schema_name, routine_name, identity_args, ownership_class, classified_by_rule, evidence,
+   source_kind, source_file)
+values
+  ('public', 'fn_kernel_routine_ownership', 'p_proname text, p_identity_args text, p_source_kind text',
+   'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT',
+   'created by scripts/sql/kernel_s0_routine_ownership.sql',
+   'MANIFEST', 'scripts/sql/kernel_s0_routine_ownership.sql'),
+  ('public', 'a00_kernel_routine_ownership_guard', '',
+   'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT',
+   'created by scripts/sql/kernel_s0_routine_ownership.sql',
+   'MANIFEST', 'scripts/sql/kernel_s0_routine_ownership.sql')
+    on conflict (schema_name, routine_name, identity_args) do update
+   set ownership_class    = excluded.ownership_class,
+       classified_by_rule = excluded.classified_by_rule,
+       evidence           = excluded.evidence,
+       source_kind        = excluded.source_kind,
+       source_file        = excluded.source_file,
+       recorded_at        = now();
