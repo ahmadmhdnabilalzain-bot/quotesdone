@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { ShieldCheck, Eye, Loader2, Phone, X } from 'lucide-react';
+import { ShieldCheck, ShieldOff, Eye, Loader2, Phone, X } from 'lucide-react';
 import {
   controlModeStatus, controlModeChallenge, controlModeOpen, controlModeClose,
   CONTROL_MODE_EVENT, CONTROL_MODE_CHANGED, type ControlModeStatus,
@@ -110,14 +110,24 @@ export function ControlModeProvider({ children }: { children: React.ReactNode })
 export function ControlModeIndicator() {
   const cm = useControlMode();
   if (!cm) return null;
-  const { inControl, secondsLeft, openPanel } = cm;
+  const { status, inControl, secondsLeft, openPanel } = cm;
   const low = inControl && secondsLeft <= 120;
+  // THE PILL WAS ASSERTING A LOCK THAT HAS BEEN OFF SINCE 15 AUG 2026 (fixed 16 Aug).
+  // It had two states and the system has three. With Control Mode disarmed at the founder's own
+  // instruction, fn_control_mode_status found no open session and fell through to "Observe Mode —
+  // nothing can be changed", which is the opposite of true: changes go through without a code.
+  // A screen that overstates a security posture is the one kind of wrong that makes the reader act
+  // less carefully, so the third state is named rather than smoothed into one of the other two.
+  const disarmed = !inControl && (status as any)?.mode === 'disarmed';
   return (
     <button
       onClick={() => openPanel()}
       title={inControl
         ? 'Control Mode is open. Click to see the reason on record, or to close it now.'
-        : 'Observe Mode — everything is readable, nothing can be changed. Click to open Control Mode.'}
+        : disarmed
+          ? String((status as any)?.message
+              || 'Control Mode is switched off. Changes go through without a code, and every one of them is still authenticated, attributed and audited.')
+          : 'Observe Mode — everything is readable, nothing can be changed. Click to open Control Mode.'}
       className={
         'flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ' +
         (inControl
@@ -126,8 +136,8 @@ export function ControlModeIndicator() {
           : 'border-border bg-muted/40 text-muted-foreground hover:text-foreground')
       }
     >
-      {inControl ? <ShieldCheck className='h-3.5 w-3.5' /> : <Eye className='h-3.5 w-3.5' />}
-      <span className='hidden sm:inline'>{inControl ? 'Control' : 'Observe'}</span>
+      {inControl ? <ShieldCheck className='h-3.5 w-3.5' /> : disarmed ? <ShieldOff className='h-3.5 w-3.5' /> : <Eye className='h-3.5 w-3.5' />}
+      <span className='hidden sm:inline'>{inControl ? 'Control' : disarmed ? 'Open' : 'Observe'}</span>
       {inControl ? <span className='font-mono tabular-nums'>{mmss(secondsLeft)}</span> : null}
     </button>
   );
