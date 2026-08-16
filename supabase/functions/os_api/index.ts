@@ -148,25 +148,24 @@ Deno.serve(async (req) => {
     // reason the hole was inert: creating that row alone would have opened it. It is now read-only
     // (see the READONLY gate below) and it is recorded under its own name, never as an email address.
     let viaBypass = false;
-    // ---- BUILD MODE (15 Aug 2026) ---------------------------------------------------------
-    // The founder's instruction, third time and unambiguous: leave the OS open until the build is
-    // finished. "Whoever enters with my link, let him enter... don't put any boundaries that will
-    // force you to wait for me to give you access." Pre-launch: 0 customers, 0 transactions.
+    // ---- BUILD MODE, REMOVED (kernel K0, 17 Aug 2026) --------------------------------------
+    // This function used to fall back to a named open-door identity, 'build-mode@quotesdone.local',
+    // whenever no bearer token resolved and public.fn_os_open_access() was true. The founder's
+    // instruction of 15 Aug ("leave the OS open until the build is finished") is superseded by his
+    // instruction of 17 Aug: remove the build-mode founder fallback from production.
     //
-    // It is a SWITCH, not a deletion - public.fn_os_open_access() reads the newest row of
-    // os_open_access_log, and "activate the credentials" is one INSERT rather than a code change
-    // made under pressure on the day it matters most. Absent any row it is CLOSED, so a fresh
-    // database is never accidentally open.
+    // The independent re-acceptance audit measured what it cost. A POST with NO HEADERS AT ALL
+    // returned HTTP 200 and {"user":"build-mode@quotesdone.local"} with the founder's command
+    // counts in the body, because that identity was also an ACTIVE row in phase_c_founder_identity
+    // - so every routine that asks "is this the registered founder?" answered yes for the open door.
     //
-    // The identity it presents is NAMED. It does not borrow his email. An open door that signs the
-    // log with the owner's name would make every audit row a lie, which is the defect a migration
-    // had to remove this morning.
-    let viaBuildMode = false;
-    const BUILD_IDENTITY = 'build-mode@quotesdone.local';
-    const openAccess = async () => {
-      try { const { data } = await admin.rpc('fn_os_open_access'); return data === true; }
-      catch (_e) { return false; }   // a gate that cannot be read is CLOSED
-    };
+    // Closed in two independent layers, deliberately, so re-opening either one alone does nothing:
+    //   * this branch is gone - no identity is invented here, ever;
+    //   * scripts/sql/kernel_k0_founder_authentication.sql sets that identity row inactive, writes
+    //     the closing row into os_open_access_log, and adds a trigger refusing any non-email
+    //     identity from being active again.
+    // fn_os_open_access() still exists and is still readable; nothing in the authentication path
+    // consults it.
     // Hoisted out of the else block below. It used to be read from `u` further down, in
     // control_mode_open, where `u` is out of scope - a ReferenceError caught by the outer try/catch
     // and returned as an opaque 500, which meant Control Mode could never actually be opened through
@@ -177,31 +176,14 @@ Deno.serve(async (req) => {
     if (osKey && osKey === (await sec('os_bypass_key'))) { email = 'os_bypass_key (no human identity)'; viaBypass = true; }
     else {
       const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-      if (token) {
-        const { data: u, error: uerr } = await admin.auth.getUser(token);
-        email = u?.user?.email || '';
-        userId = (u?.user?.id as string) || null;
-        if (uerr || !email) { if (!(await openAccess())) return J({ error: 'unauthorized' }, 401); }
-        if (email && !(await isAdmin(email))) {
-          if (!(await openAccess())) return J({ error: 'forbidden' }, 403);
-        }
-      }
-      // No usable identity. In build mode that is allowed and named; otherwise it is a 401.
-      if (!email) {
-        if (!(await openAccess())) return J({ error: 'unauthorized' }, 401);
-        email = BUILD_IDENTITY; viaBuildMode = true;
-      }
-    }
-    // Every request through the open door is on the record, read or write. An open door with no
-    // camera is the only version of this that is careless, and the audit row costs nothing.
-    if (viaBuildMode) {
-      try {
-        await admin.from('os_audit_log').insert({
-          actor: BUILD_IDENTITY, action: (await req.clone().json().catch(() => ({} as any)))?.action || 'unknown',
-          detail: { build_mode: true, ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
-                    ua: (req.headers.get('user-agent') || '').slice(0, 200) },
-        });
-      } catch (_e) { /* the record must never break the request */ }
+      // No token is 401, not a fallback. An invalid token is 401. A valid token belonging to
+      // somebody who is not an admin is 403. There is no fourth branch.
+      if (!token) return J({ error: 'unauthorized', hint: 'sign in — the Command Center requires a bearer token' }, 401);
+      const { data: u, error: uerr } = await admin.auth.getUser(token);
+      email = u?.user?.email || '';
+      userId = (u?.user?.id as string) || null;
+      if (uerr || !email) return J({ error: 'unauthorized' }, 401);
+      if (!(await isAdmin(email))) return J({ error: 'forbidden' }, 403);
     }
 
     const body = await req.json().catch(() => ({} as any));
@@ -502,8 +484,10 @@ Deno.serve(async (req) => {
     if (action === 'founder_command_clarify') {
       const answer = String(body?.answer ?? body?.text ?? '').trim();
       if (!answer) return J({ error: 'answer_required', hint: 'Say what you want and it will route.' }, 400);
+      // The actor travels with the call. Until kernel K0 these two routines took no identity at
+      // all, so the founder_gated class was justified by a check that never ran.
       const { data, error } = await admin.rpc('fn_founder_command_clarify', {
-        p_command_id: Number(body?.command_id || 0), p_answer: answer,
+        p_command_id: Number(body?.command_id || 0), p_answer: answer, p_actor: email,
       });
       if (error) return J({ error: error.message }, 500);
       // deno-lint-ignore no-explicit-any
@@ -521,6 +505,7 @@ Deno.serve(async (req) => {
         p_command_id: Number(body?.command_id || 0),
         p_op: String(body?.op || ''), p_target: String(body?.target || ''),
         p_value: body?.value != null ? String(body.value) : null,
+        p_actor: email,
       });
       if (error) return J({ error: error.message }, 500);
       // deno-lint-ignore no-explicit-any
