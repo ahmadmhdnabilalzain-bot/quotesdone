@@ -1,0 +1,541 @@
+canonical_role_id,relationship,workflow_id,step_id,step_name
+ceo,STEP_ACCOUNTABLE,W01,W01-S06,Approve operating objective set
+ceo,STEP_ACCOUNTABLE,W02,W02-S06,Approve corrective initiative
+ceo,STEP_ACCOUNTABLE,W02,W02-S09,"Close, continue or revise recovery"
+ceo,STEP_CONTRIBUTOR,W01,W01-S02,Develop strategic options
+ceo,STEP_CONTRIBUTOR,W01,W01-S05,Define department mandates
+ceo,STEP_CONTRIBUTOR,W01,W01-S08,Confirm objective cycle closure
+ceo,STEP_CONTRIBUTOR,W30,W30-S10,Approve formal organizational change request
+ceo,STEP_REVIEWER,W21,W21-S05,Approve engagement path
+ceo,STEP_REVIEWER,W28,W28-S07,Issue review decision
+chief_of_staff,STEP_ACCOUNTABLE,W01,W01-S01,Capture founder mandate
+chief_of_staff,STEP_ACCOUNTABLE,W01,W01-S05,Define department mandates
+chief_of_staff,STEP_ACCOUNTABLE,W01,W01-S07,Issue accountable work
+chief_of_staff,STEP_ACCOUNTABLE,W02,W02-S07,Assign corrective work
+chief_of_staff,STEP_CONTRIBUTOR,W01,W01-S06,Approve operating objective set
+chief_of_staff,STEP_CONTRIBUTOR,W01,W01-S08,Confirm objective cycle closure
+chief_of_staff,STEP_CONTRIBUTOR,W02,W02-S03,Identify the binding constraint
+chief_of_staff,STEP_CONTRIBUTOR,W02,W02-S09,"Close, continue or revise recovery"
+chief_of_staff,STEP_CONTRIBUTOR,W25,W25-S07,Publish and capture decision usage
+chief_of_staff,STEP_CONTRIBUTOR,W30,W30-S08,Assess structural cause
+corporate_performance_director,STEP_ACCOUNTABLE,W01,W01-S03,Translate target into KPI tree
+corporate_performance_director,STEP_ACCOUNTABLE,W01,W01-S08,Confirm objective cycle closure
+corporate_performance_director,STEP_ACCOUNTABLE,W02,W02-S01,Detect material trajectory miss
+corporate_performance_director,STEP_ACCOUNTABLE,W02,W02-S03,Identify the binding constraint
+corporate_performance_director,STEP_ACCOUNTABLE,W02,W02-S08,Measure intervention outcome
+corporate_performance_director,STEP_CONTRIBUTOR,W01,W01-S05,Define department mandates
+corporate_performance_director,STEP_CONTRIBUTOR,W01,W01-S06,Approve operating objective set
+corporate_performance_director,STEP_CONTRIBUTOR,W02,W02-S06,Approve corrective initiative
+corporate_performance_director,STEP_CONTRIBUTOR,W02,W02-S09,"Close, continue or revise recovery"
+corporate_performance_director,STEP_CONTRIBUTOR,W03,W03-S01,Set acquisition objective
+corporate_performance_director,STEP_CONTRIBUTOR,W18,W18-S07,Measure and close case
+corporate_performance_director,STEP_REVIEWER,W20,W20-S09,Validate learning and close cycle
+corporate_performance_director,STEP_REVIEWER,W25,W25-S06,Review decision relevance and integrity
+strategy_director,STEP_ACCOUNTABLE,W01,W01-S02,Develop strategic options
+strategy_director,STEP_ACCOUNTABLE,W02,W02-S04,Develop recovery scenarios
+strategy_director,STEP_REVIEWER,W02,W02-S06,Approve corrective initiative
+marketplace_director,STEP_ACCOUNTABLE,W11,W11-S04,Prioritize acquisition targets
+marketplace_director,STEP_ACCOUNTABLE,W11,W11-S07,Close or revise coverage case
+marketplace_director,STEP_ACCOUNTABLE,W12,W12-S04,Review policy exception if needed
+marketplace_director,STEP_ACCOUNTABLE,W19,W19-S04,Approve supplier intervention
+marketplace_director,STEP_CONTRIBUTOR,W12,W12-S03,Apply fairness and capacity policy
+marketplace_director,STEP_CONTRIBUTOR,W14,W14-S09,Close quotation collection
+marketplace_director,STEP_CONTRIBUTOR,W19,W19-S03,Diagnose retention cause
+marketplace_director,STEP_CONTRIBUTOR,W22,W22-S01,Define and prioritize the requirement
+marketplace_director,STEP_REVIEWER,W19,W19-S07,Close supplier retention case
+supplier_verification_reviewer,STEP_ACCOUNTABLE,W10,W10-S01,Accept verification case
+supplier_verification_reviewer,STEP_ACCOUNTABLE,W10,W10-S02,Verify legal identity and licence
+supplier_verification_reviewer,STEP_ACCOUNTABLE,W10,W10-S03,Verify capability claims
+supplier_verification_reviewer,STEP_ACCOUNTABLE,W10,W10-S05,Issue verification decision
+supplier_verification_reviewer,STEP_ACCOUNTABLE,W10,W10-S06,Open correction window if applicable
+supplier_verification_reviewer,STEP_ACCOUNTABLE,W10,W10-S08,Close verification case
+supplier_verification_reviewer,STEP_ACCOUNTABLE,W19,W19-S06,Escalate verification or enforcement issue
+supplier_verification_reviewer,STEP_CONTRIBUTOR,W17,W17-S08,Apply trust/supplier/customer enforcement
+rfq_qualification_manager,STEP_ACCOUNTABLE,W05,W05-S01,Open inquiry case
+rfq_qualification_manager,STEP_ACCOUNTABLE,W05,W05-S03,Load minimum qualification requirements
+rfq_qualification_manager,STEP_ACCOUNTABLE,W05,W05-S05,Ask minimum sufficient questions
+rfq_qualification_manager,STEP_ACCOUNTABLE,W05,W05-S07,Decide qualification status
+rfq_qualification_manager,STEP_ACCOUNTABLE,W05,W05-S08,Freeze qualification version
+rfq_qualification_manager,STEP_ACCOUNTABLE,W05,W05-S09,Close or hand off inquiry qualification
+rfq_qualification_manager,STEP_ACCOUNTABLE,W06,W06-S04,Request customer clarification
+rfq_qualification_manager,STEP_ACCOUNTABLE,W06,W06-S06,Resolve multi-category coordination
+rfq_qualification_manager,STEP_ACCOUNTABLE,W08,W08-S01,Create supplier-safe brief candidate
+rfq_qualification_manager,STEP_CONTRIBUTOR,W04,W04-S06,Deliver first-inquiry guidance
+rfq_qualification_manager,STEP_CONTRIBUTOR,W05,W05-S02,Obtain route candidates
+rfq_qualification_manager,STEP_CONTRIBUTOR,W05,W05-S06,Validate consistency and legitimacy
+rfq_qualification_manager,STEP_CONTRIBUTOR,W06,W06-S01,Normalize routing evidence
+rfq_qualification_manager,STEP_CONTRIBUTOR,W06,W06-S03,Evaluate ambiguity and exclusions
+rfq_qualification_manager,STEP_CONTRIBUTOR,W07,W07-S06,Resolve document conflicts
+rfq_qualification_manager,STEP_CONTRIBUTOR,W08,W08-S04,Run content fidelity review
+rfq_qualification_manager,STEP_CONTRIBUTOR,W08,W08-S05,Return corrections when required
+inquiry_router,STEP_ACCOUNTABLE,W05,W05-S02,Obtain route candidates
+inquiry_router,STEP_ACCOUNTABLE,W06,W06-S01,Normalize routing evidence
+inquiry_router,STEP_ACCOUNTABLE,W06,W06-S02,Generate route candidates
+inquiry_router,STEP_ACCOUNTABLE,W06,W06-S03,Evaluate ambiguity and exclusions
+inquiry_router,STEP_ACCOUNTABLE,W06,W06-S05,Confirm route set
+inquiry_router,STEP_ACCOUNTABLE,W06,W06-S07,Publish routing result to inquiry
+inquiry_router,STEP_CONTRIBUTOR,W06,W06-S04,Request customer clarification
+inquiry_quality_scoring_analyst,STEP_ACCOUNTABLE,W05,W05-S06,Validate consistency and legitimacy
+inquiry_quality_scoring_analyst,STEP_REVIEWER,W05,W05-S07,Decide qualification status
+inquiry_quality_scoring_analyst,STEP_REVIEWER,W06,W06-S05,Confirm route set
+quote_evaluation_specialist,STEP_ACCOUNTABLE,W14,W14-S01,Open supplier quote window
+quote_evaluation_specialist,STEP_ACCOUNTABLE,W14,W14-S03,Receive quotation revision
+quote_evaluation_specialist,STEP_ACCOUNTABLE,W14,W14-S04,Validate commercial completeness
+quote_evaluation_specialist,STEP_ACCOUNTABLE,W14,W14-S06,Request supplier clarification if needed
+quote_evaluation_specialist,STEP_ACCOUNTABLE,W14,W14-S07,Normalize comparable fields
+quote_evaluation_specialist,STEP_ACCOUNTABLE,W14,W14-S08,Approve or exclude quote from comparison
+quote_evaluation_specialist,STEP_ACCOUNTABLE,W14,W14-S09,Close quotation collection
+quote_evaluation_specialist,STEP_ACCOUNTABLE,W15,W15-S02,Construct customer comparison
+quote_evaluation_specialist,STEP_CONTRIBUTOR,W14,W14-S05,Validate technical completeness
+quote_evaluation_specialist,STEP_CONTRIBUTOR,W15,W15-S01,Check comparison readiness
+supplier_onboarding_specialist,STEP_ACCOUNTABLE,W09,W09-S01,Open supplier onboarding case
+supplier_onboarding_specialist,STEP_ACCOUNTABLE,W09,W09-S02,Verify supplier contact channels
+supplier_onboarding_specialist,STEP_ACCOUNTABLE,W09,W09-S03,Collect company profile
+supplier_onboarding_specialist,STEP_ACCOUNTABLE,W09,W09-S04,Collect supplier documents
+supplier_onboarding_specialist,STEP_ACCOUNTABLE,W09,W09-S05,Map categories and capabilities
+supplier_onboarding_specialist,STEP_ACCOUNTABLE,W09,W09-S06,Capture canonical supplier terms acceptance
+supplier_onboarding_specialist,STEP_ACCOUNTABLE,W09,W09-S07,Check onboarding completeness
+supplier_onboarding_specialist,STEP_ACCOUNTABLE,W09,W09-S08,Submit independent verification case
+supplier_onboarding_specialist,STEP_ACCOUNTABLE,W09,W09-S09,Close onboarding
+supplier_onboarding_specialist,STEP_ACCOUNTABLE,W10,W10-S07,Notify supplier and internal owners
+supplier_onboarding_specialist,STEP_CONTRIBUTOR,W10,W10-S06,Open correction window if applicable
+supplier_onboarding_specialist,STEP_CONTRIBUTOR,W11,W11-S05,Handoff acquisition target
+supplier_onboarding_specialist,STEP_CONTRIBUTOR,W13,W13-S06,Escalate terminal delivery failure
+supplier_onboarding_specialist,STEP_CONTRIBUTOR,W19,W19-S05,Execute and measure intervention
+document_intelligence_manager,STEP_ACCOUNTABLE,W05,W05-S04,Process provided documents
+document_intelligence_manager,STEP_ACCOUNTABLE,W07,W07-S01,Register document and provenance
+document_intelligence_manager,STEP_ACCOUNTABLE,W07,W07-S02,Classify document type and handling path
+document_intelligence_manager,STEP_ACCOUNTABLE,W07,W07-S03,Validate document usability
+document_intelligence_manager,STEP_ACCOUNTABLE,W07,W07-S06,Resolve document conflicts
+document_intelligence_manager,STEP_ACCOUNTABLE,W07,W07-S07,Return structured evidence to inquiry
+document_intelligence_manager,STEP_ACCOUNTABLE,W07,W07-S08,Close document-processing cycle
+document_intelligence_manager,STEP_ACCOUNTABLE,W08,W08-S02,Prepare supplier-facing files
+document_intelligence_manager,STEP_CONTRIBUTOR,W08,W08-S01,Create supplier-safe brief candidate
+document_intelligence_manager,STEP_CONTRIBUTOR,W08,W08-S05,Return corrections when required
+document_intelligence_manager,STEP_CONTRIBUTOR,W09,W09-S04,Collect supplier documents
+document_intelligence_manager,STEP_CONTRIBUTOR,W10,W10-S02,Verify legal identity and licence
+boq_specification_analyst,STEP_ACCOUNTABLE,W07,W07-S04,Extract BOQ/specification evidence
+boq_specification_analyst,STEP_CONTRIBUTOR,W05,W05-S04,Process provided documents
+drawing_cad_analyst,STEP_ACCOUNTABLE,W07,W07-S05,Extract drawing/CAD evidence
+drawing_cad_analyst,STEP_CONTRIBUTOR,W05,W05-S04,Process provided documents
+drawing_cad_analyst,STEP_CONTRIBUTOR,W08,W08-S02,Prepare supplier-facing files
+mep_domain_specialist,STEP_CONTRIBUTOR,W06,W06-S06,Resolve multi-category coordination
+construction_civil_domain_specialist,STEP_CONTRIBUTOR,W06,W06-S06,Resolve multi-category coordination
+interior_fitout_domain_specialist,STEP_CONTRIBUTOR,W06,W06-S06,Resolve multi-category coordination
+industrial_energy_domain_specialist,STEP_CONTRIBUTOR,W06,W06-S06,Resolve multi-category coordination
+supplier_matching_dispatch_operator,STEP_ACCOUNTABLE,W12,W12-S01,Accept dispatch-ready package
+supplier_matching_dispatch_operator,STEP_ACCOUNTABLE,W12,W12-S02,Build eligible supplier pool
+supplier_matching_dispatch_operator,STEP_ACCOUNTABLE,W12,W12-S03,Apply fairness and capacity policy
+supplier_matching_dispatch_operator,STEP_ACCOUNTABLE,W12,W12-S05,Revalidate immediately before assignment
+supplier_matching_dispatch_operator,STEP_ACCOUNTABLE,W12,W12-S06,Create idempotent supplier assignments
+supplier_matching_dispatch_operator,STEP_ACCOUNTABLE,W12,W12-S07,Create exactly one notification per assignment
+supplier_matching_dispatch_operator,STEP_ACCOUNTABLE,W12,W12-S08,Record selection and exclusion evidence
+supplier_matching_dispatch_operator,STEP_ACCOUNTABLE,W12,W12-S09,Close dispatch batch
+supplier_coverage_liquidity_specialist,STEP_ACCOUNTABLE,W11,W11-S01,Measure inquiry demand
+supplier_coverage_liquidity_specialist,STEP_ACCOUNTABLE,W11,W11-S03,Calculate coverage and liquidity gap
+supplier_coverage_liquidity_specialist,STEP_ACCOUNTABLE,W11,W11-S06,Measure supplier acquisition outcome
+supplier_coverage_liquidity_specialist,STEP_CONTRIBUTOR,W11,W11-S02,Measure usable supplier supply
+supplier_coverage_liquidity_specialist,STEP_CONTRIBUTOR,W11,W11-S04,Prioritize acquisition targets
+supplier_coverage_liquidity_specialist,STEP_CONTRIBUTOR,W12,W12-S03,Apply fairness and capacity policy
+supplier_retention_specialist,STEP_ACCOUNTABLE,W19,W19-S01,Open supplier retention case
+supplier_retention_specialist,STEP_ACCOUNTABLE,W19,W19-S03,Diagnose retention cause
+supplier_retention_specialist,STEP_ACCOUNTABLE,W19,W19-S05,Execute and measure intervention
+supplier_retention_specialist,STEP_ACCOUNTABLE,W19,W19-S07,Close supplier retention case
+supplier_retention_specialist,STEP_CONTRIBUTOR,W19,W19-S02,Analyze supplier behavior and context
+supplier_retention_specialist,STEP_CONTRIBUTOR,W19,W19-S04,Approve supplier intervention
+chief_revenue_officer,STEP_ACCOUNTABLE,W03,W03-S01,Set acquisition objective
+chief_revenue_officer,STEP_ACCOUNTABLE,W03,W03-S09,Optimize or close the campaign
+chief_revenue_officer,STEP_ACCOUNTABLE,W21,W21-S05,Approve engagement path
+chief_revenue_officer,STEP_ACCOUNTABLE,W21,W21-S08,"Close, renew or exit partnership"
+chief_revenue_officer,STEP_CONTRIBUTOR,W11,W11-S04,Prioritize acquisition targets
+chief_revenue_officer,STEP_CONTRIBUTOR,W20,W20-S01,Define content objective and hypothesis
+chief_revenue_officer,STEP_CONTRIBUTOR,W21,W21-S03,Develop partnership structure
+marketing_director,STEP_ACCOUNTABLE,W03,W03-S03,Create campaign plan
+marketing_director,STEP_ACCOUNTABLE,W20,W20-S01,Define content objective and hypothesis
+marketing_director,STEP_ACCOUNTABLE,W20,W20-S09,Validate learning and close cycle
+marketing_director,STEP_CONTRIBUTOR,W03,W03-S09,Optimize or close the campaign
+marketing_director,STEP_CONTRIBUTOR,W20,W20-S04,Review brand and campaign alignment
+marketing_director,STEP_CONTRIBUTOR,W20,W20-S08,Diagnose performance
+brand_creative_manager,STEP_ACCOUNTABLE,W03,W03-S04,Create message and creative brief
+brand_creative_manager,STEP_ACCOUNTABLE,W20,W20-S04,Review brand and campaign alignment
+brand_creative_manager,STEP_CONTRIBUTOR,W03,W03-S03,Create campaign plan
+brand_creative_manager,STEP_CONTRIBUTOR,W03,W03-S06,Review campaign assets
+brand_creative_manager,STEP_CONTRIBUTOR,W20,W20-S02,Develop content strategy and copy
+brand_creative_manager,STEP_CONTRIBUTOR,W20,W20-S03,Create visual assets
+business_development_manager,STEP_ACCOUNTABLE,W11,W11-S05,Handoff acquisition target
+business_development_manager,STEP_ACCOUNTABLE,W21,W21-S02,Qualify strategic fit
+business_development_manager,STEP_CONTRIBUTOR,W03,W03-S03,Create campaign plan
+crm_revenue_operations_manager,STEP_CONTRIBUTOR,W03,W03-S01,Set acquisition objective
+crm_revenue_operations_manager,STEP_CONTRIBUTOR,W03,W03-S02,Develop audience and market evidence
+crm_revenue_operations_manager,STEP_CONTRIBUTOR,W03,W03-S07,Publish and capture lead events
+crm_revenue_operations_manager,STEP_CONTRIBUTOR,W03,W03-S08,Measure performance and attribution
+crm_revenue_operations_manager,STEP_CONTRIBUTOR,W11,W11-S06,Measure supplier acquisition outcome
+crm_revenue_operations_manager,STEP_CONTRIBUTOR,W20,W20-S07,Collect performance evidence
+crm_revenue_operations_manager,STEP_CONTRIBUTOR,W21,W21-S07,Measure partnership outcome
+marketing_performance_analyst,STEP_ACCOUNTABLE,W03,W03-S02,Develop audience and market evidence
+marketing_performance_analyst,STEP_ACCOUNTABLE,W03,W03-S08,Measure performance and attribution
+marketing_performance_analyst,STEP_ACCOUNTABLE,W20,W20-S07,Collect performance evidence
+marketing_performance_analyst,STEP_ACCOUNTABLE,W20,W20-S08,Diagnose performance
+marketing_performance_analyst,STEP_CONTRIBUTOR,W03,W03-S09,Optimize or close the campaign
+marketing_performance_analyst,STEP_CONTRIBUTOR,W20,W20-S01,Define content objective and hypothesis
+social_media_community_manager,STEP_ACCOUNTABLE,W03,W03-S07,Publish and capture lead events
+social_media_community_manager,STEP_ACCOUNTABLE,W20,W20-S06,Publish approved content
+social_media_community_manager,STEP_CONTRIBUTOR,W03,W03-S03,Create campaign plan
+social_media_community_manager,STEP_CONTRIBUTOR,W03,W03-S05,Produce campaign assets
+social_media_community_manager,STEP_CONTRIBUTOR,W20,W20-S02,Develop content strategy and copy
+account_manager,STEP_ACCOUNTABLE,W21,W21-S07,Measure partnership outcome
+account_manager,STEP_CONTRIBUTOR,W21,W21-S02,Qualify strategic fit
+account_manager,STEP_CONTRIBUTOR,W21,W21-S03,Develop partnership structure
+account_manager,STEP_CONTRIBUTOR,W21,W21-S06,Negotiate and execute approved engagement
+content_strategy_copy_specialist,STEP_ACCOUNTABLE,W03,W03-S05,Produce campaign assets
+content_strategy_copy_specialist,STEP_ACCOUNTABLE,W20,W20-S02,Develop content strategy and copy
+content_strategy_copy_specialist,STEP_CONTRIBUTOR,W03,W03-S04,Create message and creative brief
+content_strategy_copy_specialist,STEP_CONTRIBUTOR,W20,W20-S08,Diagnose performance
+visual_design_specialist,STEP_ACCOUNTABLE,W20,W20-S03,Create visual assets
+visual_design_specialist,STEP_CONTRIBUTOR,W03,W03-S04,Create message and creative brief
+visual_design_specialist,STEP_CONTRIBUTOR,W03,W03-S05,Produce campaign assets
+strategic_partnerships_government_relations_manager,STEP_ACCOUNTABLE,W21,W21-S01,Open partnership opportunity
+strategic_partnerships_government_relations_manager,STEP_ACCOUNTABLE,W21,W21-S03,Develop partnership structure
+strategic_partnerships_government_relations_manager,STEP_ACCOUNTABLE,W21,W21-S06,Negotiate and execute approved engagement
+strategic_partnerships_government_relations_manager,STEP_CONTRIBUTOR,W11,W11-S05,Handoff acquisition target
+strategic_partnerships_government_relations_manager,STEP_CONTRIBUTOR,W21,W21-S08,"Close, renew or exit partnership"
+data_intelligence_director,STEP_ACCOUNTABLE,W02,W02-S02,Validate the measurement
+data_intelligence_director,STEP_ACCOUNTABLE,W25,W25-S01,Open intelligence request or cadence
+data_intelligence_director,STEP_ACCOUNTABLE,W25,W25-S02,Define metrics and source contract
+data_intelligence_director,STEP_ACCOUNTABLE,W25,W25-S06,Review decision relevance and integrity
+data_intelligence_director,STEP_ACCOUNTABLE,W25,W25-S07,Publish and capture decision usage
+data_intelligence_director,STEP_ACCOUNTABLE,W25,W25-S08,Close or schedule refresh
+data_intelligence_director,STEP_CONTRIBUTOR,W01,W01-S03,Translate target into KPI tree
+data_intelligence_director,STEP_CONTRIBUTOR,W02,W02-S08,Measure intervention outcome
+knowledge_validator,STEP_ACCOUNTABLE,W26,W26-S06,Independently validate knowledge
+knowledge_validator,STEP_CONTRIBUTOR,W26,W26-S08,Set review and expiry conditions
+knowledge_director,STEP_ACCOUNTABLE,W26,W26-S01,Open knowledge gap or change
+knowledge_director,STEP_ACCOUNTABLE,W26,W26-S02,Define source and evidence plan
+knowledge_director,STEP_ACCOUNTABLE,W26,W26-S07,Publish approved knowledge version
+knowledge_director,STEP_ACCOUNTABLE,W26,W26-S08,Set review and expiry conditions
+knowledge_director,STEP_ACCOUNTABLE,W26,W26-S09,Close knowledge-change cycle
+knowledge_director,STEP_CONTRIBUTOR,W30,W30-S04,Create remediation plan
+knowledge_engineer,STEP_ACCOUNTABLE,W26,W26-S03,Collect and register sources
+knowledge_engineer,STEP_ACCOUNTABLE,W26,W26-S04,Create or update knowledge
+knowledge_engineer,STEP_CONTRIBUTOR,W23,W23-S03,Design AI architecture change
+knowledge_engineer,STEP_CONTRIBUTOR,W26,W26-S02,Define source and evidence plan
+category_knowledge_curator,STEP_CONTRIBUTOR,W09,W09-S05,Map categories and capabilities
+category_knowledge_curator,STEP_CONTRIBUTOR,W26,W26-S01,Open knowledge gap or change
+category_knowledge_curator,STEP_CONTRIBUTOR,W26,W26-S03,Collect and register sources
+category_knowledge_curator,STEP_CONTRIBUTOR,W26,W26-S04,Create or update knowledge
+category_knowledge_curator,STEP_CONTRIBUTOR,W26,W26-S05,Review taxonomy and category fit
+business_intelligence_analyst,STEP_ACCOUNTABLE,W25,W25-S04,Construct analysis and report
+business_intelligence_analyst,STEP_CONTRIBUTOR,W02,W02-S01,Detect material trajectory miss
+business_intelligence_analyst,STEP_CONTRIBUTOR,W02,W02-S02,Validate the measurement
+business_intelligence_analyst,STEP_CONTRIBUTOR,W03,W03-S08,Measure performance and attribution
+business_intelligence_analyst,STEP_CONTRIBUTOR,W11,W11-S01,Measure inquiry demand
+business_intelligence_analyst,STEP_CONTRIBUTOR,W18,W18-S04,Diagnose churn or dissatisfaction
+business_intelligence_analyst,STEP_CONTRIBUTOR,W20,W20-S07,Collect performance evidence
+business_intelligence_analyst,STEP_CONTRIBUTOR,W21,W21-S07,Measure partnership outcome
+business_intelligence_analyst,STEP_CONTRIBUTOR,W25,W25-S02,Define metrics and source contract
+data_engineer,STEP_ACCOUNTABLE,W25,W25-S03,Validate and prepare data
+data_engineer,STEP_CONTRIBUTOR,W02,W02-S02,Validate the measurement
+data_engineer,STEP_CONTRIBUTOR,W25,W25-S02,Define metrics and source contract
+data_engineer,STEP_CONTRIBUTOR,W29,W29-S04,Conduct security investigation
+forecasting_analyst,STEP_ACCOUNTABLE,W25,W25-S05,Construct forecast and uncertainty
+forecasting_analyst,STEP_CONTRIBUTOR,W01,W01-S02,Develop strategic options
+forecasting_analyst,STEP_CONTRIBUTOR,W02,W02-S01,Detect material trajectory miss
+forecasting_analyst,STEP_CONTRIBUTOR,W02,W02-S04,Develop recovery scenarios
+forecasting_analyst,STEP_CONTRIBUTOR,W27,W27-S08,Prepare forecast and variance
+market_intelligence_analyst,STEP_CONTRIBUTOR,W01,W01-S02,Develop strategic options
+market_intelligence_analyst,STEP_CONTRIBUTOR,W03,W03-S02,Develop audience and market evidence
+market_intelligence_analyst,STEP_CONTRIBUTOR,W21,W21-S02,Qualify strategic fit
+market_intelligence_analyst,STEP_CONTRIBUTOR,W25,W25-S04,Construct analysis and report
+market_intelligence_analyst,STEP_CONTRIBUTOR,W26,W26-S03,Collect and register sources
+supplier_intelligence_analyst,STEP_ACCOUNTABLE,W11,W11-S02,Measure usable supplier supply
+supplier_intelligence_analyst,STEP_ACCOUNTABLE,W19,W19-S02,Analyze supplier behavior and context
+supplier_intelligence_analyst,STEP_CONTRIBUTOR,W10,W10-S03,Verify capability claims
+supplier_intelligence_analyst,STEP_CONTRIBUTOR,W11,W11-S06,Measure supplier acquisition outcome
+supplier_intelligence_analyst,STEP_CONTRIBUTOR,W12,W12-S02,Build eligible supplier pool
+supplier_intelligence_analyst,STEP_CONTRIBUTOR,W17,W17-S04,Conduct fraud review when triggered
+supplier_intelligence_analyst,STEP_CONTRIBUTOR,W25,W25-S04,Construct analysis and report
+taxonomy_governance_manager,STEP_ACCOUNTABLE,W26,W26-S05,Review taxonomy and category fit
+taxonomy_governance_manager,STEP_CONTRIBUTOR,W09,W09-S05,Map categories and capabilities
+taxonomy_governance_manager,STEP_CONTRIBUTOR,W26,W26-S02,Define source and evidence plan
+taxonomy_governance_manager,STEP_CONTRIBUTOR,W26,W26-S04,Create or update knowledge
+chief_product_technology_officer,STEP_CONTRIBUTOR,W22,W22-S01,Define and prioritize the requirement
+product_manager,STEP_ACCOUNTABLE,W22,W22-S01,Define and prioritize the requirement
+product_manager,STEP_CONTRIBUTOR,W22,W22-S02,Own experience design and UX acceptance criteria
+product_manager,STEP_CONTRIBUTOR,W22,W22-S03,Own implementation delivery
+product_manager,STEP_CONTRIBUTOR,W22,W22-S06,Verify behavior against acceptance criteria
+product_manager,STEP_CONTRIBUTOR,W23,W23-S02,Define behavioral and cost acceptance
+product_ux_designer,STEP_ACCOUNTABLE,W22,W22-S02,Own experience design and UX acceptance criteria
+product_ux_designer,STEP_CONTRIBUTOR,W22,W22-S05,Implement frontend
+product_ux_designer,STEP_CONTRIBUTOR,W22,W22-S06,Verify behavior against acceptance criteria
+product_optimisation_engineer,STEP_ACCOUNTABLE,W23,W23-S05,Run internal regression and cost analysis
+product_optimisation_engineer,STEP_CONTRIBUTOR,W23,W23-S02,Define behavioral and cost acceptance
+ai_director,STEP_ACCOUNTABLE,W23,W23-S01,Open AI change request
+ai_director,STEP_ACCOUNTABLE,W23,W23-S02,Define behavioral and cost acceptance
+ai_director,STEP_ACCOUNTABLE,W23,W23-S08,Approve release-candidate handoff
+ai_director,STEP_ACCOUNTABLE,W23,W23-S09,Close AI change cycle
+ai_architect,STEP_ACCOUNTABLE,W23,W23-S03,Design AI architecture change
+ai_architect,STEP_CONTRIBUTOR,W23,W23-S04,Implement prompt/agent/retrieval change
+agent_prompt_engineer,STEP_ACCOUNTABLE,W23,W23-S04,Implement prompt/agent/retrieval change
+solution_architect,STEP_CONTRIBUTOR,W22,W22-S03,Own implementation delivery
+solution_architect,STEP_CONTRIBUTOR,W22,W22-S04,Implement backend
+solution_architect,STEP_CONTRIBUTOR,W23,W23-S03,Design AI architecture change
+engineering_manager,STEP_ACCOUNTABLE,W22,W22-S03,Own implementation delivery
+engineering_manager,STEP_ACCOUNTABLE,W29,W29-S08,Conduct root-cause analysis
+engineering_manager,STEP_CONTRIBUTOR,W22,W22-S04,Implement backend
+engineering_manager,STEP_CONTRIBUTOR,W22,W22-S05,Implement frontend
+engineering_manager,STEP_CONTRIBUTOR,W24,W24-S02,Verify build and deterministic tests
+engineering_manager,STEP_CONTRIBUTOR,W24,W24-S05,Verify rollback and operational readiness
+engineering_manager,STEP_CONTRIBUTOR,W24,W24-S07,Execute approved deployment
+engineering_manager,STEP_CONTRIBUTOR,W29,W29-S05,Restore service safely
+engineering_manager,STEP_CONTRIBUTOR,W29,W29-S09,Assign corrective actions
+backend_engineer,STEP_ACCOUNTABLE,W22,W22-S04,Implement backend
+backend_engineer,STEP_CONTRIBUTOR,W23,W23-S04,Implement prompt/agent/retrieval change
+backend_engineer,STEP_CONTRIBUTOR,W29,W29-S03,Contain immediate impact
+backend_engineer,STEP_CONTRIBUTOR,W29,W29-S04,Conduct security investigation
+frontend_engineer,STEP_ACCOUNTABLE,W22,W22-S05,Implement frontend
+frontend_engineer,STEP_CONTRIBUTOR,W22,W22-S02,Own experience design and UX acceptance criteria
+frontend_engineer,STEP_CONTRIBUTOR,W29,W29-S03,Contain immediate impact
+cfo,STEP_ACCOUNTABLE,W01,W01-S04,Set financial resource envelope
+cfo,STEP_ACCOUNTABLE,W02,W02-S05,Assess affordability and resource trade-offs
+cfo,STEP_ACCOUNTABLE,W27,W27-S01,Open planning/close cycle
+cfo,STEP_ACCOUNTABLE,W27,W27-S09,Review and approve financial report
+cfo,STEP_ACCOUNTABLE,W27,W27-S10,Close financial cycle
+cfo,STEP_CONTRIBUTOR,W01,W01-S03,Translate target into KPI tree
+cfo,STEP_CONTRIBUTOR,W01,W01-S06,Approve operating objective set
+cfo,STEP_CONTRIBUTOR,W02,W02-S06,Approve corrective initiative
+cfo,STEP_CONTRIBUTOR,W21,W21-S05,Approve engagement path
+financial_controller,STEP_ACCOUNTABLE,W16,W16-S07,Quarantine discrepancy
+financial_controller,STEP_ACCOUNTABLE,W27,W27-S02,Collect and classify financial evidence
+financial_controller,STEP_ACCOUNTABLE,W27,W27-S06,Apply accounting close and controls
+financial_controller,STEP_ACCOUNTABLE,W27,W27-S07,Coordinate UAE tax compliance
+financial_controller,STEP_CONTRIBUTOR,W16,W16-S05,Create invoice or receipt evidence
+financial_controller,STEP_CONTRIBUTOR,W27,W27-S01,Open planning/close cycle
+financial_controller,STEP_CONTRIBUTOR,W27,W27-S03,"Reconcile cash, payments and billing"
+financial_controller,STEP_CONTRIBUTOR,W27,W27-S04,Validate payables and accruals
+financial_controller,STEP_CONTRIBUTOR,W27,W27-S05,Validate revenue and collections
+financial_controller,STEP_REVIEWER,W16,W16-S06,Independently reconcile payment
+payments_billing_manager,STEP_ACCOUNTABLE,W15,W15-S06,Calculate founder-approved reveal charge
+payments_billing_manager,STEP_ACCOUNTABLE,W15,W15-S07,Complete reveal payment handoff
+payments_billing_manager,STEP_ACCOUNTABLE,W16,W16-S01,Create payment request
+payments_billing_manager,STEP_ACCOUNTABLE,W16,W16-S02,Present payment to customer
+payments_billing_manager,STEP_ACCOUNTABLE,W16,W16-S03,Receive provider event
+payments_billing_manager,STEP_ACCOUNTABLE,W16,W16-S04,Apply payment state transition
+payments_billing_manager,STEP_ACCOUNTABLE,W16,W16-S09,Close payment cycle
+payments_billing_manager,STEP_ACCOUNTABLE,W17,W17-S07,Execute approved financial action
+payments_billing_manager,STEP_CONTRIBUTOR,W17,W17-S02,Triage jurisdiction and authority
+payments_billing_manager,STEP_CONTRIBUTOR,W17,W17-S06,Decide case outcome
+payments_billing_manager,STEP_CONTRIBUTOR,W18,W18-S03,Escalate workflow-specific issue
+payments_billing_manager,STEP_CONTRIBUTOR,W27,W27-S02,Collect and classify financial evidence
+billing_reconciliation_specialist,STEP_ACCOUNTABLE,W16,W16-S05,Create invoice or receipt evidence
+billing_reconciliation_specialist,STEP_ACCOUNTABLE,W16,W16-S06,Independently reconcile payment
+billing_reconciliation_specialist,STEP_ACCOUNTABLE,W16,W16-S08,Confirm payment result to reveal workflow
+billing_reconciliation_specialist,STEP_ACCOUNTABLE,W17,W17-S09,Reconcile and notify
+billing_reconciliation_specialist,STEP_ACCOUNTABLE,W27,W27-S03,"Reconcile cash, payments and billing"
+billing_reconciliation_specialist,STEP_CONTRIBUTOR,W15,W15-S06,Calculate founder-approved reveal charge
+billing_reconciliation_specialist,STEP_CONTRIBUTOR,W17,W17-S03,Collect transaction and communication evidence
+billing_reconciliation_specialist,STEP_REVIEWER,W17,W17-S07,Execute approved financial action
+accounts_payable_specialist,STEP_ACCOUNTABLE,W27,W27-S04,Validate payables and accruals
+accounts_payable_specialist,STEP_CONTRIBUTOR,W27,W27-S02,Collect and classify financial evidence
+collections_revenue_assurance_specialist,STEP_ACCOUNTABLE,W27,W27-S05,Validate revenue and collections
+collections_revenue_assurance_specialist,STEP_CONTRIBUTOR,W27,W27-S02,Collect and classify financial evidence
+fp_a_analyst,STEP_ACCOUNTABLE,W27,W27-S08,Prepare forecast and variance
+fp_a_analyst,STEP_CONTRIBUTOR,W01,W01-S04,Set financial resource envelope
+fp_a_analyst,STEP_CONTRIBUTOR,W02,W02-S04,Develop recovery scenarios
+fp_a_analyst,STEP_CONTRIBUTOR,W02,W02-S05,Assess affordability and resource trade-offs
+general_counsel,STEP_ACCOUNTABLE,W17,W17-S05,Conduct legal/compliance review when triggered
+general_counsel,STEP_ACCOUNTABLE,W21,W21-S04,Conduct due diligence and legal review
+general_counsel,STEP_ACCOUNTABLE,W28,W28-S01,Open legal/compliance/risk review
+general_counsel,STEP_ACCOUNTABLE,W28,W28-S03,Assess legal position
+general_counsel,STEP_ACCOUNTABLE,W28,W28-S07,Issue review decision
+general_counsel,STEP_ACCOUNTABLE,W28,W28-S09,Close legal-risk case
+general_counsel,STEP_CONTRIBUTOR,W17,W17-S02,Triage jurisdiction and authority
+general_counsel,STEP_CONTRIBUTOR,W17,W17-S06,Decide case outcome
+general_counsel,STEP_CONTRIBUTOR,W17,W17-S10,Handle appeal or escalation
+general_counsel,STEP_CONTRIBUTOR,W21,W21-S05,Approve engagement path
+general_counsel,STEP_CONTRIBUTOR,W27,W27-S07,Coordinate UAE tax compliance
+general_counsel,STEP_CONTRIBUTOR,W28,W28-S06,Develop contract/control response
+general_counsel,STEP_CONTRIBUTOR,W29,W29-S07,Communicate incident status
+compliance_privacy_officer,STEP_ACCOUNTABLE,W15,W15-S03,Review customer visibility and privacy
+compliance_privacy_officer,STEP_ACCOUNTABLE,W28,W28-S04,Assess compliance and privacy
+compliance_privacy_officer,STEP_CONTRIBUTOR,W03,W03-S06,Review campaign assets
+compliance_privacy_officer,STEP_CONTRIBUTOR,W08,W08-S03,Run privacy and identity review
+compliance_privacy_officer,STEP_CONTRIBUTOR,W13,W13-S02,Apply consent and suppression rules
+compliance_privacy_officer,STEP_CONTRIBUTOR,W17,W17-S05,Conduct legal/compliance review when triggered
+compliance_privacy_officer,STEP_CONTRIBUTOR,W20,W20-S05,Independently review final artifact
+compliance_privacy_officer,STEP_CONTRIBUTOR,W21,W21-S04,Conduct due diligence and legal review
+compliance_privacy_officer,STEP_CONTRIBUTOR,W24,W24-S03,Verify security and privacy
+compliance_privacy_officer,STEP_CONTRIBUTOR,W27,W27-S07,Coordinate UAE tax compliance
+compliance_privacy_officer,STEP_REVIEWER,W04,W04-S04,Capture canonical terms acceptance
+compliance_privacy_officer,STEP_REVIEWER,W08,W08-S06,Approve immutable supplier-safe package
+compliance_privacy_officer,STEP_REVIEWER,W09,W09-S06,Capture canonical supplier terms acceptance
+risk_governance_manager,STEP_ACCOUNTABLE,W17,W17-S10,Handle appeal or escalation
+risk_governance_manager,STEP_ACCOUNTABLE,W28,W28-S05,Assess risk and control adequacy
+risk_governance_manager,STEP_ACCOUNTABLE,W28,W28-S08,Monitor obligations and controls
+risk_governance_manager,STEP_CONTRIBUTOR,W10,W10-S04,Perform fraud/risk challenge where triggered
+risk_governance_manager,STEP_CONTRIBUTOR,W16,W16-S07,Quarantine discrepancy
+risk_governance_manager,STEP_CONTRIBUTOR,W21,W21-S04,Conduct due diligence and legal review
+risk_governance_manager,STEP_CONTRIBUTOR,W28,W28-S06,Develop contract/control response
+risk_governance_manager,STEP_REVIEWER,W10,W10-S05,Issue verification decision
+risk_governance_manager,STEP_REVIEWER,W16,W16-S09,Close payment cycle
+risk_governance_manager,STEP_REVIEWER,W17,W17-S06,Decide case outcome
+risk_governance_manager,STEP_REVIEWER,W24,W24-S06,Issue release go/no-go
+risk_governance_manager,STEP_REVIEWER,W27,W27-S09,Review and approve financial report
+risk_governance_manager,STEP_REVIEWER,W29,W29-S10,Close incident
+risk_governance_manager,STEP_REVIEWER,W30,W30-S03,Apply temporary restriction when required
+risk_governance_manager,STEP_REVIEWER,W30,W30-S07,"Restore, continue restriction or reassign"
+fraud_reviewer,STEP_ACCOUNTABLE,W10,W10-S04,Perform fraud/risk challenge where triggered
+fraud_reviewer,STEP_ACCOUNTABLE,W17,W17-S04,Conduct fraud review when triggered
+fraud_reviewer,STEP_CONTRIBUTOR,W05,W05-S06,Validate consistency and legitimacy
+fraud_reviewer,STEP_CONTRIBUTOR,W17,W17-S06,Decide case outcome
+marketplace_content_privacy_reviewer,STEP_ACCOUNTABLE,W08,W08-S03,Run privacy and identity review
+marketplace_content_privacy_reviewer,STEP_ACCOUNTABLE,W08,W08-S04,Run content fidelity review
+marketplace_content_privacy_reviewer,STEP_ACCOUNTABLE,W08,W08-S05,Return corrections when required
+marketplace_content_privacy_reviewer,STEP_ACCOUNTABLE,W08,W08-S06,Approve immutable supplier-safe package
+marketplace_content_privacy_reviewer,STEP_ACCOUNTABLE,W08,W08-S07,Publish safe-package eligibility
+marketplace_content_privacy_reviewer,STEP_ACCOUNTABLE,W08,W08-S08,Close supplier-safe review
+marketplace_content_privacy_reviewer,STEP_CONTRIBUTOR,W20,W20-S05,Independently review final artifact
+marketplace_content_privacy_reviewer,STEP_REVIEWER,W12,W12-S09,Close dispatch batch
+trust_safety_manager,STEP_ACCOUNTABLE,W17,W17-S01,Open refund/dispute/fraud case
+trust_safety_manager,STEP_ACCOUNTABLE,W17,W17-S02,Triage jurisdiction and authority
+trust_safety_manager,STEP_ACCOUNTABLE,W17,W17-S06,Decide case outcome
+trust_safety_manager,STEP_ACCOUNTABLE,W17,W17-S08,Apply trust/supplier/customer enforcement
+trust_safety_manager,STEP_ACCOUNTABLE,W17,W17-S11,Close case
+trust_safety_manager,STEP_CONTRIBUTOR,W17,W17-S10,Handle appeal or escalation
+trust_safety_manager,STEP_CONTRIBUTOR,W18,W18-S03,Escalate workflow-specific issue
+trust_safety_manager,STEP_CONTRIBUTOR,W19,W19-S06,Escalate verification or enforcement issue
+contract_manager,STEP_ACCOUNTABLE,W28,W28-S02,Gather facts and source documents
+contract_manager,STEP_ACCOUNTABLE,W28,W28-S06,Develop contract/control response
+contract_manager,STEP_CONTRIBUTOR,W17,W17-S05,Conduct legal/compliance review when triggered
+contract_manager,STEP_CONTRIBUTOR,W21,W21-S04,Conduct due diligence and legal review
+contract_manager,STEP_CONTRIBUTOR,W21,W21-S06,Negotiate and execute approved engagement
+contract_manager,STEP_CONTRIBUTOR,W28,W28-S03,Assess legal position
+contract_manager,STEP_CONTRIBUTOR,W28,W28-S08,Monitor obligations and controls
+customer_success_director,STEP_ACCOUNTABLE,W18,W18-S05,Approve retention intervention
+customer_success_director,STEP_ACCOUNTABLE,W18,W18-S07,Measure and close case
+customer_success_director,STEP_CONTRIBUTOR,W15,W15-S05,Capture customer selection
+customer_success_director,STEP_CONTRIBUTOR,W15,W15-S08,Reveal permitted contact relationship
+customer_success_director,STEP_CONTRIBUTOR,W17,W17-S08,Apply trust/supplier/customer enforcement
+customer_success_director,STEP_CONTRIBUTOR,W18,W18-S04,Diagnose churn or dissatisfaction
+customer_success_director,STEP_CONTRIBUTOR,W22,W22-S01,Define and prioritize the requirement
+customer_success_director,STEP_CONTRIBUTOR,W29,W29-S07,Communicate incident status
+customer_success_director,STEP_REVIEWER,W04,W04-S07,Close onboarding
+communications_manager,STEP_ACCOUNTABLE,W13,W13-S03,Select permitted channel and template
+communications_manager,STEP_ACCOUNTABLE,W13,W13-S06,Escalate terminal delivery failure
+communications_manager,STEP_ACCOUNTABLE,W29,W29-S07,Communicate incident status
+communications_manager,STEP_CONTRIBUTOR,W04,W04-S06,Deliver first-inquiry guidance
+communications_manager,STEP_CONTRIBUTOR,W10,W10-S06,Open correction window if applicable
+communications_manager,STEP_CONTRIBUTOR,W15,W15-S08,Reveal permitted contact relationship
+communications_manager,STEP_CONTRIBUTOR,W17,W17-S09,Reconcile and notify
+communications_manager,STEP_CONTRIBUTOR,W18,W18-S02,Resolve normal support request
+communications_manager,STEP_CONTRIBUTOR,W19,W19-S03,Diagnose retention cause
+customer_onboarding_specialist,STEP_ACCOUNTABLE,W04,W04-S01,Start customer registration
+customer_onboarding_specialist,STEP_ACCOUNTABLE,W04,W04-S02,Verify customer identity channel
+customer_onboarding_specialist,STEP_ACCOUNTABLE,W04,W04-S03,Capture customer profile
+customer_onboarding_specialist,STEP_ACCOUNTABLE,W04,W04-S04,Capture canonical terms acceptance
+customer_onboarding_specialist,STEP_ACCOUNTABLE,W04,W04-S05,Activate usable customer account
+customer_onboarding_specialist,STEP_ACCOUNTABLE,W04,W04-S06,Deliver first-inquiry guidance
+customer_onboarding_specialist,STEP_ACCOUNTABLE,W04,W04-S07,Close onboarding
+customer_support_specialist,STEP_ACCOUNTABLE,W17,W17-S03,Collect transaction and communication evidence
+customer_support_specialist,STEP_ACCOUNTABLE,W18,W18-S01,Open customer case
+customer_support_specialist,STEP_ACCOUNTABLE,W18,W18-S02,Resolve normal support request
+customer_support_specialist,STEP_ACCOUNTABLE,W18,W18-S03,Escalate workflow-specific issue
+customer_support_specialist,STEP_CONTRIBUTOR,W13,W13-S06,Escalate terminal delivery failure
+customer_support_specialist,STEP_CONTRIBUTOR,W17,W17-S09,Reconcile and notify
+customer_retention_specialist,STEP_ACCOUNTABLE,W18,W18-S04,Diagnose churn or dissatisfaction
+customer_retention_specialist,STEP_ACCOUNTABLE,W18,W18-S06,Execute customer intervention
+customer_retention_specialist,STEP_CONTRIBUTOR,W18,W18-S05,Approve retention intervention
+customer_retention_specialist,STEP_CONTRIBUTOR,W18,W18-S07,Measure and close case
+rfq_success_specialist,STEP_ACCOUNTABLE,W14,W14-S02,Receive supplier acknowledgement
+rfq_success_specialist,STEP_ACCOUNTABLE,W15,W15-S01,Check comparison readiness
+rfq_success_specialist,STEP_ACCOUNTABLE,W15,W15-S04,Publish comparison to customer
+rfq_success_specialist,STEP_ACCOUNTABLE,W15,W15-S05,Capture customer selection
+rfq_success_specialist,STEP_ACCOUNTABLE,W15,W15-S08,Reveal permitted contact relationship
+rfq_success_specialist,STEP_ACCOUNTABLE,W15,W15-S09,Close comparison and reveal cycle
+rfq_success_specialist,STEP_CONTRIBUTOR,W13,W13-S06,Escalate terminal delivery failure
+rfq_success_specialist,STEP_CONTRIBUTOR,W14,W14-S01,Open supplier quote window
+rfq_success_specialist,STEP_CONTRIBUTOR,W15,W15-S03,Review customer visibility and privacy
+rfq_success_specialist,STEP_CONTRIBUTOR,W17,W17-S03,Collect transaction and communication evidence
+rfq_success_specialist,STEP_CONTRIBUTOR,W18,W18-S03,Escalate workflow-specific issue
+rfq_success_specialist,STEP_REVIEWER,W14,W14-S08,Approve or exclude quote from comparison
+lifecycle_channel_operations_specialist,STEP_ACCOUNTABLE,W13,W13-S01,Accept approved notification
+lifecycle_channel_operations_specialist,STEP_ACCOUNTABLE,W13,W13-S02,Apply consent and suppression rules
+lifecycle_channel_operations_specialist,STEP_ACCOUNTABLE,W13,W13-S04,Attempt delivery
+lifecycle_channel_operations_specialist,STEP_ACCOUNTABLE,W13,W13-S05,Retry eligible failure
+lifecycle_channel_operations_specialist,STEP_ACCOUNTABLE,W13,W13-S07,Close notification delivery
+lifecycle_channel_operations_specialist,STEP_CONTRIBUTOR,W03,W03-S07,Publish and capture lead events
+lifecycle_channel_operations_specialist,STEP_CONTRIBUTOR,W04,W04-S02,Verify customer identity channel
+lifecycle_channel_operations_specialist,STEP_CONTRIBUTOR,W09,W09-S02,Verify supplier contact channels
+lifecycle_channel_operations_specialist,STEP_CONTRIBUTOR,W10,W10-S07,Notify supplier and internal owners
+lifecycle_channel_operations_specialist,STEP_CONTRIBUTOR,W12,W12-S07,Create exactly one notification per assignment
+lifecycle_channel_operations_specialist,STEP_CONTRIBUTOR,W13,W13-S03,Select permitted channel and template
+lifecycle_channel_operations_specialist,STEP_CONTRIBUTOR,W14,W14-S02,Receive supplier acknowledgement
+lifecycle_channel_operations_specialist,STEP_CONTRIBUTOR,W14,W14-S06,Request supplier clarification if needed
+lifecycle_channel_operations_specialist,STEP_CONTRIBUTOR,W15,W15-S04,Publish comparison to customer
+lifecycle_channel_operations_specialist,STEP_CONTRIBUTOR,W18,W18-S06,Execute customer intervention
+lifecycle_channel_operations_specialist,STEP_CONTRIBUTOR,W19,W19-S05,Execute and measure intervention
+lifecycle_channel_operations_specialist,STEP_CONTRIBUTOR,W20,W20-S06,Publish approved content
+coo,STEP_ACCOUNTABLE,W30,W30-S10,Approve formal organizational change request
+process_improvement_manager,STEP_CONTRIBUTOR,W29,W29-S08,Conduct root-cause analysis
+process_improvement_manager,STEP_CONTRIBUTOR,W29,W29-S09,Assign corrective actions
+process_improvement_manager,STEP_CONTRIBUTOR,W30,W30-S05,Execute remediation
+process_improvement_manager,STEP_CONTRIBUTOR,W30,W30-S08,Assess structural cause
+project_coordinator_pmo,STEP_ACCOUNTABLE,W29,W29-S09,Assign corrective actions
+project_coordinator_pmo,STEP_CONTRIBUTOR,W01,W01-S07,Issue accountable work
+project_coordinator_pmo,STEP_CONTRIBUTOR,W02,W02-S07,Assign corrective work
+document_operations_specialist,STEP_CONTRIBUTOR,W26,W26-S03,Collect and register sources
+agent_workforce_capability_director,STEP_ACCOUNTABLE,W30,W30-S01,Open capability/performance case
+agent_workforce_capability_director,STEP_ACCOUNTABLE,W30,W30-S03,Apply temporary restriction when required
+agent_workforce_capability_director,STEP_ACCOUNTABLE,W30,W30-S05,Execute remediation
+agent_workforce_capability_director,STEP_ACCOUNTABLE,W30,W30-S07,"Restore, continue restriction or reassign"
+agent_workforce_capability_director,STEP_ACCOUNTABLE,W30,W30-S11,Close capability case
+agent_workforce_capability_director,STEP_CONTRIBUTOR,W26,W26-S01,Open knowledge gap or change
+agent_workforce_capability_director,STEP_CONTRIBUTOR,W30,W30-S09,Source missing capability if required
+agent_workforce_capability_director,STEP_CONTRIBUTOR,W30,W30-S10,Approve formal organizational change request
+culture_performance_manager,STEP_CONTRIBUTOR,W30,W30-S01,Open capability/performance case
+culture_performance_manager,STEP_CONTRIBUTOR,W30,W30-S02,Validate the failure
+culture_performance_manager,STEP_CONTRIBUTOR,W30,W30-S06,Independently verify remediation
+learning_development_manager,STEP_ACCOUNTABLE,W30,W30-S04,Create remediation plan
+learning_development_manager,STEP_CONTRIBUTOR,W30,W30-S05,Execute remediation
+recruitment_specialist,STEP_ACCOUNTABLE,W30,W30-S09,Source missing capability if required
+organisation_design_lead,STEP_ACCOUNTABLE,W30,W30-S08,Assess structural cause
+organisation_design_lead,STEP_CONTRIBUTOR,W30,W30-S10,Approve formal organizational change request
+qa_release_management_director,STEP_ACCOUNTABLE,W22,W22-S07,Release go/no-go
+qa_release_management_director,STEP_ACCOUNTABLE,W24,W24-S01,Register release candidate
+qa_release_management_director,STEP_ACCOUNTABLE,W24,W24-S06,Issue release go/no-go
+qa_release_management_director,STEP_ACCOUNTABLE,W24,W24-S10,Close release
+qa_release_management_director,STEP_ACCOUNTABLE,W29,W29-S06,Verify recovery and release safety
+qa_release_management_director,STEP_CONTRIBUTOR,W29,W29-S02,Classify severity and command
+qa_release_management_director,STEP_REVIEWER,W23,W23-S08,Approve release-candidate handoff
+qa_release_management_director,STEP_REVIEWER,W24,W24-S09,Rollback when required
+cybersecurity_engineer,STEP_ACCOUNTABLE,W24,W24-S03,Verify security and privacy
+cybersecurity_engineer,STEP_ACCOUNTABLE,W29,W29-S04,Conduct security investigation
+cybersecurity_engineer,STEP_CONTRIBUTOR,W07,W07-S03,Validate document usability
+cybersecurity_engineer,STEP_CONTRIBUTOR,W22,W22-S07,Release go/no-go
+cybersecurity_engineer,STEP_CONTRIBUTOR,W29,W29-S01,Open incident
+cybersecurity_engineer,STEP_CONTRIBUTOR,W29,W29-S02,Classify severity and command
+cybersecurity_engineer,STEP_CONTRIBUTOR,W29,W29-S06,Verify recovery and release safety
+cybersecurity_engineer,STEP_CONTRIBUTOR,W29,W29-S08,Conduct root-cause analysis
+ai_quality_assurance_reviewer,STEP_ACCOUNTABLE,W03,W03-S06,Review campaign assets
+ai_quality_assurance_reviewer,STEP_ACCOUNTABLE,W20,W20-S05,Independently review final artifact
+ai_quality_assurance_reviewer,STEP_ACCOUNTABLE,W23,W23-S07,Conduct workflow-level AI QA
+ai_quality_assurance_reviewer,STEP_ACCOUNTABLE,W24,W24-S04,Verify AI behavior when applicable
+ai_quality_assurance_reviewer,STEP_ACCOUNTABLE,W30,W30-S02,Validate the failure
+ai_quality_assurance_reviewer,STEP_ACCOUNTABLE,W30,W30-S06,Independently verify remediation
+model_evaluation_reviewer,STEP_ACCOUNTABLE,W23,W23-S06,Conduct independent model evaluation
+model_evaluation_reviewer,STEP_CONTRIBUTOR,W24,W24-S04,Verify AI behavior when applicable
+test_automation_engineer,STEP_ACCOUNTABLE,W22,W22-S06,Verify behavior against acceptance criteria
+test_automation_engineer,STEP_ACCOUNTABLE,W24,W24-S02,Verify build and deterministic tests
+test_automation_engineer,STEP_ACCOUNTABLE,W24,W24-S08,Run post-deployment verification
+test_automation_engineer,STEP_CONTRIBUTOR,W23,W23-S05,Run internal regression and cost analysis
+test_automation_engineer,STEP_CONTRIBUTOR,W29,W29-S06,Verify recovery and release safety
+it_operations_site_reliability_engineer,STEP_ACCOUNTABLE,W24,W24-S05,Verify rollback and operational readiness
+it_operations_site_reliability_engineer,STEP_ACCOUNTABLE,W24,W24-S07,Execute approved deployment
+it_operations_site_reliability_engineer,STEP_ACCOUNTABLE,W24,W24-S09,Rollback when required
+it_operations_site_reliability_engineer,STEP_ACCOUNTABLE,W29,W29-S01,Open incident
+it_operations_site_reliability_engineer,STEP_ACCOUNTABLE,W29,W29-S02,Classify severity and command
+it_operations_site_reliability_engineer,STEP_ACCOUNTABLE,W29,W29-S03,Contain immediate impact
+it_operations_site_reliability_engineer,STEP_ACCOUNTABLE,W29,W29-S05,Restore service safely
+it_operations_site_reliability_engineer,STEP_ACCOUNTABLE,W29,W29-S10,Close incident
+it_operations_site_reliability_engineer,STEP_CONTRIBUTOR,W22,W22-S07,Release go/no-go
+it_operations_site_reliability_engineer,STEP_CONTRIBUTOR,W24,W24-S08,Run post-deployment verification
+it_operations_site_reliability_engineer,STEP_CONTRIBUTOR,W29,W29-S08,Conduct root-cause analysis
