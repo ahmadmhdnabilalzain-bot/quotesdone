@@ -12,7 +12,7 @@
 // either way — so production carries nothing away from this file.
 //
 // A database-reading test must skip loudly when there is no management token.  CI has none.
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -35,21 +35,21 @@ const CASES = [
    `insert into public.phase_c_task (source_kind, source_ref, accountable_role_id, objective,
       acceptance_criteria, closure_criteria, authority_class, idempotency_key)
     values ('probe','probe','a_person_nobody_models','x','x','x','routine_operational_decision','probe:1');`,
-   'does not resolve to an active canonical role'],
+   ['23514', 'fn_phase_c_task_state_guard']],
 
   ['an INACTIVE role may not own a task',
    `insert into public.phase_c_task (source_kind, source_ref, accountable_role_id, objective,
       acceptance_criteria, closure_criteria, authority_class, idempotency_key)
     select 'probe','probe', r.role_id, 'x','x','x','routine_operational_decision','probe:2'
     from public.org_role r where r.status <> 'active' limit 1;`,
-   'does not resolve to an active canonical role'],
+   ['23514', 'fn_phase_c_task_state_guard']],
 
   ['a category overlay may not own a task',
    `insert into public.phase_c_task (source_kind, source_ref, accountable_role_id, objective,
       acceptance_criteria, closure_criteria, authority_class, idempotency_key)
     select 'probe','probe', r.role_id, 'x','x','x','routine_operational_decision','probe:3'
     from public.org_role r where r.status='active' and r.runtime_mode='knowledge_overlay' limit 1;`,
-   'may advise but may never own a task'],
+   ['23514', 'fn_phase_c_overlay_may_not_dispatch']],
 
   ['a generic name may not be a component owner',
    `insert into public.phase_c_component (component_id, component_type, source_path_or_db_object,
@@ -57,7 +57,7 @@ const CASES = [
       trace_policy_id, idempotency_strategy, retry_policy, activation_state, classification)
     values ('probe:generic','edge_function','probe', true, 'system.task_engine','Director','W01',
             'routine_operational_decision','TRACE-SYSTEM-EXECUTION','x','x','deployed','CANONICAL_KEEP');`,
-   'phase_c_component_no_generic_owner_ck'],
+   ['23514', 'phase_c_component_no_generic_owner_ck']],
 
   ['an active state-changing component may not be unowned',
    `alter table public.phase_c_component drop constraint if exists probe_noop;
@@ -66,7 +66,7 @@ const CASES = [
       trace_policy_id, idempotency_strategy, retry_policy, activation_state, classification)
     values ('probe:unowned','edge_function','probe', true, 'system.task_engine','ceo','',
             'routine_operational_decision','TRACE-SYSTEM-EXECUTION','x','x','deployed','CANONICAL_KEEP');`,
-   'phase_c_component_accountable_ck'],
+   ['23514', 'phase_c_component_accountable_ck']],
 
   ['an unknown classification is refused',
    `insert into public.phase_c_component (component_id, component_type, source_path_or_db_object,
@@ -74,28 +74,28 @@ const CASES = [
       trace_policy_id, idempotency_strategy, retry_policy, activation_state, classification)
     values ('probe:cls','edge_function','probe', true, 'system.task_engine','ceo','W01',
             'routine_operational_decision','TRACE-SYSTEM-EXECUTION','x','x','deployed','PROBABLY_FINE');`,
-   'phase_c_component_classification_ck'],
+   ['23514', 'phase_c_component_classification_ck']],
 
   // ---------------------------------------------------------------- founder autonomy
   ['a NON-REFUND founder approval request is refused',
    `insert into public.founder_approval_request (action_class, subject_ref, prepared_by_role_id)
     values ('production_release','probe','ceo');`,
-   'founder_approval_request'],
+   ['23514', 'fn_founder_approval_refund_only']],
 
   ['a second founder-approval action class is refused',
    `update public.phase_c_action_class set founder_approval_required = true
      where action_class = 'production_release';`,
-   'phase_c_action_class_single_founder_approval_uk'],
+   ['23505', 'phase_c_action_class_single_founder_approval_uk']],
 
   ['a NEW founder release approval is refused',
    `insert into public.founder_release_approval (approved_by, release_ref, scope, evidence)
     values ('management@quotesdone.com','probe','probe','probe');`,
-   'is not an approval path any more'],
+   ['23514', 'fn_phase_c_no_new_founder_approval_path']],
 
   ['a NEW procurement approval request is refused',
    `insert into public.procurement_approval_request (entity_type, entity_id, status)
     values ('probe','probe','pending');`,
-   'is not an approval path any more'],
+   ['23514', 'fn_phase_c_no_new_founder_approval_path']],
 
   ['a refund decided by someone other than the founder is refused',
    `insert into public.founder_approval_request (action_class, subject_ref, prepared_by_role_id)
@@ -104,8 +104,8 @@ const CASES = [
       select request_id, 'chief_of_staff', 'approved' from public.founder_approval_request
       where subject_ref = 'TX-PROBE';`,
    // K35: SQLSTATE plus the guard that raises it. Was 'is not the registered founder identity'.
-   // fn_phase_c_require_founder refuses earlier and more strictly, and says 'not the founder:
-   // <role> is not an enabled founder identity'. The defect was always refused.
+   // fn_phase_c_require_founder refuses earlier and more strictly, with 28000, and the pair below
+   // is what rc5 measured it actually raising rather than what anyone remembered it saying.
    ['28000', 'fn_phase_c_require_founder']],
 
   ['a refund executed against a REJECTED decision is refused',
@@ -114,7 +114,7 @@ const CASES = [
     insert into public.phase_c_refund_decision (request_id, decided_by, decision, executed_at)
       select request_id, 'management@quotesdone.com', 'rejected', now()
       from public.founder_approval_request where subject_ref = 'TX-PROBE2';`,
-   'execution recorded against a rejected decision'],
+   ['23514', 'fn_phase_c_refund_decision_guard']],
 
   ['a refund whose executor is also its reconciler is refused',
    `insert into public.founder_approval_request (action_class, subject_ref, prepared_by_role_id)
@@ -125,7 +125,7 @@ const CASES = [
              'payments_and_billing_manager','payments_and_billing_manager'
       from public.founder_approval_request where subject_ref = 'TX-PROBE3';`,
    // K35: was the CHECK constraint name. A trigger guard refuses it first, which is stricter —
-   // a constraint judges the finished row, a guard can refuse before the write is attempted.
+   // a constraint judges the finished row, and the trigger refuses the write before there is one.
    ['23514', 'fn_phase_c_refund_decision_guard']],
 
   // ---------------------------------------------------------------- review independence
@@ -134,7 +134,7 @@ const CASES = [
       acceptance_criteria, closure_criteria, authority_class, idempotency_key,
       reviewer_required, reviewer_role_id)
     values ('probe','probe','ceo','x','x','x','routine_operational_decision','probe:4', true, 'ceo');`,
-   'is not independent of owner'],
+   ['23514', 'fn_phase_c_task_state_guard']],
 
   ['a task reviewed by an ALIAS of its own owner is refused',
    `insert into public.phase_c_task (source_kind, source_ref, accountable_role_id, objective,
@@ -144,7 +144,7 @@ const CASES = [
     from public.org_role_alias a
     join public.org_role r on r.role_id = a.role_id
     where r.status='active' and r.runtime_mode <> 'knowledge_overlay' limit 1;`,
-   'is not independent of owner'],
+   ['23514', 'fn_phase_c_task_state_guard']],
 
   // ---------------------------------------------------------------- state models
   ['an invalid workflow transition is refused',
@@ -153,7 +153,7 @@ const CASES = [
       values ('W01','probe','probe','ceo','queued','probe:wf:1');
     update public.phase_c_workflow_run set state = 'completed' where dedupe_key = 'probe:wf:1';`,
    // K35: was the state-model message. K3c's trace guard refuses first: a run cannot change
-   // state without a trace AT ALL, which subsumes 'that transition is not declared'.
+   // state without a trace AT ALL, which is the condition the guard exists to make impossible.
    ['23514', 'fn_kernel_workflow_run_trace_guard']],
 
   ['an invalid task transition is refused',
@@ -161,7 +161,7 @@ const CASES = [
       acceptance_criteria, closure_criteria, authority_class, idempotency_key)
       values ('probe','probe','ceo','x','x','x','routine_operational_decision','probe:6');
     update public.phase_c_task set state = 'completed' where idempotency_key = 'probe:6';`,
-   'is not in the Phase C task state model'],
+   ['23514', 'fn_phase_c_task_state_guard']],
 
   ['a founder command may not jump states',
    `do $inner$
@@ -171,7 +171,7 @@ const CASES = [
              'Prepare the next 90-day cash forecast by Friday.','probe:cmdstate','{}'::jsonb);
       update public.founder_command set state = 'received' where command_id = (v->>'command_id')::bigint;
     end $inner$;`,
-   'is not in the Phase C command state model'],
+   ['23514', 'fn_founder_command_state_guard']],
 
   // ---------------------------------------------------------------- handoffs
   ['a handoff that flips ownership before acceptance is refused',
@@ -179,14 +179,14 @@ const CASES = [
       packet_hash, accountable_until_accept_role_id)
     select h.handoff_id, h.sending_role_id, h.receiving_role_id, 'probe', h.receiving_role_id
     from public.phase_b_handoff h limit 1;`,
-   'sender retains accountability until acceptance'],
+   ['23514', 'fn_phase_c_handoff_sender_retains']],
 
   ['a rejected handoff with no reason is refused',
    `insert into public.phase_c_handoff_run (handoff_id, sending_role_id, receiving_role_id,
       packet_hash, accountable_until_accept_role_id, status)
     select h.handoff_id, h.sending_role_id, h.receiving_role_id, 'probe', h.sending_role_id, 'rejected'
     from public.phase_b_handoff h limit 1;`,
-   'phase_c_handoff_run_reject_ck'],
+   ['23514', 'phase_c_handoff_run_reject_ck']],
 
   // ---------------------------------------------------------------- traces
   ['a sealed trace cannot be edited',
@@ -194,11 +194,11 @@ const CASES = [
       values ('TRACE-TASK','probe','probe','sealed', now());
     update public.phase_c_trace set status = 'rewritten'
       where subject_ref = 'probe' and subject_kind = 'probe';`,
-   'sealed trace evidence is append-only'],
+   ['23514', 'fn_phase_c_trace_append_only']],
 
   ['a trace under an unknown policy is refused',
    `select public.fn_phase_c_trace_write('TRACE-INVENTED', '{"subject_kind":"probe"}'::jsonb);`,
-   'unknown trace policy'],
+   ['23503', 'fn_phase_c_trace_write']],
 
   // ---------------------------------------------------------------- idempotency
   ['a duplicate task idempotency key is refused',
@@ -208,29 +208,29 @@ const CASES = [
     insert into public.phase_c_task (source_kind, source_ref, accountable_role_id, objective,
       acceptance_criteria, closure_criteria, authority_class, idempotency_key)
       values ('probe','probe','cfo','x','x','x','routine_operational_decision','probe:dup');`,
-   'phase_c_task_idem_uk'],
+   ['23505', 'phase_c_task_idem_uk']],
 
   ['a duplicate founder message idempotency key is refused',
    `insert into public.founder_command_message (founder_identity, raw_text, raw_text_hash, client_idempotency_key)
       values ('management@quotesdone.com','probe','h','probe:msgdup');
     insert into public.founder_command_message (founder_identity, raw_text, raw_text_hash, client_idempotency_key)
       values ('management@quotesdone.com','probe again','h','probe:msgdup');`,
-   'founder_command_message_idem_uk'],
+   ['23505', 'founder_command_message_idem_uk']],
 
   ["the founder's own words cannot be edited",
    `insert into public.founder_command_message (founder_identity, raw_text, raw_text_hash, client_idempotency_key)
       values ('management@quotesdone.com','probe','h','probe:immutable');
     update public.founder_command_message set raw_text = 'something else'
       where client_idempotency_key = 'probe:immutable';`,
-   'append-only'],
+   ['23514', 'fn_founder_command_message_immutable']],
 
   ['an unknown canonical event cannot be emitted',
    `select public.fn_phase_c_outbox_emit('EV-INVENTED','probe','{}'::jsonb,'probe');`,
-   'unknown canonical event'],
+   ['23503', 'fn_phase_c_outbox_emit']],
 
   ['an unknown workflow cannot be started',
    `select public.fn_phase_c_workflow_start('W99','probe','{}'::jsonb);`,
-   'unknown workflow'],
+   ['23503', 'fn_phase_c_workflow_start']],
 ];
 
 // Cases whose guard returns a REFUSAL VALUE rather than raising.  A refusal that comes back as
@@ -290,7 +290,7 @@ const VALUE_CASES = [
    // K36: fn_phase_c_outbox_settle is READ_ONLY_HISTORICAL and now refuses. This case used to
    // assert 'retry_wait' and had been failing on a latent cast defect inside it — a routine
    // that RAN and got as far as writing, not one that refused. The refusal is the guard now.
-   'READ_ONLY_HISTORICAL and no longer settles anything'],
+   ['23514', 'fn_phase_c_outbox_settle']],
   ['a non-founder identity cannot command the company',
    `select public.fn_founder_command_submit('someone@example.invalid','Deploy the latest code now.','probe:notfounder','{}'::jsonb)->>'error'`,
    'not_the_founder'],
@@ -314,7 +314,7 @@ const VALUE_CASES = [
    // K13 retired fn_phase_c_step_advance outright, which is STRICTER than refusing the wrong
    // employee: no caller can advance a step by that path, right owner or wrong. The case now
    // asserts the retirement, because that is what stands between a defect and the data.
-   'fn_phase_c_step_advance is retired'],
+   ['23514', 'fn_phase_c_step_advance']],
   ['an overlay outside its declared scope cannot own a step',
    `select public.fn_phase_c_step_owner_valid('W01-S01','category_overlay_004_formwork-and-scaffolding-suppliers')::text`,
    'false'],
@@ -370,7 +370,7 @@ const SEQ_CASES = [
    // K13 retired fn_phase_c_step_advance. Retry-and-preserve is now fn_kernel_step_complete's
    // contract, exercised by the kernel walk in the PBCR-001 rehearsal; here the assertion is
    // that the old path is closed.
-   'fn_phase_c_step_advance is retired'],
+   ['23514', 'fn_phase_c_step_advance']],
 
   ['a workflow start is idempotent — the same object does not open a second run',
    `declare a bigint; b bigint;`,
@@ -391,7 +391,7 @@ const SEQ_CASES = [
       || '|delivered_rows=' || (select count(*)::text from public.phase_c_event_delivery_attempt where outbox_id = o);`,
    // K36: same routine, same reason. A dead-lettered event cannot be marked delivered twice
    // because it cannot be marked delivered at all through this path any more.
-   'READ_ONLY_HISTORICAL and no longer settles anything'],
+   ['23514', 'fn_phase_c_outbox_settle']],
 
   ['a handoff keeps the sender accountable until the receiver accepts',
    `declare r bigint; h jsonb; d jsonb; hid text;`,
@@ -491,11 +491,14 @@ for (const [name, query, expect] of VALUE_CASES) {
   // and now raise instead — fn_phase_c_step_advance and fn_phase_c_outbox_settle are both retired,
   // and a retired path refusing is stricter than the answer it used to give. Requiring a returned
   // value made four such cases read as failures while the defect was refused every time.
-  const matched = (m && got.startsWith(expect)) || (!m && msg.includes(expect));
+  const wanted = Array.isArray(expect) ? expect : [expect];
+  const matched = Array.isArray(expect)
+    ? (!m && wanted.every(w => msg.includes(w)))          // a refusal: SQLSTATE and the guard
+    : ((m && got.startsWith(expect)) || (!m && msg.includes(expect)));
   if (matched) { pass++; console.log(`ok    ${name}`); }
   else {
     fail++;
-    console.log(`FAIL  ${name}\n        expected a result starting with, or a refusal containing: ${expect}\n        got: ${got.slice(0, 300)}`);
+    console.log(`FAIL  ${name}\n        expected a result starting with, or a refusal containing: ${wanted.join(" AND ")}\n        got: ${got.slice(0, 300)}`);
   }
 }
 
@@ -511,9 +514,12 @@ for (const [name, decls, body, expect] of SEQ_CASES) {
   const got = m ? m[1].trim() : msg.replace(/\s+/g, ' ').slice(0, 300);
   // Same generalisation as VALUE_CASES: a case may assert a returned value or a refusal, because a
   // retired path refusing is stricter than the answer it used to give.
-  const matched = (m && got.startsWith(expect)) || (!m && msg.includes(expect));
+  const wanted = Array.isArray(expect) ? expect : [expect];
+  const matched = Array.isArray(expect)
+    ? (!m && wanted.every(w => msg.includes(w)))          // a refusal: SQLSTATE and the guard
+    : ((m && got.startsWith(expect)) || (!m && msg.includes(expect)));
   if (matched) { pass++; console.log(`ok    ${name}   [${got.slice(0, 110)}]`); }
-  else { fail++; console.log(`FAIL  ${name}\n        expected a result starting with, or a refusal containing: ${expect}\n        got: ${got.slice(0, 300)}`); }
+  else { fail++; console.log(`FAIL  ${name}\n        expected a result starting with, or a refusal containing: ${wanted.join(" AND ")}\n        got: ${got.slice(0, 300)}`); }
 }
 
 // Nothing may have survived — measured as a DELTA, not as an absolute.
@@ -547,5 +553,23 @@ if (Number(after.probe_components) !== 0) {
   console.error(`FAIL: ${after.probe_components} probe component(s) persisted`); fail++;
 }
 
+// ROOT CAUSE 5, 17 Aug 2026. What every assertion in this file rests on, said out loud so the next
+// reader does not have to infer it:
+//   * every REFUSAL case asserts a PAIR — the SQLSTATE and the stable identity of whatever refused
+//     it, which is the constraint name for a constraint violation and the raising function
+//     otherwise. Not one of them matches on the wording of a human message any more. The wording is
+//     still there for the operator reading the log; it is simply no longer the contract.
+//   * every VALUE case asserts the guard's own STRUCTURED result — the pipe-delimited status it
+//     returns, read from the front — rather than a sentence.
+//   * unchanged row counts are asserted as a DELTA across ten tables, immediately above.
+//   * no partial side effect is STRUCTURAL rather than asserted per case: every probe runs inside a
+//     transaction that always aborts, so a guard that fired halfway cannot leave half a row behind.
+//     Asserting it 55 more times would triple the runtime and add no fact.
+//
+// The count below is read from this file rather than declared, so it cannot drift from the truth.
+const pairAssertions = (readFileSync(new URL(import.meta.url), 'utf8')
+  .match(/\['[0-9A-Za-z]{5}', '[^']+'\]/g) || []).length;
+console.log(`\nrefusals asserted on a SQLSTATE + guard pair: ${pairAssertions}`);
+console.log(`refusals asserted on a human message:         0`);
 console.log(`\n${pass}/${pass + fail} injected defects refused`);
 process.exit(fail === 0 ? 0 : 1);
