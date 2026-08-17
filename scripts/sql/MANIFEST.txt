@@ -1392,3 +1392,4 @@ scripts/sql/phase_b_cr_001_w14_s05_accountability.walk.sql
 # back from production for every routine whose current record was missing or stale, so it must
 # win over the historical migration that no longer describes what runs.
 scripts/sql/source_of_truth_the_repository_records_what_production_runs.sql
+scripts/sql/rc2_cancellation_reaches_the_kernel.sql
