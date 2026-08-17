@@ -1398,3 +1398,5 @@ scripts/sql/rc4_execution_and_trace_are_atomic.sql
 scripts/sql/rc4b_3730_is_not_history.sql
 scripts/sql/kernel_s4_a_disposition_that_is_not_a_grant_is_a_sentence.sql
 scripts/sql/kernel_s0c_the_ledger_is_generated_not_retyped.sql
+scripts/sql/refunds_always_need_the_founder.sql
+scripts/sql/the_ledger_follows_the_refund_change.sql
