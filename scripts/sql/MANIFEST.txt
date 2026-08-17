@@ -1378,3 +1378,8 @@ scripts/sql/kernel_k34_cutover_measure.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/kernel_k35_retired_paths_lose_the_service_grant.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/kernel_k36_read_only_historical_is_read_only.sql
