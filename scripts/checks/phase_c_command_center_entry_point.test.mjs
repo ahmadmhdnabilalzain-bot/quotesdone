@@ -177,14 +177,30 @@ begin
     from public.phase_c_task t where t.command_id = cid order by t.task_id) s;
   st := public.fn_founder_command_status(cid::text);
   ib := public.fn_founder_command_inbox(5);
-  cx := public.fn_founder_command_control(cid, 'cancel', cid::text, null);
+  -- FIVE ARGUMENTS, NOT FOUR. Root cause 2 (17 Aug 2026) gave fn_founder_command_control a
+  -- p_actor parameter: the control verifies the founder identity itself and then delegates to
+  -- fn_kernel_cancel, which verifies it again because the kernel may not trust a caller's word
+  -- about who is asking. This probe still passed four, so every run since raised
+  -- "function ... (bigint, unknown, text, unknown) does not exist" before it reached a single
+  -- assertion — the whole end-to-end half of this check had stopped executing.
+  cx := public.fn_founder_command_control(cid, 'cancel', cid::text, null, 'management@quotesdone.com');
   raise exception 'PROBE %', jsonb_build_object(
-    'submit', v, 'db_tasks', ntasks, 'owners', owners, 'departments', depts,
+    -- PROJECTED, NOT THE WHOLE OBJECT. A raised message is length-capped, and when the probe
+    -- raised for any other reason the parser could still return an object with no submit key —
+    -- the assertion below then crashed with "Cannot read properties of undefined" rather than
+    -- printing the reason, which is how the arity failure above stayed invisible. Only the
+    -- fields the assertions read are carried, and the guard below names the problem.
+    'submit', jsonb_build_object(
+      'ok', v->'ok', 'status', v->>'status', 'owner', v->>'owner',
+      'task_ids', v->'task_ids', 'trace_id', v->>'trace_id', 'command_id', v->>'command_id',
+      'founder_approval_required', v->'founder_approval_required'),
+    'db_tasks', ntasks, 'owners', owners, 'departments', depts,
     'with_due_date', dues, 'owner_kinds', kinds,
     'status_ok', st->>'ok', 'status_id', st->>'command_id',
     'inbox_commands', jsonb_array_length(ib->'commands'),
     'inbox_non_refund_waiting', ib->'counts'->>'non_refund_awaiting_founder',
-    'cancel', cx,
+    'cancel', jsonb_build_object('ok', cx->'ok', 'status', cx->>'status',
+                                 'child_tasks_closed', cx->>'child_tasks_closed'),
     'closed_tasks_without_trace', (select count(*) from public.phase_c_task
                                    where command_id = cid and closed_at is not null and trace_id is null)
   )::text;
@@ -207,7 +223,11 @@ catch (e) {
   if (end > 0) res = JSON.parse(msg.slice(start, end + 1));
   else console.log(msg.slice(0, 600));
 }
-if (!res) { console.error('FAIL  the end-to-end probe produced no payload'); fail++; }
+if (!res || !res.submit || !res.cancel) {
+  console.error('FAIL  the end-to-end probe produced no usable payload — the raised message is '
+    + 'length-capped, so the probe carries only the fields asserted below');
+  fail++;
+}
 else {
   const s = res.submit;
   check(s.ok === true, 'a founder command is accepted', s.status);
