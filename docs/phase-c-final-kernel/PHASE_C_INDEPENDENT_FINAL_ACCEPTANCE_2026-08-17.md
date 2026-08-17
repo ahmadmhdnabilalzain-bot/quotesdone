@@ -356,3 +356,47 @@ call — the hold held, and `llm_attempt`, `ai_usage` and `ai_cost_log` all reco
 entire window.
 
 Phase D was not begun. No finding above was repaired.
+
+---
+
+# ADDENDUM — the six findings, repaired and re-measured
+
+Added after the founder asked for the repair rather than the report. The verdicts above are left
+exactly as the audit found them; this section records what changed and what it measures now.
+Branch `fix/phase-c-independent-acceptance-six`, PR #434.
+
+| # | fix | measured before | measured after |
+|---|---|---|---|
+| C1 | `kernel_s4…sql` — the six write authorities get a `kernel_retired_path` row and lose `EXECUTE` for every ordinary role | `fn_phase_c_outbox_emit` as `service_role`: **ACCEPTED**, wrote `status='pending'`, `trace_id=NULL` | **REFUSED `42501`**, outbox delta **0**; the other three likewise |
+| C2 | same file — `REVOKE TRUNCATE` on all 7 protected tables **and** `fn_kernel_truncate_guard()` on a `BEFORE TRUNCATE … FOR EACH STATEMENT` trigger | `truncate public.phase_c_handoff_run` → **7 → 0 rows** | **REFUSED `42501`** as `service_role`; **REFUSED by the trigger** as the table **owner** with no `kernel.maintenance_reason` — so the guard fires, not merely the grant |
+| C3 | `kernel_positive_controls.test.mjs` — the name-prefix term is gone; the denominator is `kernel_write_authority` minus `kernel_retired_path` | 6 active authorities silently dropped, incl. the door in C1; printed `13 door(s), 13 accepted` | **13 doors, 13 accepted, 0 failed** — same number, now because the register says so |
+| C4 | `_ddl_from_sql.mjs` parser gaps closed; `kernel_s0c…sql` **generated** from the check's own derivation; new line 7 asserts the two authorities agree | engine **0** vs `application_source_of_truth` **105** (15 DDL + 90 ledger) | **0 across all seven lines, exit 0**; line 7 **forced** to fire → 1 finding, exit 1 |
+| C5 | `regenerate_builder_closure.mjs` — skip detection moved into the runner loop; `(d+)` → `(\d+)` | credential absent → `0 checks passed \| 0 checks \| production \| **PASS**`, `CREDENTIAL_BLOCKED: 0` | credential absent → **9 CREDENTIAL_BLOCKED, 0 FAILED**, numerator reads *"NOT VERIFIED — the production half did not run"* |
+| C6 | schema mirror refreshed; the `if: github.event_name != 'pull_request'` exemption removed | red on `main` for 3 pushes; mirror 1,898 lines behind, missing `kernel_adapter_failure` entirely | `identical: YES`, and the step now blocks a merge |
+| M1 | new `phase-c` job in `project-parity.yml` runs the eleven credential-needing checks serially, and treats a `SKIP` there as a failure | seven Phase C checks printed `SKIP` and exited 0 on every PR | they run against production on every pull request |
+| D1 | `run.mjs` refuses to walk any directory carrying its own `.git`, and names what it skipped | `npm test` discovered **96** node tests, **39** from `$WT/` | **57** node tests, **0** from `$WT/`, `$WT` reported by name |
+| D2 | `run.mjs` runs `node --test --test-concurrency=1` | 10 of 19 failures were `429 ThrottlerException`, a different 10 each run | serialised against the shared management API |
+
+Regenerated closure evidence at this commit, credential present: **15 headlines, 0 FAILED,
+0 CREDENTIAL_BLOCKED**; routine count now **1014** (S4 adds `fn_kernel_truncate_guard`), crosswalk
+**1801/1801/1801**.
+
+## Deliberately not changed
+
+**`$WT/` still exists.** The runner no longer walks it and says so on every run, but the 159 MB stale
+checkout is still in the working tree. Deleting an untracked directory is the founder's call, not a
+side effect of a fix.
+
+**The five trace/subject disagreements are historical, and the mechanism is correct now.** Driven in
+an aborted transaction: a workflow run started and then cancelled through `fn_kernel_cancel` moves
+its trace `active → cancelled`, agreeing with the subject. Runs 91/92/93/96 and handoff 48 are all
+16 Aug rows from before that path was fixed. Handoff 48 carries a full S2 retrofit label; the four
+workflow-run traces do not, and labelling them means opening `z10_phase_c_trace_append_only` under
+the K1 protocol. Recorded here rather than done at the end of a long session. None of these is one
+of the nine conditions §6J requires to be zero.
+
+**Refund auto-approval is unchanged.** `fn_refund_request` writes `status='approved'` when the
+refund is inside the window the customer was promised at reveal and under the
+`customer_success / refund_within_window` threshold, live at **AED 2,000** — with no founder
+decision. The code states this as deliberate policy and it has never fired (`refunds` 0 rows). That
+is a commercial question about intent, not a technical one, so it is named and left.
