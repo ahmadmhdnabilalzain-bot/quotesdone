@@ -35,7 +35,8 @@ if (extra.length) { console.error('CLASSIFIED BUT NOT IN THE POPULATION:\n' + ex
 // RECLASSIFIED_INTERNAL_RECOMPUTATION and K25's three — the CSV would then disagree with the table
 // it was built to stay in step with, which is the whole failure this generator exists to prevent.
 const LIVE = Object.fromEntries((await sql(
-  `select source_component_id, status, cutover_action from public.phase_c_source_cutover`))
+  `select source_component_id, status, cutover_action, disposition_evidence
+     from public.phase_c_source_cutover`))
   .map(r => [r.source_component_id, r]));
 
 const ACTOR = {
@@ -88,6 +89,9 @@ const out = rows.map(r => {
       : !active ? 'ADAPTER_ASSIGNED_SOURCE_STAYS_DISABLED'
       : cls === 'C' ? 'READ_ONLY_CONFIRMED'
       : 'ADAPTER_ASSIGNED_CUTOVER_PENDING'),
+    // 's 'final evidence': the routine or trigger that DISCHARGES this disposition, which
+    // fn_kernel_cutover_measure verifies rather than takes on trust.
+    final_evidence: LIVE[r.source_key]?.disposition_evidence ?? '(not yet recorded)',
     classification_reason: why,
     evidence: (r.evidence || '').slice(0, 400),
   };
@@ -96,7 +100,7 @@ const out = rows.map(r => {
 const COLS = ['source_component_id','source_type','source_class','current_entry_point',
   'current_direct_side_effects','target_kernel_adapter','target_workflow','target_step_or_signal',
   'accountable_role','system_actor','idempotency_key','trace_policy','current_activation',
-  'cutover_action','rollback','status','classification_reason','evidence'];
+  'cutover_action','rollback','status','final_evidence','classification_reason','evidence'];
 
 mkdirSync('docs/phase-c-kernel', { recursive: true });
 const csv = [COLS.join(',')].concat(out.map(o =>
