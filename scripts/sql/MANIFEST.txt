@@ -1351,3 +1351,4 @@ scripts/sql/pacr_002_pbcr_001_baseline_rerecord.sql
 scripts/sql/kernel_k16_signal_service.sql
 scripts/sql/kernel_k17_source_cutover_register.sql
 scripts/sql/kernel_k17_source_cutover_seed.sql
+scripts/sql/kernel_k18_write_guard.sql
