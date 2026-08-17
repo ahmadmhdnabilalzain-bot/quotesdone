@@ -45,6 +45,21 @@ const ALIAS = {
 };
 const live = t => ALIAS[t] || t;
 
+// ---- the frozen Phase B ownership these cases are judged against ------------------------------
+// Loaded once, from the frozen registry, so the assertions below compare the runtime to the
+// architecture rather than to a list that happens to be in a CSV column.
+const stepRows = await sql(`select workflow_id, step_id, step_no, accountable_role_id
+                              from public.phase_b_workflow_step order by workflow_id, step_no`);
+const ownRows = await sql(`select workflow_id, accountable_role_id from public.org_workflow_ownership`);
+const firstStepOwner = new Map();          // workflow_id -> the owner of step 1
+const stepOwners = new Map();              // workflow_id -> Set(every step owner)
+for (const s of stepRows) {
+  if (!stepOwners.has(s.workflow_id)) stepOwners.set(s.workflow_id, new Set());
+  stepOwners.get(s.workflow_id).add(s.accountable_role_id);
+  if (!firstStepOwner.has(s.workflow_id)) firstStepOwner.set(s.workflow_id, s.accountable_role_id);
+}
+const workflowOwner = new Map(ownRows.map(r => [r.workflow_id, r.accountable_role_id]));
+
 /**
  * Submit one command inside a transaction that always aborts, and bring the result back out
  * through the raised message.  `raise exception` with the JSON payload is what makes a write
@@ -53,7 +68,7 @@ const live = t => ALIAS[t] || t;
 async function submitAborted(text, idem) {
   const probe = `
 do $probe$
-declare v jsonb; v_tasks bigint; v_appr bigint; v_owner text; v_wf text;
+declare v jsonb; v_tasks bigint; v_appr bigint; v_owner text; v_wf text; v_cmd_owner text;
 begin
   v := public.fn_founder_command_submit(${lit(FOUNDER)}, ${lit(text)}, ${lit(idem)}, '{}'::jsonb);
   select count(*) into v_tasks from public.phase_c_task where command_id = (v->>'command_id')::bigint;
@@ -62,8 +77,11 @@ begin
     from public.founder_command_workflow_link where command_id = (v->>'command_id')::bigint;
   select coalesce(string_agg(distinct accountable_role_id, ';'), '') into v_owner
     from public.phase_c_task where command_id = (v->>'command_id')::bigint;
+  select command_owner_role_id into v_cmd_owner
+    from public.founder_command where command_id = (v->>'command_id')::bigint;
   raise exception 'PROBE %', (v || jsonb_build_object(
-    'db_tasks', v_tasks, 'db_approvals', v_appr, 'db_workflows', v_wf, 'db_owners', v_owner))::text;
+    'db_tasks', v_tasks, 'db_approvals', v_appr, 'db_workflows', v_wf, 'db_owners', v_owner,
+    'db_command_owner', v_cmd_owner))::text;
 end $probe$;`;
   try {
     await sql(probe);
@@ -131,10 +149,51 @@ for (const c of cases) {
   if (!wantApproval && Number(r.db_approvals) !== 0) problems.push(`NON-REFUND FOUNDER APPROVAL CREATED (${r.db_approvals})`);
 
   // 4. the primary owner
-  const wantOwner = live(c.expected_primary_role);
-  if (wantOwner && wantOwner !== 'founder' && wantOwner !== 'chief_of_staff') {
+  //
+  // 17 AUG 2026 — WHAT THIS USED TO ASSERT, AND WHY IT WAS WRONG.
+  //   It required `expected_primary_role` to appear among the task owners the command produced.
+  //   That was true of the PRE-KERNEL runtime, which fanned a founder command out into one task
+  //   per child owner at submit time. Since the kernel cutover (16 Aug 2026) fn_kernel_workflow_start
+  //   creates exactly ONE first ready operational task — the frozen accountable owner of the
+  //   workflow's FIRST step — and ownership moves afterwards by step progression and handoff.
+  //   Three cases therefore read as failures while the routing was correct:
+  //     CC-011 expected ceo                    (W01's org_workflow_ownership owner)
+  //     CC-019 expected organization_designer  (W30-S08's owner)
+  //     CC-020 expected strategy_director      (W01-S02's owner)
+  //   In all three the one task created was owned by the first step's frozen owner.
+  //
+  // The replacement is STRICTER, not laxer. It asserts two things the old check did not:
+  //   (a) every task the command created is owned by the first-step owner of a workflow the
+  //       command actually linked — an arbitrary owner is now a failure, where before any owner
+  //       satisfied the check as long as the expected one was also present;
+  //   (b) the expected primary role is genuinely accountable in the routed work — it owns a step
+  //       in one of the linked workflows, or it is that workflow's accountable owner. A case
+  //       naming a role with no accountability anywhere in the work it routes still fails.
+  {
     const owners = (r.db_owners || '').split(';').filter(Boolean);
-    if (!owners.includes(wantOwner)) problems.push(`primary owner ${wantOwner} not among task owners [${owners.join(',')}]`);
+    const linked = (r.db_workflows || '').split(';').filter(Boolean);
+    const firstOwners = new Set(linked.map(w => firstStepOwner.get(w)).filter(Boolean));
+    for (const o of owners) {
+      if (!firstOwners.has(o)) {
+        problems.push(`task owner ${o} is not the first-step owner of any linked workflow `
+                    + `[${[...firstOwners].join(',') || 'none'}]`);
+      }
+    }
+    const wantOwner = live(c.expected_primary_role);
+    if (wantOwner && wantOwner !== 'founder' && linked.length) {
+      // The Chief of Staff carries the COMMAND, not a step: a multi-workflow order names him as
+      // the primary role because he is accountable for the order itself. That is asserted here
+      // rather than exempted — the old check skipped chief_of_staff outright and so proved
+      // nothing about him at all.
+      const accountableSomewhere = linked.some(w =>
+        (stepOwners.get(w) || new Set()).has(wantOwner) || workflowOwner.get(w) === wantOwner);
+      const isCommandOwner = r.db_command_owner === wantOwner;
+      if (!accountableSomewhere && !isCommandOwner) {
+        problems.push(`expected primary role ${wantOwner} owns no step and no workflow in the `
+                    + `routed work [${linked.join(',')}], and is not the command owner `
+                    + `(${r.db_command_owner || 'none'})`);
+      }
+    }
   }
 
   // 5. the two outcomes that must create no work at all
