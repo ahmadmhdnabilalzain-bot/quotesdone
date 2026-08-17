@@ -1361,3 +1361,5 @@ scripts/sql/kernel_k22c_class_c_measures_business_work.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/kernel_k23_historical_exception_register.sql
+scripts/sql/kernel_k24_trace_match_by_overlap.sql
