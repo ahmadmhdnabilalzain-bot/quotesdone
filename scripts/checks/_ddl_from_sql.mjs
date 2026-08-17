@@ -23,15 +23,49 @@ export function eatDdl(rec, src) {
     const close = block.search(/^\s*\)\s*;/m);
     for (const line of block.slice(0, close < 0 ? 4000 : close).split('\n')) {
       const c = line.trim().match(/^"?([a-z0-9_]+)"?\s+[a-z]/i);
-      if (c && !/^(constraint|primary|unique|foreign|check|exclude|like)$/i.test(c[1])) {
-        rec.cols.add(`${t}.${c[1].toLowerCase()}`);
-      }
+      const isCol = c && !/^(constraint|primary|unique|foreign|check|exclude|like)$/i.test(c[1]);
+      if (isCol) rec.cols.add(`${t}.${c[1].toLowerCase()}`);
       const inline = line.match(/\bconstraint\s+"?([a-z0-9_]+)"?/i);
       if (inline) rec.cons.add(inline[1].toLowerCase());
+
+      // 17 AUG 2026 — THE NAME POSTGRES INVENTS IS STILL A COMMITTED CONSTRAINT.
+      //   `create table kernel_signal_inbox (inbox_id bigserial primary key,
+      //    idempotency_key text unique, workflow_id text references …)` commits three constraints
+      //   whose names appear in no file, because Postgres generates them. Reading only the
+      //   `constraint <name>` form made all eleven of them read as UNCOMMITTED DDL —
+      //   kernel_signal_inbox_pkey, kernel_signal_type_workflow_id_fkey and nine more —
+      //   against a live catalogue that was created by those very files.
+      //   canonical_routines.test.mjs already named this as a false finding in prose; here it
+      //   stops being one. Synthesising the default names can only make the parser see MORE of
+      //   what is committed, which is the safe direction: it never marks an object committed that
+      //   no file creates.
+      const col = isCol ? c[1].toLowerCase() : null;
+      if (col) {
+        if (/\bprimary\s+key\b/i.test(line)) rec.cons.add(`${t}_pkey`);
+        if (/\bunique\b/i.test(line))        rec.cons.add(`${t}_${col}_key`);
+        if (/\breferences\b/i.test(line))    rec.cons.add(`${t}_${col}_fkey`);
+        if (/\bcheck\s*\(/i.test(line))      rec.cons.add(`${t}_${col}_check`);
+      } else {
+        // table-level clauses: primary key (a, b) / unique (a, b) / foreign key (a) references …
+        const pk = line.match(/^\s*primary\s+key\s*\(/i);
+        if (pk) rec.cons.add(`${t}_pkey`);
+        const uq = line.match(/^\s*unique\s*\(([^)]*)\)/i);
+        if (uq) rec.cons.add(`${t}_${uq[1].split(',').map(s => s.trim().replace(/"/g, '')).join('_')}_key`);
+        const fk = line.match(/^\s*foreign\s+key\s*\(([^)]*)\)/i);
+        if (fk) rec.cons.add(`${t}_${fk[1].split(',').map(s => s.trim().replace(/"/g, '')).join('_')}_fkey`);
+      }
     }
   }
-  for (const m of src.matchAll(/alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:public\.)?"?([a-z0-9_]+)"?[\s\S]{0,80}?add\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z0-9_]+)"?/gi)) {
-    rec.cols.add(`${m[1].toLowerCase()}.${m[2].toLowerCase()}`);
+  // ONE `alter table` CAN CARRY MANY `add column` CLAUSES, and this read only the first.
+  //   `alter table phase_c_historical_repair add column active_effect_now boolean, add column
+  //    cannot_reconstruct boolean, add column kernel_cutover_at timestamptz` recorded exactly one
+  //   of the three, so the other two read as uncommitted DDL — kernel_k23 committed all three in
+  //   that single statement. Split the statement, then take every clause in it.
+  for (const m of src.matchAll(/alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:public\.)?"?([a-z0-9_]+)"?([\s\S]*?);/gi)) {
+    const t = m[1].toLowerCase();
+    for (const c of m[2].matchAll(/add\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z0-9_]+)"?/gi)) {
+      rec.cols.add(`${t}.${c[1].toLowerCase()}`);
+    }
   }
   for (const m of src.matchAll(/create\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?"?([a-z0-9_]+)"?/gi)) {
     rec.idx.add(m[1].toLowerCase());

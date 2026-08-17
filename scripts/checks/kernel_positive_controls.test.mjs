@@ -277,11 +277,27 @@ const CONTROLS = {
 };
 
 // ---------------------------------------------------------------- the derived denominator
+//
+// 17 AUG 2026 — THE NAME PREFIX IS GONE, AND THAT IS THE WHOLE POINT.
+//   This read `where (routine_name like 'fn\_kernel\_%' or like 'fn\_founder\_command\_%') and not
+//   retired`. The stated rule is "active write authorities MINUS retired paths"; the prefix was a
+//   third term nobody had written down, and it silently removed SIX rows that were active and
+//   unretired: fn_phase_c_outbox_emit, fn_phase_c_handoff_open, fn_phase_c_handoff_decide,
+//   fn_phase_c_task_transition and the two z90_* trace-subject trigger helpers.
+//
+//   That was not cosmetic. The independent acceptance called fn_phase_c_outbox_emit as service_role
+//   and it WROTE a deliverable outbox row with trace_id NULL, while this check printed
+//   "13 door(s), 13 accepted" — because the door it had just walked through was filtered out
+//   before the "every door has a control" loop ever ran.
+//
+//   kernel_s4 gave all six the disposition their kernel_write_authority.why already claimed, so the
+//   honest derivation and the prefix now agree on 13. They agree because the register says so, not
+//   because a LIKE pattern happens to match. If a future entry door is called anything else, this
+//   query sees it and demands a control; the old one did not.
 const doors = (await sql(`
   select distinct a.routine_name
     from public.kernel_write_authority a
-   where (a.routine_name like 'fn\\_kernel\\_%' or a.routine_name like 'fn\\_founder\\_command\\_%')
-     and not exists (select 1 from public.kernel_retired_path p where p.path_name = a.routine_name)
+   where not exists (select 1 from public.kernel_retired_path p where p.path_name = a.routine_name)
    order by 1`)).map(r => r.routine_name);
 
 let pass = 0, fail = 0;

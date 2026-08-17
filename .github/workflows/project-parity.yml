@@ -74,8 +74,71 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: node scripts/checks/canonical_routine_manifest.mjs --all
+      # 17 AUG 2026 — THE `if:` IS GONE. It read
+      #     if: ${{ github.event_name != 'pull_request' }}
+      # so this step ran only AFTER a merge, where nothing gates on it. The independent acceptance
+      # found the job red on main for at least three consecutive pushes while every Phase C
+      # correction PR merged green: the committed mirror was 1,898 lines behind production and did
+      # not carry the kernel_adapter_failure objects at all. A parity check that cannot block a
+      # merge is a report, not a gate.
       - name: The schema export matches the committed schema
-        if: ${{ github.event_name != 'pull_request' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: node scripts/checks/export_from_either_source_is_identical.mjs
+
+  # ============================================================================================
+  # THE PHASE C GATE, RUN FOR REAL ON EVERY PULL REQUEST.
+  #
+  # 17 AUG 2026 — WHY THIS JOB EXISTS. Seven Phase C checks answer "no management token" with
+  #   console.log('SKIP …'); process.exit(0)
+  # and the `checks` workflow, which runs `npm test`, has no `env:` block at all. So on every pull
+  # request the entire Phase C kernel gate printed SKIP and went green without asking production a
+  # single question. The independent acceptance re-ran all seven WITH the credential and they pass —
+  # but "they pass when a human remembers to run them locally" is not a gate.
+  #
+  # They run HERE rather than inside `npm test` because this workflow already holds the credential,
+  # and because they run one after another: the same acceptance measured ten false failures from
+  # `429 ThrottlerException` when the suite ran them in parallel against the management API.
+  #
+  # Every one of these probes ends in `raise exception`, so nothing is left on production.
+  # ============================================================================================
+  phase-c:
+    name: the Phase C kernel gate, against production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: The Phase C checks that CI could not see
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          NO_PAID_AI: 'true'
+          OPENROUTER_DISABLED: 'true'
+          AI_PROVIDER_MODE: 'mock'
+        run: |
+          # Deliberately no `set -e`: the exit code of each check is read into $code and acted on
+          # below. With `set -e` the shell would leave before $? could be captured, and a failing
+          # check would end the job without ever printing which one it was.
+          for t in phase_c_founder_chain \
+                   phase_c_command_acceptance \
+                   phase_c_command_center_entry_point \
+                   phase_c_invariants \
+                   kernel_invariants \
+                   kernel_positive_controls \
+                   phase_c_guards_reject_injected_defects \
+                   kernel_write_guard_both_directions \
+                   cancellation_reaches_the_kernel \
+                   active_signal_types_are_executable \
+                   application_source_of_truth; do
+            echo "::group::$t"
+            out=$(node "scripts/checks/$t.test.mjs" 2>&1); code=$?
+            echo "$out"
+            echo "::endgroup::"
+            # A SKIP here is a failure, not a pass: this job exists because the credential is present.
+            if echo "$out" | grep -qE '^SKIP|^SKIPPED|NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL'; then
+              echo "::error::$t skipped for want of a credential in the one job that has one."
+              exit 1
+            fi
+            [ "$code" = "0" ] || { echo "::error::$t exited $code"; exit "$code"; }
+          done

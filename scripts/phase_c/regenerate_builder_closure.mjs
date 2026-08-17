@@ -45,6 +45,28 @@ const ENV = {
 const num = (out, re) => { const m = out.match(re); return m ? m.slice(1) : null; };
 
 /**
+ * DID THIS RUN ACTUALLY REACH PRODUCTION?
+ *
+ * 17 AUG 2026 — WHY THIS IS CENTRAL AND NOT PER-PARSER.
+ *   Detection used to live inside each `parse`, and only two of fifteen had it. The three COMMAND
+ *   CENTER parsers hardcoded `measurement: 'production'` and looked for nothing. Measured: with the
+ *   management token genuinely absent, phase_c_founder_chain, phase_c_command_center_entry_point
+ *   and phase_c_command_acceptance each print `SKIP …` and exit 0, and this generator rendered
+ *
+ *     | the founder chain … | **0 checks passed** | 0 checks | production | **PASS** |
+ *     | the Command Center entry point … | **undefined failed** | 0 checks | production | **PASS** |
+ *     | command routing acceptance cases | **unparsed** | unparsed | production | **PASS** |
+ *
+ *   with `headlines CREDENTIAL_BLOCKED | 0`. "0 checks passed / 0 checks" is an empty population
+ *   scoring as satisfied, and this document exists to make that impossible.
+ *
+ *   A parser can forget. The loop cannot: whatever a parse returns, if the output says the
+ *   production half did not run, the headline is CREDENTIAL_BLOCKED and its numerator says so
+ *   rather than reporting a count of nothing.
+ */
+const SKIPPED = /^SKIP\b|^SKIPPED\b|PRODUCTION COMPARISON SKIPPED|NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL|No Supabase access token/m;
+
+/**
  * Each entry names the ONE script that owns its subject. There is deliberately no second script
  * answering the same question: that is the defect this whole branch exists to close.
  */
@@ -136,7 +158,10 @@ const CHECKS = [
     command: ['scripts/checks/phase_c_command_center_entry_point.test.mjs'],
     measurement: 'production',
     parse: out => ({
-      numerator: /COMMAND CENTER ENTRY POINT VERIFIED/.test(out) ? 'VERIFIED' : (out.match(/(d+) check(s) failed/) || ['?'])[1] + ' failed',
+      // `(d+) check(s) failed` — no backslash, so it could never match and the failure branch
+      // rendered "undefined failed". The check prints "N check(s) failed".
+      numerator: /COMMAND CENTER ENTRY POINT VERIFIED/.test(out) ? 'VERIFIED'
+        : `${(num(out, /(\d+) check\(s\) failed/) || ['?'])[0]} failed`,
       denominator: (out.match(/^ok /gm) || []).length + ' checks',
       measurement: 'production',
     }),
@@ -256,19 +281,21 @@ for (const c of CHECKS) {
   const r = spawnSync(process.execPath, c.command, { encoding: 'utf8', maxBuffer: 128 * 1024 * 1024 });
   const out = (r.stdout || '') + (r.stderr || '');
   const parsed = c.parse(out) || {};
+  // The loop decides this, not the parser — see SKIPPED above.
+  const blocked = SKIPPED.test(out) || (parsed.measurement === 'credential_blocked');
   results.push({
     section: c.section,
     headline: c.headline,
     command: `node ${c.command.join(' ')}`,
-    numerator: parsed.numerator ?? 'unparsed',
-    denominator: parsed.denominator ?? 'unparsed',
+    numerator: blocked ? 'NOT VERIFIED — the production half did not run' : (parsed.numerator ?? 'unparsed'),
+    denominator: blocked ? 'no denominator: nothing was measured' : (parsed.denominator ?? 'unparsed'),
     commit,
     environment: ENV,
-    measurement: parsed.measurement ?? c.measurement,
+    measurement: blocked ? 'credential_blocked' : (parsed.measurement ?? c.measurement),
     exit_code: r.status,
-    result: parsed.measurement === 'credential_blocked' ? 'NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL'
+    result: blocked ? 'NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL'
       : r.status === 0 ? 'PASS' : 'FAIL',
-    detail: parsed.detail ?? null,
+    detail: blocked ? null : (parsed.detail ?? null),
   });
 }
 
