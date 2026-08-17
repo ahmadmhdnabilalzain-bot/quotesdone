@@ -1348,3 +1348,4 @@ scripts/sql/pacr_002_pbcr_001_baseline_rerecord.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/kernel_k16_signal_service.sql
