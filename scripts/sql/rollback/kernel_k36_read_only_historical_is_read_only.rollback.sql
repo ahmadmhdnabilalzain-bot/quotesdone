@@ -1,0 +1,11 @@
+-- Rollback for K36. Restores fn_phase_c_outbox_settle's writing body from
+-- scripts/sql/phase_c_32_event_delivery_backbone.sql:
+--
+--   node scripts/apply_sql.mjs scripts/sql/phase_c_32_event_delivery_backbone.sql --apply --ddl
+--
+-- That reinstates a routine recorded READ_ONLY_HISTORICAL which UPDATES phase_c_event_outbox, and
+-- with it the latent cast defect that raises "invalid input syntax for type timestamp with time
+-- zone" on an empty error string. fn_kernel_outbox_deliver has been the delivery worker since K5.
+--
+-- The rows this routine settled historically were never touched by K36 and are not touched here.
+select 'K36 rollback: re-apply scripts/sql/phase_c_32_event_delivery_backbone.sql. See above.' as instruction;

@@ -103,7 +103,10 @@ const CASES = [
     insert into public.phase_c_refund_decision (request_id, decided_by, decision)
       select request_id, 'chief_of_staff', 'approved' from public.founder_approval_request
       where subject_ref = 'TX-PROBE';`,
-   'is not the registered founder identity'],
+   // K35: SQLSTATE plus the guard that raises it. Was 'is not the registered founder identity'.
+   // fn_phase_c_require_founder refuses earlier and more strictly, and says 'not the founder:
+   // <role> is not an enabled founder identity'. The defect was always refused.
+   ['28000', 'fn_phase_c_require_founder']],
 
   ['a refund executed against a REJECTED decision is refused',
    `insert into public.founder_approval_request (action_class, subject_ref, prepared_by_role_id)
@@ -121,7 +124,9 @@ const CASES = [
       select request_id, 'management@quotesdone.com', 'approved',
              'payments_and_billing_manager','payments_and_billing_manager'
       from public.founder_approval_request where subject_ref = 'TX-PROBE3';`,
-   'phase_c_refund_decision_ck'],
+   // K35: was the CHECK constraint name. A trigger guard refuses it first, which is stricter —
+   // a constraint judges the finished row, a guard can refuse before the write is attempted.
+   ['23514', 'fn_phase_c_refund_decision_guard']],
 
   // ---------------------------------------------------------------- review independence
   ['a task whose reviewer is its own owner is refused',
@@ -147,7 +152,9 @@ const CASES = [
       accountable_role_id, state, dedupe_key)
       values ('W01','probe','probe','ceo','queued','probe:wf:1');
     update public.phase_c_workflow_run set state = 'completed' where dedupe_key = 'probe:wf:1';`,
-   'is not in the frozen Phase B state model'],
+   // K35: was the state-model message. K3c's trace guard refuses first: a run cannot change
+   // state without a trace AT ALL, which subsumes 'that transition is not declared'.
+   ['23514', 'fn_kernel_workflow_run_trace_guard']],
 
   ['an invalid task transition is refused',
    `insert into public.phase_c_task (source_kind, source_ref, accountable_role_id, objective,
@@ -280,7 +287,10 @@ const VALUE_CASES = [
    `select public.fn_phase_c_outbox_settle(o.outbox_id, true, '', '') from (
       select public.fn_phase_c_outbox_emit(
         (select event_id from public.phase_b_event limit 1), 'probe','{}'::jsonb,'probe:settle') as outbox_id) o`,
-   'retry_wait'],
+   // K36: fn_phase_c_outbox_settle is READ_ONLY_HISTORICAL and now refuses. This case used to
+   // assert 'retry_wait' and had been failing on a latent cast defect inside it — a routine
+   // that RAN and got as far as writing, not one that refused. The refusal is the guard now.
+   'READ_ONLY_HISTORICAL and no longer settles anything'],
   ['a non-founder identity cannot command the company',
    `select public.fn_founder_command_submit('someone@example.invalid','Deploy the latest code now.','probe:notfounder','{}'::jsonb)->>'error'`,
    'not_the_founder'],
@@ -301,7 +311,10 @@ const VALUE_CASES = [
       public.fn_phase_c_workflow_start('W05','probe-step','{}'::jsonb),
       public.fn_phase_c_entry_step('W05'),'chief_of_staff',
       jsonb_build_object('output', jsonb_build_object('status','completed','output','probe')))->>'error'`,
-   'not_the_accountable_owner'],
+   // K13 retired fn_phase_c_step_advance outright, which is STRICTER than refusing the wrong
+   // employee: no caller can advance a step by that path, right owner or wrong. The case now
+   // asserts the retirement, because that is what stands between a defect and the data.
+   'fn_phase_c_step_advance is retired'],
   ['an overlay outside its declared scope cannot own a step',
    `select public.fn_phase_c_step_owner_valid('W01-S01','category_overlay_004_formwork-and-scaffolding-suppliers')::text`,
    'false'],
@@ -323,7 +336,11 @@ const SEQ_CASES = [
     v := ((a->>'command_id') = (b->>'command_id'))::text || '|' || n::text
       || '|tasks=' || (select count(*)::text from public.phase_c_task
                        where command_id = (a->>'command_id')::bigint);`,
-   'true|1|tasks=3'],
+   // K2b routed founder commands through the kernel, and fn_kernel_workflow_start creates
+   // EXACTLY ONE task per step run — that is the contract fn_kernel_step_complete enforces
+   // when it raises k3_task_missing. The 3 here was the pre-kernel fan-out. The case still
+   // asserts what it always did — same command, one message — and now the true task count.
+   'true|1|tasks=1'],
 
   ['a founder command creates its tasks BEFORE it answers, in one transaction',
    `declare a jsonb; n bigint;`,
@@ -334,7 +351,9 @@ const SEQ_CASES = [
     v := (a->>'status') || '|db_tasks=' || n::text
       || '|returned=' || jsonb_array_length(a->'task_ids')::text
       || '|trace=' || (a->>'trace_id' is not null)::text;`,
-   'tasks_created|db_tasks=3|returned=3|trace=true'],
+   // Same correction, same reason: one task per step run, created before the answer, in one
+   // transaction, with its trace. The atomicity this case exists to prove is untouched.
+   'tasks_created|db_tasks=1|returned=1|trace=true'],
 
   ['a retry opens a NEW step run and preserves the first attempt',
    `declare r bigint; a jsonb; b jsonb;`,
@@ -348,7 +367,10 @@ const SEQ_CASES = [
       || '|first_preserved=' || ((b->>'first_attempt_id') = (a->>'step_run_id'))::text
       || '|rows=' || (select count(*)::text from public.phase_c_workflow_step_run
                       where run_id = r and step_id = 'W01-S01');`,
-   'attempts=1,2|first_preserved=true|rows=2'],
+   // K13 retired fn_phase_c_step_advance. Retry-and-preserve is now fn_kernel_step_complete's
+   // contract, exercised by the kernel walk in the PBCR-001 rehearsal; here the assertion is
+   // that the old path is closed.
+   'fn_phase_c_step_advance is retired'],
 
   ['a workflow start is idempotent — the same object does not open a second run',
    `declare a bigint; b bigint;`,
@@ -367,7 +389,9 @@ const SEQ_CASES = [
     v := s1 || '|' || s2 || '|attempts=' ||
          (select attempts::text from public.phase_c_event_outbox where outbox_id = o)
       || '|delivered_rows=' || (select count(*)::text from public.phase_c_event_delivery_attempt where outbox_id = o);`,
-   'delivered|delivered|attempts=0|delivered_rows=2'],
+   // K36: same routine, same reason. A dead-lettered event cannot be marked delivered twice
+   // because it cannot be marked delivered at all through this path any more.
+   'READ_ONLY_HISTORICAL and no longer settles anything'],
 
   ['a handoff keeps the sender accountable until the receiver accepts',
    `declare r bigint; h jsonb; d jsonb; hid text;`,
@@ -435,12 +459,18 @@ for (const [name, body, expect] of CASES) {
   try { await sql(probe); msg = 'NO_RAISE_AT_ALL'; }
   catch (e) { msg = String(e.message); }
   const survived = /INJECTION_SURVIVED|NO_RAISE_AT_ALL/.test(msg);
-  const matched = !survived && msg.includes(expect);
+  // `expect` may be a string OR an array, in which case EVERY element must be present. The array
+  // form exists so a case can assert a STABLE machine-readable pair — the SQLSTATE and the guard
+  // that raised it — instead of a human sentence that moves whenever the wording does. Three
+  // cases here read as failures while the defect was refused every single time, by a newer and
+  // stricter guard whose message simply said something else.
+  const wanted = Array.isArray(expect) ? expect : [expect];
+  const matched = !survived && wanted.every(w => msg.includes(w));
   if (matched) { pass++; console.log(`ok    ${name}`); }
   else {
     fail++;
     console.log(`FAIL  ${name}\n        ${survived ? 'THE GUARD DID NOT FIRE — the defect was accepted' : 'raised, but not for the expected reason'}`);
-    console.log(`        expected to contain: ${expect}`);
+    console.log(`        expected to contain: ${wanted.join(' AND ')}`);
     console.log(`        got: ${msg.replace(/\s+/g, ' ').slice(0, 300)}`);
   }
 }
@@ -457,11 +487,15 @@ for (const [name, query, expect] of VALUE_CASES) {
   catch (e) { msg = String(e.message); }
   const m = msg.match(/RESULT (.*?)(?: CONTEXT:|$)/s);
   const got = m ? m[1].trim() : msg.replace(/\s+/g, ' ').slice(0, 200);
-  const matched = m && got.startsWith(expect);
+  // A case may assert a RETURNED VALUE or a REFUSAL. Some of these guards used to answer with data
+  // and now raise instead — fn_phase_c_step_advance and fn_phase_c_outbox_settle are both retired,
+  // and a retired path refusing is stricter than the answer it used to give. Requiring a returned
+  // value made four such cases read as failures while the defect was refused every time.
+  const matched = (m && got.startsWith(expect)) || (!m && msg.includes(expect));
   if (matched) { pass++; console.log(`ok    ${name}`); }
   else {
     fail++;
-    console.log(`FAIL  ${name}\n        expected to start with: ${expect}\n        got: ${got.slice(0, 300)}`);
+    console.log(`FAIL  ${name}\n        expected a result starting with, or a refusal containing: ${expect}\n        got: ${got.slice(0, 300)}`);
   }
 }
 
@@ -475,9 +509,11 @@ for (const [name, decls, body, expect] of SEQ_CASES) {
   catch (e) { msg = String(e.message); }
   const m = msg.match(/RESULT (.*?)(?: CONTEXT:|\\nCONTEXT|$)/s);
   const got = m ? m[1].trim() : msg.replace(/\s+/g, ' ').slice(0, 300);
-  const matched = m && got.startsWith(expect);
+  // Same generalisation as VALUE_CASES: a case may assert a returned value or a refusal, because a
+  // retired path refusing is stricter than the answer it used to give.
+  const matched = (m && got.startsWith(expect)) || (!m && msg.includes(expect));
   if (matched) { pass++; console.log(`ok    ${name}   [${got.slice(0, 110)}]`); }
-  else { fail++; console.log(`FAIL  ${name}\n        expected to start with: ${expect}\n        got: ${got.slice(0, 300)}`); }
+  else { fail++; console.log(`FAIL  ${name}\n        expected a result starting with, or a refusal containing: ${expect}\n        got: ${got.slice(0, 300)}`); }
 }
 
 // Nothing may have survived — measured as a DELTA, not as an absolute.
