@@ -22,8 +22,20 @@ if (!hasToken) {
 const { sql } = await import('../phase_c/lib/db.mjs');
 
 let fail = 0;
+// A zero numerator over a ZERO denominator is not a pass. "0 of 0" means the check had nothing to
+// look at, and printing `ok` for it is how a scorer with no input reports perfection — the shape
+// this estate has already paid for once, when pct(got, 0) returned 100 and a missing source file
+// scored a pack at 100%. It reports UNMEASURED, counted separately, and never as a failure either:
+// an empty population is not a defect, it is an absence of evidence, and the two must not be
+// confused in the direction that flatters us.
+let unmeasured = 0;
 const line = (name, num, den, note = '') => {
   const n = Number(num), d = Number(den);
+  if (d === 0) {
+    unmeasured++;
+    console.log(`n/a   ${name.padEnd(38)} 0 of 0 — NOTHING TO MEASURE, not a pass${note ? '   — ' + note : ''}`);
+    return;
+  }
   const ok = n === 0;
   if (!ok) fail++;
   console.log(`${ok ? 'ok  ' : 'FAIL'}  ${name.padEnd(38)} ${n} of ${d}${note ? '   — ' + note : ''}`);
@@ -63,8 +75,19 @@ const [b] = await sql(`
                left join public.phase_c_workflow_run r on r.run_id = t.run_id
                where coalesce(t.command_id, r.command_id) = fc.command_id
                  and t.idempotency_key like 'run:%:step:%') as has_run
-    from public.founder_command fc) x`);
-line('duplicate founder-command effect', b.num, b.den, 'both cmd:N:* and run:N:step:* work');
+    from public.founder_command fc
+     -- Split by the kernel epoch. Six of these are PRE-KERNEL duplicates, classified
+     -- HISTORICAL_DUPLICATE_EFFECT in phase_c_historical_repair with active_effect_now = false,
+     -- and preserved on purpose: §9 forbids deleting historical evidence. Counting them as a
+     -- CURRENT failure is the mirror of presenting history as compliance — both confuse what is
+     -- true now with what was true then. The current-state population is commands raised at or
+     -- after the kernel took over.
+     where fc.created_at >= (select min(started_at) from public.phase_c_kernel_epoch)) x`);
+const [bh] = await sql(`
+  select count(*) as n from public.phase_c_historical_repair
+   where classification = 'HISTORICAL_DUPLICATE_EFFECT'`);
+line('duplicate founder-command effect (since the kernel epoch)', b.num, b.den,
+     bh.n + ' preserved pre-kernel duplicates reported separately, never mixed in');
 
 // 3. ACTIVE STEP RUNS WITHOUT A TRACE. phase_c_workflow_step_run has no trace guard trigger — only
 //    phase_c_task does — so this is the one object that can be live and untraced in silence.
@@ -96,8 +119,17 @@ line('terminal objects with open trace', d.num, d.den);
 const [e] = await sql(`
   select count(*) filter (where tr.subject_kind = 'task' and tr.task_id is null) as num,
          count(*) as den
-    from public.phase_c_trace tr`);
-line('orphan traces (task, no task_id)', e.num, e.den);
+    from public.phase_c_trace tr
+   -- Same split, same reason. Seven orphan task traces are pre-kernel, classified
+   -- HISTORICAL_ORPHAN_TRACE and kept: the subject row is gone and there is no second source that
+   -- recorded what it was, so re-parenting one would mean choosing a subject for it. The current
+   -- population is traces written at or after the kernel epoch.
+   where tr.created_at >= (select min(started_at) from public.phase_c_kernel_epoch)`);
+const [eh] = await sql(`
+  select count(*) as n from public.phase_c_historical_repair
+   where classification = 'HISTORICAL_ORPHAN_TRACE'`);
+line('orphan traces since the kernel epoch (task, no task_id)', e.num, e.den,
+     eh.n + ' preserved pre-kernel orphan traces reported separately, never mixed in');
 
 // 6. OUTBOX ROWS WHOSE FAILURE FIELDS ARE UNREACHABLE. This one is a schema fact with a row-level
 //    consequence: while first_failure is text NOT NULL and next_attempt_at is NOT NULL, the
@@ -120,5 +152,8 @@ const [f] = await sql(`
 line('outbox failure fields unreachable', f.num, f.den,
      `first_failure_mistyped=${f.ff_bad} next_attempt_at_not_null=${f.na_bad}`);
 
-console.log(`\n${fail === 0 ? 'KERNEL INVARIANTS PASS' : `${fail} kernel invariant(s) failed`}`);
+// The unmeasured count is printed even when it is zero, so a reader never has to wonder whether
+// the line was omitted or the number was.
+console.log(`\n${fail === 0 ? 'KERNEL INVARIANTS PASS' : `${fail} kernel invariant(s) failed`}`
+  + `  (${unmeasured} unmeasured — an empty population is reported, never scored)`);
 process.exit(fail === 0 ? 0 : 1);
