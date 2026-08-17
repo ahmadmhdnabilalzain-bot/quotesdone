@@ -409,3 +409,56 @@ refund is inside the window the customer was promised at reveal and under the
 `customer_success / refund_within_window` threshold, live at **AED 2,000** — with no founder
 decision. The code states this as deliberate policy and it has never fired (`refunds` 0 rows). That
 is a commercial question about intent, not a technical one, so it is named and left.
+
+---
+
+## VERDICTS AFTER THE REPAIR — measured at `e8b03fd` on main
+
+The verdicts at the top of this file stand as the audit found them at `d15a03a`. These are the same
+two questions, re-asked after PR #434 merged.
+
+### PHASE_C_FINAL_ACCEPTANCE_PASS
+
+| requirement | measurement |
+|---|---|
+| component crosswalk parity | declarations **1801** = crosswalk **1801** = live **1801**, 23 columns, 0 incompatible |
+| one authoritative routine source-of-truth mechanism | engine **1014** canonical, 0 drift both ways; `application_source_of_truth` **0 across all seven lines**, its line 7 asserts agreement with the engine and was **forced to fail** before being trusted |
+| founder chain and command acceptance complete | **30/30** and **20/20** |
+| guards measured truthfully | **55/55** refused, 31 on a SQLSTATE + guard pair, 0 prose-only; **13/13** positive controls on a denominator with no undeclared filter |
+| all load-bearing runtime gates pass | §6A–§6J re-run green, including §6G now closed by execution: the outbox door and TRUNCATE both **REFUSED 42501** |
+| Phase A / B / C drift zero | `0` / `0` / `0` rows; Phase B errata 3 of 3 resolved |
+| OpenRouter requests zero | `llm_attempt` 0, `ai_usage` 0, `ai_cost_log` 0 rows; 8/8 routes held; `fn_os_paid_ai_allowed()` false |
+| paid inference cost USD 0.00 | **AED 0.00** |
+
+CI on main, run 32072519914 at `e8b03fd`: **all three jobs success**, including the export-parity
+step that was previously PR-exempt and had been red on main for three consecutive pushes.
+
+### PHASE_D_TEST_HARNESS_READY
+
+Final `npm test` on merged main: **287 tests, 279 pass, 8 fail, 0 skipped, 0 cancelled**
+(279 + 8 = 287); deno **16 passed, 0 failed**.
+
+| criterion | state |
+|---|---|
+| 1. no test uses the deleted staging project | **PASS** — 0 live references; the one mention is a comment above `PROJECTS = { production: … }` |
+| 2. management-API concurrency bounded | **PASS** — `--test-concurrency=1` plus an 8-attempt budget capped at 20s; **0 `429`** in the final run, against 10 |
+| 3. no nested untracked repository copy | **PASS** — `$WT` removed, discovery skip list empty, 57 node + 1 deno |
+| 4. Phase C-specific tests all green | **PASS** |
+| 5. Phase A/B frozen tests green | **PASS** — Phase B invariants 77/77, Phase B guards 20/20 |
+| 6. every remaining failure has a later-phase owner | **PASS** — see below |
+| 7. failure counts disjoint and reconciling | **PASS** |
+
+The 8 remaining failures, one primary cause each, none Phase C / Phase A / Phase B:
+
+| cause | n | tests |
+|---|---:|---|
+| ROW3_BACKLOG | 3 | `fn_org_role_violations is empty`, `the canonical organisation shape holds`, `every active role has tools…` — all three are one row: `product_ux_designer` has no tools, knowledge, authority or KPI. Role *content* is explicitly outside the Phase A freeze |
+| PRODUCT_DEFECT | 3 | the filler not reading alternatives from the `decision_log` row the gate wrote; decision trace `ids=<NULL>`; the author-is-not-reviewer trigger not refusing before the assertion below it |
+| KNOWLEDGE_PHASE | 1 | the packaged delivery names 24 departments against 10 live |
+| OTHER_WITH_EXPLANATION | 1 | `fn_action_invoke_rpc` has no active cron entry. This is Phase D's own subject — deterministic handler work — not a blocker on starting it |
+| MANAGEMENT_API_RATE_LIMIT | **0** | |
+| DELETED_STAGING_REFERENCE | **0** | |
+| PHASE_C_RUNTIME | **0** | |
+| PHASE_A_OR_B_REGRESSION | **0** | |
+| TEST_SETUP_DEFECT | **0** | |
+| **total** | **8** | |
