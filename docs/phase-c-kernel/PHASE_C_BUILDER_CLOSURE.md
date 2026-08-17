@@ -187,7 +187,18 @@ Clarification real UI caller present, same command ID retained (K9/K2c, unchange
    ("a delivery reported ok with NO downstream record") fails on `invalid input syntax for type
    timestamp with time zone: ""` — traced to the harness passing an empty string, not to
    `fn_phase_c_outbox_settle`, which uses a `case` expression and never casts `''`.
-5. **`edge:inquiry_intake` writes `inquiry_intake` and `customers`, never `inquiries`.** The intake
+5. **The cutover headline number is wrong, in the pessimistic direction, and was NOT fixed.**
+   `fn_kernel_trigger_state` still reports `active_autonomous_source_not_yet_routing_through_the_inbox :: 38 of 38` after eight database triggers were cut over and verified against `pg_proc`.
+   `v_kernel_trigger_source_derived` decides `routes_through_inbox` from a predicate that matches
+   only `fn_kernel_trigger_submit`. The cut-over triggers call `fn_kernel_source_emit` — the
+   canonical wrapper §3 authorises in as many words — and a class-B source reaches
+   `fn_kernel_signal_submit`. The predicate was written before either existed and has been
+   answering a narrower question than its own column name. It under-states progress rather than
+   overstating it, so nothing in this report rests on it; the per-source truth is in
+   `phase_c_source_cutover`, measured from `pg_proc`. **Fixing it means rewriting the view, and it
+   was left rather than half-applied at the end of a session.** It is the first thing to do next.
+
+6. **`edge:inquiry_intake` writes `inquiry_intake` and `customers`, never `inquiries`.** The intake
    draft does not become an inquiry in that function, so nothing there starts W05 today.
 
 ---
