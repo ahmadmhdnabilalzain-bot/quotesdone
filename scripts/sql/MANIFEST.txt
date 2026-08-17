@@ -1366,3 +1366,15 @@ scripts/sql/kernel_k24_trace_match_by_overlap.sql
 scripts/sql/kernel_k25_cutover_04_uncovered_tables.sql
 scripts/sql/kernel_k26_register_says_what_happened.sql
 scripts/sql/the_founder_has_a_name.sql
+scripts/sql/kernel_k29_cutover_05_final_signals.sql
+scripts/sql/kernel_k30_last_bypass_sources.sql
+scripts/sql/kernel_k31_goal_retirement.sql
+scripts/sql/kernel_k32_register_final_statuses.sql
+scripts/sql/kernel_k33_derived_view_knows_all_three_doors.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/kernel_k34_cutover_measure.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
