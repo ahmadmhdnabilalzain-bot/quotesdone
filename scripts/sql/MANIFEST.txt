@@ -1353,3 +1353,4 @@ scripts/sql/kernel_k17_source_cutover_register.sql
 scripts/sql/kernel_k17_source_cutover_seed.sql
 scripts/sql/kernel_k18_write_guard.sql
 scripts/sql/kernel_k19_source_emit.sql
+scripts/sql/kernel_k20_cutover_01_customer.sql

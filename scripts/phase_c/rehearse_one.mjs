@@ -23,7 +23,10 @@ try {
   process.exit(1);
 } catch (e) {
   const m = String(e.message);
-  const rehearsal = m.match(/REHEARSAL[\s\S]*?(?=\\nCONTEXT|\\nQUERY|"\}|$)/);
-  console.log(rehearsal ? rehearsal[0].replace(/\\n/g, '\n') : m.slice(0, 4000));
-  process.exit(m.includes('REHEARSAL') ? 0 : 1);
+  // The rehearsal block always raises with 'REHEARSAL ' + a space; matching bare /REHEARSAL/ once
+  // matched the word inside a fixture's own name and printed two lines of nothing.
+  const rehearsal = m.match(/REHEARSAL [\s\S]*?(?=\\nCONTEXT|\\nQUERY|"\}|$)/);
+  const looksLikeOurs = /REHEARSAL [A-Z0-9]/.test(m);
+  console.log(looksLikeOurs && rehearsal ? rehearsal[0].replace(/\\n/g, '\n') : m.slice(0, 4000));
+  process.exit(looksLikeOurs ? 0 : 1);
 }
