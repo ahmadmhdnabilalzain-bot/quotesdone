@@ -1349,3 +1349,5 @@ scripts/sql/pacr_002_pbcr_001_baseline_rerecord.sql
 
 [OK] Command outcome recorded
 scripts/sql/kernel_k16_signal_service.sql
+scripts/sql/kernel_k17_source_cutover_register.sql
+scripts/sql/kernel_k17_source_cutover_seed.sql
