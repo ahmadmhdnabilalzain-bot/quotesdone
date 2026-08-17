@@ -1383,3 +1383,7 @@ scripts/sql/kernel_k35_retired_paths_lose_the_service_grant.sql
 
 [OK] Command outcome recorded
 scripts/sql/kernel_k36_read_only_historical_is_read_only.sql
+scripts/sql/kernel_k37_guard_sees_the_real_caller.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
