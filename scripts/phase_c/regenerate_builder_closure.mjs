@@ -132,6 +132,17 @@ const CHECKS = [
   },
   {
     section: 'COMMAND CENTER',
+    headline: 'the Command Center entry point, over the surface the founder uses',
+    command: ['scripts/checks/phase_c_command_center_entry_point.test.mjs'],
+    measurement: 'production',
+    parse: out => ({
+      numerator: /COMMAND CENTER ENTRY POINT VERIFIED/.test(out) ? 'VERIFIED' : (out.match(/(d+) check(s) failed/) || ['?'])[1] + ' failed',
+      denominator: (out.match(/^ok /gm) || []).length + ' checks',
+      measurement: 'production',
+    }),
+  },
+  {
+    section: 'COMMAND CENTER',
     headline: 'command routing acceptance cases',
     command: ['scripts/checks/phase_c_command_acceptance.test.mjs'],
     measurement: 'production',

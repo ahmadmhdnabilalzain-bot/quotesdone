@@ -8,13 +8,13 @@ suite of 18 negative injections and 2 positive controls.
 
 | | |
 |---|---|
-| commit | `8617bc93bcaec8d1a177ace45ed041d12f99a786` |
-| branch | `fix/phase-c-acceptance-evidence-closure` |
-| tracked files modified at generation time | 7 |
+| commit | `ef061d2e27155ca68d82155b17bffa6afacc4171` |
+| branch | `fix/phase-c-command-center-entry-point-arity` |
+| tracked files modified at generation time | 4 |
 | project | `htdblwldjkcgjvmqkbeh` (the one project) |
 | zero-cost mode | `NO_PAID_AI=true OPENROUTER_DISABLED=true AI_PROVIDER_MODE=mock PHASE_D_EXTERNAL_EFFECT_MODE=mock` |
 | management credential present | yes |
-| headlines generated | 14 |
+| headlines generated | 15 |
 | headlines FAILED | **0** |
 | headlines CREDENTIAL_BLOCKED | **0** |
 
@@ -52,9 +52,11 @@ production half of that check did not run.
 | headline | numerator | denominator | measurement | result |
 |---|---|---|---|---|
 | the founder chain, end to end, asserted on normalised relationships | **30 checks passed** | 30 checks | production | **PASS** |
+| the Command Center entry point, over the surface the founder uses | **VERIFIED** | 54 checks | production | **PASS** |
 | command routing acceptance cases | **20 passed** | 20 cases | production | **PASS** |
 
 - `node scripts/checks/phase_c_founder_chain.test.mjs` → exit 0
+- `node scripts/checks/phase_c_command_center_entry_point.test.mjs` → exit 0
 - `node scripts/checks/phase_c_command_acceptance.test.mjs` → exit 0
 
 ---
