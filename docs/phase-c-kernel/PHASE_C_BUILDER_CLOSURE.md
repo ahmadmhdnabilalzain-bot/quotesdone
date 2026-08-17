@@ -8,9 +8,9 @@ suite of 18 negative injections and 2 positive controls.
 
 | | |
 |---|---|
-| commit | `ef061d2e27155ca68d82155b17bffa6afacc4171` |
-| branch | `fix/phase-c-command-center-entry-point-arity` |
-| tracked files modified at generation time | 4 |
+| commit | `d15a03a57a59069bef2a84a5e8073b7168db5e43` |
+| branch | `fix/phase-c-independent-acceptance-six` |
+| tracked files modified at generation time | 9 |
 | project | `htdblwldjkcgjvmqkbeh` (the one project) |
 | zero-cost mode | `NO_PAID_AI=true OPENROUTER_DISABLED=true AI_PROVIDER_MODE=mock PHASE_D_EXTERNAL_EFFECT_MODE=mock` |
 | management credential present | yes |
@@ -39,10 +39,10 @@ production half of that check did not run.
 
 | headline | numerator | denominator | measurement | result |
 |---|---|---|---|---|
-| one canonical file per routine, and it is what is deployed | **0 findings** | 1013 canonical routines | production | **PASS** |
+| one canonical file per routine, and it is what is deployed | **0 findings** | 1014 canonical routines | production | **PASS** |
 | the engine is the only canonicality system, and it refuses a forced conflict | **11 assertions passed** | one engine, one forced counterexample | production | **PASS** |
 
-- `node scripts/checks/canonical_routine_manifest.mjs --all` → exit 0  {"repo_definitions":1013,"canonical":1013,"repo_to_prod":"0","prod_to_repo":"0","conflicting":"0","ambiguous":"0","uncommitted_ddl":"0","manifest_gaps":"0"}
+- `node scripts/checks/canonical_routine_manifest.mjs --all` → exit 0  {"repo_definitions":1014,"canonical":1014,"repo_to_prod":"0","prod_to_repo":"0","conflicting":"0","ambiguous":"0","uncommitted_ddl":"0","manifest_gaps":"0"}
 - `node scripts/checks/canonical_routines.test.mjs` → exit 0
 
 ---

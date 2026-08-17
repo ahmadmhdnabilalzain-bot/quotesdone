@@ -53,20 +53,50 @@ export const LOOKS_LIKE_A_TEST = /\.(test|spec)\.[cm]?[jt]sx?$/;
 // every_test_file_is_run.test.mjs asserts against the same walk, so both sides stay consistent.
 const SKIP_DIRS = new Set(['.git', 'node_modules', '.next', 'dist', 'build', 'out', '.vercel', 'coverage', '.turbo', 'vendor']);
 
-function walk(dir, out = []) {
+// A DIRECTORY THAT CARRIES ITS OWN `.git` IS A DIFFERENT REPOSITORY, NOT PART OF THIS ONE.
+//
+// 17 AUG 2026. The independent acceptance measured this walk and it returned 96 node test files,
+// THIRTY-NINE of them out of `$WT/` — an untracked 159 MB copy of this repository dated 14 Aug,
+// sitting inside the working tree. `$WT` is not in SKIP_DIRS, so `npm test` was handing the runner
+// a second, stale copy of the estate's own gates. Among them:
+//
+//   $WT/scripts/checks/v3_runtime_behaviour.test.mjs:26
+//     const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh', staging: 'pglpqrhvozwepymcuunn' };
+//
+//   — a live reference to the Supabase project DELETED on 15 Aug 2026 — and a copy of
+//   sql_files_match_live.test.mjs, which this repository retired.
+//
+// CI never saw it because CI checks out clean; the developer machine did, and a check that is green
+// in CI and wrong locally is the same shape as the vendor/ problem this walk was already rewritten
+// once to fix. Naming `$WT` in SKIP_DIRS would fix today and not tomorrow. A nested checkout always
+// carries a `.git` entry — file (worktree pointer) or directory — so that is what is tested, and any
+// future copy under any name is excluded the moment it appears.
+const SKIPPED_NESTED = [];
+function isNestedRepo(dir) {
+  return fs.existsSync(path.join(dir, '.git'));
+}
+
+function walk(dir, out = [], root = dir) {
   let entries;
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return out; }
   for (const e of entries) {
     const full = path.join(dir, e.name);
-    if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) walk(full, out); }
-    else if (e.isFile()) out.push(full);
+    if (e.isDirectory()) {
+      if (SKIP_DIRS.has(e.name)) continue;
+      if (isNestedRepo(full)) { SKIPPED_NESTED.push(path.relative(root, full).split(path.sep).join('/')); continue; }
+      walk(full, out, root);
+    } else if (e.isFile()) out.push(full);
   }
   return out;
 }
 
+/** Nested checkouts excluded by the most recent discover(). Reported, never silently dropped. */
+export function nestedReposSkipped() { return [...SKIPPED_NESTED]; }
+
 export function discover(root = REPO) {
   const rel = (f) => path.relative(root, f).split(path.sep).join('/');
-  const all = walk(root).map(rel);
+  SKIPPED_NESTED.length = 0;
+  const all = walk(root, [], root).map(rel);
   return {
     node: all.filter((f) => NODE_TEST.test(f)).sort(),
     deno: all.filter((f) => DENO_TEST.test(f)).sort(),
@@ -82,8 +112,32 @@ function main() {
     process.exit(1);
   }
 
+  const nested = nestedReposSkipped();
+  if (nested.length) {
+    console.log(`EXCLUDED — nested checkout(s) inside the working tree, not part of this repository:`);
+    for (const n of nested) console.log(`  ${n}/`);
+    console.log(`  These carry their own .git. Delete them or move them outside the tree; they are`);
+    console.log(`  stale copies of this repository's own gates and one of them still names the`);
+    console.log(`  Supabase project deleted on 15 Aug 2026.\n`);
+  }
+
   console.log(`running ${node.length} node check file(s):\n  ${node.join('\n  ')}\n`);
-  const nodeRes = spawnSync(process.execPath, ['--test', ...node.map((f) => path.join(REPO, f))], { stdio: 'inherit', cwd: REPO });
+  // ONE AT A TIME, BECAUSE THE MANAGEMENT API IS THE SHARED RESOURCE.
+  //
+  // 17 AUG 2026. `node --test` defaults to one worker per CPU, and most of these files talk to the
+  // Supabase management API. The independent acceptance ran the suite and TEN of nineteen failures
+  // were `429 ThrottlerException: Too Many Requests` — on four different files, several after ~50
+  // seconds of waiting, and a different ten on a different run. Four of those files already carry
+  // their own 429 retry; the concurrency exhausted the budget anyway, which is what says the
+  // problem is here and not in the retry loops.
+  //
+  // A green suite is worth less than a slow one if red means "the API was busy". Serialising costs
+  // wall-clock and buys a deterministic answer. Raise it again only with a shared rate limiter in
+  // front of the API, not by hoping.
+  // ponytail: --test-concurrency=1, revisit when a shared limiter exists.
+  const nodeRes = spawnSync(process.execPath,
+    ['--test', '--test-concurrency=1', ...node.map((f) => path.join(REPO, f))],
+    { stdio: 'inherit', cwd: REPO });
   let status = nodeRes.status ?? 1;
 
   if (deno.length) {

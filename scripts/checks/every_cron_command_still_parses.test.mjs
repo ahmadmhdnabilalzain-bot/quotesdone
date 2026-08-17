@@ -51,7 +51,7 @@ async function q(sql, attempt = 0) {
     headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: sql }),
   });
-  if ((r.status === 429 || r.status >= 500) && attempt < 5) {
+  if ((r.status === 429 || r.status >= 500) && attempt < 8) {
     await new Promise((s) => setTimeout(s, 2000 * (attempt + 1)));
     return q(sql, attempt + 1);
   }

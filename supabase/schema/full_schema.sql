@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-16T23:26:24.221Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-17T21:08:03.945Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -124,6 +124,9 @@ CREATE SEQUENCE IF NOT EXISTS public.institutional_memory_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.internal_credential_audit_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.internal_credential_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.kb_revisions_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.kernel_adapter_failure_failure_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.kernel_maintenance_write_maintenance_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.kernel_signal_inbox_signal_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.kernel_trigger_inbox_inbox_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.knowledge_exam_questions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.knowledge_exam_results_id_seq;
@@ -172,7 +175,7 @@ CREATE SEQUENCE IF NOT EXISTS public.unsafe_block_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (539) =====\nCREATE TABLE IF NOT EXISTS public.action_class_gate (
+-- ===== TABLES (546) =====\nCREATE TABLE IF NOT EXISTS public.action_class_gate (
   action_class text NOT NULL,
   gate_action_class text,
   rationale text NOT NULL,
@@ -3309,6 +3312,29 @@ CREATE TABLE IF NOT EXISTS public.kb_usage_log (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.kernel_adapter_failure (
+  failure_id bigint DEFAULT nextval('kernel_adapter_failure_failure_id_seq'::regclass) NOT NULL,
+  at timestamp with time zone DEFAULT now() NOT NULL,
+  source_key text NOT NULL,
+  input jsonb NOT NULL,
+  sqlstate text NOT NULL,
+  message text NOT NULL,
+  call_stack text,
+  resolved_at timestamp with time zone,
+  resolution text
+);
+
+CREATE TABLE IF NOT EXISTS public.kernel_maintenance_write (
+  maintenance_id bigint DEFAULT nextval('kernel_maintenance_write_maintenance_id_seq'::regclass) NOT NULL,
+  at timestamp with time zone DEFAULT now() NOT NULL,
+  db_user text NOT NULL,
+  session_role text NOT NULL,
+  table_name text NOT NULL,
+  operation text NOT NULL,
+  reason text NOT NULL,
+  call_stack text NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.kernel_retired_path (
   path_name text NOT NULL,
   disposition text NOT NULL,
@@ -3328,6 +3354,39 @@ CREATE TABLE IF NOT EXISTS public.kernel_routine_ownership (
   source_file text,
   justification text,
   recorded_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.kernel_signal_inbox (
+  signal_id bigint DEFAULT nextval('kernel_signal_inbox_signal_id_seq'::regclass) NOT NULL,
+  source_type text NOT NULL,
+  source_id text NOT NULL,
+  workflow_run_id bigint,
+  signal_type text NOT NULL,
+  payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+  idempotency_key text NOT NULL,
+  correlation_id text,
+  causation_id text,
+  received_at timestamp with time zone DEFAULT now() NOT NULL,
+  status text DEFAULT 'received'::text NOT NULL,
+  refusal_reason text,
+  step_run_id bigint,
+  trace_id bigint,
+  result jsonb,
+  processed_at timestamp with time zone,
+  requested_by text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.kernel_signal_type (
+  signal_type text NOT NULL,
+  disposition text NOT NULL,
+  workflow_id text,
+  meaning text NOT NULL,
+  allowed_source_systems text[] DEFAULT '{}'::text[] NOT NULL,
+  system_actor_id text NOT NULL,
+  activation_state text DEFAULT 'inactive'::text NOT NULL,
+  registered_at timestamp with time zone DEFAULT now() NOT NULL,
+  activation_reason text,
+  activation_changed_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.kernel_trigger_inbox (
@@ -3381,6 +3440,13 @@ CREATE TABLE IF NOT EXISTS public.kernel_trigger_type (
   implementation_state text NOT NULL,
   accountable_note text NOT NULL,
   registered_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.kernel_write_authority (
+  routine_name text NOT NULL,
+  table_name text NOT NULL,
+  why text NOT NULL,
+  added_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.knowledge_domain (
@@ -4812,6 +4878,28 @@ CREATE TABLE IF NOT EXISTS public.phase_b_business_rule (
   rule_type text NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.phase_b_change_request (
+  change_request_id text NOT NULL,
+  founder_reference text NOT NULL,
+  raised_at timestamp with time zone DEFAULT now() NOT NULL,
+  observed_problem text NOT NULL,
+  evidence text NOT NULL,
+  current_workflow_step text NOT NULL,
+  proposed_change text NOT NULL,
+  affected_owners text NOT NULL,
+  state_machine_impact text NOT NULL,
+  gate_and_rule_impact text NOT NULL,
+  customer_supplier_impact text NOT NULL,
+  privacy_legal_financial_impact text NOT NULL,
+  backward_compatibility text NOT NULL,
+  founder_approval_required boolean NOT NULL,
+  founder_approved_by text,
+  founder_approved_at timestamp with time zone,
+  digest_subjects_moved text[] DEFAULT '{}'::text[] NOT NULL,
+  verification_plan text NOT NULL,
+  applied_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.phase_b_crosswalk (
   crosswalk_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   current_artifact_type text NOT NULL,
@@ -5171,7 +5259,8 @@ CREATE TABLE IF NOT EXISTS public.phase_c_event_outbox (
   step_run_id bigint,
   first_failure_reason text,
   last_sqlstate text,
-  max_attempts integer DEFAULT 5 NOT NULL
+  max_attempts integer DEFAULT 5 NOT NULL,
+  task_id bigint
 );
 
 CREATE TABLE IF NOT EXISTS public.phase_c_founder_identity (
@@ -5249,7 +5338,11 @@ CREATE TABLE IF NOT EXISTS public.phase_c_historical_repair (
   repair_action text NOT NULL,
   retrofit_label text DEFAULT ''::text NOT NULL,
   migration text NOT NULL,
-  classified_at timestamp with time zone DEFAULT now() NOT NULL
+  classified_at timestamp with time zone DEFAULT now() NOT NULL,
+  original_at timestamp with time zone,
+  kernel_cutover_at timestamp with time zone,
+  active_effect_now boolean,
+  cannot_reconstruct text
 );
 
 CREATE TABLE IF NOT EXISTS public.phase_c_kernel_epoch (
@@ -5341,6 +5434,29 @@ CREATE TABLE IF NOT EXISTS public.phase_c_rule_binding (
   deterministic_test_id text NOT NULL,
   connection_status text NOT NULL,
   evidence text DEFAULT ''::text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.phase_c_source_cutover (
+  source_component_id text NOT NULL,
+  source_type text NOT NULL,
+  source_class text NOT NULL,
+  current_entry_point text NOT NULL,
+  current_direct_side_effects text NOT NULL,
+  target_kernel_adapter text NOT NULL,
+  target_workflow text NOT NULL,
+  target_step_or_signal text NOT NULL,
+  accountable_role text,
+  system_actor text NOT NULL,
+  idempotency_key text NOT NULL,
+  trace_policy text NOT NULL,
+  current_activation text NOT NULL,
+  cutover_action text NOT NULL,
+  rollback text NOT NULL,
+  status text NOT NULL,
+  classification_reason text NOT NULL,
+  evidence text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL,
+  disposition_evidence text
 );
 
 CREATE TABLE IF NOT EXISTS public.phase_c_step_binding (
@@ -7223,11 +7339,16 @@ ALTER TABLE public.kb_operational_route_test ADD CONSTRAINT kb_operational_route
 ALTER TABLE public.kb_revisions ADD CONSTRAINT kb_revisions_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_route_scope_trigger ADD CONSTRAINT kb_route_scope_trigger_pkey PRIMARY KEY (catalog_num, trigger_scope);
 ALTER TABLE public.kb_usage_log ADD CONSTRAINT kb_usage_log_pkey PRIMARY KEY (id);
+ALTER TABLE public.kernel_adapter_failure ADD CONSTRAINT kernel_adapter_failure_pkey PRIMARY KEY (failure_id);
+ALTER TABLE public.kernel_maintenance_write ADD CONSTRAINT kernel_maintenance_write_pkey PRIMARY KEY (maintenance_id);
 ALTER TABLE public.kernel_retired_path ADD CONSTRAINT kernel_retired_path_pkey PRIMARY KEY (path_name);
 ALTER TABLE public.kernel_routine_ownership ADD CONSTRAINT kernel_routine_ownership_pk PRIMARY KEY (schema_name, routine_name, identity_args);
+ALTER TABLE public.kernel_signal_inbox ADD CONSTRAINT kernel_signal_inbox_pkey PRIMARY KEY (signal_id);
+ALTER TABLE public.kernel_signal_type ADD CONSTRAINT kernel_signal_type_pkey PRIMARY KEY (signal_type);
 ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_pkey PRIMARY KEY (inbox_id);
 ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_pkey PRIMARY KEY (source_key);
 ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_pkey PRIMARY KEY (trigger_type);
+ALTER TABLE public.kernel_write_authority ADD CONSTRAINT kernel_write_authority_pkey PRIMARY KEY (routine_name, table_name);
 ALTER TABLE public.knowledge_domain ADD CONSTRAINT knowledge_domain_pkey PRIMARY KEY (domain_key);
 ALTER TABLE public.knowledge_exam_questions ADD CONSTRAINT knowledge_exam_questions_pkey PRIMARY KEY (id);
 ALTER TABLE public.knowledge_exam_results ADD CONSTRAINT knowledge_exam_results_pkey PRIMARY KEY (id);
@@ -7332,6 +7453,7 @@ ALTER TABLE public.pdpl_requests ADD CONSTRAINT pdpl_requests_pkey PRIMARY KEY (
 ALTER TABLE public.phase1_rollback_log ADD CONSTRAINT phase1_rollback_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.phase_b_business_object ADD CONSTRAINT phase_b_business_object_pkey PRIMARY KEY (object_id);
 ALTER TABLE public.phase_b_business_rule ADD CONSTRAINT phase_b_business_rule_pkey PRIMARY KEY (rule_id);
+ALTER TABLE public.phase_b_change_request ADD CONSTRAINT phase_b_change_request_pkey PRIMARY KEY (change_request_id);
 ALTER TABLE public.phase_b_crosswalk ADD CONSTRAINT phase_b_crosswalk_pkey PRIMARY KEY (crosswalk_id);
 ALTER TABLE public.phase_b_dynamic_actor ADD CONSTRAINT phase_b_dynamic_actor_pkey PRIMARY KEY (actor_token);
 ALTER TABLE public.phase_b_event ADD CONSTRAINT phase_b_event_pkey PRIMARY KEY (event_id);
@@ -7373,6 +7495,7 @@ ALTER TABLE public.phase_c_refund_decision ADD CONSTRAINT phase_c_refund_decisio
 ALTER TABLE public.phase_c_reporting_authority ADD CONSTRAINT phase_c_reporting_authority_pkey PRIMARY KEY (canonical_role_id);
 ALTER TABLE public.phase_c_role_binding ADD CONSTRAINT phase_c_role_binding_pkey PRIMARY KEY (canonical_role_id);
 ALTER TABLE public.phase_c_rule_binding ADD CONSTRAINT phase_c_rule_binding_pkey PRIMARY KEY (rule_id);
+ALTER TABLE public.phase_c_source_cutover ADD CONSTRAINT phase_c_source_cutover_pkey PRIMARY KEY (source_component_id);
 ALTER TABLE public.phase_c_step_binding ADD CONSTRAINT phase_c_step_binding_pkey PRIMARY KEY (step_id);
 ALTER TABLE public.phase_c_step_completion ADD CONSTRAINT phase_c_step_completion_pkey PRIMARY KEY (completion_id);
 ALTER TABLE public.phase_c_system_actor ADD CONSTRAINT phase_c_system_actor_pkey PRIMARY KEY (system_actor_id);
@@ -7549,6 +7672,7 @@ ALTER TABLE public.inquiry_workstream_requirement ADD CONSTRAINT inquiry_workstr
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_sku_key UNIQUE (sku);
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_operational_route_route_key_key UNIQUE (route_key);
 ALTER TABLE public.kb_revisions ADD CONSTRAINT kb_revisions_entry_kind_entry_ref_version_key UNIQUE (entry_kind, entry_ref, version);
+ALTER TABLE public.kernel_signal_inbox ADD CONSTRAINT kernel_signal_inbox_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_idem_uk UNIQUE (idempotency_key);
 ALTER TABLE public.leads ADD CONSTRAINT leads_place_id_key UNIQUE (place_id);
 ALTER TABLE public.legal_checklist ADD CONSTRAINT legal_checklist_requirement_key UNIQUE (requirement);
@@ -7593,8 +7717,8 @@ ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_vari
 ALTER TABLE public.universal_objective ADD CONSTRAINT universal_objective_objective_key UNIQUE (objective);
 ALTER TABLE public.vt_results ADD CONSTRAINT vt_results_path_key UNIQUE (path);
 ALTER TABLE public.workflow_run ADD CONSTRAINT workflow_run_idempotency_key_key UNIQUE (idempotency_key);
-ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_workflow_run_id_step_no_key UNIQUE (workflow_run_id, step_no);
 ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_idempotency_key_key UNIQUE (idempotency_key);
+ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_workflow_run_id_step_no_key UNIQUE (workflow_run_id, step_no);
 ALTER TABLE public.action_class_gate ADD CONSTRAINT action_class_gate_known_gate CHECK (((gate_action_class IS NULL) OR (gate_action_class = ANY (ARRAY['ad_spend'::text, 'authentication_identity'::text, 'autonomy_framework'::text, 'destructive_data'::text, 'legal_commitment'::text, 'money_move'::text, 'production_deploy'::text, 'public_claim_publish'::text, 'secrets_security'::text, 'supplier_enforcement'::text]))));
 ALTER TABLE public.agent_action_kind_policy ADD CONSTRAINT agent_action_kind_policy_policy_check CHECK ((policy = ANY (ARRAY['auto'::text, 'founder'::text])));
 ALTER TABLE public.agent_chats ADD CONSTRAINT agent_chats_role_check CHECK ((role = ANY (ARRAY['user'::text, 'assistant'::text])));
@@ -7603,31 +7727,31 @@ ALTER TABLE public.agent_memory ADD CONSTRAINT agent_memory_horizon_check CHECK 
 ALTER TABLE public.agent_memory ADD CONSTRAINT agent_memory_horizon_chk CHECK ((horizon = ANY (ARRAY['short'::text, 'long'::text])));
 ALTER TABLE public.agent_remediation ADD CONSTRAINT agent_remediation_status_check CHECK ((status = ANY (ARRAY['open'::text, 'training'::text, 'retesting'::text, 'passed'::text, 'escalated'::text, 'abandoned'::text])));
 ALTER TABLE public.agent_reputation ADD CONSTRAINT agent_reputation_tier_check CHECK ((tier = ANY (ARRAY['probation'::text, 'standard'::text, 'trusted'::text, 'senior_trusted'::text, 'unmeasured'::text])));
-ALTER TABLE public.agent_tool ADD CONSTRAINT agent_tool_failure_behaviour_check CHECK ((failure_behaviour = ANY (ARRAY['fail_closed'::text, 'escalate'::text, 'degrade_with_caveat'::text])));
 ALTER TABLE public.agent_tool ADD CONSTRAINT agent_tool_backoff_check CHECK ((backoff = ANY (ARRAY['none'::text, 'fixed_1s'::text, 'exponential_2s'::text])));
-ALTER TABLE public.agent_tool ADD CONSTRAINT agent_tool_timeout_seconds_check CHECK (((timeout_seconds >= 1) AND (timeout_seconds <= 120)));
 ALTER TABLE public.agent_tool ADD CONSTRAINT agent_tool_min_authority_check CHECK ((min_authority = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
-ALTER TABLE public.agent_tool ADD CONSTRAINT agent_tool_max_attempts_check CHECK (((max_attempts >= 1) AND (max_attempts <= 5)));
+ALTER TABLE public.agent_tool ADD CONSTRAINT agent_tool_timeout_seconds_check CHECK (((timeout_seconds >= 1) AND (timeout_seconds <= 120)));
 ALTER TABLE public.agent_tool ADD CONSTRAINT agent_tool_kind_check CHECK ((kind = ANY (ARRAY['read'::text, 'write'::text])));
+ALTER TABLE public.agent_tool ADD CONSTRAINT agent_tool_failure_behaviour_check CHECK ((failure_behaviour = ANY (ARRAY['fail_closed'::text, 'escalate'::text, 'degrade_with_caveat'::text])));
 ALTER TABLE public.agent_tool ADD CONSTRAINT agent_tool_impl_kind_check CHECK ((impl_kind = ANY (ARRAY['rpc'::text, 'edge_function'::text, 'executor'::text])));
+ALTER TABLE public.agent_tool ADD CONSTRAINT agent_tool_max_attempts_check CHECK (((max_attempts >= 1) AND (max_attempts <= 5)));
 ALTER TABLE public.agent_tool ADD CONSTRAINT agent_tool_audit_behaviour_check CHECK ((audit_behaviour = ANY (ARRAY['trace'::text, 'trace_and_notify'::text])));
 ALTER TABLE public.agent_tool_call ADD CONSTRAINT agent_tool_call_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'ok_empty'::text, 'error'::text, 'timeout'::text, 'unavailable'::text, 'unauthorised'::text])));
 ALTER TABLE public.agent_training_attempt ADD CONSTRAINT agent_training_attempt_purpose_check CHECK ((purpose = ANY (ARRAY['practice'::text, 'retest'::text, 'drift_check'::text])));
-ALTER TABLE public.agent_training_case ADD CONSTRAINT agent_training_case_scope_type_check CHECK ((scope_type = ANY (ARRAY['role'::text, 'department'::text, 'category'::text, 'company'::text])));
 ALTER TABLE public.agent_training_case ADD CONSTRAINT agent_training_case_generation_check CHECK ((generation = ANY (ARRAY['V1'::text, 'V2'::text, 'V3'::text])));
-ALTER TABLE public.ai_governance_review ADD CONSTRAINT ai_governance_review_status_check CHECK ((status = ANY (ARRAY['open'::text, 'actioned'::text, 'accepted_risk'::text, 'closed'::text])));
+ALTER TABLE public.agent_training_case ADD CONSTRAINT agent_training_case_scope_type_check CHECK ((scope_type = ANY (ARRAY['role'::text, 'department'::text, 'category'::text, 'company'::text])));
 ALTER TABLE public.ai_governance_review ADD CONSTRAINT ai_governance_review_review_type_check CHECK ((review_type = ANY (ARRAY['safety'::text, 'ethics'::text, 'prompt_standard'::text, 'model_approval'::text, 'quality'::text, 'hallucination'::text, 'cost'::text, 'version'::text])));
 ALTER TABLE public.ai_governance_review ADD CONSTRAINT ai_governance_review_severity_check CHECK ((severity = ANY (ARRAY['info'::text, 'low'::text, 'medium'::text, 'high'::text, 'critical'::text])));
+ALTER TABLE public.ai_governance_review ADD CONSTRAINT ai_governance_review_status_check CHECK ((status = ANY (ARRAY['open'::text, 'actioned'::text, 'accepted_risk'::text, 'closed'::text])));
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_status_check CHECK ((status = ANY (ARRAY['open'::text, 'partial'::text, 'paid'::text, 'void'::text, 'duplicate_hold'::text])));
 ALTER TABLE public.artifact_review ADD CONSTRAINT artifact_review_verdict_check CHECK ((verdict = ANY (ARRAY['pass'::text, 'fail'::text, 'blocked'::text])));
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_recommendation_check CHECK ((recommendation = ANY (ARRAY['proceed'::text, 'proceed_with_conditions'::text, 'do_not_proceed'::text, 'abstain'::text])));
-ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_severity_check CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])));
 ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_status_check CHECK ((status = ANY (ARRAY['open'::text, 'investigating'::text, 'confirmed'::text, 'dismissed'::text, 'actioned'::text])));
+ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_severity_check CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])));
 ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_signal_type_check CHECK ((signal_type = ANY (ARRAY['fake_supplier'::text, 'scam_rfq'::text, 'fake_review'::text, 'brand_misuse'::text, 'reputation'::text, 'social'::text])));
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'closed'::text])));
 ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_layer_check CHECK ((layer = ANY (ARRAY['company'::text, 'profession'::text, 'state'::text, 'experience'::text])));
-ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_founder_response_check CHECK ((founder_response = ANY (ARRAY['accepted'::text, 'overruled'::text, 'modified'::text, NULL::text])));
 ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_stance_check CHECK ((stance = ANY (ARRAY['support'::text, 'concern'::text, 'recommend_against'::text])));
+ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_founder_response_check CHECK ((founder_response = ANY (ARRAY['accepted'::text, 'overruled'::text, 'modified'::text, NULL::text])));
 ALTER TABLE public.channel_directive ADD CONSTRAINT channel_directive_actor_type_check CHECK ((actor_type = ANY (ARRAY['supplier'::text, 'customer'::text])));
 ALTER TABLE public.company_calendar ADD CONSTRAINT company_calendar_kind_check CHECK ((kind = ANY (ARRAY['public_holiday'::text, 'religious'::text, 'compliance'::text, 'seasonality'::text, 'industry_event'::text, 'internal_rhythm'::text])));
 ALTER TABLE public.company_vision ADD CONSTRAINT company_vision_singleton CHECK ((id = 1));
@@ -7640,89 +7764,95 @@ ALTER TABLE public.control_mode_challenge ADD CONSTRAINT control_mode_challenge_
 ALTER TABLE public.control_mode_session ADD CONSTRAINT control_mode_session_mfa_method_ck CHECK ((mfa_method = 'control_mode_challenge'::text));
 ALTER TABLE public.critical_capability ADD CONSTRAINT critical_capability_test_kind_check CHECK ((test_kind = ANY (ARRAY['suite'::text, 'rpc_selftest'::text, 'scenario'::text, 'none'::text])));
 ALTER TABLE public.crm_stages ADD CONSTRAINT crm_stages_probability_check CHECK (((probability >= 0) AND (probability <= 100)));
-ALTER TABLE public.customer_calls ADD CONSTRAINT customer_calls_direction_check CHECK ((direction = ANY (ARRAY['inbound'::text, 'outbound'::text])));
 ALTER TABLE public.customer_calls ADD CONSTRAINT customer_calls_status_check CHECK ((status = ANY (ARRAY['completed'::text, 'missed'::text, 'voicemail'::text, 'failed'::text, 'scheduled'::text])));
+ALTER TABLE public.customer_calls ADD CONSTRAINT customer_calls_direction_check CHECK ((direction = ANY (ARRAY['inbound'::text, 'outbound'::text])));
 ALTER TABLE public.customers ADD CONSTRAINT customers_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
 ALTER TABLE public.department_objective ADD CONSTRAINT department_objective_status_check CHECK ((status = ANY (ARRAY['active'::text, 'superseded'::text, 'achieved'::text, 'dropped'::text])));
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_class_check CHECK (((kpi_class IS NULL) OR (kpi_class = ANY (ARRAY['activity'::text, 'leading_indicator'::text, 'quality_metric'::text, 'conversion'::text, 'revenue'::text, 'cost'::text, 'risk'::text]))));
 ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_severity_check CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
 ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_change_class_check CHECK ((change_class = ANY (ARRAY['knowledge'::text, 'process'::text, 'code'::text, 'policy'::text, 'model_routing'::text, 'org'::text, 'prompting'::text])));
-ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'accepted'::text, 'rejected'::text, 'implemented'::text])));
 ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_trigger_kind_check CHECK ((trigger_kind = ANY (ARRAY['repeated_failure'::text, 'metric_off_target'::text, 'cost_anomaly'::text, 'manual'::text, 'audit_gap'::text, 'review_rejection'::text, 'prompt_unmeasured'::text])));
+ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'accepted'::text, 'rejected'::text, 'implemented'::text])));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_status_check CHECK ((status = ANY (ARRAY['active'::text, 'fully_depreciated'::text, 'disposed'::text])));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_useful_life_months_check CHECK ((useful_life_months > 0));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_method_check CHECK ((method = 'straight_line'::text));
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_cost_check CHECK ((cost >= (0)::numeric));
 ALTER TABLE public.field_definition ADD CONSTRAINT fd_shared_carries_no_trade CHECK (((scope <> 'shared'::text) OR (trade_key IS NULL)));
-ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_scope_check CHECK ((scope = ANY (ARRAY['shared'::text, 'trade_specific'::text, 'trade_subset'::text])));
-ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_review_status_check CHECK ((review_status = ANY (ARRAY['approved'::text, 'question_for_founder'::text])));
 ALTER TABLE public.field_definition ADD CONSTRAINT fd_trade_specific_has_trade CHECK (((scope <> 'trade_specific'::text) OR (trade_key IS NOT NULL)));
+ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_review_status_check CHECK ((review_status = ANY (ARRAY['approved'::text, 'question_for_founder'::text])));
+ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_scope_check CHECK ((scope = ANY (ARRAY['shared'::text, 'trade_specific'::text, 'trade_subset'::text])));
 ALTER TABLE public.field_definition ADD CONSTRAINT fd_subset_carries_no_trade CHECK (((scope <> 'trade_subset'::text) OR (trade_key IS NULL)));
-ALTER TABLE public.founder_approval_request ADD CONSTRAINT founder_approval_request_refund_only_ck CHECK ((action_class = 'refund_decision'::text));
 ALTER TABLE public.founder_approval_request ADD CONSTRAINT founder_approval_request_state_ck CHECK ((state = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'withdrawn'::text])));
+ALTER TABLE public.founder_approval_request ADD CONSTRAINT founder_approval_request_refund_only_ck CHECK ((action_class = 'refund_decision'::text));
 ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_owner_ck CHECK ((command_owner_role_id = 'chief_of_staff'::text));
 ALTER TABLE public.founder_command_plan ADD CONSTRAINT founder_command_plan_state_ck CHECK ((state = ANY (ARRAY['active'::text, 'cancelled'::text, 'superseded'::text, 'completed'::text])));
 ALTER TABLE public.founder_command_plan_item ADD CONSTRAINT founder_command_plan_item_kind_ck CHECK ((item_kind = ANY (ARRAY['primary'::text, 'contribution'::text])));
-ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_normal_balance_check CHECK ((normal_balance = ANY (ARRAY['D'::bpchar, 'C'::bpchar])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_type_check CHECK ((type = ANY (ARRAY['asset'::text, 'liability'::text, 'equity'::text, 'revenue'::text, 'expense'::text])));
+ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_normal_balance_check CHECK ((normal_balance = ANY (ARRAY['D'::bpchar, 'C'::bpchar])));
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'posted'::text, 'void'::text])));
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_credit_check CHECK ((credit >= (0)::numeric));
-ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_debit_check CHECK ((debit >= (0)::numeric));
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_line_one_side CHECK (((debit = (0)::numeric) <> (credit = (0)::numeric)));
+ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_debit_check CHECK ((debit >= (0)::numeric));
 ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_domain_check CHECK ((domain = ANY (ARRAY['ethics'::text, 'privacy'::text, 'audit'::text, 'retention'::text, 'approval'::text, 'security'::text, 'compliance'::text])));
 ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_enforcement_check CHECK ((enforcement = ANY (ARRAY['code'::text, 'database'::text, 'process'::text, 'declared'::text])));
-ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_return_status_check CHECK ((return_status = ANY (ARRAY['accepted'::text, 'rejected'::text, 'rejected_incomplete'::text, 'returned_for_correction'::text, 'closed'::text])));
-ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_closure_criteria_check CHECK ((cardinality(closure_criteria) >= 1));
 ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_escalation_conditions_check CHECK ((btrim(escalation_conditions) <> ''::text));
-ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_evidence_check CHECK ((jsonb_typeof(evidence) = 'array'::text));
 ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_purpose_check CHECK ((length(btrim(purpose)) >= 10));
-ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_requested_action_check CHECK ((length(btrim(requested_action)) >= 10));
-ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_status_check CHECK ((status = ANY (ARRAY['open'::text, 'accepted'::text, 'rejected'::text, 'returned'::text, 'closed'::text])));
+ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_evidence_check CHECK ((jsonb_typeof(evidence) = 'array'::text));
+ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_closure_criteria_check CHECK ((cardinality(closure_criteria) >= 1));
 ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_to_role_check CHECK ((btrim(to_role) <> ''::text));
+ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_status_check CHECK ((status = ANY (ARRAY['open'::text, 'accepted'::text, 'rejected'::text, 'returned'::text, 'closed'::text])));
+ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_return_status_check CHECK ((return_status = ANY (ARRAY['accepted'::text, 'rejected'::text, 'rejected_incomplete'::text, 'returned_for_correction'::text, 'closed'::text])));
+ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_requested_action_check CHECK ((length(btrim(requested_action)) >= 10));
 ALTER TABLE public.inquiry_answer ADD CONSTRAINT inquiry_answer_scope_check CHECK ((scope = ANY (ARRAY['inquiry_shared'::text, 'trade_specific'::text, 'trade_subset'::text])));
 ALTER TABLE public.inquiry_answer ADD CONSTRAINT inquiry_answer_source_kind_check CHECK ((source_kind = ANY (ARRAY['customer'::text, 'document'::text, 'deterministic'::text, 'model'::text])));
-ALTER TABLE public.inquiry_answer_conflict ADD CONSTRAINT iac_resolution_is_explained CHECK (((resolved_at IS NULL) OR ((COALESCE(btrim(resolved_by), ''::text) <> ''::text) AND (COALESCE(btrim(resolution_reason), ''::text) <> ''::text))));
 ALTER TABLE public.inquiry_answer_conflict ADD CONSTRAINT inquiry_answer_conflict_blocking_scope_check CHECK ((blocking_scope = ANY (ARRAY['shared'::text, 'trade'::text])));
+ALTER TABLE public.inquiry_answer_conflict ADD CONSTRAINT iac_resolution_is_explained CHECK (((resolved_at IS NULL) OR ((COALESCE(btrim(resolved_by), ''::text) <> ''::text) AND (COALESCE(btrim(resolution_reason), ''::text) <> ''::text))));
 ALTER TABLE public.inquiry_gate_required ADD CONSTRAINT inquiry_gate_required_level_check CHECK ((level = ANY (ARRAY['group'::text, 'workstream'::text])));
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_similarity_fraction CHECK (((similarity IS NULL) OR ((similarity >= (0)::numeric) AND (similarity <= (1)::numeric))));
-ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_source_kind_check CHECK ((source_kind = ANY (ARRAY['customer_text'::text, 'structured_answer'::text, 'document_extraction'::text])));
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_confirmation_status_check CHECK ((confirmation_status = ANY (ARRAY['inferred'::text, 'confirmed'::text, 'rejected'::text])));
-ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_confidence_check CHECK (((evidence_score >= (0)::numeric) AND (evidence_score <= (1)::numeric)));
-ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_score_basis_check CHECK ((score_basis = ANY (ARRAY['rule_weight_provisional'::text, 'calibrated_frequency'::text, 'measured_probability'::text])));
+ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_source_kind_check CHECK ((source_kind = ANY (ARRAY['customer_text'::text, 'structured_answer'::text, 'document_extraction'::text])));
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'confirmed'::text, 'rejected'::text, 'inactive'::text])));
+ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_confidence_check CHECK (((evidence_score >= (0)::numeric) AND (evidence_score <= (1)::numeric)));
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_evidence_source_check CHECK ((evidence_source = ANY (ARRAY['structured_answer'::text, 'customer_text'::text, 'scope_rule'::text, 'alias'::text, 'document_extraction'::text])));
+ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_score_basis_check CHECK ((score_basis = ANY (ARRAY['rule_weight_provisional'::text, 'calibrated_frequency'::text, 'measured_probability'::text])));
 ALTER TABLE public.inquiry_trade_candidate_evidence ADD CONSTRAINT inquiry_trade_candidate_evidence_score_basis_check CHECK ((score_basis = ANY (ARRAY['rule_weight_provisional'::text, 'calibrated_frequency'::text, 'measured_probability'::text])));
 ALTER TABLE public.inquiry_workstream_group ADD CONSTRAINT inquiry_workstream_group_rfq_mode_check CHECK ((rfq_mode = ANY (ARRAY['coordinated'::text, 'linked'::text])));
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_context_check CHECK ((length(btrim(context)) > 2));
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_scope_check CHECK ((array_length(scope, 1) >= 1));
 ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_move_type_check CHECK ((move_type = ANY (ARRAY['in'::text, 'out'::text, 'adjust'::text])));
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_route_reg_coverage_chk CHECK ((regulatory_coverage_status = ANY (ARRAY['confirmed_none'::text, 'confirmed_covered'::text, 'incomplete'::text, 'requires_review'::text])));
+ALTER TABLE public.kernel_adapter_failure ADD CONSTRAINT kernel_adapter_failure_resolution_has_a_reason CHECK (((resolved_at IS NULL) OR (COALESCE(btrim(resolution), ''::text) <> ''::text)));
 ALTER TABLE public.kernel_retired_path ADD CONSTRAINT kernel_retired_path_disposition_check CHECK ((disposition = ANY (ARRAY['COMPATIBILITY_WRAPPER_TO_KERNEL'::text, 'READ_ONLY_HISTORICAL'::text, 'REVOKED'::text, 'DISABLED'::text, 'RETIRED'::text, 'REMOVED_AFTER_PROVEN_UNUSED'::text, 'KERNEL_INTERNAL_PRIMITIVE'::text])));
+ALTER TABLE public.kernel_routine_ownership ADD CONSTRAINT kernel_routine_ownership_class_ck CHECK ((ownership_class = ANY (ARRAY['QUOTESDONE_APPLICATION'::text, 'SUPABASE_MANAGED'::text, 'EXTENSION_MANAGED'::text, 'PLATFORM_INTERNAL'::text, 'HISTORICAL_APPLICATION'::text, 'INTENTIONALLY_UNTRACKED_WITH_JUSTIFICATION'::text])));
+ALTER TABLE public.kernel_routine_ownership ADD CONSTRAINT kernel_routine_ownership_justification_ck CHECK (((ownership_class = 'INTENTIONALLY_UNTRACKED_WITH_JUSTIFICATION'::text) = ((justification IS NOT NULL) AND (length(btrim(justification)) >= 60))));
 ALTER TABLE public.kernel_routine_ownership ADD CONSTRAINT kernel_routine_ownership_source_file_ck CHECK (((source_kind = ANY (ARRAY['MANIFEST'::text, 'TRACKED_SQL_OUTSIDE_MANIFEST'::text])) = (source_file IS NOT NULL)));
 ALTER TABLE public.kernel_routine_ownership ADD CONSTRAINT kernel_routine_ownership_source_ck CHECK ((source_kind = ANY (ARRAY['MANIFEST'::text, 'TRACKED_SQL_OUTSIDE_MANIFEST'::text, 'CATALOG'::text, 'NONE'::text])));
-ALTER TABLE public.kernel_routine_ownership ADD CONSTRAINT kernel_routine_ownership_justification_ck CHECK (((ownership_class = 'INTENTIONALLY_UNTRACKED_WITH_JUSTIFICATION'::text) = ((justification IS NOT NULL) AND (length(btrim(justification)) >= 60))));
-ALTER TABLE public.kernel_routine_ownership ADD CONSTRAINT kernel_routine_ownership_class_ck CHECK ((ownership_class = ANY (ARRAY['QUOTESDONE_APPLICATION'::text, 'SUPABASE_MANAGED'::text, 'EXTENSION_MANAGED'::text, 'PLATFORM_INTERNAL'::text, 'HISTORICAL_APPLICATION'::text, 'INTENTIONALLY_UNTRACKED_WITH_JUSTIFICATION'::text])));
-ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_duplicate_ck CHECK (((status <> 'duplicate'::text) OR (run_id IS NOT NULL)));
-ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_accepted_ck CHECK (((status <> 'accepted'::text) OR ((run_id IS NOT NULL) AND (trigger_type IS NOT NULL) AND (workflow_id IS NOT NULL) AND (business_object_id IS NOT NULL))));
+ALTER TABLE public.kernel_signal_inbox ADD CONSTRAINT kernel_signal_status_known CHECK ((status = ANY (ARRAY['received'::text, 'attached'::text, 'applied'::text, 'refused'::text])));
+ALTER TABLE public.kernel_signal_inbox ADD CONSTRAINT kernel_signal_refusal_has_a_reason CHECK (((status <> 'refused'::text) OR (COALESCE(btrim(refusal_reason), ''::text) <> ''::text)));
+ALTER TABLE public.kernel_signal_type ADD CONSTRAINT kernel_signal_disposition_known CHECK ((disposition = ANY (ARRAY['ATTACH_ONLY'::text, 'COMPLETE_STEP'::text, 'REVIEW_VERDICT'::text, 'CANCEL'::text])));
+ALTER TABLE public.kernel_signal_type ADD CONSTRAINT kernel_signal_activation_known CHECK ((activation_state = ANY (ARRAY['active'::text, 'inactive'::text])));
 ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_trace_ck CHECK (((status = 'pending'::text) OR (trace_id IS NOT NULL)));
-ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_status_ck CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'refused'::text, 'duplicate'::text, 'deferred'::text])));
-ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_source_class_ck CHECK ((source_class = ANY (ARRAY['customer_event'::text, 'supplier_event'::text, 'scheduled_event'::text, 'deadline_sla_event'::text, 'kpi_deviation_event'::text, 'system_health_event'::text, 'webhook_provider_event'::text, 'workflow_followup_event'::text])));
-ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_refused_no_run_ck CHECK (((status <> ALL (ARRAY['refused'::text, 'deferred'::text])) OR (run_id IS NULL)));
-ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_refusal_ck CHECK (((status = ANY (ARRAY['refused'::text, 'deferred'::text])) = (btrim(COALESCE(refusal_reason, ''::text)) <> ''::text)));
+ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_accepted_ck CHECK (((status <> 'accepted'::text) OR ((run_id IS NOT NULL) AND (trigger_type IS NOT NULL) AND (workflow_id IS NOT NULL) AND (business_object_id IS NOT NULL))));
+ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_duplicate_ck CHECK (((status <> 'duplicate'::text) OR (run_id IS NOT NULL)));
 ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_processed_ck CHECK (((status = 'pending'::text) = (processed_at IS NULL)));
-ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_state_ck CHECK ((connection_state = ANY (ARRAY['CONNECTED_ACTIVE'::text, 'CONNECTED_INACTIVE'::text, 'DEFERRED_HANDLER'::text, 'INTENTIONALLY_RETIRED'::text, 'HISTORICAL_ONLY'::text])));
-ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_kind_ck CHECK ((source_kind = ANY (ARRAY['cron_job'::text, 'database_trigger'::text, 'event_trigger'::text, 'edge_function'::text, 'frontend_path'::text])));
-ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_recorded_ck CHECK (((source_kind = ANY (ARRAY['edge_function'::text, 'frontend_path'::text])) OR ((recorded_active IS NULL) AND (recorded_creates_work IS NULL) AND (recorded_routes_through_inbox IS NULL))));
+ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_refusal_ck CHECK (((status = ANY (ARRAY['refused'::text, 'deferred'::text])) = (btrim(COALESCE(refusal_reason, ''::text)) <> ''::text)));
+ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_refused_no_run_ck CHECK (((status <> ALL (ARRAY['refused'::text, 'deferred'::text])) OR (run_id IS NULL)));
+ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_source_class_ck CHECK ((source_class = ANY (ARRAY['customer_event'::text, 'supplier_event'::text, 'scheduled_event'::text, 'deadline_sla_event'::text, 'kpi_deviation_event'::text, 'system_health_event'::text, 'webhook_provider_event'::text, 'workflow_followup_event'::text])));
+ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_status_ck CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'refused'::text, 'duplicate'::text, 'deferred'::text])));
 ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_evidence_ck CHECK ((btrim(evidence) <> ''::text));
-ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_connected_ck CHECK (((connection_state !~~ 'CONNECTED%'::text) OR (adapter_trigger_type IS NOT NULL)));
 ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_disposition_excl_ck CHECK (((disposition <> ALL (ARRAY['NOT_A_BUSINESS_TRIGGER'::text, 'FOUNDER_COMMAND_SURFACE'::text])) OR (adapter_trigger_type IS NULL)));
 ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_disposition_ck CHECK (((disposition IS NULL) OR (disposition = ANY (ARRAY['NOT_A_BUSINESS_TRIGGER'::text, 'NO_WORKFLOW_IN_REGISTRY'::text, 'FOUNDER_COMMAND_SURFACE'::text]))));
-ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_impl_ck CHECK ((implementation_state = ANY (ARRAY['LIVE_SENDER'::text, 'ADAPTER_READY_NO_LIVE_SENDER'::text, 'DEFERRED_HANDLER'::text])));
-ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_sources_ck CHECK ((COALESCE(array_length(allowed_source_systems, 1), 0) >= 1));
+ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_kind_ck CHECK ((source_kind = ANY (ARRAY['cron_job'::text, 'database_trigger'::text, 'event_trigger'::text, 'edge_function'::text, 'frontend_path'::text])));
+ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_recorded_ck CHECK (((source_kind = ANY (ARRAY['edge_function'::text, 'frontend_path'::text])) OR ((recorded_active IS NULL) AND (recorded_creates_work IS NULL) AND (recorded_routes_through_inbox IS NULL))));
+ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_connected_ck CHECK (((connection_state !~~ 'CONNECTED%'::text) OR (adapter_trigger_type IS NOT NULL)));
+ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_state_ck CHECK ((connection_state = ANY (ARRAY['CONNECTED_ACTIVE'::text, 'CONNECTED_INACTIVE'::text, 'DEFERRED_HANDLER'::text, 'INTENTIONALLY_RETIRED'::text, 'HISTORICAL_ONLY'::text])));
 ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_source_class_ck CHECK ((source_class = ANY (ARRAY['customer_event'::text, 'supplier_event'::text, 'scheduled_event'::text, 'deadline_sla_event'::text, 'kpi_deviation_event'::text, 'system_health_event'::text, 'webhook_provider_event'::text, 'workflow_followup_event'::text])));
-ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_shape_ck CHECK ((((implementation_state = 'DEFERRED_HANDLER'::text) AND (workflow_id IS NULL) AND (business_object_rule IS NULL) AND (activation_state = 'inactive'::text)) OR ((implementation_state <> 'DEFERRED_HANDLER'::text) AND (workflow_id IS NOT NULL) AND (btrim(COALESCE(business_object_rule, ''::text)) <> ''::text))));
-ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_note_ck CHECK ((btrim(accountable_note) <> ''::text));
+ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_sources_ck CHECK ((COALESCE(array_length(allowed_source_systems, 1), 0) >= 1));
 ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_activation_ck CHECK ((activation_state = ANY (ARRAY['active'::text, 'inactive'::text])));
+ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_impl_ck CHECK ((implementation_state = ANY (ARRAY['LIVE_SENDER'::text, 'ADAPTER_READY_NO_LIVE_SENDER'::text, 'DEFERRED_HANDLER'::text])));
+ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_note_ck CHECK ((btrim(accountable_note) <> ''::text));
+ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_shape_ck CHECK ((((implementation_state = 'DEFERRED_HANDLER'::text) AND (workflow_id IS NULL) AND (business_object_rule IS NULL) AND (activation_state = 'inactive'::text)) OR ((implementation_state <> 'DEFERRED_HANDLER'::text) AND (workflow_id IS NOT NULL) AND (btrim(COALESCE(business_object_rule, ''::text)) <> ''::text))));
+ALTER TABLE public.kernel_write_authority ADD CONSTRAINT kernel_write_authority_reason_is_not_a_label CHECK ((length(btrim(why)) >= 30));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_status_check CHECK ((status = ANY (ARRAY['running'::text, 'ok'::text, 'failed'::text, 'rolled_back'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_generation_check CHECK ((generation = ANY (ARRAY['V1'::text, 'V2'::text, 'V3'::text])));
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_table_name_check CHECK ((table_name = ANY (ARRAY['ops_knowledge'::text, 'agent_training_case'::text])));
@@ -7731,50 +7861,50 @@ ALTER TABLE public.leads ADD CONSTRAINT leads_locale_chk CHECK ((locale = ANY (A
 ALTER TABLE public.leads ADD CONSTRAINT leads_approved_implies_verified CHECK (((COALESCE(approval_status, ''::text) <> 'approved'::text) OR (COALESCE(verified, false) = true)));
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_attempt_no_check CHECK ((attempt_no >= 1));
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_class_matches_ok CHECK (((ok AND (class_key IS NULL)) OR ((NOT ok) AND (class_key IS NOT NULL))));
-ALTER TABLE public.llm_failure_class ADD CONSTRAINT llm_failure_class_retry_backoff_ms_check CHECK ((retry_backoff_ms >= 0));
-ALTER TABLE public.llm_failure_class ADD CONSTRAINT llm_failure_class_layer_check CHECK ((layer = ANY (ARRAY['provider'::text, 'transport'::text, 'contract'::text, 'tool'::text, 'retrieval'::text, 'database'::text, 'orchestration'::text, 'test_runner'::text, 'unknown'::text])));
 ALTER TABLE public.llm_failure_class ADD CONSTRAINT llm_failure_class_max_retries_check CHECK (((max_retries >= 0) AND (max_retries <= 5)));
+ALTER TABLE public.llm_failure_class ADD CONSTRAINT llm_failure_class_layer_check CHECK ((layer = ANY (ARRAY['provider'::text, 'transport'::text, 'contract'::text, 'tool'::text, 'retrieval'::text, 'database'::text, 'orchestration'::text, 'test_runner'::text, 'unknown'::text])));
+ALTER TABLE public.llm_failure_class ADD CONSTRAINT llm_failure_class_retry_backoff_ms_check CHECK ((retry_backoff_ms >= 0));
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_cooldown_seconds_check CHECK ((cooldown_seconds >= 30));
-ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_consecutive_failures_check CHECK ((consecutive_failures >= 0));
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_failure_threshold_check CHECK ((failure_threshold >= 1));
+ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_consecutive_failures_check CHECK ((consecutive_failures >= 0));
+ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_status_check CHECK ((status = ANY (ARRAY['open'::text, 'reviewed'::text, 'actioned'::text, 'dismissed'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_kind_check CHECK ((kind = ANY (ARRAY['competitor'::text, 'trend'::text, 'expansion'::text, 'regulatory'::text, 'other'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_impact_check CHECK ((impact = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
-ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_status_check CHECK ((status = ANY (ARRAY['open'::text, 'reviewed'::text, 'actioned'::text, 'dismissed'::text])));
-ALTER TABLE public.mep_subcategory_review ADD CONSTRAINT mep_subcategory_review_review_status_check CHECK ((review_status = ANY (ARRAY['approved'::text, 'question_for_founder'::text])));
 ALTER TABLE public.mep_subcategory_review ADD CONSTRAINT mep_subcategory_review_secondary_status_check CHECK ((secondary_status = ANY (ARRAY['none'::text, 'question_for_founder'::text, 'approved'::text])));
+ALTER TABLE public.mep_subcategory_review ADD CONSTRAINT mep_subcategory_review_review_status_check CHECK ((review_status = ANY (ARRAY['approved'::text, 'question_for_founder'::text])));
 ALTER TABLE public.mep_trade_pattern ADD CONSTRAINT mep_trade_pattern_lang_check CHECK ((lang = ANY (ARRAY['en'::text, 'ar'::text])));
 ALTER TABLE public.mep_trade_pattern ADD CONSTRAINT mep_trade_pattern_kind_check CHECK ((kind = ANY (ARRAY['trade_name'::text, 'trade_hint'::text, 'mep_anchor'::text, 'mep_full_phrase'::text, 'scope_full'::text, 'scope_container'::text, 'scope_only'::text])));
 ALTER TABLE public.messages ADD CONSTRAINT messages_sender_check CHECK ((sender = ANY (ARRAY['customer'::text, 'supplier'::text])));
-ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_domain_check CHECK ((domain = ANY (ARRAY['demand'::text, 'supply'::text, 'liquidity'::text, 'revenue'::text, 'quality'::text, 'cost'::text, 'ops'::text])));
 ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_direction_check CHECK ((direction = ANY (ARRAY['up'::text, 'down'::text])));
+ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_domain_check CHECK ((domain = ANY (ARRAY['demand'::text, 'supply'::text, 'liquidity'::text, 'revenue'::text, 'quality'::text, 'cost'::text, 'ops'::text])));
 ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_identity_scope_check CHECK ((scope = ANY (ARRAY['target_employee'::text, 'current_agent'::text])));
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_tier_check CHECK ((tier = ANY (ARRAY['small'::text, 'medium'::text, 'large'::text, 'xlarge'::text])));
 ALTER TABLE public.opportunity ADD CONSTRAINT opportunity_effort_check CHECK ((effort = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
 ALTER TABLE public.opportunity ADD CONSTRAINT opportunity_status_check CHECK ((status = ANY (ARRAY['open'::text, 'pursuing'::text, 'won'::text, 'dismissed'::text])));
-ALTER TABLE public.ops_knowledge ADD CONSTRAINT ops_knowledge_supersession_ck CHECK ((supersession_state = ANY (ARRAY['current'::text, 'superseded'::text, 'withdrawn'::text])));
 ALTER TABLE public.ops_knowledge ADD CONSTRAINT ops_knowledge_layer_ck CHECK (((layer IS NULL) OR (layer = ANY (ARRAY['company_core'::text, 'department_shared'::text, 'role_specific'::text, 'task_specific'::text, 'category_specialist'::text, 'validated_experience'::text, 'policy'::text, 'authority'::text, 'kpi'::text, 'decision_playbook'::text, 'case_training'::text, 'failure_mode'::text, 'remediation'::text, 'source_reference'::text]))));
-ALTER TABLE public.org_action_executor ADD CONSTRAINT org_action_executor_idem_chk CHECK (((idempotency_strategy IS NULL) OR (idempotency_strategy = ANY (ARRAY['natural_key'::text, 'request_hash'::text, 'external_id'::text, 'upsert_on_conflict'::text, 'none_read_only'::text]))));
+ALTER TABLE public.ops_knowledge ADD CONSTRAINT ops_knowledge_supersession_ck CHECK ((supersession_state = ANY (ARRAY['current'::text, 'superseded'::text, 'withdrawn'::text])));
 ALTER TABLE public.org_action_executor ADD CONSTRAINT org_action_executor_kind_check CHECK ((kind = ANY (ARRAY['rpc'::text, 'edge'::text])));
 ALTER TABLE public.org_action_executor ADD CONSTRAINT org_action_executor_risk_tier_chk CHECK ((risk_tier = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
+ALTER TABLE public.org_action_executor ADD CONSTRAINT org_action_executor_idem_chk CHECK (((idempotency_strategy IS NULL) OR (idempotency_strategy = ANY (ARRAY['natural_key'::text, 'request_hash'::text, 'external_id'::text, 'upsert_on_conflict'::text, 'none_read_only'::text]))));
 ALTER TABLE public.org_agents ADD CONSTRAINT org_agents_routing_tier_check CHECK (((routing_tier IS NULL) OR (routing_tier = ANY (ARRAY['director'::text, 'analyst_controller'::text, 'operations_specialist'::text, 'reviewer_auditor'::text]))));
 ALTER TABLE public.org_authority ADD CONSTRAINT org_authority_max_tier_check CHECK ((max_tier = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
 ALTER TABLE public.org_objectives ADD CONSTRAINT org_objectives_status_check CHECK ((status = ANY (ARRAY['open'::text, 'in_progress'::text, 'blocked'::text, 'done'::text, 'cancelled'::text])));
 ALTER TABLE public.org_onboarding ADD CONSTRAINT org_onboarding_status_check CHECK ((status = ANY (ARRAY['onboarding'::text, 'probation'::text, 'certified'::text, 'recert_due'::text])));
-ALTER TABLE public.org_role ADD CONSTRAINT org_role_authority_ck CHECK ((authority_level = ANY (ARRAY['advisory'::text, 'execute_low'::text, 'execute_medium'::text, 'execute_high'::text, 'stop_authority'::text])));
-ALTER TABLE public.org_role ADD CONSTRAINT org_role_status_ck CHECK ((status = ANY (ARRAY['active'::text, 'deferred'::text, 'retired'::text])));
-ALTER TABLE public.org_role ADD CONSTRAINT org_role_runtime_mode_ck CHECK ((runtime_mode = ANY (ARRAY['persistent_manager'::text, 'scheduled_manager'::text, 'event_driven_operator'::text, 'on_demand_specialist'::text, 'knowledge_overlay'::text, 'independent_reviewer'::text])));
 ALTER TABLE public.org_role ADD CONSTRAINT org_role_no_self_manage_ck CHECK ((manager_role_id IS DISTINCT FROM role_id));
+ALTER TABLE public.org_role ADD CONSTRAINT org_role_runtime_mode_ck CHECK ((runtime_mode = ANY (ARRAY['persistent_manager'::text, 'scheduled_manager'::text, 'event_driven_operator'::text, 'on_demand_specialist'::text, 'knowledge_overlay'::text, 'independent_reviewer'::text])));
+ALTER TABLE public.org_role ADD CONSTRAINT org_role_status_ck CHECK ((status = ANY (ARRAY['active'::text, 'deferred'::text, 'retired'::text])));
+ALTER TABLE public.org_role ADD CONSTRAINT org_role_authority_ck CHECK ((authority_level = ANY (ARRAY['advisory'::text, 'execute_low'::text, 'execute_medium'::text, 'execute_high'::text, 'stop_authority'::text])));
 ALTER TABLE public.org_role_alias ADD CONSTRAINT org_role_alias_kind_ck CHECK ((kind = ANY (ARRAY['legacy_agent_key'::text, 'legacy_role_id'::text, 'packaged_role_id'::text, 'title'::text, 'merged_role'::text])));
 ALTER TABLE public.org_role_committee ADD CONSTRAINT org_role_committee_seat_ck CHECK ((seat = ANY (ARRAY['chair'::text, 'member'::text, 'observer'::text, 'secretary'::text, 'standing_adviser'::text])));
-ALTER TABLE public.org_role_identity ADD CONSTRAINT org_role_identity_mapping_type_check CHECK ((mapping_type = ANY (ARRAY['one_to_one'::text, 'runtime_composite'::text, 'package_composite'::text, 'duplicate_role'::text, 'missing_runtime_agent'::text, 'obsolete_runtime_agent'::text, 'on_demand_specialist'::text, 'requires_split'::text, 'requires_merge'::text])));
-ALTER TABLE public.org_role_identity ADD CONSTRAINT org_role_identity_readiness_check CHECK ((readiness = ANY (ARRAY['knowledge_imported'::text, 'runtime_mapped'::text, 'tools_connected'::text, 'live_data_connected'::text, 'decision_trace_connected'::text, 'training_passed'::text, 'independent_certification_pending'::text, 'certified_for_defined_role_scope'::text, 'blocked'::text, 'restricted_to_advisory'::text])));
 ALTER TABLE public.org_role_identity ADD CONSTRAINT org_role_identity_archetype_check CHECK ((archetype = ANY (ARRAY['director'::text, 'operations-specialist'::text, 'analyst-controller'::text, 'reviewer-auditor'::text])));
-ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_tier_check CHECK ((tier = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
+ALTER TABLE public.org_role_identity ADD CONSTRAINT org_role_identity_readiness_check CHECK ((readiness = ANY (ARRAY['knowledge_imported'::text, 'runtime_mapped'::text, 'tools_connected'::text, 'live_data_connected'::text, 'decision_trace_connected'::text, 'training_passed'::text, 'independent_certification_pending'::text, 'certified_for_defined_role_scope'::text, 'blocked'::text, 'restricted_to_advisory'::text])));
+ALTER TABLE public.org_role_identity ADD CONSTRAINT org_role_identity_mapping_type_check CHECK ((mapping_type = ANY (ARRAY['one_to_one'::text, 'runtime_composite'::text, 'package_composite'::text, 'duplicate_role'::text, 'missing_runtime_agent'::text, 'obsolete_runtime_agent'::text, 'on_demand_specialist'::text, 'requires_split'::text, 'requires_merge'::text])));
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'assigned'::text, 'in_progress'::text, 'blocked'::text, 'done'::text, 'failed'::text, 'escalated'::text, 'cancelled'::text])));
+ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_tier_check CHECK ((tier = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
 ALTER TABLE public.org_workflow_ownership ADD CONSTRAINT org_workflow_ownership_reviewer_is_independent_ck CHECK (((independent_reviewer IS NULL) OR (independent_reviewer <> accountable_role_id)));
-ALTER TABLE public.os_interface ADD CONSTRAINT os_interface_planned_dated CHECK (((NOT COALESCE(planned, false)) OR (planned_until IS NOT NULL)));
-ALTER TABLE public.os_interface ADD CONSTRAINT os_interface_direction_check CHECK ((direction = ANY (ARRAY['input'::text, 'output'::text])));
 ALTER TABLE public.os_interface ADD CONSTRAINT os_interface_severity_check CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
+ALTER TABLE public.os_interface ADD CONSTRAINT os_interface_direction_check CHECK ((direction = ANY (ARRAY['input'::text, 'output'::text])));
+ALTER TABLE public.os_interface ADD CONSTRAINT os_interface_planned_dated CHECK (((NOT COALESCE(planned, false)) OR (planned_until IS NOT NULL)));
 ALTER TABLE public.os_knowledge_domain ADD CONSTRAINT os_knowledge_domain_ownership_check CHECK ((ownership = ANY (ARRAY['owns'::text, 'queries'::text])));
 ALTER TABLE public.os_objective ADD CONSTRAINT os_objective_horizon_check CHECK ((horizon = ANY (ARRAY['strategic'::text, 'annual'::text, 'quarterly'::text, 'weekly'::text, 'daily'::text])));
 ALTER TABLE public.os_open_access_log ADD CONSTRAINT os_open_access_log_state_ck CHECK ((state = ANY (ARRAY['open'::text, 'closed'::text])));
@@ -7782,121 +7912,131 @@ ALTER TABLE public.os_review ADD CONSTRAINT os_review_health_check CHECK ((healt
 ALTER TABLE public.os_settings_meta ADD CONSTRAINT os_settings_meta_type_check CHECK ((type = ANY (ARRAY['money'::text, 'int'::text, 'number'::text, 'bool'::text, 'text'::text, 'textarea'::text, 'html'::text, 'email'::text, 'phone'::text, 'csv'::text])));
 ALTER TABLE public.outcome_record ADD CONSTRAINT outcome_record_expected_direction_check CHECK ((expected_direction = ANY (ARRAY['up'::text, 'down'::text])));
 ALTER TABLE public.outcome_record ADD CONSTRAINT outcome_record_verdict_check CHECK ((verdict = ANY (ARRAY['pending'::text, 'improved'::text, 'no_change'::text, 'worse'::text, 'unmeasurable'::text])));
-ALTER TABLE public.p2c1_b7_case ADD CONSTRAINT p2c1_b7_case_root_cause_check CHECK ((root_cause = ANY (ARRAY['excluded_vs_by_others'::text, 'arabic_scope_modifier'::text, 'hvac_phrase_identification'::text, 'client_supplied_language'::text])));
 ALTER TABLE public.p2c1_b7_case ADD CONSTRAINT p2c1_b7_case_polarity_check CHECK ((polarity = ANY (ARRAY['positive'::text, 'negative'::text])));
+ALTER TABLE public.p2c1_b7_case ADD CONSTRAINT p2c1_b7_case_root_cause_check CHECK ((root_cause = ANY (ARRAY['excluded_vs_by_others'::text, 'arabic_scope_modifier'::text, 'hvac_phrase_identification'::text, 'client_supplied_language'::text])));
 ALTER TABLE public.p2c1_holdout_result_of_record ADD CONSTRAINT p2c1_holdout_result_of_record_status_check CHECK ((status = ANY (ARRAY['independent_holdout'::text, 'regression_suite'::text])));
 ALTER TABLE public.p2c1_holdout_seal ADD CONSTRAINT p2c1_holdout_seal_id_check CHECK ((id = 1));
 ALTER TABLE public.p2c1_lang_case ADD CONSTRAINT p2c1_lang_case_expect_status_check CHECK ((expect_status = ANY (ARRAY['confirmed'::text, 'proposed'::text, 'none'::text])));
 ALTER TABLE public.p2c1_scope_case ADD CONSTRAINT p2c1_scope_case_polarity_check CHECK ((polarity = ANY (ARRAY['positive'::text, 'negative'::text])));
 ALTER TABLE public.payment_dispute ADD CONSTRAINT payment_dispute_status_check CHECK ((status = ANY (ARRAY['needs_response'::text, 'under_review'::text, 'won'::text, 'lost'::text, 'warning_closed'::text, 'withdrawn'::text])));
 ALTER TABLE public.pdpl_requests ADD CONSTRAINT pdpl_requests_kind_check CHECK ((kind = ANY (ARRAY['export'::text, 'delete'::text])));
-ALTER TABLE public.phase1_rollback_log ADD CONSTRAINT phase1_rollback_log_tier_check CHECK ((tier = ANY (ARRAY['disarm'::text, 'rearm'::text, 'revert'::text, 'teardown'::text, 'rehearse'::text])));
 ALTER TABLE public.phase1_rollback_log ADD CONSTRAINT phase1_rollback_log_reason_check CHECK ((length(btrim(reason)) >= 8));
+ALTER TABLE public.phase1_rollback_log ADD CONSTRAINT phase1_rollback_log_tier_check CHECK ((tier = ANY (ARRAY['disarm'::text, 'rearm'::text, 'revert'::text, 'teardown'::text, 'rehearse'::text])));
+ALTER TABLE public.phase_b_change_request ADD CONSTRAINT phase_b_cr_approved_when_required CHECK (((NOT founder_approval_required) OR ((founder_approved_by IS NOT NULL) AND (founder_approved_at IS NOT NULL))));
 ALTER TABLE public.phase_b_crosswalk ADD CONSTRAINT phase_b_crosswalk_classification_known CHECK ((target_classification = ANY (ARRAY['CANONICAL_KEEP'::text, 'CANONICAL_BETTER_KEEP'::text, 'CANONICAL_PARTIAL'::text, 'DUPLICATE_PATH'::text, 'CONFLICTING_PATH'::text, 'DEAD_CODE'::text, 'UNOWNED'::text, 'OUT_OF_SCOPE'::text, 'PHASE_C_WIRING_GAP'::text])));
 ALTER TABLE public.phase_b_exception ADD CONSTRAINT phase_b_exception_independent_escalation CHECK ((escalation_owner_role_id <> detection_owner_role_id));
 ALTER TABLE public.phase_b_handoff ADD CONSTRAINT phase_b_handoff_two_parties CHECK ((sending_role_id <> receiving_role_id));
-ALTER TABLE public.phase_b_workflow ADD CONSTRAINT phase_b_workflow_status_known CHECK ((status = ANY (ARRAY['active'::text, 'superseded'::text])));
 ALTER TABLE public.phase_b_workflow ADD CONSTRAINT phase_b_workflow_owner_not_reviewer CHECK (((independent_reviewer_role_id IS NULL) OR (independent_reviewer_role_id <> accountable_role_id)));
-ALTER TABLE public.phase_b_workflow_step ADD CONSTRAINT phase_b_step_creator_not_reviewer CHECK (((independent_reviewer_role_id IS NULL) OR (independent_reviewer_role_id <> accountable_role_id)));
+ALTER TABLE public.phase_b_workflow ADD CONSTRAINT phase_b_workflow_status_known CHECK ((status = ANY (ARRAY['active'::text, 'superseded'::text])));
 ALTER TABLE public.phase_b_workflow_step ADD CONSTRAINT phase_b_step_actor_kind_known CHECK ((actor_kind = ANY (ARRAY['canonical_role'::text, 'founder'::text, 'category_overlay'::text])));
-ALTER TABLE public.phase_c_component ADD CONSTRAINT phase_c_component_accountable_ck CHECK (((NOT (mutates_state AND (activation_state <> ALL (ARRAY['inactive'::text, 'disabled'::text])))) OR ((accountable_role_id <> ''::text) AND (workflow_id <> ''::text))));
-ALTER TABLE public.phase_c_component ADD CONSTRAINT phase_c_component_classification_ck CHECK ((classification = ANY (ARRAY['ACTIVE_FRONTEND_ENTRY'::text, 'ACTIVE_EXTERNAL_API'::text, 'ACTIVE_WEBHOOK_ENTRY'::text, 'ACTIVE_CRON'::text, 'ACTIVE_INTERNAL_CALLER'::text, 'ACTIVE_DATABASE_TRIGGER'::text, 'ACTIVE_QUEUE_CONSUMER'::text, 'DEFERRED_RUNTIME_IMPLEMENTATION'::text, 'INTENTIONALLY_INACTIVE'::text, 'HISTORICAL_ONLY'::text, 'INTENTIONALLY_RETIRED'::text, 'CANONICAL_KEEP'::text, 'CANONICAL_BETTER_KEEP'::text, 'WIRE_TO_CANONICAL'::text, 'REPAIR_BEFORE_REACTIVATION'::text, 'INACTIVE_HISTORICAL'::text, 'NO_CALLER_UNCLASSIFIED'::text, 'ACTIVE_EVENT_TRIGGER'::text, 'ACTIVE_AUTH_HOOK'::text, 'ACTIVE_PUBLIC_ENTRY'::text, 'ACTIVE_SCRIPT_ENTRY'::text, 'ACCESS_CONTROLLED_NO_CALLER'::text])));
+ALTER TABLE public.phase_b_workflow_step ADD CONSTRAINT phase_b_step_creator_not_reviewer CHECK (((independent_reviewer_role_id IS NULL) OR (independent_reviewer_role_id <> accountable_role_id)));
 ALTER TABLE public.phase_c_component ADD CONSTRAINT phase_c_component_no_generic_owner_ck CHECK ((accountable_role_id <> ALL (ARRAY['Director'::text, 'director'::text, 'service_role'::text, 'pg_cron'::text, 'postgres'::text, 'system'::text, 'admin'::text, 'code_runner'::text, 'unknown'::text, ''::text])));
+ALTER TABLE public.phase_c_component ADD CONSTRAINT phase_c_component_classification_ck CHECK ((classification = ANY (ARRAY['ACTIVE_FRONTEND_ENTRY'::text, 'ACTIVE_EXTERNAL_API'::text, 'ACTIVE_WEBHOOK_ENTRY'::text, 'ACTIVE_CRON'::text, 'ACTIVE_INTERNAL_CALLER'::text, 'ACTIVE_DATABASE_TRIGGER'::text, 'ACTIVE_QUEUE_CONSUMER'::text, 'DEFERRED_RUNTIME_IMPLEMENTATION'::text, 'INTENTIONALLY_INACTIVE'::text, 'HISTORICAL_ONLY'::text, 'INTENTIONALLY_RETIRED'::text, 'CANONICAL_KEEP'::text, 'CANONICAL_BETTER_KEEP'::text, 'WIRE_TO_CANONICAL'::text, 'REPAIR_BEFORE_REACTIVATION'::text, 'INACTIVE_HISTORICAL'::text, 'NO_CALLER_UNCLASSIFIED'::text, 'ACTIVE_EVENT_TRIGGER'::text, 'ACTIVE_AUTH_HOOK'::text, 'ACTIVE_PUBLIC_ENTRY'::text, 'ACTIVE_SCRIPT_ENTRY'::text, 'ACCESS_CONTROLLED_NO_CALLER'::text])));
+ALTER TABLE public.phase_c_component ADD CONSTRAINT phase_c_component_accountable_ck CHECK (((NOT (mutates_state AND (activation_state <> ALL (ARRAY['inactive'::text, 'disabled'::text])))) OR ((accountable_role_id <> ''::text) AND (workflow_id <> ''::text))));
 ALTER TABLE public.phase_c_component_probe ADD CONSTRAINT phase_c_component_probe_evidence_ck CHECK ((evidence <> ''::text));
 ALTER TABLE public.phase_c_component_probe ADD CONSTRAINT phase_c_component_probe_vector_ck CHECK ((vector = ANY (ARRAY['http_deployed'::text, 'http_verify_jwt'::text, 'in_function_auth'::text, 'retired_stub'::text, 'frontend_caller'::text, 'script_caller'::text])));
-ALTER TABLE public.phase_c_component_trace_exemption ADD CONSTRAINT phase_c_component_trace_exemption_policy_ck CHECK ((exempt_to_policy = ANY (ARRAY['TRACE-MONITORING'::text, 'TRACE-INFRASTRUCTURE'::text])));
 ALTER TABLE public.phase_c_component_trace_exemption ADD CONSTRAINT phase_c_component_trace_exemption_reason_ck CHECK ((length(reason) >= 30));
 ALTER TABLE public.phase_c_component_trace_exemption ADD CONSTRAINT phase_c_component_trace_exemption_evidence_ck CHECK (((source_measurement <> ''::text) AND (k11_derivation <> ''::text)));
+ALTER TABLE public.phase_c_component_trace_exemption ADD CONSTRAINT phase_c_component_trace_exemption_policy_ck CHECK ((exempt_to_policy = ANY (ARRAY['TRACE-MONITORING'::text, 'TRACE-INFRASTRUCTURE'::text])));
 ALTER TABLE public.phase_c_event_binding ADD CONSTRAINT phase_c_event_binding_status_ck CHECK ((connection_status = ANY (ARRAY['CONNECTED'::text, 'DEFERRED_RUNTIME_IMPLEMENTATION'::text, 'INTENTIONALLY_INACTIVE'::text, 'HISTORICAL_ONLY'::text, 'BROKEN'::text])));
-ALTER TABLE public.phase_c_event_outbox ADD CONSTRAINT phase_c_event_outbox_status_ck CHECK ((status = ANY (ARRAY['pending'::text, 'claimed'::text, 'delivered'::text, 'retry_wait'::text, 'dead_letter'::text, 'superseded'::text])));
 ALTER TABLE public.phase_c_event_outbox ADD CONSTRAINT phase_c_event_outbox_kernel_identity_ck CHECK (((producer !~~ 'kernel:%'::text) OR ((correlation_id IS NOT NULL) AND (causation_id IS NOT NULL) AND (source_id IS NOT NULL))));
-ALTER TABLE public.phase_c_handoff_run ADD CONSTRAINT phase_c_handoff_run_status_ck CHECK ((status = ANY (ARRAY['open'::text, 'accepted'::text, 'rejected'::text, 'cancelled'::text, 'superseded'::text])));
+ALTER TABLE public.phase_c_event_outbox ADD CONSTRAINT phase_c_event_outbox_status_ck CHECK ((status = ANY (ARRAY['pending'::text, 'claimed'::text, 'delivered'::text, 'retry_wait'::text, 'dead_letter'::text, 'superseded'::text])));
 ALTER TABLE public.phase_c_handoff_run ADD CONSTRAINT phase_c_handoff_run_reject_ck CHECK (((status <> 'rejected'::text) OR ((rejection_reason <> ''::text) AND (missing_items <> ''::text) AND (return_owner_role_id <> ''::text))));
-ALTER TABLE public.phase_c_historical_repair ADD CONSTRAINT phase_c_historical_repair_class_ck CHECK (((classification IS NULL) OR (classification = ANY (ARRAY['HISTORICAL_DUPLICATE_EFFECT'::text, 'HISTORICAL_ORPHAN_TRACE'::text, 'HISTORICAL_STATE_TRACE_MISMATCH'::text, 'HISTORICAL_CANCEL_PROPAGATION_FAILURE'::text, 'VALID_HISTORICAL_RECORD'::text]))));
+ALTER TABLE public.phase_c_handoff_run ADD CONSTRAINT phase_c_handoff_run_status_ck CHECK ((status = ANY (ARRAY['open'::text, 'accepted'::text, 'rejected'::text, 'cancelled'::text, 'superseded'::text])));
 ALTER TABLE public.phase_c_historical_repair ADD CONSTRAINT phase_c_historical_repair_shape_ck CHECK ((((entry_kind = 'CLASSIFICATION'::text) = (classification IS NOT NULL)) AND ((entry_kind = 'RETROFIT'::text) = (retrofit_label <> ''::text))));
+ALTER TABLE public.phase_c_historical_repair ADD CONSTRAINT phase_c_historical_repair_class_ck CHECK (((classification IS NULL) OR (classification = ANY (ARRAY['HISTORICAL_DUPLICATE_EFFECT'::text, 'HISTORICAL_ORPHAN_TRACE'::text, 'HISTORICAL_STATE_TRACE_MISMATCH'::text, 'HISTORICAL_CANCEL_PROPAGATION_FAILURE'::text, 'VALID_HISTORICAL_RECORD'::text]))));
 ALTER TABLE public.phase_c_historical_repair ADD CONSTRAINT phase_c_historical_repair_entry_ck CHECK ((entry_kind = ANY (ARRAY['CLASSIFICATION'::text, 'RETROFIT'::text])));
 ALTER TABLE public.phase_c_kernel_epoch ADD CONSTRAINT phase_c_kernel_epoch_reason_ck CHECK ((length(reason) >= 20));
-ALTER TABLE public.phase_c_refund_decision ADD CONSTRAINT phase_c_refund_decision_ck CHECK (((decision = ANY (ARRAY['approved'::text, 'rejected'::text])) AND (executor_role_id <> reconciler_role_id)));
 ALTER TABLE public.phase_c_refund_decision ADD CONSTRAINT phase_c_refund_decision_supersession_ck CHECK (((supersedes_decision_id IS NULL) = (COALESCE(supersession_reason, ''::text) = ''::text)));
+ALTER TABLE public.phase_c_refund_decision ADD CONSTRAINT phase_c_refund_decision_ck CHECK (((decision = ANY (ARRAY['approved'::text, 'rejected'::text])) AND (executor_role_id <> reconciler_role_id)));
 ALTER TABLE public.phase_c_reporting_authority ADD CONSTRAINT phase_c_reporting_authority_role_class_check CHECK ((role_class = ANY (ARRAY['H'::text, 'O'::text, 'S'::text, 'R'::text])));
+ALTER TABLE public.phase_c_source_cutover ADD CONSTRAINT phase_c_source_activation_known CHECK ((current_activation = ANY (ARRAY['ACTIVE'::text, 'DISABLED'::text])));
+ALTER TABLE public.phase_c_source_cutover ADD CONSTRAINT phase_c_source_adapter_matches_class CHECK (
+CASE
+    WHEN (source_class = 'A NEW_WORK_REQUEST'::text) THEN (target_kernel_adapter = 'fn_kernel_trigger_submit'::text)
+    WHEN (source_class = 'B EXISTING_WORKFLOW_SIGNAL'::text) THEN (target_kernel_adapter = 'fn_kernel_signal_submit'::text)
+    ELSE (target_kernel_adapter !~~ 'fn_kernel%'::text)
+END);
+ALTER TABLE public.phase_c_source_cutover ADD CONSTRAINT phase_c_source_class_known CHECK ((source_class = ANY (ARRAY['A NEW_WORK_REQUEST'::text, 'B EXISTING_WORKFLOW_SIGNAL'::text, 'C READ_ONLY_MONITOR'::text, 'D RETIRE_OR_HISTORICAL'::text])));
+ALTER TABLE public.phase_c_source_cutover ADD CONSTRAINT phase_c_source_reason_is_not_a_label CHECK ((length(btrim(classification_reason)) >= 40));
 ALTER TABLE public.phase_c_step_binding ADD CONSTRAINT phase_c_step_binding_deferral_ck CHECK (((connection_status <> 'DEFERRED_RUNTIME_IMPLEMENTATION'::text) OR ((accountable_role_id <> ''::text) AND (canonical_runtime_handler <> ''::text) AND (phase_d_action <> ''::text))));
 ALTER TABLE public.phase_c_step_completion ADD CONSTRAINT phase_c_step_completion_outcome_ck CHECK ((outcome = ANY (ARRAY['pass'::text, 'fail'::text, 'block'::text])));
-ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_failure_ck CHECK (((result = 'failed'::text) = (COALESCE(failure, ''::text) <> ''::text)));
+ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_window_ck CHECK ((finished_at >= started_at));
 ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_nonempty_ck CHECK (((trigger_source <> ''::text) AND (authority_result <> ''::text) AND (state_before <> ''::text) AND (state_after <> ''::text) AND (correlation_id <> ''::text) AND (causation_id <> ''::text)));
 ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_result_ck CHECK ((result = ANY (ARRAY['succeeded'::text, 'failed'::text, 'refused'::text, 'no_op'::text])));
 ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_scope_ck CHECK (((COALESCE(workflow_id, ''::text) <> ''::text) OR (length(COALESCE(technical_scope, ''::text)) >= 20)));
-ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_window_ck CHECK ((finished_at >= started_at));
-ALTER TABLE public.phase_c_system_execution_wrapper ADD CONSTRAINT phase_c_system_execution_wrapper_not_self_ck CHECK ((original_command !~ 'fn_kernel_cron_exec'::text));
+ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_failure_ck CHECK (((result = 'failed'::text) = (COALESCE(failure, ''::text) <> ''::text)));
 ALTER TABLE public.phase_c_system_execution_wrapper ADD CONSTRAINT phase_c_system_execution_wrapper_cmd_ck CHECK ((original_command <> ''::text));
+ALTER TABLE public.phase_c_system_execution_wrapper ADD CONSTRAINT phase_c_system_execution_wrapper_not_self_ck CHECK ((original_command !~ 'fn_kernel_cron_exec'::text));
 ALTER TABLE public.phase_c_trace ADD CONSTRAINT phase_c_trace_sealed_ck CHECK (((status = 'sealed'::text) = (sealed_at IS NOT NULL)));
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_qty_check CHECK ((qty > (0)::numeric));
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'approved'::text, 'partial'::text, 'received'::text, 'billed'::text, 'closed'::text, 'cancelled'::text])));
-ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_currency_ck CHECK (((supplier_reg_currency = 'AED'::text) AND (reveal_currency = 'AED'::text)));
+ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_period_ck CHECK ((supplier_reg_period = ANY (ARRAY['yearly'::text, 'monthly'::text])));
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_singleton CHECK ((id = 1));
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_fee_range_ck CHECK (((supplier_reg_fee IS NULL) OR ((supplier_reg_fee >= (500)::numeric) AND (supplier_reg_fee <= (5000)::numeric))));
-ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_period_ck CHECK ((supplier_reg_period = ANY (ARRAY['yearly'::text, 'monthly'::text])));
+ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_currency_ck CHECK (((supplier_reg_currency = 'AED'::text) AND (reveal_currency = 'AED'::text)));
 ALTER TABLE public.project_component ADD CONSTRAINT project_component_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'quotation'::text, 'ordered'::text, 'delivered'::text, 'installed'::text, 'cancelled'::text])));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_quote_amount_check CHECK ((quote_amount > (0)::numeric));
+ALTER TABLE public.refunds ADD CONSTRAINT refunds_settled_needs_amount CHECK (((status <> 'succeeded'::text) OR (amount_fils IS NOT NULL) OR (reconciliation_note IS NOT NULL)));
+ALTER TABLE public.refunds ADD CONSTRAINT refunds_amount_fils_check CHECK (((amount_fils IS NULL) OR (amount_fils > 0)));
+ALTER TABLE public.refunds ADD CONSTRAINT refunds_reason_code_check CHECK ((reason_code = ANY (ARRAY['supplier_unresponsive'::text, 'supplier_withdrew'::text, 'duplicate_charge'::text, 'customer_cancelled_in_window'::text, 'service_not_delivered'::text, 'fraud_or_dispute'::text, 'goodwill'::text, 'other'::text])));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_currency_check CHECK ((currency = 'AED'::text));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_amount_source_check CHECK (((amount_source IS NULL) OR (amount_source = ANY (ARRAY['in_platform_request'::text, 'webhook_event'::text, 'stripe_api'::text, 'manual'::text, 'unknown'::text]))));
-ALTER TABLE public.refunds ADD CONSTRAINT refunds_amount_fils_check CHECK (((amount_fils IS NULL) OR (amount_fils > 0)));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_status_check CHECK ((status = ANY (ARRAY['requested'::text, 'approved'::text, 'rejected'::text, 'processing'::text, 'succeeded'::text, 'failed'::text, 'cancelled'::text])));
-ALTER TABLE public.refunds ADD CONSTRAINT refunds_reason_code_check CHECK ((reason_code = ANY (ARRAY['supplier_unresponsive'::text, 'supplier_withdrew'::text, 'duplicate_charge'::text, 'customer_cancelled_in_window'::text, 'service_not_delivered'::text, 'fraud_or_dispute'::text, 'goodwill'::text, 'other'::text])));
-ALTER TABLE public.refunds ADD CONSTRAINT refunds_settled_needs_amount CHECK (((status <> 'succeeded'::text) OR (amount_fils IS NOT NULL) OR (reconciliation_note IS NOT NULL)));
 ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_kind_check CHECK ((kind = ANY (ARRAY['budget'::text, 'capacity'::text, 'rate_limit'::text, 'quota'::text, 'headcount'::text, 'storage'::text])));
 ALTER TABLE public.review_chain ADD CONSTRAINT review_chain_no_self_approval_ck CHECK (((reviewer_agent IS NULL) OR (author_agent IS NULL) OR (reviewer_agent <> author_agent))) NOT VALID;
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_range CHECK (((rating >= 1) AND (rating <= 5))) NOT VALID;
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_documentation_check CHECK (((r_documentation >= 1) AND (r_documentation <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_punctuality_check CHECK (((r_punctuality >= 1) AND (r_punctuality <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_communication_check CHECK (((r_communication >= 1) AND (r_communication <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_compliance_check CHECK (((r_compliance >= 1) AND (r_compliance <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_after_sales_check CHECK (((r_after_sales >= 1) AND (r_after_sales <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_documentation_check CHECK (((r_documentation >= 1) AND (r_documentation <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_quality_check CHECK (((r_quality >= 1) AND (r_quality <= 5)));
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_punctuality_check CHECK (((r_punctuality >= 1) AND (r_punctuality <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_range CHECK (((rating >= 1) AND (rating <= 5))) NOT VALID;
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_reason_required CHECK (((comment IS NOT NULL) AND (length(btrim(comment)) >= 10))) NOT VALID;
-ALTER TABLE public.role_isolation_decision ADD CONSTRAINT role_isolation_decision_intended_mapping_type_check CHECK ((intended_mapping_type = ANY (ARRAY['one_to_one'::text, 'runtime_composite'::text, 'package_composite'::text, 'duplicate_role'::text, 'missing_runtime_agent'::text, 'obsolete_runtime_agent'::text, 'on_demand_specialist'::text, 'requires_split'::text, 'requires_merge'::text])));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_after_sales_check CHECK (((r_after_sales >= 1) AND (r_after_sales <= 5)));
 ALTER TABLE public.role_isolation_decision ADD CONSTRAINT role_isolation_decision_intended_readiness_check CHECK (((intended_readiness IS NULL) OR (intended_readiness = ANY (ARRAY['knowledge_imported'::text, 'runtime_mapped'::text, 'tools_connected'::text, 'live_data_connected'::text, 'decision_trace_connected'::text, 'training_passed'::text, 'independent_certification_pending'::text, 'certified_for_defined_role_scope'::text, 'blocked'::text, 'restricted_to_advisory'::text]))));
 ALTER TABLE public.role_isolation_decision ADD CONSTRAINT role_isolation_decision_resolution_check CHECK ((resolution = ANY (ARRAY['isolate'::text, 'split'::text, 'restrict_to_advisory'::text, 'block'::text])));
-ALTER TABLE public.scenario_expectation_annotation ADD CONSTRAINT scenario_expectation_annotation_kind_check CHECK ((kind = ANY (ARRAY['change'::text, 'verification'::text])));
-ALTER TABLE public.scenario_expectation_annotation ADD CONSTRAINT scenario_expectation_annotation_annotated_by_check CHECK ((btrim(annotated_by) <> ''::text));
+ALTER TABLE public.role_isolation_decision ADD CONSTRAINT role_isolation_decision_intended_mapping_type_check CHECK ((intended_mapping_type = ANY (ARRAY['one_to_one'::text, 'runtime_composite'::text, 'package_composite'::text, 'duplicate_role'::text, 'missing_runtime_agent'::text, 'obsolete_runtime_agent'::text, 'on_demand_specialist'::text, 'requires_split'::text, 'requires_merge'::text])));
 ALTER TABLE public.scenario_expectation_annotation ADD CONSTRAINT scenario_expectation_annotation_reason_check CHECK ((btrim(reason) <> ''::text));
-ALTER TABLE public.scenario_expectation_change ADD CONSTRAINT sec_work_item_not_blank CHECK ((btrim(work_item) <> ''::text));
+ALTER TABLE public.scenario_expectation_annotation ADD CONSTRAINT scenario_expectation_annotation_annotated_by_check CHECK ((btrim(annotated_by) <> ''::text));
+ALTER TABLE public.scenario_expectation_annotation ADD CONSTRAINT scenario_expectation_annotation_kind_check CHECK ((kind = ANY (ARRAY['change'::text, 'verification'::text])));
 ALTER TABLE public.scenario_expectation_change ADD CONSTRAINT sec_reason_not_blank CHECK ((btrim(reason) <> ''::text));
 ALTER TABLE public.scenario_expectation_change ADD CONSTRAINT sec_entry_kind_chk CHECK ((entry_kind = ANY (ARRAY['change'::text, 'verification'::text])));
+ALTER TABLE public.scenario_expectation_change ADD CONSTRAINT sec_work_item_not_blank CHECK ((btrim(work_item) <> ''::text));
 ALTER TABLE public.scenario_expectation_change ADD CONSTRAINT sec_changed_by_not_blank CHECK ((btrim(changed_by) <> ''::text));
 ALTER TABLE public.scenario_expectation_change ADD CONSTRAINT sec_actually_changed CHECK ((original_expected IS DISTINCT FROM new_expected));
-ALTER TABLE public.scope_marker ADD CONSTRAINT scope_marker_marker_type_check CHECK ((marker_type = ANY (ARRAY['disposition'::text, 'component'::text, 'exception'::text, 'modification'::text, 'party'::text, 'attribution'::text, 'supply_anchor'::text])));
 ALTER TABLE public.scope_marker ADD CONSTRAINT scope_marker_resolution_check CHECK ((resolution = ANY (ARRAY['fixed'::text, 'party_dependent'::text])));
-ALTER TABLE public.scope_marker ADD CONSTRAINT scope_marker_party_class_check CHECK (((party_class IS NULL) OR (party_class = ANY (ARRAY['third_party'::text, 'counterparty'::text]))));
 ALTER TABLE public.scope_marker ADD CONSTRAINT scope_marker_lang_check CHECK ((lang = ANY (ARRAY['en'::text, 'ar'::text])));
+ALTER TABLE public.scope_marker ADD CONSTRAINT scope_marker_marker_type_check CHECK ((marker_type = ANY (ARRAY['disposition'::text, 'component'::text, 'exception'::text, 'modification'::text, 'party'::text, 'attribution'::text, 'supply_anchor'::text])));
+ALTER TABLE public.scope_marker ADD CONSTRAINT scope_marker_party_class_check CHECK (((party_class IS NULL) OR (party_class = ANY (ARRAY['third_party'::text, 'counterparty'::text]))));
 ALTER TABLE public.secops_rule ADD CONSTRAINT secops_rule_severity_check CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])));
 ALTER TABLE public.secops_rule ADD CONSTRAINT secops_rule_category_check CHECK ((category = ANY (ARRAY['auth'::text, 'api_abuse'::text, 'suspicious'::text, 'data_leak'::text, 'prompt_injection'::text, 'credential'::text, 'audit'::text])));
-ALTER TABLE public.shipment_leg ADD CONSTRAINT shipment_leg_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'shipping'::text, 'in_transit'::text, 'customs'::text, 'delivered'::text, 'delayed'::text])));
 ALTER TABLE public.shipment_leg ADD CONSTRAINT shipment_leg_destination_kind_check CHECK ((destination_kind = ANY (ARRAY['factory'::text, 'warehouse'::text, 'port'::text, 'site'::text, 'supplier'::text])));
+ALTER TABLE public.shipment_leg ADD CONSTRAINT shipment_leg_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'shipping'::text, 'in_transit'::text, 'customs'::text, 'delivered'::text, 'delayed'::text])));
 ALTER TABLE public.shipment_leg ADD CONSTRAINT shipment_leg_origin_kind_check CHECK ((origin_kind = ANY (ARRAY['factory'::text, 'warehouse'::text, 'port'::text, 'site'::text, 'supplier'::text])));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_likelihood_check CHECK (((likelihood >= 1) AND (likelihood <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_status_check CHECK ((status = ANY (ARRAY['open'::text, 'mitigating'::text, 'accepted'::text, 'closed'::text])));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_impact_check CHECK (((impact >= 1) AND (impact <= 5)));
 ALTER TABLE public.subcategory_trade_contribution ADD CONSTRAINT subcategory_trade_contribution_contribution_check CHECK ((contribution = ANY (ARRAY['technical'::text, 'regulatory'::text, 'excluded'::text])));
-ALTER TABLE public.task_commercial_effect ADD CONSTRAINT task_commercial_effect_claim_is_complete CHECK (((no_commercial_effect AND (no_effect_reason IS NOT NULL) AND (length(btrim(no_effect_reason)) >= 10) AND (causal_kpi_chain IS NULL) AND (terminal_goal_key IS NULL)) OR ((NOT no_commercial_effect) AND (causal_kpi_chain IS NOT NULL) AND (array_length(causal_kpi_chain, 1) >= 1) AND (terminal_goal_key IS NOT NULL) AND (expected_leading_indicator IS NOT NULL) AND (expected_outcome IS NOT NULL) AND (expected_cost_aed IS NOT NULL) AND (risk IS NOT NULL) AND (measurement_window_days IS NOT NULL) AND (measurement_window_days > 0) AND (owner_agent_key IS NOT NULL) AND (review_trigger IS NOT NULL) AND (review_date IS NOT NULL))));
 ALTER TABLE public.task_commercial_effect ADD CONSTRAINT task_commercial_effect_window_sane CHECK (((measurement_window_days IS NULL) OR ((measurement_window_days >= 1) AND (measurement_window_days <= 730))));
+ALTER TABLE public.task_commercial_effect ADD CONSTRAINT task_commercial_effect_claim_is_complete CHECK (((no_commercial_effect AND (no_effect_reason IS NOT NULL) AND (length(btrim(no_effect_reason)) >= 10) AND (causal_kpi_chain IS NULL) AND (terminal_goal_key IS NULL)) OR ((NOT no_commercial_effect) AND (causal_kpi_chain IS NOT NULL) AND (array_length(causal_kpi_chain, 1) >= 1) AND (terminal_goal_key IS NOT NULL) AND (expected_leading_indicator IS NOT NULL) AND (expected_outcome IS NOT NULL) AND (expected_cost_aed IS NOT NULL) AND (risk IS NOT NULL) AND (measurement_window_days IS NOT NULL) AND (measurement_window_days > 0) AND (owner_agent_key IS NOT NULL) AND (review_trigger IS NOT NULL) AND (review_date IS NOT NULL))));
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_domain_check CHECK ((domain = ANY (ARRAY['action_kind'::text, 'notification_type'::text, 'customer_signal'::text])));
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_label_check CHECK ((btrim(label) <> ''::text));
 ALTER TABLE public.unsafe_block ADD CONSTRAINT unsafe_block_disposition_check CHECK ((disposition = ANY (ARRAY['blocked'::text, 'escalated'::text, 'allowed_with_caveat'::text])));
-ALTER TABLE public.unsafe_class ADD CONSTRAINT unsafe_class_detector_chk CHECK ((((detector_status = 'LIVE'::text) AND (detector_fn IS NOT NULL) AND (not_measurable_reason IS NULL)) OR ((detector_status = 'NOT_MEASURABLE'::text) AND (detector_fn IS NULL) AND (length(COALESCE(not_measurable_reason, ''::text)) >= 40))));
 ALTER TABLE public.unsafe_class ADD CONSTRAINT unsafe_class_detector_status_check CHECK ((detector_status = ANY (ARRAY['LIVE'::text, 'NOT_MEASURABLE'::text])));
 ALTER TABLE public.unsafe_class ADD CONSTRAINT unsafe_class_severity_check CHECK ((severity = ANY (ARRAY['critical'::text, 'high'::text, 'medium'::text])));
+ALTER TABLE public.unsafe_class ADD CONSTRAINT unsafe_class_detector_chk CHECK ((((detector_status = 'LIVE'::text) AND (detector_fn IS NOT NULL) AND (not_measurable_reason IS NULL)) OR ((detector_status = 'NOT_MEASURABLE'::text) AND (detector_fn IS NULL) AND (length(COALESCE(not_measurable_reason, ''::text)) >= 40))));
 ALTER TABLE public.action_execution ADD CONSTRAINT action_execution_workflow_step_run_id_fkey FOREIGN KEY (workflow_step_run_id) REFERENCES workflow_step_run(id);
 ALTER TABLE public.agent_actions ADD CONSTRAINT agent_actions_decision_log_id_fkey FOREIGN KEY (decision_log_id) REFERENCES decision_log(id);
 ALTER TABLE public.agent_remediation ADD CONSTRAINT agent_remediation_agent_key_fkey FOREIGN KEY (agent_key) REFERENCES org_agents(agent_key) ON DELETE CASCADE;
 ALTER TABLE public.agent_tool ADD CONSTRAINT agent_tool_action_class_fkey FOREIGN KEY (action_class) REFERENCES org_action_executor(action_class);
 ALTER TABLE public.agent_training_attempt ADD CONSTRAINT agent_training_attempt_case_id_fkey FOREIGN KEY (case_id) REFERENCES agent_training_case(case_id) ON DELETE CASCADE;
 ALTER TABLE public.agent_training_attempt ADD CONSTRAINT agent_training_attempt_agent_key_fkey FOREIGN KEY (agent_key) REFERENCES org_agents(agent_key) ON DELETE CASCADE;
-ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
-ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_pay_journal_id_fkey FOREIGN KEY (pay_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
+ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id);
+ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_pay_journal_id_fkey FOREIGN KEY (pay_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_advisor_key_fkey FOREIGN KEY (advisor_key) REFERENCES board_advisor(advisor_key);
 ALTER TABLE public.boq_fixture ADD CONSTRAINT boq_fixture_document_id_fkey FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE;
 ALTER TABLE public.boq_fixture_run ADD CONSTRAINT boq_fixture_run_fixture_id_fkey FOREIGN KEY (fixture_id) REFERENCES boq_fixture(id) ON DELETE CASCADE;
@@ -7905,21 +8045,21 @@ ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_account_code_fkey FO
 ALTER TABLE public.catalog_category_domain ADD CONSTRAINT catalog_category_domain_domain_slug_fkey FOREIGN KEY (domain_slug) REFERENCES catalog_domains(slug);
 ALTER TABLE public.catalog_category_domain ADD CONSTRAINT catalog_category_domain_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug);
 ALTER TABLE public.catalog_subcategories ADD CONSTRAINT catalog_subcategories_domain_slug_fkey FOREIGN KEY (domain_slug) REFERENCES catalog_domains(slug) ON DELETE CASCADE;
-ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_agent_slug_fkey FOREIGN KEY (agent_slug) REFERENCES category_agents(slug) ON DELETE SET NULL;
+ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.category_keyword ADD CONSTRAINT category_keyword_slug_fkey FOREIGN KEY (slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.category_route_map ADD CONSTRAINT category_route_map_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.chat_threads ADD CONSTRAINT chat_threads_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
 ALTER TABLE public.company_goals ADD CONSTRAINT company_goals_owner_dept_fkey FOREIGN KEY (owner_dept) REFERENCES org_departments(dept_key);
-ALTER TABLE public.comparison_candidate_v2 ADD CONSTRAINT comparison_candidate_v2_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
 ALTER TABLE public.comparison_candidate_v2 ADD CONSTRAINT comparison_candidate_v2_comparison_run_id_fkey FOREIGN KEY (comparison_run_id) REFERENCES comparison_run_v2(id) ON DELETE CASCADE;
+ALTER TABLE public.comparison_candidate_v2 ADD CONSTRAINT comparison_candidate_v2_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
 ALTER TABLE public.comparison_run_v2 ADD CONSTRAINT comparison_run_v2_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.continuity_plan ADD CONSTRAINT continuity_plan_service_fkey FOREIGN KEY (service) REFERENCES integration_matrix(service);
 ALTER TABLE public.control_mode_challenge ADD CONSTRAINT control_mode_challenge_admin_email_fkey FOREIGN KEY (admin_email) REFERENCES control_mode_identity(admin_email) ON DELETE CASCADE;
 ALTER TABLE public.control_mode_session ADD CONSTRAINT control_mode_session_mfa_ref_fk FOREIGN KEY (mfa_ref) REFERENCES control_mode_challenge(id) ON DELETE RESTRICT;
-ALTER TABLE public.customer_calls ADD CONSTRAINT customer_calls_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
-ALTER TABLE public.customer_calls ADD CONSTRAINT customer_calls_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.customer_calls ADD CONSTRAINT customer_calls_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
+ALTER TABLE public.customer_calls ADD CONSTRAINT customer_calls_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
+ALTER TABLE public.customer_calls ADD CONSTRAINT customer_calls_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.customer_layout ADD CONSTRAINT customer_layout_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.customer_organization ADD CONSTRAINT customer_organization_owner_customer_id_fkey FOREIGN KEY (owner_customer_id) REFERENCES customers(id);
 ALTER TABLE public.customer_organization_member ADD CONSTRAINT customer_organization_member_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES customer_organization(id) ON DELETE CASCADE;
@@ -7930,10 +8070,10 @@ ALTER TABLE public.decision_trace ADD CONSTRAINT decision_trace_causation_event_
 ALTER TABLE public.department_objective ADD CONSTRAINT department_objective_goal_key_fkey FOREIGN KEY (goal_key) REFERENCES company_goals(key);
 ALTER TABLE public.doc_reviews ADD CONSTRAINT doc_reviews_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.drawing_redaction_runs ADD CONSTRAINT drawing_redaction_runs_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
-ALTER TABLE public.employee_knowledge ADD CONSTRAINT employee_knowledge_domain_key_fkey FOREIGN KEY (domain_key) REFERENCES knowledge_domain(domain_key) ON DELETE CASCADE;
 ALTER TABLE public.employee_knowledge ADD CONSTRAINT employee_knowledge_layer_no_fkey FOREIGN KEY (layer_no) REFERENCES employee_knowledge_standard(layer_no);
-ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_serves_objective_fkey FOREIGN KEY (serves_objective) REFERENCES os_objective(id);
+ALTER TABLE public.employee_knowledge ADD CONSTRAINT employee_knowledge_domain_key_fkey FOREIGN KEY (domain_key) REFERENCES knowledge_domain(domain_key) ON DELETE CASCADE;
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_serves_goal_fkey FOREIGN KEY (serves_goal) REFERENCES company_goals(key);
+ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_serves_objective_fkey FOREIGN KEY (serves_objective) REFERENCES os_objective(id);
 ALTER TABLE public.employee_kpi_history ADD CONSTRAINT employee_kpi_history_kpi_id_fkey FOREIGN KEY (kpi_id) REFERENCES employee_kpi(id) ON DELETE CASCADE;
 ALTER TABLE public.employee_workflow ADD CONSTRAINT employee_workflow_workflow_key_fkey FOREIGN KEY (workflow_key) REFERENCES workflow(workflow_key) ON DELETE CASCADE;
 ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
@@ -7941,22 +8081,22 @@ ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_event_id_fke
 ALTER TABLE public.event_delivery ADD CONSTRAINT event_delivery_event_id_fkey FOREIGN KEY (event_id) REFERENCES company_event(id) ON DELETE CASCADE;
 ALTER TABLE public.event_rollup ADD CONSTRAINT event_rollup_root_event_id_fkey FOREIGN KEY (root_event_id) REFERENCES company_event(id) ON DELETE SET NULL;
 ALTER TABLE public.experiment_assignments ADD CONSTRAINT experiment_assignments_experiment_fkey FOREIGN KEY (experiment) REFERENCES experiments(key);
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_accum_account_fkey FOREIGN KEY (accum_account) REFERENCES gl_accounts(code);
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_expense_account_fkey FOREIGN KEY (expense_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_asset_account_fkey FOREIGN KEY (asset_account) REFERENCES gl_accounts(code);
-ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_expense_account_fkey FOREIGN KEY (expense_account) REFERENCES gl_accounts(code);
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_accum_account_fkey FOREIGN KEY (accum_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_asset_id_fkey FOREIGN KEY (asset_id) REFERENCES fa_assets(id) ON DELETE CASCADE;
+ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key);
 ALTER TABLE public.field_definition_reference ADD CONSTRAINT field_definition_reference_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id) ON DELETE CASCADE;
 ALTER TABLE public.field_definition_reference ADD CONSTRAINT field_definition_reference_referencing_trade_key_fkey FOREIGN KEY (referencing_trade_key) REFERENCES mep_trade(trade_key);
 ALTER TABLE public.field_definition_source ADD CONSTRAINT field_definition_source_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id) ON DELETE CASCADE;
-ALTER TABLE public.field_definition_trade ADD CONSTRAINT field_definition_trade_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key) ON DELETE CASCADE;
 ALTER TABLE public.field_definition_trade ADD CONSTRAINT field_definition_trade_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id) ON DELETE CASCADE;
+ALTER TABLE public.field_definition_trade ADD CONSTRAINT field_definition_trade_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key) ON DELETE CASCADE;
 ALTER TABLE public.field_question_variant ADD CONSTRAINT field_question_variant_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id) ON DELETE CASCADE;
 ALTER TABLE public.founder_approval_request ADD CONSTRAINT founder_approval_request_action_class_fkey FOREIGN KEY (action_class) REFERENCES phase_c_action_class(action_class);
 ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_state_fkey FOREIGN KEY (state) REFERENCES phase_c_command_state(state);
-ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES founder_command(command_id);
 ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_message_id_fkey FOREIGN KEY (message_id) REFERENCES founder_command_message(message_id);
+ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES founder_command(command_id);
 ALTER TABLE public.founder_command_clarification ADD CONSTRAINT founder_command_clarification_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
 ALTER TABLE public.founder_command_completion ADD CONSTRAINT founder_command_completion_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
 ALTER TABLE public.founder_command_interpretation ADD CONSTRAINT founder_command_interpretation_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
@@ -7969,8 +8109,8 @@ ALTER TABLE public.founder_command_progress_note ADD CONSTRAINT founder_command_
 ALTER TABLE public.founder_command_status_history ADD CONSTRAINT founder_command_status_history_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
 ALTER TABLE public.founder_command_task_link ADD CONSTRAINT founder_command_task_link_task_id_fkey FOREIGN KEY (task_id) REFERENCES phase_c_task(task_id) ON DELETE CASCADE;
 ALTER TABLE public.founder_command_task_link ADD CONSTRAINT founder_command_task_link_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
-ALTER TABLE public.founder_command_workflow_link ADD CONSTRAINT founder_command_workflow_link_run_id_fkey FOREIGN KEY (run_id) REFERENCES phase_c_workflow_run(run_id);
 ALTER TABLE public.founder_command_workflow_link ADD CONSTRAINT founder_command_workflow_link_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
+ALTER TABLE public.founder_command_workflow_link ADD CONSTRAINT founder_command_workflow_link_run_id_fkey FOREIGN KEY (run_id) REFERENCES phase_c_workflow_run(run_id);
 ALTER TABLE public.founder_command_workflow_link ADD CONSTRAINT founder_command_workflow_link_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_parent_code_fkey FOREIGN KEY (parent_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_expense_map ADD CONSTRAINT gl_expense_map_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
@@ -7979,67 +8119,68 @@ ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_journal_id_f
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.goal_period ADD CONSTRAINT goal_period_goal_key_fkey FOREIGN KEY (goal_key) REFERENCES company_goals(key) ON DELETE CASCADE;
 ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_from_dept_fkey FOREIGN KEY (from_dept) REFERENCES org_departments(dept_key);
+ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_accepted_by_fkey FOREIGN KEY (accepted_by) REFERENCES org_agents(agent_key);
 ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_accountable_owner_fkey FOREIGN KEY (accountable_owner) REFERENCES org_agents(agent_key);
 ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_action_id_fkey FOREIGN KEY (action_id) REFERENCES agent_actions(id) ON DELETE CASCADE;
 ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_closed_by_fkey FOREIGN KEY (closed_by) REFERENCES org_agents(agent_key);
-ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_accepted_by_fkey FOREIGN KEY (accepted_by) REFERENCES org_agents(agent_key);
 ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_to_dept_fkey FOREIGN KEY (to_dept) REFERENCES org_departments(dept_key);
 ALTER TABLE public.idea ADD CONSTRAINT idea_serves_goal_fkey FOREIGN KEY (serves_goal) REFERENCES company_goals(key);
 ALTER TABLE public.inbound_messages ADD CONSTRAINT inbound_messages_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_parent_inquiry_id_fkey FOREIGN KEY (parent_inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_hired_supplier_id_fkey FOREIGN KEY (hired_supplier_id) REFERENCES leads(id);
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;
-ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_parent_inquiry_id_fkey FOREIGN KEY (parent_inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
-ALTER TABLE public.inquiry_answer ADD CONSTRAINT inquiry_answer_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES inquiry_answer(id) DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE public.inquiry_answer ADD CONSTRAINT inquiry_answer_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id);
+ALTER TABLE public.inquiry_answer ADD CONSTRAINT inquiry_answer_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES inquiry_answer(id) DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE public.inquiry_answer ADD CONSTRAINT inquiry_answer_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
-ALTER TABLE public.inquiry_answer_conflict ADD CONSTRAINT inquiry_answer_conflict_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_answer_conflict ADD CONSTRAINT inquiry_answer_conflict_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id);
+ALTER TABLE public.inquiry_answer_conflict ADD CONSTRAINT inquiry_answer_conflict_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_answer_conflict_value ADD CONSTRAINT inquiry_answer_conflict_value_conflict_id_fkey FOREIGN KEY (conflict_id) REFERENCES inquiry_answer_conflict(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_answer_corroboration ADD CONSTRAINT inquiry_answer_corroboration_answer_id_fkey FOREIGN KEY (answer_id) REFERENCES inquiry_answer(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_answer_document ADD CONSTRAINT inquiry_answer_document_answer_id_fkey FOREIGN KEY (answer_id) REFERENCES inquiry_answer(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_answer_scope ADD CONSTRAINT inquiry_answer_scope_workstream_id_fkey FOREIGN KEY (workstream_id) REFERENCES inquiry_workstream(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_answer_scope ADD CONSTRAINT inquiry_answer_scope_answer_id_fkey FOREIGN KEY (answer_id) REFERENCES inquiry_answer(id) ON DELETE CASCADE;
-ALTER TABLE public.inquiry_gate ADD CONSTRAINT inquiry_gate_gate_key_fkey FOREIGN KEY (gate_key) REFERENCES inquiry_gate_required(gate_key);
 ALTER TABLE public.inquiry_gate ADD CONSTRAINT inquiry_gate_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
+ALTER TABLE public.inquiry_gate ADD CONSTRAINT inquiry_gate_gate_key_fkey FOREIGN KEY (gate_key) REFERENCES inquiry_gate_required(gate_key);
 ALTER TABLE public.inquiry_gate ADD CONSTRAINT inquiry_gate_workstream_id_fkey FOREIGN KEY (workstream_id) REFERENCES inquiry_workstream(id) ON DELETE CASCADE;
-ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
+ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_requirement ADD CONSTRAINT inquiry_requirement_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_disposition_fkey FOREIGN KEY (disposition) REFERENCES scope_disposition_kind(disposition);
+ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_scope_component_fkey FOREIGN KEY (scope_component) REFERENCES scope_component(component);
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key);
-ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_scope_component_fkey FOREIGN KEY (scope_component) REFERENCES scope_component(component);
 ALTER TABLE public.inquiry_supplier_brief ADD CONSTRAINT inquiry_supplier_brief_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_workstream_id_fkey FOREIGN KEY (workstream_id) REFERENCES inquiry_workstream(id);
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key);
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_trade_candidate_evidence ADD CONSTRAINT inquiry_trade_candidate_evidence_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES inquiry_trade_candidate(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_trade_clarification ADD CONSTRAINT inquiry_trade_clarification_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
-ALTER TABLE public.inquiry_workstream ADD CONSTRAINT inquiry_workstream_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_workstream ADD CONSTRAINT inquiry_workstream_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key);
+ALTER TABLE public.inquiry_workstream ADD CONSTRAINT inquiry_workstream_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_workstream_requirement ADD CONSTRAINT inquiry_workstream_requirement_workstream_id_fkey FOREIGN KEY (workstream_id) REFERENCES inquiry_workstream(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_workstream_requirement ADD CONSTRAINT inquiry_workstream_requirement_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id);
 ALTER TABLE public.institutional_memory ADD CONSTRAINT institutional_memory_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
-ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_inventory_account_fkey FOREIGN KEY (inventory_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_cogs_account_fkey FOREIGN KEY (cogs_account) REFERENCES gl_accounts(code);
-ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
+ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_inventory_account_fkey FOREIGN KEY (inventory_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
+ALTER TABLE public.inv_stock_moves ADD CONSTRAINT inv_stock_moves_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
 ALTER TABLE public.kb_operational_alias ADD CONSTRAINT kb_operational_alias_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.kb_operational_route_map ADD CONSTRAINT kb_operational_route_map_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.kb_route_scope_trigger ADD CONSTRAINT kb_route_scope_trigger_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
-ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_trigger_type_fkey FOREIGN KEY (trigger_type) REFERENCES kernel_trigger_type(trigger_type);
-ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
+ALTER TABLE public.kernel_signal_type ADD CONSTRAINT kernel_signal_type_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
 ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_trace_id_fkey FOREIGN KEY (trace_id) REFERENCES phase_c_trace(trace_id);
+ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
+ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_trigger_type_fkey FOREIGN KEY (trigger_type) REFERENCES kernel_trigger_type(trigger_type);
 ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_run_id_fkey FOREIGN KEY (run_id) REFERENCES phase_c_workflow_run(run_id);
 ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_adapter_trigger_type_fkey FOREIGN KEY (adapter_trigger_type) REFERENCES kernel_trigger_type(trigger_type);
 ALTER TABLE public.kernel_trigger_source ADD CONSTRAINT kernel_trigger_source_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
-ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
 ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_system_actor_id_fkey FOREIGN KEY (system_actor_id) REFERENCES phase_c_system_actor(system_actor_id);
+ALTER TABLE public.kernel_trigger_type ADD CONSTRAINT kernel_trigger_type_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
 ALTER TABLE public.knowledge_exam_results ADD CONSTRAINT knowledge_exam_results_question_id_fkey FOREIGN KEY (question_id) REFERENCES knowledge_exam_questions(id) ON DELETE SET NULL;
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_run_id_fkey FOREIGN KEY (run_id) REFERENCES knowledge_ingestion_run(run_id) ON DELETE CASCADE;
-ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_slug_fkey FOREIGN KEY (slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
+ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_slug_fkey FOREIGN KEY (slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_trade_map ADD CONSTRAINT lead_trade_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug);
@@ -8049,11 +8190,11 @@ ALTER TABLE public.mdm_cities ADD CONSTRAINT mdm_cities_emirate_code_fkey FOREIG
 ALTER TABLE public.mep_subcategory_review ADD CONSTRAINT mep_subcategory_review_primary_trade_fkey FOREIGN KEY (primary_trade) REFERENCES mep_trade(trade_key);
 ALTER TABLE public.mep_trade_pattern ADD CONSTRAINT mep_trade_pattern_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key) ON DELETE CASCADE;
 ALTER TABLE public.mep_trade_route ADD CONSTRAINT mep_trade_route_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key) ON DELETE CASCADE;
-ALTER TABLE public.messages ADD CONSTRAINT messages_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.messages ADD CONSTRAINT messages_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
-ALTER TABLE public.messages ADD CONSTRAINT messages_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
-ALTER TABLE public.messages ADD CONSTRAINT messages_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
+ALTER TABLE public.messages ADD CONSTRAINT messages_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.messages ADD CONSTRAINT messages_document_id_fkey FOREIGN KEY (document_id) REFERENCES documents(id);
+ALTER TABLE public.messages ADD CONSTRAINT messages_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
+ALTER TABLE public.messages ADD CONSTRAINT messages_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.metric_snapshot ADD CONSTRAINT metric_snapshot_metric_key_fkey FOREIGN KEY (metric_key) REFERENCES metric_definition(metric_key) ON DELETE CASCADE;
 ALTER TABLE public.org_agent_alias ADD CONSTRAINT org_agent_alias_agent_key_fkey FOREIGN KEY (agent_key) REFERENCES org_agents(agent_key);
 ALTER TABLE public.org_agents ADD CONSTRAINT org_agents_department_fkey FOREIGN KEY (department) REFERENCES org_departments(dept_key);
@@ -8068,8 +8209,8 @@ ALTER TABLE public.org_role_alias ADD CONSTRAINT org_role_alias_role_id_fkey FOR
 ALTER TABLE public.org_role_committee ADD CONSTRAINT org_role_committee_role_id_fkey FOREIGN KEY (role_id) REFERENCES org_role(role_id) ON DELETE CASCADE;
 ALTER TABLE public.org_role_committee ADD CONSTRAINT org_role_committee_committee_key_fkey FOREIGN KEY (committee_key) REFERENCES org_committee(committee_key) ON DELETE CASCADE;
 ALTER TABLE public.org_role_identity ADD CONSTRAINT org_role_identity_agent_key_fkey FOREIGN KEY (agent_key) REFERENCES org_agents(agent_key) ON DELETE CASCADE;
-ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_assigned_agent_fkey FOREIGN KEY (assigned_agent) REFERENCES org_agents(agent_key);
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_dept_key_fkey FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key);
+ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_assigned_agent_fkey FOREIGN KEY (assigned_agent) REFERENCES org_agents(agent_key);
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_objective_id_fkey FOREIGN KEY (objective_id) REFERENCES org_objectives(id) ON DELETE CASCADE;
 ALTER TABLE public.org_workflow_ownership ADD CONSTRAINT org_workflow_ownership_accountable_role_id_fkey FOREIGN KEY (accountable_role_id) REFERENCES org_role(role_id);
 ALTER TABLE public.org_workflow_step ADD CONSTRAINT org_workflow_step_accountable_role_id_fkey FOREIGN KEY (accountable_role_id) REFERENCES org_role(role_id);
@@ -8083,105 +8224,107 @@ ALTER TABLE public.os_review ADD CONSTRAINT os_review_os_key_fkey FOREIGN KEY (o
 ALTER TABLE public.os_runbooks ADD CONSTRAINT os_runbooks_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.outcome_record ADD CONSTRAINT outcome_record_expected_kpi_id_fkey FOREIGN KEY (expected_kpi_id) REFERENCES employee_kpi(id);
 ALTER TABLE public.pdpl_erase_files ADD CONSTRAINT pdpl_erase_files_request_id_fkey FOREIGN KEY (request_id) REFERENCES pdpl_requests(id) ON DELETE CASCADE;
-ALTER TABLE public.phase_b_handoff ADD CONSTRAINT phase_b_handoff_sla_policy_id_fkey FOREIGN KEY (sla_policy_id) REFERENCES phase_b_sla_policy(sla_policy_id);
-ALTER TABLE public.phase_b_handoff ADD CONSTRAINT phase_b_handoff_from_step_id_fkey FOREIGN KEY (from_step_id) REFERENCES phase_b_workflow_step(step_id);
-ALTER TABLE public.phase_b_handoff ADD CONSTRAINT phase_b_handoff_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
 ALTER TABLE public.phase_b_handoff ADD CONSTRAINT phase_b_handoff_to_step_id_fkey FOREIGN KEY (to_step_id) REFERENCES phase_b_workflow_step(step_id);
-ALTER TABLE public.phase_b_step_transition ADD CONSTRAINT phase_b_step_transition_to_state_fkey FOREIGN KEY (to_state) REFERENCES phase_b_step_state(state);
+ALTER TABLE public.phase_b_handoff ADD CONSTRAINT phase_b_handoff_from_step_id_fkey FOREIGN KEY (from_step_id) REFERENCES phase_b_workflow_step(step_id);
+ALTER TABLE public.phase_b_handoff ADD CONSTRAINT phase_b_handoff_sla_policy_id_fkey FOREIGN KEY (sla_policy_id) REFERENCES phase_b_sla_policy(sla_policy_id);
+ALTER TABLE public.phase_b_handoff ADD CONSTRAINT phase_b_handoff_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
 ALTER TABLE public.phase_b_step_transition ADD CONSTRAINT phase_b_step_transition_from_state_fkey FOREIGN KEY (from_state) REFERENCES phase_b_step_state(state);
-ALTER TABLE public.phase_b_workflow ADD CONSTRAINT phase_b_workflow_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES phase_b_workflow(workflow_id);
+ALTER TABLE public.phase_b_step_transition ADD CONSTRAINT phase_b_step_transition_to_state_fkey FOREIGN KEY (to_state) REFERENCES phase_b_step_state(state);
 ALTER TABLE public.phase_b_workflow ADD CONSTRAINT phase_b_workflow_primary_object_fkey FOREIGN KEY (primary_object) REFERENCES phase_b_business_object(object_id);
-ALTER TABLE public.phase_b_workflow_step ADD CONSTRAINT phase_b_workflow_step_failure_workflow_state_fkey FOREIGN KEY (failure_workflow_state) REFERENCES phase_b_workflow_state(state);
+ALTER TABLE public.phase_b_workflow ADD CONSTRAINT phase_b_workflow_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES phase_b_workflow(workflow_id);
 ALTER TABLE public.phase_b_workflow_step ADD CONSTRAINT phase_b_workflow_step_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
+ALTER TABLE public.phase_b_workflow_step ADD CONSTRAINT phase_b_workflow_step_failure_workflow_state_fkey FOREIGN KEY (failure_workflow_state) REFERENCES phase_b_workflow_state(state);
 ALTER TABLE public.phase_b_workflow_step ADD CONSTRAINT phase_b_workflow_step_success_workflow_state_fkey FOREIGN KEY (success_workflow_state) REFERENCES phase_b_workflow_state(state);
-ALTER TABLE public.phase_b_workflow_transition ADD CONSTRAINT phase_b_workflow_transition_from_state_fkey FOREIGN KEY (from_state) REFERENCES phase_b_workflow_state(state);
 ALTER TABLE public.phase_b_workflow_transition ADD CONSTRAINT phase_b_workflow_transition_to_state_fkey FOREIGN KEY (to_state) REFERENCES phase_b_workflow_state(state);
+ALTER TABLE public.phase_b_workflow_transition ADD CONSTRAINT phase_b_workflow_transition_from_state_fkey FOREIGN KEY (from_state) REFERENCES phase_b_workflow_state(state);
 ALTER TABLE public.phase_c_command_transition ADD CONSTRAINT phase_c_command_transition_from_state_fkey FOREIGN KEY (from_state) REFERENCES phase_c_command_state(state);
 ALTER TABLE public.phase_c_command_transition ADD CONSTRAINT phase_c_command_transition_to_state_fkey FOREIGN KEY (to_state) REFERENCES phase_c_command_state(state);
-ALTER TABLE public.phase_c_component ADD CONSTRAINT phase_c_component_canonical_system_actor_fkey FOREIGN KEY (canonical_system_actor) REFERENCES phase_c_system_actor(system_actor_id);
-ALTER TABLE public.phase_c_component ADD CONSTRAINT phase_c_component_authority_class_fkey FOREIGN KEY (authority_class) REFERENCES phase_c_action_class(action_class);
 ALTER TABLE public.phase_c_component ADD CONSTRAINT phase_c_component_trace_policy_id_fkey FOREIGN KEY (trace_policy_id) REFERENCES phase_c_trace_policy(trace_policy_id);
+ALTER TABLE public.phase_c_component ADD CONSTRAINT phase_c_component_authority_class_fkey FOREIGN KEY (authority_class) REFERENCES phase_c_action_class(action_class);
+ALTER TABLE public.phase_c_component ADD CONSTRAINT phase_c_component_canonical_system_actor_fkey FOREIGN KEY (canonical_system_actor) REFERENCES phase_c_system_actor(system_actor_id);
 ALTER TABLE public.phase_c_component_exposure_scope ADD CONSTRAINT phase_c_component_exposure_scope_component_id_fkey FOREIGN KEY (component_id) REFERENCES phase_c_component(component_id) ON DELETE CASCADE;
 ALTER TABLE public.phase_c_component_probe ADD CONSTRAINT phase_c_component_probe_component_id_fkey FOREIGN KEY (component_id) REFERENCES phase_c_component(component_id) ON DELETE CASCADE;
-ALTER TABLE public.phase_c_component_trace_exemption ADD CONSTRAINT phase_c_component_trace_exemption_component_id_fkey FOREIGN KEY (component_id) REFERENCES phase_c_component(component_id) ON DELETE CASCADE;
 ALTER TABLE public.phase_c_component_trace_exemption ADD CONSTRAINT phase_c_component_trace_exemption_exempt_to_policy_fkey FOREIGN KEY (exempt_to_policy) REFERENCES phase_c_trace_policy(trace_policy_id);
+ALTER TABLE public.phase_c_component_trace_exemption ADD CONSTRAINT phase_c_component_trace_exemption_component_id_fkey FOREIGN KEY (component_id) REFERENCES phase_c_component(component_id) ON DELETE CASCADE;
 ALTER TABLE public.phase_c_event_delivery_attempt ADD CONSTRAINT phase_c_event_delivery_attempt_outbox_id_fkey FOREIGN KEY (outbox_id) REFERENCES phase_c_event_outbox(outbox_id) ON DELETE CASCADE;
 ALTER TABLE public.phase_c_event_outbox ADD CONSTRAINT phase_c_event_outbox_event_id_fkey FOREIGN KEY (event_id) REFERENCES phase_b_event(event_id);
 ALTER TABLE public.phase_c_handoff_binding ADD CONSTRAINT phase_c_handoff_binding_trace_policy_id_fkey FOREIGN KEY (trace_policy_id) REFERENCES phase_c_trace_policy(trace_policy_id);
-ALTER TABLE public.phase_c_handoff_run ADD CONSTRAINT phase_c_handoff_run_run_id_fkey FOREIGN KEY (run_id) REFERENCES phase_c_workflow_run(run_id);
-ALTER TABLE public.phase_c_handoff_run ADD CONSTRAINT phase_c_handoff_run_from_step_run_id_fkey FOREIGN KEY (from_step_run_id) REFERENCES phase_c_workflow_step_run(step_run_id);
 ALTER TABLE public.phase_c_handoff_run ADD CONSTRAINT phase_c_handoff_run_handoff_id_fkey FOREIGN KEY (handoff_id) REFERENCES phase_b_handoff(handoff_id);
+ALTER TABLE public.phase_c_handoff_run ADD CONSTRAINT phase_c_handoff_run_from_step_run_id_fkey FOREIGN KEY (from_step_run_id) REFERENCES phase_c_workflow_step_run(step_run_id);
+ALTER TABLE public.phase_c_handoff_run ADD CONSTRAINT phase_c_handoff_run_run_id_fkey FOREIGN KEY (run_id) REFERENCES phase_c_workflow_run(run_id);
 ALTER TABLE public.phase_c_overlay_binding ADD CONSTRAINT phase_c_overlay_binding_trace_policy_id_fkey FOREIGN KEY (trace_policy_id) REFERENCES phase_c_trace_policy(trace_policy_id);
 ALTER TABLE public.phase_c_refund_decision ADD CONSTRAINT phase_c_refund_decision_supersedes_decision_id_fkey FOREIGN KEY (supersedes_decision_id) REFERENCES phase_c_refund_decision(decision_id);
 ALTER TABLE public.phase_c_refund_decision ADD CONSTRAINT phase_c_refund_decision_request_id_fkey FOREIGN KEY (request_id) REFERENCES founder_approval_request(request_id);
 ALTER TABLE public.phase_c_reporting_authority ADD CONSTRAINT phase_c_reporting_authority_live_role_id_fkey FOREIGN KEY (live_role_id) REFERENCES org_role(role_id);
 ALTER TABLE public.phase_c_reporting_authority ADD CONSTRAINT phase_c_reporting_authority_department_id_fkey FOREIGN KEY (department_id) REFERENCES org_departments(dept_key);
 ALTER TABLE public.phase_c_role_binding ADD CONSTRAINT phase_c_role_binding_trace_policy_id_fkey FOREIGN KEY (trace_policy_id) REFERENCES phase_c_trace_policy(trace_policy_id);
+ALTER TABLE public.phase_c_source_cutover ADD CONSTRAINT phase_c_source_cutover_trace_policy_fkey FOREIGN KEY (trace_policy) REFERENCES phase_c_trace_policy(trace_policy_id);
+ALTER TABLE public.phase_c_source_cutover ADD CONSTRAINT phase_c_source_cutover_system_actor_fkey FOREIGN KEY (system_actor) REFERENCES phase_c_system_actor(system_actor_id);
 ALTER TABLE public.phase_c_step_binding ADD CONSTRAINT phase_c_step_binding_trace_policy_id_fkey FOREIGN KEY (trace_policy_id) REFERENCES phase_c_trace_policy(trace_policy_id);
-ALTER TABLE public.phase_c_step_completion ADD CONSTRAINT phase_c_step_completion_step_run_id_fkey FOREIGN KEY (step_run_id) REFERENCES phase_c_workflow_step_run(step_run_id);
 ALTER TABLE public.phase_c_step_completion ADD CONSTRAINT phase_c_step_completion_run_id_fkey FOREIGN KEY (run_id) REFERENCES phase_c_workflow_run(run_id);
 ALTER TABLE public.phase_c_step_completion ADD CONSTRAINT phase_c_step_completion_step_id_fkey FOREIGN KEY (step_id) REFERENCES phase_b_workflow_step(step_id);
-ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_system_actor_fkey FOREIGN KEY (system_actor) REFERENCES phase_c_system_actor(system_actor_id);
-ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_component_id_fkey FOREIGN KEY (component_id) REFERENCES phase_c_component(component_id);
-ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_accountable_role_id_fkey FOREIGN KEY (accountable_role_id) REFERENCES org_role(role_id);
+ALTER TABLE public.phase_c_step_completion ADD CONSTRAINT phase_c_step_completion_step_run_id_fkey FOREIGN KEY (step_run_id) REFERENCES phase_c_workflow_step_run(step_run_id);
 ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_trace_id_fkey FOREIGN KEY (trace_id) REFERENCES phase_c_trace(trace_id) ON DELETE CASCADE;
+ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_accountable_role_id_fkey FOREIGN KEY (accountable_role_id) REFERENCES org_role(role_id);
+ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_component_id_fkey FOREIGN KEY (component_id) REFERENCES phase_c_component(component_id);
+ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_system_actor_fkey FOREIGN KEY (system_actor) REFERENCES phase_c_system_actor(system_actor_id);
 ALTER TABLE public.phase_c_system_execution_wrapper ADD CONSTRAINT phase_c_system_execution_wrapper_component_id_fkey FOREIGN KEY (component_id) REFERENCES phase_c_component(component_id);
-ALTER TABLE public.phase_c_task ADD CONSTRAINT phase_c_task_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
-ALTER TABLE public.phase_c_task ADD CONSTRAINT phase_c_task_run_id_fkey FOREIGN KEY (run_id) REFERENCES phase_c_workflow_run(run_id);
-ALTER TABLE public.phase_c_task ADD CONSTRAINT phase_c_task_depends_on_task_id_fkey FOREIGN KEY (depends_on_task_id) REFERENCES phase_c_task(task_id);
-ALTER TABLE public.phase_c_task ADD CONSTRAINT phase_c_task_state_fkey FOREIGN KEY (state) REFERENCES phase_c_task_state(state);
 ALTER TABLE public.phase_c_task ADD CONSTRAINT phase_c_task_step_id_fkey FOREIGN KEY (step_id) REFERENCES phase_b_workflow_step(step_id);
 ALTER TABLE public.phase_c_task ADD CONSTRAINT phase_c_task_authority_class_fkey FOREIGN KEY (authority_class) REFERENCES phase_c_action_class(action_class);
-ALTER TABLE public.phase_c_task_transition ADD CONSTRAINT phase_c_task_transition_to_state_fkey FOREIGN KEY (to_state) REFERENCES phase_c_task_state(state);
+ALTER TABLE public.phase_c_task ADD CONSTRAINT phase_c_task_depends_on_task_id_fkey FOREIGN KEY (depends_on_task_id) REFERENCES phase_c_task(task_id);
+ALTER TABLE public.phase_c_task ADD CONSTRAINT phase_c_task_run_id_fkey FOREIGN KEY (run_id) REFERENCES phase_c_workflow_run(run_id);
+ALTER TABLE public.phase_c_task ADD CONSTRAINT phase_c_task_state_fkey FOREIGN KEY (state) REFERENCES phase_c_task_state(state);
+ALTER TABLE public.phase_c_task ADD CONSTRAINT phase_c_task_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
 ALTER TABLE public.phase_c_task_transition ADD CONSTRAINT phase_c_task_transition_from_state_fkey FOREIGN KEY (from_state) REFERENCES phase_c_task_state(state);
+ALTER TABLE public.phase_c_task_transition ADD CONSTRAINT phase_c_task_transition_to_state_fkey FOREIGN KEY (to_state) REFERENCES phase_c_task_state(state);
+ALTER TABLE public.phase_c_trace ADD CONSTRAINT phase_c_trace_parent_trace_id_fkey FOREIGN KEY (parent_trace_id) REFERENCES phase_c_trace(trace_id);
 ALTER TABLE public.phase_c_trace ADD CONSTRAINT phase_c_trace_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES phase_c_trace(trace_id);
 ALTER TABLE public.phase_c_trace ADD CONSTRAINT phase_c_trace_trace_policy_id_fkey FOREIGN KEY (trace_policy_id) REFERENCES phase_c_trace_policy(trace_policy_id);
-ALTER TABLE public.phase_c_trace ADD CONSTRAINT phase_c_trace_parent_trace_id_fkey FOREIGN KEY (parent_trace_id) REFERENCES phase_c_trace(trace_id);
 ALTER TABLE public.phase_c_workflow_binding ADD CONSTRAINT phase_c_workflow_binding_trace_policy_id_fkey FOREIGN KEY (trace_policy_id) REFERENCES phase_c_trace_policy(trace_policy_id);
-ALTER TABLE public.phase_c_workflow_run ADD CONSTRAINT phase_c_workflow_run_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
 ALTER TABLE public.phase_c_workflow_run ADD CONSTRAINT phase_c_workflow_run_state_fkey FOREIGN KEY (state) REFERENCES phase_b_workflow_state(state);
+ALTER TABLE public.phase_c_workflow_run ADD CONSTRAINT phase_c_workflow_run_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
 ALTER TABLE public.phase_c_workflow_step_run ADD CONSTRAINT phase_c_workflow_step_run_first_attempt_id_fkey FOREIGN KEY (first_attempt_id) REFERENCES phase_c_workflow_step_run(step_run_id);
 ALTER TABLE public.phase_c_workflow_step_run ADD CONSTRAINT phase_c_workflow_step_run_state_fkey FOREIGN KEY (state) REFERENCES phase_b_step_state(state);
-ALTER TABLE public.phase_c_workflow_step_run ADD CONSTRAINT phase_c_workflow_step_run_step_id_fkey FOREIGN KEY (step_id) REFERENCES phase_b_workflow_step(step_id);
 ALTER TABLE public.phase_c_workflow_step_run ADD CONSTRAINT phase_c_workflow_step_run_run_id_fkey FOREIGN KEY (run_id) REFERENCES phase_c_workflow_run(run_id) ON DELETE CASCADE;
-ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id) ON DELETE CASCADE;
+ALTER TABLE public.phase_c_workflow_step_run ADD CONSTRAINT phase_c_workflow_step_run_step_id_fkey FOREIGN KEY (step_id) REFERENCES phase_b_workflow_step(step_id);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
+ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id) ON DELETE CASCADE;
+ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
-ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
-ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
+ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
 ALTER TABLE public.procurement_approval_policy ADD CONSTRAINT procurement_approval_policy_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES customer_organization(id);
-ALTER TABLE public.procurement_approval_request ADD CONSTRAINT procurement_approval_request_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES procurement_approval_policy(id);
 ALTER TABLE public.procurement_approval_request ADD CONSTRAINT procurement_approval_request_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES customer_organization(id);
-ALTER TABLE public.project_component ADD CONSTRAINT project_component_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
+ALTER TABLE public.procurement_approval_request ADD CONSTRAINT procurement_approval_request_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES procurement_approval_policy(id);
 ALTER TABLE public.project_component ADD CONSTRAINT project_component_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
+ALTER TABLE public.project_component ADD CONSTRAINT project_component_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.projects ADD CONSTRAINT projects_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE;
 ALTER TABLE public.prompt_versions ADD CONSTRAINT prompt_versions_prompt_key_fkey FOREIGN KEY (prompt_key) REFERENCES prompts(key);
-ALTER TABLE public.questions ADD CONSTRAINT questions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
-ALTER TABLE public.questions ADD CONSTRAINT questions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.questions ADD CONSTRAINT questions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
+ALTER TABLE public.questions ADD CONSTRAINT questions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
+ALTER TABLE public.questions ADD CONSTRAINT questions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_committed_items ADD CONSTRAINT quote_committed_items_review_id_fkey FOREIGN KEY (review_id) REFERENCES quote_reviews(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_review_messages ADD CONSTRAINT quote_review_messages_review_id_fkey FOREIGN KEY (review_id) REFERENCES quote_reviews(id) ON DELETE CASCADE;
-ALTER TABLE public.quotes ADD CONSTRAINT quotes_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
+ALTER TABLE public.quotes ADD CONSTRAINT quotes_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL;
 ALTER TABLE public.regulations ADD CONSTRAINT regulations_supersedes_id_fkey FOREIGN KEY (supersedes_id) REFERENCES regulations(id);
 ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.reveal_invoices ADD CONSTRAINT reveal_invoices_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE;
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.role_permissions ADD CONSTRAINT role_permissions_role_fkey FOREIGN KEY (role) REFERENCES roles(name);
 ALTER TABLE public.scenario_expectation_annotation ADD CONSTRAINT scenario_expectation_annotation_change_id_fkey FOREIGN KEY (change_id) REFERENCES scenario_expectation_change(id);
-ALTER TABLE public.scope_marker ADD CONSTRAINT scope_marker_disposition_fkey FOREIGN KEY (disposition) REFERENCES scope_disposition_kind(disposition);
 ALTER TABLE public.scope_marker ADD CONSTRAINT scope_marker_component_fkey FOREIGN KEY (component) REFERENCES scope_component(component);
-ALTER TABLE public.shipment_leg ADD CONSTRAINT shipment_leg_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
-ALTER TABLE public.shipment_leg ADD CONSTRAINT shipment_leg_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
+ALTER TABLE public.scope_marker ADD CONSTRAINT scope_marker_disposition_fkey FOREIGN KEY (disposition) REFERENCES scope_disposition_kind(disposition);
 ALTER TABLE public.shipment_leg ADD CONSTRAINT shipment_leg_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
+ALTER TABLE public.shipment_leg ADD CONSTRAINT shipment_leg_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.shipment_leg ADD CONSTRAINT shipment_leg_po_order_id_fkey FOREIGN KEY (po_order_id) REFERENCES po_orders(id);
+ALTER TABLE public.shipment_leg ADD CONSTRAINT shipment_leg_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
 ALTER TABLE public.subcategory_agent_map ADD CONSTRAINT subcategory_agent_map_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.subcategory_keyword ADD CONSTRAINT subcategory_keyword_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.subcategory_trade_contribution ADD CONSTRAINT subcategory_trade_contribution_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key);
@@ -8195,10 +8338,10 @@ ALTER TABLE public.supplier_product ADD CONSTRAINT supplier_product_supplier_id_
 ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_variant_product_id_fkey FOREIGN KEY (product_id) REFERENCES supplier_product(id) ON DELETE CASCADE;
 ALTER TABLE public.task_commercial_effect ADD CONSTRAINT task_commercial_effect_terminal_goal_key_fkey FOREIGN KEY (terminal_goal_key) REFERENCES company_goals(key);
 ALTER TABLE public.task_commercial_effect ADD CONSTRAINT task_commercial_effect_task_id_fkey FOREIGN KEY (task_id) REFERENCES org_tasks(id) ON DELETE CASCADE;
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
 ALTER TABLE public.unsafe_block ADD CONSTRAINT unsafe_block_class_key_fkey FOREIGN KEY (class_key) REFERENCES unsafe_class(class_key);
 ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_role_fkey FOREIGN KEY (role) REFERENCES roles(name);
 ALTER TABLE public.workflow ADD CONSTRAINT workflow_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
@@ -8440,6 +8583,7 @@ CREATE INDEX kb_op_alias_norm_idx ON public.kb_operational_alias USING btree (al
 CREATE INDEX kb_op_route_map_pkg_idx ON public.kb_operational_route_map USING btree (package_slug, subcategory_slug);
 CREATE INDEX kb_op_route_test_num_idx ON public.kb_operational_route_test USING btree (catalog_num);
 CREATE INDEX kb_usage_log_created ON public.kb_usage_log USING btree (created_at);
+CREATE INDEX kernel_signal_inbox_run ON public.kernel_signal_inbox USING btree (workflow_run_id);
 CREATE INDEX kernel_trigger_inbox_corr_ix ON public.kernel_trigger_inbox USING btree (correlation_id);
 CREATE INDEX kernel_trigger_inbox_run_ix ON public.kernel_trigger_inbox USING btree (run_id) WHERE (run_id IS NOT NULL);
 CREATE INDEX kernel_trigger_inbox_status_ix ON public.kernel_trigger_inbox USING btree (status, received_at DESC);
@@ -8511,6 +8655,7 @@ CREATE INDEX phase_c_component_class_ix ON public.phase_c_component USING btree 
 CREATE INDEX phase_c_component_workflow_ix ON public.phase_c_component USING btree (workflow_id);
 CREATE UNIQUE INDEX phase_c_event_outbox_dedupe_uk ON public.phase_c_event_outbox USING btree (event_id, dedupe_value);
 CREATE INDEX phase_c_event_outbox_due_ix ON public.phase_c_event_outbox USING btree (status, next_attempt_at);
+CREATE INDEX phase_c_event_outbox_task_id_idx ON public.phase_c_event_outbox USING btree (task_id) WHERE (task_id IS NOT NULL);
 CREATE INDEX phase_c_handoff_run_open_ix ON public.phase_c_handoff_run USING btree (status, due_at);
 CREATE UNIQUE INDEX phase_c_refund_decision_original_uk ON public.phase_c_refund_decision USING btree (request_id) WHERE (supersedes_decision_id IS NULL);
 CREATE UNIQUE INDEX phase_c_step_run_idem_uk ON public.phase_c_workflow_step_run USING btree (idempotency_key);
@@ -11760,7 +11905,7 @@ CREATE OR REPLACE VIEW public.v_kernel_trigger_source_derived AS  WITH wt(t, why
          SELECT b.oid,
             b.proname
            FROM body b
-          WHERE (b.src ~ '\yfn_kernel_trigger_submit\s*\('::text)
+          WHERE ((b.src ~ '\yfn_kernel_trigger_submit\s*\('::text) OR (b.src ~ '\yfn_kernel_signal_submit\s*\('::text) OR (b.src ~ '\yfn_kernel_source_emit\s*\('::text))
         ), replayer AS (
          SELECT b.oid,
             b.proname
@@ -14772,6 +14917,126 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -15316,126 +15581,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -26314,6 +26459,7 @@ CREATE OR REPLACE FUNCTION public.fn_founder_command_control(p_command_id bigint
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_target bigint; v_state text; v_n bigint := 0; t record; v_trace bigint; v_founder text;
+        v_out jsonb;
 begin
   v_founder := public.fn_phase_c_require_founder(p_actor);   -- raises 28000 for anyone else
 
@@ -26325,46 +26471,45 @@ begin
   if v_state is null then return jsonb_build_object('ok', false, 'error','not_found'); end if;
 
   if p_op in ('cancel','supersede') then
-    if not exists (select 1 from public.phase_c_command_transition
-                   where from_state = v_state
-                     and to_state = case when p_op = 'cancel' then 'cancelled' else 'superseded' end) then
-      return jsonb_build_object('ok', false, 'error','transition_not_permitted',
-        'from', v_state, 'to', case when p_op = 'cancel' then 'cancelled' else 'superseded' end,
-        'message', format('A command in %L cannot be %s; the state model does not allow it.',
-                          v_state, case when p_op = 'cancel' then 'cancelled' else 'superseded' end));
-    end if;
-    update public.founder_command set
-      state = case when p_op = 'cancel' then 'cancelled' else 'superseded' end,
-      superseded_by = case when p_op = 'supersede' then p_command_id else superseded_by end,
-      closed_at = now()
-    where command_id = v_target;
+    -- ROOT CAUSE 2. THIS BRANCH USED TO BE A SECOND CANCELLER. It set founder_command.state itself
+    -- and closed the child tasks one by one, and it stopped there: the workflow run, its open step
+    -- runs, its handoffs, its queued outbox rows and its open traces were left live beneath a
+    -- command the founder had cancelled. The final Phase C acceptance cancelled command 338 through
+    -- this exact path and left run 538 and step run 531 active.
+    --
+    -- It now delegates. fn_kernel_cancel is the canonical canceller and the only one: it walks the
+    -- command, its plan, its runs, their step runs, tasks, handoffs, undelivered outbox rows and
+    -- open traces, refuses a transition the state model does not declare, and counts what it left
+    -- behind before returning. The founder identity is verified twice on purpose — once above, and
+    -- again inside the kernel for the founder_command subject — because the kernel may not trust a
+    -- caller's word about who is asking.
+    v_out := public.fn_kernel_cancel(jsonb_build_object(
+      'subject_kind', 'founder_command',
+      'subject_ref',  v_target::text,
+      'op',           p_op,
+      'actor',        p_actor,
+      'reason',       coalesce(nullif(btrim(p_value),''),
+                               'founder ' || p_op || ' of command ' || v_target
+                               || ' through the Command Center control')));
 
-    -- One task at a time, each with its own trace.  A bulk UPDATE closed them silently before,
-    -- and a completed state change with no trace is the thing this phase exists to make impossible.
-    for t in select * from public.phase_c_task
-             where command_id = v_target
-               and state in ('queued','assigned','accepted','in_progress','blocked') loop
-      v_trace := public.fn_phase_c_trace_write('TRACE-TASK', jsonb_build_object(
-        'subject_kind','task', 'subject_ref', t.task_id::text, 'task_id', t.task_id,
-        'command_id', v_target, 'actor_role_id','founder',
-        'system_actor_id','system.command_router', 'manager_role_id', t.manager_role_id,
-        'state_before', t.state,
-        'state_after', case when p_op = 'cancel' then 'cancelled' else 'superseded' end,
-        'evidence_refs', jsonb_build_array(
-          jsonb_build_object('reason', 'founder ' || p_op || ' of command ' || v_target,
-                             'actor', v_founder)),
-        'status','sealed'));
-      update public.phase_c_task set
-        state = case when p_op = 'cancel' then 'cancelled' else 'superseded' end,
-        closed_at = now(), trace_id = v_trace
-      where task_id = t.task_id;
-      v_n := v_n + 1;
-    end loop;
+    -- IDEMPOTENT. A command already in its terminal state is not an error and must not become one:
+    -- the second click of Cancel returns the same answer as the first and changes nothing.
+    if coalesce((v_out->>'ok')::boolean, false) is not true
+       and v_state in ('cancelled','superseded') then
+      return jsonb_build_object('ok', true, 'command_id', v_target, 'status', v_state,
+        'already_terminal', true, 'child_tasks_closed', 0, 'actor', v_founder,
+        'kernel', v_out);
+    end if;
+    if coalesce((v_out->>'ok')::boolean, false) is not true then
+      return jsonb_build_object('ok', false, 'command_id', v_target,
+        'error', coalesce(v_out->>'error', 'cancellation_refused'), 'kernel', v_out);
+    end if;
 
     return jsonb_build_object('ok', true, 'command_id', v_target,
       'status', case when p_op = 'cancel' then 'cancelled' else 'superseded' end,
       'superseded_by', case when p_op = 'supersede' then p_command_id else null end,
-      'child_tasks_closed', v_n, 'actor', v_founder);
+      'child_tasks_closed', coalesce((v_out->'closed'->>'tasks')::int, 0),
+      'closed', v_out->'closed', 'actor', v_founder);
 
   elsif p_op = 'reprioritize' then
     if coalesce(p_value,'') !~ '^P[0-3]$' then
@@ -29985,6 +30130,11 @@ AS $function$
 begin
   if new.type = 'supplier_invite' and new.status = 'sent'
      and coalesce(old.status,'') is distinct from 'sent' and new.lead_id is not null then
+  -- Kernel cutover. A delivery status change on an invitation already sent. The registration itself is the class-A event; this is its provider callback, and it belongs to the run that registration opened.
+  perform public.fn_kernel_source_emit('dbtrigger:public.notifications:trg_invite_status_on_send', jsonb_build_object(
+    'source_ref',  new.id::text,
+    'workflow_run_id', public.fn_kernel_run_for('supplier_account:' || new.lead_id::text),
+    'raw_payload', jsonb_build_object('notification_id', new.id::text, 'lead_id', new.lead_id::text, 'status', new.status)));
     update public.leads
        set invite_status = 'sent'
      where id = new.lead_id and coalesce(invite_status,'') = 'queued';
@@ -30752,13 +30902,23 @@ begin
   -- ---- (g) the undelivered outbox rows -----------------------------------------------------
   -- Delivered rows are NOT touched: a delivered event is a fact that happened, and rewriting it
   -- would be falsifying history. Only what has not yet left the queue is stopped.
-  update public.phase_c_event_outbox
+  -- ROOT CAUSE 2. This matched on payload->>'run_id'. Only ONE producer writes that key: the
+  -- step-complete event. The workflow-START event writes 'workflow_run_id', so every start event
+  -- survived cancellation as 'pending' and was delivered afterwards. The leftover check below used
+  -- the SAME predicate as this write, so it counted nothing left behind and the function reported
+  -- success. Relationships are columns now, and the check reads the same columns this writes.
+  update public.phase_c_event_outbox o
      set status = 'superseded',
          last_error = 'CANCELLED ' || to_char(now(),'YYYY-MM-DD') || ': ' || v_reason
                    || ' (fn_kernel_cancel, subject ' || v_kind || ':' || v_ref || ')'
-   where status in ('pending','claimed','retry_wait')
-     and ( (v_command is not null and (payload->>'command_id') = v_command::text)
-        or (payload->>'run_id') in (select rr::text from unnest(v_runs) as rr) );
+   where o.status in ('pending','claimed','retry_wait')
+     and ( (v_command is not null and o.command_id = v_command)
+        or o.workflow_run_id = any(v_runs)
+        or o.step_run_id in (select sr.step_run_id from public.phase_c_workflow_step_run sr
+                              where sr.run_id = any(v_runs))
+        or o.task_id in (select t.task_id from public.phase_c_task t
+                          where (v_command is not null and t.command_id = v_command)
+                             or t.run_id = any(v_runs)) );
   get diagnostics n_outbox = row_count;
 
   -- ---- (h) seal every open trace whose subject was just closed -----------------------------
@@ -30783,10 +30943,15 @@ begin
    where run_id = any(v_runs) and state not in ('cancelled','completed','failed','superseded');
   select count(*) into v_left_handoffs from public.phase_c_handoff_run
    where run_id = any(v_runs) and status = 'open';
-  select count(*) into v_left_outbox from public.phase_c_event_outbox
-   where status in ('pending','claimed','retry_wait')
-     and ( (v_command is not null and (payload->>'command_id') = v_command::text)
-        or (payload->>'run_id') in (select rr::text from unnest(v_runs) as rr) );
+  select count(*) into v_left_outbox from public.phase_c_event_outbox o
+   where o.status in ('pending','claimed','retry_wait')
+     and ( (v_command is not null and o.command_id = v_command)
+        or o.workflow_run_id = any(v_runs)
+        or o.step_run_id in (select sr.step_run_id from public.phase_c_workflow_step_run sr
+                              where sr.run_id = any(v_runs))
+        or o.task_id in (select t.task_id from public.phase_c_task t
+                          where (v_command is not null and t.command_id = v_command)
+                             or t.run_id = any(v_runs)) );
 
   if v_left_tasks + v_left_runs + v_left_steps + v_left_handoffs + v_left_outbox > 0 then
     raise exception
@@ -31368,6 +31533,195 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_kernel_cutover_measure()
+ RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+with
+body as (
+  select p.oid, p.proname,
+         regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', ' ', 'g'), '--[^\n]*', ' ', 'g') src
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public'
+),
+-- A routine that reaches the kernel by ANY of the three doors the specification allows.
+kernel_caller as (
+  select b.proname from body b
+   where b.src ~ '\yfn_kernel_trigger_submit\s*\('
+      or b.src ~ '\yfn_kernel_signal_submit\s*\('
+      or b.src ~ '\yfn_kernel_source_emit\s*\('
+),
+protected(t) as (values
+  ('phase_c_workflow_run'),('phase_c_workflow_step_run'),('phase_c_task'),('phase_c_handoff_run'),
+  ('kernel_trigger_inbox'),('kernel_signal_inbox'),('phase_c_event_outbox'),('phase_c_refund_decision')),
+-- A routine that writes business work DIRECTLY. Anything on the kernel's own allow-list is
+-- excluded: fn_kernel_step_complete writes those tables because it is the kernel.
+direct_writer as (
+  select distinct b.proname from body b join protected pr
+      on b.src ~ ('(insert\s+into|update|delete\s+from)\s+(public\.)?' || pr.t || '\M')
+   where not exists (select 1 from public.kernel_write_authority a where a.routine_name = b.proname)
+),
+-- The trigger a source names as discharging it, resolved to the routine it actually fires.
+named as (
+  select c.source_component_id, c.source_class, c.current_activation, c.status,
+         c.disposition_evidence, c.target_step_or_signal, c.idempotency_key, c.trace_policy,
+         split_part(c.disposition_evidence, ':', 1) as ev_kind,
+         split_part(c.disposition_evidence, ':', 2) as ev_ref,
+         case split_part(c.disposition_evidence, ':', 1)
+           when 'routine' then split_part(c.disposition_evidence, ':', 2)
+           when 'trigger' then (select p.proname from pg_trigger tg join pg_proc p on p.oid = tg.tgfoid
+                                 where tg.tgname = split_part(c.disposition_evidence, ':', 2)
+                                   and not tg.tgisinternal limit 1)
+         end as ev_routine
+    from public.phase_c_source_cutover c
+),
+judged as (
+  select n.*,
+         case
+           when n.current_activation = 'DISABLED'
+             or n.source_class = 'D RETIRE_OR_HISTORICAL'
+             or n.ev_kind = 'retired'                      then 'RETIRED_OR_INACTIVE'
+           when n.ev_kind in ('read_only','inactive') and n.source_class = 'C READ_ONLY_MONITOR'
+                                                            then 'READ_ONLY'
+           -- ROOT CAUSE 3. CUT_OVER used to mean ONLY "the named routine calls a function whose
+           -- name contains kernel". That is the caller knocking. Ten ACTIVE sources were reported
+           -- CUT_OVER while fn_kernel_signal_submit refused every submission they made, because
+           -- their signal type was registered inactive. CUT_OVER now requires all seven:
+           --   (a) the source is active                       — the outer case already established
+           --   (b) the canonical adapter is deployed          — ev_routine resolves to a real routine
+           --   (c) the routine reaches a kernel door          — kernel_caller
+           --   (d) for a workflow SIGNAL, the type is ACTIVE and registered
+           --   (e) the handler exists                         — a disposition the service implements
+           --   (f) the handler accepts at least one valid state — a non-terminal workflow state exists
+           --   (g) idempotency and trace policy are recorded on the source row
+           when n.ev_kind in ('routine','trigger') and n.ev_routine is not null
+                and exists (select 1 from kernel_caller k where k.proname = n.ev_routine)
+                and (n.source_class not like 'B %' or exists (
+                      select 1 from public.kernel_signal_type t
+                       where t.signal_type = n.target_step_or_signal
+                         and t.activation_state = 'active'
+                         and t.disposition in ('ATTACH_ONLY','COMPLETE_STEP','REVIEW_VERDICT','CANCEL')))
+                and exists (select 1 from public.phase_b_workflow_state ws where not ws.terminal)
+                and coalesce(btrim(n.idempotency_key),'') <> ''
+                and coalesce(btrim(n.trace_policy),'') <> ''
+                                                            then 'CUT_OVER'
+           else 'BYPASSING'
+         end as verdict
+    from named n
+)
+select 'total_sources'::text, 'reported, not asserted'::text,
+       (select count(*)::text from judged), true
+union all
+select 'active_sources', 'reported',
+       (select count(*)::text from judged where current_activation = 'ACTIVE'), true
+union all
+select 'inactive_sources', 'reported',
+       (select count(*)::text from judged where current_activation = 'DISABLED'), true
+union all
+select 'class_split', 'reported',
+       (select string_agg(source_class || ' ' || n::text, '; ' order by source_class)
+          from (select source_class, count(*) n from judged group by 1) d), true
+union all
+select 'verdict_split', 'reported',
+       (select string_agg(verdict || ' ' || n::text, '; ' order by verdict)
+          from (select verdict, count(*) n from judged group by 1) d), true
+union all
+-- THE line. No expected numerator: it counts what it finds.
+select 'active_sources_bypassing_the_kernel', '0',
+       (select count(*)::text from judged where verdict = 'BYPASSING' and current_activation = 'ACTIVE')
+         || coalesce(' [' || (select string_agg(source_component_id, ', ')
+              from judged where verdict = 'BYPASSING' and current_activation = 'ACTIVE') || ']', ''),
+       (select count(*) = 0 from judged where verdict = 'BYPASSING' and current_activation = 'ACTIVE')
+union all
+select 'active_sources_with_no_disposition_evidence', '0',
+       (select count(*)::text from judged
+         where current_activation = 'ACTIVE' and coalesce(btrim(disposition_evidence),'') = '')
+         || coalesce(' [' || (select string_agg(source_component_id, ', ') from judged
+              where current_activation = 'ACTIVE' and coalesce(btrim(disposition_evidence),'') = '') || ']', ''),
+       (select count(*) = 0 from judged
+         where current_activation = 'ACTIVE' and coalesce(btrim(disposition_evidence),'') = '')
+union all
+-- A claim that names a trigger which does not exist, or exists and does not call the kernel.
+select 'coverage_claims_with_nothing_behind_them', '0',
+       (select count(*)::text from judged
+         where ev_kind in ('routine','trigger')
+           and (ev_routine is null
+                or not exists (select 1 from kernel_caller k where k.proname = ev_routine)))
+         || coalesce(' [' || (select string_agg(source_component_id || ' -> ' || disposition_evidence, ', ')
+              from judged where ev_kind in ('routine','trigger')
+                and (ev_routine is null
+                     or not exists (select 1 from kernel_caller k where k.proname = ev_routine))) || ']', ''),
+       (select count(*) = 0 from judged
+         where ev_kind in ('routine','trigger')
+           and (ev_routine is null
+                or not exists (select 1 from kernel_caller k where k.proname = ev_routine)))
+union all
+-- ROOT CAUSE 3. The line that would have caught it. An ACTIVE source whose signal type does not
+-- accept submissions is not cut over, however its adapter is written.
+select 'active_sources_targeting_an_inactive_signal_type', '0',
+       (select count(*)::text from judged j
+         where j.current_activation = 'ACTIVE' and j.source_class like 'B %'
+           and not exists (select 1 from public.kernel_signal_type t
+                            where t.signal_type = j.target_step_or_signal
+                              and t.activation_state = 'active'))
+         || coalesce(' [' || (select string_agg(j.source_component_id || ' -> ' || j.target_step_or_signal, ', ')
+              from judged j where j.current_activation = 'ACTIVE' and j.source_class like 'B %'
+                and not exists (select 1 from public.kernel_signal_type t
+                                 where t.signal_type = j.target_step_or_signal
+                                   and t.activation_state = 'active')) || ']', ''),
+       (select count(*) = 0 from judged j
+         where j.current_activation = 'ACTIVE' and j.source_class like 'B %'
+           and not exists (select 1 from public.kernel_signal_type t
+                            where t.signal_type = j.target_step_or_signal
+                              and t.activation_state = 'active'))
+
+union all
+-- An active signal type with no handler the service implements is a door with nothing behind it.
+select 'active_signal_types_without_a_handler', '0',
+       (select count(*)::text from public.kernel_signal_type t
+         where t.activation_state = 'active'
+           and t.disposition not in ('ATTACH_ONLY','COMPLETE_STEP','REVIEW_VERDICT','CANCEL')),
+       (select count(*) = 0 from public.kernel_signal_type t
+         where t.activation_state = 'active'
+           and t.disposition not in ('ATTACH_ONLY','COMPLETE_STEP','REVIEW_VERDICT','CANCEL'))
+
+union all
+-- Reported for the record: how many verdicts rest on nothing but source-text caller detection.
+select 'cutover_rows_resting_only_on_source_text_caller_detection', '0',
+       (select count(*)::text from judged j
+         where j.verdict = 'CUT_OVER' and j.source_class like 'B %'
+           and not exists (select 1 from public.kernel_signal_type t
+                            where t.signal_type = j.target_step_or_signal
+                              and t.activation_state = 'active')),
+       (select count(*) = 0 from judged j
+         where j.verdict = 'CUT_OVER' and j.source_class like 'B %'
+           and not exists (select 1 from public.kernel_signal_type t
+                            where t.signal_type = j.target_step_or_signal
+                              and t.activation_state = 'active'))
+
+union all
+-- An ACTIVE source whose own routine writes a protected table directly. The kernel's own writers
+-- are excluded by kernel_write_authority, so this is a genuine bypass and not the kernel itself.
+select 'active_sources_writing_business_work_directly', '0',
+       (select count(*)::text from judged j
+         where j.current_activation = 'ACTIVE'
+           and exists (select 1 from direct_writer w
+                        where w.proname = (select p.proname from pg_trigger tg
+                                             join pg_proc p on p.oid = tg.tgfoid
+                                            where tg.tgname = split_part(j.source_component_id, ':', 3)
+                                              and not tg.tgisinternal limit 1))),
+       (select count(*) = 0 from judged j
+         where j.current_activation = 'ACTIVE'
+           and exists (select 1 from direct_writer w
+                        where w.proname = (select p.proname from pg_trigger tg
+                                             join pg_proc p on p.oid = tg.tgfoid
+                                            where tg.tgname = split_part(j.source_component_id, ':', 3)
+                                              and not tg.tgisinternal limit 1)));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_kernel_event_consume(p_outbox_id bigint)
  RETURNS TABLE(handled boolean, downstream_ref text, result jsonb, reason text)
  LANGUAGE plpgsql
@@ -31682,6 +32036,112 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_kernel_historical_register_state()
+ RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+with r as (select * from public.phase_c_historical_repair),
+-- ROOT CAUSE 4 FOLLOW-UP, 17 Aug 2026. The register is append-only and its own trigger states the
+-- correction protocol: "A correction is a NEW row that names the repair_id it corrects in its
+-- evidence, never an edit to the row that stated the original finding." Until now nothing here read
+-- that protocol, so a corrected finding went on being counted as a live one and there was no way to
+-- satisfy the register by the mechanism the register prescribes. A CLASSIFICATION that a later row
+-- names as corrected is no longer in the population; the correcting row has to exist and has to
+-- name it, which is stricter bookkeeping than not looking.
+exc as (
+  select * from r c
+   where c.entry_kind = 'CLASSIFICATION'
+     and not exists (select 1 from r x
+                      where (x.evidence->>'corrects_repair_id')::bigint = c.repair_id))
+-- ---- CURRENT state. These must be zero, and they are about today, not about history.
+select 'active_historical_duplicate_work'::text,
+       '0 of ' || (select count(*)::text from exc where classification = 'HISTORICAL_DUPLICATE_EFFECT'),
+       (select count(*)::text from exc
+         where classification = 'HISTORICAL_DUPLICATE_EFFECT' and active_effect_now)
+         || ' of ' || (select count(*)::text from exc where classification = 'HISTORICAL_DUPLICATE_EFFECT'),
+       (select count(*) = 0 from exc where classification = 'HISTORICAL_DUPLICATE_EFFECT' and active_effect_now)
+union all
+select 'queued_work_beneath_cancelled_commands',
+       '0',
+       (select count(*)::text from public.phase_c_task t
+         join public.founder_command c on c.command_id = t.command_id
+        where c.state = 'cancelled'
+          and t.state not in (select state from public.phase_c_task_state where terminal)),
+       (select count(*) = 0 from public.phase_c_task t
+         join public.founder_command c on c.command_id = t.command_id
+        where c.state = 'cancelled'
+          and t.state not in (select state from public.phase_c_task_state where terminal))
+union all
+select 'current_terminal_objects_with_open_trace',
+       '0',
+       (select count(*)::text from public.phase_c_trace t
+         where t.status = 'open'
+           and t.created_at >= (select min(started_at) from public.phase_c_kernel_epoch)
+           and exists (select 1 from public.phase_c_workflow_run w
+                        where w.run_id::text = t.subject_ref and t.subject_kind = 'workflow_run'
+                          and w.state in (select state from public.phase_b_workflow_state where terminal))),
+       (select count(*) = 0 from public.phase_c_trace t
+         where t.status = 'open'
+           and t.created_at >= (select min(started_at) from public.phase_c_kernel_epoch)
+           and exists (select 1 from public.phase_c_workflow_run w
+                        where w.run_id::text = t.subject_ref and t.subject_kind = 'workflow_run'
+                          and w.state in (select state from public.phase_b_workflow_state where terminal)))
+union all
+select 'current_active_orphan_traces',
+       '0 — an orphan trace created AFTER the kernel epoch',
+       (select count(*)::text from public.phase_c_trace t
+         where t.created_at >= (select min(started_at) from public.phase_c_kernel_epoch)
+           and t.subject_kind = 'task'
+           and not exists (select 1 from public.phase_c_task k where k.task_id::text = t.subject_ref)),
+       (select count(*) = 0 from public.phase_c_trace t
+         where t.created_at >= (select min(started_at) from public.phase_c_kernel_epoch)
+           and t.subject_kind = 'task'
+           and not exists (select 1 from public.phase_c_task k where k.task_id::text = t.subject_ref))
+union all
+-- ---- PRESERVED history. Reported with an exact count, never as compliance.
+select 'historical_exceptions_preserved',
+       'reported exactly, and never presented as current compliance',
+       (select string_agg(classification || ' ' || n::text, '; ' order by classification)
+          from (select classification, count(*) n from exc group by 1) d)
+         || '; retrofit entries ' || (select count(*)::text from r where entry_kind = 'RETROFIT'),
+       true
+union all
+select 'historical_exceptions_with_no_original_timestamp',
+       '0 of ' || (select count(*)::text from exc),
+       (select count(*)::text from exc where original_at is null)
+         || ' of ' || (select count(*)::text from exc),
+       (select count(*) = 0 from exc where original_at is null)
+union all
+select 'historical_exceptions_with_no_reason_they_cannot_be_reconstructed',
+       '0 of ' || (select count(*)::text from exc),
+       (select count(*)::text from exc where coalesce(btrim(cannot_reconstruct),'') = '')
+         || ' of ' || (select count(*)::text from exc),
+       (select count(*) = 0 from exc where coalesce(btrim(cannot_reconstruct),'') = '')
+union all
+select 'historical_exceptions_dated_after_the_kernel_cutover',
+       '0 of ' || (select count(*)::text from exc where original_at is not null),
+       (select count(*)::text from exc where original_at is not null and original_at >= kernel_cutover_at)
+         || ' of ' || (select count(*)::text from exc where original_at is not null),
+       -- A "historical" exception that happened after the kernel took over is not historical. It
+       -- is a live defect wearing the wrong label, and that is worth failing on.
+       (select count(*) = 0 from exc where original_at is not null and original_at >= kernel_cutover_at)
+union all
+select 'register_is_append_only',
+       'a trigger refusing UPDATE and DELETE',
+       (select case when count(*) = 1 then 'present' else 'MISSING' end
+          from pg_trigger tg join pg_class c on c.oid = tg.tgrelid
+         where c.relname = 'phase_c_historical_repair'
+           and tg.tgname = 'a00_phase_c_historical_repair_append_only'
+           and not tg.tgisinternal and tg.tgenabled <> 'D'),
+       (select count(*) = 1 from pg_trigger tg join pg_class c on c.oid = tg.tgrelid
+         where c.relname = 'phase_c_historical_repair'
+           and tg.tgname = 'a00_phase_c_historical_repair_append_only'
+           and not tg.tgisinternal and tg.tgenabled <> 'D');
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_kernel_historical_repair_state()
  RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
  LANGUAGE sql
@@ -31835,6 +32295,55 @@ CREATE OR REPLACE FUNCTION public.fn_kernel_in_delivery()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   select coalesce(nullif(current_setting('kernel.in_delivery', true), ''), '0') = '1';
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_intake_execution(p_component text, p_trace_input jsonb)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_trace bigint; v_result text;
+begin
+  v_result := case
+    when coalesce(p_trace_input->>'state_after','') in ('refused','rejected') then 'refused'
+    when coalesce(p_trace_input->>'state_after','') = 'deferred' then 'no_op'
+    else 'succeeded' end;
+
+  v_trace := public.fn_kernel_system_execution_begin(jsonb_build_object(
+    'component_id',    p_component,
+    'correlation_id',  coalesce(nullif(p_trace_input->>'correlation_id',''), 'intake:' || p_component),
+    'causation_id',    coalesce(nullif(p_trace_input->>'causation_id',''), 'intake:' || p_component),
+    'authority_result', p_trace_input->>'authority_result',
+    'state_before',    p_trace_input->>'state_before',
+    'input_hash',      p_trace_input->>'input_hash',
+    'trigger_source',  coalesce(nullif(p_trace_input->>'trigger_source',''),
+                                'kernel door ' || p_component)));
+
+  -- Everything the door said about its own subject is preserved on the trace rather than dropped:
+  -- the run, the step run, the task and the door's original subject_ref stay readable.
+  update public.phase_c_trace set
+    run_id       = coalesce(nullif(p_trace_input->>'run_id','')::bigint, run_id),
+    parent_trace_id = coalesce(
+      nullif(p_trace_input->>'parent_trace_id','')::bigint,
+      (select r.trace_id from public.phase_c_workflow_run r
+        where r.run_id = nullif(p_trace_input->>'run_id','')::bigint),
+      parent_trace_id),
+    step_run_id  = coalesce(nullif(p_trace_input->>'step_run_id','')::bigint, step_run_id),
+    task_id      = coalesce(nullif(p_trace_input->>'task_id','')::bigint, task_id),
+    evidence_refs = coalesce(evidence_refs,'[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+      'door_subject_kind', p_trace_input->>'subject_kind',
+      'door_subject_ref',  p_trace_input->>'subject_ref',
+      'door_evidence',     p_trace_input->'evidence_refs'))
+  where trace_id = v_trace;
+
+  return public.fn_kernel_system_execution_close(v_trace, jsonb_build_object(
+    'result',      v_result,
+    'state_after', p_trace_input->>'state_after',
+    'output_hash', p_trace_input->>'output_hash',
+    'failure',     case when v_result = 'failed' then p_trace_input->>'failure' end));
+end
 $function$
 
 
@@ -32151,7 +32660,7 @@ begin
   insert into public.phase_c_event_outbox
     (event_id, workflow_id, object_version, producer, accountable_role_id, primary_consumer_role_id,
      payload, dedupe_value, status, correlation_id, causation_id, source_id,
-     command_id, workflow_run_id, step_run_id, trace_id)
+     command_id, workflow_run_id, step_run_id, task_id, trace_id)
   values (e.event_id, e.workflow_id, coalesce((p_input->>'object_version')::bigint, 1),
           v_prod, v_consumer, coalesce(e.primary_consumer_role_id,''),
           coalesce(p_input->'payload', '{}'::jsonb), v_dedupe, 'pending',
@@ -32159,6 +32668,12 @@ begin
           nullif(p_input->>'command_id','')::bigint,
           nullif(p_input->>'workflow_run_id','')::bigint,
           nullif(p_input->>'step_run_id','')::bigint,
+          -- ROOT CAUSE 2. The relationship a cancellation follows must be a COLUMN. task_id was the
+          -- one missing normalised link: every producer already carries it in the payload it emits,
+          -- so it is read from the explicit input first and from the payload second, and never
+          -- looked up from JSON again after this point.
+          coalesce(nullif(p_input->>'task_id','')::bigint,
+                   nullif(p_input->'payload'->>'task_id','')::bigint),
           nullif(p_input->>'trace_id','')::bigint)
   on conflict (event_id, dedupe_value) do nothing
   returning outbox_id into v_id;
@@ -32175,6 +32690,51 @@ begin
   end if;
   return v_id;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_outbox_refuse_cancelled_subject()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_why text;
+begin
+  -- Only the transition INTO delivered is guarded. Claiming, retrying and superseding are allowed.
+  if new.status is distinct from 'delivered' or old.status = 'delivered' then
+    return new;
+  end if;
+
+  select string_agg(x, '; ') into v_why from (
+    select 'founder command ' || c.command_id || ' is ' || c.state as x
+      from public.founder_command c
+     where c.command_id = new.command_id and c.state in ('cancelled','superseded')
+    union all
+    select 'workflow run ' || r.run_id || ' is ' || r.state
+      from public.phase_c_workflow_run r
+     where r.run_id = new.workflow_run_id and r.state in ('cancelled','superseded')
+    union all
+    select 'step run ' || sr.step_run_id || ' is ' || sr.state
+      from public.phase_c_workflow_step_run sr
+     where sr.step_run_id = new.step_run_id and sr.state in ('cancelled','superseded')
+    union all
+    select 'task ' || t.task_id || ' is ' || t.state
+      from public.phase_c_task t
+     where t.task_id = new.task_id and t.state in ('cancelled','superseded')
+  ) s;
+
+  if v_why is null then
+    return new;
+  end if;
+
+  new.status       := 'superseded';
+  new.delivered_at := null;
+  new.last_error   := 'DELIVERY REFUSED ' || to_char(now(),'YYYY-MM-DD HH24:MI') || ': '
+                   || v_why || ' (fn_kernel_outbox_refuse_cancelled_subject). The event is kept as '
+                   || 'the record that it was produced; it is not delivered, because the work it '
+                   || 'describes has been cancelled.';
+  return new;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_kernel_paid_provider_gate(p_model text DEFAULT NULL::text)
@@ -32301,6 +32861,67 @@ AS $function$
            where created_at > (select min(updated_at) from public.llm_route_health))::text,
          (select count(*) from public.llm_attempt
            where created_at > (select min(updated_at) from public.llm_route_health)) = 0;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_record_maintenance_write(p_db_user text, p_session_role text, p_table text, p_op text, p_reason text, p_stack text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  insert into public.kernel_maintenance_write
+    (db_user, session_role, table_name, operation, reason, call_stack)
+  values (p_db_user, p_session_role, p_table, p_op, p_reason, p_stack);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_retired_grant_state()
+ RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+with g as (
+  select r.path_name, r.disposition,
+         coalesce((select string_agg(rp.grantee || ':' || rp.privilege_type, ', ')
+                     from information_schema.routine_privileges rp
+                    where rp.routine_schema = 'public' and rp.routine_name = r.path_name
+                      and rp.grantee in ('anon','authenticated','service_role','PUBLIC')), '') ordinary
+    from public.kernel_retired_path r
+)
+select 'retired_paths_executable_by_an_ordinary_role'::text,
+       '0 of ' || (select count(*)::text from g),
+       (select count(*)::text from g where ordinary <> '') || ' of ' || (select count(*)::text from g)
+         || coalesce(' [' || (select string_agg(path_name || ' -> ' || ordinary, '; ')
+              from g where ordinary <> '') || ']', ''),
+       (select count(*) = 0 from g where ordinary <> '')
+union all
+select 'retired_paths_with_a_recorded_final_state',
+       (select count(*)::text from g) || ' of ' || (select count(*)::text from g),
+       (select string_agg(disposition || ' ' || n::text, '; ' order by disposition)
+          from (select disposition, count(*) n from g group by 1) d),
+       (select count(*) = 0 from g where coalesce(btrim(disposition),'') = '')
+union all
+-- A compatibility wrapper must reach the kernel and nothing else. Measured from the deployed body,
+-- comments stripped, because both wrappers discuss the kernel in prose.
+select 'compatibility_wrappers_not_calling_the_kernel',
+       '0 of ' || (select count(*)::text from g where disposition = 'COMPATIBILITY_WRAPPER_TO_KERNEL'),
+       (select count(*)::text from g
+         join pg_proc p on p.proname = g.path_name
+         join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
+        where g.disposition = 'COMPATIBILITY_WRAPPER_TO_KERNEL'
+          and regexp_replace(regexp_replace(p.prosrc,'/\*.*?\*/',' ','g'),'--[^\n]*',' ','g')
+              !~ '\yfn_kernel_')
+         || ' of ' || (select count(*)::text from g where disposition = 'COMPATIBILITY_WRAPPER_TO_KERNEL'),
+       (select count(*) = 0 from g
+         join pg_proc p on p.proname = g.path_name
+         join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
+        where g.disposition = 'COMPATIBILITY_WRAPPER_TO_KERNEL'
+          and regexp_replace(regexp_replace(p.prosrc,'/\*.*?\*/',' ','g'),'--[^\n]*',' ','g')
+              !~ '\yfn_kernel_');
 $function$
 
 
@@ -32666,6 +33287,352 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_kernel_run_for(p_business_object_id text)
+ RETURNS bigint
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when count(*) = 1 then min(r.run_id) end
+    from public.phase_c_workflow_run r
+   where r.business_object_id = p_business_object_id
+     and r.state in (select state from public.phase_b_workflow_state where not terminal);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_signal_state()
+ RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+with
+-- The predicate is live: it reads the deployed body, comments stripped, so this check cannot be
+-- satisfied by a promise in a comment. Comments are stripped because the body says in prose that
+-- it must never call fn_kernel_workflow_start.
+body as (
+  select regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', ' ', 'g'), '--[^\n]*', ' ', 'g') src
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = 'fn_kernel_signal_submit'
+),
+sig as (select * from public.kernel_signal_inbox),
+runs_from_signals as (
+  -- A workflow run whose dedupe_key or trace descends from a signal would be the defect this file
+  -- exists to prevent. Measured against the ledger, not against intent.
+  select count(*) n from public.phase_c_workflow_run r
+   where exists (select 1 from sig s where s.correlation_id = 'signal:' || s.idempotency_key
+                   and r.dedupe_key like '%' || s.source_id || '%'
+                   and r.opened_at >= s.received_at)
+)
+select 'signal_service_can_create_a_workflow'::text,
+       '0 — the body must not name fn_kernel_workflow_start',
+       (select case when src ~ '\yfn_kernel_workflow_start\s*\(' then '1 — IT DOES' else '0' end
+          from body),
+       (select src !~ '\yfn_kernel_workflow_start\s*\(' from body)
+union all
+select 'signal_types_registered',
+       'reported, not asserted',
+       (select count(*)::text || ' registered, '
+            || count(*) filter (where activation_state = 'active')::text || ' active, dispositions: '
+            || coalesce(string_agg(distinct disposition, ', '), '(none)')
+          from public.kernel_signal_type),
+       true
+union all
+select 'signals_that_created_a_workflow_run',
+       '0',
+       (select n::text from runs_from_signals),
+       (select n = 0 from runs_from_signals)
+union all
+select 'refused_signals_with_no_stated_reason',
+       '0 of ' || (select count(*)::text from sig where status = 'refused'),
+       (select count(*)::text from sig
+         where status = 'refused' and coalesce(btrim(refusal_reason),'') = '')
+         || ' of ' || (select count(*)::text from sig where status = 'refused'),
+       (select count(*) = 0 from sig where status = 'refused' and coalesce(btrim(refusal_reason),'') = '')
+union all
+select 'signals_attached_to_a_run_that_does_not_exist',
+       '0 of ' || (select count(*)::text from sig where status <> 'refused'),
+       (select count(*)::text from sig s where s.status <> 'refused'
+          and not exists (select 1 from public.phase_c_workflow_run r where r.run_id = s.workflow_run_id))
+         || ' of ' || (select count(*)::text from sig where status <> 'refused'),
+       (select count(*) = 0 from sig s where s.status <> 'refused'
+          and not exists (select 1 from public.phase_c_workflow_run r where r.run_id = s.workflow_run_id))
+union all
+select 'signals_processed_without_a_trace',
+       '0 of ' || (select count(*)::text from sig where status in ('attached','applied')),
+       (select count(*)::text from sig where status in ('attached','applied') and trace_id is null)
+         || ' of ' || (select count(*)::text from sig where status in ('attached','applied')),
+       (select count(*) = 0 from sig where status in ('attached','applied') and trace_id is null)
+union all
+select 'duplicate_signal_delivery_applied_twice',
+       '0',
+       -- idempotency_key is UNIQUE, so this counts what the constraint already makes impossible.
+       -- It stays because a future ALTER that drops the constraint must fail a check, not pass
+       -- silently.
+       (select count(*)::text from (
+          select idempotency_key from sig group by idempotency_key having count(*) > 1) d),
+       (select count(*) = 0 from (
+          select idempotency_key from sig group by idempotency_key having count(*) > 1) d);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_signal_submit(p_input jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_src_type  text   := nullif(btrim(coalesce(p_input->>'source_type','')), '');
+  v_src_id    text   := nullif(btrim(coalesce(p_input->>'source_id','')), '');
+  v_run       bigint := nullif(p_input->>'workflow_run_id','')::bigint;
+  v_sig       text   := nullif(btrim(coalesce(p_input->>'signal_type','')), '');
+  v_payload   jsonb  := coalesce(p_input->'payload', '{}'::jsonb);
+  v_by        text   := nullif(btrim(coalesce(p_input->>'requested_by','')), '');
+  v_idem      text;
+  v_corr      text;
+  v_caus      text;
+  v_id        bigint;
+  -- Scalars, never a RECORD read outside the branch that filled it.
+  v_prior_id     bigint;
+  v_prior_status text;
+  v_prior_result jsonb;
+  v_disp      text;
+  v_sig_wf    text;
+  v_sig_act   text;
+  v_sig_sys   text;
+  v_run_wf    text;
+  v_run_state text;
+  v_run_obj   text;
+  v_run_trace bigint;
+  v_step_run  bigint;
+  v_step_id   text;
+  v_step_owner text;
+  v_task      bigint;
+  v_trace     bigint;
+  v_out       jsonb;
+  v_refuse    text;
+begin
+  -- ---- 0. a delivery worker may never drive the request side -------------------------------
+  perform public.fn_kernel_assert_not_in_delivery('fn_kernel_signal_submit');
+
+  -- ---- 1. envelope. Nothing recordable in a malformed one -----------------------------------
+  if v_src_type is null or v_src_id is null or v_sig is null or v_by is null then
+    raise exception 'fn_kernel_signal_submit: source_type, source_id, signal_type and requested_by are all required (got %, %, %, %)',
+      coalesce(v_src_type,'(null)'), coalesce(v_src_id,'(null)'), coalesce(v_sig,'(null)'),
+      coalesce(v_by,'(null)') using errcode = '22023';
+  end if;
+  if jsonb_typeof(v_payload) <> 'object' then
+    raise exception 'fn_kernel_signal_submit: payload must be a json object, got %',
+      jsonb_typeof(v_payload) using errcode = '22023';
+  end if;
+
+  -- The key is the external identity of the signal. Defaulted from the source's own reference and
+  -- the run it is about — never from now() or a sequence, because a key that differs every time
+  -- is not a key and would let one webhook retry apply twice.
+  v_idem := coalesce(nullif(btrim(p_input->>'idempotency_key'),''),
+                     v_src_type || ':' || v_src_id || ':' || v_sig || ':' || coalesce(v_run::text,'-'));
+  v_corr := coalesce(nullif(btrim(p_input->>'correlation_id'),''), 'signal:' || v_idem);
+  v_caus := coalesce(nullif(btrim(p_input->>'causation_id'),''), v_src_type || ':' || v_src_id);
+
+  -- ---- 2. idempotency, before anything is resolved and before anything happens --------------
+  select s.signal_id, s.status, s.result into v_prior_id, v_prior_status, v_prior_result
+    from public.kernel_signal_inbox s where s.idempotency_key = v_idem;
+  if v_prior_id is not null then
+    return jsonb_build_object('ok', v_prior_status <> 'refused', 'duplicate', true,
+      'signal_id', v_prior_id, 'status', v_prior_status, 'result', v_prior_result,
+      'reason', 'this signal has already been delivered; the first decision is the answer');
+  end if;
+
+  insert into public.kernel_signal_inbox
+    (source_type, source_id, workflow_run_id, signal_type, payload, idempotency_key,
+     correlation_id, causation_id, requested_by)
+  values (v_src_type, v_src_id, v_run, v_sig, v_payload, v_idem, v_corr, v_caus, v_by)
+  returning signal_id into v_id;
+
+  -- ---- 3. the signal type must be registered and active ------------------------------------
+  select t.disposition, t.workflow_id, t.activation_state, t.system_actor_id
+    into v_disp, v_sig_wf, v_sig_act, v_sig_sys
+    from public.kernel_signal_type t where t.signal_type = v_sig;
+  if v_disp is null then
+    v_refuse := format('signal type %L is not registered. A signal the kernel has never heard of '
+                    || 'is not routed on a guess.', v_sig);
+  elsif v_sig_act <> 'active' then
+    v_refuse := format('signal type %L is registered with activation_state %L and does not accept '
+                    || 'submissions.', v_sig, v_sig_act);
+  end if;
+
+  -- ---- 4. the run must exist, and must still be running -------------------------------------
+  if v_refuse is null then
+    if v_run is null then
+      v_refuse := 'a signal about an existing workflow must name workflow_run_id. There is no '
+               || 'lookup by business object here on purpose: guessing which run a signal belongs '
+               || 'to is how one arrival lands on two runs.';
+    else
+      select r.workflow_id, r.state, r.business_object_id, r.trace_id
+        into v_run_wf, v_run_state, v_run_obj, v_run_trace
+        from public.phase_c_workflow_run r where r.run_id = v_run for update;
+      if v_run_wf is null then
+        v_refuse := format('workflow run %s does not exist.', v_run);
+      elsif exists (select 1 from public.phase_b_workflow_state ws
+                     where ws.state = v_run_state and ws.terminal) then
+        v_refuse := format('workflow run %s is in terminal state %L. A closed run does not accept '
+                        || 'signals; if this is new work it must come through '
+                        || 'fn_kernel_trigger_submit and be judged on its own.', v_run, v_run_state);
+      elsif v_sig_wf is not null and v_sig_wf is distinct from v_run_wf then
+        v_refuse := format('signal type %L is declared for workflow %L and run %s is %L.',
+                           v_sig, v_sig_wf, v_run, v_run_wf);
+      end if;
+    end if;
+  end if;
+
+  if v_refuse is not null then
+    update public.kernel_signal_inbox
+       set status = 'refused', refusal_reason = v_refuse, processed_at = now()
+     where signal_id = v_id;
+    return jsonb_build_object('ok', false, 'duplicate', false, 'signal_id', v_id,
+      'status','refused', 'reason', v_refuse);
+  end if;
+
+  -- ---- 5. the signal is attached to the run it names, always --------------------------------
+  -- Even a signal whose disposition changes nothing leaves a trace parented to the run's trace, so
+  -- "we were told and did nothing" and "we were never told" can never be confused later.
+  v_trace := public.fn_kernel_intake_execution('dbfn:fn_kernel_signal_submit(jsonb)', jsonb_build_object(
+    'subject_kind','system_execution', 'subject_ref', 'signal:' || v_id::text, 'run_id', v_run,
+    'actor_role_id', null, 'system_actor_id', v_sig_sys,
+    'evidence_refs', jsonb_build_array(jsonb_build_object(
+      'signal_id', v_id, 'signal_type', v_sig, 'disposition', v_disp,
+      'source_type', v_src_type, 'source_id', v_src_id, 'idempotency_key', v_idem)),
+    'state_before', v_run_state, 'state_after', v_run_state, 'status','complete'));
+  update public.kernel_signal_inbox set trace_id = v_trace where signal_id = v_id;
+  if v_run_trace is not null then
+    -- parent_trace_id is set by fn_kernel_intake_execution BEFORE the trace is sealed (rc4).
+  -- Setting it here would edit a sealed trace, which fn_phase_c_trace_append_only refuses.
+  perform 1;
+  end if;
+
+  -- The run's currently active step, if it has one. Read once, used by three dispositions.
+  select sr.step_run_id, sr.step_id, sr.accountable_role_id
+    into v_step_run, v_step_id, v_step_owner
+    from public.phase_c_workflow_step_run sr
+   where sr.run_id = v_run and sr.state = 'active'
+   order by sr.step_run_id limit 1;
+
+  -- ---- 6. the declared disposition, and only that -------------------------------------------
+  if v_disp = 'ATTACH_ONLY' then
+    update public.kernel_signal_inbox
+       set status = 'attached', step_run_id = v_step_run, processed_at = now(),
+           result = jsonb_build_object('attached_to_run', v_run, 'active_step', v_step_id)
+     where signal_id = v_id;
+    return jsonb_build_object('ok', true, 'duplicate', false, 'signal_id', v_id,
+      'status','attached', 'workflow_run_id', v_run, 'workflow_id', v_run_wf,
+      'active_step_id', v_step_id, 'trace_id', v_trace, 'created_workflow_runs', 0);
+
+  elsif v_disp = 'COMPLETE_STEP' then
+    if v_step_run is null then
+      v_refuse := format('run %s has no active step, so there is nothing for a COMPLETE_STEP '
+                      || 'signal to complete.', v_run);
+    elsif coalesce(jsonb_typeof(v_payload->'output'),'') <> 'object'
+       or v_payload->'output' = '{}'::jsonb then
+      v_refuse := format('signal type %L completes step %s and the payload carries no output '
+                      || 'object. An output is what the step contract asks for; it is not '
+                      || 'defaulted here, because a fabricated output certifies work nobody did.',
+                         v_sig, v_step_id);
+    end if;
+    if v_refuse is not null then
+      update public.kernel_signal_inbox
+         set status = 'refused', refusal_reason = v_refuse, step_run_id = v_step_run,
+             processed_at = now()
+       where signal_id = v_id;
+      return jsonb_build_object('ok', false, 'duplicate', false, 'signal_id', v_id,
+        'status','refused', 'reason', v_refuse);
+    end if;
+    v_out := public.fn_kernel_step_complete(jsonb_build_object(
+      'step_run_id',     v_step_run,
+      'actor_role_id',   v_step_owner,
+      'outcome',         coalesce(nullif(btrim(v_payload->>'outcome'),''), 'pass'),
+      'idempotency_key', 'signal:' || v_idem,
+      'reason',          coalesce(nullif(btrim(v_payload->>'reason'),''),
+                                  'signal ' || v_sig || ' from ' || v_src_type || ':' || v_src_id),
+      'inputs',          coalesce(v_payload->'inputs',
+                                  jsonb_build_object('signal_id', v_id, 'signal_type', v_sig,
+                                                     'source', v_src_type || ':' || v_src_id)),
+      'output',          v_payload->'output',
+      'evidence_ref',    'signal:' || v_id::text,
+      'correlation_id',  v_corr, 'causation_id', v_caus));
+
+  elsif v_disp = 'REVIEW_VERDICT' then
+    select t.task_id into v_task from public.phase_c_task t
+     where t.run_id = v_run and t.step_id = v_step_id order by t.task_id desc limit 1;
+    if v_task is null or coalesce(btrim(v_payload->>'decision'),'') = '' then
+      v_refuse := format('a REVIEW_VERDICT signal needs a task on the active step and a decision '
+                      || 'in the payload (task %s, decision %L).',
+                         coalesce(v_task::text,'none'), coalesce(v_payload->>'decision','(none)'));
+      update public.kernel_signal_inbox
+         set status = 'refused', refusal_reason = v_refuse, step_run_id = v_step_run,
+             processed_at = now()
+       where signal_id = v_id;
+      return jsonb_build_object('ok', false, 'duplicate', false, 'signal_id', v_id,
+        'status','refused', 'reason', v_refuse);
+    end if;
+    v_out := public.fn_kernel_review_decide(jsonb_build_object(
+      'task_id',          v_task,
+      'reviewer_role_id', v_payload->>'reviewer_role_id',
+      'decision',         v_payload->>'decision',
+      'reason',           coalesce(nullif(btrim(v_payload->>'reason'),''),
+                                   'recorded from signal ' || v_id::text)));
+
+  elsif v_disp = 'CANCEL' then
+    v_out := public.fn_kernel_cancel(jsonb_build_object(
+      'subject_kind', 'workflow_run',
+      'subject_ref',  v_run::text,
+      'op',           'cancel',
+      'reason',       coalesce(nullif(btrim(v_payload->>'reason'),''),
+                               'cancelled by signal ' || v_sig || ' from ' || v_src_type || ':' || v_src_id),
+      'actor',        v_by));
+  end if;
+
+  update public.kernel_signal_inbox
+     set status = 'applied', step_run_id = v_step_run, processed_at = now(), result = v_out
+   where signal_id = v_id;
+
+  return jsonb_build_object('ok', coalesce((v_out->>'ok')::boolean, true), 'duplicate', false,
+    'signal_id', v_id, 'status','applied', 'disposition', v_disp,
+    'workflow_run_id', v_run, 'workflow_id', v_run_wf, 'step_id', v_step_id,
+    'trace_id', v_trace, 'created_workflow_runs', 0, 'result', v_out);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_signal_type_activation_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_srcs text;
+begin
+  if new.activation_state = 'active' or new.activation_state = old.activation_state then
+    return new;
+  end if;
+  select string_agg(c.source_component_id, ', ' order by c.source_component_id) into v_srcs
+    from public.phase_c_source_cutover c
+   where c.current_activation = 'ACTIVE' and c.target_step_or_signal = new.signal_type;
+  if v_srcs is not null then
+    raise exception
+      'signal type %L cannot be moved to %L: % ACTIVE source(s) still point at it (%). Deactivate '
+      'or repoint the source first — an active source pointing at an inactive type is refused at '
+      'submission and reported as cut over, which is the defect root cause 3 closed.',
+      new.signal_type, new.activation_state,
+      (select count(*) from public.phase_c_source_cutover c
+        where c.current_activation='ACTIVE' and c.target_step_or_signal = new.signal_type),
+      v_srcs
+      using errcode = '23514';
+  end if;
+  return new;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_kernel_sla_due(p_sla_policy_id text, p_from timestamp with time zone DEFAULT now())
  RETURNS timestamp with time zone
  LANGUAGE sql
@@ -32683,6 +33650,357 @@ AS $function$
            lateral regexp_match(sp.target,
              '(\d+)\s*(?:business\s+|calendar\s+)?(minute|hour|day|week)') m
      where sp.sla_policy_id = p_sla_policy_id), 24) * 60))::int);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_source_cutover_state()
+ RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+with
+-- The population is recomputed from the catalogue every time, never read off this table: a check
+-- whose denominator is a column the same migration writes goes green by emptying itself.
+pop as (
+  select * from public.v_kernel_trigger_source_derived
+   where connection_state in ('CONNECTED_ACTIVE','CONNECTED_INACTIVE','INTENTIONALLY_RETIRED')
+      or (coalesce(is_active_now,false) and coalesce(creates_work_now,false)
+          and coalesce(disposition,'') <> 'FOUNDER_COMMAND_SURFACE')
+      -- ...or it is already classified. The register may GROW when a new source appears and may
+      -- never silently SHED a row because a flag on it moved.
+      or source_key in (select source_component_id from public.phase_c_source_cutover)
+),
+c as (select * from public.phase_c_source_cutover),
+act as (select * from c where current_activation = 'ACTIVE'),
+protected(t) as (values
+  ('phase_c_workflow_run'),('phase_c_workflow_step_run'),('phase_c_task'),('phase_c_handoff_run'),
+  ('kernel_trigger_inbox'),('kernel_signal_inbox'),('phase_c_event_outbox'),('phase_c_refund_decision')),
+-- A source and the routine it actually fires. Only database triggers and cron jobs can be resolved
+-- to a routine from the catalogue; an Edge Function has no prosrc to read, and saying so is better
+-- than pretending the scan covered it.
+source_routine as (
+  select s.source_component_id as source_key, p.oid, p.proname
+    from public.phase_c_source_cutover s
+    join pg_trigger tg on tg.tgname = split_part(s.source_component_id, ':', 3)
+    join pg_class cl on cl.oid = tg.tgrelid and cl.relname = split_part(split_part(s.source_component_id, ':', 2), '.', 2)
+    join pg_proc p on p.oid = tg.tgfoid
+   where s.source_type = 'database_trigger' and not tg.tgisinternal
+),
+writes_business_work as (
+  select sr.source_key, string_agg(distinct pr.t, ', ') tables
+    from source_routine sr
+    join pg_proc p on p.oid = sr.oid
+    join protected pr on regexp_replace(regexp_replace(p.prosrc,'/\*.*?\*/',' ','g'),'--[^\n]*',' ','g')
+         ~ ('(insert\s+into|update|delete\s+from)\s+(public\.)?' || pr.t || '\M')
+   group by sr.source_key
+)
+select 'sources_in_the_population_with_no_classification'::text,
+       '0 of ' || (select count(*)::text from pop),
+       (select count(*)::text from pop p
+         where not exists (select 1 from c where c.source_component_id = p.source_key))
+         || ' of ' || (select count(*)::text from pop),
+       (select count(*) = 0 from pop p
+         where not exists (select 1 from c where c.source_component_id = p.source_key))
+union all
+select 'classified_sources_that_are_not_in_the_k10_inventory',
+       '0 of ' || (select count(*)::text from c),
+       (select count(*)::text from c
+         where not exists (select 1 from public.kernel_trigger_source k
+                            where k.source_key = c.source_component_id))
+         || ' of ' || (select count(*)::text from c),
+       (select count(*) = 0 from c
+         where not exists (select 1 from public.kernel_trigger_source k
+                            where k.source_key = c.source_component_id))
+union all
+select 'class_split',
+       'reported, never counted as one backlog',
+       (select string_agg(source_class || ' ' || n::text, '; ' order by source_class)
+          from (select source_class, count(*) n from c group by 1) d),
+       true
+union all
+select 'active_new_work_sources_not_pointed_at_the_trigger_adapter',
+       '0 of ' || (select count(*)::text from act where source_class = 'A NEW_WORK_REQUEST'),
+       (select count(*)::text from act
+         where source_class = 'A NEW_WORK_REQUEST' and target_kernel_adapter <> 'fn_kernel_trigger_submit')
+         || ' of ' || (select count(*)::text from act where source_class = 'A NEW_WORK_REQUEST'),
+       (select count(*) = 0 from act
+         where source_class = 'A NEW_WORK_REQUEST' and target_kernel_adapter <> 'fn_kernel_trigger_submit')
+union all
+select 'active_existing_run_signals_not_pointed_at_the_signal_adapter',
+       '0 of ' || (select count(*)::text from act where source_class = 'B EXISTING_WORKFLOW_SIGNAL'),
+       (select count(*)::text from act
+         where source_class = 'B EXISTING_WORKFLOW_SIGNAL' and target_kernel_adapter <> 'fn_kernel_signal_submit')
+         || ' of ' || (select count(*)::text from act where source_class = 'B EXISTING_WORKFLOW_SIGNAL'),
+       (select count(*) = 0 from act
+         where source_class = 'B EXISTING_WORKFLOW_SIGNAL' and target_kernel_adapter <> 'fn_kernel_signal_submit')
+union all
+-- K22c. THE class-C rule, measured as it is written: a monitor may not create business work, and
+-- business work is the eight tables §7 protects. Scanned from the deployed body, and enforced
+-- independently by K18 — so this line cannot be made green by relabelling a source.
+select 'active_read_only_monitors_that_write_business_work',
+       '0 of ' || (select count(*)::text from act where source_class = 'C READ_ONLY_MONITOR'),
+       (select count(*)::text from act a join writes_business_work w on w.source_key = a.source_component_id
+         where a.source_class = 'C READ_ONLY_MONITOR')
+         || ' of ' || (select count(*)::text from act where source_class = 'C READ_ONLY_MONITOR')
+         || coalesce(' [' || (select string_agg(a.source_component_id || ' -> ' || w.tables, '; ')
+              from act a join writes_business_work w on w.source_key = a.source_component_id
+             where a.source_class = 'C READ_ONLY_MONITOR') || ']', ''),
+       (select count(*) = 0 from act a join writes_business_work w on w.source_key = a.source_component_id
+         where a.source_class = 'C READ_ONLY_MONITOR')
+union all
+-- The old proxy, kept as a REPORTED line so a monitor that starts touching sibling tables is still
+-- visible. It is not a pass/fail: writing a sibling row is what a normalising trigger is for.
+select 'read_only_monitors_that_write_a_sibling_table',
+       'reported, not a defect — a normalising trigger writes a sibling row by design',
+       (select count(*)::text from act a join pop p on p.source_key = a.source_component_id
+         where a.source_class = 'C READ_ONLY_MONITOR' and coalesce(p.creates_work_now,false))
+         || ' of ' || (select count(*)::text from act where source_class = 'C READ_ONLY_MONITOR'),
+       true
+union all
+select 'retired_sources_that_are_still_live_and_writing_business_work',
+       '0 of ' || (select count(*)::text from c where source_class = 'D RETIRE_OR_HISTORICAL'),
+       (select count(*)::text from c join writes_business_work w on w.source_key = c.source_component_id
+         where c.source_class = 'D RETIRE_OR_HISTORICAL')
+         || ' of ' || (select count(*)::text from c where source_class = 'D RETIRE_OR_HISTORICAL'),
+       (select count(*) = 0 from c join writes_business_work w on w.source_key = c.source_component_id
+         where c.source_class = 'D RETIRE_OR_HISTORICAL')
+union all
+select 'class_A_sources_whose_trigger_type_is_not_registered',
+       '0 of ' || (select count(*)::text from c where source_class = 'A NEW_WORK_REQUEST'),
+       (select count(*)::text from c where source_class = 'A NEW_WORK_REQUEST'
+          and not exists (select 1 from public.kernel_trigger_type t
+                           where t.trigger_type = c.target_step_or_signal))
+         || ' of ' || (select count(*)::text from c where source_class = 'A NEW_WORK_REQUEST'),
+       (select count(*) = 0 from c where source_class = 'A NEW_WORK_REQUEST'
+          and not exists (select 1 from public.kernel_trigger_type t
+                           where t.trigger_type = c.target_step_or_signal))
+union all
+select 'class_B_sources_whose_signal_type_is_not_registered',
+       '0 of ' || (select count(*)::text from c where source_class = 'B EXISTING_WORKFLOW_SIGNAL'),
+       (select count(*)::text from c where source_class = 'B EXISTING_WORKFLOW_SIGNAL'
+          and not exists (select 1 from public.kernel_signal_type s
+                           where s.signal_type = c.target_step_or_signal))
+         || ' of ' || (select count(*)::text from c where source_class = 'B EXISTING_WORKFLOW_SIGNAL'),
+       (select count(*) = 0 from c where source_class = 'B EXISTING_WORKFLOW_SIGNAL'
+          and not exists (select 1 from public.kernel_signal_type s
+                           where s.signal_type = c.target_step_or_signal))
+union all
+select 'sources_switched_off_today',
+       'reported; an adapter existing is not a reason to activate one',
+       (select count(*)::text from c where current_activation = 'DISABLED')
+         || ' of ' || (select count(*)::text from c) || ' carry an adapter and stay disabled',
+       true
+union all
+select 'active_sources_now_calling_a_kernel_adapter',
+       'reported; it rises as each cutover increment lands',
+       (select count(*)::text from source_routine sr
+         join pg_proc p on p.oid = sr.oid
+        where regexp_replace(regexp_replace(p.prosrc,'/\*.*?\*/',' ','g'),'--[^\n]*',' ','g')
+              ~ '\yfn_kernel_source_emit\s*\(')
+         || ' of ' || (select count(*)::text from act
+                        where source_class in ('A NEW_WORK_REQUEST','B EXISTING_WORKFLOW_SIGNAL'))
+         || ' active class-A/B sources reach the kernel (database triggers only — an Edge Function '
+         || 'has no prosrc to scan, and saying so beats pretending the scan covered it)',
+       true
+union all
+select 'routine_autonomous_work_routed_through_the_founder_or_chief_of_staff',
+       '0 of ' || (select count(*)::text from act where source_class in
+                    ('A NEW_WORK_REQUEST','B EXISTING_WORKFLOW_SIGNAL')),
+       (select count(*)::text from act
+         where source_class in ('A NEW_WORK_REQUEST','B EXISTING_WORKFLOW_SIGNAL')
+           and accountable_role in ('founder','chief_of_staff'))
+         || ' of ' || (select count(*)::text from act where source_class in
+                        ('A NEW_WORK_REQUEST','B EXISTING_WORKFLOW_SIGNAL')),
+       (select count(*) = 0 from act
+         where source_class in ('A NEW_WORK_REQUEST','B EXISTING_WORKFLOW_SIGNAL')
+           and accountable_role in ('founder','chief_of_staff'));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_source_emit(p_source_key text, p_input jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_class   text;
+  v_vocab   text;
+  v_wf      text;
+  v_actor   text;
+  v_active  text;
+  v_ref     text := nullif(btrim(coalesce(p_input->>'source_ref','')), '');
+  v_run     bigint := nullif(p_input->>'workflow_run_id','')::bigint;
+  v_out     jsonb;
+  v_ctx     text;
+begin
+  select c.source_class, c.target_step_or_signal, c.target_workflow, c.system_actor,
+         c.current_activation
+    into v_class, v_vocab, v_wf, v_actor, v_active
+    from public.phase_c_source_cutover c where c.source_component_id = p_source_key;
+
+  if v_class is null then
+    raise exception 'fn_kernel_source_emit: % is not in the source cutover register', p_source_key
+      using errcode = '23503',
+            hint = 'Every autonomous source is classified in public.phase_c_source_cutover. A '
+                || 'source with no row has no route, and routing it on a guess is how one arrival '
+                || 'lands on two workflows. Classify it in scripts/phase_c/source_classification.mjs '
+                || 'and regenerate.';
+  end if;
+
+  if v_class = 'C READ_ONLY_MONITOR' then
+    raise exception 'fn_kernel_source_emit: % is a READ_ONLY_MONITOR and may not create business work',
+      p_source_key using errcode = '42501',
+        hint = 'A monitor collects status and may update approved operational state. When a '
+            || 'threshold is crossed it raises a SEPARATE class-A request under its own source '
+            || 'key, with its own dedupe key and its own evidence — a different call, which looks '
+            || 'like one.';
+  end if;
+
+  if v_class = 'D RETIRE_OR_HISTORICAL' then
+    raise exception 'fn_kernel_source_emit: % is retired', p_source_key
+      using errcode = '42501',
+            hint = 'Retired means retired. If this source must live again it needs a row saying so, '
+                || 'not a call.';
+  end if;
+
+  if v_ref is null then
+    raise exception 'fn_kernel_source_emit: % supplied no source_ref', p_source_key
+      using errcode = '22023',
+            hint = 'source_ref is the external identity of the thing this is about — the inquiry '
+                || 'id, the quote id, the transaction id. The idempotency key is built from it, '
+                || 'and a key that is different every time is not a key.';
+  end if;
+
+  begin
+    if v_class = 'A NEW_WORK_REQUEST' then
+      v_out := public.fn_kernel_trigger_submit(jsonb_build_object(
+        'source_class',    (select source_class from public.kernel_trigger_type
+                             where trigger_type = v_vocab),
+        'source_system',   p_source_key,
+        'source_ref',      v_ref,
+        'external_ref',    p_input->>'external_ref',
+        'trigger_type',    v_vocab,
+        'raw_payload',     coalesce(p_input->'raw_payload', '{}'::jsonb),
+        'requested_by',    coalesce(nullif(btrim(p_input->>'requested_by'),''), v_actor),
+        'object_version',  p_input->>'object_version',
+        'priority',        p_input->>'priority',
+        'idempotency_key', p_input->>'idempotency_key',
+        'correlation_id',  p_input->>'correlation_id',
+        'causation_id',    p_input->>'causation_id'));
+    else
+      -- K22b. There WAS a raise here for a NULL workflow_run_id, and it was wrong. A class-B
+      -- source is a database trigger that fires on every row change; "this object has no live run
+      -- right now" is the ordinary case, not a developer error, and raising turned it into a
+      -- failed insert on quote_items and transactions. It is also not a silence to swallow:
+      -- fn_kernel_signal_submit inserts the ledger row BEFORE it validates, so a signal with no
+      -- run is recorded as a refused row carrying its reason — which is exactly what that table
+      -- exists for. The check is deleted rather than moved: the door below already does it, and
+      -- does it better.
+      v_out := public.fn_kernel_signal_submit(jsonb_build_object(
+        'source_type',     p_source_key,
+        'source_id',       v_ref,
+        'workflow_run_id', v_run,
+        'signal_type',     v_vocab,
+        'payload',         coalesce(p_input->'raw_payload', '{}'::jsonb),
+        'requested_by',    coalesce(nullif(btrim(p_input->>'requested_by'),''), v_actor),
+        'idempotency_key', p_input->>'idempotency_key',
+        'correlation_id',  p_input->>'correlation_id',
+        'causation_id',    p_input->>'causation_id'));
+    end if;
+  exception
+    -- Deliberately narrow: the four raises above are the wrapper's own contract violations and
+    -- must reach the developer, not be filed as a runtime fault. Everything else is a kernel
+    -- fault, and a kernel fault must not stop a customer inserting an inquiry.
+    when sqlstate '23503' or sqlstate '42501' or sqlstate '22023' then
+      raise;
+    when others then
+      get diagnostics v_ctx = pg_context;
+      insert into public.kernel_adapter_failure (source_key, input, sqlstate, message, call_stack)
+      values (p_source_key, p_input, sqlstate, sqlerrm, v_ctx);
+      return jsonb_build_object('ok', false, 'recorded_failure', true, 'source_key', p_source_key,
+        'sqlstate', sqlstate, 'error', sqlerrm,
+        'note', 'the kernel raised; the business row was not blocked and the fault is recorded in '
+             || 'kernel_adapter_failure, where fn_kernel_source_emit_state fails while it is unresolved');
+  end;
+
+  return coalesce(v_out, '{}'::jsonb) || jsonb_build_object('source_key', p_source_key,
+    'source_class', v_class, 'vocabulary', v_vocab, 'activation', v_active);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_source_emit_state()
+ RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+with f as (select * from public.kernel_adapter_failure)
+select 'unresolved_adapter_failures'::text,
+       '0 of ' || (select count(*)::text from f),
+       (select count(*)::text from f where resolved_at is null)
+         || ' of ' || (select count(*)::text from f)
+         || coalesce(' [' || (select string_agg(distinct source_key || ' ' || sqlstate, ', ')
+              from f where resolved_at is null) || ']', ''),
+       (select count(*) = 0 from f where resolved_at is null)
+union all
+select 'sources_cut_over_to_the_wrapper',
+       'reported; it rises as each increment lands',
+       (select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public'
+           and regexp_replace(regexp_replace(p.prosrc,'/\*.*?\*/',' ','g'),'--[^\n]*',' ','g')
+               ~ '\yfn_kernel_source_emit\s*\(')
+         || ' database routines call fn_kernel_source_emit',
+       true
+union all
+-- The wrapper must not become a second way to reach the creator. It may call the two adapters and
+-- nothing else; the check reads the DEPLOYED body with comments stripped, because the body
+-- discusses fn_kernel_workflow_start in prose.
+select 'wrapper_reaching_past_its_two_adapters',
+       '0 — the body may name only fn_kernel_trigger_submit and fn_kernel_signal_submit',
+       (select case when src ~ '\yfn_kernel_(workflow_start|open_step|step_complete|cancel|outbox_emit)\s*\('
+                    then 'IT REACHES PAST THEM' else '0' end
+          from (select regexp_replace(regexp_replace(p.prosrc,'/\*.*?\*/',' ','g'),'--[^\n]*',' ','g') src
+                  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                 where n.nspname = 'public' and p.proname = 'fn_kernel_source_emit') b),
+       (select src !~ '\yfn_kernel_(workflow_start|open_step|step_complete|cancel|outbox_emit)\s*\('
+          from (select regexp_replace(regexp_replace(p.prosrc,'/\*.*?\*/',' ','g'),'--[^\n]*',' ','g') src
+                  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                 where n.nspname = 'public' and p.proname = 'fn_kernel_source_emit') b);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_source_signal_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_state text;
+begin
+  if new.current_activation <> 'ACTIVE' or new.source_class not like 'B %' then
+    return new;
+  end if;
+  select t.activation_state into v_state
+    from public.kernel_signal_type t where t.signal_type = new.target_step_or_signal;
+  if v_state is null then
+    raise exception
+      'source % is ACTIVE and names signal type %L, which is not registered in kernel_signal_type. '
+      'A signal the kernel has never heard of is refused at submission, so the source would be '
+      'recorded as cut over while every delivery from it failed.',
+      new.source_component_id, coalesce(new.target_step_or_signal,'(null)') using errcode = '23503';
+  end if;
+  if v_state <> 'active' then
+    raise exception
+      'source % is ACTIVE and names signal type %L, whose activation_state is %L. '
+      'fn_kernel_signal_submit refuses every submission of an inactive type, so this source would '
+      'be reported CUT_OVER while nothing it emits is ever accepted. Activate the type with a '
+      'recorded reason, or set the source to DISABLED.',
+      new.source_component_id, new.target_step_or_signal, v_state using errcode = '23514';
+  end if;
+  return new;
+end
 $function$
 
 
@@ -33359,6 +34677,232 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_kernel_system_execution_begin(p_input jsonb)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_comp public.phase_c_component%rowtype; v_trace bigint;
+begin
+  select * into v_comp from public.phase_c_component where component_id = p_input->>'component_id';
+  if not found then
+    raise exception 'fn_kernel_system_execution_begin: component % is not registered', p_input->>'component_id'
+      using errcode = '23503';
+  end if;
+  if coalesce(btrim(p_input->>'correlation_id'),'') = ''
+     or coalesce(btrim(p_input->>'causation_id'),'') = '' then
+    raise exception 'fn_kernel_system_execution_begin: correlation_id and causation_id are required '
+      'at BEGIN. An execution that cannot be joined to what caused it is not traceable afterwards '
+      'by adding the ids later.' using errcode = '23514';
+  end if;
+
+  v_trace := public.fn_phase_c_trace_write('TRACE-SYSTEM-EXECUTION', jsonb_build_object(
+    'subject_kind',     'system_execution',
+    'subject_ref',      v_comp.component_id,
+    'component_id',     v_comp.component_id,
+    'system_actor_id',  coalesce(nullif(p_input->>'system_actor',''), v_comp.canonical_system_actor),
+    'actor_role_id',    coalesce(nullif(p_input->>'accountable_role_id',''), v_comp.accountable_role_id),
+    'manager_role_id',  coalesce((select manager_role_id from public.org_role
+                                   where role_id = coalesce(nullif(p_input->>'accountable_role_id',''),
+                                                            v_comp.accountable_role_id)), ''),
+    'authority_result', coalesce(nullif(p_input->>'authority_result',''), 'pending_at_begin'),
+    'state_before',     coalesce(nullif(p_input->>'state_before',''), 'not_started'),
+    'state_after',      'in_flight',
+    'input_hash',       coalesce(nullif(p_input->>'input_hash',''),
+                                 case when p_input ? 'input' then md5(p_input->>'input')
+                                      else 'no_input_recorded' end),
+    'output_hash',      'not_finished',
+    'evidence_refs',    jsonb_build_array(jsonb_build_object(
+                          'lifecycle', 'begin',
+                          'correlation_id', p_input->>'correlation_id',
+                          'causation_id',   p_input->>'causation_id',
+                          'trigger_source', coalesce(p_input->>'trigger_source','(unstated)'),
+                          'started_at', coalesce(nullif(p_input->>'started_at','')::timestamptz, now()))),
+    'status',           'open'));
+  return v_trace;
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_system_execution_close(p_trace bigint, p_input jsonb)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  t public.phase_c_trace%rowtype; v_comp public.phase_c_component%rowtype;
+  v_result text := p_input->>'result';
+  v_failure text := nullif(btrim(coalesce(p_input->>'failure','')), '');
+  v_started timestamptz; v_finished timestamptz := coalesce(nullif(p_input->>'finished_at','')::timestamptz, now());
+begin
+  select * into t from public.phase_c_trace where trace_id = p_trace;
+  if not found then
+    raise exception 'fn_kernel_system_execution_close: trace % does not exist', p_trace using errcode = '23503';
+  end if;
+  if t.trace_policy_id <> 'TRACE-SYSTEM-EXECUTION' then
+    raise exception 'fn_kernel_system_execution_close: trace % is on policy %, not TRACE-SYSTEM-EXECUTION',
+      p_trace, t.trace_policy_id using errcode = '23514';
+  end if;
+  if exists (select 1 from public.phase_c_system_execution where trace_id = p_trace) then
+    return p_trace;   -- already closed; closing twice is not a second execution
+  end if;
+  select * into v_comp from public.phase_c_component where component_id = t.component_id;
+
+  if v_result <> all (array['succeeded','failed','refused','no_op']) then
+    raise exception 'fn_kernel_system_execution_close: result % is not one of succeeded, failed, refused, no_op',
+      coalesce(v_result,'(null)') using errcode = '23514';
+  end if;
+  if v_result = 'failed' and v_failure is null then
+    raise exception 'fn_kernel_system_execution_close: result is failed and no failure was stated. '
+      'A failure with no cause is the shape that lets an outage read as a quiet success.'
+      using errcode = '23514';
+  end if;
+  if v_result <> 'failed' and v_failure is not null then
+    raise exception 'fn_kernel_system_execution_close: result is % and a failure string was supplied. '
+      'One of the two is wrong and the record may not carry both.', v_result using errcode = '23514';
+  end if;
+
+  v_started := coalesce(
+    nullif(p_input->>'started_at','')::timestamptz,
+    (t.evidence_refs->0->>'started_at')::timestamptz,
+    t.created_at);
+
+  update public.phase_c_trace set
+    status       = 'sealed',
+    sealed_at    = now(),
+    state_after  = case when v_result = 'failed' then 'failed' else coalesce(nullif(p_input->>'state_after',''), v_result) end,
+    output_hash  = coalesce(nullif(p_input->>'output_hash',''), md5(v_result || coalesce(v_failure,''))),
+    authority_result = coalesce(nullif(p_input->>'authority_result',''), t.authority_result),
+    evidence_refs = coalesce(t.evidence_refs,'[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+      'lifecycle', case when v_result = 'failed' then 'fail' else 'finish' end,
+      'result', v_result, 'failure', v_failure,
+      'sqlstate', p_input->>'sqlstate',
+      'retry_eligible', coalesce((p_input->>'retry_eligible')::boolean, false),
+      'finished_at', v_finished))
+  where trace_id = p_trace;
+
+  insert into public.phase_c_system_execution (
+    trace_id, component_id, system_actor, accountable_role_id, workflow_id, step_id,
+    technical_scope, trigger_source, authority_result, state_before, state_after, result,
+    failure, correlation_id, causation_id, started_at, finished_at)
+  values (
+    p_trace, t.component_id, t.system_actor_id, t.actor_role_id,
+    nullif(coalesce(p_input->>'workflow_id', coalesce(v_comp.workflow_id,'')),''),
+    nullif(coalesce(p_input->>'step_id', coalesce(v_comp.step_id,'')),''),
+    coalesce(nullif(p_input->>'technical_scope',''),
+      case when coalesce(v_comp.workflow_id,'') = '' then
+        'technical scope: kernel-owned execution registered as ' || t.component_id
+        || ', which belongs to no one of the thirty Phase B workflows. Accountability is carried by '
+        || 'the role, not by a workflow id it does not have.' end),
+    coalesce(nullif(p_input->>'trigger_source',''), t.evidence_refs->0->>'trigger_source', 'unstated'),
+    coalesce(nullif(p_input->>'authority_result',''), t.authority_result),
+    coalesce(t.state_before, 'not_started'),
+    case when v_result = 'failed' then 'failed' else coalesce(nullif(p_input->>'state_after',''), v_result) end,
+    v_result, v_failure, coalesce(t.evidence_refs->0->>'correlation_id','unstated'),
+    coalesce(t.evidence_refs->0->>'causation_id','unstated'), v_started, v_finished);
+
+  return p_trace;
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_system_execution_fail(p_trace bigint, p_input jsonb)
+ RETURNS bigint
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_kernel_system_execution_close(p_trace, p_input || jsonb_build_object(
+    'result', 'failed',
+    'failure', coalesce(nullif(btrim(p_input->>'failure'),''),
+                        coalesce(p_input->>'sqlstate','') || ' ' || coalesce(p_input->>'message','(no message)')),
+    'retry_eligible', coalesce(p_input->>'retry_eligible','false')::boolean));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_system_execution_finish(p_trace bigint, p_input jsonb)
+ RETURNS bigint
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_kernel_system_execution_close(p_trace,
+    p_input || jsonb_build_object('result', coalesce(nullif(p_input->>'result',''), 'succeeded')));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_system_execution_pair_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare t public.phase_c_trace%rowtype; e public.phase_c_system_execution%rowtype;
+begin
+  if tg_table_name = 'phase_c_trace' then
+    select * into t from public.phase_c_trace where trace_id = new.trace_id;
+    if not found then return null; end if;                      -- rolled back with its transaction
+    if t.trace_policy_id <> 'TRACE-SYSTEM-EXECUTION' then return null; end if;
+
+    -- RULE 6: the subject must identify the real execution, not an idempotency string.
+    if t.subject_kind <> 'system_execution' then
+      raise exception
+        'trace % is on TRACE-SYSTEM-EXECUTION with subject_kind %L. The policy''s subject is a '
+        'system execution; trace 3730 was written with subject_kind ''trigger_inbox'' and had no '
+        'execution to point at. Use fn_kernel_intake_execution, or write the trace under the policy '
+        'the subject actually has.', t.trace_id, t.subject_kind using errcode = '23514';
+    end if;
+    if t.subject_ref is distinct from t.component_id then
+      raise exception
+        'trace % names subject_ref %L and component %L. For a system execution the subject IS the '
+        'component that ran; fn_kernel_signal_submit used to write ''signal:<id>'' here, which '
+        'identifies a signal and not any execution.', t.trace_id, t.subject_ref, t.component_id
+        using errcode = '23514';
+    end if;
+
+    -- RULE 4: sealed requires sealed_at.
+    if t.status = 'sealed' and t.sealed_at is null then
+      raise exception 'trace % is sealed with no sealed_at', t.trace_id using errcode = '23514';
+    end if;
+
+    -- RULE 1: a SEALED system-execution trace must have its execution row. An OPEN one must not —
+    -- that is an execution in flight, and phase_c_system_execution is append-only so its row is
+    -- written when the execution is over.
+    if t.status = 'sealed'
+       and not exists (select 1 from public.phase_c_system_execution se where se.trace_id = t.trace_id) then
+      raise exception
+        'trace % is a SEALED TRACE-SYSTEM-EXECUTION trace with no row in phase_c_system_execution. '
+        'This is the exact shape of trace 3730. Close the execution with '
+        'fn_kernel_system_execution_finish or _fail, which write the pair together.', t.trace_id
+        using errcode = '23514';
+    end if;
+    return null;
+  end if;
+
+  -- phase_c_system_execution
+  select * into e from public.phase_c_system_execution where trace_id = new.trace_id;
+  if not found then return null; end if;
+  select * into t from public.phase_c_trace where trace_id = e.trace_id;
+  -- RULE 2: an execution cannot exist without a trace.
+  if not found then
+    raise exception
+      'system execution on trace % has no trace row. An execution nobody can account for is the '
+      'thing this policy exists to make impossible.', e.trace_id using errcode = '23503';
+  end if;
+  -- RULE 3: a terminal execution cannot have an open or incomplete trace.
+  if e.result is not null and e.finished_at is not null
+     and (t.status <> 'sealed' or t.sealed_at is null) then
+    raise exception
+      'system execution on trace % is terminal (result %L, finished) while its trace is %L with '
+      'sealed_at %L. A finished execution whose trace is still open is a record that can still be '
+      'rewritten after the fact.', e.trace_id, e.result, t.status, t.sealed_at using errcode = '23514';
+  end if;
+  return null;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_kernel_system_execution_trace(p_input jsonb)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -33589,10 +35133,26 @@ runs as (   -- every firing of a wrapped state-changing cron job, split by the e
 ),
 traced as (
   select runs.*,
+         -- K24. Was: se.started_at between runs.start_time and runs.end_time. That is not the
+         -- relationship; it is an approximation of it, and a three-millisecond clock difference
+         -- broke it. cron:autonomy_dispose_hourly run 333732 was reported as an untraced NEW
+         -- state-changing execution while its trace sat in phase_c_system_execution — the wrapper
+         -- stamped started_at 2026-08-17 00:45:00.115196 and cron.job_run_details recorded
+         -- start_time 00:45:00.118297, three milliseconds LATER. The trace legitimately begins
+         -- before the scheduler notices the run has begun.
+         --
+         -- The real relationship is OVERLAP: the execution and the cron run cover the same
+         -- instant. That is what "this run produced this trace" means, and it does not depend on
+         -- two clocks agreeing to the millisecond.
+         --
+         -- The job identity is checked as well as the component, so overlap alone cannot match a
+         -- different job that happened to run at the same moment. This is narrower than the old
+         -- predicate in that respect and wider only in the one that was wrong.
          exists (select 1 from public.phase_c_system_execution se
                   where se.component_id = runs.component_id
-                    and se.started_at >= runs.start_time
-                    and se.started_at <= runs.end_time) as has_trace
+                    and se.trigger_source like 'cron.job/' || runs.jobid::text || '%'
+                    and se.started_at <= runs.end_time
+                    and coalesce(se.finished_at, se.started_at) >= runs.start_time) as has_trace
     from runs
 ),
 scope as (   -- everything still governed by TRACE-SYSTEM-EXECUTION
@@ -34350,7 +35910,7 @@ begin
   -- ---- 6. refusals and deferrals are RECORDED, with their own trace ------------------------
   if v_status is not null then
     v_actor := coalesce(t_actor, 'system.webhook_receiver');
-    v_trace := public.fn_phase_c_trace_write('TRACE-SYSTEM-EXECUTION', jsonb_build_object(
+    v_trace := public.fn_kernel_intake_execution('dbfn:fn_kernel_trigger_submit(jsonb)', jsonb_build_object(
       'subject_kind','trigger_inbox', 'subject_ref', v_inbox::text,
       'system_actor_id', v_actor,
       'actor_role_id', coalesce(nullif(v_owner,''), ''),
@@ -34407,7 +35967,7 @@ begin
   end if;
 
   -- ---- 8. the adapter's own execution trace, parented to the run's root --------------------
-  v_trace := public.fn_phase_c_trace_write('TRACE-SYSTEM-EXECUTION', jsonb_build_object(
+  v_trace := public.fn_kernel_intake_execution('dbfn:fn_kernel_trigger_submit(jsonb)', jsonb_build_object(
     'subject_kind','trigger_inbox', 'subject_ref', v_inbox::text,
     'run_id', v_run, 'step_run_id', (v_start->>'step_run_id')::bigint,
     'task_id', (v_start->>'task_id')::bigint,
@@ -34497,6 +36057,42 @@ begin
   end if;
 
   return new;
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_truncate_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_ctx    text;
+  v_reason text;
+  v_owner  text;
+begin
+  get diagnostics v_ctx = pg_context;
+
+  -- There is no Door 1 here on purpose. No kernel routine truncates a protected table; a TRUNCATE
+  -- is always maintenance, so the only door is the audited one the row guard already uses.
+  v_reason := nullif(btrim(current_setting('kernel.maintenance_reason', true)), '');
+  select tableowner into v_owner from pg_tables
+   where schemaname = tg_table_schema and tablename = tg_table_name;
+  if v_reason is not null and current_user = v_owner then
+    perform public.fn_kernel_record_maintenance_write(
+      current_user, session_user, tg_table_name, 'TRUNCATE', v_reason, v_ctx);
+    return null;
+  end if;
+
+  raise exception
+    'TRUNCATE on %.% is refused: a truncate is not a kernel write and fires no row-level guard.',
+    tg_table_schema, tg_table_name
+    using errcode = '42501',
+          detail = 'Call stack was:' || chr(10) || v_ctx,
+          hint = 'TRUNCATE removes every row without firing fn_kernel_write_guard, so it is '
+              || 'refused outright. Historical maintenance needs BOTH a stated reason — set local '
+              || 'kernel.maintenance_reason — AND the table owner, exactly as it does for an '
+              || 'ordinary write, and it is recorded in kernel_maintenance_write either way.';
 end
 $function$
 
@@ -34699,7 +36295,6 @@ AS $function$
 declare
   w  public.phase_b_workflow%rowtype;
   s  public.phase_b_workflow_step%rowtype;
-  h  public.phase_b_handoff%rowtype;
   v_wf        text   := nullif(btrim(coalesce(p_input->>'workflow_id','')), '');
   v_object    text   := nullif(btrim(coalesce(p_input->>'business_object_id','')), '');
   v_source_k  text   := nullif(btrim(coalesce(p_input->>'source_kind','')), '');
@@ -34715,13 +36310,11 @@ declare
   v_run       bigint;
   v_step_run  bigint;
   v_task      bigint;
-  v_handoff   bigint;
   v_outbox    bigint;
   v_run_trace bigint;
   v_step_trace bigint;
   v_task_trace bigint;
   v_task_parent bigint;
-  v_ho_trace  bigint;
   v_owner     text;
   v_step_owner text;
   v_kind      text;
@@ -34910,44 +36503,12 @@ begin
       using errcode = '23502';
   end if;
 
-  -- ---- (e) the initial handoff, where and ONLY where the registry declares one --------------
-  -- 16 of the 30 entry steps carry an outgoing edge in phase_b_handoff; the other 14 declare
-  -- none, and inventing one for them would be a handoff nobody owes. No row is a legitimate
-  -- outcome here, and it is reported as such rather than treated as a failure.
-  select * into h from public.phase_b_handoff where from_step_id = s.step_id;
-  if found then
-    insert into public.phase_c_handoff_run
-      (handoff_id, run_id, from_step_run_id, sending_role_id, receiving_role_id,
-       business_object_id, object_version, packet_hash, requested_action, acceptance_criteria,
-       return_owner_role_id, sla_policy_id, due_at, status, accountable_until_accept_role_id)
-    values (h.handoff_id, v_run, v_step_run, h.sending_role_id, h.receiving_role_id,
-            v_object, v_version,
-            -- the hash is over what actually exists at start: the trigger, not a work product.
-            -- A packet hash over a fabricated 'output' would certify an output nobody produced.
-            encode(sha256(convert_to(jsonb_build_object(
-              'opened_by','fn_kernel_workflow_start', 'run_id', v_run, 'step_run_id', v_step_run,
-              'business_object_id', v_object, 'object_version', v_version,
-              'trigger_ctx', v_ctx)::text, 'UTF8')), 'hex'),
-            h.required_packet, h.receiving_acceptance_criteria,
-            h.return_owner_role_id, h.sla_policy_id,
-            public.fn_kernel_sla_due(h.sla_policy_id), 'open', h.sending_role_id)
-    returning handoff_run_id into v_handoff;
-    if v_handoff is null then
-      raise exception 'fn_kernel_workflow_start (e): the registry declares handoff % for entry step % and no handoff run was created',
-        h.handoff_id, s.step_id using errcode = '23502';
-    end if;
-
-    v_ho_trace := public.fn_phase_c_trace_write('TRACE-HANDOFF', jsonb_build_object(
-      'subject_kind','handoff_run', 'subject_ref', v_handoff::text, 'run_id', v_run,
-      'command_id', v_command, 'actor_role_id', h.sending_role_id,
-      'system_actor_id','system.workflow_engine',
-      'evidence_refs', jsonb_build_array(jsonb_build_object(
-        'handoff_id', h.handoff_id, 'required_packet', h.required_packet,
-        'sla_policy_id', h.sla_policy_id)),
-      'state_before','', 'state_after','open', 'status','open'));
-    update public.phase_c_handoff_run set trace_id = v_ho_trace where handoff_run_id = v_handoff;
-    update public.phase_c_trace set parent_trace_id = v_run_trace where trace_id = v_ho_trace;
-  end if;
+  -- ---- (e) NO HANDOFF AT START -- K14 -------------------------------------------------------
+  -- Deliberately empty, and named so a reader looking for the block that used to be here finds the
+  -- reason rather than a gap. The entry step's outgoing handoff run is created by
+  -- fn_kernel_step_complete when that step completes, from its accepted output. Creating it here
+  -- as well produced TWO open handoff runs on one registry edge the moment the entry step
+  -- completed, and the successor step could then never be opened.
 
   -- ---- (f) ONE factual event ----------------------------------------------------------------
   -- Emitted LAST, after the state it describes exists. Its consumer may not create any of it.
@@ -34961,7 +36522,7 @@ begin
     'payload', jsonb_build_object(
       'fact','workflow.started',
       'workflow_id', v_wf, 'workflow_run_id', v_run, 'step_id', s.step_id,
-      'step_run_id', v_step_run, 'task_id', v_task, 'handoff_run_id', v_handoff,
+      'step_run_id', v_step_run, 'task_id', v_task, 'handoff_run_id', null,
       'business_object_id', v_object, 'object_version', v_version,
       'accountable_role_id', v_owner, 'step_accountable_role_id', v_step_owner,
       'source_kind', v_source_k, 'source_ref', v_source_r, 'requested_by', v_by,
@@ -34986,16 +36547,150 @@ begin
     'state','active', 'accountable_role_id', v_owner,
     'step_id', s.step_id, 'step_run_id', v_step_run, 'step_accountable_role_id', v_step_owner,
     'task_id', v_task, 'task_idempotency_key', 'run:' || v_run || ':step:' || s.step_id,
-    'handoff_run_id', v_handoff, 'handoff_id', (case when v_handoff is null then null else h.handoff_id end),
+    'handoff_run_id', null, 'handoff_id', null,
     'run_trace_id', v_run_trace, 'step_trace_id', v_step_trace,
-    'task_trace_id', v_task_trace, 'handoff_trace_id', v_ho_trace,
+    'task_trace_id', v_task_trace, 'handoff_trace_id', null,
     'event_id', v_start_event, 'outbox_id', v_outbox,
     'correlation_id', v_corr, 'causation_id', v_caus, 'source_id', v_source_r,
     'command_id', v_command, 'source_kind', v_source_k, 'requested_by', v_by,
     'created', jsonb_build_object('run',1, 'step_run',1, 'task',1, 'traces',
-      (case when v_ho_trace is null then 3 else 4 end),
-      'handoff', (case when v_handoff is null then 0 else 1 end), 'event',1));
+      3,
+      'handoff', 0, 'event',1));
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_write_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_ctx    text;
+  v_reason text;
+  v_owner  text;
+  v_ok     boolean;
+begin
+  get diagnostics v_ctx = pg_context;
+
+  -- Door 1: an authorised routine is on the stack. The stack cannot be forged.
+  select exists (
+    select 1 from public.kernel_write_authority a
+     where a.table_name = tg_table_name
+       and v_ctx ~ ('PL/pgSQL function (public\.)?' || a.routine_name || '\(')
+  ) into v_ok;
+  if v_ok then
+    return case when tg_op = 'DELETE' then old else new end;
+  end if;
+
+  -- Door 2: an explicit, audited maintenance operation BY THE TABLE OWNER. Under SECURITY INVOKER
+  -- current_user is the caller's own role — service_role stays service_role, and the comparison
+  -- means what it says.
+  v_reason := nullif(btrim(current_setting('kernel.maintenance_reason', true)), '');
+  select tableowner into v_owner from pg_tables
+   where schemaname = tg_table_schema and tablename = tg_table_name;
+  if v_reason is not null and current_user = v_owner then
+    perform public.fn_kernel_record_maintenance_write(
+      current_user, session_user, tg_table_name, tg_op, v_reason, v_ctx);
+    return case when tg_op = 'DELETE' then old else new end;
+  end if;
+
+  raise exception
+    '% on %.% is refused: no routine with write authority for this table is on the call stack.',
+    tg_op, tg_table_schema, tg_table_name
+    using errcode = '42501',
+          detail = 'Call stack was:' || chr(10) || v_ctx,
+          hint = 'Business work is created by the kernel and only by the kernel. New work goes '
+              || 'through fn_kernel_trigger_submit; a signal about a run that already exists goes '
+              || 'through fn_kernel_signal_submit; a step is completed with fn_kernel_step_complete. '
+              || 'public.kernel_write_authority lists every routine permitted to write this table '
+              || 'and why. Historical maintenance needs BOTH a stated reason — set local '
+              || 'kernel.maintenance_reason — AND the table owner; stating a reason alone is not '
+              || 'enough, and since K37 it never was.';
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_write_guard_state()
+ RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+with protected(t) as (values
+  ('phase_c_workflow_run'),('phase_c_workflow_step_run'),('phase_c_task'),('phase_c_handoff_run'),
+  ('kernel_trigger_inbox'),('kernel_signal_inbox'),('phase_c_event_outbox'),('phase_c_refund_decision')),
+attached as (
+  select p.t, exists (
+    select 1 from pg_trigger tg join pg_class c on c.oid = tg.tgrelid
+     join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relname = p.t
+      and tg.tgname = 'a00_kernel_write_guard' and not tg.tgisinternal and tg.tgenabled <> 'D') a
+  from protected p
+),
+-- Every routine whose DEPLOYED body writes a protected table, measured from prosrc with comments
+-- stripped — the same scan that produced the seed. A writer that is not on the allow-list is a
+-- routine that will be refused at runtime, and it is better to see it here than in an outage.
+writers as (
+  select p.proname, t.t
+    from protected t
+    join pg_proc p on true
+    join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
+   where regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', ' ', 'g'), '--[^\n]*', ' ', 'g')
+         ~ ('(insert\s+into|update|delete\s+from)\s+(public\.)?' || t.t || '\M')
+     and p.proname <> 'fn_kernel_write_guard'
+)
+select 'protected_tables_without_the_guard_attached'::text,
+       '0 of ' || (select count(*)::text from protected),
+       (select count(*)::text from attached where not a) || ' of ' || (select count(*)::text from protected),
+       (select count(*) = 0 from attached where not a)
+union all
+select 'routines_that_write_a_protected_table_with_no_authority',
+       '0 of ' || (select count(*)::text from writers),
+       (select count(*)::text from writers w
+         where not exists (select 1 from public.kernel_write_authority a
+                            where a.routine_name = w.proname and a.table_name = w.t))
+         || ' of ' || (select count(*)::text from writers)
+         || coalesce(' [' || (select string_agg(distinct w.proname || '->' || w.t, ', ')
+              from writers w where not exists (select 1 from public.kernel_write_authority a
+                                                where a.routine_name = w.proname and a.table_name = w.t)) || ']', ''),
+       (select count(*) = 0 from writers w
+         where not exists (select 1 from public.kernel_write_authority a
+                            where a.routine_name = w.proname and a.table_name = w.t))
+union all
+select 'write_authority_granted_to_a_routine_that_does_not_exist',
+       '0 of ' || (select count(*)::text from public.kernel_write_authority),
+       (select count(*)::text from public.kernel_write_authority a
+         where not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                            where n.nspname = 'public' and p.proname = a.routine_name))
+         || ' of ' || (select count(*)::text from public.kernel_write_authority),
+       (select count(*) = 0 from public.kernel_write_authority a
+         where not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                            where n.nspname = 'public' and p.proname = a.routine_name))
+union all
+select 'ordinary_roles_holding_direct_dml_on_a_protected_table',
+       '0',
+       (select count(*)::text from information_schema.role_table_grants
+         where table_schema = 'public' and table_name in (select t from protected)
+           and grantee in ('anon','authenticated','PUBLIC')
+           and privilege_type in ('INSERT','UPDATE','DELETE')),
+       (select count(*) = 0 from information_schema.role_table_grants
+         where table_schema = 'public' and table_name in (select t from protected)
+           and grantee in ('anon','authenticated','PUBLIC')
+           and privilege_type in ('INSERT','UPDATE','DELETE'))
+union all
+select 'maintenance_writes_recorded',
+       'reported, never zero-by-hiding',
+       (select count(*)::text from public.kernel_maintenance_write)
+         || ' hand-made writes recorded'
+         || coalesce(', most recent ' || (select max(at)::text from public.kernel_maintenance_write), ''),
+       true
+union all
+select 'maintenance_writes_with_no_stated_reason',
+       '0 of ' || (select count(*)::text from public.kernel_maintenance_write),
+       (select count(*)::text from public.kernel_maintenance_write where btrim(reason) = '')
+         || ' of ' || (select count(*)::text from public.kernel_maintenance_write),
+       (select count(*) = 0 from public.kernel_maintenance_write where btrim(reason) = '');
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_knowledge_curator()
@@ -37138,6 +38833,11 @@ CREATE OR REPLACE FUNCTION public.fn_notify_matched_supplier()
 AS $function$
 declare v_email text; v_cat text; v_em text;
 begin
+  -- Kernel cutover. A supplier being matched happens INSIDE the run the inquiry already has. Starting a workflow per match would open one run per supplier for one customer request.
+  perform public.fn_kernel_source_emit('dbtrigger:public.inquiry_matches:notify_matched_supplier', jsonb_build_object(
+    'source_ref',  NEW.inquiry_id::text || ':' || NEW.supplier_id::text,
+    'workflow_run_id', public.fn_kernel_run_for('inquiry:' || NEW.inquiry_id::text),
+    'raw_payload', jsonb_build_object('inquiry_id', NEW.inquiry_id::text, 'supplier_id', NEW.supplier_id::text)));
   select email into v_email from leads where id=NEW.supplier_id;
   select category, emirate into v_cat, v_em from inquiries where id=NEW.inquiry_id;
   if v_email is not null and position('@' in v_email) > 1 then
@@ -42289,8 +43989,19 @@ AS $function$
 DECLARE v_founder text;
 BEGIN
   IF lower(coalesce(NEW.risk,'')) IN ('high','critical')
-     AND NEW.agent IN ('finance_ai','security_ai','operations_ai')
+     -- K21. Was: NEW.agent IN ('finance_ai','security_ai','operations_ai'). That set could never
+     -- match a security action. a00_agent_action_resolve_addressee runs BEFORE this trigger and
+     -- resolves the addressee through org_agents, so a row written as 'security_ai' arrives here
+     -- as 'security'. Measured: inserting agent='security_ai' reads back as 'security', and
+     -- notifications has 0 rows of type 'agent_escalation' in its entire history — the founder has
+     -- never been paged by this trigger. A prefix match survives the resolver in both directions
+     -- and does not need a keep-list that has to be remembered every time an agent is renamed.
+     AND NEW.agent ~ '^(finance|security|operations)'
      AND lower(coalesce(NEW.status,'pending')) = 'pending' THEN
+  -- K20 cutover. A high or critical pending action from finance, security or operations is the declared start of W29. Placed INSIDE the risk branch, so an ordinary agent action does not open an incident.
+  perform public.fn_kernel_source_emit('dbtrigger:public.agent_actions:trg_page_high_agent_action', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'raw_payload', jsonb_build_object('incident_ref', 'agent_action:' || NEW.id::text, 'agent', NEW.agent, 'kind', NEW.kind, 'risk', NEW.risk, 'title', NEW.title)));
     v_founder := coalesce(
       (SELECT value FROM app_secrets WHERE key='founder_email'),
       nullif(split_part((SELECT value FROM app_secrets WHERE key='admin_emails'), ',', 1), ''),
@@ -43057,6 +44768,22 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_phase_b_change_request_append_only()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  raise exception
+    'phase_b_change_request is append-only. % on % is refused. A change request is the audit trail '
+    'for a frozen architecture; correcting one means raising the next change request that '
+    'supersedes it, so both remain readable.',
+    tg_op, coalesce(old.change_request_id, new.change_request_id);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_phase_b_closure_blockers(p_workflow_id text, p_completed_steps text[], p_open_blockers bigint, p_open_handoffs bigint)
  RETURNS SETOF text
  LANGUAGE plpgsql
@@ -43268,28 +44995,28 @@ end $function$
 CREATE OR REPLACE FUNCTION public.fn_phase_b_invariants()
  RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
  LANGUAGE sql
- STABLE
+ STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 with
 -- ---------------------------------------------------------------- declared counts
 counts(check_name, expected, actual) as (
   values
-    ('count.workflows',            '30',  (select count(*)::text from public.phase_b_workflow)),
-    ('count.steps',                '257', (select count(*)::text from public.phase_b_workflow_step)),
-    ('count.handoffs',             '161', (select count(*)::text from public.phase_b_handoff)),
-    ('count.business_objects',     '56',  (select count(*)::text from public.phase_b_business_object)),
-    ('count.business_rules',       '54',  (select count(*)::text from public.phase_b_business_rule)),
-    ('count.exceptions',           '50',  (select count(*)::text from public.phase_b_exception)),
-    ('count.sla_policies',         '34',  (select count(*)::text from public.phase_b_sla_policy)),
-    ('count.gates',                '32',  (select count(*)::text from public.phase_b_gate)),
-    ('count.events',               '347', (select count(*)::text from public.phase_b_event)),
-    ('count.workflow_states',      '14',  (select count(*)::text from public.phase_b_workflow_state)),
-    ('count.workflow_transitions', '35',  (select count(*)::text from public.phase_b_workflow_transition)),
-    ('count.step_states',          '11',  (select count(*)::text from public.phase_b_step_state)),
-    ('count.step_transitions',     '19',  (select count(*)::text from public.phase_b_step_transition)),
-    ('count.founder_boundaries',   '10',  (select count(*)::text from public.phase_b_founder_boundary)),
-    ('count.cross_department_handoffs', '47',
+    ('count.workflows',            (select (b.counts->>'workflows')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_workflow)),
+    ('count.steps',                (select (b.counts->>'steps')::text from public.org_phase_baseline b where b.phase = 'B'), (select count(*)::text from public.phase_b_workflow_step)),
+    ('count.handoffs',             (select (b.counts->>'handoffs')::text from public.org_phase_baseline b where b.phase = 'B'), (select count(*)::text from public.phase_b_handoff)),
+    ('count.business_objects',     (select (b.counts->>'business_objects')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_business_object)),
+    ('count.business_rules',       (select (b.counts->>'business_rules')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_business_rule)),
+    ('count.exceptions',           (select (b.counts->>'exceptions')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_exception)),
+    ('count.sla_policies',         (select (b.counts->>'sla_policies')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_sla_policy)),
+    ('count.gates',                (select (b.counts->>'gates')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_gate)),
+    ('count.events',               (select (b.counts->>'events')::text from public.org_phase_baseline b where b.phase = 'B'), (select count(*)::text from public.phase_b_event)),
+    ('count.workflow_states',      (select (b.counts->>'workflow_states')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_workflow_state)),
+    ('count.workflow_transitions', (select (b.counts->>'workflow_transitions')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_workflow_transition)),
+    ('count.step_states',          (select (b.counts->>'step_states')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_step_state)),
+    ('count.step_transitions',     (select (b.counts->>'step_transitions')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_step_transition)),
+    ('count.founder_boundaries',   (select (b.counts->>'founder_boundaries')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_founder_boundary)),
+    ('count.cross_department_handoffs', (select (b.counts->>'cross_department_handoffs')::text from public.org_phase_baseline b where b.phase = 'B'),
       (select count(*)::text from public.phase_b_handoff where handoff_type = 'cross_department'))
 ),
 -- ------------------------------------------------------------ identity and ownership
@@ -44925,37 +46652,20 @@ CREATE OR REPLACE FUNCTION public.fn_phase_c_outbox_settle(p_outbox_id bigint, p
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare o public.phase_c_event_outbox%rowtype; v_status text;
 begin
-  select * into o from public.phase_c_event_outbox where outbox_id = p_outbox_id for update;
-  if not found then
-    raise exception 'unknown outbox row %', p_outbox_id using errcode = '23503';
-  end if;
-  insert into public.phase_c_event_delivery_attempt (outbox_id, attempt_no, finished_at, ok, downstream_ref, error)
-  values (p_outbox_id, o.attempts, now(), p_ok, coalesce(p_downstream_ref, ''), coalesce(p_error, ''));
-
-  if p_ok and coalesce(p_downstream_ref, '') = '' then
-    v_status := 'retry_wait';
-    p_error := coalesce(nullif(p_error, ''), 'delivery reported ok with no downstream record; not counted as delivered');
-  elsif p_ok then
-    v_status := 'delivered';
-  elsif o.attempts >= 5 then
-    v_status := 'dead_letter';
-  else
-    v_status := 'retry_wait';
-  end if;
-
-  update public.phase_c_event_outbox set
-    status = v_status,
-    delivered_at = case when v_status = 'delivered' then now() else delivered_at end,
-    -- the FIRST failure survives even when a later attempt succeeds
-    first_failure = case when first_failure = '' and not p_ok then coalesce(p_error, 'unspecified') else first_failure end,
-    last_error = case when p_ok and v_status = 'delivered' then '' else coalesce(p_error, '') end,
-    next_attempt_at = case when v_status = 'retry_wait' then now() + (interval '1 minute' * power(2, least(o.attempts, 6)))
-                           else next_attempt_at end
-  where outbox_id = p_outbox_id;
-  return v_status;
-end $function$
+  raise exception
+    'fn_phase_c_outbox_settle is READ_ONLY_HISTORICAL and no longer settles anything (outbox_id %)',
+    p_outbox_id
+    using errcode = '23514',
+          detail = 'It is recorded READ_ONLY_HISTORICAL in kernel_retired_path and it was still '
+                || 'updating phase_c_event_outbox, which is not read-only by any reading. It also '
+                || 'carried a latent cast defect that surfaced as "invalid input syntax for type '
+                || 'timestamp with time zone" whenever it was called with an empty error string.',
+          hint = 'fn_kernel_outbox_deliver is the delivery worker and has been since K5. It claims '
+              || 'a batch, records each attempt, and marks delivered only in its success branch. '
+              || 'The rows this routine settled historically are untouched and still readable.';
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_phase_c_output_validate(p_contract text, p_output jsonb)
@@ -60410,6 +62120,10 @@ CREATE OR REPLACE FUNCTION public.notify_new_quote_sms()
 AS $function$
 declare inq record; c record;
 begin
+  -- K20 cutover. A new quotation row is the declared start of W14. Placed at the TOP, before the early return for an inquiry with no customer: a quotation exists and must be evaluated whether or not there is somebody to text about it.
+  perform public.fn_kernel_source_emit('dbtrigger:public.quotes:trg_new_quote_sms', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'raw_payload', jsonb_build_object('quotation_id', NEW.id::text, 'inquiry_id', NEW.inquiry_id::text, 'supplier_id', NEW.supplier_id::text)));
   select i.summary, i.customer_id into inq from public.inquiries i where i.id = NEW.inquiry_id;
   if inq.customer_id is null then return NEW; end if;
   select email, phone, phone_verified into c from public.customers where id = inq.customer_id;
@@ -60647,6 +62361,10 @@ begin
     'Supplier: '||coalesce(v_company,'(id '||NEW.supplier_id::text||')')||chr(10)||
     'Inquiry: '||coalesce(NEW.inquiry_id::text,'')||' · Transaction: '||NEW.id::text||' · Reveal fee: AED '||coalesce(NEW.reveal_fee::text,'0')||chr(10)||chr(10)||
     'Action: reach out to the supplier. If they do not respond to you and the customer within 3 working days, issue the refund and record the 3% non-response charge against the supplier. Check supplier@quotesdone.com for the customer''s CC''d complaint email as proof.');
+  -- K20 cutover. A refund complaint raised against a revealed supplier is the declared start of W17. Placed at the final return so the owner notification is sent whether or not the kernel accepts the request.
+  perform public.fn_kernel_source_emit('dbtrigger:public.transactions:trg_notify_refund', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'raw_payload', jsonb_build_object('transaction_id', NEW.id::text, 'inquiry_id', NEW.inquiry_id::text, 'supplier_id', NEW.supplier_id::text, 'reveal_fee', NEW.reveal_fee)));
   return NEW;
 end $function$
 
@@ -60659,6 +62377,11 @@ CREATE OR REPLACE FUNCTION public.qd_on_due_paid()
 AS $function$
 begin
   if (coalesce(NEW.status,'')='paid' or NEW.paid_at is not null) and (OLD.status is distinct from NEW.status or OLD.paid_at is distinct from NEW.paid_at) then
+  -- Kernel cutover. Settlement of an obligation that already exists. The reveal payment that OPENS W16 is trg_reveal_receipt_a; this is the callback on that run.
+  perform public.fn_kernel_source_emit('dbtrigger:public.supplier_dues:trg_due_paid', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'workflow_run_id', public.fn_kernel_run_for('payment_transaction:' || coalesce((select nullif(t.payment_ref,'') from public.transactions t where t.id = NEW.transaction_id), NEW.transaction_id::text)),
+    'raw_payload', jsonb_build_object('due_id', NEW.id::text, 'supplier_id', NEW.supplier_id::text, 'transaction_id', NEW.transaction_id::text, 'status', NEW.status)));
     if not exists (select 1 from supplier_dues d where d.supplier_id=NEW.supplier_id and coalesce(d.status,'')<>'paid' and d.paid_at is null and d.id<>NEW.id) then
       update leads set matching_blocked=false, matching_block_reason=null where id=NEW.supplier_id and coalesce(rv_nonresponse_refunds,0)<2;
     end if;
@@ -60677,6 +62400,12 @@ begin
   if NEW.refund_status in ('refunded','approved') and (OLD.refund_status is distinct from NEW.refund_status) then
     v_fee   := coalesce(NEW.reveal_fee, NEW.app_fee, 0);
     v_admin := coalesce((select num_value from public.gl_settings where key='clawback_admin_fee_aed'), 250);
+  -- Kernel cutover. Resolution of a refund already inside a W17 run. Routing it as new work would open a second W17 for the same transaction.
+  perform public.fn_kernel_source_emit('dbtrigger:public.transactions:trg_refund_resolved', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'workflow_run_id', public.fn_kernel_run_for('refund_dispute_case:' || NEW.id::text),
+    'raw_payload', jsonb_build_object('transaction_id', NEW.id::text, 'refund_status', NEW.refund_status, 'reveal_fee', v_fee)));
+
 
     if not exists (select 1 from public.supplier_dues where transaction_id=NEW.id and coalesce(status,'')<>'cancelled') then
       insert into public.supplier_dues(
@@ -61528,6 +63257,25 @@ exception when others then return new;
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_assistant_log_to_kernel()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  perform public.fn_kernel_source_emit('edge:site_assistant', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'raw_payload', jsonb_build_object(
+      'case_ref', 'assistant:' || NEW.id::text,
+      'message',  left(coalesce(NEW.message,''), 500),
+      'audience', NEW.audience,
+      'path',     NEW.path)));
+  return NEW;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_audit_agent_run()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -61635,6 +63383,25 @@ AS $function$
 begin perform public.fn_company_faq_sync(); return null; end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_contact_message_to_kernel()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  perform public.fn_kernel_source_emit('edge:contact_submit', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'raw_payload', jsonb_build_object(
+      'case_ref', 'contact:' || NEW.id::text,
+      'email',    NEW.email,
+      'source',   NEW.source,
+      'name',     NEW.name)));
+  return NEW;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_customer_abandon_ban()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -61648,6 +63415,11 @@ begin
       where i.customer_id = NEW.customer_id and i.status = 'cancelled'
         and not exists (select 1 from transactions t where t.inquiry_id = i.id);
     if n >= 4 then
+  -- K20 cutover. The auto-pause at four abandoned requests is the support signal, so the emit sits INSIDE that branch. On every cancellation it would open a W18 for every inquiry anyone ever withdraws.
+  perform public.fn_kernel_source_emit('dbtrigger:public.inquiries:customer_abandon_ban', jsonb_build_object(
+    'source_ref',  'abandon:' || NEW.customer_id::text,
+    'raw_payload', jsonb_build_object('case_ref', 'abandon:' || NEW.customer_id::text, 'customer_id', NEW.customer_id::text, 'cancelled_count', n, 'inquiry_id', NEW.id::text)));
+
       update customers set banned = true,
         banned_reason = 'Auto: ' || n || ' requests cancelled without proceeding (time-waster guard) — reversible by admin.'
         where id = NEW.customer_id and coalesce(banned,false) = false;
@@ -61676,6 +63448,33 @@ CREATE OR REPLACE FUNCTION public.trg_declog_immutable()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 begin raise exception 'decision_log is append-only'; end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_document_to_kernel()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- Only a document attached to an inquiry is a customer document arriving for W07. This table
+  -- also holds licences, expense receipts and extraction artefacts, and opening a workflow run for
+  -- each of those would be a run per file the importer writes.
+  if coalesce(NEW.ref_table,'') <> 'inquiries' then
+    return NEW;
+  end if;
+  perform public.fn_kernel_source_emit('edge:customer_documents', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'workflow_run_id', public.fn_kernel_run_for('inquiry:' || coalesce(NEW.ref_id,'')),
+    'raw_payload', jsonb_build_object(
+      'document_id', NEW.id::text,
+      'inquiry_id',  NEW.ref_id,
+      'file_name',   NEW.file_name,
+      'kind',        NEW.kind,
+      'bucket',      NEW.bucket)));
+  return NEW;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_enrich_capability()
@@ -61753,26 +63552,43 @@ CREATE OR REPLACE FUNCTION public.trg_goal_cascade()
 AS $function$
 begin
   if old.active is true and new.active is false then
+    -- (1) KEPT. An objective serving a retired goal is superseded. This is the goal's own record
+    -- being made consistent, not the creation of work, and leaving it out would strand objectives
+    -- against a goal that no longer exists.
     update department_objective
        set status='superseded', updated_at=now()
      where goal_key = new.key and status='active';
 
-    insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class)
-    select distinct o.dept_key,
-           'Re-plan after goal retired: '||new.key,
-           'Company goal "'||coalesce(new.goal,new.key)||'" was retired. Objectives serving it are now superseded. Propose replacement objectives that serve an active goal.',
-           'proposed','advisory', false, 'coordinate'
-      from department_objective o
-     where o.goal_key = new.key and o.status='superseded'
-       and not exists (select 1 from org_tasks t where t.title='Re-plan after goal retired: '||new.key and t.status<>'done');
+    -- (2) DISABLED BY K31 — this was the bypass. It created an operational task per affected
+    -- department, with no workflow run, no step, no accountable owner resolved through the kernel
+    -- and no trace. No Phase B workflow starts from a goal retirement, so there is nowhere honest
+    -- to route it; inventing a workflow to obtain a connected count is what §3 forbids. The
+    -- statement is left here, commented, so a reader sees what was removed:
+    --
+    --   insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class)
+    --   select distinct o.dept_key,
+    --          'Re-plan after goal retired: '||new.key,
+    --          'Company goal "'||coalesce(new.goal,new.key)||'" was retired. Objectives serving it
+    --           are now superseded. Propose replacement objectives that serve an active goal.',
+    --          'proposed','advisory', false, 'coordinate'
+    --     from department_objective o
+    --    where o.goal_key = new.key and o.status='superseded'
+    --      and not exists (select 1 from org_tasks t
+    --                       where t.title='Re-plan after goal retired: '||new.key and t.status<>'done');
+    --
+    -- It had never produced a row: org_tasks held zero 'Re-plan after goal retired' titles when
+    -- this was written. The owed behaviour is recorded in phase_b_phase_c_wiring_gap.
 
+    -- (3) KEPT. fn_emit_event does not write phase_c_event_outbox — measured, not assumed — so
+    -- this is a legacy notice and not a second copy of a canonical domain event.
     begin
       perform fn_emit_event('goal.retired','company_goals',new.key,'ceo',
                             jsonb_build_object('goal',new.key));
     exception when others then null; end;
   end if;
   return new;
-end $function$
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_health_check_agent_threshold()
@@ -61848,6 +63664,25 @@ begin
   raise exception 'holdout result of record is immutable: % is not permitted', tg_op
     using hint = 'The first measurement of a holdout happens once. Re-running it later is a regression run, not a new first result.';
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_inbound_message_to_kernel()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  perform public.fn_kernel_source_emit('edge:inbound_email', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'raw_payload', jsonb_build_object(
+      'supplier_ref', NEW.lead_id::text,
+      'lead_id',      NEW.lead_id::text,
+      'from_email',   NEW.from_email,
+      'subject',      left(coalesce(NEW.subject,''), 300))));
+  return NEW;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_ingest_case_lessons()
@@ -61988,6 +63823,10 @@ begin
       end,
       'queued');
   end if;
+  -- K20 cutover. A new PARENT inquiry starts W05. Placed at the final return, after the early return that lets a child sub-RFQ of a combined project through without its own workflow — a combined project is one piece of work, not four.
+  perform public.fn_kernel_source_emit('dbtrigger:public.inquiries:trg_inquiry_received_a', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'raw_payload', jsonb_build_object('inquiry_id', NEW.id::text, 'customer_id', NEW.customer_id::text, 'category', NEW.category, 'emirate', NEW.emirate, 'scope_type', NEW.scope_type)));
   return NEW;
 end $function$
 
@@ -62045,6 +63884,25 @@ begin
   end if;
   return NEW;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_lead_dob_to_kernel()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  perform public.fn_kernel_source_emit('edge:sup_dob', jsonb_build_object(
+    'source_ref',      NEW.id::text,
+    'workflow_run_id', public.fn_kernel_run_for('supplier_verification_case:' || NEW.id::text),
+    'raw_payload', jsonb_build_object(
+      'document_id',  'owner_dob:' || NEW.id::text,
+      'supplier_ref', NEW.id::text,
+      'field',        'owner_dob')));
+  return NEW;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_leads_lifecycle_stage()
@@ -62173,6 +64031,25 @@ AS $function$
 begin update public.deploy_state set dirty=true where id=1; return null; end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_pdpl_request_to_kernel()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  perform public.fn_kernel_source_emit('edge:pdpl_request', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'raw_payload', jsonb_build_object(
+      'request_id', NEW.id::text,
+      'kind',       NEW.kind,
+      'email',      NEW.email,
+      'role',       NEW.role)));
+  return NEW;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_pricing_facts()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -62261,6 +64138,12 @@ begin
   qid := coalesce(NEW.quote_id, OLD.quote_id);
   s := public.fn_quote_structured_score(qid);
   update quotes set structured=s, submittable=(s->>'submittable')::boolean where id=qid::uuid;
+  -- Kernel cutover. A revision to a quotation already inside a W14 run. This is the ONE of the three quote_items triggers that emits: it recomputes the structured score, which is what a revision actually changes. Its two siblings only touch the quotes row and are reclassified to C in this file.
+  perform public.fn_kernel_source_emit('dbtrigger:public.quote_items:quote_items_roll', jsonb_build_object(
+    'source_ref',  qid,
+    'workflow_run_id', public.fn_kernel_run_for('quotation:' || qid),
+    'raw_payload', jsonb_build_object('quotation_id', qid, 'structured', s)));
+
   return null;
 end $function$
 
@@ -62409,6 +64292,10 @@ AS $function$
 declare cemail text; comp text; inq record;
 begin
   if NEW.revealed_at is not null and (TG_OP='INSERT' or OLD.revealed_at is null) then
+  -- K20 cutover. The reveal payment is the declared start of W16. Placed INSIDE the branch that tests revealed_at, so it fires once when the reveal actually happens and not on every update to the transaction.
+  perform public.fn_kernel_source_emit('dbtrigger:public.transactions:trg_reveal_receipt_a', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'raw_payload', jsonb_build_object('provider_event_id', coalesce(nullif(NEW.payment_ref,''), NEW.id::text), 'transaction_id', NEW.id::text, 'inquiry_id', NEW.inquiry_id::text, 'supplier_id', NEW.supplier_id::text, 'reveal_fee', NEW.reveal_fee)));
     select email into cemail from public.customers where id = NEW.customer_id;
     select company_name into comp from public.leads where id = NEW.supplier_id;
     select summary, category into inq from public.inquiries where id = NEW.inquiry_id;
@@ -62672,6 +64559,25 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_wa_message_to_kernel()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  perform public.fn_kernel_source_emit('edge:wa_inbound', jsonb_build_object(
+    'source_ref',  NEW.id::text,
+    'raw_payload', jsonb_build_object(
+      'case_ref', 'wa:' || NEW.id::text,
+      'wa_from',  NEW.wa_from,
+      'inbound',  left(coalesce(NEW.inbound,''), 500),
+      'lang',     NEW.lang)));
+  return NEW;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.zzz_fn_notifications_demo_guard()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -62703,56 +64609,59 @@ end $function$
 
 
 -- ===== TRIGGERS =====
-CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
+CREATE TRIGGER trg_page_high_agent_action AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_page_high_agent_action();
 CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
 CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
 CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
 CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
 CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
-CREATE TRIGGER trg_page_high_agent_action AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_page_high_agent_action();
-CREATE TRIGGER z90_agent_action_decision_trace AFTER UPDATE OF decided_at ON public.agent_actions FOR EACH ROW WHEN (((old.decided_at IS NULL) AND (new.decided_at IS NOT NULL))) EXECUTE FUNCTION fn_agent_action_trace();
-CREATE TRIGGER z90_agent_action_decision_trace_ins AFTER INSERT ON public.agent_actions FOR EACH ROW WHEN ((new.decided_at IS NOT NULL)) EXECUTE FUNCTION fn_agent_action_trace_ins();
+CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
 CREATE TRIGGER zzz_action_gate BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_action_gate();
+CREATE TRIGGER z90_agent_action_decision_trace_ins AFTER INSERT ON public.agent_actions FOR EACH ROW WHEN ((new.decided_at IS NOT NULL)) EXECUTE FUNCTION fn_agent_action_trace_ins();
+CREATE TRIGGER z90_agent_action_decision_trace AFTER UPDATE OF decided_at ON public.agent_actions FOR EACH ROW WHEN (((old.decided_at IS NULL) AND (new.decided_at IS NOT NULL))) EXECUTE FUNCTION fn_agent_action_trace();
 CREATE TRIGGER kb_version AFTER INSERT OR UPDATE OF content ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_kb_version();
+CREATE TRIGGER a00_agent_knowledge_metadata BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_agent_knowledge_metadata();
 CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
-CREATE TRIGGER a00_agent_knowledge_metadata BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_agent_knowledge_metadata();
 CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
 CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
 CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
 CREATE TRIGGER trg_ai_cost_attribute BEFORE INSERT ON public.ai_cost_log FOR EACH ROW EXECUTE FUNCTION trg_ai_cost_attribute();
 CREATE TRIGGER trg_quality_snapshot_resolve_agent BEFORE INSERT ON public.ai_quality_snapshots FOR EACH ROW EXECUTE FUNCTION fn_quality_snapshot_resolve_agent();
+CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
 CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
 CREATE TRIGGER trg_ap_pay_block_held BEFORE UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_pay_block_held();
-CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
-CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
+CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
+CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
+CREATE TRIGGER trg_protect_gate_secrets_del BEFORE DELETE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_gate_secrets();
 CREATE TRIGGER trg_protect_gate_secrets_upd BEFORE INSERT OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_gate_secrets();
 CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
-CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
-CREATE TRIGGER trg_protect_gate_secrets_del BEFORE DELETE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_gate_secrets();
-CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
+CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
 CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
+CREATE TRIGGER z95_assistant_log_to_kernel AFTER INSERT ON public.assistant_logs FOR EACH ROW WHEN ((new.escalated IS TRUE)) EXECUTE FUNCTION trg_assistant_log_to_kernel();
 CREATE TRIGGER trg_blog_dirty AFTER INSERT OR DELETE OR UPDATE ON public.blog_posts FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER trg_undo_business_rules BEFORE DELETE OR UPDATE ON public.business_rules FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
 CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER company_faq_sync AFTER INSERT OR DELETE OR UPDATE ON public.company_faq FOR EACH STATEMENT EXECUTE FUNCTION trg_company_faq_sync();
-CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_goal_cascade AFTER UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
+CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
+CREATE TRIGGER z95_contact_message_to_kernel AFTER INSERT ON public.contact_messages FOR EACH ROW EXECUTE FUNCTION trg_contact_message_to_kernel();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
-CREATE TRIGGER trg_norm_customer_ver BEFORE INSERT OR UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION qd_norm_customer_ver();
-CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
+CREATE TRIGGER trg_norm_customer_ver BEFORE INSERT OR UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION qd_norm_customer_ver();
 CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
+CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_audit_data_owner AFTER INSERT OR DELETE OR UPDATE ON public.data_owner_registry FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_decision_gate BEFORE INSERT OR UPDATE ON public.decision_record FOR EACH ROW EXECUTE FUNCTION fn_decision_gate();
 CREATE TRIGGER a00_decision_trace_immutable BEFORE UPDATE ON public.decision_trace FOR EACH ROW EXECUTE FUNCTION fn_decision_trace_immutable();
 CREATE TRIGGER trg_undo_department_objective BEFORE DELETE OR UPDATE ON public.department_objective FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER z95_document_to_kernel AFTER INSERT ON public.documents FOR EACH ROW EXECUTE FUNCTION trg_document_to_kernel();
 CREATE TRIGGER version_document AFTER INSERT OR UPDATE OF extracted ON public.documents FOR EACH ROW EXECUTE FUNCTION trg_version_document();
 CREATE TRIGGER trg_undo_employee_authority BEFORE DELETE OR UPDATE ON public.employee_authority FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('agent_key');
 CREATE TRIGGER trg_undo_employee_kpi BEFORE DELETE OR UPDATE ON public.employee_kpi FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
@@ -62760,8 +64669,9 @@ CREATE TRIGGER trg_undo_feature_flags BEFORE DELETE OR UPDATE ON public.feature_
 CREATE TRIGGER trg_audit_feature_flags AFTER INSERT OR DELETE OR UPDATE ON public.feature_flags FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_normalize_founder_alert_level BEFORE INSERT OR UPDATE ON public.founder_alerts FOR EACH ROW EXECUTE FUNCTION fn_normalize_founder_alert_level();
 CREATE TRIGGER z10_founder_approval_refund_only BEFORE INSERT OR UPDATE ON public.founder_approval_request FOR EACH ROW EXECUTE FUNCTION fn_founder_approval_refund_only();
-CREATE TRIGGER a00_founder_command_trace_guard BEFORE INSERT OR UPDATE ON public.founder_command FOR EACH ROW EXECUTE FUNCTION fn_founder_command_trace_guard();
 CREATE TRIGGER z20_founder_command_state_guard BEFORE UPDATE ON public.founder_command FOR EACH ROW EXECUTE FUNCTION fn_founder_command_state_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_founder_command_trace_guard BEFORE INSERT OR UPDATE ON public.founder_command FOR EACH ROW EXECUTE FUNCTION fn_founder_command_trace_guard();
 CREATE TRIGGER z10_founder_command_message_immutable BEFORE DELETE OR UPDATE ON public.founder_command_message FOR EACH ROW EXECUTE FUNCTION fn_founder_command_message_immutable();
 CREATE TRIGGER z10_phase_c_no_new_release_approval BEFORE INSERT ON public.founder_release_approval FOR EACH ROW EXECUTE FUNCTION fn_phase_c_no_new_founder_approval_path();
 CREATE TRIGGER trg_gl_journal_immutable BEFORE DELETE OR UPDATE ON public.gl_journal FOR EACH ROW EXECUTE FUNCTION fn_gl_journal_immutable();
@@ -62770,159 +64680,183 @@ CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.
 CREATE TRIGGER trg_undo_governance_rule BEFORE DELETE OR UPDATE ON public.governance_rule FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.handoff_contract FOR EACH ROW EXECUTE FUNCTION fn_handoff_contract_guard();
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
-CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
 CREATE TRIGGER trg_idea_score BEFORE INSERT OR UPDATE ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_idea_rescore();
+CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
+CREATE TRIGGER z95_inbound_message_to_kernel AFTER INSERT ON public.inbound_messages FOR EACH ROW WHEN (((new.created_new_lead IS TRUE) AND (new.lead_id IS NOT NULL))) EXECUTE FUNCTION trg_inbound_message_to_kernel();
+CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
+CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
+CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
+CREATE TRIGGER trg_inquiry_received_a AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_received();
+CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
+CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
 CREATE TRIGGER trg_approval_raise_on_award AFTER UPDATE OF hired_supplier_id ON public.inquiries FOR EACH ROW WHEN (((new.hired_supplier_id IS NOT NULL) AND (new.hired_supplier_id IS DISTINCT FROM old.hired_supplier_id))) EXECUTE FUNCTION fn_approval_raise_on_award();
+CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
 CREATE TRIGGER autodispatch_inquiry AFTER INSERT OR UPDATE OF rfq_ready ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_autodispatch_inquiry();
 CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
 CREATE TRIGGER customer_abandon_ban AFTER UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_customer_abandon_ban();
 CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
 CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
-CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
-CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
-CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
-CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
-CREATE TRIGGER trg_inquiry_received_a AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_received();
-CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
-CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
-CREATE TRIGGER inquiry_answer_value_domain BEFORE INSERT ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_domain();
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
+CREATE TRIGGER inquiry_answer_value_domain BEFORE INSERT ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_domain();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER answer_document_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_document FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER inquiry_gate_state_sync BEFORE INSERT OR UPDATE ON public.inquiry_gate FOR EACH ROW EXECUTE FUNCTION trg_inquiry_gate_state_sync();
-CREATE TRIGGER gate_incomplete_match BEFORE INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION trg_gate_incomplete_match();
 CREATE TRIGGER notify_matched_supplier AFTER INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION fn_notify_matched_supplier();
 CREATE TRIGGER a00_unsafe_match_eligibility BEFORE INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION fn_unsafe_match_eligibility_guard();
+CREATE TRIGGER gate_incomplete_match BEFORE INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION trg_gate_incomplete_match();
 CREATE TRIGGER inquiry_scope_disposition_append_only BEFORE DELETE OR UPDATE ON public.inquiry_scope_disposition FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER inquiry_state_audit_append_only BEFORE DELETE OR UPDATE ON public.inquiry_state_audit FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER supplier_brief_immutable BEFORE UPDATE ON public.inquiry_supplier_brief FOR EACH ROW EXECUTE FUNCTION trg_supplier_brief_immutable();
 CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON public.inquiry_trade_candidate_evidence FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
 CREATE TRIGGER a00_kernel_routine_ownership_guard AFTER INSERT OR UPDATE ON public.kernel_routine_ownership FOR EACH ROW EXECUTE FUNCTION a00_kernel_routine_ownership_guard();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.kernel_signal_inbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
+CREATE TRIGGER z10_signal_type_activation_guard BEFORE UPDATE ON public.kernel_signal_type FOR EACH ROW EXECUTE FUNCTION fn_kernel_signal_type_activation_guard();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.kernel_trigger_inbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER a00_kernel_trigger_type_routing_guard BEFORE INSERT OR UPDATE OF workflow_id, trigger_type ON public.kernel_trigger_type FOR EACH ROW EXECUTE FUNCTION fn_kernel_trigger_type_routing_guard();
-CREATE TRIGGER enrich_capability_on_approve AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_enrich_capability();
-CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
-CREATE TRIGGER trg_self_reg_category AFTER INSERT OR UPDATE OF categories, source ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_self_reg_category();
-CREATE TRIGGER trg_norm_supplier_ver BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION qd_norm_supplier_ver();
-CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
-CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
-CREATE TRIGGER supplier_capability BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_supplier_capability();
-CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER trg_leads_lifecycle_stage BEFORE INSERT OR UPDATE OF claimed, signed, registration_submitted_at, claimed_by, approval_status, registration_status, portal_updated_at, accepted_terms_at, owner_email_verified, invite_status, invited_at, contacted, created_at, lifecycle_stage ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_leads_lifecycle_stage();
-CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
-CREATE TRIGGER trg_leads_a_licence_gate BEFORE INSERT OR UPDATE OF license_doc_path, trade_license_no, license_expiry ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_licence_gate_rerun();
-CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
 CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
 CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
+CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
+CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
+CREATE TRIGGER supplier_capability BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_supplier_capability();
+CREATE TRIGGER enrich_capability_on_approve AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_enrich_capability();
+CREATE TRIGGER trg_leads_lifecycle_stage BEFORE INSERT OR UPDATE OF claimed, signed, registration_submitted_at, claimed_by, approval_status, registration_status, portal_updated_at, accepted_terms_at, owner_email_verified, invite_status, invited_at, contacted, created_at, lifecycle_stage ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_leads_lifecycle_stage();
+CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
+CREATE TRIGGER z95_lead_dob_to_kernel AFTER UPDATE OF owner_dob ON public.leads FOR EACH ROW WHEN (((old.owner_dob IS NULL) AND (new.owner_dob IS NOT NULL))) EXECUTE FUNCTION trg_lead_dob_to_kernel();
+CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
+CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
+CREATE TRIGGER trg_norm_supplier_ver BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION qd_norm_supplier_ver();
+CREATE TRIGGER trg_self_reg_category AFTER INSERT OR UPDATE OF categories, source ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_self_reg_category();
 CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
+CREATE TRIGGER trg_leads_a_licence_gate BEFORE INSERT OR UPDATE OF license_doc_path, trade_license_no, license_expiry ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_licence_gate_rerun();
+CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER mep_trade_pattern_norm BEFORE INSERT OR UPDATE ON public.mep_trade_pattern FOR EACH ROW EXECUTE FUNCTION trg_mep_pattern_norm();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
-CREATE TRIGGER trg_invite_status_on_send AFTER UPDATE OF status ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_invite_status_on_send();
 CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
+CREATE TRIGGER trg_invite_status_on_send AFTER UPDATE OF status ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_invite_status_on_send();
 CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
+CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER trg_org_action_executor_guard BEFORE INSERT OR UPDATE OF kind, target ON public.org_action_executor FOR EACH ROW EXECUTE FUNCTION fn_org_action_executor_guard();
 CREATE TRIGGER trg_org_authority_guard BEFORE INSERT OR DELETE OR UPDATE ON public.org_authority FOR EACH ROW EXECUTE FUNCTION fn_org_authority_guard();
 CREATE TRIGGER z90_phase_a_freeze AFTER INSERT OR DELETE OR UPDATE ON public.org_departments FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_a_freeze_guard();
 CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON public.org_phase_baseline FOR EACH ROW EXECUTE FUNCTION fn_org_phase_baseline_append_only();
-CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
-CREATE TRIGGER a00_org_role_no_reserved_decision BEFORE INSERT OR UPDATE OF owned_decisions ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_reserved_decision();
-CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
 CREATE TRIGGER z90_phase_a_freeze AFTER INSERT OR DELETE OR UPDATE ON public.org_role FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_a_freeze_guard();
+CREATE TRIGGER a00_org_role_no_reserved_decision BEFORE INSERT OR UPDATE OF owned_decisions ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_reserved_decision();
+CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
+CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
-CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
-CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
 CREATE TRIGGER a00_org_tasks_founder_routing_refund_only BEFORE INSERT OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_kernel_founder_routing_is_refund_only();
 CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
+CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
 CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
 CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
 CREATE TRIGGER holdout_expectations_immutable BEFORE DELETE OR UPDATE ON public.p2c1_holdout_case FOR EACH ROW EXECUTE FUNCTION trg_holdout_expectations_immutable();
 CREATE TRIGGER holdout_record_immutable BEFORE DELETE OR UPDATE ON public.p2c1_holdout_result_of_record FOR EACH ROW EXECUTE FUNCTION trg_holdout_record_immutable();
-CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
 CREATE TRIGGER trg_pages_dirty AFTER INSERT OR DELETE OR UPDATE ON public.pages FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
+CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
+CREATE TRIGGER z95_pdpl_request_to_kernel AFTER INSERT ON public.pdpl_requests FOR EACH ROW EXECUTE FUNCTION trg_pdpl_request_to_kernel();
 CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
 CREATE TRIGGER z90_phase_b_freeze AFTER INSERT OR DELETE OR UPDATE ON public.phase_b_business_rule FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_b_freeze_guard();
+CREATE TRIGGER a00_phase_b_cr_append_only BEFORE DELETE OR UPDATE ON public.phase_b_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_b_change_request_append_only();
 CREATE TRIGGER z90_phase_b_freeze AFTER INSERT OR DELETE OR UPDATE ON public.phase_b_dynamic_actor FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_b_freeze_guard();
 CREATE TRIGGER z90_phase_b_freeze AFTER INSERT OR DELETE OR UPDATE ON public.phase_b_founder_boundary FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_b_freeze_guard();
 CREATE TRIGGER z90_phase_b_freeze AFTER INSERT OR DELETE OR UPDATE ON public.phase_b_gate FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_b_freeze_guard();
-CREATE TRIGGER a10_phase_b_handoff_guard BEFORE INSERT OR UPDATE ON public.phase_b_handoff FOR EACH ROW EXECUTE FUNCTION fn_phase_b_handoff_guard();
 CREATE TRIGGER z90_phase_b_freeze AFTER INSERT OR DELETE OR UPDATE ON public.phase_b_handoff FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_b_freeze_guard();
+CREATE TRIGGER a10_phase_b_handoff_guard BEFORE INSERT OR UPDATE ON public.phase_b_handoff FOR EACH ROW EXECUTE FUNCTION fn_phase_b_handoff_guard();
 CREATE TRIGGER z90_phase_b_freeze AFTER INSERT OR DELETE OR UPDATE ON public.phase_b_step_state FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_b_freeze_guard();
 CREATE TRIGGER z90_phase_b_freeze AFTER INSERT OR DELETE OR UPDATE ON public.phase_b_step_transition FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_b_freeze_guard();
-CREATE TRIGGER z90_phase_b_freeze AFTER INSERT OR DELETE OR UPDATE ON public.phase_b_workflow FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_b_freeze_guard();
 CREATE TRIGGER a10_phase_b_workflow_owner_guard BEFORE INSERT OR UPDATE ON public.phase_b_workflow FOR EACH ROW EXECUTE FUNCTION fn_phase_b_workflow_owner_guard();
+CREATE TRIGGER z90_phase_b_freeze AFTER INSERT OR DELETE OR UPDATE ON public.phase_b_workflow FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_b_freeze_guard();
 CREATE TRIGGER z90_phase_b_freeze AFTER INSERT OR DELETE OR UPDATE ON public.phase_b_workflow_state FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_b_freeze_guard();
-CREATE TRIGGER a10_phase_b_owner_guard BEFORE INSERT OR UPDATE ON public.phase_b_workflow_step FOR EACH ROW EXECUTE FUNCTION fn_phase_b_owner_guard();
 CREATE TRIGGER z90_phase_b_freeze AFTER INSERT OR DELETE OR UPDATE ON public.phase_b_workflow_step FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_b_freeze_guard();
+CREATE TRIGGER a10_phase_b_owner_guard BEFORE INSERT OR UPDATE ON public.phase_b_workflow_step FOR EACH ROW EXECUTE FUNCTION fn_phase_b_owner_guard();
 CREATE TRIGGER z90_phase_b_freeze AFTER INSERT OR DELETE OR UPDATE ON public.phase_b_workflow_transition FOR EACH STATEMENT EXECUTE FUNCTION fn_phase_b_freeze_guard();
-CREATE TRIGGER a00_phase_c_component_classification_guard BEFORE INSERT OR UPDATE OF classification, activation_state ON public.phase_c_component FOR EACH ROW EXECUTE FUNCTION fn_phase_c_component_classification_guard();
 CREATE TRIGGER a00_phase_c_readonly_exemption_guard BEFORE INSERT OR UPDATE OF trace_policy_id, mutates_state ON public.phase_c_component FOR EACH ROW EXECUTE FUNCTION fn_phase_c_readonly_exemption_guard();
+CREATE TRIGGER a00_phase_c_component_classification_guard BEFORE INSERT OR UPDATE OF classification, activation_state ON public.phase_c_component FOR EACH ROW EXECUTE FUNCTION fn_phase_c_component_classification_guard();
 CREATE TRIGGER a00_phase_c_event_binding_status_guard BEFORE INSERT OR UPDATE OF connection_status ON public.phase_c_event_binding FOR EACH ROW EXECUTE FUNCTION fn_phase_c_event_binding_status_guard();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_event_outbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
+CREATE TRIGGER z05_outbox_refuse_cancelled_subject BEFORE UPDATE ON public.phase_c_event_outbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_outbox_refuse_cancelled_subject();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_event_outbox FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_phase_c_founder_identity_human_only BEFORE INSERT OR UPDATE ON public.phase_c_founder_identity FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_identity_human_only();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_handoff_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z30_phase_c_handoff_sender_retains BEFORE INSERT OR UPDATE ON public.phase_c_handoff_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_handoff_sender_retains();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_handoff_run FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_kernel_handoff_run_trace_guard BEFORE UPDATE ON public.phase_c_handoff_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_handoff_run_trace_guard();
 CREATE TRIGGER a00_phase_c_historical_repair_append_only BEFORE DELETE OR UPDATE ON public.phase_c_historical_repair FOR EACH ROW EXECUTE FUNCTION fn_phase_c_historical_repair_append_only();
 CREATE TRIGGER z10_phase_c_kernel_epoch_immutable BEFORE DELETE OR UPDATE ON public.phase_c_kernel_epoch FOR EACH ROW EXECUTE FUNCTION fn_phase_c_kernel_epoch_immutable();
-CREATE TRIGGER a00_phase_c_refund_decision_immutable BEFORE DELETE OR UPDATE ON public.phase_c_refund_decision FOR EACH ROW EXECUTE FUNCTION fn_phase_c_refund_decision_immutable();
 CREATE TRIGGER z10_phase_c_refund_decision_guard BEFORE INSERT OR UPDATE ON public.phase_c_refund_decision FOR EACH ROW EXECUTE FUNCTION fn_phase_c_refund_decision_guard();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_refund_decision FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
+CREATE TRIGGER a00_phase_c_refund_decision_immutable BEFORE DELETE OR UPDATE ON public.phase_c_refund_decision FOR EACH ROW EXECUTE FUNCTION fn_phase_c_refund_decision_immutable();
+CREATE TRIGGER z10_source_signal_guard BEFORE INSERT OR UPDATE ON public.phase_c_source_cutover FOR EACH ROW EXECUTE FUNCTION fn_kernel_source_signal_guard();
+CREATE CONSTRAINT TRIGGER z90_system_execution_pair_guard AFTER INSERT ON public.phase_c_system_execution DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_kernel_system_execution_pair_guard();
 CREATE TRIGGER z10_phase_c_system_execution_append_only BEFORE DELETE OR UPDATE ON public.phase_c_system_execution FOR EACH ROW EXECUTE FUNCTION fn_phase_c_system_execution_append_only();
 CREATE TRIGGER z20_phase_c_task_state_guard BEFORE INSERT OR UPDATE ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_phase_c_task_state_guard();
+CREATE TRIGGER z90_phase_c_task_trace_subject AFTER INSERT ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_phase_c_task_trace_subject();
 CREATE CONSTRAINT TRIGGER z95_phase_c_task_trace_committed AFTER INSERT OR UPDATE ON public.phase_c_task DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_phase_c_task_trace_committed();
 CREATE TRIGGER a00_phase_c_task_trace_guard BEFORE UPDATE ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_phase_c_task_trace_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_task FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z10_phase_c_overlay_not_accountable BEFORE INSERT OR UPDATE ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_phase_c_overlay_may_not_dispatch();
-CREATE TRIGGER z90_phase_c_task_trace_subject AFTER INSERT ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_phase_c_task_trace_subject();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z10_phase_c_trace_append_only BEFORE UPDATE ON public.phase_c_trace FOR EACH ROW EXECUTE FUNCTION fn_phase_c_trace_append_only();
-CREATE TRIGGER z20_phase_c_workflow_state_guard BEFORE UPDATE ON public.phase_c_workflow_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_workflow_state_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_trace FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE CONSTRAINT TRIGGER z90_system_execution_pair_guard AFTER INSERT OR UPDATE ON public.phase_c_trace DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_kernel_system_execution_pair_guard();
 CREATE TRIGGER a00_kernel_workflow_run_trace_guard BEFORE UPDATE ON public.phase_c_workflow_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_workflow_run_trace_guard();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_workflow_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_workflow_run FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER z20_phase_c_workflow_state_guard BEFORE UPDATE ON public.phase_c_workflow_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_workflow_state_guard();
+CREATE TRIGGER a00_phase_c_step_run_trace_guard BEFORE UPDATE ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_step_run_trace_guard();
 CREATE CONSTRAINT TRIGGER z95_phase_c_step_run_trace_committed AFTER INSERT OR UPDATE ON public.phase_c_workflow_step_run DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_phase_c_step_run_trace_committed();
 CREATE TRIGGER z90_phase_c_step_run_trace_subject AFTER INSERT ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_step_run_trace_subject();
-CREATE TRIGGER a00_phase_c_step_run_trace_guard BEFORE UPDATE ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_step_run_trace_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_workflow_step_run FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER trg_po_orders_link BEFORE INSERT OR UPDATE OF quote_id, inquiry_id, customer_id, project_id ON public.po_orders FOR EACH ROW EXECUTE FUNCTION fn_po_orders_link();
 CREATE TRIGGER trg_pricing_config_facts AFTER INSERT OR UPDATE ON public.pricing_config FOR EACH STATEMENT EXECUTE FUNCTION trg_pricing_facts();
 CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON public.pricing_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_undo_priority_hierarchy BEFORE DELETE OR UPDATE ON public.priority_hierarchy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('rank');
 CREATE TRIGGER z10_phase_c_no_new_procurement_approval BEFORE INSERT ON public.procurement_approval_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_no_new_founder_approval_path();
-CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
 CREATE TRIGGER trg_items_submittable AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION fn_quote_recompute_submittable();
 CREATE TRIGGER quote_items_roll AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_roll();
-CREATE TRIGGER trg_new_quote_sms AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION notify_new_quote_sms();
-CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
-CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
+CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
 CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
-CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
+CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
+CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
+CREATE TRIGGER trg_new_quote_sms AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION notify_new_quote_sms();
+CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
 CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
+CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
 CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
 CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
-CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
 CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
 CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
-CREATE TRIGGER trg_regulation_propagate AFTER INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION fn_regulation_propagate();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
-CREATE TRIGGER a00_review_chain_no_self_review BEFORE INSERT OR UPDATE ON public.review_chain FOR EACH ROW EXECUTE FUNCTION trg_review_chain_no_self_review();
+CREATE TRIGGER trg_regulation_propagate AFTER INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION fn_regulation_propagate();
 CREATE TRIGGER trg_event_review AFTER INSERT ON public.review_chain FOR EACH ROW WHEN (((new.stage = 'published'::text) OR (new.decision = ANY (ARRAY['reject'::text, 'request_revision'::text, 'hold_for_human'::text, 'escalate'::text])))) EXECUTE FUNCTION fn_emit_event('review', 'review.step');
+CREATE TRIGGER a00_review_chain_no_self_review BEFORE INSERT OR UPDATE ON public.review_chain FOR EACH ROW EXECUTE FUNCTION trg_review_chain_no_self_review();
 CREATE TRIGGER ingest_case_lessons AFTER INSERT OR UPDATE OF ai_summary ON public.rfq_archives FOR EACH ROW EXECUTE FUNCTION trg_ingest_case_lessons();
 CREATE TRIGGER trg_audit_role_permissions AFTER INSERT OR DELETE OR UPDATE ON public.role_permissions FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_audit_roles AFTER INSERT OR DELETE OR UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER expectation_annotation_append_only BEFORE DELETE OR UPDATE ON public.scenario_expectation_annotation FOR EACH ROW EXECUTE FUNCTION trg_expectation_ledger_append_only();
 CREATE TRIGGER expectation_baseline_immutable BEFORE DELETE OR UPDATE ON public.scenario_expectation_baseline FOR EACH ROW EXECUTE FUNCTION trg_expectation_ledger_append_only();
-CREATE TRIGGER expectation_work_item_real BEFORE INSERT ON public.scenario_expectation_change FOR EACH ROW EXECUTE FUNCTION trg_expectation_work_item_real();
 CREATE TRIGGER expectation_ledger_no_update BEFORE DELETE OR UPDATE ON public.scenario_expectation_change FOR EACH ROW EXECUTE FUNCTION trg_expectation_ledger_append_only();
+CREATE TRIGGER expectation_work_item_real BEFORE INSERT ON public.scenario_expectation_change FOR EACH ROW EXECUTE FUNCTION trg_expectation_work_item_real();
 CREATE TRIGGER scope_marker_norm BEFORE INSERT OR UPDATE ON public.scope_marker FOR EACH ROW EXECUTE FUNCTION trg_scope_marker_norm();
 CREATE TRIGGER trg_sec_audit_immutable BEFORE DELETE OR UPDATE ON public.security_audit_log FOR EACH ROW EXECUTE FUNCTION fn_security_audit_immutable();
 CREATE TRIGGER trg_event_selfreview AFTER INSERT ON public.self_review FOR EACH ROW EXECUTE FUNCTION fn_emit_event('self_review', 'process.repeated_failure');
 CREATE TRIGGER trg_seo_dirty AFTER INSERT OR DELETE OR UPDATE ON public.seo_categories FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories FOR EACH ROW EXECUTE FUNCTION ensure_category_agent();
 CREATE TRIGGER trg_due_paid AFTER UPDATE ON public.supplier_dues FOR EACH ROW EXECUTE FUNCTION qd_on_due_paid();
-CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
-CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
 CREATE TRIGGER trg_notify_refund AFTER UPDATE ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION qd_notify_refund_request();
+CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
 CREATE TRIGGER trg_refund_resolved BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION qd_on_refund_resolved();
 CREATE TRIGGER trg_reveal_receipt_a AFTER INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
+CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
+CREATE TRIGGER z95_wa_message_to_kernel AFTER INSERT ON public.wa_messages FOR EACH ROW WHEN ((new.escalated IS TRUE)) EXECUTE FUNCTION trg_wa_message_to_kernel();
 CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 
 -- ===== ROW LEVEL SECURITY (enable) =====
@@ -63188,11 +65122,16 @@ ALTER TABLE public.kb_operational_route_test ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_revisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_route_scope_trigger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_usage_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kernel_adapter_failure ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kernel_maintenance_write ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kernel_retired_path ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kernel_routine_ownership ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kernel_signal_inbox ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kernel_signal_type ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kernel_trigger_inbox ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kernel_trigger_source ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kernel_trigger_type ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kernel_write_authority ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_domain ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_exam_questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_exam_results ENABLE ROW LEVEL SECURITY;
@@ -63297,6 +65236,7 @@ ALTER TABLE public.pdpl_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase1_rollback_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_b_business_object ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_b_business_rule ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.phase_b_change_request ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_b_crosswalk ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_b_dynamic_actor ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_b_event ENABLE ROW LEVEL SECURITY;
@@ -63338,6 +65278,7 @@ ALTER TABLE public.phase_c_refund_decision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_reporting_authority ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_role_binding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_rule_binding ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.phase_c_source_cutover ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_step_binding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_step_completion ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_system_actor ENABLE ROW LEVEL SECURITY;
