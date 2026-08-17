@@ -1,0 +1,23 @@
+# scripts/sql/DROPPED.txt - ROUTINES THE REPOSITORY DEFINES AND PRODUCTION DOES NOT HAVE.
+#
+# Each name below has its newest repository definition in a historical migration and does not
+# exist on production htdblwldjkcgjvmqkbeh. No change file in this repository records the drop,
+# so WHY it went is not knowable from here and is deliberately not guessed at. What is asserted
+# is only what was measured: the routine is absent.
+#
+# scripts/checks/canonical_routine_manifest.mjs reads this file. A name listed here is reported
+# as a RECORDED ABSENCE rather than as repository-to-production drift, because a routine that is
+# gone on purpose and a routine that failed to deploy must not share one counter.
+#
+# FORMAT   <routine> :: <what was measured> :: <what is not known>
+
+fn_containment_maintenance :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here
+fn_kb_search :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here
+fn_match_explain :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here
+fn_quote_coaching :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here
+fn_refund_status_rank :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here
+fn_simulate_growth :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here
+run_licence_reminders :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here
+trg_containment_block_customer_registration :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here
+trg_containment_block_sensitive_upload :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here
+trg_containment_block_supplier_registration :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here

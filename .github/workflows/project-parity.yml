@@ -6,22 +6,29 @@
 #
 # 15 AUG 2026 — THE SUBJECT CHANGED, THE JOB DID NOT. Staging (pglpqrhvozwepymcuunn) was deleted at
 # the founder's instruction, so `scripts/checks/project_parity.mjs` no longer had two projects to
-# compare and was retired with it (see docs/agents/RETIRED_TWO_PROJECT_CHECKS.md). Note which side
-# the 464 anon-executable functions were on: staging's. Deleting staging closed that finding by
-# construction rather than leaving it open.
+# compare and was retired with it (see docs/agents/RETIRED_TWO_PROJECT_CHECKS.md).
 #
-# What replaces it is the same question asked of the one project that exists — is the code in this
-# repository the code that is actually running? — which is the drift that can still happen, because
-# it arrives from applying SQL by hand rather than from merging a branch.
+# 17 AUG 2026 — THE SELECTION MECHANISM CHANGED. The final Phase C acceptance found
+# sql_files_match_live certifying the WRONG deployed body: it ranks files by GIT COMMIT TIME, and on
+# a tie inside one commit it accepts live matching ANY candidate. operations_assistance_company_
+# reports.sql and operations_company_remaining_lists.sql both define fn_ws_operations and
+# fn_ws_company with different bodies, in one commit, and the check printed 0 drift either way.
 #
-#   sql_files_match_live      : every routine in scripts/sql vs its live prosrc (349 at last run)
-#   export_from_either_source : the database's own schema export vs supabase/schema/full_schema.sql
+# scripts/checks/canonical_routine_manifest.mjs replaces it. One canonical file per routine, chosen
+# by an EXPLICIT sequence — migration version, then position in scripts/sql/MANIFEST.txt — never by
+# a timestamp. Two files at one sequence key is itself a failure, so no tie is ever broken by a
+# guess. It measures both directions plus uncommitted application DDL.
 #
-# DAILY RATHER THAN PER-PR, for the reason it always was: these read the live database, and drift
-# does not arrive on a merge.
+# ON EVERY PULL REQUEST as well as daily. The repository-side half — conflicting definitions,
+# ambiguous winners, manifest gaps — needs no database and is exactly what a PR can introduce; it
+# runs and asserts even without the token. The production halves say plainly that they asserted
+# nothing when the token is absent, rather than passing quietly.
 name: repo and database agree
 
 on:
+  pull_request:
+  push:
+    branches: [main]
   schedule:
     - cron: '41 5 * * *'
   workflow_dispatch:
@@ -32,17 +39,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0        # sql_files_match_live ranks files by git commit time
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      # No npm install: both checks use fetch and node:fs only.
-      - name: Every routine in scripts/sql is what is live
+      # No npm install: every check here uses fetch and node:fs only.
+      - name: One canonical file per routine, and it is what is deployed
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: node scripts/checks/sql_files_match_live.test.mjs
+        run: node scripts/checks/canonical_routine_manifest.mjs --all
       - name: The schema export matches the committed schema
+        if: ${{ github.event_name != 'pull_request' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: node scripts/checks/export_from_either_source_is_identical.mjs

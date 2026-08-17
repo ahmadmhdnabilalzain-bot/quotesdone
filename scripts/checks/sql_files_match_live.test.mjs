@@ -1,3 +1,20 @@
+// RETIRED 17 Aug 2026 — THIS CHECK CHOSE THE WRONG FILE AND SAID 0.
+//
+// It ranks the files that define a routine by GIT COMMIT TIME and, for a tie inside one commit,
+// accepts live if it matches ANY candidate. The final Phase C acceptance found that certifying
+// operations_assistance_company_reports.sql and operations_company_remaining_lists.sql — one
+// commit, two files, two different bodies for fn_ws_operations and fn_ws_company — as clean.
+// A commit timestamp is not an apply order, and a check that is right for the wrong reason is
+// worse than no check.
+//
+// REPLACED BY scripts/checks/canonical_routine_manifest.mjs, which chooses by an explicit sequence
+// (migration version, then position in scripts/sql/MANIFEST.txt) and fails outright when two files
+// share a sequence key. The body below is left intact and unreachable as the record of what this
+// check used to assert; nothing calls it any more.
+console.error('sql_files_match_live is RETIRED. Its file selection WAS the defect: git commit time, '
+  + 'and a tie accepted either body.\nRun instead:  node scripts/checks/canonical_routine_manifest.mjs --all');
+process.exit(2);
+
 // scripts/sql IS APPEND-ONLY, AND THIS IS THE CHECK THAT MAKES THAT MEAN SOMETHING.
 //
 // THE POLICY, written down because it has only ever been folklore:
