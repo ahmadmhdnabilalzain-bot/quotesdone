@@ -1342,12 +1342,11 @@ scripts/sql/kernel_s3_system_execution_traces.sql
 scripts/sql/kernel_k13_retire_old_runtime.sql
 scripts/sql/kernel_k3c_run_trace_follows_the_run.sql
 
-scripts/sql/kernel_s0b_ledger_follows_the_manifest.sqlscripts/sql/phase_b_cr_001_w14_s05_accountability.sql
+scripts/sql/kernel_s0b_ledger_follows_the_manifest.sql
+scripts/sql/phase_b_cr_001_w14_s05_accountability.sql
 scripts/sql/kernel_k14_start_does_not_pre_hand_off.sql
 scripts/sql/pacr_002_pbcr_001_baseline_rerecord.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/kernel_k16_signal_service.sql
 scripts/sql/kernel_k17_source_cutover_register.sql
 scripts/sql/kernel_k17_source_cutover_seed.sql
@@ -1358,32 +1357,42 @@ scripts/sql/kernel_k21_cutover_02_supplier_system.sql
 scripts/sql/kernel_k22_run_lookup.sql
 scripts/sql/kernel_k22b_cutover_03_existing_run.sql
 scripts/sql/kernel_k22c_class_c_measures_business_work.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/kernel_k23_historical_exception_register.sql
 scripts/sql/kernel_k24_trace_match_by_overlap.sql
 scripts/sql/kernel_k25_cutover_04_uncovered_tables.sql
 scripts/sql/kernel_k26_register_says_what_happened.sql
-scripts/sql/the_founder_has_a_name.sql
 scripts/sql/kernel_k29_cutover_05_final_signals.sql
 scripts/sql/kernel_k30_last_bypass_sources.sql
 scripts/sql/kernel_k31_goal_retirement.sql
 scripts/sql/kernel_k32_register_final_statuses.sql
 scripts/sql/kernel_k33_derived_view_knows_all_three_doors.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/kernel_k34_cutover_measure.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/kernel_k35_retired_paths_lose_the_service_grant.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/kernel_k36_read_only_historical_is_read_only.sql
 scripts/sql/kernel_k37_guard_sees_the_real_caller.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
+
+# Appended 17 Aug 2026 (root cause 1): present on disk, never listed. Appended at the
+# bottom in filename order, which is what "append-only" means once a file is missed.
+scripts/sql/kernel_k15_invariants_read_the_baseline.sql
+scripts/sql/kernel_k16_signal_service.assert.sql
+scripts/sql/kernel_k18_write_guard.assert.sql
+scripts/sql/kernel_k19_source_emit.assert.sql
+scripts/sql/kernel_k20_cutover_01_customer.assert.sql
+scripts/sql/kernel_k21_cutover_02_supplier_system.assert.sql
+scripts/sql/kernel_k22b_cutover_03_existing_run.assert.sql
+scripts/sql/phase_b_cr_001_w14_s05_accountability.assert.sql
+scripts/sql/phase_b_cr_001_w14_s05_accountability.walk.sql
+
+# Appended 17 Aug 2026 (root cause 1). LAST in the order on purpose: it records the bodies read
+# back from production for every routine whose current record was missing or stale, so it must
+# win over the historical migration that no longer describes what runs.
+scripts/sql/source_of_truth_the_repository_records_what_production_runs.sql
+scripts/sql/rc2_cancellation_reaches_the_kernel.sql
+scripts/sql/rc3_active_signals_are_executable.sql
+scripts/sql/rc4_execution_and_trace_are_atomic.sql
+scripts/sql/rc4b_3730_is_not_history.sql

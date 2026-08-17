@@ -19,7 +19,7 @@ routines, and which cron jobs are safe to replicate.
 
 | retired | the question it asked | what answers it now |
 |---|---|---|
-| `scripts/checks/project_parity.mjs` | do the two projects have the same schema shape? | `scripts/checks/sql_files_match_live.test.mjs` (repo ↔ database, 349 routines) and `scripts/checks/export_from_either_source_is_identical.mjs` (full schema export ↔ `supabase/schema/full_schema.sql`) |
+| `scripts/checks/project_parity.mjs` | do the two projects have the same schema shape? | `scripts/checks/canonical_routine_manifest.mjs` (repo ↔ database both directions, one canonical file per routine chosen by an explicit apply order; it replaced sql_files_match_live on 17 Aug 2026, whose git-commit-time selection was itself a defect) and `scripts/checks/export_from_either_source_is_identical.mjs` (full schema export ↔ `supabase/schema/full_schema.sql`) |
 | `scripts/sql/staging_grant_parity.mjs` | do the two projects grant the same EXECUTE? | nothing — and **read which side the hole was on before treating this as a loss.** The 464 SECURITY DEFINER functions anon could execute were STAGING's; production's anon could not. Deleting staging closed that finding by construction. What remains live is the standing rule in the session skill: every SECURITY DEFINER function you CREATE is granted EXECUTE to PUBLIC and must be revoked in the same migration |
 | `scripts/sql/staging_monitor_cron_parity.mjs` | which of production's crons should staging also run? | nothing needed — there is no second project to replicate a schedule to |
 | `scripts/kb/sync_executor_classification.mjs` | copy executor classification production → staging | nothing needed — the classification is already on the one project |
