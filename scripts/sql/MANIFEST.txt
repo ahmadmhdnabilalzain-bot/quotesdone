@@ -1355,3 +1355,9 @@ scripts/sql/kernel_k18_write_guard.sql
 scripts/sql/kernel_k19_source_emit.sql
 scripts/sql/kernel_k20_cutover_01_customer.sql
 scripts/sql/kernel_k21_cutover_02_supplier_system.sql
+scripts/sql/kernel_k22_run_lookup.sql
+scripts/sql/kernel_k22b_cutover_03_existing_run.sql
+scripts/sql/kernel_k22c_class_c_measures_business_work.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded

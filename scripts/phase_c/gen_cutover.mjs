@@ -31,9 +31,9 @@ for (const s of spec.sources) {
   }
 
   const call =
-`  -- K20 cutover. ${s.why}
+`  -- Kernel cutover. ${s.why}
   perform public.fn_kernel_source_emit('${s.source_key}', jsonb_build_object(
-    'source_ref',  ${s.source_ref},
+    'source_ref',  ${s.source_ref},${s.extra ? `\n    ${s.extra},` : ''}
     'raw_payload', ${s.payload}));
 `;
   def = s.before
