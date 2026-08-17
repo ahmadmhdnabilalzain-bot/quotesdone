@@ -381,11 +381,20 @@ Regenerated closure evidence at this commit, credential present: **15 headlines,
 0 CREDENTIAL_BLOCKED**; routine count now **1014** (S4 adds `fn_kernel_truncate_guard`), crosswalk
 **1801/1801/1801**.
 
-## Deliberately not changed
+## The nested copy is gone, and nothing was lost removing it
 
-**`$WT/` still exists.** The runner no longer walks it and says so on every run, but the 159 MB stale
-checkout is still in the working tree. Deleting an untracked directory is the founder's call, not a
-side effect of a fix.
+`$WT/` was not loose files. `git worktree list` showed it as a **registered worktree of this
+repository**, on branch `role-model-map` at 92bf73f, with a **clean working tree** — zero
+uncommitted changes, so every byte in it was already reachable from this repo. `git worktree remove`
+therefore destroyed nothing: `git rev-parse role-model-map` still answers
+`92bf73fedc7dcf260236876e2dc37875c25adf87`.
+
+Measured after: discovery returns **57 node tests, 1 deno test, empty skip list**. And no test file
+anywhere carries a live reference to the deleted staging project — the single remaining mention, at
+`scripts/checks/artifact_review_alias_cannot_self_approve.test.mjs:32`, is a comment sitting above
+`const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh' }`.
+
+## Deliberately not changed
 
 **The five trace/subject disagreements are historical, and the mechanism is correct now.** Driven in
 an aborted transaction: a workflow run started and then cancelled through `fn_kernel_cancel` moves
