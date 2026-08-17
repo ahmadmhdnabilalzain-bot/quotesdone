@@ -32,8 +32,8 @@ async function post(project, query) {
     });
     const text = await r.text();
     // A mass of failures with the other project passing is throttling, not a finding.
-    if ((r.status === 429 || r.status >= 500) && attempt < 5) {
-      await new Promise((s) => setTimeout(s, 1500 * 2 ** attempt)); continue;
+    if ((r.status === 429 || r.status >= 500) && attempt < 8) {
+      await new Promise((s) => setTimeout(s, Math.min(1500 * 2 ** attempt, 20000))); continue;
     }
     return { ok: r.ok, status: r.status, text };
   }

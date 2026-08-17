@@ -44,7 +44,7 @@ async function q(sql, attempt = 0) {
   });
   // The management API rate-limits hard after a heavy session. A 429 here is throttling, not a
   // finding, and reporting it as drift would be the worst kind of false red.
-  if ((r.status === 429 || r.status >= 500) && attempt < 5) {
+  if ((r.status === 429 || r.status >= 500) && attempt < 8) {
     await new Promise((s) => setTimeout(s, 2000 * (attempt + 1)));
     return q(sql, attempt + 1);
   }

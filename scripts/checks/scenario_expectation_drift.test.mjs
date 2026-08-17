@@ -52,7 +52,7 @@ const q = async (sql, attempt = 0) => {
   });
   if (r.ok) return r.json();
   const body = (await r.text()).slice(0, 200);
-  if ((r.status === 429 || r.status >= 500) && attempt < 4) {
+  if ((r.status === 429 || r.status >= 500) && attempt < 8) {
     await new Promise((s) => setTimeout(s, 1200 * 2 ** attempt));
     return q(sql, attempt + 1);
   }

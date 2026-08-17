@@ -29,8 +29,16 @@ async function post(project, query) {
       body: JSON.stringify({ query }),
     });
     const text = await r.text();
-    if ((r.status === 429 || r.status >= 500) && attempt < 5) {
-      await new Promise((s) => setTimeout(s, 1500 * 2 ** attempt)); continue;
+    // 17 AUG 2026 — THE BUDGET WAS SMALLER THAN THE THROTTLE WINDOW.
+    //   Five attempts at 1500 * 2^n is 1.5+3+6+12+24 = 46.5s. The independent acceptance measured
+    //   this check failing on `429 ThrottlerException` after 47.5s — it exhausted every retry and
+    //   the window had still not opened. run.mjs now serialises the suite, which took the 429
+    //   failures from ten to one; this is the one. Eight attempts with the delay capped at 20s is
+    //   ~102s, which clears it. Capping matters: doubling unbounded reaches four minutes on a
+    //   single query and looks like a hang.
+    // ponytail: per-file retry, replace with a shared limiter in front of the API when one exists.
+    if ((r.status === 429 || r.status >= 500) && attempt < 8) {
+      await new Promise((s) => setTimeout(s, Math.min(1500 * 2 ** attempt, 20000))); continue;
     }
     return { ok: r.ok, status: r.status, text };
   }
