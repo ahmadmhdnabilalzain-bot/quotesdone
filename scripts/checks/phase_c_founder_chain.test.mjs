@@ -120,8 +120,51 @@ begin
     'closed_tasks_without_trace', (select count(*) from public.phase_c_task
                                    where command_id = cmd and closed_at is not null and trace_id is null),
     'founder_approvals', (select count(*) from public.founder_approval_request where command_id = cmd),
-    'outbox_rows', (select count(*) from public.phase_c_event_outbox
-                    where dedupe_value = 'founder_command:' || cmd)
+
+    -- THE CANONICAL START EVENT, FOUND BY RELATIONSHIP AND NOT BY STRING SHAPE.
+    --
+    -- This used to count dedupe_value = 'founder_command:' || cmd. Since the kernel cutover
+    -- (16 Aug 2026) fn_kernel_workflow_start writes dedupe_value as
+    -- kernel:started:<workflow>:founder_command:<id>:<version>, so the count read 0 for an event
+    -- that had been emitted exactly once — the check was asserting an implementation string, not a
+    -- fact. Every field below is a normalised relationship column: command_id, workflow_id,
+    -- event_id, workflow_run_id, correlation_id, causation_id, trace_id. Swapping one string
+    -- pattern for another would have rebuilt the same defect with a longer literal.
+    'command_id', cmd,
+    'events_for_command', (select count(*) from public.phase_c_event_outbox o where o.command_id = cmd),
+    'start_events', (select count(*) from public.phase_c_event_outbox o
+                      where o.command_id = cmd
+                        and o.event_id = public.fn_phase_c_lifecycle_event(o.workflow_id, 'started')),
+    -- flat scalars, not a nested row: the raised message is length-capped, and a payload that
+    -- overflows it is a probe that produced nothing
+    'ev', (select o.workflow_id || '|' || coalesce(o.workflow_run_id::text,'') || '|'
+                  || coalesce(o.correlation_id,'') || '|' || coalesce(o.causation_id,'') || '|'
+                  || coalesce(o.status,'') || '|' || coalesce(o.trace_id::text,'')
+             from public.phase_c_event_outbox o
+            where o.command_id = cmd
+              and o.event_id = public.fn_phase_c_lifecycle_event(o.workflow_id, 'started')
+            order by o.outbox_id limit 1),
+    'ev_run', (select r.workflow_id || '|' || r.accountable_role_id || '|' || coalesce(r.command_id::text,'')
+                 from public.phase_c_workflow_run r
+                where r.run_id = (select o.workflow_run_id from public.phase_c_event_outbox o
+                                   where o.command_id = cmd
+                                     and o.event_id = public.fn_phase_c_lifecycle_event(o.workflow_id,'started')
+                                   order by o.outbox_id limit 1)),
+    'runs_for_command', (select count(*) from public.phase_c_workflow_run r where r.command_id = cmd),
+    -- a delivery that emitted its own event again would show as a second row produced by the
+    -- consumer rather than by the kernel's start
+    'events_not_produced_by_the_kernel_start',
+      (select count(*) from public.phase_c_event_outbox o
+        where o.command_id = cmd and o.producer <> 'kernel:workflow_start'),
+    -- every derived object reaches the founder command through a column, not through a payload
+    'derived_objects_unlinked', (
+        (select count(*) from public.phase_c_workflow_run r where r.command_id = cmd and r.command_id is null)
+      + (select count(*) from public.phase_c_task t where t.command_id = cmd and t.command_id is null)
+      + (select count(*) from public.phase_c_event_outbox o
+          where o.command_id = cmd and (o.correlation_id is null or o.causation_id is null))
+      + (select count(*) from public.phase_c_workflow_run r
+           join public.phase_c_workflow_step_run s on s.run_id = r.run_id
+          where r.command_id = cmd and s.run_id is null))
   )::text;
 end $chain$;`;
 
@@ -177,7 +220,23 @@ check(Number(res.history_len) >= 3, 'the state history is readable', `${res.hist
 check(res.every_task_traced === true, 'every task in the thread carries a trace');
 check(Number(res.closed_tasks_without_trace) === 0, 'no task closed without a trace');
 check(Number(res.traces) >= 2, 'the command’s own traces are attached', `${res.traces} traces`);
-check(Number(res.outbox_rows) === 1, 'the canonical event was emitted once', `${res.outbox_rows}`);
+// ---- the canonical workflow-start event, asserted on relationships, never on a string shape ----
+const [evWf, evRun, evCorr, evCaus, evStatus, evTrace] = String(res.ev ?? '').split('|');
+const [runWf, runOwner, runCmd] = String(res.ev_run ?? '').split('|');
+check(Number(res.start_events) === 1, 'exactly one canonical workflow-start event for the command',
+      `${res.start_events} of ${res.events_for_command} event(s) for this command`);
+check(Number(res.runs_for_command) === 1, 'no duplicate workflow start', `${res.runs_for_command} run(s)`);
+check(!!evWf && evWf === runWf, 'the event names the workflow its run is on', `${evWf} = ${runWf}`);
+check(!!runOwner, 'the run carries an accountable role', runOwner);
+check(String(runCmd) === String(res.command_id),
+      'the run is linked to the founder command by column', `run.command_id = ${runCmd}`);
+check(!!evRun, 'the event carries workflow_run_id', evRun);
+check(!!evCorr && !!evCaus, 'the event carries correlation_id and causation_id', `${evCorr} / ${evCaus}`);
+check(!!evStatus, 'the event is on record with a status', `status=${evStatus} trace_id=${evTrace || '(none)'}`);
+check(Number(res.events_not_produced_by_the_kernel_start) === 0, 'no event self-emission',
+      `${res.events_not_produced_by_the_kernel_start} event(s) produced by anything but kernel:workflow_start`);
+check(Number(res.derived_objects_unlinked) === 0, 'every derived object is linked to the founder command',
+      `${res.derived_objects_unlinked} unlinked`);
 
 // nothing survived
 // A DELTA, not an absolute count. This asserted the four tables were globally EMPTY, which is a

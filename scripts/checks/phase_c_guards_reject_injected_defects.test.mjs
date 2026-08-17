@@ -432,7 +432,15 @@ const before = await (async () => (await sql(`select
   (select count(*) from public.founder_approval_request) appr,
   (select count(*) from public.phase_c_workflow_run) runs,
   (select count(*) from public.phase_c_event_outbox) outbox,
-  (select count(*) from public.phase_c_trace) traces,
+  -- TRACES, EXCLUDING SCHEDULED KERNEL INFRASTRUCTURE. 17 Aug 2026: this counted every row in
+  -- phase_c_trace, and cron 278 (fn_kernel_outbox_deliver, every minute) writes a
+  -- TRACE-SYSTEM-EXECUTION trace on each tick. Any run of this file longer than sixty seconds
+  -- therefore saw the total move and reported "an injection was not rolled back" — measured, 21
+  -- such traces in a forty-minute window, and nothing else wrote one. The counter now measures
+  -- exactly the traces an injected defect could create, which is stricter than a total that a
+  -- scheduled tick can move on its own.
+  (select count(*) from public.phase_c_trace
+    where trace_policy_id <> 'TRACE-SYSTEM-EXECUTION') traces,
   (select count(*) from public.phase_c_handoff_run) handoffs,
   (select count(*) from public.founder_release_approval) release_appr,
   (select count(*) from public.phase_c_component where component_id like 'probe:%') probe_components`))[0])();
@@ -535,7 +543,15 @@ const countsNow = async () => (await sql(`select
   (select count(*) from public.founder_approval_request) appr,
   (select count(*) from public.phase_c_workflow_run) runs,
   (select count(*) from public.phase_c_event_outbox) outbox,
-  (select count(*) from public.phase_c_trace) traces,
+  -- TRACES, EXCLUDING SCHEDULED KERNEL INFRASTRUCTURE. 17 Aug 2026: this counted every row in
+  -- phase_c_trace, and cron 278 (fn_kernel_outbox_deliver, every minute) writes a
+  -- TRACE-SYSTEM-EXECUTION trace on each tick. Any run of this file longer than sixty seconds
+  -- therefore saw the total move and reported "an injection was not rolled back" — measured, 21
+  -- such traces in a forty-minute window, and nothing else wrote one. The counter now measures
+  -- exactly the traces an injected defect could create, which is stricter than a total that a
+  -- scheduled tick can move on its own.
+  (select count(*) from public.phase_c_trace
+    where trace_policy_id <> 'TRACE-SYSTEM-EXECUTION') traces,
   (select count(*) from public.phase_c_handoff_run) handoffs,
   (select count(*) from public.founder_release_approval) release_appr,
   (select count(*) from public.phase_c_component where component_id like 'probe:%') probe_components`))[0];

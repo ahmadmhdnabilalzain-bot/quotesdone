@@ -1,0 +1,312 @@
+{
+  "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+  "branch": "fix/phase-c-acceptance-evidence-closure",
+  "environment": {
+    "project_ref": "htdblwldjkcgjvmqkbeh",
+    "NO_PAID_AI": "true",
+    "OPENROUTER_DISABLED": "true",
+    "AI_PROVIDER_MODE": "mock",
+    "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+    "management_credential_present": true
+  },
+  "generated_headlines": [
+    {
+      "section": "COMPONENT CROSSWALK",
+      "headline": "committed declarations = committed crosswalk = live component rows",
+      "command": "node scripts/checks/phase_c_component_crosswalk.test.mjs --require-live",
+      "numerator": "0 findings",
+      "denominator": "1801 declared / 1801 crosswalk",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": {
+        "declared": 1801,
+        "crosswalk": 1801,
+        "findings": 0
+      }
+    },
+    {
+      "section": "COMPONENT CROSSWALK",
+      "headline": "the static half needs no credential and runs on every pull request",
+      "command": "node scripts/checks/phase_c_component_crosswalk.test.mjs --static",
+      "numerator": "0 findings",
+      "denominator": "1801 declarations",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "static",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": null
+    },
+    {
+      "section": "ROUTINE SOURCE OF TRUTH",
+      "headline": "one canonical file per routine, and it is what is deployed",
+      "command": "node scripts/checks/canonical_routine_manifest.mjs --all",
+      "numerator": "0 findings",
+      "denominator": "1013 canonical routines",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": {
+        "repo_definitions": 1013,
+        "canonical": 1013,
+        "repo_to_prod": "0",
+        "prod_to_repo": "0",
+        "conflicting": "0",
+        "ambiguous": "0",
+        "uncommitted_ddl": "0",
+        "manifest_gaps": "0"
+      }
+    },
+    {
+      "section": "ROUTINE SOURCE OF TRUTH",
+      "headline": "the engine is the only canonicality system, and it refuses a forced conflict",
+      "command": "node scripts/checks/canonical_routines.test.mjs",
+      "numerator": "11 assertions passed",
+      "denominator": "one engine, one forced counterexample",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": null
+    },
+    {
+      "section": "COMMAND CENTER",
+      "headline": "the founder chain, end to end, asserted on normalised relationships",
+      "command": "node scripts/checks/phase_c_founder_chain.test.mjs",
+      "numerator": "30 checks passed",
+      "denominator": "30 checks",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": null
+    },
+    {
+      "section": "COMMAND CENTER",
+      "headline": "command routing acceptance cases",
+      "command": "node scripts/checks/phase_c_command_acceptance.test.mjs",
+      "numerator": "20 passed",
+      "denominator": "20 cases",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": null
+    },
+    {
+      "section": "GUARDS",
+      "headline": "injected defects refused (negative suite)",
+      "command": "node scripts/checks/phase_c_guards_reject_injected_defects.test.mjs",
+      "numerator": "55 refused",
+      "denominator": "55 injected defects",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": {
+        "sqlstate_guard_pairs": "31",
+        "prose_only_assertions": "0"
+      }
+    },
+    {
+      "section": "GUARDS",
+      "headline": "genuine positive controls accepted (denominator derived, not typed)",
+      "command": "node scripts/checks/kernel_positive_controls.test.mjs",
+      "numerator": "13 accepted",
+      "denominator": "13 canonical kernel entry doors",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": {
+        "failed": 0
+      }
+    },
+    {
+      "section": "GUARDS",
+      "headline": "Phase B architecture guards fired (18 negative injections + 2 positive controls)",
+      "command": "node scripts/checks/phase_b_guards_reject_injected_defects.test.mjs",
+      "numerator": "20 fired",
+      "denominator": "20 cases",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": null
+    },
+    {
+      "section": "KERNEL INVARIANTS",
+      "headline": "Phase C invariants",
+      "command": "node scripts/checks/phase_c_invariants.test.mjs",
+      "numerator": "PASS",
+      "denominator": "17 checks",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": null
+    },
+    {
+      "section": "KERNEL INVARIANTS",
+      "headline": "kernel invariants",
+      "command": "node scripts/checks/kernel_invariants.test.mjs",
+      "numerator": "PASS",
+      "denominator": "6 checks",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": null
+    },
+    {
+      "section": "KERNEL INVARIANTS",
+      "headline": "cancellation reaches the kernel",
+      "command": "node scripts/checks/cancellation_reaches_the_kernel.test.mjs",
+      "numerator": "PASS",
+      "denominator": "11 counters",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": null
+    },
+    {
+      "section": "KERNEL INVARIANTS",
+      "headline": "active signal types are executable",
+      "command": "node scripts/checks/active_signal_types_are_executable.test.mjs",
+      "numerator": "6 accepted",
+      "denominator": "6 active signal types",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": null
+    },
+    {
+      "section": "KERNEL INVARIANTS",
+      "headline": "the kernel write guard, proved in both directions",
+      "command": "node scripts/checks/kernel_write_guard_both_directions.test.mjs",
+      "numerator": "PASS",
+      "denominator": "7 cases",
+      "commit": "8617bc93bcaec8d1a177ace45ed041d12f99a786",
+      "environment": {
+        "project_ref": "htdblwldjkcgjvmqkbeh",
+        "NO_PAID_AI": "true",
+        "OPENROUTER_DISABLED": "true",
+        "AI_PROVIDER_MODE": "mock",
+        "PHASE_D_EXTERNAL_EFFECT_MODE": "mock",
+        "management_credential_present": true
+      },
+      "measurement": "production",
+      "exit_code": 0,
+      "result": "PASS",
+      "detail": null
+    }
+  ]
+}
