@@ -34,6 +34,7 @@
 // verified for zero spend.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { paidProviderGate } from '../_shared/paid_gate.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) =>
@@ -451,16 +452,30 @@ Deno.serve(async (req) => {
     const requestId = crypto.randomUUID();
     let attemptNo = 0;
     const fullLadder = [model, ...(fallback && fallback !== model ? [fallback] : [])];
-    // Preflight each route. An open circuit removes that route from this call rather than letting
-    // it burn the wall budget. Note fn_llm_preflight answers allowed=true for a null/unknown route,
-    // so an unresolved id is NOT silently blocked here — it is passed through and recorded.
+    // KERNEL K12 — THE GATE IS FAIL-CLOSED, AND THERE IS ONLY ONE OF IT.
+    //
+    // This loop used to read:
+    //
+    //     try {
+    //       const { data: pf } = await admin.rpc('fn_llm_preflight', { p_model: m });
+    //       if (pf && pf.allowed === false) { skipped.push(...); continue; }
+    //     } catch (_e) { /* preflight must never be the reason a call cannot happen */ }
+    //     ladder.push(m);
+    //
+    // Three ways that reached a paid provider with no permission: the RPC throws and the catch
+    // falls through to push; the RPC returns null and `pf &&` short-circuits to push; the RPC
+    // returns a shape without `allowed` and the strict `=== false` misses it. The comment said the
+    // quiet part out loud — the gate "must never be the reason a call cannot happen" — which is the
+    // definition of fail-open on the estate's largest door to OpenRouter.
+    //
+    // paidProviderGate defaults to refusal. Only an explicit allowed===true puts a route on the
+    // ladder, and every refusal carries the rule that refused it, so a denial is never mistaken for
+    // an outage.
     const ladder: string[] = [];
     const skipped: { route: string; reason: string }[] = [];
     for (const m of fullLadder) {
-      try {
-        const { data: pf } = await admin.rpc('fn_llm_preflight', { p_model: m });
-        if (pf && pf.allowed === false) { skipped.push({ route: m, reason: String(pf.class_key ?? 'circuit_open') }); continue; }
-      } catch (_e) { /* preflight must never be the reason a call cannot happen */ }
+      const gate = await paidProviderGate(admin, m);
+      if (!gate.allowed) { skipped.push({ route: m, reason: `${gate.rule}: ${gate.reason}` }); continue; }
       ladder.push(m);
     }
     // Every route on the ladder is open-circuit: fail CLOSED and say so, rather than retrying into

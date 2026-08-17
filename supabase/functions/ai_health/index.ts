@@ -3,6 +3,7 @@
 // admin notification) only on the transition INTO an outage (2 consecutive failures), and logs recovery when it
 // returns. Consecutive-failure state persists in app_secrets.ai_health_fails. Secret-gated (verify_jwt=false).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -55,11 +56,10 @@ Deno.serve(async (req) => {
     // Cost governance is not removed: while the hold is on, the check reports from the state the
     // database already holds. It does NOT fall back to another key, and it does not guess.
     let ok = false; let detail = ''; let skipped = false;
-    let allowed = false;
-    try {
-      const { data } = await admin.rpc('fn_os_paid_ai_allowed');
-      allowed = data === true;
-    } catch (_e) { allowed = false; }   // a gate that cannot be read is CLOSED
+    // KERNEL K12: one authority, asked through the shared fail-closed client. A throw, a null, a
+    // malformed shape and an explicit refusal all arrive here as allowed=false with a named rule.
+    const gate = await paidProviderGate(admin, 'openrouter/metadata');
+    const allowed = gate.allowed;
     const envHold = ['1', 'true', 'yes', 'on'].includes(
       String(Deno.env.get('NO_PAID_AI') ?? Deno.env.get('OPENROUTER_DISABLED') ?? '').toLowerCase());
 

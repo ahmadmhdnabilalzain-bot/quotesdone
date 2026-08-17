@@ -1,0 +1,1368 @@
+# scripts/sql/MANIFEST.txt - THE APPLY ORDER. THIS FILE, NOT A GIT TIMESTAMP, DECIDES CANON.
+#
+# WHY THIS FILE EXISTS, in one true story:
+#   phase_c_31_autonomous_entry_creates_work.sql and phase_c_39_consumer_must_not_reemit.sql BOTH
+#   define public.fn_phase_c_event_ingress, and they were committed in the SAME commit (8eebbec).
+#   scripts/checks/sql_files_match_live.test.mjs resolves a routine to the newest file by GIT COMMIT
+#   TIME. On that tie it had no third fact to break with, compared production against the UNFIXED
+#   phase_c_31 body, and printed "439 routines, 0 not present, 0 drifted". The phase_c_39 correction
+#   was in the repository and NOT on production, and no instrument could see it.
+#
+# THE RULE:
+#   * Position in THIS FILE is the apply order. For a routine defined in more than one file, the
+#     LAST file listed here is CANONICAL. Git commit time is not consulted and cannot break a tie.
+#   * NEW FILES MUST BE APPENDED AT THE BOTTOM. Never inserted, never reordered, never deleted.
+#     Appending is what "scripts/sql is append-only" actually means once two files collide.
+#   * scripts/checks/canonical_routines.test.mjs reads this file. A file on disk that is not listed
+#     here, or a line here whose file is gone, is a FAILURE - not a warning.
+#
+# HOW THE EXISTING ORDER WAS DERIVED (files that pre-date this manifest):
+#   (a) git commit order of each file's FIRST appearance, oldest first, then
+#   (b) within one commit, ascending numeric prefix, then
+#   (c) filename.
+#   Spot check: phase_c_31 is line-position 644 of 657, phase_c_39 is 652. 39 sorts AFTER 31,
+#   so the manifest makes the CORRECTION canonical, which is the state the tie destroyed.
+#
+# 657 files. 2 not yet committed (listed at the end, in the same derived order).
+# 228 carry no DDL of their own (data repair, backfill, probe); they are listed anyway so that
+# "every file on disk is in the manifest" is an exact statement a check can enforce.
+#
+
+# --- 54bc4eb 2026-08-02 ---
+scripts/sql/coverage_both_ways.sql
+scripts/sql/replay_verify.sql
+scripts/sql/rollback_fns.sql
+scripts/sql/test_battery.sql
+scripts/sql/test_signatures.sql
+scripts/sql/verdicts.sql
+
+# --- 71b358b 2026-08-02 ---
+scripts/sql/fixture_probe.sql
+scripts/sql/rollback_rehearse_abort.sql
+scripts/sql/rollback_rehearse_commit.sql
+scripts/sql/stage_b6_rollback_completion.sql
+
+# --- 2509846 2026-08-02 ---
+scripts/sql/no_activation_probe.sql
+
+# --- 0748eb6 2026-08-02 ---
+scripts/sql/vocabularies.sql
+
+# --- 658e675 2026-08-03 ---
+scripts/sql/holdout_v1_failures.sql
+scripts/sql/b7_b6_stacked_rehearse.sql
+scripts/sql/b7_drift_detail.sql
+scripts/sql/b7_latency.sql
+scripts/sql/b7_probes.sql
+scripts/sql/b7_rollback_rehearse.sql
+scripts/sql/b7_tail_measure.sql
+
+# --- efc0e6a 2026-08-03 ---
+scripts/sql/containment_rollback_rehearse.sql
+
+# --- 2e4db8e 2026-08-06 ---
+scripts/sql/fn_task_approve.sql
+
+# --- 68f2872 2026-08-06 ---
+scripts/sql/fn_agent_context_employee.sql
+scripts/sql/fn_task_review.sql
+
+# --- 2cdb5f0 2026-08-06 ---
+scripts/sql/company_goal_measures.sql
+scripts/sql/fn_learning_loop.sql
+
+# --- a16799b 2026-08-06 ---
+scripts/sql/fn_decision_gate_employee_limit.sql
+
+# --- 8f9bfe2 2026-08-06 ---
+scripts/sql/fn_improvement_plan.sql
+
+# --- cbd0a12 2026-08-06 ---
+scripts/sql/fn_customer_preference.sql
+scripts/sql/fn_pdpl_customer_preference.sql
+scripts/sql/fn_ws_customer_360.sql
+
+# --- d2d5d61 2026-08-06 ---
+scripts/sql/fn_event_dispatch.sql
+scripts/sql/os_blueprint_schema.sql
+
+# --- 87e1972 2026-08-06 ---
+scripts/sql/fn_emit_and_os_review.sql
+
+# --- 7e48a3c 2026-08-06 ---
+scripts/sql/os_knowledge_ownership.sql
+
+# --- 8204f59 2026-08-06 ---
+scripts/sql/agent_knowledge_profession_backfill.sql
+scripts/sql/bus_contract_close.sql
+scripts/sql/bus_contract_seed.sql
+scripts/sql/fn_agent_context_os_layer.sql
+scripts/sql/fn_os_health_brief.sql
+scripts/sql/fn_os_knowledge_query.sql
+scripts/sql/fn_workflow_start.sql
+scripts/sql/kpi_schedule_prove.sql
+scripts/sql/kpi_schedule_restore.sql
+scripts/sql/memory_cluster_ddl.sql
+scripts/sql/memory_cluster_routines.sql
+scripts/sql/memory_cluster_run.sql
+scripts/sql/os_objective_measures.sql
+
+# --- 0c2bef3 2026-08-06 ---
+scripts/sql/bus_contract_read.sql
+scripts/sql/fn_exec_meeting_reads_v_os_health.sql
+scripts/sql/os_ownership_structural.sql
+
+# --- 90af9bd 2026-08-06 ---
+scripts/sql/fn_emit_metric_alerts.sql
+scripts/sql/fn_execution_sweep.sql
+scripts/sql/memory_cluster_backfill.sql
+scripts/sql/os_inputs_reach_every_os.sql
+
+# --- 998259e 2026-08-06 ---
+scripts/sql/action_gate_records_sources.sql
+scripts/sql/collaboration_rule_named_parties.sql
+scripts/sql/cron_improvement_handover.sql
+scripts/sql/fn_decision_gate_authority_register.sql
+scripts/sql/fn_execution_run.sql
+scripts/sql/fn_improvement_handover.sql
+scripts/sql/fn_learning_loop_backstop.sql
+scripts/sql/fn_should_escalate_named_party.sql
+scripts/sql/fn_task_review_ownership_routing.sql
+scripts/sql/repair_event_delivery_taskless.sql
+scripts/sql/workflow_trigger_events.sql
+
+# --- c07fb47 2026-08-06 ---
+scripts/sql/ai_gate_records_sources.sql
+scripts/sql/decide_routes_to_a_party.sql
+scripts/sql/fn_emit_task_assigned.sql
+scripts/sql/rollback_task_assigned_backdate.sql
+
+# --- 9ce6dec 2026-08-06 ---
+scripts/sql/close_unroutable_deliveries.sql
+scripts/sql/escalation_names_a_party.sql
+
+# --- 9e902b2 2026-08-07 ---
+scripts/sql/approvals_and_orders.sql
+scripts/sql/documents_customer_vault.sql
+scripts/sql/matching_verified_invariant_and_similarity_range.sql
+scripts/sql/row4_customer_forecast.sql
+scripts/sql/row4_customer_savings.sql
+scripts/sql/row4_customer_supplier_score.sql
+scripts/sql/row4_intelligence_ddl.sql
+scripts/sql/row4_negotiation_guidance.sql
+scripts/sql/row4_negotiation_policy_seed.sql
+
+# --- 07ff3c1 2026-08-07 ---
+scripts/sql/portal_row4_schema.sql
+scripts/sql/portal_row4_schema2.sql
+
+# --- e677bf3 2026-08-07 ---
+scripts/sql/fn_supplier_twin.sql
+scripts/sql/demo_supplier_row5.sql
+
+# --- ba6b444 2026-08-07 ---
+scripts/sql/cron_supplier_score_refresh.sql
+
+# --- a1f8bf3 2026-08-07 ---
+scripts/sql/demo_supplier_catalog.sql
+scripts/sql/fn_supplier_products.sql
+
+# --- 05ce9f5 2026-08-07 ---
+scripts/sql/fn_supplier_advisor.sql
+
+# --- 1f44323 2026-08-07 ---
+scripts/sql/fn_supplier_network_map.sql
+
+# --- 7bbf1b7 2026-08-07 ---
+scripts/sql/fn_supplier_market.sql
+
+# --- 14ae303 2026-08-08 ---
+scripts/sql/fn_supplier_workspaces.sql
+
+# --- ef1d31a 2026-08-08 ---
+scripts/sql/fn_supplier_score_refresh.sql
+scripts/sql/supplier_rating_model.sql
+
+# --- 8e16319 2026-08-08 ---
+scripts/sql/demo_inquiry_row5.sql
+
+# --- fc8a733 2026-08-08 ---
+scripts/sql/fn_supplier_opportunities.sql
+
+# --- 9130114 2026-08-08 ---
+scripts/sql/fn_rating_due.sql
+scripts/sql/demo_quote_row5.sql
+
+# --- 44e7571 2026-08-08 ---
+scripts/sql/fn_supplier_tier.sql
+
+# --- e85d0a3 2026-08-08 ---
+scripts/sql/fn_supplier_risk_monitor.sql
+
+# --- d8c3043 2026-08-08 ---
+scripts/sql/fn_supplier_negotiation.sql
+
+# --- 4ed7cb5 2026-08-08 ---
+scripts/sql/fn_supplier_certifications.sql
+
+# --- 60c3884 2026-08-08 ---
+scripts/sql/fn_supplier_product_match.sql
+
+# --- dd6d50c 2026-08-08 ---
+scripts/sql/fn_supplier_document_impact.sql
+scripts/sql/fn_supplier_quote_recommend.sql
+scripts/sql/demo_inventory_row5.sql
+scripts/sql/demo_market_row5.sql
+
+# --- 2ccd61d 2026-08-09 ---
+scripts/sql/fn_graph_supplier_market.sql
+
+# --- 551c1e9 2026-08-09 ---
+scripts/sql/fn_resolve_cat_agent_trade_bridge.sql
+
+# --- 607ce3f 2026-08-09 ---
+scripts/sql/fn_graph_rebuild_category_agent_edge.sql
+
+# --- 879c242 2026-08-09 ---
+scripts/sql/fn_model_feedback_loop_reads_the_written_table.sql
+
+# --- 5a5e410 2026-08-09 ---
+scripts/sql/fn_ai_route_returns_cache_ttl.sql
+scripts/sql/model_policy_response_cache_ttl.sql
+
+# --- 53093dd 2026-08-09 ---
+scripts/sql/row8_classify_deterministic_and_templates.sql
+
+# --- 03e6998 2026-08-09 ---
+scripts/sql/fn_ws_intelligence.sql
+
+# --- 8d1ca83 2026-08-09 ---
+scripts/sql/fn_ws_exec_home.sql
+
+# --- 4f0d492 2026-08-09 ---
+scripts/sql/fn_ws_agent_ops.sql
+
+# --- 203753c 2026-08-09 ---
+scripts/sql/fn_ws_company_os.sql
+
+# --- e9b2361 2026-08-09 ---
+scripts/sql/fn_entity_activity.sql
+scripts/sql/fn_os_search.sql
+scripts/sql/fn_ws_supplier_360.sql
+
+# --- 6d990a4 2026-08-09 ---
+scripts/sql/fn_ws_notifications.sql
+
+# --- 7963ad6 2026-08-09 ---
+scripts/sql/fn_founder_brief.sql
+
+# --- b3917c9 2026-08-09 ---
+scripts/sql/os_responsibility_departments.sql
+
+# --- 2940159 2026-08-09 ---
+scripts/sql/fn_ea_agenda.sql
+scripts/sql/fn_os_command.sql
+scripts/sql/fn_owning_os.sql
+scripts/sql/fn_ws_governance.sql
+scripts/sql/fn_ws_operations.sql
+scripts/sql/os_responsibility_agents.sql
+
+# --- ab4a63d 2026-08-09 ---
+scripts/sql/fn_ws_live_company.sql
+scripts/sql/v_department_health.sql
+
+# --- c3676a5 2026-08-09 ---
+scripts/sql/fn_report_drilldown.sql
+scripts/sql/fn_report_recommendation_approve.sql
+
+# --- 226778f 2026-08-09 ---
+scripts/sql/governance_monitors.sql
+
+# --- a1c5ab9 2026-08-09 ---
+scripts/sql/fn_action_queue_sweep.sql
+
+# --- c93f8cc 2026-08-09 ---
+scripts/sql/twin_realtime.sql
+
+# --- 79ff43d 2026-08-09 ---
+scripts/sql/cron_registry_sync.sql
+
+# --- 91c9764 2026-08-09 ---
+scripts/sql/challenge_reason_from_prior_outcomes.sql
+scripts/sql/exec_meeting_agenda_debate_priorities.sql
+
+# --- 960a3a9 2026-08-09 ---
+scripts/sql/cron_bi_snapshot.sql
+scripts/sql/cron_registry_bi_snapshot.sql
+scripts/sql/manual_documents_policies_rules_departments.sql
+
+# --- 8fe7299 2026-08-09 ---
+scripts/sql/os_flow_reaches_the_map.sql
+
+# --- 5844aa4 2026-08-10 ---
+scripts/sql/escalate_on_prior_failure.sql
+
+# --- 6ef1f6c 2026-08-10 ---
+scripts/sql/cron_capability_verify.sql
+scripts/sql/cron_registry_capability_verify.sql
+scripts/sql/fn_capability_verify.sql
+
+# --- 7533221 2026-08-10 ---
+scripts/sql/period_report_competitive_section.sql
+
+# --- fceb712 2026-08-10 ---
+scripts/sql/model_policy_four_task_classes.sql
+
+# --- 7683a13 2026-08-10 ---
+scripts/sql/replay_six_tracks.sql
+
+# --- 341f75c 2026-08-10 ---
+scripts/sql/trg_company_event_dispatch.sql
+
+# --- b143366 2026-08-10 ---
+scripts/sql/spend_respects_reputation.sql
+
+# --- b532f6e 2026-08-10 ---
+scripts/sql/console_six_boards.sql
+
+# --- 94446f6 2026-08-10 ---
+scripts/sql/actions_explain_policies.sql
+
+# --- 1c82efc 2026-08-10 ---
+scripts/sql/health_note_names_its_cause.sql
+
+# --- cf17d43 2026-08-10 ---
+scripts/sql/evolution_asks_structural_questions.sql
+
+# --- e1d7f14 2026-08-10 ---
+scripts/sql/opportunity_scan_five_questions.sql
+
+# --- 7949e51 2026-08-10 ---
+scripts/sql/cron_index_slowdown_watch.sql
+scripts/sql/cron_registry_index_slowdown_watch.sql
+scripts/sql/fn_index_slowdown_watch.sql
+
+# --- 982f529 2026-08-10 ---
+scripts/sql/snapshot_carries_customers.sql
+
+# --- a2a56e5 2026-08-10 ---
+scripts/sql/fn_knowledge_provenance_stamp.sql
+
+# --- c0ae42d 2026-08-10 ---
+scripts/sql/genome_six_missing_attributes.sql
+
+# --- 5cc1e4c 2026-08-10 ---
+scripts/sql/fn_agent_context_genome.sql
+
+# --- 656685e 2026-08-10 ---
+scripts/sql/trg_company_event_dispatch_lookback.sql
+
+# --- d76dd3d 2026-08-10 ---
+scripts/sql/resilience_watch_unmatched_inquiries.sql
+
+# --- 046a353 2026-08-10 ---
+scripts/sql/drawing_redact_verify_task_class.sql
+
+# --- 041e22d 2026-08-10 ---
+scripts/sql/fn_evolution_scan_dormancy.sql
+
+# --- 4abf3d4 2026-08-10 ---
+scripts/sql/fn_reputation_recompute_learning_speed.sql
+
+# --- 165da6c 2026-08-10 ---
+scripts/sql/fn_ws_exec_home_employees_working.sql
+
+# --- 7cdba82 2026-08-10 ---
+scripts/sql/budget_machine_empty_case.sql
+scripts/sql/marketing_budget_decision.sql
+
+# --- a343b3d 2026-08-10 ---
+scripts/sql/fn_reputation_two_broken_dimensions.sql
+
+# --- 5bf3814 2026-08-10 ---
+scripts/sql/fn_opportunity_scan_real_demand.sql
+
+# --- 12510e4 2026-08-10 ---
+scripts/sql/fn_invite_ramp_report_paused.sql
+
+# --- a172db3 2026-08-10 ---
+scripts/sql/purge_qa_fixtures_from_production.sql
+
+# --- 320ed84 2026-08-10 ---
+scripts/sql/fn_exec_meeting_priorities_approvable.sql
+
+# --- eb24dc0 2026-08-10 ---
+scripts/sql/event_subscription_on_a_dead_name.sql
+
+# --- bd9b566 2026-08-10 ---
+scripts/sql/event_emitters_five_missing_classes.sql
+scripts/sql/evolution_proposal_allow_prompting.sql
+scripts/sql/fn_evolution_scan_prompting_domain.sql
+scripts/sql/revoke_authenticated_on_unread_views.sql
+scripts/sql/scenario_library_three_forward_classes.sql
+
+# --- 2eabcfa 2026-08-10 ---
+scripts/sql/revoke_execute_on_new_emit_triggers.sql
+
+# --- 6dfde5a 2026-08-10 ---
+scripts/sql/revoke_execute_on_trigger_only_secdef_fns.sql
+
+# --- de24cf9 2026-08-10 ---
+scripts/sql/emit_regulation_changed.sql
+
+# --- 6745820 2026-08-10 ---
+scripts/sql/emit_health_degraded.sql
+
+# --- 238dc0f 2026-08-10 ---
+scripts/sql/handoff_inbox_and_answer.sql
+
+# --- 19fc9ad 2026-08-10 ---
+scripts/sql/emit_rfq_classified.sql
+
+# --- 2d47111 2026-08-10 ---
+scripts/sql/emit_sla_breached.sql
+
+# --- 429ba86 2026-08-10 ---
+scripts/sql/model_policy_pack_22_missing_task_classes.sql
+
+# --- 48c9e6f 2026-08-10 ---
+scripts/sql/model_policy_activate_pack_classes.sql
+
+# --- 9faf4fb 2026-08-10 ---
+scripts/sql/fn_action_queue_sweep_two_defects.sql
+scripts/sql/fn_reputation_recompute_restores_authority.sql
+scripts/sql/model_policy_visitor_chat.sql
+
+# --- 36f4c06 2026-08-10 ---
+scripts/sql/fn_agent_inbox_all_kinds.sql
+
+# --- a5649f9 2026-08-10 ---
+scripts/sql/fn_ws_exec_home_company_at_work.sql
+
+# --- 02996bf 2026-08-10 ---
+scripts/sql/arm_agent_autonomy.sql
+scripts/sql/enable_ops_pack.sql
+scripts/sql/fn_ops_department_context_rules_sops.sql
+scripts/sql/inbox_closable_all_but_money.sql
+scripts/sql/promote_ops_structure.sql
+scripts/sql/regate_guest_bug_holds.sql
+scripts/sql/regate_pregate_backlog.sql
+scripts/sql/route_regulatory_coverage_from_corpus.sql
+scripts/sql/pack3_tables.sql
+scripts/sql/action_class_gate_28_reviewed.sql
+
+# --- 0cdafb4 2026-08-10 ---
+scripts/sql/target_structure_stays_in_ops_kb_stage.sql
+
+# --- cb8693b 2026-08-10 ---
+scripts/sql/route_regulatory_coverage_corrected.sql
+scripts/sql/route_205_licensed_trades_reverted.sql
+
+# --- 5af32ec 2026-08-10 ---
+scripts/sql/fix_201_narrow_legacy_credential.sql
+scripts/sql/close_205_207.sql
+scripts/sql/fix_205_project_authority_from_publisher.sql
+scripts/sql/fix_207_scope_triggers_and_confirm.sql
+
+# --- a176af7 2026-08-10 ---
+scripts/sql/deploy_corpus_into_kb_chunks.sql
+scripts/sql/staging_kb_chunks_sequence_reset.sql
+scripts/sql/staging_unfreeze_cos.sql
+
+# --- 7697793 2026-08-10 ---
+scripts/sql/cron_kb_route_tests_and_ops_scenarios.sql
+scripts/sql/fn_agent_context_reads_ops_projections.sql
+scripts/sql/fn_kb_corpus_integrity.sql
+scripts/sql/fn_kb_retrieve_honours_activation.sql
+scripts/sql/fn_kb_route_activation_blocked_fix_array_append.sql
+scripts/sql/fn_kb_route_test_run.sql
+scripts/sql/fn_ops_department_context_all_projections.sql
+scripts/sql/fn_ops_scenarios_sweep.sql
+
+# --- 2b4f383 2026-08-10 ---
+scripts/sql/fn_ai_route_role_default.sql
+scripts/sql/fn_tool_readiness.sql
+scripts/sql/pack_artefacts_get_readers.sql
+scripts/sql/route_decide_activation_and_target_role_models.sql
+
+# --- 269add7 2026-08-10 ---
+scripts/sql/action_invoker.sql
+
+# --- 13f4bb8 2026-08-10 ---
+scripts/sql/fn_org_task_execute_sweep.sql
+scripts/sql/fn_os_portals_gates.sql
+scripts/sql/record_rollback_drill_2026_08_10.sql
+
+# --- 163f31a 2026-08-10 ---
+scripts/sql/kb_embed_backfill_boost.sql
+scripts/sql/staging_monitoring_parity.sql
+
+# --- d9d2487 2026-08-10 ---
+scripts/sql/cron_registry_part9.sql
+
+# --- 085f517 2026-08-10 ---
+scripts/sql/executor_timeouts_measured.sql
+
+# --- 1c86280 2026-08-10 ---
+scripts/sql/action_worker_wiring.sql
+scripts/sql/fn_agent_action_work_sweep.sql
+
+# --- 45cc62d 2026-08-10 ---
+scripts/sql/fn_owning_os_resolves_desks_and_roles.sql
+
+# --- beee387 2026-08-10 ---
+scripts/sql/fn_identify_contact_knows_the_founder.sql
+
+# --- f756bcb 2026-08-10 ---
+scripts/sql/exec_review_timeout_platform_ceiling.sql
+
+# --- 27e84f4 2026-08-10 ---
+scripts/sql/founder_release_approval.sql
+
+# --- c15fbbe 2026-08-11 ---
+scripts/sql/agent_action_addressee_resolution.sql
+
+# --- fbae0c5 2026-08-11 ---
+scripts/sql/quality_snapshot_addressee_resolution.sql
+
+# --- 6242b48 2026-08-11 ---
+scripts/sql/reopened_actions_escalated.sql
+
+# --- 9019b86 2026-08-11 ---
+scripts/sql/fn_llm_log_confidence.sql
+
+# --- fd59447 2026-08-11 ---
+scripts/sql/fn_workflow_step_sweep.sql
+
+# --- 0cdb4a2 2026-08-11 ---
+scripts/sql/executor_notifies_human.sql
+
+# --- 1f28e06 2026-08-11 ---
+scripts/sql/org_roster_reconciliation.sql
+
+# --- 9b2e230 2026-08-11 ---
+scripts/sql/org_departments_against_the_spec.sql
+scripts/sql/org_departments_gaps.sql
+scripts/sql/prompt_cache_accounting.sql
+
+# --- 1556565 2026-08-11 ---
+scripts/sql/category_reconcile_to_spec.sql
+scripts/sql/cron_watchdogs_stop_timing_out.sql
+scripts/sql/goal_period_rolls_forward.sql
+scripts/sql/signage_knowledge_modules.sql
+
+# --- 6094664 2026-08-11 ---
+scripts/sql/new_employees_get_their_profession.sql
+scripts/sql/runner_silence_watch.sql
+scripts/sql/runner_silence_watch_cron.sql
+scripts/sql/supplier_success_two_specialists_get_kpis.sql
+
+# --- ec4b1f5 2026-08-11 ---
+scripts/sql/knowledge_confidence_layer.sql
+
+# --- e739749 2026-08-11 ---
+scripts/sql/action_gate_records_confidence.sql
+scripts/sql/board_reviews_the_open_decisions.sql
+
+# --- 3046724 2026-08-11 ---
+scripts/sql/scenario_stress_runner.sql
+
+# --- 773df61 2026-08-11 ---
+scripts/sql/silence_watch_retries_within_the_day.sql
+
+# --- 9497585 2026-08-11 ---
+scripts/sql/action_gate_runs_after_the_stamp.sql
+
+# --- 92c82d6 2026-08-11 ---
+scripts/sql/gate_records_the_alternative_it_rejected.sql
+scripts/sql/surfaces_carry_alternatives.sql
+
+# --- 40841d5 2026-08-11 ---
+scripts/sql/simulation_offers_the_action.sql
+scripts/sql/what_if_measures_the_cache.sql
+
+# --- 244c582 2026-08-11 ---
+scripts/sql/what_if_result_carries_confidence.sql
+
+# --- 4baa596 2026-08-11 ---
+scripts/sql/governance_stamp_evidence_is_not_conditional_on_confidence.sql
+scripts/sql/simulation_action_carries_its_evidence.sql
+
+# --- fee52c7 2026-08-11 ---
+scripts/sql/knowledge_workspace_shows_what_was_used.sql
+
+# --- 9e9f3cd 2026-08-11 ---
+scripts/sql/company_map_places_suppliers_and_knowledge.sql
+
+# --- fc0a9b8 2026-08-11 ---
+scripts/sql/could_be_cheaper_looks_at_the_spender.sql
+scripts/sql/exec_home_stops_scoring_the_unmeasured.sql
+scripts/sql/prompt_cache_off_it_is_losing_money.sql
+scripts/sql/scenario_run_says_staffed_not_ready.sql
+
+# --- 663c643 2026-08-11 ---
+scripts/sql/agent_context_capped_cuts_the_middle.sql
+scripts/sql/regulatory_change_reaches_knowledge_engineering.sql
+
+# --- 02b427b 2026-08-11 ---
+scripts/sql/containment_wording_no_false_positive.sql
+scripts/sql/corpus_integrity_counts_content_not_rows.sql
+scripts/sql/demo_rehearsal_containment.sql
+scripts/sql/the_three_arg_overload_was_public.sql
+scripts/sql/two_identity_decisions_recorded_in_the_database.sql
+scripts/sql/layer_4_external_authority_reaches_the_employee.sql
+scripts/sql/phase7_dedupe_and_the_one_dead_routine.sql
+scripts/sql/the_employee_context_died_on_an_8s_wall.sql
+scripts/sql/v_kb_coverage_scanned_120530_rows_five_times.sql
+
+# --- b2f71e1 2026-08-11 ---
+scripts/sql/one_capped_function_not_two_ambiguous_ones.sql
+
+# --- 384dfa8 2026-08-11 ---
+scripts/sql/every_layer_measures_itself_except_the_two_that_matter.sql
+scripts/sql/fourteen_employees_knew_their_job_but_one_column_was_blank.sql
+scripts/sql/the_employee_can_finally_see_its_own_number.sql
+scripts/sql/the_promote_path_does_not_carry_a_revoke.sql
+scripts/sql/the_target_decomposes_by_routine_not_by_hand.sql
+scripts/sql/twelve_of_the_fifty_five_decorative_goals_can_be_measured.sql
+
+# --- 3b52355 2026-08-11 ---
+scripts/sql/four_webhooks_were_being_monitored_as_cron_jobs.sql
+scripts/sql/performance_becomes_a_trend_not_a_point.sql
+scripts/sql/twilio_retries_and_nothing_remembered_the_message.sql
+
+# --- 5ec6a56 2026-08-11 ---
+scripts/sql/a_requirements_change_left_every_quote_answering_the_old_question.sql
+
+# --- 05c2dcb 2026-08-11 ---
+scripts/sql/thirteen_named_failures_nobody_had_written_down.sql
+
+# --- 99f5890 2026-08-11 ---
+scripts/sql/i_overstated_two_of_the_thirteen_correcting_it.sql
+
+# --- e657913 2026-08-11 ---
+scripts/sql/five_workflows_the_company_ran_without_writing_down.sql
+
+# --- 01308d5 2026-08-11 ---
+scripts/sql/cost_per_os_that_admits_what_it_cannot_see.sql
+
+# --- b597716 2026-08-11 ---
+scripts/sql/the_company_notices_it_is_thinking_about_itself.sql
+
+# --- f5354d7 2026-08-12 ---
+scripts/sql/the_router_never_knew_who_was_asking.sql
+scripts/sql/the_pack_named_47_employees_to_a_model_we_cannot_call.sql
+
+# --- 2548d11 2026-08-12 ---
+scripts/sql/the_ramp_could_accelerate_into_a_bounce_rate_it_could_not_brake_on.sql
+
+# --- 64d5574 2026-08-12 ---
+scripts/sql/the_brief_counted_one_of_seven_spellings_of_severe.sql
+
+# --- c40cc52 2026-08-12 ---
+scripts/sql/severity_had_no_definition_so_every_reader_invented_one.sql
+
+# --- 33dc20a 2026-08-12 ---
+scripts/sql/ten_employee_kpis_that_could_always_have_been_measured.sql
+
+# --- 3f92394 2026-08-12 ---
+scripts/sql/a_zero_target_is_a_target.sql
+scripts/sql/i_wrote_a_kpi_that_counted_success_as_failure.sql
+
+# --- 0a58ff0 2026-08-12 ---
+scripts/sql/the_files_were_stale_not_the_database.sql
+
+# --- 8ae6415 2026-08-12 ---
+scripts/sql/nothing_in_this_company_could_ask_what_should_be_deleted.sql
+
+# --- 03a1453 2026-08-12 ---
+scripts/sql/four_more_goals_the_company_could_already_answer.sql
+
+# --- 59fe58e 2026-08-12 ---
+scripts/sql/the_sweep_diagnosed_a_stall_every_ten_minutes_and_told_nobody.sql
+
+# --- 2137e32 2026-08-12 ---
+scripts/sql/a_decision_that_reopens_next_week_is_not_a_decision.sql
+scripts/sql/five_delete_proposals_decided_and_two_of_them_were_miscounted.sql
+scripts/sql/five_goals_and_three_kpis_the_company_could_already_answer.sql
+scripts/sql/performance_was_a_point_and_its_trend_read_an_authoring_date.sql
+scripts/sql/the_dispatcher_needed_a_daily_ceiling_before_it_needed_speed.sql
+scripts/sql/the_engine_had_no_employee_side_and_no_name_for_its_own_staff.sql
+scripts/sql/the_router_asked_for_a_confidence_that_could_not_exist_yet.sql
+scripts/sql/two_functions_wrote_the_company_a_cut_off_deliverable.sql
+scripts/sql/wiring_for_the_employee_side_of_the_engine.sql
+
+# --- 1bde478 2026-08-12 ---
+scripts/sql/six_cron_jobs_ran_every_day_and_the_manual_had_never_heard_of_them.sql
+
+# --- 82b83cc 2026-08-12 ---
+scripts/sql/staging_only_four_crons_that_drove_production.sql
+scripts/sql/the_companys_process_work_reached_no_surface.sql
+scripts/sql/the_process_did_not_accumulate_step_three_never_saw_step_two.sql
+
+# --- 4947949 2026-08-12 ---
+scripts/sql/the_decision_step_timed_out_twentyfive_times_out_of_forty.sql
+
+# --- 51bb0b0 2026-08-12 ---
+scripts/sql/seven_empty_officer_reports_i_created_probing_during_an_outage.sql
+
+# --- 33ed5f6 2026-08-12 ---
+scripts/sql/ocr_coverage_said_100_percent_while_half_the_extractions_were_empty.sql
+
+# --- aad2626 2026-08-12 ---
+scripts/sql/the_boq_pipeline_had_no_way_to_be_wrong.sql
+scripts/sql/wiring_for_the_boq_fixture_runner.sql
+
+# --- dce7f5a 2026-08-12 ---
+scripts/sql/the_engine_itself_had_no_screen.sql
+
+# --- 7d58d11 2026-08-12 ---
+scripts/sql/the_work_was_done_and_no_reader_could_see_it.sql
+
+# --- 6c584ec 2026-08-12 ---
+scripts/sql/sixty_percent_of_the_bill_was_the_company_thinking_about_itself.sql
+scripts/sql/the_dispatchers_ceiling_counted_revenue_work_against_reflection.sql
+
+# --- 62c807b 2026-08-12 ---
+scripts/sql/twenty_thousand_suppliers_filed_under_a_vocabulary_the_matcher_cannot_read.sql
+
+# --- 067efa4 2026-08-12 ---
+scripts/sql/fiftyseven_suppliers_were_invited_to_click_a_button_that_was_not_there.sql
+scripts/sql/the_derived_scope_had_no_role_so_no_supplier_could_ever_confirm_it.sql
+scripts/sql/the_taxonomy_named_twentyfive_trades_and_the_directory_sells_forty.sql
+scripts/sql/two_goals_the_company_could_measure_and_had_written_off.sql
+scripts/sql/two_live_invite_tasks_were_one_queue_position_from_firing.sql
+
+# --- 0daa5f3 2026-08-12 ---
+scripts/sql/the_backfill_got_slower_the_more_of_it_was_done.sql
+scripts/sql/the_company_decides_seventy_times_a_day_and_learns_from_five_a_week.sql
+scripts/sql/the_role_backfill_ran_once_and_the_deriver_kept_writing_rows_without_one.sql
+
+# --- 3eac6d5 2026-08-12 ---
+scripts/sql/the_scope_screen_i_shipped_would_have_returned_403.sql
+
+# --- d392304 2026-08-12 ---
+scripts/sql/the_workspace_showed_everything_except_whether_the_employee_improves.sql
+
+# --- 676439c 2026-08-12 ---
+scripts/sql/eight_thousand_domains_nobody_had_ever_asked_whether_they_accept_mail.sql
+scripts/sql/retract_the_seventeen_manufactured_lessons.sql
+scripts/sql/seventeen_lessons_from_four_readings_and_none_of_them_earned.sql
+scripts/sql/the_cacheable_half_was_a_different_length_every_call.sql
+scripts/sql/the_mx_cache_reached_staging_without_rls.sql
+scripts/sql/the_priority_filter_was_built_for_three_kinds_and_nothing_ever_passed_it.sql
+scripts/sql/the_supplier_verified_their_email_before_the_company_existed.sql
+scripts/sql/the_sweep_called_a_working_throttle_a_stalled_engine.sql
+
+# --- be7db1b 2026-08-12 ---
+scripts/sql/the_biggest_producer_spoke_a_word_the_extractor_did_not_know.sql
+
+# --- 63ba10a 2026-08-12 ---
+scripts/sql/four_thousand_suppliers_lost_to_a_hyphen.sql
+
+# --- 03d63df 2026-08-12 ---
+scripts/sql/every_bounce_was_a_role_address_on_a_live_domain.sql
+
+# --- ae51f48 2026-08-12 ---
+scripts/sql/the_cron_i_added_was_not_in_the_manual.sql
+
+# --- c56d49f 2026-08-12 ---
+scripts/sql/seventy_five_employees_were_rated_one_point_above_probation_for_doing_nothing.sql
+
+# --- ee82ad2 2026-08-12 ---
+scripts/sql/three_hundred_and_thirty_nine_tasks_were_assigned_to_nobody.sql
+
+# --- 69392c8 2026-08-12 ---
+scripts/sql/six_simulations_six_shapes_and_nothing_to_compare.sql
+
+# --- 8bcd2d8 2026-08-12 ---
+scripts/sql/the_first_workflow_whose_steps_something_can_actually_run.sql
+
+# --- d1eed3a 2026-08-12 ---
+scripts/sql/the_demand_path_can_now_be_walked_by_something.sql
+
+# --- 88ac0ef 2026-08-12 ---
+scripts/sql/two_more_workflows_and_nothing_that_talks_to_a_customer_fires_itself.sql
+
+# --- 9cd2abe 2026-08-12 ---
+scripts/sql/the_workflow_that_can_ban_a_supplier_automates_only_the_reading.sql
+
+# --- 55b405b 2026-08-12 ---
+scripts/sql/the_registration_workflow_classified_without_waking_fifty_six_parked_runs.sql
+
+# --- ec659a3 2026-08-12 ---
+scripts/sql/the_step_that_refunds_a_card_had_no_gate_at_all.sql
+
+# --- ab93f22 2026-08-12 ---
+scripts/sql/the_last_workflow_and_the_generic_execute_step_stays_manual.sql
+
+# --- 881e01d 2026-08-12 ---
+scripts/sql/the_tally_still_counted_a_word_the_runner_stopped_saying.sql
+
+# --- d67f175 2026-08-12 ---
+scripts/sql/every_recommendation_can_now_say_what_else_was_considered.sql
+
+# --- 778fadd 2026-08-12 ---
+scripts/sql/the_company_emitted_payment_received_to_nobody.sql
+
+# --- a10c41b 2026-08-12 ---
+scripts/sql/the_code_was_entered_before_there_was_anywhere_to_record_it.sql
+
+# --- 64d374e 2026-08-12 ---
+scripts/sql/the_rfq_redispatch_cron_and_its_registry_row.sql
+scripts/sql/the_rfq_that_arrived_before_its_supplier_existed.sql
+
+# --- 9973e95 2026-08-12 ---
+scripts/sql/a_recommendation_that_cannot_say_what_it_assumed.sql
+scripts/sql/marketing_says_what_a_zero_might_also_mean.sql
+scripts/sql/operations_ai_now_says_how_each_of_its_six_alerts_is_wrong.sql
+scripts/sql/the_curator_admits_what_indexed_does_not_prove.sql
+scripts/sql/the_document_controller_states_what_it_took_on_trust.sql
+scripts/sql/the_five_wrappers_that_could_not_carry_a_reason.sql
+scripts/sql/the_stale_brief_that_nobody_had_read_either.sql
+scripts/sql/the_trainer_that_would_have_posted_to_the_wrong_company.sql
+
+# --- 59c5a40 2026-08-12 ---
+scripts/sql/the_capability_retry_cron_and_its_registry_row.sql
+scripts/sql/the_supplier_the_matcher_could_not_see.sql
+
+# --- cdfd9e2 2026-08-12 ---
+scripts/sql/sixteen_routines_stop_naming_their_own_project.sql
+scripts/sql/the_two_signing_triggers_must_never_refuse_a_signature.sql
+scripts/sql/the_two_triggers_on_the_critical_path_stop_naming_their_own_project.sql
+
+# --- 9a97866 2026-08-12 ---
+scripts/sql/twenty_thousand_suppliers_rated_zero_for_work_never_offered.sql
+
+# --- dff07cc 2026-08-12 ---
+scripts/sql/the_reflection_budget_counted_what_had_finished.sql
+
+# --- b6ec147 2026-08-12 ---
+scripts/sql/the_spend_guard_said_the_ceiling_did_not_exist.sql
+
+# --- a1c579d 2026-08-12 ---
+scripts/sql/the_hand_written_map_fell_behind_the_spending.sql
+
+# --- c99c5cc 2026-08-13 ---
+scripts/sql/every_call_lands_inside_a_ceiling.sql
+scripts/sql/one_column_two_units.sql
+scripts/sql/strategy_says_what_it_took_on_trust.sql
+scripts/sql/the_calls_that_belonged_to_no_department.sql
+scripts/sql/the_counter_that_asked_for_the_old_name.sql
+scripts/sql/the_exam_that_examined_the_catalogue_instead_of_the_staff.sql
+scripts/sql/the_outage_that_only_rang_once.sql
+scripts/sql/the_pause_that_would_have_fired_on_a_healthy_list.sql
+scripts/sql/the_reflection_budget_gets_a_number_and_a_reason.sql
+scripts/sql/the_risk_scan_names_its_proxies.sql
+scripts/sql/the_switch_that_governed_nothing.sql
+scripts/sql/the_tidy_up_that_stopped_the_sessions_expiring.sql
+scripts/sql/two_drills_in_one_staging_table.sql
+scripts/sql/what_the_employee_is_supposed_to_know.sql
+
+# --- ca0daa0 2026-08-13 ---
+scripts/sql/the_hot_lead_and_the_gap_state_their_terms.sql
+
+# --- a9b682c 2026-08-13 ---
+scripts/sql/founder_directive_gets_its_rls.sql
+scripts/sql/the_founder_can_change_things_by_text.sql
+
+# --- 70974f3 2026-08-13 ---
+scripts/sql/the_channel_gets_its_own_eyes.sql
+
+# --- 471f9f2 2026-08-13 ---
+scripts/sql/fn_wa_context_revoke_on_both.sql
+
+# --- f795ea6 2026-08-13 ---
+scripts/sql/a_report_that_arrives_as_a_document.sql
+scripts/sql/the_licence_arrived_and_nothing_read_it.sql
+scripts/sql/the_queue_that_had_nobody_to_hand_it_to.sql
+scripts/sql/the_supplier_could_ask_but_could_not_change.sql
+scripts/sql/the_licence_arrived_and_nothing_read_it_2.sql
+
+# --- efee375 2026-08-13 ---
+scripts/sql/the_daily_brief_added_his_queue_to_the_machines.sql
+scripts/sql/the_line_i_nearly_shipped_was_the_same_lie.sql
+
+# --- 7e83ab1 2026-08-13 ---
+scripts/sql/a_failed_attempt_was_a_life_sentence.sql
+
+# --- 85c98b0 2026-08-13 ---
+scripts/sql/the_ramp_went_quiet_exactly_when_it_mattered.sql
+
+# --- d6e3dab 2026-08-13 ---
+scripts/sql/the_bounce_rate_was_one_number_over_two_populations.sql
+
+# --- 4d06d85 2026-08-13 ---
+scripts/sql/the_assistant_could_not_see_who_was_asking.sql
+scripts/sql/the_customer_facing_assistant_was_unmapped.sql
+
+# --- 5da4dd6 2026-08-13 ---
+scripts/sql/the_rule_against_repeating_a_failure_held_only_the_reports.sql
+
+# --- f817636 2026-08-13 ---
+scripts/sql/unexplained_was_a_subtraction.sql
+
+# --- 134cf75 2026-08-13 ---
+scripts/sql/a_refusal_log_with_no_reader.sql
+
+# --- 874f663 2026-08-13 ---
+scripts/sql/the_files_were_stale_again_the_ramp_and_the_brief.sql
+
+# --- 1f913c8 2026-08-13 ---
+scripts/sql/a_snapshot_whose_grain_was_not_one_row_per_agent.sql
+
+# --- 9d0f085 2026-08-13 ---
+scripts/sql/the_quality_table_nothing_read.sql
+
+# --- 32d7300 2026-08-13 ---
+scripts/sql/the_number_that_gates_every_rfq_was_on_no_screen.sql
+
+# --- 600a20a 2026-08-13 ---
+scripts/sql/eight_read_only_screens_asked_for_a_code_to_your_phone.sql
+
+# --- bc6acae 2026-08-13 ---
+scripts/sql/the_chase_filtered_on_two_statuses_that_do_not_exist.sql
+
+# --- 4890f91 2026-08-13 ---
+scripts/sql/the_company_wrote_down_when_not_to_send_and_nothing_read_it.sql
+
+# --- cd928e3 2026-08-13 ---
+scripts/sql/the_filler_ran_before_the_thing_it_reads_was_written.sql
+
+# --- 853a59b 2026-08-13 ---
+scripts/sql/the_placeholder_ran_first_so_the_citation_never_ran.sql
+
+# --- cd961d9 2026-08-14 ---
+scripts/sql/a_phone_number_is_not_an_identity.sql
+scripts/sql/fn_customer_decision_support.sql
+
+# --- cd81a2a 2026-08-14 ---
+scripts/sql/provenance_backfill_only_where_the_pattern_matches.sql
+
+# --- ffe134c 2026-08-14 ---
+scripts/sql/the_dashboard_finally_reads_his_queue.sql
+scripts/sql/the_agents_screen_timed_out_on_356_keys.sql
+
+# --- 945421d 2026-08-14 ---
+scripts/sql/cron_for_the_rpc_invoker.sql
+scripts/sql/the_rpc_half_of_the_executor_table_had_no_runner.sql
+
+# --- f774eff 2026-08-14 ---
+scripts/sql/register_the_rpc_invoker_in_the_manual.sql
+
+# --- f9a5944 2026-08-14 ---
+scripts/sql/stagings_manual_described_productions_jobs.sql
+
+# --- d5f841b 2026-08-14 ---
+scripts/sql/a_simulation_that_never_said_what_it_moved.sql
+scripts/sql/a_villa_owner_does_not_say_joinery.sql
+scripts/sql/cron_for_the_habit_learner_registered_in_the_same_change.sql
+scripts/sql/the_company_brain_had_no_customer_on_it.sql
+scripts/sql/the_company_brain_had_no_reader.sql
+scripts/sql/the_intelligence_centre_could_not_see_a_customer.sql
+scripts/sql/the_keyword_question_was_guarded_on_a_table_with_no_rows.sql
+scripts/sql/the_os_never_learned_who_it_works_for.sql
+
+# --- 30676d3 2026-08-14 ---
+scripts/sql/eighty_four_edges_pointing_at_a_node_kind_that_does_not_exist.sql
+
+# --- 8453fed 2026-08-14 ---
+scripts/sql/a_staffing_check_is_not_a_rehearsal.sql
+scripts/sql/cron_for_the_rehearsal_registered_in_the_same_change.sql
+
+# --- 1ed1c71 2026-08-14 ---
+scripts/sql/the_revoke_landed_on_staging_only.sql
+
+# --- 11718b4 2026-08-14 ---
+scripts/sql/my_own_rehearsal_looked_for_a_literal_name.sql
+
+# --- b80ce04 2026-08-14 ---
+scripts/sql/the_invite_cap_moved_and_the_ledger_never_heard.sql
+
+# --- 7de75bd 2026-08-14 ---
+scripts/sql/the_gate_cited_its_own_code_and_called_it_sources.sql
+
+# --- 6ea6c61 2026-08-14 ---
+scripts/sql/a_budget_guard_that_could_never_fire.sql
+scripts/sql/a_prefix_that_moved_four_times_in_forty_five_minutes.sql
+scripts/sql/a_question_that_was_answered_three_hours_ago.sql
+scripts/sql/the_cooldown_i_just_shipped_could_never_fire.sql
+scripts/sql/turn_the_prompt_cache_on_now_that_the_prefix_holds_still.sql
+
+# --- be778bd 2026-08-14 ---
+scripts/sql/my_own_cron_was_the_undocumented_one.sql
+
+# --- b0bda82 2026-08-14 ---
+scripts/sql/the_highest_priority_knowledge_row_reaches_nobody.sql
+scripts/sql/a_198k_faq_in_a_prompt_slot_that_holds_24k.sql
+scripts/sql/the_canonical_answers_queued_behind_26000_rows.sql
+
+# --- 53e5001 2026-08-14 ---
+scripts/sql/the_reflection_ceiling_was_priced_at_half_what_it_costs.sql
+
+# --- 57b9be7 2026-08-14 ---
+scripts/sql/marble_worktop_and_tiling_matched_nothing.sql
+
+# --- 7bb7c53 2026-08-14 ---
+scripts/sql/the_generic_word_outranked_the_specific_phrase.sql
+
+# --- 55fb3aa 2026-08-14 ---
+scripts/sql/957_planned_steps_no_executor_could_ever_match.sql
+
+# --- 892a692 2026-08-14 ---
+scripts/sql/the_autoswitch_repriced_our_own_timeouts.sql
+
+# --- af1779e 2026-08-14 ---
+scripts/sql/fn_event_dispatch_live_after_the_recurrence_cooldown.sql
+scripts/sql/fn_model_autoswitch_live_after_the_timeout_repricing.sql
+scripts/sql/v3_artifact_review.sql
+scripts/sql/v3_artifact_review_wiring.sql
+scripts/sql/v3_category_route_map.sql
+scripts/sql/v3_category_runtime.sql
+scripts/sql/v3_context_assembly.sql
+scripts/sql/v3_context_recording.sql
+scripts/sql/v3_decision_trace_connect.sql
+scripts/sql/v3_grants.sql
+scripts/sql/v3_health_jobs.sql
+scripts/sql/v3_ingestion_undo.sql
+scripts/sql/v3_knowledge_runtime_schema.sql
+scripts/sql/v3_knowledge_usage_is_visible.sql
+scripts/sql/v3_learning_and_remediation.sql
+scripts/sql/v3_officers_get_an_identity.sql
+scripts/sql/v3_readiness.sql
+scripts/sql/v3_training_runner_wiring.sql
+
+# --- eac128a 2026-08-14 ---
+scripts/sql/blueprint_results_have_a_history.sql
+scripts/sql/v3_video_platform_specs.sql
+
+# --- fff2efd 2026-08-14 ---
+scripts/sql/v3_video_producer_wiring.sql
+
+# --- 325164c 2026-08-14 ---
+scripts/sql/org_reorg_01_canonical_schema.sql
+scripts/sql/org_reorg_02_departments.sql
+scripts/sql/org_reorg_03_roles.sql
+scripts/sql/org_reorg_04_runtime.sql
+scripts/sql/org_reorg_05_overlays_and_cascade.sql
+scripts/sql/org_reorg_06_compat_gaps.sql
+scripts/sql/org_reorg_07_os_map.sql
+scripts/sql/org_reorg_08_findings.sql
+
+# --- 79ad558 2026-08-14 ---
+scripts/sql/v3_repair_01_tool_registry.sql
+scripts/sql/v3_repair_02_decision_trace.sql
+scripts/sql/v3_repair_03_retrieval.sql
+scripts/sql/v3_repair_04_task_query.sql
+scripts/sql/v3_repair_05_ctx_v3_query.sql
+
+# --- eeafec3 2026-08-14 ---
+scripts/sql/v3_repair_11_trace_convergence.sql
+scripts/sql/v3_repair_12_trace_view_typeguard.sql
+
+# --- 50a534a 2026-08-14 ---
+scripts/sql/v3_repair_06_role_isolation.sql
+scripts/sql/v3_repair_07_handoff_contract.sql
+scripts/sql/v3_repair_08_revenue_cascade.sql
+scripts/sql/v3_repair_09_unsafe_safeguards.sql
+scripts/sql/v3_repair_10_infra_reliability.sql
+scripts/sql/v3_repair_13_trace_edit_probe.sql
+
+# --- ae97650 2026-08-14 ---
+scripts/sql/v3_repair_14_tool_credential.sql
+scripts/sql/v3_repair_15_revoke_trace_writers.sql
+
+# --- 4594ae2 2026-08-14 ---
+scripts/sql/v3_repair_16_insufficient_credit_class.sql
+
+# --- 008d4f3 2026-08-14 ---
+scripts/sql/org_reorg_09_target_model_crosswalk.sql
+scripts/sql/org_reorg_10_search_path.sql
+scripts/sql/org_reorg_11_goal_ownership.sql
+scripts/sql/org_reorg_12_identity_follows_the_merge.sql
+scripts/sql/org_reorg_13_resolve_at_the_boundary.sql
+scripts/sql/org_reorg_14_titles_agree.sql
+
+# --- dc19ea5 2026-08-14 ---
+scripts/sql/org_reorg_15_spend_meter.sql
+scripts/sql/org_reorg_16_reviewer_identity.sql
+
+# --- 517a694 2026-08-14 ---
+scripts/sql/org_reorg_17_identity_resolves_to_a_live_employee.sql
+
+# --- d3f4c25 2026-08-14 ---
+scripts/sql/org_reorg_18_overlay_never_infer.sql
+
+# --- 042a07f 2026-08-14 ---
+scripts/sql/org_reorg_19_staging_rls_parity.sql
+
+# --- 7f42962 2026-08-14 ---
+scripts/sql/org_reorg_20_routing_tier_reaches_the_employee.sql
+
+# --- edfb942 2026-08-14 ---
+scripts/sql/org_reorg_21_resolve_before_compare.sql
+
+# --- 81701a8 2026-08-14 ---
+scripts/sql/org_reorg_22_routine_output_ceiling.sql
+
+# --- 9d0a8e9 2026-08-15 ---
+scripts/sql/org_reorg_23_resolve_in_sql_bodies.sql
+
+# --- caf431d 2026-08-15 ---
+scripts/sql/org_reorg_24_context_assembly_is_not_stable.sql
+
+# --- ea2d4d8 2026-08-15 ---
+scripts/sql/org_reorg_25_rollback_is_not_an_approval_route.sql
+
+# --- 4a50666 2026-08-15 ---
+scripts/sql/org_reorg_26_autonomy_gate_resolves.sql
+
+# --- b949acb 2026-08-15 ---
+scripts/sql/org_reorg_27_both_sides_resolve.sql
+scripts/sql/org_reorg_28_workspace_resolves.sql
+scripts/sql/org_reorg_29_kb_approve_certifies_what_it_did.sql
+scripts/sql/org_reorg_30_last_seven_identity_gates.sql
+scripts/sql/org_reorg_31_tool_eligibility_resolves.sql
+
+# --- aafee2d 2026-08-15 ---
+scripts/sql/org_align_01_reviewer_independence_resolves.sql
+
+# --- fa1dbe6 2026-08-15 ---
+scripts/sql/org_align_02_role_corrections.sql
+scripts/sql/org_align_03_ownership_and_reserved.sql
+scripts/sql/org_align_04_every_role_has_a_caller.sql
+scripts/sql/org_align_05_payment_split_and_last_five.sql
+scripts/sql/org_align_06_bind_the_stuck_placeholder.sql
+scripts/sql/org_align_07_one_owner_per_workflow.sql
+
+# --- dd856aa 2026-08-15 ---
+scripts/sql/org_align_08_attempt_level_cost.sql
+
+# --- 61da39a 2026-08-15 ---
+scripts/sql/org_align_09_reserved_table_rls.sql
+
+# --- 95a52b0 2026-08-15 ---
+scripts/sql/hold_01_stop_all_openrouter_calls.sql
+scripts/sql/purge_01_empty_the_marketplace.sql
+scripts/sql/purge_02_orphaned_scores.sql
+
+# --- 17503b5 2026-08-15 ---
+scripts/sql/purge_03_staging_starts_clean.sql
+
+# --- 5aa4832 2026-08-15 ---
+scripts/sql/the_repo_and_the_database_disagreed_about_two_routines.sql
+
+# --- 379557d 2026-08-15 ---
+scripts/sql/purge_04_the_last_probe_contact.sql
+
+# --- 7568562 2026-08-15 ---
+scripts/sql/fifteen_tasks_addressed_to_a_department_that_was_closed.sql
+
+# --- 80a21cc 2026-08-15 ---
+scripts/sql/phase_a_rollback.sql
+
+# --- 3e940cf 2026-08-15 ---
+scripts/sql/phase_a_closure_rollback.sql
+
+# --- 110a794 2026-08-15 ---
+scripts/sql/phase_a_freeze_rollback.sql
+
+# --- 46c9faa 2026-08-15 ---
+scripts/sql/phase_b_workflow_closure_rollback.sql
+scripts/sql/phase_b_01_workflow_registry_schema.sql
+scripts/sql/phase_b_02_identity_aliases.sql
+scripts/sql/phase_b_03_registry_core.sql
+scripts/sql/phase_b_04_steps.sql
+scripts/sql/phase_b_05_handoffs_and_exceptions.sql
+scripts/sql/phase_b_06_events.sql
+scripts/sql/phase_b_07_crosswalk.sql
+scripts/sql/phase_b_08_validators.sql
+
+# --- 9b04ed4 2026-08-15 ---
+scripts/sql/phase_b_09_pin_function_search_path.sql
+
+# --- 8358677 2026-08-15 ---
+scripts/sql/phase_b_10_gate_attachment.sql
+scripts/sql/phase_b_11_baseline_functions.sql
+scripts/sql/phase_b_12_founder_approved_baseline.sql
+scripts/sql/phase_b_13_freeze_guard.sql
+scripts/sql/phase_b_14_record_the_approval_tag.sql
+
+# --- cdfb8f6 2026-08-15 ---
+scripts/sql/phase_b_15_record_the_tagged_commit.sql
+
+# --- 03645fe 2026-08-15 ---
+scripts/sql/phase_c_01_identity_and_registry_schema.sql
+scripts/sql/phase_c_02_authority_and_founder_boundary.sql
+scripts/sql/phase_c_03_runtime_core.sql
+scripts/sql/phase_c_04_command_center.sql
+scripts/sql/phase_c_05_registry_load.sql
+scripts/sql/phase_c_06_components_part01.sql
+scripts/sql/phase_c_06_components_part02.sql
+scripts/sql/phase_c_06_components_part03.sql
+scripts/sql/phase_c_06_components_part04.sql
+scripts/sql/phase_c_07_binding_01_role_binding.sql
+scripts/sql/phase_c_07_binding_02_overlay_binding.sql
+scripts/sql/phase_c_07_binding_03_workflow_binding.sql
+scripts/sql/phase_c_07_binding_04_step_binding.sql
+scripts/sql/phase_c_07_binding_05_handoff_binding.sql
+scripts/sql/phase_c_07_binding_06_event_binding.sql
+scripts/sql/phase_c_07_binding_07_gate_binding.sql
+scripts/sql/phase_c_07_binding_08_rule_binding.sql
+scripts/sql/phase_c_08_runtime_writers.sql
+scripts/sql/phase_c_09_invariants.sql
+
+# --- a930db4 2026-08-15 ---
+scripts/sql/phase_c_10_command_overlay_and_raise_fixes.sql
+scripts/sql/phase_c_11_handoff_sla_alias_fix.sql
+scripts/sql/phase_c_12_step_gate_scope_fix.sql
+scripts/sql/phase_c_13_step_attempt_no_fix.sql
+scripts/sql/phase_c_14_command_center_entry_point.sql
+scripts/sql/phase_c_15_cancel_writes_trace_and_selftest_cleanup.sql
+
+# --- 348aed5 2026-08-15 ---
+scripts/sql/phase_c_ROLLBACK.sql
+
+# --- 0c8ff62 2026-08-15 ---
+scripts/sql/phase_c_16_revoke_public_execute.sql
+
+# --- 4a31e23 2026-08-15 ---
+scripts/sql/phase_c_17_command_progress_returns_to_founder.sql
+scripts/sql/phase_c_18_command_thread_gate.sql
+
+# --- 8eb63a1 2026-08-15 ---
+scripts/sql/phase_c_19_founder_gated_action_class.sql
+
+# --- 31e67a8 2026-08-15 ---
+scripts/sql/phase_c_20_disarm_observe_mode.sql
+
+# --- beed345 2026-08-15 ---
+scripts/sql/phase_c_21_build_mode_open_os.sql
+scripts/sql/phase_c_22_duplicate_returns_same_shape.sql
+
+# --- bbd3374 2026-08-16 ---
+scripts/sql/exec_home_handoffs_are_handoffs.sql
+scripts/sql/failed_run_watch_stops_reporting_the_hold.sql
+scripts/sql/os_command_labels.sql
+scripts/sql/ui_labels_for_machine_keys.sql
+scripts/sql/ws_exec_labels_beside_keys.sql
+
+# --- e1a4ce0 2026-08-16 ---
+scripts/sql/index_slowdown_watch_lets_the_constraint_decide.sql
+
+# --- 5efdfb3 2026-08-16 ---
+scripts/sql/customer_success_titles_are_english.sql
+scripts/sql/the_founder_could_not_decide_twenty_of_his_own_actions.sql
+
+# --- aad80b5 2026-08-16 ---
+scripts/sql/control_mode_pill_stops_claiming_a_lock_that_is_off.sql
+
+# --- 5f9e1ab 2026-08-16 ---
+scripts/sql/os_fresh_start_watermark.sql
+scripts/sql/os_surfaces_read_from_the_fresh_start.sql
+scripts/sql/purge_the_fixture_funnel.sql
+
+# --- ea3e19c 2026-08-16 ---
+scripts/sql/exec_surfaces_show_only_live_work.sql
+scripts/sql/stand_down_the_company.sql
+
+# --- adf0062 2026-08-16 ---
+scripts/sql/hold_all_automation.sql
+
+# --- deff052 2026-08-16 ---
+scripts/sql/clear_the_remaining_tabs.sql
+scripts/sql/operations_assistance_company_reports.sql
+scripts/sql/operations_company_remaining_lists.sql
+scripts/sql/smart_engine_counts_the_workforce.sql
+
+# --- 3b7a5b9 2026-08-16 ---
+scripts/sql/the_reporting_map_had_nothing_to_check_it_against.sql
+scripts/sql/pacr_001_the_baseline_records_the_approved_graph.sql
+
+# --- 5366659 2026-08-16 ---
+scripts/sql/an_export_that_names_its_own_project.sql
+scripts/sql/fn_founder_brief_names_the_approval_queue.sql
+scripts/sql/the_assertion_agreed_with_the_bug.sql
+scripts/sql/the_brief_never_named_his_one_approval_queue.sql
+scripts/sql/the_keep_list_stopped_the_safety_controls_too.sql
+
+# --- b640b1f 2026-08-16 ---
+scripts/sql/fn_phase_c_step_advance_enforces_order.sql
+scripts/sql/the_boundary_refused_the_wrong_actor_but_not_the_wrong_order.sql
+
+# --- 8eebbec 2026-08-16 ---
+scripts/sql/phase_c_30_command_trace_lifecycle.sql
+scripts/sql/phase_c_31_autonomous_entry_creates_work.sql
+scripts/sql/phase_c_32_event_delivery_backbone.sql
+scripts/sql/phase_c_33_event_binding_status.sql
+scripts/sql/phase_c_34_clarification_path.sql
+scripts/sql/phase_c_35_component_classification.sql
+scripts/sql/phase_c_36_trace_policy_and_invariants.sql
+scripts/sql/phase_c_37_zero_cost_provider_guard.sql
+scripts/sql/phase_c_38_repair_historical_evidence.sql
+scripts/sql/phase_c_39_consumer_must_not_reemit.sql
+scripts/sql/phase_c_40_clarify_action_gate.sql
+scripts/sql/phase_c_41_outbox_carries_its_trace.sql
+
+# --- 99504f0 2026-08-17 ---
+scripts/sql/kernel_k0_founder_authentication.sql
+
+# --- UNCOMMITTED (working tree) ---
+scripts/sql/the_founder_has_a_name.sql
+scripts/sql/kernel_k1_baseline_append_only.sql
+scripts/sql/kernel_k4_cancellation.sql
+
+scripts/sql/kernel_k12_paid_provider_gate.sql
+
+scripts/sql/kernel_k8_refund_only_founder_approval.sql
+
+scripts/sql/kernel_k7_internal_review.sql
+
+# KERNEL K5 -> K2 -> K2b. This order is a dependency, not a preference: K2 emits through
+# fn_kernel_outbox_emit and reads fn_kernel_assert_not_in_delivery, both created by K5; K2b calls
+# fn_kernel_workflow_start, created by K2.
+scripts/sql/kernel_k5_factual_outbox.sql
+scripts/sql/kernel_k2_workflow_start.sql
+scripts/sql/kernel_k2b_founder_submit_calls_kernel.sql
+scripts/sql/kernel_k5b_worker_points_at_the_kernel.sql
+scripts/sql/kernel_k6_trace_ledger.sql
+scripts/sql/kernel_k13a_legacy_ingress_no_reemit.sql
+
+scripts/sql/kernel_k11_component_exposure.sql
+scripts/sql/kernel_k5c_invariant_reads_the_new_types.sql
+scripts/sql/kernel_k2c_clarify_calls_kernel.sql
+scripts/sql/kernel_s0_routine_ownership.sql
+scripts/sql/kernel_s2_historical_repair.sql
+
+scripts/sql/kernel_k3_step_engine.sql
+scripts/sql/kernel_k3b_graph_validation.sql
+scripts/sql/kernel_k10_trigger_inbox.sql
+scripts/sql/kernel_s3_system_execution_traces.sql
+
+scripts/sql/kernel_k13_retire_old_runtime.sql
+scripts/sql/kernel_k3c_run_trace_follows_the_run.sql
+
+scripts/sql/kernel_s0b_ledger_follows_the_manifest.sqlscripts/sql/phase_b_cr_001_w14_s05_accountability.sql
+scripts/sql/kernel_k14_start_does_not_pre_hand_off.sql
+scripts/sql/pacr_002_pbcr_001_baseline_rerecord.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/kernel_k16_signal_service.sql
+scripts/sql/kernel_k17_source_cutover_register.sql
+scripts/sql/kernel_k17_source_cutover_seed.sql
+scripts/sql/kernel_k18_write_guard.sql
+scripts/sql/kernel_k19_source_emit.sql
+scripts/sql/kernel_k20_cutover_01_customer.sql
+scripts/sql/kernel_k21_cutover_02_supplier_system.sql
+scripts/sql/kernel_k22_run_lookup.sql
+scripts/sql/kernel_k22b_cutover_03_existing_run.sql
+scripts/sql/kernel_k22c_class_c_measures_business_work.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/kernel_k23_historical_exception_register.sql
+scripts/sql/kernel_k24_trace_match_by_overlap.sql
+scripts/sql/kernel_k25_cutover_04_uncovered_tables.sql
+scripts/sql/kernel_k26_register_says_what_happened.sql
+scripts/sql/the_founder_has_a_name.sql

@@ -107,7 +107,17 @@ for (const f of files) {
     if (known && known.rank < fRank) continue;          // an older commit; the newest already won
     // body between the first $tag$ after the header and its closing twin
     const rest = src.slice(m.index);
-    const tag = rest.match(/as\s+(\$[a-z_]*\$)/i);
+    // [a-z0-9_], not [a-z_]. Every kernel routine is dollar-quoted with a tag that carries its
+    // increment number — $k2_start$, $k10_submit$, $s3_state$, $k14_start$ — and a tag pattern
+    // with no digits matched NONE of them. The `continue` below then skipped the definition
+    // silently, the newest file lost, an older file won, and the check reported drift against a
+    // routine that was perfectly in step. Thirteen of them on 17 Aug 2026, including
+    // fn_kernel_workflow_start, fn_kernel_system_trace_state and fn_phase_b_invariants.
+    //
+    // The failure mode is the dangerous one: a check that cannot SEE a routine reports it as
+    // drifted rather than as unexamined, so the fix looks like it should be a deployment and is
+    // actually one character class.
+    const tag = rest.match(/as\s+(\$[a-z0-9_]*\$)/i);
     if (!tag) continue;
     const start = rest.indexOf(tag[1], rest.indexOf(tag[0])) + tag[1].length;
     const end = rest.indexOf(tag[1], start);

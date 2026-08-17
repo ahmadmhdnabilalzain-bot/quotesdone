@@ -4,6 +4,7 @@
 // Actions: 'status' (readiness), 'generate' (default).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { paidProviderGate } from '../_shared/paid_gate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
@@ -49,6 +50,26 @@ Deno.serve(async (req) => {
   if (!key) {
     await admin.from('agent_runs').insert({ agent: 'designer', started_at: started, finished_at: new Date().toISOString(), status: 'skipped', note: 'openai_api_key not set' }).then(() => null, () => null);
     return J({ ok: false, ready: false, error: 'openai_not_configured', need: ['openai_api_key'], fallback_url: fallback || null, message: 'Image generation is not active yet — add the openai_api_key secret. A brand fallback image is available.' }, 200);
+  }
+
+  // KERNEL K12 — this was the fifth door, and it consulted nothing.
+  //
+  // gpt-image-1 on api.openai.com is paid inference. The 16 Aug audit traced four callers of
+  // openrouter.ai and gated them; this one reaches a different host, so a search for "openrouter"
+  // never found it and it went to a paid provider on every invocation with no gate of any kind.
+  // It now asks the same single authority every other paid client asks, and a gate it cannot read
+  // is a refusal.
+  {
+    const gate = await paidProviderGate(admin, 'openai/gpt-image-1');
+    if (!gate.allowed) {
+      await admin.from('agent_runs').insert({
+        agent: 'designer', started_at: started, finished_at: new Date().toISOString(), status: 'skipped',
+        note: `skipped_due_to_zero_cost_mode: ${gate.rule} — ${gate.reason}`.slice(0, 250),
+      }).then(() => null, () => null);
+      return J({ ok: false, ready: false, error: 'paid_provider_denied', rule: gate.rule,
+        reason: gate.reason, fallback_url: fallback || null, cost_usd: 0,
+        message: 'No image was generated and no paid provider was called. ' + gate.reason }, 200);
+    }
   }
 
   try {

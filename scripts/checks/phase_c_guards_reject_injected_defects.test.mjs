@@ -416,7 +416,18 @@ const before = await (async () => (await sql(`select
 for (const [name, body, expect] of CASES) {
   // The injection runs, then the transaction is aborted by a RAISE either way.  If the guard
   // fired we see its message; if it did NOT fire we see INJECTION_SURVIVED, which is a failure.
+  // K18 sits on every business-work table and refuses ANY write with no kernel routine on the
+  // call stack — including this harness's injections, which are direct inserts by design. Without
+  // the maintenance door, K18 answered first with 42501 and nineteen inner guards stopped being
+  // exercised at all: still enforced, but no longer TESTED, which is how a guard quietly rots.
+  //
+  // The door is the one K18 built for exactly this, and it is not a bypass: it requires the table
+  // owner, and every write through it is recorded in kernel_maintenance_write with this reason and
+  // the call stack. The whole probe is then aborted, so the audit row does not survive either — but
+  // the mechanism is the audited one, not a hole cut for the tests.
   const probe = `do $probe$ begin
+    set local kernel.maintenance_reason = 'phase_c_guards_reject_injected_defects: injecting a '
+      'known defect so the guard under test is the one that refuses it, not K18. Aborted.';
     ${body}
     raise exception 'INJECTION_SURVIVED';
   end $probe$;`;

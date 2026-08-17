@@ -19,6 +19,7 @@
 // second factor - both must now pass. The body is read ONCE as raw text because the signature is
 // over the exact bytes; it is parsed only after verification succeeds.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
@@ -263,7 +264,7 @@ Deno.serve(async (req) => {
         // provider through ai_gateway, which calls fn_llm_preflight. This one asks the same
         // question the gateway asks, and a gate it cannot read is CLOSED.
         let paidAllowed = false;
-        try { const { data } = await admin.rpc('fn_os_paid_ai_allowed'); paidAllowed = data === true; } catch { paidAllowed = false; }
+        { const g = await paidProviderGate(admin, MODEL); paidAllowed = g.allowed; }
         if (['1', 'true', 'yes', 'on'].includes(String(Deno.env.get('NO_PAID_AI') ?? Deno.env.get('OPENROUTER_DISABLED') ?? '').toLowerCase())) paidAllowed = false;
         if (!paidAllowed) {
           // Not a failure: the document is stored and the lead is recorded either way. The

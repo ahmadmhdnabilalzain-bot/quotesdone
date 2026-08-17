@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -53,7 +54,7 @@ Deno.serve(async (req) => {
   // from the state the database already holds instead. Both of this function's cron jobs are
   // inactive today; the guard is here so reactivating one cannot quietly reopen the door.
   let paidOk = false;
-  try { const { data } = await admin.rpc('fn_os_paid_ai_allowed'); paidOk = data === true; } catch { paidOk = false; }
+  { const g = await paidProviderGate(admin, 'openrouter/metadata'); paidOk = g.allowed; }
   if (['1','true','yes','on'].includes(String(Deno.env.get('NO_PAID_AI') ?? Deno.env.get('OPENROUTER_DISABLED') ?? '').toLowerCase())) paidOk = false;
   if (!paidOk) {
     const { data: cached } = await admin.rpc('fn_os_provider_state_cached');

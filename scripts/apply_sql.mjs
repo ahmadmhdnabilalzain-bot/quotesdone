@@ -176,7 +176,12 @@ const declared = new Map();
   while ((m = re.exec(sql))) {
     const name = m[1].toLowerCase();
     const rest = sql.slice(m.index);
-    const tag = rest.match(/as\s+(\$[a-z_]*\$)/i);
+    // DIGITS BELONG IN A DOLLAR TAG. This was /\$[a-z_]*\$/, so every tag carrying a number —
+    // $s3_cron$, $k3_step$, $v2$ — failed to match, the routine never entered `declared`, and the
+    // read-back reported DIFFERS on six routines whose bodies were byte-identical to the file.
+    // A guard that cries wolf is worse than no guard: the next real drift gets waved through as
+    // "just the tag again". Found applying kernel_s3, 17 Aug 2026.
+    const tag = rest.match(/as\s+(\$[a-z0-9_]*\$)/i);
     if (!tag) continue;
     const start = rest.indexOf(tag[1], rest.indexOf(tag[0])) + tag[1].length;
     const end = rest.indexOf(tag[1], start);

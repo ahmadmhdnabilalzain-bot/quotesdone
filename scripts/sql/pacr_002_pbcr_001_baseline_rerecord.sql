@@ -1,0 +1,87 @@
+-- PBCR-001 baseline re-record. The Phase B freeze protects the AMENDED architecture, not the old one.
+--
+-- fn_org_phase_baseline_append_only refused the plain re-apply of
+-- scripts/sql/phase_b_12_founder_approved_baseline.sql, and it was right to: that row is the
+-- founder-approved record of what Phase B WAS, and four drift checks read it as their fixed point.
+-- Its own hint names the only legitimate route, and this file is that route:
+--
+--   drop the trigger, make the change with every digest RECOMPUTED in place, recreate the trigger
+--   in the same transaction. The dropped trigger in this file is the record that the freeze was
+--   deliberately opened.
+--
+-- Every digest below was recomputed by node scripts/phase_b/freeze.mjs --emit against the live
+-- database and the committed CSVs AFTER PBCR-001 applied. Nothing is hand-edited.
+--
+-- What moved, and only this: handoffs 161 -> 159, cross_department_handoffs 47 -> 45,
+-- structure:step_ownership, structure:overlay_authority, structure:handoff_accountability,
+-- step_registry, handoff_registry and the organization digest. The founder approval date stays
+-- 2026-08-15 — that is when he approved the architecture. PBCR-001 is the amendment record.
+--
+-- Rollback: scripts/sql/rollback/pbcr_001_baseline_rerecord.rollback.sql
+
+begin;
+
+drop trigger if exists a00_org_phase_baseline_append_only on public.org_phase_baseline;
+
+insert into public.org_phase_baseline
+  (phase, approved_by, approved_at, project_ref, final_commit, counts, organization_sha256,
+   registry_sha256, migrations, rollbacks, deferred, note, recorded_at)
+values (
+  'B', 'founder', '2026-08-15T08:45:00Z', 'htdblwldjkcgjvmqkbeh', '0d5fad06cf6076af1a453189c60e5f29d8203584',
+  '{"workflows":30,"steps":257,"handoffs":159,"cross_department_handoffs":45,"business_objects":56,"business_rules":54,"gates":32,"exceptions":50,"sla_policies":34,"events":347,"workflow_states":14,"workflow_transitions":35,"step_states":11,"step_transitions":19,"founder_boundaries":10,"crosswalk_classifications":719,"canonical_roles_represented":90,"departments_represented":10,"category_overlays_governed":86,"effective_errata_resolved":3,"unresolved_phase_b_errata":0}'::jsonb,
+  '577aef830eab924a26886b57164c0022a00255672d61cc8966debd77626d4e68',
+  '{"workflow_registry":{"rows":30,"database":"831d7708297fb1c1acd3cda8267c4375c4a156d3eee83e1fdb407ae6122348b2","artefact":"c8282d5244dfdf989bbf9d940ba85c1938f4664a72827c7c732ab007f9b4f1ce","committed_artefact":"docs/phase-b/PHASE_B_WORKFLOW_REGISTRY.csv"},"step_registry":{"rows":257,"database":"d904103115d3226da87f9f19619f6eb6f69778af68509577f4b1882130b75389","artefact":"dadf9770f0996a3befd09049f9657f15b069f5c355fd6bf5e91bfb57d4aee532","committed_artefact":"docs/phase-b/PHASE_B_WORKFLOW_STEP_REGISTRY.csv"},"handoff_registry":{"rows":159,"database":"aa44e328815fadab9e03b421cfa13d5dc858fc2d5698337e63e73ac2efe2ec90","artefact":"d18269fa7e0ab2a19167d3580f08a04fde2d2aa4ef4ea3a48f1a736286f76d54","committed_artefact":"docs/phase-b/PHASE_B_HANDOFF_REGISTRY.csv"},"object_registry":{"rows":56,"database":"2e3b9b17cc94e80c62b8669ee13490aedc9128af205d42f500d47f090a384c5a","artefact":"517bcc2e80a91c3db69c50ca466237494015edaf7336a40e52761c7671ea63b8","committed_artefact":"docs/phase-b/PHASE_B_BUSINESS_OBJECT_REGISTRY.csv"},"rule_registry":{"rows":54,"database":"b68e3445a2af2777ea49f40f638062f3b3c3fc09b7ab9f7ab5686c5f39868873","artefact":"5c4fcd37d8c89b322b8bdd4b61cc4671e112477e0b62b440205c80410fa8591f","committed_artefact":"docs/phase-b/PHASE_B_BUSINESS_RULE_REGISTRY.csv"},"gate_registry":{"rows":32,"database":"c24cea77682c4d6cf8ba2d2c526148b32ff6e6f5629046dcbb137e48a8760b1c","artefact":"9cf3ae27778c92ffb7a2541d8af661a126187265ae2d1f1f45f33f6e799b58b8","committed_artefact":"docs/phase-b/PHASE_B_GATE_REGISTRY.csv"},"exception_registry":{"rows":50,"database":"77f6a85be8d2ee57eae684f1fa1512b7732c04cccbb2061dc0278e1de666aa19","artefact":"e5de877672747e5ac3ab1c9e0762522fede022c5ff378ee32b40513115518ff6","committed_artefact":"docs/phase-b/PHASE_B_EXCEPTION_ESCALATION_MATRIX.csv"},"sla_registry":{"rows":34,"database":"3493f2d15e988cdf6d472d5643e10dafa94383f7e2e028deadb250f1caaf3f50","artefact":"8ad44ce0624b7b3dcb676131fb2bf0bb7c7a609746be22d2e99e432b62290c03","committed_artefact":"docs/phase-b/PHASE_B_SLA_POLICY.csv"},"event_registry":{"rows":347,"database":"d9822c9d98c487eea824841b8dbdb5c45fb2c37fdaea20c3a10c2caf0c124689","artefact":"574452a162d39b902f872d220a87c60a9924ef78f7c101cc1091f327f618924d","committed_artefact":"docs/phase-b/PHASE_B_EVENT_REGISTRY.csv"},"state_machine":{"rows":79,"database":"bb95d1c9375e0b79ad4dff553a5cc76de2f59052f0416bfe2f7f26c5d5c4d8ae","artefact":"ef51224bc067f542296d0afa91d6f34efbbda0af7969b3a25909ac1ad11368ed","committed_artefact":"docs/phase-b/PHASE_B_WORKFLOW_STATE_MODEL.csv + PHASE_B_WORKFLOW_TRANSITIONS.csv"},"crosswalk":{"rows":719,"database":"aa66e16df36b3e9b089e71af57c424ed42bf491a7a825caf9569da36fbe2dda7","artefact":"87728e99b9e03570676a2475a7c0e2d002f45a19236a14251b78e21b1e48b5d7","committed_artefact":"docs/phase-b/PHASE_B_CURRENT_TO_TARGET_WORKFLOW_CROSSWALK.csv"},"founder_boundary":{"rows":10,"database":"eeda61514495c2b2dd60f1e553876aa16c991d85ac94b146334d5ae415434a10","artefact":"130e8e5ae7c7bdb92dcc316948910d29695026435d37f78a5e4d75da4bf9b1e4","committed_artefact":"docs/phase-b/PHASE_B_FOUNDER_BOUNDARY_MAPPING.csv"},"effective_errata":{"rows":3,"database":"de0b247709553067d933c3ffc70840c18f4ea4a8907daee89611c3d3da029ac0","artefact":null,"committed_artefact":null},"structure":{"business_rules":{"rows":54,"database":"b68e3445a2af2777ea49f40f638062f3b3c3fc09b7ab9f7ab5686c5f39868873"},"founder_boundaries":{"rows":10,"database":"c141c1b4f29b606715414109e24218b55fc132568afb3c1dcb140b408eddfc03"},"gates":{"rows":32,"database":"c24cea77682c4d6cf8ba2d2c526148b32ff6e6f5629046dcbb137e48a8760b1c"},"handoff_accountability":{"rows":159,"database":"cee236f2289dd86cc6aa270f8408dea20565c6188d7cf44568da3fa312af941f"},"overlay_authority":{"rows":21,"database":"a4c232150f78cc66a02c1c6973132d1f25ad325c298de4a8e413191bd96da1c2"},"states_and_transitions":{"rows":79,"database":"a91a33603b2b0427a9656b30b2d66814a6a1e72e82cd9913630ca1b123d8b719"},"step_ownership":{"rows":257,"database":"7a96140d15938a92e4953eaad9d4bbca299e870f27d114a4da67e4c00e21352a"},"workflow_order":{"rows":257,"database":"318f4b51d2abdbec27433cac6c493d14cc103c00c7793d1ec970e9d59010decb"},"workflow_ownership":{"rows":30,"database":"e2379f7461cd387cddef97c8c2d28812a1f10cb03c8a5859067f5a3b7709f93c"}}}'::jsonb,
+  '[{"file":"scripts/sql/phase_b_01_workflow_registry_schema.sql","sha256":"01158ab8f60035823d14e2760b5641bfda94515582496707ca34de7379681862"},{"file":"scripts/sql/phase_b_02_identity_aliases.sql","sha256":"b5fb12776078f09a806d875e8c7c8da783b4484388c829e3ae87925798e6c940"},{"file":"scripts/sql/phase_b_03_registry_core.sql","sha256":"27e0654b46035735a5d00c94efb7f5472f964cb35c6e54c555166c0f01a15d5f"},{"file":"scripts/sql/phase_b_04_steps.sql","sha256":"0bddf369d9ac1b67e9f9935617e0bca9880f15a1831bc63e572f30a9c208c0df"},{"file":"scripts/sql/phase_b_05_handoffs_and_exceptions.sql","sha256":"0a5d7735984f289335dc3a1e68b7cf51b31ec852efeb95d915c120c7226018dd"},{"file":"scripts/sql/phase_b_06_events.sql","sha256":"ea24f17afc23f81d002a8f05c2af29ba2569abff4df96b3260a24d688f1e3f89"},{"file":"scripts/sql/phase_b_07_crosswalk.sql","sha256":"502e067a4dcba0ebc631f17e676eb6bf33b0f8b112fc24721170d9672552973a"},{"file":"scripts/sql/phase_b_08_validators.sql","sha256":"c66c6a1281e62670cbff90f2b9347332911ca00486a67f1b07c5e8df55c743b2"},{"file":"scripts/sql/phase_b_09_pin_function_search_path.sql","sha256":"fdabb5a1620f9414052ef396526136fbbad360621564bd4a24f2499160e03c32"},{"file":"scripts/sql/phase_b_10_gate_attachment.sql","sha256":"794c8fb906d3ba84f19ca91bf3d08d13e44b47380e10dfc4ec0e2c225849d927"},{"file":"scripts/sql/phase_b_11_baseline_functions.sql","sha256":"7469caf77bb56fcc6fd5f68773beb56c1231b4dddfdcef15467c9cc961143735"}]'::jsonb,
+  '[{"file":"scripts/sql/phase_b_workflow_closure_rollback.sql","sha256":"b48eb17e7c2ad8fcb66a7c0306677d01ae47c29e890a18c857c892bca6e72393"}]'::jsonb,
+  '["12 of 19 current runtime workflow definitions have zero runs","rfq_handling has zero complete runtime journeys","407 cron and Edge Function execution paths lack canonical accountability","64 Edge Functions have no known caller or external entry point","W21 has no runtime implementation","eleven canonical workflows have no runtime-step implementation","four deployment-parity items remain unverifiable"]'::jsonb,
+  'AMENDED 2026-08-17 under PBCR-001 (founder reference PHASE_B_CR_W14_S05_ACCOUNTABILITY): W14-S05 accountability moved from the relevant_category_overlay placeholder to canonical role quote_evaluation, overlays lost may_be_accountable, and handoffs H-W14-04-05 / H-W14-05-06 were deleted because both ends became the same role. Handoffs 161 -> 159, cross-department 47 -> 45. The founder approval date above is the original 2026-08-15 architecture approval; the amendment record is public.phase_b_change_request row PBCR-001 and docs/phase-b/PBCR-001_W14_S05_ACCOUNTABILITY.md. Applied by the production-direct protocol (scripts/apply_sql.mjs posts the committed bytes and reads the definitions back), NOT by the Supabase migration runner, so these versions are deliberately absent from supabase_migrations.schema_migrations. The file digest is the version that means anything. Every registry digest is recorded twice, from the database and from the committed CSV; if a pair disagrees the repository and the database have diverged. This approval does NOT claim the current application runtime already executes all workflows correctly. The runtime gaps are recorded in public.phase_b_phase_c_wiring_gap.',
+  now()
+)
+on conflict (phase) do update set
+  approved_by = excluded.approved_by, approved_at = excluded.approved_at,
+  project_ref = excluded.project_ref, final_commit = excluded.final_commit,
+  counts = excluded.counts, organization_sha256 = excluded.organization_sha256,
+  registry_sha256 = excluded.registry_sha256, migrations = excluded.migrations,
+  rollbacks = excluded.rollbacks, deferred = excluded.deferred, note = excluded.note,
+  recorded_at = now();
+
+-- ---- the seven runtime gaps the founder accepted as Phase C work ----
+insert into public.phase_b_phase_c_wiring_gap (gap, measurement, evidence_command) values
+  ('12 of 19 current runtime workflow definitions have zero runs', '12 of 19 workflow_key values in public.workflow have no row in public.workflow_run', 'select w.workflow_key, count(r.*) from public.workflow w left join public.workflow_run r on r.workflow_key = w.workflow_key group by 1 having count(r.*) = 0'),
+  ('rfq_handling has zero complete runtime journeys', 'rfq_handling has 18 steps, all gated, 20 assigned employees and 0 runs', 'select count(*) from public.workflow_run where workflow_key = ''rfq_handling'''),
+  ('407 cron and Edge Function execution paths lack canonical accountability', '205 cron jobs execute under pg_cron and 202 edge functions under the service role; none carries an accountable canonical role', 'select count(*) from public.phase_b_crosswalk where current_owner_or_actor like ''%no accountable role attached%'''),
+  ('64 Edge Functions have no known caller or external entry point', '87 of 202 have no caller in repo, database or cron; 23 of those serve an external surface, leaving 64', 'node scripts/phase_b/edge_callers.mjs && node scripts/phase_b/classify_entry_points.mjs'),
+  ('W21 has no runtime implementation', 'no cron job, edge function, runtime workflow definition or frontend route maps to W21', 'select * from public.phase_b_crosswalk where current_artifact_type = ''none'''),
+  ('eleven canonical workflows have no runtime-step implementation', 'measured against public.workflow_step, which holds ordered steps for 19 runtime workflows only', 'node scripts/phase_b/build_crosswalk.mjs'),
+  ('four deployment-parity items remain unverifiable', 'auth_api, dev_login, qa_login and src_io yield no distinctive signature, so they are UNVERIFIED rather than verified', 'node scripts/verify_deploy_parity.mjs --all')
+on conflict (gap) do update set
+  measurement = excluded.measurement, evidence_command = excluded.evidence_command;
+
+
+create trigger a00_org_phase_baseline_append_only
+  before update or delete on public.org_phase_baseline
+  for each row execute function public.fn_org_phase_baseline_append_only();
+
+-- Verify by reading it back: the baseline must exist and must not already have drifted.
+do $$
+declare v_drift bigint; v_gaps bigint; v_errata bigint;
+begin
+  if not exists (select 1 from public.org_phase_baseline where phase = 'B') then
+    raise exception 'phase_b: the baseline row was not recorded';
+  end if;
+  select count(*) into v_drift  from public.fn_phase_b_baseline_drift();
+  select count(*) into v_gaps   from public.phase_b_phase_c_wiring_gap;
+  select count(*) into v_errata from public.fn_phase_b_effective_errata() where not resolved;
+  if v_drift <> 0 then
+    raise exception 'phase_b: baseline recorded but already drifted, % row(s)', v_drift;
+  end if;
+  if v_gaps <> 7 then
+    raise exception 'phase_b: expected 7 Phase C wiring gaps, found %', v_gaps;
+  end if;
+  if v_errata <> 0 then
+    raise exception 'phase_b: % erratum condition(s) unresolved at freeze time', v_errata;
+  end if;
+  raise notice 'phase_b baseline recorded: drift 0, wiring gaps %, unresolved errata 0', v_gaps;
+end $$;
+
+commit;
