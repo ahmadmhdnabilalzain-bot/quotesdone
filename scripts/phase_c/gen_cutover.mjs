@@ -40,6 +40,15 @@ for (const s of spec.sources) {
     ? def.replace(s.anchor, call + s.anchor)
     : def.replace(s.anchor, s.anchor + '\n' + call);
 
+  // Optional exact replacements in the same body, each required to match exactly once. Used when
+  // the cutover exposes a condition in the existing code that cannot be true — routing a workflow
+  // through a branch that never runs would ship a dead path on purpose.
+  for (const [from, to] of s.replace || []) {
+    const n = def.split(from).length - 1;
+    if (n !== 1) { console.error(`${s.routine}: replacement ${JSON.stringify(from)} matched ${n} times, need exactly 1`); process.exit(1); }
+    def = def.replace(from, to);
+  }
+
   parts.push(`-- ${s.source_key}\n--   ${s.why}\n${def};\n`);
 }
 

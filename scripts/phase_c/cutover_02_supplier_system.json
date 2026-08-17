@@ -1,0 +1,38 @@
+{
+  "sources": [
+    {
+      "routine": "notify_new_quote_sms",
+      "source_key": "dbtrigger:public.quotes:trg_new_quote_sms",
+      "why": "A new quotation row is the declared start of W14. Placed at the TOP, before the early return for an inquiry with no customer: a quotation exists and must be evaluated whether or not there is somebody to text about it.",
+      "anchor": "  select i.summary, i.customer_id into inq from public.inquiries i where i.id = NEW.inquiry_id;",
+      "before": true,
+      "source_ref": "NEW.id::text",
+      "payload": "jsonb_build_object('quotation_id', NEW.id::text, 'inquiry_id', NEW.inquiry_id::text, 'supplier_id', NEW.supplier_id::text)"
+    },
+    {
+      "routine": "trg_reveal_receipt",
+      "source_key": "dbtrigger:public.transactions:trg_reveal_receipt_a",
+      "why": "The reveal payment is the declared start of W16. Placed INSIDE the branch that tests revealed_at, so it fires once when the reveal actually happens and not on every update to the transaction.",
+      "anchor": "    select email into cemail from public.customers where id = NEW.customer_id;",
+      "before": true,
+      "source_ref": "NEW.id::text",
+      "payload": "jsonb_build_object('provider_event_id', coalesce(nullif(NEW.payment_ref,''), NEW.id::text), 'transaction_id', NEW.id::text, 'inquiry_id', NEW.inquiry_id::text, 'supplier_id', NEW.supplier_id::text, 'reveal_fee', NEW.reveal_fee)"
+    },
+    {
+      "routine": "fn_page_high_agent_action",
+      "source_key": "dbtrigger:public.agent_actions:trg_page_high_agent_action",
+      "why": "A high or critical pending action from finance, security or operations is the declared start of W29. Placed INSIDE the risk branch, so an ordinary agent action does not open an incident.",
+      "anchor": "    v_founder := coalesce(",
+      "before": true,
+      "source_ref": "NEW.id::text",
+      "payload": "jsonb_build_object('incident_ref', 'agent_action:' || NEW.id::text, 'agent', NEW.agent, 'kind', NEW.kind, 'risk', NEW.risk, 'title', NEW.title)",
+      "replace": [
+        [
+          "     AND NEW.agent IN ('finance_ai','security_ai','operations_ai')",
+          "     -- K21. Was: NEW.agent IN ('finance_ai','security_ai','operations_ai'). That set could never\n     -- match a security action. a00_agent_action_resolve_addressee runs BEFORE this trigger and\n     -- resolves the addressee through org_agents, so a row written as 'security_ai' arrives here\n     -- as 'security'. Measured: inserting agent='security_ai' reads back as 'security', and\n     -- notifications has 0 rows of type 'agent_escalation' in its entire history — the founder has\n     -- never been paged by this trigger. A prefix match survives the resolver in both directions\n     -- and does not need a keep-list that has to be remembered every time an agent is renamed.\n     AND NEW.agent ~ '^(finance|security|operations)'"
+        ]
+      ]
+    }
+  ],
+  "tail": "update public.kernel_trigger_type\n   set allowed_source_systems = allowed_source_systems || array['dbtrigger:public.quotes:trg_new_quote_sms']\n where trigger_type = 'supplier.quotation_submitted'\n   and not ('dbtrigger:public.quotes:trg_new_quote_sms' = any (allowed_source_systems));\n\nupdate public.kernel_trigger_type\n   set allowed_source_systems = allowed_source_systems || array['dbtrigger:public.transactions:trg_reveal_receipt_a']\n where trigger_type = 'provider.payment_event'\n   and not ('dbtrigger:public.transactions:trg_reveal_receipt_a' = any (allowed_source_systems));\n\nupdate public.kernel_trigger_type\n   set allowed_source_systems = allowed_source_systems || array['dbtrigger:public.agent_actions:trg_page_high_agent_action']\n where trigger_type = 'system.incident_opened'\n   and not ('dbtrigger:public.agent_actions:trg_page_high_agent_action' = any (allowed_source_systems));\n\n-- trg_goal_cascade is NOT cut over here, and the register is corrected to say why.\n--\n-- K10 mapped it to kpi.company_target_miss -> W02. Reading the deployed body, it fires on\n-- `old.active is true and new.active is false` — a company goal being RETIRED. A retired goal is\n-- not a missed target. W02 starts from \"Material KPI/trajectory miss\", which this signal is not,\n-- and pointing it at W02 would open a corrective-management run every time the founder tidies up\n-- a goal he no longer wants.\n--\n-- It does create business work outside the kernel: it inserts an org_tasks row asking the\n-- department to re-plan. That is real, and it is exactly what the cutover exists to route. But\n-- there is no Phase B workflow that starts from a goal retirement, so there is nowhere honest to\n-- route it to yet. It joins the handlers K10 already counted as owed rather than being forced\n-- into the nearest workflow, which is the failure mode this whole rebuild is correcting.\nupdate public.phase_c_source_cutover\n   set status = 'BLOCKED_NO_WORKFLOW_FOR_THIS_SIGNAL',\n       cutover_action = 'NOT cut over. Its signal is a goal RETIREMENT and no Phase B workflow '\n                     || 'starts from one. It owes a handler; it does not owe a wrong route.',\n       classification_reason = classification_reason\n         || ' | K21 2026-08-17: the assigned trigger type kpi.company_target_miss is WRONG. The '\n         || 'deployed body fires on old.active is true and new.active is false — a goal being '\n         || 'retired, not a target being missed. It inserts an org_tasks re-plan row, which is '\n         || 'business work created outside the kernel, but no Phase B workflow starts from a goal '\n         || 'retirement, so it is recorded as owing a handler instead of being routed to the '\n         || 'nearest workflow.'\n where source_component_id = 'dbtrigger:public.company_goals:trg_goal_cascade';\n"
+}
