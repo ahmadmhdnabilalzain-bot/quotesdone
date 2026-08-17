@@ -1395,3 +1395,4 @@ scripts/sql/source_of_truth_the_repository_records_what_production_runs.sql
 scripts/sql/rc2_cancellation_reaches_the_kernel.sql
 scripts/sql/rc3_active_signals_are_executable.sql
 scripts/sql/rc4_execution_and_trace_are_atomic.sql
+scripts/sql/rc4b_3730_is_not_history.sql
