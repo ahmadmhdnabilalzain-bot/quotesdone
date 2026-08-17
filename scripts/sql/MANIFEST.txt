@@ -1342,4 +1342,9 @@ scripts/sql/kernel_s3_system_execution_traces.sql
 scripts/sql/kernel_k13_retire_old_runtime.sql
 scripts/sql/kernel_k3c_run_trace_follows_the_run.sql
 
-scripts/sql/kernel_s0b_ledger_follows_the_manifest.sql
+scripts/sql/kernel_s0b_ledger_follows_the_manifest.sqlscripts/sql/phase_b_cr_001_w14_s05_accountability.sql
+scripts/sql/kernel_k14_start_does_not_pre_hand_off.sql
+scripts/sql/pacr_002_pbcr_001_baseline_rerecord.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
