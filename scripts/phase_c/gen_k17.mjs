@@ -30,6 +30,14 @@ if (missing.length) { console.error('UNCLASSIFIED, refusing to emit:\n' + missin
 const extra = Object.keys(CLASSIFICATION).filter(k => !rows.some(r => r.source_key === k));
 if (extra.length) { console.error('CLASSIFIED BUT NOT IN THE POPULATION:\n' + extra.join('\n')); process.exit(1); }
 
+// Statuses and cutover actions the increments have already written. Recomputing them from class
+// and activation would silently undo K21's BLOCKED_NO_WORKFLOW_FOR_THIS_SIGNAL, K22b's
+// RECLASSIFIED_INTERNAL_RECOMPUTATION and K25's three — the CSV would then disagree with the table
+// it was built to stay in step with, which is the whole failure this generator exists to prevent.
+const LIVE = Object.fromEntries((await sql(
+  `select source_component_id, status, cutover_action from public.phase_c_source_cutover`))
+  .map(r => [r.source_component_id, r]));
+
 const ACTOR = {
   cron_job: 'system.scheduler', database_trigger: 'system.task_engine',
   edge_function: 'system.webhook_receiver', event_trigger: 'system.task_engine',
@@ -72,13 +80,14 @@ const out = rows.map(r => {
       : 'n/a — creates nothing to deduplicate',
     trace_policy: cls === 'C' ? 'TRACE-MONITORING' : 'TRACE-SYSTEM-EXECUTION',
     current_activation: active ? 'ACTIVE' : 'DISABLED',
-    cutover_action: action,
+    cutover_action: LIVE[r.source_key]?.cutover_action ?? action,
     rollback: cls === 'D' ? 'n/a' :
       `re-point the handler at its pre-cutover write; the adapter row stays for the record`,
-    status: cls === 'D' ? 'RETIRED'
+    status: LIVE[r.source_key]?.status ?? (
+        cls === 'D' ? 'RETIRED'
       : !active ? 'ADAPTER_ASSIGNED_SOURCE_STAYS_DISABLED'
       : cls === 'C' ? 'READ_ONLY_CONFIRMED'
-      : 'ADAPTER_ASSIGNED_CUTOVER_PENDING',
+      : 'ADAPTER_ASSIGNED_CUTOVER_PENDING'),
     classification_reason: why,
     evidence: (r.evidence || '').slice(0, 400),
   };

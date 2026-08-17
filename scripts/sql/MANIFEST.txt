@@ -1363,3 +1363,5 @@ scripts/sql/kernel_k22c_class_c_measures_business_work.sql
 [OK] Command outcome recorded
 scripts/sql/kernel_k23_historical_exception_register.sql
 scripts/sql/kernel_k24_trace_match_by_overlap.sql
+scripts/sql/kernel_k25_cutover_04_uncovered_tables.sql
+scripts/sql/kernel_k26_register_says_what_happened.sql
