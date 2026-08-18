@@ -1419,6 +1419,4 @@ scripts/sql/a_claim_that_named_a_table_the_source_never_touches.sql
 scripts/sql/the_write_map_in_the_database.sql
 'scripts/sql/the_write_map_in_the_database.sql'  
 scripts/sql/the_predicate_follows_the_map.sql
-[INFO] Recording command outcome: sed
-
-[OK] Command outcome recorded
+scripts/sql/the_truncate_protection_was_a_typed_list.sql
