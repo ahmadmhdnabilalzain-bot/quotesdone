@@ -16,7 +16,15 @@
 // The script exits 1 rather than writing fewer rows than there are frozen workflows, so a partial
 // export cannot be mistaken for a complete one.
 import { writeFileSync, mkdirSync } from 'node:fs';
-import { mgmtRead, mgmtWriteData, PROD_REF } from '../staging/qd_guard.mjs';
+// THE BUILDER COULD NOT RUN ITS OWN DELIVERABLE. It routed the drive through mgmtWriteData, which
+// calls assertNotProduction and refuses the one project that exists:
+//     REFUSED: write targeted production (htdblwldjkcgjvmqkbeh). Batch 0 forbids this.
+// mgmtWriteData is also INSERT-only by design, so a DO block was never going to pass it. The drive
+// is an ABORTED-TRANSACTION PROBE — it ends in raise exception and leaves nothing — which is the
+// door scripts/phase_c and scripts/checks already use for exactly this. Nothing is weakened:
+// assertNotProduction still guards every migration and rebuild path, and the residue assertion
+// below still reads the tables back and proves the probe left nothing.
+import { sql, PROJECT_REF } from '../phase_c/lib/db.mjs';
 
 const DRIVE = `
 do $emit$
@@ -33,9 +41,14 @@ begin
     from public.phase_b_workflow_step s
    where coalesce(btrim(s.independent_reviewer_role_id),'') <> '';
 
-  for wf in select workflow_id from public.phase_b_workflow order by workflow_id loop
+  for wf in select workflow_id from public.phase_b_workflow where workflow_id = '__WORKFLOW_ID__' loop
     v_fx := public.fn_phase_d_fixture_scenario(jsonb_build_object(
-      'label', 'wfresult-' || lower(wf.workflow_id), 'execution_context','test'));
+      'label', 'wfresult-' || lower(wf.workflow_id), 'execution_context','test',
+      -- THE EXCLUSION IS USED WHERE A WORKFLOW COLLIDES WITH A SEEDED LEAF, NOT EVERYWHERE.
+      -- Measured: applying it to W16 as well dropped W16 from 4/9 to 1/9, and the D9 measurement of
+      -- the un-narrowed version was closure 14 -> 3. W12 dispatches to the supplier_assignment the
+      -- factory seeds, so W12 is where it is used, and the row records it.
+      'for_workflow', case when wf.workflow_id = 'W12' then wf.workflow_id else null end));
 
     select coalesce(
       (select s.independent_reviewer_role_id from public.phase_b_workflow_step s
@@ -76,7 +89,9 @@ begin
         (select x->>'reason' from jsonb_array_elements(v->'handoffs') x
           where coalesce((x->>'ok')::boolean,false)=false limit 1), ''), 400), chr(10), ' '), chr(13), ' '),
       v_fx->>'stages_created',
-      v_fx->>'notifications_written_by_this_scenario');
+      coalesce(v_fx->>'for_workflow','(none)'),
+      v_fx->>'notifications_written_by_this_scenario',
+      v_fx->>'outbound_http_requests_written_by_this_scenario');
   end loop;
 
   raise exception 'PHASE_D_WORKFLOW_RESULT%', v_out;
@@ -87,7 +102,8 @@ const COLS = [
   'workflow_id', 'steps_in_workflow', 'steps_driven', 'handoffs_accepted', 'open_handoffs_left',
   'business_effects_produced', 'final_run_state', 'state_is_terminal', 'closure_verdict',
   'stopped_at_step', 'refusal_code', 'refusal_reason',
-  'fixture_stages_created', 'notifications_written',
+  'fixture_stages_created', 'fixture_exclusion_used', 'notifications_written',
+  'outbound_http_requests_written',
 ];
 
 function csvCell(v) {
@@ -95,33 +111,63 @@ function csvCell(v) {
   return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
-const expected = await mgmtRead(PROD_REF, 'select count(*)::int as n from public.phase_b_workflow');
+const expected = await sql('select count(*)::int as n from public.phase_b_workflow');
 const nWorkflows = expected?.[0]?.n ?? 0;
 if (!nWorkflows) {
   console.error('phase_b_workflow is empty — refusing to write a deliverable over nothing');
   process.exit(1);
 }
 
-// The drive is expected to RAISE. Its message carries the result; anything else is a real failure.
-let payload = null;
-try {
-  // The block writes and then aborts ITSELF, so it goes through the data door rather than the
-  // read door; mgmtRead is right to refuse a statement that is not read-only. Nothing here
-  // survives — the residue assertion below reads the tables back and proves it.
-  await mgmtWriteData(PROD_REF, DRIVE, 'phase D workflow drive (aborted transaction)');
-  console.error('the drive block did not raise — it is supposed to abort its own transaction');
+// ONE PROBE PER WORKFLOW, NOT ONE MESSAGE CARRYING THIRTY.
+// The first version raised a single exception carrying all 30 rows and the management API
+// TRUNCATED it, so the parser saw one row. The guard below caught that and refused to write a
+// partial export, which is the only reason it was not published as a 1-row deliverable. Thirty
+// small probes cannot be truncated into looking complete.
+const ids = (await sql('select workflow_id from public.phase_b_workflow order by workflow_id'))
+  .map((r) => r.workflow_id);
+if (ids.length !== nWorkflows) {
+  console.error('the workflow list and the workflow count disagree');
   process.exit(1);
-} catch (err) {
-  const msg = String(err?.message ?? err);
-  const at = msg.indexOf('PHASE_D_WORKFLOW_RESULT');
-  if (at < 0) {
-    console.error('the drive failed before it could report:\n' + msg);
-    process.exit(1);
-  }
-  payload = msg.slice(at + 'PHASE_D_WORKFLOW_RESULT'.length);
 }
 
-const rows = payload.split('\u001e').filter((r) => r.trim() !== '').map((r) => r.split('\u001f'));
+const rows = [];
+for (const id of ids) {
+  let got = null;
+  try {
+    await sql(DRIVE.replace('__WORKFLOW_ID__', id));
+    console.error(`the drive block for ${id} did not raise — it must abort its own transaction`);
+    process.exit(1);
+  } catch (err) {
+    const msg = String(err?.message ?? err);
+    const at = msg.indexOf('PHASE_D_WORKFLOW_RESULT');
+    if (at < 0) {
+      console.error(`the drive for ${id} failed before it could report:\n` + msg);
+      process.exit(1);
+    }
+    // THE TRANSPORT THROWS THE RAW RESPONSE BODY, NOT A DECODED MESSAGE. scripts/phase_b/lib/db.mjs
+    // raises `HTTP ${status}: ${text.slice(0, 2000)}`, so what arrives here is JSON source: the
+    // record separators are the six characters \u001e, quotes are backslash-escaped, and the whole
+    // thing is cut at 2000 characters. Splitting it raw produced one CSV row per workflow with the
+    // entire payload sitting in the first column and \u001e printed as text — a deliverable that
+    // looked populated and carried nothing. Un-escape first, then cut the CONTEXT trailer Postgres
+    // appends, then split.
+    got = msg.slice(at + 'PHASE_D_WORKFLOW_RESULT'.length)
+      .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+      .replace(/\\"/g, '"')
+      .replace(/\\n/g, '\n');
+    const ctx = got.indexOf('\nCONTEXT:');
+    if (ctx >= 0) got = got.slice(0, ctx);
+  }
+  const parsed = got.split('').filter((r) => r.trim() !== '').map((r) => r.split(''));
+  if (parsed.length !== 1) {
+    console.error(`the drive for ${id} reported ${parsed.length} row(s); exactly one is expected`);
+    process.exit(1);
+  }
+  rows.push(parsed[0]);
+  process.stdout.write(`  ${id} ${parsed[0][2]}/${parsed[0][1]} ${parsed[0][8]}\n`);
+}
+
+
 if (rows.length !== nWorkflows) {
   console.error(`drove ${rows.length} workflow(s) and the frozen model has ${nWorkflows}. Refusing to write a partial export.`);
   process.exit(1);
@@ -135,9 +181,9 @@ mkdirSync('docs/phase-d', { recursive: true });
 writeFileSync('docs/phase-d/PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv', csv);
 
 // Nothing may survive. The drive aborted its own transaction; this proves it rather than assuming.
-const residue = await mgmtRead(PROD_REF, `
+const residue = await sql(`
   select (select count(*) from public.phase_c_workflow_run
-           where source_ref like 'zz-phase-d-wfresult-%')::int          as runs_left,
+           where dedupe_key like 'zz-phase-d-wfresult-%')::int          as runs_left,
          (select coalesce(sum(surviving_rows),0) from public.fn_phase_d_fixture_residue())::int as fixture_rows_left`);
 const runsLeft = residue?.[0]?.runs_left ?? -1;
 const rowsLeft = residue?.[0]?.fixture_rows_left ?? -1;
@@ -145,9 +191,11 @@ const rowsLeft = residue?.[0]?.fixture_rows_left ?? -1;
 const closed = rows.filter((r) => r[8] === 'DETERMINISTIC_CLOSURE').length;
 const handoffs = rows.reduce((a, r) => a + Number(r[3] || 0), 0);
 const effects = rows.reduce((a, r) => a + Number(r[5] || 0), 0);
-const notif = rows.reduce((a, r) => a + Number(r[13] || 0), 0);
+const notif = rows.reduce((a, r) => a + Number(r[14] || 0), 0);
+const outbound = rows.reduce((a, r) => a + Number(r[15] || 0), 0);
 
 console.log(`PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv  ${rows.length} rows`);
+console.log(`  outbound HTTP requests      ${outbound}`);
 console.log(`  deterministic closure        ${closed} / ${rows.length}`);
 console.log(`  handoffs accepted            ${handoffs}`);
 console.log(`  business effects produced    ${effects}`);

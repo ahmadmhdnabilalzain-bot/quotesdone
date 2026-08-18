@@ -1475,3 +1475,5 @@ scripts/sql/phase_d_d20_created_open_and_asked_the_gate.sql
 scripts/sql/phase_d_d21_the_run_renamed_its_own_inquiry.sql
 scripts/sql/phase_d_d22_a_company_scoped_owner_is_still_a_foreign_key.sql
 scripts/sql/phase_d_d23_a_state_can_require_a_companion_column.sql
+scripts/sql/phase_d_d24_a_new_enforcing_table_with_no_truncate_guard.sql
+"scripts/sql/phase_d_d24_a_new_enforcing_table_with_no_truncate_guard.sql"  
