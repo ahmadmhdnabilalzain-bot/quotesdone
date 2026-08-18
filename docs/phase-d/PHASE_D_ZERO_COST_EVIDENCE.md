@@ -108,3 +108,86 @@ This covers the Phase D session window named at the top, on the one project. It 
 about what Phase D work caused and what the named tables and gate report for that window. It is
 **not** a claim about the estate's entire history, nor about any window before 14:00 UTC on
 2026-08-18.
+
+---
+
+# Session 5 addendum — D17 to D25, 2026-08-18 21:41 UTC onward
+
+## The instrument that was measuring the wrong subject
+
+This session's first finding is a correction to the evidence above, and it belongs here rather
+than only in the closure. Before D17, `fn_phase_d_fixture_scenario` returned `'external_effects', 0`
+on every build **while enqueuing two outbound HTTP POSTs to production edge functions**:
+
+```
+net.http_request_queue   before=0  after=2  delta=2
+  POST https://…/functions/v1/dispatch_inquiry
+  POST https://…/functions/v1/enrich_capability
+```
+
+The zero it reported was true of `public.notifications`, which is the only table it counted. It was
+not true of the estate's second outbound door. Any earlier statement in this file that rests on that
+factory's own `external_effects` figure rests on a count that did not cover `net.http_post`.
+
+**What was nonetheless true, and is a measurement rather than a repair of the record:** pg_net's
+worker reads committed rows, and every Phase D drive and scenario build ends in `raise exception`.
+The probe above read `before = 0` on a database that had already had dozens of scenario builds run
+through it. A queue that had ever leaked would not read zero. Nothing was sent. The guard was wrong;
+the outcome was not.
+
+## Measured for this session, after the fix
+
+| | |
+|---|---|
+| `llm_attempt` rows in the session window | **0** |
+| paid inference cost | **USD 0.00** |
+| outbound HTTP enqueued by a full 30-workflow batch | **0** (was 2 per scenario build) |
+| `public.notifications` rows written by this session | **0** |
+| live email / SMS / WhatsApp / social / payment / refund | **0** |
+| Apify runs · production Dropbox writes | **0** · **0** |
+| active cron jobs, start → end | **23 → 23** |
+| `net.http_request_queue` at close | **0** |
+
+**The notifications boundary, stated rather than rounded.** `public.notifications` gained 2 rows in
+the 14 hours covering this session: both `type='health_alert'`, `status='digest'`,
+`to_email=management@quotesdone.com`, timestamped 14:30 and 21:00 UTC. Both are the scheduled
+read-only monitoring the hold keeps active, and **both predate this session's first drive at 21:41
+UTC**. In addition, every scenario build asserts its own per-stage delta of 0 and aborts the whole
+build on any movement.
+
+## Nothing left behind
+
+Read back from the database after the full 30-workflow batch:
+
+| relation | rows |
+|---|---|
+| `customers`, `inquiries`, `quotes`, `transactions` | **0** each |
+| `phase_d_effect_ledger` | **0** |
+| `net.http_request_queue` | **0** |
+| `fn_phase_d_fixture_residue()` | **0** |
+| `leads` | **20,465** — unchanged |
+
+The builder's own residue assertion was itself repaired this session: it queried
+`phase_c_workflow_run.source_ref`, a column that does not exist, so **the check that proves the
+probe left nothing behind had never once run**. It reads `dedupe_key` now, and reports 0.
+
+## What is enforced rather than asserted
+
+Three guards added this session refuse rather than report, and each was made to FIRE before it was
+trusted:
+
+* `pd_object_outbound_request_produced` — any Phase D test write that leaves an outbound request in
+  `net.http_request_queue` is refused, with the URL named. Proved by emptying the door registry and
+  watching a scenario build refuse.
+* the outbound suppression is **not defeasible by the caller** — a generated payload re-armed
+  `dispatch_inquiry` one file after it was closed, and the writer now overwrites.
+* `fn_phase_d_object_write` counts the queue's high-water mark rather than differencing two counts,
+  because pg_net's worker DELETES as it drains and a plain delta can be masked to zero.
+
+## Boundary of this addendum
+
+This covers 2026-08-18 21:41 UTC onward on the one project. `llm_attempt` and `notifications` were
+counted over a 12- and 14-hour window respectively, which is wider than the session; the outbound
+and residue figures are per-batch and per-build. It is not a claim about any earlier window, and the
+correction at the top of this addendum is the reason to read the earlier sections with the coverage
+of their own instruments in mind.
