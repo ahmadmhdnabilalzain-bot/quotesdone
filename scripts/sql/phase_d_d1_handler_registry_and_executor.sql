@@ -337,7 +337,7 @@ declare
   v_ctx      text   := lower(coalesce(nullif(btrim(p_input->>'execution_context'),''),'production'));
   v_ok       boolean; v_reason text; v_missing text[];
   v_rule     record; v_rule_ok boolean; v_rule_type text; v_rule_reason text;
-  v_applies  boolean; v_why text; v_enforced boolean; v_refusal text;
+  v_applies  boolean; v_why text; v_enforced boolean; v_refusal text; v_state text;
   v_refused  jsonb := '[]'::jsonb;
   v_skipped  jsonb := '[]'::jsonb;
   v_evaluated jsonb := '[]'::jsonb;
@@ -396,8 +396,8 @@ begin
       continue;
     end if;
 
-    select ok, rule_type, enforced, reason, refusal_code
-      into v_rule_ok, v_rule_type, v_enforced, v_rule_reason, v_refusal
+    select state, ok, rule_type, enforced, reason, refusal_code
+      into v_state, v_rule_ok, v_rule_type, v_enforced, v_rule_reason, v_refusal
       from public.fn_phase_d_rule_check(v_rule.rid,
         -- The caller's business context is merged in LAST so a CONTEXT_REQUIRED rule can be
         -- satisfied by a named fact, and refuses when the fact is absent.
@@ -413,12 +413,15 @@ begin
         || coalesce(p_input->'context','{}'::jsonb));
 
     v_evaluated := v_evaluated || jsonb_build_array(jsonb_build_object(
-      'rule_id', v_rule.rid, 'rule_type', v_rule_type, 'ok', v_rule_ok,
+      'rule_id', v_rule.rid, 'state', v_state, 'rule_type', v_rule_type, 'ok', v_rule_ok,
       'enforced', v_enforced, 'reason', v_rule_reason));
 
-    if not coalesce(v_rule_ok,false) and v_rule_type = 'hard' then
+    -- A hard rule blocks when it FAILED and, equally, when it is NOT_IMPLEMENTED. The second half
+    -- matters more than the first: an unimplemented hard rule that let the step through would be
+    -- the always-passes scorer rebuilt one branch further down.
+    if v_rule_type = 'hard' and v_state in ('ENFORCED_FAIL','NOT_IMPLEMENTED') then
       v_refused := v_refused || jsonb_build_array(jsonb_build_object(
-        'rule_id', v_rule.rid, 'rule_type', v_rule_type,
+        'rule_id', v_rule.rid, 'state', v_state, 'rule_type', v_rule_type,
         'refusal_code', v_refusal, 'reason', v_rule_reason));
     end if;
   end loop;

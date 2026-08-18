@@ -20,7 +20,6 @@
     "kernel_boards_are_green.test.mjs also fails if a ratchet entry no longer matches a real check,",
     "so an entry cannot outlive its subject and silently license a future failure with that name."
   ],
-
   "ratchet": [
     {
       "board": "fn_kernel_trace_integrity",
@@ -77,14 +76,6 @@
       "why": "THE ONE OPEN PHASE C GATE. 19 of 37 active autonomous sources still start or change business work without entering the kernel. The check's own expected string says NOT MET BY K10: K10 built the door and registered the routes, and moving each source onto it is a separate wiring increment. The doors are ready — all 24 active trigger types read ADAPTER_READY_NO_LIVE_SENDER. It read 26 until the instrument was fixed: for edge functions and frontend paths, routes_through_inbox fell through to a hand-set boolean that was false on all 33 of them, so seven sources genuinely discharged by a trigger calling fn_kernel_source_emit with their source key still counted as bypassing. The view now measures that literal and consults the flag only where no routine discharges the source. 19 is what it always was. This ratchet is NOT a licence to leave it — lower it as each increment lands, and delete the entry at 0.",
       "owner": "OPEN — 2 quote_items triggers, 2 edge functions writing customers (the W04 gap), 5 frontend paths the write map does not yet model",
       "measured_at": "2026-08-18, 9 of 37 (26 -> 19 when the literal-name discharge was measured; 19 -> 9 when the write map landed)"
-    },
-    {
-      "board": "fn_phase_d_rule_state",
-      "check": "rules_with_outstanding_enforcement",
-      "max_numerator": 20,
-      "why": "PHASE D DEBT, DISCLOSED RATHER THAN HIDDEN, AND THIS ENTRY IS THE OPPOSITE OF THE DEFECT IT REPLACES. Before Phase D, public.fn_phase_c_rule_check returned ok := true for 52 of the 54 frozen business rules while its reason string claimed 'registered and enforced through the canonical boundary'. Nothing was red, because nothing was measured. phase_d_rule_enforcement now names, for every one of the 54, HOW it is enforced and WHEN it applies: 34 are genuinely enforced (15 real predicates, 9 refused by the frozen kernel, 5 by a trigger, 3 by the output schema, 1 by the executor's capability boundary, 1 requiring named context), and 20 are NOT YET decidable because they need the D2 business-object read/write map — a rule like BR-020 'reveal only after payment is reconciled' cannot be decided until the transaction object's reconciliation state is mapped to the step that reads it. Those 20 report enforced = false to every caller and are counted here. The number going RED is the disclosure working. It must fall to 0 as D2 lands, and this entry must be DELETED at 0, not lowered and left.",
-      "owner": "OPEN — Phase D D2, the 56 business-object read/write map. BR-011,012,013,014,015,017,018,019,020,025,026,029,032,033,034,035,036,039,041,049",
-      "measured_at": "2026-08-18, 20 of 54"
     }
   ]
 }

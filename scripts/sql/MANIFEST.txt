@@ -1429,3 +1429,4 @@ scripts/sql/phase_d_d2_business_object_map.sql
 [INFO] Recording command outcome: echo
 
 [OK] Command outcome recorded
+scripts/sql/phase_d_d4_remaining_rules.sql

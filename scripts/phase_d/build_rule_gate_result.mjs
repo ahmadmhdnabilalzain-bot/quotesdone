@@ -75,7 +75,7 @@ if (unregistered.length) {
 }
 
 const header = Object.keys(all[0]);
-writeFileSync('PHASE_D_RULE_GATE_RESULT.csv',
+writeFileSync('docs/phase-d/PHASE_D_RULE_GATE_RESULT.csv',
   [row(header), ...all.map((r) => row(header.map((h) => r[h])))].join('\n') + '\n', 'utf8');
 
 const n = (p) => all.filter(p).length;
