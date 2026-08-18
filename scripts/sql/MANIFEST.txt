@@ -1477,3 +1477,4 @@ scripts/sql/phase_d_d22_a_company_scoped_owner_is_still_a_foreign_key.sql
 scripts/sql/phase_d_d23_a_state_can_require_a_companion_column.sql
 scripts/sql/phase_d_d24_a_new_enforcing_table_with_no_truncate_guard.sql
 "scripts/sql/phase_d_d24_a_new_enforcing_table_with_no_truncate_guard.sql"  
+scripts/sql/phase_d_d25_the_key_was_thrown_away_one_statement_later.sql

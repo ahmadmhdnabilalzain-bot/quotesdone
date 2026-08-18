@@ -21,14 +21,14 @@ was run. Business automation was not reactivated.
 
 | | before | after |
 |---|---|---|
-| workflows reaching deterministic closure | **20 / 30** | **27 / 30** |
-| handoffs accepted in one 30-workflow batch | — | **149** |
-| business effects in one batch | — | **238** |
+| workflows reaching deterministic closure | **20 / 30** | **28 / 30** |
+| handoffs accepted in one 30-workflow batch | — | **153** |
+| business effects in one batch | — | **244** |
 | outbound HTTP requests per scenario build | **2** | **0** |
 
-Closing now and not before: **W01, W05, W06, W07, W09, W14, W15**.
+Closing now and not before: **W01, W05, W06, W07, W09, W14, W15, W16**.
 
-Three remain and one of them is not an engineer's.
+Two remain and one of them is not an engineer's.
 
 ---
 
@@ -132,7 +132,7 @@ account is.
 
 ---
 
-## 3. Four more, each found by running the thing rather than reading it
+## 3. Five more, each found by running the thing rather than reading it
 
 **D19 — a generated payload re-armed the door D17 had just closed.** Driving after D18, W05 went
 2/9 → 1/9, refused by D17's own guard on `dispatch_inquiry`. D17 declared `routing` in the write map
@@ -158,6 +158,15 @@ key (`org_tasks.dept_key` → `org_departments`, resolved never created — Phas
 departments). An APPEND_ONLY object may not share one business key across two steps. `for_workflow`
 narrowed by a rule rather than a list: **a stage no other stage requires cannot cascade**, so only
 leaves are skippable — 3 skipped/13 blocked became 2 skipped/1 blocked.
+
+**D25 — the key was computed correctly and thrown away one statement later.** D22 gave APPEND_ONLY
+objects a per-step business key so W16-S03 and W16-S04 would each append their own provider event,
+and W16 still died on . A cache a few lines below — one business key per object
+for the life of the run — overwrote it. The cache is correct and without it W04 wrote two customer
+rows, but its entire purpose is to make a second write MOVE the first row's state, and APPEND_ONLY is
+defined by not doing that. The family the cache exists to serve is exactly the family it must skip.
+D22 claimed no fix for W16 and its control asserted NO REGRESSION rather than a number, which is the
+only reason a change that did nothing was not recorded as a fix.
 
 And the one this session broke and caught: **D20 gave the driver the real state and W09 went 9/9 →
 1/9** on `leads_approved_implies_verified`, because writing `approved` also owes `verified`. Caught
@@ -229,7 +238,7 @@ scenario build additionally asserts its own per-stage delta of 0.
 
 | brief section | state |
 |---|---|
-| **§A–D workflows** | **27 / 30.** Three open, listed below. |
+| **§A–D workflows** | **28 / 30.** Two open, listed below. |
 | **§8** frontend → API → RLS → storage, 7 security probes, storage rules | **NOT STARTED.** |
 | **§9** durable external-effect adapters | **NOT STARTED.** Still **6 of 14** fields PRESENT; the 8 the brief names are unchanged. |
 | **§11** 75 injected defects | **NOT STARTED.** |
@@ -242,12 +251,11 @@ scenario build additionally asserts its own per-stage delta of 0.
 This session spent itself on the workflow block and on four defects the workflow block uncovered. It
 did not reach §8, §9 or §11, and it does not claim to have.
 
-### The three workflows that still stop
+### The two workflows that still stop
 
 | workflow | stops at | what it needs |
 |---|---|---|
 | **W12** | W12-S02, `pd_object_duplicate_identity` | `dispatch_batch` is TRANSACTION_RECORD and two steps write it under one business key. The same family question D22 answered for APPEND_ONLY, asked again for TRANSACTION_RECORD — and the answer is not the same, because one record per identity is the whole point of that family. It needs the driver to MOVE the batch's state rather than write a second, which is a step-level state ladder this session did not build. |
-| **W16** | W16-S04 | The `stripe_events_pkey` collision is gone. It stops for a different reason not yet diagnosed. |
 | **W17** | W17-S07, `GATE-020` | **The gate working correctly. Not a defect.** |
 
 ---
