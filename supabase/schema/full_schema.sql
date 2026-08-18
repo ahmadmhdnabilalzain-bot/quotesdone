@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-18T16:10:53.925Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-18T16:23:56.420Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -49665,10 +49665,16 @@ begin
 
   -- THE HONEST ONE. Red until a handler actually writes its business object. This check exists
   -- so the 236 NEW_DETERMINISTIC_HANDLER rows cannot be read as 236 steps with a business effect.
+  --
+  -- Counted as the GAP, not as the coverage, so the number FALLS as the work lands and the
+  -- kernel-boards ratchet can cap it. A check reading "0 of 257 wired" would have to be ratcheted
+  -- at a number that must grow, which the ratchet cannot express and which would invert its
+  -- meaning: it asserts disclosed debt does not get worse.
   select count(*) into n_wired from public.phase_d_handler_binding where business_write_wired;
   select count(*) into n_needwrite from public.phase_d_handler_binding;
-  check_name := 'handlers_writing_a_business_object';
-  expected := n_needwrite::text; actual := n_wired::text; ok := (n_wired = n_needwrite); return next;
+  check_name := 'handlers_not_writing_a_business_object';
+  expected := '0'; actual := (n_needwrite - n_wired)::text;
+  ok := (n_wired = n_needwrite); return next;
 end $function$
 
 
