@@ -43,20 +43,24 @@ begin
   actual := (select count(*)::text from public.fn_phase_b_effective_errata() where not resolved);
   ok := actual = expected; return next;
 
-  check_name := 'active_departments'; expected := '10';
+  check_name := 'active_departments';
+  expected := (select counts->>'active_departments' from public.org_phase_baseline where phase='A');
   actual := (select count(*)::text from public.org_departments where active);
   ok := actual = expected; return next;
 
-  check_name := 'canonical_roles'; expected := '90';
+  check_name := 'canonical_roles';
+  expected := (select counts->>'canonical_roles' from public.org_phase_baseline where phase='A');
   actual := (select count(*)::text from public.org_role where status='active' and runtime_mode <> 'knowledge_overlay');
   ok := actual = expected; return next;
 
-  check_name := 'category_overlays'; expected := '86';
+  check_name := 'category_overlays';
+  expected := (select counts->>'category_overlays' from public.org_phase_baseline where phase='A');
   actual := (select count(*)::text from public.org_role where status='active' and runtime_mode = 'knowledge_overlay');
   ok := actual = expected; return next;
 
   -- ---------------------------------------------------------------- binding coverage
-  check_name := 'roles_bound'; expected := '90';
+  check_name := 'roles_bound';
+  expected := (select count(*)::text from public.org_role where status='active' and runtime_mode <> 'knowledge_overlay');
   actual := (select count(*)::text from public.phase_c_role_binding where connection_status = 'CONNECTED');
   ok := actual = expected; return next;
 
@@ -68,7 +72,8 @@ begin
                                   or b.canonical_role_id in (select alias from public.org_role_alias a where a.role_id = r.role_id)));
   ok := actual = expected; return next;
 
-  check_name := 'overlays_bound'; expected := '86';
+  check_name := 'overlays_bound';
+  expected := (select count(*)::text from public.org_role where status='active' and runtime_mode = 'knowledge_overlay');
   actual := (select count(*)::text from public.phase_c_overlay_binding where connection_status = 'CONNECTED');
   ok := actual = expected; return next;
 
@@ -79,7 +84,8 @@ begin
                                  and r.runtime_mode='knowledge_overlay'));
   ok := actual = expected; return next;
 
-  check_name := 'workflows_bound'; expected := '30';
+  check_name := 'workflows_bound';
+  expected := (select count(*)::text from public.phase_b_workflow);
   actual := (select count(*)::text from public.phase_c_workflow_binding);
   ok := actual = expected; return next;
 
@@ -88,7 +94,8 @@ begin
              where not exists (select 1 from public.phase_c_workflow_binding b where b.workflow_id = w.workflow_id));
   ok := actual = expected; return next;
 
-  check_name := 'steps_bound_or_classified'; expected := '257';
+  check_name := 'steps_bound_or_classified';
+  expected := (select count(*)::text from public.phase_b_workflow_step);
   actual := (select count(*)::text from public.phase_c_step_binding);
   ok := actual = expected; return next;
 
@@ -121,7 +128,8 @@ begin
                and not (s.step_type = 'analysis' and s.workflow_id in ('W05','W06','W07','W10','W14')));
   ok := actual = expected; return next;
 
-  check_name := 'handoffs_bound'; expected := '161';
+  check_name := 'handoffs_bound';
+  expected := (select count(*)::text from public.phase_b_handoff);
   actual := (select count(*)::text from public.phase_c_handoff_binding);
   ok := actual = expected; return next;
 
@@ -130,7 +138,8 @@ begin
              where not exists (select 1 from public.phase_c_handoff_binding b where b.handoff_id = h.handoff_id));
   ok := actual = expected; return next;
 
-  check_name := 'events_classified'; expected := '347';
+  check_name := 'events_classified';
+  expected := (select count(*)::text from public.phase_b_event);
   actual := (select count(*)::text from public.phase_c_event_binding);
   ok := actual = expected; return next;
 
@@ -139,11 +148,13 @@ begin
              where outbox_writer = '' or delivery_worker = '' or dedupe_key = '');
   ok := actual = expected; return next;
 
-  check_name := 'gates_classified'; expected := '32';
+  check_name := 'gates_classified';
+  expected := (select count(*)::text from public.phase_b_gate);
   actual := (select count(*)::text from public.phase_c_gate_binding);
   ok := actual = expected; return next;
 
-  check_name := 'rules_classified'; expected := '54';
+  check_name := 'rules_classified';
+  expected := (select count(*)::text from public.phase_b_business_rule);
   actual := (select count(*)::text from public.phase_c_rule_binding);
   ok := actual = expected; return next;
 

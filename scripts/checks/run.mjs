@@ -104,8 +104,41 @@ export function discover(root = REPO) {
   };
 }
 
+/**
+ * A named profile from test-profiles.json, or null for "run everything".
+ *
+ * 18 AUG 2026. There was no selection mechanism here at all — discover() found every *.test.mjs and
+ * ran it — so a later-phase test was not excluded from a phase suite, it was simply failing in it.
+ * The final acceptance audit counted five such failures and could not tell them apart from
+ * regressions without reading each one. An exclusion is now a committed row with an owner, a reason
+ * and the measurement that justified it, and a guard test asserts every exclusion still matches a
+ * real test so one cannot outlive its subject.
+ */
+export function loadProfile(name, root = REPO) {
+  if (!name) return null;
+  const file = path.join(root, 'scripts', 'checks', 'test-profiles.json');
+  const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const p = doc.profiles?.[name];
+  if (!p) {
+    const known = Object.keys(doc.profiles ?? {}).join(', ') || '(none)';
+    console.error(`unknown test profile ${JSON.stringify(name)}. Known profiles: ${known}`);
+    console.error(`Profiles are defined in scripts/checks/test-profiles.json.`);
+    process.exit(2);
+  }
+  return { name, ...p, excluded: p.excluded ?? [] };
+}
+
+/** Exact test names a profile excludes, as one anchored alternation for --test-skip-pattern. */
+export function skipPatternFor(profile) {
+  if (!profile?.excluded?.length) return null;
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return `^(?:${profile.excluded.map((e) => esc(e.test)).join('|')})$`;
+}
+
 function main() {
   const { node, deno } = discover();
+  const profileName = (process.argv.find((a) => a.startsWith('--profile=')) || '').split('=')[1];
+  const profile = loadProfile(profileName);
 
   if (!node.length) {
     console.error('no *.test.mjs files found in the repository - that is itself a failure');
@@ -119,6 +152,24 @@ function main() {
     console.log(`  These carry their own .git. Delete them or move them outside the tree; they are`);
     console.log(`  stale copies of this repository's own gates and one of them still names the`);
     console.log(`  Supabase project deleted on 15 Aug 2026.\n`);
+  }
+
+  if (profile) {
+    console.log(`PROFILE ${profile.name} — ${profile.description}`);
+    for (const [k, v] of Object.entries(profile.env ?? {})) process.env[k] = v;
+    if (profile.env) console.log(`  contract: ${Object.entries(profile.env).map(([k, v]) => `${k}=${v}`).join(' ')}`);
+    // NAMED, NEVER SILENT. Every excluded test is printed with its owner on the run that skips it,
+    // so "the suite is green" and "two tests are owed to the knowledge phase" are read together.
+    if (profile.excluded.length) {
+      console.log(`  EXCLUDED — ${profile.excluded.length} test(s), each owned and owed:`);
+      for (const e of profile.excluded) {
+        console.log(`    ${e.test}`);
+        console.log(`      ${e.file} · ${e.phase} · owner: ${e.owner}`);
+      }
+    } else {
+      console.log('  EXCLUDED — none');
+    }
+    console.log('');
   }
 
   console.log(`running ${node.length} node check file(s):\n  ${node.join('\n  ')}\n`);
@@ -135,8 +186,11 @@ function main() {
   // wall-clock and buys a deterministic answer. Raise it again only with a shared rate limiter in
   // front of the API, not by hoping.
   // ponytail: --test-concurrency=1, revisit when a shared limiter exists.
+  const skip = skipPatternFor(profile);
   const nodeRes = spawnSync(process.execPath,
-    ['--test', '--test-concurrency=1', ...node.map((f) => path.join(REPO, f))],
+    ['--test', '--test-concurrency=1',
+     ...(skip ? [`--test-skip-pattern=${skip}`] : []),
+     ...node.map((f) => path.join(REPO, f))],
     { stdio: 'inherit', cwd: REPO });
   let status = nodeRes.status ?? 1;
 

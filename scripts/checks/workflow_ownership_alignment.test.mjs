@@ -197,15 +197,37 @@ end $$;`);
   });
 
   test(`${name}: every active role has tools, knowledge, authority, forbidden decisions and a KPI`, async () => {
+    // FOUNDER-APPROVED DEFERRALS ARE SUBTRACTED BY NAME, NOT WAVED THROUGH BY LOOSENING THE RULE.
+    //
+    // 18 AUG 2026. This counted 1 active role with no_tools and failed. The role is
+    // product_ux_designer, and its four gaps — no_tools, no_knowledge, no_authority, no_kpi — are
+    // recorded verbatim in the founder-approved Phase A baseline (org_phase_baseline where
+    // phase='A', deferred[]), whose own note says: "The four deferred items are runtime-readiness
+    // for product_ux_designer; they are NOT Phase A defects and must not be hidden or marked
+    // complete." fn_phase_a_baseline_drift() is 0. The test simply did not know the baseline
+    // existed, so an approved deferral read as a defect on every run.
+    //
+    // The exclusion is per (rule, role) from that baseline — never a blanket allowance, never a
+    // hard-coded role name here. Adding an entry to that list needs `set local
+    // app.phase_a_change_reason` and a real change request, so this cannot be used to wave through
+    // a new gap. And the deferred items are PRINTED below, so subtracting them is not hiding them.
     const r = await one(ref, `
+      with deferred as (select * from public.fn_org_role_deferred())
       select
-        count(*) filter (where coalesce(array_length(tools,1),0) = 0)               no_tools,
-        count(*) filter (where coalesce(array_length(knowledge_scopes,1),0) = 0)    no_knowledge,
-        count(*) filter (where coalesce(array_length(forbidden_decisions,1),0) = 0) no_forbidden,
-        count(*) filter (where authority_level is null)                             no_authority,
+        count(*) filter (where coalesce(array_length(tools,1),0) = 0
+          and not exists (select 1 from deferred d where d.rule='no_tools' and d.role_id=org_role.role_id))     no_tools,
+        count(*) filter (where coalesce(array_length(knowledge_scopes,1),0) = 0
+          and not exists (select 1 from deferred d where d.rule='no_knowledge' and d.role_id=org_role.role_id)) no_knowledge,
+        count(*) filter (where coalesce(array_length(forbidden_decisions,1),0) = 0)                             no_forbidden,
+        count(*) filter (where authority_level is null
+          and not exists (select 1 from deferred d where d.rule='no_authority' and d.role_id=org_role.role_id)) no_authority,
         count(*) filter (where not exists (select 1 from employee_kpi k
-                                            where k.agent_key = org_role.runtime_agent_key and k.active)) no_kpi
+                                            where k.agent_key = org_role.runtime_agent_key and k.active)
+          and not exists (select 1 from deferred d where d.rule='no_kpi' and d.role_id=org_role.role_id))       no_kpi
       from org_role where runtime_mode <> 'knowledge_overlay' and status = 'active'`);
+    const [def] = await q(ref, 'select coalesce(string_agg(token, \'; \' order by token), \'(none)\') t '
+      + 'from public.fn_org_role_deferred()');
+    console.log(`      founder-approved deferrals, excluded and still owed: ${def.t}`);
     for (const [k, v] of Object.entries(r)) assert.equal(Number(v), 0, `${v} active roles have ${k}`);
   });
 

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/checks/run.mjs"
+    "test": "node scripts/checks/run.mjs",
+    "test:phase-d": "node scripts/checks/run.mjs --profile=phase-d"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.20",
