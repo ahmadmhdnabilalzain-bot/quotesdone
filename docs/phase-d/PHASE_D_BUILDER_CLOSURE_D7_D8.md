@@ -211,6 +211,25 @@ moves the run and chooses the successor → closure step reaches a frozen termin
 
 **1 of 30 workflows reaches deterministic closure.** The other 29 are not claimed.
 
+### Idempotent replay, asserted on the row count and not on the payload
+
+```
+first  call   replay=true  effect_id=42
+second call   replay=true  effect_id=42
+same result_reference                          yes
+ledger rows for this step run                  1     <- a second effect would be 2
+business rows written by the second call       0
+```
+
+The second call returns the stored first result and produces nothing. **The assertion is the ledger
+row count**, because a replay that returned a fresh success while quietly writing a second business
+row is the duplicate-effect defect this exists to prevent, and the result payload cannot tell the
+two apart. The guarantee is a `UNIQUE (step_run_id, effect_type)` constraint, not a convention, and
+the board counts duplicates anyway — a check that trusts a constraint it never reads is a check
+nobody ran.
+
+---
+
 ### The other workflows, driven and measured rather than assumed
 
 Seven more workflows were driven with the same fixture harness. **None of the seven stops on a
@@ -306,7 +325,9 @@ increment maps anything onto it.
 | `fn_phase_d_gate_state()` | **5/5 green** |
 | `fn_phase_d_effect_state()` | **14 of 15** — the fifteenth is the new disclosure ratchet |
 | `kernel_boards_are_green.test.mjs` | **7/7 pass** — 28 boards, 345 checks, 8 red, every one owned |
-| schema mirror vs live export | **byte-identical**, 69,703 lines |
+| schema mirror vs live export | **byte-identical**, 69,815 lines |
+| `canonical_routines.test.mjs` | **11 passed, 0 findings** — 0 drift in both directions |
+| `fn_os_portals_gates()` | **22 of 23 met** — the exception is *Monitoring and alerts configured*, red before this session and out of Phase D scope |
 
 ---
 
