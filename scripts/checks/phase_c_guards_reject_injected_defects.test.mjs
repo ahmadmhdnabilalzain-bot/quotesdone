@@ -231,6 +231,38 @@ const CASES = [
   ['an unknown workflow cannot be started',
    `select public.fn_phase_c_workflow_start('W99','probe','{}'::jsonb);`,
    ['23503', 'fn_phase_c_workflow_start']],
+
+  // ---------------------------------------------------------------- TRUNCATE, on the doors
+  //
+  // 18 Aug 2026, independent final acceptance. A row-level BEFORE trigger cannot fire on TRUNCATE,
+  // and kernel_s4 attached the statement-level guard to a hand-typed list of seven tables. Measured
+  // on production: 75 tables carry an enforcing row-level trigger and 68 had no TRUNCATE guard.
+  // service_role emptied kernel_trigger_inbox 1 -> 0 with every instrument green.
+  //
+  // fn_kernel_truncate_protection_state() now watches the CONFIGURATION — grants revoked, trigger
+  // attached, derived from the catalogue rather than typed. These three cases watch the BEHAVIOUR,
+  // because a grant that happens to be missing and a guard that actually refuses are not the same
+  // fact, and only one of them survives someone re-granting TRUNCATE.
+  //
+  // Each clears kernel.maintenance_reason first. The harness sets it so K18 does not answer ahead
+  // of the guard under test; here that same reason would open the truncate guard's audited
+  // maintenance door (this file runs as the table owner), and the case would prove nothing. With
+  // the reason cleared the owner still holds the privilege, so the statement reaches the trigger
+  // and the trigger is what refuses it.
+  ['TRUNCATE on the signal door is refused',
+   `perform set_config('kernel.maintenance_reason', '', true);
+    truncate table public.kernel_signal_inbox;`,
+   ['42501', 'a truncate is not a kernel write']],
+
+  ['TRUNCATE on the request door is refused',
+   `perform set_config('kernel.maintenance_reason', '', true);
+    truncate table public.kernel_trigger_inbox;`,
+   ['42501', 'a truncate is not a kernel write']],
+
+  ['TRUNCATE on the refund decision ledger is refused',
+   `perform set_config('kernel.maintenance_reason', '', true);
+    truncate table public.phase_c_refund_decision;`,
+   ['42501', 'a truncate is not a kernel write']],
 ];
 
 // Cases whose guard returns a REFUSAL VALUE rather than raising.  A refusal that comes back as
