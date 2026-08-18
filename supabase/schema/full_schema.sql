@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-17T22:12:42.514Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-18T06:38:01.204Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -12524,6 +12524,24 @@ CREATE OR REPLACE VIEW public.v_payment_reconciliation AS  SELECT started_at,
   WHERE ((agent = 'stripe_webhook'::text) AND ((status = 'error'::text) OR (note ~~* '%PAID BUT NOT RECORDED%'::text)))
   ORDER BY started_at DESC;
 
+CREATE OR REPLACE VIEW public.v_phase_c_event_binding_state AS  SELECT b.event_id,
+    b.event_name,
+    b.workflow_id,
+    b.primary_consumer_role_id,
+    b.connection_status AS structural_status_stored,
+    ( SELECT s.status
+           FROM fn_phase_c_event_binding_status(b.event_id) s(status, evidence)) AS structural_status_derived,
+    (( SELECT s.status
+           FROM fn_phase_c_event_binding_status(b.event_id) s(status, evidence)) IS DISTINCT FROM b.connection_status) AS structural_status_disagrees,
+    r.observation AS runtime_observation,
+    r.outbox_rows,
+    r.delivered_rows,
+    r.delivery_attempts,
+    r.first_seen,
+    r.last_seen
+   FROM (phase_c_event_binding b
+     CROSS JOIN LATERAL fn_phase_c_event_runtime_observation(b.event_id) r(observation, outbox_rows, delivered_rows, delivery_attempts, first_seen, last_seen));
+
 CREATE OR REPLACE VIEW public.v_phase_c_object_terminal AS  SELECT 'founder_command'::text AS kind,
     (c.command_id)::text AS ref,
     c.state,
@@ -14917,126 +14935,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -15581,6 +15479,126 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -30705,6 +30723,48 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_kernel_all_boards()
+ RETURNS TABLE(board text, check_name text, expected text, actual text, ok boolean)
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  b record;
+begin
+  for b in
+    select p.proname as fn
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.pronargs = 0
+       and p.proargnames @> array['check_name','expected','actual','ok']
+       -- IT DISCOVERED ITSELF. Written and applied without this line, and the first call recursed
+       -- until the statement timeout killed it: this function returns exactly the shape it searches
+       -- for, so it found itself, called itself, found itself again. Left as the reason the
+       -- exclusion is by name rather than by a comment saying "don't add recursive boards".
+       and p.proname <> 'fn_kernel_all_boards'
+     order by p.proname
+  loop
+    board := b.fn;
+    begin
+      return query execute format(
+        'select %L::text, x.check_name, x.expected, x.actual, x.ok from public.%I() x', b.fn, b.fn);
+    exception when others then
+      -- A BOARD THAT RAISES IS A FAILURE, NOT AN ABSENCE. fn_phase_c_invariants once raised 22007
+      -- on every call after a column retype, which also took out fn_phase_c_baseline_drift. If that
+      -- happens again it must read as red here rather than as a board that quietly returned nothing.
+      check_name := 'BOARD_RAISED';
+      expected   := 'the board returns rows';
+      actual     := sqlstate || ' ' || sqlerrm;
+      ok         := false;
+      return next;
+    end;
+  end loop;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_kernel_assert_in_kernel(p_who text)
  RETURNS void
  LANGUAGE plpgsql
@@ -32974,12 +33034,25 @@ AS $function$
   -- The three primitives are reached only from fn_kernel_* today. This measures that, rather than
   -- claiming it: any NON-kernel routine whose source names a primitive is counted. The two retired
   -- wrappers are excluded by name because they are the retirement, not a bypass of it.
+  --
+  -- 18 AUG 2026 — THE PREDICATE WAS `prosrc like '%' || path_name || '%'`, AND A PREFIX IS NOT A CALL.
+  -- The final acceptance audit found this check red at 1 of 9. The single row was
+  -- fn_phase_c_task_state_guard against the primitive fn_phase_c_task_transition — and that guard
+  -- never calls it. `like` matched because the primitive's name is a PREFIX of a different, longer
+  -- function: fn_phase_c_task_transition_allowed, which is a pure predicate. A substring match
+  -- reported a bypass that does not exist, on a board nothing else reads.
+  --
+  -- Now: comments are stripped first, so naming a primitive in an error message or a note is not a
+  -- call; and the name must be followed by an opening parenthesis with a word boundary in front,
+  -- which is what a call looks like. `_` is a word character in Postgres regex, so `\yfn_x\y` does
+  -- not match inside `fn_x_allowed` — that is the whole fix.
   select 'kernel_primitives_called_from_outside_the_kernel', '0',
          count(*)::text || ' of ' || (select count(*) from public.kernel_retired_path
                                        where disposition = 'KERNEL_INTERNAL_PRIMITIVE')::text,
          count(*) = 0
     from public.kernel_retired_path r
-    join pg_proc p on p.prosrc like '%' || r.path_name || '%'
+    join pg_proc p on regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', ' ', 'g'), '--[^\n]*', ' ', 'g')
+                      ~ ('\y' || r.path_name || '\y\s*\(')
     join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
    where r.disposition = 'KERNEL_INTERNAL_PRIMITIVE'
      and p.proname <> r.path_name
@@ -39956,6 +40029,55 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_org_role_deferral_state()
+ RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select 'role_violations_outside_the_approved_deferral_list'::text,
+         '0'::text,
+         (select count(*)::text from public.fn_org_role_violations())
+           || ' of ' || (select count(*)::text from public.fn_org_role_violations_all()),
+         (select count(*) from public.fn_org_role_violations()) = 0
+  union all
+  select 'founder_approved_deferrals'::text,
+         'reported, never hidden and never marked complete'::text,
+         (select coalesce(string_agg(d.token, '; ' order by d.token), '(none)')
+            from public.fn_org_role_deferred() d),
+         true
+  union all
+  -- A DEFERRAL THAT NO LONGER MATCHES ANY VIOLATION IS STALE, and a stale entry is a standing
+  -- permission to hide the next occurrence of that rule against that role. Reported as a failure so
+  -- the list is pruned by a change request when the work is actually done.
+  select 'stale_deferrals_matching_no_violation'::text,
+         '0'::text,
+         (select count(*)::text from public.fn_org_role_deferred() d
+           where not exists (select 1 from public.fn_org_role_violations_all() v
+                              where v.rule = d.rule and v.role_id = d.role_id))
+           || ' of ' || (select count(*)::text from public.fn_org_role_deferred()),
+         (select count(*) from public.fn_org_role_deferred() d
+           where not exists (select 1 from public.fn_org_role_violations_all() v
+                              where v.rule = d.rule and v.role_id = d.role_id)) = 0;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_org_role_deferred()
+ RETURNS TABLE(rule text, role_id text, token text)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select split_part(d.token, ':', 1)::text,
+         split_part(d.token, ':', 2)::text,
+         d.token::text
+    from public.org_phase_baseline b
+    cross join lateral jsonb_array_elements_text(coalesce(b.deferred, '[]'::jsonb)) d(token)
+   where b.phase = 'A'
+     and d.token like '%:%';
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_org_role_resolve(p_any text)
  RETURNS text
  LANGUAGE sql
@@ -39980,14 +40102,25 @@ CREATE OR REPLACE FUNCTION public.fn_org_role_violations()
  RETURNS TABLE(rule text, role_id text, detail text)
  LANGUAGE sql
  STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select v.rule, v.role_id, v.detail
+    from public.fn_org_role_violations_all() v
+   where not exists (select 1 from public.fn_org_role_deferred() d
+                      where d.rule = v.rule and d.role_id = v.role_id);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_org_role_violations_all()
+ RETURNS TABLE(rule text, role_id text, detail text)
+ LANGUAGE sql
+ STABLE
  SET search_path TO 'public'
 AS $function$
-  -- department must be an ACTIVE department
   select 'department_inactive', r.role_id, r.primary_department_id
     from public.org_role r join public.org_departments d on d.dept_key = r.primary_department_id
    where r.status='active' and not d.active
   union all
-  -- exactly one primary manager, except the CEO boundary
   select 'no_manager', r.role_id, 'manager_role_id is null'
     from public.org_role r
    where r.status='active' and r.manager_role_id is null and r.role_id <> 'ceo'
@@ -39997,7 +40130,6 @@ AS $function$
    where r.status='active' and r.manager_role_id is not null
      and not exists (select 1 from public.org_role m where m.role_id=r.manager_role_id and m.status='active')
   union all
-  -- an active role must have a runtime executor, unless it is a knowledge overlay
   select 'no_runtime_agent', r.role_id, 'runtime_agent_key is null'
     from public.org_role r
    where r.status='active' and r.runtime_mode <> 'knowledge_overlay' and r.runtime_agent_key is null
@@ -40007,7 +40139,6 @@ AS $function$
    where r.status='active' and r.runtime_agent_key is not null
      and not exists (select 1 from public.org_agents a where a.agent_key=r.runtime_agent_key and a.active)
   union all
-  -- no active role without KPIs / knowledge / authority / evaluations / tools
   select 'no_kpi', r.role_id, 'employee_kpi has no active row for '||coalesce(r.runtime_agent_key,'-')
     from public.org_role r
    where r.status='active' and r.runtime_mode <> 'knowledge_overlay'
@@ -40031,30 +40162,21 @@ AS $function$
     from public.org_role r
    where r.status='active' and coalesce(r.evaluation_suite,'')=''
   union all
-  -- a reviewer that can approve its own department's output is not independent
   select 'reviewer_not_independent', r.role_id, 'independent_reviewer without stop_authority'
     from public.org_role r
    where r.status='active' and r.runtime_mode='independent_reviewer' and r.authority_level <> 'stop_authority'
   union all
-  -- committee membership must never be modelled as a second role
   select 'duplicate_role_for_agent', r.role_id, r.runtime_agent_key
     from public.org_role r
    where r.status='active' and r.runtime_agent_key is not null
      and (select count(*) from public.org_role x
            where x.status='active' and x.runtime_agent_key=r.runtime_agent_key) > 1
   union all
-  -- every ACTIVE runtime agent must be some canonical role: no unowned employee
   select 'agent_without_role', a.agent_key, 'active org_agents row maps to no active org_role'
     from public.org_agents a
    where a.active and not exists (select 1 from public.org_role r
           where r.status='active' and r.runtime_agent_key = a.agent_key)
   union all
-  -- A PACKAGED ROLE HELD ONLY BY A DEACTIVATED EMPLOYEE IS ADDRESSED BY NOBODY.
-  -- fn_agent_context_v3 collects v_role_ids from org_role_identity and retrieves role-scoped
-  -- knowledge with `role_key = any(v_role_ids)`. Merging an employee away moved its address, its
-  -- work and its KPIs, and left its packaged identity behind: 3 of the 96 packaged roles and 80
-  -- runtime-eligible knowledge records stopped reaching anyone on 14 Aug 2026, silently, because
-  -- retrieval that returns fewer rows looks exactly like a quiet system.
   select 'packaged_role_unreachable', i.packaged_role_id,
          'held only by inactive employee(s): '||string_agg(distinct i.agent_key, ', ')
          ||'; '||(select count(*)::text from public.ops_knowledge k
@@ -44520,7 +44642,7 @@ CREATE OR REPLACE FUNCTION public.fn_phase_a_deferred_items()
  STABLE
 AS $function$
   select 'DEFERRED_TO_LATER_PHASES', v.rule, v.role_id, v.detail
-    from public.fn_org_role_violations() v
+    from public.fn_org_role_violations_all() v
    where v.rule in ('no_kpi','no_knowledge','no_authority','no_tools','no_evaluation',
                     'runtime_agent_inactive','no_model_policy');
 $function$
@@ -45746,6 +45868,98 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_phase_c_event_runtime_observation(p_event_id text)
+ RETURNS TABLE(observation text, outbox_rows bigint, delivered_rows bigint, delivery_attempts bigint, first_seen timestamp with time zone, last_seen timestamp with time zone)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+           when count(*) filter (where o.status = 'delivered') > 0 then 'OBSERVED_DELIVERED'
+           when count(*) > 0                                       then 'EMITTED_NOT_DELIVERED'
+           else                                                         'NEVER_OBSERVED'
+         end::text,
+         count(*)::bigint,
+         count(*) filter (where o.status = 'delivered')::bigint,
+         (select count(*) from public.phase_c_event_delivery_attempt a
+            join public.phase_c_event_outbox o2 on o2.outbox_id = a.outbox_id
+           where o2.event_id = p_event_id)::bigint,
+         min(o.created_at),
+         max(o.created_at)
+    from public.phase_c_event_outbox o
+   where o.event_id = p_event_id;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_phase_c_event_truth_state()
+ RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select 'stored_structural_status_disagrees_with_derived'::text,
+         '0'::text,
+         (select count(*)::text from public.v_phase_c_event_binding_state where structural_status_disagrees)
+           || ' of ' || (select count(*)::text from public.phase_c_event_binding),
+         (select count(*) from public.v_phase_c_event_binding_state where structural_status_disagrees) = 0
+  union all
+  select 'registry_only_event_presented_as_runtime_observed'::text,
+         '0 — structurally impossible: runtime observation is derived, not stored'::text,
+         '0 of ' || (select count(*)::text from public.phase_c_event_binding),
+         true
+  union all
+  select 'structurally_connected'::text,
+         'reported, never read as a runtime claim'::text,
+         (select count(*)::text from public.v_phase_c_event_binding_state
+           where structural_status_derived = 'CONNECTED')
+           || ' of ' || (select count(*)::text from public.phase_c_event_binding),
+         true
+  union all
+  select 'runtime_observed_at_least_once'::text,
+         'reported; it rises as the runtime is released'::text,
+         (select count(*)::text from public.v_phase_c_event_binding_state
+           where runtime_observation <> 'NEVER_OBSERVED')
+           || ' of ' || (select count(*)::text from public.phase_c_event_binding),
+         true
+  union all
+  -- The one that would have caught the original defect if it had existed: an event the registry
+  -- calls deferred, which is nevertheless running.
+  --
+  -- SCOPED TO THE CURRENT REGIME, AND THE HISTORY IS REPORTED ON ITS OWN LINE BELOW. On its first
+  -- run this check fired at 1 of 60: EV-W06-COMPLETED, emitted and delivered once at
+  -- 2026-08-16 23:15:23 — three minutes BEFORE the kernel epoch at 23:18:23. A pre-cutover emission
+  -- by the runtime the kernel replaced is not a live contradiction, and counting it would hold this
+  -- check red forever over a row nothing can now produce. Splitting the population by the epoch is
+  -- the same discipline fn_kernel_system_trace_state already applies to cron executions.
+  --
+  -- last_seen, not first_seen: a binding that emitted before the cutover AND after it is a live
+  -- contradiction and must still fail.
+  select 'deferred_binding_that_is_actually_running'::text,
+         '0 since the kernel epoch'::text,
+         (select count(*)::text from public.v_phase_c_event_binding_state s
+           where s.structural_status_derived = 'DEFERRED_RUNTIME_IMPLEMENTATION'
+             and s.last_seen >= (select started_at from public.phase_c_kernel_epoch
+                                  where epoch_id = 'S3_SYSTEM_EXECUTION_TRACING'))
+           || ' of ' || (select count(*)::text from public.phase_c_event_binding
+                          where connection_status = 'DEFERRED_RUNTIME_IMPLEMENTATION'),
+         (select count(*) from public.v_phase_c_event_binding_state s
+           where s.structural_status_derived = 'DEFERRED_RUNTIME_IMPLEMENTATION'
+             and s.last_seen >= (select started_at from public.phase_c_kernel_epoch
+                                  where epoch_id = 'S3_SYSTEM_EXECUTION_TRACING')) = 0
+  union all
+  select 'deferred_binding_that_ran_before_the_kernel_epoch'::text,
+         'informational — historical, produced by the runtime the kernel replaced'::text,
+         (select count(*)::text from public.v_phase_c_event_binding_state s
+           where s.structural_status_derived = 'DEFERRED_RUNTIME_IMPLEMENTATION'
+             and s.runtime_observation <> 'NEVER_OBSERVED'
+             and s.last_seen < (select started_at from public.phase_c_kernel_epoch
+                                 where epoch_id = 'S3_SYSTEM_EXECUTION_TRACING'))
+           || ' of ' || (select count(*)::text from public.phase_c_event_binding
+                          where connection_status = 'DEFERRED_RUNTIME_IMPLEMENTATION'),
+         true;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_phase_c_founder_identity_human_only()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -46047,20 +46261,24 @@ begin
   actual := (select count(*)::text from public.fn_phase_b_effective_errata() where not resolved);
   ok := actual = expected; return next;
 
-  check_name := 'active_departments'; expected := '10';
+  check_name := 'active_departments';
+  expected := (select counts->>'active_departments' from public.org_phase_baseline where phase='A');
   actual := (select count(*)::text from public.org_departments where active);
   ok := actual = expected; return next;
 
-  check_name := 'canonical_roles'; expected := '90';
+  check_name := 'canonical_roles';
+  expected := (select counts->>'canonical_roles' from public.org_phase_baseline where phase='A');
   actual := (select count(*)::text from public.org_role where status='active' and runtime_mode <> 'knowledge_overlay');
   ok := actual = expected; return next;
 
-  check_name := 'category_overlays'; expected := '86';
+  check_name := 'category_overlays';
+  expected := (select counts->>'category_overlays' from public.org_phase_baseline where phase='A');
   actual := (select count(*)::text from public.org_role where status='active' and runtime_mode = 'knowledge_overlay');
   ok := actual = expected; return next;
 
   -- ---------------------------------------------------------------- binding coverage
-  check_name := 'roles_bound'; expected := '90';
+  check_name := 'roles_bound';
+  expected := (select count(*)::text from public.org_role where status='active' and runtime_mode <> 'knowledge_overlay');
   actual := (select count(*)::text from public.phase_c_role_binding where connection_status = 'CONNECTED');
   ok := actual = expected; return next;
 
@@ -46072,7 +46290,8 @@ begin
                                   or b.canonical_role_id in (select alias from public.org_role_alias a where a.role_id = r.role_id)));
   ok := actual = expected; return next;
 
-  check_name := 'overlays_bound'; expected := '86';
+  check_name := 'overlays_bound';
+  expected := (select count(*)::text from public.org_role where status='active' and runtime_mode = 'knowledge_overlay');
   actual := (select count(*)::text from public.phase_c_overlay_binding where connection_status = 'CONNECTED');
   ok := actual = expected; return next;
 
@@ -46083,7 +46302,8 @@ begin
                                  and r.runtime_mode='knowledge_overlay'));
   ok := actual = expected; return next;
 
-  check_name := 'workflows_bound'; expected := '30';
+  check_name := 'workflows_bound';
+  expected := (select count(*)::text from public.phase_b_workflow);
   actual := (select count(*)::text from public.phase_c_workflow_binding);
   ok := actual = expected; return next;
 
@@ -46092,7 +46312,8 @@ begin
              where not exists (select 1 from public.phase_c_workflow_binding b where b.workflow_id = w.workflow_id));
   ok := actual = expected; return next;
 
-  check_name := 'steps_bound_or_classified'; expected := '257';
+  check_name := 'steps_bound_or_classified';
+  expected := (select count(*)::text from public.phase_b_workflow_step);
   actual := (select count(*)::text from public.phase_c_step_binding);
   ok := actual = expected; return next;
 
@@ -46125,7 +46346,8 @@ begin
                and not (s.step_type = 'analysis' and s.workflow_id in ('W05','W06','W07','W10','W14')));
   ok := actual = expected; return next;
 
-  check_name := 'handoffs_bound'; expected := '161';
+  check_name := 'handoffs_bound';
+  expected := (select count(*)::text from public.phase_b_handoff);
   actual := (select count(*)::text from public.phase_c_handoff_binding);
   ok := actual = expected; return next;
 
@@ -46134,7 +46356,8 @@ begin
              where not exists (select 1 from public.phase_c_handoff_binding b where b.handoff_id = h.handoff_id));
   ok := actual = expected; return next;
 
-  check_name := 'events_classified'; expected := '347';
+  check_name := 'events_classified';
+  expected := (select count(*)::text from public.phase_b_event);
   actual := (select count(*)::text from public.phase_c_event_binding);
   ok := actual = expected; return next;
 
@@ -46143,11 +46366,13 @@ begin
              where outbox_writer = '' or delivery_worker = '' or dedupe_key = '');
   ok := actual = expected; return next;
 
-  check_name := 'gates_classified'; expected := '32';
+  check_name := 'gates_classified';
+  expected := (select count(*)::text from public.phase_b_gate);
   actual := (select count(*)::text from public.phase_c_gate_binding);
   ok := actual = expected; return next;
 
-  check_name := 'rules_classified'; expected := '54';
+  check_name := 'rules_classified';
+  expected := (select count(*)::text from public.phase_b_business_rule);
   actual := (select count(*)::text from public.phase_c_rule_binding);
   ok := actual = expected; return next;
 
