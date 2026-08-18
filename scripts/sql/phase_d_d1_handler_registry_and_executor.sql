@@ -137,8 +137,12 @@ on conflict (schema_id) do nothing;
 
 -- ================================================================ 2. the handler binding
 create table if not exists public.phase_d_handler_binding (
+  -- Same reason as the two named checks below: the manifest derives a foreign-key name only when
+  -- `references` sits on the column's own source line, so a wrapped clause reads as uncommitted
+  -- DDL. Named with the identity Postgres generates, so file and catalogue agree.
   step_id                 text        primary key
-                                      references public.phase_b_workflow_step(step_id),
+    constraint phase_d_handler_binding_step_id_fkey
+    references public.phase_b_workflow_step(step_id),
   workflow_id             text        not null,
   handler_id              text        not null unique,
   handler_version         text        not null,
@@ -159,19 +163,24 @@ create table if not exists public.phase_d_handler_binding (
   capability_dependency   text        not null default 'NONE',
   capability_evidence     text        not null default '',
   provider_dependency     text        not null default 'NONE',
+  -- Named explicitly, and named with the identity Postgres would have generated. The canonical
+  -- routine manifest derives an auto-generated constraint name only when `check (` sits on the
+  -- same source line as its column, so a check wrapped across lines reads as uncommitted DDL
+  -- even though the file declares it. Naming it keeps the repository and the live catalogue in
+  -- agreement instead of making the instrument wrong.
   external_effect_policy  text        not null default 'OUTBOX_ONLY_OR_NONE'
-                                      check (external_effect_policy in
-                                             ('NONE','OUTBOX_ONLY_OR_NONE','PROVIDER_DISABLED_MOCK')),
+    constraint phase_d_handler_binding_external_effect_policy_check
+    check (external_effect_policy in ('NONE','OUTBOX_ONLY_OR_NONE','PROVIDER_DISABLED_MOCK')),
   trace_point             text        not null,
   founder_gate            text        not null default 'none',
   phase_d_status          text        not null
-                                      check (phase_d_status in
-                                             ('NEW_DETERMINISTIC_HANDLER','VERIFIED_EXISTING_HANDLER',
-                                              'REPAIRED_EXISTING_HANDLER','CAPABILITY_BOUNDARY_READY',
-                                              'EXTERNAL_ADAPTER_READY_DISABLED',
-                                              'COMPATIBILITY_WRAPPER_TO_CANONICAL',
-                                              'INTENTIONALLY_INACTIVE_WITH_FROZEN_REASON',
-                                              'BLOCKED_DEFECT')),
+    constraint phase_d_handler_binding_phase_d_status_check
+    check (phase_d_status in ('NEW_DETERMINISTIC_HANDLER','VERIFIED_EXISTING_HANDLER',
+                              'REPAIRED_EXISTING_HANDLER','CAPABILITY_BOUNDARY_READY',
+                              'EXTERNAL_ADAPTER_READY_DISABLED',
+                              'COMPATIBILITY_WRAPPER_TO_CANONICAL',
+                              'INTENTIONALLY_INACTIVE_WITH_FROZEN_REASON',
+                              'BLOCKED_DEFECT')),
   phase_c_current_handler text        not null default '',
   phase_c_connection      text        not null default '',
   bound_at                timestamptz not null default now()
