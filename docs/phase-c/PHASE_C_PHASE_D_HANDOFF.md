@@ -3,7 +3,10 @@
 Phase C connected and classified the runtime. **It did not prove the business calculations or the
 user journeys correct**, and this document is the list of what it deliberately left.
 
-Measured on `htdblwldjkcgjvmqkbeh`, 15 Aug 2026.
+Measured on `htdblwldjkcgjvmqkbeh`, 15 Aug 2026. **Two door lists corrected 17 Aug 2026** after the
+independent final acceptance found this document naming four retired entry points; the inheritance
+counts below were re-measured the same day and `137 of 257` deferred steps and `71 of 90` roles
+with no execution are both unchanged.
 
 ## What Phase D inherits
 
@@ -13,9 +16,16 @@ between a gap and a hole: none of these can be reached around.
 
 ### 1. 137 of 257 steps are `DEFERRED_RUNTIME_IMPLEMENTATION`
 
-The canonical boundary (`fn_phase_c_step_advance`) is the only way in and it enforces ownership,
-gates, authority, reviewer independence and output validity. What is missing per step is the
-**business handler that produces the step's required output**.
+The canonical boundary is the only way in and it enforces ownership, gates, authority, reviewer
+independence and output validity. What is missing per step is the **business handler that produces
+the step's required output**.
+
+> **CORRECTED 17 Aug 2026.** This sentence named `fn_phase_c_step_advance`. That routine has been
+> `DISABLED` in `public.kernel_retired_path` since the kernel cutover on 16 Aug — it derived
+> successors from `phase_b_handoff` alone, so a step with a real `next_step_if_pass` and no edge
+> returned terminal success and stopped the chain. **The boundary is now `fn_kernel_step_complete`.**
+> A handler written against the name in the original sentence would be written against a door that
+> is shut.
 
 Four workflows have every step deferred:
 
@@ -93,10 +103,26 @@ measurement that each one wrote a trace the last time it ran. Proving that per c
 - Change Phase A organization or Phase B workflows. Both freezes are live and were never
   challenged: `app.phase_a_change_reason` and `app.phase_b_change_reason` appear nowhere in the
   Phase C tree. A genuine need is a formal change request with evidence, brought to the founder.
-- Bypass the Phase C runtime boundary. `fn_phase_c_step_advance`, `fn_phase_c_task_create`,
-  `fn_phase_c_handoff_open`, `fn_phase_c_outbox_emit`, `fn_founder_command_submit` and
-  `fn_phase_c_authority_check` are the doors. A new writer beside them is a duplicate path, and
-  the crosswalk has a classification for that.
+- Bypass the Phase C runtime boundary. **CORRECTED 17 Aug 2026 — this list named five routines and
+  four of them are no longer doors.** `fn_phase_c_step_advance` is `DISABLED`;
+  `fn_phase_c_task_create`, `fn_phase_c_handoff_open` and `fn_phase_c_outbox_emit` are
+  `KERNEL_INTERNAL_PRIMITIVE` and no ordinary role holds `EXECUTE` on any of them. Only
+  `fn_founder_command_submit` survived the cutover. Do not read a door out of this document:
+  **derive it**, the way `kernel_positive_controls.test.mjs` does —
+
+  ```sql
+  select distinct a.routine_name
+    from public.kernel_write_authority a
+   where not exists (select 1 from public.kernel_retired_path p where p.path_name = a.routine_name)
+   order by 1;
+  ```
+
+  Thirteen doors on 17 Aug 2026: `fn_founder_command_clarify`, `fn_founder_command_control`,
+  `fn_founder_command_submit`, `fn_kernel_cancel`, `fn_kernel_handoff_accept`,
+  `fn_kernel_open_step`, `fn_kernel_outbox_deliver`, `fn_kernel_outbox_emit`,
+  `fn_kernel_review_decide`, `fn_kernel_signal_submit`, `fn_kernel_step_complete`,
+  `fn_kernel_trigger_submit`, `fn_kernel_workflow_start`. A new writer beside them is a duplicate
+  path, and the crosswalk has a classification for that.
 - Create a non-refund founder approval queue. Four guards refuse it and a fifth refuses a second
   founder-approval action class.
 - Re-enable disabled automation because it is now mapped.
