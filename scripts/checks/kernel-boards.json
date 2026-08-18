@@ -78,12 +78,12 @@
       "measured_at": "2026-08-18, 9 of 37 (26 -> 19 when the literal-name discharge was measured; 19 -> 9 when the write map landed)"
     },
     {
-      "board": "fn_phase_d_handler_state",
-      "check": "handlers_not_writing_a_business_object",
+      "board": "fn_phase_d_effect_state",
+      "check": "steps_with_no_effect_ever_produced",
       "max_numerator": 257,
-      "why": "PHASE D DEBT, DISCLOSED BECAUSE THE STATUS COLUMN WAS OVERSTATING IT. 236 of the 257 bindings read NEW_DETERMINISTIC_HANDLER, which is true about the OUTPUT -- the family handler produces a typed, schema-validated result that the frozen kernel accepts -- and overstates the BUSINESS EFFECT, because not one handler yet calls a business-object service. D2 built fn_phase_d_object_write and bound all 56 objects; no handler is wired to it. business_write_wired is MEASURED from the live executor body rather than declared, so it cannot drift by being forgotten, and this check counts the GAP so the number falls as the work lands. Delete this entry at 0, do not lower and leave it.",
-      "owner": "OPEN -- Phase D D2 successors: wire each handler family to fn_phase_d_object_write for the objects its step writes",
-      "measured_at": "2026-08-18, 257 of 257 not yet writing"
+      "why": "PHASE D DISCLOSURE, AND IT REPLACES handlers_not_writing_a_business_object RATHER THAN JOINING IT. That entry is DELETED at 0, which is what its own text instructed: every one of the 257 handlers now calls fn_phase_d_effect_produce, every step declares one of the seven effect types, and the path from handler to business object exists and is exercised. What this NEW entry counts is a different and harder question -- how many of the 257 have actually PRODUCED their effect at least once in a recorded execution. It starts at the full 257 because the only executions so far were aborted-transaction probes, which roll back by design and leave no ledger row. It falls as D11 and D13 land per-step and per-workflow cases. A path that exists and a path that has run are not the same claim and are no longer reported by one number. Delete this entry at 0, do not lower and leave it.",
+      "owner": "OPEN -- Phase D D11/D13: run the per-step contract cases and the 30 workflow closures, each leaving a phase_d_effect_ledger row",
+      "measured_at": "2026-08-18, 257 of 257 have never produced an effect outside an aborted transaction"
     }
   ]
 }
