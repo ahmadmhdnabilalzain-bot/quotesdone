@@ -1477,3 +1477,4 @@ scripts/sql/phase_d_d8g_the_closure_gate_counted_its_own_step_run.sql
 [INFO] Recording command outcome: echo
 
 [OK] Command outcome recorded
+scripts/sql/phase_d_d8h_the_file_says_what_the_database_says.sql

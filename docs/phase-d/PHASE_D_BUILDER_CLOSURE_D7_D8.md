@@ -14,7 +14,7 @@
 | live external effects | **0** — nothing sent, published, charged or refunded |
 
 Phase E was not begun. No frozen Phase A, Phase B or Phase C object was edited. Business automation
-was not reactivated: 24 cron jobs active at the start of the session, 24 at the end.
+was not reactivated: 23 cron jobs active at the start of the session, 23 at the end.
 
 ---
 
@@ -182,27 +182,34 @@ declared effect — not declared. The ratchet entry `handlers_not_writing_a_busi
 `fn_phase_d_drive_workflow` opens the run through the kernel, lets the **kernel** choose each next
 step, executes each through the real executor, and reports every refusal with its machine code.
 
+### W04 — Customer registration and onboarding: **deterministic closure**
+
 ```
-W04 — Customer registration and onboarding
+steps 7/7   effects 7   run_state completed   terminal true
 
-W04-S01  INTAKE_HANDLER     DOMAIN_MUTATION   public.customers:id=8da8bdfa-…    effect 3
-W04-S02  REVIEW_HANDLER     REVIEW_VERDICT    public.review_chain:id=2588       effect 4
-W04-S03  EXECUTION_HANDLER  DOMAIN_MUTATION   refused: pd_object_no_state_change
+W04-S01  INTAKE_HANDLER      DOMAIN_MUTATION         public.customers  id=…e62791803d8e  created
+W04-S02  REVIEW_HANDLER      REVIEW_VERDICT          public.review_chain id=2595
+W04-S03  EXECUTION_HANDLER   DOMAIN_MUTATION         public.customers  id=…e62791803d8e  moved
+W04-S04  EXECUTION_HANDLER   DOMAIN_MUTATION         public.customers  id=…e62791803d8e  moved
+W04-S05  DECISION_HANDLER    DOMAIN_MUTATION         public.customers  id=…e62791803d8e  moved
+W04-S06  HANDOFF_HANDLER     KERNEL_ONLY_TRANSITION  step_run 6588
+W04-S07  CLOSURE_HANDLER     KERNEL_ONLY_TRANSITION  step_run 6589
 
-customers 0 -> 1     review_chain 1904 -> 1905     effect ledger 0 -> 2
+customers 0 -> 1     review_chain 1904 -> 1905     effect ledger 0 -> 7
 everything rolled back by raise; 0 rows survive
 ```
 
-Three handlers produced a business effect through the real canonical path. That is the thing this
-increment exists to make possible, and it is now measured rather than described.
+**One account, created once and moved four times — not four accounts.** That distinction is the
+finding, not the closure: an earlier iteration produced `customers 0 -> 4` and the ledger counted
+all four as successful effects. It is recorded in §6.
 
-`pd_object_no_state_change` at S03 is **my own guard firing correctly**: the fixture payload for the
-verification step is identical to the intake step's, so the UPSERT found the row and moved no
-column. A write that changes nothing is not a state transition. A real S03 moves
-`email_verified`/`phone_verified`; the fixture generator does not yet vary state per step, and that
-is fixture work, not a defect in the step.
+The chain proved end to end: kernel opens the run → executor validates typed input → 16 rules
+evaluated for scope and applicability → gates evaluated against their own declared evidence →
+capability and provider boundaries checked → family handler produces typed output → output schema
+validates it → **effect service writes the business object** → frozen kernel completes the step,
+moves the run and chooses the successor → closure step reaches a frozen terminal state.
 
----
+**1 of 30 workflows reaches deterministic closure.** The other 29 are not claimed.
 
 ## 6. Defects found in my own work, every one by execution or by its own board
 
@@ -237,7 +244,7 @@ was the target and the intended roles were re-granted explicitly.
 | Apify runs | **0** |
 | production Dropbox writes | **0** |
 | fallback provider key | **0** |
-| active cron jobs, start → end | **24 → 24** |
+| active cron jobs, start → end | **23 → 23** |
 | persistent business rows created | **0** — every probe ended in `raise exception` |
 
 **`public.notifications` is not written by any Phase D path, and that is now a board check.** Three
@@ -273,13 +280,13 @@ increment maps anything onto it.
 |---|---|---|
 | **D7 effect contracts** | 257 declared effects, seven types, eight depths | **DONE this session.** |
 | **D7 object writers** | 22 validated write maps + the 30-object store | **DONE this session.** 4 kernel-owned objects refused by name. |
-| **D8 execution proof** | handlers producing real effects through the real path | **PARTIAL — 3 steps of W04 proved by execution.** 254 steps have the path and have not been driven. |
+| **D8 execution proof** | handlers producing real effects through the real path | **PARTIAL — W04 closes, 7 of 7 steps, 7 effects.** 250 steps have the path and have not been driven. |
 | **D8 handoff contracts** | 159 effective handoffs: packet schema, acceptance, SLA, rejection, return owner, accountability transfer | **not started.** The denominator is now reconciled and approved, which was the blocker. |
 | **D9** | frontend → API → service → database call graph; storage MIME/magic-byte/quarantine; RLS proofs | **not started** |
 | **D10** | external effect adapters (Resend, SMS/WhatsApp, social, Stripe, storage, Apify), all mock | **PARTIAL** — 12 steps classified `EXTERNAL_ADAPTER_READY_DISABLED` with a typed mock intent record; the durable per-provider adapter contract (attempt, retry, dead-letter, reconciliation) is not built |
 | **D11** | 257 × 7 per-step cases; 30 × 4 workflow cases; the 75-row injected defect catalogue | **not started.** The driver exists and is the harness for all of it. |
 | **D12** | 347 events reconciled with real producer/consumer/outbox/trace | **not started** |
-| **D13** | 30/30 deterministic workflow closure | **not started.** W04 reached step 3 of 7. |
+| **D13** | 30/30 deterministic workflow closure | **1 of 30.** W04 closes deterministically; W05–W30 not driven. The driver is the harness for the rest. |
 | **D14** | 15 required deliverables | **7 of 15** |
 
 **Written this session:** `PHASE_D_HANDLER_IMPLEMENTATION_RESULT.csv` (257 rows × 43 columns) and
@@ -300,11 +307,11 @@ kernel is right to refuse without one (`fn_kernel_reviewer_independent(owner, NU
 the caller must name it. The driver takes it from the caller and **never picks one** — a driver that
 chose a reviewer would be `fn_pick_reviewer` returning the department head 182 times, one layer up.
 
-**A step that names a reviewer needs a recorded verdict before it can complete.** W04-S04 refused
-with `k3_reviewer_verdict_missing` from the frozen kernel: *"no approved, independent verdict from
-that role exists on task 8409. Record it with `fn_kernel_review_decide` first."* Driving any workflow
-past such a step requires calling `fn_kernel_review_decide` in the same transaction. The driver does
-not yet do this, and it is the next thing that unblocks W04 → closure.
+**A step that names a reviewer needs a recorded verdict before it can complete.** The frozen kernel
+refuses with `k3_reviewer_verdict_missing` and names the routine to call. The driver now records the
+verdict through `fn_kernel_review_decide` on the open task, using the reviewer **Phase B declares** —
+and `fn_kernel_review_decide` independently re-checks the offered reviewer against that same frozen
+registry, so the driver cannot smuggle one past the freeze. The verdict itself is still the caller's.
 
 **`public.customers` holds 0 rows and `public.transactions` holds 0 rows.** The marketplace funnel
 was purged on 16 Aug 2026. Any gate that reads real business data — GATE-011 inquiry quote-ready,

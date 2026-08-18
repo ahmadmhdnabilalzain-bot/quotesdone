@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-18T18:32:08.984Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-18T18:47:10.424Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -49087,6 +49087,9 @@ declare
   v_run_state text;
   v_ledger int; v_before int; v_after int;
   v_reviewer text;
+  v_task    bigint;
+  v_decide  jsonb;
+  v_declared_reviewer text;
 begin
   if v_wf is null then
     raise exception 'fn_phase_d_drive_workflow: workflow_id is required' using errcode = '22023';
@@ -49159,6 +49162,8 @@ begin
     end if;
     v_eff := '{}'::jsonb;
     v_reviewer := null;
+    v_task := null;
+    v_decide := null;
 
     if e.expected_effect_type = 'MEASUREMENT_RECORD' then
       v_eff := jsonb_build_object('numerator', 1, 'denominator', 1,
@@ -49185,19 +49190,68 @@ begin
             from jsonb_each(wm.column_map) k
             join pg_attribute a
               on a.attrelid = wm.target_relation::regclass and a.attname = k.key and a.attnum > 0
-           where a.attnotnull and a.atthasdef = false and a.attidentity = '' and a.attgenerated = ''
+           -- EVERY MAPPED COLUMN, not only the ones the table REQUIRES. public.customers has no
+           -- NOT-NULL-without-default column at all, so the required-only filter produced an
+           -- empty payload: the first write inserted on defaults and the second found the row,
+           -- moved nothing, and hit pd_object_no_state_change. A step writes the fields it has,
+           -- not only the fields it must. Identity and generated columns stay excluded because
+           -- Postgres refuses a value for them.
+           -- AND NEVER THE KEY COLUMN. Third instance of one lesson in one session: an identity is
+           -- not a fixture. With every mapped column fixtured, the key column's source key —
+           -- business_key — was regenerated at each step, so W04 created FOUR customer accounts
+           -- for one onboarding and the ledger counted all four as successful effects. The key is
+           -- remembered per (run, object) and the generator must not overwrite it.
+           where a.attidentity = '' and a.attgenerated = '' and k.key <> wm.key_column
         loop
           if v_parents ? v_col.src then
             v_eff := v_eff || jsonb_build_object(v_col.src, v_parents->v_col.src);
           else
+            -- THE LABEL CARRIES THE STEP, SO A LATER STEP GENUINELY MOVES THE RECORD. With one
+            -- label for the whole run, every step produced byte-identical values and the second
+            -- write hit pd_object_no_state_change — my own guard, firing correctly on a fixture
+            -- that changed nothing. A real onboarding does move the record at each step; a fixture
+            -- that does not is testing the guard, not the workflow.
             v_eff := v_eff || jsonb_build_object(v_col.src,
-              public.fn_phase_d_fixture_value(v_col.ftype, v_col.tcat, v_label));
+              public.fn_phase_d_fixture_for_column(wm.target_relation, v_col.col,
+                                                   v_label || '-' || sr.step_id));
           end if;
         end loop;
       end if;
       v_eff := v_eff || v_parents;
       if v_eff = '{}'::jsonb then
         v_eff := jsonb_build_object('fixture', v_label);
+      end if;
+    end if;
+
+    -- ---- A STEP THAT NAMES A REVIEWER NEEDS A RECORDED VERDICT FIRST -----------------------
+    -- The frozen kernel refuses otherwise, and it says so precisely:
+    --   "step W04-S04 names compliance_and_privacy_officer as its independent reviewer and no
+    --    approved, independent verdict from that role exists on task 8409. Record it with
+    --    fn_kernel_review_decide first."  (k3_reviewer_verdict_missing)
+    -- So the driver records one, on the OPEN TASK for this step, naming the reviewer the FROZEN
+    -- registry declares. fn_kernel_review_decide compares the offered reviewer against that
+    -- registry through fn_phase_c_resolve_actor and returns not_the_declared_reviewer if they
+    -- differ, so this cannot smuggle a reviewer past the freeze — it can only supply the one
+    -- Phase B already named. The verdict itself is still the CALLER's; with none given, nothing is
+    -- recorded and the kernel refuses, which is the correct behaviour and stays observable.
+    v_declared_reviewer := nullif(btrim(coalesce(
+      (select x.independent_reviewer_role_id from public.phase_b_workflow_step x
+        where x.step_id = sr.step_id), '')), '');
+    if v_declared_reviewer is not null and v_verdict is not null then
+      select t.task_id into v_task from public.phase_c_task t
+       where t.run_id = v_run and t.step_id = sr.step_id
+       order by t.task_id desc limit 1;
+      if v_task is not null then
+        begin
+          v_decide := public.fn_kernel_review_decide(jsonb_build_object(
+            'task_id', v_task, 'reviewer_role_id', v_declared_reviewer,
+            'decision', v_verdict,
+            'reason', format('phase_d driver fixture verdict for %s', sr.step_id)));
+        exception when others then
+          -- Recorded, never swallowed: a verdict that could not be written is why the step will
+          -- refuse a moment later, and a driver that hid it would make that refusal unexplainable.
+          v_decide := jsonb_build_object('ok', false, 'error', left(SQLERRM, 240));
+        end;
       end if;
     end if;
 
@@ -49238,7 +49292,8 @@ begin
         'ok', v_res->'ok', 'outcome', v_res->>'outcome',
         'step_state', v_res->>'step_state', 'run_state', v_res->>'run_state',
         'effect', v_res->'phase_d'->'business_effect'->'result_reference',
-        'effect_id', v_res->'phase_d'->'business_effect'->'effect_id'));
+        'effect_id', v_res->'phase_d'->'business_effect'->'effect_id',
+        'review_recorded', v_decide));
     exception when others then
       v_sqlstate := SQLSTATE; v_err := SQLERRM;
       v_code := coalesce((regexp_match(v_err, '\((pd_[a-z0-9_]+|k[0-9]+_[a-z0-9_]+|gate[0-9]+_[a-z0-9_]+|br[0-9]+_[a-z0-9_]+)\)'))[1], '(none)');
@@ -49647,9 +49702,63 @@ begin
   -- actor_role_id and reviewer_role_id come from the step run and from nowhere else.
   v_out := v_out - array['inquiry_id','supplier_id','quote_id','transaction_id','document_id',
                          'comparison_id','refund_id','provider_event_id']
-                 - array['step_id','run_id','actor_role_id','reviewer_role_id'];
+                 - array['step_id','run_id','step_run_id','actor_role_id','reviewer_role_id'];
+  -- step_run_id joined that list when GATE-008 gained it as declared evidence: the fixture produced
+  -- 'ZZ DEMO — step_run_id for W04-S07' and the gate cast it to bigint. An identity is never a
+  -- fixture, whichever gate declares it.
 
   return v_out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_phase_d_fixture_for_column(p_relation text, p_column text, p_label text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_oid    oid := p_relation::regclass;
+  v_ftype  text;
+  v_tcat   text;
+  v_attnum smallint;
+  v_def    text;
+  v_lits   text[];
+begin
+  select a.attnum, format_type(a.atttypid, a.atttypmod),
+         (select ty.typcategory from pg_type ty where ty.oid = a.atttypid)
+    into v_attnum, v_ftype, v_tcat
+    from pg_attribute a
+   where a.attrelid = v_oid and a.attname = p_column and a.attnum > 0;
+  if v_attnum is null then
+    raise exception 'fn_phase_d_fixture_for_column: % has no column %', p_relation, p_column
+      using errcode = '42703';
+  end if;
+
+  -- conkey = ARRAY[attnum] restricts this to checks over THIS column alone. A multi-column check
+  -- that merely mentions the column enumerates a relationship, not a value set, and reading its
+  -- literals would produce a value that satisfies nothing.
+  select pg_get_constraintdef(c.oid) into v_def
+    from pg_constraint c
+   where c.conrelid = v_oid and c.contype = 'c' and c.conkey = array[v_attnum]
+   order by c.conname
+   limit 1;
+
+  if v_def is not null then
+    select array_agg(m[1] order by ord) into v_lits
+      from regexp_matches(v_def, '''([^'']+)''', 'g') with ordinality t(m, ord);
+    if v_lits is not null and cardinality(v_lits) > 0 then
+      -- An enumerated column takes a DECLARED value. It is no longer visibly a fixture, and that is
+      -- the constraint's decision, not a shortcut: the row is still identifiable as a fixture by
+      -- every unconstrained column on it.
+      if v_tcat = 'A' then
+        return jsonb_build_array(v_lits[1]);
+      end if;
+      return to_jsonb(v_lits[1]);
+    end if;
+  end if;
+
+  return public.fn_phase_d_fixture_value(v_ftype, v_tcat, p_label);
 end $function$
 
 
@@ -49804,10 +49913,6 @@ begin
                      left(coalesce(s.founder_gate,'none'),60), p_evidence->>'founder_authority_ref');
 
   elsif p_gate_id = 'GATE-006' then
-    -- A STEP THAT DOES NOT MOVE THE RUN APPLIES NO TRANSITION. 55 of the 257 frozen steps declare
-    -- success_workflow_state = 'active', the frozen model holds 0 self-transitions, and the previous
-    -- body therefore refused all 55 whatever evidence they carried. Same state on both sides is the
-    -- absence of a transition, not an undeclared one.
     if p_evidence->>'from_state' = p_evidence->>'to_state' then
       v_ok := true;
       reason := format('GATE-006: the run stays in %s — this step applies no workflow-state '
@@ -49828,11 +49933,16 @@ begin
     reason := 'GATE-007: packet, source version and requested action are all present and non-empty';
 
   elsif p_gate_id = 'GATE-008' then
+    -- THE CLOSING STEP IS NOT AN OUTSTANDING PIECE OF WORK. It is necessarily open while it asks,
+    -- so counting it made this gate unpassable for all 30 closure steps. Every other open step run
+    -- still blocks.
     select count(*) into v_n from public.phase_c_workflow_step_run x
      where x.run_id = (p_evidence->>'run_id')::bigint
+       and x.step_run_id is distinct from (p_evidence->>'step_run_id')::bigint
        and x.state not in ('completed','cancelled','failed','superseded','skipped');
     v_ok := (v_n = 0);
-    reason := format('GATE-008: %s step run(s) still open on run %s', v_n, p_evidence->>'run_id');
+    reason := format('GATE-008: %s step run(s) still open on run %s, excluding the closing step run %s itself',
+                     v_n, p_evidence->>'run_id', p_evidence->>'step_run_id');
 
   elsif p_gate_id = 'GATE-009' then
     v_ok := true;
@@ -50142,6 +50252,8 @@ begin
       into v_gstate, v_gpassed, v_gtype, v_greason, v_grefusal
       from public.fn_phase_d_gate_evaluate(v_gate.gid,
         jsonb_build_object('step_id', sr.step_id, 'run_id', sr.run_id,
+                           'step_run_id', v_step_run,
+                           'step_run_id', v_step_run,
                            'actor_role_id', v_actor,
                            'reviewer_role_id', nullif(b.independent_reviewer_role_id,''))
         || coalesce(p_input->'gate_evidence','{}'::jsonb)) ge;
