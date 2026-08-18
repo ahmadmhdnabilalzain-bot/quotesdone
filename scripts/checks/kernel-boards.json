@@ -73,10 +73,10 @@
     {
       "board": "fn_kernel_trigger_state",
       "check": "active_autonomous_source_not_yet_routing_through_the_inbox",
-      "max_numerator": 19,
+      "max_numerator": 9,
       "why": "THE ONE OPEN PHASE C GATE. 19 of 37 active autonomous sources still start or change business work without entering the kernel. The check's own expected string says NOT MET BY K10: K10 built the door and registered the routes, and moving each source onto it is a separate wiring increment. The doors are ready — all 24 active trigger types read ADAPTER_READY_NO_LIVE_SENDER. It read 26 until the instrument was fixed: for edge functions and frontend paths, routes_through_inbox fell through to a hand-set boolean that was false on all 33 of them, so seven sources genuinely discharged by a trigger calling fn_kernel_source_emit with their source key still counted as bypassing. The view now measures that literal and consults the flag only where no routine discharges the source. 19 is what it always was. This ratchet is NOT a licence to leave it — lower it as each increment lands, and delete the entry at 0.",
-      "owner": "OPEN — Phase C kernel cutover, 12 edge functions, 5 frontend paths, 2 database triggers",
-      "measured_at": "2026-08-18, 19 of 37 (was reported 26 before the instrument was corrected)"
+      "owner": "OPEN — 2 quote_items triggers, 2 edge functions writing customers (the W04 gap), 5 frontend paths the write map does not yet model",
+      "measured_at": "2026-08-18, 9 of 37 (26 -> 19 when the literal-name discharge was measured; 19 -> 9 when the write map landed)"
     }
   ]
 }
