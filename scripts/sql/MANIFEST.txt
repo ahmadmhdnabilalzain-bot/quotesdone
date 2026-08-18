@@ -1438,3 +1438,33 @@ scripts/sql/phase_d_d6_handler_status_is_measured.sql
 [INFO] Recording command outcome: echo
 
 [OK] Command outcome recorded
+scripts/sql/phase_d_d7_effect_contract_and_business_writes.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded
+scripts/sql/phase_d_d7b_three_derivation_defects_found_by_the_board.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded
+scripts/sql/phase_d_d7c_regprocedure_hides_the_schema.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded
+scripts/sql/phase_d_d7d_the_lexicon_matched_nouns.sql
+"scripts/sql/phase_d_d7d_the_lexicon_matched_nouns.sql"  
+scripts/sql/phase_d_d8_workflow_driver.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded
+scripts/sql/phase_d_d8b_the_driver_reads_what_each_rule_declares_it_needs.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded
+scripts/sql/phase_d_d8c_a_fixture_that_names_a_state_must_name_a_declared_one.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded
+scripts/sql/phase_d_d8d_no_transition_is_not_an_undeclared_transition.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded
