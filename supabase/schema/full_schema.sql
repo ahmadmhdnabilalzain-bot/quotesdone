@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-18T21:09:29.808Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-18T21:22:42.583Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -49305,6 +49305,7 @@ declare
   v_run_state text;
   v_scope_owner text;
   v_contrib text;
+  v_decl_state text;
   v_cands text[] := coalesce((select array_agg(x) from jsonb_array_elements_text(p_input->'reviewer_candidates') x), '{}'::text[]);
   hr       public.phase_c_handoff_run%rowtype;
   hc       public.phase_d_handoff_contract%rowtype;
@@ -49434,6 +49435,24 @@ begin
     -- takes customer_id, SUPPLIER takes supplier_id, COMPANY has no parent row and keeps the key.
     -- Nothing is defaulted: if the caller supplied no parent of that scope, this stays null and the
     -- previous behaviour and its refusal are unchanged.
+    -- The first value the target's state CHECK admits, read from pg_constraint rather than
+    -- assumed. Nothing is invented: a target with no CHECK yields null and the old default stands.
+    v_decl_state := null;
+    if e.effect_object_id is not null then
+      select (regexp_match(pg_get_constraintdef(c.oid), '= ANY \(ARRAY\[''([^'']+)'''))[1]
+        into v_decl_state
+        from public.phase_d_object_write_map m
+        join pg_constraint c on c.conrelid = m.target_relation::regclass and c.contype = 'c'
+       where m.object_id = e.effect_object_id
+         -- column_map is target_column -> payload_key, so the state column is the KEY whose VALUE
+         -- is 'state'. Reading it the other way round finds nothing and silently defaults.
+         and exists (select 1 from jsonb_each_text(m.column_map) kv
+                      where kv.value = 'state'
+                        and pg_get_constraintdef(c.oid) like '%(' || kv.key || ' =%')
+         and pg_get_constraintdef(c.oid) like '%= ANY (ARRAY[%'
+       limit 1;
+    end if;
+
     v_scope_owner := null;
     if e.effect_object_id is not null then
       select case ob.ownership_scope
@@ -49470,7 +49489,22 @@ begin
       v_keys := v_keys || jsonb_build_object(e.effect_object_id, v_key);
     end if;
     v_eff := '{}'::jsonb;
-    v_reviewer := null;
+
+    -- THE REVIEWER IS RESOLVED FOR EVERY STEP, NOT ONLY FOR A REVIEW_VERDICT EFFECT.
+    -- BR-002 is enforced on the STEP, and W17-S04 and W17-S05 are step_type='review' whose declared
+    -- EFFECT is CAPABILITY_REQUEST. Resolving the reviewer inside the REVIEW_VERDICT branch meant
+    -- those steps were asked for an independent reviewer and never given the chance to name one, so
+    -- BR-002 refused them with 'the review names (none) as reviewer'. Same disagreement as W11-S01,
+    -- one layer along: a fact keyed on the effect type while the rule is keyed on the step.
+    v_reviewer := nullif(btrim(coalesce(b.independent_reviewer_role_id,'')),'');
+    if v_reviewer is null then
+      v_reviewer := v_caller_reviewer;
+      if v_reviewer is null
+         or not public.fn_kernel_reviewer_independent(sr.accountable_role_id, v_reviewer) then
+        select c into v_reviewer from unnest(v_cands) c
+         where public.fn_kernel_reviewer_independent(sr.accountable_role_id, c) limit 1;
+      end if;
+    end if;
     v_task := null;
     v_decide := null;
 
@@ -49489,15 +49523,7 @@ begin
       -- in order using the FROZEN kernel's independence test. The driver never invents an identity,
       -- never reads a department head, and the verdict is still the caller's; fn_kernel_review_decide
       -- and fn_phase_d_effect_produce both re-check independence afterwards.
-      v_reviewer := nullif(btrim(coalesce(b.independent_reviewer_role_id,'')),'');
-      if v_reviewer is null then
-        v_reviewer := v_caller_reviewer;
-        if v_reviewer is null
-           or not public.fn_kernel_reviewer_independent(sr.accountable_role_id, v_reviewer) then
-          select c into v_reviewer from unnest(v_cands) c
-           where public.fn_kernel_reviewer_independent(sr.accountable_role_id, c) limit 1;
-        end if;
-      end if;
+      -- already resolved above, for every step
       v_eff := jsonb_strip_nulls(jsonb_build_object(
         'verdict', v_verdict, 'reviewer_role_id', v_reviewer,
         'subject_type', 'phase_d_step', 'subject_id', sr.step_id,
@@ -49594,8 +49620,13 @@ begin
           'gate_evidence', v_fix || v_parents || v_extra,
           'business_key', coalesce(nullif(v_eff->>'business_key',''), v_key),
           'owner_ref', coalesce(v_scope_owner, v_owner, nullif(v_eff->>'owner_ref',''), v_key),
-          'effect_state', 'open',
+          -- THE STATE MUST BE ONE THE TARGET DECLARES. 'open' is not in refunds_status_check,
+          -- so W17-S01 wrote a refund the table refused: a fixture that names a state must name a
+          -- declared one, the same lesson d8f learned for the column fixtures. The allowed set is
+          -- read from the target's own CHECK constraint; where there is none, 'open' still applies.
+          'effect_state', coalesce(v_decl_state, 'open'),
           'effect_payload', v_eff)
+        || jsonb_strip_nulls(jsonb_build_object('reviewer_role_id', v_reviewer))
         || case when e.expected_effect_type = 'REVIEW_VERDICT'
                 then jsonb_strip_nulls(jsonb_build_object(
                        'verdict', v_verdict, 'reviewer_role_id', v_reviewer))
@@ -50685,6 +50716,19 @@ begin
   if p_gate_id = 'GATE-005' and lower(coalesce(btrim(s.founder_gate),'none')) = 'none' then
     applies := false;
     why := format('GATE-005 governs a founder-reserved decision and %s declares founder_gate none', p_step_id);
+    return next; return;
+  end if;
+
+  -- GATE-020 — "Refund authority and idempotency", pass_result "Execute once". It guards the money
+  -- movement, and the frozen registry names that step by carrying a founder_gate on it and on no
+  -- other step of W17: "Money movement beyond approved policy requires founder approval." Demanding
+  -- an approved case decision at the step that OPENS the case is a condition the workflow itself is
+  -- what satisfies, four steps later. Refund authority is unaffected: it is held by the trigger
+  -- z00_refund_founder_decision_only on public.refunds, which raises unless an approved refund was
+  -- decided by an active founder identity, on every path, workflow or not.
+  if p_gate_id = 'GATE-020' and lower(coalesce(btrim(s.founder_gate),'none')) = 'none' then
+    applies := false;
+    why := format('GATE-020 guards the execution of an approved financial action; %s declares founder_gate none and is not the money-movement step', p_step_id);
     return next; return;
   end if;
 
