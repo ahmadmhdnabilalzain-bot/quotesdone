@@ -100,6 +100,16 @@ jobs:
   # and because they run one after another: the same acceptance measured ten false failures from
   # `429 ThrottlerException` when the suite ran them in parallel against the management API.
   #
+  # 18 AUG 2026 — THE WATCHER WAS NOT WATCHED. kernel_boards_are_green.test.mjs was added to close
+  # the finding that six of the seven kernel boards were read by no test and no CI job. It is
+  # discovered by `npm test`, which the `checks` workflow runs — and `checks` carries no `env:`
+  # block, so with no SUPABASE_ACCESS_TOKEN the whole file answers `t.skip('no management token')`
+  # and CI went green having asked production nothing. Exactly the defect it was written to fix,
+  # reproduced by the fix. It is in the list below now, where the credential is.
+  #
+  # ANY NEW CHECK THAT NEEDS PRODUCTION BELONGS IN THIS LIST. A check that needs the credential and
+  # is not named here does not run in CI; it runs when somebody remembers, which is not a gate.
+  #
   # Every one of these probes ends in `raise exception`, so nothing is left on production.
   # ============================================================================================
   phase-c:
@@ -130,6 +140,7 @@ jobs:
                    kernel_write_guard_both_directions \
                    cancellation_reaches_the_kernel \
                    active_signal_types_are_executable \
+                   kernel_boards_are_green \
                    application_source_of_truth; do
             echo "::group::$t"
             out=$(node "scripts/checks/$t.test.mjs" 2>&1); code=$?
