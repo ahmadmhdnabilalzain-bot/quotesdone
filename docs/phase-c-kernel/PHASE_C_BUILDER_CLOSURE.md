@@ -8,9 +8,9 @@ suite of 18 negative injections and 2 positive controls.
 
 | | |
 |---|---|
-| commit | `d15a03a57a59069bef2a84a5e8073b7168db5e43` |
-| branch | `fix/phase-c-independent-acceptance-six` |
-| tracked files modified at generation time | 9 |
+| commit | `3b590d13cf9d2abf4aa8b3f16b610d659240e011` |
+| branch | `fix/the-truncate-protection-was-a-typed-list` |
+| tracked files modified at generation time | 0 |
 | project | `htdblwldjkcgjvmqkbeh` (the one project) |
 | zero-cost mode | `NO_PAID_AI=true OPENROUTER_DISABLED=true AI_PROVIDER_MODE=mock PHASE_D_EXTERNAL_EFFECT_MODE=mock` |
 | management credential present | yes |
@@ -39,10 +39,10 @@ production half of that check did not run.
 
 | headline | numerator | denominator | measurement | result |
 |---|---|---|---|---|
-| one canonical file per routine, and it is what is deployed | **0 findings** | 1014 canonical routines | production | **PASS** |
+| one canonical file per routine, and it is what is deployed | **0 findings** | 1022 canonical routines | production | **PASS** |
 | the engine is the only canonicality system, and it refuses a forced conflict | **11 assertions passed** | one engine, one forced counterexample | production | **PASS** |
 
-- `node scripts/checks/canonical_routine_manifest.mjs --all` → exit 0  {"repo_definitions":1014,"canonical":1014,"repo_to_prod":"0","prod_to_repo":"0","conflicting":"0","ambiguous":"0","uncommitted_ddl":"0","manifest_gaps":"0"}
+- `node scripts/checks/canonical_routine_manifest.mjs --all` → exit 0  {"repo_definitions":1022,"canonical":1022,"repo_to_prod":"0","prod_to_repo":"0","conflicting":"0","ambiguous":"0","uncommitted_ddl":"0","manifest_gaps":"0"}
 - `node scripts/checks/canonical_routines.test.mjs` → exit 0
 
 ---
@@ -65,11 +65,11 @@ production half of that check did not run.
 
 | headline | numerator | denominator | measurement | result |
 |---|---|---|---|---|
-| injected defects refused (negative suite) | **55 refused** | 55 injected defects | production | **PASS** |
+| injected defects refused (negative suite) | **58 refused** | 58 injected defects | production | **PASS** |
 | genuine positive controls accepted (denominator derived, not typed) | **13 accepted** | 13 canonical kernel entry doors | production | **PASS** |
 | Phase B architecture guards fired (18 negative injections + 2 positive controls) | **20 fired** | 20 cases | production | **PASS** |
 
-- `node scripts/checks/phase_c_guards_reject_injected_defects.test.mjs` → exit 0  {"sqlstate_guard_pairs":"31","prose_only_assertions":"0"}
+- `node scripts/checks/phase_c_guards_reject_injected_defects.test.mjs` → exit 0  {"sqlstate_guard_pairs":"34","prose_only_assertions":"0"}
 - `node scripts/checks/kernel_positive_controls.test.mjs` → exit 0  {"failed":0}
 - `node scripts/checks/phase_b_guards_reject_injected_defects.test.mjs` → exit 0
 

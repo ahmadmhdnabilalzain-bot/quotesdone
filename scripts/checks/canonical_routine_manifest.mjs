@@ -407,7 +407,17 @@ if (EMIT) {
   const names = new Set([...canonical.keys(), ...liveByName.keys()]);
   for (const name of [...names].sort()) {
     const c = canonical.get(name);
-    const lv = liveByName.get(name) || [];
+    // DETERMINISTIC OVERLOAD ORDER. `lv` arrives in whatever order the catalogue query returned it,
+    // and for a multi-overload name — pgvector's array_to_vector, cosine_distance, l2_norm,
+    // l2_normalize, inner_product, vector_dims — that order moves between runs. Both
+    // routine_signature and deployed_sha256 are built from it, so the committed CSV churned on
+    // every regeneration: measured 18 Aug 2026, eleven rows differed with identical content, and a
+    // real change (fn_kernel_truncate_protection_state, and trg_contact_message_to_kernel moving to
+    // its current canonical file) sat in the middle of that noise. An artefact whose diff cannot be
+    // read is an artefact nobody checks. Sorted by signature so a diff means a change.
+    const lv = (liveByName.get(name) || [])
+      .slice()
+      .sort((a, b) => String(a.sig_args).localeCompare(String(b.sig_args)));
     const cls = lv.length ? [...new Set(lv.map(ownership))].join('+') : (c ? 'APPLICATION (not deployed)' : 'UNKNOWN');
     const srcHashes = c ? c.bodies.map(b => sha(tokens(b.body))) : [];
     const depHashes = lv.map(r => sha(tokens(r.prosrc)));
