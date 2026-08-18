@@ -161,7 +161,7 @@ leaves are skippable — 3 skipped/13 blocked became 2 skipped/1 blocked.
 
 **D25 — the key was computed correctly and thrown away one statement later.** D22 gave APPEND_ONLY
 objects a per-step business key so W16-S03 and W16-S04 would each append their own provider event,
-and W16 still died on . A cache a few lines below — one business key per object
+and W16 still died on `stripe_events_pkey`. A cache a few lines below — one business key per object
 for the life of the run — overwrote it. The cache is correct and without it W04 wrote two customer
 rows, but its entire purpose is to make a second write MOVE the first row's state, and APPEND_ONLY is
 defined by not doing that. The family the cache exists to serve is exactly the family it must skip.
