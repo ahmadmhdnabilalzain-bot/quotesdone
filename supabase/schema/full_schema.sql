@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-18T19:57:01.401Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-18T20:23:57.787Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -8636,7 +8636,7 @@ ALTER TABLE public.phase_d_handler_binding ADD CONSTRAINT phase_d_handler_bindin
 ALTER TABLE public.phase_d_handler_binding ADD CONSTRAINT phase_d_handler_binding_input_schema_id_fkey FOREIGN KEY (input_schema_id) REFERENCES phase_d_handler_schema(schema_id);
 ALTER TABLE public.phase_d_handler_schema ADD CONSTRAINT phase_d_handler_schema_step_id_fkey FOREIGN KEY (step_id) REFERENCES phase_b_workflow_step(step_id);
 ALTER TABLE public.phase_d_handoff_acceptance ADD CONSTRAINT phase_d_handoff_acceptance_handoff_id_fkey FOREIGN KEY (handoff_id) REFERENCES phase_d_handoff_contract(handoff_id);
-ALTER TABLE public.phase_d_handoff_contract ADD CONSTRAINT phase_d_handoff_contract_handoff_id_fkey FOREIGN KEY (handoff_id) REFERENCES phase_b_handoff(handoff_id) ON DELETE RESTRICT;
+ALTER TABLE public.phase_d_handoff_contract ADD CONSTRAINT phase_d_handoff_contract_handoff_id_fkey FOREIGN KEY (handoff_id) REFERENCES phase_b_handoff(handoff_id) ON DELETE CASCADE;
 ALTER TABLE public.phase_d_object_record ADD CONSTRAINT phase_d_object_record_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES phase_d_object_record(record_id);
 ALTER TABLE public.phase_d_object_record ADD CONSTRAINT phase_d_object_record_object_id_fkey FOREIGN KEY (object_id) REFERENCES phase_b_business_object(object_id);
 ALTER TABLE public.phase_d_rule_enforcement ADD CONSTRAINT phase_d_rule_enforcement_rule_id_fkey FOREIGN KEY (rule_id) REFERENCES phase_b_business_rule(rule_id);
@@ -50395,11 +50395,19 @@ AS $function$
          (select column_map ? 'verified' from public.phase_d_object_write_map
            where object_id = 'supplier_account')
   union all
-  select 'inquiry_can_write_rfq_ready', 'true',
-         (select (column_map ? 'rfq_ready')::text from public.phase_d_object_write_map
+  -- REPLACES `inquiry_can_write_rfq_ready`. rfq_ready is derived by trg_rfq_complete, so mapping it
+  -- is a promise the map cannot keep; what the writer must cover is the FACTS fn_rfq_score reads.
+  select 'inquiry_writer_covers_the_readiness_facts', 'emirate, scope_type, budget, trades mapped',
+         (select string_agg(k, ', ' order by k) from unnest(array['emirate','scope_type','budget','trades']) k
+           where (select column_map ? k from public.phase_d_object_write_map where object_id='inquiry')),
+         (select column_map ?& array['emirate','scope_type','budget','trades']
+            from public.phase_d_object_write_map where object_id = 'inquiry')
+  union all
+  select 'inquiry_writer_maps_a_derived_column', '0',
+         (select (column_map ? 'rfq_ready')::int::text from public.phase_d_object_write_map
            where object_id = 'inquiry'),
-         (select column_map ? 'rfq_ready' from public.phase_d_object_write_map
-           where object_id = 'inquiry')
+         not (select column_map ? 'rfq_ready' from public.phase_d_object_write_map
+               where object_id = 'inquiry')
   union all
   select 'fixture_rows_surviving_in_business_tables', '0',
          (select coalesce(sum(surviving_rows),0)::text from public.fn_phase_d_fixture_residue()),
@@ -50413,9 +50421,6 @@ AS $function$
                        join public.phase_d_business_object_binding b on b.object_id = s.object_id
                       where b.canonical_relation = 'public.notifications')
   union all
-  -- INFORMATIONAL. The number moves whenever the product gains or loses a notification trigger, so
-  -- a typed expectation would only ever mean "agree with whatever is there". D9d typed 1 and the
-  -- measurement was 8. What can genuinely fail is the executed check below it.
   select 'canonical_object_writes_that_can_reach_a_notification_trigger', 'informational',
          (select count(*)::text from public.fn_phase_d_outbound_exposure()), true
   union all
@@ -51342,16 +51347,31 @@ begin
   select count(*) into v_open_before from public.phase_c_handoff_run
    where run_id = v_run and status = 'open';
 
+  -- The kernel's own argument names, taken from its body rather than guessed.
   v_res := public.fn_kernel_cancel(jsonb_build_object(
-    'run_id', v_run, 'reason', v_reason, 'actor_role_id', v_actor));
+    'subject_kind', 'workflow_run',
+    'subject_ref',  v_run::text,
+    'op',           'cancel',
+    'reason',       v_reason,
+    'actor',        v_actor));
+
+  if not coalesce((v_res->>'ok')::boolean, false) then
+    raise exception 'fn_phase_d_handoff_cancel: the kernel refused to cancel run %: % (pd_cancel_kernel_refused)',
+      v_run, coalesce(v_res::text,'(no result)') using errcode = '23514';
+  end if;
 
   select count(*) into v_open_after from public.phase_c_handoff_run
    where run_id = v_run and status = 'open';
   select state into v_state from public.phase_c_workflow_run where run_id = v_run;
 
+  -- The postcondition is a row count, not an intention.
   if v_open_after <> 0 then
-    raise exception 'fn_phase_d_handoff_cancel: run % was cancelled and % handoff run(s) are still open. A cancelled run may not leave an open handoff. (pd_cancel_left_open_handoff)',
+    raise exception 'fn_phase_d_handoff_cancel: run % was cancelled and % handoff run(s) are still open. (pd_cancel_left_open_handoff)',
       v_run, v_open_after using errcode = '23514';
+  end if;
+  if v_state is distinct from 'cancelled' then
+    raise exception 'fn_phase_d_handoff_cancel: run % is % after a cancellation. (pd_cancel_run_not_cancelled)',
+      v_run, coalesce(v_state,'(missing)') using errcode = '23514';
   end if;
 
   return jsonb_build_object(
@@ -51425,9 +51445,9 @@ declare
   v_code  text   := nullif(btrim(coalesce(p_input->>'rejection_code','')),'');
   v_idem  text   := nullif(btrim(coalesce(p_input->>'idempotency_key','')),'');
   v_resolved text;
-  v_dec   jsonb;
   v_before int; v_after int;
   v_state_before text; v_state_after text;
+  v_hstatus_before text; v_hstatus_after text;
   v_aid   bigint;
 begin
   if v_id is null or v_actor is null then
@@ -51455,8 +51475,13 @@ begin
       hr.handoff_id using errcode = '23503';
   end if;
 
-  -- A REJECTION MUST BE ACTIONABLE. "Rejected" with no missing item and no return owner leaves the
-  -- work nowhere, which is the accountability gap the frozen closure_condition is written against.
+  if hr.status <> 'open' then
+    raise exception 'fn_phase_d_handoff_reject: handoff run % is % and only an open handoff may be decided (pd_handoff_not_open)',
+      v_id, hr.status using errcode = '23514';
+  end if;
+
+  -- A REJECTION MUST BE ACTIONABLE. "Rejected" with no missing item leaves the work nowhere, which
+  -- is the accountability gap the frozen closure_condition is written against.
   if v_reason is null or v_missing is null then
     raise exception 'fn_phase_d_handoff_reject: handoff % must be rejected with BOTH a reason and the exact missing item. Its frozen rejection_condition is: % (pd_handoff_rejection_unspecific)',
       c.handoff_id, left(c.rejection_condition, 160) using errcode = '22023';
@@ -51474,24 +51499,23 @@ begin
 
   select count(*) into v_before from public.phase_c_workflow_step_run where run_id = hr.run_id;
   select state into v_state_before from public.phase_c_workflow_run where run_id = hr.run_id;
+  v_hstatus_before := hr.status;
 
-  v_dec := public.fn_phase_c_handoff_decide(v_id, 'reject', v_resolved,
-             jsonb_build_object('reason', v_reason, 'missing', v_missing, 'return_owner', v_return));
-  if not coalesce((v_dec->>'ok')::boolean, false) then
-    raise exception 'fn_phase_d_handoff_reject: handoff run % refused rejection: % (pd_handoff_reject_refused)',
-      v_id, coalesce(v_dec->>'error','(no error given)') using errcode = '23514';
-  end if;
+  -- NO KERNEL PRIMITIVE IS CALLED. See the header: there is no fn_kernel_handoff_reject, Phase C is
+  -- frozen, and fn_phase_c_handoff_decide is kernel-internal. The decision is recorded on the Phase D
+  -- side and the kernel's handoff run is left exactly as it was.
 
-  -- A REJECTED HANDOFF MUST NOT ADVANCE THE WORKFLOW. Asserted on the step-run count and the run
-  -- state, in this same transaction, rather than assumed from the fact that nothing was called.
   select count(*) into v_after from public.phase_c_workflow_step_run where run_id = hr.run_id;
   select state into v_state_after from public.phase_c_workflow_run where run_id = hr.run_id;
+  select status into v_hstatus_after from public.phase_c_handoff_run where handoff_run_id = v_id;
+
+  -- Asserted, not assumed. A rejection that advanced the workflow would be the defect §4 names.
   if v_after <> v_before then
     raise exception 'fn_phase_d_handoff_reject: rejecting handoff run % opened % new step run(s). A rejected handoff advances nothing. (pd_handoff_rejection_advanced_workflow)',
       v_id, v_after - v_before using errcode = '23514';
   end if;
   if v_state_after is distinct from v_state_before then
-    raise exception 'fn_phase_d_handoff_reject: rejecting handoff run % moved run % from % to %. A rejected handoff moves no run state. (pd_handoff_rejection_moved_run)',
+    raise exception 'fn_phase_d_handoff_reject: rejecting handoff run % moved run % from % to %. (pd_handoff_rejection_moved_run)',
       v_id, hr.run_id, v_state_before, v_state_after using errcode = '23514';
   end if;
 
@@ -51499,7 +51523,7 @@ begin
     (handoff_run_id, handoff_id, run_id, workflow_id, outcome, actor_role_id,
      accountable_before, accountable_after, to_step_id,
      packet_digest, packet_keys_present, rejection_code, rejection_reason, missing_items,
-     return_owner_role_id, sla_policy_id, due_at, idempotency_key, trace_id)
+     return_owner_role_id, sla_policy_id, due_at, idempotency_key)
   values (v_id, c.handoff_id, hr.run_id, c.workflow_id, 'rejected', v_resolved,
           c.accountable_before_accept,
           -- ACCOUNTABILITY DOES NOT TRANSFER ON A REJECTION. It returns to the named return owner,
@@ -51507,7 +51531,7 @@ begin
           v_return, c.to_step_id,
           encode(sha256(convert_to(coalesce(p_input->'packet','{}'::jsonb)::text,'UTF8')),'hex'),
           '{}', coalesce(v_code, c.rejection_code), v_reason, v_missing, v_return,
-          c.sla_policy_id, hr.due_at, v_idem, (v_dec->>'trace_id')::bigint)
+          c.sla_policy_id, hr.due_at, v_idem)
   returning acceptance_id into v_aid;
 
   return jsonb_build_object(
@@ -51515,11 +51539,13 @@ begin
     'handoff_run_id', v_id, 'handoff_id', c.handoff_id, 'run_id', hr.run_id,
     'rejection_code', coalesce(v_code, c.rejection_code),
     'reason', v_reason, 'missing', v_missing,
-    'return_owner_role_id', v_return,
-    'accountable_now', v_return,
+    'return_owner_role_id', v_return, 'accountable_now', v_return,
     'step_runs_before', v_before, 'step_runs_after', v_after,
     'run_state_before', v_state_before, 'run_state_after', v_state_after,
-    'workflow_advanced', false);
+    'workflow_advanced', false,
+    'kernel_handoff_status', v_hstatus_after,
+    'kernel_handoff_still_open', (v_hstatus_after = 'open'),
+    'disclosure', 'the frozen kernel exposes no handoff rejection routine, so the kernel-side handoff run is left open; closing it needs a Phase C change request, not a Phase D increment');
 end $function$
 
 
@@ -51541,7 +51567,6 @@ AS $function$
                       where not exists (select 1 from public.phase_b_handoff h
                                          where h.handoff_id = c.handoff_id))
   union all
-  -- The derivation is only worth anything if each handoff really does ask for something of its own.
   select 'contracts_whose_packet_is_only_boilerplate', '0',
          (select count(*)::text from public.phase_d_handoff_contract
            where distinguishing_key in ('source_business_object_version','acceptance_evidence',
@@ -51555,7 +51580,6 @@ AS $function$
          (select count(distinct distinguishing_key) from public.phase_d_handoff_contract)
            = (select n from live)
   union all
-  -- A contract derived from prose that has since changed is describing a handoff nobody has.
   select 'contracts_drifted_from_the_frozen_packet', '0',
          (select count(*)::text from public.phase_d_handoff_contract c
             join public.phase_b_handoff h on h.handoff_id = c.handoff_id
@@ -51570,8 +51594,6 @@ AS $function$
          (select count(*)::text from public.phase_d_handoff_contract where sla_target is null),
          not exists (select 1 from public.phase_d_handoff_contract where sla_target is null)
   union all
-  -- Accountability may not be recorded as transferring to the sender, and a return owner may not be
-  -- the receiver, or a rejection returns the work to the person who just refused it.
   select 'contracts_where_accountability_does_not_move', '0',
          (select count(*)::text from public.phase_d_handoff_contract
            where accountable_before_accept = accountable_after_accept),
@@ -51600,7 +51622,16 @@ AS $function$
          not exists (select 1 from public.phase_c_workflow_run r
                       where r.state = 'cancelled'
                         and exists (select 1 from public.phase_c_handoff_run hr
-                                     where hr.run_id = r.run_id and hr.status = 'open'));
+                                     where hr.run_id = r.run_id and hr.status = 'open'))
+  union all
+  -- DISCLOSED. The frozen kernel exposes fn_kernel_handoff_accept and no rejection routine, and
+  -- fn_phase_c_handoff_decide is a kernel-internal primitive Phase D may not call. So a Phase D
+  -- rejection is durable and refuses to advance the workflow, and the kernel-side handoff run stays
+  -- open. Counting it here is the disclosure; closing it is a Phase C change request.
+  select 'phase_d_rejections_the_kernel_still_shows_open', 'informational — no kernel rejection door',
+         (select count(*)::text from public.phase_d_handoff_acceptance a
+            join public.phase_c_handoff_run h on h.handoff_run_id = a.handoff_run_id
+           where a.outcome = 'rejected' and h.status = 'open'), true;
 $function$
 
 
