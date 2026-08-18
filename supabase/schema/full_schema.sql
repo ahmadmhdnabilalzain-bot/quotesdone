@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-18T22:59:50.328Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-18T23:26:54.568Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -49619,7 +49619,27 @@ begin
     -- state. A workflow that creates a fresh account at every step it touches is not onboarding a
     -- customer, and the ledger would have counted both as successful effects. Keys are remembered
     -- per object for the life of the run.
-    if v_keys ? e.effect_object_id then
+    -- D25. THE CACHE MUST NOT APPLY TO THE ONE FAMILY THAT MAY NOT BE MOVED.
+    --
+    -- D22 gave APPEND_ONLY objects a per-step business key and W16 still died on
+    -- stripe_events_pkey. The key was computed correctly and THIS BLOCK threw it away one
+    -- statement later: the cache remembers a key per object for the life of the run, so W16-S04
+    -- was handed W16-S03's key and INSERTed onto it.
+    --
+    -- The cache is right and the comment above it is right — W04 wrote two customer rows without
+    -- it. But its whole purpose is to make a second write MOVE THE FIRST ROW'S STATE, and an
+    -- APPEND_ONLY object is defined by not doing that. fn_phase_d_object_write says so in its own
+    -- refusal: "a correction is a NEW key, never a second version of this one". So the family that
+    -- the cache exists to serve is precisely the family it must skip.
+    --
+    -- A fix that is computed and then discarded by code a few lines away is worth naming: D22's
+    -- control asserted no regression on W16 rather than a number, which is the only reason this
+    -- was not recorded as fixed.
+    if exists (select 1 from public.phase_d_business_object_binding ob3
+                where ob3.object_id = e.effect_object_id
+                  and ob3.policy_family = 'APPEND_ONLY') then
+      null;  -- each step appends its own row; nothing is remembered and nothing is moved
+    elsif v_keys ? e.effect_object_id then
       v_key := v_keys->>e.effect_object_id;
     elsif e.effect_object_id is not null then
       v_keys := v_keys || jsonb_build_object(e.effect_object_id, v_key);
