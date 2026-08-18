@@ -1404,20 +1404,13 @@ scripts/sql/pbcr001_the_amendment_never_reached_the_bindings.sql
 scripts/sql/connected_was_one_word_for_two_facts.sql
 scripts/sql/a_deferral_the_founder_approved_is_not_a_violation.sql
 scripts/sql/nobody_was_reading_the_boards.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/the_ledger_follows_the_deferral_change.sql
 scripts/sql/the_flag_was_a_claim_the_discharge_is_measurable.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/a_row_id_is_not_a_key.sql
-'scripts/sql/a_row_id_is_not_a_key.sql'  
 scripts/sql/a_claim_that_named_a_table_the_source_never_touches.sql
-'scripts/sql/a_claim_that_named_a_table_the_source_never_touches.sql'  
 scripts/sql/the_write_map_in_the_database.sql
-'scripts/sql/the_write_map_in_the_database.sql'  
 scripts/sql/the_predicate_follows_the_map.sql
 scripts/sql/the_truncate_protection_was_a_typed_list.sql
 scripts/sql/phase_c_founder_approved_and_frozen.sql
@@ -1426,57 +1419,43 @@ scripts/sql/phase_d_d1_handler_registry_and_executor.sql
 scripts/sql/phase_d_d3_rule_enforcement.sql
 scripts/sql/phase_d_d0_auth_debt_discharged.sql
 scripts/sql/phase_d_d2_business_object_map.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d4_remaining_rules.sql
 scripts/sql/phase_d_d5_gate_predicates.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d6_handler_status_is_measured.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d7_effect_contract_and_business_writes.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d7b_three_derivation_defects_found_by_the_board.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d7c_regprocedure_hides_the_schema.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d7d_the_lexicon_matched_nouns.sql
-"scripts/sql/phase_d_d7d_the_lexicon_matched_nouns.sql"  
 scripts/sql/phase_d_d8_workflow_driver.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d8b_the_driver_reads_what_each_rule_declares_it_needs.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d8c_a_fixture_that_names_a_state_must_name_a_declared_one.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d8d_no_transition_is_not_an_undeclared_transition.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d8e_a_named_reviewer_needs_a_recorded_verdict.sql
 scripts/sql/phase_d_d8f_the_fixture_reads_the_check_constraint.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d8g_the_closure_gate_counted_its_own_step_run.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d8h_the_file_says_what_the_database_says.sql
 scripts/sql/phase_d_d9_a_run_with_no_open_step_is_waiting_for_acceptance.sql
-"scripts/sql/phase_d_d9_a_run_with_no_open_step_is_waiting_for_acceptance.sql"  
+
+scripts/sql/phase_d_d9_one_hundred_and_fifty_nine_contracts_not_one.sql
+scripts/sql/phase_d_d9b_a_run_in_waiting_handoff_is_not_a_stopped_run.sql
+scripts/sql/phase_d_d9c_a_scenario_built_in_the_order_reality_builds_it.sql
+scripts/sql/phase_d_d9d_a_canonical_write_that_emails_a_supplier.sql
+scripts/sql/phase_d_d9e_the_lineage_is_quiet_only_because_it_has_no_address.sql
+scripts/sql/phase_d_d9f_the_writer_covers_two_of_the_six_fields_its_scorer_reads.sql
+scripts/sql/phase_d_d9g_a_generated_fixture_beat_the_real_reference.sql
+scripts/sql/phase_d_d9h_the_owner_of_a_customer_scoped_object_is_a_customer.sql
+scripts/sql/phase_d_d9i_a_harness_that_seeds_the_row_the_step_creates.sql
+scripts/sql/phase_d_d9j_a_run_that_cannot_see_what_it_just_created.sql
+scripts/sql/phase_d_d9k_the_kernel_has_no_rejection_door.sql

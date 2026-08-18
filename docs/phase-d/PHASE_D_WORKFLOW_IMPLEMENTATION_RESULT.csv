@@ -1,0 +1,31 @@
+workflow_id,steps_in_workflow,steps_driven,handoffs_accepted,open_handoffs_left,business_effects_produced,final_run_state,state_is_terminal,closure_verdict,stopped_at_step,refusal_code,refusal_reason,fixture_stages_created,notifications_written
+W01,8,3,2,0,2,active,false,STOPPED,W01-S03,(none),"new row for relation ""department_objective"" violates check constraint ""department_objective_status_check""",23,0
+W02,9,9,8,0,9,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W03,9,1,0,0,0,active,false,STOPPED,W03-S01,pd_gate_refused,"GATE-021 (Marketing artifact approval) requires [reviewer_role_id] and the call names none of it. Declared evidence: Exact final asset passes brand and independent artifact review.",23,0
+W04,7,7,0,0,7,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W05,9,2,1,0,1,active,false,STOPPED,W05-S02,pd_rule_refused,"BR-013: inquiry 5aeba5b1-142b-4ef2-a2cd-00208e41d7b9 is not quote-ready; mandatory qualification, route or document blockers remain",23,0
+W06,7,2,0,0,1,active,false,STOPPED,W06-S02,pd_rule_refused,"BR-014: route state 778. Proposed, ambiguous, rejected and excluded routes cannot authorise dispatch.",23,0
+W07,8,4,1,0,3,active,false,STOPPED,W07-S04,pd_gate_refused,"GATE-012: document 2730 is missing, errored or quarantined",23,0
+W08,8,8,2,0,8,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W09,9,3,0,0,2,active,false,STOPPED,W09-S03,(none),"duplicate key value violates unique constraint ""supplier_capabilities_pkey""",23,0
+W10,8,8,4,0,8,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W11,7,7,6,0,7,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W12,9,1,0,0,0,active,false,STOPPED,W12-S01,pd_gate_refused,"GATE-015: 1 existing assignment(s) for that supplier and inquiry; a dispatch would be a duplicate",23,0
+W13,7,2,0,0,1,active,false,STOPPED,W13-S02,pd_rule_refused,"step W13-S02 is accountable to lifecycle_channel_operations and the review names (none) as reviewer; those resolve to the same effective identity (BR-002)",23,0
+W14,9,1,0,0,0,active,false,STOPPED,W14-S01,(none),"duplicate key value violates unique constraint ""quotes_inquiry_id_supplier_id_key""",23,0
+W15,9,2,1,0,1,active,false,STOPPED,W15-S02,pd_rule_refused,"BR-019: comparison 2744 does NOT belong to the calling customer",23,0
+W16,9,1,0,0,0,active,false,STOPPED,W16-S01,(none),"duplicate key value violates unique constraint ""transactions_quote_id_uidx""",23,0
+W17,11,1,0,0,0,active,false,STOPPED,W17-S01,pd_gate_refused,"GATE-020: refund 117 has no recorded founder decision, financial action key ZZ DEMO — financial_action_key for W17-S01",23,0
+W18,7,7,4,0,7,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W19,7,7,6,0,7,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W20,9,1,0,0,0,active,false,STOPPED,W20-S01,pd_gate_refused,"GATE-021 (Marketing artifact approval) requires [reviewer_role_id] and the call names none of it. Declared evidence: Exact final asset passes brand and independent artifact review.",23,0
+W21,8,8,7,0,8,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W22,7,7,6,0,7,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W23,9,6,4,0,5,active,false,STOPPED,W23-S06,pd_rule_refused,"step W23-S06 is accountable to model_evaluator and the review names (none) as reviewer; those resolve to the same effective identity (BR-002)",23,0
+W24,10,10,9,0,10,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W25,8,8,4,0,8,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W26,9,1,0,0,0,active,false,STOPPED,W26-S01,pd_gate_refused,"GATE-026 (Knowledge validation) requires [reviewer_role_id] and the call names none of it. Declared evidence: Independent source/freshness/contradiction review passes.",23,0
+W27,10,10,7,0,10,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W28,9,4,3,0,3,active,false,STOPPED,W28-S04,pd_rule_refused,"step W28-S04 is accountable to compliance_and_privacy_officer and the review names (none) as reviewer; those resolve to the same effective identity (BR-002)",23,0
+W29,10,10,7,0,10,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
+W30,11,11,10,0,11,completed,true,DETERMINISTIC_CLOSURE,,,,23,0
