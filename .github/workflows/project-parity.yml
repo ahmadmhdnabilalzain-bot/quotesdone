@@ -141,6 +141,7 @@ jobs:
                    cancellation_reaches_the_kernel \
                    active_signal_types_are_executable \
                    kernel_boards_are_green \
+                   every_discharge_claim_reaches_its_table \
                    application_source_of_truth; do
             echo "::group::$t"
             out=$(node "scripts/checks/$t.test.mjs" 2>&1); code=$?

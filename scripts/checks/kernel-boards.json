@@ -63,6 +63,14 @@
       "measured_at": "2026-08-18, 589 of 635"
     },
     {
+      "board": "fn_kernel_cutover_measure",
+      "check": "active_sources_bypassing_the_kernel",
+      "max_numerator": 1,
+      "why": "edge:inquiry_intake. This read 0 until 18 Aug 2026, on a false basis: the source claimed discharge by routine:trg_inquiry_received, a trigger on public.inquiries, and supabase/functions/inquiry_intake/index.ts never references that table in code — only in two comments. The board resolves the named routine and verifies it reaches the kernel, which is the FAR end of the chain; it never asks whether the source reaches the routine. Correcting the claim moved this 0 -> 1, which is the true number. What the source actually writes is public.customers, a work table with no kernel discharge, and W04 has 0 runs ever. Closing it means wiring W04 — which requires reclassifying dbtrigger:public.customers:trg_emit_customer_registered away from NOT_A_BUSINESS_TRIGGER, registering a new source, and amending customer.registered.allowed_source_systems, after which every signup opens an onboarding run with an owner and an SLA. That is a founder decision, not a wiring fix.",
+      "owner": "OPEN — founder decision: should a customer registration start W04 onboarding?",
+      "measured_at": "2026-08-18, 1 of 54 active sources"
+    },
+    {
       "board": "fn_kernel_trigger_state",
       "check": "active_autonomous_source_not_yet_routing_through_the_inbox",
       "max_numerator": 19,
