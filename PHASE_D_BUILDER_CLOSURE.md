@@ -173,6 +173,20 @@ only ever succeeds is not evidence that anything is enforced, so each was driven
 Note the second row: the executor did not re-implement the ownership check, it let the frozen
 `fn_kernel_step_complete` refuse. That is the boundary working as designed.
 
+**Idempotent replay, also by execution.** The same call twice under one key:
+
+```
+first  call  replay=false
+second call  replay=true
+same output_hash   yes        same step_run   yes
+handoff runs on the workflow run:  1     <- not 2
+```
+
+The second call returns the **stored first result** rather than recomputing, and the effect count
+is the number that matters: one handoff run, not two. A replay that returned a fresh success while
+quietly creating a second handoff is the duplicate-effect defect D8 exists to prevent, and the
+denominator here is the actual row count, not the result payload.
+
 ### D3 — 34 of 54 rules stop being prose
 
 `phase_d_rule_enforcement` names, for all 54, **how** each is enforced and **when** it applies.
