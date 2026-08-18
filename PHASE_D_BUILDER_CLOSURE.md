@@ -89,6 +89,14 @@ a complete one.
 | steps opening a handoff | 159 |
 | closure steps | 30 |
 
+**The two closure counts are both right and mean different things.** `step_type = 'closure'` is
+**29**, and the handler classes below follow `step_type`, so there are 29 `CLOSURE_HANDLER`
+bindings. `is_closure_step` is **30**, and the crosswalk follows that. The extra one is W22-S07,
+recorded in `phase_b_package_erratum` #3: W22 was the only workflow of the 30 with no
+`step_type='closure'` step, so GATE-008 had no step to attach to. The erratum sets
+`is_closure_step` on the step that is already final and already points at `WORKFLOW_COMPLETE`,
+without changing the step, its owner, its output, or the 257 total.
+
 One package/live disagreement is **recorded, not reconciled away**: the packaged handoff matrix
 carries 161 rows and `phase_b_handoff` carries 159. The founder-approved effective baseline is the
 live one.
@@ -186,6 +194,9 @@ leave it**. They are: BR-011, 012, 013, 014, 015, 017, 018, 019, 020, 025, 026, 
 | **Review handler returned `approved`** | It would have made all 28 review steps a rubber stamp. The verdict is the caller's; an absent one fails the schema. |
 | **Measurement denominator defaulted** | `least(100, NULL)` in another costume. Nothing defaults now, and a zero denominator raises. |
 | **My board named a retired routine** | `fn_kernel_retired_path_state` finds callers by scanning bodies, and `pg_get_functiondef` returns comments as well as code. Writing the name — first in a string literal, then again in the comment explaining the first fix — made the board count as an active caller of the path it was checking nobody called. `0 → 1 of 2`, twice. It now resolves retired paths from `kernel_retired_path` and the name appears nowhere in the body. |
+| **A row added without its artefact** | The three migrations were applied to production but not listed in `scripts/sql/MANIFEST.txt`, which is what the canonical routine engine compares the live estate against. The suite went 2 failures → 4. Fixed by registering the files and re-emitting the CSV from the engine. |
+| **Three constraints read as uncommitted DDL while fully declared** | The engine derives an auto-generated constraint name only when `check (` or `references` sits on the *same source line* as its column, and three of mine were wrapped for readability. The instrument is not wrong — a wrapped clause is genuinely harder to attribute — so each is now named explicitly with the identity Postgres itself generated, rather than the check being taught to accept a shape it cannot attribute. |
+| **The committed schema mirror was behind** | `supabase/schema/full_schema.sql` said 550 tables; production holds 553. Regenerated with `export_from_either_source_is_identical.mjs --write`. |
 
 ---
 
@@ -213,6 +224,32 @@ pre-existing read-only monitoring crons that remain active under the selective h
 `auth.users` matching the canary: **0**. Every write probe ended in `raise exception`.
 
 ---
+
+## Two pre-existing suite failures, measured but deliberately not "fixed"
+
+Both were red **before** any Phase D work and both live in
+`scripts/checks/v3_runtime_behaviour.test.mjs`. Neither is in Phase D's scope. They are recorded
+here with what I actually measured, because retyping either literal would be a rubber stamp.
+
+**1. `every packaged department resolves to a live runtime department` — expected 24, got 33.**
+
+Measured on production: `org_department_alias` holds **34 rows**, **33 distinct
+`packaged_department` names**, resolving onto the **10 active departments**, and — the part that
+matters — **`dangling = 0`**. Every alias points at an active department, which is the invariant
+the test's own name describes and it holds.
+
+The `24` is a count typed at V3 delivery time. The alias table has since grown as packaged
+department names were merged into the ten live ones, so the number moved for a legitimate reason.
+**Changing 24 to 33 would make the check agree with whatever is currently there**, which is the
+same defect as the rule scorer this phase just removed. The honest fix is to assert that the set
+of packaged names the delivery shipped is still fully covered, measured against a committed
+delivery artefact rather than an integer — that artefact was not located in this session, so the
+check is left red and the reason is recorded here.
+
+**2. `a decided agent action writes a decision trace naming those records` — `traces=1 ids=<NULL>`.**
+
+A trace exists but carries no record ids. Not investigated; out of Phase D scope and unchanged by
+this work.
 
 ## Estate state at close
 
@@ -246,15 +283,17 @@ This is the whole of the outstanding Phase D scope. Nothing below was started un
 | **D11** | 257 × 7 = 1,799 per-step tests; 30 × 4 workflow tests; the 75-row injected defect catalogue | **not started.** One end-to-end execution proof exists (W01-S01). |
 | **D12** | 347 events reconciled with real producer/consumer/outbox/trace | **not started** |
 | **D13** | 30/30 deterministic workflow closure | **not started.** One workflow was driven one step. |
-| **D14** | 15 required deliverables | **2 of 15** — this file and the D0 crosswalk |
+| **D14** | 15 required deliverables | **4 of 15** |
 
-**Deliverables still owed:** `PHASE_D_HANDLER_IMPLEMENTATION_RESULT.csv`,
+**Written:** `PHASE_D_CURRENT_CODE_HANDLER_CROSSWALK.csv`, `PHASE_D_ZERO_COST_EVIDENCE.md`,
+`PHASE_D_PRODUCTION_DEPLOYMENT_LEDGER.md`, and this file.
+
+**Still owed:** `PHASE_D_HANDLER_IMPLEMENTATION_RESULT.csv`,
 `PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv`, `PHASE_D_BUSINESS_OBJECT_RESULT.csv`,
 `PHASE_D_RULE_GATE_RESULT.csv`, `PHASE_D_HANDOFF_EVENT_RESULT.csv`,
 `PHASE_D_FRONTEND_API_CALL_GRAPH.csv`, `PHASE_D_STORAGE_RLS_SECURITY_RESULT.md`,
 `PHASE_D_FINANCIAL_PRIVACY_RESULT.md`, `PHASE_D_IDEMPOTENCY_CONCURRENCY_RESULT.md`,
-`PHASE_D_EXTERNAL_EFFECTS_RESULT.md`, `PHASE_D_INJECTED_DEFECT_RESULT.csv`,
-`PHASE_D_ZERO_COST_EVIDENCE.md`, `PHASE_D_PRODUCTION_DEPLOYMENT_LEDGER.md`.
+`PHASE_D_EXTERNAL_EFFECTS_RESULT.md`, `PHASE_D_INJECTED_DEFECT_RESULT.csv`.
 
 ---
 
