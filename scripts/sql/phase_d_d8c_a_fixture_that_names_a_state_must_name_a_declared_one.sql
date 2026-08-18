@@ -114,7 +114,10 @@ begin
   -- actor_role_id and reviewer_role_id come from the step run and from nowhere else.
   v_out := v_out - array['inquiry_id','supplier_id','quote_id','transaction_id','document_id',
                          'comparison_id','refund_id','provider_event_id']
-                 - array['step_id','run_id','actor_role_id','reviewer_role_id'];
+                 - array['step_id','run_id','step_run_id','actor_role_id','reviewer_role_id'];
+  -- step_run_id joined that list when GATE-008 gained it as declared evidence: the fixture produced
+  -- 'ZZ DEMO — step_run_id for W04-S07' and the gate cast it to bigint. An identity is never a
+  -- fixture, whichever gate declares it.
 
   return v_out;
 end $fn$;
