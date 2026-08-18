@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-18T21:22:42.583Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-18T21:33:51.456Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -49617,7 +49617,13 @@ begin
           -- 'ZZ DEMO — inquiry_id' is a refusal every time and the refusal says nothing about the
           -- step. Ordering is fixture, then reality, then per-call extras.
           'context', v_fix || v_parents || v_extra,
-          'gate_evidence', v_fix || v_parents || v_extra,
+          -- The resolved reviewer must reach the GATE evidence too. GATE-021 and GATE-026 declare
+          -- reviewer_role_id as required evidence and were refusing with 'the call names none of it'
+          -- while the driver had one in hand. A gate asking for a fact the caller holds and never
+          -- passes is the harness losing it, not the gate being strict.
+          'gate_evidence', v_fix || v_parents
+                           || jsonb_strip_nulls(jsonb_build_object('reviewer_role_id', v_reviewer))
+                           || v_extra,
           'business_key', coalesce(nullif(v_eff->>'business_key',''), v_key),
           'owner_ref', coalesce(v_scope_owner, v_owner, nullif(v_eff->>'owner_ref',''), v_key),
           -- THE STATE MUST BE ONE THE TARGET DECLARES. 'open' is not in refunds_status_check,
@@ -52349,6 +52355,8 @@ declare
   s public.phase_b_workflow_step%rowtype;
   e public.phase_d_rule_enforcement%rowtype;
   v_in_scope boolean;
+  v_governs text;
+  v_primary text;
 begin
   select * into r from public.phase_b_business_rule where rule_id = p_rule_id;
   if not found then
@@ -52410,6 +52418,24 @@ begin
     applies := false;
     why := format('BR-044 governs a step that opens a handoff and %s opens none', p_step_id);
     return next; return;
+  end if;
+
+  -- 3. A RULE DOES NOT GOVERN THE WORKFLOW THAT PRODUCES ITS SUBJECT.
+  if e.required_context is not null and cardinality(e.required_context) > 0 then
+    select st.object_id into v_governs
+      from public.phase_d_fixture_stage st
+     where st.contributes_ref = any(e.required_context)
+     limit 1;
+    if v_governs is not null then
+      select w.primary_object into v_primary
+        from public.phase_b_workflow w where w.workflow_id = s.workflow_id;
+      if v_primary is not null and v_primary = v_governs then
+        applies := false;
+        why := format('%s governs %s and %s is the workflow that produces it (primary_object %s); the rule guards its use downstream, not its creation',
+                      r.rule_id, v_governs, s.workflow_id, v_primary);
+        return next; return;
+      end if;
+    end if;
   end if;
 
   applies := true;
