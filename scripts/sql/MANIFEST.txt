@@ -1414,3 +1414,5 @@ scripts/sql/the_flag_was_a_claim_the_discharge_is_measurable.sql
 [OK] Command outcome recorded
 scripts/sql/a_row_id_is_not_a_key.sql
 'scripts/sql/a_row_id_is_not_a_key.sql'  
+scripts/sql/a_claim_that_named_a_table_the_source_never_touches.sql
+'scripts/sql/a_claim_that_named_a_table_the_source_never_touches.sql'  
