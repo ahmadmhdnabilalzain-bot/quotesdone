@@ -1,6 +1,6 @@
 {
-  "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
-  "branch": "fix/phase-c-independent-acceptance-six",
+  "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
+  "branch": "fix/the-truncate-protection-was-a-typed-list",
   "environment": {
     "project_ref": "htdblwldjkcgjvmqkbeh",
     "NO_PAID_AI": "true",
@@ -16,7 +16,7 @@
       "command": "node scripts/checks/phase_c_component_crosswalk.test.mjs --require-live",
       "numerator": "0 findings",
       "denominator": "1801 declared / 1801 crosswalk",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -40,7 +40,7 @@
       "command": "node scripts/checks/phase_c_component_crosswalk.test.mjs --static",
       "numerator": "0 findings",
       "denominator": "1801 declarations",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -59,8 +59,8 @@
       "headline": "one canonical file per routine, and it is what is deployed",
       "command": "node scripts/checks/canonical_routine_manifest.mjs --all",
       "numerator": "0 findings",
-      "denominator": "1014 canonical routines",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "denominator": "1022 canonical routines",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -73,8 +73,8 @@
       "exit_code": 0,
       "result": "PASS",
       "detail": {
-        "repo_definitions": 1014,
-        "canonical": 1014,
+        "repo_definitions": 1022,
+        "canonical": 1022,
         "repo_to_prod": "0",
         "prod_to_repo": "0",
         "conflicting": "0",
@@ -89,7 +89,7 @@
       "command": "node scripts/checks/canonical_routines.test.mjs",
       "numerator": "11 assertions passed",
       "denominator": "one engine, one forced counterexample",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -109,7 +109,7 @@
       "command": "node scripts/checks/phase_c_founder_chain.test.mjs",
       "numerator": "30 checks passed",
       "denominator": "30 checks",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -129,7 +129,7 @@
       "command": "node scripts/checks/phase_c_command_center_entry_point.test.mjs",
       "numerator": "VERIFIED",
       "denominator": "54 checks",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -149,7 +149,7 @@
       "command": "node scripts/checks/phase_c_command_acceptance.test.mjs",
       "numerator": "20 passed",
       "denominator": "20 cases",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -167,9 +167,9 @@
       "section": "GUARDS",
       "headline": "injected defects refused (negative suite)",
       "command": "node scripts/checks/phase_c_guards_reject_injected_defects.test.mjs",
-      "numerator": "55 refused",
-      "denominator": "55 injected defects",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "numerator": "58 refused",
+      "denominator": "58 injected defects",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -182,7 +182,7 @@
       "exit_code": 0,
       "result": "PASS",
       "detail": {
-        "sqlstate_guard_pairs": "31",
+        "sqlstate_guard_pairs": "34",
         "prose_only_assertions": "0"
       }
     },
@@ -192,7 +192,7 @@
       "command": "node scripts/checks/kernel_positive_controls.test.mjs",
       "numerator": "13 accepted",
       "denominator": "13 canonical kernel entry doors",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -214,7 +214,7 @@
       "command": "node scripts/checks/phase_b_guards_reject_injected_defects.test.mjs",
       "numerator": "20 fired",
       "denominator": "20 cases",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -234,7 +234,7 @@
       "command": "node scripts/checks/phase_c_invariants.test.mjs",
       "numerator": "PASS",
       "denominator": "17 checks",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -254,7 +254,7 @@
       "command": "node scripts/checks/kernel_invariants.test.mjs",
       "numerator": "PASS",
       "denominator": "6 checks",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -274,7 +274,7 @@
       "command": "node scripts/checks/cancellation_reaches_the_kernel.test.mjs",
       "numerator": "PASS",
       "denominator": "11 counters",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -294,7 +294,7 @@
       "command": "node scripts/checks/active_signal_types_are_executable.test.mjs",
       "numerator": "6 accepted",
       "denominator": "6 active signal types",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
@@ -314,7 +314,7 @@
       "command": "node scripts/checks/kernel_write_guard_both_directions.test.mjs",
       "numerator": "PASS",
       "denominator": "7 cases",
-      "commit": "d15a03a57a59069bef2a84a5e8073b7168db5e43",
+      "commit": "3b590d13cf9d2abf4aa8b3f16b610d659240e011",
       "environment": {
         "project_ref": "htdblwldjkcgjvmqkbeh",
         "NO_PAID_AI": "true",
