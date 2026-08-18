@@ -390,3 +390,84 @@ every workflow, not by reading a registry) and this file.
 ---
 
 **PHASE_D_NOT_READY**
+
+---
+
+# Addendum — D10 and D11, same session
+
+## D10 — seven cases for every one of the 257 steps
+
+**1,799 / 1,799 executed. 0 failed. 0 effects written, 0 step runs written** — counted around the
+whole matrix rather than promised, and the runner raises if either moves.
+
+| case | decided at | machine refusal identity |
+|---|---|---|
+| positive | step contract | — (the step's own input schema accepts a complete payload) |
+| missing_input | step contract | `pd_input_schema_invalid`, naming the removed key |
+| malformed_output | step contract | `pd_output_schema_invalid` |
+| wrong_actor | executor boundary | `br004_actor_not_canonical` |
+| invalid_state | executor boundary | `pd_step_state_invalid` |
+| failed_rule_or_gate | executor boundary | `pd_rule_refused` |
+| duplicate | structural constraint | `UNIQUE (step_run_id, effect_type)`, read from `pg_constraint` |
+
+`decided_at` is the column that keeps this honest: **771 cases are decided by the step's own declared
+contract and 1,028 at a boundary shared by all 257.** A contract-level refusal must never be read as
+a driven one, so the level travels with every row and the board prints both counts. A future
+increment that drives all 257 to a live step run can replace the boundary cases without moving the
+denominator, which is derived as 7 × the frozen step count and not typed.
+
+1,799/1,799 passing on a first run is exactly the shape that deserves suspicion, so the matrix was
+made to fail: asked about a step that does not exist it returns `passed=false` with `step_unknown`.
+
+## D11 — 287 events say CONNECTED and 14 have ever happened
+
+| | |
+|---|---|
+| frozen events | 347 |
+| bindings saying `CONNECTED` | **287** |
+| distinct event ids that have EVER reached the outbox | **14** |
+
+`connection_status` is a claim about **structure** and was being read as though it said the event
+happens. `phase_d_event_reconciliation` keeps Phase C's column untouched and adds a
+`runtime_observation` derived from `phase_c_event_outbox`, the only place an emission leaves a trace.
+A deploy-time control refuses the file if the two columns agree — a second column that always matches
+the first is the same claim under another name — and refuses it if nothing is observed at all.
+
+| required | result |
+|---|---|
+| events reconciled | **347 / 347** |
+| registry-only events reported runtime-observed | **0** |
+| events with no factual state change | **0** |
+| events with no registered cancellation writer | **0** |
+| events with no dedupe key | **0** |
+| **event self-loops** | **54 — RED, ratcheted, owned** |
+
+All 54 are step-completed events whose `emitted_by` and `primary_consumer_role_id` are the same role.
+Both columns are **Phase B, frozen since 15 August**. Phase D measured it and may not change it.
+Narrowing the predicate until the count reached zero would be the rubber stamp this estate keeps
+finding, so it is left red with an owner and the exact reason, and it needs a Phase B change request
+or a founder ruling that a same-owner sequence is correct as designed.
+
+## Deliverables after the addendum
+
+**10 of 15.** Added this session: `PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv`,
+`PHASE_D_HANDOFF_EVENT_RESULT.csv`, `PHASE_D_STEP_CASE_RESULT.csv`,
+`PHASE_D_ROLLBACK_CLASSIFICATION_D9.md`, and this closure.
+
+Still owed: `PHASE_D_FRONTEND_API_CALL_GRAPH.csv`, `PHASE_D_STORAGE_RLS_SECURITY_RESULT.md`,
+`PHASE_D_FINANCIAL_PRIVACY_RESULT.md`, `PHASE_D_IDEMPOTENCY_CONCURRENCY_RESULT.md`,
+`PHASE_D_EXTERNAL_EFFECTS_RESULT.md`, `PHASE_D_INJECTED_DEFECT_RESULT.csv`.
+
+## The one blocker that is the founder's, not an engineer's
+
+**W17 cannot reach closure without a recorded founder decision on a refund.** GATE-020 refuses
+W17-S01 with `gate020_refund_unauthorised` because `phase_c_refund_decision` holds no decision for
+the case. His own standing rule is that every refund needs the founder, at any amount, and it is
+enforced by a trigger rather than a convention.
+
+A fixture must never forge that artefact. So 30/30 deterministic closure is not reachable by an
+engineer alone: it needs either a founder decision recorded in a test context, or a ruling from him
+that a test-context refund may carry a synthetic decision. That is money and it is his own authority
+— the two things this session escalates rather than decides.
+
+**PHASE_D_NOT_READY**
