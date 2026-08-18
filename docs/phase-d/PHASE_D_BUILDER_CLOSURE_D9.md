@@ -278,6 +278,15 @@ does not list is a MANIFEST GAP and its live routines are production→repositor
 every remaining line verified to resolve to a real file. *An interim clean removed three
 single-quoted entries whose files DO exist; caught by re-reading the removals and restored.*
 
+**A Phase D foreign key stood in front of a frozen Phase B guard.** `phase_b_guards_reject_injected_defects`
+went 20/20 to 19/20: the guard injects its defect by deleting a `phase_b_handoff` row and asserts the
+frozen Phase B guard refuses it *for the Phase B reason*. `phase_d_handoff_contract.handoff_id` was
+`on delete restrict`, so a Phase D table refused it first and the Phase B guard never ran. Nothing
+was unsafe — but refused is not the assertion, and a Phase D artefact that intercepts a frozen
+guard has quietly replaced it. Changed to `on delete cascade`, because the contract is derived and
+regenerable; the acceptance ledger is deliberately left un-cascaded because an audit trail is not a
+derivation. **20/20 guards fire again.**
+
 **Re-applying an earlier file silently reverted two later routines.** Fixing a constraint name in
 `phase_d_d9c` re-applied that file's older `fn_phase_d_fixture_scenario` and
 `fn_phase_d_fixture_state`, discarding four subsequent increments. Nothing failed and
@@ -323,7 +332,10 @@ the database: `customers` 0, `inquiries` 0, `transactions` 0, `quotes` 0, `refun
 | `fn_phase_d_fixture_state()` | **10/10 green + 1 informational row** |
 | `kernel_boards_are_green.test.mjs` | **7/7 pass** — 30 boards, 367 checks, 8 red, every one owned and pre-existing |
 | `canonical_routines.test.mjs` | **11 passed, 0 findings** — 0 drift in both directions, 0 manifest gaps |
-| schema mirror vs live export | regenerated — the mirror said 560 tables, production holds 563 |
+| schema mirror vs live export | **identical**, 70,974 lines (regenerated twice — the mirror said 560 tables and production holds 563, and it fell behind again after the last two increments, which is what CI caught) |
+| `node scripts/checks/run.mjs` | **302 tests, 300 pass, 2 fail** — the same two that were red before Phase D began |
+| `phase_b_guards_reject_injected_defects` | **20/20 guards fire** |
+| `verify_deploy_parity.mjs --all` | **202 functions carry the repo's current code** |
 
 **No new red board.** The two this session's own work introduced were both fixed here rather than
 adjusted to agree with what shipped.
