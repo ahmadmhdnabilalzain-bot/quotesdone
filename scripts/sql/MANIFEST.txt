@@ -1425,3 +1425,16 @@ scripts/sql/phase_c_baseline_row_and_d0_preflight.sql
 scripts/sql/phase_d_d1_handler_registry_and_executor.sql
 scripts/sql/phase_d_d3_rule_enforcement.sql
 scripts/sql/phase_d_d0_auth_debt_discharged.sql
+scripts/sql/phase_d_d2_business_object_map.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded
+scripts/sql/phase_d_d4_remaining_rules.sql
+scripts/sql/phase_d_d5_gate_predicates.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded
+scripts/sql/phase_d_d6_handler_status_is_measured.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded

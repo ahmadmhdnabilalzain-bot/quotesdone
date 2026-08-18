@@ -16,6 +16,92 @@ Phase E was not begun. No frozen Phase A, Phase B or Phase C object was edited.
 
 ---
 
+## Session 2 — D2, D4, D5 (2026-08-18, 15:20 → 16:15 UTC)
+
+Resumed from `bc20365` after a clean precheck: main == origin, 0 drift both ways, schema mirror
+byte-identical, working tree clean.
+
+| wave | before | after |
+|---|---|---|
+| **D2** business objects | 0 of 56 mapped | **56/56 bound** — 26 to an existing relation, 30 to a new policy-guarded store with a canonical view each. Board 7/7. |
+| **D4** business rules | 34 of 54 enforced | **54/54 enforced**, 0 outstanding. Ratchet entry **deleted**, not lowered. Board 4/4. |
+| **D5** gates | 0 of 32 with their own predicate | **32/32 contracted and predicated**. 29 BLOCK on empty evidence; the 3 that pass are database-measured and need none. Board 5/5. |
+| deliverables | 6 of 15 | **6 of 15** |
+
+### Three measurements that decided the D2 design
+
+- **There is no `suppliers` table.** The supplier account is `public.leads` (20,465 rows) carrying
+  `claimed`, `approval_status`, `verification_status`, `accepted_terms_*`. Binding to a table
+  called "suppliers" would have bound to nothing.
+- **`public.transactions` is empty** and carries `revealed_at`/`fee_status`/`reveal_fee`/
+  `payment_ref`. BR-020 is decided there, and only a fixture can prove it.
+- **536 tables have RLS enabled with zero policies** — deny-all, not configured protection. The map
+  and the CSV record the *policy count*, never the flag.
+
+Thirty of the 56 objects have no table anywhere. MISSING means build it, so they get one canonical
+store with a per-object view — the 21 declared record policies collapse to 6 enforcement families,
+and thirty near-identical tables would have meant thirty copies of one trigger.
+
+### BR-020, the rule the brief singled out
+
+`public.transactions` has **no check constraints at all**, so `fee_status` is unconstrained text and
+this estate had never declared what a payment state is. `phase_d_payment_state` now declares six
+rungs as data. Driven up the ladder on a fixture, in an aborted transaction:
+
+```
+checkout_created    rung=1  permitted=false
+payment_initiated   rung=2  permitted=false
+provider_success    rung=3  permitted=false
+payment_confirmed   rung=4  permitted=false
+payment_reconciled  rung=5  permitted=false   <- no payment_ref, no reveal_fee
+reveal_authorized   rung=6  permitted=false   <- same
+reconciled + ref + fee      permitted=true
+fee_status='paid'   rung=0  permitted=false   <- unknown REFUSES, no nearest-rung fallback
+```
+
+The six states the brief said not to equate are not equated. No CHECK was added to `transactions`:
+a live writer using an off-ladder value would then fail at runtime, and Phase D repairs
+implementation to the frozen design rather than changing behaviour to make a check green.
+
+### The rule evaluator gained a third answer
+
+Phase C's routine had two — true and false — and returned **true** when it had no predicate. The
+state is now explicit: `ENFORCED_PASS`, `ENFORCED_FAIL`, `NOT_APPLICABLE`, `NOT_IMPLEMENTED`, the
+last carrying `ok = false`. The executor blocks a hard rule on failure **and** on not-implemented.
+Asked with an empty context, **30 rules return `ENFORCED_FAIL`** — they need evidence rather than
+assuming it.
+
+### Gates: additive, not a stricter kernel
+
+`fn_phase_c_gate_evaluate` is called by the frozen kernel for every step in the estate and its
+callers pass a fixed five-key object. Making it strict would refuse every step completion in the
+system — not a stricter gate, an outage. So `fn_phase_d_gate_evaluate` is a new strict path the
+Phase D executor calls **before** the kernel, with the kernel's generic check behind it. Every row
+of the deliverable says so rather than implying estate-wide coverage.
+
+### The handler status was overstating, and now says so
+
+The brief warned against marking handlers implemented because bindings and schemas exist. 236 of
+257 read `NEW_DETERMINISTIC_HANDLER`, which is true about the **output** and overstates the
+**business effect**: not one handler yet calls a business-object service. `business_write_wired` is
+now MEASURED from the live executor body, and the board carries
+`handlers_not_writing_a_business_object = 257`, ratcheted with an owner and an instruction to
+delete the entry at 0. **That is the single largest honest gap in Phase D and it is now countable
+rather than described.**
+
+### Defects found in my own work this session, every one by execution
+
+| defect | detail |
+|---|---|
+| `%L` inside a `RAISE` | Only `format()` supports it; six messages printed a stray `L` after the value. |
+| `transactions.id` is UUID, not bigint | Predicates cast the *argument* and threw on every call. The estate mixes key types — `inquiries` uuid, `leads` bigint, `inquiry_matches` one of each — so identifiers are now text and the column is cast. |
+| Two OUT params shadowed columns | `state_key` and `reason`. Postgres refused both as ambiguous rather than silently choosing. |
+| BR-011 collapsed to a tautology | An OR'd condition that read as if it were doing something it was not. |
+| Scope treated as applicability — **again** | GATE-004 blocked an intake step for a reviewer the frozen step never names. Identical shape to BR-002 last session. |
+| Ratchet expressed in the wrong direction | A check reading "0 of 257 wired" needs a number that must *grow*, which inverts the ratchet's meaning. Counted as the gap instead, so it falls. |
+
+---
+
 ## Why this ends NOT_READY
 
 Phase D's Definition of Done requires, among other things: 257/257 handlers evidenced with seven
@@ -322,8 +408,8 @@ This is the whole of the outstanding Phase D scope. Nothing below was started un
 
 | wave | scope | state |
 |---|---|---|
-| **D2** | 56 business objects: canonical table, read/write service, ownership/RLS, versioning, mutation guard, retention, safe/raw representation, compensation | **not started.** Naive name matching resolves only 8 of 56 to a table — the estate's 553 tables do not share the registry's vocabulary, so this needs real mapping. **This is the blocking dependency for the 20 outstanding rules.** |
-| **D3 (rest)** | 32 gates each need a real predicate reading their own `required_evidence`; today all 32 share one generic check | **not started** |
+| **D2** | 56 business objects | **DONE this session — 56/56 bound, board 7/7.** Remaining: no handler yet writes an object (counted on the handler board). Naive name matching resolves only 8 of 56 to a table — the estate's 553 tables do not share the registry's vocabulary, so this needs real mapping. **This is the blocking dependency for the 20 outstanding rules.** |
+| **D3 (rest)** | 32 gate predicates | **DONE this session — 32/32, board 5/5.** Strict on the Phase D path; the kernel path is unchanged and that is stated. |
 | **D4** | 159 effective handoffs: packet schema, acceptance, SLA, rejection, return owner | **not started** (the kernel already creates and validates handoff runs; the per-handoff contract does not exist) |
 | **D5** | frontend → API → service → database call graph; storage MIME/magic-byte/quarantine; RLS proofs | **not started** |
 | **D6** | external effect adapters, all mock/disabled | **not started** (effects are held, but the durable adapter contract is not built) |

@@ -337,9 +337,13 @@ declare
   v_ctx      text   := lower(coalesce(nullif(btrim(p_input->>'execution_context'),''),'production'));
   v_ok       boolean; v_reason text; v_missing text[];
   v_rule     record; v_rule_ok boolean; v_rule_type text; v_rule_reason text;
-  v_applies  boolean; v_why text; v_enforced boolean; v_refusal text;
+  v_applies  boolean; v_why text; v_enforced boolean; v_refusal text; v_state text;
   v_refused  jsonb := '[]'::jsonb;
   v_skipped  jsonb := '[]'::jsonb;
+  v_gate     record; v_gstate text; v_gpassed boolean; v_gtype text;
+  v_greason  text; v_grefusal text; v_gapplies boolean; v_gwhy text;
+  v_gates    jsonb := '[]'::jsonb;
+  v_gblocked jsonb := '[]'::jsonb;
   v_evaluated jsonb := '[]'::jsonb;
   v_output   jsonb;
   v_assert   jsonb;
@@ -396,8 +400,8 @@ begin
       continue;
     end if;
 
-    select ok, rule_type, enforced, reason, refusal_code
-      into v_rule_ok, v_rule_type, v_enforced, v_rule_reason, v_refusal
+    select state, ok, rule_type, enforced, reason, refusal_code
+      into v_state, v_rule_ok, v_rule_type, v_enforced, v_rule_reason, v_refusal
       from public.fn_phase_d_rule_check(v_rule.rid,
         -- The caller's business context is merged in LAST so a CONTEXT_REQUIRED rule can be
         -- satisfied by a named fact, and refuses when the fact is absent.
@@ -413,18 +417,61 @@ begin
         || coalesce(p_input->'context','{}'::jsonb));
 
     v_evaluated := v_evaluated || jsonb_build_array(jsonb_build_object(
-      'rule_id', v_rule.rid, 'rule_type', v_rule_type, 'ok', v_rule_ok,
+      'rule_id', v_rule.rid, 'state', v_state, 'rule_type', v_rule_type, 'ok', v_rule_ok,
       'enforced', v_enforced, 'reason', v_rule_reason));
 
-    if not coalesce(v_rule_ok,false) and v_rule_type = 'hard' then
+    -- A hard rule blocks when it FAILED and, equally, when it is NOT_IMPLEMENTED. The second half
+    -- matters more than the first: an unimplemented hard rule that let the step through would be
+    -- the always-passes scorer rebuilt one branch further down.
+    if v_rule_type = 'hard' and v_state in ('ENFORCED_FAIL','NOT_IMPLEMENTED') then
       v_refused := v_refused || jsonb_build_array(jsonb_build_object(
-        'rule_id', v_rule.rid, 'rule_type', v_rule_type,
+        'rule_id', v_rule.rid, 'state', v_state, 'rule_type', v_rule_type,
         'refusal_code', v_refusal, 'reason', v_rule_reason));
     end if;
   end loop;
   if jsonb_array_length(v_refused) > 0 then
     raise exception 'fn_phase_d_handler_execute: step % refused by % hard business rule(s): % (pd_rule_refused)',
       sr.step_id, jsonb_array_length(v_refused), v_refused::text using errcode = '23514';
+  end if;
+
+  -- ---- 2b. GATES IN SCOPE, EACH AGAINST ITS OWN DECLARED EVIDENCE --------------------------
+  -- The frozen kernel also evaluates gates, through fn_phase_c_gate_evaluate, which applies ONE
+  -- generic predicate to all 32 and never reads a gate's own required_evidence. That path is not
+  -- touched — it is called by every step in the estate and making it strict would refuse callers
+  -- that cannot know about a given gate's evidence. This is the strict path, in front of it.
+  --
+  -- A hard gate that BLOCKS stops the handler. A gate with no predicate is NOT_IMPLEMENTED, which
+  -- also stops it: an unimplemented gate that let the step through is the generic default in
+  -- another costume.
+  for v_gate in select unnest(b.gate_ids) gid loop
+    select ga.applies, ga.why into v_gapplies, v_gwhy
+      from public.fn_phase_d_gate_applies(v_gate.gid, sr.step_id) ga;
+    if not coalesce(v_gapplies,false) then
+      v_gates := v_gates || jsonb_build_array(jsonb_build_object(
+        'gate_id', v_gate.gid, 'state', 'NOT_APPLICABLE', 'why', v_gwhy));
+      continue;
+    end if;
+    select ge.state, ge.passed, ge.gate_type, ge.reason, ge.refusal_code
+      into v_gstate, v_gpassed, v_gtype, v_greason, v_grefusal
+      from public.fn_phase_d_gate_evaluate(v_gate.gid,
+        jsonb_build_object('step_id', sr.step_id, 'run_id', sr.run_id,
+                           'actor_role_id', v_actor,
+                           'reviewer_role_id', nullif(b.independent_reviewer_role_id,''))
+        || coalesce(p_input->'gate_evidence','{}'::jsonb)) ge;
+
+    v_gates := v_gates || jsonb_build_array(jsonb_build_object(
+      'gate_id', v_gate.gid, 'state', v_gstate, 'gate_type', v_gtype,
+      'passed', v_gpassed, 'reason', v_greason));
+
+    if v_gtype = 'hard' and v_gstate in ('BLOCKED','NOT_IMPLEMENTED') then
+      v_gblocked := v_gblocked || jsonb_build_array(jsonb_build_object(
+        'gate_id', v_gate.gid, 'state', v_gstate,
+        'refusal_code', v_grefusal, 'reason', v_greason));
+    end if;
+  end loop;
+  if jsonb_array_length(v_gblocked) > 0 then
+    raise exception 'fn_phase_d_handler_execute: step % refused by % hard gate(s): % (pd_gate_refused)',
+      sr.step_id, jsonb_array_length(v_gblocked), v_gblocked::text using errcode = '23514';
   end if;
 
   -- ---- 3. CAPABILITY BOUNDARY, FAIL CLOSED -------------------------------------------------
@@ -571,7 +618,7 @@ begin
                                 where (e->>'enforced')::boolean),
       'rules_outstanding_count', (select count(*) from jsonb_array_elements(v_evaluated) e
                                    where not (e->>'enforced')::boolean),
-      'gates_in_scope', cardinality(b.gate_ids),
+      'gates_in_scope', cardinality(b.gate_ids), 'gates_evaluated', v_gates,
       'capability_dependency', b.capability_dependency,
       'provider_dependency', b.provider_dependency,
       'external_effect_policy', b.external_effect_policy));

@@ -20,7 +20,6 @@
     "kernel_boards_are_green.test.mjs also fails if a ratchet entry no longer matches a real check,",
     "so an entry cannot outlive its subject and silently license a future failure with that name."
   ],
-
   "ratchet": [
     {
       "board": "fn_kernel_trace_integrity",
@@ -79,12 +78,12 @@
       "measured_at": "2026-08-18, 9 of 37 (26 -> 19 when the literal-name discharge was measured; 19 -> 9 when the write map landed)"
     },
     {
-      "board": "fn_phase_d_rule_state",
-      "check": "rules_with_outstanding_enforcement",
-      "max_numerator": 20,
-      "why": "PHASE D DEBT, DISCLOSED RATHER THAN HIDDEN, AND THIS ENTRY IS THE OPPOSITE OF THE DEFECT IT REPLACES. Before Phase D, public.fn_phase_c_rule_check returned ok := true for 52 of the 54 frozen business rules while its reason string claimed 'registered and enforced through the canonical boundary'. Nothing was red, because nothing was measured. phase_d_rule_enforcement now names, for every one of the 54, HOW it is enforced and WHEN it applies: 34 are genuinely enforced (15 real predicates, 9 refused by the frozen kernel, 5 by a trigger, 3 by the output schema, 1 by the executor's capability boundary, 1 requiring named context), and 20 are NOT YET decidable because they need the D2 business-object read/write map — a rule like BR-020 'reveal only after payment is reconciled' cannot be decided until the transaction object's reconciliation state is mapped to the step that reads it. Those 20 report enforced = false to every caller and are counted here. The number going RED is the disclosure working. It must fall to 0 as D2 lands, and this entry must be DELETED at 0, not lowered and left.",
-      "owner": "OPEN — Phase D D2, the 56 business-object read/write map. BR-011,012,013,014,015,017,018,019,020,025,026,029,032,033,034,035,036,039,041,049",
-      "measured_at": "2026-08-18, 20 of 54"
+      "board": "fn_phase_d_handler_state",
+      "check": "handlers_not_writing_a_business_object",
+      "max_numerator": 257,
+      "why": "PHASE D DEBT, DISCLOSED BECAUSE THE STATUS COLUMN WAS OVERSTATING IT. 236 of the 257 bindings read NEW_DETERMINISTIC_HANDLER, which is true about the OUTPUT -- the family handler produces a typed, schema-validated result that the frozen kernel accepts -- and overstates the BUSINESS EFFECT, because not one handler yet calls a business-object service. D2 built fn_phase_d_object_write and bound all 56 objects; no handler is wired to it. business_write_wired is MEASURED from the live executor body rather than declared, so it cannot drift by being forgotten, and this check counts the GAP so the number falls as the work lands. Delete this entry at 0, do not lower and leave it.",
+      "owner": "OPEN -- Phase D D2 successors: wire each handler family to fn_phase_d_object_write for the objects its step writes",
+      "measured_at": "2026-08-18, 257 of 257 not yet writing"
     }
   ]
 }
