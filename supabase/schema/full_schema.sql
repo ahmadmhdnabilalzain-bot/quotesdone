@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-18T06:38:01.204Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-18T06:41:22.398Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -11986,7 +11986,10 @@ CREATE OR REPLACE VIEW public.v_kernel_trigger_source_derived AS  WITH wt(t, why
             WHEN 'cron_job'::text THEN cf.routes
             WHEN 'database_trigger'::text THEN tf.routes
             WHEN 'event_trigger'::text THEN ef.routes
-            ELSE s.recorded_routes_through_inbox
+            ELSE ((EXISTS ( SELECT 1
+               FROM (kernelcaller kc
+                 JOIN body b2 ON ((b2.oid = kc.oid)))
+              WHERE (b2.src ~~ (('%'''::text || s.source_key) || '''%'::text)))) OR COALESCE(s.recorded_routes_through_inbox, false))
         END AS routes_through_inbox,
         CASE s.source_kind
             WHEN 'cron_job'::text THEN cf.replays

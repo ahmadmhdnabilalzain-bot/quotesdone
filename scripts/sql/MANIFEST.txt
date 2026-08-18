@@ -1408,3 +1408,7 @@ scripts/sql/nobody_was_reading_the_boards.sql
 
 [OK] Command outcome recorded
 scripts/sql/the_ledger_follows_the_deferral_change.sql
+scripts/sql/the_flag_was_a_claim_the_discharge_is_measurable.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded

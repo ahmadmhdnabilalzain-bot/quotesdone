@@ -65,10 +65,10 @@
     {
       "board": "fn_kernel_trigger_state",
       "check": "active_autonomous_source_not_yet_routing_through_the_inbox",
-      "max_numerator": 26,
-      "why": "THE ONE OPEN PHASE C GATE. 26 of 37 active autonomous sources still start or change business work without entering the kernel. The check's own expected string says NOT MET BY K10: K10 built the door and registered the routes, and moving each source onto it is a separate wiring increment. The doors are ready — all 24 active trigger types read ADAPTER_READY_NO_LIVE_SENDER — and the 26 sources collapse to 10 adapter trigger types across 9 workflows. This ratchet exists so the number is watched and cannot grow while that work is done; it is NOT a licence to leave it. Delete this entry when the count reaches 0.",
-      "owner": "OPEN — Phase C kernel cutover, 10 increments, one per adapter trigger type",
-      "measured_at": "2026-08-18, 26 of 37"
+      "max_numerator": 19,
+      "why": "THE ONE OPEN PHASE C GATE. 19 of 37 active autonomous sources still start or change business work without entering the kernel. The check's own expected string says NOT MET BY K10: K10 built the door and registered the routes, and moving each source onto it is a separate wiring increment. The doors are ready — all 24 active trigger types read ADAPTER_READY_NO_LIVE_SENDER. It read 26 until the instrument was fixed: for edge functions and frontend paths, routes_through_inbox fell through to a hand-set boolean that was false on all 33 of them, so seven sources genuinely discharged by a trigger calling fn_kernel_source_emit with their source key still counted as bypassing. The view now measures that literal and consults the flag only where no routine discharges the source. 19 is what it always was. This ratchet is NOT a licence to leave it — lower it as each increment lands, and delete the entry at 0.",
+      "owner": "OPEN — Phase C kernel cutover, 12 edge functions, 5 frontend paths, 2 database triggers",
+      "measured_at": "2026-08-18, 19 of 37 (was reported 26 before the instrument was corrected)"
     }
   ]
 }
