@@ -319,14 +319,14 @@ This is the whole of the outstanding Phase D scope. Nothing below was started un
 | **D11** | 257 × 7 = 1,799 per-step tests; 30 × 4 workflow tests; the 75-row injected defect catalogue | **not started.** One end-to-end execution proof exists (W01-S01). |
 | **D12** | 347 events reconciled with real producer/consumer/outbox/trace | **not started** |
 | **D13** | 30/30 deterministic workflow closure | **not started.** One workflow was driven one step. |
-| **D14** | 15 required deliverables | **4 of 15** |
+| **D14** | 15 required deliverables | **5 of 15** |
 
-**Written:** `PHASE_D_CURRENT_CODE_HANDLER_CROSSWALK.csv`, `PHASE_D_ZERO_COST_EVIDENCE.md`,
-`PHASE_D_PRODUCTION_DEPLOYMENT_LEDGER.md`, and this file.
+**Written:** `PHASE_D_CURRENT_CODE_HANDLER_CROSSWALK.csv`, `PHASE_D_RULE_GATE_RESULT.csv`,
+`PHASE_D_ZERO_COST_EVIDENCE.md`, `PHASE_D_PRODUCTION_DEPLOYMENT_LEDGER.md`, and this file.
 
 **Still owed:** `PHASE_D_HANDLER_IMPLEMENTATION_RESULT.csv`,
 `PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv`, `PHASE_D_BUSINESS_OBJECT_RESULT.csv`,
-`PHASE_D_RULE_GATE_RESULT.csv`, `PHASE_D_HANDOFF_EVENT_RESULT.csv`,
+`PHASE_D_HANDOFF_EVENT_RESULT.csv`,
 `PHASE_D_FRONTEND_API_CALL_GRAPH.csv`, `PHASE_D_STORAGE_RLS_SECURITY_RESULT.md`,
 `PHASE_D_FINANCIAL_PRIVACY_RESULT.md`, `PHASE_D_IDEMPOTENCY_CONCURRENCY_RESULT.md`,
 `PHASE_D_EXTERNAL_EFFECTS_RESULT.md`, `PHASE_D_INJECTED_DEFECT_RESULT.csv`.
