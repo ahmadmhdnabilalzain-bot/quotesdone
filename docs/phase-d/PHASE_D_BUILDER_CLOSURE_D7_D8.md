@@ -211,6 +211,42 @@ moves the run and chooses the successor → closure step reaches a frozen termin
 
 **1 of 30 workflows reaches deterministic closure.** The other 29 are not claimed.
 
+### The other workflows, driven and measured rather than assumed
+
+Seven more workflows were driven with the same fixture harness. **None of the seven stops on a
+defect in the implementation**, and each stop is named precisely so the next session does not have
+to rediscover it.
+
+| workflow | steps | effects | stopped at | why |
+|---|---|---|---|---|
+| W01 | 1 of 8 | 1 | after S01, run `waiting_handoff` | the kernel opens no successor step run until the handoff is **accepted**; the driver does not call `fn_kernel_handoff_accept` |
+| W02 | 1 of 9 | 1 | after S01, run `waiting_review` | same shape: the run waits on a review decision the driver does not record at the run level |
+| W03 | 1 of 9 | 0 | W03-S01, `pd_gate_refused` | GATE-021 requires `reviewer_role_id`; the frozen step names none and the fixture generator correctly refuses to invent an identity |
+| W05 | 1 of 9 | 0 | W05-S01, `pd_rule_refused` | BR-013: *"no inquiry_id named; readiness cannot be measured against nothing"* — a foreign key a fixture must not invent |
+| W06 | 1 of 7 | 0 | W06-S01, `pd_rule_refused` | BR-013, same |
+| W07 | 1 of 8 | 0 | W07-S01, `pd_rule_refused` | BR-013, same |
+| W08 | 1 of 8 | 0 | W08-S01, `pd_gate_refused` | GATE-013: the safe package's approver and the actor resolve to one identity, because the fixture gave both the same string. **The gate is correct** — that is a creator/reviewer collision. |
+
+**Two distinct classes of remaining work fall out of this, and they are different jobs:**
+
+1. **W01 and W02 need the handoff acceptance path.** A run in `waiting_handoff` or
+   `waiting_review` has no open step run, so the driver's loop ends and reports a partial drive
+   rather than a failure. This is D8's handoff-contract scope — acceptance criteria, rejection
+   reason, return owner — and it is the single change that would take several workflows much
+   further. It is not a defect; it is the kernel correctly declining to advance a run whose handoff
+   nobody has accepted.
+
+2. **W03, W05–W08 need real parent data**, built inside the same aborted transaction, in the order
+   reality produces it. `public.customers` and `public.transactions` both hold **0 rows** since the
+   16 August purge, so every gate and rule that reads business data refuses for absence of a parent.
+   Inventing one would either violate the constraint or, worse, pass by pointing at somebody's real
+   row.
+
+**1 of 30 workflows reaches deterministic closure. 8 of 30 have been driven at all.** Nothing is
+claimed about the remaining 22.
+
+---
+
 ## 6. Defects found in my own work, every one by execution or by its own board
 
 | defect | detail |
@@ -286,7 +322,7 @@ increment maps anything onto it.
 | **D10** | external effect adapters (Resend, SMS/WhatsApp, social, Stripe, storage, Apify), all mock | **PARTIAL** — 12 steps classified `EXTERNAL_ADAPTER_READY_DISABLED` with a typed mock intent record; the durable per-provider adapter contract (attempt, retry, dead-letter, reconciliation) is not built |
 | **D11** | 257 × 7 per-step cases; 30 × 4 workflow cases; the 75-row injected defect catalogue | **not started.** The driver exists and is the harness for all of it. |
 | **D12** | 347 events reconciled with real producer/consumer/outbox/trace | **not started** |
-| **D13** | 30/30 deterministic workflow closure | **1 of 30.** W04 closes deterministically; W05–W30 not driven. The driver is the harness for the rest. |
+| **D13** | 30/30 deterministic workflow closure | **1 of 30 closed, 8 of 30 driven.** W04 closes deterministically. W01/W02 stop on an unaccepted handoff; W03, W05–W08 stop for want of real parent data. Neither class is a defect and both are named in §5. |
 | **D14** | 15 required deliverables | **7 of 15** |
 
 **Written this session:** `PHASE_D_HANDLER_IMPLEMENTATION_RESULT.csv` (257 rows × 43 columns) and
