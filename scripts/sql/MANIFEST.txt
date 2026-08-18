@@ -1420,3 +1420,5 @@ scripts/sql/the_write_map_in_the_database.sql
 'scripts/sql/the_write_map_in_the_database.sql'  
 scripts/sql/the_predicate_follows_the_map.sql
 scripts/sql/the_truncate_protection_was_a_typed_list.sql
+scripts/sql/phase_c_founder_approved_and_frozen.sql
+scripts/sql/phase_c_baseline_row_and_d0_preflight.sql
