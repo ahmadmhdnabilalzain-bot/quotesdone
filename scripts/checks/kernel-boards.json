@@ -76,6 +76,14 @@
       "why": "THE ONE OPEN PHASE C GATE. 19 of 37 active autonomous sources still start or change business work without entering the kernel. The check's own expected string says NOT MET BY K10: K10 built the door and registered the routes, and moving each source onto it is a separate wiring increment. The doors are ready — all 24 active trigger types read ADAPTER_READY_NO_LIVE_SENDER. It read 26 until the instrument was fixed: for edge functions and frontend paths, routes_through_inbox fell through to a hand-set boolean that was false on all 33 of them, so seven sources genuinely discharged by a trigger calling fn_kernel_source_emit with their source key still counted as bypassing. The view now measures that literal and consults the flag only where no routine discharges the source. 19 is what it always was. This ratchet is NOT a licence to leave it — lower it as each increment lands, and delete the entry at 0.",
       "owner": "OPEN — 2 quote_items triggers, 2 edge functions writing customers (the W04 gap), 5 frontend paths the write map does not yet model",
       "measured_at": "2026-08-18, 9 of 37 (26 -> 19 when the literal-name discharge was measured; 19 -> 9 when the write map landed)"
+    },
+    {
+      "board": "fn_phase_d_handler_state",
+      "check": "handlers_not_writing_a_business_object",
+      "max_numerator": 257,
+      "why": "PHASE D DEBT, DISCLOSED BECAUSE THE STATUS COLUMN WAS OVERSTATING IT. 236 of the 257 bindings read NEW_DETERMINISTIC_HANDLER, which is true about the OUTPUT -- the family handler produces a typed, schema-validated result that the frozen kernel accepts -- and overstates the BUSINESS EFFECT, because not one handler yet calls a business-object service. D2 built fn_phase_d_object_write and bound all 56 objects; no handler is wired to it. business_write_wired is MEASURED from the live executor body rather than declared, so it cannot drift by being forgotten, and this check counts the GAP so the number falls as the work lands. Delete this entry at 0, do not lower and leave it.",
+      "owner": "OPEN -- Phase D D2 successors: wire each handler family to fn_phase_d_object_write for the objects its step writes",
+      "measured_at": "2026-08-18, 257 of 257 not yet writing"
     }
   ]
 }
