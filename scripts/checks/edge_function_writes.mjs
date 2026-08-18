@@ -166,13 +166,32 @@ const files = slugs.map((d) => join(FN_DIR, d, 'index.ts'));
 const sites = parseWithDeno(files);
 
 const RPC_WRITES = await routineWrites();
+const EXC = JSON.parse(readFileSync(join(REPO, 'scripts', 'checks', 'edge-function-writes-exceptions.json'), 'utf8'));
+const EXC_BY_SITE = new Map((EXC.sites || []).map((e) => [e.site, e]));
+const EXC_USED = new Set();
 const writes = new Map();   // slug -> Map(table -> Set(kind))
+const unbounded = new Map(); // slug -> reason
 const unresolved = [];
 const slugOf = (f) => f.split(/[\\/]/).slice(-2)[0];
 
 for (const s of sites) {
   const slug = slugOf(s.file);
   const w = s.methods.filter((m) => WRITE_METHODS.has(m));
+
+  // A hand resolution from edge-function-writes-exceptions.json, keyed by function:line. Applied
+  // before anything is called unresolvable, and recorded as used so a stale entry is caught below.
+  const exc = EXC_BY_SITE.get(slug + ':' + s.line);
+  if (exc) {
+    EXC_USED.add(slug + ':' + s.line);
+    if (exc.unbounded) { unbounded.set(slug, exc.evidence); continue; }
+    for (const tbl of (exc.tables || [])) {
+      if (!writes.has(slug)) writes.set(slug, new Map());
+      const mm = writes.get(slug);
+      if (!mm.has(tbl)) mm.set(tbl, new Set());
+      mm.get(tbl).add('hand-resolved');
+    }
+    continue;
+  }
   if (s.kind === 'rpc') {
     if (s.target === null) { unresolved.push(`${slug}:${s.line} rpc(${s.raw}) — target not a literal`); continue; }
     if (!RPC_WRITES) { unresolved.push(`${slug}:${s.line} rpc('${s.target}') — no credential to resolve it`); continue; }
@@ -186,8 +205,18 @@ for (const s of sites) {
     }
     continue;
   }
-  if (s.target === null) { unresolved.push(`${slug}:${s.line} from(${s.raw}) — table name is not a literal`); continue; }
-  if (!w.length) continue;                       // read-only use of the table
+  // A DYNAMIC TABLE NAME ON A READ IS NOT AN UNKNOWN. The first run flagged 18 sites, and reading
+  // them showed almost all were `cnt(t)` helpers — `admin.from(t).select('id', {count:'exact',
+  // head:true})`. A select writes nothing whichever table it names, so the unresolved name changes
+  // no answer. Only a dynamic name on a chain that DOES write is genuinely unknown, because then
+  // the question "which table did it write" has no answer and the honest reply is "I cannot tell".
+  if (s.target === null) {
+    if (w.length) {
+      unresolved.push(`${slug}:${s.line} from(${s.raw}).${w.join('.')} — WRITES to a table this cannot name`);
+    }
+    continue;
+  }
+  if (!w.length) continue;                       // read-only use of a named table
   if (!writes.has(slug)) writes.set(slug, new Map());
   const m = writes.get(slug);
   if (!m.has(s.target)) m.set(s.target, new Set());
@@ -207,7 +236,18 @@ console.log(`edge functions scanned      ${slugs.length}`);
 console.log(`call sites parsed           ${sites.length}`);
 console.log(`functions with table writes ${writes.size}`);
 console.log(`write rows                  ${rows.length}`);
+console.log(`functions that may write anything ${unbounded.size}`);
+for (const [slug, why] of [...unbounded].sort()) console.log(`   ${slug} — ${String(why).slice(0, 110)}`);
 console.log(`UNRESOLVABLE call sites     ${unresolved.length}`);
+
+// A HAND RESOLUTION THAT NO LONGER MATCHES A SITE IS STALE, and a stale entry silently covers
+// nothing while looking like diligence. Same discipline as the profile and ratchet guards.
+const stale = (EXC.sites || []).map((e) => e.site).filter((k) => !EXC_USED.has(k));
+if (stale.length) {
+  console.log(`\nSTALE exception entries: ${stale.join(', ')}`);
+  console.log('Each names a call site that no longer exists at that line. Re-resolve or delete it.');
+  process.exit(1);
+}
 for (const u of unresolved.slice(0, 40)) console.log(`   ${u}`);
 if (unresolved.length > 40) console.log(`   ... and ${unresolved.length - 40} more`);
 
