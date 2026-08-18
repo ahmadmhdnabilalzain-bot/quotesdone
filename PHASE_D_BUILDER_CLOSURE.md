@@ -160,6 +160,19 @@ W01 run 5151, step run 5195
 rolled back by raise
 ```
 
+**And the refusal paths, also by execution** (aborted transaction, step run 5544). A handler that
+only ever succeeds is not evidence that anything is enforced, so each was driven until it refused:
+
+| case | refused by | machine result |
+|---|---|---|
+| missing input — 1 of 3 declared keys sent | `fn_phase_d_schema_validate` | `pd_input_schema_invalid`, naming the missing key |
+| wrong actor — `cfo` on a `chief_of_staff` step | the **frozen kernel** | `k3_not_the_accountable_owner`, "holds no active delegation" |
+| founder-gated step with no authority reference | **BR-003** | `pd_rule_refused` — `br003_founder_boundary_unevidenced` |
+| step run that does not exist | the executor | `pd_step_state_invalid` |
+
+Note the second row: the executor did not re-implement the ownership check, it let the frozen
+`fn_kernel_step_complete` refuse. That is the boundary working as designed.
+
 ### D3 — 34 of 54 rules stop being prose
 
 `phase_d_rule_enforcement` names, for all 54, **how** each is enforced and **when** it applies.
