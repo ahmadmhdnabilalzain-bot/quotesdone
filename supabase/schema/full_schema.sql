@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-18T06:41:22.398Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-18T07:08:59.251Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -63637,14 +63637,21 @@ CREATE OR REPLACE FUNCTION public.trg_contact_message_to_kernel()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare
+  v_ident text := encode(sha256(convert_to(
+      lower(btrim(coalesce(NEW.email, '')))               || '|' ||
+      lower(btrim(coalesce(NEW.source, 'contact_page')))  || '|' ||
+      btrim(coalesce(NEW.message, '')), 'UTF8')), 'hex');
 begin
   perform public.fn_kernel_source_emit('edge:contact_submit', jsonb_build_object(
-    'source_ref',  NEW.id::text,
+    'source_ref',      NEW.id::text,
+    'idempotency_key', 'edge:contact_submit:' || v_ident,
     'raw_payload', jsonb_build_object(
-      'case_ref', 'contact:' || NEW.id::text,
-      'email',    NEW.email,
-      'source',   NEW.source,
-      'name',     NEW.name)));
+      'case_ref',           'contact:' || v_ident,
+      'email',              NEW.email,
+      'source',             NEW.source,
+      'name',               NEW.name,
+      'contact_message_id', NEW.id)));
   return NEW;
 end
 $function$
