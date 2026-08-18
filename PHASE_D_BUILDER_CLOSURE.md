@@ -4,10 +4,10 @@
 
 | | |
 |---|---|
-| session | 2026-08-18, 14:00 → 15:00 UTC (database clock) |
+| session | 2026-08-18, 14:00 → 15:20 UTC (database clock) |
 | project | `htdblwldjkcgjvmqkbeh` — the one project |
 | branch | `feat/phase-d-d1-d3-handler-registry-and-rules` |
-| commits | `fb86840` (D1+D3), `195cfb4` (D0) |
+| commits | `fb86840` D1+D3 · `195cfb4` D0 · `a8bda15` closure · `ef1a9db` manifest · `fc347b6` schema mirror + deliverables 13/14 · `713210a` sweep · `0262b25` refusal paths · `8874b7b` graph · `aabaaa1` deliverable 5 |
 | pull request | [#446](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/446) |
 | paid inference | **USD 0.00** — `llm_attempt` 0 rows, `ai_cost_log` 0 rows since the Phase D start instant |
 | live external effects | **0** — see the zero-cost section, which names what the 4 notification rows in the window actually are |
