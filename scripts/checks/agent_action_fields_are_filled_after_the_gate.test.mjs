@@ -72,7 +72,24 @@ test('the filler fills all four missing fields, and overwrites none of them', as
       `the filler never assigns NEW.${col}, so §36 will still find it null on every row`);
   }
   // The derived alternatives must come from the ledger the gate wrote, not from a literal.
-  assert.match(prosrc, /d\.alternatives/,
-    'alternatives must be read from the decision_log row the gate just wrote — the two options it '
-    + 'genuinely weighed — not invented in the trigger');
+  //
+  // 18 AUG 2026 — THIS ASSERTED AN ALIAS, NOT A BEHAVIOUR. It was `assert.match(prosrc,
+  // /d\.alternatives/)`, which required the body to hold a plpgsql RECORD named `d`. That record
+  // was removed on purpose: an unassigned RECORD raises 55000 on the first field reference, and
+  // `d` was only assigned inside an if-branch, so every row that skipped the lookup crashed. The
+  // replacement declares v_alts / v_decision as typed scalars, which are null when the lookup is
+  // skipped, and null is answerable. The behaviour this test exists to protect never changed —
+  // only the identifier did — and the final acceptance audit counted this as one of the eight
+  // repository-suite failures.
+  //
+  // Now asserted on what the sentence actually says: the body READS the ledger, and the value it
+  // assigns comes from that read rather than from a literal built in the trigger.
+  assert.match(prosrc, /from\s+public\.decision_log\b/,
+    'the filler never reads public.decision_log, so whatever it puts in alternatives cannot be the '
+    + 'two options the gate genuinely weighed');
+  const assign = prosrc.match(/NEW\.alternatives\s*:=\s*([^;]+);/);
+  assert.ok(assign, 'the filler never assigns NEW.alternatives');
+  assert.doesNotMatch(assign[1], /jsonb_build_array\s*\(|'\s*\[/,
+    'alternatives is assigned a literal built inside the trigger. It must be read from the '
+    + `decision_log row the gate just wrote. Found: ${assign[1].trim().slice(0, 120)}`);
 });

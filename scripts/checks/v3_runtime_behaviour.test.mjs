@@ -395,8 +395,19 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
       raise exception 'SHOULD NOT REACH HERE';
     end $$;`);
     assert.equal(r.ok, false);
-    assert.match(r.text, /cannot be its only reviewer/,
-      'the author-is-not-reviewer trigger must refuse, not the assertion below it');
+    // 18 AUG 2026 — THE GUARD REFUSED AND THE ASSERTION STILL FAILED. It matched the string
+    // /cannot be its only reviewer/, which is the wording the trigger used before fn_pick_reviewer
+    // landed. The deployed guard refuses with SQLSTATE 23514 from fn_artifact_review_valid and a
+    // message naming both parties and the two legitimate routes. Matching prose is how a correct
+    // refusal reads as a failure; matching the SQLSTATE and the guard's own name is the standard
+    // the negative-guard suite already holds itself to, so this now does the same.
+    assert.match(r.text, /23514/,
+      'a self-review must be refused by a CHECK-class guard (23514), not by anything softer');
+    assert.match(r.text, /fn_artifact_review_valid/,
+      'the refusal must come from fn_artifact_review_valid — the author-is-not-reviewer guard — '
+      + 'and not from some other constraint that happens to reject this row');
+    assert.match(r.text, /self-review/i,
+      'the refusal must say what it refused, so the next reader knows which rule fired');
   });
 
   test(`${name}: every channel marketing publishes to has a video spec with a duration bound`, async (t) => {

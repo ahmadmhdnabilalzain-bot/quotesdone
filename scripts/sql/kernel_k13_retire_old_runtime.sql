@@ -139,12 +139,25 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
   -- The three primitives are reached only from fn_kernel_* today. This measures that, rather than
   -- claiming it: any NON-kernel routine whose source names a primitive is counted. The two retired
   -- wrappers are excluded by name because they are the retirement, not a bypass of it.
+  --
+  -- 18 AUG 2026 — THE PREDICATE WAS `prosrc like '%' || path_name || '%'`, AND A PREFIX IS NOT A CALL.
+  -- The final acceptance audit found this check red at 1 of 9. The single row was
+  -- fn_phase_c_task_state_guard against the primitive fn_phase_c_task_transition — and that guard
+  -- never calls it. `like` matched because the primitive's name is a PREFIX of a different, longer
+  -- function: fn_phase_c_task_transition_allowed, which is a pure predicate. A substring match
+  -- reported a bypass that does not exist, on a board nothing else reads.
+  --
+  -- Now: comments are stripped first, so naming a primitive in an error message or a note is not a
+  -- call; and the name must be followed by an opening parenthesis with a word boundary in front,
+  -- which is what a call looks like. `_` is a word character in Postgres regex, so `\yfn_x\y` does
+  -- not match inside `fn_x_allowed` — that is the whole fix.
   select 'kernel_primitives_called_from_outside_the_kernel', '0',
          count(*)::text || ' of ' || (select count(*) from public.kernel_retired_path
                                        where disposition = 'KERNEL_INTERNAL_PRIMITIVE')::text,
          count(*) = 0
     from public.kernel_retired_path r
-    join pg_proc p on p.prosrc like '%' || r.path_name || '%'
+    join pg_proc p on regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', ' ', 'g'), '--[^\n]*', ' ', 'g')
+                      ~ ('\y' || r.path_name || '\y\s*\(')
     join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
    where r.disposition = 'KERNEL_INTERNAL_PRIMITIVE'
      and p.proname <> r.path_name

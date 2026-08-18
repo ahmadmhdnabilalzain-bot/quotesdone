@@ -1,0 +1,74 @@
+{
+  "_README": [
+    "WHICH KERNEL BOARDS ARE GATES, AND WHICH ARE DISCLOSURES.",
+    "",
+    "public.fn_kernel_all_boards() discovers every board in the estate BY SIGNATURE — any",
+    "zero-argument function returning (check_name, expected, actual, ok) — so a new board is watched",
+    "the moment it is deployed and nobody has to remember to register it. Twenty-one exist today.",
+    "",
+    "A board not named in this file is a GATE: every check must be ok, and any red fails the suite.",
+    "That is the default on purpose. Adding a board here is a deliberate act with a reason attached.",
+    "",
+    "A board named here is a RATCHET: it is a deliberate open-gap report whose red rows are the",
+    "disclosure, not a defect to be tuned away. kernel_k6_trace_ledger.sql says so in its own header",
+    "— 'every check numerator AND denominator over the FULL table', 'the gap stays visible' — and",
+    "demanding zero there would be demanding the disclosure be deleted. What is asserted instead is",
+    "that the gap does not GROW: each listed check carries the numerator measured at baseline, and",
+    "the suite fails if the live numerator exceeds it. Debt already disclosed is allowed to stand;",
+    "new debt of the same shape is not.",
+    "",
+    "kernel_boards_are_green.test.mjs also fails if a ratchet entry no longer matches a real check,",
+    "so an entry cannot outlive its subject and silently license a future failure with that name."
+  ],
+
+  "ratchet": [
+    {
+      "board": "fn_kernel_trace_integrity",
+      "check": "orphan_traces_task",
+      "max_numerator": 7,
+      "why": "The seven true orphan traces are preserved ON PURPOSE as the evidence of the defect they record. kernel_k6_trace_ledger.sql, section E: they are annotated with an evidence_ref stating that no task ever carried them, sealed, and deliberately counted in the open rather than filtered out of a denominator. All seven are registered in phase_c_historical_repair as HISTORICAL_ORPHAN_TRACE.",
+      "owner": "closed — historical, preserved as evidence",
+      "measured_at": "2026-08-18, 7 of 1209"
+    },
+    {
+      "board": "fn_kernel_trace_integrity",
+      "check": "trace_state_disagrees_with_subject_workflow_run",
+      "max_numerator": 4,
+      "why": "The K4 pointer defect, recorded in kernel_k6_trace_ledger.sql and classified in phase_c_historical_repair as HISTORICAL_STATE_TRACE_MISMATCH. Pre-repair rows kept rather than rewritten, because editing a sealed trace is what the append-only guard exists to refuse.",
+      "owner": "closed — historical, preserved as evidence",
+      "measured_at": "2026-08-18, 4 of 18"
+    },
+    {
+      "board": "fn_kernel_trace_integrity",
+      "check": "trace_state_disagrees_with_subject_handoff_run",
+      "max_numerator": 1,
+      "why": "Same K4 pointer defect, handoff_run side. One row, registered.",
+      "owner": "closed — historical, preserved as evidence",
+      "measured_at": "2026-08-18, 1 of 7"
+    },
+    {
+      "board": "fn_kernel_trace_integrity",
+      "check": "traces_with_unmapped_subject_kind",
+      "max_numerator": 1,
+      "why": "Trace 3730, subject_kind trigger_inbox. The trace itself was never edited — fn_phase_c_trace_append_only refuses editing a sealed trace, which is correct — so its subject_kind is exactly as written. It carries an immutable repair relationship: repair_id 83 classified it, repair_id 85 superseded that classification and recorded it as a post-cutover defect that was repaired.",
+      "owner": "closed — repaired, original preserved unedited",
+      "measured_at": "2026-08-18, 1 of 1209"
+    },
+    {
+      "board": "fn_kernel_trace_integrity",
+      "check": "system_execution_components_with_no_trace",
+      "max_numerator": 589,
+      "why": "Counts components that have never produced a trace. 430 of the 635 are edge functions, database triggers or event subscriptions, for which this database holds no invocation log at all — fn_kernel_system_trace_state states that explicitly and declines to score them. The number is therefore a coverage-unknown figure, not a defect count, and kernel_k6 keeps it visible under section G rather than filtering it. What IS asserted, on the same board, is that 933 of 933 post-epoch wrapped cron executions carry their required trace and 0 are missing one.",
+      "owner": "open — falls as sources are cut over to the kernel and begin tracing",
+      "measured_at": "2026-08-18, 589 of 635"
+    },
+    {
+      "board": "fn_kernel_trigger_state",
+      "check": "active_autonomous_source_not_yet_routing_through_the_inbox",
+      "max_numerator": 19,
+      "why": "THE ONE OPEN PHASE C GATE. 19 of 37 active autonomous sources still start or change business work without entering the kernel. The check's own expected string says NOT MET BY K10: K10 built the door and registered the routes, and moving each source onto it is a separate wiring increment. The doors are ready — all 24 active trigger types read ADAPTER_READY_NO_LIVE_SENDER. It read 26 until the instrument was fixed: for edge functions and frontend paths, routes_through_inbox fell through to a hand-set boolean that was false on all 33 of them, so seven sources genuinely discharged by a trigger calling fn_kernel_source_emit with their source key still counted as bypassing. The view now measures that literal and consults the flag only where no routine discharges the source. 19 is what it always was. This ratchet is NOT a licence to leave it — lower it as each increment lands, and delete the entry at 0.",
+      "owner": "OPEN — Phase C kernel cutover, 12 edge functions, 5 frontend paths, 2 database triggers",
+      "measured_at": "2026-08-18, 19 of 37 (was reported 26 before the instrument was corrected)"
+    }
+  ]
+}

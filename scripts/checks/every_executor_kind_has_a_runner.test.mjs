@@ -56,11 +56,48 @@ for (const [label, project] of Object.entries(PROJECTS)) {
 
   // The runner exists; it also has to be on a clock. A runner nobody calls is the same defect one
   // layer up, and this estate has produced that shape repeatedly.
-  test(`the rpc invoker is scheduled on ${label}`, async (t) => {
+  //
+  // 18 AUG 2026 — THIS READ A COLUMN THE VALUE HAD MOVED OUT OF, AND DEMANDED THE HOLD BE BROKEN.
+  // Two defects in four lines, both found by the final acceptance audit:
+  //
+  //   1. `command like '%fn_action_invoke_rpc%'` can no longer match ANY wrapped job. The kernel
+  //      cutover rewrote every active cron command to `select public.fn_kernel_cron_exec(<jobid>)`
+  //      and moved the original into phase_c_system_execution_wrapper.original_command. The filter
+  //      was looking in a column the value had been moved out of, so it would report zero even
+  //      with the job running every five minutes.
+  //   2. `where active` demanded active = true. The three action_invoke_* jobs are deliberately
+  //      inactive: that IS the Phase C business-automation hold, which the acceptance gate
+  //      separately requires to stay in force. A test that goes green only when the hold is broken
+  //      is asking for the wrong thing.
+  //
+  // What is asserted now is the thing that would actually be a defect: the invoker must be
+  // REGISTERED on a schedule and WRAPPED, so it runs the moment the founder releases the hold.
+  // Activation is reported, never demanded — and the reporting distinguishes "held" from "gone",
+  // which is the distinction that matters when somebody asks why nothing is draining.
+  test(`the rpc invoker is registered on a clock on ${label}`, async (t) => {
     if (!mgmtToken) { t.skip('no management token'); return; }
-    const [j] = await q(project, `select count(*)::int n from cron.job
-       where active and command like '%fn_action_invoke_rpc%'`);
-    assert.ok(Number(j.n) > 0,
-      'fn_action_invoke_rpc has no active cron entry, so rpc executors only run when somebody calls them by hand');
+    const rows = await q(project, `select j.jobid, j.active, j.schedule,
+              (j.command like '%fn_kernel_cron_exec%') as wrapped,
+              coalesce(w.original_command, j.command) as effective_command
+         from cron.job j
+         left join public.phase_c_system_execution_wrapper w on w.jobid = j.jobid
+        where coalesce(w.original_command, j.command) like '%fn_action_invoke_rpc%'`);
+    assert.ok(rows.length > 0,
+      'no cron job runs fn_action_invoke_rpc, through the kernel wrapper or directly, so rpc '
+      + 'executors only run when somebody calls them by hand. Checked cron.job.command AND '
+      + 'phase_c_system_execution_wrapper.original_command, because the kernel cutover moved the '
+      + 'original command into the wrapper.');
+    // Only a job that RUNS needs the wrapper. fn_kernel_cron_exec was applied to the active
+    // state-changing cron components (fn_kernel_system_trace_state: 0 of 22 unwrapped); an
+    // inactive job executes nothing, so there is no execution to trace and nothing to wrap. Held
+    // jobs are wrapped when they are released, which is the moment the trace starts to matter.
+    for (const j of rows.filter((x) => x.active)) {
+      assert.ok(j.wrapped,
+        `cron job ${j.jobid} is ACTIVE and runs fn_action_invoke_rpc without going through `
+        + 'fn_kernel_cron_exec, so its execution carries no system-execution trace');
+    }
+    const live = rows.filter((j) => j.active).length;
+    console.log(`      rpc invoker: ${rows.length} registered job(s), ${live} active`
+      + `${live === 0 ? ' — held under the Phase C business-automation hold, not missing' : ''}`);
   });
 }
