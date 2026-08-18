@@ -255,8 +255,27 @@ did not reach §8, §9 or §11, and it does not claim to have.
 
 | workflow | stops at | what it needs |
 |---|---|---|
-| **W12** | W12-S02, `pd_object_duplicate_identity` | `dispatch_batch` is TRANSACTION_RECORD and two steps write it under one business key. The same family question D22 answered for APPEND_ONLY, asked again for TRANSACTION_RECORD — and the answer is not the same, because one record per identity is the whole point of that family. It needs the driver to MOVE the batch's state rather than write a second, which is a step-level state ladder this session did not build. |
+| **W12** | W12-S02, `pd_object_duplicate_identity` | See below — it needs a state vocabulary that does not exist yet, and inventing one was declined. |
 | **W17** | W17-S07, `GATE-020` | **The gate working correctly. Not a defect.** |
+
+**W12, diagnosed rather than left as a refusal code.** `dispatch_batch` is TRANSACTION_RECORD, and
+W12-S01 and W12-S02 both write it. The Phase D store branch of `fn_phase_d_object_write` refuses the
+second with *"One record per identity; move its state, do not write a second"* — and there is no way
+to move it. Three of the four TRANSACTION_RECORD objects are EXISTING_TABLE and never reach that
+branch; `dispatch_batch` is the only one that does, so one family gets two different answers
+depending on which branch it lands in.
+
+The obvious repair — let a TRANSACTION_RECORD write move the state on the existing record, exactly as
+the EXISTING_TABLE branch already does — **was written out and then not built, because it does not
+work.** Measured: `dispatch_batch` has **0 fixture stages, 0 write maps and no state CHECK
+constraint**, so it has no declared state vocabulary anywhere in the estate. Both steps therefore
+write it in the driver's default state, and a move-the-state fix would refuse for want of a second
+state to move to — a write that changes nothing is not a state transition.
+
+Closing W12 needs a declared per-step state vocabulary for `dispatch_batch`. D20 declined to invent
+speculative states for objects no relation constrains, and inventing six for this one to make a
+number move would be the same mistake with a deadline attached. It is left open with the mechanism
+recorded.
 
 ---
 
