@@ -251,6 +251,22 @@ check is left red and the reason is recorded here.
 A trace exists but carries no record ids. Not investigated; out of Phase D scope and unchanged by
 this work.
 
+**3. One `fn_os_portals_gates()` gate reads `not_met` while its own evidence describes a pass.**
+
+Noticed during the end-of-session sweep, not caused by this work, and not in Phase D scope.
+21 of 22 gates are `met`. The exception is *"Monitoring and alerts configured"*, whose recorded
+evidence is:
+
+> 23 active cron jobs; `watch_failed_runs_hourly` is scheduled and last succeeded inside 3 hours;
+> 0 cron run(s) failed in the last 24 hours
+
+Every clause of that evidence describes a healthy monitoring estate, and the verdict is still
+`not_met`. That is the "instrument reporting on the wrong subject" shape: either the verdict
+predicate is reading something the evidence string does not name, or the evidence is assembled
+from a different query than the verdict. **Recorded, not touched** — deciding which of the two it
+is needs a look at the routine, and a gate that flips to `met` without that is a gate nobody
+checked.
+
 ## Estate state at close
 
 | check | result |
@@ -263,6 +279,13 @@ this work.
 | `fn_phase_d_rule_state()` | 3/4 — the fourth red **by disclosure** |
 | `kernel_boards_are_green.test.mjs` | **7/7 pass** |
 | kernel boards red | 8, all ratcheted with an owner and a reason |
+| `canonical_routines.test.mjs` | **11 passed, 0 findings** |
+| `application_source_of_truth.test.mjs` | **7 gates, 0 findings** |
+| schema mirror vs live export | **byte-identical**, 67354 lines |
+| `fn_os_portals_gates()` | 21 of 22 met — the exception is item 3 above, pre-existing |
+| full suite | **302 tests, 300 pass, 2 fail** — the same two that were red before Phase D began |
+
+**Phase D added zero test failures.** The suite ended exactly where it started.
 
 ---
 
