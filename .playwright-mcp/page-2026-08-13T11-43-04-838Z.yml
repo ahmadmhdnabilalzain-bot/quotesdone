@@ -1,0 +1,104 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - banner [ref=f1e3]:
+      - link "QuotesDone Supplier Portal" [ref=f1e4] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f1e9]:
+        - button "عربي" [ref=f1e10] [cursor=pointer]
+        - link "Home" [ref=f1e11] [cursor=pointer]:
+          - /url: /
+        - button "Sign out" [ref=f1e12] [cursor=pointer]
+    - generic [ref=f1e13]:
+      - generic [ref=f1e35]:
+        - generic [ref=f1e36]:
+          - generic [ref=f1e37]: MERIDIAN MEP CONTRACTING LLC
+          - generic [ref=f1e38]:
+            - generic [ref=f1e39]: Approved
+            - generic [ref=f1e40]: Licence expires · 2027-03-14
+        - generic [ref=f1e41]:
+          - button "Overview" [ref=f1e42] [cursor=pointer]
+          - button "My scope" [ref=f1e43] [cursor=pointer]
+          - button "Insight Board" [ref=f1e44] [cursor=pointer]
+          - button "Recommended" [ref=f1e45] [cursor=pointer]
+          - button "Quote Builder" [ref=f1e46] [cursor=pointer]
+          - button "Supplier Score" [ref=f1e47] [cursor=pointer]
+          - button "Negotiation AI" [ref=f1e48] [cursor=pointer]
+          - button "Certifications" [ref=f1e49] [cursor=pointer]
+          - button "Set up my profile" [ref=f1e50] [cursor=pointer]
+          - button "Digital Twin" [ref=f1e51] [cursor=pointer]
+          - button "3D Environment" [ref=f1e52] [cursor=pointer]
+          - button "Network Map" [ref=f1e53] [cursor=pointer]
+          - button "Market" [ref=f1e54] [cursor=pointer]
+          - button "Workspaces" [ref=f1e55] [cursor=pointer]
+          - button "AI Assistant" [ref=f1e56] [cursor=pointer]
+          - button "Products" [ref=f1e57] [cursor=pointer]
+          - button "Inventory" [ref=f1e58] [cursor=pointer]
+          - button "RFQs" [ref=f1e59] [cursor=pointer]
+          - button "Documents" [ref=f1e60] [cursor=pointer]
+          - button "Profile" [ref=f1e61] [cursor=pointer]
+          - button "Projects" [ref=f1e62] [cursor=pointer]
+          - button "Messages" [ref=f1e63] [cursor=pointer]
+          - button "Settings" [ref=f1e64] [cursor=pointer]
+          - button "Billing" [ref=f1e65] [cursor=pointer]
+      - button "Press ⌘K to jump anywhere" [ref=f1e66] [cursor=pointer]
+      - generic [ref=f1e67]:
+        - generic [ref=f1e68]: What your company can quote for
+        - generic [ref=f1e69]: Your scope is confirmed. Matching requests appear in the RFQs tab.
+        - generic [ref=f1e70]:
+          - generic [ref=f1e71]: Trades
+          - generic [ref=f1e72]:
+            - button "HVAC & air conditioning" [ref=f1e73] [cursor=pointer]
+            - button "Electrical" [ref=f1e74] [cursor=pointer]
+            - button "Building & Construction Materials" [ref=f1e75] [cursor=pointer]
+            - button "Engineering Consultancy & Architecture" [ref=f1e76] [cursor=pointer]
+            - button "Generators & Power Equipment" [ref=f1e77] [cursor=pointer]
+            - button "Heavy Equipment & Plant" [ref=f1e78] [cursor=pointer]
+            - button "Manpower & Labour Supply" [ref=f1e79] [cursor=pointer]
+            - button "Plumbing & sanitary" [ref=f1e80] [cursor=pointer]
+            - button "Safety Equipment & PPE" [ref=f1e81] [cursor=pointer]
+            - button "Solar & Renewable Energy" [ref=f1e82] [cursor=pointer]
+            - button "Industrial & Construction Chemicals" [ref=f1e83] [cursor=pointer]
+            - button "Plastics, Pipes & Fittings" [ref=f1e84] [cursor=pointer]
+            - button "Oilfield & Industrial Supplies" [ref=f1e85] [cursor=pointer]
+            - button "Home & Building Automation" [ref=f1e86] [cursor=pointer]
+            - button "Logistics, Movers & Storage" [ref=f1e87] [cursor=pointer]
+            - button "Packaging & Printing Supplies" [ref=f1e88] [cursor=pointer]
+            - button "Marine & Offshore Supplies" [ref=f1e89] [cursor=pointer]
+            - button "Fire fighting & life safety" [ref=f1e90] [cursor=pointer]
+            - button "IT & Network Services" [ref=f1e91] [cursor=pointer]
+            - button "Joinery & carpentry" [ref=f1e92] [cursor=pointer]
+            - button "Glass & glazing" [ref=f1e93] [cursor=pointer]
+            - button "Aluminium & cladding" [ref=f1e94] [cursor=pointer]
+            - button "Steel & metal fabrication" [ref=f1e95] [cursor=pointer]
+            - button "Flooring" [ref=f1e96] [cursor=pointer]
+            - button "Painting & finishes" [ref=f1e97] [cursor=pointer]
+            - button "Gypsum, partitions & ceilings" [ref=f1e98] [cursor=pointer]
+            - button "Signage & printing" [ref=f1e99] [cursor=pointer]
+            - button "Landscaping & pools" [ref=f1e100] [cursor=pointer]
+            - button "Security systems" [ref=f1e101] [cursor=pointer]
+            - button "Elevators & escalators" [ref=f1e102] [cursor=pointer]
+            - button "Doors & windows" [ref=f1e103] [cursor=pointer]
+            - button "Waterproofing & insulation" [ref=f1e104] [cursor=pointer]
+            - button "Upholstery & soft furnishing" [ref=f1e105] [cursor=pointer]
+            - button "Wallpaper & wall finishes" [ref=f1e106] [cursor=pointer]
+            - button "Scaffolding & access" [ref=f1e107] [cursor=pointer]
+            - button "Cleaning & facility services" [ref=f1e108] [cursor=pointer]
+            - button "AV, IT & low current" [ref=f1e109] [cursor=pointer]
+            - button "Interior fit-out" [ref=f1e110] [cursor=pointer]
+            - button "Civil & construction works" [ref=f1e111] [cursor=pointer]
+            - button "MEP (combined)" [ref=f1e112] [cursor=pointer]
+        - generic [ref=f1e113]:
+          - generic [ref=f1e114]: Your role
+          - generic [ref=f1e115]:
+            - button "Manufacturer" [ref=f1e116] [cursor=pointer]
+            - button "Authorised distributor" [ref=f1e117] [cursor=pointer]
+            - button "Supplier / trading" [ref=f1e118] [cursor=pointer]
+            - button "Installer / applicator" [ref=f1e119] [cursor=pointer]
+            - button "Contractor" [ref=f1e120] [cursor=pointer]
+            - button "Turnkey / fit-out contractor" [ref=f1e121] [cursor=pointer]
+            - button "Maintenance / AMC" [ref=f1e122] [cursor=pointer]
+            - button "Consultant / designer" [ref=f1e123] [cursor=pointer]
+        - button "Update my scope" [ref=f1e124] [cursor=pointer]
+  - button "Ask QuotesDone" [ref=f1e22] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=f1e30] [cursor=pointer]
+  - alert [ref=f1e34]

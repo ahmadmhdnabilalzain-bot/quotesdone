@@ -1,0 +1,32 @@
+- generic [active] [ref=f8e1]:
+  - generic [ref=f8e2]:
+    - banner [ref=f8e21]:
+      - link "QuotesDone My Requests" [ref=f8e22] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f8e23]:
+        - link "Home" [ref=f8e24] [cursor=pointer]:
+          - /url: /
+        - button "عربي" [ref=f8e25] [cursor=pointer]
+        - button "Light mode" [ref=f8e26] [cursor=pointer]: ☀
+    - generic [ref=f8e27]:
+      - generic [ref=f8e28]:
+        - generic [ref=f8e29]: Q
+        - heading "One request. Every quote worth having." [level=1] [ref=f8e30]
+        - paragraph [ref=f8e31]: Describe a job once — in text, voice, a photo or a drawing. We structure it and send it anonymously to vetted UAE suppliers, and their quotes come back for you to compare side by side.
+        - list [ref=f8e32]:
+          - listitem [ref=f8e33]:
+            - generic [ref=f8e37]: Posting a request and comparing quotes is free.
+          - listitem [ref=f8e38]:
+            - generic [ref=f8e42]: Nobody sees who you are, and you do not see who they are, until you decide.
+          - listitem [ref=f8e43]:
+            - generic [ref=f8e47]: You pay a 3% facilitation fee only when you reveal a supplier. There is nothing else to pay.
+      - generic [ref=f8e49]:
+        - tablist [ref=f8e50]:
+          - tab "Sign in" [selected] [ref=f8e51] [cursor=pointer]
+          - tab "Create account" [ref=f8e52] [cursor=pointer]
+        - generic [ref=f8e53]: Welcome back
+        - generic [ref=f8e54]: Sign in with the email or mobile you registered with.
+        - textbox "Email or mobile" [ref=f8e55]: zz-demo-regwalk@example.invalid
+        - button "Sending…" [disabled]
+  - button "Open Next.js Dev Tools" [ref=f8e16] [cursor=pointer]
+  - alert [ref=f8e20]

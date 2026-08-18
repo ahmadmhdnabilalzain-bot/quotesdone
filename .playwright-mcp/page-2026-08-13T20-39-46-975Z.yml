@@ -1,0 +1,82 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e12]:
+    - navigation "Portal navigation" [ref=f2e13]:
+      - generic [ref=f2e14]:
+        - generic [ref=f2e15]: Q
+        - generic [ref=f2e16]:
+          - generic [ref=f2e17]: QuotesDone
+          - generic [ref=f2e18]: My Requests
+      - generic [ref=f2e19]:
+        - generic [ref=f2e20]:
+          - generic [ref=f2e21]: Work
+          - generic [ref=f2e22]:
+            - button "Overview" [ref=f2e23] [cursor=pointer]
+            - button "My requests" [ref=f2e30] [cursor=pointer]
+            - button "Documents" [ref=f2e35] [cursor=pointer]
+            - button "Orders" [ref=f2e41] [cursor=pointer]
+        - generic [ref=f2e53]:
+          - generic [ref=f2e54]: Collaborate
+          - generic [ref=f2e55]:
+            - button "Messages 1" [ref=f2e56] [cursor=pointer]:
+              - generic [ref=f2e60]: Messages
+              - generic [ref=f2e61]: "1"
+            - button "Projects" [ref=f2e62] [cursor=pointer]
+            - button "Approvals" [ref=f2e66] [cursor=pointer]
+            - button "Project room" [ref=f2e71] [cursor=pointer]
+        - generic [ref=f2e76]:
+          - generic [ref=f2e77]: Intelligence
+          - generic [ref=f2e78]:
+            - button "What you may need next" [ref=f2e79] [cursor=pointer]
+            - button "Buying profile" [ref=f2e83] [cursor=pointer]
+        - generic [ref=f2e89]:
+          - generic [ref=f2e90]: Account
+          - button "Account" [ref=f2e92] [cursor=pointer]
+      - button "Collapse menu" [expanded] [ref=f2e100] [cursor=pointer]
+    - generic [ref=f2e105]:
+      - banner [ref=f2e106]:
+        - generic [ref=f2e107]:
+          - search [ref=f2e108]:
+            - generic [ref=f2e109]: Ask about your requests, quotes or documents…
+            - generic [ref=f2e110]:
+              - textbox "Ask about your requests, quotes or documents…" [ref=f2e111]
+              - generic: ⌘K
+          - button "Alerts" [ref=f2e113] [cursor=pointer]
+          - button "A ahmad test" [ref=f2e117] [cursor=pointer]:
+            - generic [ref=f2e118]: A
+            - generic [ref=f2e119]: ahmad test
+          - generic [ref=f2e120]:
+            - button "العربية" [ref=f2e121] [cursor=pointer]: ع
+            - button "Light mode" [ref=f2e122] [cursor=pointer]
+            - button "Sign out" [ref=f2e129] [cursor=pointer]
+      - main [ref=f2e133]:
+        - generic [ref=f2e134]:
+          - generic [ref=f2e135]:
+            - button "Overview" [ref=f2e136] [cursor=pointer]
+            - heading "Account" [level=1] [ref=f2e139]
+          - generic [ref=f2e141]:
+            - paragraph [ref=f2e142]: What we hold for you, and the preferences this device remembers.
+            - generic [ref=f2e143]:
+              - generic [ref=f2e144]:
+                - generic [ref=f2e145]: Name
+                - textbox [ref=f2e147]: ahmad test
+              - generic [ref=f2e148]:
+                - generic [ref=f2e149]: Mobile
+                - generic [ref=f2e150]:
+                  - textbox [ref=f2e151]: "+971509319355"
+                  - generic [ref=f2e152]: ✓ verified
+              - generic [ref=f2e153]:
+                - generic [ref=f2e154]: Email
+                - generic [ref=f2e155]: djzaino@outlook.com
+              - generic [ref=f2e157]:
+                - generic [ref=f2e158]: Language on your profile
+                - generic [ref=f2e160]:
+                  - button "English" [disabled]
+                  - button "العربية" [ref=f2e161] [cursor=pointer]
+              - generic [ref=f2e162]:
+                - generic [ref=f2e163]: Customer since
+                - generic [ref=f2e164]: 13 Aug 2026
+              - generic [ref=f2e166]:
+                - button "Save details" [disabled]
+            - paragraph [ref=f2e167]: Appearance is remembered on this device. Your language is saved to your account and follows you to any device you sign in on.
+  - button "Open Next.js Dev Tools" [ref=f2e7] [cursor=pointer]
+  - alert [ref=f2e168]

@@ -1,0 +1,151 @@
+- generic [ref=f3e1]:
+  - generic [ref=f3e21]:
+    - navigation "Portal navigation" [ref=f3e298]:
+      - generic [ref=f3e23]:
+        - generic [ref=f3e24]: Q
+        - generic [ref=f3e25]:
+          - generic [ref=f3e26]: QuotesDone
+          - generic [ref=f3e27]: My Requests
+      - generic [ref=f3e28]:
+        - generic [ref=f3e29]:
+          - generic [ref=f3e30]: Work
+          - generic [ref=f3e31]:
+            - button "Overview" [ref=f3e299] [cursor=pointer]
+            - button "My requests" [ref=f3e307] [cursor=pointer]
+            - button "Documents" [ref=f3e312] [cursor=pointer]
+            - button "Orders" [ref=f3e318] [cursor=pointer]
+        - generic [ref=f3e63]:
+          - generic [ref=f3e64]: Collaborate
+          - generic [ref=f3e65]:
+            - button "Messages 1" [ref=f3e330] [cursor=pointer]:
+              - generic [ref=f3e334]: Messages
+              - generic [ref=f3e335]: "1"
+            - button "Projects" [ref=f3e336] [cursor=pointer]
+            - button "Approvals" [ref=f3e340] [cursor=pointer]
+            - button "Project room" [ref=f3e345] [cursor=pointer]
+        - generic [ref=f3e86]:
+          - generic [ref=f3e87]: Intelligence
+          - generic [ref=f3e88]:
+            - button "What you may need next" [ref=f3e350] [cursor=pointer]
+            - button "Buying profile" [ref=f3e354] [cursor=pointer]
+        - generic [ref=f3e99]:
+          - generic [ref=f3e100]: Account
+          - button "Account" [ref=f3e360] [cursor=pointer]
+      - button "Collapse menu" [expanded] [ref=f3e366] [cursor=pointer]
+    - generic [ref=f3e114]:
+      - banner [ref=f3e115]:
+        - generic [ref=f3e116]:
+          - search [ref=f3e117]:
+            - generic [ref=f3e118]: Ask about your requests, quotes or documents…
+            - generic [ref=f3e119]:
+              - textbox "Ask about your requests, quotes or documents…" [ref=f3e367]
+              - generic: ⌘K
+          - button "Alerts" [ref=f3e368] [cursor=pointer]
+          - button "A ahmad test" [ref=f3e126] [cursor=pointer]:
+            - generic [ref=f3e127]: A
+            - generic [ref=f3e128]: ahmad test
+          - generic [ref=f3e129]:
+            - button "العربية" [active] [ref=f3e369] [cursor=pointer]: ع
+            - button "Light mode" [ref=f3e370] [cursor=pointer]
+            - button "Sign out" [ref=f3e371] [cursor=pointer]
+      - main [ref=f3e142]:
+        - generic [ref=f3e143]:
+          - generic [ref=f3e145]:
+            - generic [ref=f3e146]:
+              - heading "Good morning, ahmad test" [level=1] [ref=f3e372]
+              - paragraph [ref=f3e148]: لا شيء يحتاج انتباهك الآن.
+            - button "New request" [ref=f3e373] [cursor=pointer]
+          - generic [ref=f3e151]:
+            - generic [ref=f3e152]:
+              - generic [ref=f3e154]:
+                - generic [ref=f3e155]: "0"
+                - generic [ref=f3e156]: Open
+              - generic [ref=f3e161]: Requests still collecting quotes
+            - generic [ref=f3e162]:
+              - generic [ref=f3e164]:
+                - generic [ref=f3e165]: "0"
+                - generic [ref=f3e166]: Quotes received
+              - generic [ref=f3e172]: Across all your requests
+            - generic [ref=f3e173]:
+              - generic [ref=f3e175]:
+                - generic [ref=f3e176]: "0"
+                - generic [ref=f3e177]: Awaiting your decision
+              - generic [ref=f3e184]: Requests with two or more quotes to compare
+            - generic [ref=f3e185]:
+              - generic [ref=f3e187]:
+                - generic [ref=f3e188]: "0"
+                - generic [ref=f3e189]: Reveals
+              - generic [ref=f3e194]: The 3% facilitation fee is the only fee you pay
+          - region "Quick actions" [ref=f3e374]:
+            - heading "Quick actions" [level=2] [ref=f3e375]
+            - generic [ref=f3e197]:
+              - button "New request" [ref=f3e376] [cursor=pointer]
+              - button "Compare quotes Needs a request with two or more quotes" [disabled] [ref=f3e377]:
+                - generic [ref=f3e211]:
+                  - generic [ref=f3e212]: Compare quotes
+                  - generic [ref=f3e213]: Needs a request with two or more quotes
+              - button "Upload a drawing" [ref=f3e378] [cursor=pointer]
+              - button "Ask the assistant" [ref=f3e379] [cursor=pointer]
+          - generic [ref=f3e232]:
+            - generic [ref=f3e233]:
+              - generic [ref=f3e234]: What we have learned about your buying
+              - generic "How much of your profile we actually hold — it is a count of known facts, not a rating of you." [ref=f3e380]:
+                - text: AI understanding
+                - generic [ref=f3e236]: 63%
+            - generic [ref=f3e237]:
+              - generic [ref=f3e238]:
+                - generic [ref=f3e239]: Industry
+                - generic [ref=f3e240]: not set
+              - generic [ref=f3e241]:
+                - generic [ref=f3e242]: Active projects
+                - generic [ref=f3e243]: "0"
+              - generic [ref=f3e244]:
+                - generic [ref=f3e245]: Preferred suppliers
+                - generic [ref=f3e246]: "0"
+              - generic [ref=f3e247]:
+                - generic [ref=f3e248]: Requests
+                - generic [ref=f3e249]: "0"
+            - generic [ref=f3e250]: Set your standing preferences below and every new request carries them to the suppliers we match.
+          - generic [ref=f3e251]: Active projects
+          - generic [ref=f3e253]:
+            - text: No projects yet — group related requests into a project to track budget and progress.
+            - button "Open" [ref=f3e381] [cursor=pointer]
+          - heading "Your requests" [level=2] [ref=f3e382]
+          - generic [ref=f3e257]:
+            - generic [ref=f3e258]:
+              - heading "Your first request takes about a minute" [level=3] [ref=f3e383]
+              - paragraph [ref=f3e263]: Describe the job in text, voice, a photo or a drawing. We structure it, send it anonymously to matching UAE suppliers, and their quotes come back here to compare side by side. Posting and comparing are free.
+              - button "Post your first request" [ref=f3e384] [cursor=pointer]
+            - generic [ref=f3e266]:
+              - generic [ref=f3e267]: What happens after you post
+              - list [ref=f3e268]:
+                - listitem [ref=f3e269]:
+                  - generic [ref=f3e270]: "1"
+                  - generic [ref=f3e271]: We structure your description into a request suppliers can price, and send it to matching UAE suppliers — without your name or number.
+                - listitem [ref=f3e272]:
+                  - generic [ref=f3e273]: "2"
+                  - generic [ref=f3e274]: Their quotes come back onto this screen. Most requests get their first quote within 48 hours; you are emailed as each one arrives.
+                - listitem [ref=f3e275]:
+                  - generic [ref=f3e276]: "3"
+                  - generic [ref=f3e277]: You compare them side by side for free. Supplier names stay hidden until you choose one.
+                - listitem [ref=f3e278]:
+                  - generic [ref=f3e279]: "4"
+                  - generic [ref=f3e280]: Revealing a supplier costs 3% of that quote, and nothing else. It is refundable if they do not respond within 3 working days.
+          - region [ref=f3e385]:
+            - heading "Spending intelligence" [level=2] [ref=f3e386]
+            - paragraph [ref=f3e284]: Computed from your own requests and the quotes you received. Nothing here is estimated.
+            - generic [ref=f3e285]:
+              - generic [ref=f3e286]:
+                - heading "Requests over the last 12 months" [level=3] [ref=f3e387]
+                - paragraph [ref=f3e288]: Counts the requests you posted, by the month you posted them.
+                - paragraph [ref=f3e289]: You have not posted a request in the last 12 months, so there is no trend to draw yet. This chart fills in from your first request.
+              - generic [ref=f3e290]:
+                - heading "Requests by category" [level=3] [ref=f3e388]
+                - paragraph [ref=f3e292]: How your requests split across trades.
+                - paragraph [ref=f3e293]: You have no requests yet, so there is nothing to break down by category.
+              - generic [ref=f3e294]:
+                - heading "Quote spread by category" [level=3] [ref=f3e389]
+                - paragraph [ref=f3e296]: On each request with two or more quotes, the gap between the highest and the lowest quote, added up per category. This is what comparing quotes was worth to you — not a discount any supplier offered.
+                - paragraph [ref=f3e297]: You have no requests yet, so there are no quotes to compare.
+  - button "Open Next.js Dev Tools" [ref=f3e16] [cursor=pointer]
+  - alert [ref=f3e20]

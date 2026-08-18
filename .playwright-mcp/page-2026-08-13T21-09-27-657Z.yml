@@ -1,0 +1,64 @@
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e21]:
+    - navigation "Portal navigation" [ref=f3e298]:
+      - generic [ref=f3e23]:
+        - generic [ref=f3e24]: Q
+        - generic [ref=f3e25]:
+          - generic [ref=f3e26]: QuotesDone
+          - generic [ref=f3e27]: My Requests
+      - generic [ref=f3e28]:
+        - generic [ref=f3e29]:
+          - generic [ref=f3e30]: Work
+          - generic [ref=f3e31]:
+            - button "Overview" [ref=f3e542] [cursor=pointer]
+            - button "My requests" [ref=f3e549] [cursor=pointer]
+            - button "Documents" [ref=f3e554] [cursor=pointer]
+            - button "Orders" [ref=f3e560] [cursor=pointer]
+        - generic [ref=f3e63]:
+          - generic [ref=f3e64]: Collaborate
+          - generic [ref=f3e65]:
+            - button "Messages 1" [ref=f3e573] [cursor=pointer]:
+              - generic [ref=f3e577]: Messages
+              - generic [ref=f3e578]: "1"
+            - button "Projects" [ref=f3e579] [cursor=pointer]
+            - button "Approvals" [ref=f3e583] [cursor=pointer]
+            - button "Project room" [ref=f3e588] [cursor=pointer]
+        - generic [ref=f3e86]:
+          - generic [ref=f3e87]: Intelligence
+          - generic [ref=f3e88]:
+            - button "What you may need next" [ref=f3e593] [cursor=pointer]
+            - button "Buying profile" [ref=f3e597] [cursor=pointer]
+        - generic [ref=f3e99]:
+          - generic [ref=f3e100]: Account
+          - button "Account" [ref=f3e603] [cursor=pointer]
+      - button "Collapse menu" [expanded] [ref=f3e366] [cursor=pointer]
+    - generic [ref=f3e114]:
+      - banner [ref=f3e115]:
+        - generic [ref=f3e116]:
+          - search [ref=f3e117]:
+            - generic [ref=f3e118]: Ask about your requests, quotes or documents…
+            - generic [ref=f3e119]:
+              - textbox "Ask about your requests, quotes or documents…" [ref=f3e367]
+              - generic: ⌘K
+          - button "Alerts" [ref=f3e368] [cursor=pointer]
+          - button "A ahmad test" [ref=f3e126] [cursor=pointer]:
+            - generic [ref=f3e127]: A
+            - generic [ref=f3e128]: ahmad test
+          - generic [ref=f3e129]:
+            - button "العربية" [ref=f3e369] [cursor=pointer]: ع
+            - button "Light mode" [ref=f3e370] [cursor=pointer]
+            - button "Sign out" [ref=f3e371] [cursor=pointer]
+      - main [ref=f3e142]:
+        - generic [ref=f3e525]:
+          - generic [ref=f3e526]:
+            - button "Overview" [ref=f3e527] [cursor=pointer]
+            - heading "Orders" [level=1] [ref=f3e609]
+          - region [ref=f3e610]:
+            - generic [ref=f3e611]:
+              - heading "Orders" [level=2] [ref=f3e612]
+              - paragraph [ref=f3e613]: Purchase orders raised against the quotes you awarded.
+            - generic [ref=f3e614]:
+              - heading "You have no orders yet" [level=3] [ref=f3e615]
+              - paragraph [ref=f3e616]: An order appears here once a purchase order is raised against a quote you awarded. Nothing has been raised on this account, so there is nothing to track — no order has been placed, delivered or invoiced on your behalf.
+  - button "Open Next.js Dev Tools" [ref=f3e16] [cursor=pointer]
+  - alert [ref=f3e20]

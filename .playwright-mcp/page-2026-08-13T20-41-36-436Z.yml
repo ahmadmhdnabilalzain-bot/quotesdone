@@ -1,0 +1,162 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e12]:
+    - generic [ref=f2e105]:
+      - banner [ref=f2e106]:
+        - generic [ref=f2e107]:
+          - generic [ref=f2e412]: Q
+          - search [ref=f2e108]:
+            - generic [ref=f2e109]: اسأل عن طلباتك أو عروض الأسعار أو مستنداتك…
+            - textbox "اسأل عن طلباتك أو عروض الأسعار أو مستنداتك…" [ref=f2e505]:
+              - /placeholder: اسأل المساعد…
+          - button "التنبيهات" [ref=f2e506] [cursor=pointer]
+          - button "A" [ref=f2e413] [cursor=pointer]
+      - main [ref=f2e133]:
+        - generic [ref=f2e236]:
+          - generic [ref=f2e238]:
+            - generic [ref=f2e239]:
+              - heading "صباح الخير، ahmad test" [level=1] [ref=f2e507]
+              - paragraph [ref=f2e241]: Nothing needs your attention right now.
+            - button "طلب جديد" [ref=f2e508] [cursor=pointer]
+          - generic [ref=f2e244]:
+            - generic [ref=f2e245]:
+              - generic [ref=f2e247]:
+                - generic [ref=f2e248]: "0"
+                - generic [ref=f2e249]: المفتوحة
+              - generic [ref=f2e254]: طلبات ما زالت تجمع العروض
+            - generic [ref=f2e255]:
+              - generic [ref=f2e257]:
+                - generic [ref=f2e258]: "0"
+                - generic [ref=f2e259]: العروض المستلمة
+              - generic [ref=f2e265]: عبر جميع طلباتك
+            - generic [ref=f2e266]:
+              - generic [ref=f2e268]:
+                - generic [ref=f2e269]: "0"
+                - generic [ref=f2e270]: بانتظار قرارك
+              - generic [ref=f2e277]: طلبات وردها عرضان أو أكثر للمقارنة
+            - generic [ref=f2e278]:
+              - generic [ref=f2e280]:
+                - generic [ref=f2e281]: "0"
+                - generic [ref=f2e282]: عمليات الكشف
+              - generic [ref=f2e287]: رسوم التيسير 3% هي الرسوم الوحيدة التي تدفعها
+          - region "إجراءات سريعة" [ref=f2e509]:
+            - heading "إجراءات سريعة" [level=2] [ref=f2e510]
+            - generic [ref=f2e290]:
+              - button "طلب جديد" [ref=f2e511] [cursor=pointer]
+              - button "قارن العروض يحتاج إلى طلب وردّه عرضان أو أكثر" [disabled] [ref=f2e512]:
+                - generic [ref=f2e304]:
+                  - generic [ref=f2e305]: قارن العروض
+                  - generic [ref=f2e306]: يحتاج إلى طلب وردّه عرضان أو أكثر
+              - button "ارفع رسمًا" [ref=f2e513] [cursor=pointer]
+              - button "اسأل المساعد" [ref=f2e514] [cursor=pointer]
+          - generic [ref=f2e325]:
+            - generic [ref=f2e326]: ساعدني في القرار
+            - generic [ref=f2e327]:
+              - generic [ref=f2e328]: Marble worktop, 6 m, Dubai Marina
+              - generic [ref=f2e329]: الأرخص AED 12,600 ويوفّر عليك AED 3,150. والأسرع يصل قبله بـ 14 يوم لكنه أعلى سعرًا. أيّهما أهم في هذا العمل قرارك أنت — وهذان هما الفارقان الوحيدان بينهما.
+              - generic [ref=f2e330]: 2 من 3 عروض ذكرت مدة التنفيذ، لذا تُقارن السرعة بينها فقط.
+            - generic [ref=f2e331]:
+              - generic [ref=f2e332]: كم تكلّف أعمال marble في Dubai
+              - generic [ref=f2e333]: نصف هذه الأعمال جاءت بين AED 11,900 وAED 18,400، ووسطها AED 14,800 — من 11 عملًا مسعّرًا على QuotesDone.
+              - generic [ref=f2e334]: 631 مورّدًا في الإمارات ضمن قائمتنا يغطون هذه المهنة في Dubai. استغرق أول عرض نحو 2.4 يومًا.
+            - generic [ref=f2e335]:
+              - generic [ref=f2e336]: كم تكلّف أعمال joinery في Sharjah
+              - generic [ref=f2e337]: لم يُسعَّر أي عمل في هذه المهنة على QuotesDone بعد، لذا لن نعرض سعرًا — نطاق مبني على 2 عرض هو تخمين بصيغة رقمية. سيظهر تلقائيًا عند اكتمال 5.
+              - generic [ref=f2e338]: 81 مورّدًا في الإمارات ضمن قائمتنا يغطون هذه المهنة في Sharjah.
+            - generic [ref=f2e339]:
+              - generic [ref=f2e340]: Joinery for 3 retail units
+              - generic [ref=f2e341]: نُشر قبل 11 يومًا. وصل الطلب إلى الموردين ولم يسعّر أحد بعد. إضافة مخطط أو تاريخ مستهدف هو ما يحرّك هذا عادةً.
+            - generic [ref=f2e342]:
+              - generic [ref=f2e343]: Glass balustrade, villa staircase
+              - generic [ref=f2e344]: نُشر قبل 6 يومًا. عرض واحد ليس مقارنة. توسيع المهنة أو الإمارة هو أسرع طريق للحصول على عرض ثانٍ.
+          - generic [ref=f2e346]:
+            - generic [ref=f2e347]:
+              - generic [ref=f2e348]: ما تعلّمناه عن مشترياتك
+              - generic "نسبة ما نعرفه فعليًا عن ملفك — عدّ لحقائق معروفة، وليس تقييمًا لك." [ref=f2e515]:
+                - text: فهم النظام
+                - generic [ref=f2e350]: 63%
+            - generic [ref=f2e351]:
+              - generic [ref=f2e352]:
+                - generic [ref=f2e353]: القطاع
+                - generic [ref=f2e354]: غير محدّد
+              - generic [ref=f2e355]:
+                - generic [ref=f2e356]: مشاريع نشطة
+                - generic [ref=f2e357]: "0"
+              - generic [ref=f2e358]:
+                - generic [ref=f2e359]: موردون مفضّلون
+                - generic [ref=f2e360]: "0"
+              - generic [ref=f2e361]:
+                - generic [ref=f2e362]: الطلبات
+                - generic [ref=f2e363]: "0"
+            - generic [ref=f2e364]: حدّد تفضيلاتك الثابتة أدناه، وسيحملها كل طلب جديد إلى الموردين الذين نطابقهم.
+          - generic [ref=f2e365]: المشاريع النشطة
+          - generic [ref=f2e367]:
+            - text: لا توجد مشاريع بعد — اجمع الطلبات المرتبطة في مشروع لتتبع الميزانية والتقدّم.
+            - button "فتح" [ref=f2e516] [cursor=pointer]
+          - heading "طلباتك" [level=2] [ref=f2e517]
+          - generic [ref=f2e371]:
+            - generic [ref=f2e372]:
+              - heading "طلبك الأول يستغرق دقيقة تقريبًا" [level=3] [ref=f2e518]
+              - paragraph [ref=f2e377]: صِف العمل نصًا أو صوتًا أو بصورة أو برسم. نقوم ببنيته وإرساله بشكل مجهول إلى الموردين المطابقين في الإمارات، وتعود عروضهم هنا لمقارنتها جنبًا إلى جنب. النشر والمقارنة مجانًا.
+              - button "انشر طلبك الأول" [ref=f2e519] [cursor=pointer]
+            - generic [ref=f2e380]:
+              - generic [ref=f2e381]: ماذا يحدث بعد أن ترسل طلبك
+              - list [ref=f2e382]:
+                - listitem [ref=f2e383]:
+                  - generic [ref=f2e384]: "1"
+                  - generic [ref=f2e385]: نحوّل وصفك إلى طلب يستطيع الموردون تسعيره، ونرسله إلى الموردين المطابقين في الإمارات — دون اسمك أو رقمك.
+                - listitem [ref=f2e386]:
+                  - generic [ref=f2e387]: "2"
+                  - generic [ref=f2e388]: تعود عروضهم إلى هذه الشاشة. معظم الطلبات يصلها أول عرض خلال 48 ساعة، ويصلك بريد عند وصول كل عرض.
+                - listitem [ref=f2e389]:
+                  - generic [ref=f2e390]: "3"
+                  - generic [ref=f2e391]: تقارنها جنبًا إلى جنب مجانًا. تبقى أسماء الموردين مخفية حتى تختار أحدهم.
+                - listitem [ref=f2e392]:
+                  - generic [ref=f2e393]: "4"
+                  - generic [ref=f2e394]: كشف المورّد يكلّف 3% من قيمة عرضه، ولا شيء غير ذلك. وهو قابل للاسترداد إذا لم يردّ خلال 3 أيام عمل.
+          - region [ref=f2e520]:
+            - heading "تحليلات الإنفاق" [level=2] [ref=f2e521]
+            - paragraph [ref=f2e398]: محسوبة من طلباتك ومن العروض التي استلمتها. لا شيء هنا تقديري.
+            - generic [ref=f2e399]:
+              - generic [ref=f2e400]:
+                - heading "الطلبات خلال آخر 12 شهرًا" [level=3] [ref=f2e522]
+                - paragraph [ref=f2e402]: عدد الطلبات التي نشرتها، حسب شهر النشر.
+                - paragraph [ref=f2e403]: لم تنشر أي طلب خلال آخر 12 شهرًا، لذلك لا يوجد اتجاه لعرضه بعد. سيمتلئ هذا الرسم من طلبك الأول.
+              - generic [ref=f2e404]:
+                - heading "الطلبات حسب الفئة" [level=3] [ref=f2e523]
+                - paragraph [ref=f2e406]: كيف تتوزع طلباتك على التخصصات.
+                - paragraph [ref=f2e407]: لا توجد لديك طلبات بعد، لذلك لا يوجد ما يمكن تصنيفه حسب الفئة.
+              - generic [ref=f2e408]:
+                - heading "فارق الأسعار حسب الفئة" [level=3] [ref=f2e524]
+                - paragraph [ref=f2e410]: في كل طلب استلم عرضين أو أكثر، الفارق بين أعلى وأدنى عرض، مجموعًا لكل فئة. هذا ما تساويه مقارنة العروض بالنسبة لك — وليس خصمًا قدّمه أي مورّد.
+                - paragraph [ref=f2e411]: لا توجد لديك طلبات بعد، لذلك لا توجد عروض للمقارنة.
+    - navigation "تنقل البوابة" [ref=f2e525]:
+      - button "نظرة عامة" [ref=f2e526] [cursor=pointer]
+      - button "طلباتي" [ref=f2e527] [cursor=pointer]
+      - button "المستندات" [ref=f2e528] [cursor=pointer]
+      - button "الرسائل" [ref=f2e529] [cursor=pointer]
+      - button "المزيد" [expanded] [ref=f2e530] [cursor=pointer]
+    - button "إغلاق" [ref=f2e531] [cursor=pointer]
+    - generic [ref=f2e446]:
+      - generic [ref=f2e447]:
+        - generic [ref=f2e448]: العمل
+        - button "أوامر الشراء" [ref=f2e532] [cursor=pointer]
+      - generic [ref=f2e462]:
+        - generic [ref=f2e463]: التعاون
+        - generic [ref=f2e464]:
+          - button "المشاريع" [ref=f2e533] [cursor=pointer]
+          - button "الموافقات" [ref=f2e534] [cursor=pointer]
+          - button "غرفة المشروع" [ref=f2e535] [cursor=pointer]
+      - generic [ref=f2e479]:
+        - generic [ref=f2e480]: الذكاء
+        - generic [ref=f2e481]:
+          - button "ما قد تحتاجه لاحقًا" [ref=f2e536] [cursor=pointer]
+          - button "ملف المشتريات" [ref=f2e537] [cursor=pointer]
+      - generic [ref=f2e492]:
+        - generic [ref=f2e493]: الحساب
+        - button "الحساب" [ref=f2e538] [cursor=pointer]
+      - generic [ref=f2e501]:
+        - button "English" [active] [ref=f2e539] [cursor=pointer]
+        - button "الوضع الفاتح" [ref=f2e540] [cursor=pointer]
+        - button "تسجيل الخروج" [ref=f2e541] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=f2e7] [cursor=pointer]
+  - alert [ref=f2e168]

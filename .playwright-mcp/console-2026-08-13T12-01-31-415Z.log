@@ -1,0 +1,78 @@
+[     414ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[     472ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[     534ms] [WARNING] [qd] NEXT_PUBLIC_SUPABASE_URL is unset - this page is talking to PRODUCTION. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[    1688ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[    1742ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[    1750ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[    1752ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[    1965ms] [ERROR] Failed to load resource: the server responded with a status of 409 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/supplier_api:0
+[   16313ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   16322ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   17680ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   17684ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   19078ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   19208ms] [LOG] [Fast Refresh] done in 238ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   19224ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   19233ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   19233ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   19235ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   19249ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   19249ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   19250ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   19254ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   20462ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   20471ms] [LOG] [Fast Refresh] done in 111ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   20474ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   20484ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   21871ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   21871ms] [LOG] [Fast Refresh] done in 101ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   21877ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   21879ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   23313ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   23317ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   26107ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   26116ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   26121ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   26122ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   27745ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   28046ms] [LOG] [Fast Refresh] done in 458ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   28049ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   28059ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   28063ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   28064ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   28079ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   28085ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   28926ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   28938ms] [LOG] [Fast Refresh] done in 118ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   28964ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   28972ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   28979ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   28980ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   29206ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   29214ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   29219ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   29220ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   30310ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   30315ms] [LOG] [Fast Refresh] done in 111ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   30336ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   30344ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   30360ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   30361ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   31714ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   31720ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   33119ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   33122ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   33128ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   33129ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   34478ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   34483ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   35926ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   35943ms] [LOG] [Fast Refresh] done in 117ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[   35960ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   35963ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_portal:0
+[   35969ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   35969ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   44349ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_api:0
+[   44373ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/functions/v1/supplier_api:0
+[   44376ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[   44381ms] Unexpected token '<', "<!DOCTYPE "... is not valid JSON

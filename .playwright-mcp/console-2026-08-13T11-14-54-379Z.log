@@ -1,0 +1,998 @@
+[ 1623965ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 1624220ms] [LOG] [Fast Refresh] done in 356ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 1632053ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 1691663ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 1752146ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 1811669ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 1825745ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 1825776ms] [LOG] [Fast Refresh] done in 135ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 1872076ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 1931796ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 1992351ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2055201ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2092403ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2093520ms] [LOG] [Fast Refresh] done in 1189ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2094106ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2094781ms] [LOG] [Fast Refresh] done in 778ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2095429ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2096171ms] [LOG] [Fast Refresh] done in 824ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2096504ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2097104ms] [LOG] [Fast Refresh] done in 701ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2106902ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2107277ms] [LOG] [Fast Refresh] done in 453ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2107420ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2107795ms] [LOG] [Fast Refresh] done in 478ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2109533ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2109971ms] [LOG] [Fast Refresh] done in 512ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2110154ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2110552ms] [LOG] [Fast Refresh] done in 500ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2111758ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2135602ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2135903ms] [LOG] [Fast Refresh] done in 384ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2136059ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2136395ms] [LOG] [Fast Refresh] done in 439ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2137867ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2138249ms] [LOG] [Fast Refresh] done in 486ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2139724ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2139896ms] [LOG] [Fast Refresh] done in 275ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2148321ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2148623ms] [LOG] [Fast Refresh] done in 385ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2148771ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2149097ms] [LOG] [Fast Refresh] done in 429ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2149714ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2149750ms] [LOG] [Fast Refresh] done in 139ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2168717ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2169573ms] [LOG] [Fast Refresh] done in 936ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2169717ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2169973ms] [LOG] [Fast Refresh] done in 357ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2171564ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2191861ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2192051ms] [LOG] [Fast Refresh] done in 295ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2196106ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2196959ms] [LOG] [Fast Refresh] done in 933ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2197101ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2197424ms] [LOG] [Fast Refresh] done in 428ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2202830ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2203147ms] [LOG] [Fast Refresh] done in 397ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2203310ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2203661ms] [LOG] [Fast Refresh] done in 456ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2231925ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2278232ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2278686ms] [LOG] [Fast Refresh] done in 559ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2282897ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2282901ms] [LOG] [Fast Refresh] done in 107ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2292213ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2351734ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2381564ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2381578ms] [LOG] [Fast Refresh] done in 113ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2395295ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2395326ms] [LOG] [Fast Refresh] done in 132ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2411795ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2433743ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2433760ms] [LOG] [Fast Refresh] done in 122ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2472161ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2474482ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2474836ms] [LOG] [Fast Refresh] done in 436ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2474997ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2475362ms] [LOG] [Fast Refresh] done in 468ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2532289ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2591722ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2651982ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2712195ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2772005ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2813307ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2813312ms] [LOG] [Fast Refresh] done in 111ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2816116ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2816245ms] [LOG] [Fast Refresh] done in 238ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2817498ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2817507ms] [LOG] [Fast Refresh] done in 110ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2824730ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2825082ms] [LOG] [Fast Refresh] done in 458ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2825962ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2825974ms] [LOG] [Fast Refresh] done in 120ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2827346ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2827351ms] [LOG] [Fast Refresh] done in 111ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2832335ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2832969ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2832978ms] [LOG] [Fast Refresh] done in 117ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 2891999ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 2951740ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3012009ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3071772ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3132179ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3163768ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3163983ms] [LOG] [Fast Refresh] done in 320ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3164147ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3164220ms] [LOG] [Fast Refresh] done in 175ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3164322ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3164389ms] [LOG] [Fast Refresh] done in 169ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3167476ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3167739ms] [LOG] [Fast Refresh] done in 364ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3167922ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3168141ms] [LOG] [Fast Refresh] done in 320ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3176078ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3176375ms] [LOG] [Fast Refresh] done in 394ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3176525ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3176662ms] [LOG] [Fast Refresh] done in 241ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3178423ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3178561ms] [LOG] [Fast Refresh] done in 238ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3178705ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3178941ms] [LOG] [Fast Refresh] done in 336ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3192095ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3210522ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3210699ms] [LOG] [Fast Refresh] done in 276ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3210866ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3211143ms] [LOG] [Fast Refresh] done in 382ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3225235ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3226051ms] [LOG] [Fast Refresh] done in 902ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3226176ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3226434ms] [LOG] [Fast Refresh] done in 360ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3240593ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3241123ms] [LOG] [Fast Refresh] done in 629ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3241284ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3241825ms] [LOG] [Fast Refresh] done in 648ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3251908ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3259760ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3260072ms] [LOG] [Fast Refresh] done in 421ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3260651ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3260815ms] [LOG] [Fast Refresh] done in 266ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3306970ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3307035ms] [LOG] [Fast Refresh] done in 167ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3316610ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3372064ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3431836ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3434960ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3435397ms] [LOG] [Fast Refresh] done in 516ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3435642ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3435982ms] [LOG] [Fast Refresh] done in 442ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3443564ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3443877ms] [LOG] [Fast Refresh] done in 394ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3444815ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3445043ms] [LOG] [Fast Refresh] done in 333ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3453757ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3454236ms] [LOG] [Fast Refresh] done in 580ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3454411ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3454674ms] [LOG] [Fast Refresh] done in 369ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3456235ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3456547ms] [LOG] [Fast Refresh] done in 390ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3456704ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3457011ms] [LOG] [Fast Refresh] done in 407ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3473411ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3473820ms] [LOG] [Fast Refresh] done in 509ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3474008ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3474211ms] [LOG] [Fast Refresh] done in 310ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3491969ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3493321ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3493557ms] [LOG] [Fast Refresh] done in 337ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3544255ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3544541ms] [LOG] [Fast Refresh] done in 374ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3544703ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3544989ms] [LOG] [Fast Refresh] done in 386ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3548959ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3549091ms] [LOG] [Fast Refresh] done in 233ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 3552066ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3612177ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3672017ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3731879ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3796121ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3852022ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3911786ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 3972395ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4031749ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4092420ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4152270ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4212005ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4272076ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4306936ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4307322ms] [LOG] [Fast Refresh] done in 495ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4307719ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4307724ms] [LOG] [Fast Refresh] done in 108ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4331620ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4387732ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4388492ms] [LOG] [Fast Refresh] done in 851ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4388792ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4389435ms] [LOG] [Fast Refresh] done in 743ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4390503ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4390611ms] [LOG] [Fast Refresh] done in 211ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4392051ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4426163ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4426462ms] [LOG] [Fast Refresh] done in 379ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4426674ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4427077ms] [LOG] [Fast Refresh] done in 507ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4448975ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4449312ms] [LOG] [Fast Refresh] done in 414ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4449493ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4449777ms] [LOG] [Fast Refresh] done in 390ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4451680ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4468999ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4469289ms] [LOG] [Fast Refresh] done in 391ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4511850ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4572116ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4631842ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4695197ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4751917ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4811927ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4871772ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4878166ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4879441ms] [LOG] [Fast Refresh] done in 1280ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4879750ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4880130ms] [LOG] [Fast Refresh] done in 486ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4880809ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4881119ms] [LOG] [Fast Refresh] done in 411ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4881225ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4881262ms] [LOG] [Fast Refresh] done in 142ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4881425ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4881467ms] [LOG] [Fast Refresh] done in 147ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4881949ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4882667ms] [LOG] [Fast Refresh] done in 763ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4883683ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4886598ms] [LOG] [Fast Refresh] done in 3022ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 4931738ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 4992658ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5052077ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5112184ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5171934ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5232020ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5291766ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5296950ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 5296971ms] [LOG] [Fast Refresh] done in 125ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 5352049ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5411673ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5446378ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 5446534ms] [LOG] [Fast Refresh] done in 263ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 5472585ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5531825ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5592054ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5651757ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5712577ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5762936ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5832099ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5889223ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 5889226ms] [LOG] [Fast Refresh] done in 108ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 5891857ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 5952180ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6011810ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6071989ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6131725ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6192265ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6214039ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 6214170ms] [LOG] [Fast Refresh] done in 236ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 6251728ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6312128ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6371992ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6431982ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6492040ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6555449ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6611985ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6672108ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6731936ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6792321ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6852195ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6911948ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 6971793ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7032286ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7091725ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7152568ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7212019ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7272239ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7331779ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7392176ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7451858ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7512149ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7572204ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7632029ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7692576ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7752461ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7812040ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7872340ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7932149ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 7973309ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 7973311ms] [LOG] [Fast Refresh] done in 103ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[ 7992286ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8052194ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8115379ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8172575ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8232206ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8292883ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8352041ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8412298ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8475020ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8532182ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8592052ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8651796ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8712076ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8771839ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8832387ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8892011ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 8952263ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9012047ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9072543ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9131752ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9192194ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9252412ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9315129ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9371772ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9432588ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9491803ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9552378ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9611937ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9672029ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9731960ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9792103ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9851845ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9912230ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[ 9971997ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10032465ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10092566ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10153449ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10211763ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10272210ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10332297ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10392172ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10451957ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10512540ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10571830ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10632460ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10691982ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10752394ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10811830ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10872273ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10931798ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[10992128ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11052026ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11112307ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11172089ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11232315ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11293914ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11352316ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11412543ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11472139ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11531840ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11592109ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11651831ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11712181ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11773411ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11822996ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11822997ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11822997ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11892086ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[11952409ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12011895ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12087490ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12132309ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12192654ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12252328ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12312327ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12372287ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12432237ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12492164ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12552358ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12611888ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12672135ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12731722ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12792164ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12851808ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12912270ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[12972013ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13032427ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13092050ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13152341ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13212040ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13272458ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13331867ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13392264ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13452377ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13512173ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13571843ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13632398ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13692028ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13752205ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13811821ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13872234ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13933000ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[13992265ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14051896ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14112249ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14172155ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14232512ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14291895ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14352258ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14411978ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14472293ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14532162ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14592101ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14651904ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14713858ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14771815ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14832336ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14892123ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[14952115ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15011946ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15072095ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15132270ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15192482ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15251975ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15312052ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15380881ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15432305ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15491903ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15552134ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15611919ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15672127ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15732136ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15792351ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15852115ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15915026ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[15971831ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[16036577ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[16092179ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[16152186ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[16211892ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[16272263ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[16331842ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[16395899ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[16408918ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[16409108ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[16409173ms] [LOG] [Fast Refresh] done in 180ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[16409703ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[16409756ms] [LOG] [Fast Refresh] done in 154ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[16420689ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[16437568ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[16437610ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[16438113ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[16467464ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[26306545ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[26365710ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[26426049ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[26485582ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[26546462ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[26605464ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[26665509ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[26726081ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[26785455ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[26845686ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[26905729ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[26908986ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[26908999ms] [LOG] [Fast Refresh] done in 117ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[26965914ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27025656ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27085464ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27133733ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[27133812ms] [LOG] [Fast Refresh] done in 181ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[27145640ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27205694ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27265751ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27325761ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27385801ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27445703ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27505738ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27565711ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27625990ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27685879ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27745766ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27806072ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27820316ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[27820322ms] [LOG] [Fast Refresh] done in 111ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[27865976ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27925843ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[27985683ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28045975ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28107859ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28165523ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28225531ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28285880ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28345933ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28405983ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28465439ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28525978ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28585905ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28645490ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28705654ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28765818ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28825891ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28885824ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[28945463ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29005655ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29066362ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29097318ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[29097329ms] [LOG] [Fast Refresh] done in 113ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[29125915ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29185919ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29246256ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29305547ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29365696ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29425687ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29485810ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29545499ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29605723ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29665550ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29725510ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29785501ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29845840ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29905482ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[29965668ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30025632ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30085485ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30145476ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30206083ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30265548ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30325867ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30385513ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30445526ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30505686ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30565800ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30625695ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30685500ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30746435ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30805527ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30865514ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30925598ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[30985487ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31045523ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31105927ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31165776ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31225707ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31285911ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31345672ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31405475ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31465781ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31526101ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31585956ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31645790ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31705533ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31765500ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31826125ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31885734ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[31945590ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32005633ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32065477ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32125721ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32185559ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32246285ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32253690ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32257872ms] [LOG] [Fast Refresh] done in 4284ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32259787ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32259811ms] [LOG] [Fast Refresh] done in 130ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32283065ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32283177ms] [LOG] [Fast Refresh] done in 219ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32302484ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32302524ms] [LOG] [Fast Refresh] done in 144ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32305519ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32329868ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32329881ms] [LOG] [Fast Refresh] done in 115ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32333345ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32333528ms] [LOG] [Fast Refresh] done in 288ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32354359ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32354368ms] [LOG] [Fast Refresh] done in 112ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32365522ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32425690ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32485492ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32546045ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32548835ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32551523ms] [LOG] [Fast Refresh] done in 2545ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32552011ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32552902ms] [LOG] [Fast Refresh] done in 993ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32560551ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32560551ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32620124ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32680291ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32740146ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32800256ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32860662ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32920182ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32980188ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[32994025ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[32994056ms] [LOG] [Fast Refresh] done in 134ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33040177ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33086649ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33087798ms] [LOG] [Fast Refresh] done in 1247ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33088251ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33089553ms] [LOG] [Fast Refresh] done in 1404ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33093748ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33094067ms] [LOG] [Fast Refresh] done in 421ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33094425ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33095382ms] [LOG] [Fast Refresh] done in 1064ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33100333ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33102479ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33102781ms] [LOG] [Fast Refresh] done in 402ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33103014ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33103638ms] [LOG] [Fast Refresh] done in 723ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33109960ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33111304ms] [LOG] [Fast Refresh] done in 1417ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33111820ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33112955ms] [LOG] [Fast Refresh] done in 1237ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33116863ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33117662ms] [LOG] [Fast Refresh] done in 874ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33118410ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33119355ms] [LOG] [Fast Refresh] done in 1047ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33132755ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33133248ms] [LOG] [Fast Refresh] done in 592ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33133607ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33134285ms] [LOG] [Fast Refresh] done in 795ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33160169ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33220634ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33280211ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33340028ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33400436ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33460138ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33520410ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33580164ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33640466ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33700680ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33739825ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33742039ms] [LOG] [Fast Refresh] done in 1142ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33751431ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33753035ms] [LOG] [Fast Refresh] done in 1704ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33753876ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33757340ms] [LOG] [Fast Refresh] done in 3566ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33757823ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33760117ms] [LOG] [Fast Refresh] done in 2398ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33760175ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33760306ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33760359ms] [LOG] [Fast Refresh] done in 154ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33765902ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33766523ms] [LOG] [Fast Refresh] done in 723ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33774666ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33775136ms] [LOG] [Fast Refresh] done in 543ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33775316ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33775839ms] [LOG] [Fast Refresh] done in 629ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33775941ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33775942ms] [LOG] [Fast Refresh] done in 101ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33820323ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33829085ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33829219ms] [LOG] [Fast Refresh] done in 230ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33829453ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33829675ms] [LOG] [Fast Refresh] done in 324ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33835350ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33835492ms] [LOG] [Fast Refresh] done in 247ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33835727ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33836169ms] [LOG] [Fast Refresh] done in 549ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33841538ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33841703ms] [LOG] [Fast Refresh] done in 263ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33841868ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33842242ms] [LOG] [Fast Refresh] done in 478ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33848032ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33848702ms] [LOG] [Fast Refresh] done in 750ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33848848ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33849168ms] [LOG] [Fast Refresh] done in 424ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33874398ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33875750ms] [LOG] [Fast Refresh] done in 1454ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33876264ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33876325ms] [LOG] [Fast Refresh] done in 162ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33880141ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[33902896ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33903005ms] [LOG] [Fast Refresh] done in 211ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33924313ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33924641ms] [LOG] [Fast Refresh] done in 428ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33924836ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33925216ms] [LOG] [Fast Refresh] done in 487ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[33940741ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34000544ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34060100ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34120477ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34180170ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34240431ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34300663ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34360444ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34420655ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34480217ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34540346ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34600265ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34660578ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34720617ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34780242ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34820751ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[34820772ms] [LOG] [Fast Refresh] done in 123ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[34841707ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34900502ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[34960049ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35020385ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35063011ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35067975ms] [LOG] [Fast Refresh] done in 4807ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35071746ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35075614ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35075841ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35082783ms] [LOG] [Fast Refresh] done in 11102ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35084158ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35084839ms] [LOG] [Fast Refresh] done in 787ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35085024ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35085095ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35085408ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35086740ms] [LOG] [Fast Refresh] done in 1432ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35087059ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35087309ms] [LOG] [Fast Refresh] done in 354ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35087413ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35087672ms] [LOG] [Fast Refresh] done in 362ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35087933ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35088417ms] [LOG] [Fast Refresh] done in 589ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35088522ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35088783ms] [LOG] [Fast Refresh] done in 364ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35090865ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35092160ms] [LOG] [Fast Refresh] done in 1395ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35094142ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35095310ms] [LOG] [Fast Refresh] done in 1277ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35097262ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35098190ms] [LOG] [Fast Refresh] done in 1031ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35098579ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35099560ms] [LOG] [Fast Refresh] done in 1087ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35099928ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35100892ms] [LOG] [Fast Refresh] done in 1067ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35145023ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35196062ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35196082ms] [LOG] [Fast Refresh] done in 133ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35205997ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35208927ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35208973ms] [LOG] [Fast Refresh] done in 152ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35213011ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35213030ms] [LOG] [Fast Refresh] done in 124ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35265341ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35325263ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35384988ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35445067ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35505445ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35564982ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35570760ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35573216ms] [LOG] [Fast Refresh] done in 2557ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35574028ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35574134ms] [LOG] [Fast Refresh] done in 209ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35574236ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35574241ms] [LOG] [Fast Refresh] done in 105ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35625304ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35628431ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35628762ms] [LOG] [Fast Refresh] done in 436ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35685081ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35745223ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35805097ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35807358ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35808400ms] [LOG] [Fast Refresh] done in 1143ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35809434ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35810463ms] [LOG] [Fast Refresh] done in 1130ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35814572ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35814939ms] [LOG] [Fast Refresh] done in 467ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35815287ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35816398ms] [LOG] [Fast Refresh] done in 1214ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35824454ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35824749ms] [LOG] [Fast Refresh] done in 395ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35824974ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35825429ms] [LOG] [Fast Refresh] done in 556ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35836242ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35836602ms] [LOG] [Fast Refresh] done in 455ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35836875ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35837379ms] [LOG] [Fast Refresh] done in 609ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35848888ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35849140ms] [LOG] [Fast Refresh] done in 350ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35849365ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35849699ms] [LOG] [Fast Refresh] done in 439ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35865363ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35882779ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35883032ms] [LOG] [Fast Refresh] done in 351ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35883563ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35887715ms] [LOG] [Fast Refresh] done in 4252ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35921319ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35921851ms] [LOG] [Fast Refresh] done in 609ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35922012ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35922392ms] [LOG] [Fast Refresh] done in 486ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[35925221ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[35985258ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36044976ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36045444ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36046005ms] [LOG] [Fast Refresh] done in 666ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36046495ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36046746ms] [LOG] [Fast Refresh] done in 355ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36105209ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36142768ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36143156ms] [LOG] [Fast Refresh] done in 462ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36143336ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36143611ms] [LOG] [Fast Refresh] done in 381ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36147109ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36147395ms] [LOG] [Fast Refresh] done in 389ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36147725ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36147936ms] [LOG] [Fast Refresh] done in 312ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36165058ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36166703ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36166782ms] [LOG] [Fast Refresh] done in 181ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36225215ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36277599ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36277944ms] [LOG] [Fast Refresh] done in 426ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36278088ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36278348ms] [LOG] [Fast Refresh] done in 361ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36285019ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36290805ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36291278ms] [LOG] [Fast Refresh] done in 553ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36291398ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36291721ms] [LOG] [Fast Refresh] done in 430ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36345302ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36360250ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36360845ms] [LOG] [Fast Refresh] done in 696ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36405263ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36465200ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36524996ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36575419ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36575915ms] [LOG] [Fast Refresh] done in 563ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36576136ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36576607ms] [LOG] [Fast Refresh] done in 575ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36576753ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36576840ms] [LOG] [Fast Refresh] done in 189ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36578002ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36579121ms] [LOG] [Fast Refresh] done in 1186ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36579328ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36579803ms] [LOG] [Fast Refresh] done in 582ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36579944ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36580000ms] [LOG] [Fast Refresh] done in 157ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36584973ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36644998ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36659964ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36660578ms] [LOG] [Fast Refresh] done in 718ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[36705106ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36765040ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36824958ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36885267ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[36945086ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37005000ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37065352ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37121608ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[37121803ms] [LOG] [Fast Refresh] done in 299ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[37124993ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37185217ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37245002ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37304961ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37364962ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37425104ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37485042ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37545018ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37605268ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37665038ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37725424ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37773851ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[37774800ms] [LOG] [Fast Refresh] done in 1054ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[37775327ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[37775559ms] [LOG] [Fast Refresh] done in 334ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[37785220ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37812486ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[37812672ms] [LOG] [Fast Refresh] done in 290ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[37845127ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37905039ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[37964834ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38024970ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38085137ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38145149ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38205063ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38265210ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38325013ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38384973ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38445468ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38505010ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38565275ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38625311ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38684944ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38745053ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38805360ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38865027ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38925498ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[38984980ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39045574ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39104963ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39165410ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39224982ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39285352ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39344979ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39405340ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39464937ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39525421ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39585211ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39645437ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39705052ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39765381ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39824938ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39885429ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[39945533ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[40005265ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[40059683ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40060933ms] [LOG] [Fast Refresh] done in 1353ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40062015ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40062145ms] [LOG] [Fast Refresh] done in 231ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40064911ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[40075528ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40075578ms] [LOG] [Fast Refresh] done in 154ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40086292ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40086433ms] [LOG] [Fast Refresh] done in 243ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40124976ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[40185012ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[40245014ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[40305121ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[40360494ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40362458ms] [LOG] [Fast Refresh] done in 1821ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40363418ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40364845ms] [LOG] [Fast Refresh] done in 1530ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40364951ms] ReferenceError: FounderQueue is not defined
+    at Console (http://localhost:3000/_next/static/chunks/src_components_osx_OsxShell_tsx_1j-qeg-._.js?id=%255Bproject%255D%252Fsrc%252Fcomponents%252Fosx%252FOsxShell.tsx+%255Bapp-client%255D+%2528ecmascript%2529:7995:239)
+    at Object.react_stack_bottom_frame (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:15037:24)
+    at renderWithHooks (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:4620:24)
+    at updateFunctionComponent (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6081:21)
+    at beginWork (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6691:24)
+    at runWithFiberInDEV (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:74)
+    at performUnitOfWork (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9555:97)
+    at workLoopSync (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9449:40)
+    at renderRootSync (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9433:13)
+    at performWorkOnRoot (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9061:186)
+    at performSyncWorkOnRoot (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10263:9)
+    at flushSyncWorkAcrossRoots_impl (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10179:316)
+    at processRootScheduleInMicrotask (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10200:106)
+    at http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10274:158
+[40364970ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/os_api:0
+[40365185ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40365495ms] [LOG] [Fast Refresh] done in 416ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40376219ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40376220ms] [LOG] [Fast Refresh] done in 101ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40387345ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40388944ms] [WARNING] [Fast Refresh] performing full reload because your application had an unrecoverable error @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40389086ms] [LOG] [Fast Refresh] done in 1657ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40389212ms] ReferenceError: FounderQueue is not defined
+    at Console (http://localhost:3000/_next/static/chunks/src_components_osx_OsxShell_tsx_1j-qeg-._.js?id=%255Bproject%255D%252Fsrc%252Fcomponents%252Fosx%252FOsxShell.tsx+%255Bapp-client%255D+%2528ecmascript%2529:7995:239)
+    at Object.react_stack_bottom_frame (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:15037:24)
+    at renderWithHooks (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:4620:24)
+    at updateFunctionComponent (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6081:21)
+    at beginWork (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6691:24)
+    at runWithFiberInDEV (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:74)
+    at performUnitOfWork (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9555:97)
+    at workLoopSync (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9449:40)
+    at renderRootSync (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9433:13)
+    at performWorkOnRoot (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9098:47)
+    at performWorkOnRootViaSchedulerTask (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10255:9)
+    at MessagePort.performWorkUntilDeadline (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_1amofcm._.js:2647:64)
+[40389943ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40389950ms] [LOG] [Fast Refresh] done in 107ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40390127ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40395221ms] [LOG] [Fast Refresh] done in 5195ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40395506ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40395580ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40395652ms] [WARNING] [qd] NEXT_PUBLIC_SUPABASE_URL is unset - this page is talking to PRODUCTION. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40395825ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://htdblwldjkcgjvmqkbeh.supabase.co/auth/v1/token?grant_type=refresh_token:0
+[40417954ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40419315ms] [LOG] [Fast Refresh] done in 1323ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40419763ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40419826ms] [LOG] [Fast Refresh] done in 163ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40493067ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40493071ms] [LOG] [Fast Refresh] done in 108ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40496297ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40496494ms] [LOG] [Fast Refresh] done in 302ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40496866ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40496977ms] [LOG] [Fast Refresh] done in 219ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40501156ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40501274ms] [LOG] [Fast Refresh] done in 224ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40694639ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40694902ms] [LOG] [Fast Refresh] done in 369ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40862653ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40864318ms] [LOG] [Fast Refresh] done in 1553ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40864735ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40865455ms] [LOG] [Fast Refresh] done in 822ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40865560ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40867043ms] [LOG] [Fast Refresh] done in 1458ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40868259ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[40872034ms] [LOG] [Fast Refresh] done in 3880ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[41558558ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[41558562ms] [LOG] [Fast Refresh] done in 112ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[41902008ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[41905145ms] [LOG] [Fast Refresh] done in 3241ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[41905528ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[41905530ms] [LOG] [Fast Refresh] done in 104ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[41926335ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[41927203ms] [LOG] [Fast Refresh] done in 970ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42010501ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42011423ms] [LOG] [Fast Refresh] done in 1004ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42011634ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42012223ms] [LOG] [Fast Refresh] done in 693ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42019399ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42019705ms] [LOG] [Fast Refresh] done in 412ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42019855ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42020123ms] [LOG] [Fast Refresh] done in 371ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42051051ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42051554ms] [LOG] [Fast Refresh] done in 606ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42324506ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42325378ms] [LOG] [Fast Refresh] done in 947ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42325956ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42327285ms] [LOG] [Fast Refresh] done in 1428ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42327922ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42328436ms] [LOG] [Fast Refresh] done in 590ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42328598ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
+[42328920ms] [LOG] [Fast Refresh] done in 422ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2489
