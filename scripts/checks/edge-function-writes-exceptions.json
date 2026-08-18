@@ -1,0 +1,78 @@
+{
+  "_README": [
+    "HAND RESOLUTIONS FOR CALL SITES THE AST CANNOT NAME.",
+    "",
+    "edge_function_writes.mjs classifies every .from()/.rpc() site and refuses to publish a map with",
+    "any site it cannot resolve. That refusal is the point: an extractor that folds 'cannot tell' into",
+    "'writes nothing' will eventually clear a real kernel bypass. This file is where a human resolves",
+    "the remainder, with the evidence that justifies each answer.",
+    "",
+    "Two resolutions are possible:",
+    "  tables: [...]  the computed name comes from a literal map in the same file, and these are all",
+    "                 the values it can take. Enumerated by reading that map, quoted in `evidence`.",
+    "  unbounded:true the target comes from a database row or caller input, so it can be ANY routine",
+    "                 or table. This is a PERMANENT answer, not a to-do. A source with an unbounded",
+    "                 write site can never be CLEARED by the write map — the safe direction — because",
+    "                 the honest statement is 'this may write anything'.",
+    "",
+    "Every entry is keyed by function:line and is checked on each run: if the site moves or vanishes,",
+    "the entry is stale and the check fails rather than silently covering nothing."
+  ],
+
+  "sites": [
+    {
+      "site": "kb_embed:118",
+      "expr": "admin.from(tgt.table).update",
+      "tables": ["kb_chunks", "company_faq"],
+      "evidence": "tgt comes from the literal target map at kb_embed/index.ts:79-81 — kb_chunks: { table: 'kb_chunks', ... } and company_faq: { table: 'company_faq', ... }. No other key exists in that map."
+    },
+    {
+      "site": "os_ops:145",
+      "expr": "admin.from(cfg.table).update  (action === 'content_save')",
+      "tables": ["agent_actions", "board_reports", "exec_reports", "finance_reports", "security_events"],
+      "evidence": "cfg = CONTENT[b.type], and CONTENT is a literal Record in os_ops/index.ts whose members name exactly these five tables. An unknown type returns 400 unknown_content_type before the write."
+    },
+    {
+      "site": "os_ops:181",
+      "expr": "admin.from(w.table).update  (action === 'field_set')",
+      "tables": ["agent_actions", "board_reports", "crm_tasks", "exec_reports", "expenses", "finance_reports", "inquiries", "leads", "security_events"],
+      "evidence": "w = EDITABLE[b.entity], a literal Record in os_ops/index.ts naming exactly these nine tables. An entity outside it returns 400 field_not_editable before the write."
+    },
+    {
+      "site": "ai_gateway:81",
+      "expr": "admin.rpc(name, args)",
+      "unbounded": true,
+      "evidence": "name is a caller-supplied routine identifier. The gateway can invoke any routine the service role may execute, so its write set is not statically bounded."
+    },
+    {
+      "site": "customer_portal:29",
+      "expr": "admin.rpc(name, args)",
+      "unbounded": true,
+      "evidence": "same shape as ai_gateway: the routine name arrives with the request rather than from a literal map."
+    },
+    {
+      "site": "cos_execute:396",
+      "expr": "admin.rpc(ex.target, ex.params || {})",
+      "unbounded": true,
+      "evidence": "ex is a row read from the executor queue, so ex.target is whatever a queued row names. This is the executor dispatcher: being able to call any registered routine is its purpose, and no static bound exists."
+    },
+    {
+      "site": "dept_plan:109",
+      "expr": "admin.rpc(d.health_fn)",
+      "unbounded": true,
+      "evidence": "d.health_fn is a column on the department row, so the routine is chosen by data rather than by code."
+    },
+    {
+      "site": "exec_agents:61",
+      "expr": "admin.rpc(cfg.rpc)",
+      "unbounded": true,
+      "evidence": "cfg.rpc comes from an agent configuration rather than a literal in this file."
+    },
+    {
+      "site": "os_api:528",
+      "expr": "admin.rpc(WS[action])",
+      "unbounded": true,
+      "evidence": "WS maps a workspace action to a fn_ws_* reader. Those are read-only workspace projections today, but the mapping is indexed by caller-supplied `action` and the set is maintained elsewhere, so it is recorded unbounded rather than enumerated from a map that may grow without this file noticing."
+    }
+  ]
+}
