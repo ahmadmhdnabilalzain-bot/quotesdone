@@ -13,7 +13,7 @@
 // CREATE re-grants EXECUTE to PUBLIC — only CREATE OR REPLACE preserves the ACL — so the regression
 // is one careless DROP-and-recreate away, and nothing else in the suite would notice.
 //
-// The second assertion is a RATCHET rather than a demand for zero. 56 SECURITY DEFINER routines are
+// The last assertion is a RATCHET rather than a demand for zero. 56 SECURITY DEFINER routines are
 // still anon-executable, and they are NOT swept here on purpose: the original triage was right that
 // each needs one look at its callers before its grant goes, and a blind sweep over 56 routines is
 // how a security tidy-up becomes an outage. What the ratchet forbids is the number GROWING while
@@ -24,13 +24,13 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
+// THE SKIP IS node:test's OWN, not a top-level process.exit(0). Exiting before any test registers
+// makes `node --test` report a file with ZERO tests, and a runner that reads that as success is how
+// a check goes quiet without anyone noticing — the defect every_test_file_is_run.test.mjs exists
+// for. A skipped test is visible in the summary; a file that vanished is not.
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
   || existsSync(join(homedir(), '.supabase', 'access-token'));
-if (!hasToken) {
-  console.log('SKIP anon_cannot_execute_security_definer: no Supabase management token in this environment.');
-  process.exit(0);
-}
-const { sql } = await import('../phase_c/lib/db.mjs');
+const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 
 // The seven D35 closed. Named individually because these are the ones a probe PROVED reachable.
 const REVOKED = [
@@ -43,23 +43,26 @@ const REVOKED = [
 const ANON_CEILING = 56;
 const AUTHENTICATED_CEILING = 60;
 
-const rows = await sql(`
-  select p.proname,
-         has_function_privilege('anon',          p.oid, 'EXECUTE') as anon_can,
-         has_function_privilege('authenticated', p.oid, 'EXECUTE') as authed_can,
-         has_function_privilege('service_role',  p.oid, 'EXECUTE') as service_can
-    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.proname in (${REVOKED.map((f) => `'${f}'`).join(',')})
-   order by p.proname`);
+let rows = [], totals = {};
+if (hasToken) {
+  const { sql } = await import('../phase_c/lib/db.mjs');
+  rows = await sql(`
+    select p.proname,
+           has_function_privilege('anon',          p.oid, 'EXECUTE') as anon_can,
+           has_function_privilege('authenticated', p.oid, 'EXECUTE') as authed_can,
+           has_function_privilege('service_role',  p.oid, 'EXECUTE') as service_can
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.proname in (${REVOKED.map((f) => `'${f}'`).join(',')})
+     order by p.proname`);
+  totals = (await sql(`
+    select count(*) filter (where has_function_privilege('anon', p.oid,'EXECUTE'))          as anon_exec,
+           count(*) filter (where has_function_privilege('authenticated', p.oid,'EXECUTE')) as authed_exec,
+           count(*)                                                                          as total_secdef
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.prosecdef`))[0];
+}
 
-const totals = (await sql(`
-  select count(*) filter (where has_function_privilege('anon', p.oid,'EXECUTE'))          as anon_exec,
-         count(*) filter (where has_function_privilege('authenticated', p.oid,'EXECUTE')) as authed_exec,
-         count(*)                                                                          as total_secdef
-    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.prosecdef`))[0];
-
-test('the seven routines D35 closed are still closed to anon and authenticated', () => {
+test('the seven routines D35 closed are still closed to anon and authenticated', { skip: SKIP }, () => {
   assert.equal(rows.length, REVOKED.length,
     `expected ${REVOKED.length} routine(s), the database has ${rows.length}. A rename or a drop is itself the regression.`);
   const open = rows.filter((r) => r.anon_can || r.authed_can)
@@ -70,7 +73,7 @@ test('the seven routines D35 closed are still closed to anon and authenticated',
     + ' and revoke from PUBLIC first — revoke ... from anon against a PUBLIC grant is a silent no-op.');
 });
 
-test('the revoke did not take the grant the real callers depend on', () => {
+test('the revoke did not take the grant the real callers depend on', { skip: SKIP }, () => {
   // Every real caller is an edge function using admin.rpc(...), i.e. the service role. If this goes
   // false the supplier portal stops working, and that failure must not look like a security win.
   const broken = rows.filter((r) => !r.service_can).map((r) => r.proname);
@@ -79,7 +82,7 @@ test('the revoke did not take the grant the real callers depend on', () => {
     + ' — these are called from supplier_portal / customer_api / os_api and will now fail.');
 });
 
-test('the anon-executable SECURITY DEFINER surface has not grown', () => {
+test('the anon-executable SECURITY DEFINER surface has not grown', { skip: SKIP }, () => {
   console.log(`      ${totals.anon_exec} anon-executable and ${totals.authed_exec} authenticated-executable`
     + ` of ${totals.total_secdef} SECURITY DEFINER routine(s) in public`);
   assert.ok(Number(totals.anon_exec) <= ANON_CEILING,
