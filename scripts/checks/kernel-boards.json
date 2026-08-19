@@ -84,6 +84,14 @@
       "why": "PHASE D DISCLOSURE, AND IT REPLACES handlers_not_writing_a_business_object RATHER THAN JOINING IT. That entry is DELETED at 0, which is what its own text instructed: every one of the 257 handlers now calls fn_phase_d_effect_produce, every step declares one of the seven effect types, and the path from handler to business object exists and is exercised. What this NEW entry counts is a different and harder question -- how many of the 257 have actually PRODUCED their effect at least once in a recorded execution. It starts at the full 257 because the only executions so far were aborted-transaction probes, which roll back by design and leave no ledger row. It falls as D11 and D13 land per-step and per-workflow cases. A path that exists and a path that has run are not the same claim and are no longer reported by one number. Delete this entry at 0, do not lower and leave it.",
       "owner": "OPEN -- Phase D D11/D13: run the per-step contract cases and the 30 workflow closures, each leaving a phase_d_effect_ledger row",
       "measured_at": "2026-08-18, 257 of 257 have never produced an effect outside an aborted transaction"
+    },
+    {
+      "board": "fn_phase_d_event_state",
+      "check": "event_self_loops",
+      "max_numerator": 54,
+      "why": "All 54 are step-completed events (*-S**-COMPLETED) whose emitted_by and primary_consumer_role_id are the same role in the FROZEN phase_b_event registry — a step whose successor is owned by the same role legitimately consumes its own completion. Both columns are Phase B, Phase B is frozen since 2026-08-15, and changing either needs a Phase B change request with evidence and founder approval. Phase D measured it and may not fix it. The count is left RED rather than redefined to a shape that passes, because narrowing the predicate until the number reaches zero is the rubber stamp this estate keeps finding.",
+      "owner": "OPEN — needs a Phase B change request (PBCR) to re-address the consumer of a same-owner step-completed event, or a founder ruling that a same-owner sequence is correct as designed",
+      "measured_at": "2026-08-19, 54 of 347"
     }
   ]
 }

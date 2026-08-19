@@ -1404,20 +1404,13 @@ scripts/sql/pbcr001_the_amendment_never_reached_the_bindings.sql
 scripts/sql/connected_was_one_word_for_two_facts.sql
 scripts/sql/a_deferral_the_founder_approved_is_not_a_violation.sql
 scripts/sql/nobody_was_reading_the_boards.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/the_ledger_follows_the_deferral_change.sql
 scripts/sql/the_flag_was_a_claim_the_discharge_is_measurable.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/a_row_id_is_not_a_key.sql
-'scripts/sql/a_row_id_is_not_a_key.sql'  
 scripts/sql/a_claim_that_named_a_table_the_source_never_touches.sql
-'scripts/sql/a_claim_that_named_a_table_the_source_never_touches.sql'  
 scripts/sql/the_write_map_in_the_database.sql
-'scripts/sql/the_write_map_in_the_database.sql'  
 scripts/sql/the_predicate_follows_the_map.sql
 scripts/sql/the_truncate_protection_was_a_typed_list.sql
 scripts/sql/phase_c_founder_approved_and_frozen.sql
@@ -1426,55 +1419,74 @@ scripts/sql/phase_d_d1_handler_registry_and_executor.sql
 scripts/sql/phase_d_d3_rule_enforcement.sql
 scripts/sql/phase_d_d0_auth_debt_discharged.sql
 scripts/sql/phase_d_d2_business_object_map.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d4_remaining_rules.sql
 scripts/sql/phase_d_d5_gate_predicates.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d6_handler_status_is_measured.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d7_effect_contract_and_business_writes.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d7b_three_derivation_defects_found_by_the_board.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d7c_regprocedure_hides_the_schema.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d7d_the_lexicon_matched_nouns.sql
-"scripts/sql/phase_d_d7d_the_lexicon_matched_nouns.sql"  
 scripts/sql/phase_d_d8_workflow_driver.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d8b_the_driver_reads_what_each_rule_declares_it_needs.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d8c_a_fixture_that_names_a_state_must_name_a_declared_one.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d8d_no_transition_is_not_an_undeclared_transition.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d8e_a_named_reviewer_needs_a_recorded_verdict.sql
 scripts/sql/phase_d_d8f_the_fixture_reads_the_check_constraint.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d8g_the_closure_gate_counted_its_own_step_run.sql
-[INFO] Recording command outcome: echo
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_d8h_the_file_says_what_the_database_says.sql
+scripts/sql/phase_d_d9_a_run_with_no_open_step_is_waiting_for_acceptance.sql
+
+scripts/sql/phase_d_d9_one_hundred_and_fifty_nine_contracts_not_one.sql
+scripts/sql/phase_d_d9b_a_run_in_waiting_handoff_is_not_a_stopped_run.sql
+scripts/sql/phase_d_d9c_a_scenario_built_in_the_order_reality_builds_it.sql
+scripts/sql/phase_d_d9d_a_canonical_write_that_emails_a_supplier.sql
+scripts/sql/phase_d_d9e_the_lineage_is_quiet_only_because_it_has_no_address.sql
+scripts/sql/phase_d_d9f_the_writer_covers_two_of_the_six_fields_its_scorer_reads.sql
+scripts/sql/phase_d_d9g_a_generated_fixture_beat_the_real_reference.sql
+scripts/sql/phase_d_d9h_the_owner_of_a_customer_scoped_object_is_a_customer.sql
+scripts/sql/phase_d_d9i_a_harness_that_seeds_the_row_the_step_creates.sql
+scripts/sql/phase_d_d9j_a_run_that_cannot_see_what_it_just_created.sql
+scripts/sql/phase_d_d9k_the_kernel_has_no_rejection_door.sql
+scripts/sql/phase_d_d9l_a_phase_d_key_standing_in_front_of_a_phase_b_guard.sql
+scripts/sql/phase_d_d10_seven_cases_for_every_one_of_the_257_steps.sql
+scripts/sql/phase_d_d11_two_hundred_and_seventy_three_events_that_have_never_happened.sql
+scripts/sql/phase_d_d12_ready_disabled_was_claiming_a_contract_that_is_not_built.sql
+scripts/sql/phase_d_d13_a_refund_gate_that_fired_before_the_case_was_opened.sql
+scripts/sql/phase_d_d14_a_state_the_target_does_not_declare.sql
+scripts/sql/phase_d_d15_a_reviewer_keyed_on_the_effect_not_the_step.sql
+scripts/sql/phase_d_d16_a_rule_applied_to_the_workflow_that_produces_it.sql
+scripts/sql/phase_d_d17_the_fixture_had_a_second_door_and_it_was_http.sql
+"scripts/sql/phase_d_d17_the_fixture_had_a_second_door_and_it_was_http.sql"  
+scripts/sql/phase_d_d18_an_upsert_that_could_not_find_the_row_it_wrote.sql
+scripts/sql/phase_d_d19_a_generated_payload_rearmed_the_door.sql
+scripts/sql/phase_d_d20_created_open_and_asked_the_gate.sql
+scripts/sql/phase_d_d21_the_run_renamed_its_own_inquiry.sql
+scripts/sql/phase_d_d22_a_company_scoped_owner_is_still_a_foreign_key.sql
+scripts/sql/phase_d_d23_a_state_can_require_a_companion_column.sql
+scripts/sql/phase_d_d24_a_new_enforcing_table_with_no_truncate_guard.sql
+"scripts/sql/phase_d_d24_a_new_enforcing_table_with_no_truncate_guard.sql"  
+scripts/sql/phase_d_d25_the_key_was_thrown_away_one_statement_later.sql
+scripts/sql/phase_d_d26_the_step_that_decides_had_nowhere_to_record_it.sql
+scripts/sql/phase_d_d27_move_its_state_said_the_refusal_that_offered_no_way.sql
+scripts/sql/phase_d_d28_a_gate_that_refused_the_workflow_for_doing_its_job.sql
+scripts/sql/phase_d_d29_a_durable_external_adapter_that_never_sends.sql
+"scripts/sql/phase_d_d29_a_durable_external_adapter_that_never_sends.sql"  
+scripts/sql/phase_d_d30_the_twelve_steps_may_say_ready_disabled_again.sql
+scripts/sql/phase_d_d31_seventy_five_injected_defects.sql
+"scripts/sql/phase_d_d31_seventy_five_injected_defects.sql"  
+scripts/sql/phase_d_d32_the_control_that_left_its_own_rows_behind.sql
+scripts/sql/phase_d_d33_the_cleanup_that_only_cleaned_one_table.sql
+scripts/sql/phase_d_d34_the_seven_probes_that_were_never_run.sql
+scripts/sql/phase_d_d35_a_mention_is_not_a_call.sql

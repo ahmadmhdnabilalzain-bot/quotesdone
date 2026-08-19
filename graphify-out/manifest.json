@@ -2615,8 +2615,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1787065459.0720642,
-    "ast_hash": "1ea853beb3ebac0b7d7771af9bfae8a4",
+    "mtime": 1787134415.7977812,
+    "ast_hash": "caac59b8a845b09cb5763cc0f11c72a8",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -3145,8 +3145,8 @@
     "semantic_hash": ""
   },
   "scripts/staging/os2_blueprint/ui_closure.mjs": {
-    "mtime": 1786226428.7749152,
-    "ast_hash": "5de5feedb3cfdaadbfcd400dc1ed997a",
+    "mtime": 1787086147.8400736,
+    "ast_hash": "5a38dee2b6b8884079befe44aca4444b",
     "semantic_hash": ""
   },
   "scripts/staging/portal_blueprint/documents_and_comms.mjs": {
@@ -12670,8 +12670,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/kernel-boards.json": {
-    "mtime": 1787063809.930234,
-    "ast_hash": "9e2f4261a8b3abc74a2bc316118b9e2e",
+    "mtime": 1787086995.3520758,
+    "ast_hash": "d6ff233f00b1844d7af17acb958b974a",
     "semantic_hash": ""
   },
   "scripts/checks/kernel_boards_are_green.test.mjs": {
@@ -13030,12 +13030,12 @@
     "semantic_hash": ""
   },
   "scripts/phase_d/build_d0_crosswalk.mjs": {
-    "mtime": 1787064306.0450394,
+    "mtime": 1787066417.9482417,
     "ast_hash": "9bb689f91e83019e630346888b4e3485",
     "semantic_hash": ""
   },
   "scripts/phase_d/discharge_d0_auth_debt.mjs": {
-    "mtime": 1787064386.0856595,
+    "mtime": 1787066417.951198,
     "ast_hash": "f1f2ef7ceeab56c3f57d8e47f743ad60",
     "semantic_hash": ""
   },
@@ -13585,32 +13585,32 @@
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_02_identity_aliases.sql": {
-    "mtime": 1787065212.5729191,
+    "mtime": 1787137935.275966,
     "ast_hash": "d98d9075b4b0ccdb4437404567939947",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_03_registry_core.sql": {
-    "mtime": 1787065212.5729191,
+    "mtime": 1787137935.277972,
     "ast_hash": "b4cc99c54f57b097b7a1f3ca3c8c3cc8",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_04_steps.sql": {
-    "mtime": 1787065212.5797715,
+    "mtime": 1787137935.277972,
     "ast_hash": "8f65cdcc9fcd2e88e9da6fad7cc62f3b",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_05_handoffs_and_exceptions.sql": {
-    "mtime": 1787065212.581316,
+    "mtime": 1787137935.282063,
     "ast_hash": "262fc16e9df721cd13d875fb83e12407",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_06_events.sql": {
-    "mtime": 1787065212.581316,
+    "mtime": 1787137935.282063,
     "ast_hash": "948dafc7908943f8850b0eba7c70c02a",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_07_crosswalk.sql": {
-    "mtime": 1787065212.5959451,
+    "mtime": 1787137935.299023,
     "ast_hash": "4f6d569a5f7e6fb3ab14bb48f7768508",
     "semantic_hash": ""
   },
@@ -13910,17 +13910,17 @@
     "semantic_hash": ""
   },
   "scripts/sql/phase_d_d0_auth_debt_discharged.sql": {
-    "mtime": 1787064427.1407006,
+    "mtime": 1787066417.9532015,
     "ast_hash": "d1c190e8d54db96df50d644dbb1749b9",
     "semantic_hash": ""
   },
   "scripts/sql/phase_d_d1_handler_registry_and_executor.sql": {
-    "mtime": 1787064984.5530064,
-    "ast_hash": "c5750212f954d02aa7126aced09c2eb7",
+    "mtime": 1787070708.4699552,
+    "ast_hash": "ab0eaad446ee2b8a66760cc0e2b95e04",
     "semantic_hash": ""
   },
   "scripts/sql/phase_d_d3_rule_enforcement.sql": {
-    "mtime": 1787063665.0738826,
+    "mtime": 1787066417.9532015,
     "ast_hash": "bb8d8a930b20729202159df235d4c167",
     "semantic_hash": ""
   },
@@ -14344,24 +14344,9 @@
     "ast_hash": "8e0dddd19f712ff3b38c54bafd6e6fc2",
     "semantic_hash": ""
   },
-  "PHASE_D_BUILDER_CLOSURE.md": {
-    "mtime": 1787065590.1948717,
-    "ast_hash": "b737c67c6317b7b7428e12903572e410",
-    "semantic_hash": ""
-  },
-  "PHASE_D_PRODUCTION_DEPLOYMENT_LEDGER.md": {
-    "mtime": 1787065350.5702114,
-    "ast_hash": "35ea5896657feb93878e28f11da43aae",
-    "semantic_hash": ""
-  },
   "PHASE_D_TEST_HARNESS_READINESS.md": {
     "mtime": 1787040319.3012128,
     "ast_hash": "2bc3387b2f42ef4befbce1b8841abcbf",
-    "semantic_hash": ""
-  },
-  "PHASE_D_ZERO_COST_EVIDENCE.md": {
-    "mtime": 1787065302.832616,
-    "ast_hash": "acf50fceb2e2a9d0fdb255540cac1281",
     "semantic_hash": ""
   },
   "QuotesDone_PHASE_D_DETERMINISTIC_BUSINESS_HANDLER_IMPLEMENTATION_PRODUCTION_DIRECT_v2026.08.17/CLAUDE_PHASE_D_MASTER_PROMPT.md": {
@@ -15385,8 +15370,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1787064816.815395,
-    "ast_hash": "9bd37f4292c9e5f3f133b8133720ae9d",
+    "mtime": 1787137482.754432,
+    "ast_hash": "7e548074496d948b8e75f21a1b9cdef5",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -15447,6 +15432,391 @@
   "scripts/sql/kernel_s3_system_execution_traces.REHEARSAL.md": {
     "mtime": 1786945492.6354923,
     "ast_hash": "ad41339b5f5e9f48cd3256ce617ef77b",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/build_business_object_result.mjs": {
+    "mtime": 1787070708.4699552,
+    "ast_hash": "63b8083831754189c0d6bfe2e2a75d52",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/build_frontend_api_call_graph.mjs": {
+    "mtime": 1787134117.7336397,
+    "ast_hash": "a2c227b3127b36b1f54cf73f4db3ba1e",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/build_handler_implementation_result.mjs": {
+    "mtime": 1787079554.6272287,
+    "ast_hash": "dd1561a1ccaccdc4d8de71b2ee22ab1c",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/build_handoff_event_result.mjs": {
+    "mtime": 1787087047.538417,
+    "ast_hash": "088a8660fcea66400c7d8382e639b18f",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/build_injected_defect_result.mjs": {
+    "mtime": 1787137649.9238758,
+    "ast_hash": "fe1aa3cdac913e7051e5d9f932ddd970",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/build_rule_gate_result.mjs": {
+    "mtime": 1787070708.4699552,
+    "ast_hash": "09a1129ce25d380c1edb4908d4e18078",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/build_step_case_result.mjs": {
+    "mtime": 1787086769.8057423,
+    "ast_hash": "126f06a60028c15a1277096c05f63368",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/build_workflow_implementation_result.mjs": {
+    "mtime": 1787092755.0757544,
+    "ast_hash": "6941fc069441b3aa2b06b3e85a16deba",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/run_section8_security_probes.mjs": {
+    "mtime": 1787137941.9780066,
+    "ast_hash": "570e8eafb0122575a6b468afb632a068",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d10_seven_cases_for_every_one_of_the_257_steps.sql": {
+    "mtime": 1787086694.8893342,
+    "ast_hash": "ada0df6cee081f7f3ffdd5de5ae1e2e2",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d11_two_hundred_and_seventy_three_events_that_have_never_happened.sql": {
+    "mtime": 1787086924.9451804,
+    "ast_hash": "37ac9fbcff306cd9f1b6a1feabb872ad",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d12_ready_disabled_was_claiming_a_contract_that_is_not_built.sql": {
+    "mtime": 1787087277.4276729,
+    "ast_hash": "616f50770caaf90a1182614d7acf0226",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d13_a_refund_gate_that_fired_before_the_case_was_opened.sql": {
+    "mtime": 1787087701.2111485,
+    "ast_hash": "5fcaa04b43cffbbbce47f0f5307e27c5",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d14_a_state_the_target_does_not_declare.sql": {
+    "mtime": 1787087927.0159883,
+    "ast_hash": "7fea9ac8ef9d32ea426f124e0489a738",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d15_a_reviewer_keyed_on_the_effect_not_the_step.sql": {
+    "mtime": 1787088043.220025,
+    "ast_hash": "8ead833067bb6a6bfe40ed220d1e9ade",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d16_a_rule_applied_to_the_workflow_that_produces_it.sql": {
+    "mtime": 1787088661.9762802,
+    "ast_hash": "354ef9a65a0c97e80a5805b3869e8c84",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d17_the_fixture_had_a_second_door_and_it_was_http.sql": {
+    "mtime": 1787090389.6802883,
+    "ast_hash": "ee1cb7aedba37a938b2672b53a79cff1",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d18_an_upsert_that_could_not_find_the_row_it_wrote.sql": {
+    "mtime": 1787090825.1497693,
+    "ast_hash": "4dccba6981b2621162b2c7b5c6b0687a",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d19_a_generated_payload_rearmed_the_door.sql": {
+    "mtime": 1787090972.9889996,
+    "ast_hash": "a2ac717d823342f47a48b71fc1b01833",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d20_created_open_and_asked_the_gate.sql": {
+    "mtime": 1787091508.2507122,
+    "ast_hash": "323e88f2116c2b4051637d77dad1c1ab",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d21_the_run_renamed_its_own_inquiry.sql": {
+    "mtime": 1787091807.9691374,
+    "ast_hash": "71261f9f34c597ce49e8c45b327a7f84",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d22_a_company_scoped_owner_is_still_a_foreign_key.sql": {
+    "mtime": 1787092232.2685916,
+    "ast_hash": "82325bd3008a6d8ce12f7f0490bd3e8f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d23_a_state_can_require_a_companion_column.sql": {
+    "mtime": 1787092433.4196477,
+    "ast_hash": "0768a62c962c2e4426f641354eceb50d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d24_a_new_enforcing_table_with_no_truncate_guard.sql": {
+    "mtime": 1787093528.3299603,
+    "ast_hash": "70535d3f80d148b07517aa8da910f1d2",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d25_the_key_was_thrown_away_one_statement_later.sql": {
+    "mtime": 1787094098.77039,
+    "ast_hash": "c9a261a1b3c3da409b6479d30641dcc3",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d26_the_step_that_decides_had_nowhere_to_record_it.sql": {
+    "mtime": 1787132476.7297213,
+    "ast_hash": "c8f5d2d5b59621c88046b67baf37760a",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d27_move_its_state_said_the_refusal_that_offered_no_way.sql": {
+    "mtime": 1787132966.9918175,
+    "ast_hash": "bc8287a665fae007bd6c0157b592400f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d28_a_gate_that_refused_the_workflow_for_doing_its_job.sql": {
+    "mtime": 1787132945.3519888,
+    "ast_hash": "2811a5933eb4d3c29e56202ce89e5f9d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d29_a_durable_external_adapter_that_never_sends.sql": {
+    "mtime": 1787133301.4502602,
+    "ast_hash": "45210475f5328e2b215b7f7428f9206f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d2_business_object_map.sql": {
+    "mtime": 1787070708.4699552,
+    "ast_hash": "5661c05c86bb211d5cae0b4305db37c4",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d30_the_twelve_steps_may_say_ready_disabled_again.sql": {
+    "mtime": 1787133338.101535,
+    "ast_hash": "8e581c369cc7dcd559a485a84a2f55d3",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d31_seventy_five_injected_defects.sql": {
+    "mtime": 1787133701.3956535,
+    "ast_hash": "cb607d7dc754c8f1e1158cad7aaf1236",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d32_the_control_that_left_its_own_rows_behind.sql": {
+    "mtime": 1787133785.7673628,
+    "ast_hash": "ee01721510767c8601f16921f6be16b3",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d33_the_cleanup_that_only_cleaned_one_table.sql": {
+    "mtime": 1787134361.1496797,
+    "ast_hash": "6d374ffb7b6a03a5577abbf4131824b6",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d34_the_seven_probes_that_were_never_run.sql": {
+    "mtime": 1787137395.4881802,
+    "ast_hash": "93222250c8d3c0e07f98680de4ac8ee2",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d35_a_mention_is_not_a_call.sql": {
+    "mtime": 1787137470.5464349,
+    "ast_hash": "862fff95b536af9bd6f36346e57142c1",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d4_remaining_rules.sql": {
+    "mtime": 1787070708.4699552,
+    "ast_hash": "761f36699b7b884372dd0c21a81183f8",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d5_gate_predicates.sql": {
+    "mtime": 1787070708.4699552,
+    "ast_hash": "2b9ee6126407f72b93e7500acb2ed8e6",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d6_handler_status_is_measured.sql": {
+    "mtime": 1787070708.4699552,
+    "ast_hash": "b25ab030472495ca75b7193baaeb7dd0",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d7_effect_contract_and_business_writes.sql": {
+    "mtime": 1787079554.633094,
+    "ast_hash": "03de70ea673fdb1705c6979604ce87de",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d7b_three_derivation_defects_found_by_the_board.sql": {
+    "mtime": 1787079554.6346395,
+    "ast_hash": "4b1e18cb6a71b5bc2fa0bb15b896eee1",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d7c_regprocedure_hides_the_schema.sql": {
+    "mtime": 1787079554.635015,
+    "ast_hash": "0d62baf4ef5b4ad0f18557849a184493",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d7d_the_lexicon_matched_nouns.sql": {
+    "mtime": 1787079554.635015,
+    "ast_hash": "f035a612801f672a43890f1abd729725",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d8_workflow_driver.sql": {
+    "mtime": 1787079554.635015,
+    "ast_hash": "c9427315055505127ada1398ec0b652f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d8b_the_driver_reads_what_each_rule_declares_it_needs.sql": {
+    "mtime": 1787079554.635015,
+    "ast_hash": "d7a9456faf2d506e98090f3978defc12",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d8c_a_fixture_that_names_a_state_must_name_a_declared_one.sql": {
+    "mtime": 1787079554.635015,
+    "ast_hash": "cd8a452332e0357a5c5c61e7a46356e4",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d8d_no_transition_is_not_an_undeclared_transition.sql": {
+    "mtime": 1787079554.635015,
+    "ast_hash": "afcacbdf5d42aeb4c99d705caa4a3085",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d8e_a_named_reviewer_needs_a_recorded_verdict.sql": {
+    "mtime": 1787079554.635015,
+    "ast_hash": "f3f4749c882bb4436521afb13237d1aa",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d8f_the_fixture_reads_the_check_constraint.sql": {
+    "mtime": 1787079554.6433132,
+    "ast_hash": "ca70944d5bf0e383980fa9b39d190dfe",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d8g_the_closure_gate_counted_its_own_step_run.sql": {
+    "mtime": 1787079554.6433132,
+    "ast_hash": "0fb1d750cfc962a454e5732a0c501a18",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d8h_the_file_says_what_the_database_says.sql": {
+    "mtime": 1787079554.6433132,
+    "ast_hash": "252371c08ae4099b6167885f4ec1dd84",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9_a_run_with_no_open_step_is_waiting_for_acceptance.sql": {
+    "mtime": 1787081591.4688756,
+    "ast_hash": "267da3b5194134f2ca69dd517f6f3ee0",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9_one_hundred_and_fifty_nine_contracts_not_one.sql": {
+    "mtime": 1787082696.536992,
+    "ast_hash": "87100225264f01b21101a84040265d08",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9b_a_run_in_waiting_handoff_is_not_a_stopped_run.sql": {
+    "mtime": 1787081133.497167,
+    "ast_hash": "743db9b480b6293fdb6f5aac94d6af07",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9c_a_scenario_built_in_the_order_reality_builds_it.sql": {
+    "mtime": 1787082706.8039105,
+    "ast_hash": "24ccc70d7eb07400a24a9444d246d303",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9d_a_canonical_write_that_emails_a_supplier.sql": {
+    "mtime": 1787081687.538869,
+    "ast_hash": "5a1f1c1735faa82e7d47d0de929e53a4",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9e_the_lineage_is_quiet_only_because_it_has_no_address.sql": {
+    "mtime": 1787081856.9708948,
+    "ast_hash": "0ded2e6f173d2f06072d8a731beeca70",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9f_the_writer_covers_two_of_the_six_fields_its_scorer_reads.sql": {
+    "mtime": 1787082064.1778848,
+    "ast_hash": "0d0da8fa2dd26cf9891a87398b2ec6ca",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9g_a_generated_fixture_beat_the_real_reference.sql": {
+    "mtime": 1787082187.0801451,
+    "ast_hash": "50a771efd764670350a6d3de092dfdde",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9h_the_owner_of_a_customer_scoped_object_is_a_customer.sql": {
+    "mtime": 1787082286.2867157,
+    "ast_hash": "705e921db963043014e6c34de1d494a9",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9i_a_harness_that_seeds_the_row_the_step_creates.sql": {
+    "mtime": 1787082440.565823,
+    "ast_hash": "4895c2576fb7016cc224c771d8da365d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9j_a_run_that_cannot_see_what_it_just_created.sql": {
+    "mtime": 1787082535.704228,
+    "ast_hash": "9c2dc704df2528e847b226bf3a3c4728",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9k_the_kernel_has_no_rejection_door.sql": {
+    "mtime": 1787083273.4384923,
+    "ast_hash": "042550c2515eda25d9f4fa7033d4c50a",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_d9l_a_phase_d_key_standing_in_front_of_a_phase_b_guard.sql": {
+    "mtime": 1787084088.8009021,
+    "ast_hash": "75dd6c2be953f067ddfca51be0cf5f82",
+    "semantic_hash": ""
+  },
+  "MEMORY.md": {
+    "mtime": 1787080040.0462277,
+    "ast_hash": "23f6a01095a25b12fd3aefeff19f8228",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_BUILDER_CLOSURE.md": {
+    "mtime": 1787070708.458256,
+    "ast_hash": "ea6b357df106730a478ba564f2e28be2",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_BUILDER_CLOSURE_D17_D24.md": {
+    "mtime": 1787134477.4263444,
+    "ast_hash": "42c28f712caa044caadde3fa9a07ab38",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_BUILDER_CLOSURE_D7_D8.md": {
+    "mtime": 1787081712.0365489,
+    "ast_hash": "04f29268d073beaf7d5a0d3d227d9d57",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_BUILDER_CLOSURE_D9.md": {
+    "mtime": 1787087187.7545905,
+    "ast_hash": "2bf66828978507f8c177afbdc5a84ef2",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_EXTERNAL_EFFECTS_RESULT.md": {
+    "mtime": 1787133385.8899956,
+    "ast_hash": "cffcb14523ec14c4183e70a4e70e4ba0",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_FINANCIAL_PRIVACY_RESULT.md": {
+    "mtime": 1787133979.1372654,
+    "ast_hash": "15360c7ba938f883225a2cfbf479423c",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_IDEMPOTENCY_CONCURRENCY_RESULT.md": {
+    "mtime": 1787133944.1110554,
+    "ast_hash": "8bb75dad5fa2876dcac205a938397f89",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_PRODUCTION_DEPLOYMENT_LEDGER.md": {
+    "mtime": 1787070708.4679902,
+    "ast_hash": "35ea5896657feb93878e28f11da43aae",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_ROLLBACK_CLASSIFICATION_D9.md": {
+    "mtime": 1787083539.5908012,
+    "ast_hash": "fc8d99f4dc31c2e3d1c1fc983bfc1df1",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_SECTION_8_PROBE_CLOSURE.md": {
+    "mtime": 1787137857.4349005,
+    "ast_hash": "bfdcac564d9fc8ed65d3c5b04df6c9c8",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_STORAGE_RLS_SECURITY_RESULT.md": {
+    "mtime": 1787137790.3015513,
+    "ast_hash": "b745363c9f0d2a3e4a3691a9f5ea559d",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_ZERO_COST_EVIDENCE.md": {
+    "mtime": 1787094945.8118749,
+    "ast_hash": "017f2b4ba1b211be23876407e8b53fff",
     "semantic_hash": ""
   }
 }
