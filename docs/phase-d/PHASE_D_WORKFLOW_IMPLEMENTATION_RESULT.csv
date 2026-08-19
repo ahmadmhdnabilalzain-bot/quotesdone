@@ -10,12 +10,12 @@ W08,8,8,2,0,8,completed,true,DETERMINISTIC_CLOSURE,,,,24,(none),0,0
 W09,9,9,0,0,9,completed,true,DETERMINISTIC_CLOSURE,,,,24,(none),0,0
 W10,8,8,4,0,8,completed,true,DETERMINISTIC_CLOSURE,,,,24,(none),0,0
 W11,7,7,6,0,7,completed,true,DETERMINISTIC_CLOSURE,,,,24,(none),0,0
-W12,9,2,0,0,1,active,false,STOPPED,W12-S02,pd_object_duplicate_identity,"fn_phase_d_object_write: dispatch_batch is a TRANSACTION_RECORD-family record and business key zz-phase-d-wfresult-w12-dispatch_batch-10114 already exists as record 6233. One record per identity; move its state, do not write a second. (pd_object_duplicate_identity)",23,W12,0,0
+W12,9,9,2,0,9,completed,true,DETERMINISTIC_CLOSURE,,,,23,W12,0,0
 W13,7,7,4,0,7,completed,true,DETERMINISTIC_CLOSURE,,,,24,(none),0,0
 W14,9,9,2,0,9,completed,true,DETERMINISTIC_CLOSURE,,,,24,(none),0,0
 W15,9,9,5,0,9,completed,true,DETERMINISTIC_CLOSURE,,,,24,(none),0,0
 W16,9,9,4,0,9,completed,true,DETERMINISTIC_CLOSURE,,,,24,(none),0,0
-W17,11,7,5,0,6,active,false,STOPPED,W17-S07,pd_gate_refused,"fn_phase_d_handler_execute: step W17-S07 refused by 1 hard gate(s): [{""state"": ""BLOCKED"", ""reason"": ""GATE-020: refund 659 has no recorded founder decision, financial action key ZZ DEMO — financial_action_key for W17-S07"", ""gate_id"": ""GATE-020"", ""refusal_code"": ""gate020_refund_unauthorised""}] (pd_gate_refused)",24,(none),0,0
+W17,11,11,9,0,11,completed,true,DETERMINISTIC_CLOSURE,,,,24,(none),0,0
 W18,7,7,4,0,7,completed,true,DETERMINISTIC_CLOSURE,,,,24,(none),0,0
 W19,7,7,6,0,7,completed,true,DETERMINISTIC_CLOSURE,,,,24,(none),0,0
 W20,9,9,7,0,9,completed,true,DETERMINISTIC_CLOSURE,,,,24,(none),0,0
