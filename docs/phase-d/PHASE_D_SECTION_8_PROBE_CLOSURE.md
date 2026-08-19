@@ -145,7 +145,69 @@ four requests in the session window are the scheduled read-only monitors the hol
 
 ---
 
-## Three things that are the founder's, raised once and not acted on
+## The bigger exposure the fix uncovered — measured, not fixed, and named here
+
+Revoking the seven closed the ones probe 6 proved reachable. It did not close the category. Measured
+directly with `has_function_privilege` after the revoke, and corroborated by Supabase's own security
+advisor:
+
+| | |
+|---|---|
+| SECURITY DEFINER functions in `public` | **786** |
+| still executable by `anon` | **56** (was 63 before this session) |
+| still executable by `authenticated` | **60** |
+| advisor `security_definer_view` at ERROR | **30** |
+| advisor `function_search_path_mutable` at WARN | **74** |
+
+**The reframing matters more than the count.** The 2026 triage kept grants on the strength of a
+`BROWSER` category — "a real product surface calls them". That category is **empty by measurement**:
+`grep -rn "\.rpc(" src/` returns **0 occurrences in the entire frontend**. The browser calls no
+database routine directly, through any helper, anywhere. So **no `anon` grant on any of the 56 is
+justified by a browser surface**, and the reason the seven were left open cannot be the reason any of
+the rest are.
+
+This is **not** revoked here, and the restraint is deliberate rather than lazy: the original triage
+said each remaining function "needs one look before its grant goes", and it was right. A blind sweep
+over 56 routines under a zero-effect hold, with cron and edge callers unverified per function, is how
+a security tidy-up becomes an outage. What has changed is that the justification for leaving them is
+now known to be false, so the look is owed. It is the single largest open security item this session
+found and it is stated with its number rather than folded into a green tick.
+
+The 605 `rls_enabled_no_policy` INFO advisories are the deliberate deny-all posture and are **not** a
+gap — probe 6 confirmed by execution that every non-empty one is unreachable by `anon` and by a real
+authenticated bearer.
+
+---
+
+## The Row #3 score is 105/152, and the two lost points are a clock, not a regression
+
+The blueprint scorer completed with its own total line — `SPEC FILE #3 (executive UI) on
+htdblwldjkcgjvmqkbeh: 105/152 (69%)`, 152 checks, exit 0. A complete run, not a partial. The brief
+expected 107, and the scorer names the two it lost as REGRESSED:
+
+| check | why |
+|---|---|
+| `company-brain-one-page-graph` | `public.graph_nodes` last rebuilt **2026-08-16 08:34:21**; the check requires `max(updated_at) > now() - interval '3 days'`. At 11:38 UTC it was **75.1 hours** stale — it crossed the 72-hour line about three hours before the run. |
+| `exec-home-monthly-goal-pct` | the same 3-day recency bound on `public.goal_period`, whose refresher last ran **2026-08-16 02:45**. |
+
+**Neither was caused by this session's changes, and that was checked rather than assumed.** The
+obvious suspicion was the D35 revoke — `fn_supplier_knowledge_graph` is one of the seven and the
+failing check has "graph" in its name. It is not the cause: the scorer's `UI_READS` counts routines
+whose `pg_get_functiondef` **text** matches the table name, so it is blind to grants, and the readers
+it names for `graph_nodes` are `fn_company_map` / `fn_ws_com…`, none of them revoked.
+
+The actual cause is measured: both refreshing cron jobs are switched **off**.
+
+| job | schedule | active | last run |
+|---|---|---|---|
+| `graph_rebuild_daily` | `5 4 * * *` | **false** | 2026-08-16 04:05 |
+| `goal_period_refresh_daily` | `45 2 * * *` | **false** | 2026-08-16 02:45 |
+
+They were stood down by the Phase D automation hold — which is also why the active cron count is the
+required 23. **They were deliberately not reactivated**: doing so to move a score by two points would
+be running automation the hold forbids, to make a number look better. The two points return on their
+own when the hold lifts and the daily jobs run again. This is recorded so the next session reads
+105 as "two clocks expired under the hold", not as damage.
 
 1. **GATE-020** guards a step named *"Execute approved financial action"* but checks only that
    **some** decision exists, not that it was an **approval** — a rejected case satisfies it. Phase B
