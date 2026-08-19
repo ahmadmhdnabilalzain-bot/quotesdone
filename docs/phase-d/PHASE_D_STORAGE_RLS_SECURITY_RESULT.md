@@ -224,7 +224,7 @@ refused `403` to a customer bearer and to anon, so the admin gate is holding; it
 
 Measured on the one project on 2026-08-19 (database clock). Posture from `pg_class`, `pg_policy`,
 `storage.buckets` and `storage.objects`; behaviour from 23 authenticated HTTP assertions executed
-between 11:02 and 11:07 UTC by `scripts/phase_d/run_section8_security_probes.mjs`, recorded in
+at 11:17 UTC by `scripts/phase_d/run_section8_security_probes.mjs`, recorded in
 `public.phase_d_section8_probe_result`.
 
 The probes used **five namespaced canary identities** (`zz-phase-d-s8-*@example.invalid`) created
