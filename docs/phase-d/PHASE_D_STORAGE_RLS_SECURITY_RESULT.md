@@ -1,7 +1,9 @@
 # Phase D — storage, RLS and security result (§8)
 
-**This document separates what was MEASURED from what was NOT PROBED, and the second list is not
-short. Every "not probed" row names the exact mechanism it needs.**
+**This document separates what was MEASURED, what was EXECUTED over authenticated HTTP, and what is
+still not probed. As of 19 August 2026 all seven security probes have RUN — 23 assertions, 23
+refused as required, 0 failures to refuse — and the remaining "not probed" rows each name the exact
+mechanism they still need.**
 
 ---
 
@@ -22,8 +24,16 @@ zero policies is deny-all for `anon` and `authenticated`; the rows are reachable
 > agent tables must stay server-only deny-all.
 
 So the number to watch is not "553 tables have no policy" — it is whether any table that a browser
-must read is among them. **That question is not answered here**, because answering it requires
-issuing an authenticated read, which is the probe work below.
+must read is among them. **That question is now answered, by execution.** Probe 6 selected the
+sensitive tables directly with the `anon` key and with a real authenticated customer bearer: every
+non-empty one returned 0 rows against a service_role control proving the rows were there. No table a
+browser must read is reachable that way, because **the browser reads none of them directly** —
+`grep -rn "\.rpc(" src/` returns 0 occurrences in total and every read goes through an edge function
+holding the service role. See §4.
+
+The count itself moved during the probes and moved back: `customers` held 2 canary rows for the
+duration of the run, which is what made it testable at all — a deny-all verdict against an empty
+table would have proved nothing.
 
 ## 2. Storage — measured
 
@@ -54,7 +64,11 @@ uploads.
 There is no second line of defence at the row level: a signed URL minted for the wrong path is
 honoured, because nothing beneath it checks ownership.
 
-That is exactly what probes 2, 3 and 7 below exist to test, and none of them was run.
+That is exactly what probes 2, 3 and 7 exist to test, and **all three have now run** (§4). They
+located the gap precisely: only `os_api file` and `os_ops file` accept a caller-supplied bucket and
+path, and they sign it with no ownership check — every other minter derives the path from a row the
+caller is already scoped to. Both were refused `403` to a customer bearer and to anon, so the admin
+gate is holding; it is simply the only thing holding.
 
 ## 3. Frontend → object call graph — measured
 
@@ -72,56 +86,154 @@ That is expected and is reported rather than counted as a failure.
 
 ---
 
-## 4. The seven security probes — NOT RUN
+## 4. The seven security probes — **EXECUTED**, 19 August 2026
 
-**None of the seven was executed. None is claimed.** Each needs an authenticated HTTP request, and
-no Phase D path issues one — the phase drives the database directly, inside transactions it aborts.
+**All seven ran, over real HTTP, against the deployed project.** 23 assertions, **23 refused as
+required, 0 failures to refuse**. The runner is `scripts/phase_d/run_section8_security_probes.mjs`
+and each verdict is recorded in `public.phase_d_section8_probe_result`.
 
-| # | probe | exact mechanism it needs |
+The bearer was minted the way the estate already proved it could be: management token →
+`/api-keys?reveal` → `auth/admin/generate_link` → `/auth/v1/verify`. Nothing new was invented; the
+recipe has been in `scripts/phase_d/discharge_d0_auth_debt.mjs` since D0. **The "we cannot make a
+live HTTP call" caveat was false, and it is retracted rather than restated.**
+
+| # | probe | executed result |
 |---|---|---|
-| 1 | customer A reads customer B | two customer sessions and a portal read; the memory records the three-key sign-in (`qd-cust-token`, `qd-cust-refresh`, **`qd-cust-auth`**) and that getting it wrong looks like an account-mixup bug that is not one |
-| 2 | supplier A reads supplier B's documents | two supplier sessions and a signed URL minted for A used against B's path |
-| 3 | supplier reads raw customer identity | a supplier bearer token against the raw inquiry endpoint, and the response **body** inspected |
-| 4 | customer reads supplier KYC | a customer bearer token against `compliance-docs` / `supplier-docs` |
-| 5 | inactive identity executes | a deactivated canonical role presented to an authenticated route |
-| 6 | direct RPC / table bypass | `anon` and `authenticated` keys calling RPCs and selecting tables directly, to confirm the 553 deny-all tables are actually unreachable |
-| 7 | unsafe signed URL | an expired URL replayed, and a URL whose path belongs to another owner |
+| 1 | customer A reads customer B | **REFUSED.** Two real customer sessions. Each bearer resolved to its own account and only its own — the identity is read from the JWT and no action accepts a customer id from the body. An inquiry the caller does not own → `403 Not your inquiry`. An authenticated identity with no customer account → `403` and **0 rows created for it**. |
+| 2 | supplier A reads supplier B's documents | **REFUSED.** Two real supplier sessions. `supplier_portal documents` naming B's lead id returned a body byte-identical to A's own, carrying no trace of B. A settings write naming B's id landed on **A's** row, because the target is resolved from `claimed_by` on the JWT. |
+| 3 | supplier reads raw customer identity | **REFUSED.** `supplier_api inbox`, `supplier_portal opportunities` and a direct `/rest/v1/inquiries` read were called as a real supplier and the **response bodies** scanned for the two known customer identities; none appeared. Direct table read → `403`. |
+| 4 | customer reads supplier KYC | **REFUSED.** A customer bearer on `customer_documents get` for a document it does not own → `404` with **no `file_url` in the body** — the signing call is never reached. Naming `supplier-docs` verbatim on `os_api file`, `os_ops file` and `os_api files` → `403` on all three. |
+| 5 | inactive identity executes | **REFUSED.** An authenticated identity resolving to no active canonical role → `403` from the Command Center. Customer and supplier bearers attempting an admin mutation → `403` each. |
+| 6 | direct RPC / table bypass | **REFUSED — and this is the probe that found the one real defect.** See below. |
+| 7 | unsafe signed URL | **REFUSED.** A 1-second URL served `200` while valid and `400` after expiry. A private path named by a customer bearer and by anon → `403` both. A direct insert into `storage.objects` under an unowned path → `406`. |
 
-**It is possible to run these.** The estate has already proved a live session can be minted —
-management token → `api-keys?reveal` → `generate_link` → verify → a real bearer — so the "we cannot
-make a live HTTP call" caveat is false and is not offered here. What is true is that this session
-did not do it.
+Three storage rules the brief lists were executed at the same time, since they need the same
+harness: a ZIP declared `application/zip` and named `.pdf` → `415 InvalidMimeType`; an MZ executable
+declared `application/x-msdownload` → `415`; an upload over the bucket's own `file_size_limit` →
+`413 EntityTooLarge`. All three are enforced by storage itself, so they hold regardless of which
+code path uploads.
+
+### The defect probe 6 found, and it is fixed
+
+`public.fn_supplier_opportunities` — a **SECURITY DEFINER** function that ranks open inquiries —
+**answered an unauthenticated `anon` caller with HTTP 200.** It returned
+`{"note":"no open opportunities yet","count":0}`, and that is precisely the danger: **a zero cannot
+tell a dead guard from an idle system.** The estate holds zero inquiries today, so the function
+returned nothing because there was nothing to return. The first live RFQ changes the payload, not
+the permission.
+
+Six sibling functions were open the same way. The cause is a measurement defect, not an oversight:
+`scripts/sql/revoke_execute_on_trigger_only_secdef_fns.sql` triaged 63 anon-executable SECURITY
+DEFINER functions and set seven aside as `BROWSER — named in src/, a real product surface calls
+them`. Measured on this tree, `grep -rn "\.rpc(" src/` returns **0 occurrences in total** — the
+browser calls no RPC directly at all. The hit that produced the classification is a **comment** at
+`src/components/portal/supplier/SupplierQuoteBuilder.tsx:26`. **A mention was matched instead of a
+call**, and seven SECURITY DEFINER routines stayed reachable by `anon` for the sake of a product
+surface that does not exist.
+
+Every one has a real caller and every real caller is an **edge function** using `admin.rpc(...)` —
+the service_role client — which holds its own explicit grant. `scripts/sql/phase_d_d35_a_mention_is_not_a_call.sql`
+revokes EXECUTE from `public, anon, authenticated` on all seven (`public` named first, because
+`revoke … from anon` against a grant held through PUBLIC is a silent no-op). Verified by
+`has_function_privilege` after the apply: **anon `false`, authenticated `false`, service_role `true`
+on all seven**, and probe 6 re-run now observes `401 permission denied for function
+fn_supplier_opportunities`.
+
+### What the probes did NOT prove — stated, not smoothed over
+
+- **Probe 1's object half is bounded.** `public.inquiries` INSERT fires `trg_inquiry_received`,
+  which writes a `public.notifications` row for any parent inquiry whose customer has an e-mail —
+  and the customer row must carry its e-mail or `customer_api` cannot resolve it at all. There is no
+  way to create an inquiry and still honour "notifications written 0". So the ownership **branch**
+  was executed and answered `403`; discrimination between two *real* inquiries was not tested.
+- **Probe 6 is scoped to non-empty tables.** PostgREST answers an RLS-invisible table and an *empty*
+  table with the identical `200 []`. Every table was counted with the service_role first: 6
+  non-empty tables were tested against a control proving the rows exist, and 6 that hold 0 rows
+  (`inquiries`, `quotes`, `refunds`, `transactions`, `phase_d_external_attempt`,
+  `phase_c_refund_decision`) are reported **INCONCLUSIVE and not counted as passes**.
+- **`public.quotes` was never populated**, because its INSERT fires `trg_new_quote_sms`. Two defects
+  that need a quote remain unrun for that reason and no other.
+
+### Zero external effect, measured
+
+`0` outbound HTTP logged in `net._http_response` during the run — the queue was **not** used as the
+measure, because it drains and a drained queue is another zero that proves nothing. `0` new
+`llm_attempt`, `0` net notifications, and `customers`, `leads`, `inquiries`, `quotes`,
+`transactions`, `company_event` and the canary identities all returned to their watermark with
+`fn_phase_d_fixture_residue() = 0`.
+
+**One breach occurred and was reverted, and it is recorded here rather than omitted.** The first
+run used `supplier_api save_profile` for the cross-tenant write, which reaches the
+registration-submission branch at `supabase/functions/supplier_api/index.ts:603` and wrote **two
+`public.notifications` rows at 10:54 UTC — one addressed to management@quotesdone.com**. The
+runner's own zero-effect assertion caught them; both were deleted while still `status='pending'` and
+**neither ever reached `status='sent'`**. The probe now uses `save_settings`, which makes the same
+ownership decision with no registration side effect.
 
 ## 5. The storage rules the brief lists — status
 
 | rule | status |
 |---|---|
-| MIME / extension / magic-byte agreement | **enforced in code, tested by its own suite, not probed here.** `supabase/functions/_shared/attachment.ts` refuses a ZIP declared as a PDF, HTML however dressed, SVG, executables by name, and a PDF carrying JavaScript — 16 deno tests pass in the suite. Not exercised through an upload in this phase. |
-| size limit | **measured** — every bucket carries a `file_size_limit` |
+| MIME / extension / magic-byte agreement | **PROBED AND ENFORCED.** A ZIP declared `application/zip` and named `.pdf` -> `415 InvalidMimeType`; an MZ executable declared `application/x-msdownload` -> `415`. Storage refuses both regardless of the uploading code path. Additionally enforced in code: `supabase/functions/_shared/attachment.ts` refuses a ZIP declared as a PDF, HTML however dressed, SVG, executables by name, and a PDF carrying JavaScript — 16 deno tests pass in the suite. Not exercised through an upload in this phase. |
+| size limit | **PROBED.** An upload over the bucket's own `file_size_limit` -> `413 EntityTooLarge`. Every bucket carries a limit. |
 | MIME allow-list | **measured** — every bucket carries one, 2–10 types |
-| owner-scoped path | **NOT PROBED** — and with 0 storage policies there is no row-level enforcement to inspect; it rests on the URL minter |
-| safe filename | enforced in `attachment.ts` (traversal, hidden, disagreeing names); not probed |
+| owner-scoped path | **PROBED.** A private path named by a customer bearer and by anon on the two minters that accept a caller path -> `403` both; a direct insert into `storage.objects` under an unowned path -> `406`. With 0 storage policies the admin gate is the only thing enforcing it, and it held. |
+| safe filename | enforced in `attachment.ts` (traversal, hidden, disagreeing names); **still not probed** — the three uploads that ran were refused on MIME and size before any filename rule was reached |
 | quarantine | `documents.status` carries `quarantined` and GATE-012 refuses it — proved by the W07 drive |
-| short-lived URL | **NOT PROBED** |
+| short-lived URL | **PROBED.** A 1-second URL served `200` while valid and `400` after expiry. |
 | immutable approved revision | **proved in the database** — `IMMUTABLE_REVISION` supersedes and retains; not probed over HTTP |
 
 ---
 
 ## 6. Honest summary
 
-**Section 8 is PARTIALLY delivered.** The call graph is real and complete for the surfaces it found.
-The RLS and storage posture is measured from the database and includes one finding worth acting on
-(no storage-level policies; authorisation rests on the URL minter).
+**Section 8 is DELIVERED.** The call graph is real and complete for the surfaces it found. The RLS
+and storage posture is measured from the database. **All seven security probes were executed over
+real HTTP** — 23 assertions, 23 refused as required, 0 failures to refuse — and they found and
+closed one genuine defect that no static reading had caught in three sessions.
 
-**The seven security probes were not run, and the twenty §11 defects that depend on them remain
-NOT_RUN.** Marking any of them satisfied on the strength of the posture measurements above would be
-the instrument-on-the-wrong-subject defect this estate keeps finding: a bucket being private is not
-evidence that supplier A cannot read supplier B's file.
+**Eleven of the twenty §11 defects that waited on §8 are now executed, not twenty.** The session
+brief predicted twenty. That was a diagnosis, and it was wrong in the direction this repository has
+been wrong before — briefs carry reliable counts and unreliable causes. The eleven are mapped in
+`public.phase_d_section8_defect_map`, each with a written justification so the mapping can be
+argued with. The injected-defect result moved **26 → 37 refused as required, 49 → 38 NOT_RUN, 0
+failures to refuse.**
+
+**The nine that did not move, and why** — none of them for want of an HTTP request:
+
+| defect | why it is still NOT_RUN |
+|---|---|
+| PD-AUTH-005, PD-DISP-005 | need a **category overlay** identity presented to an authenticated route. A supplier bearer is not one, and mapping probe 5 onto it would be the instrument-on-the-wrong-subject defect. |
+| PD-QUOTE-001, PD-QUOTE-004 | need a `public.quotes` row, whose INSERT fires `trg_new_quote_sms`. **Blocked by the zero-external-effect hold, not by a missing capability** — executable the day the hold lifts. |
+| PD-PRIV-001, PD-PRIV-005 | need a **rendered** supplier-facing payload / artifact. §9 records an approved payload and its sha256 but renders no body. |
+| PD-PRIV-002 | needs a drawing revision carrying an unapproved redaction. |
+| PD-LEGAL-001 | the certificate rendering path is outside Phase D. |
+| PD-LEGAL-004 | a content-pipeline freshness fact. |
+
+**The storage finding is now precise rather than general.** There are still zero RLS policies on
+`storage.objects`, and that is still load-bearing — but probe 7 located exactly where. Of the
+signed-URL minters, only `os_api file` and `os_ops file` accept a **caller-supplied bucket and
+path** and sign it with no ownership check of any kind; every customer- and supplier-facing minter
+derives the path from a row the caller is already scoped to. So the missing row-level defence
+matters concretely for those two admin actions — an admin-token compromise reads any private object
+with nothing beneath it to say no — and is a latent second-line gap everywhere else. Both were
+refused `403` to a customer bearer and to anon, so the admin gate is holding; it is simply the
+*only* thing holding.
 
 ## Boundary of this evidence
 
-Measured on the one project on 2026-08-19 (database clock), from `pg_class`, `pg_policy`,
-`storage.buckets` and `storage.objects`, plus static analysis of `src/` and `supabase/functions/`.
-No authenticated HTTP request was issued, no signed URL was minted or replayed, and no upload was
-performed. This document is a statement about **posture and structure**, not about behaviour under
-an authenticated request.
+Measured on the one project on 2026-08-19 (database clock). Posture from `pg_class`, `pg_policy`,
+`storage.buckets` and `storage.objects`; behaviour from 23 authenticated HTTP assertions executed
+between 11:02 and 11:07 UTC by `scripts/phase_d/run_section8_security_probes.mjs`, recorded in
+`public.phase_d_section8_probe_result`.
+
+The probes used **five namespaced canary identities** (`zz-phase-d-s8-*@example.invalid`) created
+and deleted in the same run, and they did **not** create inquiries, quotes or transactions, because
+each of those fires a notification, an SMS or a reveal receipt on INSERT. Where that bounds a
+result, §4 says so against the specific probe rather than in a general caveat.
+
+The three-key browser sign-in trap (`qd-cust-token` / `qd-cust-refresh` / **`qd-cust-auth`**) is
+**not applicable to this evidence**, and that is a statement about the harness rather than a
+dismissal: these are server-side `fetch` calls carrying an Authorization header and touching no
+browser storage, so the failure mode is structurally absent. Probe 1 asserts the binding that trap
+would have corrupted — A's bearer returns A and only A.

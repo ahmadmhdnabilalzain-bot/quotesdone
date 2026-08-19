@@ -28,13 +28,19 @@ const cat = parseCsv(readFileSync(CAT, 'utf8'));
 const head = cat[0];
 const byId = new Map(cat.slice(1).map(r => [r[0], r]));
 
+// THE SOURCE IS THE REPORT WRAPPER, NOT THE RUNNER. fn_phase_d_injected_defect_report() is
+// fn_phase_d_run_injected_defects() with the recorded §8 probe verdicts LEFT JOINed on: the runner
+// still decides all 75 rows, and a row is overridden only where a named HTTP probe assertion in
+// public.phase_d_section8_probe_result actually executed. See D34 for the mapping and for the nine
+// section 8 defects that are deliberately NOT mapped.
+//
 // ONE PROBE, ABORTED. Separators are control characters so a comma in a blocker cannot split a row.
 const RUN = `
 do $emit$
 declare v_out text := ''; r record;
 begin
   perform set_config('app.phase_d_test_context','on', true);
-  for r in select * from public.fn_phase_d_run_injected_defects() where category = '__CAT__' order by defect_id loop
+  for r in select * from public.fn_phase_d_injected_defect_report() where category = '__CAT__' order by defect_id loop
     v_out := v_out || chr(30) || concat_ws(chr(31), r.defect_id, r.category, r.status,
              replace(replace(coalesce(r.observed,''), chr(10),' '), chr(13),' '),
              replace(replace(coalesce(r.blocker,''),  chr(10),' '), chr(13),' '));
@@ -43,12 +49,6 @@ begin
 end $emit$;`;
 
 // ONE PROBE PER CATEGORY. A single message carrying all 75 rows is truncated by the transport at
-// 2000 characters — the same defect the workflow builder hit — and the guard below caught it again
-// by refusing a partial export rather than writing 11 rows as if they were 75.
-const cats = [...new Set([...byId.values()].map(r => r[1]))].sort();
-const rows = [];
-for (const cat of cats) {
-  // ONE PROBE PER CATEGORY. A single message carrying all 75 rows is truncated by the transport at
 // 2000 characters — the same defect the workflow builder hit — and the guard below caught it again
 // by refusing a partial export rather than writing 11 rows as if they were 75.
 const cats = [...new Set([...byId.values()].map(r => r[1]))].sort();
