@@ -305,3 +305,78 @@ ruling that a test-context refund may carry a synthetic one.
 ---
 
 **PHASE_D_NOT_READY**
+
+---
+
+# Addendum — D26 to D33, same session: 30/30 and the last five deliverables
+
+The founder's instruction was to keep going until it passes. This addendum records what that took
+and, more importantly, what it did **not** achieve.
+
+## Deterministic closure: 28 → **30 / 30**
+
+| workflow | was | mechanism |
+|---|---|---|
+| **W17** | 7/11 | **not a founder blocker.** GATE-020 reads `refunds.decided_by` / `decided_at`, not `phase_c_refund_decision` — which the prior closure and the brief both assumed. W17-S06 "Decide case outcome" is a DECISION_HANDLER accountable to `trust_and_safety_manager` acting *within authority*, and it had no columns to record its decision in. |
+| **W12** | 2/9 | two defects: the store branch's `TRANSACTION_RECORD` refusal said "move its state" and offered no way to move it (D27), then GATE-015 refused S07 for the assignment S06 had just created (D28). |
+
+**The founder guard was neither touched nor circumvented.** `z00_refund_founder_decision_only`
+fires only on `status='approved'`. Phase D writes refunds at `requested` and **never** at
+`approved`; a deploy control proves the guard still refuses an approved refund decided by
+`trust_and_safety_manager` (42501), and a second proves a 30-workflow drive leaves **0** approved
+refunds. No founder identity is forged anywhere.
+
+**Final batch:** 30/30 · 159 handoffs · 257 business effects · 0 outbound HTTP · 0 notifications ·
+0 refunds approved · 0 runs and 0 fixture rows left behind.
+
+## Deliverables: 10 → **15 / 15 files exist**
+
+`PHASE_D_EXTERNAL_EFFECTS_RESULT.md` · `PHASE_D_INJECTED_DEFECT_RESULT.csv` ·
+`PHASE_D_FINANCIAL_PRIVACY_RESULT.md` · `PHASE_D_IDEMPOTENCY_CONCURRENCY_RESULT.md` ·
+`PHASE_D_FRONTEND_API_CALL_GRAPH.csv` · `PHASE_D_STORAGE_RLS_SECURITY_RESULT.md`
+
+- **§9 complete.** 14/14 adapter contract fields PRESENT, each backed by a CHECK or a refusal and
+  **derived** from `pg_constraint`/`prosrc` rather than typed. 84/84 mock cases. The adapter cannot
+  send, and that is a board check. The 12 steps returned to `EXTERNAL_ADAPTER_READY_DISABLED`.
+- **§11 executed honestly.** 75 rows: **26** injected and refused as required, **49 NOT_RUN each
+  with a named blocker**, **0** failures to refuse.
+- **§8 partially delivered.** The call graph is real: 26 call sites, every layer resolved.
+
+## Three defects this session introduced and caught
+
+1. **D19** — D17 declared `routing` so the writer could set it; the driver generates a value for
+   every declared column and re-armed the door D17 had just closed. Caught by D17's own guard.
+2. **D23** — D20's real states broke W09 9/9 → 1/9. Caught only by re-driving **all thirty**.
+3. **D31/D32/D33** — a control committed its probe rows. D32 cleaned one table and inferred the
+   rest were clean; the kernel board then found a surviving `public.customers` row. **A cleanup
+   scoped to the table you happened to look at is not a cleanup.**
+
+## Why this is still PHASE_D_NOT_READY
+
+All 15 deliverable files exist and 30/30 workflows close. **Two of those files honestly report
+incomplete work, and readiness would be a claim the evidence does not support:**
+
+- **The seven §8 security probes were NOT run.** Customer A vs B, supplier A vs B, supplier reading
+  raw customer identity, customer reading supplier KYC, inactive identity, direct RPC/table bypass,
+  unsafe signed URL. Each needs an authenticated HTTP request; none was issued. The
+  "we cannot make a live call" excuse is **not** offered, because it is false — the estate has
+  already minted a real bearer. This session simply did not do it.
+- **49 of 75 injected defects are NOT_RUN**, twenty of them blocked on exactly those probes.
+- **One finding worth acting on:** there are **zero RLS policies on `storage.objects`**. With
+  private buckets that is deny-all and safe by default, but storage authorisation therefore rests
+  **entirely** on whatever mints signed URLs, with no row-level second line of defence.
+
+Calling any of that covered would be the instrument-on-the-wrong-subject defect this estate keeps
+finding. A bucket being private is not evidence that supplier A cannot read supplier B's file.
+
+## Still his, not an engineer's
+
+1. **GATE-020 checks only that *some* decision exists, not that it was an approval** — so a rejected
+   case satisfies a gate guarding "Execute approved financial action". Phase B is frozen; measured
+   and reported, not altered.
+2. **The reveal contract.** §9 is built to the four messages he specified and **refuses** a
+   non-conforming payload. `trg_reveal_receipt` still sends one email to the customer, naming no
+   channel and no phone. The gap is on the board as DISCLOSED. Nothing was enabled.
+3. **Terms of Service §5(b)** — not one word edited.
+
+**PHASE_D_NOT_READY**
