@@ -209,6 +209,10 @@ be running automation the hold forbids, to make a number look better. The two po
 own when the hold lifts and the daily jobs run again. This is recorded so the next session reads
 105 as "two clocks expired under the hold", not as damage.
 
+---
+
+## Three things that are the founder's, raised once and not acted on
+
 1. **GATE-020** guards a step named *"Execute approved financial action"* but checks only that
    **some** decision exists, not that it was an **approval** — a rejected case satisfies it. Phase B
    is frozen. Measured and reported; not changed.
@@ -218,3 +222,33 @@ own when the hold lifts and the daily jobs run again. This is recorded so the ne
 3. **Terms of Service v6 §5(b)** (`src/content/legal.json`) still contradicts how he says refunds
    work. The frozen W17 model already matches his version. **Not one word of the published text was
    edited.**
+
+---
+
+## Verdict
+
+The one thing the previous closure named as standing between Phase D and a decision — *"The seven
+§8 security probes were NEVER RUN. Nothing else is outstanding."* — is done. All seven ran over real
+HTTP, 23 assertions, 23 refused as required, 0 failures to refuse, and they found and closed a
+defect that three sessions of static reading had missed.
+
+Re-measured this session by execution, not carried forward from the brief: deterministic closure
+30/30 · 257 steps · 159 handoffs · adapter contract 14/14 PRESENT · outbound board 9/9 GREEN ·
+kernel boards 7/7 with 33 boards, 388 checks and 9 red all disclosed and none grown · canonical
+routines 11 passed with 0 drift both directions · Phase A drift 0 · Phase B drift 0 · schema mirror
+byte-identical · deploy parity 202 functions · suite 302 tests, 2 failures, both pre-existing and
+unrelated · residue 0 · cron 23 · leads 20,465.
+
+**Approving this means approving it with these open items in plain sight**, none of them hidden
+inside a green number:
+
+- **38 of 75 injected defects remain NOT_RUN**, each with a named blocker. Two are blocked only by
+  the zero-effect hold.
+- **56 SECURITY DEFINER functions are still executable by `anon`** and 60 by `authenticated`. That
+  is pre-existing and was not introduced by Phase D, but the reason they were left open has been
+  measured false, so the per-function look is owed.
+- **Row #3 reads 105/152**, two points below the expected 107, because two daily refreshers are
+  switched off under the automation hold and their outputs crossed a 3-day freshness line.
+- **The three founder items above**, unchanged and unacted on.
+
+PHASE_D_READY_FOR_FOUNDER_APPROVAL
