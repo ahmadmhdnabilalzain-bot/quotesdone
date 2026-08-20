@@ -23,7 +23,7 @@
 #   Spot check: phase_c_31 is line-position 644 of 657, phase_c_39 is 652. 39 sorts AFTER 31,
 #   so the manifest makes the CORRECTION canonical, which is the state the tie destroyed.
 #
-# 841 files, matching 841 on disk. Count re-measured 2026-08-21 after E12-E29; it read 657 for
+# 843 files, matching 843 on disk. Count re-measured 2026-08-21 after E12-E31; it read 657 for
 # long enough to be 137 short, because nothing recomputed it when a file was appended.
 # 228 carry no DDL of their own (data repair, backfill, probe); they are listed anyway so that
 # "every file on disk is in the manifest" is an exact statement a check can enforce.
@@ -1525,33 +1525,21 @@ scripts/sql/phase_d_e17_the_output_keys_the_handler_itself_types.sql
 scripts/sql/phase_d_e18_a_generic_store_with_no_contract_of_its_own.sql
 scripts/sql/phase_d_e19_absent_evidence_and_broken_policy_wore_one_name.sql
 scripts/sql/phase_d_e20_four_instruments_that_named_the_wrong_thing.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_e21_the_driver_invented_every_input_and_invented_it_as_a_string.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_e22_a_first_step_could_never_name_its_evidence.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_e23_a_reference_to_a_document_nobody_registered.sql
 scripts/sql/phase_d_e24_three_ways_a_money_amount_walked_past_the_money_rule.sql
 scripts/sql/phase_d_e25_the_dispatch_withheld_two_fields_it_already_knew.sql
 scripts/sql/phase_d_e26_an_unclassified_refusal_is_an_instrument_gap.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_e27_two_guards_of_mine_that_refused_legitimate_writes.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_e28_br003_checked_that_a_key_was_present_never_that_it_meant_anything.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/phase_d_e29_four_more_rules_that_took_any_string_for_founder_authority.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
+scripts/sql/phase_d_e30_thirteen_rules_that_took_any_string_for_a_reference.sql
+scripts/sql/phase_d_e31_the_applicability_gate_that_made_four_founder_rules_moot.sql
