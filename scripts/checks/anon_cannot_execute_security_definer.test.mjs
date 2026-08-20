@@ -13,11 +13,32 @@
 // CREATE re-grants EXECUTE to PUBLIC — only CREATE OR REPLACE preserves the ACL — so the regression
 // is one careless DROP-and-recreate away, and nothing else in the suite would notice.
 //
-// The last assertion is a RATCHET rather than a demand for zero. 56 SECURITY DEFINER routines are
-// still anon-executable, and they are NOT swept here on purpose: the original triage was right that
-// each needs one look at its callers before its grant goes, and a blind sweep over 56 routines is
-// how a security tidy-up becomes an outage. What the ratchet forbids is the number GROWING while
-// nobody is watching. Lower it when routines are genuinely closed; raising it needs a reason.
+// The last assertion WAS a ratchet at 56 anon / 60 authenticated, held open because "each needs one
+// look at its callers before its grant goes, and a blind sweep over 56 routines is how a security
+// tidy-up becomes an outage."
+//
+// 20 AUG 2026 — scripts/sql/phase_d_e4_the_door_was_never_a_browser.sql took that look, function by
+// function, and the ratchet is now a FLOOR of zero. What the per-function review found:
+//
+//   * `X.rpc(` across supabase/functions, src and scripts resolves to exactly three client
+//     identifiers — admin (service_role, 279 sites), asUser (anon key + the caller's Bearer JWT,
+//     4 sites) and sb (service_role, 1 site). All four asUser calls are in
+//     supabase/functions/customer_documents/index.ts and reach exactly two routines.
+//   * public.documents' RLS policy documents_customer_select calls fn_customer_document_refs, and a
+//     policy expression is evaluated as the QUERYING role. That is a second, independent reason
+//     that one routine keeps `authenticated`.
+//   * No SECURITY INVOKER routine reachable by a client role calls any of the other 57, and no view
+//     definition in public references one. The single invoker pair — fn_artifact_review_valid ->
+//     fn_pick_reviewer — is a trigger function on public.artifact_review, where neither anon nor
+//     authenticated holds INSERT, UPDATE or DELETE.
+//
+// So 57 were revoked from public, anon and authenticated (public FIRST — the grant was held through
+// PUBLIC on 55 of them, and revoking from anon alone is a silent no-op), and TWO stay by name.
+// Verified as the roles themselves on production: anon and authenticated get insufficient_privilege,
+// authenticated still executes fn_customer_document_refs, service_role still executes the rest.
+//
+// The floor is zero, and the authenticated set is pinned by NAME rather than by count — a count
+// alone would let one routine close while a different one opened.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
@@ -39,11 +60,22 @@ const REVOKED = [
   'fn_supplier_twin',
 ];
 
-// Measured on production 19 Aug 2026 immediately after D35, with has_function_privilege.
-const ANON_CEILING = 56;
-const AUTHENTICATED_CEILING = 60;
+// Measured on production 20 Aug 2026 immediately after E4, with has_function_privilege.
+const ANON_CEILING = 0;
+const AUTHENTICATED_CEILING = 2;
 
-let rows = [], totals = {};
+// The only two SECURITY DEFINER routines in public that a signed-in client role may execute, and the
+// reason each one is here. Pinned by name: a bare count of 2 would stay green if one of these closed
+// while some unrelated routine opened.
+const AUTHENTICATED_BY_DESIGN = {
+  fn_customer_document_refs:
+    'called with the customer\'s own JWT at customer_documents/index.ts:148, AND used inside the RLS'
+    + ' policy documents.documents_customer_select, which is evaluated as the querying role',
+  fn_customer_documents:
+    'called with the customer\'s own JWT at customer_documents/index.ts:125, :167 and :197',
+};
+
+let rows = [], totals = {}, stillOpen = [];
 if (hasToken) {
   const { sql } = await import('../phase_c/lib/db.mjs');
   rows = await sql(`
@@ -60,6 +92,15 @@ if (hasToken) {
            count(*)                                                                          as total_secdef
       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public' and p.prosecdef`))[0];
+  stillOpen = await sql(`
+    select p.proname,
+           has_function_privilege('anon',          p.oid, 'EXECUTE') as anon_can,
+           has_function_privilege('authenticated', p.oid, 'EXECUTE') as authed_can
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.prosecdef
+       and (has_function_privilege('anon', p.oid, 'EXECUTE')
+         or has_function_privilege('authenticated', p.oid, 'EXECUTE'))
+     order by p.proname`);
 }
 
 test('the seven routines D35 closed are still closed to anon and authenticated', { skip: SKIP }, () => {
@@ -82,13 +123,30 @@ test('the revoke did not take the grant the real callers depend on', { skip: SKI
     + ' — these are called from supplier_portal / customer_api / os_api and will now fail.');
 });
 
-test('the anon-executable SECURITY DEFINER surface has not grown', { skip: SKIP }, () => {
+test('no SECURITY DEFINER routine in public is anon-executable', { skip: SKIP }, () => {
   console.log(`      ${totals.anon_exec} anon-executable and ${totals.authed_exec} authenticated-executable`
     + ` of ${totals.total_secdef} SECURITY DEFINER routine(s) in public`);
-  assert.ok(Number(totals.anon_exec) <= ANON_CEILING,
-    `${totals.anon_exec} SECURITY DEFINER routines are anon-executable; the disclosed ceiling is ${ANON_CEILING}.`
-    + ' Something granted EXECUTE to PUBLIC or anon. Find it before lowering the bar —'
-    + ' the browser calls no RPC directly, so no anon grant here is justified by a product surface.');
-  assert.ok(Number(totals.authed_exec) <= AUTHENTICATED_CEILING,
-    `${totals.authed_exec} are authenticated-executable; the disclosed ceiling is ${AUTHENTICATED_CEILING}.`);
+  const openToAnon = stillOpen.filter((r) => r.anon_can).map((r) => r.proname);
+  assert.deepEqual(openToAnon, [],
+    'these SECURITY DEFINER routines answer an unauthenticated caller:\n  ' + openToAnon.join('\n  ')
+    + '\nSomething granted EXECUTE to PUBLIC or to anon — a plain CREATE does exactly that.'
+    + ' The browser calls no RPC directly (grep -rn "\\.rpc(" src/ is 0), so no anon grant here is'
+    + ' justified by a product surface. Revoke from public FIRST.');
+  assert.equal(Number(totals.anon_exec), ANON_CEILING, `anon-executable count is ${totals.anon_exec}, not ${ANON_CEILING}`);
+});
+
+test('exactly the two customer-document routines are authenticated-executable', { skip: SKIP }, () => {
+  // A count alone would stay green if one of the two closed while an unrelated routine opened, so
+  // this compares the SET. Anything new here needs the same per-function review E4 did: who calls
+  // it, with which client, and is it named in an RLS policy the querying role evaluates?
+  const expected = Object.keys(AUTHENTICATED_BY_DESIGN).sort();
+  const actual = stillOpen.filter((r) => r.authed_can).map((r) => r.proname).sort();
+  assert.deepEqual(actual, expected,
+    'the authenticated-executable SECURITY DEFINER set has changed.\n'
+    + `  expected: ${expected.join(', ')}\n  actual:   ${actual.join(', ') || '(none)'}\n`
+    + Object.entries(AUTHENTICATED_BY_DESIGN).map(([k, v]) => `  ${k} — ${v}`).join('\n')
+    + '\nA routine that DISAPPEARED from this set breaks the customer portal documents tab, and'
+    + ' dropping fn_customer_document_refs makes the documents RLS policy raise instead of filter.');
+  assert.equal(Number(totals.authed_exec), AUTHENTICATED_CEILING,
+    `${totals.authed_exec} are authenticated-executable; by design it is ${AUTHENTICATED_CEILING}.`);
 });

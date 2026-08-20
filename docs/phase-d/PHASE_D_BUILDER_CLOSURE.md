@@ -22,12 +22,32 @@ reconciled. **75** injected defects driven. All **15** required deliverables tra
 **Open, and measured on production today.**
 
 - **`steps_with_no_effect_ever_produced = 257`** — the single red on `fn_phase_d_effect_state()`,
-  whose other eleven pass/fail checks are green. The effect ledger is empty because **no committed
-  business arrival has ever driven a step**: every proof in this phase runs in a transaction that is
-  aborted, and the estate holds **0 inquiries, 0 quotes, 0 transactions and 0 customers**
-  (`select count(*)` on each, 2026-08-20) since the 16 Aug funnel purge. `phase_d_handoff_acceptance`
-  is **0 rows** and `phase_d_external_attempt` is **0 rows** for the same reason. Everything below is
-  therefore evidenced by driven fixtures, never by a real arrival.
+  whose other eleven pass/fail checks are green.
+
+  **CORRECTED 2026-08-20 by E5.** This bullet said "the effect ledger is empty because no committed
+  business arrival has ever driven a step". That is true of **51** of the 257 and **wrong about the
+  other 206**. `fn_phase_d_effect_reachability()` now splits them from the effect contracts and the
+  object bindings, and the board carries the split beside the red:
+
+  | steps | why no effect has ever been produced | who can lift it |
+  |---:|---|---|
+  | **21** | `CAPABILITY_REQUEST`. `fn_phase_d_effect_produce` **raises** `pd_capability_unavailable` in production — the declared effect *is* the refusal. A ledger row needs `execution_context=test`, which is not a result. | the founder, by lifting the provider hold |
+  | **51** | `DOMAIN_MUTATION` / `VERSIONED_ARTIFACT` bound to an `EXISTING_TABLE` — the effect writes `customers`, `inquiries`, `quotes`, `transactions`, `leads`, `refunds`, `os_incidents` and eleven more. | the founder, by lifting the zero-residue rule |
+  | **185** | the effect writes **only** the kernel's own step run or Phase D's own object store. **Neither hold touches these.** They are held by the fixture rule: the only driver, `fn_phase_d_drive_workflow`, opens every run with `source_ref = 'zz-phase-d-…'` and `trigger_ctx.fixture = true`, and `fn_phase_d_fixture_residue()` must return 0. | Phase E — a driver that does not mark its own rows fixtures |
+
+  The recording path itself works, and that was measured rather than argued. Producing the declared
+  effect for step runs **255** (W06-S06) and **256** (W06-S07) — both real, committed, `completed`
+  `KERNEL_ONLY_TRANSITION` runs — inside an aborted transaction wrote, per
+  `pg_stat_xact_user_tables`, **`public.phase_d_effect_ledger ins=2 upd=0 del=0` and nothing else**,
+  with `fn_phase_d_fixture_residue()` returning 0 rows and `provider_mode = none`. **The rows were
+  not kept.** Backfilling a ledger for two step runs that completed before the recording path was
+  built would be a row added to make a count look better, and `produced_by` would name a role that
+  did not produce it.
+
+  The estate does hold **0 inquiries, 0 quotes, 0 transactions and 0 customers** (`select count(*)`
+  on each, 2026-08-20) since the 16 Aug funnel purge, and `phase_d_handoff_acceptance` and
+  `phase_d_external_attempt` are both **0 rows**. Everything below is evidenced by driven fixtures,
+  never by a real arrival.
 - **14 of 30 workflows do not close.** Driving all 30 in `execution_context` `production`,
   **16** reach `DETERMINISTIC_CLOSURE` and **14** stop at `pd_capability_unavailable`: the capability
   boundary at `fn_phase_d_handler_execute` section 3 refuses the **21** steps whose
@@ -45,8 +65,18 @@ reconciled. **75** injected defects driven. All **15** required deliverables tra
   refused.
 - **333 of the 347 events have never been observed emitting**, and **60** are still
   `DEFERRED_RUNTIME_IMPLEMENTATION`. Producer resolves for 286 of 347.
-- **56 SECURITY DEFINER routines in `public` remain anon-executable** — pre-existing and
-  estate-wide, not introduced by Phase D, and not closed by it either.
+- ~~**56 SECURITY DEFINER routines in `public` remain anon-executable**~~ — **CLOSED 2026-08-20 by
+  E4.** Measured before: 56 anon-executable and 59 authenticated-executable of 791. Measured after:
+  **0 anon-executable and 2 authenticated-executable**, and the two are named — `fn_customer_documents`
+  and `fn_customer_document_refs`, the only routines any caller invokes with a client JWT
+  (`asUser.rpc` at `customer_documents/index.ts:125`, `:148`, `:167`, `:197`), the second of which is
+  also evaluated inside the `documents_customer_select` RLS policy as the querying role. The other 57
+  were revoked from `public, anon, authenticated` after a per-function review: all 279 remaining
+  `.rpc(` call sites in the repository use the service-role client, no SECURITY INVOKER routine a
+  client role can reach calls any of them, and no view in `public` compiles one in. Verified as the
+  roles themselves on production — `anon` and `authenticated` receive `insufficient_privilege`,
+  `service_role` still executes. `scripts/checks/anon_cannot_execute_security_definer.test.mjs` is no
+  longer a ratchet at 56; it is a floor of zero with the authenticated set pinned by name.
 
 | | |
 |---|---|
@@ -63,6 +93,16 @@ Phase E was not begun. No frozen Phase A, Phase B or Phase C object was edited.
 ---
 
 ## Session 2 — D2, D4, D5 (2026-08-18, 15:20 → 16:15 UTC)
+
+> **THE WAVE LETTERS IN THIS TABLE ARE THE SESSION'S OWN, NOT THE MASTER WORKLIST'S, and the two
+> disagree.** This table calls business rules **D4** and gates **D5**; the remainder table further
+> down calls handoffs **D4** and the call graph **D5**, and gates **D3 (rest)**. Same document, same
+> names, two numbering schemes — noticed on 2026-08-20 and corrected here by saying so rather than
+> by renumbering, because both labels are quoted in commit messages and in
+> `PHASE_D_REMEDIATION_PLAN.md`. Read against the master worklist the mapping is:
+> session-2 **D4** (business rules) → worklist **D3 (rules half)**; session-2 **D5** (gates) →
+> worklist **D3 (rest)**. Worklist **D4** and **D5** are handoffs and the call graph, and neither
+> was in session 2.
 
 Resumed from `bc20365` after a clean precheck: main == origin, 0 drift both ways, schema mirror
 byte-identical, working tree clean.
