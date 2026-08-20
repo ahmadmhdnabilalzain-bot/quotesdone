@@ -139,11 +139,17 @@ begin
       -- when it had reached W21-S07 — because step 1's dispatch refused, as nearly all of them do.
       coalesce(v->'stopped'->>'at',''),
       coalesce(v->'stopped'->>'refused_with',''),
-      replace(replace(left(coalesce(v->'stopped'->>'reason',''), 400), chr(10), ' '), chr(13), ' '),
+      -- A DELIVERABLE THAT MUST REPRODUCE CANNOT CARRY A PER-RUN IDENTIFIER. BR-013's reason names
+      -- the inquiry it judged — "inquiry 2623 is not quote-ready" — and the scenario factory
+      -- creates a new one every drive, so the committed CSV differed from its own rebuild on that
+      -- number alone. Runs of three or more digits are redacted to <id> in the REASON columns only;
+      -- every count, code and identifier that is part of the finding is shorter than that and
+      -- survives. The reason stays readable and the row stays reproducible.
+      regexp_replace(replace(replace(left(coalesce(v->'stopped'->>'reason',''), 400), chr(10), ' '), chr(13), ' '), '[0-9]{3,}', '<id>', 'g'),
       -- WHERE THE DETERMINISTIC HANDLER FIRST DECLINED. This is the Phase D subject.
       coalesce(v->'first_handler_refusal'->>'at',''),
       coalesce(v->'first_handler_refusal'->>'refused_with',''),
-      replace(replace(left(coalesce(v->'first_handler_refusal'->>'reason',''), 400), chr(10), ' '), chr(13), ' '),
+      regexp_replace(replace(replace(left(coalesce(v->'first_handler_refusal'->>'reason',''), 400), chr(10), ' '), chr(13), ' '), '[0-9]{3,}', '<id>', 'g'),
       v_fx->>'stages_created',
       coalesce(v_fx->>'for_workflow','(none)'),
       v_fx->>'notifications_written_by_this_scenario',
@@ -260,15 +266,31 @@ const residue = await sql(`
 const runsLeft = residue?.[0]?.runs_left ?? -1;
 const rowsLeft = residue?.[0]?.fixture_rows_left ?? -1;
 
-const closed = rows.filter((r) => r[8] === 'DETERMINISTIC_CLOSURE').length;
-const handoffs = rows.reduce((a, r) => a + Number(r[3] || 0), 0);
-const effects = rows.reduce((a, r) => a + Number(r[5] || 0), 0);
-const notif = rows.reduce((a, r) => a + Number(r[14] || 0), 0);
-const outbound = rows.reduce((a, r) => a + Number(r[15] || 0), 0);
+// INDEXED BY NAME, NOT BY POSITION. This summary read r[5], r[8], r[14] and r[15], and adding
+// dispatches_seen / dispatches_executed and splitting the stop columns shifted every one of them:
+// the "business effects" line would have printed dispatches_seen and the "outbound HTTP requests"
+// line would have printed a refusal code. A positional index into a column list that just grew is
+// an instrument reporting on the wrong subject, and it prints a plausible number while doing it.
+const at = (name) => {
+  const i = COLS.indexOf(name);
+  if (i < 0) throw new Error(`the summary asks for a column that does not exist: ${name}`);
+  return i;
+};
+const sum = (name) => rows.reduce((a, r) => a + Number(r[at(name)] || 0), 0);
+
+const closed = rows.filter((r) => r[at('closure_verdict')] === 'HANDLER_CLOSED_UNAIDED').length;
+const handoffs = sum('handoffs_accepted');
+const effects = sum('business_effects_produced');
+const dispatched = sum('dispatches_seen');
+const executed = sum('dispatches_executed');
+const notif = sum('notifications_written');
+const outbound = sum('outbound_http_requests_written');
 
 console.log(`PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv  ${rows.length} rows`);
 console.log(`  outbound HTTP requests      ${outbound}`);
-console.log(`  deterministic closure        ${closed} / ${rows.length}`);
+console.log(`  step-openings dispatched     ${dispatched}`);
+console.log(`  completed by the handler     ${executed}   (the Phase D number)`);
+console.log(`  workflows closed unaided     ${closed} / ${rows.length}`);
 console.log(`  handoffs accepted            ${handoffs}`);
 console.log(`  business effects produced    ${effects}`);
 console.log(`  notifications written        ${notif}   (must be 0)`);

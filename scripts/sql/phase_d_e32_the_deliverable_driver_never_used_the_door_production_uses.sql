@@ -188,7 +188,12 @@ begin
           v_stopped := jsonb_build_object(
             'at', (select state from public.phase_c_workflow_run where run_id = v_run),
             'refused_with','pd_drive_no_open_work',
-            'reason', format('no step run is open and no handoff run is open on run %s; the run is as far as the kernel will take it', v_run));
+            -- NO run_id IN A REPRODUCIBLE DELIVERABLE. This read "...on run 25384", and a run_id is
+            -- different every drive, so the committed CSV could never reproduce byte-for-byte and
+            -- phase_d_deliverables_match_production.test.mjs failed on thirty lines that differed
+            -- only in that number. The run_id is on the row already, as run_id; a reason is a
+            -- reason.
+            'reason', 'no step run is open and no handoff run is open; the run is as far as the kernel will take it');
         end if;
         exit;
       end if;
@@ -392,8 +397,17 @@ begin
     'effects_for_this_run', (select count(*) from public.phase_d_effect_ledger where run_id = v_run),
     'effects_total_delta', (select count(*) from public.phase_d_effect_ledger) - v_before,
     'run_state', v_run_state,
-    'terminal', coalesce(v_run_state = any(
-       (select allowed_terminal_states from public.phase_b_workflow where workflow_id = v_wf)), false),
+    -- phase_b_workflow.allowed_terminal_states is TEXT, not an array: 'completed; cancelled;
+    -- superseded'. My first draft wrote `v_run_state = any((select allowed_terminal_states ...))`,
+    -- which Postgres parses as the SUBQUERY form of ANY — so it compared the run state against the
+    -- whole semicolon-separated string as one value and was false for every run ever driven.
+    -- closure_verdict could therefore only ever read STOPPED, and this deliverable reported 0 of 30
+    -- closing while runs were reaching 'completed'. Caught by the deliverable's own reproduction
+    -- test, not by reading the code.
+    'terminal', exists (
+       select 1 from public.phase_b_workflow w2,
+            lateral unnest(string_to_array(coalesce(w2.allowed_terminal_states,''), ';')) s
+        where w2.workflow_id = v_wf and btrim(s) = v_run_state),
     -- Where the DRIVE could go no further. Null only when the run reached a terminal state with
     -- nothing open, which is the one case where "it stopped" needs no explanation.
     'stopped', coalesce(v_stopped, case when v_i > v_max
