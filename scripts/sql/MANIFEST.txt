@@ -23,7 +23,7 @@
 #   Spot check: phase_c_31 is line-position 644 of 657, phase_c_39 is 652. 39 sorts AFTER 31,
 #   so the manifest makes the CORRECTION canonical, which is the state the tie destroyed.
 #
-# 839 files, matching 839 on disk. Count re-measured 2026-08-20 after E12-E27; it read 657 for
+# 840 files, matching 840 on disk. Count re-measured 2026-08-21 after E12-E28; it read 657 for
 # long enough to be 137 short, because nothing recomputed it when a file was appended.
 # 228 carry no DDL of their own (data repair, backfill, probe); they are listed anyway so that
 # "every file on disk is in the manifest" is an exact statement a check can enforce.
@@ -1544,6 +1544,10 @@ scripts/sql/phase_d_e26_an_unclassified_refusal_is_an_instrument_gap.sql
 
 [OK] Command outcome recorded
 scripts/sql/phase_d_e27_two_guards_of_mine_that_refused_legitimate_writes.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/phase_d_e28_br003_checked_that_a_key_was_present_never_that_it_meant_anything.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded

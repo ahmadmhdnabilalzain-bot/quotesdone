@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T19:42:18.862Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T20:33:03.947Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -54899,6 +54899,35 @@ begin
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
     reason := format('%s: the paid-provider gate %s', p_rule_id,
                      case when v_ok then 'refuses a paid route' else 'ALLOWED a paid route' end);
+    return next; return;
+  end if;
+
+  -- E28. BR-003 CHECKED THAT A KEY WAS PRESENT, NEVER THAT IT MEANT ANYTHING.
+  -- It fell through to the generic CONTEXT_REQUIRED branch, whose whole test is "is the key present
+  -- and non-empty". Measured 2026-08-20: BR-003 returned ENFORCED_PASS for
+  -- founder_authority_ref = 'ZZ DEMO — founder_authority_ref for W16-S01', and for the single word
+  -- 'banana'. A rule whose name is "founder-reserved decisions require founder authority" was
+  -- satisfied by any non-empty string, which means the harness driving the workflow deliverable was
+  -- forging founder authority and being told it had it. The founder's standing rule, written into
+  -- this estate's own injected-defect catalogue, is that a fixture may never forge one.
+  --
+  -- The reference must now RESOLVE. 'founder_command:<id>' has to name a row in
+  -- public.founder_command; nothing else is accepted, and the refusal says which of the two
+  -- failures it is so a caller can tell "you named nothing" from "you named something that is not
+  -- a founder decision". Fixing it here rather than in the harness closes it for every caller.
+  if p_rule_id = 'BR-003' then
+    v_txt := btrim(coalesce(p_context->>'founder_authority_ref',''));
+    if v_txt = '' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := 'BR-003 requires [founder_authority_ref] and the call names none of it.';
+      return next; return;
+    end if;
+    v_ok := exists (select 1 from public.founder_command fc
+                     where 'founder_command:' || fc.command_id::text = v_txt);
+    state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
+    reason := case when v_ok
+                   then format('BR-003: %s resolves to a founder command on record', v_txt)
+                   else format('BR-003: %s does not resolve to any row in public.founder_command. A founder-reserved decision needs the founder''s actual decision, not a string in its shape.', v_txt) end;
     return next; return;
   end if;
 
