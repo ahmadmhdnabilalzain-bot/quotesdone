@@ -23,7 +23,7 @@
 #   Spot check: phase_c_31 is line-position 644 of 657, phase_c_39 is 652. 39 sorts AFTER 31,
 #   so the manifest makes the CORRECTION canonical, which is the state the tie destroyed.
 #
-# 823 files, matching 823 on disk. Count re-measured 2026-08-20; it read 657 for
+# 830 files, matching 830 on disk. Count re-measured 2026-08-20 after E12-E18; it read 657 for
 # long enough to be 137 short, because nothing recomputed it when a file was appended.
 # 228 carry no DDL of their own (data repair, backfill, probe); they are listed anyway so that
 # "every file on disk is in the manifest" is an exact statement a check can enforce.
@@ -1516,3 +1516,10 @@ scripts/sql/phase_d_e8_the_view_handed_back_what_the_table_withheld.sql
 scripts/sql/phase_d_e9_four_inputs_the_resolver_said_no_table_held.sql
 scripts/sql/phase_d_e10_a_mechanism_count_read_as_a_refusal_count.sql
 scripts/sql/phase_d_e11_six_keys_it_was_already_holding.sql
+scripts/sql/phase_d_e12_the_resolver_nulled_a_fact_the_gate_exists_to_judge.sql
+scripts/sql/phase_d_e13_an_amendment_that_excuses_itself.sql
+scripts/sql/phase_d_e14_the_kernel_opened_a_step_into_a_run_it_would_not_let_anyone_complete.sql
+scripts/sql/phase_d_e15_a_blocker_column_that_never_watched_a_dispatch.sql
+scripts/sql/phase_d_e16_every_input_key_typed_and_every_input_contract_closed.sql
+scripts/sql/phase_d_e17_the_output_keys_the_handler_itself_types.sql
+scripts/sql/phase_d_e18_a_generic_store_with_no_contract_of_its_own.sql
