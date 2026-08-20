@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T03:59:20.023Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T04:04:45.664Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -52788,6 +52788,7 @@ CREATE OR REPLACE FUNCTION public.fn_phase_d_handler_state()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare n_steps int; n_bound int; n_amb int; n_sch int; n_drift int; n_blocked int; n_def int;
+        n_produced int;
         n_wired int; n_needwrite int;
 begin
   select count(*) into n_steps from public.phase_b_workflow_step;
@@ -52839,7 +52840,23 @@ begin
   select count(*) into n_needwrite from public.phase_d_handler_binding;
   check_name := 'handlers_not_writing_a_business_object';
   expected := '0'; actual := (n_needwrite - n_wired)::text;
-  ok := (n_wired = n_needwrite); return next;
+  ok := (n_needwrite - n_wired = 0); return next;
+
+  -- E10. WHAT THAT ZERO IS, AND WHAT IT IS NOT. It is derived from the handler's declared call to
+  -- fn_phase_d_effect_produce plus a stored boolean — a statement that the PATH EXISTS. It is not a
+  -- statement that any handler has ever written a business object, and the two read identically at
+  -- a glance because both are the number 0 beside a green tick.
+  -- The question it does not answer is on fn_phase_d_effect_state as
+  -- steps_with_no_effect_ever_produced, which reads 257 and is this phase's only red. Both numbers
+  -- are quoted here so a reader of this board cannot take the green one for the other.
+  select count(distinct step_id) into n_produced from public.phase_d_effect_ledger;
+
+  check_name := 'handlers_that_have_actually_produced_an_effect';
+  expected := 'informational — the green above says the path EXISTS, this says whether it has RUN';
+  actual := n_produced::text || ' of ' || n_steps::text
+         || ' steps have ever produced an effect; see fn_phase_d_effect_state.'
+         || 'steps_with_no_effect_ever_produced for what holds the remainder';
+  ok := true; return next;
 end $function$
 
 
@@ -54959,6 +54976,7 @@ CREATE OR REPLACE FUNCTION public.fn_phase_d_rule_state()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare n_rules int; n_reg int; n_out int; n_unres int; n_alwaystrue int;
+        n_can int; n_deleg int; n_held int; n_exec int;
 begin
   select count(*) into n_rules from public.phase_b_business_rule;
   select count(*) into n_reg   from public.phase_d_rule_enforcement;
@@ -54987,6 +55005,48 @@ begin
      and pg_get_functiondef(p.oid) !~ 'rule_unregistered';
   check_name := 'rule_check_refuses_an_unregistered_rule';
   expected := '0'; actual := n_alwaystrue::text; ok := (n_alwaystrue = 0); return next;
+
+  -- ---- E10. WHAT "ENFORCED" MEANS ON THIS BOARD, SAID BESIDE THE NUMBER ----------------------
+  -- rules_with_outstanding_enforcement counts phase_d_rule_enforcement.status, which is ENFORCED on
+  -- all 54. That is a statement about a declared MECHANISM. It is not a statement about whether the
+  -- predicate can produce a refusal, and the two were being read as one.
+  -- fn_phase_d_rule_can_refuse() already answers the harder question by driving each rule against
+  -- three probe contexts. Its answer has never been on this board. It is now, as disclosure rows:
+  -- the mechanism count does not move, and a reader can no longer take 54/54 for 54 that refuse.
+  select count(*) into n_can from public.fn_phase_d_rule_can_refuse() where can_refuse;
+  check_name := 'rules_whose_predicate_can_actually_refuse';
+  expected := 'informational — 54/54 ENFORCED is a mechanism count, not this';
+  actual := n_can::text || ' of ' || n_reg::text
+         || ' produce ENFORCED_FAIL on at least one of the three probe contexts';
+  ok := true; return next;
+
+  select count(*) into n_deleg from public.fn_phase_d_rule_can_refuse()
+   where not can_refuse and note like 'delegated%';
+  check_name := 'rules_the_kernel_guard_decides_not_the_predicate';
+  expected := 'informational — enforced, and not by anything this predicate can invoke';
+  actual := n_deleg::text || ' rule(s) delegated to a kernel guard';
+  ok := true; return next;
+
+  select count(*) into n_held from public.fn_phase_d_rule_can_refuse()
+   where not can_refuse and note like 'constant%';
+  check_name := 'rules_constant_while_a_founder_hold_stands';
+  expected := 'informational — the founder''s to lift, not a defect';
+  actual := n_held::text || ' rule(s) cannot vary while the provider hold stands';
+  ok := true; return next;
+
+  select count(*) into n_exec from public.fn_phase_d_rule_can_refuse()
+   where not can_refuse and note not like 'delegated%' and note not like 'constant%';
+  check_name := 'rules_enforced_somewhere_other_than_the_predicate';
+  expected := 'informational';
+  actual := n_exec::text || ' rule(s) enforced at the executor''s capability boundary';
+  ok := true; return next;
+
+  -- The four groups must still account for every registered rule. A decomposition that stops
+  -- covering its subject is worse than none: the parts would sum to fewer than the whole and
+  -- nothing would say so.
+  check_name := 'every_registered_rule_carries_a_refusal_class';
+  expected := n_reg::text; actual := (n_can + n_deleg + n_held + n_exec)::text;
+  ok := (n_can + n_deleg + n_held + n_exec = n_reg); return next;
 end $function$
 
 
