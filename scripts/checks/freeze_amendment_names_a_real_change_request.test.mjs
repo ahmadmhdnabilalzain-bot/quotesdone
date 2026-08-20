@@ -246,3 +246,68 @@ test('the approver probe left the four amendments still awaiting the founder',
       'has signed, this test should be updated by a person who has read why; if not, an aborted ' +
       'probe committed.');
   });
+
+// THE REGISTER THE GUARD TRUSTS MUST NOT BE WRITABLE BY THE ROLE IT GUARDS AGAINST, AND AN
+// APPROVAL MUST STILL RESOLVE.
+//
+// E36's trigger refused every literal vector. The re-audit then asked the question I had not: who
+// can write `public.phase_c_founder_identity`? service_role held INSERT/UPDATE/DELETE, so it could
+// add itself as an email identity, approve all four amendments with it, delete the row again, and
+// leave the freeze board green with four approvals naming a string that resolves to nobody.
+//
+// That register also gates fn_refund_founder_decision_only and fn_founder_command_submit, so the
+// same hole reached refunds — and the founder's standing rule is that every refund needs him.
+//
+// E38 closed both halves and this drives both: the grant, and the derivation that must re-redden
+// when an approver stops resolving.
+test('the founder register is not writable by service_role, and an approval must still resolve',
+  { skip: SKIP }, async () => {
+    const out = await drive(`
+do $probe$
+declare v_out jsonb := '{}'::jsonb; v_founder text; v_rows int; v_red int;
+begin
+  select count(*) into v_red from public.fn_phase_c_freeze_drift() where not ok;
+  v_out := v_out || jsonb_build_object('red_at_open', v_red);
+
+  begin
+    set local role service_role;
+    insert into public.phase_c_founder_identity(identity, kind, active, note)
+      values ('zz-ci-not-the-founder','email',true,'ci probe');
+    v_out := v_out || jsonb_build_object('plant', 'ACCEPTED');
+  exception when others then
+    v_out := v_out || jsonb_build_object('plant', 'REFUSED ' || SQLSTATE);
+  end;
+  reset role;
+
+  select fi.identity into v_founder from public.phase_c_founder_identity fi
+   where fi.active and fi.kind = 'email' order by fi.identity limit 1;
+  update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now()
+   where approved_by is null;
+  get diagnostics v_rows = ROW_COUNT;
+  select count(*) into v_red from public.fn_phase_c_freeze_drift() where not ok;
+  v_out := v_out || jsonb_build_object('approved_rows', v_rows, 'red_after_approval', v_red);
+
+  delete from public.phase_c_founder_identity where identity = v_founder;
+  select count(*) into v_red from public.fn_phase_c_freeze_drift() where not ok;
+  v_out := v_out || jsonb_build_object('red_after_approver_deleted', v_red);
+
+  raise exception 'REGISTER_PROBE %', v_out;
+end $probe$;`);
+
+    const m = out.match(/REGISTER_PROBE (\{[\s\S]*?\})/);
+    assert.ok(m, `the probe did not reach its report:\n${out.slice(0, 800)}`);
+    const r = JSON.parse(m[1].split('\n')[0].replace(/\\"/g, '"'));
+
+    assert.match(String(r.plant), /^REFUSED/,
+      `service_role ${r.plant} an INSERT into public.phase_c_founder_identity. A register its own ` +
+      'subject can write is not a register: an acceptance auditor added itself, approved four ' +
+      'amendments to frozen Phase C contracts, and deleted the row again. That register also gates ' +
+      'refunds.');
+    assert.ok(Number(r.approved_rows) > 0 && Number(r.red_after_approval) === 0,
+      `a real founder identity approved ${r.approved_rows} row(s) and the board read ` +
+      `${r.red_after_approval} red — it must go green when he actually signs`);
+    assert.ok(Number(r.red_after_approver_deleted) >= 1,
+      'deleting the approver from the register left the board GREEN. The check is reading a stored ' +
+      'string instead of resolving it, which is the half of this defect that survives a trigger ' +
+      'being disabled.');
+  });

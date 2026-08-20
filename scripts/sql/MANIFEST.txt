@@ -23,7 +23,7 @@
 #   Spot check: phase_c_31 is line-position 644 of 657, phase_c_39 is 652. 39 sorts AFTER 31,
 #   so the manifest makes the CORRECTION canonical, which is the state the tie destroyed.
 #
-# 849 files, matching 849 on disk. Count re-measured 2026-08-20 after E12-E37; it read 657 for
+# 850 files, matching 850 on disk. Count re-measured 2026-08-20 after E12-E38; it read 657 for
 # long enough to be 137 short, because nothing recomputed it when a file was appended.
 # 228 carry no DDL of their own (data repair, backfill, probe); they are listed anyway so that
 # "every file on disk is in the manifest" is an exact statement a check can enforce.
@@ -1549,3 +1549,4 @@ scripts/sql/phase_d_e34_a_board_row_whose_ok_was_the_literal_true.sql
 scripts/sql/phase_d_e35_two_notations_for_the_same_amount.sql
 scripts/sql/phase_d_e36_the_approver_column_anybody_could_fill.sql
 scripts/sql/phase_d_e37_the_new_guard_made_its_table_enforcing.sql
+scripts/sql/phase_d_e38_the_register_the_guard_trusted_was_writable_by_the_caller.sql

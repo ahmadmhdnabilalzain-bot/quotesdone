@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T23:11:58.781Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T23:39:05.296Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -47370,8 +47370,19 @@ AS $function$
   --
   -- 'expected' is now 0 rather than the word 'informational', so a reader comparing expected with
   -- actual sees the gap instead of a label that excuses it.
+  -- E38. THIS ASKED `approved_by is null`, WHICH IS A QUESTION ABOUT A STORED STRING.
+  -- An acceptance auditor added itself to public.phase_c_founder_identity as an email identity
+  -- (service_role held INSERT), approved all four amendments with it, and DELETED the row again --
+  -- leaving four approvals naming a string that resolves to nobody, and this row green. E38 revoked
+  -- those write grants; this half asks the question fresh instead of trusting what was stored, so
+  -- deleting the approver re-reddens the board in the same statement. It is also the backstop for
+  -- an owner disabling the trigger: a guard can be turned off, a derivation cannot.
   select 'amendments_awaiting_founder_approval', '0',
-         (select count(*) from public.phase_c_freeze_amendment where approved_by is null)::text
+         (select count(*) from public.phase_c_freeze_amendment a
+           where a.approved_by is null
+              or not exists (select 1 from public.phase_c_founder_identity fi
+                              where fi.active
+                                and lower(btrim(fi.identity)) = lower(btrim(a.approved_by))))::text
            || ' of ' || (select count(*) from public.phase_c_freeze_amendment)::text
            || ' await the founder (change requests named: '
            || (select coalesce(string_agg(distinct change_request_ref, ', '),'(none)')
@@ -47382,8 +47393,14 @@ AS $function$
            -- a10_freeze_amendment_approver_is_the_founder now refuses any approver that does not
            -- resolve to an ACTIVE row in public.phase_c_founder_identity. The row names the register
            -- rather than a person, because the register is what the database can check.
-           || '). Cleared only by an approver resolving to an active identity in public.phase_c_founder_identity, enforced by a10_freeze_amendment_approver_is_the_founder.',
-         (select count(*) from public.phase_c_freeze_amendment where approved_by is null) = 0
+           || '). Cleared only while approved_by RESOLVES to one of the '
+           || (select count(*)::text from public.phase_c_founder_identity where active)
+           || ' active identities in public.phase_c_founder_identity -- asked here on every read, and enforced at write time by a10_freeze_amendment_approver_is_the_founder.',
+         (select count(*) from public.phase_c_freeze_amendment a
+           where a.approved_by is null
+              or not exists (select 1 from public.phase_c_founder_identity fi
+                              where fi.active
+                                and lower(btrim(fi.identity)) = lower(btrim(a.approved_by)))) = 0
   union all
   select 'raw_frozen_subjects', 'informational',
          count(*)::text || ' of ' || count(*)::text, true
