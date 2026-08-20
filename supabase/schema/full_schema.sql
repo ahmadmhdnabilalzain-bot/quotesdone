@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T19:05:32.292Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T19:42:18.862Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -53864,19 +53864,21 @@ begin
         new.object_id, coalesce(b.ownership_scope,'(unstated)') using errcode = '23514';
     end if;
 
-    -- E24. A MONEY AMOUNT MAY NOT RIDE IN ON A NON-FINANCIAL OBJECT, AT ANY DEPTH, IN ANY NOTATION.
-    -- Both halves are required — a money NAME and a quantity VALUE — which is what keeps an
-    -- identifier (refund_id) and a state (fee_status) acceptable while an amount is not.
+    -- A MONEY AMOUNT MAY NOT RIDE IN ON A NON-FINANCIAL OBJECT, AT ANY DEPTH, IN ANY NOTATION.
+    -- Three conditions, and the FIRST is the one E27 added: an IDENTIFIER is never an amount.
+    -- `refund_id`, `invoice_no`, `price_ref` name things; whether their value happens to be numeric
+    -- is irrelevant, and E24 got this wrong by allowing a numeric string without excluding them.
     if coalesce(b.policy_family,'') <> 'TRANSACTION_RECORD' then
       select array_agg(distinct k order by k) into v_money
         from jsonb_path_query(new.payload, '$.**') node,
              lateral jsonb_each(case when jsonb_typeof(node) = 'object' then node else '{}'::jsonb end) e(k, v)
-       where (k ~* '(^|_)(amount|price|charge|payout|subtotal|total|fee|cost|refund|invoice)(_|$)'
+       where k !~* '_(id|ref|no|key|code)$'
+         and (k ~* '(^|_)(amount|price|charge|payout|subtotal|total|fee|cost|refund|invoice)(_|$)'
               or k ~* '_(aed|usd|eur|gbp)$')
          and (jsonb_typeof(v) = 'number'
               or (jsonb_typeof(v) = 'string' and v #>> '{}' ~ '^\s*-?[0-9]+(\.[0-9]+)?\s*$'));
       if v_money is not null then
-        raise exception 'phase_d_object_record: % is a %-family object and its payload carries money amount(s) [%] — a money-shaped key holding a quantity, at any depth. Only a TRANSACTION_RECORD object may. (pd_object_money_key_on_non_financial_object)',
+        raise exception 'phase_d_object_record: % is a %-family object and its payload carries money amount(s) [%] — a money-shaped key that is not an identifier, holding a quantity, at any depth. Only a TRANSACTION_RECORD object may. (pd_object_money_key_on_non_financial_object)',
           new.object_id, b.policy_family, array_to_string(v_money, ', ') using errcode = '23514';
       end if;
     end if;
