@@ -93,7 +93,7 @@ const AUTHENTICATED_BY_DESIGN = {
     'called with the customer\'s own JWT at customer_documents/index.ts:125, :167 and :197',
 };
 
-let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [];
+let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [], clientWritable = [];
 if (hasToken) {
   const { sql } = await import('../phase_c/lib/db.mjs');
   rows = await sql(`
@@ -126,6 +126,20 @@ if (hasToken) {
            has_table_privilege('service_role',  c.oid, 'SELECT') as service_can
       from pg_class c join pg_namespace n on n.oid = c.relnamespace
      where n.nspname = 'public' and c.relkind = 'v' and c.relname like 'v\_obj\_%'
+     order by c.relname`);
+  clientWritable = await sql(`
+    select c.relname, c.relkind,
+           has_table_privilege('anon', c.oid,'INSERT')          as anon_ins,
+           has_table_privilege('anon', c.oid,'UPDATE')          as anon_upd,
+           has_table_privilege('anon', c.oid,'DELETE')          as anon_del,
+           has_table_privilege('authenticated', c.oid,'INSERT') as auth_ins,
+           has_table_privilege('authenticated', c.oid,'UPDATE') as auth_upd,
+           has_table_privilege('authenticated', c.oid,'DELETE') as auth_del
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relkind in ('r','p','v','m')
+       and (has_table_privilege('anon', c.oid,'INSERT')  or has_table_privilege('anon', c.oid,'UPDATE')
+         or has_table_privilege('anon', c.oid,'DELETE')  or has_table_privilege('authenticated', c.oid,'INSERT')
+         or has_table_privilege('authenticated', c.oid,'UPDATE') or has_table_privilege('authenticated', c.oid,'DELETE'))
      order by c.relname`);
   anonReadable = await sql(`
     select c.relname, c.relkind
@@ -229,4 +243,25 @@ test('no Phase D object view answers a client role, and service_role still reads
     'service_role lost SELECT on: ' + lost.join(', ')
     + ' — the Phase D deliverable builders and fn_phase_d_object_read read these and will now fail.');
   assert.equal(objViews.length, 30, `expected 30 v_obj_* views, found ${objViews.length}`);
+});
+
+// The other half of the client-role surface, and it is the half a read-only sweep never asks about.
+// Measured 2026-08-20: NO table or view in public grants INSERT, UPDATE or DELETE to anon or to
+// authenticated — every client write in this estate goes through an edge function holding the
+// service_role key. That is a stronger property than any RLS policy set, and unlike a policy it
+// cannot be got round by a definer view, so it is worth an assertion rather than an assumption.
+test('no relation in public is writable by anon or authenticated', { skip: SKIP }, () => {
+  const open = clientWritable.map((r) => {
+    const who = [r.anon_ins && 'anon INSERT', r.anon_upd && 'anon UPDATE', r.anon_del && 'anon DELETE',
+      r.auth_ins && 'authenticated INSERT', r.auth_upd && 'authenticated UPDATE',
+      r.auth_del && 'authenticated DELETE'].filter(Boolean).join(', ');
+    return `${r.relname}: ${who}`;
+  });
+  console.log(`      relations in public writable by a client role: ${open.length}`);
+  assert.deepEqual(open, [],
+    'a client role can now write directly to these, bypassing every edge function:\n  '
+    + open.join('\n  ')
+    + '\nIf this is deliberate the grant needs an RLS policy set behind it and a line here saying so.'
+    + ' Right now the estate has 607 relations with RLS enabled and ZERO policies, which is deny-all'
+    + ' only for as long as no write grant exists.');
 });
