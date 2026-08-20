@@ -55,9 +55,19 @@
 --
 --   VIEWS AND MATERIALIZED VIEWS: no view definition in public references any of the 57.
 --
+--   OTHER SCHEMAS, checked after the fact rather than assumed away: joining all 57 names against
+--   every routine and every view or matview OUTSIDE public — excluding only pg_catalog and
+--   information_schema — and keeping only those anon or authenticated can execute or select,
+--   returns ZERO rows. So nothing outside public carries the requirement inward either.
+--
 -- WHAT THIS FILE DOES NOT CLAIM. It covers EXECUTE on SECURITY DEFINER routines in schema `public`.
--- It says nothing about table grants, about RLS coverage, about SECURITY INVOKER routines, or about
--- any other schema. Those are separate subjects and were not measured here.
+-- It says nothing about table grants, about RLS coverage, or about SECURITY INVOKER routines. Those
+-- are separate subjects and were not measured here.
+--
+-- CONFIRMED FROM A THIRD SOURCE. Supabase's own security advisor, read after the apply, returns
+-- exactly TWO `authenticated_security_definer_function_executable` findings — `fn_customer_document_refs`
+-- and `fn_customer_documents` — and no others, against 30 pre-existing `security_definer_view`
+-- errors and 607 `rls_enabled_no_policy` notices that this file does not touch.
 --
 -- THE TWO THAT STAY, and why leaving them is not an exception to the rule but the rule applied:
 --   fn_customer_documents      a signed-in customer's own document list. Called with the customer's
