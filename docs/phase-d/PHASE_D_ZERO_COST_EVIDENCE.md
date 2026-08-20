@@ -1,7 +1,17 @@
 # Phase D — zero-cost and zero-external-effect evidence
 
-Required deliverable 13 of 15. Covers the Phase D working session on **2026-08-18, 14:00 → 15:10
-UTC** (database clock), project `htdblwldjkcgjvmqkbeh`.
+Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-20 16:43 UTC** (database clock),
+project `htdblwldjkcgjvmqkbeh`.
+
+**The window was extended on 2026-08-20, and this note says why.** It read "2026-08-18, 14:00 →
+15:10 UTC" until the independent acceptance of that day recorded, as finding 15, that increments
+E4–E10 had been applied on 19 and 20 August and the deliverable missed all of them. A zero-cost
+claim whose window ends before the work does is not evidence about the work. The window now closes
+**after the last apply of the session** (E21) and after the schema mirror was regenerated, which is
+the only order in which regenerating it means anything: a mirror or a cost figure captured
+mid-chain is a measurement of something that no longer exists.
+
+Everything below was re-measured over the full extended window on 2026-08-20 at 16:43 UTC.
 
 ## The required final evidence
 
@@ -12,9 +22,28 @@ UTC** (database clock), project `htdblwldjkcgjvmqkbeh`.
 | OpenRouter HTTP requests | **0** | no Phase D code path reaches a provider; the gate below refuses every route |
 | other paid AI requests | **0** | same |
 | `llm_attempt` rows | **0** | `select count(*) from public.llm_attempt where created_at > '2026-08-18 14:00:00+00'` |
-| paid inference cost | **USD 0.00** | `select coalesce(sum(cost_aed),0) from public.ai_cost_log where occurred_at > '2026-08-18 14:00:00+00'` → **0**, over **0 rows** |
-| live notifications / publications / payments / refunds | **0** | see below |
+| paid inference cost | **AED 0.00** | `select coalesce(sum(cost_aed),0) from public.ai_cost_log where occurred_at > '2026-08-18 14:00:00+00'` → **0**, over **0 rows**. `ai_cost_log` holds **3,507** rows in total and held 3,507 at the start of the window — the table did not move at all. |
+| live notifications / publications / payments / refunds | **0 sent** | 12 rows were INSERTED by pre-existing monitoring crons; **0 have a `sent_at` and 0 have a delivery attempt**. Each is named below. |
 | — | | |
+
+## What Phase D itself left behind, over the whole extended window
+
+Measured 2026-08-20 16:43 UTC, after the last apply:
+
+| table | committed rows | why it matters |
+|---|---:|---|
+| `public.phase_d_dispatch` | **0** | every drive this session ran inside a transaction ending in `raise exception` |
+| `public.phase_d_effect_ledger` | **0** | including the drives in which a handler reached `EXECUTED` for the first time |
+| `public.phase_d_object_record` | **0** | including the E18 contract probes, which insert six records and roll back |
+| `fn_phase_d_fixture_residue()` | **0 rows** | asserted inside each probe as well as after it |
+| `public.customers` / `inquiries` / `quotes` / `transactions` | **0 / 0 / 0 / 0** | the zero-residue rule, unmoved |
+| active `cron.job` | **23** | 23 at the start of the window and 23 at the end; none reactivated |
+
+The first `EXECUTED` dispatch in Phase D's history happened during this window, and it left nothing.
+That is deliberate: a committed effect ledger row produced by a probe would be a row created to move
+a number, and `fn_kernel_all_boards()`'s `steps_with_no_effect_ever_produced` still reads 257 for
+exactly that reason. The capability is evidenced by a re-runnable driven test —
+`scripts/checks/phase_d_dispatch_reaches_executed.test.mjs`, which runs in CI — not by residue.
 
 ## The provider gate, read rather than asserted
 
@@ -46,22 +75,38 @@ node scripts/checks/run.mjs
 
 **0 produced by Phase D work.**
 
-Four rows appeared in `public.notifications` inside the 12-hour window. Naming them precisely
-rather than reporting a bare zero, because "0 external effects" from a query that did not look is
-the shape of claim this estate has been burned by:
+**Twelve** rows appeared in `public.notifications` across the extended window — four in the original
+12 hours and eight more over 19 and 20 August. Naming every one of them rather than reporting a bare
+zero, because "0 external effects" from a query that did not look is the shape of claim this estate
+has been burned by:
 
-| id | type | created (UTC) | to | status | `sent_at` | attempts |
-|---|---|---|---|---|---|---|
-| 1944 | `founder_brief` | 04:30 | management@quotesdone.com | pending | NULL | 0 |
-| 1945 | `smoke_alert` | 08:00 | management@quotesdone.com | pending | NULL | 0 |
-| 1946 | `health_alert` | 08:00 | management@quotesdone.com | digest | NULL | 0 |
-| 1947 | `health_alert` | 14:30 | management@quotesdone.com | digest | NULL | 0 |
+| id | type | created (UTC) | status | `sent_at` | attempts |
+|---|---|---|---|---|---|
+| 1947 | `health_alert`  | 08-18 14:30 | digested | NULL | 0 |
+| 1952 | `health_alert`  | 08-18 21:00 | digested | NULL | 0 |
+| 1953 | `health_alert`  | 08-19 03:00 | digested | NULL | 0 |
+| 1954 | `founder_brief` | 08-19 04:30 | pending  | NULL | 0 |
+| 1955 | `smoke_alert`   | 08-19 08:30 | pending  | NULL | 0 |
+| 1956 | `health_alert`  | 08-19 09:30 | digested | NULL | 0 |
+| 1959 | `health_alert`  | 08-19 16:00 | digested | NULL | 0 |
+| 1960 | `health_alert`  | 08-19 22:30 | digested | NULL | 0 |
+| 1974 | `health_alert`  | 08-20 04:30 | digest   | NULL | 0 |
+| 1975 | `founder_brief` | 08-20 04:30 | pending  | NULL | 0 |
+| 1976 | `smoke_alert`   | 08-20 09:00 | pending  | NULL | 0 |
+| 1977 | `health_alert`  | 08-20 10:30 | digest   | NULL | 0 |
 
-All four are **row insertions by the pre-existing read-only monitoring crons** that remain active
-under the founder's selective automation hold, addressed to the founder's own admin address. Every
-one has `sent_at = NULL` and `attempts = 0`: **none was delivered.** None originated from Phase D
-code — the only Phase D execution in the window was a single aborted-transaction probe of W01-S01,
-whose one emitted event went to the outbox and was rolled back with the rest of the transaction.
+**Every one has `sent_at` NULL and `attempts` 0.** Not one was delivered, and none of the twelve was
+produced by a Phase D path: the types are the three the monitoring crons emit, and the timestamps
+are their schedules. Phase D wrote no notification at all.
+
+All twelve are **row insertions by the pre-existing read-only monitoring crons** that remain active
+under the founder's selective automation hold, addressed to the founder's own admin address.
+
+The Phase D executions in the extended window were aborted-transaction drives: the whole estate of
+30 workflows, several times, plus the E18 contract probes and the schema negative controls. Two of
+those drives contain the first `EXECUTED` dispatches in Phase D's history — W01-S05 and W21-S08 —
+and every event they emitted went to `phase_c_event_outbox` and was rolled back with the rest of the
+transaction. The outbox holds **0 pending** rows.
 
 Other effect classes:
 
