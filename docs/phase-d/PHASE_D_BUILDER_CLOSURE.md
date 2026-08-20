@@ -107,6 +107,21 @@ reconciled. **75** injected defects driven. All **15** required deliverables tra
   and 0 views; authenticated 0 views.** Probed as the roles: `authenticated` denied,
   `service_role` still reads all 30.
 
+- **OPEN, and it has no database-level fix: `public` is DEFAULT-OPEN for function EXECUTE.** Measured
+  by execution 2026-08-20, each step in its own transaction, as `postgres` — the role every migration
+  runs as: a new **table** and a new **view** come back `postgres | service_role` with anon SELECT
+  false, and a new **function** comes back `=X/postgres | postgres=X/postgres | service_role=X/postgres`
+  with **anon EXECUTE true**. The leading `=X/postgres` is PostgreSQL's built-in `GRANT EXECUTE TO
+  PUBLIC`; tables and views have no equivalent. `pg_default_acl` for `postgres` on functions in
+  `public` holds no PUBLIC entry, so
+  `alter default privileges … revoke execute on functions from public` has nothing to revoke and is a
+  **no-op** — tried twice, the stored ACL byte-identical afterwards, and a function created in the
+  next transaction still anon-executable. A migration claiming that as a fix was **withdrawn rather
+  than committed**. What holds the floor at zero is the rule "revoke in the same migration that
+  creates it" plus `scripts/checks/anon_cannot_execute_security_definer.test.mjs`, which now runs in
+  the one CI job that holds the credential. A new SECURITY DEFINER routine without its revoke fails
+  there and nowhere else.
+
 | | |
 |---|---|
 | session | 2026-08-18, 14:00 → 15:20 UTC (database clock) |

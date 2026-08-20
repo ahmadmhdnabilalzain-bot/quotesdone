@@ -47,11 +47,33 @@
 // `fn_kernel_component_exposure_state()` both raise `insufficient_privilege` — the grant on the
 // function is real and the data behind it is not reachable.
 //
-// The bound on all 284 is the last test below: **anon can SELECT exactly 2 of the 574 tables in
+// The bound on all 284 is one of the tests below: **anon can SELECT exactly 2 of the 574 tables in
 // public and 0 of the views.** Both are public marketing content. A SECURITY INVOKER routine can
 // therefore return anon nothing that a browser could not already read, and that is a property of the
 // TABLE grants, not of the 284 — which is why it is asserted here, where a third table appearing
 // would be caught, rather than left as a sentence.
+//
+// WHY THIS FILE IS THE MECHANISM AND NOT A BACKSTOP. `public` is DEFAULT-OPEN for function EXECUTE,
+// and it cannot be closed with `ALTER DEFAULT PRIVILEGES`. Measured by execution on 2026-08-20, each
+// step in its own transaction, as `postgres` — the role the management API and `apply_sql.mjs` use:
+//
+//   create table  public.zz_probe …   acl [postgres=arwdDxtm | service_role=arwdDxtm]  anon SELECT false
+//   create view   public.zz_probe …   acl [postgres=arwdDxtm | service_role=arwdDxtm]  anon SELECT false
+//   create function public.zz_probe() acl [=X/postgres | postgres=X/postgres |
+//                                          service_role=X/postgres]                    anon EXEC  TRUE
+//
+// The leading `=X/postgres` is PostgreSQL's built-in `GRANT EXECUTE TO PUBLIC`; tables and views have
+// no equivalent, which is the whole of the difference. `pg_default_acl` for postgres on functions in
+// public reads `postgres=X/postgres | service_role=X/postgres` — no PUBLIC entry — so
+// `alter default privileges [for role postgres] in schema public revoke execute on functions from
+// public` has nothing to revoke and is a **no-op**: the stored ACL is byte-identical afterwards, and
+// a function created in the next transaction still comes back anon-executable. That was tried, twice,
+// and measured both times; a migration claiming it as a fix was withdrawn rather than committed.
+//
+// So there is no database-level default that keeps this at zero. What keeps it at zero is the rule
+// "revoke in the same migration that creates it" plus THIS FILE, which runs in
+// .github/workflows/project-parity.yml where the credential is. A new SECURITY DEFINER routine
+// without its revoke fails CI here and nowhere else.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
