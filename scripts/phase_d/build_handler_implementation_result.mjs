@@ -11,8 +11,9 @@
 // plus implementation_depth, which answers "what does this handler actually do today" — a different
 // question from phase_d_status, which describes the handler CLASS and was being read as if it
 // answered both.
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { mgmtRead, PROD_REF } from '../staging/qd_guard.mjs';
+import { outPath, provenance } from './lib/deliverable.mjs';
 
 const SQL = `
 select
@@ -49,8 +50,19 @@ order by e.workflow_id, s.step_no
 `;
 
 const rows = await mgmtRead(PROD_REF, SQL);
-if (!Array.isArray(rows) || rows.length !== 257) {
-  console.error(`refusing to write: got ${Array.isArray(rows) ? rows.length : 'no'} row(s), expected 257`);
+
+// THE 257 CAME FROM THE REGISTRY, SO READ IT FROM THE REGISTRY. The literal was correct on the day
+// it was typed, and a guard that can only ever agree with the number beside it is a rubber stamp;
+// the zero-guard is the half that stops an empty registry reading as a complete export.
+const want = await mgmtRead(PROD_REF, 'select count(*)::int as n from public.phase_b_workflow_step');
+const wantN = want?.[0]?.n ?? 0;
+if (!wantN) {
+  console.error('public.phase_b_workflow_step is empty — refusing to write a deliverable over nothing');
+  process.exit(1);
+}
+if (!Array.isArray(rows) || rows.length !== wantN) {
+  console.error(`refusing to write: got ${Array.isArray(rows) ? rows.length : 'no'} row(s), `
+    + `and the frozen registry declares ${wantN} step(s)`);
   process.exit(1);
 }
 
@@ -60,13 +72,19 @@ const cell = (v) => {
   const s = String(v);
   return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 };
-const csv = [cols.join(','), ...rows.map(r => cols.map(c => cell(r[c])).join(','))].join('\n') + '\n';
+const csv = provenance({
+  command: 'node scripts/phase_d/build_handler_implementation_result.mjs',
+  numerator: rows.length,
+  denominator: wantN,
+  of: 'frozen Phase B workflow steps',
+  attribution: 'one row per public.phase_d_step_effect row, joined to its frozen step and its '
+    + 'handler binding; effects_produced is counted from public.phase_d_effect_ledger',
+}) + [cols.join(','), ...rows.map(r => cols.map(c => cell(r[c])).join(','))].join('\n') + '\n';
 
-mkdirSync('docs/phase-d', { recursive: true });
-writeFileSync('docs/phase-d/PHASE_D_HANDLER_IMPLEMENTATION_RESULT.csv', csv);
+writeFileSync(outPath('PHASE_D_HANDLER_IMPLEMENTATION_RESULT.csv'), csv);
 
 const by = (k) => rows.reduce((a, r) => (a[r[k]] = (a[r[k]] || 0) + 1, a), {});
-console.log(`wrote docs/phase-d/PHASE_D_HANDLER_IMPLEMENTATION_RESULT.csv — ${rows.length} rows × ${cols.length} columns`);
+console.log(`wrote ${outPath('PHASE_D_HANDLER_IMPLEMENTATION_RESULT.csv')} — ${rows.length} rows × ${cols.length} columns`);
 console.log('implementation_depth   ', JSON.stringify(by('implementation_depth')));
 console.log('expected_effect_type   ', JSON.stringify(by('expected_effect_type')));
 console.log('object_resolution      ', JSON.stringify(by('object_resolution')));

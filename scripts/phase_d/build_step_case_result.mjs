@@ -19,8 +19,9 @@
 //
 // The script exits 1 rather than writing fewer rows than 7 × the frozen step count, so a partial
 // export cannot be mistaken for a complete one.
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { mgmtRead, PROD_REF } from '../staging/qd_guard.mjs';
+import { outPath, provenance } from './lib/deliverable.mjs';
 
 const COLS = ['step_id', 'workflow_id', 'step_type', 'case_kind', 'decided_at',
               'expectation', 'passed', 'refused_with', 'detail'];
@@ -51,9 +52,16 @@ const cell = (v) => {
   return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 };
 
-mkdirSync('docs/phase-d', { recursive: true });
-writeFileSync('docs/phase-d/PHASE_D_STEP_CASE_RESULT.csv',
-  [COLS.join(',')].concat(rows.map((r) => COLS.map((c) => cell(r[c])).join(','))).join('\n') + '\n');
+writeFileSync(outPath('PHASE_D_STEP_CASE_RESULT.csv'),
+  provenance({
+    command: 'node scripts/phase_d/build_step_case_result.mjs',
+    numerator: rows.length,
+    denominator: want,
+    of: 'declared cases (7 per frozen Phase B step)',
+    attribution: 'one row per executed case in public.phase_d_step_case_result; decided_at records '
+      + 'which boundary refused it, so a contract-level refusal is not read as a driven one',
+  })
+  + [COLS.join(',')].concat(rows.map((r) => COLS.map((c) => cell(r[c])).join(','))).join('\n') + '\n');
 
 const failed = rows.filter((r) => r.passed !== 'true');
 const byLevel = rows.reduce((a, r) => { a[r.decided_at] = (a[r.decided_at] || 0) + 1; return a; }, {});

@@ -11,7 +11,21 @@
 // founder-approved effective baseline is the live one; the package is the pre-erratum source.
 // The difference is recorded in the report rather than reconciled away.
 
+// THREE DEFECTS FOUND IN THIS FILE ON 19 AUG 2026, all of the same family — a value that looks
+// measured and is not.
+//
+//   :109 wrote the CSV to the REPOSITORY ROOT. The tracked deliverable lives at
+//        docs/phase-d/PHASE_D_CURRENT_CODE_HANDLER_CROSSWALK.csv and had therefore never been
+//        written by its own builder. No root-level file existed either: whatever ran last had been
+//        cleaned up, so nothing on disk showed the mismatch.
+//   :87  wrote `'NOT_RUN' as result` on all 257 rows while public.phase_d_step_case_result held
+//        1,799 executed case results. A column whose only value is a constant is not a result
+//        column; it is a caption.
+//   :99  `if (rows.length !== 257)`. The literal is right until the frozen registry moves, and a
+//        check that can only ever agree with itself is a rubber stamp.
 import { mgmtRead, PROD_REF } from '../staging/qd_guard.mjs';
+import { writeFileSync } from 'node:fs';
+import { outPath, provenance } from './lib/deliverable.mjs';
 
 // mgmtRead refuses anything that is not read-only, which is what makes running this against the
 // one project safe: a D0 export has no business writing.
@@ -84,7 +98,13 @@ const rows = await q(`
     'PD-NEG-' || b.step_id || '-MISSING_INPUT;PD-NEG-' || b.step_id || '-WRONG_ACTOR;PD-NEG-'
       || b.step_id || '-INVALID_STATE;PD-NEG-' || b.step_id || '-DUPLICATE;PD-NEG-'
       || b.step_id || '-RULE_GATE;PD-NEG-' || b.step_id || '-OUTPUT_SCHEMA' as negative_test_ids,
-    'NOT_RUN'                               as result
+    -- THE RESULT IS THE STEP'S OWN CASE MATRIX, READ BACK. NOT_RUN now means what it says: no
+    -- row in public.phase_d_step_case_result names this step. It is not a default.
+    coalesce((select count(*) filter (where cr.passed)::text || ' of ' || count(*)::text
+                    || ' cases passed'
+                from public.phase_d_step_case_result cr
+               where cr.step_id = b.step_id
+              having count(*) > 0), 'NOT_RUN')  as result
   from public.phase_d_handler_binding b
   join public.phase_b_workflow_step s on s.step_id = b.step_id
   left join public.phase_c_step_binding sb on sb.step_id = b.step_id
@@ -96,17 +116,30 @@ if (!Array.isArray(rows) || rows.length === 0) {
     + 'an empty file would read as "nothing to reconcile" rather than as a failed export.');
   process.exit(1);
 }
-if (rows.length !== 257) {
-  console.error(`D0 crosswalk: expected 257 rows and got ${rows.length}. `
-    + 'The frozen Phase B registry declares 257 steps; refusing to write a partial crosswalk.');
+const want = await q('select count(*)::int as n from public.phase_b_workflow_step');
+const wantN = want?.[0]?.n ?? 0;
+if (!wantN) {
+  console.error('D0 crosswalk: public.phase_b_workflow_step is empty — refusing to write a '
+    + 'deliverable over nothing. "0 of 0" is not completeness.');
+  process.exit(1);
+}
+if (rows.length !== wantN) {
+  console.error(`D0 crosswalk: the frozen registry declares ${wantN} step(s) and the crosswalk `
+    + `resolved ${rows.length}; refusing to write a partial crosswalk.`);
   process.exit(1);
 }
 
 const header = Object.keys(rows[0]);
-const out = [csvRow(header), ...rows.map((r) => csvRow(header.map((h) => r[h])))].join('\n') + '\n';
+const out = provenance({
+  command: 'node scripts/phase_d/build_d0_crosswalk.mjs',
+  numerator: rows.length,
+  denominator: wantN,
+  of: 'frozen Phase B workflow steps',
+  attribution: 'one row per step in public.phase_d_handler_binding joined to its frozen step; '
+    + 'result is read back from public.phase_d_step_case_result',
+}) + [csvRow(header), ...rows.map((r) => csvRow(header.map((h) => r[h])))].join('\n') + '\n';
 
-const { writeFileSync } = await import('node:fs');
-writeFileSync('PHASE_D_CURRENT_CODE_HANDLER_CROSSWALK.csv', out, 'utf8');
+writeFileSync(outPath('PHASE_D_CURRENT_CODE_HANDLER_CROSSWALK.csv'), out, 'utf8');
 
 // The summary is printed so the run itself states what it covered, rather than the reader having
 // to open the file to find out whether it means anything.
@@ -120,3 +153,4 @@ console.log(`  capability-dependent          ${count((r) => r.capability_depende
 console.log(`  steps opening a handoff       ${count((r) => r.opens_handoff)}`);
 console.log(`  closure steps                 ${count((r) => r.is_closure_step)}`);
 console.log(`  rules outstanding on >=1 step ${count((r) => Number(r.rules_outstanding) > 0)}`);
+console.log(`  cases never run for the step  ${count((r) => r.result === 'NOT_RUN')}`);

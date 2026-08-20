@@ -15,7 +15,8 @@
 //
 // The script exits 1 rather than writing fewer rows than there are frozen workflows, so a partial
 // export cannot be mistaken for a complete one.
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
+import { outPath, provenance } from './lib/deliverable.mjs';
 // THE BUILDER COULD NOT RUN ITS OWN DELIVERABLE. It routed the drive through mgmtWriteData, which
 // calls assertNotProduction and refuses the one project that exists:
 //     REFUSED: write targeted production (htdblwldjkcgjvmqkbeh). Batch 0 forbids this.
@@ -173,12 +174,18 @@ if (rows.length !== nWorkflows) {
   process.exit(1);
 }
 
-const csv = [COLS.join(',')]
+const csv = provenance({
+  command: 'node scripts/phase_d/build_workflow_implementation_result.mjs',
+  numerator: rows.length,
+  denominator: nWorkflows,
+  of: 'frozen Phase B workflows',
+  attribution: 'one row per workflow, produced by DRIVING it through the executor and the kernel '
+    + 'inside a transaction that is aborted — not by reading a registry',
+}) + [COLS.join(',')]
   .concat(rows.map((r) => r.map(csvCell).join(',')))
   .join('\n') + '\n';
 
-mkdirSync('docs/phase-d', { recursive: true });
-writeFileSync('docs/phase-d/PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv', csv);
+writeFileSync(outPath('PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv'), csv);
 
 // Nothing may survive. The drive aborted its own transaction; this proves it rather than assuming.
 const residue = await sql(`
