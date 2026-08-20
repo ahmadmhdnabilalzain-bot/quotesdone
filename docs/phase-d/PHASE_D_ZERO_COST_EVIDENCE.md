@@ -1,6 +1,6 @@
 # Phase D — zero-cost and zero-external-effect evidence
 
-Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-20 22:15 UTC** (database clock),
+Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-20 23:02 UTC** (database clock),
 project `htdblwldjkcgjvmqkbeh`.
 
 **THE WINDOW HAS NOW BEEN EXTENDED TWICE, FOR THE SAME DEFECT, AND THE SECOND TIME IT WAS THIS
@@ -30,7 +30,8 @@ staging — and that is the order this revision was produced in: E30, E31, E32, 
 and read back, the schema mirror regenerated from `fn_schema_export()` and verified identical, and
 only then these numbers taken.
 
-Everything below was re-measured over the full extended window on 2026-08-20 at 22:15 UTC.
+Everything below was re-measured over the full extended window on 2026-08-20 at 23:02 UTC, after
+E36 — the last apply of the session — and after the schema mirror was regenerated from it.
 
 ## The required final evidence
 
@@ -42,12 +43,12 @@ Everything below was re-measured over the full extended window on 2026-08-20 at 
 | other paid AI requests | **0** | same |
 | `llm_attempt` rows | **0** | `select count(*) from public.llm_attempt where created_at > '2026-08-18 14:00:00+00'` |
 | paid inference cost | **AED 0.00** | `select coalesce(sum(cost_aed),0) from public.ai_cost_log where occurred_at > '2026-08-18 14:00:00+00'` → **0**, over **0 rows**. `ai_cost_log` holds **3,507** rows in total and held 3,507 at the start of the window — the table did not move at all. |
-| live notifications / publications / payments / refunds | **0 sent** | 13 rows were INSERTED by pre-existing monitoring crons; **0 have a `sent_at` and 0 have a delivery attempt**. Each is named below. |
+| live notifications / publications / payments / refunds | **0 sent** | 14 rows were INSERTED by pre-existing monitoring crons; **0 have a `sent_at` and 0 have a delivery attempt**. Each is named below. |
 | — | | |
 
 ## What Phase D itself left behind, over the whole extended window
 
-Measured 2026-08-20 22:15 UTC, after the last apply (E35 and the final E32 re-apply) and after the schema mirror was regenerated:
+Measured 2026-08-20 23:02 UTC, after the last apply (E36) and after the schema mirror was regenerated from it:
 
 | table | committed rows | why it matters |
 |---|---:|---|
@@ -94,7 +95,7 @@ node scripts/checks/run.mjs
 
 **0 produced by Phase D work.**
 
-**Thirteen** rows appeared in `public.notifications` across the extended window — four in the original
+**Fourteen** rows appeared in `public.notifications` across the extended window — four in the original
 12 hours and nine more over 19 and 20 August. The thirteenth, id 1978, was named by the R4
 acceptance because it landed AFTER the previous 16:43 close and the document no longer covered it;
 it is in the table below now, and it is the same kind of unsent cron digest as the other twelve. Naming every one of them rather than reporting a bare
@@ -116,12 +117,13 @@ has been burned by:
 | 1976 | `smoke_alert`   | 08-20 09:00 | pending  | NULL | 0 |
 | 1977 | `health_alert`  | 08-20 10:30 | digest   | NULL | 0 |
 | 1978 | `health_alert`  | 08-20 17:00 | digest   | NULL | 0 |
+| 1979 | `health_alert`  | 08-20 23:00 | digest   | NULL | 0 |
 
-**Every one has `sent_at` NULL and `attempts` 0.** Not one was delivered, and none of the thirteen was
+**Every one has `sent_at` NULL and `attempts` 0.** Not one was delivered, and none of the fourteen was
 produced by a Phase D path: the types are the three the monitoring crons emit, and the timestamps
 are their schedules. Phase D wrote no notification at all.
 
-All thirteen are **row insertions by the pre-existing read-only monitoring crons** that remain active
+All fourteen are **row insertions by the pre-existing read-only monitoring crons** that remain active
 under the founder's selective automation hold, addressed to the founder's own admin address.
 
 The Phase D executions in the extended window were aborted-transaction drives: the whole estate of

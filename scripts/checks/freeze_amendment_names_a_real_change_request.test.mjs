@@ -16,6 +16,12 @@
 // What this test deliberately does NOT assert: that the founder approved it. Approval is
 // `approved_by` / `approved_at` on the row, it is reported by the drift board, and it is a person's
 // act. A green test here means the paperwork exists and matches, never that it was signed.
+//
+// WHAT IT DID NOT ASSERT AND SHOULD HAVE, ADDED 2026-08-20: that nobody ELSE can sign it. The
+// independent acceptance cleared all four amendments with `approved_by = 'zz-r5-audit-not-the-
+// founder'` in one statement and watched the whole freeze board go green — the table carried seven
+// constraints and not one was about who the approver is. E36 added the trigger; the last two tests
+// in this file drive it three ways, including the arm that proves it is not refuse-everything.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -45,6 +51,21 @@ if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const mgmtRead = async (ref, sql) =>
   (await import('../staging/qd_guard.mjs')).mgmtRead(ref, sql);
+
+// The aborted-transaction door. The management endpoint has no transaction handle, so the abort is
+// expressed the only way it can be: the drive lives inside a block that always raises, and the
+// result travels out in the exception message. Returns the raw body; a run that did NOT raise
+// returns null and the caller fails on it, because a probe that did not abort must never pass.
+const token = () => (process.env.SUPABASE_ACCESS_TOKEN
+  || readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8')).trim();
+async function drive(sql) {
+  const r = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/database/query`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: sql }),
+  });
+  return r.text();
+}
 
 // Lazy: shelling out at import time throws before the skip below can take effect.
 let _tracked;
@@ -130,3 +151,98 @@ test('the drift board refuses to excuse an amendment that names no change reques
   assert.equal(Number(r.guards), 2, 'the shape and approval-pair constraints are not both present');
   assert.equal(Number(r.not_null), 1, 'change_request_ref is nullable — the guard can be skipped');
 });
+
+// THE APPROVER COLUMN ANYBODY COULD FILL. This file's header used to say, correctly, that it
+// deliberately does not assert approval — approval is the founder's act and no test can perform it.
+// What it also did not assert, and should have, is that nobody ELSE can perform it.
+//
+// The 2026-08-20 independent acceptance cleared all four amendments to frozen Phase C contracts
+// with `approved_by = 'zz-r5-audit-not-the-founder'` in one statement and watched the whole freeze
+// board go green. `phase_c_freeze_amendment` carried seven constraints and not one was about who
+// the approver is. E36 added a10_freeze_amendment_approver_is_the_founder, which requires an ACTIVE
+// identity in `public.phase_c_founder_identity`; this drives it rather than trusting the comment.
+//
+// Three arms, and the third matters as much as the first two: a guard that refuses everything would
+// mean the row can never go green even when he does sign.
+test('only a registered founder identity can approve an amendment to a frozen contract',
+  { skip: SKIP }, async () => {
+    // mgmtRead refuses a `do` block — "read is not read-only" — and it is right to: it is the
+    // read door. An aborted-transaction probe is a different door, and it is the one
+    // phase_d_dispatch_reaches_executed.test.mjs already uses for exactly this shape. The whole
+    // drive lives inside a block that always raises, and the result travels out in the message.
+    const out = await drive(`
+do $probe$
+declare v_founder text; v_red_before int; v_red_after int; v_rows int;
+        v_free text := 'not-run'; v_inactive text := 'not-run';
+begin
+  select count(*) into v_red_before from public.fn_phase_c_freeze_drift() where not ok;
+
+  begin
+    update public.phase_c_freeze_amendment
+       set approved_by = 'zz-ci-not-the-founder', approved_at = now() where approved_by is null;
+    v_free := 'ACCEPTED';
+  exception when others then
+    v_free := coalesce((regexp_match(SQLERRM, '[(](pccr_[a-z_]+)[)]'))[1], 'refused:' || SQLSTATE);
+  end;
+
+  -- A registered row that is NOT a person. active=false, and its own note says so.
+  begin
+    update public.phase_c_freeze_amendment
+       set approved_by = 'build-mode@quotesdone.local', approved_at = now() where approved_by is null;
+    v_inactive := 'ACCEPTED';
+  exception when others then
+    v_inactive := coalesce((regexp_match(SQLERRM, '[(](pccr_[a-z_]+)[)]'))[1], 'refused:' || SQLSTATE);
+  end;
+
+  select fi.identity into v_founder from public.phase_c_founder_identity fi
+   where fi.active and fi.kind = 'email' order by fi.identity limit 1;
+  update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now()
+   where approved_by is null;
+  get diagnostics v_rows = ROW_COUNT;
+  select count(*) into v_red_after from public.fn_phase_c_freeze_drift() where not ok;
+
+  raise exception 'APPROVER_PROBE %', jsonb_build_object(
+    'free_text', v_free, 'inactive_identity', v_inactive,
+    'founder_identity', v_founder, 'founder_rows', v_rows,
+    'red_before', v_red_before, 'red_after', v_red_after,
+    'triggers', (select count(*) from pg_trigger
+                  where tgrelid = 'public.phase_c_freeze_amendment'::regclass and not tgisinternal));
+end $probe$;`);
+
+    assert.ok(out, 'the probe did not raise — it must abort its own transaction');
+    // The transport throws the raw response body, so what arrives here is JSON source: quotes are
+    // backslash-escaped and Postgres appends a CONTEXT trailer after an escaped newline. Cut there,
+    // un-escape the quotes, then parse.
+    const m = out.match(/APPROVER_PROBE (\{[\s\S]*?\})/);
+    assert.ok(m, `the probe did not reach its report:\n${out.slice(0, 800)}`);
+    const r = JSON.parse(m[1].split('\\n')[0].replace(/\\"/g, '"'));
+
+    assert.equal(r.free_text, 'pccr_approver_not_the_founder',
+      `a free-text name was ${r.free_text} as an approval of an amendment to a FROZEN Phase C ` +
+      'contract. That is how an acceptance auditor turned the whole freeze board green in one ' +
+      'statement.');
+    assert.equal(r.inactive_identity, 'pccr_approver_not_the_founder',
+      `the INACTIVE build_mode identity was ${r.inactive_identity}. It is registered but it is ` +
+      'not a person — its own note says so — and it must never stand as a founder approval.');
+    assert.ok(Number(r.founder_rows) > 0,
+      'the founder\'s own registered identity was not accepted on any row — the guard refuses ' +
+      'everything, so this row could never go green even when he signs');
+    assert.ok(Number(r.red_before) >= 1 && Number(r.red_after) === 0,
+      `the freeze board read ${r.red_before} red before his approval and ${r.red_after} after; it ` +
+      'must be red while amendments await him and green once they do not');
+    assert.ok(Number(r.triggers) >= 1, 'no user trigger is on phase_c_freeze_amendment');
+  });
+
+// Nothing above survives: every branch is inside one transaction that ends in `raise exception`.
+// This asserts that, rather than assuming it.
+test('the approver probe left the four amendments still awaiting the founder',
+  { skip: SKIP }, async () => {
+    const rows = await mgmtRead(PROD_REF,
+      'select count(*) filter (where approved_by is null) as awaiting, count(*) as total ' +
+      'from public.phase_c_freeze_amendment');
+    const r = rows[0];
+    assert.equal(Number(r.awaiting), Number(r.total),
+      `${Number(r.total) - Number(r.awaiting)} amendment(s) now carry an approval. If the founder ` +
+      'has signed, this test should be updated by a person who has read why; if not, an aborted ' +
+      'probe committed.');
+  });

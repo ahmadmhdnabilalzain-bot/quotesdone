@@ -12,7 +12,8 @@ elsewhere in this document, so they are named here before anything below is read
 | **E30, E31** | 17 of the 30 rules that declare a `required_context` returned `ENFORCED_PASS` when fed the literal `'banana'` for every key they declare. E29 had closed four; these close the rest. Each reference now resolves against a relation that already exists here — `legal_documents` for a terms digest, `mep_evidence_weight` for an evidence rank, `metric_definition` for a business outcome, `org_action_executor` for an executable rollback, `founder_command` and `employee_authority` for an exception authority. **17 passing → 1**, and the one is BR-011, whose pass on `'banana'` is a true pass because it is a content test and that string carries no customer identity. |
 | **E32** | The deliverable driver never called `fn_kernel_step_complete`. It is now the kernel doors and nothing else. |
 | **E33** | `fn_phase_d_handoff_accept` refused the handoff into every step whose handler executes. Fixed; the executed count moved **2 → 3**, the first time it has moved. |
-| **E34** | `amendments_awaiting_founder_approval` had `true` written into its `ok` column. Now a real red, 4 of 4, and only the founder can clear it. |
+| **E34** | `amendments_awaiting_founder_approval` had `true` written into its `ok` column. Now a real red, 4 of 4. |
+| **E36** | E34’s row then said *"Only he can clear this row"* and **nothing enforced it** — the acceptance auditor cleared all four with an arbitrary string and turned the whole freeze board green. `approved_by` was free text: seven constraints on the table and not one about who the approver is. A trigger now requires an ACTIVE identity in `public.phase_c_founder_identity`, and CI drives it three ways. |
 | **E35** | The money rule read `"AED 999999"` and `"1e6"` as text rather than as amounts. Both now refuse; `price_code` remains a deliberately named hole. |
 
 **Several rules now refuse everything, and that is correct.** BR-012, BR-026, BR-032, BR-035 and
@@ -81,7 +82,7 @@ reconciled. **75** injected defects driven. All **15** required deliverables tra
 `fn_phase_c_freeze_drift()` is **1 red** as of 2026-08-20 21:00–22:15 UTC and that red is deliberate: E34 replaced
 the literal `true` in `amendments_awaiting_founder_approval`, which read "4 of 4" and was green and
 could never have been anything else. Four amendments to frozen Phase C contracts await the
-founder’s signature on PCCR-001 and PCCR-002 §11, and nothing in this repository may clear it.
+founder’s signature on PCCR-001 and PCCR-002 §11. Nothing in this repository may clear it, and after E36 nothing outside it can either without resolving to a registered founder identity — the row said that before it was true.
 
 **Open, and measured on production today.**
 
