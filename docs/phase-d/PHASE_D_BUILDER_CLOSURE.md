@@ -93,6 +93,20 @@ reconciled. **75** injected defects driven. All **15** required deliverables tra
   `service_role` still executes. `scripts/checks/anon_cannot_execute_security_definer.test.mjs` is no
   longer a ratchet at 56; it is a floor of zero with the authenticated set pinned by name.
 
+- **NEW, and Phase D's own: 30 SECURITY DEFINER views handed back what their base table withheld.**
+  `d2:722` revokes `public.phase_d_object_record` from `public, anon, authenticated` — *"The store is
+  written only through the service"* — and `d2:474` grants SELECT on each of the thirty `v_obj_*`
+  views **over that same store** to `service_role, authenticated`. A view without
+  `security_invoker = true` reads as its owner, so any signed-in JWT could `GET
+  /rest/v1/v_obj_financial_close` and 29 more, past an RLS policy set that is deny-all. It also
+  defeated `d43`, which had revoked the *function* door to the same data for exactly that reason.
+  Nothing had leaked because the store holds 0 rows — the D35 finding word for word. **E8 revoked all
+  thirty**, plus `phase_d_business_object_binding` and `fn_phase_d_object_state()`, each an explicit
+  `authenticated` grant with zero callers in `supabase/functions`, `src`, `scripts` or any routine
+  body. Measured after: **anon can SELECT 2 of 574 relations in `public` (both public site content)
+  and 0 views; authenticated 0 views.** Probed as the roles: `authenticated` denied,
+  `service_role` still reads all 30.
+
 | | |
 |---|---|
 | session | 2026-08-18, 14:00 → 15:20 UTC (database clock) |

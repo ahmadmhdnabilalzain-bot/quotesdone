@@ -93,7 +93,7 @@ const AUTHENTICATED_BY_DESIGN = {
     'called with the customer\'s own JWT at customer_documents/index.ts:125, :167 and :197',
 };
 
-let rows = [], totals = {}, stillOpen = [], anonReadable = [];
+let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [];
 if (hasToken) {
   const { sql } = await import('../phase_c/lib/db.mjs');
   rows = await sql(`
@@ -119,6 +119,14 @@ if (hasToken) {
        and (has_function_privilege('anon', p.oid, 'EXECUTE')
          or has_function_privilege('authenticated', p.oid, 'EXECUTE'))
      order by p.proname`);
+  objViews = await sql(`
+    select c.relname,
+           has_table_privilege('anon',          c.oid, 'SELECT') as anon_can,
+           has_table_privilege('authenticated', c.oid, 'SELECT') as authed_can,
+           has_table_privilege('service_role',  c.oid, 'SELECT') as service_can
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relkind = 'v' and c.relname like 'v\_obj\_%'
+     order by c.relname`);
   anonReadable = await sql(`
     select c.relname, c.relkind
       from pg_class c join pg_namespace n on n.oid = c.relnamespace
@@ -190,4 +198,35 @@ test('anon can read only the two public-content tables, which is what bounds the
     + 'A NEW name here is read by anything anon can call, including the 284 anon-executable SECURITY'
     + ' INVOKER routines in public — this grant is what stops all of them returning anything.'
     + ' A name that DISAPPEARED breaks the public site, which reads both of these.');
+});
+
+// 20 AUG 2026 — E8. The same door one layer up, and Phase D built it.
+// phase_d_d2_business_object_map.sql:722 revokes public.phase_d_object_record from public, anon and
+// authenticated, with the comment "The store is written only through the service". Line 474 then
+// grants SELECT on each of the thirty v_obj_* views over that same store to `service_role,
+// authenticated`. A view without security_invoker=true reads as its OWNER, so the view returned
+// exactly the rows the table revoke withheld — past an RLS policy set that is deny-all, through
+// PostgREST, to any signed-in JWT. It also defeated d43, which had revoked the FUNCTION door
+// (fn_phase_d_object_read) to service_role for precisely that reason.
+//
+// Nothing had leaked because phase_d_object_record holds 0 rows. That is the D35 finding verbatim:
+// a zero cannot tell a dead guard from an idle system.
+//
+// E8 revoked all thirty. This is the check so a re-apply of d2 — which would re-run line 474 —
+// cannot silently reopen them: re-applying an earlier MANIFEST file reverting a later file's revoke
+// is a defect this estate has already paid for once.
+test('no Phase D object view answers a client role, and service_role still reads all thirty', { skip: SKIP }, () => {
+  const open = objViews.filter((v) => v.anon_can || v.authed_can)
+    .map((v) => `${v.relname}(${v.anon_can ? 'anon ' : ''}${v.authed_can ? 'authenticated' : ''})`);
+  console.log(`      ${objViews.length} v_obj_* views: ${open.length} reachable by a client role`);
+  assert.deepEqual(open, [],
+    'these SECURITY DEFINER views over public.phase_d_object_record answer a signed-in caller:\n  '
+    + open.join('\n  ')
+    + '\nphase_d_d2_business_object_map.sql:474 grants exactly this; re-applying d2 re-opens them.'
+    + ' Re-apply scripts/sql/phase_d_e8_the_view_handed_back_what_the_table_withheld.sql.');
+  const lost = objViews.filter((v) => !v.service_can).map((v) => v.relname);
+  assert.deepEqual(lost, [],
+    'service_role lost SELECT on: ' + lost.join(', ')
+    + ' — the Phase D deliverable builders and fn_phase_d_object_read read these and will now fail.');
+  assert.equal(objViews.length, 30, `expected 30 v_obj_* views, found ${objViews.length}`);
 });

@@ -16,9 +16,9 @@ with its own reversal and with the data consequence of taking it.
 
 ## What this covers, and where the measurement stops
 
-Population: **all 83** files matching `scripts/sql/phase_d_*.sql`, every one of them applied to
+Population: **all 84** files matching `scripts/sql/phase_d_*.sql`, every one of them applied to
 `htdblwldjkcgjvmqkbeh` under `PHASE_D_PRODUCTION_DIRECT_PROTOCOL.md`. The main table below covers 73
-and the section "Ten more, classified 2026-08-20" covers `d45`, `d52`–`d56` and `e4`–`e7`. **The 73
+and the section "Eleven more, classified 2026-08-20" covers `d45`, `d52`–`d56` and `e4`–`e8`. **The 73
 figure and the sentence "There is no `d45`" were both true when written and are both wrong now**;
 they are corrected in place rather than deleted, because a count asserted once and never re-read is
 the defect this document exists to prevent.
@@ -35,8 +35,8 @@ original 66.
 
 This paragraph then said `ls` and `git ls-files` "both return **73**" and that "there is no `d45`".
 Both were true at 2026-08-20 00:10Z and neither is now: `d45` was applied and committed later the
-same session, `d52`–`d56` after it, and `e4`–`e7` on 2026-08-20. Both commands now return **83**, so
-nothing is untracked, and 66 + 7 + 10 = 83. The ten are classified in their own section below.
+same session, `d52`–`d56` after it, and `e4`–`e8` on 2026-08-20. Both commands now return **84**, so
+nothing is untracked, and 66 + 7 + 11 = 84. The eleven are classified in their own section below.
 
 **Production-direct applies leave no row in `supabase_migrations.schema_migrations`.** Measured:
 `select max(version) from supabase_migrations.schema_migrations` = `20260811081746`, and 0 rows at or
@@ -178,7 +178,7 @@ re-opens rules that are currently enforced.
 
 ---
 
-## Ten more, classified 2026-08-20 — `d45`, `d52`–`d56`, `e4`–`e7`
+## Eleven more, classified 2026-08-20 — `d45`, `d52`–`d56`, `e4`–`e8`
 
 The table above covered 73 and asserted **"There is no `d45`"**. `phase_d_d45_a_self_loop_is_a_step_
 that_hands_to_itself.sql` had been written and applied hours after that sentence, and `d52`–`d56`

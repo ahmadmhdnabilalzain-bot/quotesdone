@@ -81,11 +81,11 @@ Three details that matter when reading the "merge commit" column:
 
 ## Every Phase D file, with its commit, PR and production read-back
 
-Scope: **all 83** files matching `scripts/sql/phase_d_*.sql`. The table first covered `d0..d43`, 66
+Scope: **all 84** files matching `scripts/sql/phase_d_*.sql`. The table first covered `d0..d43`, 66
 files, while concurrent increments of the same session were still adding files numbered `d44` and
 above — `ls scripts/sql/phase_d_*.sql | wc -l` returned 67 at 00:00:04Z and 71 at 00:10:34Z. Seven
-were appended then (`d44`, `d46`, `d47`, `d48`, `d49`, `d50`, `d51`) and **ten more on 2026-08-20**:
-`d45`, `d52`, `d53`, `d54`, `d55`, `d56`, `e4`, `e5`, `e6`, `e7`. 66 + 7 + 10 = **83**, which is what both
+were appended then (`d44`, `d46`, `d47`, `d48`, `d49`, `d50`, `d51`) and **eleven more on 2026-08-20**:
+`d45`, `d52`–`d56`, `e4`, `e5`, `e6`, `e7`, `e8`. 66 + 7 + 11 = **84**, which is what both
 `ls` and `git ls-files scripts/sql/phase_d_*.sql` return.
 
 > **This paragraph used to say "There is no `d45` — the numbering skips it", and it was wrong within
@@ -95,7 +95,7 @@ were appended then (`d44`, `d46`, `d47`, `d48`, `d49`, `d50`, `d51`) and **ten m
 > again rather than by deleting the sentence — a number asserted once and never re-read is exactly
 > what this ledger exists to catch, and the correction is more useful on the record than a clean file.
 
-Rollback class for each of the 83 is in `PHASE_D_ROLLBACK_CLASSIFICATION_D9.md` and, for the ten
+Rollback class for each of the 84 is in `PHASE_D_ROLLBACK_CLASSIFICATION_D9.md` and, for the eleven
 that post-date its main table, in `scripts/sql/down/README.md`.
 
 Read-back key: a table name with a number is `count(*)`; `routine present` means the identity
@@ -195,6 +195,17 @@ purpose rather than restated as one.
 | `e5_a_red_that_does_not_say_what_is_holding_it` | `691d432` | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | `fn_phase_d_effect_reachability()` present and revoked from `public, anon, authenticated`; `fn_phase_d_effect_state()` returns the three new disclosure rows (21 / 51 / 185) beside an unchanged `steps_with_no_effect_ever_produced = 257` |
 | `e6_the_record_still_claimed_the_door_e4_closed` | `691d432` | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | 3 `phase_c_component` rows on `external_entry = 'no'`; `phase_c_freeze_amendment` **3** rows; `fn_phase_c_freeze_drift()` 0 of 25 drifted |
 | `e7_the_classifier_read_the_binding_not_the_branch` | `691d432`+ | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | `fn_phase_d_effect_reachability()` **dropped and recreated** for a changed OUT row type, and re-revoked — `proacl` reads `postgres=X/postgres \| service_role=X/postgres`, so `anon` and `authenticated` are false. `reachability_class_distribution` reads `REFUSAL_IS_THE_DECLARED_EFFECT=21 WRITES_A_ZERO_RESIDUE_TABLE=14 WRITES_AN_EXISTING_TABLE_NOT_UNDER_THE_RULE=78 WRITES_ONLY_THE_PHASE_D_LEDGER=70 WRITES_ONLY_THE_PHASE_D_OBJECT_STORE=74`, summing to 257, with `steps_whose_written_relation_does_not_resolve` 0 |
+
+| `e8_the_view_handed_back_what_the_table_withheld` | `691d432`+ | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | **0 of the 30 `v_obj_*` views** are selectable by anon or authenticated, and **30 of 30** still by `service_role`. `phase_d_business_object_binding` and `fn_phase_d_object_state()` likewise closed to client roles. Probed as the roles: `authenticated` gets `insufficient_privilege` on `v_obj_financial_close` and on the binding table; `service_role` reads the view (0 rows). Estate-wide after it: anon can SELECT **2 of 574** relations in `public` and **0** views; authenticated **0** views |
+
+`e8` is the finding this session did not go looking for. `d2:722` revokes `public.phase_d_object_record`
+from `public, anon, authenticated` with the comment *"The store is written only through the service"* —
+and `d2:474` grants SELECT on each of the thirty views **over that same store** to
+`service_role, authenticated`. A view without `security_invoker = true` reads as its owner, so the
+view returned exactly the rows the table revoke withheld, past an RLS policy set that is deny-all,
+through PostgREST, to any signed-in JWT. It also defeated `d43`, which had revoked the *function*
+door to the same data for precisely that reason. Nothing leaked because the store holds 0 rows —
+which is the D35 finding word for word, not an argument for leaving it.
 
 `e7` is the one file here that **drops** a routine, and it is the reason the grant needed re-taking:
 a plain `CREATE` grants EXECUTE to PUBLIC and only `CREATE OR REPLACE` preserves an ACL, so `e5`'s
@@ -367,9 +378,9 @@ Ahead of `main` right now:
 
 | what | state |
 |---|---|
-| `e4`, `e5`, `e6`, `e7` | committed on `feat/phase-d-e4-the-door-was-never-a-browser`, open as [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452), **not merged** |
+| `e4`, `e5`, `e6`, `e7`, `e8` | committed on `feat/phase-d-e4-the-door-was-never-a-browser`, open as [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452), **not merged** |
 
-**Until #452 merges, `main` legitimately does not contain the `e4`–`e7` definitions**, and a parity
+**Until #452 merges, `main` legitimately does not contain the `e4`–`e8` definitions**, and a parity
 gate run against `main` reports drift for that reason alone — that window is expected,
 self-resolving on merge, and must not be "fixed" by re-applying anything. `e4` is the one to be
 careful with: it carries no routine body at all, only 57 `revoke execute` statements, so a parity
