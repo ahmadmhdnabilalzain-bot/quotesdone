@@ -23,7 +23,8 @@
 #   Spot check: phase_c_31 is line-position 644 of 657, phase_c_39 is 652. 39 sorts AFTER 31,
 #   so the manifest makes the CORRECTION canonical, which is the state the tie destroyed.
 #
-# 657 files. 2 not yet committed (listed at the end, in the same derived order).
+# 809 files, matching 809 on disk. Count re-measured 2026-08-20; it read 657 for
+# long enough to be 137 short, because nothing recomputed it when a file was appended.
 # 228 carry no DDL of their own (data repair, backfill, probe); they are listed anyway so that
 # "every file on disk is in the manifest" is an exact statement a check can enforce.
 #
@@ -1468,7 +1469,6 @@ scripts/sql/phase_d_d14_a_state_the_target_does_not_declare.sql
 scripts/sql/phase_d_d15_a_reviewer_keyed_on_the_effect_not_the_step.sql
 scripts/sql/phase_d_d16_a_rule_applied_to_the_workflow_that_produces_it.sql
 scripts/sql/phase_d_d17_the_fixture_had_a_second_door_and_it_was_http.sql
-"scripts/sql/phase_d_d17_the_fixture_had_a_second_door_and_it_was_http.sql"  
 scripts/sql/phase_d_d18_an_upsert_that_could_not_find_the_row_it_wrote.sql
 scripts/sql/phase_d_d19_a_generated_payload_rearmed_the_door.sql
 scripts/sql/phase_d_d20_created_open_and_asked_the_gate.sql
@@ -1476,17 +1476,29 @@ scripts/sql/phase_d_d21_the_run_renamed_its_own_inquiry.sql
 scripts/sql/phase_d_d22_a_company_scoped_owner_is_still_a_foreign_key.sql
 scripts/sql/phase_d_d23_a_state_can_require_a_companion_column.sql
 scripts/sql/phase_d_d24_a_new_enforcing_table_with_no_truncate_guard.sql
-"scripts/sql/phase_d_d24_a_new_enforcing_table_with_no_truncate_guard.sql"  
 scripts/sql/phase_d_d25_the_key_was_thrown_away_one_statement_later.sql
 scripts/sql/phase_d_d26_the_step_that_decides_had_nowhere_to_record_it.sql
 scripts/sql/phase_d_d27_move_its_state_said_the_refusal_that_offered_no_way.sql
 scripts/sql/phase_d_d28_a_gate_that_refused_the_workflow_for_doing_its_job.sql
 scripts/sql/phase_d_d29_a_durable_external_adapter_that_never_sends.sql
-"scripts/sql/phase_d_d29_a_durable_external_adapter_that_never_sends.sql"  
 scripts/sql/phase_d_d30_the_twelve_steps_may_say_ready_disabled_again.sql
 scripts/sql/phase_d_d31_seventy_five_injected_defects.sql
-"scripts/sql/phase_d_d31_seventy_five_injected_defects.sql"  
 scripts/sql/phase_d_d32_the_control_that_left_its_own_rows_behind.sql
 scripts/sql/phase_d_d33_the_cleanup_that_only_cleaned_one_table.sql
 scripts/sql/phase_d_d34_the_seven_probes_that_were_never_run.sql
 scripts/sql/phase_d_d35_a_mention_is_not_a_call.sql
+scripts/sql/phase_d_d36_the_kernel_opens_the_step_and_now_runs_it.sql
+scripts/sql/phase_d_d37_the_rules_read_real_rows_or_they_refuse.sql
+scripts/sql/phase_d_d38_the_authority_the_kernel_acted_under_is_a_recorded_fact.sql
+scripts/sql/phase_d_d39_two_ordering_defects_the_first_real_inquiry_found.sql
+scripts/sql/phase_d_d40_the_arrival_is_known_by_the_inbox_id_already_passed.sql
+scripts/sql/phase_d_d41_inquiry_owner_is_a_role_not_a_customer.sql
+scripts/sql/phase_d_d42_route_state_was_my_own_placeholder.sql
+scripts/sql/phase_d_d43_a_signed_in_caller_may_not_name_the_owner.sql
+scripts/sql/phase_d_d46_a_contract_that_records_intent_but_checks_presence.sql
+scripts/sql/phase_d_d47_nineteen_rules_that_had_never_refused_anything.sql
+scripts/sql/phase_d_d48_a_two_context_probe_cannot_find_a_withheld_authority.sql
+scripts/sql/phase_d_d49_a_freeze_with_no_way_to_record_an_amendment.sql
+scripts/sql/phase_d_d50_a_rule_that_could_not_fail_made_one_that_could_not_not_fire.sql
+scripts/sql/phase_d_d51_callable_is_not_answerable_yet.sql
+scripts/sql/phase_d_d44_an_endpoint_that_ignores_an_id_has_not_refused.sql

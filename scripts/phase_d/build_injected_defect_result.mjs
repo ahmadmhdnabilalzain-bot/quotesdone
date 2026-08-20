@@ -5,8 +5,9 @@
 // raised message. The catalogue supplies defect_id, category, injected_defect and
 // expected_machine_result; this script supplies status, observed and blocker from the live run and
 // refuses to write if the two disagree on the population.
-import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
 import { sql } from '../phase_c/lib/db.mjs';
+import { outPath, provenance } from './lib/deliverable.mjs';
 
 const CAT = 'QuotesDone_PHASE_D_DETERMINISTIC_BUSINESS_HANDLER_IMPLEMENTATION_PRODUCTION_DIRECT_v2026.08.17/registries/PHASE_D_INJECTED_DEFECT_CATALOG.csv';
 
@@ -92,17 +93,36 @@ const out = [COLS.join(',')].concat(rows.map(r => {
   return [r[0], r[1], c[2], c[3], r[2], r[3], r[4]].map(cell).join(',');
 })).join('\n') + '\n';
 
-mkdirSync('docs/phase-d', { recursive: true });
-writeFileSync('docs/phase-d/PHASE_D_INJECTED_DEFECT_RESULT.csv', out);
+writeFileSync(outPath('PHASE_D_INJECTED_DEFECT_RESULT.csv'),
+  provenance({
+    command: 'node scripts/phase_d/build_injected_defect_result.mjs',
+    numerator: rows.length,
+    denominator: byId.size,
+    of: 'catalogued defects (PHASE_D_INJECTED_DEFECT_CATALOG.csv)',
+    attribution: 'one row per catalogue defect, produced by injecting it inside a transaction that '
+      + 'is aborted; status NOT_RUN carries a named blocker and is never a default',
+  }) + out);
 
 const exec = rows.filter(r => r[2] === 'REFUSED_AS_REQUIRED').length;
 const notrun = rows.filter(r => r[2] === 'NOT_RUN').length;
 const notref = rows.filter(r => r[2] === 'NOT_REFUSED');
+// NOT_DISCRIMINATED (D44): the assertion executed and could not separate a refusal from an ignored
+// parameter or an empty estate. It is neither a pass nor a failure and must not be counted as
+// either. The total below is asserted because a status this summary does not name would otherwise
+// vanish from the console without changing any of the three figures above it.
+const notdisc = rows.filter(r => r[2] === 'NOT_DISCRIMINATED').length;
 const residue = await sql('select count(*)::int as n from public.phase_d_external_attempt');
 console.log(`PHASE_D_INJECTED_DEFECT_RESULT.csv  ${rows.length} rows`);
 console.log(`  executed and refused as required   ${exec}`);
 console.log(`  NOT_RUN with a named blocker       ${notrun}`);
+console.log(`  executed but NOT_DISCRIMINATED     ${notdisc}`);
 console.log(`  FAILED TO REFUSE                   ${notref.length}   (must be 0)`);
 console.log(`  attempt rows left behind           ${residue?.[0]?.n ?? -1}   (must be 0)`);
+if (exec + notrun + notdisc + notref.length !== rows.length) {
+  const named = new Set(['REFUSED_AS_REQUIRED', 'NOT_RUN', 'NOT_DISCRIMINATED', 'NOT_REFUSED']);
+  const other = [...new Set(rows.map(r => r[2]).filter(s => !named.has(s)))];
+  console.error(`  the run produced status value(s) this summary does not count: ${other.join(', ')}`);
+  process.exit(1);
+}
 if (notref.length) { console.error('  ' + notref.map(r => r[0]).join(', ')); process.exit(1); }
 if ((residue?.[0]?.n ?? -1) !== 0) process.exit(1);
