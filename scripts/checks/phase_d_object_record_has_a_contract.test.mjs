@@ -69,6 +69,25 @@ const CASES = [
   // keyword blocklist: a state and a nested identifier are not quantities and must still pass.
   ['fee_status_is_a_state', 'company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('fee_status','paid')`, 'accept'],
   ['nested_identifier',     'company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('x', jsonb_build_object('invoice_no','INV-7'))`, 'accept'],
+
+  // E27 — THE CASE THE CONTROL ABOVE MISSED, AND IT COST ELEVEN WORKFLOWS.
+  // `refund_id_is_an_identifier` used 'RF-1', which is not numeric, so it passed happily while E24
+  // widened the rule to allow numeric STRINGS and re-broke the very thing it was controlling for.
+  // The estate supplies refund_id as a numeric string. An identifier is never an amount, whatever
+  // its value looks like — these three are the controls that say so.
+  ['refund_id_numeric_string', 'company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('refund_id','12345')`, 'accept'],
+  ['refund_id_plain_number',   'company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('refund_id',12345)`, 'accept'],
+  ['nested_refund_id_numeric', 'company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('w', jsonb_build_object('refund_id',12345))`, 'accept'],
+  // …and the E24 bypasses must still be refused, so the exclusion above is narrow, not a hole.
+  ['money_total_aed_still_caught', 'company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('total_aed',99)`, 'refuse'],
+
+  // E27 — the four legitimate states my family sets had wrongly excluded.
+  ['state_accepted_append_only', 'supplier_terms_acceptance',  `'accepted'`,  null, `'sup'`, `jsonb_build_object('a',1)`, 'accept'],
+  ['state_verified_case',        'supplier_verification_case', `'verified'`,  null, `'sup'`, `jsonb_build_object('a',1)`, 'accept'],
+  ['state_submitted_revision',   'quotation_revision',         `'submitted'`, null, `'sup'`, `jsonb_build_object('a',1)`, 'accept'],
+  ['state_selected_append_only', 'customer_selection',         `'selected'`,  null, `'cus'`, `jsonb_build_object('a',1)`, 'accept'],
+  // …and a nonsense state on the same objects is still refused, so widening did not open the door.
+  ['state_nonsense_on_widened',  'supplier_terms_acceptance',  `'ADMIN_OVERRIDE'`, null, `'sup'`, `jsonb_build_object('a',1)`, 'refuse'],
 ];
 
 const PROBE = `
