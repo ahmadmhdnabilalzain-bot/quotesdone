@@ -22,12 +22,47 @@ reconciled. **75** injected defects driven. All **15** required deliverables tra
 **Open, and measured on production today.**
 
 - **`steps_with_no_effect_ever_produced = 257`** — the single red on `fn_phase_d_effect_state()`,
-  whose other eleven pass/fail checks are green. The effect ledger is empty because **no committed
-  business arrival has ever driven a step**: every proof in this phase runs in a transaction that is
-  aborted, and the estate holds **0 inquiries, 0 quotes, 0 transactions and 0 customers**
-  (`select count(*)` on each, 2026-08-20) since the 16 Aug funnel purge. `phase_d_handoff_acceptance`
-  is **0 rows** and `phase_d_external_attempt` is **0 rows** for the same reason. Everything below is
-  therefore evidenced by driven fixtures, never by a real arrival.
+  whose other eleven pass/fail checks are green.
+
+  **CORRECTED 2026-08-20 by E5, and E5's own numbers CORRECTED THE SAME DAY by E7.** This bullet
+  said "the effect ledger is empty because no committed business arrival has ever driven a step",
+  which is true of a minority of the 257. E5 replaced that with a 21 / 51 / 185 split — and got two
+  of the three wrong, by classifying each step from the object its effect row **declares** rather
+  than the branch `fn_phase_d_effect_produce` **executes**. All 41 `REVIEW_VERDICT` steps call
+  `fn_phase_d_object_write` with a hardcoded `'review_record'`, which binds to `public.review_chain`,
+  an `EXISTING_TABLE` — so E5 counted 41 steps that write a real table as needing no table at all.
+
+  `fn_phase_d_effect_reachability()` now derives the class from the branch, and the board carries
+  five rows beside the red:
+
+  | steps | what the effect actually writes | who can lift it |
+  |---:|---|---|
+  | **21** | nothing — `CAPABILITY_REQUEST` **raises** `pd_capability_unavailable` in production. The declared effect *is* the refusal; a ledger row needs `execution_context=test`, which is not a result. | the founder, by lifting the provider hold |
+  | **70** | one row in `phase_d_effect_ledger` and nothing else anywhere — `KERNEL_ONLY_TRANSITION` 51, `EXTERNAL_EFFECT_INTENT` 12 (mock only), `MEASUREMENT_RECORD` 7 | Phase E |
+  | **74** | `phase_d_object_record`, through a `v_obj_*` view — Phase D's own store | Phase E |
+  | **78** | a **real existing table the zero-residue rule does not name**: `review_chain` (41), `refunds`, `company_goals`, `opportunity`, `os_incidents`, `legal_reviews`, `documents`, `quote_comparisons`, `supplier_capabilities`, `leads`, `stripe_events`, `inquiry_matches`, `department_objective`, `content_drafts`, `reveal_invoices`, `org_tasks` | Phase E, and a decision about writing rows into tables the company uses |
+  | **14** | one of the five tables the zero-residue rule names — `quotes` 5, `inquiries` 4, `customers` 4, `transactions` 1 | the founder, by lifting the zero-residue rule |
+
+  So **144** steps (70 + 74) write nothing outside Phase D's own two tables, **not** the 185 E5
+  claimed; **92** write an existing table, not 51; and only **14** touch the five tables the
+  zero-residue rule actually names. The 144 are held by neither hold — they are held by the fixture
+  rule: the only driver, `fn_phase_d_drive_workflow`, opens every run with
+  `source_ref = 'zz-phase-d-…'` and `trigger_ctx.fixture = true`, and `fn_phase_d_fixture_residue()`
+  must return 0.
+
+  The recording path itself works, and that was measured rather than argued. Producing the declared
+  effect for step runs **255** (W06-S06) and **256** (W06-S07) — both real, committed, `completed`
+  `KERNEL_ONLY_TRANSITION` runs — inside an aborted transaction wrote, per
+  `pg_stat_xact_user_tables`, **`public.phase_d_effect_ledger ins=2 upd=0 del=0` and nothing else**,
+  with `fn_phase_d_fixture_residue()` returning 0 rows and `provider_mode = none`. **The rows were
+  not kept.** Backfilling a ledger for two step runs that completed before the recording path was
+  built would be a row added to make a count look better, and `produced_by` would name a role that
+  did not produce it.
+
+  The estate does hold **0 inquiries, 0 quotes, 0 transactions and 0 customers** (`select count(*)`
+  on each, 2026-08-20) since the 16 Aug funnel purge, and `phase_d_handoff_acceptance` and
+  `phase_d_external_attempt` are both **0 rows**. Everything below is evidenced by driven fixtures,
+  never by a real arrival.
 - **14 of 30 workflows do not close.** Driving all 30 in `execution_context` `production`,
   **16** reach `DETERMINISTIC_CLOSURE` and **14** stop at `pd_capability_unavailable`: the capability
   boundary at `fn_phase_d_handler_execute` section 3 refuses the **21** steps whose
@@ -45,8 +80,91 @@ reconciled. **75** injected defects driven. All **15** required deliverables tra
   refused.
 - **333 of the 347 events have never been observed emitting**, and **60** are still
   `DEFERRED_RUNTIME_IMPLEMENTATION`. Producer resolves for 286 of 347.
-- **56 SECURITY DEFINER routines in `public` remain anon-executable** — pre-existing and
-  estate-wide, not introduced by Phase D, and not closed by it either.
+- ~~**56 SECURITY DEFINER routines in `public` remain anon-executable**~~ — **CLOSED 2026-08-20 by
+  E4.** Measured before: 56 anon-executable and 59 authenticated-executable of 791. Measured after:
+  **0 anon-executable and 2 authenticated-executable**, and the two are named — `fn_customer_documents`
+  and `fn_customer_document_refs`, the only routines any caller invokes with a client JWT
+  (`asUser.rpc` at `customer_documents/index.ts:125`, `:148`, `:167`, `:197`), the second of which is
+  also evaluated inside the `documents_customer_select` RLS policy as the querying role. The other 57
+  were revoked from `public, anon, authenticated` after a per-function review: all 279 remaining
+  `.rpc(` call sites in the repository use the service-role client, no SECURITY INVOKER routine a
+  client role can reach calls any of them, and no view in `public` compiles one in. Verified as the
+  roles themselves on production — `anon` and `authenticated` receive `insufficient_privilege`,
+  `service_role` still executes. `scripts/checks/anon_cannot_execute_security_definer.test.mjs` is no
+  longer a ratchet at 56; it is a floor of zero with the authenticated set pinned by name.
+
+- **NEW, and Phase D's own: 30 SECURITY DEFINER views handed back what their base table withheld.**
+  `d2:722` revokes `public.phase_d_object_record` from `public, anon, authenticated` — *"The store is
+  written only through the service"* — and `d2:474` grants SELECT on each of the thirty `v_obj_*`
+  views **over that same store** to `service_role, authenticated`. A view without
+  `security_invoker = true` reads as its owner, so any signed-in JWT could `GET
+  /rest/v1/v_obj_financial_close` and 29 more, past an RLS policy set that is deny-all. It also
+  defeated `d43`, which had revoked the *function* door to the same data for exactly that reason.
+  Nothing had leaked because the store holds 0 rows — the D35 finding word for word. **E8 revoked all
+  thirty**, plus `phase_d_business_object_binding` and `fn_phase_d_object_state()`, each an explicit
+  `authenticated` grant with zero callers in `supabase/functions`, `src`, `scripts` or any routine
+  body. Measured after: **anon can SELECT 2 of 574 relations in `public` (both public site content)
+  and 0 views; authenticated 0 views.** Probed as the roles: `authenticated` denied,
+  `service_role` still reads all 30.
+
+- **The kernel dispatch reached every W01 step and executed none of them — measured, and three of six
+  are now closed.** Driving W01 in `execution_context = 'production'` inside an aborted transaction,
+  all six dispatched steps returned `INPUTS_UNRESOLVED`. Six key names, splitting in two:
+  `founder_instruction` and `founder_mandate` (S01–S03) **are** named by the resolver and read
+  `public.founder_command`; they are unresolved only because `fn_phase_d_drive_workflow` opens a run
+  with no founder command behind it, and a real command through `os_api` resolves them. The other
+  four — `external_and_internal_evidence`, `current_cash_budget_and_commitments`, `budget_envelope`,
+  `resource_envelope` — were named **nowhere**, and the resolver's `else` branch said so: *"NO TABLE
+  IN THIS ESTATE HOLDS THESE."*
+
+  That sentence is wrong. `department_budget` holds 10 rows of `monthly_aed`/`spent_aed`/
+  `degrade_at_pct`/`halt_at_pct`; `org_agents` 90 active over 10 active departments; `gl_journal` 73
+  posted entries; `company_event` 1,452 in 30 days, `company_index` 60 in 90, `decision_trace` 114 in
+  30. **E9** gives each of the four a branch reading those rows, refuses on an empty source rather
+  than passing an empty object, and declines by name the two things no relation holds — a cash
+  POSITION (`cash_position_available: false`) and an external signal (`external_available: false`).
+
+  After E9, re-driven: **W01-S04, S05 and S06 resolve their inputs** and move to `REFUSED`.
+
+  **THAT WAS OVERSTATED, AND THE SECOND INDEPENDENT ACCEPTANCE CAUGHT IT.** This bullet said the
+  move meant "the contract evaluating and saying no for a stated reason". It did not. The refusal
+  read `BR-003 requires [founder_authority_ref] and the call names none of it` while the same
+  dispatch row listed that key in its own `unresolved_keys` — a refusal wearing a rule's name over
+  the same class of gap, one function further on. E9 fixed `fn_phase_d_step_inputs`;
+  **`fn_phase_d_step_context` had it too**, and the auditor was right to call the move a rename
+  rather than a repair.
+
+  **E11** measured that sibling: of **71** declared context keys across
+  `phase_d_rule_enforcement.required_context` and `phase_d_gate_contract.evidence_keys`, only **21**
+  had a branch. Four of the unbranched were required by a rule or gate bound to **all 257 steps** —
+  `run_id`, `actor_role_id`, `reviewer_role_id`, `exception_authority_ref` — and the first three
+  are loaded by that function's own first ten lines. Three more (`step_id`, `step_run_id`,
+  `source_ref`) were *mentioned* in the body and unbranched, which a mention-based grep counts as
+  resolved; the first measurement of this defect made exactly that error while fixing it.
+
+  Six branches added, every value already in scope. Re-driven, the unresolved set on the refused
+  steps went from `actor_role_id + exception_authority_ref + founder_authority_ref + reviewer_role_id
+  + run_id + step_id + step_run_id + to_state` to `exception_authority_ref + founder_authority_ref +
+  reviewer_role_id + to_state`. **Still 0 EXECUTED.** Every remaining refusal is a rule or gate
+  asking for something real that nobody supplied: no founder command behind a fixture run, no
+  independent reviewer declared on those steps, no valid transition, and no policy exception named.
+  S01–S03 remain honestly unresolved. Residue 0, business tables 0/0/0/0, `phase_c_workflow_run`
+  unchanged at 18.
+
+- **OPEN, and it has no database-level fix: `public` is DEFAULT-OPEN for function EXECUTE.** Measured
+  by execution 2026-08-20, each step in its own transaction, as `postgres` — the role every migration
+  runs as: a new **table** and a new **view** come back `postgres | service_role` with anon SELECT
+  false, and a new **function** comes back `=X/postgres | postgres=X/postgres | service_role=X/postgres`
+  with **anon EXECUTE true**. The leading `=X/postgres` is PostgreSQL's built-in `GRANT EXECUTE TO
+  PUBLIC`; tables and views have no equivalent. `pg_default_acl` for `postgres` on functions in
+  `public` holds no PUBLIC entry, so
+  `alter default privileges … revoke execute on functions from public` has nothing to revoke and is a
+  **no-op** — tried twice, the stored ACL byte-identical afterwards, and a function created in the
+  next transaction still anon-executable. A migration claiming that as a fix was **withdrawn rather
+  than committed**. What holds the floor at zero is the rule "revoke in the same migration that
+  creates it" plus `scripts/checks/anon_cannot_execute_security_definer.test.mjs`, which now runs in
+  the one CI job that holds the credential. A new SECURITY DEFINER routine without its revoke fails
+  there and nowhere else.
 
 | | |
 |---|---|
@@ -63,6 +181,16 @@ Phase E was not begun. No frozen Phase A, Phase B or Phase C object was edited.
 ---
 
 ## Session 2 — D2, D4, D5 (2026-08-18, 15:20 → 16:15 UTC)
+
+> **THE WAVE LETTERS IN THIS TABLE ARE THE SESSION'S OWN, NOT THE MASTER WORKLIST'S, and the two
+> disagree.** This table calls business rules **D4** and gates **D5**; the remainder table further
+> down calls handoffs **D4** and the call graph **D5**, and gates **D3 (rest)**. Same document, same
+> names, two numbering schemes — noticed on 2026-08-20 and corrected here by saying so rather than
+> by renumbering, because both labels are quoted in commit messages and in
+> `PHASE_D_REMEDIATION_PLAN.md`. Read against the master worklist the mapping is:
+> session-2 **D4** (business rules) → worklist **D3 (rules half)**; session-2 **D5** (gates) →
+> worklist **D3 (rest)**. Worklist **D4** and **D5** are handoffs and the call graph, and neither
+> was in session 2.
 
 Resumed from `bc20365` after a clean precheck: main == origin, 0 drift both ways, schema mirror
 byte-identical, working tree clean.

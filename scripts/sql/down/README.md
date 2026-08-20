@@ -186,9 +186,14 @@ take one half of the d44 constraint pair with their tables.
 ## Files that post-date the classification
 
 The A/B/neither table above is frozen at the 58 files tracked at recon. These are **every** Phase D
-file present in the tree afterwards, classified here by the same comment-stripped scan. There is no
-`d45`: `ls scripts/sql/phase_d_*.sql` returns 73 files, `git ls-files` returns the same 73, and the
-numbering skips from `d44` to `d46`. 58 + these 15 = 73, and none is untracked.
+file present in the tree afterwards, classified here by the same comment-stripped scan.
+
+> **The line that used to stand here said "There is no `d45`", and it has been WRONG since the same
+> session wrote one.** `phase_d_d45_a_self_loop_is_a_step_that_hands_to_itself.sql` was applied and
+> committed hours after this paragraph was written, and the paragraph was never re-measured. It is
+> corrected on 2026-08-20, and `d45` is classified in the second table below with the eight other
+> files that post-date this one. A count asserted once and never re-read is the defect this whole
+> directory exists to avoid; it is recorded here rather than quietly deleted.
 
 Every object named in a down script below was read out of `pg_class`, `pg_constraint`, `pg_index`,
 `pg_attribute` or `pg_trigger` on `htdblwldjkcgjvmqkbeh` before it was named — from the database,
@@ -223,6 +228,38 @@ The `d44` down is the one to read before running: it **refuses** today. Two of t
 `public.phase_d_section8_probe_result` carry `NOT_DISCRIMINATED`, which the `d34:32` predecessor
 constraint does not admit, so that file raises rather than rewriting two measured rows to make a DDL
 statement succeed. Same shape as the `d7b` down, same reason.
+
+## The fourteen files that post-date *that* table too — `d45`, `d52`–`d56`, `e4`–`e11`
+
+Classified 2026-08-20 by the same comment-stripped scan (`sed 's/--.*$//'` then a search for
+`CREATE TABLE`, `ADD COLUMN`, `ADD CONSTRAINT`, `DROP CONSTRAINT`, `CREATE INDEX`, `CREATE TRIGGER`,
+`CREATE VIEW`, `CREATE SEQUENCE`, `CREATE TYPE`, `SET NOT NULL`, `DROP FUNCTION`). **Not one of the
+fourteen creates a new object** — `e7` drops and immediately recreates one, which is a return-type
+change, not a new object. `ls scripts/sql/phase_d_*.sql` returns **87** files; 58 at recon + 15 in
+the first table + these 14 = 87, and `git ls-files` returns the same 87.
+
+| source file | class | down |
+|---|---|---|
+| `phase_d_d45_a_self_loop_is_a_step_that_hands_to_itself.sql` | B — 1 routine body, 0 DDL | none needed |
+| `phase_d_d52_a_bound_that_is_visible_in_the_value.sql` | B — 1 routine body, 0 DDL; 2 `delete from` on its own probe tables and 1 `revoke`/`grant` pair on the routine it creates | none needed — and the deletes have none, by the rule at the top of this file |
+| `phase_d_d53_a_fixture_may_be_opaque_not_the_wrong_type.sql` | B — 1 routine body, 0 DDL | none needed |
+| `phase_d_d54_the_driver_defaulted_to_the_one_mode_that_refuses_nothing.sql` | B — 1 routine body, 0 DDL | none needed |
+| `phase_d_d55_the_evidence_stated_the_predicates_own_premise.sql` | B — 1 routine body, 0 DDL | none needed |
+| `phase_d_d56_the_ledger_named_the_file_the_routine_used_to_live_in.sql` | neither — 0 routine bodies, 0 DDL; 2 `update`s to the deployment ledger | none needed — an `update` has no down |
+| `phase_d_e4_the_door_was_never_a_browser.sql` | neither — 0 routine bodies, 0 DDL; **57 `revoke execute`** | **`phase_d_e4_the_door_was_never_a_browser_down.sql`** — a grant IS reversible by name, and this one restores the exact prior shape rather than a uniform one: 55 of the 57 held EXECUTE through PUBLIC, `fn_os_open_access` held an explicit anon + authenticated grant and `fn_goal_attainment` an explicit authenticated grant. Running it re-opens 56 routines to unauthenticated callers and turns `anon_cannot_execute_security_definer.test.mjs` red, which is the point of reading a header first. |
+| `phase_d_e5_a_red_that_does_not_say_what_is_holding_it.sql` | B — 2 routine bodies, 0 DDL; 1 `revoke` on the routine it creates | none — and none possible for the replaced body of `fn_phase_d_effect_state`; `drop function public.fn_phase_d_effect_reachability()` alone would break the caller that replaces it |
+| `phase_d_e6_the_record_still_claimed_the_door_e4_closed.sql` | neither — 0 routine bodies, 0 DDL; 2 `update`s to `public.phase_c_component` (3 rows) and 1 `insert` into `public.phase_c_freeze_amendment` | none needed. Reverting the amendment row without reverting the three component rows would make `fn_phase_c_freeze_drift()` report drift it cannot explain — the two are one change and must be undone together, by hand, by someone who has re-read both |
+
+| `phase_d_e7_the_classifier_read_the_binding_not_the_branch.sql` | B — 2 routine bodies, plus the only `DROP FUNCTION` in the ten: a return-type change on `fn_phase_d_effect_reachability()`, immediately recreated. The drop discarded E5's ACL, so the file's own `revoke` is load-bearing and its control block asserts the ACL rather than trusting the statement | none — and none possible: a dropped body is not recoverable from SQL. Reverting means re-applying `e5` and dropping the `e7` signature first, **and re-revoking**, because a plain CREATE grants EXECUTE to PUBLIC |
+| `phase_d_e8_the_view_handed_back_what_the_table_withheld.sql` | neither — 0 routine bodies, 0 DDL; **32 `revoke`**: SELECT on the 30 `v_obj_*` views and on `phase_d_business_object_binding`, EXECUTE on `fn_phase_d_object_state()` | **`phase_d_e8_the_view_handed_back_what_the_table_withheld_down.sql`** — the prior grants were EXPLICIT role grants, never held through PUBLIC, so the down re-grants to `authenticated` only and never names PUBLIC. Running it re-opens thirty SECURITY DEFINER views over `phase_d_object_record` to any signed-in JWT and re-defeats `d43` |
+| `phase_d_e10_a_mechanism_count_read_as_a_refusal_count.sql` | B — 2 routine bodies, 0 DDL | none needed — a replaced body has no down |
+| `phase_d_e11_six_keys_it_was_already_holding.sql` | B — 1 routine body, 0 DDL | none needed — a replaced body has no down |
+| `phase_d_e9_four_inputs_the_resolver_said_no_table_held.sql` | B — 1 routine body, 0 DDL. `fn_phase_d_step_inputs` gains four resolver branches; every other line is byte-identical to the definition it was spliced from | none needed — a replaced body has no down |
+
+**Twenty-eight down scripts in the directory**, up from 26. Both additions are `GRANT_RESTORE`: `e4`'s
+for 57 function grants and `e8`'s for 32 relation and routine grants. A grant is the one change kind
+in this directory that IS reversible by name, which is why these two have a down and the nine
+routine-body files do not.
 
 ## Scope boundary of everything above
 

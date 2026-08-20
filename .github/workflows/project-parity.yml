@@ -110,6 +110,19 @@ jobs:
   # ANY NEW CHECK THAT NEEDS PRODUCTION BELONGS IN THIS LIST. A check that needs the credential and
   # is not named here does not run in CI; it runs when somebody remembers, which is not a gate.
   #
+  # 20 AUG 2026 — TWO ADDED, AND A NOTE ON HOW THE SKIP DETECTOR SEES THEM.
+  #   anon_cannot_execute_security_definer  E4 turned it from a ratchet at 56 into a floor of zero
+  #                                         with the authenticated set pinned by name. A plain
+  #                                         CREATE re-grants EXECUTE to PUBLIC, so the regression is
+  #                                         one DROP-and-recreate away and nothing else would notice.
+  #   a_failed_scheduled_run_has_a_reader   watch_failed_runs_hourly (jobid 137) went off with the
+  #                                         stand-down and none of the 23 active jobs replaced it.
+  #                                         This reads the same two tables on demand. It starts no
+  #                                         job and sends nothing.
+  # Both use node:test, which prints a skip as `﹣ name # SKIPPED: reason` — a shape the grep below
+  # does NOT match. Each therefore prints NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL itself when the
+  # token is absent, so a silent skip inside the one job that holds the credential still fails.
+  #
   # Every one of these probes ends in `raise exception`, so nothing is left on production.
   # ============================================================================================
   phase-c:
@@ -142,7 +155,9 @@ jobs:
                    active_signal_types_are_executable \
                    kernel_boards_are_green \
                    every_discharge_claim_reaches_its_table \
-                   application_source_of_truth; do
+                   application_source_of_truth \
+                   anon_cannot_execute_security_definer \
+                   a_failed_scheduled_run_has_a_reader; do
             echo "::group::$t"
             out=$(node "scripts/checks/$t.test.mjs" 2>&1); code=$?
             echo "$out"

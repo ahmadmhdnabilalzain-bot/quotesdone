@@ -62,15 +62,60 @@ const one = (rows) => rows[0];
 
 for (const [name, ref] of Object.entries(PROJECTS)) {
   // ── roster ────────────────────────────────────────────────────────────────────
+  // 20 AUG 2026 — THIS ASSERTED `packaged === 24` AND HAD BEEN RED SINCE THE 14 AUG REORG.
+  // 24 was the number of departments the V3 delivery named. org_department_alias is the MERGE MAP,
+  // and a merge ADDS a row to it: 22 departments became 10, and nine new department names —
+  // assurance_security_reliability, growth_revenue, product_engineering_ai and six more — joined the
+  // original 24, giving 33 distinct packaged names over 34 rows (strategy_evolution has two homes by
+  // declaration). A count frozen on a table that legitimately grows is not a check; retyping 24 as
+  // 33 would be a rubber stamp on whatever the table happens to hold today.
+  //
+  // What the test's own title claims is CONTENT, and content is what it asserts now, in both
+  // directions, with the delivery's list read out of the committed crosswalk rather than typed here:
+  //   forward   every packaged department the V3 delivery named still resolves to an ACTIVE one
+  //   backward  every active department is named by at least one alias — otherwise a knowledge
+  //             import for it has no packaged name and lands nowhere
+  //   dangling  no alias points at a department that is not active
+  // marketplace_category_experts is excluded: v3_crosswalk.mjs:231 synthesises it as a bucket for
+  // the category specialists, and it is not a department the delivery shipped.
   test(`${name}: every packaged department resolves to a live runtime department`, async (t) => {
     if (!mgmtToken) { t.skip('no management token'); return; }
-    const r = one(await q(ref, `select
-      (select count(*) from org_department_alias) aliases,
-      (select count(distinct packaged_department) from org_department_alias) packaged,
-      (select count(*) from org_department_alias a
-         where not exists (select 1 from org_departments d where d.dept_key = a.dept_key and d.active)) dangling`));
-    assert.equal(Number(r.packaged), 24, 'the delivery names 24 departments');
+    const csv = readFileSync('docs/knowledge/V3_RUNTIME_ROLE_CROSSWALK.csv', 'utf8')
+      .split(/\r?\n/).filter(Boolean);
+    const col = csv[0].split(',').indexOf('packaged_department');
+    assert.ok(col >= 0, 'V3_RUNTIME_ROLE_CROSSWALK.csv has no packaged_department column');
+    const delivered = [...new Set(csv.slice(1)
+      .map((l) => (l.split(',')[col] || '').replace(/^"|"$/g, '').trim())
+      .filter((v) => v && v !== 'marketplace_category_experts'))];
+    assert.ok(delivered.length >= 24,
+      `the committed crosswalk names only ${delivered.length} departments; it named 24 at delivery`);
+
+    const list = delivered.map((d) => `('${d.replace(/'/g, "''")}')`).join(',');
+    const r = one(await q(ref, `with delivery(name) as (values ${list})
+      select
+       (select count(*) from delivery) delivered,
+       (select count(*) from delivery d where not exists (
+          select 1 from org_department_alias a
+            join org_departments dp on dp.dept_key = a.dept_key and dp.active
+           where a.packaged_department = d.name)) unresolved,
+       (select coalesce(string_agg(d.name, ', '), '') from delivery d where not exists (
+          select 1 from org_department_alias a
+            join org_departments dp on dp.dept_key = a.dept_key and dp.active
+           where a.packaged_department = d.name)) unresolved_names,
+       (select count(*) from org_departments dp where dp.active
+          and not exists (select 1 from org_department_alias a where a.dept_key = dp.dept_key)) unnamed_active,
+       (select coalesce(string_agg(dp.dept_key, ', '), '') from org_departments dp where dp.active
+          and not exists (select 1 from org_department_alias a where a.dept_key = dp.dept_key)) unnamed_names,
+       (select count(*) from org_department_alias a
+          where not exists (select 1 from org_departments d where d.dept_key = a.dept_key and d.active)) dangling,
+       (select count(distinct packaged_department) from org_department_alias) packaged_now`));
+    assert.equal(Number(r.unresolved), 0,
+      `these delivered departments no longer reach an active department: ${r.unresolved_names}`);
+    assert.equal(Number(r.unnamed_active), 0,
+      `these active departments are named by no alias, so a packaged import for them lands nowhere: ${r.unnamed_names}`);
     assert.equal(Number(r.dangling), 0, 'every alias must point at an active department');
+    console.log(`      ${r.delivered} delivered department names all resolve; `
+      + `${r.packaged_now} packaged names in the merge map today`);
   });
 
   test(`${name}: all 96 packaged roles resolve and every active agent has an identity`, async (t) => {
@@ -177,12 +222,26 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
         update agent_actions set decided_at = now(), decided_by = 'test', status = 'approved' where id = v_id;
         select count(*) into v_after from decision_trace;
         select knowledge_refs into v_refs from decision_trace where entity_id = v_id::text limit 1;
-        raise exception 'traces=% ids=%', v_after - v_before, v_refs->>'knowledge_count';
+        raise exception 'traces=% shape=% ids=%', v_after - v_before,
+          coalesce(jsonb_typeof(v_refs),'absent'),
+          case when jsonb_typeof(v_refs) = 'array' then jsonb_array_length(v_refs) else -1 end;
       end;`);
-    const m = /traces=(\d+) ids=(\d+)/.exec(raised);
+    // 20 AUG 2026 — THIS READ `v_refs->>'knowledge_count'` AND HAD ALWAYS RETURNED NULL, because
+    // decision_trace.knowledge_refs is a JSON ARRAY of ids, not an object with a count.
+    // fn_agent_action_trace_row writes `to_jsonb(v_ids)`, and every other reader in the estate
+    // treats it as an array — fn_management_decision_review and v3_remediation_regression.mjs both
+    // guard with `jsonb_typeof(knowledge_refs)='array' then jsonb_array_length(...)`,
+    // runtime_connection_gate_b.mjs uses jsonb_array_length directly, and fn_unsafe_liveness_probe
+    // inserts a literal array. Six readers agree on the array and this one test asked for a field
+    // the contract never promised: the instrument was wrong, not the writer. The shape is asserted
+    // as well as the length, so a writer that quietly switches to an object is caught here rather
+    // than silently returning null again.
+    const m = /traces=(\d+) shape=(\w+) ids=(-?\d+)/.exec(raised);
     assert.ok(m, raised);
     assert.equal(m[1], '1', 'a decided action must leave exactly one trace');
-    assert.equal(m[2], '2', 'the trace must carry the knowledge ids the assembly recorded');
+    assert.equal(m[2], 'array',
+      `decision_trace.knowledge_refs must be a JSON array of ids, got ${m[2]} — six readers call jsonb_array_length on it`);
+    assert.equal(m[3], '2', 'the trace must carry the knowledge ids the assembly recorded');
   });
 
   // ── management ────────────────────────────────────────────────────────────────

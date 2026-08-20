@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T01:36:19.061Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T13:31:23.783Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -16018,126 +16018,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -16682,6 +16562,126 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -50721,6 +50721,75 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_phase_d_effect_reachability()
+ RETURNS TABLE(step_id text, workflow_id text, expected_effect_type text, reachability text, blocker text, writes_relation text, has_produced_an_effect boolean)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- THE JOIN IS ON WHAT THE BRANCH WRITES, NOT ON WHAT THE ROW DECLARES. fn_phase_d_effect_produce
+  -- hardcodes 'review_record' for every REVIEW_VERDICT step and writes only the ledger for
+  -- EXTERNAL_EFFECT_INTENT and MEASUREMENT_RECORD, so e.effect_object_id is the wrong key for 60 of
+  -- the 257 and reading it was the E5 defect.
+  with resolved as (
+    select e.step_id, e.workflow_id, e.expected_effect_type,
+           case
+             when e.expected_effect_type = 'CAPABILITY_REQUEST'
+               then '(nothing — the branch raises pd_capability_unavailable)'
+             when e.expected_effect_type in
+                  ('KERNEL_ONLY_TRANSITION','EXTERNAL_EFFECT_INTENT','MEASUREMENT_RECORD')
+               then 'public.phase_d_effect_ledger'
+             else (select ob.canonical_relation
+                     from public.phase_d_business_object_binding ob
+                    where ob.object_id = case when e.expected_effect_type = 'REVIEW_VERDICT'
+                                              then 'review_record' else e.effect_object_id end)
+           end as writes_relation,
+           case
+             when e.expected_effect_type in
+                  ('CAPABILITY_REQUEST','KERNEL_ONLY_TRANSITION','EXTERNAL_EFFECT_INTENT',
+                   'MEASUREMENT_RECORD')
+               then null
+             else (select ob.relation_kind
+                     from public.phase_d_business_object_binding ob
+                    where ob.object_id = case when e.expected_effect_type = 'REVIEW_VERDICT'
+                                              then 'review_record' else e.effect_object_id end)
+           end as relation_kind
+      from public.phase_d_step_effect e
+  )
+  select r.step_id, r.workflow_id, r.expected_effect_type,
+         case
+           when r.expected_effect_type = 'CAPABILITY_REQUEST' then 'REFUSAL_IS_THE_DECLARED_EFFECT'
+           when r.writes_relation = 'public.phase_d_effect_ledger' then 'WRITES_ONLY_THE_PHASE_D_LEDGER'
+           when r.relation_kind = 'PHASE_D_OBJECT_VIEW' then 'WRITES_ONLY_THE_PHASE_D_OBJECT_STORE'
+           when r.writes_relation in ('public.customers','public.inquiries','public.quotes',
+                                      'public.transactions','public.notifications')
+             then 'WRITES_A_ZERO_RESIDUE_TABLE'
+           when r.relation_kind = 'EXISTING_TABLE' then 'WRITES_AN_EXISTING_TABLE_NOT_UNDER_THE_RULE'
+           else 'UNRESOLVED'
+         end,
+         case
+           when r.expected_effect_type = 'CAPABILITY_REQUEST'
+             then 'the provider hold — the branch raises rather than records, and the refusal is the '
+                  || 'contract. A ledger row here needs execution_context=test, which is not a result.'
+           when r.writes_relation in ('public.customers','public.inquiries','public.quotes',
+                                      'public.transactions','public.notifications')
+             then 'the zero-residue rule — the effect writes ' || r.writes_relation
+                  || ', one of the five tables that rule names'
+           when r.relation_kind = 'EXISTING_TABLE'
+             then 'the fixture rule, AND a row in a real table — ' || r.writes_relation
+                  || '. The zero-residue rule does not name it, which is not the same as it being '
+                  || 'Phase D''s own storage.'
+           else 'the fixture rule — the only driver, fn_phase_d_drive_workflow, opens every run with '
+                || 'source_ref zz-phase-d-… and trigger_ctx.fixture=true, and '
+                || 'fn_phase_d_fixture_residue() must return 0. Neither the provider hold nor the '
+                || 'zero-residue rule touches this step.'
+         end,
+         coalesce(r.writes_relation, '(unresolved — no binding for the object this branch writes)'),
+         exists (select 1 from public.phase_d_effect_ledger l where l.step_id = r.step_id)
+    from resolved r;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_phase_d_effect_state()
  RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
  LANGUAGE plpgsql
@@ -50804,11 +50873,79 @@ begin
   expected := '0'; actual := n::text; ok := (n = 0); return next;
 
   -- DISCLOSURE, NOT A PASS. Counts steps whose effect has actually been produced at least once,
-  -- which is a different question from whether the path exists. Reported as the gap so it FALLS,
-  -- and ratcheted with an owner.
+  -- which is a different question from whether the path exists.
+  --
+  -- NAME, DERIVATION AND VALUE UNCHANGED SINCE IT WAS WRITTEN. scripts/checks/kernel-boards.json
+  -- keys its ratchet on this exact string, and a ratchet whose subject is renamed goes on silencing
+  -- whatever later takes the name. The rows that follow say what is holding it; they neither replace
+  -- it nor lower it, and E7 did not touch it either.
   select count(distinct step_id) into n from public.phase_d_effect_ledger;
   check_name := 'steps_with_no_effect_ever_produced';
   expected := '0'; actual := (m - n)::text; ok := (n = m); return next;
+
+  -- ---- THE RED, DECOMPOSED BY THE BRANCH EACH EFFECT ACTUALLY EXECUTES ------------------------
+  -- E5 wrote three rows here and derived them from the DECLARED effect object. E7 replaces them
+  -- with five derived from the branch, because fn_phase_d_effect_produce hardcodes 'review_record'
+  -- for all 41 REVIEW_VERDICT steps and writes only the ledger for EXTERNAL_EFFECT_INTENT and
+  -- MEASUREMENT_RECORD. The E5 rows are gone rather than kept beside these: two of them carried a
+  -- number this file proves wrong, and a board showing both readings makes the reader choose.
+  select count(*) into n from public.fn_phase_d_effect_reachability()
+   where reachability = 'REFUSAL_IS_THE_DECLARED_EFFECT' and not has_produced_an_effect;
+  check_name := 'no_effect_because_the_refusal_is_the_effect';
+  expected := 'informational — the provider hold, and it is the founder''s to lift';
+  actual := n::text || ' CAPABILITY_REQUEST step(s): the branch raises pd_capability_unavailable in '
+         || 'production rather than recording. A ledger row needs execution_context=test, which is '
+         || 'not a result.';
+  ok := true; return next;
+
+  select count(*) into n from public.fn_phase_d_effect_reachability()
+   where reachability = 'WRITES_A_ZERO_RESIDUE_TABLE' and not has_produced_an_effect;
+  check_name := 'no_effect_because_the_effect_writes_a_zero_residue_table';
+  expected := 'informational — the zero-residue rule, and it is the founder''s to lift';
+  actual := n::text || ' step(s) whose effect writes customers, inquiries, quotes or transactions. '
+         || 'The estate holds 0 of each since the 16 Aug purge and may not be given one.';
+  ok := true; return next;
+
+  select count(*) into n from public.fn_phase_d_effect_reachability()
+   where reachability = 'WRITES_AN_EXISTING_TABLE_NOT_UNDER_THE_RULE' and not has_produced_an_effect;
+  check_name := 'no_effect_and_the_effect_writes_a_real_table_the_rule_does_not_name';
+  expected := 'informational — the fixture rule, plus a row in a table the company uses';
+  actual := n::text || ' step(s) writing review_chain, refunds, company_goals, opportunity, '
+         || 'os_incidents, legal_reviews, documents, quote_comparisons, supplier_capabilities, '
+         || 'leads, stripe_events, inquiry_matches, department_objective, content_drafts, '
+         || 'reveal_invoices or org_tasks. Permitted by the letter of the zero-residue rule and '
+         || 'still not Phase D''s own storage — 41 of them are the REVIEW_VERDICT steps, which write '
+         || 'review_chain through a hardcoded object_id their own effect row does not name.';
+  ok := true; return next;
+
+  select count(*) into n from public.fn_phase_d_effect_reachability()
+   where reachability in ('WRITES_ONLY_THE_PHASE_D_LEDGER','WRITES_ONLY_THE_PHASE_D_OBJECT_STORE')
+     and not has_produced_an_effect;
+  check_name := 'no_effect_although_the_effect_leaves_phase_d_tables_only';
+  expected := 'informational — NEITHER hold touches these; the fixture rule does';
+  actual := n::text || ' step(s) writing only phase_d_effect_ledger or phase_d_object_record. '
+         || 'They are not waiting on a business arrival. The only driver, fn_phase_d_drive_workflow, '
+         || 'opens every run with source_ref zz-phase-d-… and trigger_ctx.fixture=true, so '
+         || 'committing one leaves residue that fn_phase_d_fixture_residue() must report as 0.';
+  ok := true; return next;
+
+  -- A decomposition that stops covering the thing it decomposes is worse than no decomposition, and
+  -- UNRESOLVED is its own failure: a branch whose written relation cannot be resolved is a step
+  -- nobody can say anything about.
+  select count(*) into n from public.fn_phase_d_effect_reachability()
+   where reachability = 'UNRESOLVED';
+  check_name := 'steps_whose_written_relation_does_not_resolve';
+  expected := '0'; actual := n::text; ok := (n = 0); return next;
+
+  select count(*) into n from public.fn_phase_d_effect_reachability();
+  check_name := 'every_step_carries_a_reachability_class';
+  expected := m::text; actual := n::text; ok := (n = m); return next;
+
+  select string_agg(x.t || '=' || x.c, ' ' order by x.t) into v
+    from (select reachability t, count(*)::text c
+            from public.fn_phase_d_effect_reachability() group by 1) x;
+  check_name := 'reachability_class_distribution';
+  expected := 'informational'; actual := coalesce(v,'(none)'); ok := true; return next;
 
   select string_agg(x.t || '=' || x.c, ' ' order by x.t) into v
     from (select expected_effect_type t, count(*)::text c
@@ -52651,6 +52788,7 @@ CREATE OR REPLACE FUNCTION public.fn_phase_d_handler_state()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare n_steps int; n_bound int; n_amb int; n_sch int; n_drift int; n_blocked int; n_def int;
+        n_produced int;
         n_wired int; n_needwrite int;
 begin
   select count(*) into n_steps from public.phase_b_workflow_step;
@@ -52702,7 +52840,23 @@ begin
   select count(*) into n_needwrite from public.phase_d_handler_binding;
   check_name := 'handlers_not_writing_a_business_object';
   expected := '0'; actual := (n_needwrite - n_wired)::text;
-  ok := (n_wired = n_needwrite); return next;
+  ok := (n_needwrite - n_wired = 0); return next;
+
+  -- E10. WHAT THAT ZERO IS, AND WHAT IT IS NOT. It is derived from the handler's declared call to
+  -- fn_phase_d_effect_produce plus a stored boolean — a statement that the PATH EXISTS. It is not a
+  -- statement that any handler has ever written a business object, and the two read identically at
+  -- a glance because both are the number 0 beside a green tick.
+  -- The question it does not answer is on fn_phase_d_effect_state as
+  -- steps_with_no_effect_ever_produced, which reads 257 and is this phase's only red. Both numbers
+  -- are quoted here so a reader of this board cannot take the green one for the other.
+  select count(distinct step_id) into n_produced from public.phase_d_effect_ledger;
+
+  check_name := 'handlers_that_have_actually_produced_an_effect';
+  expected := 'informational — the green above says the path EXISTS, this says whether it has RUN';
+  actual := n_produced::text || ' of ' || n_steps::text
+         || ' steps have ever produced an effect; see fn_phase_d_effect_state.'
+         || 'steps_with_no_effect_ever_produced for what holds the remainder';
+  ok := true; return next;
 end $function$
 
 
@@ -54822,6 +54976,7 @@ CREATE OR REPLACE FUNCTION public.fn_phase_d_rule_state()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare n_rules int; n_reg int; n_out int; n_unres int; n_alwaystrue int;
+        n_can int; n_deleg int; n_held int; n_exec int;
 begin
   select count(*) into n_rules from public.phase_b_business_rule;
   select count(*) into n_reg   from public.phase_d_rule_enforcement;
@@ -54850,6 +55005,48 @@ begin
      and pg_get_functiondef(p.oid) !~ 'rule_unregistered';
   check_name := 'rule_check_refuses_an_unregistered_rule';
   expected := '0'; actual := n_alwaystrue::text; ok := (n_alwaystrue = 0); return next;
+
+  -- ---- E10. WHAT "ENFORCED" MEANS ON THIS BOARD, SAID BESIDE THE NUMBER ----------------------
+  -- rules_with_outstanding_enforcement counts phase_d_rule_enforcement.status, which is ENFORCED on
+  -- all 54. That is a statement about a declared MECHANISM. It is not a statement about whether the
+  -- predicate can produce a refusal, and the two were being read as one.
+  -- fn_phase_d_rule_can_refuse() already answers the harder question by driving each rule against
+  -- three probe contexts. Its answer has never been on this board. It is now, as disclosure rows:
+  -- the mechanism count does not move, and a reader can no longer take 54/54 for 54 that refuse.
+  select count(*) into n_can from public.fn_phase_d_rule_can_refuse() where can_refuse;
+  check_name := 'rules_whose_predicate_can_actually_refuse';
+  expected := 'informational — 54/54 ENFORCED is a mechanism count, not this';
+  actual := n_can::text || ' of ' || n_reg::text
+         || ' produce ENFORCED_FAIL on at least one of the three probe contexts';
+  ok := true; return next;
+
+  select count(*) into n_deleg from public.fn_phase_d_rule_can_refuse()
+   where not can_refuse and note like 'delegated%';
+  check_name := 'rules_the_kernel_guard_decides_not_the_predicate';
+  expected := 'informational — enforced, and not by anything this predicate can invoke';
+  actual := n_deleg::text || ' rule(s) delegated to a kernel guard';
+  ok := true; return next;
+
+  select count(*) into n_held from public.fn_phase_d_rule_can_refuse()
+   where not can_refuse and note like 'constant%';
+  check_name := 'rules_constant_while_a_founder_hold_stands';
+  expected := 'informational — the founder''s to lift, not a defect';
+  actual := n_held::text || ' rule(s) cannot vary while the provider hold stands';
+  ok := true; return next;
+
+  select count(*) into n_exec from public.fn_phase_d_rule_can_refuse()
+   where not can_refuse and note not like 'delegated%' and note not like 'constant%';
+  check_name := 'rules_enforced_somewhere_other_than_the_predicate';
+  expected := 'informational';
+  actual := n_exec::text || ' rule(s) enforced at the executor''s capability boundary';
+  ok := true; return next;
+
+  -- The four groups must still account for every registered rule. A decomposition that stops
+  -- covering its subject is worse than none: the parts would sum to fewer than the whole and
+  -- nothing would say so.
+  check_name := 'every_registered_rule_carries_a_refusal_class';
+  expected := n_reg::text; actual := (n_can + n_deleg + n_held + n_exec)::text;
+  ok := (n_can + n_deleg + n_held + n_exec = n_reg); return next;
 end $function$
 
 
@@ -56057,7 +56254,57 @@ begin
         v_src := 'founder_command that started this run';
       end if;
 
+    elsif v_k = 'run_id' then
+      -- E11. This function loads sr and r in its first ten lines and then declared run_id
+      -- unresolved, which refused GATE-008 on every step in the estate for want of a number the
+      -- same function was already holding.
+      v_val := to_jsonb(sr.run_id);
+      v_src := 'phase_c_workflow_step_run.run_id of this step run';
+
+    elsif v_k = 'actor_role_id' then
+      -- The role ACCOUNTABLE for this step run, read from the kernel's own row. Not the caller's
+      -- claim about who they are: this function is given a step_run_id and nothing else, and a
+      -- context resolver that took an identity from its caller would be answering the question it
+      -- was asked to check.
+      v_val := to_jsonb(nullif(btrim(coalesce(sr.accountable_role_id,'')),''));
+      v_src := 'phase_c_workflow_step_run.accountable_role_id';
+
+    elsif v_k = 'reviewer_role_id' then
+      -- The INDEPENDENT reviewer the frozen binding declares, and only that. 45 of the 47 review
+      -- steps name none, and for those this stays unresolved so GATE-004 and GATE-021 refuse —
+      -- which is the gate working. Choosing a reviewer here would be fn_pick_reviewer returning the
+      -- department head 182 times, one layer up.
+      v_val := to_jsonb(nullif(btrim(coalesce(b.independent_reviewer_role_id,'')),''));
+      v_src := 'phase_d_handler_binding.independent_reviewer_role_id, declared not chosen';
+
+    elsif v_k = 'step_id' then
+      -- MENTIONED IN THIS FUNCTION AND NOT BRANCHED, which is why the first measurement of this
+      -- defect missed it. sr.step_id appears in the return object at the bottom, so a grep for
+      -- 'step_id' finds it and a reader concludes the key resolves. It did not. A mention is not a
+      -- branch — the same lens that cost the 19 Aug audit its central premise, applied here to the
+      -- very file that was measuring it.
+      v_val := to_jsonb(sr.step_id);
+      v_src := 'phase_c_workflow_step_run.step_id';
+
+    elsif v_k = 'step_run_id' then
+      v_val := to_jsonb(p_step_run_id);
+      v_src := 'the step_run_id this function was called with';
+
+    elsif v_k = 'source_ref' then
+      -- The arrival that caused this run, already computed into v_src_ref from kernel_trigger_inbox
+      -- at the top of this function. Unresolved when no arrival is recorded, which is a fact about
+      -- the run rather than a gap in this resolver.
+      v_val := to_jsonb(nullif(btrim(coalesce(v_src_ref,'')),''));
+      v_src := 'kernel_trigger_inbox.source_system for this run';
+
     else
+      -- 40 of the 71 declared context keys still land here, and that is correct: artifact_sha256,
+      -- terms_hash, legal_review_ref, denominator, formula, outcome_metric and the rest are facts a
+      -- CALLER produces at runtime, not facts this estate holds. They stay unresolved and their
+      -- rules and gates refuse, which is the contract working.
+      -- exception_authority_ref is here on purpose too: BR-043 applies only when the call names a
+      -- policy exception, and inventing an authority reference would be the placeholder defect the
+      -- D42 comment above already refused once for route_state.
       v_val := null; v_src := null;
     end if;
 
@@ -56277,11 +56524,118 @@ begin
         v_val := null;   -- nothing has produced it yet: unresolved, not an empty pass
       end if;
 
+    elsif v_k = 'budget_envelope' then
+      -- E9. The prior body said "NO TABLE IN THIS ESTATE HOLDS THESE" and named this key.
+      -- public.department_budget holds monthly_aed, spent_aed and the two degrade/halt thresholds
+      -- for every active department. That IS a budget envelope. It is read here, not invented.
+      v_src := 'department_budget joined to org_departments(active)';
+      select jsonb_build_object(
+               'measured_at', now(),
+               'department_count', count(*),
+               'monthly_aed_total', coalesce(sum(db.monthly_aed), 0),
+               'spent_aed_total',   coalesce(sum(db.spent_aed), 0),
+               'departments', coalesce(jsonb_agg(jsonb_build_object(
+                   'dept_key', db.dept_key, 'monthly_aed', db.monthly_aed,
+                   'spent_aed', db.spent_aed, 'period_label', db.period_label,
+                   'degrade_at_pct', db.degrade_at_pct, 'halt_at_pct', db.halt_at_pct,
+                   'updated_at', db.updated_at) order by db.dept_key), '[]'::jsonb))
+        into v_val
+        from public.department_budget db
+        join public.org_departments od on od.dept_key = db.dept_key and od.active;
+      -- No budget row is not an empty envelope; it is an unanswered question.
+      if coalesce((v_val->>'department_count')::int, 0) = 0 then v_val := null; end if;
+
+    elsif v_k = 'resource_envelope' then
+      -- Money AND people, because a resource envelope that names only money cannot bound a plan
+      -- this company executes with 90 active agents across 10 departments.
+      v_src := 'department_budget + org_departments(active) + org_agents(active)';
+      select jsonb_build_object(
+               'measured_at', now(),
+               'active_departments', (select count(*) from public.org_departments where active),
+               'active_agents',      (select count(*) from public.org_agents where active),
+               'monthly_aed_total',  coalesce((select sum(monthly_aed) from public.department_budget), 0),
+               'spent_aed_total',    coalesce((select sum(spent_aed)   from public.department_budget), 0),
+               'by_department', coalesce((select jsonb_agg(jsonb_build_object(
+                   'dept_key', od.dept_key, 'name', od.name,
+                   'monthly_aed', db.monthly_aed, 'spent_aed', db.spent_aed,
+                   'agents', (select count(*) from public.org_agents a
+                               where a.active and a.department = od.dept_key))
+                   order by od.dept_key)
+                 from public.org_departments od
+                 left join public.department_budget db on db.dept_key = od.dept_key
+                where od.active), '[]'::jsonb))
+        into v_val;
+      if coalesce((v_val->>'active_departments')::int, 0) = 0 then v_val := null; end if;
+
+    elsif v_k = 'current_cash_budget_and_commitments' then
+      -- Budget is what may be spent; commitments are what already has been. Both come from rows:
+      -- department_budget for the envelope and the posted general journal for the commitments.
+      -- A cash POSITION is not claimed — no table in this estate holds a bank balance, and saying
+      -- so is better than deriving one.
+      v_src := 'department_budget + gl_journal(posted) — budget and commitments; NO cash position, '
+            || 'because no relation in this estate holds one';
+      select jsonb_build_object(
+               'measured_at', now(),
+               'cash_position_available', false,
+               'cash_position_note', 'no relation in this estate holds a bank balance',
+               'budget_monthly_aed', coalesce((select sum(monthly_aed) from public.department_budget), 0),
+               'budget_spent_aed',   coalesce((select sum(spent_aed)   from public.department_budget), 0),
+               'budget_by_department', coalesce((select jsonb_agg(jsonb_build_object(
+                   'dept_key', db.dept_key, 'monthly_aed', db.monthly_aed, 'spent_aed', db.spent_aed,
+                   'halt_at_pct', db.halt_at_pct) order by db.dept_key)
+                 from public.department_budget db), '[]'::jsonb),
+               'posted_journal_entries', (select count(*) from public.gl_journal where status = 'posted'),
+               'commitments', coalesce((select jsonb_agg(jsonb_build_object(
+                   'entry_no', j.entry_no, 'entry_date', j.entry_date, 'memo', j.memo,
+                   'source', j.source, 'currency', j.currency) order by j.entry_date desc, j.entry_no desc)
+                 from (select * from public.gl_journal
+                        where status = 'posted' order by entry_date desc, entry_no desc limit 50) j),
+                 '[]'::jsonb))
+        into v_val;
+      if coalesce((v_val->>'budget_monthly_aed')::numeric, 0) = 0
+         and coalesce((v_val->>'posted_journal_entries')::int, 0) = 0 then
+        v_val := null;   -- neither a budget nor a commitment on file: genuinely unanswered
+      end if;
+
+    elsif v_k = 'external_and_internal_evidence' then
+      -- INTERNAL evidence is what the company recorded about itself; EXTERNAL is what it recorded
+      -- about the world. Both halves are named separately so a reader can see which one is thin,
+      -- and external_available is a measured boolean rather than an implied one.
+      v_src := 'company_event(30d) + company_index(90d) + decision_trace(30d)';
+      select jsonb_build_object(
+               'measured_at', now(),
+               'window', '30 days for events and decisions, 90 days for measured indices',
+               'internal_event_count',    (select count(*) from public.company_event
+                                            where occurred_at > now() - interval '30 days'),
+               'internal_decision_count', (select count(*) from public.decision_trace
+                                            where created_at > now() - interval '30 days'),
+               'measured_index_count',    (select count(*) from public.company_index
+                                            where measured_on > current_date - 90),
+               'measured_indices', coalesce((select jsonb_agg(jsonb_build_object(
+                   'index_name', ci.index_name, 'score', ci.score, 'band', ci.band,
+                   'measured_on', ci.measured_on) order by ci.measured_on desc, ci.index_name)
+                 from (select distinct on (index_name) index_name, score, band, measured_on
+                         from public.company_index where measured_on > current_date - 90
+                        order by index_name, measured_on desc) ci), '[]'::jsonb),
+               'event_types', coalesce((select jsonb_object_agg(t.event_type, t.n)
+                 from (select event_type, count(*) n from public.company_event
+                        where occurred_at > now() - interval '30 days'
+                        group by 1 order by 2 desc limit 25) t), '{}'::jsonb),
+               'external_available', false,
+               'external_note', 'no external-signal relation is on file; supplier discovery has been '
+                             || 'paused since 2026-08-10 and nothing else in this estate records an '
+                             || 'outside source')
+        into v_val;
+      if coalesce((v_val->>'internal_event_count')::int, 0) = 0
+         and coalesce((v_val->>'measured_index_count')::int, 0) = 0
+         and coalesce((v_val->>'internal_decision_count')::int, 0) = 0 then
+        v_val := null;
+      end if;
+
     else
-      -- external_and_internal_evidence, current_cash_budget_and_commitments, budget_envelope,
-      -- resource_envelope. NO TABLE IN THIS ESTATE HOLDS THESE. Naming them here as unresolved is
-      -- the honest answer; filling them with a placeholder would make the step complete on a fact
-      -- it never had.
+      -- Every key the frozen registry declares is now named above. This branch is the fail-closed
+      -- default for a key added later: unresolved, never a placeholder, because a placeholder makes
+      -- the step complete on a fact it never had.
       v_val := null;
       v_src := null;
     end if;

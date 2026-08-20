@@ -16,8 +16,12 @@ with its own reversal and with the data consequence of taking it.
 
 ## What this covers, and where the measurement stops
 
-Population: **all 73** files matching `scripts/sql/phase_d_*.sql`, every one of them applied to
-`htdblwldjkcgjvmqkbeh` under `PHASE_D_PRODUCTION_DIRECT_PROTOCOL.md`.
+Population: **all 87** files matching `scripts/sql/phase_d_*.sql`, every one of them applied to
+`htdblwldjkcgjvmqkbeh` under `PHASE_D_PRODUCTION_DIRECT_PROTOCOL.md`. The main table below covers 73
+and the section "Fourteen more, classified 2026-08-20" covers `d45`, `d52`–`d56` and `e4`–`e11`. **The 73
+figure and the sentence "There is no `d45`" were both true when written and are both wrong now**;
+they are corrected in place rather than deleted, because a count asserted once and never re-read is
+the defect this document exists to prevent.
 
 The first revision of this document covered 66 — `phase_d_d0..d43*.sql` — and said so:
 `ls scripts/sql/phase_d_*.sql | wc -l` returned **67** at 2026-08-20 00:00:04Z and **71** at
@@ -25,11 +29,14 @@ The first revision of this document covered 66 — `phase_d_d0..d43*.sql` — an
 would be stale within the hour it stated the gap as a rule: *every `phase_d_d44*.sql` and higher is
 outside this document's scope and unclassified, and must be classified before Phase D closes*.
 
-**That is now done.** The concurrent increments landed. `ls scripts/sql/phase_d_*.sql | wc -l` and
-`git ls-files scripts/sql/phase_d_*.sql | wc -l` both return **73**, so nothing is untracked, and the
-seven files the rule pointed at — `d44`, `d46`, `d47`, `d48`, `d49`, `d50`, `d51` — are classified in
-the table below alongside the original 66. **There is no `d45`**; the numbering skips it, and
-66 + 7 = 73.
+**That is now done.** The concurrent increments landed. The seven files the rule pointed at —
+`d44`, `d46`, `d47`, `d48`, `d49`, `d50`, `d51` — are classified in the table below alongside the
+original 66.
+
+This paragraph then said `ls` and `git ls-files` "both return **73**" and that "there is no `d45`".
+Both were true at 2026-08-20 00:10Z and neither is now: `d45` was applied and committed later the
+same session, `d52`–`d56` after it, and `e4`–`e11` on 2026-08-20. Both commands now return **87**, so
+nothing is untracked, and 66 + 7 + 14 = 87. The fourteen are classified in their own section below.
 
 **Production-direct applies leave no row in `supabase_migrations.schema_migrations`.** Measured:
 `select max(version) from supabase_migrations.schema_migrations` = `20260811081746`, and 0 rows at or
@@ -168,6 +175,42 @@ against the 20 `OUTSTANDING` that `PHASE_D_PRODUCTION_DEPLOYMENT_LEDGER.md` reco
 ratcheted red in `scripts/checks/kernel-boards.json`. None of the three carries DDL, so none changes
 the class arithmetic; the measurement is recorded here because a `ROUTINE_RESTORE` of any of them
 re-opens rules that are currently enforced.
+
+---
+
+## Fourteen more, classified 2026-08-20 — `d45`, `d52`–`d56`, `e4`–`e11`
+
+The table above covered 73 and asserted **"There is no `d45`"**. `phase_d_d45_a_self_loop_is_a_step_
+that_hands_to_itself.sql` had been written and applied hours after that sentence, and `d52`–`d56`
+after it; `e4`–`e7` landed on 2026-08-20. `ls scripts/sql/phase_d_*.sql | wc -l` and
+`git ls-files scripts/sql/phase_d_*.sql | wc -l` both now return **83**. 66 + 7 + 10 = 83.
+
+Classified by the same comment-stripped scan (`sed 's/--.*$//'`, then `CREATE TABLE`, `ADD COLUMN`,
+`ADD CONSTRAINT`, `DROP CONSTRAINT`, `CREATE INDEX`, `CREATE TRIGGER`, `CREATE VIEW`,
+`CREATE SEQUENCE`, `CREATE TYPE`, `SET NOT NULL`, `DROP FUNCTION`). **Not one of the ten creates a
+new object** — `e7` drops and immediately recreates one, which is a return-type change, not a new object —, so `EXPLICIT_DOWN_REQUIRED` stays at the 26 it was, plus one `GRANT_RESTORE` down that
+is written because a grant IS reversible by name.
+
+| file | class | reversal |
+|---|---|---|
+| `d45_a_self_loop_is_a_step_that_hands_to_itself` | `ROUTINE_RESTORE` | 1 body, `fn_phase_d_event_state()`. Re-apply the predecessor **and every later file replacing it**, in order |
+| `d52_a_bound_that_is_visible_in_the_value` | `ROUTINE_RESTORE` + `DATA_PURGE_NOT_REVERSIBLE` | 1 body (`fn_phase_d_bounded`), 1 `revoke`/`grant` pair on the routine it creates, and 2 `delete from` on its own probe tables — the deleted rows have no reversal, by the rule at the head of this file |
+| `d53_a_fixture_may_be_opaque_not_the_wrong_type` | `ROUTINE_RESTORE` | 1 body, `fn_phase_d_fixture_context` |
+| `d54_the_driver_defaulted_to_the_one_mode_that_refuses_nothing` | `ROUTINE_RESTORE` | 1 body, `fn_phase_d_drive_workflow` — the routine already replaced 20 times, so this is the weakest restore in the estate |
+| `d55_the_evidence_stated_the_predicates_own_premise` | `ROUTINE_RESTORE` | 1 body, `fn_os_portals_gates()` |
+| `d56_the_ledger_named_the_file_the_routine_used_to_live_in` | `ADDITIVE_SURVIVAL_SAFE` | 2 `update`s to `kernel_routine_ownership`; the reversal is the named `update` back |
+| `e4_the_door_was_never_a_browser` | **`GRANT_RESTORE`** | 57 `revoke execute`, no body and no DDL. `scripts/sql/down/phase_d_e4_the_door_was_never_a_browser_down.sql` restores the **exact prior shape** rather than a uniform one — 55 held EXECUTE through PUBLIC, `fn_os_open_access` held an explicit anon + authenticated grant, `fn_goal_attainment` an explicit authenticated one. It must be **applied**, never promoted: `--promote` sends only a routine body, and this file has none |
+| `e5_a_red_that_does_not_say_what_is_holding_it` | `ROUTINE_RESTORE` | 2 bodies (`fn_phase_d_effect_reachability` created, `fn_phase_d_effect_state` replaced) and 1 `revoke` on the created routine. Dropping the created routine alone breaks the replaced one that calls it — the pair reverts together or not at all |
+| `e6_the_record_still_claimed_the_door_e4_closed` | `ADDITIVE_SURVIVAL_SAFE` | 2 `update`s to `public.phase_c_component` (3 rows) and 1 `insert` into `public.phase_c_freeze_amendment`. **Both halves revert together.** Removing the amendment row without reverting the three component rows makes `fn_phase_c_freeze_drift()` report drift it cannot explain, and reverting the components without removing the amendment leaves an amendment whose `new_digest` matches nothing |
+| `e11_six_keys_it_was_already_holding` | `ROUTINE_RESTORE` | 1 body, `fn_phase_d_step_context(bigint)`, spliced from the live definition; the generator asserts the anchor exists AND is unique |
+| `e10_a_mechanism_count_read_as_a_refusal_count` | `ROUTINE_RESTORE` | 2 bodies, `fn_phase_d_rule_state()` and `fn_phase_d_handler_state()`, both spliced from the live definition. Disclosure rows only; no existing check renamed, re-derived or lowered |
+| `e9_four_inputs_the_resolver_said_no_table_held` | `ROUTINE_RESTORE` | 1 body, `fn_phase_d_step_inputs(bigint)`, spliced from the live definition with the `else` branch replaced. Reverting means re-applying its predecessor and every later file that replaces the same routine, in order |
+| `e7_the_classifier_read_the_binding_not_the_branch` | `ROUTINE_RESTORE` + `GRANT_RESTORE` | 2 bodies, and the only **`DROP FUNCTION`** in the nine — a return-type change on `fn_phase_d_effect_reachability()`, immediately recreated, not a removed object. Two consequences for a rollback: a dropped body is not recoverable from SQL, so reverting means re-applying `e5` and dropping the `e7` signature first; and the drop discarded `e5`'s ACL, so the file's own `revoke` is load-bearing and its control block asserts the ACL rather than trusting the statement. Whoever restores it must re-revoke |
+
+`e4` is the first `GRANT_RESTORE` in this document with a written down script. The class already
+existed — `d43` carries it — and its entry says a re-grant "must be applied, never promoted". That is
+the same rule, and it is why the `e4` down is a file rather than a sentence: 57 statements restoring
+three different prior shapes is not something to reconstruct from memory at the moment it is needed.
 
 ---
 

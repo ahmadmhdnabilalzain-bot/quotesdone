@@ -81,13 +81,22 @@ Three details that matter when reading the "merge commit" column:
 
 ## Every Phase D file, with its commit, PR and production read-back
 
-Scope: **all 73** files matching `scripts/sql/phase_d_*.sql`. The table first covered `d0..d43`, 66
+Scope: **all 87** files matching `scripts/sql/phase_d_*.sql`. The table first covered `d0..d43`, 66
 files, while concurrent increments of the same session were still adding files numbered `d44` and
-above — `ls scripts/sql/phase_d_*.sql | wc -l` returned 67 at 00:00:04Z and 71 at 00:10:34Z. Those
-increments have landed and the remaining seven are appended at the end of the table: `d44`, `d46`,
-`d47`, `d48`, `d49`, `d50`, `d51`. **There is no `d45`** — the numbering skips it, and 66 + 7 = 73,
-which is what both `ls` and `git ls-files scripts/sql/phase_d_*.sql` return. Rollback class for each
-of the 73 is in `PHASE_D_ROLLBACK_CLASSIFICATION_D9.md`.
+above — `ls scripts/sql/phase_d_*.sql | wc -l` returned 67 at 00:00:04Z and 71 at 00:10:34Z. Seven
+were appended then (`d44`, `d46`, `d47`, `d48`, `d49`, `d50`, `d51`) and **fourteen more on 2026-08-20**:
+`d45`, `d52`–`d56`, `e4`–`e11`. 66 + 7 + 14 = **87**, which is what both
+`ls` and `git ls-files scripts/sql/phase_d_*.sql` return.
+
+> **This paragraph used to say "There is no `d45` — the numbering skips it", and it was wrong within
+> hours of being written.** `phase_d_d45_a_self_loop_is_a_step_that_hands_to_itself.sql` was applied
+> and committed later in the same session and the sentence was never re-measured; the identical claim
+> in `scripts/sql/down/README.md` was wrong for the same reason. Corrected 2026-08-20 by counting
+> again rather than by deleting the sentence — a number asserted once and never re-read is exactly
+> what this ledger exists to catch, and the correction is more useful on the record than a clean file.
+
+Rollback class for each of the 87 is in `PHASE_D_ROLLBACK_CLASSIFICATION_D9.md` and, for the fourteen
+that post-date its main table, in `scripts/sql/down/README.md`.
 
 Read-back key: a table name with a number is `count(*)`; `routine present` means the identity
 signature was returned by the second query above.
@@ -167,6 +176,48 @@ signature was returned by the second query above.
 | `d49_a_freeze_with_no_way_to_record_an_amendment` | `f9415ab` | none yet | unmerged | `phase_c_freeze_amendment` **2 rows**, RLS on, 0 policies, sequence `phase_c_freeze_amendment_amendment_id_seq` and unique index `phase_c_freeze_amendment_once` present; `fn_phase_c_freeze_drift()` present and its body reads the new table |
 | `d50_a_rule_that_could_not_fail_made_one_that_could_not_not_fire` | `5c7152a` | none yet | unmerged | `fn_phase_d_rule_applies(text,text)`, `fn_phase_d_step_context(bigint)` present; `phase_d_rule_enforcement` 54 rows, **54 `ENFORCED` / 0 `OUTSTANDING`** |
 | `d51_callable_is_not_answerable_yet` | `5c7152a` | none yet | unmerged | `fn_phase_d_rule_check(text,jsonb)` present; `phase_d_rule_enforcement` still 54/54 `ENFORCED` |
+
+**Nine more rows, added 2026-08-20 03:1xZ.** The table above stopped at `d51` and the paragraph
+above it said "there is no `d45`" — `d45` had been written and applied hours later, and `d52`–`d56`
+after it, and neither claim was re-measured. All read-backs in these nine rows were taken at
+**2026-08-20 03:14Z**, not at the 00:00:41Z of the rows above; the timestamps are different on
+purpose rather than restated as one.
+
+| file (`phase_d_…sql`) | introducing commit | PR | merge commit | production read-back, 2026-08-20 03:14Z |
+|---|---|---|---|---|
+| `d45_a_self_loop_is_a_step_that_hands_to_itself` | `dd3dd23` | [#451](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/451) | `dd3dd23` (squash) | `fn_phase_d_event_state()` present |
+| `d52_a_bound_that_is_visible_in_the_value` | `dd3dd23` | [#451](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/451) | `dd3dd23` (squash) | `fn_phase_d_bounded(text,int)` present |
+| `d53_a_fixture_may_be_opaque_not_the_wrong_type` | `dd3dd23` | [#451](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/451) | `dd3dd23` (squash) | `fn_phase_d_fixture_context(...)` present |
+| `d54_the_driver_defaulted_to_the_one_mode_that_refuses_nothing` | `dd3dd23` | [#451](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/451) | `dd3dd23` (squash) | `fn_phase_d_drive_workflow(jsonb)` present, and its `execution_context` default reads `production` |
+| `d55_the_evidence_stated_the_predicates_own_premise` | `dd3dd23` | [#451](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/451) | `dd3dd23` (squash) | `fn_os_portals_gates()` present |
+| `d56_the_ledger_named_the_file_the_routine_used_to_live_in` | `dd3dd23` | [#451](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/451) | `dd3dd23` (squash) | `kernel_routine_ownership` 1,225 rows — two `update`s, no DDL |
+| `e4_the_door_was_never_a_browser` | `691d432` | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | **0** SECURITY DEFINER routines in `public` are anon-executable, **2** authenticated-executable (`fn_customer_documents`, `fn_customer_document_refs`), of 791. Verified as the roles themselves: `set local role anon` → `insufficient_privilege`; `service_role` still executes |
+| `e5_a_red_that_does_not_say_what_is_holding_it` | `691d432` | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | `fn_phase_d_effect_reachability()` present and revoked from `public, anon, authenticated`; `fn_phase_d_effect_state()` returns the three new disclosure rows (21 / 51 / 185) beside an unchanged `steps_with_no_effect_ever_produced = 257` |
+| `e6_the_record_still_claimed_the_door_e4_closed` | `691d432` | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | 3 `phase_c_component` rows on `external_entry = 'no'`; `phase_c_freeze_amendment` **3** rows; `fn_phase_c_freeze_drift()` 0 of 25 drifted |
+| `e7_the_classifier_read_the_binding_not_the_branch` | `691d432`+ | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | `fn_phase_d_effect_reachability()` **dropped and recreated** for a changed OUT row type, and re-revoked — `proacl` reads `postgres=X/postgres \| service_role=X/postgres`, so `anon` and `authenticated` are false. `reachability_class_distribution` reads `REFUSAL_IS_THE_DECLARED_EFFECT=21 WRITES_A_ZERO_RESIDUE_TABLE=14 WRITES_AN_EXISTING_TABLE_NOT_UNDER_THE_RULE=78 WRITES_ONLY_THE_PHASE_D_LEDGER=70 WRITES_ONLY_THE_PHASE_D_OBJECT_STORE=74`, summing to 257, with `steps_whose_written_relation_does_not_resolve` 0 |
+
+| `e8_the_view_handed_back_what_the_table_withheld` | `691d432`+ | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | **0 of the 30 `v_obj_*` views** are selectable by anon or authenticated, and **30 of 30** still by `service_role`. `phase_d_business_object_binding` and `fn_phase_d_object_state()` likewise closed to client roles. Probed as the roles: `authenticated` gets `insufficient_privilege` on `v_obj_financial_close` and on the binding table; `service_role` reads the view (0 rows). Estate-wide after it: anon can SELECT **2 of 574** relations in `public` and **0** views; authenticated **0** views |
+
+| `e9_four_inputs_the_resolver_said_no_table_held` | `691d432`+ | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | `fn_phase_d_step_inputs(bigint)` present, md5 `2a628d112a9f0f6fd44d4d9a0697c9b1`. Driving W01 in `production` inside an aborted transaction: before, **6 of 6** dispatched steps `INPUTS_UNRESOLVED`; after, **S04, S05 and S06 resolve** and are `REFUSED` by a named rule or gate — `BR-003 requires [founder_authority_ref]`, `GATE-006 (Valid workflow transition) requires [to_state]`. S01–S03 stay unresolved on `founder_instruction`/`founder_mandate`, which need a real founder command the driver does not create. Residue 0, business tables 0/0/0/0, runs unchanged at 18 |
+
+| `e10_a_mechanism_count_read_as_a_refusal_count` | `691d432`+ | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | `fn_phase_d_rule_state()` md5 `3e1f72815596ad402b3cb4720e0970eb` and `fn_phase_d_handler_state()` md5 `04367b527b4b35adbd482743195a84f9`. Rule board now carries `rules_whose_predicate_can_actually_refuse` **40 of 54**, plus 11 delegated / 2 provider-held / 1 at the executor, and `every_registered_rule_carries_a_refusal_class` **54 = 54**. Handler board carries `handlers_that_have_actually_produced_an_effect` **0 of 257** beside the unchanged green `handlers_not_writing_a_business_object` **0**. Read back by listing the rows, not by the apply tool: a first apply emitted one check twice and lost another, and the board is what showed it |
+
+| `e11_six_keys_it_was_already_holding` | `691d432`+ | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | `fn_phase_d_step_context(bigint)` md5 `f860aa8f9baecf1f938a79d2d1511fe0`. Driving W01 in `production` in an aborted transaction, the unresolved set on the three refused steps went from eight keys to four; `run_id`, `actor_role_id`, `step_id` and `step_run_id` are gone. **0 EXECUTED before and after** — the remaining four are real absences, not resolver gaps. Residue 0 |
+
+`e8` is the finding this session did not go looking for. `d2:722` revokes `public.phase_d_object_record`
+from `public, anon, authenticated` with the comment *"The store is written only through the service"* —
+and `d2:474` grants SELECT on each of the thirty views **over that same store** to
+`service_role, authenticated`. A view without `security_invoker = true` reads as its owner, so the
+view returned exactly the rows the table revoke withheld, past an RLS policy set that is deny-all,
+through PostgREST, to any signed-in JWT. It also defeated `d43`, which had revoked the *function*
+door to the same data for precisely that reason. Nothing leaked because the store holds 0 rows —
+which is the D35 finding word for word, not an argument for leaving it.
+
+`e7` is the one file here that **drops** a routine, and it is the reason the grant needed re-taking:
+a plain `CREATE` grants EXECUTE to PUBLIC and only `CREATE OR REPLACE` preserves an ACL, so `e5`'s
+revoke did not survive `e7`. Its control block asserts the ACL rather than trusting the statement —
+in the same session that closed 57 such grants, a drop-and-recreate reopening one would have been
+the whole of E4 undone by the increment that came after it.
 
 Seven rows read `fn_phase_d_step_context(bigint) present` and say nothing else, because they are the
 same routine replaced seven times — `d37`–`d42`, and `d50`. Measured over all 73 files by counting
@@ -317,7 +368,7 @@ values to four. `d47`, `d48`, `d50` and `d51` carry routine bodies and row updat
 | `docs/phase-c-final-kernel/CANONICAL_ROUTINE_MANIFEST.csv` | re-emitted from the engine (`--emit`), not hand-edited |
 | `supabase/schema/full_schema.sql` | regenerated — the mirror said 550 tables and production holds 553 |
 | `scripts/checks/kernel-boards.json` | one ratchet entry for the 20 outstanding rules, with owner, rule ids, and an instruction to **delete** it at 0 |
-| `scripts/sql/down/` | **26** files, one `<stem>_down.sql` per file classified `EXPLICIT_DOWN_REQUIRED` in `PHASE_D_ROLLBACK_CLASSIFICATION_D9.md`. 23 at the first revision, plus `d44`, `d46` and `d49` once those landed and their objects could be read out of the catalogue. Written, **not** rehearsed — `scripts/sql/down/README.md` records that no file there has been executed — and **not yet committed**: `git ls-files scripts/sql/down` returns 0 against 27 files on disk. See the last section |
+| `scripts/sql/down/` | **27** files, one `<stem>_down.sql` per file classified `EXPLICIT_DOWN_REQUIRED` in `PHASE_D_ROLLBACK_CLASSIFICATION_D9.md`. 23 at the first revision, plus `d44`, `d46` and `d49` once those landed and their objects could be read out of the catalogue, plus `e4` on 2026-08-20 — a grant revert IS reversible by name. Written, **not** rehearsed: `scripts/sql/down/README.md` records that no file there has been executed. **Now committed** — this row previously read "not yet committed: `git ls-files scripts/sql/down` returns 0 against 27 files on disk", which was true before #451 merged and is not now: `git ls-files scripts/sql/down` returns **28** (27 `.sql` + the README) |
 
 `scripts/checks/canonical_routine_manifest.mjs` is a **frozen Phase C subject** and was not edited.
 To read a finding it counts but does not print, a copy was taken to the scratchpad and instrumented
@@ -325,22 +376,23 @@ there.
 
 ## Production must never be ahead of main
 
-`main` is at `e59d36b`, which contains #446 through #450 — every file from `d0` to `d35`.
+`main` is at **`dd3dd23`**, which contains #446 through **#451** — every file from `d0` to `d56`,
+`d45` included. This section previously said `main` was at `e59d36b` with `d36`–`d51` unmerged; #451
+merged on 2026-08-20 and closed that window.
 
 Ahead of `main` right now:
 
 | what | state |
 |---|---|
-| `d36`–`d42` | committed as `7090016` on `feat/phase-d-remediation-to-acceptance`, **not merged** |
-| `d43`, `d46`, `d47`, `d48` | committed as `9dd1927` on the same branch, **not merged** |
-| `d49` | committed as `f9415ab`, **not merged** |
-| `d50`, `d51` | committed as `5c7152a`, **not merged** |
-| `d44` | committed as `a7a37a8`, **not merged** |
+| `e4`–`e11` | committed on `feat/phase-d-e4-the-door-was-never-a-browser`, open as [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452), **not merged** |
 
-Everything from `d0` to `d35` is merged. **Until the remediation branch merges, `main` legitimately
-does not contain the `d36`–`d51` definitions**, and a parity gate run against `main` reports drift
-for that reason alone — that window is expected, self-resolving on merge, and must not be "fixed" by
-re-applying anything.
+**Until #452 merges, `main` legitimately does not contain the `e4`–`e11` definitions**, and a parity
+gate run against `main` reports drift for that reason alone — that window is expected,
+self-resolving on merge, and must not be "fixed" by re-applying anything. `e4` is the one to be
+careful with: it carries no routine body at all, only 57 `revoke execute` statements, so a parity
+check that compares **bodies** cannot see it either way. Grants are read with
+`has_function_privilege` and `pg_proc.proacl`, not with a definition read-back, and
+`scripts/checks/anon_cannot_execute_security_definer.test.mjs` is what watches them.
 
 The earlier row for `d43` — "applied to production, **not committed**" — was different in kind: an
 applied file with no commit is not a merge window, it is an untracked production change. It closed
@@ -371,22 +423,77 @@ The tables that could have accumulated rows read back empty on 2026-08-20 00:00:
 `phase_d_effect_ledger` 0, `phase_d_handoff_acceptance` 0, `phase_d_object_record` 0,
 `phase_d_external_attempt` 0, `phase_d_injected_defect_result` 0, `phase_d_dispatch` 0.
 
+**`e4`–`e6` added nothing to any of them, and `e5` deliberately did not.** `e5` proved the effect
+path by producing the declared effect for step runs 255 and 256 inside an aborted transaction and
+reading `pg_stat_xact_user_tables` — which reports what the TRANSACTION wrote rather than what a
+chosen list of tables says — and got `public.phase_d_effect_ledger ins=2 upd=0 del=0` and nothing
+else, with `fn_phase_d_fixture_residue()` returning 0 rows. **Those two rows were not kept.** Writing
+a ledger row for a step run that completed before the recording path was built would put a fact in
+the ledger that the ledger's own `produced_by` column would then misattribute.
+
 ## Frozen state, before and after
 
 | | before | after |
 |---|---|---|
-| Phase A baseline drift | 0 | **0** |
-| Phase B baseline drift | 0 | **0** |
-| `fn_phase_c_freeze_drift()` red | 0 of 3 | **0 of 3** |
-| `fn_phase_c_invariants()` red | 0 | **0** |
+| | before | after | re-measured 2026-08-20 03:14Z |
+|---|---|---|---|
+| Phase A baseline drift | 0 | **0** | **0 rows** |
+| Phase B baseline drift | 0 | **0** | **0 rows** |
+| `fn_phase_c_freeze_drift()` drifted | 0 of 3 | 0 of 3 | **0 of 25**, with **3** recorded amendments |
+| `fn_phase_c_invariants()` red | 0 | **0** | not re-run in this pass — the check suite runs it |
 
-No frozen Phase A, Phase B or Phase C object was edited by any increment in this ledger, with one
-declared exception: `d36` replaces `public.fn_kernel_open_step(jsonb)` and
-`public.fn_kernel_workflow_start(jsonb)`, both kernel routines, to put the Phase D dispatch on the
-kernel's own open path. Both read back present and SECURITY DEFINER. The "before/after" figures in
-this table are the ones recorded for the first three increments and were **not** re-measured for
-`d36`–`d51`; re-run `fn_phase_c_freeze_drift()` and `fn_phase_c_invariants()` before quoting them of
-the whole programme.
+The fourth column is new. The "before/after" pair was recorded for the first three increments and
+says `0 of 3`, which is the number of frozen subjects that existed then; `public.phase_c_frozen_subject`
+now holds **25**, so `0 of 3` was a true statement about a population three subjects wide and is not a
+statement about the programme. Quoting it as one is the error this column removes.
+
+No frozen Phase A, Phase B or Phase C object was edited by any increment in this ledger without a
+recorded amendment. There are three, all pinned to the exact prior digest and none written by
+overwriting `phase_c_frozen_subject.digest`:
+
+| amendment | subject | file | what changed |
+|---|---|---|---|
+| 1 | `canonical_step_engine` → `fn_kernel_open_step(p_input jsonb)` | `d36` | one declared local and one call, to put the Phase D dispatch on the kernel's own open path |
+| 2 | `canonical_workflow_start_service` → `fn_kernel_workflow_start(p_input jsonb)` | `d36` | the same, for the opener that starts a run's FIRST step inline |
+| 3 | `component_crosswalk` → `public.phase_c_component` | `e6` | three rows whose `external_entry` said `unauthenticated_only` because a PUBLIC EXECUTE grant made them reachable, and `e4` revoked it. `classification` and `activation_state` move with it because `a00_phase_c_component_classification_guard` refuses the write otherwise |
+
+### The authority these three rest on, and the document that disagrees — OPEN, FOR THE FOUNDER
+
+Two independent acceptance audits have now raised this, and the second could not find the authority
+at all. It is recorded here so a third does not have to look.
+
+**Where the mechanism comes from.** `public.phase_c_freeze_amendment` is created by
+`scripts/sql/phase_d_d49_a_freeze_with_no_way_to_record_an_amendment.sql` — written by the builder,
+after `fn_phase_c_freeze_drift()` caught the builder's own edit to two kernel routines. The table has
+no approver column. Every mention of it in this repository is builder- or auditor-authored.
+
+**Where the authority comes from.** The founder's session brief of 2026-08-20 states it directly, in
+its non-negotiables:
+
+> "Phase A, B and C stay FROZEN. A change to a Phase C kernel routine body is allowed but trips
+> `fn_phase_c_freeze_drift()`; record it in `public.phase_c_freeze_amendment` pinned to the exact
+> prior digest. NEVER overwrite `phase_c_frozen_subject.digest` — that is a rubber stamp and the
+> amendment table exists so it does not have to happen."
+
+That instruction is in a session brief, not in this repository, which is why an auditor reading only
+the tree cannot find it. **Quoting it here does not make it a change request** — it records where the
+builder's authority came from and leaves the question open.
+
+**The document that disagrees.** `PHASE_D_CHANGE_CONTROL.md` requires a **Phase C change request**
+for a change to a frozen Phase C object. No such request exists in the tree; only Phase B change
+request templates do. So two instructions govern the same act and say different things:
+
+| | says |
+|---|---|
+| `PHASE_D_CHANGE_CONTROL.md` | a Phase C change request is required |
+| the founder's 2026-08-20 session brief | record it in `phase_c_freeze_amendment`, pinned to the prior digest |
+
+**This is the founder's to settle and it is not settled here.** The second auditor's view is that the
+written change control governs and Gate 0 is therefore not satisfied. That is a reasonable reading of
+the documents in the tree. It turns entirely on a fact only the founder holds — which instruction he
+means to stand — and it flips with no code change either way. Three amendments are affected: the two
+`d36` kernel edits and `e6`'s component correction. Nothing has been written to
+`phase_c_frozen_subject.digest` under either reading.
 
 **`d49` is the file that made that declared exception recordable rather than merely declared.** It
 creates `public.phase_c_freeze_amendment` and replaces `fn_phase_c_freeze_drift()` to read it, so
