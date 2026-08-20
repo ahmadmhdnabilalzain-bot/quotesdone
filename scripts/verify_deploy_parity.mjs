@@ -61,8 +61,31 @@ function slugsToCheck() {
       .map((e) => e.name).sort();
   }
   const since = arg('since', 'HEAD~20');
-  const touched = execSync(`git diff --name-only ${since}...HEAD -- ${FN_DIR}/`)
-    .toString().split('\n')
+
+  // A SHALLOW CHECKOUT MUST NOT BECOME A SILENT PASS, AND IT MUST NOT CRASH EITHER. GitHub
+  // Actions fetches a limited depth, so `HEAD~20` stops resolving as soon as the fetched history
+  // is shorter than the window. Measured 2026-08-20: "fatal: bad revision 'HEAD~20...HEAD'" took
+  // the whole parity job down with an unhandled execSync throw.
+  //
+  // Returning [] instead would be WORSE: zero slugs reads as "nothing to check" and the gate
+  // reports OK over an estate it never looked at. Error and empty must not be the same value.
+  //
+  // So a range that does not resolve falls back to checking EVERY function, and says so on
+  // stdout. Checking all of them is slower and always safe; checking none is fast and a lie.
+  let touchedRaw;
+  try {
+    touchedRaw = execSync(`git diff --name-only ${since}...HEAD -- ${FN_DIR}/`,
+      { stdio: ['ignore', 'pipe', 'pipe'] }).toString();
+  } catch (e) {
+    console.log(`NOTE: ${since}...HEAD does not resolve in this checkout `
+      + `(${String(e.message).split('\n')[0]}).`);
+    console.log('      Falling back to EVERY edge function rather than to an empty list.');
+    return readdirSync(FN_DIR, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && e.name !== '_shared')
+      .filter((e) => existsSync(`${FN_DIR}/${e.name}/index.ts`))
+      .map((e) => e.name).sort();
+  }
+  const touched = touchedRaw.split('\n')
     .map((l) => (l.match(/^supabase\/functions\/([^/]+)\//) || [])[1])
     .filter(Boolean);
   return [...new Set(touched)].filter((s) => s !== '_shared' && existsSync(`${FN_DIR}/${s}/index.ts`)).sort();

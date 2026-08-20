@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T01:02:38.164Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T01:36:19.061Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -42829,7 +42829,38 @@ select * from (values
                       where j.jobname = 'watch_failed_runs_hourly' and d.status = 'succeeded'
                         and d.start_time > now() - interval '3 hours')
         then 'met' else 'not_met' end,
-   (select format('%s active cron jobs; watch_failed_runs_hourly is scheduled and last succeeded inside 3 hours; %s cron run(s) failed in the last 24 hours', crons, cron_fail_24h) from m)),
+   -- D55. THE EVIDENCE STATED THE PREDICATE'S OWN PREMISE AS A FACT, UNCONDITIONALLY. It read
+   -- "watch_failed_runs_hourly is scheduled and last succeeded inside 3 hours" whether or not that
+   -- was true, and it was not: measured 2026-08-20, jobid 137 is INACTIVE with 488 prior runs and a
+   -- last run of 2026-08-16 06:15Z. So the board showed not_met beside a sentence saying the thing
+   -- that made it not_met was fine. Every value below is now read, and the verdict and the evidence
+   -- can no longer disagree.
+   --
+   -- THE VERDICT IS UNCHANGED. The watcher was switched off in the stand-down of 16 August along
+   -- with 182 others; reactivating it would lift a hold the founder set, which is not something a
+   -- board repair may do. What the red now says is WHY, and the last clause is the finding that was
+   -- hiding behind the sentence: nothing among the jobs still active watches for a failed run.
+   (select format(
+      '%s active cron job(s) of %s scheduled. control_mode_sweep_5min %s; smoke_test_30min %s; '
+      || 'watch_failed_runs_hourly %s (%s prior run(s), last %s). %s cron run(s) failed in the last '
+      || '24 hours. %s job(s) are inactive after the 16 August stand-down, and %s of the active ones '
+      || 'watch for a failed run.',
+      (select count(*) from cron.job where active),
+      (select count(*) from cron.job),
+      case when exists (select 1 from cron.job where jobname='control_mode_sweep_5min' and active)
+           then 'active' else 'INACTIVE' end,
+      case when exists (select 1 from cron.job where jobname='smoke_test_30min' and active)
+           then 'active' else 'INACTIVE' end,
+      case when exists (select 1 from cron.job where jobname='watch_failed_runs_hourly' and active)
+           then 'active' when exists (select 1 from cron.job where jobname='watch_failed_runs_hourly')
+           then 'INACTIVE' else 'ABSENT' end,
+      coalesce((select count(*)::text from cron.job_run_details d
+                 where d.jobid = (select jobid from cron.job where jobname='watch_failed_runs_hourly')),'0'),
+      coalesce((select to_char(max(d.start_time),'YYYY-MM-DD HH24:MI') from cron.job_run_details d
+                 where d.jobid = (select jobid from cron.job where jobname='watch_failed_runs_hourly')),'never'),
+      cron_fail_24h,
+      (select count(*) from cron.job where not active),
+      (select count(*) from cron.job where active and jobname like '%watch_failed%')) from m)),
 
   -- The only gate that is a human act, and it is recorded now rather than asserted. It EXPIRES at
   -- 30 days: an approval of one release is not an approval of whatever ships next month.
