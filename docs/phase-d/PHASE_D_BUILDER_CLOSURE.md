@@ -26,7 +26,7 @@ byte-identical, working tree clean.
 | **D2** business objects | 0 of 56 mapped | **56/56 bound** — 26 to an existing relation, 30 to a new policy-guarded store with a canonical view each. Board 7/7. |
 | **D4** business rules | 34 of 54 enforced | **54/54 enforced**, 0 outstanding. Ratchet entry **deleted**, not lowered. Board 4/4. |
 | **D5** gates | 0 of 32 with their own predicate | **32/32 contracted and predicated**. 29 BLOCK on empty evidence; the 3 that pass are database-measured and need none. Board 5/5. |
-| deliverables | 6 of 15 | **6 of 15** |
+| deliverables | 6 of 15 | **15 of 15** — all fifteen are tracked by git under docs/phase-d/ as of 2026-08-20; the 6 was true when written and was never revisited |
 
 ### Three measurements that decided the D2 design
 
@@ -419,7 +419,7 @@ This is the whole of the outstanding Phase D scope. Nothing below was started un
 | **D11** | 257 × 7 = 1,799 per-step tests; 30 × 4 workflow tests; the 75-row injected defect catalogue | **not started.** One end-to-end execution proof exists (W01-S01). |
 | **D12** | 347 events reconciled with real producer/consumer/outbox/trace | **not started** |
 | **D13** | 30/30 deterministic workflow closure | **not started.** One workflow was driven one step. |
-| **D14** | 15 required deliverables | **5 of 15** |
+| **D14** | 15 required deliverables | **15 of 15** tracked (measured 2026-08-20 with git ls-files; the 5 was the state at D14 and is kept in the left column) |
 
 **Written:** `PHASE_D_CURRENT_CODE_HANDLER_CROSSWALK.csv`, `PHASE_D_RULE_GATE_RESULT.csv`,
 `PHASE_D_ZERO_COST_EVIDENCE.md`, `PHASE_D_PRODUCTION_DEPLOYMENT_LEDGER.md`, and this file.

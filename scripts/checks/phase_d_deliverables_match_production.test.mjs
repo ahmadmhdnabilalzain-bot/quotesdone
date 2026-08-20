@@ -94,8 +94,16 @@ test('the deliverable comparison refuses a corrupted row, and ignores only the t
 
   // (b) ONE character of ONE data row changed — must be refused. Row 2 rather than row 1 so this
   //     is a data corruption and not a column-header change, which is a different failure.
-  const idx = lines.findIndex((l, i) => i > 0 && l.trim() !== '' && !l.startsWith('#'));
-  assert.ok(idx > 0, `${sample} has no data row after its header`);
+  // The DATA row is the first non-comment line AFTER the column header. C5 gave every deliverable
+  // two `#` provenance lines, which moved the header off row 1 and made an index computed from
+  // "first non-# line" land on the header instead — this control caught its own arithmetic before
+  // it could report a false green. The reported line NUMBER is deliberately not asserted either:
+  // diffDeliverable drops the generated_at line before comparing, so its numbering is its own.
+  // What is asserted is that the difference it reports is THIS row, by content.
+  const headerIdx = lines.findIndex((l) => l.trim() !== '' && !l.startsWith('#'));
+  assert.ok(headerIdx >= 0, `${sample} has no column header`);
+  const idx = lines.findIndex((l, i) => i > headerIdx && l.trim() !== '' && !l.startsWith('#'));
+  assert.ok(idx > headerIdx, `${sample} has no data row after its header`);
   const corrupted = [...lines];
   corrupted[idx] = corrupted[idx].replace(/[A-Za-z]/, (c) => (c === 'z' ? 'y' : 'z'));
   assert.notEqual(corrupted[idx], lines[idx], 'the corruption did not change the row — the control proves nothing');
@@ -103,8 +111,9 @@ test('the deliverable comparison refuses a corrupted row, and ignores only the t
   assert.ok(found.length > 0,
     `the comparison accepted a corrupted copy of ${sample} as identical. Every zero this check `
     + 'reports below would be meaningless.');
-  assert.match(found[0], new RegExp(`^line ${idx + 1}:`),
-    `the comparison found a difference but blamed the wrong line: ${found[0]}`);
+  const needle = corrupted[idx].slice(0, 40);
+  assert.ok(found.some((f) => f.includes(needle)),
+    `the comparison found a difference but not the corrupted row: ${found[0]}`);
 
   // (c) a truncated file — the exact shape build_frontend_api_call_graph.mjs shipped, 26 rows where
   //     79 belong, and nothing noticed.

@@ -1,3 +1,14 @@
+// A3. THIS BUILDER DRIVES IN PRODUCTION MODE, AND THE HEADLINE IS SUPPOSED TO FALL.
+//
+// It passed execution_context test at both call sites, and test is the ONE value that disables
+// the two fail-closed boundaries in fn_phase_d_handler_execute -- the capability boundary at its
+// section 3 and the provider boundary at section 4. Measured: 21 of the 257 bindings carry
+// capability_dependency REASONING and 0 carry a provider dependency, so in production mode those
+// 21 steps refuse with pd_capability_unavailable and the workflows containing them do not close.
+//
+// That is the design working under the founder's hold on paid inference, not a regression, and
+// keeping test mode to protect a 30-of-30 number is how a check goes green over a defect.
+//
 // PHASE D DELIVERABLE — PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv
 //
 // One row per frozen Phase B workflow, produced BY DRIVING IT, not by reading a registry. Each
@@ -44,6 +55,13 @@ begin
 
   for wf in select workflow_id from public.phase_b_workflow where workflow_id = '__WORKFLOW_ID__' loop
     v_fx := public.fn_phase_d_fixture_scenario(jsonb_build_object(
+      -- A3. THE SCENARIO FACTORY STAYS IN TEST, AND THAT IS NOT A LOOPHOLE. It refuses production
+      -- outright -- "this factory runs only in test (pd_fixture_not_test_context)" -- because it
+      -- CREATES the business objects a run needs, and creating them under production semantics is
+      -- precisely what the residue rule forbids. What must be measured in production is the
+      -- HANDLER, and that is the call below. Seeding in test and executing in production is the
+      -- honest split; passing production to both only made the factory refuse before a single step
+      -- ran, which measures nothing at all.
       'label', 'wfresult-' || lower(wf.workflow_id), 'execution_context','test',
       -- THE EXCLUSION IS USED WHERE A WORKFLOW COLLIDES WITH A SEEDED LEAF, NOT EVERYWHERE.
       -- Measured: applying it to W16 as well dropped W16 from 4/9 to 1/9, and the D9 measurement of
@@ -60,7 +78,7 @@ begin
 
     v := public.fn_phase_d_drive_workflow(jsonb_build_object(
       'workflow_id', wf.workflow_id, 'label','wfresult-' || lower(wf.workflow_id),
-      'execution_context','test', 'verdict','approved',
+      'execution_context','production', 'verdict','approved',
       'reviewer_role_id', v_rev, 'reviewer_candidates', v_cands,
       'parent_refs', v_fx->'rule_context'));
 

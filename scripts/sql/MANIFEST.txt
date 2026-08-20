@@ -23,7 +23,7 @@
 #   Spot check: phase_c_31 is line-position 644 of 657, phase_c_39 is 652. 39 sorts AFTER 31,
 #   so the manifest makes the CORRECTION canonical, which is the state the tie destroyed.
 #
-# 809 files, matching 809 on disk. Count re-measured 2026-08-20; it read 657 for
+# 813 files, matching 813 on disk. Count re-measured 2026-08-20; it read 657 for
 # long enough to be 137 short, because nothing recomputed it when a file was appended.
 # 228 carry no DDL of their own (data repair, backfill, probe); they are listed anyway so that
 # "every file on disk is in the manifest" is an exact statement a check can enforce.
@@ -1502,3 +1502,7 @@ scripts/sql/phase_d_d49_a_freeze_with_no_way_to_record_an_amendment.sql
 scripts/sql/phase_d_d50_a_rule_that_could_not_fail_made_one_that_could_not_not_fire.sql
 scripts/sql/phase_d_d51_callable_is_not_answerable_yet.sql
 scripts/sql/phase_d_d44_an_endpoint_that_ignores_an_id_has_not_refused.sql
+scripts/sql/phase_d_d45_a_self_loop_is_a_step_that_hands_to_itself.sql
+scripts/sql/phase_d_d52_a_bound_that_is_visible_in_the_value.sql
+scripts/sql/phase_d_d53_a_fixture_may_be_opaque_not_the_wrong_type.sql
+scripts/sql/phase_d_d54_the_driver_defaulted_to_the_one_mode_that_refuses_nothing.sql

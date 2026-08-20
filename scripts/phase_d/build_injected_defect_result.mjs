@@ -42,10 +42,20 @@ declare v_out text := ''; r record;
 begin
   perform set_config('app.phase_d_test_context','on', true);
   for r in select * from public.fn_phase_d_injected_defect_report() where category = '__CAT__' order by defect_id loop
+    -- BOUNDED, AND THE BOUND IS VISIBLE. The transport truncates a message at 2000 characters, and
+    -- D44 lengthened one PD-PRIV observed string enough to push the PRIVACY category over it -- the
+    -- guard below caught a 4-row export where 5 were expected rather than writing the four. Each
+    -- free-text field is now capped at 240 characters with the cut marked in the value, so a reader
+    -- of the deliverable can see that a reason was shortened. A silent cut is the defect; a marked
+    -- one is a measurement with its boundary stated.
     v_out := v_out || chr(30) || concat_ws(chr(31), r.defect_id, r.category, r.status,
-             replace(replace(coalesce(r.observed,''), chr(10),' '), chr(13),' '),
-             replace(replace(coalesce(r.blocker,''),  chr(10),' '), chr(13),' '));
+             public.fn_phase_d_bounded(replace(replace(coalesce(r.observed,''), chr(10),' '), chr(13),' '), 240),
+             public.fn_phase_d_bounded(replace(replace(coalesce(r.blocker,''),  chr(10),' '), chr(13),' '), 240));
   end loop;
+  -- AND IF THE BOUND IS EVER NOT ENOUGH, SAY SO RATHER THAN LOSE A ROW.
+  if length(v_out) > 1800 then
+    raise exception 'PHASE_D_DEFECTS_OVERFLOW category __CAT__ produced % characters, over the 1800 this transport carries. Lower the per-field bound or emit one probe per defect; do not let a row fall off the end.', length(v_out);
+  end if;
   raise exception 'PHASE_D_DEFECTS%', v_out;
 end $emit$;`;
 

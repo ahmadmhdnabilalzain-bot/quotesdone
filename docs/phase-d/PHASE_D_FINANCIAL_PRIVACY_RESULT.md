@@ -113,7 +113,7 @@ canonical writer, and asserted on every scenario build.
 | active founder identities | **2** |
 | refunds approved by Phase D | **0** |
 | FINANCE defects executed and refused | **3 / 5** |
-| PRIVACY defects executed | **0 / 5** — all blocked on section 8, each named |
+| PRIVACY defects executed | **2 / 5** — PD-PRIV-003 refused as required; PD-PRIV-004 executed and could not discriminate (see D44); the other three are NOT_RUN with a named blocker |
 | objects carrying an ownership scope | **56 / 56** |
 | outbound requests from a 30-workflow drive | **0** |
 
