@@ -72,10 +72,17 @@ const read = p => { try { return readFileSync(`${ROOT}/${p}`, 'utf8'); } catch {
 const lsSql = d => { try { return readdirSync(`${ROOT}/${d}`).filter(f => f.endsWith('.sql')).map(f => `${d}/${f}`); } catch { return []; } };
 
 // ---------------------------------------------------------------- the sequence
+// A MANIFEST line is a PATH, and a path that arrived quoted, BOM-prefixed or tab-padded is the same
+// path. Both prefix tests below used to run on a merely-trimmed line, so a quoted entry would have
+// been SKIPPED — not reported, skipped, which is the failure mode that matters: a file listed but
+// invisible to the order check reads exactly like a file that was never listed at all.
+// `grep -c '^"' scripts/sql/MANIFEST.txt` returns 0 over all 1,524 lines today, so the blind spot
+// has never been hit. It is closed here in mechanism rather than left closed in fact.
+const manifestPath = (l) => l.replace(/^﻿/, '').trim().replace(/^["']+|["']+$/g, '').trim();
 const manifestLines = (read(MANIFEST) || '').split(/\r?\n/);
 const manifestPos = new Map();
 manifestLines.forEach((l, i) => {
-  const p = l.trim();
+  const p = manifestPath(l);
   if (p.startsWith('scripts/sql/') && p.endsWith('.sql') && !manifestPos.has(p)) manifestPos.set(p, i + 1);
 });
 
@@ -216,7 +223,7 @@ for (const f of manifestPos.keys()) if (!diskScripts.has(f)) GAPS.push(`IN MANIF
 {
   const seen = new Set();
   for (const l of manifestLines) {
-    const p = l.trim();
+    const p = manifestPath(l);
     if (!p.startsWith('scripts/sql/') || !p.endsWith('.sql')) continue;
     if (seen.has(p)) GAPS.push(`LISTED TWICE              ${p}`);
     seen.add(p);

@@ -143,11 +143,17 @@ begin
     -- A MONEY KEY ON A NON-FINANCIAL OBJECT. Matched on the key name at the top level of the
     -- payload, which is where an injected key lands: fn_phase_d_handler_execute passes the resolved
     -- input object straight through as the payload.
+    -- E18, NARROWED THE SAME DAY IT WAS WRITTEN. The first version matched any key containing
+    -- refund, fee or invoice, and immediately refused a `growth_program` payload carrying
+    -- `refund_id` — an IDENTIFIER, not money. A case record may perfectly well be about a refund;
+    -- what it may not carry is the AMOUNT. So the rule is now a money-VALUE rule: the key has to
+    -- name a quantity of money AND hold a number. `refund_amount_aed: 999999`, the key the
+    -- 2026-08-20 acceptance injected, matches both halves. `refund_id` matches neither.
     if coalesce(b.policy_family,'') <> 'TRANSACTION_RECORD' then
       select array_agg(k order by k) into v_money
         from jsonb_object_keys(new.payload) k
-       where k ~* '(^|_)(refund|amount|fee|price|charge|payout|invoice)(_|$)'
-          or k ~* '_aed$';
+       where jsonb_typeof(new.payload->k) = 'number'
+         and (k ~* '(^|_)(amount|price|charge|payout|subtotal|total)(_|$)' or k ~* '_aed$');
       if v_money is not null then
         raise exception 'phase_d_object_record: % is a %-family object and its payload carries money key(s) [%]. Only a TRANSACTION_RECORD object may. (pd_object_money_key_on_non_financial_object)',
           new.object_id, b.policy_family, array_to_string(v_money, ', ') using errcode = '23514';

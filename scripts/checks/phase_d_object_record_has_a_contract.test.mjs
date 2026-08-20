@@ -30,6 +30,11 @@ const CASES = [
   ['wrong_owner_scope',    'company_objective',   `'open'`,      `'CUSTOMER'`, `'ceo'`,    `jsonb_build_object('a',1)`,                'refuse'],
   ['no_owner_ref',         'company_objective',   `'open'`,      `'COMPANY'`, `''`,        `jsonb_build_object('a',1)`,                'refuse'],
   ['money_on_transaction', 'payment_transaction', `'pending'`,   null,        `'finance'`, `jsonb_build_object('amount_aed',100)`,     'accept'],
+  // An IDENTIFIER that merely mentions money is not money. The first version of the E18 rule matched
+  // any key containing "refund" and refused this, which would have stopped a case record from naming
+  // the refund it is about. The rule is a money-VALUE rule — a money-shaped name AND a numeric
+  // value — and this is the control that keeps it one.
+  ['refund_id_is_an_identifier', 'company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('refund_id','RF-1')`, 'accept'],
 ];
 
 const PROBE = `
