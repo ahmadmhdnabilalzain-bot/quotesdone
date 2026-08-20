@@ -16,20 +16,190 @@ database and compare it to the file** → verify by execution.
 reads back; it prints `read back and identical to the file` only when the live definition matches
 the committed bytes, so the exit code means something.
 
-## The ledger
+## What "deployed" can and cannot be read back
+
+**Production-direct applies leave no row in `supabase_migrations.schema_migrations`.** Measured
+2026-08-20 00:00:41Z: `select max(version) from supabase_migrations.schema_migrations` returns
+`20260811081746`, and the count of rows at or after `20260817` is **0**. Nothing in the database
+records *when* any file in this ledger was applied.
+
+So dates in this ledger come from the repository — commit date, and file mtime for a file applied
+before it was committed — and the database can only confirm the **present** state. The read-back
+column below is exactly that: does the object this file creates exist in production now.
+
+Two queries produced every read-back value, both run 2026-08-20 00:00:41Z:
+
+```sql
+select c.relkind, c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'public' and c.relname like 'phase\_d\_%';
+
+select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')'
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public'
+   and (p.proname like 'fn\_phase\_d\_%' or p.proname in ('fn_kernel_open_step','fn_kernel_workflow_start'));
+```
+
+Row counts are `count(*)`, **not** `reltuples` — a third of these tables have never been analysed and
+report `reltuples = -1`, so the planner estimate would read some of them as unknown and others as
+zero without distinguishing the two. Constraint and ACL read-backs use `pg_get_constraintdef(oid)`
+and `pg_proc.proacl` and are quoted verbatim where they appear.
+
+One measurement covers the whole estate: of the 24 `phase_d_*` base tables live in `public`, **24
+have `relrowsecurity = true` and the total policy count across all of them is 0**. RLS on these
+tables is defence in depth behind a `service_role`-only grant, not the control.
+
+**Existence is not parity.** For a file whose only content is `create or replace function`, the
+routine existing proves nothing about whose body is live — a later file in the same chain may have
+replaced it. Repository↔production parity is measured by the canonical routine engine
+(`scripts/checks/canonical_routines.test.mjs`), not by this ledger, and no hash appears in this
+document that was not computed by a query printed in it.
+
+## The five pull requests
+
+| PR | branch | merge commit | merged (UTC) | Phase D files |
+|---|---|---|---|---|
+| [#446](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/446) | `feat/phase-d-d1-d3-handler-registry-and-rules` | `bc20365` | 2026-08-18 15:20:06 | d0, d1, d3 |
+| [#447](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/447) | `feat/phase-d-d2-business-objects` | `e896ef5` | 2026-08-18 16:31:44 | d2, d4, d5, d6 |
+| [#448](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/448) | `feat/phase-d-d7-every-handler-produces-an-effect` | `38bcc17` | 2026-08-18 18:59:10 | d7, d7b, d7c, d7d, d8, d8b–d8h |
+| [#449](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/449) | `feat/phase-d-d9-handoff-acceptance` | `a977ed2` | 2026-08-19 11:55:41 | d9_a_run_with_no_open_step |
+| [#450](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/450) | `feat/phase-d-d9-the-handoff-is-159-contracts` | `e59d36b` | 2026-08-19 11:55:39 | d9(159 contracts) … d35, and d9l |
+
+Three details that matter when reading the "merge commit" column:
+
+- **#446 and #447 were squashed onto `main`.** `bc20365` and `e896ef5` are ordinary commits with a
+  single parent; there is no merge commit distinct from the file's introducing commit.
+- **#449's `a977ed2` is not a merge commit.** `git log -1 --format=%p a977ed2` returns one parent,
+  `13e42ff`. It is the tip of the #449 branch. #450's branch was built **on top of** #449's
+  (`git merge-base --is-ancestor a977ed2 fd8c64f` succeeds), so #449's two commits reached `main`
+  inside `e59d36b`, and GitHub then recorded the branch tip as #449's merge commit. That is why
+  #449 shows a *later* `mergedAt` (11:55:41Z) than #450 (11:55:39Z) while its commits are *older*.
+- **d36–d51 are on no PR yet.** They are five commits on `feat/phase-d-remediation-to-acceptance` —
+  `7090016`, `9dd1927`, `f9415ab`, `5c7152a`, `a7a37a8` — and every one of them is tracked. The
+  earlier statement here that `phase_d_d43_…sql` was applied and untracked was true when written and
+  is not true now: `git log --diff-filter=A -- scripts/sql/phase_d_d43_…sql` returns `9dd1927`,
+  2026-08-20T04:02:49+04:00. See the last two sections.
+
+## Every Phase D file, with its commit, PR and production read-back
+
+Scope: **all 73** files matching `scripts/sql/phase_d_*.sql`. The table first covered `d0..d43`, 66
+files, while concurrent increments of the same session were still adding files numbered `d44` and
+above — `ls scripts/sql/phase_d_*.sql | wc -l` returned 67 at 00:00:04Z and 71 at 00:10:34Z. Those
+increments have landed and the remaining seven are appended at the end of the table: `d44`, `d46`,
+`d47`, `d48`, `d49`, `d50`, `d51`. **There is no `d45`** — the numbering skips it, and 66 + 7 = 73,
+which is what both `ls` and `git ls-files scripts/sql/phase_d_*.sql` return. Rollback class for each
+of the 73 is in `PHASE_D_ROLLBACK_CLASSIFICATION_D9.md`.
+
+Read-back key: a table name with a number is `count(*)`; `routine present` means the identity
+signature was returned by the second query above.
+
+| file (`phase_d_…sql`) | introducing commit | PR | merge commit | production read-back, 2026-08-20 00:00:41Z |
+|---|---|---|---|---|
+| `d0_auth_debt_discharged` | `bc20365` | #446 | `bc20365` (squash) | `phase_d_preflight_requirement` 2 rows — table created by Phase C, this file only `update`s it |
+| `d1_handler_registry_and_executor` | `bc20365` | #446 | `bc20365` (squash) | `phase_d_handler_schema` 514, `phase_d_handler_binding` 257; `fn_phase_d_slug`, `_schema_validate`, `_handler_execute`, `_handler_state` present |
+| `d3_rule_enforcement` | `bc20365` | #446 | `bc20365` (squash) | `phase_d_rule_enforcement` 54; `fn_phase_d_rule_applies`, `_rule_check`, `_rule_state` present |
+| `d2_business_object_map` | `e896ef5` | #447 | `e896ef5` (squash) | `phase_d_business_object_binding` 56, `phase_d_object_record` 0, 30 `v_obj_*` views; triggers `a00_phase_d_object_policy_guard` and `z00_kernel_truncate_guard` enabled on `phase_d_object_record` |
+| `d4_remaining_rules` | `e896ef5` | #447 | `e896ef5` (squash) | `phase_d_payment_state` 6; `fn_phase_d_reveal_permitted(p_transaction_id text)` present — the `bigint` signature this file dropped is **not** present |
+| `d5_gate_predicates` | `e896ef5` | #447 | `e896ef5` (squash) | `phase_d_gate_contract` 32; `fn_phase_d_gate_applies`, `_gate_evaluate`, `_gate_state` present |
+| `d6_handler_status_is_measured` | `e896ef5` | #447 | `e896ef5` (squash) | column `phase_d_handler_binding.business_write_wired boolean` present |
+| `d7_effect_contract_and_business_writes` | `d813e2c` | #448 | `38bcc17` | `phase_d_step_effect` 257, `phase_d_object_write_map` 22, `phase_d_effect_ledger` 0 |
+| `d7b_three_derivation_defects_found_by_the_board` | `d813e2c` | #448 | `38bcc17` | `phase_d_step_effect_resolution_ck` = `CHECK (object_resolution = ANY (ARRAY['MATCHED_STEP_TEXT','MATCHED_ALL_TOKENS','SOLE_OBJECT_OF_WORKFLOW','WORKFLOW_PRIMARY_OBJECT','NO_DOMAIN_OBJECT']))` — 5 values |
+| `d7c_regprocedure_hides_the_schema` | `d813e2c` | #448 | `38bcc17` | `fn_phase_d_effect_state()` present |
+| `d7d_the_lexicon_matched_nouns` | `d813e2c` | #448 | `38bcc17` | rows only — no object of its own |
+| `d8_workflow_driver` | `d813e2c` | #448 | `38bcc17` | `fn_phase_d_drive_workflow(jsonb)`, `fn_phase_d_fixture_value(text,text,text)` present |
+| `d8b_the_driver_reads_what_each_rule_declares_it_needs` | `d813e2c` | #448 | `38bcc17` | `fn_phase_d_drive_workflow(jsonb)` present |
+| `d8c_a_fixture_that_names_a_state_must_name_a_declared_one` | `d813e2c` | #448 | `38bcc17` | `fn_phase_d_fixture_context(bigint,text)` present |
+| `d8d_no_transition_is_not_an_undeclared_transition` | `d813e2c` | #448 | `38bcc17` | `fn_phase_d_gate_evaluate(text,jsonb)` present |
+| `d8e_a_named_reviewer_needs_a_recorded_verdict` | `0937fc1` | #448 | `38bcc17` | `fn_phase_d_drive_workflow(jsonb)` present |
+| `d8f_the_fixture_reads_the_check_constraint` | `0937fc1` | #448 | `38bcc17` | `fn_phase_d_fixture_for_column(text,text,text)` present |
+| `d8g_the_closure_gate_counted_its_own_step_run` | `0937fc1` | #448 | `38bcc17` | `fn_phase_d_gate_evaluate(text,jsonb)` present |
+| `d8h_the_file_says_what_the_database_says` | `279e1ac` | #448 | `38bcc17` | `fn_phase_d_handler_execute(jsonb)` present |
+| `d9_a_run_with_no_open_step_is_waiting_for_acceptance` | `13e42ff` | #449 | via `e59d36b` | `fn_phase_d_drive_workflow(jsonb)` present |
+| `d9_one_hundred_and_fifty_nine_contracts_not_one` | `cca51ce` | #450 | `e59d36b` | `phase_d_handoff_contract` 159, `phase_d_handoff_acceptance` 0; `fn_phase_d_handoff_packet_valid`, `_handoff_accept`, `_handoff_reject`, `_handoff_cancel`, `_handoff_state` present |
+| `d9b_a_run_in_waiting_handoff_is_not_a_stopped_run` | `cca51ce` | #450 | `e59d36b` | `fn_phase_d_drive_workflow(jsonb)` present |
+| `d9c_a_scenario_built_in_the_order_reality_builds_it` | `cca51ce` | #450 | `e59d36b` | `phase_d_fixture_stage` 25; `fn_phase_d_fixture_scenario`, `_fixture_state`, `_fixture_residue` present |
+| `d9d_a_canonical_write_that_emails_a_supplier` | `cca51ce` | #450 | `e59d36b` | `fn_phase_d_outbound_exposure()` present; `phase_d_object_write_map` 22 rows |
+| `d9e_the_lineage_is_quiet_only_because_it_has_no_address` | `cca51ce` | #450 | `e59d36b` | `fn_phase_d_fixture_scenario(jsonb)` present |
+| `d9f_the_writer_covers_two_of_the_six_fields_its_scorer_reads` | `cca51ce` | #450 | `e59d36b` | `fn_phase_d_fixture_inquiry_payload(text)` present |
+| `d9g_a_generated_fixture_beat_the_real_reference` | `cca51ce` | #450 | `e59d36b` | `fn_phase_d_drive_workflow(jsonb)` present |
+| `d9h_the_owner_of_a_customer_scoped_object_is_a_customer` | `cca51ce` | #450 | `e59d36b` | `fn_phase_d_drive_workflow(jsonb)` present |
+| `d9i_a_harness_that_seeds_the_row_the_step_creates` | `cca51ce` | #450 | `e59d36b` | `fn_phase_d_drive_workflow(jsonb)` present |
+| `d9j_a_run_that_cannot_see_what_it_just_created` | `cca51ce` | #450 | `e59d36b` | `fn_phase_d_drive_workflow(jsonb)` present |
+| `d9k_the_kernel_has_no_rejection_door` | `cca51ce` | #450 | `e59d36b` | `fn_phase_d_handoff_reject`, `_handoff_cancel`, `_handoff_state`, `_fixture_state` present |
+| `d9l_a_phase_d_key_standing_in_front_of_a_phase_b_guard` | `a8dfb84` | #450 | `e59d36b` | `phase_d_handoff_contract_handoff_id_fkey` = `FOREIGN KEY (handoff_id) REFERENCES phase_b_handoff(handoff_id) ON DELETE CASCADE` |
+| `d10_seven_cases_for_every_one_of_the_257_steps` | `54b2549` | #450 | `e59d36b` | `phase_d_step_case_result` **1,799**; `fn_phase_d_step_cases`, `_run_step_cases`, `_case_state` present |
+| `d11_two_hundred_and_seventy_three_events_that_have_never_happened` | `73c73fa` | #450 | `e59d36b` | `phase_d_event_reconciliation` 347; `fn_phase_d_event_state()` present |
+| `d12_ready_disabled_was_claiming_a_contract_that_is_not_built` | `c8e789c` | #450 | `e59d36b` | `phase_d_external_adapter_field` 14; `phase_d_step_effect_depth_ck` now 6 values |
+| `d13_a_refund_gate_that_fired_before_the_case_was_opened` | `a86d033` | #450 | `e59d36b` | `fn_phase_d_gate_applies(text,text)` present |
+| `d14_a_state_the_target_does_not_declare` | `a86d033` | #450 | `e59d36b` | `fn_phase_d_drive_workflow(jsonb)` present |
+| `d15_a_reviewer_keyed_on_the_effect_not_the_step` | `a86d033` | #450 | `e59d36b` | `fn_phase_d_drive_workflow(jsonb)` present |
+| `d16_a_rule_applied_to_the_workflow_that_produces_it` | `669d3cb` | #450 | `e59d36b` | `fn_phase_d_rule_applies(text,text)` present; the 25th `phase_d_fixture_stage` row is this file's |
+| `d17_the_fixture_had_a_second_door_and_it_was_http` | `1a23d9c` | #450 | `e59d36b` | `phase_d_outbound_door` 4; `fn_phase_d_outbound_state()` present |
+| `d18_an_upsert_that_could_not_find_the_row_it_wrote` | `4b93ac7` | #450 | `e59d36b` | `fn_phase_d_object_identity_state()` present |
+| `d19_a_generated_payload_rearmed_the_door` | `4b93ac7` | #450 | `e59d36b` | `fn_phase_d_object_write(jsonb)` present |
+| `d20_created_open_and_asked_the_gate` | `5300b6d` | #450 | `e59d36b` | columns `working_state`, `working_state_evidence`, `contributes_kind` present on `phase_d_fixture_stage`; `phase_d_fixture_stage_contributes_kind_check` = `CHECK (contributes_kind = ANY (ARRAY['RESULT_KEY','STATE']))`; trigger `a00_phase_d_stage_payment_state` enabled |
+| `d21_the_run_renamed_its_own_inquiry` | `5300b6d` | #450 | `e59d36b` | `fn_phase_d_reference_fold_state()` present |
+| `d22_a_company_scoped_owner_is_still_a_foreign_key` | `8ba4cd6` | #450 | `e59d36b` | `fn_phase_d_drive_workflow(jsonb)`, `_fixture_scenario(jsonb)` present |
+| `d23_a_state_can_require_a_companion_column` | `8ba4cd6` | #450 | `e59d36b` | columns `working_payload jsonb`, `working_payload_evidence text` present on `phase_d_fixture_stage` |
+| `d24_a_new_enforcing_table_with_no_truncate_guard` | `35ca71d` | #450 | `e59d36b` | trigger `z00_kernel_truncate_guard` enabled on `phase_d_fixture_stage` |
+| `d25_the_key_was_thrown_away_one_statement_later` | `97b716f` | #450 | `e59d36b` | `fn_phase_d_drive_workflow(jsonb)` present |
+| `d26_the_step_that_decides_had_nowhere_to_record_it` | `9c4e4e0` | #450 | `e59d36b` | `fn_phase_d_drive_workflow(jsonb)` present |
+| `d27_move_its_state_said_the_refusal_that_offered_no_way` | `9c4e4e0` | #450 | `e59d36b` | `fn_phase_d_object_write(jsonb)` present |
+| `d28_a_gate_that_refused_the_workflow_for_doing_its_job` | `9c4e4e0` | #450 | `e59d36b` | `fn_phase_d_gate_applies(text,text)` present |
+| `d29_a_durable_external_adapter_that_never_sends` | `8b44c62` | #450 | `e59d36b` | `phase_d_external_attempt` 0, `phase_d_external_message_contract` 4; `fn_phase_d_external_deliver`, `_external_state`, `_external_field_state`, `_run_external_cases` present |
+| `d30_the_twelve_steps_may_say_ready_disabled_again` | `8b44c62` | #450 | `e59d36b` | rows only — 12 of the 257 `phase_d_step_effect` rows carry `EXTERNAL_ADAPTER_READY_DISABLED` |
+| `d31_seventy_five_injected_defects` | `09cb4a5` | #450 | `e59d36b` | `phase_d_injected_defect_result` **0 rows**; `fn_phase_d_run_injected_defects()` present |
+| `d32_the_control_that_left_its_own_rows_behind` | `09cb4a5` | #450 | `e59d36b` | `fn_phase_d_external_residue()` present |
+| `d33_the_cleanup_that_only_cleaned_one_table` | `d8bef8e` | #450 | `e59d36b` | not read back here — the file deletes fixture rows from `public.customers`; a `count(*)` today cannot distinguish a successful purge from a table that was always empty |
+| `d34_the_seven_probes_that_were_never_run` | `b2f43e4` | #450 | `e59d36b` | `phase_d_section8_probe_result` 23, `phase_d_section8_defect_map` 11; `fn_phase_d_injected_defect_report()` present |
+| `d35_a_mention_is_not_a_call` | `b2f43e4` | #450 | `e59d36b` | all 7 revoked routines read back `postgres=X/postgres service_role=X/postgres` — no `anon`, no `authenticated`, no bare PUBLIC |
+| `d36_the_kernel_opens_the_step_and_now_runs_it` | `7090016` | none yet | unmerged | `phase_d_dispatch` **0 rows**, RLS on, 0 policies, sequence `phase_d_dispatch_dispatch_id_seq` present; `fn_phase_d_step_inputs`, `_dispatch_step`, `_dispatch_state`, and the replaced `fn_kernel_open_step(jsonb)`, `fn_kernel_workflow_start(jsonb)` present |
+| `d37_the_rules_read_real_rows_or_they_refuse` | `7090016` | none yet | unmerged | `fn_phase_d_step_context(bigint)` present, SECURITY DEFINER |
+| `d38_the_authority_the_kernel_acted_under_is_a_recorded_fact` | `7090016` | none yet | unmerged | `fn_phase_d_step_context(bigint)` present |
+| `d39_two_ordering_defects_the_first_real_inquiry_found` | `7090016` | none yet | unmerged | `fn_phase_d_step_context(bigint)` present |
+| `d40_the_arrival_is_known_by_the_inbox_id_already_passed` | `7090016` | none yet | unmerged | `fn_phase_d_step_context(bigint)` present |
+| `d41_inquiry_owner_is_a_role_not_a_customer` | `7090016` | none yet | unmerged | `fn_phase_d_step_context(bigint)` present |
+| `d42_route_state_was_my_own_placeholder` | `7090016` | none yet | unmerged | column `phase_d_handler_binding.application_connection text` present; constraint `phase_d_handler_binding_app_conn_ck` present; `fn_phase_d_application_connection_measure()`, `_actual_caller_measure()` present |
+| `d43_a_signed_in_caller_may_not_name_the_owner` | `9dd1927` | none yet | unmerged | `fn_phase_d_object_read(jsonb)` ACL = `postgres=X/postgres service_role=X/postgres` — the `authenticated` grant is gone and no bare PUBLIC entry survives |
+| `d44_an_endpoint_that_ignores_an_id_has_not_refused` | `a7a37a8` | none yet | unmerged | `phase_d_section8_probe_result_verdict_check` and `phase_d_injected_defect_status_check` both = `CHECK (… = ANY (ARRAY['REFUSED_AS_REQUIRED','NOT_REFUSED','NOT_RUN','NOT_DISCRIMINATED']))` — 4 values each, up from 3; `phase_d_section8_probe_result` 23 rows = 21 `REFUSED_AS_REQUIRED` + **2 `NOT_DISCRIMINATED`**, the two rows the file reclassified |
+| `d46_a_contract_that_records_intent_but_checks_presence` | `9dd1927` | none yet | unmerged | six columns present on `phase_d_handler_schema` at attnums 10–15 — `schema_version`, `field_types`, `enum_domains`, `optional_keys`, `additional_properties`, `type_source`; constraints `phase_d_handler_schema_field_types_ck` and `_version_ck` present; `type_source` non-null on all **514** rows, two distinct sentences at 257 each; `fn_phase_d_schema_validate(text,jsonb)`, `fn_phase_d_contract_state()` present |
+| `d47_nineteen_rules_that_had_never_refused_anything` | `9dd1927` | none yet | unmerged | `fn_phase_d_rule_check(text,jsonb)`, `fn_phase_d_rule_can_refuse()` present; ACL on `fn_phase_d_rule_can_refuse` = `postgres=X/postgres service_role=X/postgres` |
+| `d48_a_two_context_probe_cannot_find_a_withheld_authority` | `9dd1927` | none yet | unmerged | `fn_phase_d_rule_can_refuse()` present, exactly one row in `pg_proc` — the `drop function` at `d48:36` is a **return-type** change, not a new overload, so the identity signature is unchanged and existence alone would prove nothing. The live body is `d48`'s: `pg_proc.prosrc` contains `refusing_context`, a return column only `d48` declares |
+| `d49_a_freeze_with_no_way_to_record_an_amendment` | `f9415ab` | none yet | unmerged | `phase_c_freeze_amendment` **2 rows**, RLS on, 0 policies, sequence `phase_c_freeze_amendment_amendment_id_seq` and unique index `phase_c_freeze_amendment_once` present; `fn_phase_c_freeze_drift()` present and its body reads the new table |
+| `d50_a_rule_that_could_not_fail_made_one_that_could_not_not_fire` | `5c7152a` | none yet | unmerged | `fn_phase_d_rule_applies(text,text)`, `fn_phase_d_step_context(bigint)` present; `phase_d_rule_enforcement` 54 rows, **54 `ENFORCED` / 0 `OUTSTANDING`** |
+| `d51_callable_is_not_answerable_yet` | `5c7152a` | none yet | unmerged | `fn_phase_d_rule_check(text,jsonb)` present; `phase_d_rule_enforcement` still 54/54 `ENFORCED` |
+
+Seven rows read `fn_phase_d_step_context(bigint) present` and say nothing else, because they are the
+same routine replaced seven times — `d37`–`d42`, and `d50`. Measured over all 73 files by counting
+`create or replace function public.fn_phase_d_step_context` at column 0; the earlier figure of six
+was correct over the 66 files this ledger then covered. The read-back tells you it is live; it does
+not tell you whose body is live. See
+"Existence is not parity" above. `fn_phase_d_rule_check` is in the same position — `d4`, `d47` and
+`d51` all replace it — and `d48`'s row is the exception that shows what a real parity read-back looks
+like: it names a string only the newer body contains.
+
+**The 20-rule ratchet is spent.** The `d3` entry below records `fn_phase_d_rule_state()` as 3/4, the
+fourth red by disclosure with 20 rules `OUTSTANDING`, and a ratchet entry in
+`scripts/checks/kernel-boards.json` carrying it. Measured 2026-08-20:
+`select status, count(*) from public.phase_d_rule_enforcement group by 1` returns
+`ENFORCED 54`, `OUTSTANDING 0`. `d47`, `d50` and `d51` closed them. That ratchet entry says to delete
+itself at 0; deleting it is not this ledger's job, and it is not deleted here.
+
+## The first three increments, in detail
+
+These three predate the per-file table and keep their original entries.
 
 ### 1. `scripts/sql/phase_d_d1_handler_registry_and_executor.sql`
 
 | | |
 |---|---|
-| commit | `fb86840`, corrected in `ef1a9db` |
+| commit | `fb86840`, corrected in `ef1a9db`; squashed to `bc20365` |
 | routines | `fn_phase_d_slug`, `fn_phase_d_schema_validate`, `fn_phase_d_handler_execute`, `fn_phase_d_handler_state` |
 | tables | `phase_d_handler_schema` (514 rows), `phase_d_handler_binding` (257 rows) |
 | schema shape | `51d663a1e17cff35…` → `a614b87656ac929e…` |
 | dry run | guards passed; 4 routines defined, 5 called and all present |
 | rehearsal | read-only derivation on production before writing: 257 steps → 257 input schemas, 0 with no parseable input, keys 1–4 per step, 21 capability-dependent, 0 duplicate handler ids |
 | verified | read back identical; board `fn_phase_d_handler_state()` 6/6; **executed** end to end in an aborted transaction (W01 run 5151, step run 5195) |
-| rollback | `drop function public.fn_phase_d_handler_execute(jsonb), public.fn_phase_d_schema_validate(text,jsonb), public.fn_phase_d_handler_state(), public.fn_phase_d_slug(text); drop table public.phase_d_handler_binding, public.phase_d_handler_schema;` — nothing outside Phase D reads either table, and no frozen object references them |
+| rollback | `scripts/sql/down/phase_d_d1_handler_registry_and_executor_down.sql`. Order matters: `drop table public.phase_d_handler_binding;` before `public.phase_d_handler_schema;` — the binding carries `_input_schema_id_fkey` and `_output_schema_id_fkey` into the schema table. Nothing outside Phase D reads either, and no frozen object references them |
 
 Applied more than once: the executor was corrected twice after apply (rule applicability, then the
 retired-path literal in the board). Each re-apply was `--apply --ddl` and each read back identical.
@@ -38,37 +208,116 @@ retired-path literal in the board). Each re-apply was `--apply --ddl` and each r
 
 | | |
 |---|---|
-| commit | `fb86840` |
+| commit | `fb86840`; squashed to `bc20365` |
 | routines | `fn_phase_d_rule_applies`, `fn_phase_d_rule_check`, `fn_phase_d_rule_state` |
 | tables | `phase_d_rule_enforcement` (54 rows) |
 | schema shape | `a614b87656ac929e…` → `7c9c8a089e52808c…` |
 | verified | read back identical; board `fn_phase_d_rule_state()` 3/4, the fourth red **by disclosure** (20 rules `OUTSTANDING`) and ratcheted in `kernel-boards.json` |
-| rollback | `drop function public.fn_phase_d_rule_check(text,jsonb), public.fn_phase_d_rule_applies(text,text), public.fn_phase_d_rule_state(); drop table public.phase_d_rule_enforcement;` then remove the ratchet entry. `fn_phase_c_rule_check` is **untouched and still live**, so dropping these restores the prior behaviour exactly |
+| rollback | `scripts/sql/down/phase_d_d3_rule_enforcement_down.sql`, then remove the ratchet entry. `fn_phase_c_rule_check` is **untouched and still live**, so dropping these restores the prior behaviour exactly |
 
 One re-apply widened the `enforcement_kind` check constraint. `create table if not exists` does not
 reconcile a constraint on an existing table, so the file carries an explicit
 `drop constraint if exists` / `add constraint` pair; without it the second run failed on the first
-widened row.
+widened row. The pair at `:65-70` restates the same 7-value list already in the `create table` at
+`:47-49`, so its down is a no-op.
 
 ### 3. `scripts/sql/phase_d_d0_auth_debt_discharged.sql`
 
 | | |
 |---|---|
-| commit | `195cfb4` |
+| commit | `195cfb4`; squashed to `bc20365` |
 | routines | none |
 | data | 2 `update`s to `public.phase_d_preflight_requirement` |
 | schema shape | unchanged |
 | verified | the file ends in a `do $assert$` that raises unless both rows reached `SATISFIED` with evidence, so it cannot commit having done nothing; read back after apply: both `SATISFIED` at `2026-08-18 14:56:00+00` |
-| rollback | `update public.phase_d_preflight_requirement set status='OUTSTANDING', satisfied_at=null, evidence=null where requirement_id in ('D0-AUTH-001','D0-AUTH-002');` |
+| rollback | `update public.phase_d_preflight_requirement set status='OUTSTANDING', satisfied_at=null, evidence=null where requirement_id in ('D0-AUTH-001','D0-AUTH-002');` — **not** a `drop table`: `public.phase_d_preflight_requirement` was created by `scripts/sql/phase_c_baseline_row_and_d0_preflight.sql:98` and no Phase D down may drop it |
+
+## The D36–D43 increment
+
+`d36` was written and applied on **2026-08-20** (file mtime `03:18:01` Asia/Dubai = `2026-08-19
+23:18:01Z`; the calendar date differs between the two clocks). When this increment began it was
+**untracked** — `git ls-files scripts/sql/phase_d_*.sql` returned 58 against `ls` 59 — absent from
+`scripts/sql/MANIFEST.txt`, live on production, and in no rollback classification. It was committed
+here as `7090016`.
+
+Seven more files were then written and applied in this increment. mtimes, all UTC on 2026-08-19:
+
+| file | written | bytes |
+|---|---|---|
+| `d37_the_rules_read_real_rows_or_they_refuse` | 23:21:39Z | 22,992 |
+| `d38_the_authority_the_kernel_acted_under_is_a_recorded_fact` | 23:27:00Z | 17,601 |
+| `d39_two_ordering_defects_the_first_real_inquiry_found` | 23:30:55Z | 17,130 |
+| `d40_the_arrival_is_known_by_the_inbox_id_already_passed` | 23:34:38Z | 16,349 |
+| `d41_inquiry_owner_is_a_role_not_a_customer` | 23:37:11Z | 20,368 |
+| `d42_route_state_was_my_own_placeholder` | 23:39:52Z | 25,367 |
+| `d43_a_signed_in_caller_may_not_name_the_owner` | 23:51:52Z | 6,444 |
+
+`d37`–`d42` are on `7090016`. **`d43` was applied to production and untracked at the time of
+writing** — its read-back (the `authenticated` grant gone from `fn_phase_d_object_read`) proved the
+apply landed, and `git status --porcelain scripts/sql` showed it as `??`.
+
+**That gap is closed.** `git log --diff-filter=A --format='%h %ad' -- scripts/sql/phase_d_d43_a_signed_in_caller_may_not_name_the_owner.sql`
+returns `9dd1927 2026-08-20T04:02:49+04:00`, on the same branch. `git ls-files scripts/sql/phase_d_*.sql | wc -l`
+and `ls scripts/sql/phase_d_*.sql | wc -l` both return **73**: nothing under `scripts/sql/` matching
+`phase_d_*` is untracked any more.
+
+`d43` also demonstrates why `apply_sql --promote` is not an option for a grant: promote sends only a
+routine body, so a `revoke` in a promoted file lands nowhere and the tool still prints success. The
+file carries no body at all and had to be applied.
+
+## The D44–D51 increment
+
+Four further commits on `feat/phase-d-remediation-to-acceptance`, all after `7090016`, in
+`git log --oneline` order (newest first):
+
+| commit | date (branch, +04:00) | Phase D files added |
+|---|---|---|
+| `a7a37a8` | 2026-08-20T04:32:09 | `d44_an_endpoint_that_ignores_an_id_has_not_refused` |
+| `5c7152a` | 2026-08-20T04:22:57 | `d50_a_rule_that_could_not_fail_made_one_that_could_not_not_fire`, `d51_callable_is_not_answerable_yet` |
+| `f9415ab` | 2026-08-20T04:06:47 | `d49_a_freeze_with_no_way_to_record_an_amendment` |
+| `9dd1927` | 2026-08-20T04:02:49 | `d43_…`, `d46_a_contract_that_records_intent_but_checks_presence`, `d47_nineteen_rules_that_had_never_refused_anything`, `d48_a_two_context_probe_cannot_find_a_withheld_authority` |
+
+The numbering skips `d45`; no file of that name exists in the tree or in the history of this branch.
+
+**Two of the seven carry additive DDL, and both were measured rather than assumed.**
+
+- `d46` adds six columns to `public.phase_d_handler_schema` — `schema_version int`,
+  `field_types jsonb`, `enum_domains jsonb`, `optional_keys text[]`,
+  `additional_properties boolean`, `type_source text` — at `:54-59`, makes all six `not null` at
+  `:107-113`, and adds `phase_d_handler_schema_field_types_ck` and
+  `phase_d_handler_schema_version_ck` at `:119-124` inside an `if not exists` guard. All eight
+  objects read back from `pg_attribute` (attnums 10–15) and `pg_constraint`. The table keeps its 514
+  rows; the column count moves 9 → 15.
+- `d49` creates `public.phase_c_freeze_amendment` at `:47-60` — 8 columns, `amendment_id` a
+  `generated always as identity` primary key, `_moves` / `_reason_ck` / `_evidence_ck` checks and
+  `_once` UNIQUE `(object_identity, prior_digest, new_digest)`; RLS on at `:62`, revoked from
+  `public, anon, authenticated` and granted `select, insert` to `service_role` at `:63-64`. Read
+  back: the table, the sequence `phase_c_freeze_amendment_amendment_id_seq`, the unique index
+  `phase_c_freeze_amendment_once`, RLS on with 0 policies, and **2 rows** — the amendments for
+  `fn_kernel_open_step(p_input jsonb)` and `fn_kernel_workflow_start(p_input jsonb)`, the two kernel
+  routines `d36` replaced.
+
+  It is named `phase_c_*` and is nonetheless a Phase D object: the only `CREATE TABLE` for it is in
+  `d49`. That is the opposite of `public.phase_d_preflight_requirement`, which is named `phase_d_*`
+  and is a Phase **C** object because `scripts/sql/phase_c_baseline_row_and_d0_preflight.sql:98`
+  creates it. The test is which file creates it, never which phase the name mentions.
+
+  Consequence for the estate inventory: `phase_d_*` base tables are still **24** and `phase_d_*`
+  sequences still **5** — `phase_c_freeze_amendment` matches neither prefix. Any count that reads
+  `like 'phase\_d\_%'` will not see it.
+
+`d44` changes two existing CHECK constraints (`:104-108`, `:110-114`), widening each from three
+values to four. `d47`, `d48`, `d50` and `d51` carry routine bodies and row updates only.
 
 ## Repository artefacts changed alongside the database
 
 | file | why |
 |---|---|
-| `scripts/sql/MANIFEST.txt` | the three files above appended — a `scripts/sql` file the manifest does not list is a MANIFEST GAP and its live routines are production→repository drift |
+| `scripts/sql/MANIFEST.txt` | every applied file appended — a `scripts/sql` file the manifest does not list is a MANIFEST GAP and its live routines are production→repository drift |
 | `docs/phase-c-final-kernel/CANONICAL_ROUTINE_MANIFEST.csv` | re-emitted from the engine (`--emit`), not hand-edited |
 | `supabase/schema/full_schema.sql` | regenerated — the mirror said 550 tables and production holds 553 |
 | `scripts/checks/kernel-boards.json` | one ratchet entry for the 20 outstanding rules, with owner, rule ids, and an instruction to **delete** it at 0 |
+| `scripts/sql/down/` | **26** files, one `<stem>_down.sql` per file classified `EXPLICIT_DOWN_REQUIRED` in `PHASE_D_ROLLBACK_CLASSIFICATION_D9.md`. 23 at the first revision, plus `d44`, `d46` and `d49` once those landed and their objects could be read out of the catalogue. Written, **not** rehearsed — `scripts/sql/down/README.md` records that no file there has been executed — and **not yet committed**: `git ls-files scripts/sql/down` returns 0 against 27 files on disk. See the last section |
 
 `scripts/checks/canonical_routine_manifest.mjs` is a **frozen Phase C subject** and was not edited.
 To read a finding it counts but does not print, a copy was taken to the scratchpad and instrumented
@@ -76,16 +325,36 @@ there.
 
 ## Production must never be ahead of main
 
-| | |
-|---|---|
-| branch | `feat/phase-d-d1-d3-handler-registry-and-rules` |
-| pull request | [#446](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/446) |
-| commits | `fb86840`, `195cfb4`, `a8bda15`, `ef1a9db` |
+`main` is at `e59d36b`, which contains #446 through #450 — every file from `d0` to `d35`.
 
-Everything applied to production is committed and pushed on that branch. **Until #446 merges,
-`main` legitimately does not contain these definitions**, and a parity gate run against `main`
-would report drift for that reason alone — that window is expected, self-resolving on merge, and
-must not be "fixed" by re-applying anything.
+Ahead of `main` right now:
+
+| what | state |
+|---|---|
+| `d36`–`d42` | committed as `7090016` on `feat/phase-d-remediation-to-acceptance`, **not merged** |
+| `d43`, `d46`, `d47`, `d48` | committed as `9dd1927` on the same branch, **not merged** |
+| `d49` | committed as `f9415ab`, **not merged** |
+| `d50`, `d51` | committed as `5c7152a`, **not merged** |
+| `d44` | committed as `a7a37a8`, **not merged** |
+
+Everything from `d0` to `d35` is merged. **Until the remediation branch merges, `main` legitimately
+does not contain the `d36`–`d51` definitions**, and a parity gate run against `main` reports drift
+for that reason alone — that window is expected, self-resolving on merge, and must not be "fixed" by
+re-applying anything.
+
+The earlier row for `d43` — "applied to production, **not committed**" — was different in kind: an
+applied file with no commit is not a merge window, it is an untracked production change. It closed
+the way it had to, by committing the file (`9dd1927`). **No applied file is untracked now**: every
+file under `scripts/sql/` matching `phase_d_*` is tracked, 73 of 73 by both `ls` and `git ls-files`.
+
+One repository gap does remain, and it is the opposite kind — repository behind the working tree,
+not production ahead of the repository. Measured 2026-08-20: `git ls-files scripts/sql/down | wc -l`
+returns **0** against `ls scripts/sql/down | wc -l` **27**. The whole rollback directory — 26 down
+scripts and its README — is written and unstaged. Nothing has been applied from it and nothing reads
+it, so no production state depends on it; but until it is committed, the reversal for every
+`EXPLICIT_DOWN_REQUIRED` file exists on one machine only. Staging it is a `git add scripts/sql/down`
+of that path and nothing wider — this working tree permanently carries session debris and a broad
+`git add -A` has put hundreds of unrelated files into a PR before.
 
 ## Nothing was left behind
 
@@ -98,6 +367,10 @@ must not be "fixed" by re-applying anything.
 Every write probe ended in `raise exception`. The one identity created was deleted in the same run
 and its removal proved by read-back, not inferred from the delete status.
 
+The tables that could have accumulated rows read back empty on 2026-08-20 00:00:41Z:
+`phase_d_effect_ledger` 0, `phase_d_handoff_acceptance` 0, `phase_d_object_record` 0,
+`phase_d_external_attempt` 0, `phase_d_injected_defect_result` 0, `phase_d_dispatch` 0.
+
 ## Frozen state, before and after
 
 | | before | after |
@@ -107,4 +380,20 @@ and its removal proved by read-back, not inferred from the delete status.
 | `fn_phase_c_freeze_drift()` red | 0 of 3 | **0 of 3** |
 | `fn_phase_c_invariants()` red | 0 | **0** |
 
-No frozen Phase A, Phase B or Phase C object was edited by any increment in this ledger.
+No frozen Phase A, Phase B or Phase C object was edited by any increment in this ledger, with one
+declared exception: `d36` replaces `public.fn_kernel_open_step(jsonb)` and
+`public.fn_kernel_workflow_start(jsonb)`, both kernel routines, to put the Phase D dispatch on the
+kernel's own open path. Both read back present and SECURITY DEFINER. The "before/after" figures in
+this table are the ones recorded for the first three increments and were **not** re-measured for
+`d36`–`d51`; re-run `fn_phase_c_freeze_drift()` and `fn_phase_c_invariants()` before quoting them of
+the whole programme.
+
+**`d49` is the file that made that declared exception recordable rather than merely declared.** It
+creates `public.phase_c_freeze_amendment` and replaces `fn_phase_c_freeze_drift()` to read it, so
+the two kernel replacements above are now two rows pinned to the digest each one excuses — read back
+2026-08-20 as `canonical_step_engine -> fn_kernel_open_step(p_input jsonb)` and
+`canonical_workflow_start_service -> fn_kernel_workflow_start(p_input jsonb)`. Neither digest is a
+literal in the file: `prior_digest` comes from `public.phase_c_frozen_subject` and `new_digest` from
+`encode(sha256(convert_to(pg_get_functiondef(p.oid),'UTF8')),'hex')` over the live definition. That
+is what stops an amendment being a rubber stamp — and it also means a later edit on top of either
+body reads as drift again, which is the point.

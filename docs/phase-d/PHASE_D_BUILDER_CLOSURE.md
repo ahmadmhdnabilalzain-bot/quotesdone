@@ -2,6 +2,52 @@
 
 **PHASE_D_NOT_READY**
 
+## What that verdict rests on — every figure below re-measured 2026-08-20
+
+The body of this document reads as a series of DONEs. Most of them are now true. The verdict is
+still NOT_READY, and this section is what reconciles the two: it names what is built and measured,
+and then what is open. It does not decide the verdict — no independent acceptance has been re-run
+since this file was written, so NOT_READY stands until one is.
+
+**Built, and measured on production today.** 257/257 handler bindings and 514 typed contracts;
+`fn_phase_d_handler_state()` **7/7 green**, with `handlers_not_writing_a_business_object = 0`.
+All **54 of 54** business rules carry a live enforcement mechanism — `fn_phase_d_rule_state()`
+**4/4 green**, `rules_with_outstanding_enforcement = 0`. 56/56 business objects bound, 32/32 gates
+predicated. **159** handoff contracts, each carrying a packet, acceptance criteria, an SLA target, a
+rejection code and a return owner. **1,799** per-step cases recorded, **0** failing. **347** events
+reconciled. **75** injected defects driven. All **15** required deliverables tracked by git under
+`docs/phase-d/`. Phase A drift 0, Phase B drift 0, `fn_phase_c_freeze_drift()` 0 red,
+`fn_phase_c_invariants()` 0 red.
+
+**Open, and measured on production today.**
+
+- **`steps_with_no_effect_ever_produced = 257`** — the single red on `fn_phase_d_effect_state()`,
+  whose other eleven pass/fail checks are green. The effect ledger is empty because **no committed
+  business arrival has ever driven a step**: every proof in this phase runs in a transaction that is
+  aborted, and the estate holds **0 inquiries, 0 quotes, 0 transactions and 0 customers**
+  (`select count(*)` on each, 2026-08-20) since the 16 Aug funnel purge. `phase_d_handoff_acceptance`
+  is **0 rows** and `phase_d_external_attempt` is **0 rows** for the same reason. Everything below is
+  therefore evidenced by driven fixtures, never by a real arrival.
+- **14 of 30 workflows do not close.** Driving all 30 in `execution_context` `production`,
+  **16** reach `DETERMINISTIC_CLOSURE` and **14** stop at `pd_capability_unavailable`: the capability
+  boundary at `fn_phase_d_handler_execute` section 3 refuses the **21** steps whose
+  `capability_dependency` is `REASONING` while the founder's hold on paid inference stands.
+  16 of 30 with that reason is the honest figure. 30 of 30 is reachable only in test mode and is not
+  a result.
+- **Only 40 of the 54 rules have a predicate that can actually refuse.** From
+  `select * from public.fn_phase_d_rule_can_refuse()`: **40** produce `ENFORCED_FAIL` on at least one
+  of the three probe contexts; **11** are `DELEGATED_TO_KERNEL_GUARD` — the kernel decides and this
+  predicate cannot invoke it (BR-006…010, 045…047, 050…052); **2** are constant while the provider
+  hold stands (BR-053, BR-054); and **1**, BR-028, is enforced at the executor's capability boundary
+  rather than in the predicate. "54/54 enforced" is a statement about mechanism, not about refusal.
+- **38 of the 75 injected defects are `NOT_RUN`**, each with a named blocker; **35** were
+  `REFUSED_AS_REQUIRED` and **2** ran without discriminating. The Definition of Done asks for 100%
+  refused.
+- **333 of the 347 events have never been observed emitting**, and **60** are still
+  `DEFERRED_RUNTIME_IMPLEMENTATION`. Producer resolves for 286 of 347.
+- **56 SECURITY DEFINER routines in `public` remain anon-executable** — pre-existing and
+  estate-wide, not introduced by Phase D, and not closed by it either.
+
 | | |
 |---|---|
 | session | 2026-08-18, 14:00 → 15:20 UTC (database clock) |
@@ -26,7 +72,7 @@ byte-identical, working tree clean.
 | **D2** business objects | 0 of 56 mapped | **56/56 bound** — 26 to an existing relation, 30 to a new policy-guarded store with a canonical view each. Board 7/7. |
 | **D4** business rules | 34 of 54 enforced | **54/54 enforced**, 0 outstanding. Ratchet entry **deleted**, not lowered. Board 4/4. |
 | **D5** gates | 0 of 32 with their own predicate | **32/32 contracted and predicated**. 29 BLOCK on empty evidence; the 3 that pass are database-measured and need none. Board 5/5. |
-| deliverables | 6 of 15 | **6 of 15** |
+| deliverables | 6 of 15 | **15 of 15** — all fifteen are tracked by git under docs/phase-d/ as of 2026-08-20; the 6 was true when written and was never revisited |
 
 ### Three measurements that decided the D2 design
 
@@ -83,11 +129,16 @@ of the deliverable says so rather than implying estate-wide coverage.
 
 The brief warned against marking handlers implemented because bindings and schemas exist. 236 of
 257 read `NEW_DETERMINISTIC_HANDLER`, which is true about the **output** and overstates the
-**business effect**: not one handler yet calls a business-object service. `business_write_wired` is
-now MEASURED from the live executor body, and the board carries
+**business effect**: at the time of writing, not one handler called a business-object service.
+`business_write_wired` is MEASURED from the live executor body, and the board carried
 `handlers_not_writing_a_business_object = 257`, ratcheted with an owner and an instruction to
-delete the entry at 0. **That is the single largest honest gap in Phase D and it is now countable
-rather than described.**
+delete the entry at 0.
+
+**Re-measured 2026-08-20: that count is now `0` and the check is green** —
+`fn_phase_d_handler_state()` is **7/7**. `fn_phase_d_effect_state()` classifies all 257 as
+`BUSINESS_EFFECT_CONNECTED=224 · CAPABILITY_BOUNDARY_READY=21 · EXTERNAL_ADAPTER_READY_DISABLED=12`.
+The gap moved rather than closed: **`steps_with_no_effect_ever_produced` is still 257**, because a
+wired write is not a produced effect until a committed business arrival drives it, and none has.
 
 ### Defects found in my own work this session, every one by execution
 
@@ -109,9 +160,14 @@ test cases each, 30/30 deterministic workflow closures, 56/56 business objects r
 rules and 32/32 gates enforced, all effective handoffs, 347/347 events classified, 100% of the 75
 injected defects refused, and fifteen committed deliverables.
 
-**Three of those are met or partly met. The rest are not started.** Declaring readiness on that
-basis would be the exact defect this phase exists to remove, so the verdict is NOT_READY and the
-remainder is itemised below rather than summarised away.
+**Written on 2026-08-18 this read "three of those are met or partly met, the rest are not started."
+Re-measured 2026-08-20 that is no longer true** — the itemised table near the end of this file
+carries what each wave actually measures now. What remains true is the reason for the verdict:
+several of those clauses are met by *mechanism* and not yet by *effect*. 100% of the 75 injected
+defects are not refused (35 are), 30/30 deterministic closure is not reached (16 is, under the
+capability hold), and not one step has ever produced an effect from a committed business arrival.
+Declaring readiness on that basis would be the exact defect this phase exists to remove, so the
+verdict is NOT_READY and the remainder is itemised below rather than summarised away.
 
 ---
 
@@ -273,28 +329,43 @@ is the number that matters: one handoff run, not two. A replay that returned a f
 quietly creating a second handoff is the duplicate-effect defect D8 exists to prevent, and the
 denominator here is the actual row count, not the result payload.
 
-### D3 — 34 of 54 rules stop being prose
+### D3 — 54 of 54 rules stop being prose
 
 `phase_d_rule_enforcement` names, for all 54, **how** each is enforced and **when** it applies.
+**Re-measured 2026-08-20** — the table below replaces the 2026-08-18 split, which read
+PREDICATE 15 · KERNEL_ENFORCED 9 · PENDING_OBJECT_MAP **20 OUTSTANDING**:
 
 | enforcement kind | count | status |
 |---|---|---|
-| PREDICATE — decided from the call context | 15 | ENFORCED |
-| KERNEL_ENFORCED — the frozen kernel raises | 9 | ENFORCED |
+| PREDICATE — decided from the call context | 36 | ENFORCED |
+| KERNEL_ENFORCED — the frozen kernel raises | 8 | ENFORCED |
 | TRIGGER_ENFORCED — refused at write time | 5 | ENFORCED |
 | SCHEMA_ENFORCED — the output schema requires the key | 3 | ENFORCED |
 | CONTEXT_REQUIRED — absent fact is a refusal | 1 | ENFORCED |
 | EXECUTOR_ENFORCED — capability fails closed | 1 | ENFORCED |
-| **PENDING_OBJECT_MAP** | **20** | **OUTSTANDING** |
+| **PENDING_OBJECT_MAP** | **0** | — |
 
 The board **resolves every named enforcement point in the live catalogue** — a disposition in prose
 with no mechanism is the failure mode this is built against. An unregistered rule is now
-**refused**, which is the exact inversion of the routine it replaces.
+**refused**, which is the exact inversion of the routine it replaces. `fn_phase_d_rule_state()` is
+**4/4 green** and `rules_with_outstanding_enforcement = 0`; the ratchet entry naming the 20 rules
+(BR-011, 012, 013, 014, 015, 017, 018, 019, 020, 025, 026, 029, 032, 033, 034, 035, 036, 039, 041,
+049) reached 0 and was **deleted, not lowered**.
 
-The 20 outstanding rules report `enforced = false` to every caller and are ratcheted in
-`kernel-boards.json` with their ids and an instruction to **delete the entry at 0, not lower it and
-leave it**. They are: BR-011, 012, 013, 014, 015, 017, 018, 019, 020, 025, 026, 029, 032, 033, 034,
-035, 036, 039, 041, 049.
+**A mechanism is not a refusal, and the two must not be read as one number.**
+`select * from public.fn_phase_d_rule_can_refuse()` probes every rule with three contexts —
+empty, full, and authority-withheld — and reports where an `ENFORCED_FAIL` is actually reachable:
+
+| | |
+|---|---|
+| rules with a real predicate that can refuse | **40** |
+| `DELEGATED_TO_KERNEL_GUARD` — the kernel decides, this predicate cannot invoke it | **11** |
+| constant while the founder's provider hold stands (BR-053, BR-054) | **2** |
+| enforced at the executor's capability boundary, not in the predicate (BR-028) | **1** |
+
+The 11 delegated are BR-006…010, BR-045…047 and BR-050…052. Their refusal is real but lives in the
+frozen kernel, so this instrument cannot witness it — which is stated here rather than counted as a
+pass.
 
 ---
 
@@ -388,8 +459,9 @@ checked.
 | Phase B baseline drift | **0** |
 | `fn_phase_c_freeze_drift()` | **0 red** |
 | `fn_phase_c_invariants()` | **0 red** |
-| `fn_phase_d_handler_state()` | **6/6 green** |
-| `fn_phase_d_rule_state()` | 3/4 — the fourth red **by disclosure** |
+| `fn_phase_d_handler_state()` | **7/7 green** — re-measured 2026-08-20; was 6/6 with the seventh red |
+| `fn_phase_d_rule_state()` | **4/4 green** — re-measured 2026-08-20; was 3/4, the fourth red by disclosure |
+| `fn_phase_d_effect_state()` | **11 of its 12 pass/fail checks green** (plus 3 informational rows), measured 2026-08-20; the red is `steps_with_no_effect_ever_produced = 257` |
 | `kernel_boards_are_green.test.mjs` | **7/7 pass** |
 | kernel boards red | 8, all ratcheted with an owner and a reason |
 | `canonical_routines.test.mjs` | **11 passed, 0 findings** |
@@ -404,42 +476,55 @@ checked.
 
 ## What is NOT done — the itemised remainder
 
-This is the whole of the outstanding Phase D scope. Nothing below was started unless stated.
+This is the whole of the Phase D scope outside D0–D3. The left-hand columns are the original
+targets and are unchanged; **every state cell was re-measured on 2026-08-20** and seven of them no
+longer read "not started". A cell saying BUILT means the mechanism exists and was measured — it does
+not mean the wave's Definition of Done clause is met, and where it is not the cell says so.
 
 | wave | scope | state |
 |---|---|---|
-| **D2** | 56 business objects | **DONE this session — 56/56 bound, board 7/7.** Remaining: no handler yet writes an object (counted on the handler board). Naive name matching resolves only 8 of 56 to a table — the estate's 553 tables do not share the registry's vocabulary, so this needs real mapping. **This is the blocking dependency for the 20 outstanding rules.** |
+| **D2** | 56 business objects | **DONE this session — 56/56 bound, board 7/7.** Remaining: no handler yet writes an object (counted on the handler board). Naive name matching resolves only 8 of 56 to a table — the estate's 553 tables do not share the registry's vocabulary, so this needs real mapping. **That mapping was the blocking dependency for the 20 outstanding rules; re-measured 2026-08-20 it is done and outstanding rules are 0.** |
 | **D3 (rest)** | 32 gate predicates | **DONE this session — 32/32, board 5/5.** Strict on the Phase D path; the kernel path is unchanged and that is stated. |
-| **D4** | 159 effective handoffs: packet schema, acceptance, SLA, rejection, return owner | **not started** (the kernel already creates and validates handoff runs; the per-handoff contract does not exist) |
-| **D5** | frontend → API → service → database call graph; storage MIME/magic-byte/quarantine; RLS proofs | **not started** |
-| **D6** | external effect adapters, all mock/disabled | **not started** (effects are held, but the durable adapter contract is not built) |
-| **D7** | finance/legal/privacy contracts for W08, W10, W15, W16, W17, W27, W28 | **not started** |
+| **D4** | 159 effective handoffs: packet schema, acceptance, SLA, rejection, return owner | **BUILT — re-measured 2026-08-20.** `phase_d_handoff_contract` holds **159 rows**, and all 159 carry every one of the five: a non-empty `packet_keys`, `acceptance_criteria`, an `sla_target` interval, a `rejection_code` with its `return_owner_role_id`. **Not yet exercised:** `phase_d_handoff_acceptance` holds **0 rows** — no acceptance has been decided, because no committed arrival has driven one. |
+| **D5** | frontend → API → service → database call graph; storage MIME/magic-byte/quarantine; RLS proofs | **BUILT — re-measured 2026-08-20.** `PHASE_D_FRONTEND_API_CALL_GRAPH.csv` (regenerated 2026-08-20T01:02:00Z) resolves **77 of 77 distinct (component, edge_function) pairs across 39 files and 39 edge functions, from 153 raw call sites**, one row per pair attributed to the file whose own source names the endpoint. Storage and RLS are in `PHASE_D_STORAGE_RLS_SECURITY_RESULT.md`. |
+| **D6** | external effect adapters, all mock/disabled | **PARTIAL — re-measured 2026-08-20.** `phase_d_external_message_contract` holds **4 rows** — reveal to customer and to supplier, over email and WhatsApp — and `phase_d_external_adapter_field` holds **14 rows, all `PRESENT`**. `phase_d_external_attempt` holds **0 rows**: nothing has ever been attempted, so the adapter's disabled behaviour is declared and not yet witnessed. Four contracts is the reveal path only, not every external effect in the estate. |
+| **D7** | finance/legal/privacy contracts for W08, W10, W15, W16, W17, W27, W28 | **PARTIAL — re-measured 2026-08-20.** `PHASE_D_FINANCIAL_PRIVACY_RESULT.md` now covers: the 6-rung payment ladder with only rungs 5 and 6 authorising a reveal, proved by injection; the founder-only refund trigger against 2 active founder identities, proved by injection, with 0 refunds approved by Phase D; ownership scope on **56/56** objects; and 0 outbound requests from a 30-workflow drive. It also records **3 of 5 FINANCE and 2 of 5 PRIVACY defects executed** — the other five are `NOT_RUN` with named blockers — and one finding it declines to fix: GATE-020 guards "Execute approved financial action" but accepts *any* decision, including a rejection. Separation of duties is declared on `phase_c_refund_decision` and enforced by no Phase D path. |
 | **D8** | per-handler idempotency, lock, retry class, compensation, cancellation tests | **partial** — the kernel supplies idempotency and locking and this was exercised once; no per-handler test matrix |
 | **D9** | capability boundary | **partial** — 21 steps classified, typed request and fail-closed behaviour implemented and enforced in the executor; no mock fixture library |
-| **D11** | 257 × 7 = 1,799 per-step tests; 30 × 4 workflow tests; the 75-row injected defect catalogue | **not started.** One end-to-end execution proof exists (W01-S01). |
-| **D12** | 347 events reconciled with real producer/consumer/outbox/trace | **not started** |
-| **D13** | 30/30 deterministic workflow closure | **not started.** One workflow was driven one step. |
-| **D14** | 15 required deliverables | **5 of 15** |
+| **D11** | 257 × 7 = 1,799 per-step tests; 30 × 4 workflow tests; the 75-row injected defect catalogue | **PARTIAL — re-measured 2026-08-20.** `phase_d_step_case_result` holds **1,799 rows** — 257 steps × 7 case kinds — with **1,799 passed, 0 failed**. `PHASE_D_INJECTED_DEFECT_RESULT.csv` (regenerated 2026-08-20T01:02:06Z) carries all **75** catalogued defects: **35 REFUSED_AS_REQUIRED, 38 NOT_RUN** each with a named blocker, **2 NOT_DISCRIMINATED**. The Definition of Done asks for 100% refused, so **40 of 75 are not yet evidence of anything**. |
+| **D12** | 347 events reconciled with real producer/consumer/outbox/trace | **PARTIAL — re-measured 2026-08-20.** `phase_d_event_reconciliation` holds **347 rows**, all carrying an outbox relation and a trace. Producer resolves for **286**, consumer for **346**; structurally **287 CONNECTED, 60 DEFERRED_RUNTIME_IMPLEMENTATION**. At runtime **333 of 347 have NEVER been observed** and only **14** were seen in the outbox — reconciled on paper, not in flight. |
+| **D13** | 30/30 deterministic workflow closure | **16 of 30 — re-measured 2026-08-20**, and the reason is not a defect. `PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv` (regenerated 2026-08-20T01:01:54Z) drives all 30 through the executor and the kernel in aborted transactions, in `execution_context` **`production`**. **16 reach `DETERMINISTIC_CLOSURE`; 14 stop at `pd_capability_unavailable`** — the capability boundary at `fn_phase_d_handler_execute` section 3 refuses the **21** steps whose `capability_dependency` is `REASONING` while the founder's hold on paid inference stands. All 30 leave **0 open handoffs, 0 notifications and 0 outbound HTTP requests**. **16 of 30 with that reason is the honest figure; 30 of 30 is reachable only in test mode and must not be quoted as the result.** |
+| **D14** | 15 required deliverables | **15 of 15** tracked (measured 2026-08-20 with git ls-files; the 5 was the state at D14 and is kept in the left column) |
 
 **Written:** `PHASE_D_CURRENT_CODE_HANDLER_CROSSWALK.csv`, `PHASE_D_RULE_GATE_RESULT.csv`,
 `PHASE_D_ZERO_COST_EVIDENCE.md`, `PHASE_D_PRODUCTION_DEPLOYMENT_LEDGER.md`, and this file.
 
-**Still owed:** `PHASE_D_HANDLER_IMPLEMENTATION_RESULT.csv`,
+**Still owed — re-measured 2026-08-20 with `git ls-files docs/phase-d/`: nothing.** The ten files
+this section listed as owed — `PHASE_D_HANDLER_IMPLEMENTATION_RESULT.csv`,
 `PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv`, `PHASE_D_BUSINESS_OBJECT_RESULT.csv`,
-`PHASE_D_HANDOFF_EVENT_RESULT.csv`,
-`PHASE_D_FRONTEND_API_CALL_GRAPH.csv`, `PHASE_D_STORAGE_RLS_SECURITY_RESULT.md`,
-`PHASE_D_FINANCIAL_PRIVACY_RESULT.md`, `PHASE_D_IDEMPOTENCY_CONCURRENCY_RESULT.md`,
-`PHASE_D_EXTERNAL_EFFECTS_RESULT.md`, `PHASE_D_INJECTED_DEFECT_RESULT.csv`.
+`PHASE_D_HANDOFF_EVENT_RESULT.csv`, `PHASE_D_FRONTEND_API_CALL_GRAPH.csv`,
+`PHASE_D_STORAGE_RLS_SECURITY_RESULT.md`, `PHASE_D_FINANCIAL_PRIVACY_RESULT.md`,
+`PHASE_D_IDEMPOTENCY_CONCURRENCY_RESULT.md`, `PHASE_D_EXTERNAL_EFFECTS_RESULT.md` and
+`PHASE_D_INJECTED_DEFECT_RESULT.csv` — are all tracked by git under `docs/phase-d/`. That a
+deliverable exists says nothing about whether what it reports is complete; the rows above say that.
 
 ---
 
 ## Recommended next increment
 
-**D2, and specifically the object→table map**, because it is the single dependency holding 20 of
-the 54 business rules in `OUTSTANDING` — including BR-020, *reveal only after payment is
-reconciled*, which is the highest-value unenforced rule in the estate. Once each object resolves to
-a canonical table with a read/write service, those 20 rules become decidable predicates and the
-rule board can go green honestly rather than by ratchet.
+*Written 2026-08-18: "D2, and specifically the object→table map", because it held 20 of the 54
+business rules in `OUTSTANDING`. **Re-measured 2026-08-20 that work is done** — every object
+resolves, and `rules_with_outstanding_enforcement` is 0.*
+
+**The next increment is an effect produced by a committed arrival.** Everything Phase D has proved
+was proved in a transaction that was then aborted, against an estate holding 0 inquiries, 0 quotes,
+0 transactions and 0 customers. That is why `steps_with_no_effect_ever_produced` is still 257, why
+`phase_d_handoff_acceptance` and `phase_d_external_attempt` are both empty, and why 333 of 347
+events have never been observed. No amount of further registry work moves any of those numbers.
+
+The second item is the capability hold: 14 of 30 workflows cannot close and 21 steps cannot run
+while paid inference is held. That is a founder decision, not an engineering gap, and it caps
+D13 at 16 of 30 until he lifts it.
 
 ---
 

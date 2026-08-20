@@ -5,8 +5,9 @@
 // raised message. The catalogue supplies defect_id, category, injected_defect and
 // expected_machine_result; this script supplies status, observed and blocker from the live run and
 // refuses to write if the two disagree on the population.
-import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
 import { sql } from '../phase_c/lib/db.mjs';
+import { outPath, provenance } from './lib/deliverable.mjs';
 
 const CAT = 'QuotesDone_PHASE_D_DETERMINISTIC_BUSINESS_HANDLER_IMPLEMENTATION_PRODUCTION_DIRECT_v2026.08.17/registries/PHASE_D_INJECTED_DEFECT_CATALOG.csv';
 
@@ -41,10 +42,20 @@ declare v_out text := ''; r record;
 begin
   perform set_config('app.phase_d_test_context','on', true);
   for r in select * from public.fn_phase_d_injected_defect_report() where category = '__CAT__' order by defect_id loop
+    -- BOUNDED, AND THE BOUND IS VISIBLE. The transport truncates a message at 2000 characters, and
+    -- D44 lengthened one PD-PRIV observed string enough to push the PRIVACY category over it -- the
+    -- guard below caught a 4-row export where 5 were expected rather than writing the four. Each
+    -- free-text field is now capped at 240 characters with the cut marked in the value, so a reader
+    -- of the deliverable can see that a reason was shortened. A silent cut is the defect; a marked
+    -- one is a measurement with its boundary stated.
     v_out := v_out || chr(30) || concat_ws(chr(31), r.defect_id, r.category, r.status,
-             replace(replace(coalesce(r.observed,''), chr(10),' '), chr(13),' '),
-             replace(replace(coalesce(r.blocker,''),  chr(10),' '), chr(13),' '));
+             public.fn_phase_d_bounded(replace(replace(coalesce(r.observed,''), chr(10),' '), chr(13),' '), 240),
+             public.fn_phase_d_bounded(replace(replace(coalesce(r.blocker,''),  chr(10),' '), chr(13),' '), 240));
   end loop;
+  -- AND IF THE BOUND IS EVER NOT ENOUGH, SAY SO RATHER THAN LOSE A ROW.
+  if length(v_out) > 1800 then
+    raise exception 'PHASE_D_DEFECTS_OVERFLOW category __CAT__ produced % characters, over the 1800 this transport carries. Lower the per-field bound or emit one probe per defect; do not let a row fall off the end.', length(v_out);
+  end if;
   raise exception 'PHASE_D_DEFECTS%', v_out;
 end $emit$;`;
 
@@ -92,17 +103,36 @@ const out = [COLS.join(',')].concat(rows.map(r => {
   return [r[0], r[1], c[2], c[3], r[2], r[3], r[4]].map(cell).join(',');
 })).join('\n') + '\n';
 
-mkdirSync('docs/phase-d', { recursive: true });
-writeFileSync('docs/phase-d/PHASE_D_INJECTED_DEFECT_RESULT.csv', out);
+writeFileSync(outPath('PHASE_D_INJECTED_DEFECT_RESULT.csv'),
+  provenance({
+    command: 'node scripts/phase_d/build_injected_defect_result.mjs',
+    numerator: rows.length,
+    denominator: byId.size,
+    of: 'catalogued defects (PHASE_D_INJECTED_DEFECT_CATALOG.csv)',
+    attribution: 'one row per catalogue defect, produced by injecting it inside a transaction that '
+      + 'is aborted; status NOT_RUN carries a named blocker and is never a default',
+  }) + out);
 
 const exec = rows.filter(r => r[2] === 'REFUSED_AS_REQUIRED').length;
 const notrun = rows.filter(r => r[2] === 'NOT_RUN').length;
 const notref = rows.filter(r => r[2] === 'NOT_REFUSED');
+// NOT_DISCRIMINATED (D44): the assertion executed and could not separate a refusal from an ignored
+// parameter or an empty estate. It is neither a pass nor a failure and must not be counted as
+// either. The total below is asserted because a status this summary does not name would otherwise
+// vanish from the console without changing any of the three figures above it.
+const notdisc = rows.filter(r => r[2] === 'NOT_DISCRIMINATED').length;
 const residue = await sql('select count(*)::int as n from public.phase_d_external_attempt');
 console.log(`PHASE_D_INJECTED_DEFECT_RESULT.csv  ${rows.length} rows`);
 console.log(`  executed and refused as required   ${exec}`);
 console.log(`  NOT_RUN with a named blocker       ${notrun}`);
+console.log(`  executed but NOT_DISCRIMINATED     ${notdisc}`);
 console.log(`  FAILED TO REFUSE                   ${notref.length}   (must be 0)`);
 console.log(`  attempt rows left behind           ${residue?.[0]?.n ?? -1}   (must be 0)`);
+if (exec + notrun + notdisc + notref.length !== rows.length) {
+  const named = new Set(['REFUSED_AS_REQUIRED', 'NOT_RUN', 'NOT_DISCRIMINATED', 'NOT_REFUSED']);
+  const other = [...new Set(rows.map(r => r[2]).filter(s => !named.has(s)))];
+  console.error(`  the run produced status value(s) this summary does not count: ${other.join(', ')}`);
+  process.exit(1);
+}
 if (notref.length) { console.error('  ' + notref.map(r => r[0]).join(', ')); process.exit(1); }
 if ((residue?.[0]?.n ?? -1) !== 0) process.exit(1);

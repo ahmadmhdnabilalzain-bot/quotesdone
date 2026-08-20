@@ -12,16 +12,31 @@
 // ever appeared in the outbox. One column was answering two questions and this splits them.
 //
 // The script exits 1 rather than writing fewer rows than the frozen registries hold.
-import { writeFileSync, mkdirSync } from 'node:fs';
+//
+// IT WAS TWO FILES PRETENDING TO BE ONE, AND NOTHING COULD PARSE IT.
+//
+// 19 Aug 2026. csv() already terminates its output with '\n'; the write concatenated
+// `csv(H_COLS, handoffs) + '\n' + csv(E_COLS, events)`, adding a second. The committed deliverable
+// was therefore 509 lines with a field-count histogram of {1: 1, 19: 160, 21: 348}: a 19-column
+// header, 159 handoff rows, a bare blank line, a SECOND 21-column header, and 347 event rows. Every
+// CSV reader in existence reads that as a 19-column table whose 161st row is empty and whose 162nd
+// row is data — the event half was unreadable to anything but a human eye.
+//
+// It is one table now, over a union of both column sets, with `record_kind` first. The two halves
+// genuinely are one artefact — §4 and §10 are the two directions work moves — so the fix is a
+// single header rather than two files: PHASE_D_HANDOFF_EVENT_RESULT.csv is required deliverable 6
+// by that name, and splitting it would have made deliverable 6 disappear.
+import { writeFileSync } from 'node:fs';
 import { mgmtRead, PROD_REF } from '../staging/qd_guard.mjs';
+import { outPath, provenance } from './lib/deliverable.mjs';
 
 const cell = (v) => {
   const s = v === null || v === undefined ? '' : String(v);
   return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 };
-const csv = (cols, rows) =>
-  [cols.join(',')].concat(rows.map((r) => cols.map((c) => cell(r[c])).join(','))).join('\n') + '\n';
 
+// `kind` is the discriminator both halves already carried; it is renamed `record_kind` in the union
+// header so a reader of the file cannot mistake it for a handoff_type or an event category.
 const H_COLS = ['kind', 'id', 'workflow_id', 'from_step_id', 'to_step_id', 'sending_role_id',
   'receiving_role_id', 'handoff_type', 'packet_keys', 'distinguishing_key', 'source_object_id',
   'rejection_code', 'return_owner_role_id', 'accountable_before_accept', 'accountable_after_accept',
@@ -63,9 +78,47 @@ if (handoffs.length !== wantH || events.length !== wantE) {
   process.exit(1);
 }
 
-mkdirSync('docs/phase-d', { recursive: true });
-writeFileSync('docs/phase-d/PHASE_D_HANDOFF_EVENT_RESULT.csv',
-  csv(H_COLS, handoffs) + '\n' + csv(E_COLS, events));
+// ONE HEADER, ONE FIELD COUNT. The union preserves column order — the three shared columns first,
+// then the handoff-only columns, then the event-only ones — so a handoff row is blank in the event
+// columns and vice versa, and every record in the file has the same arity.
+const UNION = ['record_kind', ...H_COLS.slice(1),
+               ...E_COLS.slice(1).filter((c) => !H_COLS.includes(c))];
+const all = [...handoffs, ...events].map((r) => ({ ...r, record_kind: r.kind }));
+const body = [UNION.join(',')]
+  .concat(all.map((r) => UNION.map((c) => cell(r[c])).join(',')))
+  .join('\n') + '\n';
+
+// THE HISTOGRAM IS THE ASSERTION, and it is computed the way a reader's parser would compute it —
+// quote-aware, because a naive split on ',' reports a different arity for every row carrying a
+// comma inside a quoted cell and would make this check noise. One field count, one header, or the
+// file is not written.
+const arityOf = (line) => {
+  let n = 1, q = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q) { if (c === '"' && line[i + 1] === '"') i++; else if (c === '"') q = false; }
+    else if (c === '"') q = true;
+    else if (c === ',') n++;
+  }
+  return n;
+};
+const arities = new Set(body.trimEnd().split('\n').map(arityOf));
+if (arities.size !== 1 || !arities.has(UNION.length)) {
+  console.error(`the file would carry field count(s) ${[...arities].sort((a, b) => a - b).join(', ')} `
+    + `against a ${UNION.length}-column header. Two headers in one CSV is the defect this rewrite `
+    + 'exists to remove; refusing to write it.');
+  process.exit(1);
+}
+
+writeFileSync(outPath('PHASE_D_HANDOFF_EVENT_RESULT.csv'),
+  provenance({
+    command: 'node scripts/phase_d/build_handoff_event_result.mjs',
+    numerator: all.length,
+    denominator: wantH + wantE,
+    of: `frozen subjects (${wantH} handoffs + ${wantE} events)`,
+    attribution: 'one row per handoff contract and per event reconciliation over a union of both '
+      + 'column sets; record_kind says which',
+  }) + body);
 
 const observed = events.filter((e) => e.runtime_observation === 'OBSERVED_IN_OUTBOX').length;
 const claimed = events.filter((e) => e.structural_status === 'CONNECTED').length;

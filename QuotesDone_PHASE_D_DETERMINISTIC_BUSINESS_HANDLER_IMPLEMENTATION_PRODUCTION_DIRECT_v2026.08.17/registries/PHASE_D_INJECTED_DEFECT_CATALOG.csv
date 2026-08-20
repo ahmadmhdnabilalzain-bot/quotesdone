@@ -1,0 +1,76 @@
+defect_id,category,injected_defect,expected_machine_result,required_evidence,status
+PD-AUTH-001,AUTH,Unauthenticated customer reads another customer's record,401/403 or zero rows,HTTP status + DB delta 0,NOT_RUN
+PD-AUTH-002,AUTH,Supplier A reads Supplier B documents,403/404,Signed URL/RLS refusal,NOT_RUN
+PD-AUTH-003,AUTH,Non-admin performs admin mutation,403,Audit row + no state change,NOT_RUN
+PD-AUTH-004,AUTH,Inactive canonical role executes a step,stable refusal code,Task/run unchanged,NOT_RUN
+PD-AUTH-005,AUTH,Category overlay used as accountable task owner,stable refusal code,No task inserted,NOT_RUN
+PD-STATE-001,STATE,Step completed from an invalid state,SQLSTATE + guard code,State unchanged,NOT_RUN
+PD-STATE-002,STATE,Workflow closes with mandatory blocker open,stable refusal code,closed_at remains null,NOT_RUN
+PD-STATE-003,STATE,Nonterminal step treated as closure,stable refusal code,Successor not skipped,NOT_RUN
+PD-STATE-004,STATE,Missing successor owner,visible blocked failure,No handled=true/null reason,NOT_RUN
+PD-STATE-005,STATE,Failure outcome interpreted as a step ID,workflow failure state,No invented step,NOT_RUN
+PD-IDEM-001,IDEMPOTENCY,Duplicate registration request,same result / no duplicate,Row count delta 0,NOT_RUN
+PD-IDEM-002,IDEMPOTENCY,Duplicate workflow step completion,existing result,No extra task/handoff/event,NOT_RUN
+PD-IDEM-003,IDEMPOTENCY,Duplicate supplier assignment,same assignment,Unique constraint/ledger,NOT_RUN
+PD-IDEM-004,IDEMPOTENCY,Duplicate notification request,one outbox effect,Outbox dedupe,NOT_RUN
+PD-IDEM-005,IDEMPOTENCY,Duplicate payment webhook,one monetary transition,Ledger transition matrix,NOT_RUN
+PD-CONC-001,CONCURRENCY,Two workers claim the same task,one winner,Lock evidence,NOT_RUN
+PD-CONC-002,CONCURRENCY,Two suppliers submit same revision number,one accepted,Revision uniqueness,NOT_RUN
+PD-CONC-003,CONCURRENCY,Two admins publish same quotation set,idempotent result,Publish ledger,NOT_RUN
+PD-CONC-004,CONCURRENCY,Cancellation races with event delivery,cancelled subject cannot deliver,Outbox final state,NOT_RUN
+PD-CONC-005,CONCURRENCY,Refund decision races with execution,one immutable decision/execution,Decision + ledger,NOT_RUN
+PD-PRIV-001,PRIVACY,Supplier payload contains customer email,block supplier-safe approval,PII detector evidence,NOT_RUN
+PD-PRIV-002,PRIVACY,Drawing has unapproved redaction,dispatch refused,File revision state,NOT_RUN
+PD-PRIV-003,PRIVACY,Signed URL path belongs to another supplier,refused,Authorization result,NOT_RUN
+PD-PRIV-004,PRIVACY,Raw inquiry endpoint called by supplier,403/404,No data returned,NOT_RUN
+PD-PRIV-005,PRIVACY,Hidden metadata leaks identity,artifact rejected,Metadata scan,NOT_RUN
+PD-FILE-001,FILES,Extension and magic bytes disagree,upload refused,Stable file code,NOT_RUN
+PD-FILE-002,FILES,Oversized upload,413/refusal,No storage object,NOT_RUN
+PD-FILE-003,FILES,Executable content disguised as document,upload refused/quarantined,Scanner result,NOT_RUN
+PD-FILE-004,FILES,Expired signed URL reused,403,No object content,NOT_RUN
+PD-FILE-005,FILES,Unowned storage path insert,RLS refusal,Storage delta 0,NOT_RUN
+PD-DISP-001,DISPATCH,Inquiry not quote-ready,dispatch refused,Gate evidence,NOT_RUN
+PD-DISP-002,DISPATCH,Supplier pending/rejected/expired,assignment refused,No assignment/outbox,NOT_RUN
+PD-DISP-003,DISPATCH,Unapproved safe package,dispatch refused,No supplier access,NOT_RUN
+PD-DISP-004,DISPATCH,Refused assignment counted as notification,count remains zero,Assignment/outbox reconciliation,NOT_RUN
+PD-DISP-005,DISPATCH,Category overlay attempts dispatch,authority refusal,No side effect,NOT_RUN
+PD-QUOTE-001,QUOTE,Supplier edits another supplier's quote,403/refusal,Quote unchanged,NOT_RUN
+PD-QUOTE-002,QUOTE,Quote missing mandatory commercial field,hold/revision required,No publish,NOT_RUN
+PD-QUOTE-003,QUOTE,Technical claim has no evidence,block/clarify,No invented value,NOT_RUN
+PD-QUOTE-004,QUOTE,Customer sees unpublished quote,403/hidden,Read query result,NOT_RUN
+PD-QUOTE-005,QUOTE,Original supplier value overwritten by normalization,guard refusal,Immutable revision,NOT_RUN
+PD-FIN-001,FINANCE,Payment marked reconciled by executor,separation refusal,Distinct identities,NOT_RUN
+PD-FIN-002,FINANCE,Reveal before confirmed reconciliation,refused,Identity remains hidden,NOT_RUN
+PD-FIN-003,FINANCE,Refund without founder decision,refused,No provider action,NOT_RUN
+PD-FIN-004,FINANCE,Founder refund decision updated/deleted,append-only refusal,Decision preserved,NOT_RUN
+PD-FIN-005,FINANCE,Unknown monetary state silently accepted,blocked/quarantined,Visible exception,NOT_RUN
+PD-LEGAL-001,LEGAL,Certificate issued before terms acceptance,refused,No certificate,NOT_RUN
+PD-LEGAL-002,LEGAL,Accepted terms version rewritten,append-only refusal,Acceptance unchanged,NOT_RUN
+PD-LEGAL-003,LEGAL,Non-refund enters founder approval,refused,No approval row,NOT_RUN
+PD-LEGAL-004,LEGAL,Current tax/legal interpretation asserted from stale static file,escalate/block,Freshness requirement,NOT_RUN
+PD-LEGAL-005,LEGAL,Creator performs own final compliance review,independence refusal,Different role,NOT_RUN
+PD-NOTIFY-001,NOTIFY,External send attempted in Phase D,provider-disabled refusal,No outbound network,NOT_RUN
+PD-NOTIFY-002,NOTIFY,Opted-out recipient queued,suppressed,Suppression reason,NOT_RUN
+PD-NOTIFY-003,NOTIFY,Duplicate message from retry,one send ledger row,Dedupe evidence,NOT_RUN
+PD-NOTIFY-004,NOTIFY,Notification claims success on null provider result,failure,Explicit error,NOT_RUN
+PD-NOTIFY-005,NOTIFY,Supplier receives raw customer identity in email,approval/send refused,Safe payload hash,NOT_RUN
+PD-REV-001,REVIEW,Creator alias equals reviewer alias,self-review refusal,Canonical identity match,NOT_RUN
+PD-REV-002,REVIEW,Required review step completed with no verdict,refused,Step remains waiting_review,NOT_RUN
+PD-REV-003,REVIEW,Reviewer outside authority,refused,No verdict,NOT_RUN
+PD-REV-004,REVIEW,Rejected output progresses forward,refused/return path,No successor task,NOT_RUN
+PD-REV-005,REVIEW,Verdict edited after sealing,append-only refusal,Original preserved,NOT_RUN
+PD-OUTBOX-001,OUTBOX,Consumer returns null,delivery failure,Attempt recorded,NOT_RUN
+PD-OUTBOX-002,OUTBOX,Retryable failure then success,retry_wait then delivered,First failure preserved,NOT_RUN
+PD-OUTBOX-003,OUTBOX,Terminal failure,dead_letter,No business success,NOT_RUN
+PD-OUTBOX-004,OUTBOX,Consumer re-emits same event,self-loop refusal,No second event,NOT_RUN
+PD-OUTBOX-005,OUTBOX,Cancelled subject pending delivery,non-deliverable,No downstream effect,NOT_RUN
+PD-TRACE-001,TRACE,Active step inserted without trace,refused,No step row,NOT_RUN
+PD-TRACE-002,TRACE,Terminal object with open trace,refused,State unchanged,NOT_RUN
+PD-TRACE-003,TRACE,Sealed trace missing sealed_at,refused,Trace unchanged,NOT_RUN
+PD-TRACE-004,TRACE,Failed idempotent insert leaves orphan trace,zero orphan,Trace count unchanged,NOT_RUN
+PD-TRACE-005,TRACE,Business state change uses read-only trace exemption,refused,Correct policy required,NOT_RUN
+PD-PROV-001,PROVIDER,OpenRouter request in zero-cost mode,network denied,Request count 0,NOT_RUN
+PD-PROV-002,PROVIDER,Gate read failure,deny,No provider request,NOT_RUN
+PD-PROV-003,PROVIDER,Empty/malformed route state,deny,No fallback,NOT_RUN
+PD-PROV-004,PROVIDER,Direct provider client bypass,test failure,Repo/network scan,NOT_RUN
+PD-PROV-005,PROVIDER,External provider reports success with no request ID,failure,No completed side effect,NOT_RUN

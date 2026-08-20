@@ -394,9 +394,51 @@ if (process.argv.includes('--emit-ledger-sync')) {
 // does not cover — DDL objects (line 5) and the ownership ledger (line 6) — and on the subject they
 // share, the engine's answer is the one that counts: if it and this file ever resolve a routine to
 // different files, or the engine reports anything at all, THIS CHECK FAILS and names the routine.
+// D6. A CSV row reader that honours quoting. The emitter wraps any field containing a comma in
+// double quotes and doubles an embedded quote; anything less than this drops multi-argument
+// signatures on the floor.
+function parseCsvRow(row) {
+  const out = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < row.length; i++) {
+    const c = row[i];
+    if (inQ) {
+      if (c === '"') {
+        if (row[i + 1] === '"') { cur += '"'; i++; } else { inQ = false; }
+      } else cur += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ',') { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+// The parser is exercised before it is trusted: a quoted multi-argument signature must come back
+// whole, and an unquoted row must be unaffected. Without this the fix is an assertion about itself.
+{
+  const probe = parseCsvRow('"public.fn_phase_d_rule_check(text,jsonb)",scripts/sql/x.sql,3');
+  if (probe[0] !== 'public.fn_phase_d_rule_check(text,jsonb)' || probe[1] !== 'scripts/sql/x.sql') {
+    throw new Error('parseCsvRow does not read a quoted multi-argument signature: ' + JSON.stringify(probe));
+  }
+  const plain = parseCsvRow('public.fn_x(),scripts/sql/y.sql,1');
+  if (plain[0] !== 'public.fn_x()' || plain[1] !== 'scripts/sql/y.sql') {
+    throw new Error('parseCsvRow broke an unquoted row: ' + JSON.stringify(plain));
+  }
+}
+
 const engineDisagreements = [];
 {
-  const r = spawnSync(process.execPath, ['scripts/checks/canonical_routine_manifest.mjs', '--all', '--emit'],
+  // D6. `--emit` REWROTE A COMMITTED ARTEFACT AS A SIDE EFFECT OF `npm test`. It rewrote
+  // docs/phase-c-final-kernel/CANONICAL_ROUTINE_MANIFEST.csv microseconds before the loop below
+  // reads it, so the comparison was the engine against itself, and every `npm test` left a dirty
+  // tree. This spawn needs only the exit status and the `countable findings N` line.
+  //
+  // Dropping the flag alone would FREEZE the CSV, because this was its only call site anywhere in
+  // the repository — CI runs the engine without it (.github/workflows/project-parity.yml). So
+  // `npm run regen:canonical-manifest` now exists and is the deliberate way to rewrite it.
+  const r = spawnSync(process.execPath, ['scripts/checks/canonical_routine_manifest.mjs', '--all'],
     { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   const engineFindings = Number((r.stdout || '').match(/countable findings\s+(\d+)/)?.[1] ?? -1);
   if (r.status !== 0 || engineFindings !== 0) {
@@ -406,10 +448,22 @@ const engineDisagreements = [];
   const csv = 'docs/phase-c-final-kernel/CANONICAL_ROUTINE_MANIFEST.csv';
   if (existsSync(csv)) {
     for (const row of readFileSync(csv, 'utf8').split('\n').slice(1)) {
-      const sig = row.slice(0, row.indexOf(','));
-      const file = row.slice(sig.length + 1).split(',')[0];
+      // D6. ANY MULTI-ARGUMENT SIGNATURE CONTAINS A COMMA, so the emitter quotes the field and a
+      // split on ',' truncated it at the first argument — `"public.fn_phase_d_rule_check(text`.
+      // The key then had no ')' to slice at, `manifestDefs.get()` missed, and the `continue` two
+      // lines down swallowed it. Measured: 403 of 1195 data rows, 33.7%, were silently skipped,
+      // including every multi-argument Phase D routine — fn_phase_d_rule_check(text,jsonb),
+      // fn_phase_d_schema_validate(text,jsonb), fn_phase_d_rule_applies(text,text),
+      // fn_phase_d_gate_applies, fn_phase_d_gate_evaluate, fn_phase_d_handoff_packet_valid,
+      // fn_phase_d_fixture_value, fn_phase_d_fixture_for_column, fn_phase_d_fixture_context.
+      // A disagreement check blind to a third of the estate reports agreement it never tested.
+      const cells = parseCsvRow(row);
+      const sig = cells[0];
+      const file = cells[1];
       if (!sig || !file) continue;
-      const key = sig.slice(0, sig.indexOf('('));                 // engine keys by signature, this file by name
+      const paren = sig.indexOf('(');
+      if (paren < 0) continue;
+      const key = sig.slice(0, paren);                            // engine keys by signature, this file by name
       const list = manifestDefs.get(key);
       if (!list || !list.length) continue;                        // engine sees tiers this file does not; not a disagreement
       const mine = list[list.length - 1].file;
