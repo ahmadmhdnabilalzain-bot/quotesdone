@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T20:54:07.790Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T22:14:51.126Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -47238,6 +47238,7 @@ CREATE OR REPLACE FUNCTION public.fn_phase_c_freeze_drift()
  RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
  LANGUAGE sql
  STABLE
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
   with live as (
     select f.subject, f.object_identity, f.digest as frozen,
@@ -47326,14 +47327,31 @@ AS $function$
                       where not exists (select 1 from public.phase_c_change_request cr
                                          where cr.change_request_ref = a.change_request_ref))
   union all
-  -- Reported, never used. A change request that has been WRITTEN is not one that has been APPROVED.
-  select 'amendments_awaiting_founder_approval', 'informational',
+  -- E34. THIS ROW'S ok WAS THE LITERAL true, AND IT READ 4 of 4.
+  --
+  -- Its own comment was candid - "Reported, never used. A change request that has been WRITTEN is
+  -- not one that has been APPROVED" - and the consequence stood anyway: four amendments to frozen
+  -- Phase C kernel contracts are live in production, unapproved, under a fully green board. The
+  -- independent acceptance named it as the same species this estate keeps finding, a board row
+  -- whose ok is a constant, and scored it LOW because it was disclosed. Disclosed in a comment is
+  -- not disclosed on the board.
+  --
+  -- It is now a REAL RED, and it goes green the moment the founder signs. That is the right colour
+  -- because the condition is genuinely unmet: an amendment to a frozen contract is not complete
+  -- until the person who froze it has approved the change. Nothing here can clear it and nothing
+  -- here should be able to - approved_by and approved_at are constrained to move as a pair, and a
+  -- builder writing his own name into them would be the whole defect this row exists to surface.
+  --
+  -- 'expected' is now 0 rather than the word 'informational', so a reader comparing expected with
+  -- actual sees the gap instead of a label that excuses it.
+  select 'amendments_awaiting_founder_approval', '0',
          (select count(*) from public.phase_c_freeze_amendment where approved_by is null)::text
            || ' of ' || (select count(*) from public.phase_c_freeze_amendment)::text
-           || ' (change requests named: '
+           || ' await the founder (change requests named: '
            || (select coalesce(string_agg(distinct change_request_ref, ', '),'(none)')
-                 from public.phase_c_freeze_amendment) || ')',
-         true
+                 from public.phase_c_freeze_amendment)
+           || '). Only he can clear this row.',
+         (select count(*) from public.phase_c_freeze_amendment where approved_by is null) = 0
   union all
   select 'raw_frozen_subjects', 'informational',
          count(*)::text || ' of ' || count(*)::text, true
@@ -49981,76 +49999,52 @@ CREATE OR REPLACE FUNCTION public.fn_phase_d_drive_workflow(p_input jsonb)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  w        public.phase_b_workflow%rowtype;
-  sr       public.phase_c_workflow_step_run%rowtype;
-  e        public.phase_d_step_effect%rowtype;
-  b        public.phase_d_handler_binding%rowtype;
-  wm       public.phase_d_object_write_map%rowtype;
-  v_wf     text := nullif(btrim(coalesce(p_input->>'workflow_id','')),'');
-  -- A3. THE DEFAULT WAS 'test', AND test IS THE ONE VALUE THAT DISABLES BOTH FAIL-CLOSED
-  -- BOUNDARIES in fn_phase_d_handler_execute -- the capability boundary at its section 3 and the
-  -- provider boundary at section 4. A driver that defaults to the permissive mode gives a caller who
-  -- said nothing the answer that refuses nothing. fn_phase_d_handler_execute itself already defaults
-  -- to 'production'; this now agrees with it, and a harness that wants test mode must ask for it.
-  v_ctx    text := lower(coalesce(nullif(btrim(p_input->>'execution_context'),''),'production'));
-  v_max    int  := coalesce(nullif(p_input->>'max_steps','')::int, 40);
-  v_label  text := coalesce(nullif(btrim(p_input->>'label'),''), 'phase-d-drive');
-  v_owner  text := nullif(btrim(coalesce(p_input->>'owner_ref','')),'');
-  v_verdict text := nullif(btrim(coalesce(p_input->>'verdict','')),'');
-  -- THE REVIEWER IS A RUNTIME FACT FOR 45 OF THE 47 REVIEW STEPS. Measured on the frozen registry:
-  -- 47 steps are step_type='review' and 45 of them name no independent_reviewer_role_id, so there is
-  -- no reviewer to read for all but two. The executor is right to refuse — fn_kernel_reviewer_
-  -- independent(owner, NULL) is false and BR-002 blocks — and the identity has to come from whoever
-  -- is driving. It is taken from the CALLER and never chosen here: a driver that picked a reviewer
-  -- would be fn_pick_reviewer returning the department head 182 times, one layer up. Independence is
-  -- still decided by the kernel, not by this parameter.
+  w         public.phase_b_workflow%rowtype;
+  sr        public.phase_c_workflow_step_run%rowtype;
+  hr        public.phase_c_handoff_run%rowtype;
+  hc        public.phase_d_handoff_contract%rowtype;
+  d         public.phase_d_dispatch%rowtype;
+  v_prev    public.phase_c_workflow_step_run%rowtype;
+  v_wf      text := nullif(btrim(coalesce(p_input->>'workflow_id','')),'');
+  v_label   text := coalesce(nullif(btrim(p_input->>'label'),''), 'phase-d-drive');
+  v_ctx     text := lower(coalesce(nullif(btrim(p_input->>'execution_context'),''),'production'));
+  v_max     int  := coalesce(nullif(p_input->>'max_steps','')::int, 40);
+  v_boid    text := nullif(btrim(coalesce(p_input->>'business_object_id','')),'');
   v_caller_reviewer text := nullif(btrim(coalesce(p_input->>'reviewer_role_id','')),'');
-  v_parents jsonb := coalesce(p_input->'parent_refs','{}'::jsonb);
-  v_extra   jsonb := coalesce(p_input->'context','{}'::jsonb);
-  v_run    bigint;
-  v_start  jsonb;
-  v_steps  jsonb := '[]'::jsonb;
-  v_i      int := 0;
-  v_res    jsonb;
-  v_inputs jsonb;
-  v_eff    jsonb;
-  v_fix    jsonb;
-  v_key    text;
-  v_keys   jsonb := '{}'::jsonb;
-  v_col    record;
-  v_err    text; v_sqlstate text; v_code text;
-  v_run_state text;
-  v_scope_owner text;
-  v_contrib text;
-  v_contrib_kind text;    -- D20
-  v_produced_rel text;    -- D21
-  v_object_rel   text;    -- D21
-  v_fk_rel       text;    -- D22
-  v_fk_col       text;    -- D22
-  v_fk_owner     text;    -- D22
-  v_decl_state text;
-  v_working_state text;   -- D20
-  v_working_payload jsonb; -- D23
-  v_decision_payload jsonb; -- D26
-  v_prov_payload jsonb;     -- D27
-  v_dec_role text;          -- D26
-  v_cands text[] := coalesce((select array_agg(x) from jsonb_array_elements_text(p_input->'reviewer_candidates') x), '{}'::text[]);
-  hr       public.phase_c_handoff_run%rowtype;
-  hc       public.phase_d_handoff_contract%rowtype;
-  v_hoff   jsonb;
-  v_hpk    jsonb;
-  v_haccept int := 0;
+  v_cands   text[] := coalesce((select array_agg(x)
+                                  from jsonb_array_elements_text(p_input->'reviewer_candidates') x),
+                               '{}'::text[]);
+  v_run     bigint;
+  v_start   jsonb;
+  v_steps   jsonb := '[]'::jsonb;
   v_handoffs jsonb := '[]'::jsonb;
-  v_prev   public.phase_c_workflow_step_run%rowtype;
-  v_ledger int; v_before int; v_after int;
-  v_reviewer text;
+  v_i       int := 0;
+  v_driven  int := 0;
+  v_haccept int := 0;
+  v_dispatched int := 0;
+  v_executed   int := 0;
+  v_before  bigint;
+  v_declared text;
+  v_rev     text;
   v_task    bigint;
   v_decide  jsonb;
-  v_declared_reviewer text;
+  v_hoff    jsonb;
+  v_hpk     jsonb;
+  v_err     text; v_sqlstate text; v_code text;
+  v_run_state text;
+  v_stopped jsonb := null;        -- where the DRIVE could go no further, and why
+  v_first_refusal jsonb := null;  -- where the deterministic HANDLER first declined, and why
 begin
   if v_wf is null then
     raise exception 'fn_phase_d_drive_workflow: workflow_id is required' using errcode = '22023';
   end if;
+  -- The kernel dispatch hard-codes 'execution_context','production'. Accepting any other value
+  -- here would be this routine promising a mode it has no way to pass on.
+  if v_ctx <> 'production' then
+    raise exception 'fn_phase_d_drive_workflow: execution_context % is not available. This driver goes through fn_kernel_step_complete, and fn_phase_d_dispatch_step executes the handler in production context with no other mode. (pd_drive_context_unavailable)',
+      v_ctx using errcode = '22023';
+  end if;
+
   select * into w from public.phase_b_workflow where workflow_id = v_wf;
   if not found then
     raise exception 'fn_phase_d_drive_workflow: % is not a frozen workflow', v_wf using errcode = '23503';
@@ -50058,13 +50052,21 @@ begin
 
   select count(*) into v_before from public.phase_d_effect_ledger;
 
+  -- THE ARRIVAL NAMES THE OBJECT IT IS ABOUT. E25 derives business_key from the run's
+  -- business_object_id and only when it carries the '<object>:' prefix of the object the step
+  -- writes - 'inquiry:<uuid>' is an identity, a bare object name is not. The previous driver
+  -- passed w.primary_object, which is the object's NAME, so the prefix test was false on every
+  -- run it started and the derivation E25 built could never fire through this path.
+  v_boid := coalesce(v_boid, w.primary_object || ':' || v_label);
+
   v_start := public.fn_kernel_workflow_start(jsonb_build_object(
-    'workflow_id', v_wf,
-    'business_object_id', w.primary_object,
-    'source_kind', 'autonomous',
-    'source_ref', format('zz-phase-d-%s-%s', v_label, v_wf),
-    'requested_by', w.accountable_role_id,
-    'trigger_ctx', jsonb_build_object('driver','fn_phase_d_drive_workflow','fixture',true)));
+    'workflow_id',        v_wf,
+    'business_object_id', v_boid,
+    'source_kind',        'autonomous',
+    'source_ref',         format('zz-phase-d-%s-%s', v_label, v_wf),
+    'requested_by',       w.accountable_role_id,
+    'trigger_ctx',        jsonb_build_object('driver','fn_phase_d_drive_workflow',
+                                             'path','kernel doors only')));
   v_run := (v_start->>'run_id')::bigint;
   if v_run is null then
     return jsonb_build_object('ok', false, 'workflow_id', v_wf,
@@ -50081,32 +50083,57 @@ begin
      order by step_run_id
      limit 1;
 
-    -- ---- NO OPEN STEP RUN IS NOT NECESSARILY A STOPPED RUN ---------------------------------------
-    -- The kernel opens no successor until the receiving owner accepts the handoff. A run sitting in
-    -- waiting_handoff has work to do and nobody has done it. Accept through the D9 contract path,
-    -- which checks THIS handoff's own frozen packet and then lets the kernel move the state.
+    -- ---- NO OPEN STEP RUN IS NOT NECESSARILY A STOPPED RUN -----------------------------------
+    -- The kernel opens no successor until the receiving owner accepts the handoff.
     if not found then
       select * into hr from public.phase_c_handoff_run
        where run_id = v_run and status = 'open'
        order by handoff_run_id limit 1;
-      exit when not found;
+      -- A DRIVER THAT STOPS WITHOUT SAYING WHY IS THE INSTRUMENT GAP THIS ESTATE KEEPS FINDING.
+      -- Both of these were a bare `exit when not found` in my first draft, so a run that ended in
+      -- waiting_handoff with no D9 contract reported a stop with an empty reason, and a reader
+      -- would have taken the blank for "nothing went wrong".
+      if not found then
+        if v_stopped is null then
+          v_stopped := jsonb_build_object(
+            'at', (select state from public.phase_c_workflow_run where run_id = v_run),
+            'refused_with','pd_drive_no_open_work',
+            -- NO run_id IN A REPRODUCIBLE DELIVERABLE. This read "...on run 25384", and a run_id is
+            -- different every drive, so the committed CSV could never reproduce byte-for-byte and
+            -- phase_d_deliverables_match_production.test.mjs failed on thirty lines that differed
+            -- only in that number. The run_id is on the row already, as run_id; a reason is a
+            -- reason.
+            'reason', 'no step run is open and no handoff run is open; the run is as far as the kernel will take it');
+        end if;
+        exit;
+      end if;
 
       select * into hc from public.phase_d_handoff_contract where handoff_id = hr.handoff_id;
-      exit when not found;
+      if not found then
+        if v_stopped is null then
+          v_stopped := jsonb_build_object('at', hr.handoff_id, 'refused_with','pd_handoff_contract_absent',
+            'reason', format('handoff %s is open and public.phase_d_handoff_contract holds no row for it, so this driver has no packet contract to satisfy', hr.handoff_id));
+        end if;
+        v_handoffs := v_handoffs || jsonb_build_array(jsonb_build_object(
+          'handoff_id', hr.handoff_id, 'handoff_run_id', hr.handoff_run_id,
+          'ok', false, 'refused_with', 'pd_handoff_contract_absent'));
+        exit;
+      end if;
 
       select * into v_prev from public.phase_c_workflow_step_run
        where step_run_id = hr.from_step_run_id;
 
-      -- Real facts where real facts exist; a fixture only for the clauses the frozen registry
-      -- declares and nothing in this estate can supply.
-      v_hpk := coalesce((select jsonb_object_agg(k, format('ZZ DEMO — %s for %s', k, hr.handoff_id))
+      -- Derived where the estate can derive it; a labelled caller assertion for the work-product
+      -- keys, which are what the sending PERSON hands over and no business rule ever reads.
+      v_hpk := coalesce((select jsonb_object_agg(k, format('ZZ DEMO - %s declared by the driver standing in for %s', k, hc.sending_role_id))
                            from unnest(hc.packet_keys) k), '{}'::jsonb)
              || jsonb_build_object(
                   'business_object_id',
                     coalesce((select business_object_id from public.phase_c_workflow_run
-                               where run_id = v_run), w.primary_object),
+                               where run_id = v_run), v_boid),
                   'object_version', coalesce(hr.object_version, 1),
-                  'output', coalesce(v_prev.output_hash, 'no output hash recorded on the sending step run'),
+                  'output', coalesce(v_prev.output_hash,
+                                     'no output hash recorded on the sending step run'),
                   'evidence_refs',
                     coalesce((select string_agg(result_reference, '; ' order by effect_id)
                                 from public.phase_d_effect_ledger
@@ -50119,19 +50146,15 @@ begin
 
       begin
         v_hoff := public.fn_phase_d_handoff_accept(jsonb_build_object(
-          'handoff_run_id', hr.handoff_run_id,
-          'actor_role_id',  hc.receiving_role_id,
-          'packet',         v_hpk,
+          'handoff_run_id',  hr.handoff_run_id,
+          'actor_role_id',   hc.receiving_role_id,
+          'packet',          v_hpk,
           'idempotency_key', format('%s:%s:%s', v_label, hr.handoff_id, hr.handoff_run_id)));
         v_haccept := v_haccept + 1;
         v_handoffs := v_handoffs || jsonb_build_array(jsonb_build_object(
           'handoff_id', hr.handoff_id, 'handoff_run_id', hr.handoff_run_id,
-          'ok', v_hoff->'ok', 'replay', v_hoff->'replay',
-          'to_step_id', v_hoff->>'to_step_id',
-          'accountable_before', v_hoff->>'accountable_before',
-          'accountable_after',  v_hoff->>'accountable_after',
-          'sla_policy_id', v_hoff->>'sla_policy_id',
-          'sla_breached', v_hoff->'sla_breached'));
+          'ok', v_hoff->'ok', 'to_step_id', v_hoff->>'to_step_id',
+          'accountable_after', v_hoff->>'accountable_after'));
         continue;
       exception when others then
         v_sqlstate := SQLSTATE; v_err := SQLERRM;
@@ -50140,581 +50163,178 @@ begin
           'handoff_id', hr.handoff_id, 'handoff_run_id', hr.handoff_run_id,
           'ok', false, 'refused_with', v_code, 'sqlstate', v_sqlstate,
           'reason', left(v_err, 400)));
-        -- STOP. A driver that skipped a refused handoff and carried on would report a closure the
-        -- workflow never reached, exactly as it would for a refused step.
+        if v_stopped is null then
+          v_stopped := jsonb_build_object('at', hr.handoff_id, 'refused_with', v_code,
+                                          'reason', left(v_err, 400));
+        end if;
+        -- A driver that skipped a refused handoff would report a closure the workflow never reached.
         exit;
       end;
     end if;
 
-    select * into e from public.phase_d_step_effect where step_id = sr.step_id;
-    select * into b from public.phase_d_handler_binding where step_id = sr.step_id;
-
-    -- E21. THE DRIVER USED TO INVENT EVERY INPUT, AND INVENT IT AS A STRING.
-    -- It built 'ZZ DEMO — <key> for <step>' for each declared input key and handed that to the
-    -- handler. The kernel path does not: fn_phase_d_dispatch_step calls fn_phase_d_step_inputs,
-    -- whose every branch returns a jsonb_build_object assembled from real rows. So the harness that
-    -- produced the workflow-implementation deliverable was exercising a different input path from
-    -- the one production uses, and answering a question about itself. E16 typed the input schemas
-    -- from what the resolver actually produces, and the string placeholders stopped validating,
-    -- which is how this surfaced.
-    --
-    -- The resolver is now the source, exactly as in the kernel path. A key the resolver genuinely
-    -- cannot resolve — a caller-supplied runtime fact, with no business subject in the estate to
-    -- read it from — still gets a fixture, but a typed one that SAYS it is a fixture and keeps the
-    -- ZZ DEMO marker fn_phase_d_fixture_residue() matches on, so a leaked row is still detectable.
-    v_inputs := coalesce(public.fn_phase_d_step_inputs(sr.step_run_id)->'inputs', '{}'::jsonb);
-    select v_inputs || coalesce(jsonb_object_agg(k, jsonb_build_object(
-             'fixture', true,
-             'note', 'ZZ DEMO — ' || k || ' for ' || sr.step_id,
-             'unresolved_by', 'public.fn_phase_d_step_inputs')), '{}'::jsonb)
-      into v_inputs
-      from public.phase_d_handler_schema sc, unnest(sc.required_keys) k
-     where sc.step_id = sr.step_id and sc.schema_kind = 'input'
-       and not (v_inputs ? k);
-
-    -- One source for every rule fact and gate fact the step declares it needs, typed per key.
-    v_fix := public.fn_phase_d_fixture_context(sr.step_run_id, v_label);
-
-    -- THE OWNER OF A CUSTOMER-SCOPED OBJECT IS A CUSTOMER, NOT A FRESH UUID. The write map points
-    -- public.inquiries.customer_id at owner_ref, so a generated key reached a foreign key and W05
-    -- died on inquiries_customer_id_fkey. The scope is read from the object's own binding — CUSTOMER
-    -- takes customer_id, SUPPLIER takes supplier_id, COMPANY has no parent row and keeps the key.
-    -- Nothing is defaulted: if the caller supplied no parent of that scope, this stays null and the
-    -- previous behaviour and its refusal are unchanged.
-    -- The first value the target's state CHECK admits, read from pg_constraint rather than
-    -- assumed. Nothing is invented: a target with no CHECK yields null and the old default stands.
-    -- D20. THE STATE AN OBJECT IS IN WHEN THE BUSINESS IS WORKING, read from the registry that
-    -- the scenario factory builds its lineage from. Four of the five relations these workflows
-    -- write carry NO state CHECK constraint — inquiries.status, documents.status, quotes.status
-    -- and transactions.fee_status are all unconstrained text — so the CHECK-first heuristic below
-    -- resolved null and every driven object was written 'open'. Five MEASURED gates then read the
-    -- row back and correctly refused it:
-    --     GATE-011 inquiries.status in (quote_ready, dispatched, quoted, completed)
-    --     GATE-012 documents.status not in (error, quarantined, rejected)
-    --     GATE-017 quotes.quote_amount is not null and status <> ''
-    --     GATE-018 quote_comparisons ownership
-    --     BR-020   transactions.fee_status must be a declared payment state
-    -- Those gates were right every time. What was missing is that the driver never advanced the
-    -- object; it created it open and asked a gate whether open was good enough.
-    --
-    -- working_state is taken in preference to the CHECK-first value because "the first literal in
-    -- the constraint array" is an ordering accident, not a business state. Where a CHECK exists,
-    -- a deploy control proves working_state is inside it, so this is narrower than what it
-    -- replaces rather than looser.
-    -- D23. A STATE CAN REQUIRE A COMPANION COLUMN, AND D20 SUPPLIED THE STATE WITHOUT IT.
-    --
-    -- D20 gave the driver working_state and W09 went 9/9 -> 1/9 on
-    --     new row for relation "leads" violates check constraint "leads_approved_implies_verified"
-    -- because public.leads carries CHECK (approval_status <> 'approved' OR verified = true). The
-    -- driver had been writing 'open', which the constraint does not care about; the moment it
-    -- started writing the real state it also owed the column that state implies. The scenario
-    -- factory had always supplied verified=true — that is one of the four defects D9 recorded — so
-    -- the fixture built a lineage the driver could not reproduce.
-    --
-    -- Caught by re-driving all 30 rather than the 9 this session had been iterating on. An
-    -- increment measured only against the workflows it was aimed at will keep doing this.
-    --
-    -- working_payload is the minimum a stage needs alongside its state, declared as data next to
-    -- working_state so the two cannot be moved apart, and merged UNDER the effect payload so a step
-    -- that supplies its own value still wins.
-    -- D26. A STEP WHOSE DECLARED JOB IS TO DECIDE MUST BE ABLE TO RECORD THAT IT DECIDED.
-    --
-    -- W17-S06 is "Decide case outcome", handler_class DECISION_HANDLER, effect object
-    -- refund_dispute_case, accountable to trust_and_safety_manager, required_action "Approve,
-    -- reject, escalate, partially resolve or request further evidence within authority." It runs and
-    -- it PASSES. Then W17-S07 is refused by GATE-020, which reads
-    --
-    --     public.refunds.decided_by <> '' AND public.refunds.decided_at IS NOT NULL
-    --
-    -- and finds neither, because the refund_dispute_case write map declares no decision columns. The
-    -- step that decides had nowhere to write its decision. That is the same shape D9 recorded as
-    -- "an object that could not reach its own state" and D20 as the driver never advancing the
-    -- object — not a founder-authorisation problem, which is what it had been read as.
-    --
-    -- THE FOUNDER GUARD IS NOT TOUCHED AND IS NOT CIRCUMVENTED. z00_refund_founder_decision_only
-    -- fires only when status = 'approved' and then demands an active row in
-    -- phase_c_founder_identity. Phase D writes the refund at its declared working_state,
-    -- 'requested', and never at 'approved'. So the guard is never engaged, no founder identity is
-    -- forged, and a deploy control below PROVES the guard still refuses a non-founder approval.
-    --
-    -- DERIVED, NOT LISTED. The rule is: a DECISION_HANDLER step whose target relation carries
-    -- decided_by and decided_at records them, and the decider is that step's OWN frozen
-    -- accountable_role_id — read from phase_b_workflow_step, never chosen here. 35 steps are
-    -- DECISION_HANDLER and 32 name an object; only the relations that actually have the columns are
-    -- written, which today is public.refunds alone.
-    -- D27. EVERY EFFECT RECORDS WHICH STEP PRODUCED IT.
-    --
-    -- W12 writes dispatch_batch at five steps and the driver handed all five the same generic
-    -- payload, so the narrowed pd_object_duplicate_identity refusal fired on the second: same
-    -- state, same payload, nothing moved. It was right to fire. In reality S01 accepts a package
-    -- and S02 builds a supplier pool -- they write different things -- and it is the HARNESS that
-    -- had no way to tell them apart.
-    --
-    -- produced_by_step is provenance, not invented business data: it is the step id from the frozen
-    -- registry, recording which step wrote which version. For an object whose frozen mutation_rule
-    -- is "immutable selection evidence" that is precisely the evidence a reader needs.
-    --
-    -- It also keeps the refusal sharp where it matters. A genuine REPLAY -- the same step writing
-    -- the same content twice -- still carries the same step id, so it is still refused. Only two
-    -- DIFFERENT steps of a workflow can now both write one identity.
-    v_prov_payload := jsonb_build_object('produced_by_step', sr.step_id);
-
-    v_decision_payload := '{}'::jsonb;
-    if e.effect_object_id is not null
-       and exists (select 1 from public.phase_d_handler_binding hb
-                    where hb.step_id = sr.step_id and hb.handler_class = 'DECISION_HANDLER')
-       and exists (select 1 from public.phase_d_object_write_map wm4
-                    join pg_attribute a1 on a1.attrelid = wm4.target_relation::regclass
-                                        and a1.attname = 'decided_by' and a1.attnum > 0 and not a1.attisdropped
-                    join pg_attribute a2 on a2.attrelid = wm4.target_relation::regclass
-                                        and a2.attname = 'decided_at' and a2.attnum > 0 and not a2.attisdropped
-                   where wm4.object_id = e.effect_object_id)
-    then
-      select x.accountable_role_id into v_dec_role
-        from public.phase_b_workflow_step x where x.step_id = sr.step_id;
-      if coalesce(btrim(v_dec_role),'') <> '' then
-        v_decision_payload := jsonb_build_object(
-          'decided_by', v_dec_role,
-          'decided_at', to_jsonb(now()));
+    -- ---- WHAT THE DETERMINISTIC HANDLER DID WITH THIS STEP ------------------------------------
+    -- It has already happened. The dispatch fires when the kernel OPENS the step, so by the time
+    -- this loop sees an open step run the row is on the table. Reading it is the whole of what this
+    -- driver has to do to measure Phase D; it never calls the handler itself.
+    select * into d from public.phase_d_dispatch
+     where step_run_id = sr.step_run_id order by dispatch_id desc limit 1;
+    if found then
+      v_dispatched := v_dispatched + 1;
+      if d.outcome = 'EXECUTED' then v_executed := v_executed + 1; end if;
+      v_steps := v_steps || jsonb_build_array(jsonb_build_object(
+        'step_id', sr.step_id, 'step_run_id', sr.step_run_id,
+        'ok', (d.outcome = 'EXECUTED'), 'dispatch_outcome', d.outcome,
+        'refused_with', nullif(d.refusal_code,''), 'reason', left(coalesce(d.reason,''), 400),
+        'unresolved_keys', to_jsonb(coalesce(d.unresolved_keys,'{}'::text[])),
+        'effect_id', d.effect_id));
+      -- TWO SUBJECTS, TWO FIELDS. My first draft folded both into one 'stopped' object, and the
+      -- deliverable then reported W21 as stopping at W21-S01 when the drive had in fact reached
+      -- W21-S07 -- because step 1's dispatch refused, as nearly every dispatch does, and that was
+      -- the first thing to claim the field. Where the HANDLER first declined is a Phase D fact;
+      -- where the DRIVE could go no further is a fact about this harness and the kernel.
+      if d.outcome <> 'EXECUTED' and v_first_refusal is null then
+        v_first_refusal := jsonb_build_object('at', sr.step_id,
+                                              'refused_with', nullif(d.refusal_code,''),
+                                              'reason', left(coalesce(d.reason,''), 400));
       end if;
-    end if;
-
-    v_working_state := null;
-    v_working_payload := '{}'::jsonb;
-    if e.effect_object_id is not null then
-      select st3.working_state, coalesce(st3.working_payload, '{}'::jsonb)
-        into v_working_state, v_working_payload
-        from public.phase_d_fixture_stage st3
-       where st3.object_id = e.effect_object_id;
-    end if;
-
-    v_decl_state := null;
-    if e.effect_object_id is not null then
-      select (regexp_match(pg_get_constraintdef(c.oid), '= ANY \(ARRAY\[''([^'']+)'''))[1]
-        into v_decl_state
-        from public.phase_d_object_write_map m
-        join pg_constraint c on c.conrelid = m.target_relation::regclass and c.contype = 'c'
-       where m.object_id = e.effect_object_id
-         -- column_map is target_column -> payload_key, so the state column is the KEY whose VALUE
-         -- is 'state'. Reading it the other way round finds nothing and silently defaults.
-         and exists (select 1 from jsonb_each_text(m.column_map) kv
-                      where kv.value = 'state'
-                        and pg_get_constraintdef(c.oid) like '%(' || kv.key || ' =%')
-         and pg_get_constraintdef(c.oid) like '%= ANY (ARRAY[%'
-       limit 1;
-    end if;
-
-    v_scope_owner := null;
-    if e.effect_object_id is not null then
-      select case ob.ownership_scope
-               when 'CUSTOMER' then nullif(btrim(coalesce(v_parents->>'customer_id','')),'')
-               when 'SUPPLIER' then nullif(btrim(coalesce(v_parents->>'supplier_id','')),'')
-               else null end
-        into v_scope_owner
-        from public.phase_d_business_object_binding ob
-       where ob.object_id = e.effect_object_id;
-    end if;
-
-    -- D22. A COMPANY-SCOPED OWNER CAN STILL BE A FOREIGN KEY.
-    --
-    -- The scope resolution above covers CUSTOMER and SUPPLIER and returns null for COMPANY, on the
-    -- reasoning that a company-scoped object "has no parent row and keeps the key". W01-S07 is the
-    -- counter-example: initiative is COMPANY-scoped, its write map points org_tasks.dept_key at
-    -- owner_ref, and dept_key is
-    --     FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key)
-    -- so the generated key reached a foreign key and the step died on org_tasks_dept_key_fkey.
-    -- Scope is about WHOSE the object is; a foreign key is about whether the value exists. They are
-    -- different questions and only the first was being asked.
-    --
-    -- The owner is RESOLVED, never created. Phase A is frozen and holds 10 active departments; a
-    -- fixture that created an eleventh to satisfy a foreign key would be inventing an organisation
-    -- to pass a test. Where the referenced table carries an active flag the resolution prefers an
-    -- active row, ordered by its key so the same run always resolves the same one. Where nothing
-    -- resolves, this stays null and the previous behaviour and its refusal are unchanged.
-    v_fk_owner := null;
-    if e.effect_object_id is not null and v_scope_owner is null then
-      v_fk_rel := null; v_fk_col := null;
-      select kcu.column_name,
-             'public.' || ccu.table_name || '.' || ccu.column_name
-        into v_fk_col, v_fk_rel
-        from public.phase_d_object_write_map wm2
-        join jsonb_each_text(wm2.column_map) cm on cm.value = 'owner_ref'
-        join information_schema.table_constraints tc
-          on tc.table_schema = 'public'
-         and tc.table_name = split_part(wm2.target_relation, '.', 2)
-         and tc.constraint_type = 'FOREIGN KEY'
-        join information_schema.key_column_usage kcu
-          on kcu.constraint_name = tc.constraint_name and kcu.table_schema = 'public'
-         and kcu.column_name = cm.key
-        join information_schema.constraint_column_usage ccu
-          on ccu.constraint_name = tc.constraint_name and ccu.table_schema = 'public'
-       where wm2.object_id = e.effect_object_id
-       limit 1;
-
-      if v_fk_rel is not null then
-        execute format(
-          'select %I::text from %I.%I %s order by %I limit 1',
-          split_part(v_fk_rel, '.', 3), 'public', split_part(v_fk_rel, '.', 2),
-          case when exists (select 1 from pg_attribute a
-                             where a.attrelid = ('public.' || split_part(v_fk_rel,'.',2))::regclass
-                               and a.attname = 'active' and a.attnum > 0 and not a.attisdropped)
-               then 'where active' else '' end,
-          split_part(v_fk_rel, '.', 3))
-          into v_fk_owner;
-      end if;
-    end if;
-
-    -- THE BUSINESS KEY MUST BE THE TARGET'S KEY TYPE. public.customers.id is a uuid, and a label
-    -- string reached it as one: "invalid input syntax for type uuid". A driver that hands a business
-    -- key of the wrong type produces a type error where a business refusal belongs, and the two read
-    -- nothing alike in a result table.
-    select * into wm from public.phase_d_object_write_map where object_id = e.effect_object_id;
-    if found and exists (
-         select 1 from pg_attribute a
-          where a.attrelid = wm.target_relation::regclass and a.attname = wm.key_column
-            and format_type(a.atttypid, a.atttypmod) = 'uuid') then
-      v_key := gen_random_uuid()::text;
     else
-      -- D22. ONE KEY PER (RUN, OBJECT) IS RIGHT FOR EVERY FAMILY EXCEPT APPEND_ONLY.
-      -- The comment below is correct and stays: W04 wrote two customer rows because the key
-      -- carried the step id. But provider_event is APPEND_ONLY — its whole contract is that a
-      -- correction is a NEW key, never a second version of this one — and W16-S03 and W16-S04
-      -- both write it. Sharing one key made the second an INSERT onto an existing primary key
-      -- and W16 died on stripe_events_pkey. The family decides, and it is read rather than
-      -- assumed: the writer already refuses a second version of an APPEND_ONLY key by name.
-      if exists (select 1 from public.phase_d_business_object_binding ob2
-                  where ob2.object_id = e.effect_object_id
-                    and ob2.policy_family = 'APPEND_ONLY') then
-        v_key := format('zz-phase-d-%s-%s-%s-%s', v_label, e.effect_object_id, v_run, sr.step_id);
-      else
-        v_key := format('zz-phase-d-%s-%s-%s', v_label, e.effect_object_id, v_run);
-      end if;
-    end if;
-    -- ONE BUSINESS KEY PER (RUN, OBJECT), NOT PER STEP. The first drive of W04 wrote TWO customer
-    -- rows — one at S01 (create) and another at S03 (verify) — because the key carried the step id,
-    -- so the second write found no existing row and inserted instead of moving the first one's
-    -- state. A workflow that creates a fresh account at every step it touches is not onboarding a
-    -- customer, and the ledger would have counted both as successful effects. Keys are remembered
-    -- per object for the life of the run.
-    -- D25. THE CACHE MUST NOT APPLY TO THE ONE FAMILY THAT MAY NOT BE MOVED.
-    --
-    -- D22 gave APPEND_ONLY objects a per-step business key and W16 still died on
-    -- stripe_events_pkey. The key was computed correctly and THIS BLOCK threw it away one
-    -- statement later: the cache remembers a key per object for the life of the run, so W16-S04
-    -- was handed W16-S03's key and INSERTed onto it.
-    --
-    -- The cache is right and the comment above it is right — W04 wrote two customer rows without
-    -- it. But its whole purpose is to make a second write MOVE THE FIRST ROW'S STATE, and an
-    -- APPEND_ONLY object is defined by not doing that. fn_phase_d_object_write says so in its own
-    -- refusal: "a correction is a NEW key, never a second version of this one". So the family that
-    -- the cache exists to serve is precisely the family it must skip.
-    --
-    -- A fix that is computed and then discarded by code a few lines away is worth naming: D22's
-    -- control asserted no regression on W16 rather than a number, which is the only reason this
-    -- was not recorded as fixed.
-    if exists (select 1 from public.phase_d_business_object_binding ob3
-                where ob3.object_id = e.effect_object_id
-                  and ob3.policy_family = 'APPEND_ONLY') then
-      null;  -- each step appends its own row; nothing is remembered and nothing is moved
-    elsif v_keys ? e.effect_object_id then
-      v_key := v_keys->>e.effect_object_id;
-    elsif e.effect_object_id is not null then
-      v_keys := v_keys || jsonb_build_object(e.effect_object_id, v_key);
-    end if;
-    v_eff := '{}'::jsonb;
-
-    -- THE REVIEWER IS RESOLVED FOR EVERY STEP, NOT ONLY FOR A REVIEW_VERDICT EFFECT.
-    -- BR-002 is enforced on the STEP, and W17-S04 and W17-S05 are step_type='review' whose declared
-    -- EFFECT is CAPABILITY_REQUEST. Resolving the reviewer inside the REVIEW_VERDICT branch meant
-    -- those steps were asked for an independent reviewer and never given the chance to name one, so
-    -- BR-002 refused them with 'the review names (none) as reviewer'. Same disagreement as W11-S01,
-    -- one layer along: a fact keyed on the effect type while the rule is keyed on the step.
-    v_reviewer := nullif(btrim(coalesce(b.independent_reviewer_role_id,'')),'');
-    if v_reviewer is null then
-      v_reviewer := v_caller_reviewer;
-      if v_reviewer is null
-         or not public.fn_kernel_reviewer_independent(sr.accountable_role_id, v_reviewer) then
-        select c into v_reviewer from unnest(v_cands) c
-         where public.fn_kernel_reviewer_independent(sr.accountable_role_id, c) limit 1;
-      end if;
-    end if;
-    v_task := null;
-    v_decide := null;
-
-    if e.expected_effect_type = 'MEASUREMENT_RECORD' then
-      v_eff := jsonb_build_object('numerator', 1, 'denominator', 1,
-                                  'formula', 'fixture', 'window', 'fixture');
-    elsif e.expected_effect_type = 'EXTERNAL_EFFECT_INTENT' then
-      v_eff := jsonb_build_object(
-        'recipient', 'zz-phase-d-' || v_label || '@example.invalid',
-        'consent_basis', 'fixture: no consent record is asserted and nothing is sent',
-        'suppressed', false);
-    elsif e.expected_effect_type = 'REVIEW_VERDICT' then
-      -- WHERE THE FROZEN REGISTRY NAMES A REVIEWER, THAT ONE IS USED AND NOTHING IS CHOSEN.
-      -- Where it does not — 45 of the 47 review steps — the CALLER's reviewer is offered, and if
-      -- that one is not independent of this step's owner the caller's own candidate list is tried
-      -- in order using the FROZEN kernel's independence test. The driver never invents an identity,
-      -- never reads a department head, and the verdict is still the caller's; fn_kernel_review_decide
-      -- and fn_phase_d_effect_produce both re-check independence afterwards.
-      -- already resolved above, for every step
-      v_eff := jsonb_strip_nulls(jsonb_build_object(
-        'verdict', v_verdict, 'reviewer_role_id', v_reviewer,
-        'subject_type', 'phase_d_step', 'subject_id', sr.step_id,
-        'author_agent', sr.accountable_role_id, 'stage', sr.step_id,
-        'notes', 'fixture review through fn_phase_d_drive_workflow'));
-    elsif e.expected_effect_type in ('DOMAIN_MUTATION','VERSIONED_ARTIFACT') then
-      if wm.object_id is not null then
-        for v_col in
-          select k.key as col, wm.column_map->>k.key as src,
-                 format_type(a.atttypid, a.atttypmod) as ftype,
-                 (select typcategory from pg_type ty where ty.oid = a.atttypid) as tcat
-            from jsonb_each(wm.column_map) k
-            join pg_attribute a
-              on a.attrelid = wm.target_relation::regclass and a.attname = k.key and a.attnum > 0
-           -- EVERY MAPPED COLUMN, not only the ones the table REQUIRES. public.customers has no
-           -- NOT-NULL-without-default column at all, so the required-only filter produced an
-           -- empty payload: the first write inserted on defaults and the second found the row,
-           -- moved nothing, and hit pd_object_no_state_change. A step writes the fields it has,
-           -- not only the fields it must. Identity and generated columns stay excluded because
-           -- Postgres refuses a value for them.
-           -- AND NEVER THE KEY COLUMN. Third instance of one lesson in one session: an identity is
-           -- not a fixture. With every mapped column fixtured, the key column's source key —
-           -- business_key — was regenerated at each step, so W04 created FOUR customer accounts
-           -- for one onboarding and the ledger counted all four as successful effects. The key is
-           -- remembered per (run, object) and the generator must not overwrite it.
-           where a.attidentity = '' and a.attgenerated = '' and k.key <> wm.key_column
-        loop
-          if v_parents ? v_col.src then
-            v_eff := v_eff || jsonb_build_object(v_col.src, v_parents->v_col.src);
-          else
-            -- THE LABEL CARRIES THE STEP, SO A LATER STEP GENUINELY MOVES THE RECORD. With one
-            -- label for the whole run, every step produced byte-identical values and the second
-            -- write hit pd_object_no_state_change — my own guard, firing correctly on a fixture
-            -- that changed nothing. A real onboarding does move the record at each step; a fixture
-            -- that does not is testing the guard, not the workflow.
-            v_eff := v_eff || jsonb_build_object(v_col.src,
-              public.fn_phase_d_fixture_for_column(wm.target_relation, v_col.col,
-                                                   v_label || '-' || sr.step_id));
-          end if;
-        end loop;
-      end if;
-      v_eff := v_eff || v_parents;
-      if v_eff = '{}'::jsonb then
-        v_eff := jsonb_build_object('fixture', v_label);
+      v_steps := v_steps || jsonb_build_array(jsonb_build_object(
+        'step_id', sr.step_id, 'step_run_id', sr.step_run_id,
+        'ok', false, 'dispatch_outcome', 'NOT_DISPATCHED',
+        'refused_with', 'pd_no_dispatch_row',
+        'reason', 'the kernel opened this step and no phase_d_dispatch row exists for it'));
+      if v_first_refusal is null then
+        v_first_refusal := jsonb_build_object('at', sr.step_id, 'refused_with','pd_no_dispatch_row',
+          'reason','the kernel opened this step and no phase_d_dispatch row exists for it');
       end if;
     end if;
 
-    -- ---- A STEP THAT NAMES A REVIEWER NEEDS A RECORDED VERDICT FIRST -----------------------
-    -- The frozen kernel refuses otherwise, and it says so precisely:
-    --   "step W04-S04 names compliance_and_privacy_officer as its independent reviewer and no
-    --    approved, independent verdict from that role exists on task 8409. Record it with
-    --    fn_kernel_review_decide first."  (k3_reviewer_verdict_missing)
-    -- So the driver records one, on the OPEN TASK for this step, naming the reviewer the FROZEN
-    -- registry declares. fn_kernel_review_decide compares the offered reviewer against that
-    -- registry through fn_phase_c_resolve_actor and returns not_the_declared_reviewer if they
-    -- differ, so this cannot smuggle a reviewer past the freeze — it can only supply the one
-    -- Phase B already named. The verdict itself is still the CALLER's; with none given, nothing is
-    -- recorded and the kernel refuses, which is the correct behaviour and stays observable.
-    v_declared_reviewer := nullif(btrim(coalesce(
-      (select x.independent_reviewer_role_id from public.phase_b_workflow_step x
-        where x.step_id = sr.step_id), '')), '');
-    if v_declared_reviewer is not null and v_verdict is not null then
+    -- ---- A STEP THAT NEEDS AN INDEPENDENT VERDICT GETS ONE, THROUGH THE KERNEL'S OWN DOOR ------
+    -- The reviewer is never chosen here: it is the one the frozen registry declares, or one the
+    -- CALLER offered, and fn_kernel_review_decide decides independence either way. A driver that
+    -- picked a reviewer would be fn_pick_reviewer returning the department head, one layer up.
+    select s.independent_reviewer_role_id into v_declared
+      from public.phase_b_workflow_step s where s.step_id = sr.step_id;
+    v_rev := nullif(btrim(coalesce(v_declared,'')),'');
+    if v_rev is null then
+      v_rev := (select c from unnest(v_cands) c
+                 where public.fn_kernel_reviewer_independent(sr.accountable_role_id, c) limit 1);
+    end if;
+    if v_rev is null and v_caller_reviewer is not null
+       and public.fn_kernel_reviewer_independent(sr.accountable_role_id, v_caller_reviewer) then
+      v_rev := v_caller_reviewer;
+    end if;
+    if v_rev is not null then
       select t.task_id into v_task from public.phase_c_task t
-       where t.run_id = v_run and t.step_id = sr.step_id
-       order by t.task_id desc limit 1;
+       where t.run_id = v_run and t.step_id = sr.step_id order by t.task_id desc limit 1;
       if v_task is not null then
         begin
           v_decide := public.fn_kernel_review_decide(jsonb_build_object(
-            'task_id', v_task, 'reviewer_role_id', v_declared_reviewer,
-            'decision', v_verdict,
-            'reason', format('phase_d driver fixture verdict for %s', sr.step_id)));
+            'task_id', v_task, 'reviewer_role_id', v_rev, 'decision', 'approved',
+            'reason', format('%s: an independent reviewer approves %s', v_label, sr.step_id)));
         exception when others then
-          -- Recorded, never swallowed: a verdict that could not be written is why the step will
+          -- Recorded, never swallowed: a verdict that could not be written is why the step may
           -- refuse a moment later, and a driver that hid it would make that refusal unexplainable.
           v_decide := jsonb_build_object('ok', false, 'error', left(SQLERRM, 240));
         end;
       end if;
     end if;
 
+    -- ---- THE DOOR PRODUCTION USES ------------------------------------------------------------
+    -- fn_kernel_step_complete, with what an ACTOR supplies and nothing else. No context, no gate
+    -- evidence, no business_key, no owner_ref, no effect payload: the kernel dispatch resolves all
+    -- of those from fn_phase_d_step_inputs and fn_phase_d_step_context, and will not accept them
+    -- from a caller. That is the property this file exists to restore.
     begin
-      v_res := public.fn_phase_d_handler_execute(
-        jsonb_build_object(
-          'step_run_id', sr.step_run_id,
-          'actor_role_id', sr.accountable_role_id,
-          'idempotency_key', format('%s:%s:%s', v_label, sr.step_id, sr.step_run_id),
-          'inputs', v_inputs,
-          'execution_context', v_ctx,
-          -- A CALLER-SUPPLIED REAL REFERENCE WINS OVER A GENERATED FIXTURE. v_fix invents a
-          -- typed value for every key the step DECLARES it needs; parent_refs carries the keys a
-          -- scenario actually created. BR-013 reads an inquiry back out of public.inquiries, so
-          -- 'ZZ DEMO — inquiry_id' is a refusal every time and the refusal says nothing about the
-          -- step. Ordering is fixture, then reality, then per-call extras.
-          'context', v_fix || v_parents || v_extra,
-          -- The resolved reviewer must reach the GATE evidence too. GATE-021 and GATE-026 declare
-          -- reviewer_role_id as required evidence and were refusing with 'the call names none of it'
-          -- while the driver had one in hand. A gate asking for a fact the caller holds and never
-          -- passes is the harness losing it, not the gate being strict.
-          'gate_evidence', v_fix || v_parents
-                           || jsonb_strip_nulls(jsonb_build_object('reviewer_role_id', v_reviewer))
-                           || v_extra,
-          'business_key', coalesce(nullif(v_eff->>'business_key',''), v_key),
-          'owner_ref', coalesce(v_scope_owner, v_fk_owner, v_owner, nullif(v_eff->>'owner_ref',''), v_key),
-          -- THE STATE MUST BE ONE THE TARGET DECLARES. 'open' is not in refunds_status_check,
-          -- so W17-S01 wrote a refund the table refused: a fixture that names a state must name a
-          -- declared one, the same lesson d8f learned for the column fixtures. The allowed set is
-          -- read from the target's own CHECK constraint; where there is none, 'open' still applies.
-          'effect_state', coalesce(v_working_state, v_decl_state, 'open'),
-          -- D23. THE DECLARED MINIMUM WINS OVER THE GENERATED VALUE, and the first draft of this
-          -- file had it the other way round and did not work. verified is declared in the
-          -- supplier_account write map, so the driver's payload builder generates a value for it
-          -- exactly as D19 found it generating routing — and a generated boolean beat the
-          -- requirement the CHECK constraint states. Declaring a column so the writer can control
-          -- it is also what makes the harness start inventing it, for the second time in six files.
-          'effect_payload', v_eff || coalesce(v_prov_payload,'{}'::jsonb)
-                                   || coalesce(v_working_payload,'{}'::jsonb)
-                                   || coalesce(v_decision_payload,'{}'::jsonb))
-        || jsonb_strip_nulls(jsonb_build_object('reviewer_role_id', v_reviewer))
-        || case when e.expected_effect_type = 'REVIEW_VERDICT'
-                then jsonb_strip_nulls(jsonb_build_object(
-                       'verdict', v_verdict, 'reviewer_role_id', v_reviewer))
-                else '{}'::jsonb end
-        || case when b.handler_class = 'REVIEW_HANDLER'
-                then jsonb_strip_nulls(jsonb_build_object(
-                       'verdict', v_verdict,
-                       'reviewer_role_id', v_reviewer))
-                else '{}'::jsonb end
-        -- THE OUTPUT CONTRACT IS THE AUTHORITY ON THE OUTPUT, not the effect type. W11-S01 is the
-        -- one step of 257 where the two disagree: step_type='measurement' gives it a contract
-        -- requiring numerator, denominator, formula and window, while D7d's lexicon classified its
-        -- effect as CAPABILITY_REQUEST from the required_action text. Keyed on the effect type this
-        -- step could never satisfy its own contract. Keyed on the contract it can, and no other step
-        -- changes behaviour.
-        || case when exists (select 1 from public.phase_d_handler_schema sc2
-                              where sc2.step_id = sr.step_id and sc2.schema_kind = 'output'
-                                and sc2.required_keys && array['numerator','denominator'])
-                then jsonb_build_object('numerator', 1, 'denominator', 1,
-                                        'formula','fixture','window','fixture')
-                else '{}'::jsonb end);
-
-      -- ---- THE RUN ACCUMULATES ITS OWN REFERENCES --------------------------------------------
-      -- A workflow that CREATES an object at step 1 and has a rule READ it at step 4 needs the key
-      -- step 1 produced. parent_refs is computed once, before the drive, so W16-S04's BR-020 was
-      -- asking about a transaction that W16-S01 had just written and nobody had told it about.
-      -- The name each object contributes is read from phase_d_fixture_stage.contributes_ref — the
-      -- same mapping the scenario factory uses, so the two vocabularies cannot drift apart.
-      if coalesce((v_res->'ok')::text,'false') = 'true'
-         and e.effect_object_id is not null
-         and (v_res->'phase_d'->'business_effect'->>'result_reference') is not null then
-        -- D20. WHAT A STAGE CONTRIBUTES IS NOT ALWAYS A KEY. The comment above says this mapping
-        -- is "the same mapping the scenario factory uses, so the two vocabularies cannot drift
-        -- apart". They had already drifted: the factory carried a hard-coded exception —
-        --     case when st.stage_key = 'inquiry_route_set' then 'confirmed' else <result key> end
-        -- and this fold did not. So the factory contributed route_state='confirmed' and the driver
-        -- overwrote it with a record id the moment W06-S01 produced its effect, and GATE-010 was
-        -- handed "route state 2845" and refused a route that was in fact confirmed. An assertion
-        -- that two things cannot drift, written next to the copy that had drifted.
-        --
-        -- The stage now DECLARES which it contributes and both readers obey the same column.
-        -- D21. A REVIEW STEP PRODUCES A REVIEW RECORD, WHATEVER OBJECT IT IS ABOUT.
-        --
-        -- 27 of the 257 frozen steps name a business object in phase_d_step_effect.effect_object_id
-        -- and produce a review_record: W05-S06 is effect_object_id='inquiry' and its declared
-        -- transition is "review_record appended with the caller's verdict". The effect it produces
-        -- lands in public.phase_d_object_record, not in public.inquiries.
-        --
-        -- This fold keyed on effect_object_id alone and wrote the produced reference under that
-        -- object's name. So after W05-S06 the run believed inquiry_id was 3123 — a
-        -- phase_d_object_record.record_id — and GATE-011 dutifully reported "inquiry 3123 is not
-        -- quote-ready or does not exist". It was right: no such inquiry exists. W05-S01 had
-        -- produced public.inquiries:id=578d356c-8b0d-448f-b500-6971d15cf329 six steps earlier and
-        -- the run had thrown it away.
-        --
-        -- Four workflows, one defect, each refused by the gate that sits immediately after a review
-        -- step: W05-S07 GATE-011, W07-S04 GATE-012, W14-S05 GATE-017, W15-S02 GATE-018. Every one
-        -- of those gates was reading the wrong subject because the harness had renamed it.
-        --
-        -- A reference is only folded when the thing produced IS the object, proved by comparing the
-        -- relation the write actually landed in against the relation that object is bound to.
-        -- Nothing is listed by hand and no step is special-cased.
-        select st2.contributes_ref, st2.contributes_kind into v_contrib, v_contrib_kind
-          from public.phase_d_fixture_stage st2 where st2.object_id = e.effect_object_id;
-
-        v_produced_rel := split_part(v_res->'phase_d'->'business_effect'->>'result_reference', ':', 1);
-        select case when bb.relation_kind = 'EXISTING_TABLE'
-                    then (select mm.target_relation from public.phase_d_object_write_map mm
-                           where mm.object_id = e.effect_object_id)
-                    else 'public.phase_d_object_record' end
-          into v_object_rel
-          from public.phase_d_business_object_binding bb
-         where bb.object_id = e.effect_object_id;
-
-        if v_contrib is not null and v_produced_rel is distinct from v_object_rel then
-          -- Not dropped in silence: fn_phase_d_reference_fold_state() counts every step whose
-          -- declared object and produced relation disagree, so the 27 review steps that do this are
-          -- a standing, countable fact about the frozen registry rather than a quiet skip here.
-          v_contrib := null;
-        end if;
-
-        if v_contrib is not null then
-          v_parents := v_parents || jsonb_build_object(v_contrib,
-            case when v_contrib_kind = 'STATE'
-                 then coalesce(v_res->'phase_d'->'business_effect'->>'state',
-                               v_working_state,
-                               split_part(v_res->'phase_d'->'business_effect'->>'result_reference', '=', 2))
-                 else split_part(v_res->'phase_d'->'business_effect'->>'result_reference', '=', 2)
-            end);
-          if v_contrib = 'customer_id' then
-            v_parents := v_parents || jsonb_build_object('caller_customer_id',
-              split_part(v_res->'phase_d'->'business_effect'->>'result_reference', '=', 2));
-          end if;
-        end if;
-      end if;
-
-      v_steps := v_steps || jsonb_build_array(jsonb_build_object(
-        'step_id', sr.step_id, 'step_run_id', sr.step_run_id,
-        'expected_effect_type', e.expected_effect_type,
-        'handler_class', b.handler_class,
-        'ok', v_res->'ok', 'outcome', v_res->>'outcome',
-        'step_state', v_res->>'step_state', 'run_state', v_res->>'run_state',
-        'effect', v_res->'phase_d'->'business_effect'->'result_reference',
-        'effect_id', v_res->'phase_d'->'business_effect'->'effect_id',
-        'review_recorded', v_decide));
+      perform public.fn_kernel_step_complete(jsonb_build_object(
+        'step_run_id',      sr.step_run_id,
+        'actor_role_id',    sr.accountable_role_id,
+        'outcome',          'pass',
+        'idempotency_key',  format('%s:%s:%s', v_label, sr.step_id, sr.step_run_id),
+        'inputs',           jsonb_build_object('driver','fn_phase_d_drive_workflow',
+                                               'note','no business content is supplied by this driver'),
+        'output',           jsonb_build_object('status','completed',
+                                               'output', format('%s completed %s', v_label, sr.step_id)),
+        'evidence_refs',    jsonb_build_array(jsonb_build_object('driver_run', v_label)),
+        'requested_action', 'proceed',
+        'acceptance_criteria', format('%s drove %s through the kernel', v_label, sr.step_id),
+        'object_version',   1));
+      v_driven := v_driven + 1;
     exception when others then
       v_sqlstate := SQLSTATE; v_err := SQLERRM;
-      v_code := coalesce((regexp_match(v_err, '\((pd_[a-z0-9_]+|k[0-9]+_[a-z0-9_]+|gate[0-9]+_[a-z0-9_]+|br[0-9]+_[a-z0-9_]+)\)'))[1], '(none)');
+      v_code := coalesce((regexp_match(v_err, '\((pd_[a-z0-9_]+|k[0-9]+_[a-z0-9_]+)\)'))[1], '(none)');
       v_steps := v_steps || jsonb_build_array(jsonb_build_object(
         'step_id', sr.step_id, 'step_run_id', sr.step_run_id,
-        'expected_effect_type', e.expected_effect_type,
-        'handler_class', b.handler_class,
-        'ok', false, 'refused_with', v_code, 'sqlstate', v_sqlstate,
-        'reason', left(v_err, 400)));
+        'ok', false, 'kernel_refused', true, 'refused_with', v_code,
+        'sqlstate', v_sqlstate, 'reason', left(v_err, 400)));
+      v_stopped := jsonb_build_object('at', sr.step_id, 'refused_with', v_code,
+                                      'reason', left(v_err, 400),
+                                      'refused_by', 'fn_kernel_step_complete');
       exit;
     end;
   end loop;
 
   select state into v_run_state from public.phase_c_workflow_run where run_id = v_run;
-  select count(*) into v_after from public.phase_d_effect_ledger;
-  select count(*) into v_ledger from public.phase_d_effect_ledger where run_id = v_run;
 
   return jsonb_build_object(
-    'ok', (v_run_state is not null
-           and not exists (select 1 from jsonb_array_elements(v_steps) x
-                            where coalesce((x->>'ok')::boolean, false) = false)
-           and not exists (select 1 from jsonb_array_elements(v_handoffs) x
-                            where coalesce((x->>'ok')::boolean, false) = false)),
-    'workflow_id', v_wf, 'run_id', v_run, 'run_state', v_run_state,
-    'steps_in_workflow', (select count(*) from public.phase_b_workflow_step
-                           where workflow_id = v_wf),
-    'steps_driven', jsonb_array_length(v_steps),
+    'ok', true,
+    'workflow_id', v_wf,
+    'run_id', v_run,
+    'label', v_label,
+    -- Named for what it measures, not for what a reader might hope it measures.
+    'path', 'fn_kernel_workflow_start -> fn_kernel_review_decide -> fn_kernel_step_complete -> fn_phase_d_handoff_accept',
+    'steps_in_workflow', (select count(*) from public.phase_b_workflow_step where workflow_id = v_wf),
+    'steps_driven', v_driven,
     'handoffs_accepted', v_haccept,
-    'handoffs', v_handoffs,
     'open_handoffs_left', (select count(*) from public.phase_c_handoff_run
                             where run_id = v_run and status = 'open'),
-    'effects_for_this_run', v_ledger,
-    'effect_ledger_delta', v_after - v_before,
-    'terminal', (select terminal from public.phase_b_workflow_state
-                  where state = v_run_state),
-    'steps', v_steps);
+    -- What Phase D actually did: how many step-openings the kernel dispatched to the
+    -- deterministic handler, and how many of those the handler completed unaided.
+    -- COUNTED FROM THE TABLE, NOT FROM THIS LOOP. The first version incremented these as the loop
+    -- walked the open steps, and it reported dispatches_executed = 0 on a run that had produced
+    -- three effect-ledger rows. The reason is the whole of E33: a step whose handler EXECUTES has
+    -- its task closed in the same statement that opened it, so it is never an open step and this
+    -- loop never sees it. An instrument that counts only what it walks past cannot count the thing
+    -- that finishes before the walk reaches it. The population is every dispatch the kernel
+    -- produced for this run.
+    'dispatches_seen', (select count(*) from public.phase_d_dispatch where run_id = v_run),
+    'dispatches_executed', (select count(*) from public.phase_d_dispatch
+                             where run_id = v_run and outcome = 'EXECUTED'),
+    'dispatch_outcomes', (select coalesce(jsonb_object_agg(o, n), '{}'::jsonb) from (
+        select coalesce(nullif(refusal_code,''), outcome) o, count(*) n
+          from public.phase_d_dispatch where run_id = v_run group by 1) z),
+    'steps_loop_walked', v_dispatched,
+    'effects_for_this_run', (select count(*) from public.phase_d_effect_ledger where run_id = v_run),
+    'effects_total_delta', (select count(*) from public.phase_d_effect_ledger) - v_before,
+    'run_state', v_run_state,
+    -- phase_b_workflow.allowed_terminal_states is TEXT, not an array: 'completed; cancelled;
+    -- superseded'. My first draft wrote `v_run_state = any((select allowed_terminal_states ...))`,
+    -- which Postgres parses as the SUBQUERY form of ANY — so it compared the run state against the
+    -- whole semicolon-separated string as one value and was false for every run ever driven.
+    -- closure_verdict could therefore only ever read STOPPED, and this deliverable reported 0 of 30
+    -- closing while runs were reaching 'completed'. Caught by the deliverable's own reproduction
+    -- test, not by reading the code.
+    'terminal', exists (
+       select 1 from public.phase_b_workflow w2,
+            lateral unnest(string_to_array(coalesce(w2.allowed_terminal_states,''), ';')) s
+        where w2.workflow_id = v_wf and btrim(s) = v_run_state),
+    -- Where the DRIVE could go no further. Null only when the run reached a terminal state with
+    -- nothing open, which is the one case where "it stopped" needs no explanation.
+    'stopped', coalesce(v_stopped, case when v_i > v_max
+      then jsonb_build_object('at','(step budget)','refused_with','pd_drive_max_steps',
+             'reason', format('the drive ran %s steps and max_steps is %s', v_i - 1, v_max))
+      else null end),
+    -- Where the deterministic HANDLER first declined. This is the Phase D subject, and it is a
+    -- different question from the one above. Read from the dispatch table in dispatch order for
+    -- the same reason the counts are: the loop does not see every dispatched step.
+    'first_handler_refusal', coalesce(
+      (select jsonb_build_object('at', step_id, 'refused_with', nullif(refusal_code,''),
+                                 'reason', left(coalesce(reason,''), 400))
+         from public.phase_d_dispatch
+        where run_id = v_run and outcome <> 'EXECUTED'
+        order by dispatch_id limit 1), v_first_refusal),
+    'steps', v_steps,
+    'handoffs', v_handoffs);
 end $function$
 
 
@@ -53112,6 +52732,7 @@ declare
   v_due    timestamptz;
   v_tasks  int;
   v_aid    bigint;
+  v_pd_executed boolean;   -- E33: did the Phase D handler execute the receiving step at open?
 begin
   if v_id is null or v_actor is null then
     raise exception 'fn_phase_d_handoff_accept: handoff_run_id and actor_role_id are both required (pd_handoff_input_invalid)'
@@ -53196,15 +52817,36 @@ begin
       v_id, coalesce(v_res::text, '(no result)') using errcode = '23514';
   end if;
 
-  -- ONE OPEN TASK ON THE RECEIVING STEP. Asserted on the row count, not inferred from the kernel's
-  -- own summary. `phase_c_task` carries (run_id, step_id) and no step_run_id, so the population is
-  -- the receiving step of this run; a duplicate acceptance that opened a second task makes this 2,
-  -- which is precisely the failure "duplicate acceptance creating duplicate task = 0" names.
+  -- AT MOST ONE OPEN TASK ON THE RECEIVING STEP, AND ZERO HAS TWO DIFFERENT CAUSES. Asserted on
+  -- the row count, not inferred from the kernel's own summary. `phase_c_task` carries
+  -- (run_id, step_id) and no step_run_id, so the population is the receiving step of this run; a
+  -- duplicate acceptance that opened a second task makes this 2, which is precisely the failure
+  -- "duplicate acceptance creating duplicate task = 0" names.
+  --
+  -- E33. THIS WAS WRITTEN AS <> 1 AND SO IT ALSO REFUSED ZERO, WHICH SINCE D36 IS WHAT PHASE D
+  -- WORKING LOOKS LIKE. The dispatch runs in the kernel's OPENER, so this very acceptance opens the
+  -- receiving step and the deterministic handler attempts it in the same statement. If the handler
+  -- EXECUTES, the step's work is done and the kernel closes its task - and this count is 0. W01-S05
+  -- and W21-S08 are the only two steps in the estate whose handler executes, and they were the only
+  -- two whose incoming handoff was refused. A guard that fires exactly when the system works.
+  --
+  -- Measured before changing it: two drives of W01 differing only in app.phase_d_dispatch. With the
+  -- dispatch ON the run stops after W01-S05, whose dispatch reads EXECUTED and whose task is
+  -- closed. With it OFF the run reaches W01-S06 with an OPEN task. One variable, opposite outcomes.
   select count(*) into v_tasks from public.phase_c_task t
    where t.run_id = r.run_id and t.step_id = c.to_step_id and t.closed_at is null;
-  if v_tasks <> 1 then
-    raise exception 'fn_phase_d_handoff_accept: accepting handoff run % left % open task(s) on %; exactly one is the contract (pd_handoff_task_count_wrong)',
+
+  v_pd_executed := exists (
+    select 1 from public.phase_d_dispatch d
+     where d.run_id = r.run_id and d.step_id = c.to_step_id and d.outcome = 'EXECUTED');
+
+  if v_tasks > 1 then
+    raise exception 'fn_phase_d_handoff_accept: accepting handoff run % left % open task(s) on %; a second open task is a duplicate acceptance (pd_handoff_task_count_wrong)',
       v_id, v_tasks, c.to_step_id using errcode = '23514';
+  end if;
+  if v_tasks = 0 and not v_pd_executed then
+    raise exception 'fn_phase_d_handoff_accept: accepting handoff run % left no open task on % and no Phase D dispatch executed that step, so nothing is carrying the work (pd_handoff_task_count_wrong)',
+      v_id, c.to_step_id using errcode = '23514';
   end if;
 
   insert into public.phase_d_handoff_acceptance
@@ -53236,13 +52878,23 @@ begin
     'to_step_id', c.to_step_id,
     'step_run_id', (v_res->>'step_run_id')::bigint,
     'task_id', (v_res->>'task_id')::bigint,
+    -- E33. WHO IS CARRYING THE RECEIVING STEP, on the row rather than only in a comment. An
+    -- acceptance that opened a task for a person and one whose step the deterministic handler had
+    -- already completed are different events, and a reader must not have to infer which from a
+    -- null.
+    'open_tasks_on_receiving_step', v_tasks,
+    'receiving_step_handled_by',
+      case when v_tasks = 1 then 'actor'
+           when v_pd_executed then 'phase_d_handler'
+           else 'nobody' end,
     'tasks_opened', v_tasks,
     'packet_keys_checked', v_valid.required,
     'sla_policy_id', c.sla_policy_id, 'due_at', v_due,
     'sla_breached', case when v_due is null then null else now() > v_due end,
     'run_state', v_res->>'run_state',
     'closure_condition', c.closure_condition);
-end $function$
+end 
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_phase_d_handoff_cancel(p_input jsonb)
@@ -53876,7 +53528,26 @@ begin
          and (k ~* '(^|_)(amount|price|charge|payout|subtotal|total|fee|cost|refund|invoice)(_|$)'
               or k ~* '_(aed|usd|eur|gbp)$')
          and (jsonb_typeof(v) = 'number'
-              or (jsonb_typeof(v) = 'string' and v #>> '{}' ~ '^\s*-?[0-9]+(\.[0-9]+)?\s*$'));
+              -- E35. THE STRING ARM REQUIRED A WHOLLY NUMERIC STRING, so two notations for the
+              -- same amount walked past it and the R4 acceptance named both:
+              --     refund_amount_aed: "AED 999999"   ACCEPTED - a currency prefix
+              --     refund_amount_aed: "1e6"          ACCEPTED - scientific notation
+              -- Neither is an identifier and neither was ever going to be one: they are quantities
+              -- written the way a person and a JSON serialiser respectively write them. A rule that
+              -- reads a number but not the same number with AED in front of it is testing the
+              -- notation, not the subject.
+              --
+              -- The identifier exclusion above still settles those cases first and is unchanged, so
+              -- refund_id, invoice_no and price_ref are as accepted as they were after E27 -
+              -- whatever notation their value takes.
+              --
+              -- The third residual note the audit raised, price_code: 999999, is NOT closed here
+              -- and I am not pretending it is. `_code` is on the identifier-exclusion list by
+              -- deliberate choice in E27, the auditor judged that trade correct, and widening the
+              -- money side to reach it would put every *_code key back in front of the rule that
+              -- blocked eleven legitimate workflows. It is a named hole, and it stays named.
+              or (jsonb_typeof(v) = 'string'
+                  and v #>> '{}' ~* '^[[:space:]]*(aed|usd|eur|gbp|\$|€|£)?[[:space:]]*-?[0-9][0-9,]*(\.[0-9]+)?([eE][+-]?[0-9]+)?[[:space:]]*(aed|usd|eur|gbp)?[[:space:]]*$'));
       if v_money is not null then
         raise exception 'phase_d_object_record: % is a %-family object and its payload carries money amount(s) [%] — a money-shaped key that is not an identifier, holding a quantity, at any depth. Only a TRANSACTION_RECORD object may. (pd_object_money_key_on_non_financial_object)',
           new.object_id, b.policy_family, array_to_string(v_money, ', ') using errcode = '23514';
@@ -54831,6 +54502,10 @@ declare
   r public.phase_b_business_rule%rowtype;
   e public.phase_d_rule_enforcement%rowtype;
   v_missing text[]; v_n bigint; v_txt text; v_ok boolean; v_reason text;
+  -- E30. A second count and a second string. A reference that must RESOLVE is two questions --
+  -- is it shaped like the thing it claims to be, and does it name something that exists -- and
+  -- more than once the answer lives in two relations.
+  v_n2 bigint; v_txt2 text;
 begin
   -- E19. FALSE UNLESS A BRANCH SAYS OTHERWISE. An OUT parameter left unset is NULL, and a null
   -- read as "not evidence-absent" by one caller and as "unknown" by another is how one column
@@ -54932,23 +54607,74 @@ begin
   end if;
 
   if p_rule_id = 'BR-043' then
-    if coalesce(btrim(p_context->>'policy_exception'),'') = '' then
+    -- E30. BR-043 REFUSED NOTHING, FOR TWO INDEPENDENT REASONS, AND BOTH HAD TO GO.
+    -- (1) Applicability keyed on 'policy_exception', which is NOT in its required_context, so the
+    --     rule was NOT_APPLICABLE on every call the estate actually makes -- including calls that
+    --     named an exception authority.
+    -- (2) The authority test was "is the string non-empty", so 'banana' authorised an exception.
+    -- Bound, applicable and ACTUALLY REFUSES are three different questions. A brief and two
+    -- audits named this rule as a blocker; it had only ever answered the first.
+    v_txt  := btrim(coalesce(p_context->>'policy_exception',''));
+    v_txt2 := btrim(coalesce(p_context->>'exception_authority_ref',''));
+    if v_txt = '' and v_txt2 = '' then
       state := 'NOT_APPLICABLE'; ok := true;
-      reason := 'BR-043: the call proposes no policy exception, so there is no exception to authorise';
+      reason := 'BR-043: the call proposes no policy exception and names no exception authority, so there is no exception to authorise';
       return next; return;
     end if;
-    v_ok := coalesce(btrim(p_context->>'exception_authority_ref'),'') <> '';
+    if v_txt2 = '' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := format('BR-043: exception %s is proposed with no exception_authority_ref', v_txt);
+      return next; return;
+    end if;
+    -- Does the exception reach founder-reserved subject matter? public.founder_reserved_decision
+    -- carries the eleven decision keys and their match terms. That table is the boundary list;
+    -- it is not a literal typed into this predicate, so the predicate follows it when it moves.
+    select count(*) into v_n from public.founder_reserved_decision d
+     where v_txt <> ''
+       and (position(lower(replace(d.decision_key,'_',' ')) in lower(replace(v_txt,'_',' '))) > 0
+            or exists (select 1 from unnest(d.match_any) t
+                        where btrim(t) <> '' and position(lower(btrim(t)) in lower(v_txt)) > 0));
+    -- The founder's own authority, resolved exactly as E28 resolved BR-003.
+    v_n2 := case when exists (select 1 from public.founder_command fc
+                               where 'founder_command:' || fc.command_id::text = v_txt2)
+                 then 1 else 0 end;
+    if v_n > 0 then
+      -- "cannot bypass ... founder boundaries": a delegated authority is not enough here.
+      v_ok := (v_n2 = 1);
+      reason := format('BR-043: exception %s touches %s founder-reserved decision(s) and names authority %s, which %s',
+                       v_txt, v_n, v_txt2,
+                       case when v_ok then 'resolves to a founder command on record'
+                            else 'does not resolve to any row in public.founder_command -- a delegated authority cannot clear a founder boundary' end);
+    else
+      v_ok := (v_n2 = 1)
+              or exists (select 1 from public.employee_authority ea
+                          where 'employee_authority:' || ea.agent_key || ':' || ea.action_class = v_txt2);
+      reason := format('BR-043: exception %s names authority %s, which %s',
+                       coalesce(nullif(v_txt,''),'(unnamed)'), v_txt2,
+                       case when v_ok then 'resolves to a founder command or a granted employee authority'
+                            else 'resolves to no row in public.founder_command or public.employee_authority' end);
+    end if;
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := format('BR-043: exception %s %s', p_context->>'policy_exception',
-                     case when v_ok then 'carries an authority reference'
-                          else 'is proposed with no exception_authority_ref' end);
     return next; return;
   end if;
 
   if p_rule_id in ('BR-021','BR-022','BR-023','BR-024') then
-    if coalesce(btrim(p_context->>'commercial_policy_change'),'') = '' then
+    -- E31. THE SAME DEFECT E30 FOUND IN BR-043, IN THE FOUR RULES E29 HAD JUST FIXED.
+    -- E29 made the AUTHORITY resolve, and that half holds. But applicability still keyed on
+    -- 'commercial_policy_change', which is NOT in these rules' required_context -- all four
+    -- declare only [founder_authority_ref]. So a call that named a founder authority and no
+    -- commercial_policy_change was NOT_APPLICABLE, and the authority E29 taught the rule to
+    -- resolve was never looked at. Measured after E30: feeding every rule 'banana' for each key
+    -- it declares, BR-021..BR-024 were four of the five remaining passes, and all four passed as
+    -- NOT_APPLICABLE rather than on the merits.
+    --
+    -- Bound, applicable and ACTUALLY REFUSES are three questions. E28 and E29 answered the third
+    -- for these rules and left the second. A rule is now applicable when EITHER key is named: if
+    -- a call in a founder-gated workflow asserts a founder authority, that assertion is judged.
+    if coalesce(btrim(p_context->>'commercial_policy_change'),'') = ''
+       and coalesce(btrim(p_context->>'founder_authority_ref'),'') = '' then
       state := 'NOT_APPLICABLE'; ok := true;
-      reason := format('%s: the call proposes no change to a founder-reserved commercial term', p_rule_id);
+      reason := format('%s: the call proposes no change to a founder-reserved commercial term and asserts no founder authority', p_rule_id);
       return next; return;
     end if;
     -- E29. THE SAME DEFECT E28 FOUND IN BR-003, IN FOUR MORE RULES.
@@ -54961,13 +54687,14 @@ begin
     if v_txt = '' then
       state := 'ENFORCED_FAIL'; ok := false;
       reason := format('%s: change %s names no founder authority', p_rule_id,
-                       p_context->>'commercial_policy_change');
+                       coalesce(nullif(btrim(p_context->>'commercial_policy_change'),''),'(unnamed)'));
       return next; return;
     end if;
     v_ok := exists (select 1 from public.founder_command fc
                      where 'founder_command:' || fc.command_id::text = v_txt);
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := format('%s: change %s %s', p_rule_id, p_context->>'commercial_policy_change',
+    reason := format('%s: change %s %s', p_rule_id,
+                     coalesce(nullif(btrim(p_context->>'commercial_policy_change'),''),'(unnamed)'),
                      case when v_ok then format('carries founder authority %s, which resolves to a founder command on record', v_txt)
                           else format('names %s, which does not resolve to any row in public.founder_command', v_txt) end);
     return next; return;
@@ -55006,20 +54733,45 @@ begin
     -- The test is simply whether any customer identity appears in the payload. An earlier draft
     -- also ORed in a reveal_state check, which collapsed to the same expression under operator
     -- precedence and read as if it were doing something it was not.
-    v_ok := (v_n = 0);
+    -- E30. I DID NOT CHANGE WHAT THIS RULE MEANS, BECAUSE ITS 'banana' PASS IS A TRUE PASS: the
+    -- string 'banana' carries no customer identity, and BR-011 is a content test, not a reference
+    -- test. What was wrong is that its only evidence source is a table held at zero. The row-match
+    -- arm answers 0 for every payload ever shown to it, and 0 is also what it would answer if it
+    -- were broken. So the SHAPE is tested too: a supplier-facing payload carrying an email address
+    -- or a dialable UAE mobile is a customer identity leak whether or not that person is a row in
+    -- this estate yet.
+    v_txt2 := regexp_replace(v_txt, '[^0-9]', '', 'g');
+    v_n2 := (case when v_txt ~* '[A-Z0-9._%+-]+@[A-Z0-9.-]+[.][A-Z]{2,}' then 1 else 0 end)
+          + (case when v_txt2 ~ '(971|0)5[0-9]{8}' then 1 else 0 end);
+    v_ok := (v_n = 0 and v_n2 = 0);
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := format('BR-011: %s customer identity match(es) found in the supplier-facing payload, over %s customer row(s) searched for email, phone and full name',
-                     v_n, (select count(*) from public.customers));
+    reason := format('BR-011: %s customer identity match(es) over %s customer row(s) searched for email, phone and full name, and %s identity-shaped token(s) -- an email address or a UAE mobile -- found in the payload itself',
+                     v_n, (select count(*) from public.customers), v_n2);
     return next; return;
   end if;
 
   if p_rule_id = 'BR-012' then           -- an approved immutable supplier-safe package exists
-    v_ok := coalesce(btrim(p_context->>'safe_package_ref'),'') <> ''
-            and coalesce(btrim(p_context->>'safe_package_approved_by'),'') <> '';
+    -- E30. This asked only whether two strings were non-empty, so 'banana' approved by 'banana'
+    -- was an approved immutable supplier-safe package. supplier_safe_package is a REGISTERED
+    -- business object of the IMMUTABLE_REVISION family: the ref must name one of those records in
+    -- the approved state, and the approver must be someone who may own work here.
+    v_txt  := btrim(coalesce(p_context->>'safe_package_ref',''));
+    v_txt2 := btrim(coalesce(p_context->>'safe_package_approved_by',''));
+    if v_txt = '' or v_txt2 = '' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := 'BR-012: no approved supplier-safe package named, or no approver named. No assignment or notification may be created without one.';
+      return next; return;
+    end if;
+    select count(*) into v_n from public.phase_d_object_record o
+     where o.object_id = 'supplier_safe_package' and o.state = 'approved' and o.superseded_by is null
+       and (o.business_key = v_txt or 'supplier_safe_package:' || o.business_key = v_txt);
+    v_ok := (v_n >= 1) and public.fn_phase_c_actor_may_own(v_txt2);
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := case when v_ok then format('BR-012: package %s approved by %s',
-                                         p_context->>'safe_package_ref', p_context->>'safe_package_approved_by')
-                   else 'BR-012: no approved supplier-safe package named. No assignment or notification may be created without one.' end;
+    reason := format('BR-012: package %s resolves to %s approved supplier_safe_package record(s) in public.phase_d_object_record, and approver %s %s',
+                     v_txt, v_n, v_txt2,
+                     case when public.fn_phase_c_actor_may_own(v_txt2)
+                          then 'resolves to an active canonical role'
+                          else 'does not resolve to an active canonical role' end);
     return next; return;
   end if;
 
@@ -55113,29 +54865,77 @@ begin
   end if;
 
   if p_rule_id = 'BR-025' then           -- acceptance names the exact version and hash
-    v_ok := coalesce(btrim(p_context->>'terms_version'),'') <> ''
-            and coalesce(btrim(p_context->>'terms_hash'),'') <> '';
+    -- E30. "the exact displayed version AND hash" was tested as "two non-empty strings", so
+    -- 'banana' was an exact hash of version 'banana'. public.legal_documents holds the displayed
+    -- documents and their versions. The hash must be a real SHA-256 digest, and it must be the
+    -- digest OF THAT DOCUMENT AT THAT VERSION -- a hash that matches nothing is not a reference
+    -- to anything specific, which is the whole of what this rule asks for.
+    v_txt  := btrim(coalesce(p_context->>'terms_version',''));
+    v_txt2 := lower(btrim(coalesce(p_context->>'terms_hash','')));
+    if v_txt = '' or v_txt2 = '' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := 'BR-025: acceptance must reference the exact displayed version AND hash; one without the other is not an acceptance of anything specific.';
+      return next; return;
+    end if;
+    if v_txt2 !~ '^[0-9a-f]{64}$' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := format('BR-025: terms_hash %s is not a SHA-256 digest (64 hexadecimal characters), so it was never computed over the displayed terms.',
+                       left(v_txt2, 24));
+      return next; return;
+    end if;
+    select count(*) into v_n from public.legal_documents d
+     where d.version = v_txt
+       and encode(sha256(convert_to(coalesce(d.body_html,''), 'UTF8')), 'hex') = v_txt2;
+    v_ok := (v_n >= 1);
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := case when v_ok then format('BR-025: acceptance names version %s and hash %s',
-                                         p_context->>'terms_version', left(p_context->>'terms_hash',12))
-                   else 'BR-025: acceptance must reference the exact displayed version AND hash; one without the other is not an acceptance of anything specific.' end;
+    reason := format('BR-025: acceptance names version %s at digest %s, which matches %s row(s) in public.legal_documents whose displayed body hashes to exactly that digest',
+                     v_txt, left(v_txt2, 12), v_n);
     return next; return;
   end if;
 
   if p_rule_id = 'BR-026' then           -- no certificate before an acceptance record
-    v_ok := coalesce(btrim(p_context->>'acceptance_ref'),'') <> '';
+    -- E30. The reason string read "acceptance record %s exists" while the predicate had only
+    -- checked that a string was non-empty -- evidence stating the premise it never tested.
+    -- customer_terms_acceptance and supplier_terms_acceptance are registered APPEND_ONLY business
+    -- objects; the ref must name one of those records.
+    v_txt := btrim(coalesce(p_context->>'acceptance_ref',''));
+    if v_txt = '' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := 'BR-026: no acceptance record named. A certificate generated before acceptance would assert a fact that has not happened.';
+      return next; return;
+    end if;
+    select count(*) into v_n from public.phase_d_object_record o
+     where o.object_id in ('customer_terms_acceptance','supplier_terms_acceptance')
+       and (o.business_key = v_txt or o.object_id || ':' || o.business_key = v_txt);
+    v_ok := (v_n >= 1);
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := case when v_ok then format('BR-026: acceptance record %s exists', p_context->>'acceptance_ref')
-                   else 'BR-026: no acceptance record named. A certificate generated before acceptance would assert a fact that has not happened.' end;
+    reason := format('BR-026: acceptance_ref %s resolves to %s terms-acceptance record(s) in public.phase_d_object_record. A certificate may not precede one.',
+                     v_txt, v_n);
     return next; return;
   end if;
 
   if p_rule_id = 'BR-029' then           -- conflicting evidence is preserved, not overwritten
-    v_ok := coalesce(p_context->>'conflict_preserved','') = 'true'
-            or coalesce(btrim(p_context->>'evidence_authority'),'') <> '';
+    -- E30. Two arms, both weak. conflict_preserved='true' was the CALLER asserting its own
+    -- compliance, which is not evidence of it; and evidence_authority was tested for
+    -- non-emptiness, so 'banana' was an authority ranking. This rule is about RANK -- lower
+    -- authority may not overwrite higher -- and this estate has a ranking:
+    -- public.mep_evidence_weight, with its weight keys, evidence sources and source authorities.
+    -- An authority that is not in the ranking cannot be ordered against another, so it cannot be
+    -- preserved against one either.
+    v_txt := btrim(coalesce(p_context->>'evidence_authority',''));
+    if v_txt = '' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := 'BR-029: no evidence authority named. Lower-authority evidence may not silently overwrite higher, and an unranked authority cannot be ordered against any other.';
+      return next; return;
+    end if;
+    select count(*) into v_n from public.mep_evidence_weight w
+     where w.weight_key = v_txt or w.evidence_source = v_txt or w.source_authority = v_txt;
+    v_ok := (v_n >= 1);
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := case when v_ok then 'BR-029: conflicting evidence is retained with its authority ranking'
-                   else 'BR-029: no conflict-preservation evidence named. Lower-authority evidence may not silently overwrite higher.' end;
+    reason := format('BR-029: evidence authority %s matches %s row(s) in the public.mep_evidence_weight ranking (weight_key, evidence_source or source_authority)%s',
+                     v_txt, v_n,
+                     case when v_ok then ', so conflicting evidence can be retained in rank order'
+                          else ' -- it is not a ranked authority in this estate' end);
     return next; return;
   end if;
 
@@ -55145,21 +54945,37 @@ begin
       reason := 'BR-032: no provider_event_id named; duplicate delivery cannot be decided without one.';
       return next; return;
     end if;
-    select count(*) into v_n from public.stripe_events se
-     where se.event_id = p_context->>'provider_event_id';
-    v_ok := (v_n <= 1);
+    -- E30. THE TEST WAS "appears AT MOST once", so an event id appearing ZERO times satisfied a
+    -- rule about the safety of REAL provider events -- one never delivered, or the literal
+    -- 'banana'. Zero cannot tell an unknown event from a safe one. It must resolve to EXACTLY ONE
+    -- recorded delivery, in the provider event log or in the registered provider_event object.
+    v_txt := btrim(coalesce(p_context->>'provider_event_id',''));
+    select count(*) into v_n  from public.stripe_events se where se.event_id = v_txt;
+    select count(*) into v_n2 from public.phase_d_object_record o
+     where o.object_id = 'provider_event'
+       and (o.business_key = v_txt or 'provider_event:' || o.business_key = v_txt);
+    v_ok := (v_n + v_n2) = 1;
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := format('BR-032: provider event %s appears %s time(s); public.stripe_events keys on event_id with delivery_count, so a duplicate is visible rather than reprocessed.',
-                     p_context->>'provider_event_id', v_n);
+    reason := format('BR-032: provider event %s resolves to %s row(s) in public.stripe_events and %s registered provider_event record(s). Exactly one is replay-safe: zero is an event nobody received, more than one is a duplicate.',
+                     v_txt, v_n, v_n2);
     return next; return;
   end if;
 
   if p_rule_id = 'BR-033' then           -- unknown money is quarantined, never success
+    -- E30. A DENY-LIST OF THREE WORDS LEFT EVERY OTHER STRING AS A GOOD MONETARY STATE. The
+    -- acceptance audit watched the harness hand this rule 'checkout_created' and get ok=true;
+    -- 'banana' did just as well. An unrecognised monetary state IS an unknown one, which is
+    -- precisely what this rule exists to quarantine. The permitted set is read from the state
+    -- contracts of the TRANSACTION_RECORD family -- the money-carrying objects -- and not typed
+    -- in here, so it follows the registry instead of drifting from it.
     v_txt := lower(coalesce(btrim(p_context->>'monetary_state'),''));
-    v_ok := v_txt <> '' and v_txt not in ('unknown','conflicting','unreconciled');
+    select count(*) into v_n
+      from public.phase_d_object_state_contract c, unnest(c.allowed_states) s
+     where c.policy_family = 'TRANSACTION_RECORD' and lower(s) = v_txt;
+    v_ok := v_txt <> '' and v_txt not in ('unknown','conflicting','unreconciled') and v_n >= 1;
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := format('BR-033: monetary state %s. Unknown, conflicting and unreconciled states are blocked and quarantined, never treated as success.',
-                     coalesce(nullif(v_txt,''),'(unstated)'));
+    reason := format('BR-033: monetary state %s matches %s allowed state(s) of the TRANSACTION_RECORD object family. Unknown, conflicting, unreconciled and unrecognised states are blocked and quarantined, never treated as success.',
+                     coalesce(nullif(v_txt,''),'(unstated)'), v_n);
     return next; return;
   end if;
 
@@ -55169,50 +54985,130 @@ begin
       reason := 'BR-034: no notify_email named; consent cannot be decided for an unnamed recipient.';
       return next; return;
     end if;
+    -- E30. 'banana' is not in the suppression list, so 'banana' was a consenting recipient. A
+    -- string that cannot be an email address cannot have been checked for consent: it has to be
+    -- an address before the suppression lookup means anything at all.
+    v_txt := btrim(coalesce(p_context->>'notify_email',''));
+    if v_txt !~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+[.][A-Z]{2,}$' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := format('BR-034: %s is not an email address, so no consent or suppression decision about it exists to respect.', v_txt);
+      return next; return;
+    end if;
     select count(*) into v_n from public.email_suppressions s
-     where lower(s.email) = lower(p_context->>'notify_email');
+     where lower(s.email) = lower(v_txt);
     v_ok := (v_n = 0);
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := format('BR-034: %s is %s in public.email_suppressions', p_context->>'notify_email',
-                     case when v_ok then 'not suppressed' else 'SUPPRESSED and must not be contacted' end);
+    reason := format('BR-034: %s is %s in public.email_suppressions (%s matching row(s) over %s suppression(s) on record)',
+                     v_txt,
+                     case when v_ok then 'not suppressed' else 'SUPPRESSED and must not be contacted' end,
+                     v_n, (select count(*) from public.email_suppressions));
     return next; return;
   end if;
 
   if p_rule_id = 'BR-035' then           -- only the approved revision publishes
-    v_ok := coalesce(btrim(p_context->>'approved_revision_ref'),'') <> ''
-            and coalesce(p_context->>'approved_revision_ref','') = coalesce(p_context->>'publishing_revision_ref','');
+    -- E30. Feeding the same junk string to both keys satisfied this rule, because equality of two
+    -- unresolved strings is not evidence that either names an approved revision. The approved ref
+    -- must resolve to an IMMUTABLE_REVISION business object record in the approved state -- the
+    -- estate's own registry of revisions -- and the revision being published must be that one.
+    v_txt  := btrim(coalesce(p_context->>'approved_revision_ref',''));
+    v_txt2 := btrim(coalesce(p_context->>'publishing_revision_ref',''));
+    if v_txt = '' or v_txt2 = '' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := 'BR-035: the revision being published is not the independently approved revision, or neither was named.';
+      return next; return;
+    end if;
+    if v_txt <> v_txt2 then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := format('BR-035: the publishing revision %s is not the approved revision %s', v_txt2, v_txt);
+      return next; return;
+    end if;
+    select count(*) into v_n from public.phase_d_object_record o
+      join public.phase_d_object_state_contract c on c.object_id = o.object_id
+     where c.policy_family = 'IMMUTABLE_REVISION' and o.state = 'approved'
+       and (o.business_key = v_txt or o.object_id || ':' || o.business_key = v_txt);
+    v_ok := (v_n >= 1);
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := case when v_ok then format('BR-035: the publishing revision is the approved one (%s)',
-                                         p_context->>'approved_revision_ref')
-                   else 'BR-035: the revision being published is not the independently approved revision, or neither was named.' end;
+    reason := format('BR-035: the publishing revision is the approved one (%s), and that reference resolves to %s approved IMMUTABLE_REVISION record(s) in public.phase_d_object_record',
+                     v_txt, v_n);
     return next; return;
   end if;
 
   if p_rule_id = 'BR-036' then           -- review inspects the artifact, not the brief
-    v_ok := coalesce(btrim(p_context->>'artifact_ref'),'') <> ''
-            and coalesce(btrim(p_context->>'artifact_sha256'),'') <> '';
+    -- E30. The acceptance audit caught this one from the other end: it read back
+    -- "review names artifact ZZ DEMO - artifact_ref at digest ZZ DEMO - artifact_sha256" and got
+    -- ok=true. A SHA-256 is 64 hexadecimal characters; a value that is not one was never computed
+    -- over any artifact. And the digest must be OF something -- an artifact_review row, or a
+    -- business object record carrying it. In an estate whose vision model once listed eight
+    -- identifiers verbatim from a solid black rectangle, the digest is the only part of an
+    -- artifact review that cannot be imagined.
+    v_txt  := btrim(coalesce(p_context->>'artifact_ref',''));
+    v_txt2 := lower(btrim(coalesce(p_context->>'artifact_sha256','')));
+    if v_txt = '' or v_txt2 = '' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := 'BR-036: the review names no artifact and digest. A verifier that reads the brief instead of the artifact has already produced a false pass in this estate.';
+      return next; return;
+    end if;
+    if v_txt2 !~ '^[0-9a-f]{64}$' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := format('BR-036: artifact_sha256 %s is not a SHA-256 digest (64 hexadecimal characters), so it was not computed over any artifact.',
+                       left(v_txt2, 24));
+      return next; return;
+    end if;
+    select count(*) into v_n  from public.artifact_review ar where lower(ar.artifact_sha256) = v_txt2;
+    select count(*) into v_n2 from public.phase_d_object_record o
+     where lower(o.payload->>'artifact_sha256') = v_txt2;
+    v_ok := (v_n + v_n2) >= 1;
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := case when v_ok then format('BR-036: review names artifact %s at digest %s',
-                                         p_context->>'artifact_ref', left(p_context->>'artifact_sha256',12))
-                   else 'BR-036: the review names no artifact and digest. A verifier that reads the brief instead of the artifact has already produced a false pass in this estate.' end;
+    reason := format('BR-036: review names artifact %s at digest %s, which resolves to %s artifact_review row(s) and %s business object record(s) carrying exactly that digest',
+                     v_txt, left(v_txt2, 12), v_n, v_n2);
     return next; return;
   end if;
 
   if p_rule_id = 'BR-039' then           -- a release needs an executable rollback
-    v_ok := coalesce(btrim(p_context->>'rollback_ref'),'') <> '';
+    -- E30. The rule says DEFINED AND EXECUTABLE; the predicate tested only that a string had been
+    -- typed, so 'banana' was an executable rollback path. Executable means the estate can name the
+    -- thing that would run: a registered action class carrying a compensating action, or a routine
+    -- that exists in this database.
+    v_txt := btrim(coalesce(p_context->>'rollback_ref',''));
+    if v_txt = '' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := 'BR-039: no rollback or recovery path named. A consequential release without one is not approvable.';
+      return next; return;
+    end if;
+    select count(*) into v_n from public.org_action_executor x
+     where x.action_class = v_txt and coalesce(btrim(x.compensation_action_class),'') <> '';
+    select count(*) into v_n2 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.proname = regexp_replace(v_txt, '^public[.]', '');
+    v_ok := (v_n + v_n2) >= 1;
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := case when v_ok then format('BR-039: rollback path %s is named', p_context->>'rollback_ref')
-                   else 'BR-039: no rollback or recovery path named. A consequential release without one is not approvable.' end;
+    reason := format('BR-039: rollback path %s resolves to %s registered action class(es) carrying a compensating action and %s routine(s) in this database%s',
+                     v_txt, v_n, v_n2,
+                     case when v_ok then '' else ' -- nothing that could be executed to undo the release' end);
     return next; return;
   end if;
 
   if p_rule_id = 'BR-041' then           -- activity is not outcome
-    v_ok := coalesce(btrim(p_context->>'outcome_metric'),'') <> ''
-            and coalesce(p_context->>'outcome_metric','') <> coalesce(p_context->>'activity_metric','');
+    -- E30. "when a business outcome is DEFINED" was tested as "a string was typed that differs
+    -- from the activity metric", so 'banana' was a business outcome. public.metric_definition IS
+    -- this estate's register of defined metrics. A metric that is not in it has not been defined,
+    -- and success declared on it is exactly the vanity claim this rule forbids.
+    v_txt  := btrim(coalesce(p_context->>'outcome_metric',''));
+    v_txt2 := coalesce(p_context->>'activity_metric','');
+    if v_txt = '' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := 'BR-041: no business outcome metric named.';
+      return next; return;
+    end if;
+    if v_txt = v_txt2 then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := format('BR-041: the declared outcome metric %s IS the activity metric under another name', v_txt);
+      return next; return;
+    end if;
+    select count(*) into v_n from public.metric_definition m where m.metric_key = v_txt;
+    v_ok := (v_n = 1);
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
-    reason := case when v_ok then format('BR-041: success is declared on the outcome metric %s, distinct from the activity metric',
-                                         p_context->>'outcome_metric')
-                   else 'BR-041: no business outcome metric named, or it is the activity metric under another name.' end;
+    reason := format('BR-041: success is declared on outcome metric %s, distinct from the activity metric, and that key resolves to %s row(s) in public.metric_definition (of %s defined metrics)',
+                     v_txt, v_n, (select count(*) from public.metric_definition));
     return next; return;
   end if;
 

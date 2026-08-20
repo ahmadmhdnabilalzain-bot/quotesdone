@@ -2,7 +2,7 @@
 
 **PHASE_D_NOT_READY**
 
-## What changed on 2026-08-21, and which of yesterday's figures it retired
+## What changed in the 2026-08-20 21:00–22:15 UTC session, and which figures it retired
 
 E30–E35 answered the 2026-08-20 independent acceptance. Three of them retired numbers that appear
 elsewhere in this document, so they are named here before anything below is read:
@@ -30,7 +30,7 @@ the object's canonical relation still fails. W21-S01 is the live example:
 
 The question the acceptance asks is whether a deterministic handler can derive business content
 while the reasoning capability is held. **It cannot, and the boundary is per-object rather than
-global.** Measured 2026-08-21 over all 56 registered business objects — for each one's canonical
+global.** Measured 2026-08-20 21:00–22:15 UTC over all 56 registered business objects — for each one's canonical
 relation, the NOT NULL columns with no default that are not the identity, owner, state or
 timestamp columns Phase D supplies:
 
@@ -63,7 +63,7 @@ committed business arrival instead. Second, of the 30 kernel-path runs the handl
 on a business rule in 25 and on this payload boundary in 1 — so the content boundary is real but it
 is not currently what holds the estate at 3 of 257.
 
-## What that verdict rests on — figures below re-measured 2026-08-20, and where marked 2026-08-21
+## What that verdict rests on — figures below re-measured 2026-08-20, and where marked, in the 21:00–22:15 UTC session that followed the R4 acceptance
 
 The body of this document reads as a series of DONEs. Most of them are now true. The verdict is
 still NOT_READY, and this section is what reconciles the two: it names what is built and measured,
@@ -78,7 +78,7 @@ predicated. **159** handoff contracts, each carrying a packet, acceptance criter
 rejection code and a return owner. **1,799** per-step cases recorded, **0** failing. **347** events
 reconciled. **75** injected defects driven. All **15** required deliverables tracked by git under
 `docs/phase-d/`. Phase A drift 0, Phase B drift 0, `fn_phase_c_invariants()` 0 red.
-`fn_phase_c_freeze_drift()` is **1 red** as of 2026-08-21 and that red is deliberate: E34 replaced
+`fn_phase_c_freeze_drift()` is **1 red** as of 2026-08-20 21:00–22:15 UTC and that red is deliberate: E34 replaced
 the literal `true` in `amendments_awaiting_founder_approval`, which read "4 of 4" and was green and
 could never have been anything else. Four amendments to frozen Phase C contracts await the
 founder’s signature on PCCR-001 and PCCR-002 §11, and nothing in this repository may clear it.
@@ -139,7 +139,7 @@ founder’s signature on PCCR-001 and PCCR-002 §11, and nothing in this reposit
   every key the step DECLARES it needs". So the closure figure measured how far a harness could push
   the kernel while handing the rules placeholders.
 
-  **Re-measured 2026-08-21 through the kernel doors only** — `fn_kernel_workflow_start`,
+  **Re-measured 2026-08-20 21:00–22:15 UTC through the kernel doors only** — `fn_kernel_workflow_start`,
   `fn_kernel_review_decide`, `fn_kernel_step_complete` and the D9 path into
   `fn_kernel_handoff_accept`, with no context supplied because the door does not take one:
 
@@ -403,7 +403,7 @@ Re-measured 2026-08-20 that is no longer true** — the itemised table near the 
 carries what each wave actually measures now. What remains true is the reason for the verdict:
 several of those clauses are met by *mechanism* and not yet by *effect*. 100% of the 75 injected
 defects are not refused (35 are), 30/30 deterministic closure is not reached (**0 is**, driven
-through the kernel doors on 2026-08-21 — the 16 that used to stand here measured a driver that
+through the kernel doors on 2026-08-20 21:00–22:15 UTC — the 16 that used to stand here measured a driver that
 never called `fn_kernel_step_complete`; an actor CAN drive all 30 to `completed`, but the handler
 closes none of them unaided, and the second figure is the one the Definition of Done asks for), and not one step has ever produced an effect from a
 committed business arrival.
@@ -734,7 +734,7 @@ not mean the wave's Definition of Done clause is met, and where it is not the ce
 | **D9** | capability boundary | **partial** — 21 steps classified, typed request and fail-closed behaviour implemented and enforced in the executor; no mock fixture library |
 | **D11** | 257 × 7 = 1,799 per-step tests; 30 × 4 workflow tests; the 75-row injected defect catalogue | **PARTIAL — re-measured 2026-08-20.** `phase_d_step_case_result` holds **1,799 rows** — 257 steps × 7 case kinds — with **1,799 passed, 0 failed**. `PHASE_D_INJECTED_DEFECT_RESULT.csv` (regenerated 2026-08-20T01:02:06Z) carries all **75** catalogued defects: **35 REFUSED_AS_REQUIRED, 38 NOT_RUN** each with a named blocker, **2 NOT_DISCRIMINATED**. The Definition of Done asks for 100% refused, so **40 of 75 are not yet evidence of anything**. |
 | **D12** | 347 events reconciled with real producer/consumer/outbox/trace | **PARTIAL — re-measured 2026-08-20.** `phase_d_event_reconciliation` holds **347 rows**, all carrying an outbox relation and a trace. Producer resolves for **286**, consumer for **346**; structurally **287 CONNECTED, 60 DEFERRED_RUNTIME_IMPLEMENTATION**. At runtime **333 of 347 have NEVER been observed** and only **14** were seen in the outbox — reconciled on paper, not in flight. |
-| **D13** | 30/30 deterministic workflow closure | **0 of 30 — re-measured 2026-08-21 through the kernel doors only**, and the 16 that stood here measured a different path. `PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv` is now produced by `fn_kernel_workflow_start`, `fn_kernel_review_decide`, `fn_kernel_step_complete` and the D9 path into `fn_kernel_handoff_accept`, in `execution_context` **`production`**, in aborted transactions. The previous driver called `fn_phase_d_handler_execute` **directly** and fed its rules `fn_phase_d_fixture_context`, which invents a typed value for every declared key; once E30 and E31 made thirteen rules resolve their references, that same driver went from 139 business effects to **0** and every workflow stopped at its first step. Through the kernel: **257 of 257** step-openings dispatched, **3** completed by the handler unaided (W01 x2, W21 x1), **3** effect-ledger rows, **159** handoffs accepted, **254 of 257** steps driven by an actor, **30 of 30** runs reaching `completed`, **0** reaching `HANDLER_CLOSED_UNAIDED`. All 30 leave **0 open handoffs, 0 notifications and 0 outbound HTTP requests**. **0 of 30 closed by the handler unaided is the honest figure for D13**; separately, **30 of 30 runs reach `completed`** when an actor drives them through the kernel, and **28 of 30** have every step driven. 16 of 30 measured a path an actor cannot take. |
+| **D13** | 30/30 deterministic workflow closure | **0 of 30 — re-measured 2026-08-20 21:00–22:15 UTC through the kernel doors only**, and the 16 that stood here measured a different path. `PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv` is now produced by `fn_kernel_workflow_start`, `fn_kernel_review_decide`, `fn_kernel_step_complete` and the D9 path into `fn_kernel_handoff_accept`, in `execution_context` **`production`**, in aborted transactions. The previous driver called `fn_phase_d_handler_execute` **directly** and fed its rules `fn_phase_d_fixture_context`, which invents a typed value for every declared key; once E30 and E31 made thirteen rules resolve their references, that same driver went from 139 business effects to **0** and every workflow stopped at its first step. Through the kernel: **257 of 257** step-openings dispatched, **3** completed by the handler unaided (W01 x2, W21 x1), **3** effect-ledger rows, **159** handoffs accepted, **254 of 257** steps driven by an actor, **30 of 30** runs reaching `completed`, **0** reaching `HANDLER_CLOSED_UNAIDED`. All 30 leave **0 open handoffs, 0 notifications and 0 outbound HTTP requests**. **0 of 30 closed by the handler unaided is the honest figure for D13**; separately, **30 of 30 runs reach `completed`** when an actor drives them through the kernel, and **28 of 30** have every step driven. 16 of 30 measured a path an actor cannot take. |
 | **D14** | 15 required deliverables | **15 of 15** tracked (measured 2026-08-20 with git ls-files; the 5 was the state at D14 and is kept in the left column) |
 
 **Written:** `PHASE_D_CURRENT_CODE_HANDLER_CROSSWALK.csv`, `PHASE_D_RULE_GATE_RESULT.csv`,
@@ -765,7 +765,7 @@ events have never been observed. No amount of further registry work moves any of
 
 The second item is the capability hold: 21 steps cannot run while paid inference is held, and that
 is a founder decision rather than an engineering gap. It is no longer what caps D13. Driven through
-the kernel doors on 2026-08-21, D13 is **0 of 30**, and the handler declines first on a business
+the kernel doors on 2026-08-20 21:00–22:15 UTC, D13 is **0 of 30**, and the handler declines first on a business
 rule in 25 of the 30 runs — before any capability boundary is reached. Lifting the provider hold
 would not move D13 on its own.
 
