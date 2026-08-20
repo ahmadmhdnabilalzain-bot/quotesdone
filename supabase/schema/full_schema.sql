@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T03:30:38.899Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T03:59:20.023Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -56414,11 +56414,118 @@ begin
         v_val := null;   -- nothing has produced it yet: unresolved, not an empty pass
       end if;
 
+    elsif v_k = 'budget_envelope' then
+      -- E9. The prior body said "NO TABLE IN THIS ESTATE HOLDS THESE" and named this key.
+      -- public.department_budget holds monthly_aed, spent_aed and the two degrade/halt thresholds
+      -- for every active department. That IS a budget envelope. It is read here, not invented.
+      v_src := 'department_budget joined to org_departments(active)';
+      select jsonb_build_object(
+               'measured_at', now(),
+               'department_count', count(*),
+               'monthly_aed_total', coalesce(sum(db.monthly_aed), 0),
+               'spent_aed_total',   coalesce(sum(db.spent_aed), 0),
+               'departments', coalesce(jsonb_agg(jsonb_build_object(
+                   'dept_key', db.dept_key, 'monthly_aed', db.monthly_aed,
+                   'spent_aed', db.spent_aed, 'period_label', db.period_label,
+                   'degrade_at_pct', db.degrade_at_pct, 'halt_at_pct', db.halt_at_pct,
+                   'updated_at', db.updated_at) order by db.dept_key), '[]'::jsonb))
+        into v_val
+        from public.department_budget db
+        join public.org_departments od on od.dept_key = db.dept_key and od.active;
+      -- No budget row is not an empty envelope; it is an unanswered question.
+      if coalesce((v_val->>'department_count')::int, 0) = 0 then v_val := null; end if;
+
+    elsif v_k = 'resource_envelope' then
+      -- Money AND people, because a resource envelope that names only money cannot bound a plan
+      -- this company executes with 90 active agents across 10 departments.
+      v_src := 'department_budget + org_departments(active) + org_agents(active)';
+      select jsonb_build_object(
+               'measured_at', now(),
+               'active_departments', (select count(*) from public.org_departments where active),
+               'active_agents',      (select count(*) from public.org_agents where active),
+               'monthly_aed_total',  coalesce((select sum(monthly_aed) from public.department_budget), 0),
+               'spent_aed_total',    coalesce((select sum(spent_aed)   from public.department_budget), 0),
+               'by_department', coalesce((select jsonb_agg(jsonb_build_object(
+                   'dept_key', od.dept_key, 'name', od.name,
+                   'monthly_aed', db.monthly_aed, 'spent_aed', db.spent_aed,
+                   'agents', (select count(*) from public.org_agents a
+                               where a.active and a.department = od.dept_key))
+                   order by od.dept_key)
+                 from public.org_departments od
+                 left join public.department_budget db on db.dept_key = od.dept_key
+                where od.active), '[]'::jsonb))
+        into v_val;
+      if coalesce((v_val->>'active_departments')::int, 0) = 0 then v_val := null; end if;
+
+    elsif v_k = 'current_cash_budget_and_commitments' then
+      -- Budget is what may be spent; commitments are what already has been. Both come from rows:
+      -- department_budget for the envelope and the posted general journal for the commitments.
+      -- A cash POSITION is not claimed — no table in this estate holds a bank balance, and saying
+      -- so is better than deriving one.
+      v_src := 'department_budget + gl_journal(posted) — budget and commitments; NO cash position, '
+            || 'because no relation in this estate holds one';
+      select jsonb_build_object(
+               'measured_at', now(),
+               'cash_position_available', false,
+               'cash_position_note', 'no relation in this estate holds a bank balance',
+               'budget_monthly_aed', coalesce((select sum(monthly_aed) from public.department_budget), 0),
+               'budget_spent_aed',   coalesce((select sum(spent_aed)   from public.department_budget), 0),
+               'budget_by_department', coalesce((select jsonb_agg(jsonb_build_object(
+                   'dept_key', db.dept_key, 'monthly_aed', db.monthly_aed, 'spent_aed', db.spent_aed,
+                   'halt_at_pct', db.halt_at_pct) order by db.dept_key)
+                 from public.department_budget db), '[]'::jsonb),
+               'posted_journal_entries', (select count(*) from public.gl_journal where status = 'posted'),
+               'commitments', coalesce((select jsonb_agg(jsonb_build_object(
+                   'entry_no', j.entry_no, 'entry_date', j.entry_date, 'memo', j.memo,
+                   'source', j.source, 'currency', j.currency) order by j.entry_date desc, j.entry_no desc)
+                 from (select * from public.gl_journal
+                        where status = 'posted' order by entry_date desc, entry_no desc limit 50) j),
+                 '[]'::jsonb))
+        into v_val;
+      if coalesce((v_val->>'budget_monthly_aed')::numeric, 0) = 0
+         and coalesce((v_val->>'posted_journal_entries')::int, 0) = 0 then
+        v_val := null;   -- neither a budget nor a commitment on file: genuinely unanswered
+      end if;
+
+    elsif v_k = 'external_and_internal_evidence' then
+      -- INTERNAL evidence is what the company recorded about itself; EXTERNAL is what it recorded
+      -- about the world. Both halves are named separately so a reader can see which one is thin,
+      -- and external_available is a measured boolean rather than an implied one.
+      v_src := 'company_event(30d) + company_index(90d) + decision_trace(30d)';
+      select jsonb_build_object(
+               'measured_at', now(),
+               'window', '30 days for events and decisions, 90 days for measured indices',
+               'internal_event_count',    (select count(*) from public.company_event
+                                            where occurred_at > now() - interval '30 days'),
+               'internal_decision_count', (select count(*) from public.decision_trace
+                                            where created_at > now() - interval '30 days'),
+               'measured_index_count',    (select count(*) from public.company_index
+                                            where measured_on > current_date - 90),
+               'measured_indices', coalesce((select jsonb_agg(jsonb_build_object(
+                   'index_name', ci.index_name, 'score', ci.score, 'band', ci.band,
+                   'measured_on', ci.measured_on) order by ci.measured_on desc, ci.index_name)
+                 from (select distinct on (index_name) index_name, score, band, measured_on
+                         from public.company_index where measured_on > current_date - 90
+                        order by index_name, measured_on desc) ci), '[]'::jsonb),
+               'event_types', coalesce((select jsonb_object_agg(t.event_type, t.n)
+                 from (select event_type, count(*) n from public.company_event
+                        where occurred_at > now() - interval '30 days'
+                        group by 1 order by 2 desc limit 25) t), '{}'::jsonb),
+               'external_available', false,
+               'external_note', 'no external-signal relation is on file; supplier discovery has been '
+                             || 'paused since 2026-08-10 and nothing else in this estate records an '
+                             || 'outside source')
+        into v_val;
+      if coalesce((v_val->>'internal_event_count')::int, 0) = 0
+         and coalesce((v_val->>'measured_index_count')::int, 0) = 0
+         and coalesce((v_val->>'internal_decision_count')::int, 0) = 0 then
+        v_val := null;
+      end if;
+
     else
-      -- external_and_internal_evidence, current_cash_budget_and_commitments, budget_envelope,
-      -- resource_envelope. NO TABLE IN THIS ESTATE HOLDS THESE. Naming them here as unresolved is
-      -- the honest answer; filling them with a placeholder would make the step complete on a fact
-      -- it never had.
+      -- Every key the frozen registry declares is now named above. This branch is the fail-closed
+      -- default for a key added later: unresolved, never a placeholder, because a placeholder makes
+      -- the step complete on a fact it never had.
       v_val := null;
       v_src := null;
     end if;

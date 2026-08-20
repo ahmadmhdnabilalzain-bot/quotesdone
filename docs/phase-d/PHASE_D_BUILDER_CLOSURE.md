@@ -107,6 +107,29 @@ reconciled. **75** injected defects driven. All **15** required deliverables tra
   and 0 views; authenticated 0 views.** Probed as the roles: `authenticated` denied,
   `service_role` still reads all 30.
 
+- **The kernel dispatch reached every W01 step and executed none of them — measured, and three of six
+  are now closed.** Driving W01 in `execution_context = 'production'` inside an aborted transaction,
+  all six dispatched steps returned `INPUTS_UNRESOLVED`. Six key names, splitting in two:
+  `founder_instruction` and `founder_mandate` (S01–S03) **are** named by the resolver and read
+  `public.founder_command`; they are unresolved only because `fn_phase_d_drive_workflow` opens a run
+  with no founder command behind it, and a real command through `os_api` resolves them. The other
+  four — `external_and_internal_evidence`, `current_cash_budget_and_commitments`, `budget_envelope`,
+  `resource_envelope` — were named **nowhere**, and the resolver's `else` branch said so: *"NO TABLE
+  IN THIS ESTATE HOLDS THESE."*
+
+  That sentence is wrong. `department_budget` holds 10 rows of `monthly_aed`/`spent_aed`/
+  `degrade_at_pct`/`halt_at_pct`; `org_agents` 90 active over 10 active departments; `gl_journal` 73
+  posted entries; `company_event` 1,452 in 30 days, `company_index` 60 in 90, `decision_trace` 114 in
+  30. **E9** gives each of the four a branch reading those rows, refuses on an empty source rather
+  than passing an empty object, and declines by name the two things no relation holds — a cash
+  POSITION (`cash_position_available: false`) and an external signal (`external_available: false`).
+
+  After E9, re-driven: **W01-S04, S05 and S06 resolve their inputs** and are `REFUSED` by a named
+  rule or gate — `BR-003 requires [founder_authority_ref]`, `GATE-006 (Valid workflow transition)
+  requires [to_state]`. That is the contract evaluating and saying no for a stated reason, which is
+  what these steps could not reach before. S01–S03 remain honestly unresolved. Residue 0, business
+  tables 0/0/0/0, `phase_c_workflow_run` unchanged at 18.
+
 - **OPEN, and it has no database-level fix: `public` is DEFAULT-OPEN for function EXECUTE.** Measured
   by execution 2026-08-20, each step in its own transaction, as `postgres` — the role every migration
   runs as: a new **table** and a new **view** come back `postgres | service_role` with anon SELECT
