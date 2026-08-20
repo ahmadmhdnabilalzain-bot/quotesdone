@@ -656,4 +656,34 @@ D13 at 16 of 30 until he lifts it.
 
 ---
 
+## Injected-defect coverage, and the four categories with none — 20 Aug 2026
+
+RFC-4180 parse of PHASE_D_INJECTED_DEFECT_RESULT.csv, 75 catalogued defects:
+**35 REFUSED_AS_REQUIRED, 2 NOT_DISCRIMINATED, 38 NOT_RUN.**
+
+**Four categories have no exercised case at all: DISPATCH 0 of 5, LEGAL 0 of 5, QUOTE 0 of 5,
+TRACE 0 of 5.** They are named here because a category with no coverage that nobody mentions reads
+exactly like a category that passed, and the independent acceptance of 2026-08-20 had to parse the
+CSV to find them. It should not have had to.
+
+Every one of the 38 NOT_RUN rows carries a specific named blocker, and
+scripts/checks/phase_d_documents_do_not_contradict_each_other.test.mjs now refuses a blank or
+placeholder one, refuses NOT_RUN growing past 38, and refuses REFUSED_AS_REQUIRED falling below 35.
+The blockers fall into four kinds, none of which a harness can talk its way past:
+
+- **needs a committed row.** Editing a sealed verdict, rewriting a founder decision, observing an
+  orphan trace after a failed insert, closing a run with a blocker open. Every probe in this estate
+  ends in a raise, so the state it would need never exists to be attacked.
+- **needs two concurrent sessions.** A true race cannot be injected from inside one transaction.
+- **the subject is frozen Phase B or a kernel table.** Injecting a missing successor owner, or an
+  event self-loop, means editing the frozen registry, which is the thing under protection.
+- **needs a business subject the zero-residue rule forbids.** A rendered supplier-facing message to
+  scan for customer identity, a drawing to redact, a customer record to reveal.
+
+These are honest blockers and they are not a plan. Discharging them needs either a committed
+business arrival — the founder to lift the residue and provider holds — or a two-session harness
+that Phase D does not have. Neither is a Phase D repair, and neither should be reported as one.
+
+---
+
 **PHASE_D_NOT_READY**

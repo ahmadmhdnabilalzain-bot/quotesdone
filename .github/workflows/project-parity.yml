@@ -228,6 +228,7 @@ jobs:
                    phase_d_input_schemas_are_typed_and_closed \
                    phase_d_object_record_has_a_contract \
                    freeze_amendment_names_a_real_change_request \
+                   phase_d_documents_do_not_contradict_each_other \
                    phase_d_deliverables_match_production; do
             echo "::group::$t"
             out=$(node --test "scripts/checks/$t.test.mjs" 2>&1); code=$?
