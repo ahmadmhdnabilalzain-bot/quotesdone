@@ -124,11 +124,32 @@ reconciled. **75** injected defects driven. All **15** required deliverables tra
   than passing an empty object, and declines by name the two things no relation holds — a cash
   POSITION (`cash_position_available: false`) and an external signal (`external_available: false`).
 
-  After E9, re-driven: **W01-S04, S05 and S06 resolve their inputs** and are `REFUSED` by a named
-  rule or gate — `BR-003 requires [founder_authority_ref]`, `GATE-006 (Valid workflow transition)
-  requires [to_state]`. That is the contract evaluating and saying no for a stated reason, which is
-  what these steps could not reach before. S01–S03 remain honestly unresolved. Residue 0, business
-  tables 0/0/0/0, `phase_c_workflow_run` unchanged at 18.
+  After E9, re-driven: **W01-S04, S05 and S06 resolve their inputs** and move to `REFUSED`.
+
+  **THAT WAS OVERSTATED, AND THE SECOND INDEPENDENT ACCEPTANCE CAUGHT IT.** This bullet said the
+  move meant "the contract evaluating and saying no for a stated reason". It did not. The refusal
+  read `BR-003 requires [founder_authority_ref] and the call names none of it` while the same
+  dispatch row listed that key in its own `unresolved_keys` — a refusal wearing a rule's name over
+  the same class of gap, one function further on. E9 fixed `fn_phase_d_step_inputs`;
+  **`fn_phase_d_step_context` had it too**, and the auditor was right to call the move a rename
+  rather than a repair.
+
+  **E11** measured that sibling: of **71** declared context keys across
+  `phase_d_rule_enforcement.required_context` and `phase_d_gate_contract.evidence_keys`, only **21**
+  had a branch. Four of the unbranched were required by a rule or gate bound to **all 257 steps** —
+  `run_id`, `actor_role_id`, `reviewer_role_id`, `exception_authority_ref` — and the first three
+  are loaded by that function's own first ten lines. Three more (`step_id`, `step_run_id`,
+  `source_ref`) were *mentioned* in the body and unbranched, which a mention-based grep counts as
+  resolved; the first measurement of this defect made exactly that error while fixing it.
+
+  Six branches added, every value already in scope. Re-driven, the unresolved set on the refused
+  steps went from `actor_role_id + exception_authority_ref + founder_authority_ref + reviewer_role_id
+  + run_id + step_id + step_run_id + to_state` to `exception_authority_ref + founder_authority_ref +
+  reviewer_role_id + to_state`. **Still 0 EXECUTED.** Every remaining refusal is a rule or gate
+  asking for something real that nobody supplied: no founder command behind a fixture run, no
+  independent reviewer declared on those steps, no valid transition, and no policy exception named.
+  S01–S03 remain honestly unresolved. Residue 0, business tables 0/0/0/0, `phase_c_workflow_run`
+  unchanged at 18.
 
 - **OPEN, and it has no database-level fix: `public` is DEFAULT-OPEN for function EXECUTE.** Measured
   by execution 2026-08-20, each step in its own transaction, as `postgres` — the role every migration

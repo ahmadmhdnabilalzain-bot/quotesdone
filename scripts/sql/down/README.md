@@ -229,14 +229,14 @@ The `d44` down is the one to read before running: it **refuses** today. Two of t
 constraint does not admit, so that file raises rather than rewriting two measured rows to make a DDL
 statement succeed. Same shape as the `d7b` down, same reason.
 
-## The thirteen files that post-date *that* table too — `d45`, `d52`–`d56`, `e4`–`e10`
+## The fourteen files that post-date *that* table too — `d45`, `d52`–`d56`, `e4`–`e11`
 
 Classified 2026-08-20 by the same comment-stripped scan (`sed 's/--.*$//'` then a search for
 `CREATE TABLE`, `ADD COLUMN`, `ADD CONSTRAINT`, `DROP CONSTRAINT`, `CREATE INDEX`, `CREATE TRIGGER`,
 `CREATE VIEW`, `CREATE SEQUENCE`, `CREATE TYPE`, `SET NOT NULL`, `DROP FUNCTION`). **Not one of the
-thirteen creates a new object** — `e7` drops and immediately recreates one, which is a return-type
-change, not a new object. `ls scripts/sql/phase_d_*.sql` returns **86** files; 58 at recon + 15 in
-the first table + these 13 = 86, and `git ls-files` returns the same 86.
+fourteen creates a new object** — `e7` drops and immediately recreates one, which is a return-type
+change, not a new object. `ls scripts/sql/phase_d_*.sql` returns **87** files; 58 at recon + 15 in
+the first table + these 14 = 87, and `git ls-files` returns the same 87.
 
 | source file | class | down |
 |---|---|---|
@@ -253,6 +253,7 @@ the first table + these 13 = 86, and `git ls-files` returns the same 86.
 | `phase_d_e7_the_classifier_read_the_binding_not_the_branch.sql` | B — 2 routine bodies, plus the only `DROP FUNCTION` in the ten: a return-type change on `fn_phase_d_effect_reachability()`, immediately recreated. The drop discarded E5's ACL, so the file's own `revoke` is load-bearing and its control block asserts the ACL rather than trusting the statement | none — and none possible: a dropped body is not recoverable from SQL. Reverting means re-applying `e5` and dropping the `e7` signature first, **and re-revoking**, because a plain CREATE grants EXECUTE to PUBLIC |
 | `phase_d_e8_the_view_handed_back_what_the_table_withheld.sql` | neither — 0 routine bodies, 0 DDL; **32 `revoke`**: SELECT on the 30 `v_obj_*` views and on `phase_d_business_object_binding`, EXECUTE on `fn_phase_d_object_state()` | **`phase_d_e8_the_view_handed_back_what_the_table_withheld_down.sql`** — the prior grants were EXPLICIT role grants, never held through PUBLIC, so the down re-grants to `authenticated` only and never names PUBLIC. Running it re-opens thirty SECURITY DEFINER views over `phase_d_object_record` to any signed-in JWT and re-defeats `d43` |
 | `phase_d_e10_a_mechanism_count_read_as_a_refusal_count.sql` | B — 2 routine bodies, 0 DDL | none needed — a replaced body has no down |
+| `phase_d_e11_six_keys_it_was_already_holding.sql` | B — 1 routine body, 0 DDL | none needed — a replaced body has no down |
 | `phase_d_e9_four_inputs_the_resolver_said_no_table_held.sql` | B — 1 routine body, 0 DDL. `fn_phase_d_step_inputs` gains four resolver branches; every other line is byte-identical to the definition it was spliced from | none needed — a replaced body has no down |
 
 **Twenty-eight down scripts in the directory**, up from 26. Both additions are `GRANT_RESTORE`: `e4`'s

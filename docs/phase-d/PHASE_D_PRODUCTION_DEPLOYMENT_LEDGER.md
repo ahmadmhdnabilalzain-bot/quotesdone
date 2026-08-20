@@ -81,11 +81,11 @@ Three details that matter when reading the "merge commit" column:
 
 ## Every Phase D file, with its commit, PR and production read-back
 
-Scope: **all 86** files matching `scripts/sql/phase_d_*.sql`. The table first covered `d0..d43`, 66
+Scope: **all 87** files matching `scripts/sql/phase_d_*.sql`. The table first covered `d0..d43`, 66
 files, while concurrent increments of the same session were still adding files numbered `d44` and
 above — `ls scripts/sql/phase_d_*.sql | wc -l` returned 67 at 00:00:04Z and 71 at 00:10:34Z. Seven
-were appended then (`d44`, `d46`, `d47`, `d48`, `d49`, `d50`, `d51`) and **thirteen more on 2026-08-20**:
-`d45`, `d52`–`d56`, `e4`–`e10`. 66 + 7 + 13 = **86**, which is what both
+were appended then (`d44`, `d46`, `d47`, `d48`, `d49`, `d50`, `d51`) and **fourteen more on 2026-08-20**:
+`d45`, `d52`–`d56`, `e4`–`e11`. 66 + 7 + 14 = **87**, which is what both
 `ls` and `git ls-files scripts/sql/phase_d_*.sql` return.
 
 > **This paragraph used to say "There is no `d45` — the numbering skips it", and it was wrong within
@@ -95,7 +95,7 @@ were appended then (`d44`, `d46`, `d47`, `d48`, `d49`, `d50`, `d51`) and **thirt
 > again rather than by deleting the sentence — a number asserted once and never re-read is exactly
 > what this ledger exists to catch, and the correction is more useful on the record than a clean file.
 
-Rollback class for each of the 86 is in `PHASE_D_ROLLBACK_CLASSIFICATION_D9.md` and, for the thirteen
+Rollback class for each of the 87 is in `PHASE_D_ROLLBACK_CLASSIFICATION_D9.md` and, for the fourteen
 that post-date its main table, in `scripts/sql/down/README.md`.
 
 Read-back key: a table name with a number is `count(*)`; `routine present` means the identity
@@ -201,6 +201,8 @@ purpose rather than restated as one.
 | `e9_four_inputs_the_resolver_said_no_table_held` | `691d432`+ | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | `fn_phase_d_step_inputs(bigint)` present, md5 `2a628d112a9f0f6fd44d4d9a0697c9b1`. Driving W01 in `production` inside an aborted transaction: before, **6 of 6** dispatched steps `INPUTS_UNRESOLVED`; after, **S04, S05 and S06 resolve** and are `REFUSED` by a named rule or gate — `BR-003 requires [founder_authority_ref]`, `GATE-006 (Valid workflow transition) requires [to_state]`. S01–S03 stay unresolved on `founder_instruction`/`founder_mandate`, which need a real founder command the driver does not create. Residue 0, business tables 0/0/0/0, runs unchanged at 18 |
 
 | `e10_a_mechanism_count_read_as_a_refusal_count` | `691d432`+ | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | `fn_phase_d_rule_state()` md5 `3e1f72815596ad402b3cb4720e0970eb` and `fn_phase_d_handler_state()` md5 `04367b527b4b35adbd482743195a84f9`. Rule board now carries `rules_whose_predicate_can_actually_refuse` **40 of 54**, plus 11 delegated / 2 provider-held / 1 at the executor, and `every_registered_rule_carries_a_refusal_class` **54 = 54**. Handler board carries `handlers_that_have_actually_produced_an_effect` **0 of 257** beside the unchanged green `handlers_not_writing_a_business_object` **0**. Read back by listing the rows, not by the apply tool: a first apply emitted one check twice and lost another, and the board is what showed it |
+
+| `e11_six_keys_it_was_already_holding` | `691d432`+ | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | `fn_phase_d_step_context(bigint)` md5 `f860aa8f9baecf1f938a79d2d1511fe0`. Driving W01 in `production` in an aborted transaction, the unresolved set on the three refused steps went from eight keys to four; `run_id`, `actor_role_id`, `step_id` and `step_run_id` are gone. **0 EXECUTED before and after** — the remaining four are real absences, not resolver gaps. Residue 0 |
 
 `e8` is the finding this session did not go looking for. `d2:722` revokes `public.phase_d_object_record`
 from `public, anon, authenticated` with the comment *"The store is written only through the service"* —
@@ -382,9 +384,9 @@ Ahead of `main` right now:
 
 | what | state |
 |---|---|
-| `e4`–`e10` | committed on `feat/phase-d-e4-the-door-was-never-a-browser`, open as [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452), **not merged** |
+| `e4`–`e11` | committed on `feat/phase-d-e4-the-door-was-never-a-browser`, open as [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452), **not merged** |
 
-**Until #452 merges, `main` legitimately does not contain the `e4`–`e10` definitions**, and a parity
+**Until #452 merges, `main` legitimately does not contain the `e4`–`e11` definitions**, and a parity
 gate run against `main` reports drift for that reason alone — that window is expected,
 self-resolving on merge, and must not be "fixed" by re-applying anything. `e4` is the one to be
 careful with: it carries no routine body at all, only 57 `revoke execute` statements, so a parity

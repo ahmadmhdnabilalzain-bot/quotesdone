@@ -16,9 +16,9 @@ with its own reversal and with the data consequence of taking it.
 
 ## What this covers, and where the measurement stops
 
-Population: **all 86** files matching `scripts/sql/phase_d_*.sql`, every one of them applied to
+Population: **all 87** files matching `scripts/sql/phase_d_*.sql`, every one of them applied to
 `htdblwldjkcgjvmqkbeh` under `PHASE_D_PRODUCTION_DIRECT_PROTOCOL.md`. The main table below covers 73
-and the section "Thirteen more, classified 2026-08-20" covers `d45`, `d52`–`d56` and `e4`–`e10`. **The 73
+and the section "Fourteen more, classified 2026-08-20" covers `d45`, `d52`–`d56` and `e4`–`e11`. **The 73
 figure and the sentence "There is no `d45`" were both true when written and are both wrong now**;
 they are corrected in place rather than deleted, because a count asserted once and never re-read is
 the defect this document exists to prevent.
@@ -35,8 +35,8 @@ original 66.
 
 This paragraph then said `ls` and `git ls-files` "both return **73**" and that "there is no `d45`".
 Both were true at 2026-08-20 00:10Z and neither is now: `d45` was applied and committed later the
-same session, `d52`–`d56` after it, and `e4`–`e10` on 2026-08-20. Both commands now return **86**, so
-nothing is untracked, and 66 + 7 + 13 = 86. The thirteen are classified in their own section below.
+same session, `d52`–`d56` after it, and `e4`–`e11` on 2026-08-20. Both commands now return **87**, so
+nothing is untracked, and 66 + 7 + 14 = 87. The fourteen are classified in their own section below.
 
 **Production-direct applies leave no row in `supabase_migrations.schema_migrations`.** Measured:
 `select max(version) from supabase_migrations.schema_migrations` = `20260811081746`, and 0 rows at or
@@ -178,7 +178,7 @@ re-opens rules that are currently enforced.
 
 ---
 
-## Thirteen more, classified 2026-08-20 — `d45`, `d52`–`d56`, `e4`–`e10`
+## Fourteen more, classified 2026-08-20 — `d45`, `d52`–`d56`, `e4`–`e11`
 
 The table above covered 73 and asserted **"There is no `d45`"**. `phase_d_d45_a_self_loop_is_a_step_
 that_hands_to_itself.sql` had been written and applied hours after that sentence, and `d52`–`d56`
@@ -202,6 +202,7 @@ is written because a grant IS reversible by name.
 | `e4_the_door_was_never_a_browser` | **`GRANT_RESTORE`** | 57 `revoke execute`, no body and no DDL. `scripts/sql/down/phase_d_e4_the_door_was_never_a_browser_down.sql` restores the **exact prior shape** rather than a uniform one — 55 held EXECUTE through PUBLIC, `fn_os_open_access` held an explicit anon + authenticated grant, `fn_goal_attainment` an explicit authenticated one. It must be **applied**, never promoted: `--promote` sends only a routine body, and this file has none |
 | `e5_a_red_that_does_not_say_what_is_holding_it` | `ROUTINE_RESTORE` | 2 bodies (`fn_phase_d_effect_reachability` created, `fn_phase_d_effect_state` replaced) and 1 `revoke` on the created routine. Dropping the created routine alone breaks the replaced one that calls it — the pair reverts together or not at all |
 | `e6_the_record_still_claimed_the_door_e4_closed` | `ADDITIVE_SURVIVAL_SAFE` | 2 `update`s to `public.phase_c_component` (3 rows) and 1 `insert` into `public.phase_c_freeze_amendment`. **Both halves revert together.** Removing the amendment row without reverting the three component rows makes `fn_phase_c_freeze_drift()` report drift it cannot explain, and reverting the components without removing the amendment leaves an amendment whose `new_digest` matches nothing |
+| `e11_six_keys_it_was_already_holding` | `ROUTINE_RESTORE` | 1 body, `fn_phase_d_step_context(bigint)`, spliced from the live definition; the generator asserts the anchor exists AND is unique |
 | `e10_a_mechanism_count_read_as_a_refusal_count` | `ROUTINE_RESTORE` | 2 bodies, `fn_phase_d_rule_state()` and `fn_phase_d_handler_state()`, both spliced from the live definition. Disclosure rows only; no existing check renamed, re-derived or lowered |
 | `e9_four_inputs_the_resolver_said_no_table_held` | `ROUTINE_RESTORE` | 1 body, `fn_phase_d_step_inputs(bigint)`, spliced from the live definition with the `else` branch replaced. Reverting means re-applying its predecessor and every later file that replaces the same routine, in order |
 | `e7_the_classifier_read_the_binding_not_the_branch` | `ROUTINE_RESTORE` + `GRANT_RESTORE` | 2 bodies, and the only **`DROP FUNCTION`** in the nine — a return-type change on `fn_phase_d_effect_reachability()`, immediately recreated, not a removed object. Two consequences for a rollback: a dropped body is not recoverable from SQL, so reverting means re-applying `e5` and dropping the `e7` signature first; and the drop discarded `e5`'s ACL, so the file's own `revoke` is load-bearing and its control block asserts the ACL rather than trusting the statement. Whoever restores it must re-revoke |

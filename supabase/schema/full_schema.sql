@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T04:04:45.664Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T13:31:23.783Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -56254,7 +56254,57 @@ begin
         v_src := 'founder_command that started this run';
       end if;
 
+    elsif v_k = 'run_id' then
+      -- E11. This function loads sr and r in its first ten lines and then declared run_id
+      -- unresolved, which refused GATE-008 on every step in the estate for want of a number the
+      -- same function was already holding.
+      v_val := to_jsonb(sr.run_id);
+      v_src := 'phase_c_workflow_step_run.run_id of this step run';
+
+    elsif v_k = 'actor_role_id' then
+      -- The role ACCOUNTABLE for this step run, read from the kernel's own row. Not the caller's
+      -- claim about who they are: this function is given a step_run_id and nothing else, and a
+      -- context resolver that took an identity from its caller would be answering the question it
+      -- was asked to check.
+      v_val := to_jsonb(nullif(btrim(coalesce(sr.accountable_role_id,'')),''));
+      v_src := 'phase_c_workflow_step_run.accountable_role_id';
+
+    elsif v_k = 'reviewer_role_id' then
+      -- The INDEPENDENT reviewer the frozen binding declares, and only that. 45 of the 47 review
+      -- steps name none, and for those this stays unresolved so GATE-004 and GATE-021 refuse —
+      -- which is the gate working. Choosing a reviewer here would be fn_pick_reviewer returning the
+      -- department head 182 times, one layer up.
+      v_val := to_jsonb(nullif(btrim(coalesce(b.independent_reviewer_role_id,'')),''));
+      v_src := 'phase_d_handler_binding.independent_reviewer_role_id, declared not chosen';
+
+    elsif v_k = 'step_id' then
+      -- MENTIONED IN THIS FUNCTION AND NOT BRANCHED, which is why the first measurement of this
+      -- defect missed it. sr.step_id appears in the return object at the bottom, so a grep for
+      -- 'step_id' finds it and a reader concludes the key resolves. It did not. A mention is not a
+      -- branch — the same lens that cost the 19 Aug audit its central premise, applied here to the
+      -- very file that was measuring it.
+      v_val := to_jsonb(sr.step_id);
+      v_src := 'phase_c_workflow_step_run.step_id';
+
+    elsif v_k = 'step_run_id' then
+      v_val := to_jsonb(p_step_run_id);
+      v_src := 'the step_run_id this function was called with';
+
+    elsif v_k = 'source_ref' then
+      -- The arrival that caused this run, already computed into v_src_ref from kernel_trigger_inbox
+      -- at the top of this function. Unresolved when no arrival is recorded, which is a fact about
+      -- the run rather than a gap in this resolver.
+      v_val := to_jsonb(nullif(btrim(coalesce(v_src_ref,'')),''));
+      v_src := 'kernel_trigger_inbox.source_system for this run';
+
     else
+      -- 40 of the 71 declared context keys still land here, and that is correct: artifact_sha256,
+      -- terms_hash, legal_review_ref, denominator, formula, outcome_metric and the rest are facts a
+      -- CALLER produces at runtime, not facts this estate holds. They stay unresolved and their
+      -- rules and gates refuse, which is the contract working.
+      -- exception_authority_ref is here on purpose too: BR-043 applies only when the call names a
+      -- policy exception, and inventing an authority reference would be the placeholder defect the
+      -- D42 comment above already refused once for route_state.
       v_val := null; v_src := null;
     end if;
 
