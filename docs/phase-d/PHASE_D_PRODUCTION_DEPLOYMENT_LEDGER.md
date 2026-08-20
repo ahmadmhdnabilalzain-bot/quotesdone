@@ -488,7 +488,14 @@ request templates do. So two instructions govern the same act and say different 
 | `PHASE_D_CHANGE_CONTROL.md` | a Phase C change request is required |
 | the founder's 2026-08-20 session brief | record it in `phase_c_freeze_amendment`, pinned to the prior digest |
 
-**This is the founder's to settle and it is not settled here.** The second auditor's view is that the
+**PCCR-001 now exists.** The control document required a Phase C change request and none had been
+written; `docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-001.md` is that document, covering all three
+amendments with every one of the nine required elements measured — except section 11, founder
+approval, which is **required and unsigned**. Writing it does not resolve the conflict and does not
+need to: both instructions are now satisfied, the amendments are in the table as the brief requires
+and the change request is on file as the control document requires.
+
+**What remains the founder's to settle** — and it is not settled here. The second auditor's view is that the
 written change control governs and Gate 0 is therefore not satisfied. That is a reasonable reading of
 the documents in the tree. It turns entirely on a fact only the founder holds — which instruction he
 means to stand — and it flips with no code change either way. Three amendments are affected: the two
