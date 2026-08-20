@@ -707,8 +707,11 @@ comment on function public.fn_phase_d_object_state() is
 -- ================================================================ 4. grants
 revoke all on function public.fn_phase_d_object_write(jsonb) from public, anon, authenticated;
 grant execute on function public.fn_phase_d_object_write(jsonb) to service_role;
-revoke all on function public.fn_phase_d_object_read(jsonb) from public, anon;
-grant execute on function public.fn_phase_d_object_read(jsonb) to service_role, authenticated;
+-- D43. authenticated was REVOKED here on 20 Aug 2026. This routine is SECURITY DEFINER and takes
+-- the identity it filters on from p_input->>'caller_ref', so a signed-in caller could name any owner
+-- and read their records. Re-applying this file with the old grant would silently reopen it.
+revoke all on function public.fn_phase_d_object_read(jsonb) from public, anon, authenticated;
+grant execute on function public.fn_phase_d_object_read(jsonb) to service_role;
 revoke all on function public.fn_phase_d_object_policy_guard() from public, anon, authenticated;
 revoke all on function public.fn_phase_d_object_state() from public, anon;
 grant execute on function public.fn_phase_d_object_state() to service_role, authenticated;

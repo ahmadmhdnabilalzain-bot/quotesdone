@@ -396,6 +396,10 @@ try {
       ['fn_phase_b_baseline_drift', {}],
       ['fn_kernel_all_boards', {}],
       ['fn_phase_d_object_write', { p_input: {} }],
+      // D43. The read side was missing from this list entirely, which is why probe 6 reported a clean
+      // sweep while fn_phase_d_object_read was granted to authenticated and took the owner it filters
+      // on from the request body. A probe list that omits the routine cannot find the hole in it.
+      ['fn_phase_d_object_read', { p_input: { object_id: 'customer_case', caller_scope: 'CUSTOMER', caller_ref: 'ZZ-DEMO-D43-B' } }],
       ['fn_phase_d_drive_workflow', { p_input: {} }],
       ['fn_customer_preference_learn', { p_customer_id: '00000000-0000-0000-0000-000000000001', p_stated: {} }],
       ['fn_os_memory', { p_q: 'zz', p_from: '2026-01-01', p_to: '2026-12-31' }],
