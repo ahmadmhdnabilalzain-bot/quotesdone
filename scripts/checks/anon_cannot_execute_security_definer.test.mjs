@@ -52,6 +52,11 @@ import { homedir } from 'node:os';
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
   || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
+// The exact string .github/workflows/project-parity.yml greps for. node:test prints a skip as
+// `﹣ name # SKIPPED: reason`, which that grep does not match, so this file skipping inside the one
+// CI job that holds the credential would read as a pass. E4 turned this from a ratchet into a gate;
+// a gate that can go quiet is not one.
+if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
 // The seven D35 closed. Named individually because these are the ones a probe PROVED reachable.
 const REVOKED = [

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T01:36:19.061Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T03:17:18.904Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -50721,6 +50721,41 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_phase_d_effect_reachability()
+ RETURNS TABLE(step_id text, workflow_id text, expected_effect_type text, reachability text, blocker text, canonical_relation text, has_produced_an_effect boolean)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select e.step_id,
+         e.workflow_id,
+         e.expected_effect_type,
+         case
+           when e.expected_effect_type = 'CAPABILITY_REQUEST'
+             then 'REFUSAL_IS_THE_DECLARED_EFFECT'
+           when e.expected_effect_type in ('DOMAIN_MUTATION','VERSIONED_ARTIFACT')
+            and ob.relation_kind = 'EXISTING_TABLE'
+             then 'NEEDS_A_COMMITTED_BUSINESS_ROW'
+           else 'INTERNAL_EFFECT_NEEDS_NO_BUSINESS_ROW'
+         end,
+         case
+           when e.expected_effect_type = 'CAPABILITY_REQUEST'
+             then 'the provider hold — fn_phase_d_effect_produce raises pd_capability_unavailable in '
+                  || 'production, and the refusal is the contract, not a failure'
+           when e.expected_effect_type in ('DOMAIN_MUTATION','VERSIONED_ARTIFACT')
+            and ob.relation_kind = 'EXISTING_TABLE'
+             then 'the zero-residue rule — the effect writes ' || coalesce(ob.canonical_relation,'(unbound)')
+           else 'the fixture rule — the only driver, fn_phase_d_drive_workflow, opens every run with '
+                || 'source_ref zz-phase-d-… and trigger_ctx.fixture=true, and fn_phase_d_fixture_residue() '
+                || 'must return 0. Neither the provider hold nor the zero-residue rule touches this step.'
+         end,
+         coalesce(ob.canonical_relation, '(none — the effect is the kernel step run itself)'),
+         exists (select 1 from public.phase_d_effect_ledger l where l.step_id = e.step_id)
+    from public.phase_d_step_effect e
+    left join public.phase_d_business_object_binding ob on ob.object_id = e.effect_object_id;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_phase_d_effect_state()
  RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
  LANGUAGE plpgsql
@@ -50806,9 +50841,50 @@ begin
   -- DISCLOSURE, NOT A PASS. Counts steps whose effect has actually been produced at least once,
   -- which is a different question from whether the path exists. Reported as the gap so it FALLS,
   -- and ratcheted with an owner.
+  --
+  -- E5: NAME, DERIVATION AND VALUE ARE UNCHANGED ON PURPOSE. scripts/checks/kernel-boards.json keys
+  -- its ratchet on this exact string, and a ratchet whose subject is renamed goes on silencing
+  -- whatever later takes the name. The three rows that follow say what is holding it; they do not
+  -- replace it and they do not lower it.
   select count(distinct step_id) into n from public.phase_d_effect_ledger;
   check_name := 'steps_with_no_effect_ever_produced';
   expected := '0'; actual := (m - n)::text; ok := (n = m); return next;
+
+  -- ---- E5. THE RED, DECOMPOSED INTO THE THREE THINGS ACTUALLY HOLDING IT ----------------------
+  -- Each row is a disclosure (ok = true) and each carries the count AND the lever that would move
+  -- it, because a number with no named blocker is what made this red unreadable in the first place.
+  select count(*) into n from public.fn_phase_d_effect_reachability()
+   where reachability = 'REFUSAL_IS_THE_DECLARED_EFFECT' and not has_produced_an_effect;
+  check_name := 'no_effect_because_the_refusal_is_the_effect';
+  expected := 'informational — the provider hold, and it is the founder''s to lift';
+  actual := n::text || ' CAPABILITY_REQUEST step(s): fn_phase_d_effect_produce raises '
+         || 'pd_capability_unavailable in production. A ledger row here needs execution_context=test, '
+         || 'which is not a result.';
+  ok := true; return next;
+
+  select count(*) into n from public.fn_phase_d_effect_reachability()
+   where reachability = 'NEEDS_A_COMMITTED_BUSINESS_ROW' and not has_produced_an_effect;
+  check_name := 'no_effect_because_no_business_row_may_be_created';
+  expected := 'informational — the zero-residue rule, and it is the founder''s to lift';
+  actual := n::text || ' step(s) whose effect writes an EXISTING_TABLE. The estate holds 0 customers, '
+         || '0 inquiries, 0 quotes and 0 transactions since the 16 Aug purge and may not be given one.';
+  ok := true; return next;
+
+  select count(*) into n from public.fn_phase_d_effect_reachability()
+   where reachability = 'INTERNAL_EFFECT_NEEDS_NO_BUSINESS_ROW' and not has_produced_an_effect;
+  check_name := 'no_effect_although_none_is_needed_from_the_business';
+  expected := 'informational — NEITHER hold touches these; the fixture rule does';
+  actual := n::text || ' step(s) whose effect writes only the kernel step run or Phase D''s own '
+         || 'object store. They are not waiting on a business arrival. The only driver, '
+         || 'fn_phase_d_drive_workflow, opens every run with source_ref zz-phase-d-… and '
+         || 'trigger_ctx.fixture=true, so committing one leaves residue that must be 0.';
+  ok := true; return next;
+
+  -- A decomposition that stops covering the thing it decomposes is worse than no decomposition:
+  -- the three reasons would add up to fewer steps than the red they explain, and nothing would say so.
+  select count(*) into n from public.fn_phase_d_effect_reachability();
+  check_name := 'every_step_carries_a_reachability_class';
+  expected := m::text; actual := n::text; ok := (n = m); return next;
 
   select string_agg(x.t || '=' || x.c, ' ' order by x.t) into v
     from (select expected_effect_type t, count(*)::text c

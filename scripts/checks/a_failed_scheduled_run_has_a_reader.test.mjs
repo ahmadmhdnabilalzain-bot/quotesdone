@@ -41,6 +41,11 @@ import { homedir } from 'node:os';
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
   || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
+// The exact string .github/workflows/project-parity.yml greps for. node:test prints a skip as
+// `﹣ name # SKIPPED: reason`, which that grep does not match, so a file that skipped inside the one
+// CI job holding the credential would read as a pass — the defect the job's own header describes.
+// Printing this makes the skip visible to the gate as well as to a human.
+if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
 // The stand-down instant, and job 137's last run. Everything at or before it is the estate the
 // watcher was already watching when it was switched off; everything after is the blind spot.
