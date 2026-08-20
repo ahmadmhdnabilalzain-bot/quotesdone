@@ -38,8 +38,13 @@
 --      not exist while the business tables are at zero.
 -- Applicability is asked of `fn_phase_d_rule_applies`, not assumed from `rule_ids`. Bound is not
 -- applicable, and counting bindings as blockers is how both prior audits and I over-stated the
--- blast radius of BR-043 — which, measured, refuses nothing at all: its predicate returns
--- NOT_APPLICABLE when the call names no policy exception.
+-- blast radius of BR-043. Stated precisely, because the loose version of this sentence is the same
+-- mistake in the other direction: BR-043 refused nothing in ANY of the drives run on 2026-08-20 —
+-- it appears in none of the 254 dispatch refusals — because its predicate returns NOT_APPLICABLE
+-- when the call names no policy exception, and no call did. It is NOT incapable of refusing.
+-- Driven directly: no exception named -> NOT_APPLICABLE; `policy_exception` named with no
+-- `exception_authority_ref` -> ENFORCED_FAIL; both named -> ENFORCED_PASS. It is one of the 40 of 54
+-- that fn_phase_d_rule_can_refuse() counts as able to refuse, and that count is right.
 --
 -- CREATE OR REPLACE with a changed return signature needs the DROP first; the routine is
 -- SECURITY INVOKER and the new one is created without a grant to PUBLIC by the REVOKE below.

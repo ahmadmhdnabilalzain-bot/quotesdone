@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T16:34:09.128Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T17:45:17.677Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -56503,6 +56503,25 @@ begin
       end if;
 
     elsif v_k = 'evidence_refs' then
+      -- E22. A CONDITION THE FIRST STEP OF A RUN COULD NEVER MEET.
+      --
+      -- This resolved evidence_refs from public.phase_d_effect_ledger for the run and nothing else.
+      -- The FIRST step of a run has no predecessor, so it has no prior effect, so the key was
+      -- unresolvable for it by construction — not sometimes, ever. BR-027 is bound to 59 steps and
+      -- applies to 7 of the estate's first steps; six of those seven (the seventh is held by the
+      -- capability boundary) were refused by a rule they had no way to satisfy. Measured 2026-08-20.
+      --
+      -- The fix is not to hand the key a placeholder. It is to notice that a first step DOES have
+      -- evidence, and that the resolver was reading the wrong subject for it: what a first step
+      -- rests on is THE ARRIVAL THAT OPENED THE RUN. That is a row — phase_c_workflow_run carries
+      -- start_event, command_id and opened_at, and phase_c_source_cutover classifies the source
+      -- component — so naming it is a read, not an invention.
+      --
+      -- THE ARRIVAL COUNTS ONLY FOR A STEP WITH NO PREDECESSOR, and that restriction is what keeps
+      -- BR-027 able to fail. A later step must still show what the run has PRODUCED; if its
+      -- predecessors produced nothing, it still gets nothing and BR-027 still refuses. Handing every
+      -- call an automatic arrival reference would have turned a rule that refuses into a rule that
+      -- cannot, which is the defect this file is fixing, in the other direction.
       select case when count(*) = 0 then null
                   else jsonb_agg(jsonb_build_object(
                          'effect_id', el.effect_id, 'step_id', el.step_id,
@@ -56511,6 +56530,24 @@ begin
         into v_val
         from public.phase_d_effect_ledger el where el.run_id = sr.run_id;
       v_src := 'phase_d_effect_ledger for this run';
+
+      if v_val is null
+         and not exists (select 1 from public.phase_c_workflow_step_run pr
+                          where pr.run_id = sr.run_id and pr.step_run_id < sr.step_run_id) then
+        v_val := jsonb_build_array(jsonb_build_object(
+          'kind',          'arrival',
+          'run_id',        sr.run_id,
+          'workflow_id',   r.workflow_id,
+          'start_event',   nullif(btrim(coalesce(r.start_event,'')),''),
+          'command_id',    r.command_id,
+          'source_ref',    nullif(btrim(coalesce(v_src_ref,'')),''),
+          'source_class',  v_src_class,
+          'system_actor',  v_src_actor,
+          'opened_at',     r.opened_at));
+        v_src := 'the arrival that opened this run (phase_c_workflow_run.start_event/command_id '
+              || 'plus its phase_c_source_cutover classification) — this step has no predecessor, '
+              || 'so the arrival is the evidence it rests on';
+      end if;
 
     elsif v_k = 'handoff_id' then
       -- D50. The handoff this step opens is a row of the frozen registry, not something a caller has

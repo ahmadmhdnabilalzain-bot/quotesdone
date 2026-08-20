@@ -15,10 +15,34 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from '../staging/qd_guard.mjs';
 
-const TOKEN = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
+
+// A CHECK THAT CANNOT RUN MUST SAY SO, AND MUST NOT THROW. This file needs the Supabase management
+// credential. The tokenless `checks` workflow runs `npm test` with no env block, and reading the
+// token file unconditionally made this an ENOENT hard failure there rather than a declared skip.
+//
+// node:test's own skip, never a top-level process.exit(0) — a file that registers zero tests reads
+// as success to a runner, which is how a check goes quiet without anyone noticing.
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
+  || existsSync(join(homedir(), '.supabase', 'access-token'));
+const SKIP = hasToken ? false : 'no Supabase management token in this environment';
+// The exact string .github/workflows/project-parity.yml greps for. node:test prints a skip as
+// `﹣ name # SKIPPED: reason`, which that grep does not match, so a file that skipped inside the one
+// CI job holding the credential would read as a pass. Printing this makes the skip visible to the
+// gate as well as to a human.
+if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
+
+// qd_guard reads the credential at module load, so importing it eagerly would throw before the
+// skip below could take effect. It is loaded on first use instead.
+const PROD_REF = 'htdblwldjkcgjvmqkbeh';
+const mgmtRead = async (ref, sql) =>
+  (await import('../staging/qd_guard.mjs')).mgmtRead(ref, sql);
+
+const token = () => (process.env.SUPABASE_ACCESS_TOKEN
+  || readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8')).trim();
 
 const COLS = 'object_id, business_key, version, state, owner_scope, owner_ref, payload, created_by';
 
@@ -61,7 +85,7 @@ end $$;`;
 async function run() {
   const res = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/database/query`, {
     method: 'POST',
-    headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+    headers: { Authorization: 'Bearer ' + token(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: PROBE }),
   });
   const body = await res.text();
@@ -70,14 +94,14 @@ async function run() {
   return JSON.parse(m[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\'));
 }
 
-test('every bound business object has a state contract', async () => {
+test('every bound business object has a state contract', { skip: SKIP }, async () => {
   const r = await run();
   assert.equal(Number(r.contracts), Number(r.objects),
     `${r.objects} bound objects but ${r.contracts} state contracts. The trigger fails closed on an ` +
     'object with no contract, so a gap here is an outage, not a permission.');
 });
 
-test('the object-record contract refuses what it forbids and accepts what it allows', async () => {
+test('the object-record contract refuses what it forbids and accepts what it allows', { skip: SKIP }, async () => {
   const r = await run();
   const got = new Map(r.cases.map(c => [c.case, c]));
 
@@ -97,7 +121,7 @@ test('the object-record contract refuses what it forbids and accepts what it all
   }
 });
 
-test('the probe committed nothing', async () => {
+test('the probe committed nothing', { skip: SKIP }, async () => {
   const [r] = await mgmtRead(PROD_REF, `select
     (select count(*) from public.fn_phase_d_fixture_residue()) as residue,
     (select count(*) from public.phase_d_object_record) as rows;`);

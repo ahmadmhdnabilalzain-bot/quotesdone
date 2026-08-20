@@ -22,8 +22,28 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const TOKEN = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
+
+// A CHECK THAT CANNOT RUN MUST SAY SO, AND MUST NOT THROW. This file needs the Supabase management
+// credential. The tokenless `checks` workflow runs `npm test` with no env block, and reading the
+// token file unconditionally made this an ENOENT hard failure there rather than a declared skip.
+//
+// node:test's own skip, never a top-level process.exit(0) — a file that registers zero tests reads
+// as success to a runner, which is how a check goes quiet without anyone noticing.
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
+  || existsSync(join(homedir(), '.supabase', 'access-token'));
+const SKIP = hasToken ? false : 'no Supabase management token in this environment';
+// The exact string .github/workflows/project-parity.yml greps for. node:test prints a skip as
+// `﹣ name # SKIPPED: reason`, which that grep does not match, so a file that skipped inside the one
+// CI job holding the credential would read as a pass. Printing this makes the skip visible to the
+// gate as well as to a human.
+if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
+
+
+const token = () => (process.env.SUPABASE_ACCESS_TOKEN
+  || readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8')).trim();
 const REF = 'htdblwldjkcgjvmqkbeh';
 
 // The management endpoint has no transaction handle, so the abort is expressed the only way it can
@@ -32,7 +52,7 @@ const REF = 'htdblwldjkcgjvmqkbeh';
 async function drive(sql) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
     method: 'POST',
-    headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+    headers: { Authorization: 'Bearer ' + token(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: sql }),
   });
   const body = await r.text();
@@ -139,7 +159,7 @@ begin
   ));
 end $$;`;
 
-test('a Phase D handler reaches EXECUTED through the kernel path and produces an effect', async () => {
+test('a Phase D handler reaches EXECUTED through the kernel path and produces an effect', { skip: SKIP }, async () => {
   const r = await drive(DRIVE);
 
   assert.ok(Number(r.dispatch_rows) > 0,
@@ -159,7 +179,7 @@ test('a Phase D handler reaches EXECUTED through the kernel path and produces an
     'dispatch must have produced exactly one effect');
 });
 
-test('the drive leaves no residue and touches no business table or paid provider', async () => {
+test('the drive leaves no residue and touches no business table or paid provider', { skip: SKIP }, async () => {
   const r = await drive(DRIVE);
 
   assert.equal(Number(r.residue), 0,
@@ -180,13 +200,13 @@ test('the drive leaves no residue and touches no business table or paid provider
     'the drive changed the number of active cron jobs; the automation hold must survive it');
 });
 
-test('nothing the drive did was committed', async () => {
+test('nothing the drive did was committed', { skip: SKIP }, async () => {
   // Read AFTER the aborted transactions above. The committed counts are the subject here, and the
   // assertion is deliberately "unchanged", not "zero" — if a future committed arrival legitimately
   // produces effects, this test must fail loudly and be re-read by a person, not silently pass.
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
     method: 'POST',
-    headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+    headers: { Authorization: 'Bearer ' + token(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: `select
       (select count(*) from public.phase_d_dispatch) as dispatch,
       (select count(*) from public.phase_d_effect_ledger) as ledger,

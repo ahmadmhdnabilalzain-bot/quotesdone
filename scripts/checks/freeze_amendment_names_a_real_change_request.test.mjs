@@ -20,11 +20,37 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from '../staging/qd_guard.mjs';
 
-const tracked = new Set(
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
+
+// A CHECK THAT CANNOT RUN MUST SAY SO, AND MUST NOT THROW. This file needs the Supabase management
+// credential. The tokenless `checks` workflow runs `npm test` with no env block, and reading the
+// token file unconditionally made this an ENOENT hard failure there rather than a declared skip.
+//
+// node:test's own skip, never a top-level process.exit(0) — a file that registers zero tests reads
+// as success to a runner, which is how a check goes quiet without anyone noticing.
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
+  || existsSync(join(homedir(), '.supabase', 'access-token'));
+const SKIP = hasToken ? false : 'no Supabase management token in this environment';
+// The exact string .github/workflows/project-parity.yml greps for. node:test prints a skip as
+// `﹣ name # SKIPPED: reason`, which that grep does not match, so a file that skipped inside the one
+// CI job holding the credential would read as a pass. Printing this makes the skip visible to the
+// gate as well as to a human.
+if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
+
+// qd_guard reads the credential at module load, so importing it eagerly would throw before the
+// skip below could take effect. It is loaded on first use instead.
+const PROD_REF = 'htdblwldjkcgjvmqkbeh';
+const mgmtRead = async (ref, sql) =>
+  (await import('../staging/qd_guard.mjs')).mgmtRead(ref, sql);
+
+// Lazy: shelling out at import time throws before the skip below can take effect.
+let _tracked;
+const tracked = () => (_tracked ??= new Set(
   execFileSync('git', ['ls-files', 'docs/phase-c'], { encoding: 'utf8' })
-    .split('\n').map(s => s.trim()).filter(Boolean));
+    .split('\n').map(s => s.trim()).filter(Boolean)));
 
 // PHASE_D_CHANGE_CONTROL.md line 9 lists what a Phase C change request must carry. Matched on the
 // substance rather than on a heading number, so re-ordering the document does not fail the test.
@@ -43,7 +69,7 @@ const REQUIRED_ELEMENTS = [
   /founder approval/i,
 ];
 
-test('every freeze amendment names a change request that exists, is tracked, and lists it', async () => {
+test('every freeze amendment names a change request that exists, is tracked, and lists it', { skip: SKIP }, async () => {
   const rows = await mgmtRead(PROD_REF,
     `select amendment_id, subject, object_identity, change_request_ref,
             approved_by is not null as approved
@@ -62,7 +88,7 @@ test('every freeze amendment names a change request that exists, is tracked, and
 
   for (const [ref, amendments] of byRef) {
     const path = `docs/phase-c/PHASE_C_CHANGE_REQUEST_${ref}.md`;
-    assert.ok(tracked.has(path),
+    assert.ok(tracked().has(path),
       `amendments [${amendments.map(a => a.amendment_id).join(', ')}] name ${ref}, but ${path} is ` +
       `not tracked by git. A frozen Phase C contract stands amended with no committed change request.`);
 
@@ -83,7 +109,7 @@ test('every freeze amendment names a change request that exists, is tracked, and
   }
 });
 
-test('the drift board refuses to excuse an amendment that names no change request', async () => {
+test('the drift board refuses to excuse an amendment that names no change request', { skip: SKIP }, async () => {
   // A positive control for the E13 predicate. The check must be able to go RED, or its 0 means
   // nothing. Driven in an aborted transaction: insert an amendment whose change_request_ref is
   // blank and confirm the constraint refuses it outright — the column is NOT NULL and shape-checked,
