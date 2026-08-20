@@ -24,16 +24,31 @@ reconciled. **75** injected defects driven. All **15** required deliverables tra
 - **`steps_with_no_effect_ever_produced = 257`** — the single red on `fn_phase_d_effect_state()`,
   whose other eleven pass/fail checks are green.
 
-  **CORRECTED 2026-08-20 by E5.** This bullet said "the effect ledger is empty because no committed
-  business arrival has ever driven a step". That is true of **51** of the 257 and **wrong about the
-  other 206**. `fn_phase_d_effect_reachability()` now splits them from the effect contracts and the
-  object bindings, and the board carries the split beside the red:
+  **CORRECTED 2026-08-20 by E5, and E5's own numbers CORRECTED THE SAME DAY by E7.** This bullet
+  said "the effect ledger is empty because no committed business arrival has ever driven a step",
+  which is true of a minority of the 257. E5 replaced that with a 21 / 51 / 185 split — and got two
+  of the three wrong, by classifying each step from the object its effect row **declares** rather
+  than the branch `fn_phase_d_effect_produce` **executes**. All 41 `REVIEW_VERDICT` steps call
+  `fn_phase_d_object_write` with a hardcoded `'review_record'`, which binds to `public.review_chain`,
+  an `EXISTING_TABLE` — so E5 counted 41 steps that write a real table as needing no table at all.
 
-  | steps | why no effect has ever been produced | who can lift it |
+  `fn_phase_d_effect_reachability()` now derives the class from the branch, and the board carries
+  five rows beside the red:
+
+  | steps | what the effect actually writes | who can lift it |
   |---:|---|---|
-  | **21** | `CAPABILITY_REQUEST`. `fn_phase_d_effect_produce` **raises** `pd_capability_unavailable` in production — the declared effect *is* the refusal. A ledger row needs `execution_context=test`, which is not a result. | the founder, by lifting the provider hold |
-  | **51** | `DOMAIN_MUTATION` / `VERSIONED_ARTIFACT` bound to an `EXISTING_TABLE` — the effect writes `customers`, `inquiries`, `quotes`, `transactions`, `leads`, `refunds`, `os_incidents` and eleven more. | the founder, by lifting the zero-residue rule |
-  | **185** | the effect writes **only** the kernel's own step run or Phase D's own object store. **Neither hold touches these.** They are held by the fixture rule: the only driver, `fn_phase_d_drive_workflow`, opens every run with `source_ref = 'zz-phase-d-…'` and `trigger_ctx.fixture = true`, and `fn_phase_d_fixture_residue()` must return 0. | Phase E — a driver that does not mark its own rows fixtures |
+  | **21** | nothing — `CAPABILITY_REQUEST` **raises** `pd_capability_unavailable` in production. The declared effect *is* the refusal; a ledger row needs `execution_context=test`, which is not a result. | the founder, by lifting the provider hold |
+  | **70** | one row in `phase_d_effect_ledger` and nothing else anywhere — `KERNEL_ONLY_TRANSITION` 51, `EXTERNAL_EFFECT_INTENT` 12 (mock only), `MEASUREMENT_RECORD` 7 | Phase E |
+  | **74** | `phase_d_object_record`, through a `v_obj_*` view — Phase D's own store | Phase E |
+  | **78** | a **real existing table the zero-residue rule does not name**: `review_chain` (41), `refunds`, `company_goals`, `opportunity`, `os_incidents`, `legal_reviews`, `documents`, `quote_comparisons`, `supplier_capabilities`, `leads`, `stripe_events`, `inquiry_matches`, `department_objective`, `content_drafts`, `reveal_invoices`, `org_tasks` | Phase E, and a decision about writing rows into tables the company uses |
+  | **14** | one of the five tables the zero-residue rule names — `quotes` 5, `inquiries` 4, `customers` 4, `transactions` 1 | the founder, by lifting the zero-residue rule |
+
+  So **144** steps (70 + 74) write nothing outside Phase D's own two tables, **not** the 185 E5
+  claimed; **92** write an existing table, not 51; and only **14** touch the five tables the
+  zero-residue rule actually names. The 144 are held by neither hold — they are held by the fixture
+  rule: the only driver, `fn_phase_d_drive_workflow`, opens every run with
+  `source_ref = 'zz-phase-d-…'` and `trigger_ctx.fixture = true`, and `fn_phase_d_fixture_residue()`
+  must return 0.
 
   The recording path itself works, and that was measured rather than argued. Producing the declared
   effect for step runs **255** (W06-S06) and **256** (W06-S07) — both real, committed, `completed`

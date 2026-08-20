@@ -39,6 +39,19 @@
 //
 // The floor is zero, and the authenticated set is pinned by NAME rather than by count — a count
 // alone would let one routine close while a different one opened.
+//
+// WHAT THIS FILE STILL DOES NOT COVER, measured rather than waved at. **284 SECURITY INVOKER
+// routines in public are anon-executable.** They are a different risk: a SECURITY INVOKER routine
+// runs as its caller, so table permissions still apply to it. Probed as the role on 2026-08-20,
+// `set local role anon` then calling `fn_phase_d_effect_state()` and
+// `fn_kernel_component_exposure_state()` both raise `insufficient_privilege` — the grant on the
+// function is real and the data behind it is not reachable.
+//
+// The bound on all 284 is the last test below: **anon can SELECT exactly 2 of the 574 tables in
+// public and 0 of the views.** Both are public marketing content. A SECURITY INVOKER routine can
+// therefore return anon nothing that a browser could not already read, and that is a property of the
+// TABLE grants, not of the 284 — which is why it is asserted here, where a third table appearing
+// would be caught, rather than left as a sentence.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
@@ -80,7 +93,7 @@ const AUTHENTICATED_BY_DESIGN = {
     'called with the customer\'s own JWT at customer_documents/index.ts:125, :167 and :197',
 };
 
-let rows = [], totals = {}, stillOpen = [];
+let rows = [], totals = {}, stillOpen = [], anonReadable = [];
 if (hasToken) {
   const { sql } = await import('../phase_c/lib/db.mjs');
   rows = await sql(`
@@ -106,6 +119,12 @@ if (hasToken) {
        and (has_function_privilege('anon', p.oid, 'EXECUTE')
          or has_function_privilege('authenticated', p.oid, 'EXECUTE'))
      order by p.proname`);
+  anonReadable = await sql(`
+    select c.relname, c.relkind
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relkind in ('r','p','v','m')
+       and has_table_privilege('anon', c.oid, 'SELECT')
+     order by c.relname`);
 }
 
 test('the seven routines D35 closed are still closed to anon and authenticated', { skip: SKIP }, () => {
@@ -154,4 +173,21 @@ test('exactly the two customer-document routines are authenticated-executable', 
     + ' dropping fn_customer_document_refs makes the documents RLS policy raise instead of filter.');
   assert.equal(Number(totals.authed_exec), AUTHENTICATED_CEILING,
     `${totals.authed_exec} are authenticated-executable; by design it is ${AUTHENTICATED_CEILING}.`);
+});
+
+// The bound on the 284 anon-executable SECURITY INVOKER routines. They run as their caller, so what
+// anon can get out of any of them is what anon can SELECT — and that is two tables of 574, both
+// public marketing content the website already shows. Pinned by NAME: a third table appearing here
+// widens what every one of those 284 can return, and a count alone would not say which.
+const ANON_READABLE_BY_DESIGN = ['blog_posts', 'category_specs'];
+
+test('anon can read only the two public-content tables, which is what bounds the SECURITY INVOKER surface', { skip: SKIP }, () => {
+  const actual = anonReadable.map((r) => r.relname).sort();
+  console.log(`      anon can SELECT ${actual.length} relation(s) in public: ${actual.join(', ') || 'none'}`);
+  assert.deepEqual(actual, [...ANON_READABLE_BY_DESIGN].sort(),
+    'the set of relations anon can SELECT in public has changed.\n'
+    + `  expected: ${ANON_READABLE_BY_DESIGN.join(', ')}\n  actual:   ${actual.join(', ') || '(none)'}\n`
+    + 'A NEW name here is read by anything anon can call, including the 284 anon-executable SECURITY'
+    + ' INVOKER routines in public — this grant is what stops all of them returning anything.'
+    + ' A name that DISAPPEARED breaks the public site, which reads both of these.');
 });

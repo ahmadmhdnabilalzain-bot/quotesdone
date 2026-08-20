@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T03:17:18.904Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T03:30:38.899Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -16018,126 +16018,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -16682,6 +16562,126 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -50722,37 +50722,71 @@ end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_phase_d_effect_reachability()
- RETURNS TABLE(step_id text, workflow_id text, expected_effect_type text, reachability text, blocker text, canonical_relation text, has_produced_an_effect boolean)
+ RETURNS TABLE(step_id text, workflow_id text, expected_effect_type text, reachability text, blocker text, writes_relation text, has_produced_an_effect boolean)
  LANGUAGE sql
  STABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select e.step_id,
-         e.workflow_id,
-         e.expected_effect_type,
+  -- THE JOIN IS ON WHAT THE BRANCH WRITES, NOT ON WHAT THE ROW DECLARES. fn_phase_d_effect_produce
+  -- hardcodes 'review_record' for every REVIEW_VERDICT step and writes only the ledger for
+  -- EXTERNAL_EFFECT_INTENT and MEASUREMENT_RECORD, so e.effect_object_id is the wrong key for 60 of
+  -- the 257 and reading it was the E5 defect.
+  with resolved as (
+    select e.step_id, e.workflow_id, e.expected_effect_type,
+           case
+             when e.expected_effect_type = 'CAPABILITY_REQUEST'
+               then '(nothing — the branch raises pd_capability_unavailable)'
+             when e.expected_effect_type in
+                  ('KERNEL_ONLY_TRANSITION','EXTERNAL_EFFECT_INTENT','MEASUREMENT_RECORD')
+               then 'public.phase_d_effect_ledger'
+             else (select ob.canonical_relation
+                     from public.phase_d_business_object_binding ob
+                    where ob.object_id = case when e.expected_effect_type = 'REVIEW_VERDICT'
+                                              then 'review_record' else e.effect_object_id end)
+           end as writes_relation,
+           case
+             when e.expected_effect_type in
+                  ('CAPABILITY_REQUEST','KERNEL_ONLY_TRANSITION','EXTERNAL_EFFECT_INTENT',
+                   'MEASUREMENT_RECORD')
+               then null
+             else (select ob.relation_kind
+                     from public.phase_d_business_object_binding ob
+                    where ob.object_id = case when e.expected_effect_type = 'REVIEW_VERDICT'
+                                              then 'review_record' else e.effect_object_id end)
+           end as relation_kind
+      from public.phase_d_step_effect e
+  )
+  select r.step_id, r.workflow_id, r.expected_effect_type,
          case
-           when e.expected_effect_type = 'CAPABILITY_REQUEST'
-             then 'REFUSAL_IS_THE_DECLARED_EFFECT'
-           when e.expected_effect_type in ('DOMAIN_MUTATION','VERSIONED_ARTIFACT')
-            and ob.relation_kind = 'EXISTING_TABLE'
-             then 'NEEDS_A_COMMITTED_BUSINESS_ROW'
-           else 'INTERNAL_EFFECT_NEEDS_NO_BUSINESS_ROW'
+           when r.expected_effect_type = 'CAPABILITY_REQUEST' then 'REFUSAL_IS_THE_DECLARED_EFFECT'
+           when r.writes_relation = 'public.phase_d_effect_ledger' then 'WRITES_ONLY_THE_PHASE_D_LEDGER'
+           when r.relation_kind = 'PHASE_D_OBJECT_VIEW' then 'WRITES_ONLY_THE_PHASE_D_OBJECT_STORE'
+           when r.writes_relation in ('public.customers','public.inquiries','public.quotes',
+                                      'public.transactions','public.notifications')
+             then 'WRITES_A_ZERO_RESIDUE_TABLE'
+           when r.relation_kind = 'EXISTING_TABLE' then 'WRITES_AN_EXISTING_TABLE_NOT_UNDER_THE_RULE'
+           else 'UNRESOLVED'
          end,
          case
-           when e.expected_effect_type = 'CAPABILITY_REQUEST'
-             then 'the provider hold — fn_phase_d_effect_produce raises pd_capability_unavailable in '
-                  || 'production, and the refusal is the contract, not a failure'
-           when e.expected_effect_type in ('DOMAIN_MUTATION','VERSIONED_ARTIFACT')
-            and ob.relation_kind = 'EXISTING_TABLE'
-             then 'the zero-residue rule — the effect writes ' || coalesce(ob.canonical_relation,'(unbound)')
+           when r.expected_effect_type = 'CAPABILITY_REQUEST'
+             then 'the provider hold — the branch raises rather than records, and the refusal is the '
+                  || 'contract. A ledger row here needs execution_context=test, which is not a result.'
+           when r.writes_relation in ('public.customers','public.inquiries','public.quotes',
+                                      'public.transactions','public.notifications')
+             then 'the zero-residue rule — the effect writes ' || r.writes_relation
+                  || ', one of the five tables that rule names'
+           when r.relation_kind = 'EXISTING_TABLE'
+             then 'the fixture rule, AND a row in a real table — ' || r.writes_relation
+                  || '. The zero-residue rule does not name it, which is not the same as it being '
+                  || 'Phase D''s own storage.'
            else 'the fixture rule — the only driver, fn_phase_d_drive_workflow, opens every run with '
-                || 'source_ref zz-phase-d-… and trigger_ctx.fixture=true, and fn_phase_d_fixture_residue() '
-                || 'must return 0. Neither the provider hold nor the zero-residue rule touches this step.'
+                || 'source_ref zz-phase-d-… and trigger_ctx.fixture=true, and '
+                || 'fn_phase_d_fixture_residue() must return 0. Neither the provider hold nor the '
+                || 'zero-residue rule touches this step.'
          end,
-         coalesce(ob.canonical_relation, '(none — the effect is the kernel step run itself)'),
-         exists (select 1 from public.phase_d_effect_ledger l where l.step_id = e.step_id)
-    from public.phase_d_step_effect e
-    left join public.phase_d_business_object_binding ob on ob.object_id = e.effect_object_id;
+         coalesce(r.writes_relation, '(unresolved — no binding for the object this branch writes)'),
+         exists (select 1 from public.phase_d_effect_ledger l where l.step_id = r.step_id)
+    from resolved r;
 $function$
 
 
@@ -50839,52 +50873,79 @@ begin
   expected := '0'; actual := n::text; ok := (n = 0); return next;
 
   -- DISCLOSURE, NOT A PASS. Counts steps whose effect has actually been produced at least once,
-  -- which is a different question from whether the path exists. Reported as the gap so it FALLS,
-  -- and ratcheted with an owner.
+  -- which is a different question from whether the path exists.
   --
-  -- E5: NAME, DERIVATION AND VALUE ARE UNCHANGED ON PURPOSE. scripts/checks/kernel-boards.json keys
-  -- its ratchet on this exact string, and a ratchet whose subject is renamed goes on silencing
-  -- whatever later takes the name. The three rows that follow say what is holding it; they do not
-  -- replace it and they do not lower it.
+  -- NAME, DERIVATION AND VALUE UNCHANGED SINCE IT WAS WRITTEN. scripts/checks/kernel-boards.json
+  -- keys its ratchet on this exact string, and a ratchet whose subject is renamed goes on silencing
+  -- whatever later takes the name. The rows that follow say what is holding it; they neither replace
+  -- it nor lower it, and E7 did not touch it either.
   select count(distinct step_id) into n from public.phase_d_effect_ledger;
   check_name := 'steps_with_no_effect_ever_produced';
   expected := '0'; actual := (m - n)::text; ok := (n = m); return next;
 
-  -- ---- E5. THE RED, DECOMPOSED INTO THE THREE THINGS ACTUALLY HOLDING IT ----------------------
-  -- Each row is a disclosure (ok = true) and each carries the count AND the lever that would move
-  -- it, because a number with no named blocker is what made this red unreadable in the first place.
+  -- ---- THE RED, DECOMPOSED BY THE BRANCH EACH EFFECT ACTUALLY EXECUTES ------------------------
+  -- E5 wrote three rows here and derived them from the DECLARED effect object. E7 replaces them
+  -- with five derived from the branch, because fn_phase_d_effect_produce hardcodes 'review_record'
+  -- for all 41 REVIEW_VERDICT steps and writes only the ledger for EXTERNAL_EFFECT_INTENT and
+  -- MEASUREMENT_RECORD. The E5 rows are gone rather than kept beside these: two of them carried a
+  -- number this file proves wrong, and a board showing both readings makes the reader choose.
   select count(*) into n from public.fn_phase_d_effect_reachability()
    where reachability = 'REFUSAL_IS_THE_DECLARED_EFFECT' and not has_produced_an_effect;
   check_name := 'no_effect_because_the_refusal_is_the_effect';
   expected := 'informational — the provider hold, and it is the founder''s to lift';
-  actual := n::text || ' CAPABILITY_REQUEST step(s): fn_phase_d_effect_produce raises '
-         || 'pd_capability_unavailable in production. A ledger row here needs execution_context=test, '
-         || 'which is not a result.';
+  actual := n::text || ' CAPABILITY_REQUEST step(s): the branch raises pd_capability_unavailable in '
+         || 'production rather than recording. A ledger row needs execution_context=test, which is '
+         || 'not a result.';
   ok := true; return next;
 
   select count(*) into n from public.fn_phase_d_effect_reachability()
-   where reachability = 'NEEDS_A_COMMITTED_BUSINESS_ROW' and not has_produced_an_effect;
-  check_name := 'no_effect_because_no_business_row_may_be_created';
+   where reachability = 'WRITES_A_ZERO_RESIDUE_TABLE' and not has_produced_an_effect;
+  check_name := 'no_effect_because_the_effect_writes_a_zero_residue_table';
   expected := 'informational — the zero-residue rule, and it is the founder''s to lift';
-  actual := n::text || ' step(s) whose effect writes an EXISTING_TABLE. The estate holds 0 customers, '
-         || '0 inquiries, 0 quotes and 0 transactions since the 16 Aug purge and may not be given one.';
+  actual := n::text || ' step(s) whose effect writes customers, inquiries, quotes or transactions. '
+         || 'The estate holds 0 of each since the 16 Aug purge and may not be given one.';
   ok := true; return next;
 
   select count(*) into n from public.fn_phase_d_effect_reachability()
-   where reachability = 'INTERNAL_EFFECT_NEEDS_NO_BUSINESS_ROW' and not has_produced_an_effect;
-  check_name := 'no_effect_although_none_is_needed_from_the_business';
-  expected := 'informational — NEITHER hold touches these; the fixture rule does';
-  actual := n::text || ' step(s) whose effect writes only the kernel step run or Phase D''s own '
-         || 'object store. They are not waiting on a business arrival. The only driver, '
-         || 'fn_phase_d_drive_workflow, opens every run with source_ref zz-phase-d-… and '
-         || 'trigger_ctx.fixture=true, so committing one leaves residue that must be 0.';
+   where reachability = 'WRITES_AN_EXISTING_TABLE_NOT_UNDER_THE_RULE' and not has_produced_an_effect;
+  check_name := 'no_effect_and_the_effect_writes_a_real_table_the_rule_does_not_name';
+  expected := 'informational — the fixture rule, plus a row in a table the company uses';
+  actual := n::text || ' step(s) writing review_chain, refunds, company_goals, opportunity, '
+         || 'os_incidents, legal_reviews, documents, quote_comparisons, supplier_capabilities, '
+         || 'leads, stripe_events, inquiry_matches, department_objective, content_drafts, '
+         || 'reveal_invoices or org_tasks. Permitted by the letter of the zero-residue rule and '
+         || 'still not Phase D''s own storage — 41 of them are the REVIEW_VERDICT steps, which write '
+         || 'review_chain through a hardcoded object_id their own effect row does not name.';
   ok := true; return next;
 
-  -- A decomposition that stops covering the thing it decomposes is worse than no decomposition:
-  -- the three reasons would add up to fewer steps than the red they explain, and nothing would say so.
+  select count(*) into n from public.fn_phase_d_effect_reachability()
+   where reachability in ('WRITES_ONLY_THE_PHASE_D_LEDGER','WRITES_ONLY_THE_PHASE_D_OBJECT_STORE')
+     and not has_produced_an_effect;
+  check_name := 'no_effect_although_the_effect_leaves_phase_d_tables_only';
+  expected := 'informational — NEITHER hold touches these; the fixture rule does';
+  actual := n::text || ' step(s) writing only phase_d_effect_ledger or phase_d_object_record. '
+         || 'They are not waiting on a business arrival. The only driver, fn_phase_d_drive_workflow, '
+         || 'opens every run with source_ref zz-phase-d-… and trigger_ctx.fixture=true, so '
+         || 'committing one leaves residue that fn_phase_d_fixture_residue() must report as 0.';
+  ok := true; return next;
+
+  -- A decomposition that stops covering the thing it decomposes is worse than no decomposition, and
+  -- UNRESOLVED is its own failure: a branch whose written relation cannot be resolved is a step
+  -- nobody can say anything about.
+  select count(*) into n from public.fn_phase_d_effect_reachability()
+   where reachability = 'UNRESOLVED';
+  check_name := 'steps_whose_written_relation_does_not_resolve';
+  expected := '0'; actual := n::text; ok := (n = 0); return next;
+
   select count(*) into n from public.fn_phase_d_effect_reachability();
   check_name := 'every_step_carries_a_reachability_class';
   expected := m::text; actual := n::text; ok := (n = m); return next;
+
+  select string_agg(x.t || '=' || x.c, ' ' order by x.t) into v
+    from (select reachability t, count(*)::text c
+            from public.fn_phase_d_effect_reachability() group by 1) x;
+  check_name := 'reachability_class_distribution';
+  expected := 'informational'; actual := coalesce(v,'(none)'); ok := true; return next;
 
   select string_agg(x.t || '=' || x.c, ' ' order by x.t) into v
     from (select expected_effect_type t, count(*)::text c

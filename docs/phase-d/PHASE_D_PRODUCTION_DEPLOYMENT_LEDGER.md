@@ -81,11 +81,11 @@ Three details that matter when reading the "merge commit" column:
 
 ## Every Phase D file, with its commit, PR and production read-back
 
-Scope: **all 82** files matching `scripts/sql/phase_d_*.sql`. The table first covered `d0..d43`, 66
+Scope: **all 83** files matching `scripts/sql/phase_d_*.sql`. The table first covered `d0..d43`, 66
 files, while concurrent increments of the same session were still adding files numbered `d44` and
 above — `ls scripts/sql/phase_d_*.sql | wc -l` returned 67 at 00:00:04Z and 71 at 00:10:34Z. Seven
-were appended then (`d44`, `d46`, `d47`, `d48`, `d49`, `d50`, `d51`) and **nine more on 2026-08-20**:
-`d45`, `d52`, `d53`, `d54`, `d55`, `d56`, `e4`, `e5`, `e6`. 66 + 7 + 9 = **82**, which is what both
+were appended then (`d44`, `d46`, `d47`, `d48`, `d49`, `d50`, `d51`) and **ten more on 2026-08-20**:
+`d45`, `d52`, `d53`, `d54`, `d55`, `d56`, `e4`, `e5`, `e6`, `e7`. 66 + 7 + 10 = **83**, which is what both
 `ls` and `git ls-files scripts/sql/phase_d_*.sql` return.
 
 > **This paragraph used to say "There is no `d45` — the numbering skips it", and it was wrong within
@@ -95,8 +95,8 @@ were appended then (`d44`, `d46`, `d47`, `d48`, `d49`, `d50`, `d51`) and **nine 
 > again rather than by deleting the sentence — a number asserted once and never re-read is exactly
 > what this ledger exists to catch, and the correction is more useful on the record than a clean file.
 
-Rollback class for each of the 82 is in `PHASE_D_ROLLBACK_CLASSIFICATION_D9.md` and, for the nine
-that post-date it, in `scripts/sql/down/README.md`.
+Rollback class for each of the 83 is in `PHASE_D_ROLLBACK_CLASSIFICATION_D9.md` and, for the ten
+that post-date its main table, in `scripts/sql/down/README.md`.
 
 Read-back key: a table name with a number is `count(*)`; `routine present` means the identity
 signature was returned by the second query above.
@@ -194,6 +194,13 @@ purpose rather than restated as one.
 | `e4_the_door_was_never_a_browser` | `691d432` | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | **0** SECURITY DEFINER routines in `public` are anon-executable, **2** authenticated-executable (`fn_customer_documents`, `fn_customer_document_refs`), of 791. Verified as the roles themselves: `set local role anon` → `insufficient_privilege`; `service_role` still executes |
 | `e5_a_red_that_does_not_say_what_is_holding_it` | `691d432` | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | `fn_phase_d_effect_reachability()` present and revoked from `public, anon, authenticated`; `fn_phase_d_effect_state()` returns the three new disclosure rows (21 / 51 / 185) beside an unchanged `steps_with_no_effect_ever_produced = 257` |
 | `e6_the_record_still_claimed_the_door_e4_closed` | `691d432` | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | 3 `phase_c_component` rows on `external_entry = 'no'`; `phase_c_freeze_amendment` **3** rows; `fn_phase_c_freeze_drift()` 0 of 25 drifted |
+| `e7_the_classifier_read_the_binding_not_the_branch` | `691d432`+ | [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452) | unmerged | `fn_phase_d_effect_reachability()` **dropped and recreated** for a changed OUT row type, and re-revoked — `proacl` reads `postgres=X/postgres \| service_role=X/postgres`, so `anon` and `authenticated` are false. `reachability_class_distribution` reads `REFUSAL_IS_THE_DECLARED_EFFECT=21 WRITES_A_ZERO_RESIDUE_TABLE=14 WRITES_AN_EXISTING_TABLE_NOT_UNDER_THE_RULE=78 WRITES_ONLY_THE_PHASE_D_LEDGER=70 WRITES_ONLY_THE_PHASE_D_OBJECT_STORE=74`, summing to 257, with `steps_whose_written_relation_does_not_resolve` 0 |
+
+`e7` is the one file here that **drops** a routine, and it is the reason the grant needed re-taking:
+a plain `CREATE` grants EXECUTE to PUBLIC and only `CREATE OR REPLACE` preserves an ACL, so `e5`'s
+revoke did not survive `e7`. Its control block asserts the ACL rather than trusting the statement —
+in the same session that closed 57 such grants, a drop-and-recreate reopening one would have been
+the whole of E4 undone by the increment that came after it.
 
 Seven rows read `fn_phase_d_step_context(bigint) present` and say nothing else, because they are the
 same routine replaced seven times — `d37`–`d42`, and `d50`. Measured over all 73 files by counting
@@ -360,9 +367,9 @@ Ahead of `main` right now:
 
 | what | state |
 |---|---|
-| `e4`, `e5`, `e6` | committed as `691d432` on `feat/phase-d-e4-the-door-was-never-a-browser`, open as [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452), **not merged** |
+| `e4`, `e5`, `e6`, `e7` | committed on `feat/phase-d-e4-the-door-was-never-a-browser`, open as [#452](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/452), **not merged** |
 
-**Until #452 merges, `main` legitimately does not contain the `e4`–`e6` definitions**, and a parity
+**Until #452 merges, `main` legitimately does not contain the `e4`–`e7` definitions**, and a parity
 gate run against `main` reports drift for that reason alone — that window is expected,
 self-resolving on merge, and must not be "fixed" by re-applying anything. `e4` is the one to be
 careful with: it carries no routine body at all, only 57 `revoke execute` statements, so a parity

@@ -229,7 +229,7 @@ The `d44` down is the one to read before running: it **refuses** today. Two of t
 constraint does not admit, so that file raises rather than rewriting two measured rows to make a DDL
 statement succeed. Same shape as the `d7b` down, same reason.
 
-## The nine files that post-date *that* table too — `d45`, `d52`–`d56`, `e4`–`e6`
+## The ten files that post-date *that* table too — `d45`, `d52`–`d56`, `e4`–`e7`
 
 Classified 2026-08-20 by the same comment-stripped scan (`sed 's/--.*$//'` then a search for
 `CREATE TABLE`, `ADD COLUMN`, `ADD CONSTRAINT`, `DROP CONSTRAINT`, `CREATE INDEX`, `CREATE TRIGGER`,
@@ -249,7 +249,9 @@ the first table + these 9 = 82, and `git ls-files` returns the same 82.
 | `phase_d_e5_a_red_that_does_not_say_what_is_holding_it.sql` | B — 2 routine bodies, 0 DDL; 1 `revoke` on the routine it creates | none — and none possible for the replaced body of `fn_phase_d_effect_state`; `drop function public.fn_phase_d_effect_reachability()` alone would break the caller that replaces it |
 | `phase_d_e6_the_record_still_claimed_the_door_e4_closed.sql` | neither — 0 routine bodies, 0 DDL; 2 `update`s to `public.phase_c_component` (3 rows) and 1 `insert` into `public.phase_c_freeze_amendment` | none needed. Reverting the amendment row without reverting the three component rows would make `fn_phase_c_freeze_drift()` report drift it cannot explain — the two are one change and must be undone together, by hand, by someone who has re-read both |
 
-**Twenty-seven down scripts in the directory**, up from 26: `e4`'s is the only one these nine add.
+| `phase_d_e7_the_classifier_read_the_binding_not_the_branch.sql` | B — 2 routine bodies, plus the only `DROP FUNCTION` in the ten: a return-type change on `fn_phase_d_effect_reachability()`, immediately recreated. The drop discarded E5's ACL, so the file's own `revoke` is load-bearing and its control block asserts the ACL rather than trusting the statement | none — and none possible: a dropped body is not recoverable from SQL. Reverting means re-applying `e5` and dropping the `e7` signature first, **and re-revoking**, because a plain CREATE grants EXECUTE to PUBLIC |
+
+**Twenty-seven down scripts in the directory**, up from 26: `e4`'s is the only one these ten add.
 
 ## Scope boundary of everything above
 
