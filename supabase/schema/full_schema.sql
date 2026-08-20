@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-20T20:33:03.947Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-20T20:54:07.790Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -54951,10 +54951,25 @@ begin
       reason := format('%s: the call proposes no change to a founder-reserved commercial term', p_rule_id);
       return next; return;
     end if;
-    v_ok := coalesce(btrim(p_context->>'founder_authority_ref'),'') <> '';
+    -- E29. THE SAME DEFECT E28 FOUND IN BR-003, IN FOUR MORE RULES.
+    -- This tested only that founder_authority_ref was non-empty, so BR-021 through BR-024 --
+    -- the rules guarding founder-reserved COMMERCIAL terms -- returned ENFORCED_PASS for the
+    -- literal string 'banana'. Measured 2026-08-20: 17 of the 30 rules that declare a
+    -- required_context pass on that string. These four are the ones where the consequence is a
+    -- forged founder decision on pricing, and they get the same resolution E28 gave BR-003.
+    v_txt := btrim(coalesce(p_context->>'founder_authority_ref',''));
+    if v_txt = '' then
+      state := 'ENFORCED_FAIL'; ok := false;
+      reason := format('%s: change %s names no founder authority', p_rule_id,
+                       p_context->>'commercial_policy_change');
+      return next; return;
+    end if;
+    v_ok := exists (select 1 from public.founder_command fc
+                     where 'founder_command:' || fc.command_id::text = v_txt);
     state := case when v_ok then 'ENFORCED_PASS' else 'ENFORCED_FAIL' end; ok := v_ok;
     reason := format('%s: change %s %s', p_rule_id, p_context->>'commercial_policy_change',
-                     case when v_ok then 'carries founder authority' else 'names no founder authority' end);
+                     case when v_ok then format('carries founder authority %s, which resolves to a founder command on record', v_txt)
+                          else format('names %s, which does not resolve to any row in public.founder_command', v_txt) end);
     return next; return;
   end if;
 
