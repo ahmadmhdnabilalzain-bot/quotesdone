@@ -59,6 +59,16 @@ const CASES = [
   // the refund it is about. The rule is a money-VALUE rule — a money-shaped name AND a numeric
   // value — and this is the control that keeps it one.
   ['refund_id_is_an_identifier', 'company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('refund_id','RF-1')`, 'accept'],
+
+  // E24 — the three the R3 independent acceptance walked straight past, kept as regressions.
+  // The rule is: a money NAME plus a quantity VALUE, at ANY depth. Both halves required.
+  ['money_cost_usd',        'company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('cost_usd',50000)`, 'refuse'],
+  ['money_amount_as_string','company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('refund_amount_aed','999999')`, 'refuse'],
+  ['money_nested',          'company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('nested', jsonb_build_object('refund_amount_aed',999999))`, 'refuse'],
+  // …and the other half of the rule, without which the five refusals above would just be a
+  // keyword blocklist: a state and a nested identifier are not quantities and must still pass.
+  ['fee_status_is_a_state', 'company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('fee_status','paid')`, 'accept'],
+  ['nested_identifier',     'company_objective', `'open'`, `'COMPANY'`, `'ceo'`, `jsonb_build_object('x', jsonb_build_object('invoice_no','INV-7'))`, 'accept'],
 ];
 
 const PROBE = `
@@ -74,7 +84,7 @@ ${CASES.map(([name, obj, state, scope, owner, payload], i) => `
     r := r || jsonb_build_array(jsonb_build_object('case','${name}','outcome','accepted'));
   exception when others then
     r := r || jsonb_build_array(jsonb_build_object(
-      'case','${name}','outcome','refused','why',left(SQLERRM,200)));
+      'case','${name}','outcome','refused','why',left(SQLERRM,400)));
   end;`).join('')}
   raise exception 'OBJ_CONTRACT %', jsonb_build_object(
     'cases', r,
