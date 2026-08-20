@@ -457,6 +457,44 @@ overwriting `phase_c_frozen_subject.digest`:
 | 2 | `canonical_workflow_start_service` → `fn_kernel_workflow_start(p_input jsonb)` | `d36` | the same, for the opener that starts a run's FIRST step inline |
 | 3 | `component_crosswalk` → `public.phase_c_component` | `e6` | three rows whose `external_entry` said `unauthenticated_only` because a PUBLIC EXECUTE grant made them reachable, and `e4` revoked it. `classification` and `activation_state` move with it because `a00_phase_c_component_classification_guard` refuses the write otherwise |
 
+### The authority these three rest on, and the document that disagrees — OPEN, FOR THE FOUNDER
+
+Two independent acceptance audits have now raised this, and the second could not find the authority
+at all. It is recorded here so a third does not have to look.
+
+**Where the mechanism comes from.** `public.phase_c_freeze_amendment` is created by
+`scripts/sql/phase_d_d49_a_freeze_with_no_way_to_record_an_amendment.sql` — written by the builder,
+after `fn_phase_c_freeze_drift()` caught the builder's own edit to two kernel routines. The table has
+no approver column. Every mention of it in this repository is builder- or auditor-authored.
+
+**Where the authority comes from.** The founder's session brief of 2026-08-20 states it directly, in
+its non-negotiables:
+
+> "Phase A, B and C stay FROZEN. A change to a Phase C kernel routine body is allowed but trips
+> `fn_phase_c_freeze_drift()`; record it in `public.phase_c_freeze_amendment` pinned to the exact
+> prior digest. NEVER overwrite `phase_c_frozen_subject.digest` — that is a rubber stamp and the
+> amendment table exists so it does not have to happen."
+
+That instruction is in a session brief, not in this repository, which is why an auditor reading only
+the tree cannot find it. **Quoting it here does not make it a change request** — it records where the
+builder's authority came from and leaves the question open.
+
+**The document that disagrees.** `PHASE_D_CHANGE_CONTROL.md` requires a **Phase C change request**
+for a change to a frozen Phase C object. No such request exists in the tree; only Phase B change
+request templates do. So two instructions govern the same act and say different things:
+
+| | says |
+|---|---|
+| `PHASE_D_CHANGE_CONTROL.md` | a Phase C change request is required |
+| the founder's 2026-08-20 session brief | record it in `phase_c_freeze_amendment`, pinned to the prior digest |
+
+**This is the founder's to settle and it is not settled here.** The second auditor's view is that the
+written change control governs and Gate 0 is therefore not satisfied. That is a reasonable reading of
+the documents in the tree. It turns entirely on a fact only the founder holds — which instruction he
+means to stand — and it flips with no code change either way. Three amendments are affected: the two
+`d36` kernel edits and `e6`'s component correction. Nothing has been written to
+`phase_c_frozen_subject.digest` under either reading.
+
 **`d49` is the file that made that declared exception recordable rather than merely declared.** It
 creates `public.phase_c_freeze_amendment` and replaces `fn_phase_c_freeze_drift()` to read it, so
 the two kernel replacements above are now two rows pinned to the digest each one excuses — read back
