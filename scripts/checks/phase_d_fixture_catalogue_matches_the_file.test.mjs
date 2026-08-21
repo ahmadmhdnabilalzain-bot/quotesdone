@@ -1,0 +1,87 @@
+// A ROW ADDED WITHOUT ITS ARTEFACT.
+//
+// public.phase_d_fixture_catalogue is the committed Phase D content catalogue the founder's section
+// B requires: explicit, clearly marked test values for the business content a deterministic handler
+// must not invent. "Committed" means the repository holds it, and a table nobody compares against a
+// file is a table anybody can add a row to without review.
+//
+// This check fails in BOTH directions:
+//   * a row in the database that is not in docs/phase-d/PHASE_D_FIXTURE_CATALOGUE.csv;
+//   * a row in the file that is not in the database;
+//   * a row present in both whose checksum differs, which means the CONTENT differs.
+//
+// It also asserts the catalogue board is green, and — separately, because they are different claims
+// — that no fixture context, scenario record or capability result is committed on production. Those
+// three tables exist only inside a transaction that is aborted; a committed row in any of them is
+// residue, and this is the check that would find it.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { sql } from '../phase_b/lib/db.mjs';
+
+const FILE = 'docs/phase-d/PHASE_D_FIXTURE_CATALOGUE.csv';
+
+/** Minimal RFC4180 reader: the builder quotes every cell, so this only has to handle "" escapes. */
+function parseCsv(text) {
+  const rows = []; let row = []; let cell = ''; let inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cell += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+    else if (c !== '\r') cell += c;
+  }
+  if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(r => r.length > 1 && !String(r[0]).startsWith('#'));
+}
+
+test('the committed fixture catalogue and the database agree, row for row', async () => {
+  const text = readFileSync(FILE, 'utf8');
+  const rows = parseCsv(text);
+  const header = rows.shift();
+  const idIdx = header.indexOf('fixture_id');
+  const ckIdx = header.indexOf('checksum');
+  assert.ok(idIdx >= 0 && ckIdx >= 0, 'the committed file must carry fixture_id and checksum');
+
+  const file = new Map(rows.map(r => [r[idIdx], r[ckIdx]]));
+  const live = new Map((await sql('select fixture_id, checksum from public.phase_d_fixture_catalogue'))
+    .map(r => [r.fixture_id, r.checksum]));
+
+  const onlyDb = [...live.keys()].filter(k => !file.has(k));
+  const onlyFile = [...file.keys()].filter(k => !live.has(k));
+  const differ = [...live.keys()].filter(k => file.has(k) && file.get(k) !== live.get(k));
+
+  assert.deepEqual(onlyDb, [],
+    `these fixture rows exist on production and not in ${FILE}. Run: node scripts/phase_d/build_fixture_catalogue.mjs`);
+  assert.deepEqual(onlyFile, [],
+    `these fixture rows are committed and not on production. The catalogue is applied by scripts/sql/phase_d_f03*.sql and phase_d_f07*.sql.`);
+  assert.deepEqual(differ, [],
+    `these fixture rows differ in CONTENT between production and ${FILE} — the checksum covers every field that decides what a fixture means.`);
+  assert.ok(live.size >= 40, `the catalogue holds ${live.size} rows; the board requires at least 40`);
+});
+
+test('the fixture catalogue board is green', async () => {
+  const board = await sql('select check_name, expected, actual, ok from public.fn_phase_d_fixture_catalogue_state()');
+  const red = board.filter(b => !b.ok);
+  assert.deepEqual(red.map(r => `${r.check_name}: expected ${r.expected}, got ${r.actual}`), []);
+});
+
+test('no Phase D fixture row is committed on production', async () => {
+  // Each of these lives only inside a transaction that is aborted. A committed row is residue, and
+  // naming the tables separately means a reader can see WHICH kind of residue without re-deriving it.
+  const r = (await sql(`select
+    (select count(*) from public.phase_d_test_context_grant)  fixture_contexts,
+    (select count(*) from public.phase_d_scenario_record)     scenario_records,
+    (select count(*) from public.phase_d_capability_request)  capability_requests,
+    (select count(*) from public.phase_d_capability_result)   capability_results,
+    (select count(*) from public.phase_c_founder_auth_event)  founder_auth_events,
+    (select count(*) from public.founder_command
+      where intent_id like 'PHASE_D_FIXTURE%')                fixture_founder_commands`))[0];
+  for (const [k, v] of Object.entries(r)) {
+    assert.equal(Number(v), 0, `${k} holds ${v} committed row(s); every one of them should have rolled back`);
+  }
+});
