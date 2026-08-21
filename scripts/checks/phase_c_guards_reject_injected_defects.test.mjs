@@ -108,8 +108,21 @@ const CASES = [
    // is what rc5 measured it actually raising rather than what anyone remembered it saying.
    ['28000', 'fn_phase_c_require_founder']],
 
+  // PCCR-003, 21 Aug 2026. These two probes are about the refund guard's OTHER arms -- a rejected
+  // decision that was executed, and an executor who is also the reconciler. Since the amendment,
+  // fn_phase_c_refund_decision_guard resolves the founder from a VERIFIED auth subject, so both were
+  // refused with 28000 before their own arm was ever reached, and the check went red.
+  //
+  // Accepting 28000 as the answer would have been the trap: it would have recorded the identity
+  // refusal as proof that the rejected-execution guard works, and neither arm would be tested again.
+  // So the probes BIND the verified subject first -- exactly as os_api does -- and the arm they are
+  // about is the thing that refuses. The identity arm keeps its own case, immediately above, which
+  // binds nothing and still expects 28000.
   ['a refund executed against a REJECTED decision is refused',
-   `insert into public.founder_approval_request (action_class, subject_ref, prepared_by_role_id)
+   `perform public.fn_phase_c_founder_subject_bind(
+      (select f.auth_user_id from public.phase_c_founder_identity f
+        where f.identity = 'management@quotesdone.com' and f.active and f.kind = 'email'));
+    insert into public.founder_approval_request (action_class, subject_ref, prepared_by_role_id)
       values ('refund_decision','TX-PROBE2','payments_and_billing_manager');
     insert into public.phase_c_refund_decision (request_id, decided_by, decision, executed_at)
       select request_id, 'management@quotesdone.com', 'rejected', now()
@@ -117,7 +130,10 @@ const CASES = [
    ['23514', 'fn_phase_c_refund_decision_guard']],
 
   ['a refund whose executor is also its reconciler is refused',
-   `insert into public.founder_approval_request (action_class, subject_ref, prepared_by_role_id)
+   `perform public.fn_phase_c_founder_subject_bind(
+      (select f.auth_user_id from public.phase_c_founder_identity f
+        where f.identity = 'management@quotesdone.com' and f.active and f.kind = 'email'));
+    insert into public.founder_approval_request (action_class, subject_ref, prepared_by_role_id)
       values ('refund_decision','TX-PROBE3','payments_and_billing_manager');
     insert into public.phase_c_refund_decision (request_id, decided_by, decision,
       executor_role_id, reconciler_role_id)
