@@ -393,3 +393,70 @@ end $probe$;`);
       'an owner-applied approval by a registered founder identity did NOT clear the row — the ' +
       'revoke went too far and approval is now impossible');
   });
+
+// THE SAME DEFECT ONE TABLE OVER. E36 guarded `phase_c_freeze_amendment.approved_by`; the R7
+// acceptance found `public.phase_c_change_request` — the FK target that makes a PCCR reference
+// resolve — carrying the SAME approved_by/approved_at pair with no trigger at all and full
+// service_role write, and signed both rows in the founder's name. It also found service_role could
+// INSERT into `public.phase_c_frozen_subject`, whose only guard is a DELETE|UPDATE trigger, taking
+// `frozen_subjects_drifted` from 0 of 25 to 1 of 26.
+//
+// Closing a defect on the table you were looking at is not closing the class. E40 revoked both and
+// put one shared guard on both approver columns; this drives all of it, including the arm proving
+// the guard is not refuse-everything.
+test('neither governance register is writable by service_role, and both approvers must be the founder',
+  { skip: SKIP }, async () => {
+    const out = await drive(`
+do $probe$
+declare o jsonb := '{}'::jsonb;
+begin
+  begin
+    set local role service_role;
+    update public.phase_c_change_request set approved_by='zz-ci-not-the-founder', approved_at=now();
+    o := o || jsonb_build_object('cr_service_role','ACCEPTED');
+  exception when others then o := o || jsonb_build_object('cr_service_role','REFUSED ' || SQLSTATE); end;
+  reset role;
+
+  begin
+    set local role service_role;
+    insert into public.phase_c_frozen_subject(subject, object_kind, object_identity, digest)
+      values ('zz-ci','routine','zz(x)', repeat('f',64));
+    o := o || jsonb_build_object('fs_service_role','ACCEPTED');
+  exception when others then o := o || jsonb_build_object('fs_service_role','REFUSED ' || SQLSTATE); end;
+  reset role;
+
+  begin
+    update public.phase_c_change_request set approved_by='zz-ci-owner-not-the-founder', approved_at=now();
+    o := o || jsonb_build_object('cr_owner_junk','ACCEPTED');
+  exception when others then
+    o := o || jsonb_build_object('cr_owner_junk',
+      coalesce((regexp_match(SQLERRM,'[(](pccr_[a-z_]+)[)]'))[1], 'REFUSED ' || SQLSTATE)); end;
+
+  begin
+    update public.phase_c_change_request
+       set approved_by = (select identity from public.phase_c_founder_identity
+                           where active and kind='email' order by identity limit 1),
+           approved_at = now();
+    o := o || jsonb_build_object('cr_owner_founder','ACCEPTED');
+  exception when others then o := o || jsonb_build_object('cr_owner_founder','REFUSED ' || SQLSTATE); end;
+
+  raise exception 'REGISTERS_PROBE %', o;
+end $probe$;`);
+
+    const m = out.match(/REGISTERS_PROBE (\{[\s\S]*?\})/);
+    assert.ok(m, `the probe did not reach its report:\n${out.slice(0, 800)}`);
+    const r = JSON.parse(m[1].split('\n')[0].replace(/\\"/g, '"'));
+
+    assert.match(String(r.cr_service_role), /^REFUSED/,
+      `service_role ${r.cr_service_role} an approval on public.phase_c_change_request — the registry ` +
+      'that makes a PCCR reference resolve. An acceptance auditor signed both rows in the founder\'s name.');
+    assert.match(String(r.fs_service_role), /^REFUSED/,
+      `service_role ${r.fs_service_role} an INSERT into public.phase_c_frozen_subject, the register ` +
+      'of WHAT IS FROZEN. Its immutability trigger covers DELETE and UPDATE only.');
+    assert.equal(r.cr_owner_junk, 'pccr_approver_not_the_founder',
+      `an owner-applied junk approver on phase_c_change_request got ${r.cr_owner_junk} — the shared ` +
+      'founder approver guard is not attached to that table');
+    assert.equal(r.cr_owner_founder, 'ACCEPTED',
+      'the founder\'s own registered identity was refused on phase_c_change_request — the guard ' +
+      'refuses everything and approval is impossible');
+  });

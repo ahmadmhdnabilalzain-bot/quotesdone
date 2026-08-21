@@ -1,6 +1,6 @@
 # Phase D — zero-cost and zero-external-effect evidence
 
-Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-20 23:59 UTC** (database clock),
+Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-21 01:02 UTC** (database clock),
 project `htdblwldjkcgjvmqkbeh`.
 
 **THE WINDOW HAS NOW BEEN EXTENDED TWICE, FOR THE SAME DEFECT, AND THE SECOND TIME IT WAS THIS
@@ -30,11 +30,11 @@ staging — and that is the order this revision was produced in: E30, E31, E32, 
 and read back, the schema mirror regenerated from `fn_schema_export()` and verified identical, and
 only then these numbers taken.
 
-Everything below was re-measured over the full extended window on 2026-08-20 at 23:59 UTC, after
-E39 — the last apply of the session — and after the schema mirror was regenerated from it.
+Everything below was re-measured over the full extended window on 2026-08-21 at 01:02 UTC, after
+E40 — the last apply of the session — and after the schema mirror was regenerated from it.
 
-The window has been moved for E36, E37, E38 and E39, and every time the new check is what said so
-rather than my memory. E37 exists because E36 put a trigger on `phase_c_freeze_amendment` and thereby
+The window has been moved for E36, E37, E38, E39 and E40, and every time the new check is what said
+so rather than my memory. E37 exists because E36 put a trigger on `phase_c_freeze_amendment` and thereby
 made it an ENFORCING table, which the estate requires to carry a truncate guard; the board caught
 that inside one suite run and it was fixed rather than disclosed.
 
@@ -53,7 +53,7 @@ that inside one suite run and it was fixed rather than disclosed.
 
 ## What Phase D itself left behind, over the whole extended window
 
-Measured 2026-08-20 23:59 UTC, after the last apply (E39) and after the schema mirror was regenerated from it:
+Measured 2026-08-21 01:02 UTC, after the last apply (E40) and after the schema mirror was regenerated from it:
 
 | table | committed rows | why it matters |
 |---|---:|---|
