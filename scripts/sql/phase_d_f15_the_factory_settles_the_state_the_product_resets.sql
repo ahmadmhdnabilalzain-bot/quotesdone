@@ -42,8 +42,6 @@ declare
   v_scenario_id  bigint;
   v_state_col    text;    -- F15: the column the write map points at the state
   v_actual       text;    -- F15: what the product left in it
-  v_state_col    text;    -- F15: the column the write map points at the state
-  v_actual       text;    -- F15: what the product left in it
 begin
   if v_label is null then
     raise exception 'fn_phase_d_fixture_scenario: label is required; it is what makes the ids deterministic and the residue findable (pd_fixture_label_missing)'
@@ -393,50 +391,6 @@ begin
       -- created open and BECOMES quote-ready, so the factory now does that: create, read back the
       -- column the write map points at the state, and if the product moved it, write again through
       -- the same canonical service. Skipped entirely when the readback already agrees.
-      select c.k into v_state_col
-        from public.phase_d_object_write_map wm,
-             lateral (select k from jsonb_object_keys(wm.column_map) k where wm.column_map->>k = 'state') c
-       where wm.object_id = st.object_id limit 1;
-      if v_state_col is not null then
-        begin
-          execute format('select %I::text from %s where %I::text = $1',
-                         v_state_col,
-                         (select wm.target_relation from public.phase_d_object_write_map wm
-                           where wm.object_id = st.object_id),
-                         (select wm.key_column from public.phase_d_object_write_map wm
-                           where wm.object_id = st.object_id))
-            into v_actual using coalesce(split_part(v_w->>'result_reference','=',2), v_key);
-          if v_actual is distinct from v_state then
-            v_w := public.fn_phase_d_object_write(jsonb_build_object(
-              'object_id', st.object_id, 'business_key', v_key, 'owner_ref', v_owner,
-              'created_by', v_actor, 'state', v_state, 'payload', v_pay));
-            v_man := v_man || jsonb_build_array(jsonb_build_object(
-              'stage_no', st.stage_no, 'stage_key', st.stage_key, 'object_id', st.object_id,
-              'status','SETTLED',
-              'detail', format('%s.%s was %s after the create and the stage declares %s; a second write through the same canonical service settled it',
-                               v_state_col, st.object_id, coalesce(v_actual,'(null)'), v_state)));
-          end if;
-        exception when others then
-          v_man := v_man || jsonb_build_array(jsonb_build_object(
-            'stage_no', st.stage_no, 'stage_key', st.stage_key, 'object_id', st.object_id,
-            'status','SETTLE_REFUSED',
-            'refused_with', coalesce((regexp_match(SQLERRM,'\((pd_[a-z0-9_]+)\)'))[1],'(none)'),
-            'reason', left(SQLERRM, 300)));
-        end;
-        v_state_col := null; v_actual := null;
-      end if;
-
-      -- F15. THE PRODUCT'S OWN TRIGGERS GET THE LAST WORD ON AN INSERT, SO SETTLE THE STATE.
-      -- public.trg_inquiry_enrich is a BEFORE INSERT trigger that sets the status a NEW inquiry
-      -- has, so the inquiry stage asked for quote_ready and the row came out open, and GATE-011
-      -- and BR-013 refused it -- correctly, because it was not quote-ready. A real inquiry is
-      -- created open and BECOMES quote-ready, so the factory now does that: create, read back the
-      -- column the write map points at the state, and if the product moved it, write again through
-      -- the same canonical service. Skipped entirely when the readback already agrees.
-      select wm.column_map ? c.k into v_state_col
-        from public.phase_d_object_write_map wm,
-             lateral (select k from jsonb_object_keys(wm.column_map) k where wm.column_map->>k = 'state') c
-       where wm.object_id = st.object_id limit 1;
       select c.k into v_state_col
         from public.phase_d_object_write_map wm,
              lateral (select k from jsonb_object_keys(wm.column_map) k where wm.column_map->>k = 'state') c
