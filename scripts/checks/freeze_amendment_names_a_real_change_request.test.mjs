@@ -235,16 +235,44 @@ end $probe$;`);
 
 // Nothing above survives: every branch is inside one transaction that ends in `raise exception`.
 // This asserts that, rather than assuming it.
-test('the approver probe left the four amendments still awaiting the founder',
+// THE ONE CHANGE REQUEST THE FOUNDER HAS SIGNED, NAMED. Until 21 Aug 2026 this test asserted that
+// NO amendment carried an approval, and its own failure message said what to do if one ever did:
+// "If the founder has signed, this test should be updated by a person who has read why."
+//
+// He signed one, in writing, in his ruling of 21 Aug 2026 section E and again in section F:
+// "For the founder-authentication amendment, use the approved JWT-subject design above." The
+// change request is docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-003.md and it quotes the instruction
+// in full.
+//
+// The assertion is now a SET, not a count. Anything approved that is not PCCR-003 fails, so this
+// still catches an aborted probe that committed, and it still catches PCCR-001 or PCCR-002 being
+// signed without the founder having seen the four tables he asked for in
+// docs/phase-d/PHASE_D_PCCR_AMENDMENT_TABLES.md.
+const APPROVED_BY_THE_FOUNDER_IN_WRITING = ['PCCR-003'];
+
+test('only the change request the founder signed in writing carries an approval',
   { skip: SKIP }, async () => {
     const rows = await mgmtRead(PROD_REF,
-      'select count(*) filter (where approved_by is null) as awaiting, count(*) as total ' +
-      'from public.phase_c_freeze_amendment');
-    const r = rows[0];
-    assert.equal(Number(r.awaiting), Number(r.total),
-      `${Number(r.total) - Number(r.awaiting)} amendment(s) now carry an approval. If the founder ` +
-      'has signed, this test should be updated by a person who has read why; if not, an aborted ' +
-      'probe committed.');
+      'select change_request_ref, count(*) filter (where approved_by is null) as awaiting, ' +
+      'count(*) as total from public.phase_c_freeze_amendment group by change_request_ref ' +
+      'order by change_request_ref');
+    const signed = rows.filter(r => Number(r.awaiting) < Number(r.total))
+                       .map(r => r.change_request_ref).sort();
+    assert.deepEqual(signed, [...APPROVED_BY_THE_FOUNDER_IN_WRITING].sort(),
+      'the set of change requests carrying an approval has changed.' +
+      `
+  expected: ${APPROVED_BY_THE_FOUNDER_IN_WRITING.join(', ')}` +
+      `
+  actual:   ${signed.join(', ') || '(none)'}
+` +
+      'A NEW name here means either the founder signed and this list was not updated by someone who ' +
+      'read why, or an aborted probe committed. A name that DISAPPEARED means an approval was ' +
+      'cleared.');
+    for (const r of rows.filter(r => !APPROVED_BY_THE_FOUNDER_IN_WRITING.includes(r.change_request_ref))) {
+      assert.equal(Number(r.awaiting), Number(r.total),
+        `${r.change_request_ref}: ${Number(r.total) - Number(r.awaiting)} of ${r.total} amendment(s) ` +
+        'carry an approval, and the founder has not signed that change request.');
+    }
   });
 
 // THE REGISTER THE GUARD TRUSTS MUST NOT BE WRITABLE BY THE ROLE IT GUARDS AGAINST, AND AN

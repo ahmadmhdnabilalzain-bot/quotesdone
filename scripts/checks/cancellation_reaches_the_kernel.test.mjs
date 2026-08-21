@@ -71,11 +71,25 @@ union all select 'delivery guard on the outbox', (
 order by 1`);
 
 // The replay probe: cancel twice through the real control, inside a transaction that always aborts.
+//
+// PCCR-003, 21 Aug 2026. fn_founder_command_control goes through fn_phase_c_require_founder, and
+// that routine no longer resolves a caller-supplied email — it resolves a VERIFIED auth subject.
+// This probe used to type the founder's address and be believed, which is exactly the vector E39
+// recorded and PCCR-003 removed; after the change it was refused with 28000 and this check went red.
+//
+// That red was the guard working. The probe now does what os_api does: it binds the founder's
+// verified auth subject with fn_phase_c_founder_subject_bind before calling the control. The bind
+// is transaction-local and this transaction always aborts, so nothing survives it — and the bind
+// itself refuses any subject that does not resolve to an enabled founder identity, so the probe
+// cannot authenticate anyone the routine would not.
 let replay = 'not run';
 try {
   await q(`do $p$
-    declare v jsonb; v_cmd bigint; a jsonb; b jsonb; n1 int; n2 int;
+    declare v jsonb; v_cmd bigint; a jsonb; b jsonb; n1 int; n2 int; v_sub uuid;
     begin
+      select f.auth_user_id into v_sub from public.phase_c_founder_identity f
+       where f.identity = 'management@quotesdone.com' and f.active and f.kind = 'email';
+      perform public.fn_phase_c_founder_subject_bind(v_sub);
       v := public.fn_founder_command_submit('management@quotesdone.com',
         'Prepare one additional social-media post explaining how QuotesDone makes supplier sourcing easier. Do not publish it and do not use paid AI.',
         'cancel-replay-probe-' || clock_timestamp()::text, '{}'::jsonb);

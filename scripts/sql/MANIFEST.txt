@@ -1577,3 +1577,9 @@ scripts/sql/phase_d_f22_a_read_only_report_on_nine_overdue_outcomes.sql
 scripts/sql/phase_d_f23_pccr_003_recorded_and_approved.sql
 scripts/sql/phase_d_f24_the_board_matched_its_own_comment.sql
 scripts/sql/phase_d_f25_two_functions_one_name_and_one_of_them_dead.sql
+scripts/sql/phase_d_f26_overlap_is_still_two_clocks.sql
+scripts/sql/phase_d_f27_the_verifier_needs_no_grant_of_its_own.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/phase_d_f28_the_ledger_still_named_the_file_the_routine_used_to_live_in.sql
