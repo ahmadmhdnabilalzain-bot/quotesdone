@@ -1583,3 +1583,4 @@ scripts/sql/phase_d_f27_the_verifier_needs_no_grant_of_its_own.sql
 
 [OK] Command outcome recorded
 scripts/sql/phase_d_f28_the_ledger_still_named_the_file_the_routine_used_to_live_in.sql
+scripts/sql/phase_d_f29_three_more_controls_on_the_string_f01_removed.sql

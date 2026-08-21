@@ -1,5 +1,5 @@
 # node scripts/phase_d/build_step_case_result.mjs | project htdblwldjkcgjvmqkbeh | 1799 of 1799 declared cases (7 per frozen Phase B step) | attribution: one row per executed case in public.phase_d_step_case_result; decided_at records which boundary refused it, so a contract-level refusal is not read as a driven one
-# generated_at: 2026-08-20T01:02:01.483Z
+# generated_at: 2026-08-21T21:26:45.809Z
 step_id,workflow_id,step_type,case_kind,decided_at,expectation,passed,refused_with,detail
 W01-S01,W01,intake,positive,step_contract,a payload carrying every declared input key validates,true,,"3 key(s) declared; payload satisfies schema_input_w01_s01 v1 (3 keys, 0 typed, 0 domain(s), open to further keys, source digest 48aa78b29bc0)"
 W01-S01,W01,intake,missing_input,step_contract,removing 'founder_instruction' is refused and the refusal names it,true,pd_input_schema_invalid,schema schema_input_w01_s01: required keys missing [founder_instruction]

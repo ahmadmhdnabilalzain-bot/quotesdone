@@ -1,7 +1,14 @@
 # Phase D — zero-cost and zero-external-effect evidence
 
-Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-21 01:02 UTC** (database clock),
+Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-21 21:24 UTC** (database clock),
 project `htdblwldjkcgjvmqkbeh`.
+
+**THE WINDOW MOVED A THIRD TIME, AND THIS TIME THE CHECK MOVED IT, NOT A MEMORY.** The session of
+21–22 Aug 2026 applied F01 through F30 under the founder's ruling of 21 Aug, and
+`scripts/checks/zero_cost_evidence_window_covers_the_work.test.mjs` failed with *"the window does not
+close before the work it claims to cover"* — which is the whole reason it was written. The close is
+now the database clock read after F30, the last apply of that session. Every figure below was
+re-measured at that instant.
 
 **THE WINDOW HAS NOW BEEN EXTENDED TWICE, FOR THE SAME DEFECT, AND THE SECOND TIME IT WAS THIS
 DOCUMENT THAT FAILED ITS OWN STATED PRINCIPLE.**

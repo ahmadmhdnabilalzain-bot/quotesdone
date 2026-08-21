@@ -44,7 +44,12 @@ declare
   v_fx jsonb; v jsonb; wf record; v_rev text; v_cands jsonb; v_out text := '';
   v_ref_key text; v_boid text;
 begin
-  perform set_config('app.phase_d_test_context','on', true);
+  -- F01. THIS SET A GUC ANY CALLER COULD SET. app.phase_d_test_context = 'on' was a string the
+  -- caller supplied about itself, which is the shape E38 and E39 removed twice elsewhere. The
+  -- context is now an hmac over txid_current(), keyed by a secret no role can SELECT, minted only
+  -- against an approved audited operation.
+  perform public.fn_phase_d_test_context_open(jsonb_build_object(
+    'operation_key','pdop_deliverable_build', 'label','workflow-result-deliverable'));
 
   -- The candidate reviewers are the roles the FROZEN registry already names as independent
   -- reviewers somewhere in the 257 steps. The driver only ever consults this list for a step whose

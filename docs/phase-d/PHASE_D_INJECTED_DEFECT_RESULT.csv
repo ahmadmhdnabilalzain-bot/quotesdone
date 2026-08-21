@@ -1,5 +1,5 @@
 # node scripts/phase_d/build_injected_defect_result.mjs | project htdblwldjkcgjvmqkbeh | 75 of 75 catalogued defects (PHASE_D_INJECTED_DEFECT_CATALOG.csv) | attribution: one row per catalogue defect, produced by injecting it inside a transaction that is aborted; status NOT_RUN carries a named blocker and is never a default
-# generated_at: 2026-08-20T01:02:06.429Z
+# generated_at: 2026-08-21T21:26:50.718Z
 defect_id,category,injected_defect,expected_machine_result,status,observed,blocker
 PD-AUTH-001,AUTH,Unauthenticated customer reads another customer's record,401/403 or zero rows,REFUSED_AS_REQUIRED,"6 NON-EMPTY sensitive tables read directly with the anon key and with a real authenticated customer bearer; every one returned 0 rows against a service_role control that proves the rows exist: customers(2), documents(10), leads(20467), app_ …[+279 chars]",
 PD-AUTH-002,AUTH,Supplier A reads Supplier B documents,403/404,NOT_DISCRIMINATED,"supplier_portal documents as A -> 200; the same call naming B's id -> 200 and the two bodies are IDENTICAL; B's identity does not appear in the cross-tenant response. NOT DISCRIMINATED (D44, 2026-08-20): supplier_portal accepts no owner id  …[+595 chars]",
