@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-21T21:00:45.629Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-21T21:28:09.921Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -51666,8 +51666,8 @@ begin
     raise exception 'fn_phase_d_external_deliver: provider_mode is %; this adapter has no live mode and never sends (pd_external_live_mode_refused)', v_mode
       using errcode = '42501';
   end if;
-  if coalesce(nullif(btrim(current_setting('app.phase_d_test_context', true)),''),'') <> 'on' then
-    raise exception 'fn_phase_d_external_deliver: app.phase_d_test_context is not on (pd_external_no_test_context)'
+  if public.fn_phase_d_fixture_context() is null then
+    raise exception 'fn_phase_d_external_deliver: no verified Phase D fixture context in this transaction (pd_external_no_test_context)'
       using errcode = '23514';
   end if;
   -- FIELD 2. An intent with no approved payload is not deliverable. This is the field that was
@@ -54854,7 +54854,7 @@ declare
   v_sql        text;
   v_supplied   jsonb;
   -- D17: the outbound door.
-  v_testctx    boolean := coalesce(nullif(btrim(current_setting('app.phase_d_test_context', true)),''),'') = 'on';
+  v_testctx    boolean := public.fn_phase_d_fixture_context() is not null;
   v_door       record;
   v_door_val   jsonb;
   v_net_max    bigint;
@@ -56629,9 +56629,14 @@ declare
   CASES text[] := array['success','suppression','null_result','retryable_failure',
                         'terminal_failure','duplicate_replay','cancellation'];
 begin
-  if coalesce(nullif(btrim(current_setting('app.phase_d_test_context', true)),''),'') <> 'on' then
-    raise exception 'fn_phase_d_run_external_cases: app.phase_d_test_context is not on'
-      using errcode = '23514';
+  if public.fn_phase_d_fixture_context() is null then
+    -- F01. THIS READ A GUC ANY CALLER COULD SET. app.phase_d_test_context = 'on' was a string the
+    -- caller supplied about itself; the context is now an hmac over txid_current(), keyed by a
+    -- secret no role can SELECT, minted only against an approved audited operation. Leaving the old
+    -- door open here would have left the whole control reachable through the value F01 removed.
+    raise exception 'no verified Phase D fixture context in this transaction (pd_fixture_no_test_context)'
+      using errcode = '23514',
+            hint = 'select public.fn_phase_d_test_context_open(''{"operation_key":"pdop_deliverable_build","label":"..."}''); and abort the transaction when finished.';
   end if;
 
   for st in select e.step_id as sid from public.phase_d_step_effect e
@@ -56710,8 +56715,14 @@ declare
   v_ok boolean; v_msg text; v_n int; v_a jsonb; v_b jsonb; v_key text; v_pay jsonb;
   v_sup text; v_id bigint;
 begin
-  if coalesce(nullif(btrim(current_setting('app.phase_d_test_context', true)),''),'') <> 'on' then
-    raise exception 'fn_phase_d_run_injected_defects: app.phase_d_test_context is not on' using errcode='23514';
+  if public.fn_phase_d_fixture_context() is null then
+    -- F01. THIS READ A GUC ANY CALLER COULD SET. app.phase_d_test_context = 'on' was a string the
+    -- caller supplied about itself; the context is now an hmac over txid_current(), keyed by a
+    -- secret no role can SELECT, minted only against an approved audited operation. Leaving the old
+    -- door open here would have left the whole control reachable through the value F01 removed.
+    raise exception 'no verified Phase D fixture context in this transaction (pd_fixture_no_test_context)'
+      using errcode = '23514',
+            hint = 'select public.fn_phase_d_test_context_open(''{"operation_key":"pdop_deliverable_build","label":"..."}''); and abort the transaction when finished.';
   end if;
 
   -- ============ helper shape: each probe INJECTS, then reports what the machine did ============
