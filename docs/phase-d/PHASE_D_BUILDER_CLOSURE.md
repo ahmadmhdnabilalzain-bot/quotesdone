@@ -803,3 +803,69 @@ that Phase D does not have. Neither is a Phase D repair, and neither should be r
 ---
 
 **PHASE_D_NOT_READY**
+
+---
+
+## F01–F26 — what the founder's ruling of 21 Aug 2026 changed, and what it did not
+
+**The verdict at the top of this file is unchanged: PHASE_D_NOT_READY.** Deterministic closure is
+**0 of 30**, and his definition of done says 30/30. Everything below is what moved and what did not,
+with the figure beside each claim.
+
+### What he removed, and what was built for each
+
+| His ruling | Built | Measured |
+|---|---|---|
+| A — a zero-persistence scenario factory behind a context an untrusted caller cannot manufacture | F01, F02, F08–F10, F12, F14, F15 | context: 6 probes, 6 correct refusals; stages created **32 of 33**; evidence manifest one row per created object |
+| B — content supplied by a committed catalogue, never invented by the handler | F03, F07, F11, F12, F14, F16, F19 | **106** committed rows; the door is in the two resolvers and the handler has no path to it; `pd_effect_payload_incomplete` no longer the first refusal on any workflow |
+| C — a real capability request/result path, no `execution_context = test` bypass | F05, F06, F17, F18, F24 | **21 of 21** steps probed five ways; **17** fixture results accepted during the 30-workflow drive |
+| D — four modes over all 30 workflows, rolled back | F17 plus `build_four_mode_result.mjs` | happy 30/30 terminal, **0/30 closed unaided**; failure 14/30; cancellation 17/30; replay 24/30; residue **0** on every counter |
+| E — the founder is a verified auth subject | F20, F21, F23, os_api v73 | E39's vector REFUSED; his verified subject ACCEPTED; four HTTP shapes 401 |
+| F — four amendment tables, nothing bundled, nothing applied | `PHASE_D_PCCR_AMENDMENT_TABLES.md` | PCCR-001/002 untouched; board still `4 of 5 await the founder` |
+| G — outcome_evaluate_daily inactive, read-only report | F22 | cron `active=false`; 9 records reported; 0 rows mutated |
+
+### The number that moved, and the number that did not
+
+| | 2026-08-21 acceptance | now |
+|---|---:|---:|
+| step-openings dispatched | 257 | **274** |
+| dispatches EXECUTED | 3 | **44** |
+| business objects produced | 0 | **44** |
+| workflows closed by the handler unaided | **0 of 30** | **0 of 30** |
+
+Fourteen times as many step-openings complete unaided, and not one workflow closes without this
+harness completing the steps the handler declined. Both are true and the second is the one his
+definition of done measures.
+
+### Where the remaining refusals are, measured on the 30-workflow drive
+
+The largest classes, in order, with what each would take:
+
+- **`pd_gate_refused` / `pd_rule_refused` on a step whose predecessor did not execute.** BR-027
+  requires a finding to name the evidence it rests on, and evidence comes from the previous step's
+  effect. One step refusing propagates to every step after it, so the count overstates the number of
+  independent causes.
+- **`k3_reviewer_verdict_missing`.** A step naming an independent reviewer needs a recorded verdict
+  from that role before `fn_kernel_step_complete` will accept it. The driver records verdicts where
+  the frozen registry names a reviewer; where it names `founder` or `ceo`, the reviewer is a person.
+- **`pd_output_schema_invalid` on the measurement steps.** The output contract requires
+  `numerator`, `denominator`, `formula` and `window` in the handler's OUTPUT, and F16 supplies them
+  to the effect payload rather than to the output object. One splice, not yet made.
+- **`pd_object_no_state_change`.** Several steps of one workflow write the same object at the same
+  state, and `fn_phase_d_object_write` refuses a write that moves nothing. That refusal is correct;
+  what is missing is a per-step target state, which the frozen registry does not currently declare.
+- **`BR-033` on `monetary_state`.** The payment ladder's `reveal_authorized` rung is not in the
+  `TRANSACTION_RECORD` family's declared states, so a transaction at the top rung is refused as
+  unknown money. `public.phase_d_payment_state` and `public.phase_d_object_state_contract` disagree
+  about the same object, and neither is obviously wrong.
+
+None of these is a hold the founder has placed. They are engineering, and they are what stands
+between 44 of 274 and the number his definition of done names.
+
+### Zero cost, zero external effect
+
+`ai_cost_log` latest row **2026-08-15**, **0** rows since 2026-08-18 14:00 UTC. `llm_attempt` the
+same. Outbound HTTP queue **0**. Notifications since the window opened **19**, of which **0** sent.
+Active cron jobs **23**, unchanged. No provider was called to produce any figure in this document.
+
+**PHASE_D_NOT_READY**
