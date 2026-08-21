@@ -16,8 +16,21 @@
 // residue, and this is the check that would find it.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { sql } from '../phase_b/lib/db.mjs';
+
+// EVERY TEST HERE READS PRODUCTION, and the checks job does not hold the management credential.
+// A file that threw would be a red nobody could fix from CI; a file that VANISHED would be worse --
+// node --test reports zero tests and a runner reading that as success is how a check goes quiet.
+// So the tests SKIP with a stated reason, and the file prints the exact marker
+// .github/workflows/project-parity.yml greps for, so a skip inside the one job that does hold the
+// credential still reads as unverified rather than as a pass.
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
+  || existsSync(join(homedir(), '.supabase', 'access-token'));
+const SKIP = hasToken ? false : 'no Supabase management token in this environment';
+if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
 const FILE = 'docs/phase-d/PHASE_D_FIXTURE_CATALOGUE.csv';
 
@@ -39,7 +52,7 @@ function parseCsv(text) {
   return rows.filter(r => r.length > 1 && !String(r[0]).startsWith('#'));
 }
 
-test('the committed fixture catalogue and the database agree, row for row', async () => {
+test('the committed fixture catalogue and the database agree, row for row', { skip: SKIP }, async () => {
   const text = readFileSync(FILE, 'utf8');
   const rows = parseCsv(text);
   const header = rows.shift();
@@ -64,13 +77,13 @@ test('the committed fixture catalogue and the database agree, row for row', asyn
   assert.ok(live.size >= 40, `the catalogue holds ${live.size} rows; the board requires at least 40`);
 });
 
-test('the fixture catalogue board is green', async () => {
+test('the fixture catalogue board is green', { skip: SKIP }, async () => {
   const board = await sql('select check_name, expected, actual, ok from public.fn_phase_d_fixture_catalogue_state()');
   const red = board.filter(b => !b.ok);
   assert.deepEqual(red.map(r => `${r.check_name}: expected ${r.expected}, got ${r.actual}`), []);
 });
 
-test('no Phase D fixture row is committed on production', async () => {
+test('no Phase D fixture row is committed on production', { skip: SKIP }, async () => {
   // Each of these lives only inside a transaction that is aborted. A committed row is residue, and
   // naming the tables separately means a reader can see WHICH kind of residue without re-deriving it.
   const r = (await sql(`select
