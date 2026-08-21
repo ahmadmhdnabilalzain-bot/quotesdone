@@ -311,3 +311,85 @@ end $probe$;`);
       'string instead of resolving it, which is the half of this defect that survives a trigger ' +
       'being disabled.');
   });
+
+// THE THIRD ATTACK, AND THE ONE THAT MATTERED MOST: no fake identity, no DDL, no owner rights.
+// `service_role` simply typed the founder's registered email — which is also a plaintext literal in
+// E36's committed header — and all four amendments were approved, permanently and undetectably,
+// because the approval genuinely resolves. E36 and E38 authenticated the STRING, never the ACTOR.
+//
+// E39 revoked service_role's write access to the table. Measured first: no routine in the estate
+// writes it; every row was written by a migration applied as the owner.
+//
+// What this does NOT establish is that the person at the keyboard was the founder.
+// `fn_phase_c_require_founder` takes a caller-supplied string and also gates `fn_refund_decide` —
+// that binding is an open item for the founder and is recorded, not papered over.
+test('service_role cannot approve, mint or delete an amendment to a frozen contract',
+  { skip: SKIP }, async () => {
+    const out = await drive(`
+do $probe$
+declare v_out jsonb := '{}'::jsonb; v_red int;
+begin
+  begin
+    set local role service_role;
+    update public.phase_c_freeze_amendment
+       set approved_by = (select fi.identity from public.phase_c_founder_identity fi
+                           where fi.active and fi.kind='email' order by fi.identity limit 1),
+           approved_at = now()
+     where approved_by is null;
+    v_out := v_out || jsonb_build_object('approve_as_founder','ACCEPTED');
+  exception when others then
+    v_out := v_out || jsonb_build_object('approve_as_founder','REFUSED ' || SQLSTATE);
+  end;
+  reset role;
+
+  begin
+    set local role service_role;
+    insert into public.phase_c_freeze_amendment
+      (subject, object_identity, prior_digest, new_digest, reason, evidence, change_request_ref,
+       approved_by, approved_at)
+    values ('zz-ci','zz-ci', repeat('a',64), repeat('b',64), repeat('r',90), repeat('e',50),
+            'PCCR-001', 'management@quotesdone.com', now());
+    v_out := v_out || jsonb_build_object('insert_preapproved','ACCEPTED');
+  exception when others then
+    v_out := v_out || jsonb_build_object('insert_preapproved','REFUSED ' || SQLSTATE);
+  end;
+  reset role;
+
+  begin
+    set local role service_role;
+    delete from public.phase_c_freeze_amendment;
+    v_out := v_out || jsonb_build_object('delete_all','ACCEPTED');
+  exception when others then
+    v_out := v_out || jsonb_build_object('delete_all','REFUSED ' || SQLSTATE);
+  end;
+  reset role;
+
+  update public.phase_c_freeze_amendment
+     set approved_by = (select fi.identity from public.phase_c_founder_identity fi
+                         where fi.active and fi.kind='email' order by fi.identity limit 1),
+         approved_at = now()
+   where approved_by is null;
+  select count(*) into v_red from public.fn_phase_c_freeze_drift() where not ok;
+  v_out := v_out || jsonb_build_object('owner_approval_red_after', v_red);
+
+  raise exception 'GRANT_PROBE %', v_out;
+end $probe$;`);
+
+    const m = out.match(/GRANT_PROBE (\{[\s\S]*?\})/);
+    assert.ok(m, `the probe did not reach its report:\n${out.slice(0, 800)}`);
+    const r = JSON.parse(m[1].split('\n')[0].replace(/\\"/g, '"'));
+
+    for (const [k, what] of [
+      ['approve_as_founder', 'approve four amendments by typing the founder\'s registered email'],
+      ['insert_preapproved', 'mint an amendment born already approved'],
+      ['delete_all', 'delete every amendment, turning the row green at "0 of 0"'],
+    ]) {
+      assert.match(String(r[k]), /^REFUSED/,
+        `service_role could ${what} — it got ${r[k]}. No routine in this estate writes ` +
+        'phase_c_freeze_amendment; every row was written by a migration applied as the owner, so ' +
+        'service_role has no business holding INSERT, UPDATE or DELETE on it.');
+    }
+    assert.equal(Number(r.owner_approval_red_after), 0,
+      'an owner-applied approval by a registered founder identity did NOT clear the row — the ' +
+      'revoke went too far and approval is now impossible');
+  });
