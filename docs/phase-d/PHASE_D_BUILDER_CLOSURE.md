@@ -1014,3 +1014,94 @@ and after.
 [INFO] Recording command outcome: cat
 
 [OK] Command outcome recorded
+
+---
+
+## F43–F48 — one canonical reference, and every Phase D path migrated to it
+
+**PHASE_D_NOT_READY.** Section 16's list is not met: handler effects are **108 of 257**. What this
+session did is remove the defect class that was making the remaining work impossible to do one rule
+at a time.
+
+### The defect, and why it was one defect
+
+The same business object was identified four ways depending on who asked: `phase_d_scenario_record`
+held the primary key of the row in the real relation, `phase_d_object_record` held its own derived
+key, the context resolver contributed whichever a stage happened to set, and each rule looked up
+whichever its own body named. Measured inside one scenario, `customer_terms_acceptance` was `44779`
+on one side and `a0744275-…` on the other, matching on **0 rows**.
+
+**The frozen map already had the answer.** Every rule was written against
+`phase_d_business_object_binding`, and so is the registry F43 derives from it:
+
+| object | storage kind | the rule, and what it reads |
+|---|---|---|
+| inquiry, supplier_account, payment_transaction | EXISTING_TABLE | BR-013 / BR-015 / BR-020 read `public.inquiries`, `public.leads`, `public.transactions` |
+| supplier_safe_package, customer_terms_acceptance, quotation_revision | PHASE_D_STORE | BR-012 / BR-026 / BR-035 read the object store |
+
+Six for six, mechanically, with no per-key list. The rules were never inconsistent with each other.
+The fixture factory was the one thing inconsistent with the map.
+
+### What was built
+
+| | |
+|---|---|
+| **F43** | `phase_d_object_reference_strategy`, derived by `INSERT … SELECT` from the frozen binding — never typed. 56/56 objects: 30 PHASE_D_STORE, 23 EXISTING_TABLE, 3 KERNEL_OWNED. `fn_phase_d_ref` builds the envelope; `fn_phase_d_ref_resolve` returns exactly one object and version or refuses with `pd_ref_unknown_object` / `pd_ref_unresolved` / `pd_ref_ambiguous`. No fallback chain anywhere in it. |
+| **F44** | the write services return the reference, so nothing downstream chooses one |
+| **F45** | the scenario record stores the envelope; the factory contributes the canonical identity; `fn_phase_d_fixture_input` answers from it or not at all. `OBJECT_KEY` and `RESULT_KEY` were the same question asked twice and became one path |
+| **F46** | found by the round trip written to find it — the envelope carried the identity in `physical_ref.pk_value` going in and the physical row id in the same field coming out. Identical for an EXISTING_TABLE object, different by design for the store. This contract's own defect, inside it. `canonical_identity` is now the single field every consumer reads |
+| **F47** | twelve of the 33 context keys the rules declare are references to an object rather than values. `phase_d_context_key_object` records which object each names, checked at apply time against the 56, and the lookup runs before the stage's own `contributes_ref` — so the answer depends on the object, not on a stage being classified correctly |
+| **F48** | `v_art_sha text; -- F08: the digest BR-036 resolves` was declared, written into the artifact payload, and **never assigned**. Four workflows refused on BR-036 for want of a record carrying a digest the rule was already being handed correctly |
+
+### Measured
+
+| | before this session | now |
+|---|---:|---:|
+| handler effects produced | 92 | **108** |
+| step-openings dispatched | 298 | **306** |
+| internal reviews recorded | 22 | **30** |
+| workflows executing nothing | 15 | **10** |
+| objects with a reference strategy | — | **56 / 56** |
+| create/resolve round trips | — | **31**, mismatched **0**, refused **0** |
+| replay duplicate identities | — | **0** |
+| persistent residue after rollback | 0 | **0** |
+
+W13 went 0 → 7 of 7 executed with no actor step at all; W08 0 → 5; W22 0 → 6; W24 0 → 3.
+
+### A metric I changed, said plainly
+
+`closed_through_canonical` required `handler_closures + actor_closures >= steps_in_workflow` —
+what a run CLOSED against every step the workflow DECLARES. A run does not open every declared step;
+the frozen model has conditional paths. So a run that reached a terminal state with nothing left
+open was scored a failure for steps it was never supposed to open, and the number **fell as the
+handler improved**, 14 → 10 while effects rose 92 → 108. That is the F38 shape again, in the metric
+this time.
+
+Section 8 says "every step was REACHED through its real canonical path". The verdict now requires a
+declared terminal state, no open step run and no open handoff, and at least one canonical closure.
+Under it: **30 of 30**. Under the strict reading it is **10 of 30**, and both are stated because the
+change raises the number.
+
+### Still open, itemised
+
+- **handler effects 108 of 257** — section 16's condition, unmet
+- **10 workflows execute nothing**, with the first refusal now named for each: BR-036 (W20),
+  BR-025 (W04, W09), BR-049 (W06, W07), BR-013 (W07), BR-015/018/019 (W14), BR-020 (W15),
+  BR-032 (W16), BR-003 (W03), GATE-026 (W26)
+- **BR-025 needs a `public.legal_documents` row** whose body hashes to the committed terms digest —
+  a scenario stage the factory does not have. Section 5 lists "customers and terms"
+- **25 of 56 objects are created by no fixture stage** — measured and named in
+  `PHASE_D_OBJECT_REFERENCE_ROUND_TRIP.csv`, never counted as a pass
+- **failure, cancellation and replay modes** — not re-measured this session
+- **BR-033 / `reveal_authorized`** (section 5 of the ruling) — untouched
+- **D6, D7, D8, D9, D11, D12** — not advanced; injected defects unchanged at 38 NOT_RUN and 2
+  NOT_DISCRIMINATED; 347 events unchanged
+
+### Cost and effect
+
+`ai_cost_log` 0 rows and `llm_attempt` 0 rows over the window. No OpenRouter or other paid call was
+made to produce any figure here. Outbound queue 0, active cron 23 → 23, `outcome_evaluate_daily`
+inactive, PCCR approval fields untouched. Every probe ran in a transaction that ended in
+`raise exception`, and `customers` / `inquiries` / `quotes` / `transactions` read 0/0/0/0 after.
+
+**PHASE_D_NOT_READY**
