@@ -190,6 +190,7 @@ begin
       v_fx->>'stages_created',
       coalesce(v_fx->>'for_workflow','(none)'),
       v_fx->>'notifications_written_by_this_scenario',
+      v_fx->>'deliverable_notifications_written_by_this_scenario',
       v_fx->>'outbound_http_requests_written_by_this_scenario');
   end loop;
 
@@ -210,6 +211,10 @@ const COLS = [
   'drive_stopped_at', 'drive_stop_code', 'drive_stop_reason',
   'first_handler_refusal_at', 'first_handler_refusal_code', 'first_handler_refusal_reason',
   'fixture_stages_created', 'fixture_exclusion_used', 'notifications_written',
+  // G13. TWO COLUMNS, TWO QUESTIONS. The first counts rows written into public.notifications; the
+  // second counts the ones a sender would select. Only the second must be zero, and folding them
+  // into one number is what made a suppressed fixture record read as thirty queued messages.
+  'deliverable_notifications_written',
   'outbound_http_requests_written',
 ];
 
@@ -330,6 +335,7 @@ const effects = sum('business_effects_produced');
 const dispatched = sum('dispatches_seen');
 const executed = sum('dispatches_executed');
 const notif = sum('notifications_written');
+const sendable = sum('deliverable_notifications_written');
 const outbound = sum('outbound_http_requests_written');
 
 console.log(`PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv  ${rows.length} rows`);
@@ -343,11 +349,12 @@ console.log(`  internal reviews recorded    ${reviews}   CANONICAL_INTERNAL_REVI
 console.log(`  capability fixture results   ${capFixtures}   CAPABILITY_FIXTURE_RESULT`);
 console.log(`  handoffs accepted            ${handoffs}`);
 console.log(`  business effects produced    ${effects}`);
-console.log(`  notifications written        ${notif}   (must be 0)`);
+console.log(`  notification rows written    ${notif}   (records; the fixture stage for the notification object writes one per scenario)`);
+console.log(`  DELIVERABLE notifications    ${sendable}   (must be 0 — rows a sender would select)`);
 console.log(`  workflow runs left behind    ${runsLeft}   (must be 0)`);
 console.log(`  fixture rows left behind     ${rowsLeft}   (must be 0)`);
 
-if (notif !== 0 || runsLeft !== 0 || rowsLeft !== 0) {
+if (sendable !== 0 || runsLeft !== 0 || rowsLeft !== 0) {
   console.error('the drive left something behind or produced an external effect');
   process.exit(1);
 }
