@@ -1,5 +1,5 @@
 # node scripts/phase_d/prove_capability_boundary.mjs | project htdblwldjkcgjvmqkbeh | 21 of 21 capability-dependent steps in public.phase_d_handler_binding, each probed five ways | attribution: every verdict is the refusal code or acceptance the database actually returned, inside a transaction ending in raise exception; no verdict is read off the source
-# generated_at: 2026-08-21T20:04:11.974Z
+# generated_at: 2026-08-22T23:46:52.610Z
 step_id,workflow_id,capability,case1_production_no_capability,case1b_first_control_to_refuse_with_no_capability_result,case2_protected_fixture_result,case3_malformed_fixture_result,case4_fixture_replay,case5_fixture_outside_test_context
 "W02-S05","W02","REASONING","pd_rule_refused","pd_rule_refused","fixture:PDF-1001:v1:50b72aea869c:redispatch=REFUSED(pd_rule_refused)","pd_capability_result_malformed","replay:true:same_result_id:true:rows_added:1","pd_capability_fixture_context_absent"
 "W07-S02","W07","REASONING","pd_rule_refused","pd_rule_refused","fixture:PDF-1002:v1:95d23cc9f394:redispatch=REFUSED(pd_rule_refused)","pd_capability_result_malformed","replay:true:same_result_id:true:rows_added:1","pd_capability_fixture_context_absent"
