@@ -1,61 +1,61 @@
-# node scripts/phase_d/prove_object_reference_round_trip.mjs | project htdblwldjkcgjvmqkbeh | 31 of 56 frozen business objects create/resolve round-tripped through the canonical reference | attribution: one row per object in public.phase_d_object_reference_strategy. The scenario factory creates what it creates through the canonical write services inside a transaction that is aborted; each created object is resolved back through fn_phase_d_ref_resolve and the resolved object, canonical_identity and version are compared with the reference the writer returned. An object no stage creates is reported NOT_CREATED_BY_ANY_STAGE and is never counted as a pass
-# generated_at: 2026-08-22T20:57:52.685Z
+# node scripts/phase_d/prove_object_reference_round_trip.mjs | project htdblwldjkcgjvmqkbeh | 56 of 56 frozen business objects create/resolve round-tripped through the canonical reference | attribution: one row per object in public.phase_d_object_reference_strategy. The scenario factory creates what it creates through the canonical write services inside a transaction that is aborted; each created object is resolved back through fn_phase_d_ref_resolve and the resolved object, canonical_identity and version are compared with the reference the writer returned. An object no stage creates is reported NOT_CREATED_BY_ANY_STAGE and is never counted as a pass
+# generated_at: 2026-08-22T22:55:10.174Z
 object_id,storage_kind,canonical_identity_type,physical_relation,physical_pk_column,round_trip,same_object,same_identity,same_version
-ai_change,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_ai_change,business_key,NOT_CREATED_BY_ANY_STAGE,,,
+ai_change,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_ai_change,business_key,ROUND_TRIPPED,true,true,true
 campaign_asset,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.content_drafts,id,ROUND_TRIPPED,true,true,true
 capability_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_capability_case,business_key,ROUND_TRIPPED,true,true,true
 company_objective,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.company_goals,key,ROUND_TRIPPED,true,true,true
-content_campaign,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_content_campaign,business_key,NOT_CREATED_BY_ANY_STAGE,,,
+content_campaign,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_content_campaign,business_key,ROUND_TRIPPED,true,true,true
 customer_account,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.customers,id,ROUND_TRIPPED,true,true,true
-customer_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_customer_case,business_key,NOT_CREATED_BY_ANY_STAGE,,,
+customer_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_customer_case,business_key,ROUND_TRIPPED,true,true,true
 customer_selection,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_customer_selection,business_key,ROUND_TRIPPED,true,true,true
 customer_terms_acceptance,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_customer_terms_acceptance,business_key,ROUND_TRIPPED,true,true,true
 department_mandate,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.department_objective,id,ROUND_TRIPPED,true,true,true
-dispatch_batch,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_dispatch_batch,business_key,NOT_CREATED_BY_ANY_STAGE,,,
+dispatch_batch,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_dispatch_batch,business_key,ROUND_TRIPPED,true,true,true
 document_extraction,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_document_extraction,business_key,ROUND_TRIPPED,true,true,true
-exception_record,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_exception_record,business_key,NOT_CREATED_BY_ANY_STAGE,,,
-financial_close,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_financial_close,business_key,NOT_CREATED_BY_ANY_STAGE,,,
-growth_program,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_growth_program,business_key,NOT_CREATED_BY_ANY_STAGE,,,
-handoff_record,KERNEL_OWNED,KERNEL_ID,public.phase_c_handoff_run,handoff_run_id,NOT_CREATED_BY_ANY_STAGE,,,
+exception_record,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_exception_record,business_key,ROUND_TRIPPED,true,true,true
+financial_close,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_financial_close,business_key,ROUND_TRIPPED,true,true,true
+growth_program,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_growth_program,business_key,ROUND_TRIPPED,true,true,true
+handoff_record,KERNEL_OWNED,KERNEL_ID,public.phase_c_handoff_run,handoff_run_id,ROUND_TRIPPED,true,true,true
 incident,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.os_incidents,id,ROUND_TRIPPED,true,true,true
-initiative,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.org_tasks,id,NOT_CREATED_BY_ANY_STAGE,,,
+initiative,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.org_tasks,id,ROUND_TRIPPED,true,true,true
 inquiry,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.inquiries,id,ROUND_TRIPPED,true,true,true
-inquiry_answer,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.inquiry_answer,id,NOT_CREATED_BY_ANY_STAGE,,,
+inquiry_answer,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.inquiry_answer,id,ROUND_TRIPPED,true,true,true
 inquiry_document,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.documents,id,ROUND_TRIPPED,true,true,true
 inquiry_route_set,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_inquiry_route_set,business_key,ROUND_TRIPPED,true,true,true
 inquiry_version,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_inquiry_version,business_key,ROUND_TRIPPED,true,true,true
-intelligence_product,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_intelligence_product,business_key,NOT_CREATED_BY_ANY_STAGE,,,
-invoice_receipt,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.reveal_invoices,invoice_no,NOT_CREATED_BY_ANY_STAGE,,,
-knowledge_change,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_knowledge_change,business_key,NOT_CREATED_BY_ANY_STAGE,,,
-legal_risk_review,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.legal_reviews,id,NOT_CREATED_BY_ANY_STAGE,,,
-notification,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.notifications,id,NOT_CREATED_BY_ANY_STAGE,,,
+intelligence_product,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_intelligence_product,business_key,ROUND_TRIPPED,true,true,true
+invoice_receipt,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.reveal_invoices,invoice_no,ROUND_TRIPPED,true,true,true
+knowledge_change,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_knowledge_change,business_key,ROUND_TRIPPED,true,true,true
+legal_risk_review,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.legal_reviews,id,ROUND_TRIPPED,true,true,true
+notification,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.notifications,id,ROUND_TRIPPED,true,true,true
 notification_attempt,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_notification_attempt,business_key,ROUND_TRIPPED,true,true,true
-organization_change_request,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_organization_change_request,business_key,NOT_CREATED_BY_ANY_STAGE,,,
-partnership_opportunity,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.opportunity,id,NOT_CREATED_BY_ANY_STAGE,,,
+organization_change_request,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_organization_change_request,business_key,ROUND_TRIPPED,true,true,true
+partnership_opportunity,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.opportunity,id,ROUND_TRIPPED,true,true,true
 payment_transaction,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.transactions,id,ROUND_TRIPPED,true,true,true
 performance_recovery_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_performance_recovery_case,business_key,ROUND_TRIPPED,true,true,true
-product_change,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_product_change,business_key,NOT_CREATED_BY_ANY_STAGE,,,
+product_change,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_product_change,business_key,ROUND_TRIPPED,true,true,true
 provider_event,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.stripe_events,event_id,ROUND_TRIPPED,true,true,true
 quotation,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.quotes,id,ROUND_TRIPPED,true,true,true
 quotation_comparison,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.quote_comparisons,id,ROUND_TRIPPED,true,true,true
-quotation_evaluation,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_quotation_evaluation,business_key,NOT_CREATED_BY_ANY_STAGE,,,
+quotation_evaluation,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_quotation_evaluation,business_key,ROUND_TRIPPED,true,true,true
 quotation_revision,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_quotation_revision,business_key,ROUND_TRIPPED,true,true,true
 reconciliation_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_reconciliation_case,business_key,ROUND_TRIPPED,true,true,true
 refund_dispute_case,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.refunds,id,ROUND_TRIPPED,true,true,true
-release_candidate,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_release_candidate,business_key,NOT_CREATED_BY_ANY_STAGE,,,
+release_candidate,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_release_candidate,business_key,ROUND_TRIPPED,true,true,true
 reveal_transaction,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.transactions,id,ROUND_TRIPPED,true,true,true
 review_record,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.review_chain,id,ROUND_TRIPPED,true,true,true
 supplier_account,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.leads,id,ROUND_TRIPPED,true,true,true
 supplier_assignment,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.inquiry_matches,id,ROUND_TRIPPED,true,true,true
 supplier_capability,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.supplier_capabilities,supplier_id,ROUND_TRIPPED,true,true,true
-supplier_correction_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_supplier_correction_case,business_key,NOT_CREATED_BY_ANY_STAGE,,,
-supplier_coverage_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_supplier_coverage_case,business_key,NOT_CREATED_BY_ANY_STAGE,,,
-supplier_retention_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_supplier_retention_case,business_key,NOT_CREATED_BY_ANY_STAGE,,,
+supplier_correction_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_supplier_correction_case,business_key,ROUND_TRIPPED,true,true,true
+supplier_coverage_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_supplier_coverage_case,business_key,ROUND_TRIPPED,true,true,true
+supplier_retention_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_supplier_retention_case,business_key,ROUND_TRIPPED,true,true,true
 supplier_safe_package,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_supplier_safe_package,business_key,ROUND_TRIPPED,true,true,true
 supplier_terms_acceptance,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_supplier_terms_acceptance,business_key,ROUND_TRIPPED,true,true,true
 supplier_verification_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_supplier_verification_case,business_key,ROUND_TRIPPED,true,true,true
 ux_specification,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_ux_specification,business_key,ROUND_TRIPPED,true,true,true
-workflow_run,KERNEL_OWNED,KERNEL_ID,public.phase_c_workflow_run,run_id,NOT_CREATED_BY_ANY_STAGE,,,
-workflow_step_run,KERNEL_OWNED,KERNEL_ID,public.phase_c_workflow_step_run,step_run_id,NOT_CREATED_BY_ANY_STAGE,,,
-# REPLAY: the same scenario driven twice in one transaction produced 32 then 22 stages, 14 live object records and 0 duplicate (object_id, business_key) pairs
-# ROLLBACK CONFIRMED from a new transaction at 2026-08-22 20:57:52.21428+00 on htdblwldjkcgjvmqkbeh: customers=0 inquiries=0 quotes=0 transactions=0 phase_d_object_record=0 residue=0
+workflow_run,KERNEL_OWNED,KERNEL_ID,public.phase_c_workflow_run,run_id,ROUND_TRIPPED,true,true,true
+workflow_step_run,KERNEL_OWNED,KERNEL_ID,public.phase_c_workflow_step_run,step_run_id,ROUND_TRIPPED,true,true,true
+# REPLAY: the same scenario driven twice in one transaction produced 55 then 41 stages, 30 live object records and 0 duplicate (object_id, business_key) pairs
+# ROLLBACK CONFIRMED from a new transaction at 2026-08-22 22:55:09.701093+00 on htdblwldjkcgjvmqkbeh: customers=0 inquiries=0 quotes=0 transactions=0 phase_d_object_record=0 residue=0
