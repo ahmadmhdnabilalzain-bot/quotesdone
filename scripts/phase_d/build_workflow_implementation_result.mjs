@@ -142,11 +142,31 @@ begin
       -- CLOSED_THROUGH_CANONICAL_INPUTS only when it is terminal AND every step it opened was
       -- closed by one of them -- handler effect or actor input; there is no third way to close a
       -- step, because fn_kernel_step_complete is the only door and the handler calls it too.
+      -- CORRECTED 23 Aug 2026, AND THE CORRECTION RAISES THE NUMBER, WHICH IS WHY IT IS ARGUED
+      -- HERE RATHER THAN JUST MADE. The first version required
+      -- handler_closures + actor_closures >= steps_in_workflow, comparing what the run CLOSED
+      -- against every step the workflow DECLARES. A run does not open every declared step: the
+      -- frozen model has conditional paths, and the kernel opens a successor only where one
+      -- applies. So a workflow that reached a terminal state with nothing left open was still
+      -- scored as a failure for steps it was never supposed to open, and -- worse -- the number
+      -- FELL as the handler got better, because a handler closing steps changes which successors
+      -- open. That is the F38 shape again, in the metric rather than the driver.
+      --
+      -- The founder's section 8 says "every step was REACHED through its real canonical path", not
+      -- "every declared step was opened". What that means operationally is: the run reached a state
+      -- the frozen model calls terminal, the drive found no open step run and no open handoff, and
+      -- every closure it did make went through a canonical door -- which is the only kind of
+      -- closure this driver can make, since fn_kernel_step_complete and the handler's own call into
+      -- it are the two it has.
+      --
+      -- steps_in_workflow and both closure counts stay in their own columns, so the stricter
+      -- reading is still available to anyone who wants it.
       case when coalesce((v->>'terminal')::boolean,false)
+                and coalesce(v->'stopped'->>'refused_with','') = 'pd_drive_no_open_work'
                 and (coalesce((v->>'steps_closed_by_the_handler')::int,0)
-                     + coalesce((v->>'steps_driven')::int,0)) >= coalesce((v->>'steps_in_workflow')::int,0)
+                     + coalesce((v->>'steps_driven')::int,0)) > 0
            then 'CLOSED_THROUGH_CANONICAL_INPUTS'
-           when coalesce((v->>'terminal')::boolean,false) then 'TERMINAL_WITH_STEPS_NOT_OPENED'
+           when coalesce((v->>'terminal')::boolean,false) then 'TERMINAL_WITH_WORK_STILL_OPEN'
            else 'NOT_TERMINAL' end,
       v->>'steps_closed_by_the_handler',
       v->>'internal_reviews_recorded',

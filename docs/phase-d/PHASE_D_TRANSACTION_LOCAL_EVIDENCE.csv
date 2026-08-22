@@ -1,129 +1,145 @@
-# node scripts/phase_d/build_transaction_local_evidence.mjs | project htdblwldjkcgjvmqkbeh | 92 of 92 effects ledgered inside an aborted transaction | attribution: one row per phase_d_effect_ledger row produced INSIDE the transaction, plus one (summary) row per workflow carrying the in-transaction counters. Section 11 of the founder's 22 Aug 2026 ruling: an empty production table is not evidence that a controlled effect happened, so what happened before the rollback is recorded here. NO business payload and no PII: the payload DIGEST is carried, never a field of it. Rollback is proved by the footer, read from a NEW transaction after every drive had aborted
-# generated_at: 2026-08-22T19:34:48.131Z
+# node scripts/phase_d/build_transaction_local_evidence.mjs | project htdblwldjkcgjvmqkbeh | 108 of 108 effects ledgered inside an aborted transaction | attribution: one row per phase_d_effect_ledger row produced INSIDE the transaction, plus one (summary) row per workflow carrying the in-transaction counters. Section 11 of the founder's 22 Aug 2026 ruling: an empty production table is not evidence that a controlled effect happened, so what happened before the rollback is recorded here. NO business payload and no PII: the payload DIGEST is carried, never a field of it. Rollback is proved by the footer, read from a NEW transaction after every drive had aborted
+# generated_at: 2026-08-22T21:00:12.373Z
 test_transaction_fixture_run,workflow_id,step_id,effect_type,effect_object_id,effect_relation,effect_operation,state_before,state_after,provider_mode,payload_digest_16,result_relation
-1132,W01,W01-S01,VERSIONED_ARTIFACT,company_objective,public.company_goals,OBJECT_VERSION_WRITE,(none),(none),none,e278268253d9787a,public.company_goals
-1132,W01,W01-S02,VERSIONED_ARTIFACT,company_objective,public.company_goals,OBJECT_VERSION_WRITE,(none),(none),none,ea9b7874ff89dddc,public.company_goals
-1132,W01,W01-S04,VERSIONED_ARTIFACT,company_objective,public.company_goals,OBJECT_VERSION_WRITE,(none),(none),none,61e8baeed0a8c760,public.company_goals
-1132,W01,W01-S05,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,21e37452eba612ed,public.phase_c_workflow_step_run
-1132,W01,W01-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,b03a6f38961c603c,public.phase_c_workflow_step_run
-1132,W01,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,5 executed of 8,completed,0 handler / 3 actor,5
-1133,W02,W02-S01,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,8c8761f2279571a8,public.phase_d_object_record
-1133,W02,W02-S03,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,788a54579c385e9c,public.phase_d_object_record
-1133,W02,W02-S04,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,20e855ba860a78ed,public.phase_d_object_record
-1133,W02,W02-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,f273bf420c51b8ac,capability_request
-1133,W02,W02-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,d767d0adb29531b1,public.phase_c_workflow_step_run
-1133,W02,W02-S08,MEASUREMENT_RECORD,performance_recovery_case,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,536d385d162fb15f,measurement
-1133,W02,W02-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,9d651f675ed59b8b,public.phase_c_workflow_step_run
-1133,W02,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,7 executed of 11,completed,1 handler / 2 actor,7
-1134,W03,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1135,W04,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 7,completed,0 handler / 7 actor,0
-1136,W05,W05-S01,DOMAIN_MUTATION,inquiry,public.inquiries,OBJECT_STATE_WRITE,(none),(none),none,cef60100f1dfcd4a,public.inquiries
-1136,W05,W05-S02,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,109035c319e97169,public.phase_c_workflow_step_run
-1136,W05,W05-S03,DOMAIN_MUTATION,inquiry,public.inquiries,OBJECT_STATE_WRITE,(none),(none),none,0299527eaa55947b,public.inquiries
-1136,W05,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,3 executed of 9,completed,0 handler / 6 actor,3
-1137,W06,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 7,completed,0 handler / 7 actor,0
-1138,W07,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 8,completed,0 handler / 8 actor,0
-1139,W08,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 8,completed,0 handler / 8 actor,0
-1140,W09,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1141,W10,W10-S01,DOMAIN_MUTATION,supplier_verification_case,public.v_obj_supplier_verification_case,OBJECT_STATE_WRITE,(none),(none),none,7cfff7e12fc2d41b,public.phase_d_object_record
-1141,W10,W10-S04,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,95e8ce30dfc06458,capability_request
-1141,W10,W10-S06,DOMAIN_MUTATION,supplier_correction_case,public.v_obj_supplier_correction_case,OBJECT_STATE_WRITE,(none),(none),none,96e9e46a28eda460,public.phase_d_object_record
-1141,W10,W10-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,4393eefed29fbe64,public.phase_c_workflow_step_run
-1141,W10,W10-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,1b83ee8e2168e770,public.phase_c_workflow_step_run
-1141,W10,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,5 executed of 11,completed,1 handler / 3 actor,5
-1142,W11,W11-S01,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,9f54342e1facd7c9,capability_request
-1142,W11,W11-S02,MEASUREMENT_RECORD,supplier_coverage_case,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,14eeb0f40c1b9397,measurement
-1142,W11,W11-S03,DOMAIN_MUTATION,supplier_coverage_case,public.v_obj_supplier_coverage_case,OBJECT_STATE_WRITE,(none),(none),none,befe2a8207eda52b,public.phase_d_object_record
-1142,W11,W11-S04,DOMAIN_MUTATION,supplier_coverage_case,public.v_obj_supplier_coverage_case,OBJECT_STATE_WRITE,(none),(none),none,0090807f81d1a1cd,public.phase_d_object_record
-1142,W11,W11-S05,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,fc8993274adf4a68,public.phase_c_workflow_step_run
-1142,W11,W11-S06,MEASUREMENT_RECORD,supplier_coverage_case,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,38579609f8b9b4ea,measurement
-1142,W11,W11-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,8f30eec8af99853a,public.phase_c_workflow_step_run
-1142,W11,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,7 executed of 8,completed,1 handler / 0 actor,7
-1143,W12,W12-S01,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,ac335440d3661051,public.phase_d_object_record
-1143,W12,W12-S02,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,e62f080d33cfc085,public.phase_d_object_record
-1143,W12,W12-S03,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,830c0b947ede8185,public.phase_d_object_record
-1143,W12,W12-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,110ca40c36484af9,public.phase_c_workflow_step_run
-1143,W12,W12-S08,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,1df330b6a6c52ab6,public.phase_d_object_record
-1143,W12,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,5 executed of 11,completed,0 handler / 4 actor,5
-1144,W13,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 7,completed,0 handler / 7 actor,0
-1145,W14,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1146,W15,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1147,W16,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1148,W17,W17-S04,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,3db2fbb2a8ed5892,capability_request
-1148,W17,W17-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,d4b61bad29652c20,capability_request
-1148,W17,W17-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,9dd6b1ef1670b9c4,public.phase_c_workflow_step_run
-1148,W17,W17-S11,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,48739ae9866d48b0,public.phase_c_workflow_step_run
-1148,W17,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,4 executed of 16,completed,2 handler / 7 actor,4
-1149,W18,W18-S01,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,b36c800b204dfbd1,public.phase_d_object_record
-1149,W18,W18-S02,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,16db393c3016c260,public.phase_d_object_record
-1149,W18,W18-S03,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,592445a3ce9408cf,public.phase_c_workflow_step_run
-1149,W18,W18-S04,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,0296d0f4bd5a2da5,public.phase_d_object_record
-1149,W18,W18-S05,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,e27fc80e23399ab5,public.phase_d_object_record
-1149,W18,W18-S06,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,5beadc5b9433f220,public.phase_d_object_record
-1149,W18,W18-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,fda59d1a484af045,public.phase_c_workflow_step_run
-1149,W18,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,7 executed of 7,completed,0 handler / 0 actor,7
-1150,W19,W19-S01,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,981f8c77840e18e8,public.phase_d_object_record
-1150,W19,W19-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,a4914b954052a196,capability_request
-1150,W19,W19-S03,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,0aaf3e14256e3887,public.phase_d_object_record
-1150,W19,W19-S04,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,53fc63bc4d0467be,public.phase_d_object_record
-1150,W19,W19-S05,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,cd8fb2f4dd1a8eb0,public.phase_d_object_record
-1150,W19,W19-S06,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,2885fee61c05068a,public.phase_c_workflow_step_run
-1150,W19,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,6 executed of 8,completed,1 handler / 1 actor,6
-1151,W20,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1152,W21,W21-S01,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,43834ce6e1852d6b,public.opportunity
-1152,W21,W21-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,014f791e88f2e21c,capability_request
-1152,W21,W21-S03,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,dac6c7ee7924d1e7,public.opportunity
-1152,W21,W21-S06,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,2de3ff62d5029e10,public.opportunity
-1152,W21,W21-S07,MEASUREMENT_RECORD,partnership_opportunity,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,d91c818a709e90d9,measurement
-1152,W21,W21-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,464018c0f0d48752,public.phase_c_workflow_step_run
-1152,W21,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,6 executed of 10,completed,1 handler / 2 actor,6
-1153,W22,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 7,completed,0 handler / 7 actor,0
-1154,W23,W23-S01,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,01de4369071d9ac2,public.phase_d_object_record
-1154,W23,W23-S02,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,1bbeb85aee294067,public.phase_d_object_record
-1154,W23,W23-S03,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,64248e0ed4ee85da,capability_request
-1154,W23,W23-S04,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,b609df4523b44880,public.phase_d_object_record
-1154,W23,W23-S06,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,0bf67fe997ce7575,capability_request
-1154,W23,W23-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,6421cbd076a25b0c,public.phase_c_workflow_step_run
-1154,W23,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,6 executed of 14,completed,2 handler / 3 actor,6
-1155,W24,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 10,completed,0 handler / 10 actor,0
-1156,W25,W25-S01,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,5a746a80a6bdb859,capability_request
-1156,W25,W25-S02,VERSIONED_ARTIFACT,intelligence_product,public.v_obj_intelligence_product,OBJECT_VERSION_WRITE,(none),(none),none,c4794cfae134952a,public.phase_d_object_record
-1156,W25,W25-S03,VERSIONED_ARTIFACT,intelligence_product,public.v_obj_intelligence_product,OBJECT_VERSION_WRITE,(none),(none),none,7bc33f7bde36013d,public.phase_d_object_record
-1156,W25,W25-S04,VERSIONED_ARTIFACT,intelligence_product,public.v_obj_intelligence_product,OBJECT_VERSION_WRITE,(none),(none),none,af39b562b40fca25,public.phase_d_object_record
-1156,W25,W25-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,7285dae0b1ea8b3e,capability_request
-1156,W25,W25-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,21b8517fdd58f94f,public.phase_c_workflow_step_run
-1156,W25,W25-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,5a2d7fb7aa5e1f4e,public.phase_c_workflow_step_run
-1156,W25,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,7 executed of 10,completed,2 handler / 1 actor,7
-1157,W26,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1158,W27,W27-S01,VERSIONED_ARTIFACT,financial_close,public.v_obj_financial_close,OBJECT_VERSION_WRITE,(none),(none),none,09ab8deccc0afaeb,public.phase_d_object_record
-1158,W27,W27-S02,VERSIONED_ARTIFACT,financial_close,public.v_obj_financial_close,OBJECT_VERSION_WRITE,(none),(none),none,c4641ab056c996c5,public.phase_d_object_record
-1158,W27,W27-S06,VERSIONED_ARTIFACT,financial_close,public.v_obj_financial_close,OBJECT_VERSION_WRITE,(none),(none),none,366f7aef0b4a0924,public.phase_d_object_record
-1158,W27,W27-S08,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,2a2739cd9b286cae,capability_request
-1158,W27,W27-S10,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,5f650e0955f11855,public.phase_c_workflow_step_run
-1158,W27,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,5 executed of 16,completed,1 handler / 5 actor,5
-1159,W28,W28-S03,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,d88f73825c7eff4e,capability_request
-1159,W28,W28-S04,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,97ee6fd92c776242,capability_request
-1159,W28,W28-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,a286f265e5f78324,capability_request
-1159,W28,W28-S06,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,0a270c41a1881055,capability_request
-1159,W28,W28-S08,MEASUREMENT_RECORD,legal_risk_review,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,965b4ac0f5d6a004,measurement
-1159,W28,W28-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,7770de994ce36b99,public.phase_c_workflow_step_run
-1159,W28,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,6 executed of 15,completed,4 handler / 3 actor,6
-1160,W29,W29-S01,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,21701f00a7582a18,public.os_incidents
-1160,W29,W29-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,adc05c59d27d95d1,capability_request
-1160,W29,W29-S03,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,becd9954bcc81ac8,public.os_incidents
-1160,W29,W29-S05,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,8c50d01bda756c85,public.os_incidents
-1160,W29,W29-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,c365edbfcb57aecb,public.phase_c_workflow_step_run
-1160,W29,W29-S08,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,e9650e2b43695a9d,public.os_incidents
-1160,W29,W29-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,a427e6bc8e5d3df4,public.phase_c_workflow_step_run
-1160,W29,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,7 executed of 13,completed,1 handler / 3 actor,7
-1161,W30,W30-S01,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,d3ff4ee9d605792d,public.phase_d_object_record
-1161,W30,W30-S04,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,1898d147f64e894e,public.phase_d_object_record
-1161,W30,W30-S05,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,382731e3478b8888,public.phase_d_object_record
-1161,W30,W30-S08,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,9adb05656a7067f6,capability_request
-1161,W30,W30-S09,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,9627367994bea526,public.phase_d_object_record
-1161,W30,W30-S11,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,2c010e9a228aed3c,public.phase_c_workflow_step_run
-1161,W30,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 660 -> 660,outbound 0 -> 0,6 executed of 14,completed,1 handler / 5 actor,6
-# ROLLBACK CONFIRMED, read from a new transaction at 2026-08-22 19:34:47.657756+00 on htdblwldjkcgjvmqkbeh
+1571,W01,W01-S02,VERSIONED_ARTIFACT,company_objective,public.company_goals,OBJECT_VERSION_WRITE,(none),(none),none,ad6d3c2a20a3d2e9,public.company_goals
+1571,W01,W01-S05,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,86467efcd5ab6c96,public.phase_c_workflow_step_run
+1571,W01,W01-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,32d4db0852dda595,public.phase_c_workflow_step_run
+1571,W01,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,3 executed of 8,completed,0 handler / 5 actor,3
+1573,W02,W02-S01,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,9ebc3c91eedae1f7,public.phase_d_object_record
+1573,W02,W02-S03,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,ecd0f9d35ab7b060,public.phase_d_object_record
+1573,W02,W02-S04,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,1648f72625bdca40,public.phase_d_object_record
+1573,W02,W02-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,e42475d220023e79,public.phase_c_workflow_step_run
+1573,W02,W02-S08,MEASUREMENT_RECORD,performance_recovery_case,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,ee8e22430e702aef,measurement
+1573,W02,W02-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,3d13f81946b0e9c5,public.phase_c_workflow_step_run
+1573,W02,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,6 executed of 10,completed,0 handler / 3 actor,6
+1575,W03,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
+1577,W04,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 7,completed,0 handler / 7 actor,0
+1579,W05,W05-S01,DOMAIN_MUTATION,inquiry,public.inquiries,OBJECT_STATE_WRITE,(none),(none),none,1eefc14921fb174c,public.inquiries
+1579,W05,W05-S02,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,78fb9c1f67c02c9f,public.phase_c_workflow_step_run
+1579,W05,W05-S03,DOMAIN_MUTATION,inquiry,public.inquiries,OBJECT_STATE_WRITE,(none),(none),none,b474560d53d5f1ea,public.inquiries
+1579,W05,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,3 executed of 9,completed,0 handler / 6 actor,3
+1581,W06,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 7,completed,0 handler / 7 actor,0
+1582,W07,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 8,completed,0 handler / 8 actor,0
+1584,W08,W08-S01,VERSIONED_ARTIFACT,supplier_safe_package,public.v_obj_supplier_safe_package,OBJECT_VERSION_WRITE,(none),(none),none,4bda28e80857dcd6,public.phase_d_object_record
+1584,W08,W08-S02,VERSIONED_ARTIFACT,supplier_safe_package,public.v_obj_supplier_safe_package,OBJECT_VERSION_WRITE,(none),(none),none,293cfd0bb1dc6d7b,public.phase_d_object_record
+1584,W08,W08-S05,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,8c4fa2cb020abbe8,public.phase_c_workflow_step_run
+1584,W08,W08-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,9480cacee087d4f7,public.phase_c_workflow_step_run
+1584,W08,W08-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,81e554647870aab9,public.phase_c_workflow_step_run
+1584,W08,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,5 executed of 10,completed,0 handler / 3 actor,5
+1586,W09,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
+1588,W10,W10-S01,DOMAIN_MUTATION,supplier_verification_case,public.v_obj_supplier_verification_case,OBJECT_STATE_WRITE,(none),(none),none,2d42c31da2c46fb3,public.phase_d_object_record
+1588,W10,W10-S04,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,919f388e6cefa87a,capability_request
+1588,W10,W10-S06,DOMAIN_MUTATION,supplier_correction_case,public.v_obj_supplier_correction_case,OBJECT_STATE_WRITE,(none),(none),none,ae035e103bf2b804,public.phase_d_object_record
+1588,W10,W10-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,599e4d8e6856ccd6,public.phase_c_workflow_step_run
+1588,W10,W10-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,b0fe79b27e2b4a36,public.phase_c_workflow_step_run
+1588,W10,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,5 executed of 11,completed,1 handler / 3 actor,5
+1590,W11,W11-S01,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,9357f4f9ca4eeb85,capability_request
+1590,W11,W11-S02,MEASUREMENT_RECORD,supplier_coverage_case,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,db664af13bf23d36,measurement
+1590,W11,W11-S03,DOMAIN_MUTATION,supplier_coverage_case,public.v_obj_supplier_coverage_case,OBJECT_STATE_WRITE,(none),(none),none,6e6f797a6c425895,public.phase_d_object_record
+1590,W11,W11-S04,DOMAIN_MUTATION,supplier_coverage_case,public.v_obj_supplier_coverage_case,OBJECT_STATE_WRITE,(none),(none),none,cb458aa0f22f0c95,public.phase_d_object_record
+1590,W11,W11-S05,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,4a937ee4ca7c643b,public.phase_c_workflow_step_run
+1590,W11,W11-S06,MEASUREMENT_RECORD,supplier_coverage_case,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,698f383369cdfcaa,measurement
+1590,W11,W11-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,d607a20db975c327,public.phase_c_workflow_step_run
+1590,W11,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,7 executed of 8,completed,1 handler / 0 actor,7
+1592,W12,W12-S01,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,5f14d4574ec692e1,public.phase_d_object_record
+1592,W12,W12-S02,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,0e611a41f8007b20,public.phase_d_object_record
+1592,W12,W12-S03,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,5ebf316472a427cc,public.phase_d_object_record
+1592,W12,W12-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,cf20be0d3be0749a,public.phase_c_workflow_step_run
+1592,W12,W12-S08,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,14b4cd7cc4a7e8f7,public.phase_d_object_record
+1592,W12,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,5 executed of 11,completed,0 handler / 4 actor,5
+1594,W13,W13-S01,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,5aff52d7792d5481,external_intent
+1594,W13,W13-S02,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,9224a768cdff8158,external_intent
+1594,W13,W13-S03,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,f855d209a1ddfe97,external_intent
+1594,W13,W13-S04,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,277dd77ff2b16966,external_intent
+1594,W13,W13-S05,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,4ebe3ef6f53275b4,external_intent
+1594,W13,W13-S06,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,723aafadbe08cebc,external_intent
+1594,W13,W13-S07,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,0ec0645cd809a6a0,external_intent
+1594,W13,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,7 executed of 8,completed,1 handler / 0 actor,7
+1596,W14,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
+1597,W15,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
+1598,W16,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
+1600,W17,W17-S04,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,547149e67cd6f4ed,capability_request
+1600,W17,W17-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,4aa98a79d3e3405a,capability_request
+1600,W17,W17-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,ee5cc3ebd5840905,public.phase_c_workflow_step_run
+1600,W17,W17-S11,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,567f2d6ba9c8def9,public.phase_c_workflow_step_run
+1600,W17,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,4 executed of 16,completed,2 handler / 7 actor,4
+1602,W18,W18-S01,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,287ab6c2d2e2f840,public.phase_d_object_record
+1602,W18,W18-S02,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,bb98727b18a5b656,public.phase_d_object_record
+1602,W18,W18-S03,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,04da7dfd921e12c5,public.phase_c_workflow_step_run
+1602,W18,W18-S04,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,b27e44d8accc9458,public.phase_d_object_record
+1602,W18,W18-S06,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,a7c662539fa3bb58,public.phase_d_object_record
+1602,W18,W18-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,6348e3d48f2e9d98,public.phase_c_workflow_step_run
+1602,W18,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,6 executed of 7,completed,0 handler / 1 actor,6
+1604,W19,W19-S01,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,5d95478bc63a0433,public.phase_d_object_record
+1604,W19,W19-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,27b33024e55a47c5,capability_request
+1604,W19,W19-S03,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,1f354e1971f2c957,public.phase_d_object_record
+1604,W19,W19-S04,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,909456282357b964,public.phase_d_object_record
+1604,W19,W19-S05,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,a570ec4463e355a9,public.phase_d_object_record
+1604,W19,W19-S06,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,121acece59ac6e6d,public.phase_c_workflow_step_run
+1604,W19,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,6 executed of 8,completed,1 handler / 1 actor,6
+1605,W20,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
+1606,W21,W21-S01,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,65dcb5fd5e2959d7,public.opportunity
+1606,W21,W21-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,180d8510cd5b4b14,capability_request
+1606,W21,W21-S03,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,cb49bc7fdbd9948f,public.opportunity
+1606,W21,W21-S06,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,5398275a87ff7020,public.opportunity
+1606,W21,W21-S07,MEASUREMENT_RECORD,partnership_opportunity,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,51bb56e2d7d281e1,measurement
+1606,W21,W21-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,d0a5bf7fa2fc0930,public.phase_c_workflow_step_run
+1606,W21,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,6 executed of 10,completed,1 handler / 2 actor,6
+1607,W22,W22-S01,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,600f5023975f4d56,public.phase_d_object_record
+1607,W22,W22-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,eddd48252378beb8,capability_request
+1607,W22,W22-S03,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,dd3a0da933a5c43d,public.phase_d_object_record
+1607,W22,W22-S04,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,2c70814c76c491de,public.phase_d_object_record
+1607,W22,W22-S05,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,b4dc307dad9acdce,public.phase_d_object_record
+1607,W22,W22-S07,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,fa4de789ad6bbc33,public.phase_d_object_record
+1607,W22,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,6 executed of 9,completed,1 handler / 1 actor,6
+1608,W23,W23-S01,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,bcc7ed4f3bed69ae,public.phase_d_object_record
+1608,W23,W23-S02,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,47550d95d0b6da15,public.phase_d_object_record
+1608,W23,W23-S03,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,4a2dff5bcb1f18bb,capability_request
+1608,W23,W23-S04,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,cff3b9356f8de910,public.phase_d_object_record
+1608,W23,W23-S06,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,4d7b7c67bc7b3e11,capability_request
+1608,W23,W23-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,400bc7c2bcd680bd,public.phase_c_workflow_step_run
+1608,W23,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,6 executed of 14,completed,2 handler / 3 actor,6
+1609,W24,W24-S01,VERSIONED_ARTIFACT,release_candidate,public.v_obj_release_candidate,OBJECT_VERSION_WRITE,(none),(none),none,fc62318612e89e46,public.phase_d_object_record
+1609,W24,W24-S07,VERSIONED_ARTIFACT,release_candidate,public.v_obj_release_candidate,OBJECT_VERSION_WRITE,(none),(none),none,51b21f2360482827,public.phase_d_object_record
+1609,W24,W24-S10,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,a58e8ee3d628b2a7,public.phase_c_workflow_step_run
+1609,W24,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,3 executed of 15,completed,0 handler / 7 actor,3
+1610,W25,W25-S01,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,2434b9d939f811cc,capability_request
+1610,W25,W25-S02,VERSIONED_ARTIFACT,intelligence_product,public.v_obj_intelligence_product,OBJECT_VERSION_WRITE,(none),(none),none,607bee95a438b7b6,public.phase_d_object_record
+1610,W25,W25-S03,VERSIONED_ARTIFACT,intelligence_product,public.v_obj_intelligence_product,OBJECT_VERSION_WRITE,(none),(none),none,5d84f164cf0a82d3,public.phase_d_object_record
+1610,W25,W25-S04,VERSIONED_ARTIFACT,intelligence_product,public.v_obj_intelligence_product,OBJECT_VERSION_WRITE,(none),(none),none,c5cbcac82fd9cced,public.phase_d_object_record
+1610,W25,W25-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,dffc64a339dd13ef,capability_request
+1610,W25,W25-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,4840db208b129dde,public.phase_c_workflow_step_run
+1610,W25,W25-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,8470666b23866add,public.phase_c_workflow_step_run
+1610,W25,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,7 executed of 10,completed,2 handler / 1 actor,7
+1611,W26,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
+1630,W27,W27-S01,VERSIONED_ARTIFACT,financial_close,public.v_obj_financial_close,OBJECT_VERSION_WRITE,(none),(none),none,1318564b410840d5,public.phase_d_object_record
+1630,W27,W27-S02,VERSIONED_ARTIFACT,financial_close,public.v_obj_financial_close,OBJECT_VERSION_WRITE,(none),(none),none,d8d217e67173e914,public.phase_d_object_record
+1630,W27,W27-S06,VERSIONED_ARTIFACT,financial_close,public.v_obj_financial_close,OBJECT_VERSION_WRITE,(none),(none),none,f58f07a64cadd2c9,public.phase_d_object_record
+1630,W27,W27-S08,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,f1b7ee44a97d7d62,capability_request
+1630,W27,W27-S10,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,dd3964a5a606ed73,public.phase_c_workflow_step_run
+1630,W27,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,5 executed of 15,completed,1 handler / 5 actor,5
+1632,W28,W28-S03,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,7af68a4a6d1956ae,capability_request
+1632,W28,W28-S04,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,7fd276ac26340588,capability_request
+1632,W28,W28-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,aa8e2680086da087,capability_request
+1632,W28,W28-S06,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,e0b5fd0587bb7b32,capability_request
+1632,W28,W28-S08,MEASUREMENT_RECORD,legal_risk_review,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,505ba69106bce6e8,measurement
+1632,W28,W28-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,5473ba1975074681,public.phase_c_workflow_step_run
+1632,W28,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 2,6 executed of 15,completed,4 handler / 3 actor,6
+1634,W29,W29-S01,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,12c7c120b787508f,public.os_incidents
+1634,W29,W29-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,bb3cbf4bc2d8c4b6,capability_request
+1634,W29,W29-S03,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,0a97459850e5fca9,public.os_incidents
+1634,W29,W29-S05,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,f230798e9f838dce,public.os_incidents
+1634,W29,W29-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,4f7ed23493bd6bc8,public.phase_c_workflow_step_run
+1634,W29,W29-S08,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,8402e495daadf4eb,public.os_incidents
+1634,W29,W29-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,a89c4fb7a48099c7,public.phase_c_workflow_step_run
+1634,W29,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 1 -> 0,7 executed of 13,completed,1 handler / 3 actor,7
+1635,W30,W30-S01,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,c1c302270adcab8f,public.phase_d_object_record
+1635,W30,W30-S04,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,688d14003b6fad81,public.phase_d_object_record
+1635,W30,W30-S05,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,1af2ad8b73810c83,public.phase_d_object_record
+1635,W30,W30-S08,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,682f5c27a4315cde,capability_request
+1635,W30,W30-S11,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,6c40a83a4a970e3c,public.phase_c_workflow_step_run
+1635,W30,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,5 executed of 14,completed,1 handler / 6 actor,5
+# ROLLBACK CONFIRMED, read from a new transaction at 2026-08-22 21:00:11.960446+00 on htdblwldjkcgjvmqkbeh
 # customers=0 inquiries=0 quotes=0 transactions=0
 # phase_d_effect_ledger=0 phase_d_object_record=0 phase_d_dispatch=0
 # net.http_request_queue=0 fn_phase_d_fixture_residue=0
