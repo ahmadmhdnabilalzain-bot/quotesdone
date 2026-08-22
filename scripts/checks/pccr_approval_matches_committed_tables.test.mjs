@@ -13,9 +13,24 @@
 // approval through fn_phase_c_freeze_amendment_approve, never an edit to the stored digest.
 //
 //   node scripts/checks/pccr_approval_matches_committed_tables.test.mjs
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { sql, PROJECT_REF } from '../phase_b/lib/db.mjs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+
+// THE SKIP IS DECLARED BEFORE THE DATABASE IS TOUCHED, because ../phase_b/lib/db.mjs THROWS on
+// import-time use without a token and a thrown import is a failed job rather than a skipped check.
+// The credentialed job in project-parity.yml treats this line as a failure, which is the point: a
+// skip is honest in the job that has no token and a defect in the job that has one.
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
+  || existsSync(join(homedir(), '.supabase', 'access-token'));
+if (!hasToken) {
+  console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
+  console.log('SKIP — no Supabase management token in this environment; this check reads the '
+    + 'approvals off production and cannot be answered from the repository alone.');
+  process.exit(0);
+}
+const { sql, PROJECT_REF } = await import('../phase_b/lib/db.mjs');
 
 const TABLES = 'docs/phase-d/PHASE_D_PCCR_AMENDMENT_TABLES.md';
 const digest = createHash('sha256').update(readFileSync(TABLES)).digest('hex');
