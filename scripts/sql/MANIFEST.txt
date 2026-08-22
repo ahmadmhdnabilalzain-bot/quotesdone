@@ -1617,3 +1617,7 @@ scripts/sql/phase_d_g13_a_count_that_could_not_say_whether_anything_was_sendable
 scripts/sql/phase_d_g14_sixteen_columns_a_handler_must_not_invent.sql
 scripts/sql/phase_d_g15_an_empty_string_is_not_the_absence_of_a_scope.sql
 scripts/sql/phase_d_g16_the_factory_read_the_catalogue_by_key_alone.sql
+scripts/sql/phase_d_g17_two_boards_said_no_and_they_were_written_for_this.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded
