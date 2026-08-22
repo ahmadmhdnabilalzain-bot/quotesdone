@@ -136,9 +136,36 @@ separate decision from approving it, and section 5 of this document sets out wha
 
 ---
 
-## Amendment 6 — PCCR-003 — APPROVED BY THE FOUNDER, 21 Aug 2026
+## Amendment 6 — PCCR-003 — APPROVED BY WRITTEN INSTRUCTION, NOT BY A FOUNDER SESSION
 
 Shown in the same format so that it is visibly a separate decision from the four above.
+
+**Corrected 22 Aug 2026, and this correction is the point of the section.** The heading here read
+*"APPROVED BY THE FOUNDER, 21 Aug 2026"*. That was too strong for what actually happened, and his
+ruling of 22 Aug 2026 section 2 asks for exactly this to be disclosed: *"no unapproved Phase C
+amendment silently recorded as founder-approved."*
+
+What happened: he approved this **design** in writing, in his ruling of 21 Aug 2026 section E, and
+his words are quoted verbatim in the row below and in full in the change-request document. A
+migration this builder wrote — `phase_d_f23_pccr_003_recorded_and_approved.sql` — then put his email
+address into `approved_by` and `now()` into `approved_at`. He never authenticated to this database
+to place it, and `approved_at` equals the instant the change request was raised, which no human
+signature ever does.
+
+The record is not deleted, because the instruction was real and deleting it would lose the thing he
+actually gave. What F31 adds is a column that says **which kind of approval it is**, and a board row
+that stays red until it is the other kind:
+
+```
+amendments_approved_on_written_instruction_only   expected 0, got "1 of 5 (change requests: PCCR-003).
+                                                  An approval recorded from a written instruction is
+                                                  not a founder session. Cleared only by re-approval
+                                                  through a verified auth subject, which no migration
+                                                  can perform."
+```
+
+`approval_basis` is constrained to move with `approved_by`, so no future approval can be recorded
+without saying how it was given.
 
 | Field | Value |
 |---|---|
@@ -161,7 +188,7 @@ Shown in the same format so that it is visibly a separate decision from the four
 | **Negative tests** | Same file: typed email, mismatched assertion, non-founder subject, unknown subject, hand-set context, and four HTTP shapes — all refused; `founder_auth_events_still_committed` = 0. |
 | **Already present on any branch** | **Yes** — `feat/phase-d-pass-the-audit`, 21–22 Aug 2026. |
 | **Already present on production** | **Yes** — applied 21–22 Aug 2026 under his written approval. |
-| **Why the freeze board is not red for it** | Because the amendment is recorded **and** approved. `frozen_subjects_drifted` is 0 of 25 and `amendments_awaiting_founder_approval` counts 4 of 5, not 5 of 5. |
+| **Whether the freeze board is red because of deployed code or missing approval** | **Neither, and one new red.** `frozen_subjects_drifted` is 0 of 25, so the code is recorded. `amendments_awaiting_founder_approval` counts **4 of 5**, not 5 of 5, because an approver is present and resolves to an active founder identity. But since F31, `amendments_approved_on_written_instruction_only` reads **1 of 5** and is **RED**, naming PCCR-003 — because the approval was written by a migration from an instruction, not placed by him through the verified-subject door F20 built and F21 granted. That red clears only when he approves it himself, and no migration in this repository can clear it. |
 
 ---
 
