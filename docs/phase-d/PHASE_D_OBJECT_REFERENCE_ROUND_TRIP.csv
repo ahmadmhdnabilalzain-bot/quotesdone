@@ -1,5 +1,5 @@
 # node scripts/phase_d/prove_object_reference_round_trip.mjs | project htdblwldjkcgjvmqkbeh | 56 of 56 frozen business objects create/resolve round-tripped through the canonical reference | attribution: one row per object in public.phase_d_object_reference_strategy. The scenario factory creates what it creates through the canonical write services inside a transaction that is aborted; each created object is resolved back through fn_phase_d_ref_resolve and the resolved object, canonical_identity and version are compared with the reference the writer returned. An object no stage creates is reported NOT_CREATED_BY_ANY_STAGE and is never counted as a pass
-# generated_at: 2026-08-22T22:55:10.174Z
+# generated_at: 2026-08-22T23:21:14.029Z
 object_id,storage_kind,canonical_identity_type,physical_relation,physical_pk_column,round_trip,same_object,same_identity,same_version
 ai_change,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_ai_change,business_key,ROUND_TRIPPED,true,true,true
 campaign_asset,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.content_drafts,id,ROUND_TRIPPED,true,true,true
@@ -58,4 +58,4 @@ ux_specification,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_ux_sp
 workflow_run,KERNEL_OWNED,KERNEL_ID,public.phase_c_workflow_run,run_id,ROUND_TRIPPED,true,true,true
 workflow_step_run,KERNEL_OWNED,KERNEL_ID,public.phase_c_workflow_step_run,step_run_id,ROUND_TRIPPED,true,true,true
 # REPLAY: the same scenario driven twice in one transaction produced 55 then 41 stages, 30 live object records and 0 duplicate (object_id, business_key) pairs
-# ROLLBACK CONFIRMED from a new transaction at 2026-08-22 22:55:09.701093+00 on htdblwldjkcgjvmqkbeh: customers=0 inquiries=0 quotes=0 transactions=0 phase_d_object_record=0 residue=0
+# ROLLBACK CONFIRMED from a new transaction at 2026-08-22 23:21:13.460118+00 on htdblwldjkcgjvmqkbeh: customers=0 inquiries=0 quotes=0 transactions=0 phase_d_object_record=0 residue=0
