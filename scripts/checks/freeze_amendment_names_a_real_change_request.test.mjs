@@ -175,11 +175,13 @@ do $probe$
 declare v_founder text; v_red_before int; v_red_after int; v_rows int;
         v_free text := 'not-run'; v_inactive text := 'not-run';
 begin
-  select count(*) into v_red_before from public.fn_phase_c_freeze_drift() where not ok;
+  select count(*) into v_red_before from public.fn_phase_c_freeze_drift()
+   where not ok and check_name = 'amendments_awaiting_founder_approval';
 
   begin
     update public.phase_c_freeze_amendment
-       set approved_by = 'zz-ci-not-the-founder', approved_at = now() where approved_by is null;
+       set approved_by = 'zz-ci-not-the-founder', approved_at = now(),
+           approval_basis = 'AUTHENTICATED_FOUNDER_SESSION' where approved_by is null;
     v_free := 'ACCEPTED';
   exception when others then
     v_free := coalesce((regexp_match(SQLERRM, '[(](pccr_[a-z_]+)[)]'))[1], 'refused:' || SQLSTATE);
@@ -188,7 +190,8 @@ begin
   -- A registered row that is NOT a person. active=false, and its own note says so.
   begin
     update public.phase_c_freeze_amendment
-       set approved_by = 'build-mode@quotesdone.local', approved_at = now() where approved_by is null;
+       set approved_by = 'build-mode@quotesdone.local', approved_at = now(),
+           approval_basis = 'AUTHENTICATED_FOUNDER_SESSION' where approved_by is null;
     v_inactive := 'ACCEPTED';
   exception when others then
     v_inactive := coalesce((regexp_match(SQLERRM, '[(](pccr_[a-z_]+)[)]'))[1], 'refused:' || SQLSTATE);
@@ -196,10 +199,11 @@ begin
 
   select fi.identity into v_founder from public.phase_c_founder_identity fi
    where fi.active and fi.kind = 'email' order by fi.identity limit 1;
-  update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now()
+  update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now(), approval_basis = 'AUTHENTICATED_FOUNDER_SESSION'
    where approved_by is null;
   get diagnostics v_rows = ROW_COUNT;
-  select count(*) into v_red_after from public.fn_phase_c_freeze_drift() where not ok;
+  select count(*) into v_red_after from public.fn_phase_c_freeze_drift()
+   where not ok and check_name = 'amendments_awaiting_founder_approval';
 
   raise exception 'APPROVER_PROBE %', jsonb_build_object(
     'free_text', v_free, 'inactive_identity', v_inactive,
@@ -294,7 +298,8 @@ test('the founder register is not writable by service_role, and an approval must
 do $probe$
 declare v_out jsonb := '{}'::jsonb; v_founder text; v_rows int; v_red int;
 begin
-  select count(*) into v_red from public.fn_phase_c_freeze_drift() where not ok;
+  select count(*) into v_red from public.fn_phase_c_freeze_drift()
+   where not ok and check_name = 'amendments_awaiting_founder_approval';
   v_out := v_out || jsonb_build_object('red_at_open', v_red);
 
   begin
@@ -309,14 +314,16 @@ begin
 
   select fi.identity into v_founder from public.phase_c_founder_identity fi
    where fi.active and fi.kind = 'email' order by fi.identity limit 1;
-  update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now()
+  update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now(), approval_basis = 'AUTHENTICATED_FOUNDER_SESSION'
    where approved_by is null;
   get diagnostics v_rows = ROW_COUNT;
-  select count(*) into v_red from public.fn_phase_c_freeze_drift() where not ok;
+  select count(*) into v_red from public.fn_phase_c_freeze_drift()
+   where not ok and check_name = 'amendments_awaiting_founder_approval';
   v_out := v_out || jsonb_build_object('approved_rows', v_rows, 'red_after_approval', v_red);
 
   delete from public.phase_c_founder_identity where identity = v_founder;
-  select count(*) into v_red from public.fn_phase_c_freeze_drift() where not ok;
+  select count(*) into v_red from public.fn_phase_c_freeze_drift()
+   where not ok and check_name = 'amendments_awaiting_founder_approval';
   v_out := v_out || jsonb_build_object('red_after_approver_deleted', v_red);
 
   raise exception 'REGISTER_PROBE %', v_out;
@@ -360,7 +367,7 @@ begin
   begin
     set local role service_role;
     update public.phase_c_freeze_amendment
-       set approved_by = (select fi.identity from public.phase_c_founder_identity fi
+       set approval_basis = 'AUTHENTICATED_FOUNDER_SESSION', approved_by = (select fi.identity from public.phase_c_founder_identity fi
                            where fi.active and fi.kind='email' order by fi.identity limit 1),
            approved_at = now()
      where approved_by is null;
@@ -393,11 +400,12 @@ begin
   reset role;
 
   update public.phase_c_freeze_amendment
-     set approved_by = (select fi.identity from public.phase_c_founder_identity fi
+     set approval_basis = 'AUTHENTICATED_FOUNDER_SESSION', approved_by = (select fi.identity from public.phase_c_founder_identity fi
                          where fi.active and fi.kind='email' order by fi.identity limit 1),
          approved_at = now()
    where approved_by is null;
-  select count(*) into v_red from public.fn_phase_c_freeze_drift() where not ok;
+  select count(*) into v_red from public.fn_phase_c_freeze_drift()
+   where not ok and check_name = 'amendments_awaiting_founder_approval';
   v_out := v_out || jsonb_build_object('owner_approval_red_after', v_red);
 
   raise exception 'GRANT_PROBE %', v_out;

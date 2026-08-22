@@ -869,3 +869,148 @@ same. Outbound HTTP queue **0**. Notifications since the window opened **19**, o
 Active cron jobs **23**, unchanged. No provider was called to produce any figure in this document.
 
 **PHASE_D_NOT_READY**
+
+---
+
+## F31–F41 — the founder's ruling of 22 Aug 2026, and the eleven defects it uncovered
+
+**The verdict is unchanged: PHASE_D_NOT_READY.** What changed is the number underneath it and, more
+usefully, what is now known about why the rest is still red.
+
+### The headline, measured the same way before and after
+
+Every figure below comes from driving all thirty frozen workflows through the kernel doors inside
+transactions that abort, and reading the counts off `public.phase_d_dispatch` rather than off the
+driver's own loop.
+
+| | at the start of this session | now |
+|---|---:|---:|
+| step-openings dispatched | 274 | **296** |
+| dispatches EXECUTED | 43 | **87** |
+| distinct steps that executed at least once | 43 | **86** (census probe; the committed deliverable run recorded 87 dispatches EXECUTED and 87 effects) |
+| workflows with at least one executed step | 15 of 30 | **15 of 30** |
+| workflows with **no** executed step | 15 | **15** |
+| capability steps reaching EXECUTED through the canonical fixture path | 0 | **5 of 5 probed** |
+| notifications written by the drive | 0 | **0** |
+| outbound HTTP requests written by the drive | 0 | **0** |
+| workflows CLOSED_THROUGH_CANONICAL_INPUTS (section 4) | not measured | **15 of 30** |
+| steps closed by CANONICAL_HANDLER_EFFECT | not measured | **18** |
+| steps closed by CANONICAL_ACTOR_INPUT | not measured | **170** |
+| CANONICAL_INTERNAL_REVIEW recorded | 0 | **20** |
+| CAPABILITY_FIXTURE_RESULT accepted | 0 | **19** |
+
+Executed dispatches doubled. The count of workflows that get anywhere did not move, and the reason
+is one defect, measured and named at the end of this section.
+
+### What was wrong, in the order it was found
+
+| | defect | how it was found |
+|---|---|---|
+| **F31** | `phase_c_freeze_amendment` could not distinguish an approval the founder placed through a verified session from one a migration wrote from his written instruction. Amendment 36 (PCCR-003) is the second kind. | reading the row: `approved_at` equals the instant the change request was raised |
+| **F32** | 0 of 257 output schemas declared `capability_result` and 0 allow additional properties, so all 21 capability steps failed their own output contract the moment a fixture was accepted | drove the five capability workflows and read `redispatch_refusal` |
+| **F33/F34** | `MEASUREMENT_HANDLER` read numerator, denominator, formula and window from `p_input`; `REVIEW_HANDLER` read verdict and reviewer from `p_input`. Nothing passes `p_input` on the kernel path — E32 correctly stopped that — so both produced outputs missing the keys their contracts require | the output-schema census: 8 steps need the measurement keys, 47 need the review keys |
+| **F35** | nothing answered the new `pd_review_not_recorded` refusal; the review had to travel through `fn_kernel_review_decide` and the step be dispatched again | the same shape F17 built for capability |
+| **F36** | `phase_d_capability_result.provider_mode` is one of (fixture, provider); `phase_d_effect_ledger.provider_mode` was one of (none, mock, disabled). Disjoint. A capability effect had no representable mode and could not be written at all | the five capability steps failed at `phase_d_effect_ledger_mode_ck` |
+| **F37** | a CUSTOMER- or SUPPLIER-scoped object being created for the first time has no row to read an owner from, so W10, W18 and W19 refused on their own first step every drive | three workflows with the same first-refusal code |
+| **F38** | **the driver treated every handler success as the end of the drive.** The handler hands its completed step to the frozen kernel, which closes the step and moves the run to `waiting_handoff`; the driver then called `fn_kernel_step_complete` on it, was correctly refused `k3_run_not_active`, and stopped | F36 made five steps execute and the estate-wide EXECUTED count went **down**, 45 to 36 |
+| **F39** | seven values named by hard rules — both artifact keys, both terms keys, both revision refs, the acceptance ref — were in no committed catalogue row | the rule contracts' `required_context`, compared against the catalogue |
+| **F40/F41** | a scenario stage that declares it contributes a value contributed **its own row id**: `artifact_sha256` resolved to `44208`. BR-036 refused it correctly, and a non-null wrong value locks out the catalogue fallback, so F39's computed digest was unreachable from the moment it landed | dumping the resolved context and its provenance for W08's first step |
+
+F38 is the one worth remembering. It is the third instance this estate has recorded of an instrument
+that gets worse as the system gets better, and it was invisible until a fix made the headline fall.
+
+### What is now proved end to end
+
+- **The capability boundary, 5 of 5 probed.** Request opened through
+  `fn_phase_d_capability_request_open`, committed fixture accepted through
+  `fn_phase_d_capability_result_accept` under a verified Phase D fixture context, step dispatched
+  again by the estate, handler executed, effect written with `provider_mode = 'fixture'`. Paid
+  inference was not called and `provider` remains refused by a named constraint.
+- **The internal review, through the kernel's own door.** `fn_kernel_review_decide` records the
+  verdict and stamps the reviewer; the handler reads both from those rows and can no longer be told
+  either by a caller.
+- **A workflow closing entirely on handler effects.** W11: 7 of 7 steps executed by the handler, 0
+  actor-driven, run state `completed`.
+
+### The one defect behind most of what is left — measured, not deduced
+
+Fifteen workflows still execute nothing: W03, W04, W06, W07, W08, W09, W12, W13, W14, W15, W16,
+W20, W22, W24, W26. Their rules refuse with the same sentence in different clothes —
+*"resolves to 0 … record(s) in `public.phase_d_object_record`"*.
+
+The scenario factory creates every parent those rules need, and in the right state. Measured inside
+one scenario:
+
+| object | key on `phase_d_scenario_record` | key on `phase_d_object_record` | rows matching |
+|---|---|---|---:|
+| customer_terms_acceptance | `44779` | `a0744275-4177-02ab-4a07-26e34a2a3294` | **0** |
+| supplier_safe_package | `44783` | `9d4ca492-0fec-dadf-8a62-f7cdc28931cb` | **0** |
+| quotation_revision | `44786` | `5c99d6e1-167a-a2e1-d0ed-bceb9133d030` | **0** |
+| ux_specification | `44789` | `1213f219-4a40-5784-3186-5ac7abb0193a` | **0** |
+
+**The same object is keyed two ways.** The scenario record carries the primary key of the row in the
+real business relation; the Phase D object store carries a derived uuid. The context resolver hands
+the rules the first, and the rules look it up in the second, so a package that IS approved reads as
+0 approved packages.
+
+It is not uniform, and that is why it is named here rather than guessed at. BR-012, BR-026 and
+BR-035 read `phase_d_object_record` and want the object-store key. BR-013 and BR-015 read
+`public.inquiries` and `public.leads` and want the relation key — their refusals name those tables.
+So `safe_package_ref`, `acceptance_ref` and the two revision refs need one shape and `inquiry_id`,
+`supplier_id` and `transaction_id` need the other, and deciding that per key is a pass over the rule
+bodies, not a one-line coalesce. Making the scenario record carry the object-store key would fix
+three rules and break two.
+
+**This is the next increment**, and it is the largest single unlock left: roughly ten of the fifteen
+zero-executed workflows have it as their first refusal.
+
+**The rule body, quoted, so the next session does not have to re-derive it.** `fn_phase_d_rule_check`,
+BR-012:
+
+```sql
+select count(*) into v_n from public.phase_d_object_record o
+ where o.object_id = 'supplier_safe_package' and o.state = 'approved' and o.superseded_by is null
+   and (o.business_key = v_txt or 'supplier_safe_package:' || o.business_key = v_txt);
+```
+
+`v_txt` is `p_context->>'safe_package_ref'`. So that context key must carry the OBJECT-STORE key, in
+either the bare or the `<object>:`-prefixed form — and the factory contributes the relation row id.
+BR-026 and BR-035 have the same shape against `customer_terms_acceptance` and the
+`IMMUTABLE_REVISION` family. BR-013 and BR-015 do not: their refusals name `public.inquiries` and
+`public.leads`, and they want the relation key they already get.
+
+Three routes were considered and none is a one-liner, which is why this is a named increment rather
+than a guess:
+
+- **(a) contribute the object-store key for those four refs only.** Correct today, and a per-key
+  list that goes stale the moment a rule changes which store it reads.
+- **(b) key `phase_d_object_record` by the relation row id.** One shape everywhere — and it
+  destroys the replay determinism the md5-derived key exists for, because a relation id is new on
+  every drive and a replay would then create a second record instead of colliding with itself.
+- **(c) give the object record an alias column carrying the relation id and widen the lookups.**
+  General, and it edits rule bodies, which is the one thing that must not be done casually.
+
+The choice belongs to whoever has the budget to prove it by execution rather than by argument.
+
+### Still open after this session, itemised
+
+- the key-shape reconciliation above — 15 workflows
+- `pd_evidence_absent` on W03 and W26 (gate evidence), `pd_gate_refused` on W05
+- `pd_effect_payload_incomplete` (6), `pd_object_payload_unmapped` (3),
+  `pd_effect_check_violated` (2) — write-map and NOT NULL work on real business relations
+- BR-033 and `reveal_authorized` versus the `TRANSACTION_RECORD` state family (section 8C) — untouched
+- section 9's failure, cancellation and replay modes over all 30 — not re-measured this session
+- section 10's D6, D7, D8, D9, D11, D12 — not advanced this session
+- section 11's committed transaction-local evidence manifests — not built
+
+### Cost and external effect
+
+`ai_cost_log` 3,507 rows, unchanged, latest row 2026-08-15. No paid provider was called to produce
+any figure in this document. Active cron jobs 23 to 23. Every probe ran in a transaction that ended
+in `raise exception`, and `customers`, `inquiries`, `quotes` and `transactions` read 0/0/0/0 before
+and after.
+
+**PHASE_D_NOT_READY**
+[INFO] Recording command outcome: cat
+
+[OK] Command outcome recorded

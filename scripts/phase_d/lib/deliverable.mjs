@@ -84,4 +84,14 @@ export const BUILDERS = [
   { script: 'scripts/phase_d/build_frontend_api_call_graph.mjs', file: 'PHASE_D_FRONTEND_API_CALL_GRAPH.csv', drives: false },
   { script: 'scripts/phase_d/build_step_case_result.mjs', file: 'PHASE_D_STEP_CASE_RESULT.csv', drives: false },
   { script: 'scripts/phase_d/build_injected_defect_result.mjs', file: 'PHASE_D_INJECTED_DEFECT_RESULT.csv', drives: true },
+  // DELIBERATELY NOT LISTED: scripts/phase_d/build_transaction_local_evidence.mjs.
+  //
+  // Everything in this array is a DERIVATION — a statement about the estate that must come out the
+  // same on every rebuild, which is why the check that regenerates them compares byte for byte.
+  // PHASE_D_TRANSACTION_LOCAL_EVIDENCE.csv is not a derivation. It is the record of ONE aborted
+  // transaction, carrying that transaction's own fixture-run id and the digests it produced, and
+  // re-running it does not reproduce that evidence — it produces different evidence about a
+  // different run. Listing it here would force it to either drop the run identity that makes it
+  // checkable, or fail its own reproduction test forever. It is regenerated deliberately, and the
+  // run it describes is named in the file.
 ];
