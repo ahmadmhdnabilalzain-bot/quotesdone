@@ -102,10 +102,10 @@ const REVOKED = [
 
 // Measured on production 20 Aug 2026 immediately after E4, with has_function_privilege.
 const ANON_CEILING = 0;
-const AUTHENTICATED_CEILING = 2;
+const AUTHENTICATED_CEILING = 4;
 
-// The only two SECURITY DEFINER routines in public that a signed-in client role may execute, and the
-// reason each one is here. Pinned by name: a bare count of 2 would stay green if one of these closed
+// The only SECURITY DEFINER routines in public that a signed-in client role may execute, and the
+// reason each one is here. Pinned by name: a bare count would stay green if one of these closed
 // while some unrelated routine opened.
 const AUTHENTICATED_BY_DESIGN = {
   fn_customer_document_refs:
@@ -113,6 +113,28 @@ const AUTHENTICATED_BY_DESIGN = {
     + ' policy documents.documents_customer_select, which is evaluated as the querying role',
   fn_customer_documents:
     'called with the customer\'s own JWT at customer_documents/index.ts:125, :167 and :197',
+  // PCCR-003, 21 Aug 2026 — reviewed the way this file asks: who calls it, with which client, and
+  // is it named in an RLS policy the querying role evaluates?
+  //
+  // WHO: os_api, at the founder_command_clarify and founder_command_control actions.
+  // WITH WHICH CLIENT: asCaller(authHeader) — the anon key plus the caller's OWN bearer token,
+  // which os_api has already verified with admin.auth.getUser. That is the whole point:
+  // fn_phase_c_require_founder now resolves the founder from auth.uid(), and auth.uid() is null on
+  // a service_role connection, so the service-role client can no longer reach these routines at all.
+  // NAMED IN AN RLS POLICY: no.
+  //
+  // The grant is what lets the FOUNDER use them; the routine is what stops everyone else. A signed-in
+  // customer or supplier calling either one gets 28000 — "not the founder: no verified auth subject
+  // on this call" — and so does anyone holding service_role. Measured in
+  // docs/phase-d/PHASE_D_FOUNDER_AUTHENTICATION_RESULT.csv. os_api also refuses the static x-os-key
+  // bypass on both actions, so the grant cannot be reached by the preview key either.
+  fn_founder_command_clarify:
+    'called with the founder\'s own verified JWT from os_api (asCaller); fn_phase_c_require_founder'
+    + ' inside it resolves the founder from auth.uid(), which service_role does not have, so this'
+    + ' grant narrows the caller set rather than widening it (PCCR-003)',
+  fn_founder_command_control:
+    'called with the founder\'s own verified JWT from os_api (asCaller); same routine, same reason'
+    + ' (PCCR-003)',
 };
 
 let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [], clientWritable = [];

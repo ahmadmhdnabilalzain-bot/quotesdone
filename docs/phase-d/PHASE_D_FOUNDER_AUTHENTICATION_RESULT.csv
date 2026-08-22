@@ -1,0 +1,19 @@
+# node scripts/phase_d/prove_founder_authentication.mjs | project htdblwldjkcgjvmqkbeh | 16 of 16 founder-authentication cases and board rows, each measured by execution | attribution: every verdict is what public.fn_phase_c_require_founder or public.fn_phase_c_founder_subject_bind actually returned or raised, inside a transaction ending in raise exception
+# generated_at: 2026-08-21T20:13:26.168Z
+case,result
+"typed_email","REFUSED:not the founder: no verified auth subject on this call. The founder is resolved from auth."
+"founder_subject","ACCEPTED:management@quotesdone.com"
+"mismatched_assertion","REFUSED:not the founder: the call asserts identity someone.else@example.invalid and the verified a"
+"non_founder_subject","REFUSED:not the founder: auth subject 4b8b404e-ecde-477d-bb25-551d8c37d2f7 does not resolve to an "
+"unknown_subject","REFUSED:not the founder: auth subject 00000000-0000-0000-0000-000000000000 does not resolve to an "
+"hand_set_context","REFUSED:not the founder: no verified auth subject on this call. The founder is resolved from auth."
+"refund_path_without_a_subject","REFUSED:not the founder: no verified auth subject on this call. The "
+"auth_events_written_by_this_probe","1"
+"http_no_authorization_header","HTTP 401 {""error"":""unauthorized"",""hint"":"" ign in — the Command Center require  a bearer token""}"
+"http_garbage_bearer_token","HTTP 401 {""error"":""unauthorized""}"
+"http_anon_key_as_a_bearer_token","HTTP 401 {""error"":""unauthorized""}"
+"http_forged_jwt_naming_the_founder_subject","HTTP 401 {""error"":""unauthorized""}"
+"board:enabled_founder_identities_without_an_auth_subject","0 (expected 0) ok=true"
+"board:require_founder_still_resolves_a_caller_supplied_string","0 (expected 0) ok=true"
+"board:founder_bind_executable_by_anon_or_authenticated","0 (expected 0) ok=true"
+"board:founder_auth_events_still_committed","0 (expected 0) ok=true"

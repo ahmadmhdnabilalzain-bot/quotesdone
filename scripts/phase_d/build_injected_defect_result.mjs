@@ -40,7 +40,12 @@ const RUN = `
 do $emit$
 declare v_out text := ''; r record;
 begin
-  perform set_config('app.phase_d_test_context','on', true);
+  -- F01. THIS SET A GUC ANY CALLER COULD SET. app.phase_d_test_context = 'on' was a string the
+  -- caller supplied about itself, which is the shape E38 and E39 removed twice elsewhere. The
+  -- context is now an hmac over txid_current(), keyed by a secret no role can SELECT, minted only
+  -- against an approved audited operation.
+  perform public.fn_phase_d_test_context_open(jsonb_build_object(
+    'operation_key','pdop_deliverable_build', 'label','injected-defect-deliverable'));
   for r in select * from public.fn_phase_d_injected_defect_report() where category = '__CAT__' order by defect_id loop
     -- BOUNDED, AND THE BOUND IS VISIBLE. The transport truncates a message at 2000 characters, and
     -- D44 lengthened one PD-PRIV observed string enough to push the PRIVACY category over it -- the

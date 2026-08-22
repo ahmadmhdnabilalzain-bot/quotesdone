@@ -57,7 +57,20 @@ const COMMITTED = 'docs/phase-d';
 // difference with both sides printed, because "these files differ" is not something anyone can act
 // on and "line 41 column enforcement_status: committed ENFORCED, rebuilt OUTSTANDING" is.
 // ---------------------------------------------------------------------------------------------
-const stripVolatile = (text) => text.split('\n').filter((l) => !VOLATILE_LINE.test(l));
+// A SEQUENCE VALUE INSIDE A REFUSAL MESSAGE IS AS VOLATILE AS THE TIMESTAMP, AND NO MORE MEANINGFUL.
+// 20 Aug 2026: once E21 made fn_phase_d_drive_workflow resolve real inputs, W01 got far enough to be
+// refused at a handoff, and its refusal_reason carries the handoff_run_id — 9382 on one run, 9448 on
+// the next. Two drives that behave identically then differ by six characters, and a reproduction
+// check that can never pass is a check somebody switches off.
+//
+// The normalisation is deliberately NARROW: only a run of digits immediately after one of the four
+// id words this estate uses in refusal prose, and only there. Every other digit on the line — the
+// step counts, the effect counts, the fixture-stage count, the workflow numbers — still has to match
+// exactly, which is what the corrupted-row positive control below proves.
+const VOLATILE_ID = /\b(handoff run|workflow run|step run|task) (\d+)\b/g;
+const stripVolatile = (text) => text.split('\n')
+  .filter((l) => !VOLATILE_LINE.test(l))
+  .map((l) => l.replace(VOLATILE_ID, '$1 <id>'));
 
 export function diffDeliverable(committed, rebuilt) {
   const a = stripVolatile(committed);

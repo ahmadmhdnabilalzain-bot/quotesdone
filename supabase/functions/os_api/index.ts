@@ -1,6 +1,23 @@
 // os_api — backend for QuotesDone OS. JWT-gated; owner/admin only (or a read-only x-os-key preview bypass). + audit trail. + secretary console passthrough.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+// PCCR-003, 21 Aug 2026. THE FOUNDER IS A VERIFIED AUTH SUBJECT, NOT A TYPED STRING.
+//
+// public.fn_phase_c_require_founder used to resolve a caller-supplied email against the founder
+// register, so `select fn_phase_c_require_founder('management@quotesdone.com')` returned PASSED_AS
+// from service_role -- and that routine gates fn_kernel_cancel, fn_founder_command_clarify,
+// fn_founder_command_control and the refund decision guard. It now resolves the founder from a
+// VERIFIED auth subject and from nothing else.
+//
+// `admin` is service_role, so auth.uid() is null on every call it makes. asCaller() builds a
+// client that carries the bearer token this request already verified with admin.auth.getUser, so
+// PostgREST hands the database the subject IT verified against the project's JWT secret. The
+// caller-supplied email travels on as an ASSERTION the routine checks against that subject; it is
+// no longer what decides.
+const ANON = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY') || '';
+const asCaller = (authHeader: string) =>
+  createClient(Deno.env.get('SUPABASE_URL')!, ANON,
+    { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } });
 const BASE = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-os-key', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } });
 const esc = (s: string) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } as any)[c]);
@@ -486,7 +503,9 @@ Deno.serve(async (req) => {
       if (!answer) return J({ error: 'answer_required', hint: 'Say what you want and it will route.' }, 400);
       // The actor travels with the call. Until kernel K0 these two routines took no identity at
       // all, so the founder_gated class was justified by a check that never ran.
-      const { data, error } = await admin.rpc('fn_founder_command_clarify', {
+      // PCCR-003: the caller's own verified token, so auth.uid() resolves inside the database.
+      if (viaBypass) return J({ error: 'forbidden', hint: 'a founder action needs a founder session, not a static key' }, 403);
+      const { data, error } = await asCaller(authHeader).rpc('fn_founder_command_clarify', {
         p_command_id: Number(body?.command_id || 0), p_answer: answer, p_actor: email,
       });
       if (error) return J({ error: error.message }, 500);
@@ -501,7 +520,9 @@ Deno.serve(async (req) => {
       return J({ ok: true, user: email, data });
     }
     if (action === 'founder_command_control') {
-      const { data, error } = await admin.rpc('fn_founder_command_control', {
+      // PCCR-003: the caller's own verified token, so auth.uid() resolves inside the database.
+      if (viaBypass) return J({ error: 'forbidden', hint: 'a founder action needs a founder session, not a static key' }, 403);
+      const { data, error } = await asCaller(authHeader).rpc('fn_founder_command_control', {
         p_command_id: Number(body?.command_id || 0),
         p_op: String(body?.op || ''), p_target: String(body?.target || ''),
         p_value: body?.value != null ? String(body.value) : null,

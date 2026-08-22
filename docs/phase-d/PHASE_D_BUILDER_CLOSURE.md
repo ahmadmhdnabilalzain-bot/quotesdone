@@ -2,7 +2,69 @@
 
 **PHASE_D_NOT_READY**
 
-## What that verdict rests on — every figure below re-measured 2026-08-20
+## What changed in the 2026-08-20 21:00–22:15 UTC session, and which figures it retired
+
+E30–E35 answered the 2026-08-20 independent acceptance. Three of them retired numbers that appear
+elsewhere in this document, so they are named here before anything below is read:
+
+| | |
+|---|---|
+| **E30, E31** | 17 of the 30 rules that declare a `required_context` returned `ENFORCED_PASS` when fed the literal `'banana'` for every key they declare. E29 had closed four; these close the rest. Each reference now resolves against a relation that already exists here — `legal_documents` for a terms digest, `mep_evidence_weight` for an evidence rank, `metric_definition` for a business outcome, `org_action_executor` for an executable rollback, `founder_command` and `employee_authority` for an exception authority. **17 passing → 1**, and the one is BR-011, whose pass on `'banana'` is a true pass because it is a content test and that string carries no customer identity. |
+| **E32** | The deliverable driver never called `fn_kernel_step_complete`. It is now the kernel doors and nothing else. |
+| **E33** | `fn_phase_d_handoff_accept` refused the handoff into every step whose handler executes. Fixed; the executed count moved **2 → 3**, the first time it has moved. |
+| **E34** | `amendments_awaiting_founder_approval` had `true` written into its `ok` column. Now a real red, 4 of 4. |
+| **E36** | E34’s row then said *"Only he can clear this row"* and **nothing enforced it** — the acceptance auditor cleared all four with an arbitrary string and turned the whole freeze board green. `approved_by` was free text: seven constraints on the table and not one about who the approver is. A trigger now requires an ACTIVE identity in `public.phase_c_founder_identity`, and CI drives it three ways. |
+| **E35** | The money rule read `"AED 999999"` and `"1e6"` as text rather than as amounts. Both now refuse; `price_code` remains a deliberately named hole. |
+
+**Several rules now refuse everything, and that is correct.** BR-012, BR-026, BR-032, BR-035 and
+BR-036 resolve against relations holding zero rows — no acceptance record, no approved package, no
+artifact review, no provider event. A rule that can only be satisfied by a record this estate does
+not yet have SHOULD refuse; that is the difference between "no certificate before an acceptance
+record" and "no certificate before somebody typed a word".
+
+### The one refusal that is a phase boundary, not a defect
+
+`pd_effect_payload_incomplete` is the deepest refusal in the drive — the point where a step has
+passed every rule and gate, the dispatch has derived a business key and an owner, and the write to
+the object's canonical relation still fails. W21-S01 is the live example:
+`null value in column "kind" of relation "opportunity" violates not-null constraint`.
+
+The question the acceptance asks is whether a deterministic handler can derive business content
+while the reasoning capability is held. **It cannot, and the boundary is per-object rather than
+global.** Measured 2026-08-20 21:00–22:15 UTC over all 56 registered business objects — for each one's canonical
+relation, the NOT NULL columns with no default that are not the identity, owner, state or
+timestamp columns Phase D supplies:
+
+| | |
+|---|---|
+| objects whose relation needs nothing beyond identity, owner and state | **38** — mostly the `v_obj_*` views over Phase D's own store |
+| objects whose relation demands business CONTENT no identity can supply | **18** |
+
+The 18, and what each one demands:
+
+| what the column wants | objects |
+|---|---|
+| **words a person or a model writes** | `opportunity.kind, title` · `os_incidents.title` · `org_tasks.title` · `company_goals.goal, metric` · `department_objective.objective` · `content_drafts.body` · `quote_comparisons.analysis` · `leads.company_name` |
+| **a commercial figure** | `quotes.quote_amount` |
+| **a classification of a real case** | `refunds.reason_code, requested_by` · `documents.bucket, path, kind` · `inquiry_answer.group_id, field_id, scope, precedence, source_kind` |
+| **a reference to a row that must already exist** | `reveal_invoices.transaction_id` |
+| **kernel-owned structure, written by the kernel and not by a handler** | `phase_c_workflow_run` · `phase_c_workflow_step_run` · `phase_c_handoff_run` · `review_chain.subject_type, subject_id, author_agent, stage` |
+
+A deterministic handler can supply identity, owner, state and structure. It cannot supply the
+words, and it must not invent them: a title, a goal statement, an opportunity kind or a quote
+amount conjured by a handler would be exactly the fabricated business effect the zero-residue rule
+and the whole of this phase exist to prevent. **This is a Phase E boundary and it is reported as
+one, not engineered around.** The refusal is already classified — E26 gave `23502` the name
+`pd_effect_payload_incomplete` precisely so it would stop reading as a dispatch bug.
+
+Two things follow, and both are stated rather than left to be inferred. First, lifting the provider
+hold alone would not close it for the 18: a reasoning capability supplies the words, so those steps
+become executable, while the 38 are already unblocked by content and are held by the absence of a
+committed business arrival instead. Second, of the 30 kernel-path runs the handler declines first
+on a business rule in 25 and on this payload boundary in 1 — so the content boundary is real but it
+is not currently what holds the estate at 3 of 257.
+
+## What that verdict rests on — figures below re-measured 2026-08-20, and where marked, in the 21:00–22:15 UTC session that followed the R4 acceptance
 
 The body of this document reads as a series of DONEs. Most of them are now true. The verdict is
 still NOT_READY, and this section is what reconciles the two: it names what is built and measured,
@@ -16,8 +78,11 @@ All **54 of 54** business rules carry a live enforcement mechanism — `fn_phase
 predicated. **159** handoff contracts, each carrying a packet, acceptance criteria, an SLA target, a
 rejection code and a return owner. **1,799** per-step cases recorded, **0** failing. **347** events
 reconciled. **75** injected defects driven. All **15** required deliverables tracked by git under
-`docs/phase-d/`. Phase A drift 0, Phase B drift 0, `fn_phase_c_freeze_drift()` 0 red,
-`fn_phase_c_invariants()` 0 red.
+`docs/phase-d/`. Phase A drift 0, Phase B drift 0, `fn_phase_c_invariants()` 0 red.
+`fn_phase_c_freeze_drift()` is **1 red** as of 2026-08-20 21:00–22:15 UTC and that red is deliberate: E34 replaced
+the literal `true` in `amendments_awaiting_founder_approval`, which read "4 of 4" and was green and
+could never have been anything else. Four amendments to frozen Phase C contracts await the
+founder’s signature on PCCR-001 and PCCR-002 §11. Nothing in this repository may clear it, and after E36 nothing outside it can either without resolving to a registered founder identity — the row said that before it was true.
 
 **Open, and measured on production today.**
 
@@ -63,12 +128,58 @@ reconciled. **75** injected defects driven. All **15** required deliverables tra
   on each, 2026-08-20) since the 16 Aug funnel purge, and `phase_d_handoff_acceptance` and
   `phase_d_external_attempt` are both **0 rows**. Everything below is evidenced by driven fixtures,
   never by a real arrival.
-- **14 of 30 workflows do not close.** Driving all 30 in `execution_context` `production`,
-  **16** reach `DETERMINISTIC_CLOSURE` and **14** stop at `pd_capability_unavailable`: the capability
-  boundary at `fn_phase_d_handler_execute` section 3 refuses the **21** steps whose
-  `capability_dependency` is `REASONING` while the founder's hold on paid inference stands.
-  16 of 30 with that reason is the honest figure. 30 of 30 is reachable only in test mode and is not
-  a result.
+- **NO WORKFLOW CLOSES DETERMINISTICALLY, AND THE FIGURE THAT USED TO STAND HERE MEASURED A
+  DIFFERENT PATH.** This bullet read "16 reach `DETERMINISTIC_CLOSURE`, 14 stop at
+  `pd_capability_unavailable`". The 2026-08-20 independent acceptance found why that number was
+  never a Phase D claim, and E32 confirmed it by reading every routine whose body names
+  `fn_phase_d_dispatch_step`: the dispatch is wired into `fn_kernel_workflow_start` and
+  `fn_kernel_open_step`, and into no other kernel routine. `fn_phase_d_drive_workflow` called
+  `fn_phase_d_handler_execute` **directly**, an entry point that accepts `context`, `gate_evidence`,
+  `business_key`, `owner_ref` and `effect_payload` from its caller — and the harness supplied them
+  from `fn_phase_d_fixture_context`, which its own comment describes as inventing "a typed value for
+  every key the step DECLARES it needs". So the closure figure measured how far a harness could push
+  the kernel while handing the rules placeholders.
+
+  **Re-measured 2026-08-20 21:00–22:15 UTC through the kernel doors only** — `fn_kernel_workflow_start`,
+  `fn_kernel_review_decide`, `fn_kernel_step_complete` and the D9 path into
+  `fn_kernel_handoff_accept`, with no context supplied because the door does not take one:
+
+  | | |
+  |---|---|
+  | step-openings dispatched to the deterministic handler | **257 of 257** |
+  | dispatches the handler completed unaided | **3** — W01 ×2, W21 ×1 |
+  | `phase_d_effect_ledger` rows produced | **3** |
+  | handoffs accepted through the D9 contract | **159** |
+  | steps an actor drove through `fn_kernel_step_complete` | **254 of 257** |
+  | runs reaching a state the frozen registry calls terminal | **30 of 30**, all `completed` |
+  | workflows reaching `ACTOR_DRIVEN_TO_TERMINAL` (every step driven) | **28 of 30** |
+  | workflows reaching **`HANDLER_CLOSED_UNAIDED`** | **0 of 30** |
+
+  **Two different figures, and both belong here.** An actor can drive every one of the 30 workflows
+  to a terminal state through the kernel doors — that is what 30 of 30 `completed` means, and it is
+  a real property of the estate. The deterministic handler closes none of them by itself. The
+  number Phase D's Definition of Done asks for is the second one, and it is **0 of 30**.
+
+  The **3** is the first movement in the executed count since the estate began measuring it, and it
+  came from E33 rather than from anything getting easier: `fn_phase_d_handoff_accept` asserted
+  exactly one open task on the receiving step, and a step whose handler EXECUTES has its task closed
+  in the same statement that opened it. W01-S05 and W21-S08 are the only two steps whose handler
+  executes and they were the only two whose incoming handoff was refused — a guard that fired
+  precisely when the system worked.
+
+  **A correction inside this correction, because it nearly went out as a number.** The first
+  kernel-path build of this deliverable reported `state_is_terminal` false on all 30 rows and
+  therefore `0 of 30` terminal. That was a defect in E32, not a fact about the estate:
+  `phase_b_workflow.allowed_terminal_states` is TEXT holding `'completed; cancelled; superseded'`,
+  and `v_run_state = any((select allowed_terminal_states ...))` is parsed by Postgres as the
+  SUBQUERY form of ANY, so it compared the run state against the whole semicolon-separated string
+  as a single value and was false for every run ever driven. It was caught by the deliverable's own
+  reproduction test, not by reading the code. 16 of 30 measured a path an actor cannot take; 0 of
+  30 terminal measured a broken predicate; **30 of 30 terminal and 0 of 30 unaided is what the
+  estate actually does.**
+
+  Where the handler first declines, over the 30 runs: **25** `pd_rule_refused`, **3**
+  `pd_evidence_absent`, **1** `pd_input_unresolved`, **1** `pd_effect_payload_incomplete`.
 - **Only 40 of the 54 rules have a predicate that can actually refuse.** From
   `select * from public.fn_phase_d_rule_can_refuse()`: **40** produce `ENFORCED_FAIL` on at least one
   of the three probe contexts; **11** are `DELEGATED_TO_KERNEL_GUARD` — the kernel decides and this
@@ -292,8 +403,11 @@ injected defects refused, and fifteen committed deliverables.
 Re-measured 2026-08-20 that is no longer true** — the itemised table near the end of this file
 carries what each wave actually measures now. What remains true is the reason for the verdict:
 several of those clauses are met by *mechanism* and not yet by *effect*. 100% of the 75 injected
-defects are not refused (35 are), 30/30 deterministic closure is not reached (16 is, under the
-capability hold), and not one step has ever produced an effect from a committed business arrival.
+defects are not refused (35 are), 30/30 deterministic closure is not reached (**0 is**, driven
+through the kernel doors on 2026-08-20 21:00–22:15 UTC — the 16 that used to stand here measured a driver that
+never called `fn_kernel_step_complete`; an actor CAN drive all 30 to `completed`, but the handler
+closes none of them unaided, and the second figure is the one the Definition of Done asks for), and not one step has ever produced an effect from a
+committed business arrival.
 Declaring readiness on that basis would be the exact defect this phase exists to remove, so the
 verdict is NOT_READY and the remainder is itemised below rather than summarised away.
 
@@ -310,7 +424,7 @@ against the repository:
 | founder approval | `PCA-2026-08-18-001`, approved 2026-08-18 11:45 UTC |
 | checksummed | 3 phase fingerprints + 5 repository sha256 in `phase_c_founder_approval` |
 | tagged | `phase-c-founder-approved-2026-08-18` |
-| frozen | 25 subjects in `phase_c_frozen_subject`; `fn_phase_c_freeze_drift()` 0 red |
+| frozen | 25 subjects in `phase_c_frozen_subject`; `fn_phase_c_freeze_drift()` **1 red since E34** — `amendments_awaiting_founder_approval` 4 of 4, awaiting the founder’s signature; `frozen_subjects_drifted` 0 of 25 |
 | Phase A drift | **0** |
 | Phase B drift | **0** |
 
@@ -585,7 +699,7 @@ checked.
 |---|---|
 | Phase A baseline drift | **0** |
 | Phase B baseline drift | **0** |
-| `fn_phase_c_freeze_drift()` | **0 red** |
+| `fn_phase_c_freeze_drift()` | **1 red** — E34 gave `amendments_awaiting_founder_approval` a computed `ok` instead of the literal `true`; 4 of 4 await the founder. Every other row green, `frozen_subjects_drifted` 0 of 25. |
 | `fn_phase_c_invariants()` | **0 red** |
 | `fn_phase_d_handler_state()` | **7/7 green** — re-measured 2026-08-20; was 6/6 with the seventh red |
 | `fn_phase_d_rule_state()` | **4/4 green** — re-measured 2026-08-20; was 3/4, the fourth red by disclosure |
@@ -621,7 +735,7 @@ not mean the wave's Definition of Done clause is met, and where it is not the ce
 | **D9** | capability boundary | **partial** — 21 steps classified, typed request and fail-closed behaviour implemented and enforced in the executor; no mock fixture library |
 | **D11** | 257 × 7 = 1,799 per-step tests; 30 × 4 workflow tests; the 75-row injected defect catalogue | **PARTIAL — re-measured 2026-08-20.** `phase_d_step_case_result` holds **1,799 rows** — 257 steps × 7 case kinds — with **1,799 passed, 0 failed**. `PHASE_D_INJECTED_DEFECT_RESULT.csv` (regenerated 2026-08-20T01:02:06Z) carries all **75** catalogued defects: **35 REFUSED_AS_REQUIRED, 38 NOT_RUN** each with a named blocker, **2 NOT_DISCRIMINATED**. The Definition of Done asks for 100% refused, so **40 of 75 are not yet evidence of anything**. |
 | **D12** | 347 events reconciled with real producer/consumer/outbox/trace | **PARTIAL — re-measured 2026-08-20.** `phase_d_event_reconciliation` holds **347 rows**, all carrying an outbox relation and a trace. Producer resolves for **286**, consumer for **346**; structurally **287 CONNECTED, 60 DEFERRED_RUNTIME_IMPLEMENTATION**. At runtime **333 of 347 have NEVER been observed** and only **14** were seen in the outbox — reconciled on paper, not in flight. |
-| **D13** | 30/30 deterministic workflow closure | **16 of 30 — re-measured 2026-08-20**, and the reason is not a defect. `PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv` (regenerated 2026-08-20T01:01:54Z) drives all 30 through the executor and the kernel in aborted transactions, in `execution_context` **`production`**. **16 reach `DETERMINISTIC_CLOSURE`; 14 stop at `pd_capability_unavailable`** — the capability boundary at `fn_phase_d_handler_execute` section 3 refuses the **21** steps whose `capability_dependency` is `REASONING` while the founder's hold on paid inference stands. All 30 leave **0 open handoffs, 0 notifications and 0 outbound HTTP requests**. **16 of 30 with that reason is the honest figure; 30 of 30 is reachable only in test mode and must not be quoted as the result.** |
+| **D13** | 30/30 deterministic workflow closure | **0 of 30 — re-measured 2026-08-20 21:00–22:15 UTC through the kernel doors only**, and the 16 that stood here measured a different path. `PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv` is now produced by `fn_kernel_workflow_start`, `fn_kernel_review_decide`, `fn_kernel_step_complete` and the D9 path into `fn_kernel_handoff_accept`, in `execution_context` **`production`**, in aborted transactions. The previous driver called `fn_phase_d_handler_execute` **directly** and fed its rules `fn_phase_d_fixture_context`, which invents a typed value for every declared key; once E30 and E31 made thirteen rules resolve their references, that same driver went from 139 business effects to **0** and every workflow stopped at its first step. Through the kernel: **257 of 257** step-openings dispatched, **3** completed by the handler unaided (W01 x2, W21 x1), **3** effect-ledger rows, **159** handoffs accepted, **254 of 257** steps driven by an actor, **30 of 30** runs reaching `completed`, **0** reaching `HANDLER_CLOSED_UNAIDED`. All 30 leave **0 open handoffs, 0 notifications and 0 outbound HTTP requests**. **0 of 30 closed by the handler unaided is the honest figure for D13**; separately, **30 of 30 runs reach `completed`** when an actor drives them through the kernel, and **28 of 30** have every step driven. 16 of 30 measured a path an actor cannot take. |
 | **D14** | 15 required deliverables | **15 of 15** tracked (measured 2026-08-20 with git ls-files; the 5 was the state at D14 and is kept in the left column) |
 
 **Written:** `PHASE_D_CURRENT_CODE_HANDLER_CROSSWALK.csv`, `PHASE_D_RULE_GATE_RESULT.csv`,
@@ -650,10 +764,108 @@ was proved in a transaction that was then aborted, against an estate holding 0 i
 `phase_d_handoff_acceptance` and `phase_d_external_attempt` are both empty, and why 333 of 347
 events have never been observed. No amount of further registry work moves any of those numbers.
 
-The second item is the capability hold: 14 of 30 workflows cannot close and 21 steps cannot run
-while paid inference is held. That is a founder decision, not an engineering gap, and it caps
-D13 at 16 of 30 until he lifts it.
+The second item is the capability hold: 21 steps cannot run while paid inference is held, and that
+is a founder decision rather than an engineering gap. It is no longer what caps D13. Driven through
+the kernel doors on 2026-08-20 21:00–22:15 UTC, D13 is **0 of 30**, and the handler declines first on a business
+rule in 25 of the 30 runs — before any capability boundary is reached. Lifting the provider hold
+would not move D13 on its own.
 
 ---
+
+## Injected-defect coverage, and the four categories with none — 20 Aug 2026
+
+RFC-4180 parse of PHASE_D_INJECTED_DEFECT_RESULT.csv, 75 catalogued defects:
+**35 REFUSED_AS_REQUIRED, 2 NOT_DISCRIMINATED, 38 NOT_RUN.**
+
+**Four categories have no exercised case at all: DISPATCH 0 of 5, LEGAL 0 of 5, QUOTE 0 of 5,
+TRACE 0 of 5.** They are named here because a category with no coverage that nobody mentions reads
+exactly like a category that passed, and the independent acceptance of 2026-08-20 had to parse the
+CSV to find them. It should not have had to.
+
+Every one of the 38 NOT_RUN rows carries a specific named blocker, and
+scripts/checks/phase_d_documents_do_not_contradict_each_other.test.mjs now refuses a blank or
+placeholder one, refuses NOT_RUN growing past 38, and refuses REFUSED_AS_REQUIRED falling below 35.
+The blockers fall into four kinds, none of which a harness can talk its way past:
+
+- **needs a committed row.** Editing a sealed verdict, rewriting a founder decision, observing an
+  orphan trace after a failed insert, closing a run with a blocker open. Every probe in this estate
+  ends in a raise, so the state it would need never exists to be attacked.
+- **needs two concurrent sessions.** A true race cannot be injected from inside one transaction.
+- **the subject is frozen Phase B or a kernel table.** Injecting a missing successor owner, or an
+  event self-loop, means editing the frozen registry, which is the thing under protection.
+- **needs a business subject the zero-residue rule forbids.** A rendered supplier-facing message to
+  scan for customer identity, a drawing to redact, a customer record to reveal.
+
+These are honest blockers and they are not a plan. Discharging them needs either a committed
+business arrival — the founder to lift the residue and provider holds — or a two-session harness
+that Phase D does not have. Neither is a Phase D repair, and neither should be reported as one.
+
+---
+
+**PHASE_D_NOT_READY**
+
+---
+
+## F01–F26 — what the founder's ruling of 21 Aug 2026 changed, and what it did not
+
+**The verdict at the top of this file is unchanged: PHASE_D_NOT_READY.** Deterministic closure is
+**0 of 30**, and his definition of done says 30/30. Everything below is what moved and what did not,
+with the figure beside each claim.
+
+### What he removed, and what was built for each
+
+| His ruling | Built | Measured |
+|---|---|---|
+| A — a zero-persistence scenario factory behind a context an untrusted caller cannot manufacture | F01, F02, F08–F10, F12, F14, F15 | context: 6 probes, 6 correct refusals; stages created **32 of 33**; evidence manifest one row per created object |
+| B — content supplied by a committed catalogue, never invented by the handler | F03, F07, F11, F12, F14, F16, F19 | **106** committed rows; the door is in the two resolvers and the handler has no path to it; `pd_effect_payload_incomplete` no longer the first refusal on any workflow |
+| C — a real capability request/result path, no `execution_context = test` bypass | F05, F06, F17, F18, F24 | **21 of 21** steps probed five ways; **17** fixture results accepted during the 30-workflow drive |
+| D — four modes over all 30 workflows, rolled back | F17 plus `build_four_mode_result.mjs` | happy 30/30 terminal, **0/30 closed unaided**; failure 14/30; cancellation 17/30; replay 24/30; residue **0** on every counter |
+| E — the founder is a verified auth subject | F20, F21, F23, os_api v73 | E39's vector REFUSED; his verified subject ACCEPTED; four HTTP shapes 401 |
+| F — four amendment tables, nothing bundled, nothing applied | `PHASE_D_PCCR_AMENDMENT_TABLES.md` | PCCR-001/002 untouched; board still `4 of 5 await the founder` |
+| G — outcome_evaluate_daily inactive, read-only report | F22 | cron `active=false`; 9 records reported; 0 rows mutated |
+
+### The number that moved, and the number that did not
+
+| | 2026-08-21 acceptance | now |
+|---|---:|---:|
+| step-openings dispatched | 257 | **274** |
+| dispatches EXECUTED | 3 | **44** |
+| business objects produced | 0 | **44** |
+| workflows closed by the handler unaided | **0 of 30** | **0 of 30** |
+
+Fourteen times as many step-openings complete unaided, and not one workflow closes without this
+harness completing the steps the handler declined. Both are true and the second is the one his
+definition of done measures.
+
+### Where the remaining refusals are, measured on the 30-workflow drive
+
+The largest classes, in order, with what each would take:
+
+- **`pd_gate_refused` / `pd_rule_refused` on a step whose predecessor did not execute.** BR-027
+  requires a finding to name the evidence it rests on, and evidence comes from the previous step's
+  effect. One step refusing propagates to every step after it, so the count overstates the number of
+  independent causes.
+- **`k3_reviewer_verdict_missing`.** A step naming an independent reviewer needs a recorded verdict
+  from that role before `fn_kernel_step_complete` will accept it. The driver records verdicts where
+  the frozen registry names a reviewer; where it names `founder` or `ceo`, the reviewer is a person.
+- **`pd_output_schema_invalid` on the measurement steps.** The output contract requires
+  `numerator`, `denominator`, `formula` and `window` in the handler's OUTPUT, and F16 supplies them
+  to the effect payload rather than to the output object. One splice, not yet made.
+- **`pd_object_no_state_change`.** Several steps of one workflow write the same object at the same
+  state, and `fn_phase_d_object_write` refuses a write that moves nothing. That refusal is correct;
+  what is missing is a per-step target state, which the frozen registry does not currently declare.
+- **`BR-033` on `monetary_state`.** The payment ladder's `reveal_authorized` rung is not in the
+  `TRANSACTION_RECORD` family's declared states, so a transaction at the top rung is refused as
+  unknown money. `public.phase_d_payment_state` and `public.phase_d_object_state_contract` disagree
+  about the same object, and neither is obviously wrong.
+
+None of these is a hold the founder has placed. They are engineering, and they are what stands
+between 44 of 274 and the number his definition of done names.
+
+### Zero cost, zero external effect
+
+`ai_cost_log` latest row **2026-08-15**, **0** rows since 2026-08-18 14:00 UTC. `llm_attempt` the
+same. Outbound HTTP queue **0**. Notifications since the window opened **19**, of which **0** sent.
+Active cron jobs **23**, unchanged. No provider was called to produce any figure in this document.
 
 **PHASE_D_NOT_READY**

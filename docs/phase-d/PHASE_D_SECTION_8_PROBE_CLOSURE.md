@@ -251,4 +251,21 @@ inside a green number:
   switched off under the automation hold and their outputs crossed a 3-day freshness line.
 - **The three founder items above**, unchanged and unacted on.
 
-PHASE_D_READY_FOR_FOUNDER_APPROVAL
+---
+
+## The verdict is not this document's to give
+
+**20 Aug 2026.** This file used to end with the single line `PHASE_D_READY_FOR_FOUNDER_APPROVAL`,
+while `docs/phase-d/PHASE_D_BUILDER_CLOSURE.md` — the required deliverable, and the one an
+acceptance reads — said `PHASE_D_NOT_READY`. Two verdicts on one phase stood in the committed tree
+at the same time, and an independent acceptance found both and recorded it as finding 14.
+
+The contradiction was not a disagreement about facts. This document is the section 8 PROBE closure:
+its subject is whether the section 8 probes ran and what they found, and on that subject it was
+right. It had no business also pronouncing on the phase.
+
+**The phase verdict lives in `docs/phase-d/PHASE_D_BUILDER_CLOSURE.md` and nowhere else.** What this
+document asserts is narrower, and is unchanged: the section 8 probes were executed on 2026-08-19
+against `htdblwldjkcgjvmqkbeh`, and their findings are recorded above.
+
+SECTION_8_PROBES_EXECUTED_AND_RECORDED

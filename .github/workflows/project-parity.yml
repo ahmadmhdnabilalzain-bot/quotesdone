@@ -169,3 +169,75 @@ jobs:
             fi
             [ "$code" = "0" ] || { echo "::error::$t exited $code"; exit "$code"; }
           done
+
+  # ============================================================================================
+  # THE PHASE D GATE, RUN FOR REAL ON EVERY PULL REQUEST.
+  #
+  # 20 AUG 2026 — WHY THIS JOB EXISTS. The independent acceptance recorded, as finding 19, that CI
+  # asserted nothing about the two deliverables that have to DRIVE production to reproduce:
+  # build_workflow_implementation_result.mjs and build_injected_defect_result.mjs. They are gated
+  # behind PHASE_D_DRIVE=1 for a good reason — `npm test` is run casually and dozens of aborted
+  # drives against the one production project is not a reasonable default — but "gated" had become
+  # "never run by anything", which is the same shape as the Phase C finding directly above: a check
+  # that runs when somebody remembers is not a gate. The gate stays; CI is the thing that opens it.
+  #
+  # The three Phase D controls added the same day run here too, because all three need the
+  # credential and every one of them exists to catch a regression nothing else would see:
+  #   phase_d_dispatch_reaches_executed      Phase D's whole deliverable is handlers the estate
+  #                                          EXECUTES. Until E12 and E14 none ever had, and the
+  #                                          board that counts committed effects reads 257 whether
+  #                                          the capability is broken or merely unexercised. This
+  #                                          drives the kernel path and asserts EXECUTED with a
+  #                                          matching effect ledger row, so the two cannot be
+  #                                          confused again.
+  #   phase_d_input_schemas_are_typed_and_closed
+  #                                          holds the two payloads the acceptance validated TRUE
+  #                                          against an open, untyped input contract, as negative
+  #                                          controls, plus a positive one so a contract that
+  #                                          refuses everything cannot score full marks.
+  #   phase_d_object_record_has_a_contract   drives the E18 trigger in both directions: four writes
+  #                                          it must refuse and two it must accept.
+  #   freeze_amendment_names_a_real_change_request
+  #                                          a frozen Phase C contract may not stand amended under a
+  #                                          change request that is not in the tree.
+  #
+  # Every probe in this job runs inside a transaction that ends in `raise exception`, asserts
+  # fn_phase_d_fixture_residue() is 0, and asserts ai_cost_log and the active cron count did not
+  # move. They run one after another, never in parallel: the same acceptance measured ten false
+  # failures from `429 ThrottlerException` when management-API checks ran concurrently.
+  # ============================================================================================
+  phase-d:
+    name: the Phase D handler gate, against production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: The Phase D controls, and the two deliverables that drive to reproduce
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PHASE_D_DRIVE: '1'
+          NO_PAID_AI: 'true'
+          OPENROUTER_DISABLED: 'true'
+          AI_PROVIDER_MODE: 'mock'
+        run: |
+          # No `set -e`, for the same reason as the Phase C job above: the exit code of each check
+          # is read into $code and acted on, and `set -e` would end the job before $? was captured.
+          for t in phase_d_dispatch_reaches_executed \
+                   phase_d_input_schemas_are_typed_and_closed \
+                   phase_d_object_record_has_a_contract \
+                   freeze_amendment_names_a_real_change_request \
+                   phase_d_documents_do_not_contradict_each_other \
+                   phase_d_deliverables_match_production; do
+            echo "::group::$t"
+            out=$(node --test "scripts/checks/$t.test.mjs" 2>&1); code=$?
+            echo "$out"
+            echo "::endgroup::"
+            # A SKIP here is a failure, not a pass: this job exists because the credential is present.
+            if echo "$out" | grep -qE '^SKIP|^SKIPPED|NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL|# SKIPPED'; then
+              echo "::error::$t skipped for want of a credential in the one job that has one."
+              exit 1
+            fi
+            [ "$code" = "0" ] || { echo "::error::$t exited $code"; exit "$code"; }
+          done

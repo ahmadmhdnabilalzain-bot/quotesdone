@@ -39,7 +39,22 @@ const ORDER = 'Draft one short internal note for the marketing team summarising 
   + 'any paid AI provider. Report progress and the final result through this Command Center thread.';
 const VAGUE = 'Make marketing better.';
 const FOUNDER = 'management@quotesdone.com';
+// PCCR-003, 21 Aug 2026. fn_phase_c_require_founder no longer resolves a caller-supplied email --
+// it resolves a VERIFIED auth subject, from auth.uid() or from one os_api verified and bound. These
+// probes typed the founder's address and were believed, which is precisely the vector E39 recorded,
+// so three doors went red the moment the amendment applied. That red was the guard working.
+//
+// BIND_FOUNDER does what os_api does: it resolves his auth subject from the register and binds it
+// transaction-locally. The bind refuses any subject that is not an enabled founder identity, so this
+// cannot authenticate anyone the routine would not, and the whole probe runs in a transaction that
+// always aborts. FOUNDER stays in the calls below because p_actor is still checked -- it is now an
+// ASSERTION that must MATCH the verified identity, which is a thing worth exercising too.
+
 const lit = s => `'${String(s).replace(/'/g, "''")}'`;
+const BIND_FOUNDER = `
+  perform public.fn_phase_c_founder_subject_bind(
+    (select f.auth_user_id from public.phase_c_founder_identity f
+      where f.identity = ${lit(FOUNDER)} and f.active and f.kind = 'email'));`;
 
 // A W20 command in one call gives a run, an active step run, a queued task and a pending event —
 // the precondition most of the doors below need.
@@ -69,6 +84,7 @@ const CONTROLS = {
       'trace', (select count(*) from public.phase_c_trace where command_id = cmd));`,
 
   fn_founder_command_clarify: `
+    ${BIND_FOUNDER}
     v := public.fn_founder_command_submit(${lit(FOUNDER)}, ${lit(VAGUE)}, 'positive-control-clarify', '{}'::jsonb);
     cmd := (v->>'command_id')::bigint;
     v2 := public.fn_founder_command_clarify(cmd,
@@ -82,6 +98,7 @@ const CONTROLS = {
       'trace', (select count(*) from public.phase_c_trace where command_id = cmd));`,
 
   fn_founder_command_control: `
+    ${BIND_FOUNDER}
     ${SEED('positive-control-control')}
     v2 := public.fn_founder_command_control(cmd, 'reprioritize', cmd::text, 'P0', ${lit(FOUNDER)});
     res := jsonb_build_object(
@@ -92,6 +109,7 @@ const CONTROLS = {
       'trace', (select count(*) from public.phase_c_trace where command_id = cmd));`,
 
   fn_kernel_cancel: `
+    ${BIND_FOUNDER}
     ${SEED('positive-control-cancel')}
     v2 := public.fn_kernel_cancel(jsonb_build_object(
       'subject_kind','founder_command', 'subject_ref', cmd::text, 'op','cancel',
@@ -104,6 +122,137 @@ const CONTROLS = {
         'task', (select state from public.phase_c_task where task_id = tsk),
         'outbox', (select status from public.phase_c_event_outbox where outbox_id = ob)),
       'trace', (select count(*) from public.phase_c_trace where command_id = cmd and status = 'sealed'));`,
+
+  // ---- THE SIX DOORS THE PHASE D F-SERIES ADDED --------------------------------------------
+  // This file's whole argument is that a guard proved only by its refusals is a guard nobody has
+  // shown to work. Each of these accepts something, and each control asserts the EFFECT, not the
+  // return value.
+
+  fn_phase_c_founder_subject_bind: `
+    ${BIND_FOUNDER}
+    res := jsonb_build_object(
+      'accepted', public.fn_phase_c_require_founder(null) = ${lit(FOUNDER)},
+      'effect', jsonb_build_object(
+        'auth_events_for_this_txid',
+          (select count(*) from public.phase_c_founder_auth_event where txid = txid_current()),
+        'identity_resolved', public.fn_phase_c_require_founder(null),
+        'route', 'server_verified_subject'),
+      'trace', (select count(*) from public.phase_c_founder_auth_event where txid = txid_current()));`,
+
+  fn_phase_d_test_context_open: `
+    v := public.fn_phase_d_test_context_open(jsonb_build_object(
+           'operation_key','pdop_acceptance_probe', 'label','positive-control-context'));
+    res := jsonb_build_object(
+      'accepted', coalesce((v->>'ok')::boolean, false)
+                  and public.fn_phase_d_fixture_context() = (v->>'fixture_run_id')::bigint,
+      'effect', jsonb_build_object(
+        'fixture_run_id', v->>'fixture_run_id',
+        'operation', public.fn_phase_d_fixture_operation(),
+        'grants_for_this_txid',
+          (select count(*) from public.phase_d_test_context_grant where txid = txid_current())),
+      'trace', (select count(*) from public.phase_d_test_context_grant where txid = txid_current()));`,
+
+  fn_phase_d_scenario_record_write: `
+    perform public.fn_phase_d_test_context_open(jsonb_build_object(
+      'operation_key','pdop_scenario_factory', 'label','positive-control-manifest'));
+    v := public.fn_phase_d_fixture_scenario(jsonb_build_object(
+      'label','positive-control-manifest', 'execution_context','test', 'up_to_stage', 30));
+    res := jsonb_build_object(
+      'accepted', (select count(*) from public.phase_d_scenario_record
+                    where fixture_run_id = public.fn_phase_d_fixture_context()) > 0,
+      'effect', jsonb_build_object(
+        'manifest_rows', (select count(*) from public.phase_d_scenario_record
+                           where fixture_run_id = public.fn_phase_d_fixture_context()),
+        'stages_created', v->>'stages_created',
+        'every_row_names_its_canonical_service',
+          not exists (select 1 from public.phase_d_scenario_record
+                       where fixture_run_id = public.fn_phase_d_fixture_context()
+                         and coalesce(btrim(canonical_service),'') = '')),
+      'trace', (select count(*) from public.phase_d_scenario_record
+                 where fixture_run_id = public.fn_phase_d_fixture_context()));`,
+
+  fn_phase_d_founder_authority_fixture: `
+    perform public.fn_phase_d_test_context_open(jsonb_build_object(
+      'operation_key','pdop_scenario_factory', 'label','positive-control-authority'));
+    v := public.fn_phase_d_founder_authority_fixture(jsonb_build_object('label','positive-control-authority'));
+    res := jsonb_build_object(
+      'accepted', coalesce((v->>'ok')::boolean, false)
+                  and exists (select 1 from public.founder_command fc
+                               where fc.command_id = (v->>'command_id')::bigint),
+      'effect', jsonb_build_object(
+        'command_id', v->>'command_id',
+        'founder_initiated_only',
+          (select fc.founder_initiated_only from public.founder_command fc
+            where fc.command_id = (v->>'command_id')::bigint),
+        'refund_semantics',
+          (select fc.refund_semantics from public.founder_command fc
+            where fc.command_id = (v->>'command_id')::bigint),
+        'br003_now_resolves_it',
+          (select ok from public.fn_phase_d_rule_check('BR-003',
+             jsonb_build_object('founder_authority_ref', v->>'founder_authority_ref')))),
+      'trace', (select count(*) from public.phase_d_scenario_record
+                 where fixture_run_id = public.fn_phase_d_fixture_context()
+                   and contributes_ref = 'founder_authority_ref'));`,
+
+  fn_phase_d_capability_request_open: `
+    perform public.fn_phase_d_test_context_open(jsonb_build_object(
+      'operation_key','pdop_capability_fixture', 'label','positive-control-caprequest'));
+    v := public.fn_kernel_workflow_start(jsonb_build_object(
+      'workflow_id','W25', 'business_object_id','ZZ-POSITIVE-CONTROL-CAPREQ',
+      'source_kind','autonomous', 'source_ref','zz-positive-control-capreq',
+      'requested_by', (select accountable_role_id from public.phase_b_workflow where workflow_id='W25'),
+      'trigger_ctx', jsonb_build_object('probe','kernel_positive_controls')));
+    run := (v->>'run_id')::bigint;
+    select sr4.step_run_id into sr from public.phase_c_workflow_step_run sr4
+     where sr4.run_id = run and sr4.step_id = 'W25-S01' limit 1;
+    if sr is null then
+      select sr4.step_run_id into sr from public.phase_c_workflow_step_run sr4
+       where sr4.run_id = run order by sr4.step_run_id limit 1;
+    end if;
+    v2 := public.fn_phase_d_capability_request_open(jsonb_build_object(
+      'step_run_id', sr, 'requested_by','positive_control'));
+    res := jsonb_build_object(
+      'accepted', coalesce((v2->>'ok')::boolean, false),
+      'effect', jsonb_build_object(
+        'request_id', v2->>'request_id',
+        'state', (select q.state from public.phase_d_capability_request q
+                   where q.request_id = (v2->>'request_id')::bigint),
+        'capability', v2->>'capability'),
+      'trace', (select count(*) from public.phase_d_capability_request
+                 where step_run_id = sr));`,
+
+  fn_phase_d_capability_result_accept: `
+    perform public.fn_phase_d_test_context_open(jsonb_build_object(
+      'operation_key','pdop_capability_fixture', 'label','positive-control-capresult'));
+    v := public.fn_kernel_workflow_start(jsonb_build_object(
+      'workflow_id','W25', 'business_object_id','ZZ-POSITIVE-CONTROL-CAPRES',
+      'source_kind','autonomous', 'source_ref','zz-positive-control-capres',
+      'requested_by', (select accountable_role_id from public.phase_b_workflow where workflow_id='W25'),
+      'trigger_ctx', jsonb_build_object('probe','kernel_positive_controls')));
+    run := (v->>'run_id')::bigint;
+    select sr4.step_run_id into sr from public.phase_c_workflow_step_run sr4
+     where sr4.run_id = run and sr4.step_id = 'W25-S01' limit 1;
+    v2 := public.fn_phase_d_capability_request_open(jsonb_build_object(
+      'step_run_id', sr, 'requested_by','positive_control'));
+    v2 := public.fn_phase_d_capability_result_accept(jsonb_build_object(
+      'request_id', (v2->>'request_id')::bigint, 'provider_mode','fixture',
+      'fixture_id', (select c.fixture_id from public.phase_d_fixture_catalogue c
+                      where c.scope='CAPABILITY_RESULT' and c.step_id='W25-S01' limit 1),
+      'accepted_by','positive_control'));
+    res := jsonb_build_object(
+      'accepted', coalesce((v2->>'ok')::boolean, false)
+                  and public.fn_phase_d_capability_answer(sr) is not null,
+      'effect', jsonb_build_object(
+        'result_id', v2->>'result_id',
+        'provider_mode', v2->>'provider_mode',
+        'fixture_id', v2->>'fixture_id',
+        'request_state', (select q.state from public.phase_d_capability_request q
+                           where q.request_id = (v2->>'request_id')::bigint),
+        'paid_provider_results',
+          (select count(*) from public.phase_d_capability_result where provider_mode = 'provider')),
+      'trace', (select count(*) from public.phase_d_capability_result r
+                 join public.phase_d_capability_request q on q.request_id = r.request_id
+                where q.step_run_id = sr));`,
 
   fn_kernel_workflow_start: `
     v := public.fn_kernel_workflow_start(jsonb_build_object(

@@ -163,6 +163,18 @@ declare
   v jsonb; st jsonb; ib jsonb; cx jsonb; cid bigint;
   owners text; depts text; dues bigint; kinds text; ntasks bigint;
 begin
+  -- PCCR-003, 21 Aug 2026. fn_founder_command_control delegates to fn_kernel_cancel, which verifies
+  -- the founder through fn_phase_c_require_founder -- and that routine no longer resolves a
+  -- caller-supplied email. This probe typed his address and was believed, which is the vector E39
+  -- recorded, so it went red the moment the amendment applied. That red was the guard working.
+  --
+  -- The probe now does what os_api does: it binds his VERIFIED auth subject, transaction-locally, in
+  -- a transaction that always aborts. The bind refuses any subject that does not resolve to an
+  -- enabled founder identity, so this cannot authenticate anyone the routine would not, and the
+  -- email is still passed below because p_actor is now an ASSERTION that must match.
+  perform public.fn_phase_c_founder_subject_bind(
+    (select f.auth_user_id from public.phase_c_founder_identity f
+      where f.identity = 'management@quotesdone.com' and f.active and f.kind = 'email'));
   v := public.fn_founder_command_submit('management@quotesdone.com',
         'Run the full security and quality gate before the next release today.',
         'entrypoint-probe', jsonb_build_object('channel','command_center'));
