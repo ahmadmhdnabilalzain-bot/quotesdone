@@ -47,7 +47,7 @@ separate decision from approving it, and section 5 of this document sets out wha
 | **Backward compatibility** | Full. The parameter, the return shape and every existing caller are unchanged. A caller who has never heard of Phase D sees the same behaviour plus a row in a Phase D table. |
 | **Migration** | `scripts/sql/phase_d_d36_the_kernel_opens_the_step_and_now_runs_it.sql`, applied 20 Aug 2026 through `scripts/apply_sql.mjs --apply`, read back and matched. |
 | **Rollback** | Re-apply the frozen body: `CREATE OR REPLACE FUNCTION` with the text whose digest is `c561dbe9ca19…`. One statement, no data change, no lost rows. Phase D dispatches stop being produced by the kernel; nothing else moves. |
-| **Positive tests** | `scripts/checks/kernel_positive_controls.test.mjs` (the kernel still opens steps); the 30-workflow drive produces **274** dispatch rows from the kernel path, of which **44** are `EXECUTED`. |
+| **Positive tests** | `scripts/checks/kernel_positive_controls.test.mjs` (the kernel still opens steps); the 30-workflow drive produces **306** dispatch rows from the kernel path, of which **108** are `EXECUTED` (re-measured 22 Aug 2026 after F43-F48; it was 274 of which 44 when this table was written). |
 | **Negative tests** | `scripts/checks/kernel_invariants.test.mjs`; `fn_phase_a_baseline_drift()` and `fn_phase_b_baseline_drift()` both 0 rows; `fn_kernel_all_boards()` shows no new red. |
 | **Already present on any branch** | **Yes** — `feat/phase-d-pass-the-audit`, since 20 Aug 2026. |
 | **Already present on production** | **Yes** — applied 20 Aug 2026. The live digest equals `new_digest`. |
@@ -128,7 +128,7 @@ separate decision from approving it, and section 5 of this document sets out wha
 | **Backward compatibility** | Full. |
 | **Migration** | `scripts/sql/phase_d_e14_the_kernel_opened_a_step_into_a_run_it_would_not_let_anyone_complete.sql`, applied 20 Aug 2026. |
 | **Rollback** | Re-apply the body whose digest is `c84ba5062888…`. One statement. The measured consequence of reverting is that EXECUTED returns to 0 across the estate. |
-| **Positive tests** | 30-workflow drive: **159 of 159** handoffs accepted; **44** dispatches EXECUTED (0 before). |
+| **Positive tests** | 30-workflow drive: **159 of 159** handoffs accepted; **108** dispatches EXECUTED, 0 before the amendment (re-measured 22 Aug 2026; it was 44 when this table was written). |
 | **Negative tests** | `scripts/checks/kernel_invariants.test.mjs`; Phase A and Phase B drift 0; `fn_kernel_all_boards()` no new red. |
 | **Already present on any branch** | **Yes** — `feat/phase-d-pass-the-audit`. |
 | **Already present on production** | **Yes** — 20 Aug 2026. |
