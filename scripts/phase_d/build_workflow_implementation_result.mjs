@@ -126,19 +126,31 @@ begin
       v->>'effects_for_this_run',
       v->>'run_state',
       v->>'terminal',
-      -- The verdict vocabulary now distinguishes the two. HANDLER_CLOSED_UNAIDED is the only one
-      -- that is a Phase D claim; the ACTOR_DRIVEN ones say a person, or this harness standing in
-      -- for one, did the work.
+      -- THE FOUNDER REMOVED HANDLER_CLOSED_UNAIDED AS AN ACCEPTANCE REQUIREMENT, 22 Aug 2026 §4:
+      -- "Do not require a handler to close a workflow 'unaided'. Actor, reviewer, capability and
+      -- provider fixture inputs are allowed when they travel through their real canonical
+      -- interfaces."
+      --
+      -- So the question this column answers changed. It is no longer "did the handler do all of
+      -- it", which measured how much of the business a deterministic routine could do without any
+      -- input at all -- a standard nothing in the estate was ever designed to meet. It is now
+      -- "did every step of this run advance through a canonical entry, and did the run reach a
+      -- state the frozen model calls terminal".
+      --
+      -- The six execution-input classes are counted in their own columns beside this one, so a
+      -- reader can see WHICH doors were used rather than being handed one word. A run is
+      -- CLOSED_THROUGH_CANONICAL_INPUTS only when it is terminal AND every step it opened was
+      -- closed by one of them -- handler effect or actor input; there is no third way to close a
+      -- step, because fn_kernel_step_complete is the only door and the handler calls it too.
       case when coalesce((v->>'terminal')::boolean,false)
-                and (v->>'steps_driven') = (v->>'steps_in_workflow')
-                and coalesce((v->>'dispatches_executed')::int,0) > 0
-                and (v->>'dispatches_executed') = (v->>'dispatches_seen')
-           then 'HANDLER_CLOSED_UNAIDED'
-           when coalesce((v->>'terminal')::boolean,false)
-                and (v->>'steps_driven') = (v->>'steps_in_workflow')
-           then 'ACTOR_DRIVEN_TO_TERMINAL'
-           when coalesce((v->>'terminal')::boolean,false) then 'ACTOR_DRIVEN_PARTIAL'
-           else 'STOPPED' end,
+                and (coalesce((v->>'steps_closed_by_the_handler')::int,0)
+                     + coalesce((v->>'steps_driven')::int,0)) >= coalesce((v->>'steps_in_workflow')::int,0)
+           then 'CLOSED_THROUGH_CANONICAL_INPUTS'
+           when coalesce((v->>'terminal')::boolean,false) then 'TERMINAL_WITH_STEPS_NOT_OPENED'
+           else 'NOT_TERMINAL' end,
+      v->>'steps_closed_by_the_handler',
+      v->>'internal_reviews_recorded',
+      v->>'capability_results_accepted',
       -- WHERE THE DRIVE STOPPED. Not the same question as where the handler first declined, and
       -- folding the two into one column made this deliverable report W21 as stopping at W21-S01
       -- when it had reached W21-S07 — because step 1's dispatch refused, as nearly all of them do.
@@ -169,6 +181,12 @@ const COLS = [
   'workflow_id', 'steps_in_workflow', 'steps_driven', 'handoffs_accepted', 'open_handoffs_left',
   'dispatches_seen', 'dispatches_executed',
   'business_effects_produced', 'final_run_state', 'state_is_terminal', 'closure_verdict',
+  // §4's execution-input classes, counted apart. CANONICAL_HANDLER_EFFECT and CANONICAL_ACTOR_INPUT
+  // are the two ways a step run closes; CANONICAL_INTERNAL_REVIEW and CAPABILITY_FIXTURE_RESULT are
+  // inputs a step needed before it could close at all. MOCK_EXTERNAL_EFFECT_RESULT has no column
+  // yet because phase_d_external_attempt still holds 0 rows and a column of zeros reads like
+  // coverage. KERNEL_TRANSITION is the effect_type on the ledger, not a property of the drive.
+  'steps_closed_by_handler_effect', 'internal_reviews_recorded', 'capability_fixture_results',
   'drive_stopped_at', 'drive_stop_code', 'drive_stop_reason',
   'first_handler_refusal_at', 'first_handler_refusal_code', 'first_handler_refusal_reason',
   'fixture_stages_created', 'fixture_exclusion_used', 'notifications_written',
@@ -283,7 +301,10 @@ const at = (name) => {
 };
 const sum = (name) => rows.reduce((a, r) => a + Number(r[at(name)] || 0), 0);
 
-const closed = rows.filter((r) => r[at('closure_verdict')] === 'HANDLER_CLOSED_UNAIDED').length;
+const closed = rows.filter((r) => r[at('closure_verdict')] === 'CLOSED_THROUGH_CANONICAL_INPUTS').length;
+const byHandler = sum('steps_closed_by_handler_effect');
+const reviews = sum('internal_reviews_recorded');
+const capFixtures = sum('capability_fixture_results');
 const handoffs = sum('handoffs_accepted');
 const effects = sum('business_effects_produced');
 const dispatched = sum('dispatches_seen');
@@ -295,7 +316,11 @@ console.log(`PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv  ${rows.length} rows`);
 console.log(`  outbound HTTP requests      ${outbound}`);
 console.log(`  step-openings dispatched     ${dispatched}`);
 console.log(`  completed by the handler     ${executed}   (the Phase D number)`);
-console.log(`  workflows closed unaided     ${closed} / ${rows.length}`);
+console.log(`  closed through canonical     ${closed} / ${rows.length}   (§4: every step through a real entry, run terminal)`);
+console.log(`  steps closed by handler      ${byHandler}   CANONICAL_HANDLER_EFFECT`);
+console.log(`  steps closed by an actor     ${sum('steps_driven')}   CANONICAL_ACTOR_INPUT`);
+console.log(`  internal reviews recorded    ${reviews}   CANONICAL_INTERNAL_REVIEW`);
+console.log(`  capability fixture results   ${capFixtures}   CAPABILITY_FIXTURE_RESULT`);
 console.log(`  handoffs accepted            ${handoffs}`);
 console.log(`  business effects produced    ${effects}`);
 console.log(`  notifications written        ${notif}   (must be 0)`);
