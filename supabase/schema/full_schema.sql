@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-22T20:43:01.078Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-22T20:48:46.869Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -52925,6 +52925,24 @@ begin
       -- record CARRYING that digest. public.artifact_review holds 0 rows, so the record is the
       -- only honest route: this stage writes one whose payload carries the digest of the committed
       -- artifact fixture's own text. The digest is computed, never typed.
+      -- F48. v_art_sha WAS DECLARED AND NEVER ASSIGNED, SO THIS PAYLOAD CARRIED A NULL.
+      --
+      -- F08 added the variable with the comment "the digest BR-036 resolves" and the stage below
+      -- writes it into the artifact record's payload. Nothing ever assigned it. Measured: BR-036
+      -- refuses W08, W20, W22 and W24 with "review names artifact <id> at digest 5be99093ba73,
+      -- which resolves to 0 artifact_review row(s) and 0 business object record(s) carrying exactly
+      -- that digest" -- and the reason no record carries it is that this line wrote null.
+      --
+      -- The digest is the committed one F39 computed over the committed artifact body, read here
+      -- rather than recomputed, so the value in the record is the same value the context resolver
+      -- hands the rule and anyone can recompute both from the catalogue.
+      v_art_sha := (select c.value #>> '{}' from public.phase_d_fixture_catalogue c
+                     where c.scope='CONTEXT_KEY' and c.field_key='artifact_sha256');
+      if v_art_sha is null then
+        raise exception 'fn_phase_d_fixture_scenario: no committed artifact_sha256 fixture, so the artifact record would carry no digest and BR-036 could never pass or fail for a real reason (pd_fixture_artifact_digest_missing)'
+          using errcode = '23502';
+      end if;
+
       v_pay := v_pay || jsonb_build_object(
         'artifact_ref', (select c.value #>> '{}' from public.phase_d_fixture_catalogue c
                           where c.scope='CONTEXT_KEY' and c.field_key='artifact_ref'),
