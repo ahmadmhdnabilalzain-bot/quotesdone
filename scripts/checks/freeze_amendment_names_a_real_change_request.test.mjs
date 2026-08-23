@@ -175,13 +175,26 @@ do $probe$
 declare v_founder text; v_red_before int; v_red_after int; v_rows int;
         v_free text := 'not-run'; v_inactive text := 'not-run';
 begin
+  -- 23 Aug 2026: THIS PROBE USED TO DEPEND ON AN UNAPPROVED ROW EXISTING. Once all five
+  -- amendments carried a verified founder-session approval, every "where approved_by is null" below
+  -- matched nothing, all three arms wrote 0 rows, and the test failed for want of a subject rather
+  -- than for a defect. Zero cannot tell a dead guard from an idle system: the probe now CREATES the
+  -- condition it tests. The transaction always aborts, so no approval is really cleared.
+  update public.phase_c_freeze_amendment
+     set approved_by = null, approved_at = null, approval_basis = null,
+         approval_route = null, approval_auth_subject = null, approved_amendment_table_digest = null;
+
   select count(*) into v_red_before from public.fn_phase_c_freeze_drift()
    where not ok and check_name = 'amendments_awaiting_founder_approval';
 
   begin
     update public.phase_c_freeze_amendment
        set approved_by = 'zz-ci-not-the-founder', approved_at = now(),
-           approval_basis = 'AUTHENTICATED_FOUNDER_SESSION' where approved_by is null;
+           approval_basis = 'AUTHENTICATED_FOUNDER_SESSION',
+           approval_route = 'auth.uid()',
+           approval_auth_subject = (select fi.auth_user_id from public.phase_c_founder_identity fi
+                                     where fi.active and fi.kind = 'email' order by fi.identity limit 1),
+           approved_amendment_table_digest = repeat('0', 64) where approved_by is null;
     v_free := 'ACCEPTED';
   exception when others then
     v_free := coalesce((regexp_match(SQLERRM, '[(](pccr_[a-z_]+)[)]'))[1], 'refused:' || SQLSTATE);
@@ -191,7 +204,11 @@ begin
   begin
     update public.phase_c_freeze_amendment
        set approved_by = 'build-mode@quotesdone.local', approved_at = now(),
-           approval_basis = 'AUTHENTICATED_FOUNDER_SESSION' where approved_by is null;
+           approval_basis = 'AUTHENTICATED_FOUNDER_SESSION',
+           approval_route = 'auth.uid()',
+           approval_auth_subject = (select fi.auth_user_id from public.phase_c_founder_identity fi
+                                     where fi.active and fi.kind = 'email' order by fi.identity limit 1),
+           approved_amendment_table_digest = repeat('0', 64) where approved_by is null;
     v_inactive := 'ACCEPTED';
   exception when others then
     v_inactive := coalesce((regexp_match(SQLERRM, '[(](pccr_[a-z_]+)[)]'))[1], 'refused:' || SQLSTATE);
@@ -199,7 +216,11 @@ begin
 
   select fi.identity into v_founder from public.phase_c_founder_identity fi
    where fi.active and fi.kind = 'email' order by fi.identity limit 1;
-  update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now(), approval_basis = 'AUTHENTICATED_FOUNDER_SESSION'
+  update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now(), approval_basis = 'AUTHENTICATED_FOUNDER_SESSION',
+           approval_route = 'auth.uid()',
+           approval_auth_subject = (select fi.auth_user_id from public.phase_c_founder_identity fi
+                                     where fi.active and fi.kind = 'email' order by fi.identity limit 1),
+           approved_amendment_table_digest = repeat('0', 64)
    where approved_by is null;
   get diagnostics v_rows = ROW_COUNT;
   select count(*) into v_red_after from public.fn_phase_c_freeze_drift()
@@ -248,11 +269,21 @@ end $probe$;`);
 // change request is docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-003.md and it quotes the instruction
 // in full.
 //
-// The assertion is now a SET, not a count. Anything approved that is not PCCR-003 fails, so this
-// still catches an aborted probe that committed, and it still catches PCCR-001 or PCCR-002 being
-// signed without the founder having seen the four tables he asked for in
-// docs/phase-d/PHASE_D_PCCR_AMENDMENT_TABLES.md.
-const APPROVED_BY_THE_FOUNDER_IN_WRITING = ['PCCR-003'];
+// The assertion is a SET, not a count, so it still catches an aborted probe that committed and it
+// still catches a change request being signed that the founder has not seen the tables for.
+//
+// 23 AUG 2026: PCCR-001 AND PCCR-002 JOIN IT, and the reason the list grows is the reason it exists.
+// The founder's brief of 23 Aug 2026 approves amendments 1, 2 and 4 (PCCR-001) and 5 (PCCR-002)
+// individually, "based on the exact amendment tables committed in PHASE_D_PCCR_AMENDMENT_TABLES.md"
+// — the tables the previous note said had to be seen first. All five were then recorded through
+// fn_phase_c_freeze_amendment_approve inside a session where auth.uid() resolved to the founder's
+// own subject, and the same call refuses a service_role connection with 403.
+//
+// This list is the repository's copy of that fact and nothing more. What binds an approval to the
+// document it was given against is the sha256 stored on each row, checked against the committed
+// file by scripts/checks/pccr_approval_matches_committed_tables.test.mjs — which is the check to
+// read if you are asking whether these three were properly signed.
+const APPROVED_BY_THE_FOUNDER_IN_WRITING = ['PCCR-001', 'PCCR-002', 'PCCR-003'];
 
 test('only the change request the founder signed in writing carries an approval',
   { skip: SKIP }, async () => {
@@ -298,6 +329,13 @@ test('the founder register is not writable by service_role, and an approval must
 do $probe$
 declare v_out jsonb := '{}'::jsonb; v_founder text; v_rows int; v_red int;
 begin
+  -- 23 Aug 2026: THE PROBE MAKES ITS OWN SUBJECT. See the note on the first probe in this file:
+  -- once every amendment carried a verified founder-session approval, "where approved_by is null"
+  -- matched nothing and this arm silently wrote 0 rows. The transaction always aborts.
+  update public.phase_c_freeze_amendment
+     set approved_by = null, approved_at = null, approval_basis = null,
+         approval_route = null, approval_auth_subject = null, approved_amendment_table_digest = null;
+
   select count(*) into v_red from public.fn_phase_c_freeze_drift()
    where not ok and check_name = 'amendments_awaiting_founder_approval';
   v_out := v_out || jsonb_build_object('red_at_open', v_red);
@@ -314,7 +352,11 @@ begin
 
   select fi.identity into v_founder from public.phase_c_founder_identity fi
    where fi.active and fi.kind = 'email' order by fi.identity limit 1;
-  update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now(), approval_basis = 'AUTHENTICATED_FOUNDER_SESSION'
+  update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now(), approval_basis = 'AUTHENTICATED_FOUNDER_SESSION',
+           approval_route = 'auth.uid()',
+           approval_auth_subject = (select fi.auth_user_id from public.phase_c_founder_identity fi
+                                     where fi.active and fi.kind = 'email' order by fi.identity limit 1),
+           approved_amendment_table_digest = repeat('0', 64)
    where approved_by is null;
   get diagnostics v_rows = ROW_COUNT;
   select count(*) into v_red from public.fn_phase_c_freeze_drift()
@@ -364,10 +406,21 @@ test('service_role cannot approve, mint or delete an amendment to a frozen contr
 do $probe$
 declare v_out jsonb := '{}'::jsonb; v_red int;
 begin
+  -- 23 Aug 2026: THE PROBE MAKES ITS OWN SUBJECT. See the note on the first probe in this file:
+  -- once every amendment carried a verified founder-session approval, "where approved_by is null"
+  -- matched nothing and this arm silently wrote 0 rows. The transaction always aborts.
+  update public.phase_c_freeze_amendment
+     set approved_by = null, approved_at = null, approval_basis = null,
+         approval_route = null, approval_auth_subject = null, approved_amendment_table_digest = null;
+
   begin
     set local role service_role;
     update public.phase_c_freeze_amendment
-       set approval_basis = 'AUTHENTICATED_FOUNDER_SESSION', approved_by = (select fi.identity from public.phase_c_founder_identity fi
+       set approval_basis = 'AUTHENTICATED_FOUNDER_SESSION',
+           approval_route = 'auth.uid()',
+           approval_auth_subject = (select fi.auth_user_id from public.phase_c_founder_identity fi
+                                     where fi.active and fi.kind = 'email' order by fi.identity limit 1),
+           approved_amendment_table_digest = repeat('0', 64), approved_by = (select fi.identity from public.phase_c_founder_identity fi
                            where fi.active and fi.kind='email' order by fi.identity limit 1),
            approved_at = now()
      where approved_by is null;
@@ -400,7 +453,11 @@ begin
   reset role;
 
   update public.phase_c_freeze_amendment
-     set approval_basis = 'AUTHENTICATED_FOUNDER_SESSION', approved_by = (select fi.identity from public.phase_c_founder_identity fi
+     set approval_basis = 'AUTHENTICATED_FOUNDER_SESSION',
+           approval_route = 'auth.uid()',
+           approval_auth_subject = (select fi.auth_user_id from public.phase_c_founder_identity fi
+                                     where fi.active and fi.kind = 'email' order by fi.identity limit 1),
+           approved_amendment_table_digest = repeat('0', 64), approved_by = (select fi.identity from public.phase_c_founder_identity fi
                          where fi.active and fi.kind='email' order by fi.identity limit 1),
          approved_at = now()
    where approved_by is null;
