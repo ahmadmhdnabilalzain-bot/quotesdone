@@ -426,6 +426,13 @@ Stated because a narrow check does not license a broad claim.
 * **The committed scenario created a customer and a supplier lead, and no inquiry.** Everything §2
   asserts about reversal is asserted about that scenario. A committed inquiry was not run, and the
   reason is measured rather than assumed.
+* **PHASE_D_STEP_BRANCH_COVERAGE.csv is a record of one drive, not a byte-stable artefact.** Its
+  `actual_effect_reference` column carries the real row the drive wrote — `public.org_tasks:id=74541`
+  — and the scenario factory mints a new one each time, so 86 of its 257 rows differ between two
+  builds over the same estate. Every count in it reproduces; the references do not. **No check
+  asserts its reproduction**: it is not one of the nine `build_all` deliverables that
+  phase_d_deliverables_match_production compares, which is why this was never surfaced. Said here
+  rather than left for the next reader of a diff.
 * **The knowledge-pack scorecard was not run.** `scripts/kb/pack_scorecard.mjs` requires
   `--packs=<extracted packs dir>`, which is not in this repository and was not supplied. Nothing is
   claimed about the packs either way.
