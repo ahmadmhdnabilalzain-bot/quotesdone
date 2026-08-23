@@ -447,6 +447,8 @@ marker** — `@example.invalid`, `ZZ DEMO` or `zz-phase-d-`.
 | schema export byte-identical | yes |
 | `node scripts/verify_deploy_parity.mjs --all` | **202 functions** |
 | `node --test scripts/checks/phase_d_the_three_steps_that_had_no_effect.test.mjs` | 7 of 7 pass — it was 6 of 7, silently, until this session |
+| Supabase, swept for failures | cron `job_run_details` in 24h: **0 not-succeeded**. `agent_runs` errors in 24h: **0**. `dead_letter` in 24h: **0**. `public.doc_backups` holds 26 rows in `error` — **read the dates**: every one is from 15 July 2026 at `attempts = 5`, exhausted, `compare parse_failed`, and the newest error row in the last 24 hours is **0**. |
+| Vercel | preview deployments for this branch completed |
 | knowledge-pack scorecard | **not run** — see §8 |
 
 ### Exact remaining blockers
