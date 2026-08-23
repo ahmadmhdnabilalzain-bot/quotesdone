@@ -53,9 +53,25 @@ begin
     -- free-text field is now capped at 240 characters with the cut marked in the value, so a reader
     -- of the deliverable can see that a reason was shortened. A silent cut is the defect; a marked
     -- one is a measurement with its boundary stated.
+    -- AND A PER-RUN IDENTIFIER IN A REASON MAKES THE DELIVERABLE UNREPRODUCIBLE. Measured 24 Aug
+    -- 2026, two consecutive builds of this file over the same estate: FIVE rows differed, and every
+    -- difference was a step run id, a task id or a trace id that the scenario factory mints fresh on
+    -- each drive -- "step run 225603" against "step run 236310". The finding was identical; the row
+    -- was not.
+    --
+    -- SIX DIGITS, NOT THREE. The sibling deliverable redacts runs of three or more, and that would
+    -- take "28 of 257 frozen steps" and "20,465 leads" with it -- counts that ARE the finding. Every
+    -- volatile id in this estate's kernel tables is six digits or more and every count these
+    -- observations carry is five or fewer, so the boundary is drawn where it separates them, and it
+    -- is drawn here rather than left to be discovered by the next reader of a red check.
+    --
+    -- REDACT FIRST, THEN BOUND. fn_phase_d_bounded cuts at 240; redacting afterwards would measure
+    -- the window on text that still has the id in it, so an id gaining a digit would shift the cut
+    -- and the row would stop reproducing anyway. That exact defect was live in
+    -- build_workflow_implementation_result.mjs until this session.
     v_out := v_out || chr(30) || concat_ws(chr(31), r.defect_id, r.category, r.status,
-             public.fn_phase_d_bounded(replace(replace(coalesce(r.observed,''), chr(10),' '), chr(13),' '), 240),
-             public.fn_phase_d_bounded(replace(replace(coalesce(r.blocker,''),  chr(10),' '), chr(13),' '), 240));
+             public.fn_phase_d_bounded(regexp_replace(replace(replace(coalesce(r.observed,''), chr(10),' '), chr(13),' '), '[0-9]{6,}', '<id>', 'g'), 240),
+             public.fn_phase_d_bounded(regexp_replace(replace(replace(coalesce(r.blocker,''),  chr(10),' '), chr(13),' '), '[0-9]{6,}', '<id>', 'g'), 240));
   end loop;
   -- AND IF THE BOUND IS EVER NOT ENOUGH, SAY SO RATHER THAN LOSE A ROW.
   if length(v_out) > 1800 then

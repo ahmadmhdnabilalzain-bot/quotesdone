@@ -182,11 +182,19 @@ begin
       -- number alone. Runs of three or more digits are redacted to <id> in the REASON columns only;
       -- every count, code and identifier that is part of the finding is shorter than that and
       -- survives. The reason stays readable and the row stays reproducible.
-      regexp_replace(replace(replace(left(coalesce(v->'stopped'->>'reason',''), 400), chr(10), ' '), chr(13), ' '), '[0-9]{3,}', '<id>', 'g'),
+      --
+      -- 24 AUG 2026 — AND THE REDACTION HAPPENED AFTER THE TRUNCATION, WHICH IS NOT A REDACTION.
+      -- left(reason, 400) ran FIRST, so the 400-character window was measured on the text WITH the
+      -- id still in it. The moment a sequence gained a digit — capability request ids crossed 9999
+      -- during this session — every reason column shifted by one character and ten rows stopped
+      -- reproducing: "...completing a busines" against "...completing a busine". The id was redacted
+      -- and its LENGTH was not. Redact first, then truncate, and the row is stable however wide the
+      -- id gets.
+      left(regexp_replace(replace(replace(coalesce(v->'stopped'->>'reason',''), chr(10), ' '), chr(13), ' '), '[0-9]{3,}', '<id>', 'g'), 400),
       -- WHERE THE DETERMINISTIC HANDLER FIRST DECLINED. This is the Phase D subject.
       coalesce(v->'first_handler_refusal'->>'at',''),
       coalesce(v->'first_handler_refusal'->>'refused_with',''),
-      regexp_replace(replace(replace(left(coalesce(v->'first_handler_refusal'->>'reason',''), 400), chr(10), ' '), chr(13), ' '), '[0-9]{3,}', '<id>', 'g'),
+      left(regexp_replace(replace(replace(coalesce(v->'first_handler_refusal'->>'reason',''), chr(10), ' '), chr(13), ' '), '[0-9]{3,}', '<id>', 'g'), 400),
       v_fx->>'stages_created',
       coalesce(v_fx->>'for_workflow','(none)'),
       v_fx->>'notifications_written_by_this_scenario',
