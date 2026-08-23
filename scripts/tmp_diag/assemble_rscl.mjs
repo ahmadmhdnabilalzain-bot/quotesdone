@@ -1,0 +1,10 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+const D = String.fromCharCode(36);
+let mid = readFileSync('scripts/tmp_diag/rscl_mid.txt', 'utf8');
+mid = mid.split(D + "{'" + D + "{CODE}'}").join(D + '{CODE}');
+const OLDLIKE = "case when v_neg like 'k%\\\\_%' or v_neg like 'pd\\\\_%' then 'true' else 'false' end";
+const NEWLIKE = "case when v_neg ~ '^(k[0-9]+|pd)_' then 'true' else 'false' end";
+if (mid.includes(OLDLIKE)) mid = mid.split(OLDLIKE).join(NEWLIKE);
+writeFileSync('scripts/tmp_diag/rscl_mid.txt', mid);
+console.log('CODE placeholders:', (mid.match(/\$\{CODE\}/g) || []).length);
+console.log('regex form present:', mid.includes(NEWLIKE));
