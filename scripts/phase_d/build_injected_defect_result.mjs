@@ -141,3 +141,28 @@ if (exec + notrun + notdisc + notref.length !== rows.length) {
 }
 if (notref.length) { console.error('  ' + notref.map(r => r[0]).join(', ')); process.exit(1); }
 if ((residue?.[0]?.n ?? -1) !== 0) process.exit(1);
+
+// EVERY CASE THAT DID NOT RUN IS NAMED IN THE REGISTER, OR THIS BUILD FAILS.
+//
+// The founder's ruling of 23 Aug 2026, section 4: "every remaining case named in the register with
+// a reason a reader can check". Until this line the reason a case did not run lived in a text
+// literal inside the injection function, which is where a stale reason hides best — PD-PRIV-004
+// carried "SECTION 8 NOT BUILT" for days after section 8 had been built and had overridden it.
+// public.phase_d_injected_defect_disposition is the register; this is what makes it owed rather
+// than optional. A case that stops running and gains no row turns this red on the next build.
+const open = rows.filter(r => r[2] !== 'REFUSED_AS_REQUIRED').map(r => r[0]);
+const decided = new Set((await sql(
+  'select defect_id from public.phase_d_injected_defect_disposition')).map(r => r.defect_id));
+const undecided = open.filter(id => !decided.has(id));
+const stale = [...decided].filter(id => !open.includes(id));
+console.log(`  named in the disposition register  ${open.length - undecided.length} of ${open.length}`);
+if (undecided.length) {
+  console.error(`  NOT IN THE REGISTER: ${undecided.join(', ')}`);
+  console.error('  a case that did not run and that nobody decided is not a case anyone can check.');
+  process.exit(1);
+}
+if (stale.length) {
+  console.error(`  REGISTER ROWS FOR CASES THAT NOW RUN: ${stale.join(', ')}`);
+  console.error('  an exemption for a case that has since been closed is a reason nobody re-read.');
+  process.exit(1);
+}
