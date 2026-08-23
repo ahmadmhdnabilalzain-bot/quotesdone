@@ -99,13 +99,22 @@ const emit = async (q, marker) => {
 };
 
 // ---- PASS ARM ---------------------------------------------------------------------------------
-async function passArm(wf) {
+// ONE DRIVE PER CHUNK OF STEPS, BECAUSE THE TRANSPORT CUTS AT 2000 CHARACTERS. Measured 23 Aug
+// 2026: the single-drive pass arms for W17 and W30 -- eleven steps each -- ran over it, the last
+// step's line lost its tail fields, and the matrix reported W17-S11 and W30-S11 as "reached only by
+// a direct step-complete call" while both carried an EXECUTED dispatch and an effect. The guard
+// below now makes an overrun a stop; this is what keeps it from happening. Each chunk is its own
+// transaction, its own audited fixture scenario and its own drive of the whole workflow -- so every
+// step's row still comes from a drive that reached that step through the canonical path -- and it
+// reports only the steps in its own window.
+const CHUNK = 7;
+async function passArm(wf, lo, hi) {
   const q = `do $emit$
 declare v jsonb; v_fx jsonb; v_cands jsonb; v_rev text; v_out text := ''; r record; v_run bigint;
         v_ref_key text; v_boid text;
-begin${PRE(wf, `cov-${wf.toLowerCase()}`)}
+begin${PRE(wf, `cov-${wf.toLowerCase()}-${lo}`)}
   v := public.fn_phase_d_drive_workflow(jsonb_build_object(
-    'workflow_id','${wf}','label','cov-${wf.toLowerCase()}',
+    'workflow_id','${wf}','label','cov-${wf.toLowerCase()}-${lo}',
     'execution_context','production','reviewer_role_id',v_rev,'reviewer_candidates',v_cands)
     || case when v_boid is null then '{}'::jsonb else jsonb_build_object('business_object_id',v_boid) end);
   v_run := (v->>'run_id')::bigint;
@@ -128,7 +137,7 @@ begin${PRE(wf, `cov-${wf.toLowerCase()}`)}
                           where x.step_run_id = sr.step_run_id order by x.dispatch_id desc limit 1) d on true
       left join lateral (select * from public.phase_d_effect_ledger x
                           where x.step_run_id = sr.step_run_id order by x.effect_id limit 1) el on true
-     where s.workflow_id = '${wf}'
+     where s.workflow_id = '${wf}' and s.step_no between ${lo} and ${hi}
      order by s.step_no
   loop
     v_out := v_out || 'P|' || r.step_id
@@ -139,11 +148,11 @@ begin${PRE(wf, `cov-${wf.toLowerCase()}`)}
       || '|' || coalesce(r.effect_type,'-')
       || '|' || coalesce(r.effect_relation,'-')
       || '|' || coalesce(r.effect_operation,'-')
-      || '|' || coalesce(left(r.result_reference,64),'-')
+      || '|' || coalesce(left(r.result_reference,28),'-')
       || '|' || coalesce(r.state_before,'-') || '>' || coalesce(r.state_after,'-')
       || '|' || coalesce(r.provider_mode,'-')
       || '|' || r.gates_n::text
-      || '|' || coalesce(r.reviewer_role_id,'-')
+      || '|' || coalesce(left(r.reviewer_role_id,22),'-')
       || '|' || r.handoffs_out::text
       || '|' || case when coalesce(r.trace_id, r.effect_trace) is null then '0' else '1' end
       || '|' || coalesce(r.step_state,'-')
@@ -159,9 +168,17 @@ begin${PRE(wf, `cov-${wf.toLowerCase()}`)}
         || '|' || (select count(*) from public.phase_d_dispatch dd
                     join public.phase_c_workflow_step_run ss on ss.step_run_id = dd.step_run_id
                    where ss.run_id = v_run and dd.opened_by_kind is null)::text || '~';
+  -- A TRUNCATED PAYLOAD IS NOT A SHORT ANSWER. The management endpoint cuts an exception message at
+  -- 2000 characters. Measured 23 Aug 2026: the pass arms for W17 and W30 -- eleven steps each --
+  -- ran over it, the LAST step's line lost its tail fields, and the matrix reported W17-S11 and
+  -- W30-S11 as "reached only by a direct step-complete call" when both carried an EXECUTED dispatch
+  -- and an effect. A silent cut is the defect; this makes it a stop.
+  if length(v_out) > 1750 then
+    raise exception 'PHASE_D_COVERAGE_OVERFLOW __WF__ produced % characters over the 1750 this transport carries. Shorten the per-step fields; do not let a step fall off the end.', length(v_out);
+  end if;
   raise exception 'COVP<<%>>', v_out;
 end $emit$;`;
-  return emit(q, 'COVP');
+  return emit(q.split('__WF__').join(wf), 'COVP');
 }
 
 // ---- FAIL ARM: one drive per step, held open, then failed --------------------------------------
@@ -235,7 +252,11 @@ async function worker() {
   for (let wf = queue.shift(); wf; wf = queue.shift()) {
     const steps = STEPS.filter(s => s.workflow_id === wf);
     process.stderr.write(`${wf} (${steps.length} steps)\n`);
-    const p = await passArm(wf);
+    const chunks = [];
+    for (let lo = 1; lo <= steps.length; lo += CHUNK) chunks.push([lo, Math.min(lo + CHUNK - 1, steps.length)]);
+    const parts = [];
+    for (const [lo, hi] of chunks) parts.push(await passArm(wf, lo, hi));
+    const p = parts.join('');
     const f = await failArm(wf, steps);
     results.set(wf, { pass: p, fail: f });
     process.stderr.write(`${wf} done\n`);
@@ -265,7 +286,7 @@ for (const s of STEPS) {
     step_id: s.step_id,
     step_no: s.step_no,
     step_type: s.step_type,
-    scenario: `cov-${s.workflow_id.toLowerCase()} (pass), cvf-${s.step_id.toLowerCase()} (fail)`,
+    scenario: `cov-${s.workflow_id.toLowerCase()}-${Math.floor((s.step_no - 1) / CHUNK) * CHUNK + 1} (pass), cvf-${s.step_id.toLowerCase()} (fail)`,
     branch_pass_target: s.next_step_if_pass,
     branch_fail_target: s.next_step_if_fail,
     input_class: (s.required_inputs || '').slice(0, 90),
