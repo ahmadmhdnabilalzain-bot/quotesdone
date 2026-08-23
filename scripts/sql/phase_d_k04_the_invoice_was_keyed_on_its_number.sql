@@ -1,0 +1,593 @@
+-- K04 — the invoice was keyed on its number, and the relation is keyed on its transaction
+--
+-- MEASURED 23 Aug 2026 on htdblwldjkcgjvmqkbeh. W16-S05 was the third of the three steps of the 257
+-- producing no declared effect:
+--
+--   pd_effect_identity_collision :: duplicate key value violates unique constraint
+--   "reveal_invoices_pkey"
+--
+-- ONE WRONG FACT, THREE PLACES IT REACHED. public.reveal_invoices is
+--
+--   PRIMARY KEY (transaction_id)          -- transaction_id uuid NOT NULL
+--   FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
+--   invoice_no text NULL
+--
+-- and public.phase_d_business_object_binding recorded primary_identity = 'invoice_no' for
+-- invoice_receipt. Every bound object was checked against its relation's own primary key on
+-- 23 Aug 2026 and this is the ONLY one that disagreed: 1 of 26 EXISTING_TABLE bindings.
+--
+-- From that one fact:
+--   * phase_d_object_reference_strategy.physical_pk_column, business_key_derivation and
+--     evidence_lookup are DERIVED from binding.primary_identity (F43), so all three named invoice_no;
+--   * phase_d_object_write_map.key_column named invoice_no, so the writer returned the invoice
+--     NUMBER as the object's reference and never looked for the row the relation would collide on;
+--   * operation is INSERT, so no identity probe ran at all, and the scenario's own invoice_receipt
+--     stage (395) had already issued one invoice for that transaction. The second insert hit the
+--     primary key.
+--
+-- THE CORRECTION. The canonical identity of a reveal invoice is its transaction: one invoice per
+-- transaction, which is exactly what the relation's primary key says and what the frozen binding's
+-- own status_model says -- "issued once per transaction". invoice_no stays, mapped from the
+-- business key, an immutable business attribute of the record and not its physical identity. The
+-- reference strategy is then RE-DERIVED by F43's own statement rather than edited by hand.
+--
+-- AND A REPLAY NO LONGER COLLIDES. The two-pass identity probe D18 built for UPSERT_STATE now runs
+-- for INSERT as well. An INSERT that would violate a unique index on values THIS CALL SUPPLIES is
+-- not a new record; it is the record that already exists. For an INSERT the existing reference is
+-- returned with unchanged = true and NOTHING IS UPDATED -- an immutable_revision object is never
+-- rewritten by a replay, which is the distinction the UPSERT branch would have lost. Where no
+-- unique index resolves an identity the write is still an INSERT and a unique violation is still a
+-- real business duplicate.
+--
+-- NOTHING IS WEAKENED. BR-020 (reveal before payment) and BR-033 (unknown money as success) are
+-- enforced by public.fn_phase_d_rule_check against the six-rung ladder in
+-- public.phase_d_payment_state and are untouched by this file. The foreign key to
+-- public.transactions still refuses an unknown transaction.
+--
+-- AND IT CANNOT RECUR SILENTLY. scripts/checks/phase_d_object_record_has_a_contract.test.mjs gains
+-- an assertion that a binding whose canonical relation has a single-column PRIMARY KEY names that
+-- column as its primary_identity.
+--
+-- ROLLBACK: scripts/sql/down/phase_d_k04_the_invoice_was_keyed_on_its_number_down.sql restores
+-- primary_identity = invoice_no, the write map's key_column, the derived strategy row, and the
+-- previous body of fn_phase_d_object_write.
+--
+-- GENERATED from the live body by scripts/tmp_diag/gen_k04.mjs.
+
+-- ---- 1. the fact ------------------------------------------------------------------------------
+UPDATE public.phase_d_business_object_binding
+   SET primary_identity = 'transaction_id',
+       evidence = 'public.reveal_invoices is PRIMARY KEY (transaction_id) with a foreign key into '
+               || 'public.transactions; invoice_no is the immutable business number carried on the '
+               || 'record, not its identity. immutable_revision: a correction is a credit note or a '
+               || 'new document.'
+ WHERE object_id = 'invoice_receipt';
+
+-- ---- 2. the write map -------------------------------------------------------------------------
+-- key_column becomes the relation's own primary key. column_map is unchanged: invoice_no is still
+-- written, from the business key, and is still unique-indexable as a business attribute.
+UPDATE public.phase_d_object_write_map
+   SET key_column = 'transaction_id'
+ WHERE object_id = 'invoice_receipt';
+
+-- ---- 3. the derived reference strategy, re-derived by F43's own statement ----------------------
+INSERT INTO public.phase_d_object_reference_strategy
+  (object_id, storage_kind, canonical_identity_type, physical_schema, physical_relation,
+   physical_pk_column, business_key_derivation, version_rule, ownership_rule, reader, writer,
+   evidence_lookup, fixture_creation_service, trace_relationship)
+SELECT
+  b.object_id,
+  case when b.relation_kind = 'PHASE_D_OBJECT_VIEW'          then 'PHASE_D_STORE'
+       when b.canonical_relation like 'public.phase_c!_%' escape '!' then 'KERNEL_OWNED'
+       else 'EXISTING_TABLE' end,
+  case when b.relation_kind = 'PHASE_D_OBJECT_VIEW'          then 'OBJECT_ID_BUSINESS_KEY_VERSION'
+       when b.canonical_relation like 'public.phase_c!_%' escape '!' then 'KERNEL_ID'
+       else 'RELATION_PRIMARY_KEY' end,
+  coalesce(nullif(split_part(b.canonical_relation, '.', 1), ''), 'public'),
+  case when position('.' in b.canonical_relation) > 0
+       then split_part(b.canonical_relation, '.', 2) else b.canonical_relation end,
+  case when b.relation_kind = 'PHASE_D_OBJECT_VIEW' then 'business_key'
+       else coalesce(nullif(btrim(b.primary_identity),''), 'id') end,
+  case when b.relation_kind = 'PHASE_D_OBJECT_VIEW'
+       then 'deterministic: md5(phase_d_fixture:<fixture_run>:<object_id>:<run_id>) inside a fixture '
+            || 'run, or the caller-supplied key derived from the run business_object_id prefix'
+       else 'the canonical relation''s own primary key, ' || coalesce(nullif(btrim(b.primary_identity),''),'id')
+            || ', assigned by the relation' end,
+  coalesce(nullif(btrim(b.versioning),''), '(not stated on the frozen binding)'),
+  b.ownership_scope || case when coalesce(btrim(b.ownership_column),'') = '' then ' (no ownership column on the relation)'
+                            else ' via ' || b.ownership_column end,
+  coalesce(nullif(btrim(b.canonical_read_service),''), 'fn_phase_d_object_read'),
+  coalesce(nullif(btrim(b.canonical_write_service),''), 'fn_phase_d_object_write'),
+  case when b.relation_kind = 'PHASE_D_OBJECT_VIEW'
+       then 'public.phase_d_object_record where object_id = <object_id> and business_key = <business_key>'
+       else 'public.' || case when position('.' in b.canonical_relation) > 0
+                              then split_part(b.canonical_relation,'.',2) else b.canonical_relation end
+            || ' where ' || coalesce(nullif(btrim(b.primary_identity),''),'id') || ' = <pk_value>' end,
+  case when exists (select 1 from public.phase_d_fixture_stage s where s.object_id = b.object_id)
+       then 'fn_phase_d_fixture_scenario stage ' ||
+            (select min(s.stage_key) from public.phase_d_fixture_stage s where s.object_id = b.object_id)
+       else 'no fixture stage creates this object; it is created by a handler effect or not at all' end,
+  coalesce(nullif(btrim(b.trace_relationship),''), '(not stated on the frozen binding)')
+FROM public.phase_d_business_object_binding b
+WHERE b.object_id = 'invoice_receipt'
+ON CONFLICT (object_id) DO UPDATE SET
+  storage_kind             = excluded.storage_kind,
+  canonical_identity_type  = excluded.canonical_identity_type,
+  physical_schema          = excluded.physical_schema,
+  physical_relation        = excluded.physical_relation,
+  physical_pk_column       = excluded.physical_pk_column,
+  business_key_derivation  = excluded.business_key_derivation,
+  version_rule             = excluded.version_rule,
+  ownership_rule           = excluded.ownership_rule,
+  reader                   = excluded.reader,
+  writer                   = excluded.writer,
+  evidence_lookup          = excluded.evidence_lookup,
+  fixture_creation_service = excluded.fixture_creation_service,
+  trace_relationship       = excluded.trace_relationship;
+
+CREATE OR REPLACE FUNCTION public.fn_phase_d_object_write(p_input jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  b            public.phase_d_business_object_binding%rowtype;
+  wm           public.phase_d_object_write_map%rowtype;
+  v_object     text  := nullif(btrim(coalesce(p_input->>'object_id','')),'');
+  v_key        text  := nullif(btrim(coalesce(p_input->>'business_key','')),'');
+  v_owner_ref  text  := nullif(btrim(coalesce(p_input->>'owner_ref','')),'');
+  v_payload    jsonb := p_input->'payload';
+  v_actor      text  := nullif(btrim(coalesce(p_input->>'created_by','')),'');
+  v_state      text  := coalesce(nullif(btrim(p_input->>'state'),''), 'open');
+  v_state_given text := nullif(btrim(p_input->>'state'),'');   -- H02: what the caller actually said
+  v_unchanged  boolean := false;                               -- H02: a confirmation, not a write
+  v_prior      public.phase_d_object_record%rowtype;
+  v_version    integer := 1;
+  v_id         bigint;
+  v_readback   public.phase_d_object_record%rowtype;
+  v_cols       text[] := '{}';
+  v_vals       text[] := '{}';
+  v_sets       text[] := '{}';
+  v_col        record;
+  v_expr       text;
+  v_existing   text;
+  v_result_ref text;
+  v_sql        text;
+  v_supplied   jsonb;
+  -- D17: the outbound door.
+  v_testctx    boolean := public.fn_phase_d_fixture_context() is not null;
+  v_door       record;
+  v_door_val   jsonb;
+  v_net_max    bigint;
+  v_net_new    bigint;
+  v_net_urls   text;
+  -- K02: the parent the object declares.
+  v_parent_src text;
+  -- D18: identity resolution for UPSERT_STATE.
+  v_ident_val  text;
+  v_uq         record;
+  v_where      text;
+begin
+  if v_object is null or v_key is null or v_actor is null then
+    raise exception 'fn_phase_d_object_write: object_id, business_key and created_by are all required (got %, %, %) (pd_object_input_invalid)',
+      coalesce(v_object,'(null)'), coalesce(v_key,'(null)'), coalesce(v_actor,'(null)')
+      using errcode = '22023';
+  end if;
+
+  select * into b from public.phase_d_business_object_binding where object_id = v_object;
+  if not found then
+    raise exception 'fn_phase_d_object_write: % is not a bound Phase D business object — fail closed rather than store a record under a policy nobody declared (pd_object_unbound)',
+      v_object using errcode = '23503';
+  end if;
+
+  if v_payload is null or jsonb_typeof(v_payload) <> 'object' or v_payload = '{}'::jsonb then
+    raise exception 'fn_phase_d_object_write: % sent payload of type %. An empty object is not evidence that anything was recorded. (pd_object_payload_empty)',
+      v_object, coalesce(jsonb_typeof(v_payload),'null') using errcode = '22023';
+  end if;
+
+  if v_owner_ref is null then
+    raise exception 'fn_phase_d_object_write: % is %-scoped and the call names no owner_ref. An unowned business record is the accountability gap this map exists to close. (pd_object_owner_missing)',
+      v_object, b.ownership_scope using errcode = '22023';
+  end if;
+
+  -- ================= EXISTING TABLE: a real write, through the declared map =================
+  if b.relation_kind = 'EXISTING_TABLE' then
+    -- THE KERNEL'S OWN TABLES ARE NOT WRITABLE FROM HERE, AND THIS IS THE POINT OF THE BRANCH.
+    -- workflow_run, workflow_step_run and handoff_record are created and moved by
+    -- fn_kernel_step_complete. Two creators for one object is what deadlocked 16 of 30 workflows
+    -- when workflow_start and step_complete both made the same handoff run; it is not repeated
+    -- here because a handler asked politely.
+    if b.governing_workflow_id = 'ALL' and v_object <> 'review_record' then
+      raise exception 'fn_phase_d_object_write: % is written by the frozen kernel (%). A Phase D handler that wrote it would be a second creator for one object. Use fn_kernel_step_complete. (pd_object_kernel_owned)',
+        v_object, b.canonical_relation using errcode = '23514';
+    end if;
+
+    select * into wm from public.phase_d_object_write_map where object_id = v_object;
+    if not found then
+      raise exception 'fn_phase_d_object_write: % is bound to existing relation % and no write map is declared for it. Refusing to guess a column layout. (pd_object_no_write_map)',
+        v_object, b.canonical_relation using errcode = '23503';
+    end if;
+
+    -- The payload the caller actually sent, plus the four facts every write carries. state and
+    -- owner_ref are named here so a map can point a column at either without the caller repeating
+    -- them; nothing else is defaulted.
+    -- H02 (1). NO STATE THE CALLER DID NOT STATE. An insert takes the relation's default and an
+    -- update leaves the column alone; a stated state for a relation whose map carries no state
+    -- column is refused rather than dropped on the floor.
+    -- H09. A stated state the map cannot carry is reported on the return, not refused: review_record
+    -- carries its verdict as content and has never had a state column.
+    v_supplied := v_payload
+                  || jsonb_build_object('owner_ref', v_owner_ref, 'business_key', v_key)
+                  || case when v_state_given is null then '{}'::jsonb
+                          else jsonb_build_object('state', v_state_given) end;
+
+    -- D17. OUTBOUND SUPPRESSION, IN TEST CONTEXT ONLY, THROUGH EACH TRIGGER'S OWN GUARD.
+    -- In production this loop does not run: a real Phase D handler dispatching a real inquiry is
+    -- the intended behaviour and must not be suppressed. Under the Phase D hold the writer sets
+    -- the product's own already-done marker, and a caller that supplied one keeps it.
+    if v_testctx then
+      for v_door in
+        select d.guard_column, d.suppression_sql
+          from public.phase_d_outbound_door d
+         where d.relation = wm.target_relation
+           and d.disposition = 'SUPPRESSED_BY_ITS_OWN_GUARD'
+      loop
+        -- D19. THE SUPPRESSION IS NOT DEFEASIBLE BY THE CALLER.
+        --
+        -- This was `if not (v_supplied ? guard_column)` — respect a value the caller supplied.
+        -- Adding `routing` to the inquiry write map in D17 made the DRIVER's payload builder start
+        -- generating a value for it, because it invents a typed value for every declared column.
+        -- The generated jsonb carried no dispatched_at, the injection stood aside for it, and
+        -- W05-S01 POSTed dispatch_inquiry again. A harness that generates a value for the key the
+        -- guard reads is the same defect D9 recorded as "a generated fixture beat the real
+        -- reference", and here it silently re-armed a door the writer had just closed.
+        --
+        -- Under the Phase D hold a caller does not get to opt out, so the writer overwrites. Both
+        -- registered guard columns were measured as read by nothing: 0 rules, 0 gate contracts,
+        -- 0 references in fn_rfq_score / fn_rfq_required_check. Overwriting them changes no
+        -- decision any workflow makes; leaving them writable changes whether a POST leaves the
+        -- database.
+        execute format('select %s', v_door.suppression_sql) into v_door_val;
+        v_supplied := v_supplied || jsonb_build_object(v_door.guard_column, v_door_val);
+      end loop;
+    end if;
+
+    -- K02. AN ORPHAN IS REFUSED BY NAME. Where the object's binding declares a parent identity,
+    -- the write map maps a column of that name, and this call supplies no value for it, the row
+    -- about to be written belongs to nothing. Issuing it can only end in a silent BEFORE-trigger
+    -- skip -- which is exactly how W12-S06 lost its effect -- or a foreign-key error two layers
+    -- down. A NOT NULL column is left to the relation's own 23502; this covers the nullable ones,
+    -- which is where the hole was.
+    select wm.column_map->>b.parent_identity into v_parent_src
+      from pg_attribute a
+     where a.attrelid = wm.target_relation::regclass
+       and a.attname = b.parent_identity and a.attnum > 0 and not a.attnotnull
+       and coalesce(btrim(b.parent_identity),'') <> ''
+       and wm.column_map ? b.parent_identity;
+    if v_parent_src is not null
+       and v_parent_src not in ('business_key','owner_ref','state')
+       and (not (v_supplied ? v_parent_src) or v_supplied->v_parent_src = 'null'::jsonb) then
+      raise exception 'fn_phase_d_object_write: % declares parent identity %, the write map reads it from payload key %, and this call supplies none. A % row that belongs to no % is not a business record. (pd_object_parent_missing)',
+        v_object, b.parent_identity, v_parent_src, wm.target_relation, b.parent_identity
+        using errcode = '23502';
+    end if;
+
+    for v_col in
+      select k.key as col, wm.column_map->>k.key as src,
+             format_type(a.atttypid, a.atttypmod) as ftype,
+             (select typcategory from pg_type ty where ty.oid = a.atttypid) as tcat,
+             a.attidentity, a.attgenerated
+        from jsonb_each(wm.column_map) k
+        join pg_attribute a
+          on a.attrelid = wm.target_relation::regclass and a.attname = k.key and a.attnum > 0
+       order by k.key
+    loop
+      -- A GENERATED ALWAYS identity or generated column cannot be written. The map validator
+      -- excludes them from "required"; this excludes them from the statement.
+      if v_col.attidentity = 'a' or v_col.attgenerated <> '' then continue; end if;
+      if not (v_supplied ? v_col.src) then continue; end if;
+
+      v_expr := case
+        when v_col.ftype = 'jsonb' or v_col.ftype = 'json' then
+          format('($1->%L)', v_col.src)
+        when v_col.tcat = 'A' then
+          format('(select coalesce(array_agg(x::text),''{}'')::%s from jsonb_array_elements_text($1->%L) x)',
+                 v_col.ftype, v_col.src)
+        else
+          format('($1->>%L)::%s', v_col.src, v_col.ftype)
+      end;
+      v_cols := v_cols || quote_ident(v_col.col);
+      v_vals := v_vals || v_expr;
+      if v_col.col <> wm.key_column then
+        v_sets := v_sets || format('%I = %s', v_col.col, v_expr);
+      end if;
+    end loop;
+
+    if cardinality(v_cols) = 0 then
+      raise exception 'fn_phase_d_object_write: % supplied no column the write map for % can use. Payload keys were %. (pd_object_payload_unmapped)',
+        v_object, wm.target_relation,
+        coalesce((select string_agg(k,', ' order by k) from jsonb_object_keys(v_supplied) k),'(none)')
+        using errcode = '22023';
+    end if;
+
+    -- D17. The high-water mark, taken immediately before the write. Counting rows with a HIGHER id
+    -- afterwards rather than differencing two counts is deliberate: pg_net's worker DELETES rows it
+    -- has processed, so a plain count delta can be masked to zero by a concurrent drain and report
+    -- silence over two real POSTs.
+    if v_testctx then
+      select coalesce(max(id),0) into v_net_max from net.http_request_queue;
+    end if;
+
+    -- K04. THE IDENTITY PROBE RUNS FOR AN INSERT TOO. An INSERT that would violate a unique
+    -- index on values this call supplies is not a new record: it is the record that already exists.
+    -- W16-S05 collided on reveal_invoices_pkey because operation INSERT skipped the probe entirely
+    -- and the scenario had already issued the invoice for that transaction. For an INSERT the
+    -- existing reference is returned and NOTHING is updated -- see the branch below -- so an
+    -- immutable_revision object is never rewritten by a replay.
+    if wm.operation in ('UPSERT_STATE', 'INSERT') then
+      -- D18. AN UPSERT MUST LOOK FOR THE ROW IT WOULD WRITE, NOT FOR A DIFFERENT ONE.
+      --
+      -- This probe used to be `where key_column::text = business_key` unconditionally, which is
+      -- only correct when the map points key_column at business_key. Two shapes broke on it:
+      --
+      --   supplier_capability  key_column = supplier_id, column_map.supplier_id = 'owner_ref'
+      --                        -> probed supplier_id = <business key>, INSERTED supplier_id =
+      --                           <owner ref>. It read one value and wrote another, so it could
+      --                           never find its own row and the second write died on the pkey.
+      --
+      --   quotation / payment_transaction   key_column = id, a generated bigint
+      --                        -> probed a bigint id against a uuid business key, never matched,
+      --                           always inserted, and collided on the relation's NATURAL key
+      --                           (quotes(inquiry_id,supplier_id), transactions(quote_id)).
+      --
+      -- Identity is now resolved in two derived passes and nothing is hand-listed:
+      --   1. key_column, using THE VALUE THAT WILL BE WRITTEN INTO IT.
+      --   2. failing that, any other unique index on the relation whose columns are ALL declared
+      --      in the map and ALL supplied by this call — the row's natural key. The index's own
+      --      predicate is carried through verbatim from pg_get_expr, so a PARTIAL unique index
+      --      such as transactions(quote_id) WHERE quote_id IS NOT NULL is matched on exactly the
+      --      rows it actually constrains rather than on a guess about what the predicate means.
+      --
+      -- Where neither pass resolves an identity the write stays an INSERT and a unique violation
+      -- remains a real business duplicate. That is reported by fn_phase_d_object_identity_state()
+      -- rather than papered over.
+      v_existing := null;
+
+      if wm.column_map ? wm.key_column then
+        v_ident_val := v_supplied->>(wm.column_map->>wm.key_column);
+        if v_ident_val is not null then
+          v_sql := format('select %I::text from %s where %I::text = $1 limit 1',
+                          wm.key_column, wm.target_relation, wm.key_column);
+          execute v_sql into v_existing using v_ident_val;
+        end if;
+      end if;
+
+      -- H02 (2). THE CALLER'S KEY IS THE RELATION'S KEY when the map writes no key column: probe it
+      -- as text, which matches nothing when the shapes differ and the row when they do not.
+      if v_existing is null and not (wm.column_map ? wm.key_column) then
+        begin
+          v_sql := format('select %I::text from %s where %I::text = $1 limit 1',
+                          wm.key_column, wm.target_relation, wm.key_column);
+          execute v_sql into v_existing using v_key;
+        exception when others then
+          v_existing := null;
+        end;
+      end if;
+
+      if v_existing is null then
+        for v_uq in
+          select ic.relname as idx_name,
+                 array_agg(a.attname::text order by a.attnum) as cols,
+                 min(pg_get_expr(i.indpred, i.indrelid)) as pred
+            from pg_index i
+            join pg_class ic on ic.oid = i.indexrelid
+            join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey)
+           where i.indrelid = wm.target_relation::regclass
+             and i.indisunique
+           group by ic.relname, i.indexrelid
+           order by ic.relname
+        loop
+          -- an index on exactly the key column is pass 1's job, and it already ran
+          continue when v_uq.cols = array[wm.key_column];
+          continue when not (select bool_and(wm.column_map ? c) from unnest(v_uq.cols) c);
+          continue when not (select bool_and(v_supplied ? (wm.column_map->>c)) from unnest(v_uq.cols) c);
+          continue when exists (select 1 from unnest(v_uq.cols) c
+                                 where v_supplied->>(wm.column_map->>c) is null);
+
+          select string_agg(format('%I::text = ($1->>%L)', c, wm.column_map->>c), ' and ')
+            into v_where from unnest(v_uq.cols) c;
+          if v_uq.pred is not null then
+            v_where := v_where || ' and (' || v_uq.pred || ')';
+          end if;
+
+          v_sql := format('select %I::text from %s where %s limit 1',
+                          wm.key_column, wm.target_relation, v_where);
+          execute v_sql into v_existing using v_supplied;
+          exit when v_existing is not null;
+        end loop;
+      end if;
+      if v_existing is not null then
+        -- K04. AN INSERT NEVER UPDATES WHAT IT FOUND. The row already exists under the identity
+        -- this call carries; that is the declared completion condition met, not a second record and
+        -- not a rewrite of the first.
+        if wm.operation = 'INSERT' or cardinality(v_sets) = 0 then
+          -- H02 (3). The row already carries everything this call asked for. That is the declared
+          -- completion condition of an OBJECT_STATE_WRITE met, not a transition refused: the
+          -- existing reference is returned, nothing is written, and unchanged = true says so.
+          v_unchanged := true;
+          v_result_ref := v_existing;
+        end if;
+        -- D18. Update the row the probe actually FOUND. Re-deriving the target from business_key
+        -- here would reintroduce the same mismatch one statement later: the natural-key probe can
+        -- resolve a row whose key_column value equals neither the business key nor anything in the
+        -- payload.
+        if not v_unchanged then
+          v_sql := format('update %s set %s where %I::text = $2 returning %I::text',
+                          wm.target_relation, array_to_string(v_sets, ', '),
+                          wm.key_column, wm.key_column);
+          execute v_sql into v_result_ref using v_supplied, v_existing;
+        end if;
+      else
+        v_sql := format('insert into %s (%s) values (%s) returning %I::text',
+                        wm.target_relation, array_to_string(v_cols, ', '),
+                        array_to_string(v_vals, ', '), wm.key_column);
+        execute v_sql into v_result_ref using v_supplied;
+      end if;
+    else
+      v_sql := format('insert into %s (%s) values (%s) returning %I::text',
+                      wm.target_relation, array_to_string(v_cols, ', '),
+                      array_to_string(v_vals, ', '), wm.key_column);
+      execute v_sql into v_result_ref using v_supplied;
+    end if;
+
+    -- A NULL RETURN IS NOT A WRITE. A BEFORE trigger returning NULL gives a statement that
+    -- "succeeded" with no row; the returned key is what separates the two.
+    if v_result_ref is null then
+      raise exception 'fn_phase_d_object_write: the write to % for % returned no key. Refusing to report a write that produced nothing. (pd_object_write_produced_nothing)',
+        wm.target_relation, v_object using errcode = '23502';
+    end if;
+
+    -- D17. THE ASSERTION. A Phase D test write may not leave an outbound request behind it.
+    if v_testctx then
+      -- WHOSE REQUEST IS IT. This counted every row above an id watermark, so a request enqueued
+      -- by ANY concurrent transaction was attributed to this write. Measured 23 Aug 2026: the
+      -- step-coverage drive failed with "writing inquiry to public.inquiries enqueued 2 outbound
+      -- HTTP request(s): POST .../dropbox_backup, POST .../uptime_check" -- and neither came from
+      -- the write. cron.job 88 (dropbox_backup_scan) and 35 (uptime_check_15min) both run
+      -- */15 * * * *, they commit while a Phase D transaction is open, and READ COMMITTED then
+      -- shows their rows to the next statement here. A drive that fails four times an hour, on the
+      -- quarter hour, because a scheduled job ran is an instrument reporting on the wrong subject.
+      -- The requests are attributed to this transaction now; see the helper for how.
+      select r.n, r.urls into v_net_new, v_net_urls
+        from public.fn_phase_d_outbound_requests_by_this_transaction(v_net_max) r;
+      if coalesce(v_net_new,0) > 0 then
+        raise exception 'fn_phase_d_object_write: writing % to % enqueued % outbound HTTP request(s): %. A Phase D test write may not leave an outbound request behind it. (pd_object_outbound_request_produced)',
+          v_object, wm.target_relation, v_net_new, v_net_urls using errcode = '23514',
+          hint = 'A trigger on this relation calls net.http_post. Register it in public.phase_d_outbound_door with the product''s own already-done guard column, or explain why the request is legitimate under the hold.';
+      end if;
+    end if;
+
+    return jsonb_build_object(
+      'ok', true, 'object_id', v_object, 'relation_kind', 'EXISTING_TABLE',
+      'canonical_relation', wm.target_relation, 'operation', wm.operation,
+      'result_reference', format('%s:%s=%s', wm.target_relation, wm.key_column, v_result_ref),
+      -- F44. THE CANONICAL REFERENCE, RETURNED BY THE WRITER ITSELF.
+      -- Which identity is canonical for this object is a property of the object, recorded once in
+      -- public.phase_d_object_reference_strategy and derived from the frozen 56-object map. For an
+      -- EXISTING_TABLE object it is the relation's own primary key -- the value this write just
+      -- produced -- and every caller downstream now takes it from here rather than choosing.
+      'canonical_ref', public.fn_phase_d_ref(jsonb_build_object(
+                         'object_id', v_object, 'identity', v_result_ref,
+                         'owner_ref', v_owner_ref)),
+      'business_key', v_key, 'state', v_state_given,
+      'policy_family', b.policy_family, 'record_policy', b.record_policy,
+      'owner_scope', b.ownership_scope, 'owner_ref', v_owner_ref,
+      'columns_written', case when v_unchanged then '[]'::jsonb else to_jsonb(v_cols) end,
+      'unchanged', v_unchanged,
+      'state_carried_by_relation', (v_state_given is null
+         or exists (select 1 from jsonb_each_text(wm.column_map) k where k.value = 'state')),
+      'outbound_requests_enqueued', coalesce(v_net_new, 0),
+      'quarantine_note', wm.quarantine_note,
+      'payload_digest', encode(sha256(convert_to(v_payload::text,'UTF8')),'hex'));
+  end if;
+
+  -- ================= PHASE D STORE: unchanged behaviour from D2 =================
+  select * into v_prior from public.phase_d_object_record
+   where object_id = v_object and business_key = v_key and superseded_by is null
+   order by version desc limit 1;
+
+  if found then
+    if b.policy_family = 'APPEND_ONLY' then
+      raise exception 'fn_phase_d_object_write: % is APPEND_ONLY (%) and business key % already holds record %. A correction is a NEW key, never a second version of this one. (pd_object_append_only)',
+        v_object, b.record_policy, v_key, v_prior.record_id using errcode = '23514';
+    end if;
+    -- D27. "MOVE ITS STATE" — AND THE WRITER OFFERED NO WAY TO MOVE IT.
+    --
+    -- This refusal told the caller to move the record's state instead of writing a second, and then
+    -- returned before anything could. In the store branch it governs exactly ONE object:
+    --
+    --     dispatch_batch   PHASE_D_OBJECT_VIEW   TRANSACTION_RECORD
+    --
+    -- payment_transaction, reveal_transaction and supplier_assignment are the other three
+    -- TRANSACTION_RECORDs and all three are EXISTING_TABLE, so they never reach this branch — their
+    -- second write is an UPSERT_STATE that moves the row, which is exactly what this text asks for.
+    --
+    -- And the frozen registry writes dispatch_batch at FIVE successive steps of W12:
+    --     S01 Accept dispatch-ready package        INTAKE_HANDLER
+    --     S02 Build eligible supplier pool         ANALYSIS_HANDLER
+    --     S03 Apply fairness and capacity policy   ANALYSIS_HANDLER
+    --     S04 Review policy exception if needed    REVIEW_HANDLER
+    --     S08 Record selection and exclusion evidence  EXECUTION_HANDLER
+    --
+    -- A batch that is accepted, then built, then policy-applied, then reviewed, then evidenced. Five
+    -- writes to one identity is the DESIGN, so a rule refusing the second could never be satisfied
+    -- by the workflow that owns the object. That is a misclassification meeting a missing mechanism,
+    -- not a business constraint doing its job.
+    --
+    -- ONE RECORD PER IDENTITY IS PRESERVED, and that is the part that must not be lost. The move is
+    -- a superseding version, the same mechanism VERSIONED, IMMUTABLE_REVISION, CASE_RECORD and
+    -- MUTABLE_CONTROLLED already use: the prior row is retained and marked superseded, so after five
+    -- writes there is exactly ONE current record and four retained predecessors. Nothing is
+    -- overwritten in place, which matters because Phase B's frozen mutation_rule for this object is
+    -- "immutable selection evidence" — history is evidence.
+    --
+    -- THE REFUSAL IS KEPT, NARROWED TO WHAT IT CAN ACTUALLY MEAN: a repeat that moves nothing. The
+    -- EXISTING_TABLE branch already refuses on exactly that ground — "a write that changes nothing
+    -- is not a state transition" — so the two branches now agree about one family instead of giving
+    -- it opposite answers. record_policy is FROZEN Phase B and is untouched; policy_family is Phase
+    -- D's own fold and is also untouched. Only the writer's behaviour changes.
+    if b.policy_family = 'TRANSACTION_RECORD'
+       and v_prior.state is not distinct from v_state
+       and v_prior.payload = v_payload then
+      raise exception 'fn_phase_d_object_write: % is a %-family record and business key % already exists as record % with the same state and payload. One record per identity; move its state, do not write a second. (pd_object_duplicate_identity)',
+        v_object, b.policy_family, v_key, v_prior.record_id using errcode = '23505';
+    end if;
+    v_version := v_prior.version + 1;
+  end if;
+
+  insert into public.phase_d_object_record
+    (object_id, business_key, version, state, owner_scope, owner_ref, payload,
+     run_id, step_run_id, trace_id, created_by)
+  values (v_object, v_key, v_version, v_state, b.ownership_scope, v_owner_ref, v_payload,
+          nullif(p_input->>'run_id','')::bigint, nullif(p_input->>'step_run_id','')::bigint,
+          nullif(p_input->>'trace_id','')::bigint, v_actor)
+  returning record_id into v_id;
+
+  if v_id is null then
+    raise exception 'fn_phase_d_object_write: the insert for % / % returned no record_id. Refusing to report a write that produced nothing. (pd_object_write_produced_nothing)',
+      v_object, v_key using errcode = '23502';
+  end if;
+  select * into v_readback from public.phase_d_object_record where record_id = v_id;
+  if not found then
+    raise exception 'fn_phase_d_object_write: record % is not readable back in the same transaction. (pd_object_write_not_readable)',
+      v_id using errcode = '23502';
+  end if;
+
+  if v_prior.record_id is not null
+     -- D27. TRANSACTION_RECORD joins the supersede list so that "one record per identity" stays
+     -- literally true: the prior version is retained and marked superseded, never left as a second
+     -- live record alongside the new one.
+     and b.policy_family in ('VERSIONED','IMMUTABLE_REVISION','CASE_RECORD','MUTABLE_CONTROLLED','TRANSACTION_RECORD') then
+    update public.phase_d_object_record
+       set superseded_by = v_id, superseded_at = now()
+     where record_id = v_prior.record_id;
+  end if;
+
+  return jsonb_build_object(
+    'ok', true, 'object_id', v_object, 'relation_kind', 'PHASE_D_OBJECT_VIEW',
+    'record_id', v_id, 'business_key', v_key,
+    'result_reference', format('public.phase_d_object_record:record_id=%s', v_id),
+    -- F44. For a PHASE_D_STORE object the canonical identity is object_id + business_key + version.
+    -- record_id stays in the envelope as the physical detail it is, never as the identity.
+    'canonical_ref', public.fn_phase_d_ref(jsonb_build_object(
+                       'object_id', v_object, 'identity', v_key,
+                       'version', v_version::text, 'owner_ref', v_owner_ref)),
+    'version', v_version, 'state', v_readback.state,
+    'policy_family', b.policy_family, 'record_policy', b.record_policy,
+    'owner_scope', b.ownership_scope, 'owner_ref', v_owner_ref,
+    'canonical_relation', b.canonical_relation,
+    'superseded_record_id', v_prior.record_id,
+    'payload_digest', encode(sha256(convert_to(v_payload::text,'UTF8')),'hex'));
+end $function$
+;
