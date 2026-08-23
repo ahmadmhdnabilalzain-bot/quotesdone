@@ -37,6 +37,10 @@ for (const wf of WFS) {
 declare
   v jsonb; v2 jsonb; v3 jsonb; v4 jsonb; v_fx jsonb; v_cands jsonb; v_rev text; v_boid text; v_ref_key text;
   v_out text := ''; sr record; v_replay_n int; v_eff_before bigint; v_eff_after bigint; v_state text;
+  v_replay_dupe int; v_replay_first int; v_replay_moved int; v_n_eff int;
+  v_idem_orig text; v_ref_orig text; v_eff_orig bigint;
+  v_obj_before bigint; v_obj_after bigint;
+  v_eff_replay_before bigint; v_eff_replay_after bigint;
   v_res bigint; v_cust bigint; v_inq bigint; v_quo bigint; v_txn bigint;
 begin
   perform public.fn_phase_d_test_context_open(jsonb_build_object(
@@ -71,25 +75,80 @@ begin
     || case when v_boid is null then '{}'::jsonb else jsonb_build_object('business_object_id',v_boid) end);
   select count(*) into v_eff_after from public.phase_d_effect_ledger;
 
-  -- ---- REPLAY: THE SAME STEP RUNS, DISPATCHED AGAIN -------------------------------------------
+  -- ---- REPLAY: THE SAME WORK, ARRIVING TWICE --------------------------------------------------
   -- The first version of this file called the driver a second time. That is not a replay:
   -- fn_kernel_workflow_start opens a NEW run, so its effects are new effects and six workflows duly
-  -- reported a positive delta. A replay is the SAME work arriving twice, so this re-dispatches every
-  -- step run the happy drive produced, through the same door the kernel uses, with the same
-  -- idempotency key. The assertion is the effect-ledger row count.
-  v_replay_n := 0;
+  -- reported a positive delta.
+  --
+  -- 23 AUG 2026 — THE SECOND VERSION SAID "with the same idempotency key" AND INVENTED ONE. It
+  -- passed 'replay:' || step_id || ':' || step_run_id, which is a key the original dispatch never
+  -- used, so nothing about it was a replay of anything. The comment asserted the premise the code
+  -- contradicted.
+  --
+  -- AND THE COUNTER MEASURED A DIFFERENT SUBJECT FROM THE ONE IT NAMED. It reported new rows in
+  -- public.phase_d_effect_ledger as "replay effects added", which reads as duplicates. It cannot be
+  -- duplicates: phase_d_effect_ledger_one_per_step_run is UNIQUE on (step_run_id, effect_type), so
+  -- a second effect of the same type for the same step run cannot be inserted at all. What those
+  -- rows actually were is FIRST effects, for step runs whose original dispatch was refused and
+  -- which succeeded on the second attempt because the scenario had moved on. That is a real and
+  -- interesting fact -- the first dispatch was premature -- and it is not a duplicate. Nineteen of
+  -- thirty workflows were being reported as producing duplicate effects on that basis.
+  --
+  -- Section 9C asks three questions and they are now asked separately:
+  --   duplicates      a step run that ALREADY produced an effect, dispatched again with the SAME
+  --                   idempotency key -- read from the ledger row it wrote, not invented -- must
+  --                   add no ledger row and no second live object record.
+  --   same result     the result_reference on that step run's ledger row must not move.
+  --   premature       step runs that produced their first effect only on the second dispatch,
+  --                   counted and named as what they are.
+  v_replay_n := 0; v_replay_dupe := 0; v_replay_first := 0; v_replay_moved := 0;
+  select count(*) into v_obj_before from public.phase_d_object_record where superseded_by is null;
+  -- THE WINDOW IS THE REPLAY LOOP AND NOTHING ELSE. replay_effects_added used to be computed at
+  -- emit time as (count now - the count after the happy drive), and the failure and cancellation
+  -- arms run in between and produce their own effects -- so it reported those as replay effects. It
+  -- read 1 for W01 while duplicates and premature-first-effects were both 0, three numbers that
+  -- cannot all be true. Measured here, immediately around the loop.
+  select count(*) into v_eff_replay_before from public.phase_d_effect_ledger;
   for sr in select * from public.phase_c_workflow_step_run where run_id = (v->>'run_id')::bigint
              order by step_run_id
   loop
+    -- The key the ORIGINAL dispatch used, where this step run produced an effect at all.
+    select el.idempotency_key, el.result_reference, el.effect_id
+      into v_idem_orig, v_ref_orig, v_eff_orig
+      from public.phase_d_effect_ledger el
+     where el.step_run_id = sr.step_run_id order by el.effect_id limit 1;
+
     begin
       perform public.fn_phase_d_dispatch_step(jsonb_build_object(
         'step_run_id', sr.step_run_id, 'actor_role_id', sr.accountable_role_id,
         'opened_by_kind','replay', 'opened_by_ref','the same step run, dispatched again',
-        'idempotency_key', 'replay:' || sr.step_id || ':' || sr.step_run_id));
+        -- THE SAME KEY, where there is one to be the same as. A step run with no prior effect has
+        -- no original key, and dispatching it is not a replay -- it is counted separately below.
+        'idempotency_key', coalesce(v_idem_orig,
+          'first-dispatch:' || sr.step_id || ':' || sr.step_run_id)));
       v_replay_n := v_replay_n + 1;
     exception when others then null;
     end;
+
+    if v_eff_orig is null then
+      -- No effect before. If there is one now, the FIRST dispatch was premature.
+      if exists (select 1 from public.phase_d_effect_ledger el2 where el2.step_run_id = sr.step_run_id) then
+        v_replay_first := v_replay_first + 1;
+      end if;
+    else
+      -- There was an effect. A replay must not add one, and must not move the reference.
+      select count(*) into v_n_eff from public.phase_d_effect_ledger el3
+       where el3.step_run_id = sr.step_run_id;
+      if v_n_eff > 1 then v_replay_dupe := v_replay_dupe + 1; end if;
+      if (select el4.result_reference from public.phase_d_effect_ledger el4
+           where el4.effect_id = v_eff_orig) is distinct from v_ref_orig then
+        v_replay_moved := v_replay_moved + 1;
+      end if;
+    end if;
+    v_idem_orig := null; v_ref_orig := null; v_eff_orig := null;
   end loop;
+  select count(*) into v_obj_after from public.phase_d_object_record where superseded_by is null;
+  select count(*) into v_eff_replay_after from public.phase_d_effect_ledger;
   v2 := jsonb_build_object('replayed_step_runs', v_replay_n);
 
   -- ---- FAILURE / BLOCK ------------------------------------------------------------------------
@@ -188,8 +247,12 @@ begin
     || 'run_state=' || (v->>'run_state') || '~|~'
     || 'terminal=' || (v->>'terminal') || '~|~'
     || 'steps_driven=' || (v->>'steps_driven') || '~|~'
-    || 'replay_effects_added=' || ((select count(*) from public.phase_d_effect_ledger) - v_eff_after)::text || '~|~'
-    || 'replay_step_runs=' || coalesce(v2->>'replayed_step_runs','0') || '~|~'
+    || 'replay_effects_added=' || (v_eff_replay_after - v_eff_replay_before)::text || '~|~'
+    || 'replay_duplicate_effects=' || v_replay_dupe::text || '~|~'
+    || 'replay_reference_moved=' || v_replay_moved::text || '~|~'
+    || 'replay_duplicate_objects=' || (v_obj_after - v_obj_before)::text || '~|~'
+    || 'steps_first_effect_on_second_dispatch=' || v_replay_first::text || '~|~'
+    || 'replay_step_runs=' || v_replay_n::text || '~|~'
     || 'first_refusal=' || coalesce(v->'first_handler_refusal'->>'refused_with','-') || '~|~'
     || 'first_refusal_at=' || coalesce(v->'first_handler_refusal'->>'at','-') || '~|~'
     || 'business_rows_created_inside_the_transaction=' ||
@@ -221,7 +284,12 @@ end $emit$;`).split('__WFL__').join(wf.toLowerCase()).split('__WF__').join(wf);
         ? 'ACTOR_DRIVEN_TO_TERMINAL'
         : pick('terminal') === 'true' ? 'ACTOR_DRIVEN_PARTIAL' : 'STOPPED',
     failure_path: pick('failure'), cancellation_path: pick('cancellation'),
-    replay_effects_added: pick('replay_effects_added'), replay_step_runs: pick('replay_step_runs'),
+    replay_effects_added: pick('replay_effects_added'),
+    replay_duplicate_effects: pick('replay_duplicate_effects'),
+    replay_reference_moved: pick('replay_reference_moved'),
+    replay_duplicate_objects: pick('replay_duplicate_objects'),
+    steps_first_effect_on_second_dispatch: pick('steps_first_effect_on_second_dispatch'),
+    replay_step_runs: pick('replay_step_runs'),
     first_handler_refusal: pick('first_refusal'), first_handler_refusal_at: pick('first_refusal_at'),
     business_rows_created_inside_the_transaction: pick('business_rows_created_inside_the_transaction'),
   };
@@ -245,7 +313,15 @@ console.log(`happy: handler closed unaided  ${n('happy_verdict', v => v === 'HAN
 console.log(`happy: reached terminal        ${n('terminal', v => v === 'true')} of ${rows.length}`);
 console.log(`failure path exercised         ${n('failure_path', v => !String(v).startsWith('REFUSED'))} of ${rows.length}`);
 console.log(`cancellation reached cancelled ${n('cancellation_path', v => v === 'cancelled')} of ${rows.length}`);
-console.log(`replay produced no new effect  ${n('replay_effects_added', v => v === '0')} of ${rows.length}`);
+// SECTION 9C, ASKED AS THREE QUESTIONS RATHER THAN ONE. "replay effects added" counted new ledger
+// rows and was read as duplicates; it cannot be duplicates, because
+// phase_d_effect_ledger_one_per_step_run is UNIQUE on (step_run_id, effect_type). The three numbers
+// below are what 9C actually requires, and the fourth is the fact the old number was really seeing.
+console.log(`replay: duplicate effects       ${n('replay_duplicate_effects', v => v === '0')} of ${rows.length} clean`);
+console.log(`replay: result reference moved  ${n('replay_reference_moved', v => v === '0')} of ${rows.length} clean`);
+console.log(`replay: duplicate objects       ${n('replay_duplicate_objects', v => v === '0')} of ${rows.length} clean`);
+console.log(`  of which: step runs whose FIRST effect only appeared on the second dispatch — a`);
+console.log(`  premature first dispatch, not a duplicate — ${rows.reduce((a, r) => a + Number(r.steps_first_effect_on_second_dispatch || 0), 0)} across all runs`);
 console.log(`business rows created in-tx    ${rows.reduce((a, r) => a + (Number(r.business_rows_created_inside_the_transaction) || 0), 0)} (all rolled back; residue is read below, after every transaction aborted)`);
 console.log(`capability results accepted    ${rows.reduce((a, r) => a + (Number(r.capability_results) || 0), 0)}`);
 console.log(`dispatches executed            ${rows.reduce((a, r) => a + (Number(r.executed) || 0), 0)} of ${rows.reduce((a, r) => a + (Number(r.dispatched) || 0), 0)}`);
