@@ -1,0 +1,409 @@
+{
+  "package": "QuotesDone_PHASE_D_DETERMINISTIC_BUSINESS_HANDLER_IMPLEMENTATION_PRODUCTION_DIRECT_v2026.08.17",
+  "version": "2026.08.17",
+  "purpose": "Phase D deterministic business-handler implementation plan and Claude Code prompt",
+  "precondition": "PHASE_C_FINAL_ACCEPTANCE_PASS and founder-approved frozen Phase C",
+  "counts": {
+    "version": "2026.08.17",
+    "workflows": 30,
+    "steps": 257,
+    "source_package_handoffs": 161,
+    "business_objects": 56,
+    "business_rules": 54,
+    "gates": 32,
+    "events": 347,
+    "roles": 90,
+    "departments": 10,
+    "category_overlays": 86,
+    "workflow_dossiers": 30,
+    "injected_defects": 75,
+    "pbcr_001_applied": true
+  },
+  "files": [
+    {
+      "path": "CLAUDE_PHASE_D_MASTER_PROMPT.md",
+      "bytes": 7830,
+      "sha256": "834ef4a1e66d397083e1d0bb1d7cdcc4415ee789c34ece2fc6c87a990c8b5e15"
+    },
+    {
+      "path": "PACKAGE_INDEX.md",
+      "bytes": 397,
+      "sha256": "67c53dc2ec7c092cb38cd1b081c3d113ee32c9f3ae4b878f6c7fd6775d63894e"
+    },
+    {
+      "path": "PHASE_D_ACCEPTANCE_CHECKLIST.md",
+      "bytes": 866,
+      "sha256": "c87f5f775f5e5edb3dcd547646ba16829aecf8b00e65c81bf2456472d3fb4faa"
+    },
+    {
+      "path": "PHASE_D_BUSINESS_OBJECT_AND_DATA_INTEGRITY.md",
+      "bytes": 749,
+      "sha256": "ada6e70861bbad06ab9eea0b384dc903ed34d0a1710d8cc25b3cfd17f565f74f"
+    },
+    {
+      "path": "PHASE_D_CHANGE_CONTROL.md",
+      "bytes": 582,
+      "sha256": "d97202ad40f19cdbe81d80489b17152cae5b48005fdb26ed1eb74d39e51ce838"
+    },
+    {
+      "path": "PHASE_D_DEFINITION_OF_DONE.md",
+      "bytes": 1039,
+      "sha256": "b182861f15bf8102cbb9dcb71b62f2258ec0ee5b4db11a5f6b7d99b057d1890c"
+    },
+    {
+      "path": "PHASE_D_EXTERNAL_EFFECTS_AND_NOTIFICATIONS.md",
+      "bytes": 640,
+      "sha256": "d93fdd275efcff05ee046318105f9011b1f9f2931eaa9d8ee57c3d6e7f69f91f"
+    },
+    {
+      "path": "PHASE_D_FINANCIAL_PRIVACY_LEGAL_CONTROLS.md",
+      "bytes": 787,
+      "sha256": "5b911a3773b8058888eac288d11372e70b71602b664fc06271d188b850fc894f"
+    },
+    {
+      "path": "PHASE_D_FRONTEND_API_STORAGE_SECURITY.md",
+      "bytes": 898,
+      "sha256": "5ad609704cf7c20673fbb2a0a6caa0e72a700f3ed77997823165bcca4dd7da91"
+    },
+    {
+      "path": "PHASE_D_HANDLER_ARCHITECTURE.md",
+      "bytes": 1605,
+      "sha256": "b0ae0b321d9be0a8287dbfc6d4dc1e1bf33c35aa1682fea7714d3f1b78eccac3"
+    },
+    {
+      "path": "PHASE_D_IDEMPOTENCY_CONCURRENCY_AND_FAILURES.md",
+      "bytes": 681,
+      "sha256": "fa54e687734b724ee201275df33908307ef7f692770f4441eacb82c4800a2525"
+    },
+    {
+      "path": "PHASE_D_IMPLEMENTATION_WAVES.md",
+      "bytes": 777,
+      "sha256": "8ddc679c2f3d706a4cf6c5cf5280bbc3785d2f1f96e4c7b88f119a4bccd2accc"
+    },
+    {
+      "path": "PHASE_D_MASTER_SPEC.md",
+      "bytes": 2117,
+      "sha256": "156b6294f7e375f6fbb96d835ebdafd24ed9c3a9417dc24f145560ac62184635"
+    },
+    {
+      "path": "PHASE_D_PRECONDITIONS_AND_FROZEN_BASELINES.md",
+      "bytes": 1743,
+      "sha256": "2d9a8f93266e46c5515624da767d6d5679507d92ff78ffcba5fddfe5c978f49f"
+    },
+    {
+      "path": "PHASE_D_PRODUCTION_DIRECT_PROTOCOL.md",
+      "bytes": 774,
+      "sha256": "581137d3c30312c591dae588fad2e7c4ffd5322d7a3c4bfe45d83f6f5b127a7d"
+    },
+    {
+      "path": "PHASE_D_QA_REPORT.json",
+      "bytes": 325,
+      "sha256": "882a91c69ba31644f809e1df5a9ba562c62ea79ed35337091db0c28a0d8aef79"
+    },
+    {
+      "path": "PHASE_D_REQUIRED_DELIVERABLES.md",
+      "bytes": 786,
+      "sha256": "e75aa18442e7e9c6228bcdb9c23dd577ca196344ab395149e715c24a62fd725f"
+    },
+    {
+      "path": "PHASE_D_TEST_AND_ACCEPTANCE_PLAN.md",
+      "bytes": 1123,
+      "sha256": "282296870ba45b780aae79d5590356e3b8c757fd99cd95f323b92a1209797956"
+    },
+    {
+      "path": "PHASE_D_ZERO_COST_AND_PROVIDER_POLICY.md",
+      "bytes": 610,
+      "sha256": "a7e2f0a0a7600a8db1d38a11c7f058a578d32c104ebf31c5d301758f52003b03"
+    },
+    {
+      "path": "START_HERE.md",
+      "bytes": 1992,
+      "sha256": "9183c74e87fa7228ef0aa71993db43c4813ed2865f384d47dff3093434cb1af0"
+    },
+    {
+      "path": "frozen_reference/PBCR-001_EFFECTIVE_DELTA.csv",
+      "bytes": 454,
+      "sha256": "178160c4f2a95c5c8ce5e517af12eac80f38bda117b4c04dd8783b3ec4d2ee8b"
+    },
+    {
+      "path": "frozen_reference/PHASE_A_CANONICAL_ROLE_REGISTRY.csv",
+      "bytes": 58571,
+      "sha256": "765e65f77ff989d4d172179a6c61979923638295719d2a2ac261989a12e213cd"
+    },
+    {
+      "path": "frozen_reference/PHASE_A_CATEGORY_OVERLAY_REGISTRY.csv",
+      "bytes": 59383,
+      "sha256": "9239d04ba64ab36a8ea40a3e7aee26646a6978949c4ce7825712706f38b91db1"
+    },
+    {
+      "path": "frozen_reference/PHASE_A_DEPARTMENT_REGISTRY.csv",
+      "bytes": 2058,
+      "sha256": "66427e513ff6f8c02d744710689b2207b2cfd9ad5be616dfa7eea67c01f16e40"
+    },
+    {
+      "path": "frozen_reference/PHASE_B_BUSINESS_OBJECT_REGISTRY.csv",
+      "bytes": 8470,
+      "sha256": "27cac127fd6d997ed3bdaa42f35b12f9c01c770fb4ee28b7e86f1e7bfbbbfc05"
+    },
+    {
+      "path": "frozen_reference/PHASE_B_BUSINESS_RULE_REGISTRY.csv",
+      "bytes": 8463,
+      "sha256": "5c4fcd37d8c89b322b8bdd4b61cc4671e112477e0b62b440205c80410fa8591f"
+    },
+    {
+      "path": "frozen_reference/PHASE_B_EVENT_REGISTRY.csv",
+      "bytes": 103953,
+      "sha256": "5f678ead4980b73a494fef7a2b62549548ef7622718c9cbb02c951d629efff0a"
+    },
+    {
+      "path": "frozen_reference/PHASE_B_GATE_REGISTRY.csv",
+      "bytes": 5076,
+      "sha256": "9cf3ae27778c92ffb7a2541d8af661a126187265ae2d1f1f45f33f6e799b58b8"
+    },
+    {
+      "path": "frozen_reference/PHASE_B_HANDOFF_REGISTRY_SOURCE_PACKAGE.csv",
+      "bytes": 112163,
+      "sha256": "4c94349ea34d20779bca68ce5f2f6875eeccb0ba6e9a2ca4ddc09ffa6a98941b"
+    },
+    {
+      "path": "frozen_reference/PHASE_B_SLA_POLICY.csv",
+      "bytes": 4737,
+      "sha256": "e562b058733e5f53d861082f5e47791817e5dfbdcfaf3286afe33070f9508dd0"
+    },
+    {
+      "path": "frozen_reference/PHASE_B_STEP_STATE_MODEL.csv",
+      "bytes": 684,
+      "sha256": "d926663903bf7502e7a43a10bd7dbcbd7309b7c45db08906bc2e7f0d697bc1e0"
+    },
+    {
+      "path": "frozen_reference/PHASE_B_STEP_TRANSITIONS.csv",
+      "bytes": 907,
+      "sha256": "8a9a9b9839ec98e68c847f6ad313f84325d310eab19fbbb9cec152ae78551de5"
+    },
+    {
+      "path": "frozen_reference/PHASE_B_WORKFLOW_REGISTRY_SOURCE_PACKAGE.csv",
+      "bytes": 13501,
+      "sha256": "5be94e8ccf7a043ea0c32a3d31547b617068691263f03a661772cbab01f1c5e4"
+    },
+    {
+      "path": "frozen_reference/PHASE_B_WORKFLOW_STATE_MODEL.csv",
+      "bytes": 1179,
+      "sha256": "d22046a5846242b52a94fed80fb97d32abff8f43898f14dbc55a5f20730274c5"
+    },
+    {
+      "path": "frozen_reference/PHASE_B_WORKFLOW_STEP_REGISTRY_EFFECTIVE_WORKING_REFERENCE.csv",
+      "bytes": 168989,
+      "sha256": "22d4362eaa5885ecbed99de3b121a81eafcf1921a47f02f57eeb05f521f7268c"
+    },
+    {
+      "path": "frozen_reference/PHASE_B_WORKFLOW_TRANSITIONS.csv",
+      "bytes": 2001,
+      "sha256": "c5e3e7d5f9103077d5b881c9dda2ed6bbeb060da45134ad1fc09557fdef64f4e"
+    },
+    {
+      "path": "registries/PHASE_D_BUSINESS_OBJECT_IMPLEMENTATION_MATRIX.csv",
+      "bytes": 12051,
+      "sha256": "4804149406fa95fbbee49a239f7f68844f04e9e0ab093c92342c2b2517a0ad14"
+    },
+    {
+      "path": "registries/PHASE_D_EVENT_IMPLEMENTATION_MATRIX.csv",
+      "bytes": 133350,
+      "sha256": "70d792c579b9216ed6dcfe1e288962179821814988b2df11b7b509293940578f"
+    },
+    {
+      "path": "registries/PHASE_D_GATE_ENFORCEMENT_MATRIX.csv",
+      "bytes": 7077,
+      "sha256": "a9c0ce633c5051e37a7fbfeffac967a78ebe871691a92e7b81e474a05bea8c42"
+    },
+    {
+      "path": "registries/PHASE_D_HANDOFF_IMPLEMENTATION_MATRIX.csv",
+      "bytes": 122581,
+      "sha256": "3d5c9f4852078a144e92e46659891790e677adaa6897776587a8fb0357fcb36e"
+    },
+    {
+      "path": "registries/PHASE_D_INJECTED_DEFECT_CATALOG.csv",
+      "bytes": 7518,
+      "sha256": "4043843024abd2547f3c1e954372d2023c5d4327137efc7189d19c66cdde33f1"
+    },
+    {
+      "path": "registries/PHASE_D_RULE_ENFORCEMENT_MATRIX.csv",
+      "bytes": 11649,
+      "sha256": "ec5146b69052d32078c1601604fd68bc24bfba36d0f39c654a81cd0700b7aa60"
+    },
+    {
+      "path": "registries/PHASE_D_STEP_HANDLER_IMPLEMENTATION_MATRIX.csv",
+      "bytes": 273549,
+      "sha256": "b61e7d582f8df2a4870f97c51ba7a67bff3187d336b67bc0aa339da6856ee66a"
+    },
+    {
+      "path": "registries/PHASE_D_WORKFLOW_IMPLEMENTATION_SUMMARY.csv",
+      "bytes": 16186,
+      "sha256": "d8e86433446f0a6a59ee404be685e5b0fc2813b09ae8fc152a0e90d0af4b575b"
+    },
+    {
+      "path": "schemas/phase_d_handler_binding.schema.json",
+      "bytes": 1653,
+      "sha256": "e93ea935619b8d48581253e46fa2210a0e843251f024c21ccb8e7bb4b11a786a"
+    },
+    {
+      "path": "schemas/phase_d_handler_result.schema.json",
+      "bytes": 1437,
+      "sha256": "5482d7b7be24f9c7cdf71eca81ee7996cb2537ce811310107ba4975e90000faa"
+    },
+    {
+      "path": "schemas/phase_d_test_evidence.schema.json",
+      "bytes": 1176,
+      "sha256": "61acb09cce2c37302163927cbb00d5d07d59cd3aed5846d713d10d832767bf58"
+    },
+    {
+      "path": "workflows/W01_founder-mandate-to-company-objectives.md",
+      "bytes": 2242,
+      "sha256": "abdbf2cd0ff2033791ae678a8c34917a8bede25db808d33fc774e045e9bf0cff"
+    },
+    {
+      "path": "workflows/W02_company-target-miss-and-corrective-management.md",
+      "bytes": 2559,
+      "sha256": "0418ce6919244375c38287eeed8100f07c8fbdef339003cb45ef488ef9423009"
+    },
+    {
+      "path": "workflows/W03_customer-acquisition.md",
+      "bytes": 2720,
+      "sha256": "31689b5f85b6214b77dd5776d5fadca3c0659ab00bccbf0666f49b2871a186a4"
+    },
+    {
+      "path": "workflows/W04_customer-registration-and-onboarding.md",
+      "bytes": 2142,
+      "sha256": "2f316a0096ef664cba2d5f0f93e5c748694c46f763736801c31e608ead1f117a"
+    },
+    {
+      "path": "workflows/W05_inquiry-intake-and-qualification.md",
+      "bytes": 2431,
+      "sha256": "545e6e44a5b366f96eb971762654907de6bc6b94c914188418c76c2f9912ded3"
+    },
+    {
+      "path": "workflows/W06_category-routing.md",
+      "bytes": 2156,
+      "sha256": "2af707828479ec570a7788a66d631f7c57b653780643aa02bb62003301e992a3"
+    },
+    {
+      "path": "workflows/W07_document-boq-drawing-processing.md",
+      "bytes": 2221,
+      "sha256": "dd7b756452fa3b09aea05103c24107f9a4d749377076aff1e06be5656a01fb5b"
+    },
+    {
+      "path": "workflows/W08_supplier-safe-payload-and-file-approval.md",
+      "bytes": 2427,
+      "sha256": "c4f7a26ec14799a2b4dee9cf1659a44cb3e1e4d72b0c7db90cd0b3f75d2cbdcf"
+    },
+    {
+      "path": "workflows/W09_supplier-onboarding.md",
+      "bytes": 2331,
+      "sha256": "d6e4d78d79d571ba712deed3bbfbae63c85ddc02aff4f90d27ed5659f2a020fe"
+    },
+    {
+      "path": "workflows/W10_supplier-verification.md",
+      "bytes": 2334,
+      "sha256": "a1bec7f8d14399f636576436c78568f20bc9d436a008a51407ddc8666c6da4b8"
+    },
+    {
+      "path": "workflows/W11_supplier-coverage-and-acquisition-gaps.md",
+      "bytes": 2305,
+      "sha256": "d8cc91f043a2e2306c94ff7618864327d400d8e8b4cc9f4ab090843e7ed8119b"
+    },
+    {
+      "path": "workflows/W12_supplier-matching-and-dispatch.md",
+      "bytes": 2516,
+      "sha256": "2059bec6561d6a7b042ea26aa7bc089d7ef8ac84d4aaabd5f5bb636a8c962e19"
+    },
+    {
+      "path": "workflows/W13_supplier-notification-delivery.md",
+      "bytes": 2186,
+      "sha256": "e0bf2eb9e9ebc28a1dc1c64561502d118d2da5a4f54caeb9f7686a2c7f4fd002"
+    },
+    {
+      "path": "workflows/W14_quotation-submission-and-evaluation.md",
+      "bytes": 2409,
+      "sha256": "de0762d5cd71a4a25f040d4f0e676a9b4966a3335731f3913443934529bd34a7"
+    },
+    {
+      "path": "workflows/W15_customer-comparison-and-reveal.md",
+      "bytes": 2434,
+      "sha256": "6c91f30aeecb79ae78b18e96c8e108129e20e355f5fe4aa198262a97d11d6df1"
+    },
+    {
+      "path": "workflows/W16_payment-billing-and-reconciliation.md",
+      "bytes": 2293,
+      "sha256": "da9370ea9320d285ec8c0b07d927583eae8c04f2c5c4430bc64fabe4e6e39e08"
+    },
+    {
+      "path": "workflows/W17_refund-dispute-and-fraud.md",
+      "bytes": 2798,
+      "sha256": "74e13ec18346ce2f3b535a65fbd231fcb02e72c0be4a5dfb5ebfd3fbbea72a82"
+    },
+    {
+      "path": "workflows/W18_customer-support-and-retention.md",
+      "bytes": 2235,
+      "sha256": "bc35b14c6dfd6651e7f3cfff312c48d82b299012bd22a8bf94527e6fd091ebf7"
+    },
+    {
+      "path": "workflows/W19_supplier-retention.md",
+      "bytes": 2216,
+      "sha256": "3b035a58ef9bbaf679d2d12bc8203177f7560a3fffbc680c9d7b869edec1ff0d"
+    },
+    {
+      "path": "workflows/W20_marketing-content-lifecycle.md",
+      "bytes": 2585,
+      "sha256": "1f0015ef3bcd7982f14c6f5b9952f4a7fd9bfb22d572d43512a6e56b46a7949d"
+    },
+    {
+      "path": "workflows/W21_strategic-partnership-development.md",
+      "bytes": 2497,
+      "sha256": "e28219e325fb254f10424f563e1485cb0f03f9a308304b9b8715d4393fc25df0"
+    },
+    {
+      "path": "workflows/W22_product-discovery-to-delivery.md",
+      "bytes": 2255,
+      "sha256": "35ea7a59d7d8f40e30b1a58fb4d1d7a48b9950697014e88a705e04ddc5111a12"
+    },
+    {
+      "path": "workflows/W23_ai-model-prompt-change.md",
+      "bytes": 2301,
+      "sha256": "17e1aa0639c4dd0f0691aea71983d60eed5c5894c8c869b146e20b3a1b58f559"
+    },
+    {
+      "path": "workflows/W24_release-and-production-approval.md",
+      "bytes": 2536,
+      "sha256": "fd2b45270ab2f45ac43938a86ba8f85c991903351f60f5afd8855aed90ff38e7"
+    },
+    {
+      "path": "workflows/W25_data-reporting-and-forecasting.md",
+      "bytes": 2227,
+      "sha256": "ae819e964ebb8770f595de0c623b350ce9ec0b3d20262a3a47cf262e6160257c"
+    },
+    {
+      "path": "workflows/W26_knowledge-creation-and-validation.md",
+      "bytes": 2393,
+      "sha256": "00eba069fae79906161a1865d0dbc4aea731d4ab12effb1e329497f64c34185c"
+    },
+    {
+      "path": "workflows/W27_financial-planning-and-accounting-close.md",
+      "bytes": 2492,
+      "sha256": "3afe0f0612a016254de892f01a7cd06e1a2c25e2d26234111fd98355c4959ad9"
+    },
+    {
+      "path": "workflows/W28_legal-compliance-and-risk-review.md",
+      "bytes": 2221,
+      "sha256": "1ccc08f027efc92ffe28f10e31cf5c53494ceccbc917beeb8d86a643d1285a26"
+    },
+    {
+      "path": "workflows/W29_security-incident-and-reliability-recovery.md",
+      "bytes": 2711,
+      "sha256": "38a370c726ef34cb5cd9b8682b0f4fb91adfdc74f9df9b4aedb74df981792a76"
+    },
+    {
+      "path": "workflows/W30_agent-performance-remediation-and-organization-design.md",
+      "bytes": 2953,
+      "sha256": "3600d41414e3b5e43edce105fd7b2fc24805145dd975e9baf47abd1168a3a696"
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QuotesDone Phase D Handler Binding",
+  "type": "object",
+  "required": [
+    "step_id",
+    "handler_id",
+    "handler_version",
+    "handler_class",
+    "input_schema_id",
+    "output_schema_id",
+    "accountable_role_id",
+    "idempotency_scope",
+    "failure_contract",
+    "trace_policy"
+  ],
+  "properties": {
+    "step_id": {
+      "type": "string",
+      "pattern": "^W\\d{2}-S\\d{2}$"
+    },
+    "handler_id": {
+      "type": "string"
+    },
+    "handler_version": {
+      "type": "string"
+    },
+    "handler_class": {
+      "type": "string"
+    },
+    "input_schema_id": {
+      "type": "string"
+    },
+    "output_schema_id": {
+      "type": "string"
+    },
+    "accountable_role_id": {
+      "type": "string"
+    },
+    "reviewer_role_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rule_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "gate_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "idempotency_scope": {
+      "type": "string"
+    },
+    "failure_contract": {
+      "type": "string"
+    },
+    "trace_policy": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "VERIFIED_EXISTING_HANDLER",
+        "REPAIRED_EXISTING_HANDLER",
+        "NEW_DETERMINISTIC_HANDLER",
+        "CAPABILITY_BOUNDARY_READY",
+        "EXTERNAL_ADAPTER_READY_DISABLED",
+        "COMPATIBILITY_WRAPPER_TO_CANONICAL",
+        "INTENTIONALLY_INACTIVE_WITH_FROZEN_REASON",
+        "BLOCKED_DEFECT"
+      ]
+    }
+  },
+  "additionalProperties": true
+}
