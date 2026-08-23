@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-23T21:47:28.911Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-23T22:17:28.622Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -59573,26 +59573,18 @@ begin
     observed := format('BR-031 at its registered point fn_kernel_reviewer_independent: one identity as executor and reconciler -> %s/%s; two identities -> %s. CHECK phase_c_refund_decision_ck carries it too but kernel_write_authority names no writer for that table.',
                        v_state, v_code, v_ctl);
     blocker := null; return next;
-
-    -- PD-AUTH-005 category overlay presented as the accountable task owner.
-    begin
-      v_task := public.fn_phase_c_task_create(jsonb_build_object(
-        'source_kind','defect_probe','source_ref','zz-auth-005','accountable_role_id', v_ovl,
-        'objective','zz','idempotency_key','zz-pd-auth-005-inj'));
-      v_state := 'ACCEPTED';
-    exception when others then v_state := 'REFUSED'; v_code := left(SQLERRM, 90); end;
-    begin
-      v_task := public.fn_phase_c_task_create(jsonb_build_object(
-        'source_kind','defect_probe','source_ref','zz-auth-005c','accountable_role_id','compliance_and_privacy_officer',
-        'objective','zz','idempotency_key','zz-pd-auth-005-ctl'));
-      v_ctl := 'ACCEPTED';
-    exception when others then v_ctl := 'REFUSED: ' || left(SQLERRM, 60); end;
-    v_ok := v_state = 'REFUSED' and v_ctl = 'ACCEPTED';
-    defect_id:='PD-AUTH-005'; category:='AUTH';
-    status := case when v_ok then 'REFUSED_AS_REQUIRED' else 'NOT_REFUSED' end;
-    observed := format('fn_phase_c_task_create, the only routine in kernel_write_authority permitted to open a task: overlay %s as accountable owner -> %s (%s); the same call naming an active canonical role -> %s. z10_phase_c_overlay_not_accountable stands behind it.',
-                       v_ovl, v_state, v_code, v_ctl);
-    blocker := null; return next;
+  -- PD-AUTH-005 — WITHDRAWN, and this is why rather than a silent revert.
+  -- The branch that closed it called public.fn_phase_c_task_create. public.kernel_write_authority
+  -- says that routine may write public.phase_c_task; public.kernel_retired_path says it is a
+  -- KERNEL_INTERNAL_PRIMITIVE, reachable only from fn_kernel_*. Both are true together — it is the
+  -- authorised writer, called by the kernel — so a PROBE calling it is exactly the bypass
+  -- fn_kernel_retired_path_state counts, and it took that board from 0 of 9 to 1 of 9.
+  -- Making the board's exclusion list longer to admit this estate's own probe would be editing a
+  -- kernel board to suit the code it audits. The refusal was real and was observed; the route to it
+  -- was not one a probe may take.
+  defect_id:='PD-AUTH-005'; category:='AUTH'; status:='NOT_RUN'; observed:=null;
+  blocker := 'z10_phase_c_overlay_not_accountable refused a category overlay presented as the accountable task owner, and the canonical owner was accepted. closing this needs public.fn_phase_c_task_create, which public.kernel_retired_path classifies KERNEL_INTERNAL_PRIMITIVE — reachable only from fn_kernel_*. A probe that calls it directly is the bypass fn_kernel_retired_path_state exists to catch, and it turned that board red at 1 of 9 on 24 Aug 2026. The refusal itself is real and was observed before the branch was withdrawn.';
+  return next;
 
     -- PD-DISP-005 category overlay attempts a dispatch.
     select rc.state, rc.refusal_code into v_state, v_code
@@ -59605,28 +59597,18 @@ begin
     observed := format('BR-048 (category overlays cannot dispatch): actor %s -> %s/%s; the overlay''s own invocation_role_id inquiry_router -> %s. The identity is resolved through fn_phase_c_resolve_actor and matched against phase_c_overlay_binding, not taken from the call.',
                        v_ovl, v_state, v_code, v_ctl);
     blocker := null; return next;
-
-    -- PD-LEGAL-005 the creator performs its own final COMPLIANCE review.
-    begin
-      v_task := public.fn_phase_c_task_create(jsonb_build_object(
-        'source_kind','defect_probe','source_ref','zz-legal-005','workflow_id','W28','step_id','W28-S04',
-        'accountable_role_id','compliance_and_privacy_officer','reviewer_required', true,
-        'reviewer_role_id','compliance_and_privacy_officer','objective','zz','idempotency_key','zz-pd-legal-005-inj'));
-      v_state := 'ACCEPTED';
-    exception when others then v_state := 'REFUSED'; v_code := left(SQLERRM, 80); end;
-    begin
-      v_task := public.fn_phase_c_task_create(jsonb_build_object(
-        'source_kind','defect_probe','source_ref','zz-legal-005c','workflow_id','W28','step_id','W28-S04',
-        'accountable_role_id','compliance_and_privacy_officer','reviewer_required', true,
-        'reviewer_role_id','general_counsel','objective','zz','idempotency_key','zz-pd-legal-005-ctl'));
-      v_ctl := 'ACCEPTED';
-    exception when others then v_ctl := 'REFUSED: ' || left(SQLERRM, 60); end;
-    v_ok := v_state = 'REFUSED' and v_ctl = 'ACCEPTED';
-    defect_id:='PD-LEGAL-005'; category:='LEGAL';
-    status := case when v_ok then 'REFUSED_AS_REQUIRED' else 'NOT_REFUSED' end;
-    observed := format('W28-S04 "Assess compliance and privacy" is the compliance review step of the frozen registry. Its owner as its own reviewer -> %s (%s); the same task with general_counsel reviewing -> %s. z20_phase_c_task_state_guard decides.',
-                       v_state, v_code, v_ctl);
-    blocker := null; return next;
+  -- PD-LEGAL-005 — WITHDRAWN, and this is why rather than a silent revert.
+  -- The branch that closed it called public.fn_phase_c_task_create. public.kernel_write_authority
+  -- says that routine may write public.phase_c_task; public.kernel_retired_path says it is a
+  -- KERNEL_INTERNAL_PRIMITIVE, reachable only from fn_kernel_*. Both are true together — it is the
+  -- authorised writer, called by the kernel — so a PROBE calling it is exactly the bypass
+  -- fn_kernel_retired_path_state counts, and it took that board from 0 of 9 to 1 of 9.
+  -- Making the board's exclusion list longer to admit this estate's own probe would be editing a
+  -- kernel board to suit the code it audits. The refusal was real and was observed; the route to it
+  -- was not one a probe may take.
+  defect_id:='PD-LEGAL-005'; category:='LEGAL'; status:='NOT_RUN'; observed:=null;
+  blocker := 'z20_phase_c_task_state_guard refused the owner of W28-S04 as its own reviewer, and general_counsel was accepted. closing this needs public.fn_phase_c_task_create, which public.kernel_retired_path classifies KERNEL_INTERNAL_PRIMITIVE — reachable only from fn_kernel_*. A probe that calls it directly is the bypass fn_kernel_retired_path_state exists to catch, and it turned that board red at 1 of 9 on 24 Aug 2026. The refusal itself is real and was observed before the branch was withdrawn.';
+  return next;
 
     -- PD-DISP-003 an unapproved supplier-safe package reaches dispatch.
     perform public.fn_phase_d_object_write(jsonb_build_object(

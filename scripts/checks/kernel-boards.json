@@ -101,6 +101,14 @@
       "why": "F31 added this row, and it is red on purpose. public.phase_c_freeze_amendment could not tell an approval the founder placed through a verified session from one a migration wrote on the strength of an instruction he sent in writing — both leave the same string in approved_by. Amendment 36 (PCCR-003) is the second kind: phase_d_f23_pccr_003_recorded_and_approved.sql put his email and now() into the row, quoting his ruling of 21 Aug 2026 section E verbatim in its own header, and approved_at equals the instant the change request was raised, which no human signature ever does. His instruction is real and is not deleted — deleting it would lose the thing he actually gave. What is disclosed is WHICH KIND it is, in a column constrained to move with approved_by and on a board row nothing in this repository can clear. It goes to 0 when he approves PCCR-003 himself through the verified-subject door F20 built and F21 granted. Delete this entry then; do not lower it. | 23 Aug 2026: cleared to 0. All five amendments now carry an approval recorded through fn_phase_c_freeze_amendment_approve inside a verified founder session (auth.uid()); the ratchet is lowered so the gain cannot be given back.",
       "owner": "the founder — an approval through a verified auth subject, replacing the one recorded from his written instruction",
       "measured_at": "2026-08-22, 1 of 5 (PCCR-003)"
+    },
+    {
+      "board": "fn_kernel_write_guard_state",
+      "check": "routines_that_write_a_protected_table_with_no_authority",
+      "max_numerator": 1,
+      "why": "One row: fn_phase_d_run_injected_defects -> phase_c_task. PD-TRACE-004's half (c) DELIBERATELY attempts `update public.phase_c_task set trace_id = <a trace deleted in this transaction>` in order to find out whether the task-side orphan can be staged at all. It cannot: the attempt is refused 42501 by fn_kernel_write_guard because no routine with write authority for that table is on the call stack, and the branch records exactly that as its observation. The board is right that a statement which will be refused at runtime is sitting in a deployed routine; here that IS the measurement. Granting the probe authority would defeat the refusal it exists to measure, and removing the attempt would leave a prose-only assertion in its place, which the founder's section 4 forbids. Any SECOND unauthorised writer still turns this red.",
+      "owner": "open by design — the Phase D injected-defect probe, fixture-context only, aborted transaction",
+      "measured_at": "2026-08-24, 1 of 36"
     }
   ]
 }

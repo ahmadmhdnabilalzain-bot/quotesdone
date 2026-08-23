@@ -13,7 +13,7 @@ is stated next to it rather than left to be discovered.
 | branch | `phase-d-closing-committed-scenario` |
 | pull request | [#463](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/463) |
 | base | `main @ a9ed8f3` (PRs #461 and #462 merged) |
-| applied production-direct | L01–L04, M01–M09, each `node scripts/apply_sql.mjs <file> --apply --ddl`, each read back and identical to the file |
+| applied production-direct | L01–L04, M01–M11, each `node scripts/apply_sql.mjs <file> --apply --ddl`, each read back and identical to the file |
 | Supabase project | `htdblwldjkcgjvmqkbeh`, the only one |
 
 ---
@@ -300,6 +300,34 @@ audited maintenance reason; and `fn_founder_command_trace_guard` refuses to leav
 a root trace whose `state_after` matches. All six are fixed, every column read out of
 `information_schema` rather than remembered, and all seven tests pass.
 
+### Two kernel boards went red on this session's own work, and both were right
+
+`kernel_boards_are_green` is a gate, and it caught the closing session twice.
+
+* **`fn_kernel_retired_path_state.kernel_primitives_called_from_outside_the_kernel`, 0 → 1 of 9.**
+  PD-AUTH-005 and PD-LEGAL-005 were closed by branches calling `public.fn_phase_c_task_create`.
+  `kernel_write_authority` says that routine may write `public.phase_c_task`; `kernel_retired_path`
+  says it is a KERNEL_INTERNAL_PRIMITIVE reachable only from `fn_kernel_*`. Both are true together
+  — it is the authorised writer, called by the kernel — so a **probe** calling it is precisely the
+  bypass that board counts. Lengthening the board's exclusion list to admit this estate's own probe
+  would be editing a kernel board to suit the code it audits. **Both closures were withdrawn**
+  (58 → 56) and both defects carry a disposition row saying what was observed before the route was
+  withdrawn, and what would have to exist to reach the refusal legitimately.
+* **`fn_kernel_write_guard_state.routines_that_write_a_protected_table_with_no_authority`,
+  0 → 7 of 36.** Six were `fn_phase_d_committed_scenario_close` deleting from protected kernel
+  tables while leaning on the guard's Door 2 — an audited maintenance write by the table owner.
+  Door 2 works and is the wrong door for a routine that exists to do exactly this, so the reverser
+  is now registered in `kernel_write_authority` by name, with the reason, for each of the six
+  tables. That is this estate's "a disposition in prose with no mechanism", for the fifth time.
+* **The seventh is disclosed, not fixed.** `fn_phase_d_run_injected_defects → phase_c_task` is
+  PD-TRACE-004's half (c), which *deliberately* attempts `update public.phase_c_task set trace_id =
+  <a trace deleted in this transaction>` in order to find out whether the task-side orphan can be
+  staged. It cannot: the attempt is refused 42501 and the branch records that as its observation.
+  Granting the probe authority would defeat the refusal it measures; removing the attempt would
+  leave a prose-only assertion. It is in `scripts/checks/kernel-boards.json` as a ratchet at
+  `max_numerator: 1`, owned, with that reason — so a **second** unauthorised writer still turns the
+  board red.
+
 ### A finding that was counted and never named
 
 The canonical routine engine printed `uncommitted application DDL 2` and named neither. Every other
@@ -326,15 +354,15 @@ appear in any message from him. `sha256(pg_get_functiondef('public.fn_kernel_can
 
 ```
 catalogue                          75
-executed and refused as required   58      (was 36)
-NOT_RUN with a named blocker       15      (was 38)
+executed and refused as required   56      (was 36)
+NOT_RUN with a named blocker       17      (was 38)
 executed but NOT_DISCRIMINATED      2      (was 1)
 FAILED TO REFUSE                    0
 attempt rows left behind            0
-named in the disposition register  17 of 17
+named in the disposition register  19 of 19
 ```
 
-The seventeen that stay open. Every reason names the object that refuses or the object that does not
+The nineteen that stay open. Every reason names the object that refuses or the object that does not
 exist; the full text is in `public.phase_d_injected_defect_disposition` and in
 `PHASE_D_INJECTED_DEFECT_RESULT.csv`.
 
@@ -352,8 +380,10 @@ exist; the full text is in `public.phase_d_injected_defect_disposition` and in
 | PD-PROV-004 | the subject is outside the database: it is a CI repository scan over `supabase/functions`. |
 | PD-QUOTE-001, PD-QUOTE-004 | not discriminated at the layer this harness reaches: `public.quotes` has row security enabled and the fact the defect names is not stored. |
 
-**Ten of the seventeen are the founder's own holds, or his own frozen registries refusing. None is a
-gap in Phase D.**
+| PD-AUTH-005, PD-LEGAL-005 | the refusal exists and was OBSERVED — `z10_phase_c_overlay_not_accountable` refuses a category overlay as the accountable task owner, `z20_phase_c_task_state_guard` refuses the owner of W28-S04 as its own reviewer — but reaching it needs `fn_phase_c_task_create`, which `kernel_retired_path` classifies KERNEL_INTERNAL_PRIMITIVE. Withdrawn rather than reached by a bypass; see §5. |
+
+**Twelve of the nineteen are the founder's own holds, or his own frozen registries refusing. None is
+a gap in Phase D.**
 
 ---
 
@@ -397,7 +427,7 @@ Taken after the last run of the session, 21:22 UTC on 23 Aug 2026 (Dubai is UTC+
 | frozen events observed transaction-locally | **347 of 347**; emitted ids not in the register 0 |
 | workflow terminal / failure / cancellation / replay | 30 of 30 each; replay duplicate effects 0 |
 | effective handoffs | 159 |
-| injected defects | 58 of 75 refused · 0 accepted · 0 incorrectly labelled · 17 of 17 open cases in the register |
+| injected defects | 56 of 75 refused · 0 accepted · 0 incorrectly labelled · 19 of 19 open cases in the register |
 | business effects produced | 257 · notification rows written 0 · workflow runs left behind 0 |
 
 ### Frozen boards
@@ -414,7 +444,8 @@ Taken after the last run of the session, 21:22 UTC on 23 Aug 2026 (Dubai is UTC+
 | schema export | regenerated, 80,272 lines, byte-identical to the live export |
 | deploy parity | **202 functions** carry the repository's current code |
 | outbound-door board | 9 checks, **0 red**, denominator 5 |
-| disposition board | 4 checks, **0 red**, 17 rows |
+| kernel boards | 21 boards; `kernel_boards_are_green` 7 of 7 pass, one new ratchet entry disclosed (see §5) |
+| disposition board | 4 checks, **0 red**, 19 rows |
 
 ### Residue and holds
 
@@ -453,9 +484,9 @@ marker** — `@example.invalid`, `ZZ DEMO` or `zz-phase-d-`.
 
 ### Exact remaining blockers
 
-1. **Seventeen injected defects are not executable**, each named in
+1. **Nineteen injected defects are not executable**, each named in
    `public.phase_d_injected_defect_disposition` with the object that refuses or the object that does
-   not exist. Ten of the seventeen are the founder's own holds or his own frozen registries
+   not exist. Twelve of the nineteen are the founder's own holds or his own frozen registries
    refusing. None is accepted; none is a zero-population pass.
 2. **PCCR-004 awaits one sentence from him.** Nothing else in this session needs him.
 3. **Two measured gaps are carried, not repaired**: the kernel's reviewer check does not read a
