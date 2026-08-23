@@ -469,6 +469,11 @@ if (REPO_ONLY) {
   show('REPOSITORY -> PRODUCTION drift (canonical body not deployed)', REPO_TO_PROD, x => `${x.name}  ${x.why}  [${x.file}]`);
   show('PRODUCTION -> REPOSITORY drift (live application routine with no canonical file)', PROD_TO_REPO,
     x => `${x.name}(${x.args})  owner ${x.owner}  — ${x.mirror}`);
+  // A FINDING THAT IS COUNTED AND NEVER NAMED CANNOT BE ACTED ON. UNCOMMITTED_DDL was summed into
+  // the exit code and printed only as a number; every other finding class here shows its rows.
+  // Measured 24 Aug 2026: the summary said 2 and nothing in the output said which 2.
+  show('UNCOMMITTED APPLICATION DDL (live, and in no canonical file or the schema mirror)',
+       UNCOMMITTED_DDL, x => x);
   console.log(`\nownership of live public routines: `
     + Object.entries(live.reduce((a, r) => { const k = ownership(r); a[k] = (a[k] || 0) + 1; return a; }, {}))
       .map(([k, v]) => `${k} ${v}`).join('   '));

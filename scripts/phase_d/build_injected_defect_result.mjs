@@ -53,9 +53,25 @@ begin
     -- free-text field is now capped at 240 characters with the cut marked in the value, so a reader
     -- of the deliverable can see that a reason was shortened. A silent cut is the defect; a marked
     -- one is a measurement with its boundary stated.
+    -- AND A PER-RUN IDENTIFIER IN A REASON MAKES THE DELIVERABLE UNREPRODUCIBLE. Measured 24 Aug
+    -- 2026, two consecutive builds of this file over the same estate: FIVE rows differed, and every
+    -- difference was a step run id, a task id or a trace id that the scenario factory mints fresh on
+    -- each drive -- "step run 225603" against "step run 236310". The finding was identical; the row
+    -- was not.
+    --
+    -- SIX DIGITS, NOT THREE. The sibling deliverable redacts runs of three or more, and that would
+    -- take "28 of 257 frozen steps" and "20,465 leads" with it -- counts that ARE the finding. Every
+    -- volatile id in this estate's kernel tables is six digits or more and every count these
+    -- observations carry is five or fewer, so the boundary is drawn where it separates them, and it
+    -- is drawn here rather than left to be discovered by the next reader of a red check.
+    --
+    -- REDACT FIRST, THEN BOUND. fn_phase_d_bounded cuts at 240; redacting afterwards would measure
+    -- the window on text that still has the id in it, so an id gaining a digit would shift the cut
+    -- and the row would stop reproducing anyway. That exact defect was live in
+    -- build_workflow_implementation_result.mjs until this session.
     v_out := v_out || chr(30) || concat_ws(chr(31), r.defect_id, r.category, r.status,
-             public.fn_phase_d_bounded(replace(replace(coalesce(r.observed,''), chr(10),' '), chr(13),' '), 240),
-             public.fn_phase_d_bounded(replace(replace(coalesce(r.blocker,''),  chr(10),' '), chr(13),' '), 240));
+             public.fn_phase_d_bounded(regexp_replace(replace(replace(coalesce(r.observed,''), chr(10),' '), chr(13),' '), '[0-9]{6,}', '<id>', 'g'), 240),
+             public.fn_phase_d_bounded(regexp_replace(replace(replace(coalesce(r.blocker,''),  chr(10),' '), chr(13),' '), '[0-9]{6,}', '<id>', 'g'), 240));
   end loop;
   -- AND IF THE BOUND IS EVER NOT ENOUGH, SAY SO RATHER THAN LOSE A ROW.
   if length(v_out) > 1800 then
@@ -141,3 +157,28 @@ if (exec + notrun + notdisc + notref.length !== rows.length) {
 }
 if (notref.length) { console.error('  ' + notref.map(r => r[0]).join(', ')); process.exit(1); }
 if ((residue?.[0]?.n ?? -1) !== 0) process.exit(1);
+
+// EVERY CASE THAT DID NOT RUN IS NAMED IN THE REGISTER, OR THIS BUILD FAILS.
+//
+// The founder's ruling of 23 Aug 2026, section 4: "every remaining case named in the register with
+// a reason a reader can check". Until this line the reason a case did not run lived in a text
+// literal inside the injection function, which is where a stale reason hides best — PD-PRIV-004
+// carried "SECTION 8 NOT BUILT" for days after section 8 had been built and had overridden it.
+// public.phase_d_injected_defect_disposition is the register; this is what makes it owed rather
+// than optional. A case that stops running and gains no row turns this red on the next build.
+const open = rows.filter(r => r[2] !== 'REFUSED_AS_REQUIRED').map(r => r[0]);
+const decided = new Set((await sql(
+  'select defect_id from public.phase_d_injected_defect_disposition')).map(r => r.defect_id));
+const undecided = open.filter(id => !decided.has(id));
+const stale = [...decided].filter(id => !open.includes(id));
+console.log(`  named in the disposition register  ${open.length - undecided.length} of ${open.length}`);
+if (undecided.length) {
+  console.error(`  NOT IN THE REGISTER: ${undecided.join(', ')}`);
+  console.error('  a case that did not run and that nobody decided is not a case anyone can check.');
+  process.exit(1);
+}
+if (stale.length) {
+  console.error(`  REGISTER ROWS FOR CASES THAT NOW RUN: ${stale.join(', ')}`);
+  console.error('  an exemption for a case that has since been closed is a reason nobody re-read.');
+  process.exit(1);
+}

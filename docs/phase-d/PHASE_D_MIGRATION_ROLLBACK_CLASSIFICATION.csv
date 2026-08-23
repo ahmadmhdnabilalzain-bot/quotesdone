@@ -1,5 +1,5 @@
-# node scripts/phase_d/build_migration_rollback_classification.mjs | project htdblwldjkcgjvmqkbeh | 209 of 209 files matching scripts/sql/phase_d_*.sql, each classified from its own text | attribution: dollar-quoted routine bodies are removed first, then statements beginning at column 0 are counted; the classes are the ones docs/phase-d/PHASE_D_ROLLBACK_CLASSIFICATION_D9.md defines and that document remains the authority on what each one means
-# generated_at: 2026-08-23T16:30:26.844Z
+# node scripts/phase_d/build_migration_rollback_classification.mjs | project htdblwldjkcgjvmqkbeh | 224 of 224 files matching scripts/sql/phase_d_*.sql, each classified from its own text | attribution: dollar-quoted routine bodies are removed first, then statements beginning at column 0 are counted; the classes are the ones docs/phase-d/PHASE_D_ROLLBACK_CLASSIFICATION_D9.md defines and that document remains the authority on what each one means
+# generated_at: 2026-08-23T22:22:24.963Z
 file,class,routines,routines_introduced,additive_ddl,grants,registry_writes,deletes,down_script_required,down_script,rollback_stated_in_header
 "phase_d_d0_auth_debt_discharged.sql","ADDITIVE_SURVIVAL_SAFE","0","none","none","0","2","0","NO","-","NO"
 "phase_d_d10_seven_cases_for_every_one_of_the_257_steps.sql","EXPLICIT_DOWN_REQUIRED","3","public.fn_phase_d_step_cases public.fn_phase_d_run_step_cases public.fn_phase_d_case_state","1 table, 1 alter table","8","0","0","YES","scripts/sql/down/phase_d_d10_seven_cases_for_every_one_of_the_257_steps_down.sql","NO"
@@ -210,3 +210,18 @@ file,class,routines,routines_introduced,additive_ddl,grants,registry_writes,dele
 "phase_d_k07_the_run_could_not_see_the_object_it_had_just_created.sql","ROUTINE_RESTORE","2","none","none","0","0","0","NO","-","YES"
 "phase_d_k08_the_case_matrix_had_no_word_for_a_live_step_run.sql","EXPLICIT_DOWN_REQUIRED","0","none","2 alter table","0","0","0","YES","scripts/sql/down/phase_d_k08_the_case_matrix_had_no_word_for_a_live_step_run_down.sql","YES"
 "phase_d_k09_the_ownership_ledger_still_named_the_file_k05_replaced.sql","ADDITIVE_SURVIVAL_SAFE","0","none","none","0","2","0","NO","scripts/sql/down/phase_d_k09_the_ownership_ledger_still_named_the_file_k05_replaced_down.sql","YES"
+"phase_d_l01_a_register_that_could_not_tell_naming_from_describing.sql","IRREVERSIBLE_WITH_FOUNDER_APPROVAL","3","none","1 index, 5 alter table, 1 destructive drop","0","1","0","YES","scripts/sql/down/phase_d_l01_a_register_that_could_not_tell_naming_from_describing_down.sql","YES"
+"phase_d_l02_a_rule_that_judges_the_creation_of_its_subject.sql","ROUTINE_RESTORE","1","none","none","0","0","0","NO","-","YES"
+"phase_d_l03_the_acceptance_record_stated_neither_the_version_nor_the_digest.sql","EXPLICIT_DOWN_REQUIRED","2","none","1 table","2","1","0","YES","scripts/sql/down/phase_d_l03_the_acceptance_record_stated_neither_the_version_nor_the_digest_down.sql","YES"
+"phase_d_l04_an_object_stored_in_the_record_table_had_its_owner_chosen_by_position.sql","ROUTINE_RESTORE","1","none","none","0","0","0","NO","-","YES"
+"phase_d_m01_a_committed_scenario_that_proves_it_left_nothing.sql","IRREVERSIBLE_WITH_FOUNDER_APPROVAL","3","public.fn_phase_d_committed_scenario_guards public.fn_phase_d_committed_scenario_watermarks public.fn_phase_d_row_is_ours","3 table, 1 index, 1 destructive drop","6","2","0","YES","scripts/sql/down/phase_d_m01_a_committed_scenario_that_proves_it_left_nothing_down.sql","YES"
+"phase_d_m02_open_and_close_the_committed_scenario.sql","ROUTINE_INTRODUCED","2","public.fn_phase_d_committed_scenario_open public.fn_phase_d_committed_scenario_close","none","2","0","0","YES","scripts/sql/down/phase_d_m02_open_and_close_the_committed_scenario_down.sql","YES"
+"phase_d_m03_a_door_one_call_deep_was_invisible_to_the_board.sql","ROUTINE_RESTORE","1","none","none","0","1","0","NO","-","YES"
+"phase_d_m04_a_register_for_every_defect_that_is_not_closed.sql","EXPLICIT_DOWN_REQUIRED","1","public.fn_phase_d_disposition_state","1 table","4","0","0","YES","scripts/sql/down/phase_d_m04_a_register_for_every_defect_that_is_not_closed_down.sql","YES"
+"phase_d_m05_the_rule_that_would_have_refused_the_send_was_never_asked.sql","ROUTINE_RESTORE","1","none","none","0","0","0","NO","-","YES"
+"phase_d_m06_fifteen_defects_whose_blocker_was_wrong.sql","ROUTINE_RESTORE","1","none","none","0","0","0","NO","-","YES"
+"phase_d_m07_the_sixteen_that_stay_open.sql","ADDITIVE_SURVIVAL_SAFE","0","none","none","0","1","0","NO","scripts/sql/down/phase_d_m07_the_sixteen_that_stay_open_down.sql","YES"
+"phase_d_m08_the_seven_the_kernel_refuses_immediately.sql","ROUTINE_RESTORE","1","none","none","0","0","0","NO","-","YES"
+"phase_d_m09_the_seventeenth_disposition.sql","ADDITIVE_SURVIVAL_SAFE","0","none","none","0","1","0","NO","-","NO"
+"phase_d_m10_a_probe_that_reached_a_kernel_internal_primitive.sql","ROUTINE_RESTORE","1","none","none","0","1","0","NO","-","YES"
+"phase_d_m11_two_dispositions_for_the_withdrawn_probes.sql","ADDITIVE_SURVIVAL_SAFE","0","none","none","0","1","0","NO","-","NO"

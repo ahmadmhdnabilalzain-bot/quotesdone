@@ -58,7 +58,7 @@ begin
     from public.phase_b_workflow_step x where coalesce(btrim(x.independent_reviewer_role_id),'') <> '';
   v_fx := public.fn_phase_d_fixture_scenario(jsonb_build_object(
     'label','fm-${wf.toLowerCase()}','execution_context','test',
-    'for_workflow', case when '${wf}' = 'W12' then '${wf}' else null end));
+    'for_workflow', '${wf}'));
   select coalesce((select x.independent_reviewer_role_id from public.phase_b_workflow_step x
     where x.workflow_id='${wf}' and coalesce(btrim(x.independent_reviewer_role_id),'')<>''
     order by x.step_id limit 1),'risk_and_governance_manager') into v_rev;
@@ -290,7 +290,7 @@ begin
     from public.phase_b_workflow_step x where coalesce(btrim(x.independent_reviewer_role_id),'') <> '';
   v_fx := public.fn_phase_d_fixture_scenario(jsonb_build_object(
     'label','fmcan-__WFL__','execution_context','test',
-    'for_workflow', case when '__WF__' = 'W12' then '__WF__' else null end));
+    'for_workflow', '__WF__'));
   select coalesce((select x.independent_reviewer_role_id from public.phase_b_workflow_step x
     where x.workflow_id='__WF__' and coalesce(btrim(x.independent_reviewer_role_id),'')<>''
     order by x.step_id limit 1),'risk_and_governance_manager') into v_rev;

@@ -152,6 +152,36 @@ const CONTROLS = {
           (select count(*) from public.phase_d_test_context_grant where txid = txid_current())),
       'trace', (select count(*) from public.phase_d_test_context_grant where txid = txid_current()));`,
 
+  // A ROW ADDED TO kernel_write_authority WITHOUT ITS ARTEFACT. M10 registered
+  // fn_phase_d_committed_scenario_close as an authorised writer of six protected kernel tables,
+  // and this file discovers its doors FROM that register — so the row alone turned the check red
+  // with "NO POSITIVE CONTROL IMPLEMENTED for this door". That is the check working: an authority
+  // nobody proves accepts anything is an authority nobody has tested.
+  //
+  // The control opens a committed scenario and closes it in the SAME aborted transaction, which is
+  // how the operation was rehearsed before it was ever run for real. open() refuses unless every
+  // guard is green, and close() refuses to record success while one watched relation is above its
+  // watermark — so "accepted" here means both halves ran and the reversal proved itself.
+  fn_phase_d_committed_scenario_close: `
+    v := public.fn_phase_d_committed_scenario_open(jsonb_build_object(
+      'label','positive-control-committed-scenario'));
+    v2 := public.fn_phase_d_committed_scenario_close((v->>'scenario_id')::bigint);
+    res := jsonb_build_object(
+      'accepted', coalesce((v2->>'ok')::boolean, false)
+                  and (select state from public.phase_d_committed_scenario
+                        where scenario_id = (v->>'scenario_id')::bigint) = 'CLOSED',
+      'effect', jsonb_build_object(
+        'scenario_id', v->>'scenario_id',
+        'created', v->'created',
+        'removed', v2->'removed',
+        'every_watched_relation_back_at_its_watermark',
+          (select assertions->'every_watched_relation_back_at_its_watermark'
+             from public.phase_d_committed_scenario
+            where scenario_id = (v->>'scenario_id')::bigint),
+        'fixture_residue', (select count(*) from public.fn_phase_d_fixture_residue())),
+      'trace', (select count(*) from public.phase_d_committed_scenario
+                 where scenario_id = (v->>'scenario_id')::bigint and state = 'CLOSED'));`,
+
   fn_phase_d_scenario_record_write: `
     perform public.fn_phase_d_test_context_open(jsonb_build_object(
       'operation_key','pdop_scenario_factory', 'label','positive-control-manifest'));

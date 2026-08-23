@@ -1,145 +1,279 @@
-# node scripts/phase_d/build_transaction_local_evidence.mjs | project htdblwldjkcgjvmqkbeh | 108 of 108 effects ledgered inside an aborted transaction | attribution: one row per phase_d_effect_ledger row produced INSIDE the transaction, plus one (summary) row per workflow carrying the in-transaction counters. Section 11 of the founder's 22 Aug 2026 ruling: an empty production table is not evidence that a controlled effect happened, so what happened before the rollback is recorded here. NO business payload and no PII: the payload DIGEST is carried, never a field of it. Rollback is proved by the footer, read from a NEW transaction after every drive had aborted
-# generated_at: 2026-08-22T21:00:12.373Z
+# node scripts/phase_d/build_transaction_local_evidence.mjs | project htdblwldjkcgjvmqkbeh | 254 of 254 effects ledgered inside an aborted transaction | attribution: one row per phase_d_effect_ledger row produced INSIDE the transaction, plus one (summary) row per workflow carrying the in-transaction counters. Section 11 of the founder's 22 Aug 2026 ruling: an empty production table is not evidence that a controlled effect happened, so what happened before the rollback is recorded here. NO business payload and no PII: the payload DIGEST is carried, never a field of it. Rollback is proved by the footer, read from a NEW transaction after every drive had aborted
+# generated_at: 2026-08-23T21:12:55.239Z
 test_transaction_fixture_run,workflow_id,step_id,effect_type,effect_object_id,effect_relation,effect_operation,state_before,state_after,provider_mode,payload_digest_16,result_relation
-1571,W01,W01-S02,VERSIONED_ARTIFACT,company_objective,public.company_goals,OBJECT_VERSION_WRITE,(none),(none),none,ad6d3c2a20a3d2e9,public.company_goals
-1571,W01,W01-S05,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,86467efcd5ab6c96,public.phase_c_workflow_step_run
-1571,W01,W01-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,32d4db0852dda595,public.phase_c_workflow_step_run
-1571,W01,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,3 executed of 8,completed,0 handler / 5 actor,3
-1573,W02,W02-S01,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,9ebc3c91eedae1f7,public.phase_d_object_record
-1573,W02,W02-S03,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,ecd0f9d35ab7b060,public.phase_d_object_record
-1573,W02,W02-S04,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,1648f72625bdca40,public.phase_d_object_record
-1573,W02,W02-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,e42475d220023e79,public.phase_c_workflow_step_run
-1573,W02,W02-S08,MEASUREMENT_RECORD,performance_recovery_case,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,ee8e22430e702aef,measurement
-1573,W02,W02-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,3d13f81946b0e9c5,public.phase_c_workflow_step_run
-1573,W02,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,6 executed of 10,completed,0 handler / 3 actor,6
-1575,W03,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1577,W04,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 7,completed,0 handler / 7 actor,0
-1579,W05,W05-S01,DOMAIN_MUTATION,inquiry,public.inquiries,OBJECT_STATE_WRITE,(none),(none),none,1eefc14921fb174c,public.inquiries
-1579,W05,W05-S02,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,78fb9c1f67c02c9f,public.phase_c_workflow_step_run
-1579,W05,W05-S03,DOMAIN_MUTATION,inquiry,public.inquiries,OBJECT_STATE_WRITE,(none),(none),none,b474560d53d5f1ea,public.inquiries
-1579,W05,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,3 executed of 9,completed,0 handler / 6 actor,3
-1581,W06,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 7,completed,0 handler / 7 actor,0
-1582,W07,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 8,completed,0 handler / 8 actor,0
-1584,W08,W08-S01,VERSIONED_ARTIFACT,supplier_safe_package,public.v_obj_supplier_safe_package,OBJECT_VERSION_WRITE,(none),(none),none,4bda28e80857dcd6,public.phase_d_object_record
-1584,W08,W08-S02,VERSIONED_ARTIFACT,supplier_safe_package,public.v_obj_supplier_safe_package,OBJECT_VERSION_WRITE,(none),(none),none,293cfd0bb1dc6d7b,public.phase_d_object_record
-1584,W08,W08-S05,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,8c4fa2cb020abbe8,public.phase_c_workflow_step_run
-1584,W08,W08-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,9480cacee087d4f7,public.phase_c_workflow_step_run
-1584,W08,W08-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,81e554647870aab9,public.phase_c_workflow_step_run
-1584,W08,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,5 executed of 10,completed,0 handler / 3 actor,5
-1586,W09,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1588,W10,W10-S01,DOMAIN_MUTATION,supplier_verification_case,public.v_obj_supplier_verification_case,OBJECT_STATE_WRITE,(none),(none),none,2d42c31da2c46fb3,public.phase_d_object_record
-1588,W10,W10-S04,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,919f388e6cefa87a,capability_request
-1588,W10,W10-S06,DOMAIN_MUTATION,supplier_correction_case,public.v_obj_supplier_correction_case,OBJECT_STATE_WRITE,(none),(none),none,ae035e103bf2b804,public.phase_d_object_record
-1588,W10,W10-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,599e4d8e6856ccd6,public.phase_c_workflow_step_run
-1588,W10,W10-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,b0fe79b27e2b4a36,public.phase_c_workflow_step_run
-1588,W10,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,5 executed of 11,completed,1 handler / 3 actor,5
-1590,W11,W11-S01,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,9357f4f9ca4eeb85,capability_request
-1590,W11,W11-S02,MEASUREMENT_RECORD,supplier_coverage_case,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,db664af13bf23d36,measurement
-1590,W11,W11-S03,DOMAIN_MUTATION,supplier_coverage_case,public.v_obj_supplier_coverage_case,OBJECT_STATE_WRITE,(none),(none),none,6e6f797a6c425895,public.phase_d_object_record
-1590,W11,W11-S04,DOMAIN_MUTATION,supplier_coverage_case,public.v_obj_supplier_coverage_case,OBJECT_STATE_WRITE,(none),(none),none,cb458aa0f22f0c95,public.phase_d_object_record
-1590,W11,W11-S05,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,4a937ee4ca7c643b,public.phase_c_workflow_step_run
-1590,W11,W11-S06,MEASUREMENT_RECORD,supplier_coverage_case,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,698f383369cdfcaa,measurement
-1590,W11,W11-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,d607a20db975c327,public.phase_c_workflow_step_run
-1590,W11,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,7 executed of 8,completed,1 handler / 0 actor,7
-1592,W12,W12-S01,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,5f14d4574ec692e1,public.phase_d_object_record
-1592,W12,W12-S02,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,0e611a41f8007b20,public.phase_d_object_record
-1592,W12,W12-S03,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,5ebf316472a427cc,public.phase_d_object_record
-1592,W12,W12-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,cf20be0d3be0749a,public.phase_c_workflow_step_run
-1592,W12,W12-S08,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,14b4cd7cc4a7e8f7,public.phase_d_object_record
-1592,W12,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,5 executed of 11,completed,0 handler / 4 actor,5
-1594,W13,W13-S01,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,5aff52d7792d5481,external_intent
-1594,W13,W13-S02,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,9224a768cdff8158,external_intent
-1594,W13,W13-S03,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,f855d209a1ddfe97,external_intent
-1594,W13,W13-S04,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,277dd77ff2b16966,external_intent
-1594,W13,W13-S05,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,4ebe3ef6f53275b4,external_intent
-1594,W13,W13-S06,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,723aafadbe08cebc,external_intent
-1594,W13,W13-S07,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,0ec0645cd809a6a0,external_intent
-1594,W13,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,7 executed of 8,completed,1 handler / 0 actor,7
-1596,W14,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1597,W15,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1598,W16,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1600,W17,W17-S04,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,547149e67cd6f4ed,capability_request
-1600,W17,W17-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,4aa98a79d3e3405a,capability_request
-1600,W17,W17-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,ee5cc3ebd5840905,public.phase_c_workflow_step_run
-1600,W17,W17-S11,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,567f2d6ba9c8def9,public.phase_c_workflow_step_run
-1600,W17,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,4 executed of 16,completed,2 handler / 7 actor,4
-1602,W18,W18-S01,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,287ab6c2d2e2f840,public.phase_d_object_record
-1602,W18,W18-S02,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,bb98727b18a5b656,public.phase_d_object_record
-1602,W18,W18-S03,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,04da7dfd921e12c5,public.phase_c_workflow_step_run
-1602,W18,W18-S04,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,b27e44d8accc9458,public.phase_d_object_record
-1602,W18,W18-S06,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,a7c662539fa3bb58,public.phase_d_object_record
-1602,W18,W18-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,6348e3d48f2e9d98,public.phase_c_workflow_step_run
-1602,W18,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,6 executed of 7,completed,0 handler / 1 actor,6
-1604,W19,W19-S01,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,5d95478bc63a0433,public.phase_d_object_record
-1604,W19,W19-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,27b33024e55a47c5,capability_request
-1604,W19,W19-S03,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,1f354e1971f2c957,public.phase_d_object_record
-1604,W19,W19-S04,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,909456282357b964,public.phase_d_object_record
-1604,W19,W19-S05,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,a570ec4463e355a9,public.phase_d_object_record
-1604,W19,W19-S06,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,121acece59ac6e6d,public.phase_c_workflow_step_run
-1604,W19,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,6 executed of 8,completed,1 handler / 1 actor,6
-1605,W20,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1606,W21,W21-S01,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,65dcb5fd5e2959d7,public.opportunity
-1606,W21,W21-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,180d8510cd5b4b14,capability_request
-1606,W21,W21-S03,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,cb49bc7fdbd9948f,public.opportunity
-1606,W21,W21-S06,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,5398275a87ff7020,public.opportunity
-1606,W21,W21-S07,MEASUREMENT_RECORD,partnership_opportunity,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,51bb56e2d7d281e1,measurement
-1606,W21,W21-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,d0a5bf7fa2fc0930,public.phase_c_workflow_step_run
-1606,W21,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,6 executed of 10,completed,1 handler / 2 actor,6
-1607,W22,W22-S01,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,600f5023975f4d56,public.phase_d_object_record
-1607,W22,W22-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,eddd48252378beb8,capability_request
-1607,W22,W22-S03,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,dd3a0da933a5c43d,public.phase_d_object_record
-1607,W22,W22-S04,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,2c70814c76c491de,public.phase_d_object_record
-1607,W22,W22-S05,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,b4dc307dad9acdce,public.phase_d_object_record
-1607,W22,W22-S07,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,fa4de789ad6bbc33,public.phase_d_object_record
-1607,W22,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,6 executed of 9,completed,1 handler / 1 actor,6
-1608,W23,W23-S01,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,bcc7ed4f3bed69ae,public.phase_d_object_record
-1608,W23,W23-S02,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,47550d95d0b6da15,public.phase_d_object_record
-1608,W23,W23-S03,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,4a2dff5bcb1f18bb,capability_request
-1608,W23,W23-S04,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,cff3b9356f8de910,public.phase_d_object_record
-1608,W23,W23-S06,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,4d7b7c67bc7b3e11,capability_request
-1608,W23,W23-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,400bc7c2bcd680bd,public.phase_c_workflow_step_run
-1608,W23,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,6 executed of 14,completed,2 handler / 3 actor,6
-1609,W24,W24-S01,VERSIONED_ARTIFACT,release_candidate,public.v_obj_release_candidate,OBJECT_VERSION_WRITE,(none),(none),none,fc62318612e89e46,public.phase_d_object_record
-1609,W24,W24-S07,VERSIONED_ARTIFACT,release_candidate,public.v_obj_release_candidate,OBJECT_VERSION_WRITE,(none),(none),none,51b21f2360482827,public.phase_d_object_record
-1609,W24,W24-S10,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,a58e8ee3d628b2a7,public.phase_c_workflow_step_run
-1609,W24,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,3 executed of 15,completed,0 handler / 7 actor,3
-1610,W25,W25-S01,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,2434b9d939f811cc,capability_request
-1610,W25,W25-S02,VERSIONED_ARTIFACT,intelligence_product,public.v_obj_intelligence_product,OBJECT_VERSION_WRITE,(none),(none),none,607bee95a438b7b6,public.phase_d_object_record
-1610,W25,W25-S03,VERSIONED_ARTIFACT,intelligence_product,public.v_obj_intelligence_product,OBJECT_VERSION_WRITE,(none),(none),none,5d84f164cf0a82d3,public.phase_d_object_record
-1610,W25,W25-S04,VERSIONED_ARTIFACT,intelligence_product,public.v_obj_intelligence_product,OBJECT_VERSION_WRITE,(none),(none),none,c5cbcac82fd9cced,public.phase_d_object_record
-1610,W25,W25-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,dffc64a339dd13ef,capability_request
-1610,W25,W25-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,4840db208b129dde,public.phase_c_workflow_step_run
-1610,W25,W25-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,8470666b23866add,public.phase_c_workflow_step_run
-1610,W25,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,7 executed of 10,completed,2 handler / 1 actor,7
-1611,W26,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,0 executed of 9,completed,0 handler / 9 actor,0
-1630,W27,W27-S01,VERSIONED_ARTIFACT,financial_close,public.v_obj_financial_close,OBJECT_VERSION_WRITE,(none),(none),none,1318564b410840d5,public.phase_d_object_record
-1630,W27,W27-S02,VERSIONED_ARTIFACT,financial_close,public.v_obj_financial_close,OBJECT_VERSION_WRITE,(none),(none),none,d8d217e67173e914,public.phase_d_object_record
-1630,W27,W27-S06,VERSIONED_ARTIFACT,financial_close,public.v_obj_financial_close,OBJECT_VERSION_WRITE,(none),(none),none,f58f07a64cadd2c9,public.phase_d_object_record
-1630,W27,W27-S08,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,f1b7ee44a97d7d62,capability_request
-1630,W27,W27-S10,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,dd3964a5a606ed73,public.phase_c_workflow_step_run
-1630,W27,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,5 executed of 15,completed,1 handler / 5 actor,5
-1632,W28,W28-S03,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,7af68a4a6d1956ae,capability_request
-1632,W28,W28-S04,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,7fd276ac26340588,capability_request
-1632,W28,W28-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,aa8e2680086da087,capability_request
-1632,W28,W28-S06,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,e0b5fd0587bb7b32,capability_request
-1632,W28,W28-S08,MEASUREMENT_RECORD,legal_risk_review,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,505ba69106bce6e8,measurement
-1632,W28,W28-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,5473ba1975074681,public.phase_c_workflow_step_run
-1632,W28,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 2,6 executed of 15,completed,4 handler / 3 actor,6
-1634,W29,W29-S01,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,12c7c120b787508f,public.os_incidents
-1634,W29,W29-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,bb3cbf4bc2d8c4b6,capability_request
-1634,W29,W29-S03,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,0a97459850e5fca9,public.os_incidents
-1634,W29,W29-S05,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,f230798e9f838dce,public.os_incidents
-1634,W29,W29-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,4f7ed23493bd6bc8,public.phase_c_workflow_step_run
-1634,W29,W29-S08,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,8402e495daadf4eb,public.os_incidents
-1634,W29,W29-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,a89c4fb7a48099c7,public.phase_c_workflow_step_run
-1634,W29,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 1 -> 0,7 executed of 13,completed,1 handler / 3 actor,7
-1635,W30,W30-S01,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,c1c302270adcab8f,public.phase_d_object_record
-1635,W30,W30-S04,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,688d14003b6fad81,public.phase_d_object_record
-1635,W30,W30-S05,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,1af2ad8b73810c83,public.phase_d_object_record
-1635,W30,W30-S08,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,682f5c27a4315cde,capability_request
-1635,W30,W30-S11,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,6c40a83a4a970e3c,public.phase_c_workflow_step_run
-1635,W30,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 661 -> 661,outbound 0 -> 0,5 executed of 14,completed,1 handler / 6 actor,5
-# ROLLBACK CONFIRMED, read from a new transaction at 2026-08-22 21:00:11.960446+00 on htdblwldjkcgjvmqkbeh
+9824,W01,W01-S01,VERSIONED_ARTIFACT,company_objective,public.company_goals,OBJECT_VERSION_WRITE,(none),(none),none,c34ae54bc43324c6,public.company_goals
+9824,W01,W01-S02,VERSIONED_ARTIFACT,company_objective,public.company_goals,OBJECT_VERSION_WRITE,(none),(none),none,64c5f02203b347a8,public.company_goals
+9824,W01,W01-S03,VERSIONED_ARTIFACT,department_mandate,public.department_objective,OBJECT_VERSION_WRITE,(none),(none),none,bc9b06a1a9efe944,public.department_objective
+9824,W01,W01-S04,VERSIONED_ARTIFACT,company_objective,public.company_goals,OBJECT_VERSION_WRITE,(none),(none),none,d6b5673d82fceaa2,public.company_goals
+9824,W01,W01-S05,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,e62fa113f586cca2,public.phase_c_workflow_step_run
+9824,W01,W01-S06,VERSIONED_ARTIFACT,company_objective,public.company_goals,OBJECT_VERSION_WRITE,(none),(none),none,715fc741784f0719,public.company_goals
+9824,W01,W01-S07,DOMAIN_MUTATION,initiative,public.org_tasks,OBJECT_STATE_WRITE,(none),(none),none,4cc76faeb93e0862,public.org_tasks
+9824,W01,W01-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,f5342f451bcff916,public.phase_c_workflow_step_run
+9824,W01,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 667 -> 667,outbound 0 -> 0,8 executed of 9,completed,8 handler / 0 acto
+9826,W02,W02-S01,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,20151abed24e5d95,public.phase_d_object_record
+9826,W02,W02-S02,REVIEW_VERDICT,performance_recovery_case,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,bc5a08e7906c96e3,public.review_chain
+9826,W02,W02-S03,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,fb3bf669833629e8,public.phase_d_object_record
+9826,W02,W02-S04,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,cca3ade6444047c0,public.phase_d_object_record
+9826,W02,W02-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,42153690694c4919,capability_request
+9826,W02,W02-S06,DOMAIN_MUTATION,performance_recovery_case,public.v_obj_performance_recovery_case,OBJECT_STATE_WRITE,(none),(none),none,e7cbedc521e57903,public.phase_d_object_record
+9826,W02,W02-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,50dcd97838072266,public.phase_c_workflow_step_run
+9826,W02,W02-S08,MEASUREMENT_RECORD,performance_recovery_case,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,c37e216074d4f8b3,measurement
+9826,W02,W02-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_R
+9827,W03,W03-S01,VERSIONED_ARTIFACT,growth_program,public.v_obj_growth_program,OBJECT_VERSION_WRITE,(none),(none),none,7fac63e9f74e9d7e,public.phase_d_object_record
+9827,W03,W03-S02,VERSIONED_ARTIFACT,growth_program,public.v_obj_growth_program,OBJECT_VERSION_WRITE,(none),(none),none,da2f5ef6dc3296d1,public.phase_d_object_record
+9827,W03,W03-S03,VERSIONED_ARTIFACT,growth_program,public.v_obj_growth_program,OBJECT_VERSION_WRITE,(none),(none),none,7df833fe23647a64,public.phase_d_object_record
+9827,W03,W03-S04,VERSIONED_ARTIFACT,growth_program,public.v_obj_growth_program,OBJECT_VERSION_WRITE,(none),(none),none,08294e08c2527751,public.phase_d_object_record
+9827,W03,W03-S05,VERSIONED_ARTIFACT,campaign_asset,public.content_drafts,OBJECT_VERSION_WRITE,(none),(none),none,51b2265a0f28cf3e,public.content_drafts
+9827,W03,W03-S06,REVIEW_VERDICT,growth_program,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,7fc0ee1a1d862f31,public.review_chain
+9827,W03,W03-S07,EXTERNAL_EFFECT_INTENT,growth_program,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,1aa2695c017b37cf,external_intent
+9827,W03,W03-S08,MEASUREMENT_RECORD,growth_program,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,34f2a7b449e70dae,measurement
+9827,W03,W03-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,e80950e9d9a11051,public.phase_c_w
+9828,W04,W04-S01,DOMAIN_MUTATION,customer_account,public.customers,OBJECT_STATE_WRITE,(none),(none),none,34319656eb087a9f,public.customers
+9828,W04,W04-S02,REVIEW_VERDICT,customer_account,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,a19e8f0eeb3904b4,public.review_chain
+9828,W04,W04-S03,DOMAIN_MUTATION,customer_account,public.customers,OBJECT_STATE_WRITE,(none),(none),none,1ff3fc95ba88bde6,public.customers
+9828,W04,W04-S04,DOMAIN_MUTATION,customer_account,public.customers,OBJECT_STATE_WRITE,(none),(none),none,5d18921b736c9caf,public.customers
+9828,W04,W04-S05,DOMAIN_MUTATION,customer_account,public.customers,OBJECT_STATE_WRITE,(none),(none),none,2391b3af87cf8b60,public.customers
+9828,W04,W04-S06,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,bf1734b9955007eb,public.phase_c_workflow_step_run
+9828,W04,W04-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,4a11a7eeb5a38b04,public.phase_c_workflow_step_run
+9828,W04,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 667 -> 667,outbound 0 -> 0,7 executed of 10,completed,7 handler / 0 actor,7
+9829,W05,W05-S01,DOMAIN_MUTATION,inquiry,public.inquiries,OBJECT_STATE_WRITE,(none),(none),none,0096c2adf78236e0,public.inquiries
+9829,W05,W05-S02,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,475c4931b5b0114a,public.phase_c_workflow_step_run
+9829,W05,W05-S03,DOMAIN_MUTATION,inquiry,public.inquiries,OBJECT_STATE_WRITE,(none),(none),none,30210ba0f135ccd7,public.inquiries
+9829,W05,W05-S04,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,95a00b697cd50b25,public.phase_c_workflow_step_run
+9829,W05,W05-S05,DOMAIN_MUTATION,inquiry,public.inquiries,OBJECT_STATE_WRITE,(none),(none),none,f6a18dba5e567be3,public.inquiries
+9829,W05,W05-S06,REVIEW_VERDICT,inquiry,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,c0196b256fbe1811,public.review_chain
+9829,W05,W05-S07,DOMAIN_MUTATION,inquiry,public.inquiries,OBJECT_STATE_WRITE,(none),(none),none,81a6bbf5fd8a1801,public.inquiries
+9829,W05,W05-S08,VERSIONED_ARTIFACT,inquiry_version,public.v_obj_inquiry_version,OBJECT_VERSION_WRITE,(none),(none),none,40e750b469232025,public.phase_d_object_record
+9829,W05,W05-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,f8733eda22850c88,public.phase_c_workflow_step_run
+9829,W05,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/
+9830,W06,W06-S01,VERSIONED_ARTIFACT,inquiry_route_set,public.v_obj_inquiry_route_set,OBJECT_VERSION_WRITE,(none),(none),none,b64e75fb7cd43873,public.phase_d_object_record
+9830,W06,W06-S02,VERSIONED_ARTIFACT,inquiry_route_set,public.v_obj_inquiry_route_set,OBJECT_VERSION_WRITE,(none),(none),none,3460ac1954723736,public.phase_d_object_record
+9830,W06,W06-S03,VERSIONED_ARTIFACT,inquiry_route_set,public.v_obj_inquiry_route_set,OBJECT_VERSION_WRITE,(none),(none),none,341f44efeddd3f0d,public.phase_d_object_record
+9830,W06,W06-S04,VERSIONED_ARTIFACT,inquiry_route_set,public.v_obj_inquiry_route_set,OBJECT_VERSION_WRITE,(none),(none),none,c72a58793092bb5a,public.phase_d_object_record
+9830,W06,W06-S05,VERSIONED_ARTIFACT,inquiry_route_set,public.v_obj_inquiry_route_set,OBJECT_VERSION_WRITE,(none),(none),none,343631b6839a7e35,public.phase_d_object_record
+9830,W06,W06-S06,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,71244454b961cadb,public.phase_c_workflow_step_run
+9830,W06,W06-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,006d6405147926d9,public.phase_c_workflow_step_run
+9830,W06,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 667 -> 667,outbound 0 -> 0,7 executed of 8,completed,7 handler / 0 actor,7
+9831,W07,W07-S01,VERSIONED_ARTIFACT,inquiry_document,public.documents,OBJECT_VERSION_WRITE,(none),(none),none,ee6977a7d3eb75f9,public.documents
+9831,W07,W07-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,2e75d0329c6c24bf,capability_request
+9831,W07,W07-S03,REVIEW_VERDICT,inquiry_document,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,472cf6a4eb2da355,public.review_chain
+9831,W07,W07-S04,VERSIONED_ARTIFACT,inquiry_document,public.documents,OBJECT_VERSION_WRITE,(none),(none),none,8fe0d5a3a100e64b,public.documents
+9831,W07,W07-S05,VERSIONED_ARTIFACT,inquiry_document,public.documents,OBJECT_VERSION_WRITE,(none),(none),none,429829aff33c0fb1,public.documents
+9831,W07,W07-S06,REVIEW_VERDICT,inquiry_document,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,a0c45d4a968c66e7,public.review_chain
+9831,W07,W07-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,6d2815707c1dd4bc,public.phase_c_workflow_step_run
+9831,W07,W07-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,fbb3ed54a9911b01,public.phase_c_workflow_step_run
+9831,W07,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 667 -> 667,outbound 0 -> 0,8 executed of 11,completed,8 handler / 0 actor,8
+9832,W08,W08-S01,VERSIONED_ARTIFACT,supplier_safe_package,public.v_obj_supplier_safe_package,OBJECT_VERSION_WRITE,(none),(none),none,4b114c20bb0ff964,public.phase_d_object_record
+9832,W08,W08-S02,VERSIONED_ARTIFACT,supplier_safe_package,public.v_obj_supplier_safe_package,OBJECT_VERSION_WRITE,(none),(none),none,dff381c610781e19,public.phase_d_object_record
+9832,W08,W08-S03,REVIEW_VERDICT,supplier_safe_package,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,05909f7328fdc2da,public.review_chain
+9832,W08,W08-S04,REVIEW_VERDICT,supplier_safe_package,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,15aa7e567e46760e,public.review_chain
+9832,W08,W08-S05,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,dd505b9af062a2cc,public.phase_c_workflow_step_run
+9832,W08,W08-S06,VERSIONED_ARTIFACT,supplier_safe_package,public.v_obj_supplier_safe_package,OBJECT_VERSION_WRITE,(none),(none),none,734051a75ce019a4,public.phase_d_object_record
+9832,W08,W08-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,0c76111d7d60d08f,public.phase_c_workflow_step_run
+9832,W08,W08-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,c5de5c489dc09784,public.phase_c_workflow_step_run
+9832,W08,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 667 -> 667
+9833,W09,W09-S01,DOMAIN_MUTATION,supplier_account,public.leads,OBJECT_STATE_WRITE,(none),(none),none,88bed313b647ec46,public.leads
+9833,W09,W09-S02,REVIEW_VERDICT,supplier_account,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,d8e1559b9d5f44de,public.review_chain
+9833,W09,W09-S03,VERSIONED_ARTIFACT,supplier_capability,public.supplier_capabilities,OBJECT_VERSION_WRITE,(none),(none),none,ce70a730b916fc4a,public.supplier_capabilities
+9833,W09,W09-S04,DOMAIN_MUTATION,supplier_account,public.leads,OBJECT_STATE_WRITE,(none),(none),none,6d4d5368861fd706,public.leads
+9833,W09,W09-S05,VERSIONED_ARTIFACT,supplier_capability,public.supplier_capabilities,OBJECT_VERSION_WRITE,(none),(none),none,1915b94dd21c58eb,public.supplier_capabilities
+9833,W09,W09-S06,DOMAIN_MUTATION,supplier_terms_acceptance,public.v_obj_supplier_terms_acceptance,OBJECT_STATE_WRITE,(none),(none),none,3f7c4eb79634bbb1,public.phase_d_object_record
+9833,W09,W09-S07,REVIEW_VERDICT,supplier_account,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,59f2b4dd52a9d458,public.review_chain
+9833,W09,W09-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,eb84aade6a5b7cfa,public.phase_c_workflow_step_run
+9833,W09,W09-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,537d17bf536b6903,public.phase_c_workflow_step_run
+9833\u00
+9834,W10,W10-S01,DOMAIN_MUTATION,supplier_verification_case,public.v_obj_supplier_verification_case,OBJECT_STATE_WRITE,(none),(none),none,2f8613cca88bfa75,public.phase_d_object_record
+9834,W10,W10-S02,REVIEW_VERDICT,supplier_verification_case,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,f275a35399480c93,public.review_chain
+9834,W10,W10-S03,REVIEW_VERDICT,supplier_verification_case,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,904572bea920583d,public.review_chain
+9834,W10,W10-S04,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,195e412ede5d4c26,capability_request
+9834,W10,W10-S05,DOMAIN_MUTATION,supplier_verification_case,public.v_obj_supplier_verification_case,OBJECT_STATE_WRITE,(none),(none),none,c3c39a8cfd90c06e,public.phase_d_object_record
+9834,W10,W10-S06,DOMAIN_MUTATION,supplier_correction_case,public.v_obj_supplier_correction_case,OBJECT_STATE_WRITE,(none),(none),none,0a1366517b8f7734,public.phase_d_object_record
+9834,W10,W10-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,75cc345a32905278,public.phase_c_workflow_step_run
+9834,W10,W10-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,36b7bf2e266e5a92,public.phase_c_workflow_step_run
+9834,W10,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifica
+9835,W11,W11-S01,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,3527318acb47ec42,capability_request
+9835,W11,W11-S02,MEASUREMENT_RECORD,supplier_coverage_case,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,576d4184b1e6826c,measurement
+9835,W11,W11-S03,DOMAIN_MUTATION,supplier_coverage_case,public.v_obj_supplier_coverage_case,OBJECT_STATE_WRITE,(none),(none),none,344a1eca894610a0,public.phase_d_object_record
+9835,W11,W11-S04,DOMAIN_MUTATION,supplier_coverage_case,public.v_obj_supplier_coverage_case,OBJECT_STATE_WRITE,(none),(none),none,926ca4b5e80ab7c2,public.phase_d_object_record
+9835,W11,W11-S05,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,7a9433c596c84d3b,public.phase_c_workflow_step_run
+9835,W11,W11-S06,MEASUREMENT_RECORD,supplier_coverage_case,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,043db2ab04d4f6ef,measurement
+9835,W11,W11-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,bb03a202b4113534,public.phase_c_workflow_step_run
+9835,W11,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 667 -> 667,outbound 0 -> 0,7 executed of 8,completed,7 handler / 0 actor,7
+9836,W12,W12-S01,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,5032a09315467f3b,public.phase_d_object_record
+9836,W12,W12-S02,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,e706afc7fee8a84f,public.phase_d_object_record
+9836,W12,W12-S03,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,997d8a706ea46e93,public.phase_d_object_record
+9836,W12,W12-S04,REVIEW_VERDICT,dispatch_batch,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,cb62f744bb80d4dc,public.review_chain
+9836,W12,W12-S05,REVIEW_VERDICT,supplier_assignment,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,76065b6940fdfc3f,public.review_chain
+9836,W12,W12-S06,DOMAIN_MUTATION,supplier_assignment,public.inquiry_matches,OBJECT_STATE_WRITE,(none),(none),none,36cf3c4a59a3c262,public.inquiry_matches
+9836,W12,W12-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,9b6b7ab5f2d11aca,public.phase_c_workflow_step_run
+9836,W12,W12-S08,DOMAIN_MUTATION,dispatch_batch,public.v_obj_dispatch_batch,OBJECT_STATE_WRITE,(none),(none),none,029aeb50cd20eb87,public.phase_d_object_record
+9836,W12,W12-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,848906821673e5b7,public.phase_c_workflow_step_run\u001
+9837,W13,W13-S01,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,9d1d0caa330422b6,external_intent
+9837,W13,W13-S02,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,45d4d8486212e240,external_intent
+9837,W13,W13-S03,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,72c36e1f265ce12b,external_intent
+9837,W13,W13-S04,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,d21fc41a6ec521d1,external_intent
+9837,W13,W13-S05,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,89cd8bbe7c75333c,external_intent
+9837,W13,W13-S06,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,31cb77f563a86a9a,external_intent
+9837,W13,W13-S07,EXTERNAL_EFFECT_INTENT,notification,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,42a509b066046266,external_intent
+9837,W13,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 667 -> 667,outbound 0 -> 0,7 executed of 8,completed,7 handler / 0 actor,7
+9838,W14,W14-S01,DOMAIN_MUTATION,quotation,public.quotes,OBJECT_STATE_WRITE,(none),(none),none,6db4bed67ae3ae4a,public.quotes
+9838,W14,W14-S02,DOMAIN_MUTATION,quotation,public.quotes,OBJECT_STATE_WRITE,(none),(none),none,498502f84fa619df,public.quotes
+9838,W14,W14-S03,VERSIONED_ARTIFACT,quotation_revision,public.v_obj_quotation_revision,OBJECT_VERSION_WRITE,(none),(none),none,778eeeb1181a936e,public.phase_d_object_record
+9838,W14,W14-S04,REVIEW_VERDICT,quotation,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,5fdfe398c9623640,public.review_chain
+9838,W14,W14-S05,DOMAIN_MUTATION,quotation,public.quotes,OBJECT_STATE_WRITE,(none),(none),none,2b4a959b447828d8,public.quotes
+9838,W14,W14-S06,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,38ed7edda9dc5d34,public.phase_c_workflow_step_run
+9838,W14,W14-S07,DOMAIN_MUTATION,quotation,public.quotes,OBJECT_STATE_WRITE,(none),(none),none,ff2fd91a7c961734,public.quotes
+9838,W14,W14-S08,DOMAIN_MUTATION,quotation,public.quotes,OBJECT_STATE_WRITE,(none),(none),none,e346b3559beeec77,public.quotes
+9838,W14,W14-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,0227566c06811792,public.phase_c_workflow_step_run
+9838,W14,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 6
+9839,W15,W15-S01,REVIEW_VERDICT,quotation_comparison,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,ad8c10d3f5bb2c70,public.review_chain
+9839,W15,W15-S02,VERSIONED_ARTIFACT,quotation_comparison,public.quote_comparisons,OBJECT_VERSION_WRITE,(none),(none),none,d6b72078d6470777,public.quote_comparisons
+9839,W15,W15-S03,REVIEW_VERDICT,quotation_comparison,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,f023e6a6fecce5e4,public.review_chain
+9839,W15,W15-S04,EXTERNAL_EFFECT_INTENT,quotation_comparison,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,c46ff432d4cafbb8,external_intent
+9839,W15,W15-S05,DOMAIN_MUTATION,customer_selection,public.v_obj_customer_selection,OBJECT_STATE_WRITE,(none),(none),none,28360c2dbb2ccaad,public.phase_d_object_record
+9839,W15,W15-S06,VERSIONED_ARTIFACT,quotation_comparison,public.quote_comparisons,OBJECT_VERSION_WRITE,(none),(none),none,cd20190ee2ffd1b1,public.quote_comparisons
+9839,W15,W15-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,98cb0cf2c3a83a22,public.phase_c_workflow_step_run
+9839,W15,W15-S08,VERSIONED_ARTIFACT,quotation_comparison,public.quote_comparisons,OBJECT_VERSION_WRITE,(none),(none),none,6b1f6b24be7f76ac,public.quote_comparisons
+9839,W15,W15-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,05a19dc4983ec1d4\u001
+9840,W16,W16-S01,DOMAIN_MUTATION,payment_transaction,public.transactions,OBJECT_STATE_WRITE,(none),(none),none,cc02cac46cec8cfd,public.transactions
+9840,W16,W16-S02,EXTERNAL_EFFECT_INTENT,payment_transaction,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,8ace289db9e745b7,external_intent
+9840,W16,W16-S03,DOMAIN_MUTATION,provider_event,public.stripe_events,OBJECT_STATE_WRITE,(none),(none),none,e5b2b60abcd7e5ff,public.stripe_events
+9840,W16,W16-S04,DOMAIN_MUTATION,provider_event,public.stripe_events,OBJECT_STATE_WRITE,(none),(none),none,048cfe919abd03cd,public.stripe_events
+9840,W16,W16-S05,VERSIONED_ARTIFACT,invoice_receipt,public.reveal_invoices,OBJECT_VERSION_WRITE,(none),(none),none,9bcbd5c240c7260f,public.reveal_invoices
+9840,W16,W16-S06,REVIEW_VERDICT,payment_transaction,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,18c68fe5eac707f4,public.review_chain
+9840,W16,W16-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,6b5b7a879603cc4b,public.phase_c_workflow_step_run
+9840,W16,W16-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,d9788f4e8ac7deb8,public.phase_c_workflow_step_run
+9840,W16,W16-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,8a4c592f96fd24e0,public.phase_c_workflow_step_run
+9840,W16,(summary)
+9841,W17,W17-S01,DOMAIN_MUTATION,refund_dispute_case,public.refunds,OBJECT_STATE_WRITE,(none),(none),none,a2550543ed3ef8ff,public.refunds
+9841,W17,W17-S02,DOMAIN_MUTATION,refund_dispute_case,public.refunds,OBJECT_STATE_WRITE,(none),(none),none,3f3397c33323fb09,public.refunds
+9841,W17,W17-S03,DOMAIN_MUTATION,refund_dispute_case,public.refunds,OBJECT_STATE_WRITE,(none),(none),none,71eb9e5526b9857c,public.refunds
+9841,W17,W17-S04,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,d5a3a78db860f7ed,capability_request
+9841,W17,W17-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,0d79f6fae2c13d5f,capability_request
+9841,W17,W17-S06,DOMAIN_MUTATION,refund_dispute_case,public.refunds,OBJECT_STATE_WRITE,(none),rejected,none,eb4378c303d999be,public.refunds
+9841,W17,W17-S07,EXTERNAL_EFFECT_INTENT,refund_dispute_case,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,c6cd680563552c46,external_intent
+9841,W17,W17-S08,DOMAIN_MUTATION,refund_dispute_case,public.refunds,OBJECT_STATE_WRITE,(none),(none),none,e7d02d0944726442,public.refunds
+9841,W17,W17-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,5a21e470ac6a9c0b,public.phase_c_workflow_step_run
+9841,W17,W17-S10,REVIEW_VERDICT,refund_dispute_case,public.revie
+9842,W18,W18-S01,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,ac83f383adb529fe,public.phase_d_object_record
+9842,W18,W18-S02,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,ef06bf0e2b40abf4,public.phase_d_object_record
+9842,W18,W18-S03,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,63d51e1f98900193,public.phase_c_workflow_step_run
+9842,W18,W18-S04,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,c56ccfb4547842f8,public.phase_d_object_record
+9842,W18,W18-S05,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,2537d0bc77904dfe,public.phase_d_object_record
+9842,W18,W18-S06,DOMAIN_MUTATION,customer_case,public.v_obj_customer_case,OBJECT_STATE_WRITE,(none),(none),none,b00bc7e776b44718,public.phase_d_object_record
+9842,W18,W18-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,7d5df75b6fadae01,public.phase_c_workflow_step_run
+9842,W18,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 667 -> 667,outbound 0 -> 0,7 executed of 7,completed,7 handler / 0 actor,7
+9843,W19,W19-S01,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,e0f195ba278d0353,public.phase_d_object_record
+9843,W19,W19-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,3a68673a90ec0917,capability_request
+9843,W19,W19-S03,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,a7c1337bae034496,public.phase_d_object_record
+9843,W19,W19-S04,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,8f864552e1a39be9,public.phase_d_object_record
+9843,W19,W19-S05,DOMAIN_MUTATION,supplier_retention_case,public.v_obj_supplier_retention_case,OBJECT_STATE_WRITE,(none),(none),none,13b55994bfba2c3f,public.phase_d_object_record
+9843,W19,W19-S06,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,2facdc1154b90512,public.phase_c_workflow_step_run
+9843,W19,W19-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,7f522e3e9cc79f19,public.phase_c_workflow_step_run
+9843,W19,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 667 -> 667,outbound 0 -> 0,7 executed of 9,completed,7 handler / 0 actor,7
+9844,W20,W20-S01,VERSIONED_ARTIFACT,content_campaign,public.v_obj_content_campaign,OBJECT_VERSION_WRITE,(none),(none),none,01e822b908eb2d46,public.phase_d_object_record
+9844,W20,W20-S02,VERSIONED_ARTIFACT,content_campaign,public.v_obj_content_campaign,OBJECT_VERSION_WRITE,(none),(none),none,29b4745a55db67e2,public.phase_d_object_record
+9844,W20,W20-S03,VERSIONED_ARTIFACT,content_campaign,public.v_obj_content_campaign,OBJECT_VERSION_WRITE,(none),(none),none,ffc1d9fa0d9b4635,public.phase_d_object_record
+9844,W20,W20-S04,REVIEW_VERDICT,content_campaign,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,a89fa6531d8265e2,public.review_chain
+9844,W20,W20-S05,REVIEW_VERDICT,content_campaign,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,9d680d247ee85dc4,public.review_chain
+9844,W20,W20-S06,EXTERNAL_EFFECT_INTENT,content_campaign,public.phase_d_effect_ledger,EXTERNAL_INTENT_RECORD,(none),(none),mock,5c3f4e9b4f62377d,external_intent
+9844,W20,W20-S07,MEASUREMENT_RECORD,content_campaign,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,8c48ec3b81bd1261,measurement
+9844,W20,W20-S08,VERSIONED_ARTIFACT,content_campaign,public.v_obj_content_campaign,OBJECT_VERSION_WRITE,(none),(none),none,707aa30b4b39152d,public.phase_d_object_record
+9844,W20,W20-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,f5bd063d1cb66d68\u001
+9845,W21,W21-S01,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,dabe5b78d6580c62,public.opportunity
+9845,W21,W21-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,a7757b29e8218344,capability_request
+9845,W21,W21-S03,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,0fffcbf410904af5,public.opportunity
+9845,W21,W21-S04,REVIEW_VERDICT,partnership_opportunity,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,b122b4ee71ababe0,public.review_chain
+9845,W21,W21-S05,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,6cf5abc00a8fe0d2,public.opportunity
+9845,W21,W21-S06,DOMAIN_MUTATION,partnership_opportunity,public.opportunity,OBJECT_STATE_WRITE,(none),(none),none,f519c64c6fa1b1db,public.opportunity
+9845,W21,W21-S07,MEASUREMENT_RECORD,partnership_opportunity,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,a67c9871f268bd1a,measurement
+9845,W21,W21-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,48515888ea82dafa,public.phase_c_workflow_step_run
+9845,W21,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 667 -> 667,outbound 0 -> 0,8 executed of 11,completed,8 handler / 0 actor,
+9846,W22,W22-S01,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,f033793c40956e0b,public.phase_d_object_record
+9846,W22,W22-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,95acffdf2d937757,capability_request
+9846,W22,W22-S03,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,642872155243cb9a,public.phase_d_object_record
+9846,W22,W22-S04,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,2a6e4aa87dee4d9b,public.phase_d_object_record
+9846,W22,W22-S05,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,6ba1d7e9e5eb3965,public.phase_d_object_record
+9846,W22,W22-S06,REVIEW_VERDICT,product_change,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,6cd279a91239eb06,public.review_chain
+9846,W22,W22-S07,VERSIONED_ARTIFACT,product_change,public.v_obj_product_change,OBJECT_VERSION_WRITE,(none),(none),none,ceef9fc6e46bc916,public.phase_d_object_record
+9846,W22,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 667 -> 667,outbound 0 -> 0,7 executed of 9,completed,7 handler / 0 actor,7
+9847,W23,W23-S01,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,c8b5714e6070852f,public.phase_d_object_record
+9847,W23,W23-S02,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,60bbc1f223cc6059,public.phase_d_object_record
+9847,W23,W23-S03,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,223db3ae3d2ce9bd,capability_request
+9847,W23,W23-S04,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,fb38eda6cb74f249,public.phase_d_object_record
+9847,W23,W23-S05,REVIEW_VERDICT,ai_change,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,82d73ba2cf1f0c19,public.review_chain
+9847,W23,W23-S06,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,2884b325c40e5689,capability_request
+9847,W23,W23-S07,REVIEW_VERDICT,ai_change,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,5234c11284991594,public.review_chain
+9847,W23,W23-S08,VERSIONED_ARTIFACT,ai_change,public.v_obj_ai_change,OBJECT_VERSION_WRITE,(none),(none),none,54df382fd073e13f,public.phase_d_object_record
+9847,W23,W23-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,917c8cd8ae4c3f42,public.phase_c_workflow_step_run
+9847,W23,(summary),IN_TRANSACT
+9848,W24,W24-S01,VERSIONED_ARTIFACT,release_candidate,public.v_obj_release_candidate,OBJECT_VERSION_WRITE,(none),(none),none,d1ed01aa78cf8e74,public.phase_d_object_record
+9848,W24,W24-S02,REVIEW_VERDICT,release_candidate,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,8cac65a5537c136f,public.review_chain
+9848,W24,W24-S03,REVIEW_VERDICT,release_candidate,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,33fb9d521959fbcc,public.review_chain
+9848,W24,W24-S04,REVIEW_VERDICT,release_candidate,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,a95f14153adb5fe0,public.review_chain
+9848,W24,W24-S05,REVIEW_VERDICT,release_candidate,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,b175d57b2a0f7a2b,public.review_chain
+9848,W24,W24-S06,VERSIONED_ARTIFACT,release_candidate,public.v_obj_release_candidate,OBJECT_VERSION_WRITE,(none),(none),none,3a59a52e545f9d58,public.phase_d_object_record
+9848,W24,W24-S07,VERSIONED_ARTIFACT,release_candidate,public.v_obj_release_candidate,OBJECT_VERSION_WRITE,(none),(none),none,7d8287ba9e5106e4,public.phase_d_object_record
+9848,W24,W24-S08,REVIEW_VERDICT,release_candidate,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,91f3257c08309260,public.review_chain
+9848,W24,W24-S09,VERSIONED_ARTIFACT,release_candidate,public.v_obj_release_candidate,OBJECT_VERSION_WRITE,(none),(none),none,c17967def6c79a2e,publ
+9849,W25,W25-S01,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,126169a4dda09901,capability_request
+9849,W25,W25-S02,VERSIONED_ARTIFACT,intelligence_product,public.v_obj_intelligence_product,OBJECT_VERSION_WRITE,(none),(none),none,94a22b3b95bfa09d,public.phase_d_object_record
+9849,W25,W25-S03,VERSIONED_ARTIFACT,intelligence_product,public.v_obj_intelligence_product,OBJECT_VERSION_WRITE,(none),(none),none,ccaebe72a6ce7a3a,public.phase_d_object_record
+9849,W25,W25-S04,VERSIONED_ARTIFACT,intelligence_product,public.v_obj_intelligence_product,OBJECT_VERSION_WRITE,(none),(none),none,69f14ef52dd4df0b,public.phase_d_object_record
+9849,W25,W25-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,982cd6c7ef7a645f,capability_request
+9849,W25,W25-S06,REVIEW_VERDICT,intelligence_product,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,b240d1efd63507f1,public.review_chain
+9849,W25,W25-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,7fa1361cd1d8e46f,public.phase_c_workflow_step_run
+9849,W25,W25-S08,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,9fa8a15681caefbe,public.phase_c_workflow_step_run
+9849,W25,(summary),IN_TRANSACTION_COUNTS,customers/inquiries/quotes/transactions,0/0/0/0 -> 1/1/1/1,notifications 667 -> 667,outbound 0
+9850,W26,W26-S01,VERSIONED_ARTIFACT,knowledge_change,public.v_obj_knowledge_change,OBJECT_VERSION_WRITE,(none),(none),none,a27f343f2f60ecaa,public.phase_d_object_record
+9850,W26,W26-S02,VERSIONED_ARTIFACT,knowledge_change,public.v_obj_knowledge_change,OBJECT_VERSION_WRITE,(none),(none),none,cd46ddad42ea1de4,public.phase_d_object_record
+9850,W26,W26-S03,VERSIONED_ARTIFACT,knowledge_change,public.v_obj_knowledge_change,OBJECT_VERSION_WRITE,(none),(none),none,ab42f7573ac3f01d,public.phase_d_object_record
+9850,W26,W26-S04,VERSIONED_ARTIFACT,knowledge_change,public.v_obj_knowledge_change,OBJECT_VERSION_WRITE,(none),(none),none,42bfbb49b6a233f3,public.phase_d_object_record
+9850,W26,W26-S05,REVIEW_VERDICT,knowledge_change,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,00283c354bdd6115,public.review_chain
+9850,W26,W26-S06,REVIEW_VERDICT,knowledge_change,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,d1ad91cbec304fdf,public.review_chain
+9850,W26,W26-S07,VERSIONED_ARTIFACT,knowledge_change,public.v_obj_knowledge_change,OBJECT_VERSION_WRITE,(none),(none),none,f4fe5d3aa2d996c9,public.phase_d_object_record
+9850,W26,W26-S08,VERSIONED_ARTIFACT,knowledge_change,public.v_obj_knowledge_change,OBJECT_VERSION_WRITE,(none),(none),none,27cd067f7814c040,public.phase_d_object_record
+9850,W26,W26-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),non
+9851,W27,W27-S01,VERSIONED_ARTIFACT,financial_close,public.v_obj_financial_close,OBJECT_VERSION_WRITE,(none),(none),none,4e3387aeed4c37ad,public.phase_d_object_record
+9851,W27,W27-S02,VERSIONED_ARTIFACT,financial_close,public.v_obj_financial_close,OBJECT_VERSION_WRITE,(none),(none),none,3b13a46f91b4fb9a,public.phase_d_object_record
+9851,W27,W27-S03,REVIEW_VERDICT,financial_close,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,c1a40ca24f6080e1,public.review_chain
+9851,W27,W27-S04,REVIEW_VERDICT,financial_close,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,910215fbe71cd818,public.review_chain
+9851,W27,W27-S05,REVIEW_VERDICT,financial_close,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,4fe8aa9f830c4a08,public.review_chain
+9851,W27,W27-S06,VERSIONED_ARTIFACT,financial_close,public.v_obj_financial_close,OBJECT_VERSION_WRITE,(none),(none),none,56978d43b5ccaa60,public.phase_d_object_record
+9851,W27,W27-S07,REVIEW_VERDICT,financial_close,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,5e7ac3daf2c16418,public.review_chain
+9851,W27,W27-S08,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,c090e9ba7c7cd771,capability_request
+9851,W27,W27-S09,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,a6d189e7419ff64e,capability_request
+9851,W27
+9852,W28,W28-S01,DOMAIN_MUTATION,legal_risk_review,public.legal_reviews,OBJECT_STATE_WRITE,(none),(none),none,a4e3e1b0c3a399ed,public.legal_reviews
+9852,W28,W28-S02,DOMAIN_MUTATION,legal_risk_review,public.legal_reviews,OBJECT_STATE_WRITE,(none),(none),none,b3fe95aa3ee43a8c,public.legal_reviews
+9852,W28,W28-S03,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,361666f50a964800,capability_request
+9852,W28,W28-S04,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,b31faafafc79483b,capability_request
+9852,W28,W28-S05,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,0e41f6562ac42696,capability_request
+9852,W28,W28-S06,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,676566f9c56dcf9f,capability_request
+9852,W28,W28-S07,DOMAIN_MUTATION,legal_risk_review,public.legal_reviews,OBJECT_STATE_WRITE,(none),(none),none,c1f047b5fb3923e2,public.legal_reviews
+9852,W28,W28-S08,MEASUREMENT_RECORD,legal_risk_review,public.phase_d_effect_ledger,MEASUREMENT_RECORD,(none),(none),none,b6591b6f051656dc,measurement
+9852,W28,W28-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,463067310bfee50d,public.phase_c_workflow_step_run
+9852,W28,(summary),IN_TRANSACTION_COUNTS
+9853,W29,W29-S01,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,46f5adb815bc9e1d,public.os_incidents
+9853,W29,W29-S02,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,c33cc793166fda42,capability_request
+9853,W29,W29-S03,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,bfd1571a512a34ae,public.os_incidents
+9853,W29,W29-S04,REVIEW_VERDICT,incident,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,1f2c8482d30f2bc4,public.review_chain
+9853,W29,W29-S05,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,110b3c90d8c54203,public.os_incidents
+9853,W29,W29-S06,REVIEW_VERDICT,incident,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,4f9b9def33d3ae04,public.review_chain
+9853,W29,W29-S07,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,4b49b776f0a222bb,public.phase_c_workflow_step_run
+9853,W29,W29-S08,DOMAIN_MUTATION,incident,public.os_incidents,OBJECT_STATE_WRITE,(none),(none),none,e0b3810d79209780,public.os_incidents
+9853,W29,W29-S09,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN,(none),(none),none,185a66e8403b48d9,public.phase_c_workflow_step_run
+9853,W29,W29-S10,KERNEL_ONLY_TRANSITION,public.phase_c_workflow_step_run,KERNEL_STEP_RUN\
+9854,W30,W30-S01,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,26dcc151840886cf,public.phase_d_object_record
+9854,W30,W30-S02,REVIEW_VERDICT,capability_case,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,e25aab14ee2146c4,public.review_chain
+9854,W30,W30-S03,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,8a6c7dd39a0ec2c7,public.phase_d_object_record
+9854,W30,W30-S04,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,be0d57db207d13ed,public.phase_d_object_record
+9854,W30,W30-S05,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,edd7bdeef3f27faf,public.phase_d_object_record
+9854,W30,W30-S06,REVIEW_VERDICT,capability_case,public.review_chain,REVIEW_VERDICT_RECORD,(none),(none),none,a8ad9b51f17f7dc0,public.review_chain
+9854,W30,W30-S07,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,0e567246b1ad6cbd,public.phase_d_object_record
+9854,W30,W30-S08,CAPABILITY_REQUEST,public.phase_d_capability_result,CAPABILITY_REQUEST_RECORD,(none),(none),fixture,ca2df337710cb7be,capability_request
+9854,W30,W30-S09,DOMAIN_MUTATION,capability_case,public.v_obj_capability_case,OBJECT_STATE_WRITE,(none),(none),none,a198721f322e0dbc,public.phase_d_o
+# ROLLBACK CONFIRMED, read from a new transaction at 2026-08-23 21:12:54.690339+00 on htdblwldjkcgjvmqkbeh
 # customers=0 inquiries=0 quotes=0 transactions=0
 # phase_d_effect_ledger=0 phase_d_object_record=0 phase_d_dispatch=0
 # net.http_request_queue=0 fn_phase_d_fixture_residue=0

@@ -58,7 +58,7 @@ const PRE = (wf, label, hold) => `
     from public.phase_b_workflow_step x where coalesce(btrim(x.independent_reviewer_role_id),'') <> '';
   v_fx := public.fn_phase_d_fixture_scenario(jsonb_build_object(
     'label','${label}','execution_context','test',
-    'for_workflow', case when '${wf}' = 'W12' then '${wf}' else null end));
+    'for_workflow', '${wf}'));
   select coalesce(max(outbox_id),0) into v_ob0 from public.phase_c_event_outbox;
   v := public.fn_phase_d_drive_workflow(jsonb_build_object(
     'workflow_id','${wf}','label','${label}','execution_context','production',

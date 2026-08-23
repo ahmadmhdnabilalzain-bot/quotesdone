@@ -60,7 +60,7 @@ const PRE = (wf, label) => `
     from public.phase_b_workflow_step x where coalesce(btrim(x.independent_reviewer_role_id),'') <> '';
   v_fx := public.fn_phase_d_fixture_scenario(jsonb_build_object(
     'label','${label}','execution_context','test',
-    'for_workflow', case when '${wf}' = 'W12' then '${wf}' else null end));
+    'for_workflow', '${wf}'));
   select coalesce((select x.independent_reviewer_role_id from public.phase_b_workflow_step x
     where x.workflow_id='${wf}' and coalesce(btrim(x.independent_reviewer_role_id),'')<>''
     order by x.step_id limit 1),'risk_and_governance_manager') into v_rev;
@@ -164,12 +164,31 @@ begin
 
   -- 6. THE FOUNDER_COMMAND BRANCH, all three conditions forced. A command is created through its
   --    own canonical service and then each condition is broken in turn.
-  insert into public.founder_command (state, command_owner_role_id, outcome)
-  values ('received', 'ceo', 'PHASE_D_FIXTURE_DO_NOT_PUBLISH probe command') returning command_id into v_cmd;
+  -- public.founder_command.message_id is NOT NULL with no default and
+  -- founder_command_owner_ck restricts command_owner_role_id to 'chief_of_staff'. This insert named
+  -- neither, so this probe reported "the probe did not reach its report (HTTP 400)" rather than a
+  -- verdict -- and a probe that cannot run is a probe whose green was never green. Measured
+  -- 24 Aug 2026. message_id carries a foreign key to public.founder_command_message, so the probe
+  -- borrows an existing message rather than inventing one; the transaction aborts either way and
+  -- the borrowed message is not modified.
+  insert into public.founder_command (message_id, intent_id, state, command_owner_role_id, outcome)
+  values ((select min(message_id) from public.founder_command_message),
+          'zz-phase-d-chk-gate005-intent',
+          'received', 'chief_of_staff', 'PHASE_D_FIXTURE_DO_NOT_PUBLISH probe command')
+  returning command_id into v_cmd;
+  -- fn_kernel_write_guard refuses a direct INSERT on a kernel table unless an authorised routine
+  -- is on the stack or the TABLE OWNER states an audited maintenance reason. This probe is the
+  -- second: it is the owner, it states its reason, and the whole transaction aborts, so the
+  -- kernel_maintenance_write receipt the door writes rolls back with everything else.
+  perform set_config('kernel.maintenance_reason',
+    'phase_d check: forcing the three GATE-005 negatives on the founder-command branch, in a transaction that aborts', true);
+  -- public.phase_c_workflow_run has no source_kind or source_ref column; it has start_event and
+  -- dedupe_key, both NOT NULL. Measured 24 Aug 2026 out of information_schema, not remembered.
   insert into public.phase_c_workflow_run (workflow_id, business_object_id, state, command_id,
-                                           source_kind, source_ref, accountable_role_id)
-  values ('W17', 'zz-phase-d-chk-gate005', 'active', v_cmd, 'founder_command',
-          'chk-gate005', 'finance_controller') returning run_id into v_run;
+                                           start_event, dedupe_key, accountable_role_id)
+  values ('W17', 'zz-phase-d-chk-gate005', 'active', v_cmd,
+          (select start_event from public.phase_b_workflow where workflow_id = 'W17'),
+          'zz-phase-d-chk-gate005', 'finance_controller') returning run_id into v_run;
   insert into public.founder_command_workflow_link (command_id, workflow_id, run_id)
   values (v_cmd, 'W17', v_run);
   a := public.fn_phase_d_founder_authority(v_run, 'W17-S07');
@@ -183,7 +202,18 @@ begin
   v_out := v_out || '|cmd_run_covers=' || coalesce(a->>'covers','-');
 
   --    current=false: a cancelled command is not a live instruction.
-  update public.founder_command set state = 'cancelled' where command_id = v_cmd;
+  --    fn_founder_command_trace_guard refuses "cannot leave received without a root trace", which
+  --    is the command path's own rule and not this probe's to weaken. The command is given the root
+  --    trace the guard asks for, through the same audited maintenance door, and is then cancelled.
+  with t as (
+    insert into public.phase_c_trace (trace_policy_id, subject_kind, subject_ref,
+                                      command_id, actor_role_id, status, sealed_at, state_after)
+    values ('TRACE-ROLE-ACTION', 'founder_command', v_cmd::text, v_cmd, 'chief_of_staff',
+            'sealed', now(), 'cancelled')
+    returning trace_id)
+  update public.founder_command
+     set trace_id = (select trace_id from t), state = 'cancelled'
+   where command_id = v_cmd;
   a := public.fn_phase_d_founder_authority(v_run, 'W17-S07');
   v_out := v_out || '|cancelled_current=' || coalesce(a->>'current','-')
                  || '|cancelled_valid=' || coalesce(a->>'valid','-');
