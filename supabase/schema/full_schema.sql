@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-23T12:06:33.500Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-23T16:29:19.111Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -8702,14 +8702,14 @@ ALTER TABLE public.phase_d_fixture_secret ADD CONSTRAINT phase_d_fixture_secret_
 ALTER TABLE public.phase_d_fixture_stage ADD CONSTRAINT phase_d_fixture_stage_contributes_kind_check CHECK ((contributes_kind = ANY (ARRAY['RESULT_KEY'::text, 'STATE'::text, 'PAYLOAD_VALUE'::text, 'OBJECT_KEY'::text])));
 ALTER TABLE public.phase_d_gate_contract ADD CONSTRAINT phase_d_gate_contract_predicate_kind_check CHECK ((predicate_kind = ANY (ARRAY['MEASURED'::text, 'EVIDENCE_REQUIRED'::text])));
 ALTER TABLE public.phase_d_handler_binding ADD CONSTRAINT phase_d_handler_binding_phase_d_status_check CHECK ((phase_d_status = ANY (ARRAY['NEW_DETERMINISTIC_HANDLER'::text, 'VERIFIED_EXISTING_HANDLER'::text, 'REPAIRED_EXISTING_HANDLER'::text, 'CAPABILITY_BOUNDARY_READY'::text, 'EXTERNAL_ADAPTER_READY_DISABLED'::text, 'COMPATIBILITY_WRAPPER_TO_CANONICAL'::text, 'INTENTIONALLY_INACTIVE_WITH_FROZEN_REASON'::text, 'BLOCKED_DEFECT'::text])));
-ALTER TABLE public.phase_d_handler_binding ADD CONSTRAINT phase_d_handler_binding_external_effect_policy_check CHECK ((external_effect_policy = ANY (ARRAY['NONE'::text, 'OUTBOX_ONLY_OR_NONE'::text, 'PROVIDER_DISABLED_MOCK'::text])));
 ALTER TABLE public.phase_d_handler_binding ADD CONSTRAINT phase_d_handler_binding_app_conn_ck CHECK (((application_connection IS NULL) OR (application_connection = ANY (ARRAY['KERNEL_INTERNAL_ONLY'::text, 'API_CONNECTED'::text, 'FRONTEND_CONNECTED'::text, 'AUTONOMOUS_SOURCE_CONNECTED_HELD'::text, 'FULL_APPLICATION_PATH_CONNECTED'::text]))));
+ALTER TABLE public.phase_d_handler_binding ADD CONSTRAINT phase_d_handler_binding_external_effect_policy_check CHECK ((external_effect_policy = ANY (ARRAY['NONE'::text, 'OUTBOX_ONLY_OR_NONE'::text, 'PROVIDER_DISABLED_MOCK'::text])));
 ALTER TABLE public.phase_d_handler_schema ADD CONSTRAINT phase_d_handler_schema_required_keys_check CHECK ((cardinality(required_keys) > 0));
-ALTER TABLE public.phase_d_handler_schema ADD CONSTRAINT phase_d_handler_schema_field_types_ck CHECK (((jsonb_typeof(field_types) = 'object'::text) AND (field_types <> '{}'::jsonb)));
 ALTER TABLE public.phase_d_handler_schema ADD CONSTRAINT phase_d_handler_schema_version_ck CHECK ((schema_version >= 1));
 ALTER TABLE public.phase_d_handler_schema ADD CONSTRAINT phase_d_handler_schema_schema_kind_check CHECK ((schema_kind = ANY (ARRAY['input'::text, 'output'::text])));
-ALTER TABLE public.phase_d_handoff_acceptance ADD CONSTRAINT phase_d_handoff_acceptance_accept_ck CHECK (((outcome <> 'accepted'::text) OR (opened_step_run_id IS NOT NULL)));
+ALTER TABLE public.phase_d_handler_schema ADD CONSTRAINT phase_d_handler_schema_field_types_ck CHECK (((jsonb_typeof(field_types) = 'object'::text) AND (field_types <> '{}'::jsonb)));
 ALTER TABLE public.phase_d_handoff_acceptance ADD CONSTRAINT phase_d_handoff_acceptance_outcome_ck CHECK ((outcome = ANY (ARRAY['accepted'::text, 'rejected'::text, 'cancelled'::text, 'superseded'::text])));
+ALTER TABLE public.phase_d_handoff_acceptance ADD CONSTRAINT phase_d_handoff_acceptance_accept_ck CHECK (((outcome <> 'accepted'::text) OR (opened_step_run_id IS NOT NULL)));
 ALTER TABLE public.phase_d_handoff_acceptance ADD CONSTRAINT phase_d_handoff_acceptance_reject_ck CHECK (((outcome <> 'rejected'::text) OR ((COALESCE(btrim(rejection_reason), ''::text) <> ''::text) AND (COALESCE(btrim(missing_items), ''::text) <> ''::text) AND (COALESCE(btrim(return_owner_role_id), ''::text) <> ''::text))));
 ALTER TABLE public.phase_d_handoff_contract ADD CONSTRAINT phase_d_handoff_contract_owner_ck CHECK (((btrim(return_owner_role_id) <> ''::text) AND (btrim(accountable_before_accept) <> ''::text) AND (btrim(accountable_after_accept) <> ''::text)));
 ALTER TABLE public.phase_d_handoff_contract ADD CONSTRAINT phase_d_handoff_contract_keys_ck CHECK (((cardinality(packet_keys) >= 1) AND (cardinality(kernel_packet_keys) = 5)));
@@ -8719,37 +8719,37 @@ ALTER TABLE public.phase_d_object_reference_strategy ADD CONSTRAINT phase_d_obje
 ALTER TABLE public.phase_d_object_reference_strategy ADD CONSTRAINT phase_d_object_reference_strategy_canonical_identity_type_check CHECK ((canonical_identity_type = ANY (ARRAY['OBJECT_ID_BUSINESS_KEY_VERSION'::text, 'RELATION_PRIMARY_KEY'::text, 'KERNEL_ID'::text])));
 ALTER TABLE public.phase_d_object_state_contract ADD CONSTRAINT phase_d_object_state_contract_states_not_empty CHECK ((cardinality(allowed_states) > 0));
 ALTER TABLE public.phase_d_object_state_contract ADD CONSTRAINT phase_d_object_state_contract_initial_is_allowed CHECK ((initial_state = ANY (allowed_states)));
-ALTER TABLE public.phase_d_object_write_map ADD CONSTRAINT phase_d_object_write_map_op_ck CHECK ((operation = ANY (ARRAY['INSERT'::text, 'UPSERT_STATE'::text])));
 ALTER TABLE public.phase_d_object_write_map ADD CONSTRAINT phase_d_object_write_map_cols_ck CHECK ((jsonb_typeof(column_map) = 'object'::text));
-ALTER TABLE public.phase_d_outbound_door ADD CONSTRAINT phase_d_outbound_door_evidence_check CHECK ((((disposition = 'SUPPRESSED_BY_ITS_OWN_GUARD'::text) AND (guard_column IS NOT NULL) AND (suppression_sql IS NOT NULL) AND (unreachable_because_column IS NULL)) OR ((disposition = 'NOT_REACHED_BY_ANY_PHASE_D_WRITE_MAP'::text) AND (guard_column IS NULL) AND (suppression_sql IS NULL) AND (unreachable_because_column IS NOT NULL))));
+ALTER TABLE public.phase_d_object_write_map ADD CONSTRAINT phase_d_object_write_map_op_ck CHECK ((operation = ANY (ARRAY['INSERT'::text, 'UPSERT_STATE'::text])));
 ALTER TABLE public.phase_d_outbound_door ADD CONSTRAINT phase_d_outbound_door_disposition_check CHECK ((disposition = ANY (ARRAY['SUPPRESSED_BY_ITS_OWN_GUARD'::text, 'NOT_REACHED_BY_ANY_PHASE_D_WRITE_MAP'::text])));
+ALTER TABLE public.phase_d_outbound_door ADD CONSTRAINT phase_d_outbound_door_evidence_check CHECK ((((disposition = 'SUPPRESSED_BY_ITS_OWN_GUARD'::text) AND (guard_column IS NOT NULL) AND (suppression_sql IS NOT NULL) AND (unreachable_because_column IS NULL)) OR ((disposition = 'NOT_REACHED_BY_ANY_PHASE_D_WRITE_MAP'::text) AND (guard_column IS NULL) AND (suppression_sql IS NULL) AND (unreachable_because_column IS NOT NULL))));
 ALTER TABLE public.phase_d_preflight_requirement ADD CONSTRAINT phase_d_preflight_requirement_status_check CHECK ((status = ANY (ARRAY['OUTSTANDING'::text, 'SATISFIED'::text])));
 ALTER TABLE public.phase_d_rule_enforcement ADD CONSTRAINT phase_d_rule_enforcement_enforcement_kind_check CHECK ((enforcement_kind = ANY (ARRAY['PREDICATE'::text, 'KERNEL_ENFORCED'::text, 'TRIGGER_ENFORCED'::text, 'CONTEXT_REQUIRED'::text, 'SCHEMA_ENFORCED'::text, 'EXECUTOR_ENFORCED'::text, 'PENDING_OBJECT_MAP'::text])));
 ALTER TABLE public.phase_d_rule_enforcement ADD CONSTRAINT phase_d_rule_enforcement_status_check CHECK ((status = ANY (ARRAY['ENFORCED'::text, 'OUTSTANDING'::text])));
 ALTER TABLE public.phase_d_scenario_record ADD CONSTRAINT phase_d_scenario_record_is_test_only CHECK ((provenance ~~ 'PHASE_D_FIXTURE%'::text));
 ALTER TABLE public.phase_d_section8_probe_result ADD CONSTRAINT phase_d_section8_probe_result_verdict_check CHECK ((verdict = ANY (ARRAY['REFUSED_AS_REQUIRED'::text, 'NOT_REFUSED'::text, 'NOT_RUN'::text, 'NOT_DISCRIMINATED'::text])));
-ALTER TABLE public.phase_d_step_case_result ADD CONSTRAINT phase_d_step_case_result_level_ck CHECK ((decided_at = ANY (ARRAY['step_contract'::text, 'executor_boundary'::text, 'kernel_boundary'::text, 'structural_constraint'::text])));
+ALTER TABLE public.phase_d_step_case_result ADD CONSTRAINT phase_d_step_case_result_level_ck CHECK ((decided_at = ANY (ARRAY['step_contract'::text, 'executor_boundary'::text, 'kernel_boundary'::text, 'structural_constraint'::text, 'live_step_run'::text])));
 ALTER TABLE public.phase_d_step_case_result ADD CONSTRAINT phase_d_step_case_result_kind_ck CHECK ((case_kind = ANY (ARRAY['positive'::text, 'missing_input'::text, 'wrong_actor'::text, 'invalid_state'::text, 'duplicate'::text, 'failed_rule_or_gate'::text, 'malformed_output'::text])));
 ALTER TABLE public.phase_d_step_effect ADD CONSTRAINT phase_d_step_effect_depth_ck CHECK ((implementation_depth = ANY (ARRAY['SCHEMA_ONLY'::text, 'VALIDATION_ONLY'::text, 'BUSINESS_EFFECT_CONNECTED'::text, 'CAPABILITY_BOUNDARY_READY'::text, 'EXTERNAL_ADAPTER_READY_DISABLED'::text, 'EXTERNAL_ADAPTER_CONTRACT_NOT_BUILT'::text])));
-ALTER TABLE public.phase_d_step_effect ADD CONSTRAINT phase_d_step_effect_resolution_ck CHECK ((object_resolution = ANY (ARRAY['MATCHED_STEP_TEXT'::text, 'MATCHED_ALL_TOKENS'::text, 'SOLE_OBJECT_OF_WORKFLOW'::text, 'WORKFLOW_PRIMARY_OBJECT'::text, 'NO_DOMAIN_OBJECT'::text])));
 ALTER TABLE public.phase_d_step_effect ADD CONSTRAINT phase_d_step_effect_type_ck CHECK ((expected_effect_type = ANY (ARRAY['DOMAIN_MUTATION'::text, 'VERSIONED_ARTIFACT'::text, 'REVIEW_VERDICT'::text, 'MEASUREMENT_RECORD'::text, 'EXTERNAL_EFFECT_INTENT'::text, 'CAPABILITY_REQUEST'::text, 'KERNEL_ONLY_TRANSITION'::text])));
+ALTER TABLE public.phase_d_step_effect ADD CONSTRAINT phase_d_step_effect_resolution_ck CHECK ((object_resolution = ANY (ARRAY['MATCHED_STEP_TEXT'::text, 'MATCHED_ALL_TOKENS'::text, 'SOLE_OBJECT_OF_WORKFLOW'::text, 'WORKFLOW_PRIMARY_OBJECT'::text, 'NO_DOMAIN_OBJECT'::text])));
 ALTER TABLE public.phase_d_test_context_grant ADD CONSTRAINT phase_d_test_context_grant_label_check CHECK ((length(btrim(label)) >= 3));
 ALTER TABLE public.phase_d_test_operation ADD CONSTRAINT phase_d_test_operation_purpose_check CHECK ((length(btrim(purpose)) >= 40));
 ALTER TABLE public.phase_d_test_operation ADD CONSTRAINT phase_d_test_operation_key_shape CHECK ((operation_key ~ '^pdop_[a-z0-9_]{3,60}$'::text));
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_qty_check CHECK ((qty > (0)::numeric));
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'approved'::text, 'partial'::text, 'received'::text, 'billed'::text, 'closed'::text, 'cancelled'::text])));
-ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_period_ck CHECK ((supplier_reg_period = ANY (ARRAY['yearly'::text, 'monthly'::text])));
-ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_singleton CHECK ((id = 1));
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_fee_range_ck CHECK (((supplier_reg_fee IS NULL) OR ((supplier_reg_fee >= (500)::numeric) AND (supplier_reg_fee <= (5000)::numeric))));
+ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_singleton CHECK ((id = 1));
+ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_period_ck CHECK ((supplier_reg_period = ANY (ARRAY['yearly'::text, 'monthly'::text])));
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_currency_ck CHECK (((supplier_reg_currency = 'AED'::text) AND (reveal_currency = 'AED'::text)));
 ALTER TABLE public.project_component ADD CONSTRAINT project_component_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'quotation'::text, 'ordered'::text, 'delivered'::text, 'installed'::text, 'cancelled'::text])));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_quote_amount_check CHECK ((quote_amount > (0)::numeric));
-ALTER TABLE public.refunds ADD CONSTRAINT refunds_status_check CHECK ((status = ANY (ARRAY['requested'::text, 'approved'::text, 'rejected'::text, 'processing'::text, 'succeeded'::text, 'failed'::text, 'cancelled'::text])));
-ALTER TABLE public.refunds ADD CONSTRAINT refunds_settled_needs_amount CHECK (((status <> 'succeeded'::text) OR (amount_fils IS NOT NULL) OR (reconciliation_note IS NOT NULL)));
-ALTER TABLE public.refunds ADD CONSTRAINT refunds_reason_code_check CHECK ((reason_code = ANY (ARRAY['supplier_unresponsive'::text, 'supplier_withdrew'::text, 'duplicate_charge'::text, 'customer_cancelled_in_window'::text, 'service_not_delivered'::text, 'fraud_or_dispute'::text, 'goodwill'::text, 'other'::text])));
-ALTER TABLE public.refunds ADD CONSTRAINT refunds_amount_source_check CHECK (((amount_source IS NULL) OR (amount_source = ANY (ARRAY['in_platform_request'::text, 'webhook_event'::text, 'stripe_api'::text, 'manual'::text, 'unknown'::text]))));
-ALTER TABLE public.refunds ADD CONSTRAINT refunds_amount_fils_check CHECK (((amount_fils IS NULL) OR (amount_fils > 0)));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_currency_check CHECK ((currency = 'AED'::text));
+ALTER TABLE public.refunds ADD CONSTRAINT refunds_reason_code_check CHECK ((reason_code = ANY (ARRAY['supplier_unresponsive'::text, 'supplier_withdrew'::text, 'duplicate_charge'::text, 'customer_cancelled_in_window'::text, 'service_not_delivered'::text, 'fraud_or_dispute'::text, 'goodwill'::text, 'other'::text])));
+ALTER TABLE public.refunds ADD CONSTRAINT refunds_status_check CHECK ((status = ANY (ARRAY['requested'::text, 'approved'::text, 'rejected'::text, 'processing'::text, 'succeeded'::text, 'failed'::text, 'cancelled'::text])));
+ALTER TABLE public.refunds ADD CONSTRAINT refunds_amount_fils_check CHECK (((amount_fils IS NULL) OR (amount_fils > 0)));
+ALTER TABLE public.refunds ADD CONSTRAINT refunds_settled_needs_amount CHECK (((status <> 'succeeded'::text) OR (amount_fils IS NOT NULL) OR (reconciliation_note IS NOT NULL)));
+ALTER TABLE public.refunds ADD CONSTRAINT refunds_amount_source_check CHECK (((amount_source IS NULL) OR (amount_source = ANY (ARRAY['in_platform_request'::text, 'webhook_event'::text, 'stripe_api'::text, 'manual'::text, 'unknown'::text]))));
 ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_kind_check CHECK ((kind = ANY (ARRAY['budget'::text, 'capacity'::text, 'rate_limit'::text, 'quota'::text, 'headcount'::text, 'storage'::text])));
 ALTER TABLE public.review_chain ADD CONSTRAINT review_chain_no_self_approval_ck CHECK (((reviewer_agent IS NULL) OR (author_agent IS NULL) OR (reviewer_agent <> author_agent))) NOT VALID;
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_after_sales_check CHECK (((r_after_sales >= 1) AND (r_after_sales <= 5)));
@@ -8837,33 +8837,33 @@ ALTER TABLE public.decision_trace ADD CONSTRAINT decision_trace_causation_event_
 ALTER TABLE public.department_objective ADD CONSTRAINT department_objective_goal_key_fkey FOREIGN KEY (goal_key) REFERENCES company_goals(key);
 ALTER TABLE public.doc_reviews ADD CONSTRAINT doc_reviews_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.drawing_redaction_runs ADD CONSTRAINT drawing_redaction_runs_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
-ALTER TABLE public.employee_knowledge ADD CONSTRAINT employee_knowledge_layer_no_fkey FOREIGN KEY (layer_no) REFERENCES employee_knowledge_standard(layer_no);
 ALTER TABLE public.employee_knowledge ADD CONSTRAINT employee_knowledge_domain_key_fkey FOREIGN KEY (domain_key) REFERENCES knowledge_domain(domain_key) ON DELETE CASCADE;
-ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_serves_goal_fkey FOREIGN KEY (serves_goal) REFERENCES company_goals(key);
+ALTER TABLE public.employee_knowledge ADD CONSTRAINT employee_knowledge_layer_no_fkey FOREIGN KEY (layer_no) REFERENCES employee_knowledge_standard(layer_no);
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_serves_objective_fkey FOREIGN KEY (serves_objective) REFERENCES os_objective(id);
+ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_serves_goal_fkey FOREIGN KEY (serves_goal) REFERENCES company_goals(key);
 ALTER TABLE public.employee_kpi_history ADD CONSTRAINT employee_kpi_history_kpi_id_fkey FOREIGN KEY (kpi_id) REFERENCES employee_kpi(id) ON DELETE CASCADE;
 ALTER TABLE public.employee_workflow ADD CONSTRAINT employee_workflow_workflow_key_fkey FOREIGN KEY (workflow_key) REFERENCES workflow(workflow_key) ON DELETE CASCADE;
-ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_event_id_fkey FOREIGN KEY (event_id) REFERENCES company_event(id) ON DELETE CASCADE;
+ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.event_delivery ADD CONSTRAINT event_delivery_event_id_fkey FOREIGN KEY (event_id) REFERENCES company_event(id) ON DELETE CASCADE;
 ALTER TABLE public.event_rollup ADD CONSTRAINT event_rollup_root_event_id_fkey FOREIGN KEY (root_event_id) REFERENCES company_event(id) ON DELETE SET NULL;
 ALTER TABLE public.experiment_assignments ADD CONSTRAINT experiment_assignments_experiment_fkey FOREIGN KEY (experiment) REFERENCES experiments(key);
-ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_accum_account_fkey FOREIGN KEY (accum_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_asset_account_fkey FOREIGN KEY (asset_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_expense_account_fkey FOREIGN KEY (expense_account) REFERENCES gl_accounts(code);
+ALTER TABLE public.fa_assets ADD CONSTRAINT fa_assets_accum_account_fkey FOREIGN KEY (accum_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_gl_journal_id_fkey FOREIGN KEY (gl_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.fa_depreciation ADD CONSTRAINT fa_depreciation_asset_id_fkey FOREIGN KEY (asset_id) REFERENCES fa_assets(id) ON DELETE CASCADE;
 ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key);
 ALTER TABLE public.field_definition_reference ADD CONSTRAINT field_definition_reference_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id) ON DELETE CASCADE;
 ALTER TABLE public.field_definition_reference ADD CONSTRAINT field_definition_reference_referencing_trade_key_fkey FOREIGN KEY (referencing_trade_key) REFERENCES mep_trade(trade_key);
 ALTER TABLE public.field_definition_source ADD CONSTRAINT field_definition_source_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id) ON DELETE CASCADE;
-ALTER TABLE public.field_definition_trade ADD CONSTRAINT field_definition_trade_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id) ON DELETE CASCADE;
 ALTER TABLE public.field_definition_trade ADD CONSTRAINT field_definition_trade_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key) ON DELETE CASCADE;
+ALTER TABLE public.field_definition_trade ADD CONSTRAINT field_definition_trade_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id) ON DELETE CASCADE;
 ALTER TABLE public.field_question_variant ADD CONSTRAINT field_question_variant_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id) ON DELETE CASCADE;
 ALTER TABLE public.founder_approval_request ADD CONSTRAINT founder_approval_request_action_class_fkey FOREIGN KEY (action_class) REFERENCES phase_c_action_class(action_class);
 ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES founder_command(command_id);
-ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_state_fkey FOREIGN KEY (state) REFERENCES phase_c_command_state(state);
 ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_message_id_fkey FOREIGN KEY (message_id) REFERENCES founder_command_message(message_id);
+ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_state_fkey FOREIGN KEY (state) REFERENCES phase_c_command_state(state);
 ALTER TABLE public.founder_command_clarification ADD CONSTRAINT founder_command_clarification_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
 ALTER TABLE public.founder_command_completion ADD CONSTRAINT founder_command_completion_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
 ALTER TABLE public.founder_command_interpretation ADD CONSTRAINT founder_command_interpretation_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
@@ -8876,14 +8876,14 @@ ALTER TABLE public.founder_command_progress_note ADD CONSTRAINT founder_command_
 ALTER TABLE public.founder_command_status_history ADD CONSTRAINT founder_command_status_history_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
 ALTER TABLE public.founder_command_task_link ADD CONSTRAINT founder_command_task_link_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
 ALTER TABLE public.founder_command_task_link ADD CONSTRAINT founder_command_task_link_task_id_fkey FOREIGN KEY (task_id) REFERENCES phase_c_task(task_id) ON DELETE CASCADE;
-ALTER TABLE public.founder_command_workflow_link ADD CONSTRAINT founder_command_workflow_link_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
-ALTER TABLE public.founder_command_workflow_link ADD CONSTRAINT founder_command_workflow_link_run_id_fkey FOREIGN KEY (run_id) REFERENCES phase_c_workflow_run(run_id);
 ALTER TABLE public.founder_command_workflow_link ADD CONSTRAINT founder_command_workflow_link_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
+ALTER TABLE public.founder_command_workflow_link ADD CONSTRAINT founder_command_workflow_link_run_id_fkey FOREIGN KEY (run_id) REFERENCES phase_c_workflow_run(run_id);
+ALTER TABLE public.founder_command_workflow_link ADD CONSTRAINT founder_command_workflow_link_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES phase_b_workflow(workflow_id);
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_parent_code_fkey FOREIGN KEY (parent_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_expense_map ADD CONSTRAINT gl_expense_map_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_reverses_fkey FOREIGN KEY (reverses) REFERENCES gl_journal(id);
-ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_journal_id_fkey FOREIGN KEY (journal_id) REFERENCES gl_journal(id) ON DELETE CASCADE;
+ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.goal_period ADD CONSTRAINT goal_period_goal_key_fkey FOREIGN KEY (goal_key) REFERENCES company_goals(key) ON DELETE CASCADE;
 ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_closed_by_fkey FOREIGN KEY (closed_by) REFERENCES org_agents(agent_key);
 ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_accepted_by_fkey FOREIGN KEY (accepted_by) REFERENCES org_agents(agent_key);
@@ -16251,126 +16251,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -16915,6 +16795,126 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -51162,8 +51162,19 @@ begin
   if v_founder_cmd is not null then
     -- fn_kernel_event_consume refuses an event naming a workflow the command did not select, so the
     -- selection is recorded here rather than left implied by the run alone.
-    insert into public.founder_command_workflow_link (command_id, workflow_id)
-    values (v_founder_cmd, v_wf) on conflict do nothing;
+    -- K01. THE run_id WAS NEVER WRITTEN. fn_phase_d_step_context reads this table by run_id
+    -- first, and all 15 rows carried run_id null, so that read had never matched a row in the
+    -- estate's history. It is stamped here -- and ONLY where the kernel's own row says this command
+    -- started this run. Where the arrival started the run first (H06) the command did not instruct
+    -- it, and claiming otherwise would put founder authority under a customer's inquiry.
+    insert into public.founder_command_workflow_link (command_id, workflow_id, run_id)
+    values (v_founder_cmd, v_wf,
+            (select r2.run_id from public.phase_c_workflow_run r2
+              where r2.run_id = v_run and r2.command_id = v_founder_cmd))
+    on conflict (command_id, workflow_id) do update
+      set run_id = excluded.run_id
+      where public.founder_command_workflow_link.run_id is null
+        and excluded.run_id is not null;
   end if;
   v_run := (v_start->>'run_id')::bigint;
   if v_run is null then
@@ -51702,6 +51713,9 @@ declare
   v_eid        bigint;
   v_num        numeric; v_den numeric;
   v_cap        jsonb;   -- F05: the accepted capability result for this step run, or null
+  v_parent_col text;    -- K02: the parent identity the object's binding declares
+  v_parent_src text;    -- K02: the payload key the write map reads it from
+  v_parent_val jsonb;   -- K02: what the step context resolves for it
 begin
   if v_step_run is null or v_idem is null or v_actor is null then
     raise exception 'fn_phase_d_effect_produce: step_run_id, idempotency_key and actor_role_id are all required (pd_effect_input_invalid)'
@@ -51732,6 +51746,29 @@ begin
       'effect_type', prior.effect_type, 'effect_object_id', prior.effect_object_id,
       'result_reference', prior.result_reference, 'provider_mode', prior.provider_mode,
       'note', 'the effect for this step run already exists; no second effect was produced');
+  end if;
+
+  -- ---- K02. THE PARENT THE OBJECT DECLARES -------------------------------------------------
+  -- public.phase_d_object_write skips a mapped column whose source key the payload does not carry,
+  -- and fn_phase_d_fixture_effect_payload only fills columns the RELATION demands. A parent column
+  -- that is nullable demands nothing, so supplier_assignment was written with no inquiry_id and a
+  -- BEFORE trigger dropped the row. The object's own binding already names its parent; that is read
+  -- here, and the value comes from the step context, which resolves an identity from the row it
+  -- names. Nothing is invented and no constant is used: an identity is never a fixture.
+  select bb.parent_identity, wm.column_map->>bb.parent_identity
+    into v_parent_col, v_parent_src
+    from public.phase_d_business_object_binding bb
+    join public.phase_d_object_write_map wm on wm.object_id = bb.object_id
+   where bb.object_id = e.effect_object_id
+     and coalesce(btrim(bb.parent_identity),'') <> ''
+     and wm.column_map ? bb.parent_identity;
+  if v_parent_src is not null
+     and v_parent_src not in ('business_key','owner_ref','state')
+     and (not (v_payload ? v_parent_src) or v_payload->v_parent_src = 'null'::jsonb) then
+    v_parent_val := (public.fn_phase_d_step_context(v_step_run))->'context'->v_parent_src;
+    if v_parent_val is not null and v_parent_val <> 'null'::jsonb then
+      v_payload := v_payload || jsonb_build_object(v_parent_src, v_parent_val);
+    end if;
   end if;
 
   -- ---- the seven types -------------------------------------------------------------------
@@ -53895,6 +53932,107 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_phase_d_founder_authority(p_run_id bigint, p_step_id text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_wf       text;
+  v_cmd      bigint;
+  v_state    text;
+  v_reserved text;
+  v_digest   text;
+  v_baseline text;
+  v_covers   boolean;
+  v_exists   boolean;
+  v_current  boolean;
+begin
+  select s.workflow_id into v_wf from public.phase_b_workflow_step s where s.step_id = p_step_id;
+  if v_wf is null then
+    return jsonb_build_object('ref', null, 'kind', 'UNKNOWN_STEP',
+      'exists', false, 'current', false, 'covers', false, 'valid', false,
+      'why', format('%s is not a step of the frozen registry', coalesce(p_step_id, '(null)')));
+  end if;
+
+  -- WHAT THE FOUNDER RESERVED, read from the register he approved. Never a list in this body.
+  select string_agg(b.boundary_id, ';' order by b.boundary_id) into v_reserved
+    from public.phase_b_founder_boundary b
+   where v_wf = any (string_to_array(replace(b.workflow_scope, ' ', ''), ';'));
+
+  -- 1. A FOUNDER COMMAND, where one instructed this run.
+  select l.command_id into v_cmd from public.founder_command_workflow_link l
+   where l.run_id = p_run_id limit 1;
+  if v_cmd is null then
+    select r.command_id into v_cmd from public.phase_c_workflow_run r where r.run_id = p_run_id;
+  end if;
+
+  if v_cmd is not null then
+    select fc.state into v_state from public.founder_command fc where fc.command_id = v_cmd;
+    v_exists  := v_state is not null;
+    v_current := v_exists and v_state <> 'cancelled';
+    v_covers  := exists (select 1 from public.founder_command_workflow_link l2
+                          where l2.command_id = v_cmd and l2.workflow_id = v_wf)
+              or exists (select 1 from public.phase_c_workflow_run r2
+                          where r2.run_id = p_run_id and r2.command_id = v_cmd);
+    return jsonb_build_object(
+      'ref',     'founder_command:' || v_cmd::text,
+      'kind',    'FOUNDER_COMMAND',
+      'source',  'founder_command that started this run',
+      'artefact','public.founder_command',
+      'reserved_by', v_reserved,
+      'exists',  v_exists, 'current', v_current, 'covers', v_covers,
+      'valid',   v_exists and v_current and v_covers,
+      'why', format('founder command %s is %s and %s workflow %s', v_cmd,
+                    case when not v_exists then 'not on record'
+                         when v_current then 'live (state ' || v_state || ')'
+                         else 'cancelled' end,
+                    case when v_covers then 'selected' else 'DID NOT select' end, v_wf));
+  end if;
+
+  -- 2. DELEGATED AUTHORITY, read off the founder-approved frozen boundary register.
+  select d.sha256 into v_digest
+    from public.fn_phase_b_structure_digest() d where d.subject = 'founder_boundaries';
+  select bl.registry_sha256->'structure'->'founder_boundaries'->>'database' into v_baseline
+    from public.org_phase_baseline bl where bl.phase = 'B';
+
+  v_exists  := v_digest is not null
+               and exists (select 1 from public.phase_b_founder_boundary)
+               and v_baseline is not null;
+  v_current := v_exists and v_digest = v_baseline;
+  v_covers  := v_reserved is null;
+
+  if not v_covers then
+    return jsonb_build_object(
+      'ref', null, 'kind', 'FOUNDER_RESERVED',
+      'source', 'public.phase_b_founder_boundary',
+      'artefact', 'public.phase_b_founder_boundary@' || coalesce(left(v_digest, 16), '(none)'),
+      'reserved_by', v_reserved,
+      'exists', v_exists, 'current', v_current, 'covers', false, 'valid', false,
+      'why', format('%s is reserved to the founder by %s and no founder command instructed this run',
+                    v_wf, v_reserved));
+  end if;
+
+  return jsonb_build_object(
+    'ref',     'founder_policy:phase_b_founder_boundary@' || coalesce(left(v_digest, 16), 'unknown'),
+    'kind',    'DELEGATED_AUTHORITY',
+    'source',  'public.phase_b_founder_boundary, the founder-approved frozen register of what he '
+            || 'reserves: it names no boundary over ' || v_wf || ', so the decision is delegated '
+            || 'to the step''s accountable role',
+    'artefact','public.phase_b_founder_boundary@' || coalesce(left(v_digest, 16), 'unknown'),
+    'reserved_by', null,
+    'exists',  v_exists, 'current', v_current, 'covers', true,
+    'valid',   v_exists and v_current,
+    'why', format('the founder-approved boundary register (%s rows, digest %s) %s the Phase B '
+               || 'baseline and reserves no decision in %s',
+                  (select count(*) from public.phase_b_founder_boundary),
+                  coalesce(left(v_digest, 16), '(none)'),
+                  case when v_current then 'matches' else 'DOES NOT match' end, v_wf));
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_phase_d_founder_authority_fixture(p_input jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -54004,6 +54142,7 @@ CREATE OR REPLACE FUNCTION public.fn_phase_d_gate_applies(p_gate_id text, p_step
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare g public.phase_b_gate%rowtype; s public.phase_b_workflow_step%rowtype;
+        v_subject text; v_producer text; v_predicate text;   -- K07
 begin
   select * into g from public.phase_b_gate where gate_id = p_gate_id;
   if not found then applies := false; why := format('unknown gate %s', p_gate_id); return next; return; end if;
@@ -54134,6 +54273,43 @@ begin
     return next; return;
   end if;
 
+  -- K07. THE GENERAL RULE THE FOUR NARROWINGS ABOVE ARE INSTANCES OF: a gate does not govern a
+  -- step that runs BEFORE the step which produces the gate's own subject. GATE-013 asked W08-S01 --
+  -- the first step of the workflow whose purpose is to build the supplier-safe package -- to
+  -- already name that package.
+  --
+  -- IT IS A BEFORE-RULE, NOT A WHOLE-WORKFLOW EXEMPTION. The gate still applies at the producing
+  -- step and at every step after it, so a gate scoped to one workflow still governs it. Nothing is
+  -- named here: the subject is the gate contract's own evidence key matched against
+  -- public.phase_d_fixture_stage.contributes_ref -- the same derivation fn_phase_d_rule_applies
+  -- uses -- and the producing step is read from public.phase_d_step_effect.
+  select st.object_id, gc.predicate_kind into v_subject, v_predicate
+    from public.phase_d_gate_contract gc
+    join public.phase_d_fixture_stage st on st.contributes_ref = any(gc.evidence_keys)
+   where gc.gate_id = p_gate_id
+   limit 1;
+  if v_subject is not null then
+    select min(x.step_id) into v_producer
+      from public.phase_d_step_effect x
+     where x.workflow_id = s.workflow_id and x.effect_object_id = v_subject;
+    if v_producer is not null
+       and (p_step_id < v_producer
+            -- AT the producing step too, but only where the gate's test is the PRESENCE of the
+            -- subject's identity. A MEASURED gate is untouched: GATE-015 exists to judge the
+            -- creating step, and exempting it there would leave it governing nothing.
+            or (p_step_id = v_producer and v_predicate = 'EVIDENCE_REQUIRED')) then
+      applies := false;
+      why := format('%s judges %s and %s runs %s %s, the step of %s that produces it; the gate '
+                 || 'governs its use %s, not before it exists',
+                    p_gate_id, v_subject, p_step_id,
+                    case when p_step_id = v_producer then 'at' else 'before' end,
+                    v_producer, s.workflow_id,
+                    case when v_predicate = 'EVIDENCE_REQUIRED'
+                         then 'after the producing step' else 'from the producing step onward' end);
+      return next; return;
+    end if;
+  end if;
+
   applies := true;
   why := format('%s (%s, scope %s) applies to %s', g.gate_id, g.gate_type, g.workflow_scope, p_step_id);
   return next;
@@ -54151,6 +54327,7 @@ declare
   c public.phase_d_gate_contract%rowtype;
   s public.phase_b_workflow_step%rowtype;
   v_missing text[]; v_n bigint; v_ok boolean; v_txt text;
+  v_auth jsonb;   -- K01
 begin
   evidence_absent := false;   -- E19, see fn_phase_d_rule_check
   select * into g from public.phase_b_gate where gate_id = p_gate_id;
@@ -54215,10 +54392,23 @@ begin
                           else 'resolve to the same effective identity' end);
 
   elsif p_gate_id = 'GATE-005' then
+    -- K01. THIS WAS `v_ok := true`. The gate checked that a string was present and never that it
+    -- meant anything, so any caller could have handed it any text and passed the founder boundary.
+    -- It now resolves the authority for itself, from the founder command that instructed the run or
+    -- from the founder-approved frozen boundary register, and requires the reference the call
+    -- presents to be the one that resolves.
     select * into s from public.phase_b_workflow_step where step_id = p_evidence->>'step_id';
-    v_ok := true;
-    reason := format('GATE-005: step declares founder_gate %s and the call names authority %s',
-                     left(coalesce(s.founder_gate,'none'),60), p_evidence->>'founder_authority_ref');
+    v_auth := public.fn_phase_d_founder_authority(
+                nullif(p_evidence->>'run_id','')::bigint, p_evidence->>'step_id');
+    v_ok := coalesce((v_auth->>'valid')::boolean, false)
+            and v_auth->>'ref' is not null
+            and (p_evidence->>'founder_authority_ref') = (v_auth->>'ref');
+    reason := format('GATE-005: step declares founder_gate %s; the call names authority %s; the '
+                  || 'estate resolves %s (%s) -- %s',
+                     left(coalesce(s.founder_gate,'none'),60),
+                     coalesce(p_evidence->>'founder_authority_ref','(none)'),
+                     coalesce(v_auth->>'ref','(none)'), coalesce(v_auth->>'kind','-'),
+                     coalesce(v_auth->>'why','(no reason stated)'));
 
   elsif p_gate_id = 'GATE-006' then
     if p_evidence->>'from_state' = p_evidence->>'to_state' then
@@ -56118,6 +56308,8 @@ declare
   v_net_max    bigint;
   v_net_new    bigint;
   v_net_urls   text;
+  -- K02: the parent the object declares.
+  v_parent_src text;
   -- D18: identity resolution for UPSERT_STATE.
   v_ident_val  text;
   v_uq         record;
@@ -56207,6 +56399,26 @@ begin
       end loop;
     end if;
 
+    -- K02. AN ORPHAN IS REFUSED BY NAME. Where the object's binding declares a parent identity,
+    -- the write map maps a column of that name, and this call supplies no value for it, the row
+    -- about to be written belongs to nothing. Issuing it can only end in a silent BEFORE-trigger
+    -- skip -- which is exactly how W12-S06 lost its effect -- or a foreign-key error two layers
+    -- down. A NOT NULL column is left to the relation's own 23502; this covers the nullable ones,
+    -- which is where the hole was.
+    select wm.column_map->>b.parent_identity into v_parent_src
+      from pg_attribute a
+     where a.attrelid = wm.target_relation::regclass
+       and a.attname = b.parent_identity and a.attnum > 0 and not a.attnotnull
+       and coalesce(btrim(b.parent_identity),'') <> ''
+       and wm.column_map ? b.parent_identity;
+    if v_parent_src is not null
+       and v_parent_src not in ('business_key','owner_ref','state')
+       and (not (v_supplied ? v_parent_src) or v_supplied->v_parent_src = 'null'::jsonb) then
+      raise exception 'fn_phase_d_object_write: % declares parent identity %, the write map reads it from payload key %, and this call supplies none. A % row that belongs to no % is not a business record. (pd_object_parent_missing)',
+        v_object, b.parent_identity, v_parent_src, wm.target_relation, b.parent_identity
+        using errcode = '23502';
+    end if;
+
     for v_col in
       select k.key as col, wm.column_map->>k.key as src,
              format_type(a.atttypid, a.atttypmod) as ftype,
@@ -56253,7 +56465,13 @@ begin
       select coalesce(max(id),0) into v_net_max from net.http_request_queue;
     end if;
 
-    if wm.operation = 'UPSERT_STATE' then
+    -- K04. THE IDENTITY PROBE RUNS FOR AN INSERT TOO. An INSERT that would violate a unique
+    -- index on values this call supplies is not a new record: it is the record that already exists.
+    -- W16-S05 collided on reveal_invoices_pkey because operation INSERT skipped the probe entirely
+    -- and the scenario had already issued the invoice for that transaction. For an INSERT the
+    -- existing reference is returned and NOTHING is updated -- see the branch below -- so an
+    -- immutable_revision object is never rewritten by a replay.
+    if wm.operation in ('UPSERT_STATE', 'INSERT') then
       -- D18. AN UPSERT MUST LOOK FOR THE ROW IT WOULD WRITE, NOT FOR A DIFFERENT ONE.
       --
       -- This probe used to be `where key_column::text = business_key` unconditionally, which is
@@ -56336,7 +56554,10 @@ begin
         end loop;
       end if;
       if v_existing is not null then
-        if cardinality(v_sets) = 0 then
+        -- K04. AN INSERT NEVER UPDATES WHAT IT FOUND. The row already exists under the identity
+        -- this call carries; that is the declared completion condition met, not a second record and
+        -- not a rewrite of the first.
+        if wm.operation = 'INSERT' or cardinality(v_sets) = 0 then
           -- H02 (3). The row already carries everything this call asked for. That is the declared
           -- completion condition of an OBJECT_STATE_WRITE met, not a transition refused: the
           -- existing reference is returned, nothing is written, and unchanged = true says so.
@@ -56369,8 +56590,15 @@ begin
     -- A NULL RETURN IS NOT A WRITE. A BEFORE trigger returning NULL gives a statement that
     -- "succeeded" with no row; the returned key is what separates the two.
     if v_result_ref is null then
-      raise exception 'fn_phase_d_object_write: the write to % for % returned no key. Refusing to report a write that produced nothing. (pd_object_write_produced_nothing)',
-        wm.target_relation, v_object using errcode = '23502';
+      -- K05. NAME THE GATE THAT REFUSED. A BEFORE trigger returning null gives a statement that
+      -- "succeeded" with no row, and this message used to report only the silence -- which is how
+      -- W12-S06's cause was recorded wrongly in the 23 Aug hand-over. Where the refusing gate
+      -- published a verdict, it is quoted here.
+      raise exception 'fn_phase_d_object_write: the write to % for % returned no key. Refusing to report a write that produced nothing. Gate verdict: % — %. (pd_object_write_produced_nothing)',
+        wm.target_relation, v_object,
+        coalesce(nullif(current_setting('app.inquiry_match_gate_verdict', true),''), '(no gate published a verdict)'),
+        coalesce(nullif(current_setting('app.inquiry_match_gate_reason', true),''), 'no reason was published')
+        using errcode = '23502';
     end if;
 
     -- D17. THE ASSERTION. A Phase D test write may not leave an outbound request behind it.
@@ -57181,6 +57409,7 @@ declare
   v_in_scope boolean;
   v_governs text;
   v_primary text;
+  v_producer text;   -- K06
 begin
   select * into r from public.phase_b_business_rule where rule_id = p_rule_id;
   if not found then
@@ -57263,12 +57492,21 @@ begin
      where st.contributes_ref = any(e.required_context)
      limit 1;
     if v_governs is not null then
+      -- K06. A WORKFLOW PRODUCES MORE THAN ITS PRIMARY OBJECT. This compared the rule's subject
+      -- with phase_b_workflow.primary_object alone, so BR-018 asked W14 to already hold the
+      -- quotation revision W14 exists to produce, and BR-032 asked W16 to already hold the provider
+      -- event W16-S03 receives. The producing step is read from the frozen effect registry; the
+      -- primary object is still reported in the reason when it is the one that matched.
       select w.primary_object into v_primary
         from public.phase_b_workflow w where w.workflow_id = s.workflow_id;
-      if v_primary is not null and v_primary = v_governs then
+      select min(x.step_id) into v_producer
+        from public.phase_d_step_effect x
+       where x.workflow_id = s.workflow_id and x.effect_object_id = v_governs;
+      if (v_primary is not null and v_primary = v_governs) or v_producer is not null then
         applies := false;
-        why := format('%s governs %s and %s is the workflow that produces it (primary_object %s); the rule guards its use downstream, not its creation',
-                      r.rule_id, v_governs, s.workflow_id, v_primary);
+        why := format('%s governs %s and %s is the workflow that produces it (%s); the rule guards its use downstream, not its creation',
+                      r.rule_id, v_governs, s.workflow_id,
+                      coalesce('first produced at ' || v_producer, 'primary_object ' || v_primary));
         return next; return;
       end if;
     end if;
@@ -59318,6 +59556,7 @@ declare
   v_to     text;
   v_route  text;
   v_cmd    bigint;
+  v_auth   jsonb;   -- K01
   v_src_ref   text;
   v_src_kind  text;
   v_src_class text;
@@ -59341,7 +59580,23 @@ begin
      where re.rule_id = any (coalesce(b.rule_ids,'{}'))
     union
     select unnest(gc.evidence_keys) k from public.phase_d_gate_contract gc
-     where gc.gate_id = any (coalesce(b.gate_ids,'{}'))) q(k);
+     where gc.gate_id = any (coalesce(b.gate_ids,'{}'))
+    -- K03. THE PARENT OF THE RECORD THIS STEP WRITES. The list was the union of what the step's
+    -- rules and gates ask for, and nothing else, so a key no rule happens to name was never
+    -- resolved even where the estate could answer it. W16-S01 wrote a reveal payment that belonged
+    -- to no quote for exactly that reason. The object's own frozen binding names its parent and the
+    -- write map names the payload key that carries it; both are read here. A step that writes no
+    -- business object adds nothing, and a key a rule already asks for is unchanged -- this is a
+    -- distinct union.
+    union
+    select wm.column_map->>bb.parent_identity k
+      from public.phase_d_business_object_binding bb
+      join public.phase_d_object_write_map wm on wm.object_id = bb.object_id
+     where bb.object_id = ec.effect_object_id
+       and coalesce(btrim(bb.parent_identity),'') <> ''
+       and wm.column_map ? bb.parent_identity
+       and wm.column_map->>bb.parent_identity not in ('business_key','owner_ref','state')
+    ) q(k);
 
   -- ---- the frozen state model ------------------------------------------------------------------
   v_from  := r.state;
@@ -59718,12 +59973,15 @@ begin
       v_src := 'phase_d_handoff_contract for this step';
 
     elsif v_k = 'founder_authority_ref' then
-      select l.command_id into v_cmd from public.founder_command_workflow_link l
-        where l.run_id = sr.run_id limit 1;
-      if v_cmd is null then v_cmd := r.command_id; end if;
-      if v_cmd is not null then
-        v_val := to_jsonb('founder_command:' || v_cmd::text);
-        v_src := 'founder_command that started this run';
+      -- K01. GATE-005's frozen evidence is "Decision is within delegated authority OR founder
+      -- approval exists", and this resolved only the second half, so a step whose run no founder
+      -- instructed could never answer it. One resolver now answers both, from the founder's own
+      -- frozen boundary register where no command instructed the run, and it reports the reference
+      -- only when that reference is valid -- exists, current, and covering this workflow.
+      v_auth := public.fn_phase_d_founder_authority(sr.run_id, sr.step_id);
+      if coalesce((v_auth->>'valid')::boolean, false) then
+        v_val := to_jsonb(v_auth->>'ref');
+        v_src := v_auth->>'source';
       end if;
 
     elsif v_k = 'run_id' then
@@ -59888,6 +60146,51 @@ begin
     --
     -- It returns nothing unless fn_phase_d_fixture_context() verifies an hmac over the current txid
     -- keyed by a secret no role can SELECT. In production this block resolves nothing at all.
+    -- K07. THE OBJECT THIS RUN ALREADY CREATED, before any fixture is consulted.
+    --
+    -- A key that names an object was answered from the run's own row, from a declared foreign key
+    -- on it, or -- fixture context only -- from the canonical reference the SCENARIO recorded.
+    -- Nothing answered "the object THIS RUN produced at an earlier step", so W17-S07 asked for the
+    -- refund_id of a refund_dispute_case that W17-S01 had created six steps earlier and was told
+    -- there was none. public.phase_d_effect_ledger holds it: run_id, effect_object_id and the
+    -- canonical result_reference fn_phase_d_object_write returned. This is not a fixture and it runs
+    -- in production; it is asked after every source that reads the run's own row, and before the
+    -- scenario record, because a fact this run produced outranks one a scenario planted.
+    if (v_val is null or v_val = 'null'::jsonb
+        or (jsonb_typeof(v_val) = 'string' and btrim(coalesce(v_val #>> '{}','')) = '')) then
+      select cko.object_id into v_key_obj
+        from public.phase_d_context_key_object cko where cko.context_key = v_k;
+      if v_key_obj is not null then
+        select nullif(btrim(substring(el.result_reference from position('=' in el.result_reference) + 1)),'')
+          into v_link_v
+          from public.phase_d_effect_ledger el
+          join public.phase_d_business_object_binding bb on bb.object_id = el.effect_object_id
+         where el.run_id = sr.run_id
+           and el.effect_object_id = v_key_obj
+           -- AN EFFECT NAMED FOR AN OBJECT IS NOT ALWAYS A REFERENCE TO ONE. phase_d_effect_ledger
+           -- records effect_object_id from the step's DECLARED object, so a REVIEW_VERDICT step of
+           -- W15 carries effect_object_id quotation_comparison and result_reference
+           -- public.review_chain:id=15748 -- the identity of the review, not of the comparison.
+           -- Taking it made GATE-018 judge a review row as a comparison and refuse W15-S05 for
+           -- 'comparison 15748 does NOT belong to the calling customer', which was true and was
+           -- about the wrong row. Only a reference into the object's OWN canonical relation is an
+           -- identity of that object.
+           and el.effect_relation = bb.canonical_relation
+           and coalesce(btrim(el.result_reference),'') <> ''
+           and position('=' in el.result_reference) > 0
+         order by el.effect_id desc limit 1;
+        if v_link_v is not null then
+          v_ctx  := v_ctx  || jsonb_build_object(v_k, to_jsonb(v_link_v));
+          v_prov := v_prov || jsonb_build_object(v_k,
+            format('the canonical reference of the %s this run itself created, read from '
+                || 'public.phase_d_effect_ledger.result_reference', v_key_obj));
+          v_link_v := null; v_key_obj := null;
+          continue;
+        end if;
+      end if;
+      v_key_obj := null;
+    end if;
+
     if (v_val is null or v_val = 'null'::jsonb
         or (jsonb_typeof(v_val) = 'string' and btrim(coalesce(v_val #>> '{}','')) = ''))
        and public.fn_phase_d_fixture_context() is not null then
@@ -70830,7 +71133,15 @@ declare l record; v_reason text;
 begin
   select id, company_name, banned, matching_blocked, permanently_closed, license_expiry
     into l from public.leads where id = new.supplier_id;
-  if l.id is null then return new; end if;
+  if l.id is null then
+    -- K05. The supplier is not on record here; this gate has nothing to judge and says so rather
+    -- than leaving the verdict key holding whatever the previous row left in it.
+    perform set_config('app.inquiry_match_gate_verdict', 'PASS', true);
+    perform set_config('app.inquiry_match_gate_reason',
+      format('supplier %s is not in public.leads; this gate judges eligibility and has no row',
+             new.supplier_id), true);
+    return new;
+  end if;
 
   v_reason := case
     when coalesce(l.banned,false)             then 'supplier is banned'
@@ -70839,7 +71150,18 @@ begin
     when l.license_expiry is not null and l.license_expiry < current_date
                                               then 'supplier licence expired ' || l.license_expiry
     else null end;
-  if v_reason is null then return new; end if;
+  if v_reason is null then
+    perform set_config('app.inquiry_match_gate_verdict', 'PASS', true);
+    perform set_config('app.inquiry_match_gate_reason',
+      format('supplier %s is eligible to receive a match', new.supplier_id), true);
+    return new;
+  end if;
+
+  -- K05. A REFUSAL THAT STATES ITSELF. The ledger row below is the safety record; this is the
+  -- verdict the writer and the caller read, on the same key the readiness gate publishes.
+  perform set_config('app.inquiry_match_gate_verdict', 'BLOCKED_INELIGIBLE_SUPPLIER', true);
+  perform set_config('app.inquiry_match_gate_reason',
+    format('supplier %s: %s', new.supplier_id, v_reason), true);
 
   perform public.fn_unsafe_block(
     'ineligible_supplier_match', 'trigger:a00_unsafe_match_eligibility',
@@ -76039,12 +76361,36 @@ CREATE OR REPLACE FUNCTION public.trg_gate_incomplete_match()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare ready boolean;
+declare ready boolean; v_found boolean := false; v_verdict text; v_reason text;
 begin
-  select rfq_ready into ready from public.inquiries where id = NEW.inquiry_id;
-  if ready is not true then return null; end if;   -- silently skip: incomplete RFQs don't qualify for routing
-  return NEW;
-end $function$
+  if NEW.inquiry_id is null then
+    v_verdict := 'BLOCKED_MISSING_MATCH_EVIDENCE';
+    v_reason  := 'the assignment names no inquiry, so there is nothing whose readiness could be judged';
+  else
+    select true, i.rfq_ready into v_found, ready
+      from public.inquiries i where i.id = NEW.inquiry_id;
+    if not coalesce(v_found, false) then
+      v_verdict := 'BLOCKED_MISSING_MATCH_EVIDENCE';
+      v_reason  := format('inquiry %s does not exist', NEW.inquiry_id);
+    elsif ready is not true then
+      v_verdict := 'BLOCKED_NOT_RFQ_READY';
+      v_reason  := format('inquiry %s is %s; an incomplete RFQ does not qualify for routing',
+                          NEW.inquiry_id,
+                          case when ready is null then 'not scored for readiness' else 'not rfq_ready' end);
+    else
+      v_verdict := 'PASS';
+      v_reason  := format('inquiry %s is rfq_ready', NEW.inquiry_id);
+    end if;
+  end if;
+
+  perform set_config('app.inquiry_match_gate_verdict', v_verdict, true);
+  perform set_config('app.inquiry_match_gate_reason',  v_reason,  true);
+  if v_verdict = 'PASS' then return NEW; end if;
+
+  raise warning 'gate_incomplete_match: % — %', v_verdict, v_reason;
+  return null;   -- the row is refused; the verdict above is how a caller knows it was refused
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_goal_cascade()

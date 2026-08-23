@@ -209,11 +209,24 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   if (fitIds.length) { const { data: ls } = await admin.from('leads').select('id,company_name,email').in('id', fitIds); supRows = ls || []; }
   const supById = new Map(supRows.map((s: any) => [Number(s.id), s]));
   const matchRows = fits.filter((f) => supById.has(Number(f.id))).map((f) => ({ inquiry_id: inqId, supplier_id: Number(f.id), similarity: f.sim ?? null, match_reason: String(f.reason || '').slice(0, 400) }));
-  if (matchRows.length) await admin.from('inquiry_matches').insert(matchRows);
-  routing.outcome = matchRows.length ? 'dispatched' : 'no_fit';
-  routing.fanout = matchRows.length;
+  // K05 (23 Aug 2026). THE FANOUT WAS THE ROWS WE TRIED TO INSERT, NOT THE ROWS THAT LANDED.
+  // public.inquiry_matches carries two BEFORE INSERT gates — a00_unsafe_match_eligibility and
+  // gate_incomplete_match — and each refuses by returning null, which PostgREST answers as 201 with
+  // no row. So `error` was null, matchRows.length was recorded as the fanout, and a refused supplier
+  // counted as a contacted one. dispatch_inquiry had this exact defect and it was fixed on
+  // 15 Aug 2026 by asking for the rows back; this is the same fix on the other writer.
+  let landedIds: number[] = [];
+  if (matchRows.length) {
+    const { data: landedRows } = await admin.from('inquiry_matches').insert(matchRows).select('supplier_id');
+    landedIds = (landedRows || []).map((r: { supplier_id: number }) => Number(r.supplier_id)).filter(Boolean);
+  }
+  const refused = matchRows.map((m) => Number(m.supplier_id)).filter((id) => !landedIds.includes(id));
+  routing.outcome = landedIds.length ? 'dispatched' : 'no_fit';
+  routing.fanout = landedIds.length;
+  routing.attempted = matchRows.length;
+  if (refused.length) routing.refused_at_assignment = refused;
   try { await admin.from('inquiries').update({ routing }).eq('id', inqId); } catch (_e) { /* */ }
-  if (!matchRows.length) { routing.coverage_gap_flagged = await flagCoverageGap(inqId, category, emirate, summary); return { matches: 0, routing }; }
+  if (!landedIds.length) { routing.coverage_gap_flagged = await flagCoverageGap(inqId, category, emirate, summary); return { matches: 0, routing }; }
   // AUDIT 1.5. This is the first supplier-facing surface an inquiry ever reaches and it is entirely
   // pre-reveal. summary, budget and extra are customer free text; category and emirate are platform
   // values from a fixed list. If the owner could not be read, the free-text fields are dropped and
@@ -223,9 +236,13 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   const bn = await buyerNameOf(inqId);
   const cust = (t: string | null | undefined) => (bn.resolved && t) ? (scrubIdentity(String(t), bn.name, []) || '') : '';
   const headline = cust(summary) || category;
-  const notifs = matchRows.map((mr) => supById.get(Number(mr.supplier_id))).filter((s: any) => s && s.email && /@/.test(s.email)).map((s: any) => ({ type: 'new_inquiry', to_email: s.email, to_role: 'supplier', lead_id: s.id, inquiry_id: inqId, subject: 'New job request on QuotesDone', body: 'A customer is requesting quotes for: ' + headline + (emirate ? ' (' + emirate + ')' : '') + (cust(budget) ? ' — budget ' + cust(budget) : '') + '.' + cust(extra) + ' Log in to your QuotesDone supplier portal to quote.' }));
+  // K05. NOTIFY THE SUPPLIERS WHOSE MATCH ACTUALLY LANDED, not the ones we tried to match. This
+  // read matchRows, so a supplier the eligibility gate had just refused — banned, matching-blocked,
+  // permanently closed, expired licence — was still emailed the job. landedIds is what the database
+  // accepted.
+  const notifs = landedIds.map((sid) => supById.get(Number(sid))).filter((s: any) => s && s.email && /@/.test(s.email)).map((s: any) => ({ type: 'new_inquiry', to_email: s.email, to_role: 'supplier', lead_id: s.id, inquiry_id: inqId, subject: 'New job request on QuotesDone', body: 'A customer is requesting quotes for: ' + headline + (emirate ? ' (' + emirate + ')' : '') + (cust(budget) ? ' — budget ' + cust(budget) : '') + '.' + cust(extra) + ' Log in to your QuotesDone supplier portal to quote.' }));
   await queueNotifications(notifs);
-  return { matches: matchRows.length, routing };
+  return { matches: landedIds.length, routing };
 }
 
 type Cfg = { promo_until: string | null; promo_reveal_rate: number; promo_reveal_cap: number; standard_reveal_rate: number; standard_reveal_cap: number; refund_window_working_days: number };

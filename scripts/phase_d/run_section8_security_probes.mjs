@@ -140,6 +140,7 @@ const base = (await sql(`select
   (select count(*) from public.llm_attempt)                as llm,
   (select coalesce(max(id),0) from net.http_request_queue)  as httpmax,
   (select count(*) from net.http_request_queue)             as httpq,
+  (select count(*) from public.doc_backups)                 as docbackups,
   (select count(*) from public.leads)                       as leads,
   (select count(*) from public.customers)                   as customers,
   (select count(*) from public.inquiries)                   as inquiries,
@@ -170,6 +171,41 @@ try {
     insert into public.leads (company_name, email, claimed, claimed_by, verified, approval_status, source, business_role)
     values ('ZZ DEMO — section 8 probe supplier A', ${lit(EMAIL.supA)}, true, ${lit(EMAIL.supA)}, false, 'pending', 'zz_phase_d_section8', 'supplier'),
            ('ZZ DEMO — section 8 probe supplier B', ${lit(EMAIL.supB)}, true, ${lit(EMAIL.supB)}, false, 'pending', 'zz_phase_d_section8', 'supplier');`);
+
+  // PD-AUTH-002 (23 Aug 2026). THE PROBE THAT COULD NOT DISCRIMINATE.
+  //
+  // P2-document-scope compared supplier A's documents response with the same call naming supplier
+  // B's id and found the two byte-identical. Both fixtures held ZERO documents, so an identical
+  // pair was the only possible answer and it answered nothing: a scope that leaked and a scope that
+  // held would both return the same empty body. That is why the defect was recorded
+  // NOT_DISCRIMINATED rather than REFUSED.
+  //
+  // Each supplier now carries ONE document of its own, with a path that names the supplier it
+  // belongs to, so A's body must contain A's path and must NOT contain B's. supplier_portal derives
+  // every document path from the leads row resolved through claimed_by on the JWT, so the paths are
+  // set on the leads rows the cleanup already deletes; no storage object is created, nothing is
+  // uploaded, and no new table is written.
+  //
+  // THE COLUMN CHOSEN IS THE WHOLE FIX. public.leads carries
+  //   AFTER UPDATE OF (license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths)
+  //   trigger reg_lead_docs
+  // which registers a row in public.documents for every path it sees, and cron job 88
+  // (dropbox_backup_scan) sweeps public.documents every 15 minutes and tries to upload each one.
+  // Measured on the first two runs of this fixture: two documents rows appeared and the backup
+  // logged a Dropbox backup finishing with 2 failed documents, at 16:45 and again at 17:00:05 UTC
+  // on 23 Aug 2026. Nothing reached Dropbox and nothing could -- the storage objects behind those
+  // paths do not exist -- but an ATTEMPTED production Dropbox write is exactly what the automation
+  // hold forbids. Deleting the registered rows in the next statement was tried and is not enough:
+  // the management endpoint commits each statement on its own and the sweep ran inside that window.
+  //
+  // iban_doc_path is in no watch list of that trigger, so no public.documents row is registered at
+  // all and there is no window. supplier_portal exposes it through DOC_KINDS exactly as it exposes
+  // the licence, so the probe loses nothing: each supplier still holds one document of its own.
+  await sql(`
+    update public.leads set iban_doc_path = 'zz-phase-d-section8/supplier-a/licence-A.pdf'
+     where claimed_by = ${lit(EMAIL.supA)};
+    update public.leads set iban_doc_path = 'zz-phase-d-section8/supplier-b/licence-B.pdf'
+     where claimed_by = ${lit(EMAIL.supB)};`);
 
   const ids = (await sql(`select 'custA' as k, id::text from public.customers where email=${lit(EMAIL.custA)}
     union all select 'custB', id::text from public.customers where email=${lit(EMAIL.custB)}
@@ -247,9 +283,26 @@ try {
     const docsCross = await fn('supplier_portal', tok.supA, { action: 'documents', id: ids.supB, leads_id: ids.supB, supplier_id: ids.supB });
     const same = docsA.text === docsCross.text;
     const mentionsB = docsCross.text.includes('probe supplier B') || docsCross.text.includes(EMAIL.supB);
+
+    // THE POSITIVE HALF, without which the negative half is vacuous: A's own document must be in
+    // A's own body. If it is not, an empty response would score as a refusal.
+    const A_PATH = 'zz-phase-d-section8/supplier-a/licence-A.pdf';
+    const B_PATH = 'zz-phase-d-section8/supplier-b/licence-B.pdf';
+    const ownVisible = docsA.text.includes(A_PATH);
+    const bLeaked = docsA.text.includes(B_PATH) || docsCross.text.includes(B_PATH);
+
+    // AND THE DIRECT REQUEST. supplier_portal accepts no caller-supplied path, so naming B's file
+    // explicitly is the sharpest form of the question the defect asks.
+    const byPath = await fn('supplier_portal', tok.supA, { action: 'documents', path: B_PATH, doc_path: B_PATH });
+    const byPathLeaked = byPath.text.includes(B_PATH);
+
     record('P2-document-scope', "supplier A reads supplier B's documents",
-      same && !mentionsB ? 'REFUSED_AS_REQUIRED' : 'NOT_REFUSED',
-      `supplier_portal documents as A -> ${docsA.status}; the same call naming B's id -> ${docsCross.status} and the two bodies are ${same ? 'IDENTICAL' : 'DIFFERENT'}; B's identity ${mentionsB ? 'APPEARS' : 'does not appear'} in the cross-tenant response`, docsCross.status);
+      // THE VERDICT IS THE PATHS, NOT THE BYTES. Once each supplier holds a document the body
+      // carries a SIGNED URL, whose token and expiry differ on every call, so byte-identity is no
+      // longer available as evidence and requiring it would have made this probe fail for a reason
+      // that has nothing to do with the defect. Byte-identity is reported and no longer decides.
+      ownVisible && !bLeaked && !byPathLeaked && !mentionsB ? 'REFUSED_AS_REQUIRED' : 'NOT_REFUSED',
+      `each supplier holds ONE document of its own. supplier_portal documents as A -> ${docsA.status} and ${ownVisible ? 'DOES' : 'DOES NOT'} carry A's own path; the same call naming B's id -> ${docsCross.status}, bodies ${same ? 'IDENTICAL' : 'DIFFERENT'}; naming B's path directly -> ${byPath.status}. B's path ${bLeaked || byPathLeaked ? 'LEAKED' : 'appears in none of the three responses'} and B's identity ${mentionsB ? 'APPEARS' : 'does not appear'}. The caller-supplied id and path are both discarded: every path is derived from the leads row claimed_by resolves on the JWT`, docsCross.status);
   }
 
   // ===========================================================================================
@@ -268,9 +321,16 @@ try {
     const needles = [EMAIL.custA, EMAIL.custB, 'section 8 probe customer'];
     const hay = `${inbox.text}\n${opps.text}\n${raw.text}`.toLowerCase();
     const hits = needles.filter((n) => hay.includes(n.toLowerCase()));
+    // Is there an identity to find at all? An inquiry is what carries one onto a supplier surface,
+    // and creating one is forbidden while the automation hold stands, so this is measured rather
+    // than assumed.
+    const pop = (await sql(`select (select count(*) from public.inquiries)       as inquiries,
+                                   (select count(*) from public.inquiry_matches) as matches`))[0];
+    const anythingToFind = Number(pop.inquiries) > 0 && Number(pop.matches) > 0;
+
     record('P3-supplier-surface-body', 'supplier reads raw customer identity from a supplier surface',
-      hits.length === 0 ? 'REFUSED_AS_REQUIRED' : 'NOT_REFUSED',
-      `supplier_api inbox -> ${inbox.status}, supplier_portal opportunities -> ${opps.status}, direct /rest/v1/inquiries -> ${raw.status}/${raw.rows} row(s). Bodies scanned for the two known customer identities: ${hits.length === 0 ? 'no identity value appeared in any body' : 'LEAKED ' + hits.join(', ')}. BOUNDED: 0 inquiries exist, so this proves the surfaces carry no identity and the direct table is unreachable, NOT that a populated payload is masked`, inbox.status);
+      hits.length > 0 ? 'NOT_REFUSED' : (anythingToFind ? 'REFUSED_AS_REQUIRED' : 'NOT_DISCRIMINATED'),
+      `supplier_api inbox -> ${inbox.status}, supplier_portal opportunities -> ${opps.status}, direct /rest/v1/inquiries -> ${raw.status}/${raw.rows} row(s). Bodies scanned for the two known customer identities: ${hits.length === 0 ? 'no identity value appeared in any body' : 'LEAKED ' + hits.join(', ')}. POPULATION: ${pop.inquiries} inquiry/inquiries and ${pop.matches} match(es) exist, so this ${anythingToFind ? 'discriminates a masked payload from a leaked one' : 'proves the surfaces carry no identity and the direct table is unreachable, and CANNOT show that a populated payload is masked — an inquiry is what puts an identity on a supplier surface and creating one is forbidden while the automation hold stands'}`, inbox.status);
 
     // The RPC that returns the candidate set must not answer an unauthenticated caller.
     const rpcAnon = await fetch(`${BASE}/rest/v1/rpc/fn_supplier_opportunities`, {
@@ -553,6 +613,13 @@ try {
        or lead_id in (select id from public.leads where claimed_by in (${emails})))`,
     `delete from public.company_event where entity_id in (select id::text from public.customers where email in (${emails}))`,
     `delete from public.company_event where entity_id in (select id::text from public.leads where claimed_by in (${emails}))`,
+    // The document rows reg_lead_docs registers from a leads path column. They are already deleted
+    // where the fixture is built; this is the arm that runs when the probe dies before that line.
+    // NOTHING here touches public.company_event for the backup sweep: a delete broad enough to
+    // remove OUR backup-failure event would also remove a real one, and hiding a real backup
+    // failure to keep a probe tidy is worse than the residue it cleans.
+    `delete from public.doc_backups where path like 'zz-phase-d-section8/%'`,
+    `delete from public.documents where path like 'zz-phase-d-section8/%'`,
     `delete from public.leads where claimed_by in (${emails}) or email in (${emails})`,
     `delete from public.customers where email in (${emails})`,
   ];
@@ -587,6 +654,7 @@ const end = (await sql(`select
   (select count(*) from net._http_response where created > ${lit(base.t0)}::timestamptz) as http_done,
   (select coalesce(string_agg(distinct left(coalesce(content,''),40), ' | '), '(none)')
      from net._http_response where created > ${lit(base.t0)}::timestamptz) as http_bodies,
+  (select count(*) from public.doc_backups)                 as docbackups,
   (select count(*) from public.leads)                       as leads,
   (select count(*) from public.customers)                   as customers,
   (select count(*) from public.inquiries)                   as inquiries,
@@ -603,6 +671,12 @@ if (Number(end.newhttp) !== 0) drift.push(`net.http_request_queue gained ${end.n
 // Scheduled read-only monitoring stays active under the hold, so a non-zero response count is
 // reported for inspection rather than failed on; the bodies are printed so it can be judged.
 console.log(`  outbound HTTP logged during the run: ${end.http_done} -> ${end.http_bodies}`);
+// THE DOCUMENT ROW WAS NOT THE END OF THE CHAIN. public.documents feeds fn_enqueue_doc_backups,
+// which writes public.doc_backups, and that queue is what cron job 88 drains and retries five
+// times -- it outlives the document that produced it. Two rows survived the deletion of their
+// documents on 23 Aug 2026 and kept the Dropbox sweep failing at 17:15 and 17:30. Counted here so
+// a survivor is a stop and not a note.
+if (end.docbackups !== base.docbackups) drift.push(`doc_backups ${base.docbackups} -> ${end.docbackups}`);
 if (end.leads !== base.leads) drift.push(`leads ${base.leads} -> ${end.leads}`);
 if (end.customers !== base.customers) drift.push(`customers ${base.customers} -> ${end.customers}`);
 if (end.inquiries !== base.inquiries) drift.push(`inquiries ${base.inquiries} -> ${end.inquiries}`);
@@ -614,7 +688,7 @@ if (end.events !== base.events) drift.push(`company_event ${base.events} -> ${en
 
 console.log('\n--- zero effect ---');
 console.log(drift.length === 0
-  ? `  clean: notifications, llm_attempt, outbound HTTP, leads, customers, inquiries, quotes, transactions, company_event and canary identities all returned to their watermark; fn_phase_d_fixture_residue() = 0`
+  ? `  clean: notifications, llm_attempt, outbound HTTP, leads, customers, inquiries, quotes, transactions, doc_backups, company_event and canary identities all returned to their watermark; fn_phase_d_fixture_residue() = 0`
   : `  DRIFT: ${drift.join(' | ')}`);
 
 const refused = results.filter((r) => r.verdict === 'REFUSED_AS_REQUIRED').length;
