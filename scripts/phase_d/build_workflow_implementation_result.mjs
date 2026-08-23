@@ -349,7 +349,7 @@ console.log(`  internal reviews recorded    ${reviews}   CANONICAL_INTERNAL_REVI
 console.log(`  capability fixture results   ${capFixtures}   CAPABILITY_FIXTURE_RESULT`);
 console.log(`  handoffs accepted            ${handoffs}`);
 console.log(`  business effects produced    ${effects}`);
-console.log(`  notification rows written    ${notif}   (records; the fixture stage for the notification object writes one per scenario)`);
+console.log(`  notification rows written    ${notif}   (rows in public.notifications. No Phase D path writes one: the notification object is created as an EXTERNAL_EFFECT_INTENT in public.phase_d_effect_ledger — see docs/phase-d/PHASE_D_NOTIFICATION_OBJECT_DECISION.md — and two kernel boards refuse a write map or a fixture stage that targets the outbound queue)`);
 console.log(`  DELIVERABLE notifications    ${sendable}   (must be 0 — rows a sender would select)`);
 console.log(`  workflow runs left behind    ${runsLeft}   (must be 0)`);
 console.log(`  fixture rows left behind     ${rowsLeft}   (must be 0)`);
