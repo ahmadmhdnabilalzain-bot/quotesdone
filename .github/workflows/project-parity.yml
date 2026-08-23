@@ -157,7 +157,8 @@ jobs:
                    every_discharge_claim_reaches_its_table \
                    application_source_of_truth \
                    anon_cannot_execute_security_definer \
-                   a_failed_scheduled_run_has_a_reader; do
+                   a_failed_scheduled_run_has_a_reader \
+                   pccr_approval_matches_committed_tables; do
             echo "::group::$t"
             out=$(node "scripts/checks/$t.test.mjs" 2>&1); code=$?
             echo "$out"

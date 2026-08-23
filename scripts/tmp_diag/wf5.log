@@ -1,0 +1,44 @@
+  W01 3/8 completed
+  W02 2/9 completed
+  W03 4/9 completed
+  W04 6/7 completed
+  W05 6/9 completed
+  W06 7/7 completed
+  W07 8/8 completed
+  W08 3/8 completed
+  W09 5/9 completed
+  W10 3/8 completed
+  W11 0/7 completed
+  W12 4/9 completed
+  W13 0/7 completed
+  W14 9/9 completed
+  W15 6/9 completed
+  W16 8/9 completed
+  W17 7/11 completed
+  W18 0/7 completed
+  W19 1/7 completed
+  W20 6/9 completed
+  W21 2/8 completed
+  W22 1/7 completed
+  W23 3/9 completed
+  W24 7/10 completed
+  W25 1/8 completed
+  W26 5/9 completed
+  W27 5/10 completed
+  W28 3/9 completed
+  W29 3/10 completed
+  W30 5/11 completed
+PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv  30 rows
+  outbound HTTP requests      0
+  step-openings dispatched     313
+  completed by the handler     134   (the Phase D number)
+  closed through canonical     30 / 30   (§4: every step through a real entry, run terminal)
+  steps closed by handler      134   CANONICAL_HANDLER_EFFECT
+  steps closed by an actor     123   CANONICAL_ACTOR_INPUT
+  internal reviews recorded    36   CANONICAL_INTERNAL_REVIEW
+  capability fixture results   20   CAPABILITY_FIXTURE_RESULT
+  handoffs accepted            159
+  business effects produced    134
+  notifications written        0   (must be 0)
+  workflow runs left behind    0   (must be 0)
+  fixture rows left behind     0   (must be 0)

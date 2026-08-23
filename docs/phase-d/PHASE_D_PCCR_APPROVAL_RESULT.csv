@@ -1,0 +1,28 @@
+# node scripts/phase_d/approve_pccr_amendments.mjs --record | project htdblwldjkcgjvmqkbeh | 5 of 5 recorded Phase C freeze amendments now carrying an approval given inside a verified founder session | attribution: one row per call to public.fn_phase_c_freeze_amendment_approve over PostgREST, each carrying a bearer GoTrue issued for the active founder identity so that auth.uid() resolves inside the routine. approved_by is written from the identity fn_phase_c_require_founder returns and never from the call. The first row is the negative control: the identical call made with the service_role key
+# generated_at: 2026-08-22T21:55:35.617Z
+amendment_id,change_request_ref,subject,outcome,http_status,detail
+(negative control),(none),service_role key on the same RPC,REFUSED,403,not the founder: no verified auth subject on this call. The founder is resolved from auth.uid() or from a subject os_api verified and bound with fn_phase_c_founder_subject_bind; a caller-supplied iden
+1,PCCR-001,canonical_step_engine,APPROVED_IN_VERIFIED_SESSION,200,prior basis (unapproved); approved_by management@quotesdone.com via auth.uid() subject 1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14; retrospective founder ratification; deployed 2026-08-20 00:06:20.148383+00
+2,PCCR-001,canonical_workflow_start_service,APPROVED_IN_VERIFIED_SESSION,200,prior basis (unapproved); approved_by management@quotesdone.com via auth.uid() subject 1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14; retrospective founder ratification; deployed 2026-08-20 00:06:20.148383+00
+4,PCCR-001,component_crosswalk,APPROVED_IN_VERIFIED_SESSION,200,prior basis (unapproved); approved_by management@quotesdone.com via auth.uid() subject 1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14; retrospective founder ratification; deployed 2026-08-20 02:52:41.056994+00
+5,PCCR-002,handoff_service,APPROVED_IN_VERIFIED_SESSION,200,prior basis (unapproved); approved_by management@quotesdone.com via auth.uid() subject 1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14; retrospective founder ratification; deployed 2026-08-20 15:02:54.318413+00
+36,PCCR-003,founder_authentication,REAFFIRMED_IN_VERIFIED_SESSION,200,prior basis WRITTEN_INSTRUCTION; approved_by management@quotesdone.com via auth.uid() subject 1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14; retrospective founder ratification; deployed 2026-08-21 20:20:33.073784+00
+#
+# THE RECORD AS THE DATABASE NOW HOLDS IT
+# amendment 1 PCCR-001 canonical_step_engine: approved_by=management@quotesdone.com at=2026-08-22 21:55:31.128516+00 basis=AUTHENTICATED_FOUNDER_SESSION route=auth.uid() subject=1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14 deployed_before_approval=true original_deployment_at=2026-08-20 00:06:20.148383+00 document_digest=969830f0495bc68067bb8ba3732976bb9f2945d913bcad3815d74472b35603a2
+# amendment 2 PCCR-001 canonical_workflow_start_service: approved_by=management@quotesdone.com at=2026-08-22 21:55:31.250413+00 basis=AUTHENTICATED_FOUNDER_SESSION route=auth.uid() subject=1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14 deployed_before_approval=true original_deployment_at=2026-08-20 00:06:20.148383+00 document_digest=969830f0495bc68067bb8ba3732976bb9f2945d913bcad3815d74472b35603a2
+# amendment 4 PCCR-001 component_crosswalk: approved_by=management@quotesdone.com at=2026-08-22 21:55:31.815873+00 basis=AUTHENTICATED_FOUNDER_SESSION route=auth.uid() subject=1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14 deployed_before_approval=true original_deployment_at=2026-08-20 02:52:41.056994+00 document_digest=969830f0495bc68067bb8ba3732976bb9f2945d913bcad3815d74472b35603a2
+# amendment 5 PCCR-002 handoff_service: approved_by=management@quotesdone.com at=2026-08-22 21:55:31.930864+00 basis=AUTHENTICATED_FOUNDER_SESSION route=auth.uid() subject=1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14 deployed_before_approval=true original_deployment_at=2026-08-20 15:02:54.318413+00 document_digest=969830f0495bc68067bb8ba3732976bb9f2945d913bcad3815d74472b35603a2
+# amendment 36 PCCR-003 founder_authentication: approved_by=management@quotesdone.com at=2026-08-22 21:55:32.166844+00 basis=AUTHENTICATED_FOUNDER_SESSION route=auth.uid() subject=1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14 deployed_before_approval=true original_deployment_at=2026-08-21 20:20:33.073784+00 document_digest=969830f0495bc68067bb8ba3732976bb9f2945d913bcad3815d74472b35603a2
+#
+# AMENDMENT TABLES DIGEST: sha256(docs/phase-d/PHASE_D_PCCR_AMENDMENT_TABLES.md) = 969830f0495bc68067bb8ba3732976bb9f2945d913bcad3815d74472b35603a2
+#
+# FREEZE BOARD, RE-READ AFTER THE APPROVALS
+# ok   frozen_subjects_drifted: expected 0, got 0 of 25
+# ok   frozen_subjects_whose_object_no_longer_exists: expected 0, got 0 of 25
+# ok   frozen_subjects_changed_under_a_recorded_amendment: expected informational, got 5 of 25
+# ok   change_request_reference_is_enforced: expected 3, got 3 of 3 (shape check, foreign key to phase_c_change_request, NOT NULL)
+# ok   amendments_whose_change_request_is_unregistered: expected 0, got 0 of 5
+# ok   amendments_awaiting_founder_approval: expected 0, got 0 of 5 await the founder (change requests named: PCCR-001, PCCR-002, PCCR-003). Cleared only while approved_by RESOLVES to one of the 2 active identities in public.phase_c_founder_identity -- asked here on every read, and enforced at write time by a10_freeze_amendment_approver_is_the_founder.
+# ok   amendments_approved_on_written_instruction_only: expected 0, got 0 of 5 (change requests: (none)). An approval recorded from a written instruction is not a founder session. Cleared only by re-approval through a verified auth subject, which no migration can perform.
+# ok   raw_frozen_subjects: expected informational, got 25 of 25

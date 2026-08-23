@@ -102,7 +102,10 @@ const REVOKED = [
 
 // Measured on production 20 Aug 2026 immediately after E4, with has_function_privilege.
 const ANON_CEILING = 0;
-const AUTHENTICATED_CEILING = 4;
+// 23 Aug 2026: 4 -> 5. fn_phase_c_freeze_amendment_approve joins the named set below, reviewed the
+// same three ways. The ceiling and the named set are both asserted, so raising one without adding
+// the other still fails — which is the property that makes this pair worth keeping.
+const AUTHENTICATED_CEILING = 5;
 
 // The only SECURITY DEFINER routines in public that a signed-in client role may execute, and the
 // reason each one is here. Pinned by name: a bare count would stay green if one of these closed
@@ -135,6 +138,27 @@ const AUTHENTICATED_BY_DESIGN = {
   fn_founder_command_control:
     'called with the founder\'s own verified JWT from os_api (asCaller); same routine, same reason'
     + ' (PCCR-003)',
+  // G01, 23 Aug 2026 — reviewed the same three ways this file asks for.
+  //
+  // WHO: the founder, over PostgREST, with a bearer GoTrue issued for his own active identity.
+  // WITH WHICH CLIENT: the anon key plus that bearer, so PostgREST sets the request JWT claims and
+  // auth.uid() resolves inside the routine. NAMED IN AN RLS POLICY: no.
+  //
+  // The routine's FIRST statement is fn_phase_c_require_founder(null), so this grant NARROWS the
+  // caller set rather than widening it: a signed-in customer or supplier gets 28000, and so does
+  // anyone holding service_role. That was measured before any approval was recorded and is the
+  // first row of docs/phase-d/PHASE_D_PCCR_APPROVAL_RESULT.csv — the identical call with the
+  // service_role key returns 403, "not the founder". approved_by is written from the identity that
+  // resolver returns and never from the input, which is E39's vector staying closed.
+  //
+  // Without the grant there is no door a founder session can open, and the freeze board's own text
+  // says the written-instruction approval is "cleared only by re-approval through a verified auth
+  // subject, which no migration can perform".
+  fn_phase_c_freeze_amendment_approve:
+    'called with the founder\'s own GoTrue-issued bearer over PostgREST; its first statement is'
+    + ' fn_phase_c_require_founder(null), so service_role and every other signed-in role are refused'
+    + ' — the grant is what lets the founder approve and the routine is what stops everyone else'
+    + ' (G01)',
 };
 
 let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [], clientWritable = [];
