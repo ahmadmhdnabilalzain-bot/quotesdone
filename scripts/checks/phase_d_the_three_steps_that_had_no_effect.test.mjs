@@ -60,7 +60,7 @@ const PRE = (wf, label) => `
     from public.phase_b_workflow_step x where coalesce(btrim(x.independent_reviewer_role_id),'') <> '';
   v_fx := public.fn_phase_d_fixture_scenario(jsonb_build_object(
     'label','${label}','execution_context','test',
-    'for_workflow', case when '${wf}' = 'W12' then '${wf}' else null end));
+    'for_workflow', '${wf}'));
   select coalesce((select x.independent_reviewer_role_id from public.phase_b_workflow_step x
     where x.workflow_id='${wf}' and coalesce(btrim(x.independent_reviewer_role_id),'')<>''
     order by x.step_id limit 1),'risk_and_governance_manager') into v_rev;

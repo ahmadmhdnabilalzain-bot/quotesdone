@@ -73,7 +73,7 @@ begin
       -- Measured: applying it to W16 as well dropped W16 from 4/9 to 1/9, and the D9 measurement of
       -- the un-narrowed version was closure 14 -> 3. W12 dispatches to the supplier_assignment the
       -- factory seeds, so W12 is where it is used, and the row records it.
-      'for_workflow', case when wf.workflow_id = 'W12' then wf.workflow_id else null end));
+      'for_workflow', wf.workflow_id));
 
     select coalesce(
       (select s.independent_reviewer_role_id from public.phase_b_workflow_step s

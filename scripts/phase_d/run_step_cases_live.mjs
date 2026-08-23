@@ -80,7 +80,7 @@ begin
     from public.phase_b_workflow_step x where coalesce(btrim(x.independent_reviewer_role_id),'') <> '';
   v_fx := public.fn_phase_d_fixture_scenario(jsonb_build_object(
     'label','case-${step.toLowerCase()}','execution_context','test',
-    'for_workflow', case when '${wf}' = 'W12' then '${wf}' else null end));
+    'for_workflow', '${wf}'));
   select st.contributes_ref into v_ref_key from public.phase_d_fixture_stage st
    where st.object_id = (select primary_object from public.phase_b_workflow where workflow_id='${wf}')
    limit 1;
@@ -283,7 +283,7 @@ begin
     from public.phase_b_workflow_step x where coalesce(btrim(x.independent_reviewer_role_id),'') <> '';
   v_fx := public.fn_phase_d_fixture_scenario(jsonb_build_object(
     'label','pos-${step.toLowerCase()}','execution_context','test',
-    'for_workflow', case when '${wf}' = 'W12' then '${wf}' else null end));
+    'for_workflow', '${wf}'));
   select count(*) into v_e0 from public.phase_d_effect_ledger;
   select st.contributes_ref into v_ref_key from public.phase_d_fixture_stage st
    where st.object_id = (select primary_object from public.phase_b_workflow where workflow_id='${wf}')

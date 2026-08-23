@@ -52,7 +52,7 @@ begin
 
   v_fx := public.fn_phase_d_fixture_scenario(jsonb_build_object(
     'label','evidence-__WF__', 'execution_context','test',
-    'for_workflow', case when '__WF__' = 'W12' then '__WF__' else null end));
+    'for_workflow', '__WF__'));
 
   select coalesce(
     (select s.independent_reviewer_role_id from public.phase_b_workflow_step s
