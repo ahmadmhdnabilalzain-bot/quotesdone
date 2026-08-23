@@ -11,8 +11,9 @@ is stated next to it rather than left to be discovered.
 | | |
 |---|---|
 | branch | `phase-d-closing-committed-scenario` |
+| pull request | [#463](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/463) |
 | base | `main @ a9ed8f3` (PRs #461 and #462 merged) |
-| applied production-direct | L01–L04, M01–M07, each `node scripts/apply_sql.mjs <file> --apply --ddl`, each read back and identical to the file |
+| applied production-direct | L01–L04, M01–M09, each `node scripts/apply_sql.mjs <file> --apply --ddl`, each read back and identical to the file |
 | Supabase project | `htdblwldjkcgjvmqkbeh`, the only one |
 
 ---
