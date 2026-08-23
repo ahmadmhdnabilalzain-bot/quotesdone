@@ -416,7 +416,7 @@ Stated because a narrow check does not license a broad claim.
 
 ## 9. Final measurements
 
-Taken after the last run of the session, 21:22 UTC on 23 Aug 2026 (Dubai is UTC+4).
+Taken after the last run of the session, 22:19 UTC on 23 Aug 2026 (Dubai is UTC+4, so 02:19 on the 24th locally).
 
 ### Phase D
 
