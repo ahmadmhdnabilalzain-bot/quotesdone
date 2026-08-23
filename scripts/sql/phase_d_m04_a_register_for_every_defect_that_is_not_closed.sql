@@ -21,10 +21,18 @@
 create table if not exists public.phase_d_injected_defect_disposition (
   defect_id                     text primary key,
   category                      text not null,
+  -- NAMED, NOT AUTO-NAMED, AND FOR TWO MEASURED REASONS. scripts/checks/canonical_routine_manifest.mjs
+  -- reconstructs an inline constraint's auto-generated name by scanning the column's own LINE, so a
+  -- CHECK written on the next line is invisible to it; and Postgres truncates a generated name at 63
+  -- characters, which turned this table's longest one into
+  -- phase_d_injected_defect_disp_what_would_make_it_executabl_check -- a name that appears in no
+  -- file by construction. Both were measured on 24 Aug 2026 as "uncommitted application DDL 2".
   disposition                   text not null
-    check (disposition in ('PERMANENT_EXEMPTION','DEFERRED_TO_A_BUILT_PATH')),
-  reason                        text not null check (length(btrim(reason)) > 40),
-  what_would_make_it_executable text not null check (length(btrim(what_would_make_it_executable)) > 20),
+    constraint phase_d_disposition_value_ck check (disposition in ('PERMANENT_EXEMPTION','DEFERRED_TO_A_BUILT_PATH')),
+  reason                        text not null
+    constraint phase_d_disposition_reason_ck check (length(btrim(reason)) > 40),
+  what_would_make_it_executable text not null
+    constraint phase_d_disposition_next_ck check (length(btrim(what_would_make_it_executable)) > 20),
   decided_at                    timestamptz not null default now()
 );
 revoke all on public.phase_d_injected_defect_disposition from public;
