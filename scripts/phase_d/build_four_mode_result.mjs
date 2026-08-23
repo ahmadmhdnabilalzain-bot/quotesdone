@@ -66,6 +66,8 @@ begin
   v := public.fn_phase_d_drive_workflow(jsonb_build_object(
     'workflow_id','${wf}','label','fm-${wf.toLowerCase()}',
     'execution_context','production','reviewer_role_id',v_rev,'reviewer_candidates',v_cands)
+    -- THE HAPPY ARM KEEPS THE REAL OBJECT THE SCENARIO CREATED. Only the failure and cancellation
+    -- arms below name an identity that resolves to nothing, and they do it deliberately.
     || case when v_boid is null then '{}'::jsonb else jsonb_build_object('business_object_id',v_boid) end);
   select count(*) into v_eff_after from public.phase_d_effect_ledger;
 
@@ -95,14 +97,32 @@ begin
   -- failure applied to a finished run measures nothing: the first version of this file recorded
   -- cancel=completed for all 30 because it cancelled runs that had already completed. max_steps 1
   -- leaves a step open, which is the only state in which either path means anything.
+  --
+  -- 23 AUG 2026 — max_steps STOPPED BEING ABLE TO LEAVE A STEP OPEN, AND THE NUMBER FELL AS THE
+  -- HANDLER IMPROVED. Since PCCR-001 the kernel dispatches at step OPENING, so a handler that can
+  -- execute completes its step, the kernel opens the successor and dispatches that, and the whole
+  -- run cascades to terminal INSIDE fn_kernel_workflow_start -- before this driver's max_steps is
+  -- consulted at all. Measured: failure path exercised fell 16 -> 4 of 30 and cancellation
+  -- 16 -> 9, entirely because more handlers now succeed. Every REFUSED:22023 below was
+  -- "step_run_id ... required (got (null))" -- the probe had no open step to act on.
+  --
+  -- That is F38 and G07 a third time, and the fix is the same shape: the probe MAKES the condition
+  -- it tests instead of hoping the run is left in it. business_object_id names an identity that
+  -- resolves to no row, so the step-context resolver reports row_found false, every rule that
+  -- reads the subject refuses, the handler cannot execute, and step 1 stays OPEN with the run
+  -- ACTIVE. That is not a harness trick: "violating or missing evidence" is literally what the
+  -- founder's section 9A asks this path to be driven with, and this is the estate refusing it.
   v3 := public.fn_phase_d_drive_workflow(jsonb_build_object(
     'workflow_id','__WF__','label','fmfail-__WFL__',
+    -- An identity of the right SHAPE that names nothing. A bare object name would fail the
+    -- '<object>:' prefix test and never reach the resolver at all.
+    'business_object_id', (select w2.primary_object from public.phase_b_workflow w2
+                            where w2.workflow_id = '__WF__') || ':00000000-0000-0000-0000-000000000000',
     'execution_context','production','reviewer_role_id',v_rev,'reviewer_candidates',v_cands,
     -- max_steps 0 OPENS the run and drives nothing, so its first step is still open. With 1 the
     -- driver completed that step and the run moved to waiting_review, leaving nothing to fail:
     -- measured, 20 of 30 came back "step_run_id ... required (got (null))".
-    'max_steps', 0)
-    || case when v_boid is null then '{}'::jsonb else jsonb_build_object('business_object_id',v_boid) end);
+    'max_steps', 0));
   select * into sr from public.phase_c_workflow_step_run
    where run_id = (v3->>'run_id')::bigint
      and state in ('ready','active','not_ready','waiting_input','waiting_review','blocked')
@@ -134,14 +154,18 @@ begin
   -- actor_role_id and was refused with 22023 on all 30.
   v4 := public.fn_phase_d_drive_workflow(jsonb_build_object(
     'workflow_id','__WF__','label','fmcan-__WFL__',
+    -- 23 Aug 2026: the same correction as the failure arm above, for the same reason. A run that
+    -- cascaded to completed is not cancellable and fn_kernel_cancel is right to refuse it; a run
+    -- stopped at its first step by missing evidence is exactly the run a person cancels.
+    'business_object_id', (select w2.primary_object from public.phase_b_workflow w2
+                            where w2.workflow_id = '__WF__') || ':00000000-0000-0000-0000-000000000000',
     'execution_context','production','reviewer_role_id',v_rev,'reviewer_candidates',v_cands,
     -- Same reason, and a second one: the frozen Phase B state model does not declare
     -- waiting_review -> cancelled, so cancelling a run the driver had already pushed into
     -- waiting_review was refused by the MODEL rather than by the cancellation service. Measured on
     -- W24, W27 and W29. That refusal is the frozen model working, and where it still happens it is
     -- recorded per row rather than engineered around.
-    'max_steps', 0)
-    || case when v_boid is null then '{}'::jsonb else jsonb_build_object('business_object_id',v_boid) end);
+    'max_steps', 0));
   begin
     perform public.fn_kernel_cancel(jsonb_build_object(
       'subject_kind','workflow_run', 'subject_ref', (v4->>'run_id'), 'op','cancel',

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-22T23:58:23.310Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-23T00:56:31.132Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -53671,6 +53671,7 @@ declare
   v_id    bigint;
   v_msg   bigint;
   v_text  text;
+  v_trace bigint;   -- G19: the root trace the guard requires before the command may move
 begin
   if v_run is null then
     raise exception 'fn_phase_d_founder_authority_fixture: no verified Phase D fixture context. A founder command fixture exists only inside an audited fixture run, inside a transaction that is aborted. (pd_fixture_no_test_context)'
@@ -53712,6 +53713,27 @@ begin
           false,
           false)
   returning command_id into v_id;
+
+  -- G19. THE ROOT TRACE, OPENED THE WAY THE ROUTER OPENS IT.
+  -- Without this the command is stuck at 'received' for the rest of its life:
+  -- fn_founder_command_trace_guard refuses every later transition with "cannot leave received
+  -- without a root trace", and that refusal is correct. The command is created at received above
+  -- (the one state the guard allows trace-less at birth) and the trace is stamped on it here, in
+  -- the same transaction, which is the sequence the guard's own comment describes.
+  v_trace := public.fn_phase_c_trace_write('TRACE-FOUNDER-COMMAND', jsonb_build_object(
+    'subject_kind',   'founder_command',
+    'subject_ref',    v_id::text,
+    'command_id',     v_id,
+    'actor_role_id',  'chief_of_staff',
+    'system_actor_id','fn_phase_d_founder_authority_fixture',
+    'state_before',   '',
+    'state_after',    'received',
+    'status',         'open',
+    'evidence_refs',  jsonb_build_array(jsonb_build_object(
+      'phase_d_fixture_run', v_run, 'label', v_label,
+      'note', 'PHASE_D_FIXTURE_DO_NOT_PUBLISH — the root trace of a Phase D fixture founder command. It records that this command exists inside an aborted fixture transaction and authorises nothing.'))));
+
+  update public.founder_command set trace_id = v_trace where command_id = v_id;
 
   perform public.fn_phase_d_scenario_record_write(jsonb_build_object(
     'fixture_id',        'PDS-founder_authority',

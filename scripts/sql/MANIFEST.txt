@@ -1622,3 +1622,4 @@ scripts/sql/phase_d_g17_two_boards_said_no_and_they_were_written_for_this.sql
 
 [OK] Command outcome recorded
 scripts/sql/phase_d_g18_the_caller_was_whoever_owned_the_row.sql
+scripts/sql/phase_d_g19_a_founder_command_born_without_the_trace_that_lets_it_move.sql
