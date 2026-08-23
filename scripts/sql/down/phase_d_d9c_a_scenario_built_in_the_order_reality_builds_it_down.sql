@@ -49,4 +49,10 @@ begin
   raise notice 'D9c down: phase_d_fixture_stage is gone, and with it the d20/d23/d24 additions to that table.';
 end $ctl$;
 
+
+-- ---- ROUTINES THIS FILE INTRODUCED ------------------------------------------------------
+-- Added 23 Aug 2026. Every routine below is defined by no other file under scripts/sql/, so
+-- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
+-- Anything still calling one of them will raise on a missing function after this rollback.
+drop function if exists public.fn_phase_d_fixture_residue();
 commit;

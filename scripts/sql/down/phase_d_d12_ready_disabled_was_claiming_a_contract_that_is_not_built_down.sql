@@ -107,4 +107,10 @@ begin
   raise notice 'D12 down: phase_d_step_effect_depth_ck is back to the eight values of d7:80-82, and phase_d_external_adapter_field is gone.';
 end $ctl$;
 
+
+-- ---- ROUTINES THIS FILE INTRODUCED ------------------------------------------------------
+-- Added 23 Aug 2026. Every routine below is defined by no other file under scripts/sql/, so
+-- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
+-- Anything still calling one of them will raise on a missing function after this rollback.
+drop function if exists public.fn_phase_d_adapter_state();
 commit;

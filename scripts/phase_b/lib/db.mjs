@@ -19,11 +19,33 @@ function token() {
 
 export async function sql(query, { ref = PROJECT_REF } = {}) {
   for (let attempt = 0; ; attempt++) {
-    const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    });
+    // THE CONNECTION ITSELF WAS THE ONE FAILURE THIS RETRY DID NOT COVER. A 429 and a 5xx were
+    // retried; a fetch that THROWS -- ECONNRESET, "fetch failed", a socket hang up -- escaped and
+    // killed the caller. Measured 23 Aug 2026: three separate Phase D deliverable builds died
+    // part-way through with "the drive for W12 failed before it could report: fetch failed", and a
+    // half-built deliverable is exactly what this file's header says the backoff exists to prevent.
+    // A dropped connection reads like a broken query too.
+    //
+    // Every caller of this helper either reads, or writes inside a transaction that ends in
+    // `raise exception`, so re-issuing the statement cannot double-apply anything. The retry is
+    // loud, so a run that needed it says so.
+    let res;
+    try {
+      res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+    } catch (err) {
+      if (attempt < 5) {
+        const wait = Math.min(2000 * 2 ** attempt, 30000);
+        process.stderr.write(`-- transport ${err?.cause?.code || err?.message || 'error'}; `
+          + `retry in ${wait / 1000}s (${attempt + 1}/5)\n`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      throw err;
+    }
     const text = await res.text();
     if ((res.status === 429 || res.status >= 500) && attempt < 7) {
       const wait = Math.min(2000 * 2 ** attempt, 60000);

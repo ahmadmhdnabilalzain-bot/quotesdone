@@ -49,4 +49,12 @@ begin
   raise notice 'D10 down: phase_d_step_case_result is gone, and with it 1,799 recorded case outcomes.';
 end $ctl$;
 
+
+-- ---- ROUTINES THIS FILE INTRODUCED ------------------------------------------------------
+-- Added 23 Aug 2026. Every routine below is defined by no other file under scripts/sql/, so
+-- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
+-- Anything still calling one of them will raise on a missing function after this rollback.
+drop function if exists public.fn_phase_d_step_cases(p_step_id text);
+drop function if exists public.fn_phase_d_run_step_cases();
+drop function if exists public.fn_phase_d_case_state();
 commit;
